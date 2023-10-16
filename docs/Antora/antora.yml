@@ -1,0 +1,14 @@
+name: opendaq
+title: openDAQ Documentation
+version: 2.0.0.0
+start_page: ROOT:introduction.adoc
+asciidoc:
+  attributes:
+    page-toclevels: 3@
+    experimental: true
+nav:
+- modules/getting_started/nav-getting_started.adoc
+- modules/howto_guides/nav-howto-guides.adoc
+- modules/background_info/nav-background_info.adoc
+- modules/glossary/nav-glossary.adoc
+

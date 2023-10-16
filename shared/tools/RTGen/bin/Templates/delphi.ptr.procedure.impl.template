@@ -1,0 +1,10 @@
+﻿procedure T$NonInterfaceType$Ptr$PtrTemplateImplementation$.$Name$($Arguments$);
+var
+  Err: ErrCode;$InterfaceArgs$
+begin
+  if not Assigned(FObject) then
+    raise ERTInvalidParameterException.Create('Interface object is nil.');$PtrNullChecks$
+
+  Err := FObject.$Name$($ArgumentNames$);
+  CheckRtErrorInfo(Err);
+end;

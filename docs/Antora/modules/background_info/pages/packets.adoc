@@ -1,0 +1,9 @@
+= Packets
+
+:note-caption: TODO
+[NOTE]
+====
+* What is a packet
+* Types of packet
+* Creating and using packets
+====

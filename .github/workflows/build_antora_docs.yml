@@ -1,0 +1,44 @@
+name: Build openDAQ SDK documentation
+on:
+  workflow_dispatch:
+
+env:
+  site_path: ${{ github.workspace }}/build/site/
+  site_zip: ${{ github.workspace }}/build/user_guide.zip
+jobs:
+  build_documentation:
+    runs-on: ubuntu-22.04
+    name: Build SDK Documentation
+    timeout-minutes: 2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install Antora
+        run: npm i antora
+
+      - name: Install Antora extensions
+        run: |
+          npm i @asciidoctor/tabs
+          npm i @springio/antora-extensions
+
+      - name: Run Antora
+        run: >
+          npx antora antora-playbook.yml
+
+      - name: Compress Documentation
+        working-directory: ${{ env.site_path }}
+        run: zip -r ${{ env.site_zip }} .
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: openDAQ_SDK_User_Guide
+          path: ${{ env.site_zip }}
+          retention-days: 7

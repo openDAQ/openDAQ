@@ -1,0 +1,206 @@
+= Configure Function Block
+
+openDAQ(TM) provides processing features through xref:background_info:function_blocks.adoc[Function Blocks].
+They can process Signals either on a xref:background_info:device.adoc[Device] or on a host PC where the SDK
+is running.
+
+:tip-caption: Averager Function Block
+[TIP]
+====
+The SDK is bundled with a few Function Blocks:
+
+ * Renderer (displays Signal on a desktop window)
+ * Averager (calculates average and RMS from an input Signal)
+ * Power (calculates DC power from the input voltage and current Signal)
+ 
+These Function Blocks serve as an example of what is possible to achieve with openDAQ(TM) SDK. They are not
+meant to be used in production code.
+
+The following examples use the Averager Function Block to show how to configure a Function Block.
+It is possible to use any other bundled or custom function block. However, Input Ports, output Signals, and
+properties in code snippets are specific to the Averager function block. Other function blocks may have
+different Input Ports, output Signals, and properties.
+====
+
+== Listing properties
+
+Most of the Function Blocks contain some properties which configure the behavior of the Function Block.
+Since the Function Block inherits from a property object it is possible to get a list of visible properties.
+Visible properties are those that are expected to be configured from the client code.
+ 
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+ListPtr<IProperty> functionBlockProperties = functionBlock.getVisibleProperties();
+for (const auto& prop : functionBlockProperties)
+    std::cout << prop.getName() << std::endl;
+----
+Python::
++
+[source,python]
+----
+function_block_properties = function_block.visible_properties
+for prop in function_block_properties:
+    print(prop.name)
+---- 
+====
+
+== Reading and configuring properties
+
+The Function Block will provide default values for the properties, but they can be set to other values. In the example
+snippet for the Averager Function Block we print the current block size and then set it to 100 samples.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+Int currentBlockSize = functionBlock.getPropertyValue("BlockSize");
+std::cout << "Current block size is " << currentBlockSize << std::endl;
+functionBlock.setPropertyValue("BlockSize", 100);
+----
+Python::
++
+[source,python]
+----
+currentBlockSize = function_block.get_property_value("BlockSize")
+print("Current block size is %d" % (currentBlockSize))
+function_block.set_property_value("BlockSize", 100)
+---- 
+====
+
+:note-caption: Live update of configuration
+[NOTE]
+====
+What happens when a property is changed on a function while processing data depends on the implementation of the
+Function Block. In the case of the Averager Function Block when the BlockSize property is changed it will reconfigure the
+domain Signal (new sample rate) of the output Signal and it will continue to produce the packets.
+====
+
+== Connecting Function Block Input Ports
+
+Function blocks that process data require that their xref:background_info:data_path.adoc#input_port[Input Ports] connect to 
+Signals. Function blocks can have a variable number of Input Ports. The Averager Function Block provides one Input Port that 
+is required to calculate the average value. Once the Input Port is connected, the output Signal will start to produce the data.
+ 
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+functionBlock.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
+SignalPtr outputSignal = functionBlock.getSignals()[0];
+// read data from the signal
+// ...
+----
+Python::
++
+[source,python]
+----
+function_block.input_ports[0].connect(device.channels[0].signals[0])
+output_signal = function_block.signals[0]
+# read data from the signal
+# ...
+---- 
+====
+
+:note-caption: Dynamic input ports
+[NOTE]
+====
+Some function blocks may have a variable number of input ports. Input ports can be created or destroyed on a function block when
+its property is changed or its input port is connected or disconnected. The behavior depends on the implementation of the function block.
+====
+
+== Full listing
+
+The following is a fully working example of configuring and connecting Function Blocks.
+
+.The full example code listing
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+using namespace daq;
+
+// Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
+int main()
+{
+    // Create an openDAQ(TM) instance, loading modules from the current directory
+    InstancePtr instance = Instance(MODULE_PATH);
+
+    // add simulated device
+    DevicePtr device = instance.addDevice("daqref://device0");
+
+    // add function block on the host computer
+    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_averager");
+
+    // list properties of the function block
+    ListPtr<IProperty> functionBlockProperties = functionBlock.getVisibleProperties();
+    for (const auto& prop : functionBlockProperties)
+        std::cout << prop.getName() << std::endl;
+
+    // print current block size
+    Int currentBlockSize = functionBlock.getPropertyValue("BlockSize");
+    std::cout << "Current block size is " << currentBlockSize << std::endl;
+
+    // configure the properties of the function block
+    functionBlock.setPropertyValue("BlockSize", 100);
+
+    // connect the first signal of the first channel from the device to the first input port on the function block
+    functionBlock.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
+
+    // get the output signal of the function block
+    SignalPtr outputSignal = functionBlock.getSignals()[0];
+
+    std::cout << signal.getDescriptor().getName() << std::endl;
+    
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+import opendaq
+
+# Create an openDAQ(TM) instance, loading modules from the current directory
+instance = opendaq.Instance()
+
+# add simulated device
+device = instance.add_device('daqref://device0')
+
+# add function block on the host computer
+function_block = instance.add_function_block("ref_fb_module_averager")
+
+#list properties of the function block
+function_block_properties = function_block.visible_properties
+for prop in function_block_properties:
+    print(prop.name)
+
+# print current block size
+currentBlockSize = function_block.get_property_value("BlockSize")
+print("Current block size is %d" % (currentBlockSize))
+
+# configure the properties of the function block
+function_block.set_property_value("BlockSize", 100)
+
+# connect the first signal of the first channel from the device to the first input port on the function block
+function_block.input_ports[0].connect(device.channels[0].signals[0])
+
+# get the output signal of the function block
+output_signal = function_block.signals[0]
+
+# wait while the output signal is configured
+print(otuput_signal.descriptor.name)
+----
+====

@@ -1,0 +1,14 @@
+<?xml version="1.0" standalone='no'?><!--*-nxml-*-->
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="yes">%h</name>
+  <service>
+    <type>_opendaq-streaming-native._tcp</type>
+    <port>7420</port>
+    <txt-record>name=Device 1</txt-record>
+    <txt-record>model=Reference device</txt-record>
+    <txt-record>serialNumber=dev_ser_1</txt-record>
+    <txt-record>caps=OPENDAQ_NS</txt-record>
+    <txt-record>path=/</txt-record>
+  </service>
+</service-group>

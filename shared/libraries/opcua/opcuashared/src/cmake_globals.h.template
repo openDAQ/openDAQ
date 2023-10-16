@@ -1,0 +1,20 @@
+#pragma once
+#include <opcuashared/opcua.h>
+#include <string>
+
+BEGIN_NAMESPACE_OPENDAQ_OPCUA
+
+class CmakeGlobals
+{
+public:
+    static const std::string ResDirPath;
+
+    static std::string ResDirFile(std::string file)
+    {
+        return ResDirPath + "/" + file;
+    }
+};
+
+const std::string CmakeGlobals::ResDirPath = "@RES_DIR_PATH@/";
+
+END_NAMESPACE_OPENDAQ_OPCUA

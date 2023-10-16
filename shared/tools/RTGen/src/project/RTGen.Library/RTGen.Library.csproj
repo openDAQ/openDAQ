@@ -1,0 +1,203 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\MSBuild.ILMerge.Task.1.1.3\build\MSBuild.ILMerge.Task.props" Condition="Exists('..\packages\MSBuild.ILMerge.Task.1.1.3\build\MSBuild.ILMerge.Task.props')" />
+  <Import Project="..\packages\ILMerge.3.0.41\build\ILMerge.props" Condition="Exists('..\packages\ILMerge.3.0.41\build\ILMerge.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{11C0C1B8-EAFE-4354-90BF-95236756EACB}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>RTGen</RootNamespace>
+    <AssemblyName>RTGen.Library</AssemblyName>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>..\bin\Debug\RTGen.Library.xml</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="LightInject, Version=5.5.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\LightInject.5.5.0\lib\net46\LightInject.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.IO" />
+    <Reference Include="System.Linq.Expressions" />
+    <Reference Include="System.Runtime" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Threading.Tasks" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Attributes\AttributeParser.cs" />
+    <Compile Include="Attributes\PropertyClassAttribute.cs" />
+    <Compile Include="Exceptions\ParserSemanticException.cs" />
+    <Compile Include="Generation\BaseGenerator.cs" />
+    <Compile Include="Generation\FallbackGenerator.cs" />
+    <Compile Include="Generation\TemplateGenerator.cs" />
+    <Compile Include="Interfaces\ArrayExtent.cs" />
+    <Compile Include="Interfaces\EventMethodType.cs" />
+    <Compile Include="Interfaces\FileFeatures.cs" />
+    <Compile Include="Interfaces\IArgumentInfo.cs" />
+    <Compile Include="Interfaces\IArray.cs" />
+    <Compile Include="Interfaces\ICloneable.cs" />
+    <Compile Include="Interfaces\IConfigGenerator.cs" />
+    <Compile Include="Interfaces\IEvent.cs" />
+    <Compile Include="Interfaces\IGenerator.cs" />
+    <Compile Include="Interfaces\IArgument.cs" />
+    <Compile Include="Interfaces\IEnumeration.cs" />
+    <Compile Include="Interfaces\IEnumOption.cs" />
+    <Compile Include="Interfaces\IGeneratorOptions.cs" />
+    <Compile Include="Interfaces\IGetSet.cs" />
+    <Compile Include="Interfaces\ILibraryInfo.cs" />
+    <Compile Include="Interfaces\IOptions.cs" />
+    <Compile Include="Interfaces\IOverload.cs" />
+    <Compile Include="Interfaces\IProperty.cs" />
+    <Compile Include="Interfaces\IReadOnlyOptions.cs" />
+    <Compile Include="Interfaces\IRTAttributeArgument.cs" />
+    <Compile Include="Interfaces\IRTFactory.cs" />
+    <Compile Include="Interfaces\IRTFile.cs" />
+    <Compile Include="Interfaces\IMethod.cs" />
+    <Compile Include="Interfaces\INamespace.cs" />
+    <Compile Include="Interfaces\IParser.cs" />
+    <Compile Include="Interfaces\IParserOptions.cs" />
+    <Compile Include="Interfaces\IRTAttribute.cs" />
+    <Compile Include="Interfaces\IRTInterface.cs" />
+    <Compile Include="Interfaces\ISampleTypes.cs" />
+    <Compile Include="Interfaces\ISmartPtr.cs" />
+    <Compile Include="Interfaces\ITypeName.cs" />
+    <Compile Include="Interfaces\IVariable.cs" />
+    <Compile Include="Exceptions\TemplateNotFoundException.cs" />
+    <Compile Include="Interfaces\CoreType.cs" />
+    <Compile Include="Interfaces\IVersionInfo.cs" />
+    <Compile Include="Interfaces\IWrapperType.cs" />
+    <Compile Include="Interfaces\ITypeFlags.cs" />
+    <Compile Include="Interfaces\Doc\ElementType.cs" />
+    <Compile Include="Interfaces\Doc\IDocAttribute.cs" />
+    <Compile Include="Interfaces\Doc\IDocBrief.cs" />
+    <Compile Include="Interfaces\Doc\IDocComment.cs" />
+    <Compile Include="Interfaces\Doc\IDocDescription.cs" />
+    <Compile Include="Interfaces\Doc\IDocElement.cs" />
+    <Compile Include="Interfaces\Doc\IDocLine.cs" />
+    <Compile Include="Interfaces\Doc\IDocParam.cs" />
+    <Compile Include="Interfaces\Doc\IDocParamRef.cs" />
+    <Compile Include="Interfaces\Doc\IDocPrivate.cs" />
+    <Compile Include="Interfaces\Doc\IDocRetVal.cs" />
+    <Compile Include="Interfaces\Doc\IDocTag.cs" />
+    <Compile Include="Interfaces\Doc\IDocText.cs" />
+    <Compile Include="Interfaces\Doc\IDocThrows.cs" />
+    <Compile Include="Interfaces\Doc\IUnknownTag.cs" />
+    <Compile Include="Interfaces\Doc\TagType.cs" />
+    <Compile Include="Types\ArgumentInfo.cs" />
+    <Compile Include="Types\Array.cs" />
+    <Compile Include="Interfaces\IRTFactorySpecialization.cs" />
+    <Compile Include="Types\Doc\DocAttribute.cs" />
+    <Compile Include="Types\Doc\DocBrief.cs" />
+    <Compile Include="Types\Doc\DocDescription.cs" />
+    <Compile Include="Types\Doc\DocElement.cs" />
+    <Compile Include="Types\Doc\DocLine.cs" />
+    <Compile Include="Types\Doc\DocParam.cs" />
+    <Compile Include="Types\Doc\DocParamRef.cs" />
+    <Compile Include="Types\Doc\DocPrivate.cs" />
+    <Compile Include="Types\Doc\DocRetVal.cs" />
+    <Compile Include="Types\Doc\DocTag.cs" />
+    <Compile Include="Types\Doc\DocText.cs" />
+    <Compile Include="Types\Doc\DocThrows.cs" />
+    <Compile Include="Types\Doc\DocComment.cs" />
+    <Compile Include="Types\Doc\UnknownTag.cs" />
+    <Compile Include="Types\GetSet.cs" />
+    <Compile Include="Types\LibraryInfo.cs" />
+    <Compile Include="Types\Next\NextFactory.cs" />
+    <Compile Include="Types\Options.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="CompositionRoot.cs" />
+    <Compile Include="Types\Argument.cs" />
+    <Compile Include="Types\Enumeration.cs" />
+    <Compile Include="Exceptions\GeneratorException.cs" />
+    <Compile Include="Types\Event.cs" />
+    <Compile Include="Interfaces\IPropertyClass.cs" />
+    <Compile Include="Types\MethodEventInfo.cs" />
+    <Compile Include="Types\Next\Next.cs" />
+    <Compile Include="Types\Next\NextMethod.cs" />
+    <Compile Include="Types\Next\NextType.cs" />
+    <Compile Include="Types\Next\PropertyHolder.cs" />
+    <Compile Include="Types\Option\LibraryOverrides.cs" />
+    <Compile Include="Types\Option\PtrMappings.cs" />
+    <Compile Include="Types\Overload.cs" />
+    <Compile Include="Types\PredefinedTypeName.cs" />
+    <Compile Include="Types\Property.cs" />
+    <Compile Include="Types\PropertyClass.cs" />
+    <Compile Include="Types\RTAttributeArgument.cs" />
+    <Compile Include="Types\RTFactory.cs" />
+    <Compile Include="Types\RTFactorySpecialization.cs" />
+    <Compile Include="Types\RTFile.cs" />
+    <Compile Include="Interfaces\IAttributeInfo.cs" />
+    <Compile Include="Types\Method.cs" />
+    <Compile Include="Types\Namespace.cs" />
+    <Compile Include="Exceptions\ParserException.cs" />
+    <Compile Include="Types\RTAttribute.cs" />
+    <Compile Include="Exceptions\RTAttributeException.cs" />
+    <Compile Include="Exceptions\RTGenException.cs" />
+    <Compile Include="Types\RTGenericFactory.cs" />
+    <Compile Include="Types\RTInterface.cs" />
+    <Compile Include="Types\AttributeInfo.cs" />
+    <Compile Include="Types\SampleTypes.cs" />
+    <Compile Include="Types\SmartPtr.cs" />
+    <Compile Include="Types\Specialization.cs" />
+    <Compile Include="Types\TypeFlags.cs" />
+    <Compile Include="Types\TypeName.cs" />
+    <Compile Include="Types\ValueType.cs" />
+    <Compile Include="Types\Variable.cs" />
+    <Compile Include="Attributes\PropertyAttribute.cs" />
+    <Compile Include="Types\VersionInfo.cs" />
+    <Compile Include="Types\WrapperType.cs" />
+    <Compile Include="Util\Guid5.cs" />
+    <Compile Include="Util\RtFactoryComparer.cs" />
+    <Compile Include="Util\Serialization.cs" />
+    <Compile Include="Util\Utility.cs" />
+    <Compile Include="Util\Log.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ILMerge.props" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ILMergeOrder.txt" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\ILMerge.3.0.41\build\ILMerge.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ILMerge.3.0.41\build\ILMerge.props'))" />
+    <Error Condition="!Exists('..\packages\MSBuild.ILMerge.Task.1.1.3\build\MSBuild.ILMerge.Task.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.ILMerge.Task.1.1.3\build\MSBuild.ILMerge.Task.props'))" />
+    <Error Condition="!Exists('..\packages\MSBuild.ILMerge.Task.1.1.3\build\MSBuild.ILMerge.Task.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuild.ILMerge.Task.1.1.3\build\MSBuild.ILMerge.Task.targets'))" />
+  </Target>
+  <Import Project="..\packages\MSBuild.ILMerge.Task.1.1.3\build\MSBuild.ILMerge.Task.targets" Condition="Exists('..\packages\MSBuild.ILMerge.Task.1.1.3\build\MSBuild.ILMerge.Task.targets')" />
+</Project>

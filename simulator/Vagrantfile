@@ -1,0 +1,128 @@
+Vagrant.configure("2") do |config|
+
+    # Get cmdline variables
+    VM_NAME="#{ENV['VM_NAME']}"
+    CLONED_DISK="#{VM_NAME}.vdi"
+    ORIGINAL_DISK="#{ENV['HOME_PATH']}/VirtualBox VMs/#{VM_NAME}/ubuntu-jammy-22.04-cloudimg.vmdk"
+    PACKAGE_NAME="#{ENV['PACKAGE_NAME']}"
+
+    # Use official ubuntu 22.04 Vagrant box
+    config.vm.box = "ubuntu/jammy64"
+    config.vm.define "#{VM_NAME}"
+
+    config.vm.provider :virtualbox do |vb|
+        vb.name = "#{VM_NAME}"
+
+        # Do preparations before boot - "vb.customize" calls vboxmanage util with options listed in square brackets
+
+        # Replace original 40 GB .vmdk disk with 3 GB .vdi clone, since .vdi format only can be compacted by vboxmanage on later steps
+        # Create new disk with size limited to 3 GB
+        vb.customize ['createhd',
+                    '--filename', CLONED_DISK,
+                    '--format', 'VDI',
+                    '--size', 3 * 1024 # 3 GB
+                    ]
+        # Clone original box disk into new disk
+        vb.customize ['clonemedium', ORIGINAL_DISK, CLONED_DISK, '--existing']
+        # Replace VM original disk with cloned disk
+        vb.customize ['storageattach', :id,
+                    '--storagectl', 'SCSI',
+                    '--port', 0,
+                    '--device', 0,
+                    '--type', 'hdd',
+                    '--medium', CLONED_DISK]
+        # Remove original disk
+        vb.customize ['closemedium', ORIGINAL_DISK, '--delete']
+    end
+
+    # Disable shared folder
+    config.vm.synced_folder ".", "/vagrant", disabled: true
+
+    # Set up new user "opendaq"
+    set_user = <<-SCRIPT
+    sudo useradd -p $(openssl passwd -1 opendaq) -m -d /home/$1/ -s /bin/bash $1
+    usermod -aG sudo $1
+    mkdir /home/$1/opendaq
+    sudo echo "export LD_LIBRARY_PATH=/home/$1/opendaq/lib" >> /home/$1/.profile
+    sudo echo "/home/$1/opendaq/application_simulator" >> /home/$1/.profile
+    hostnamectl set-hostname opendaq
+    SCRIPT
+    config.vm.provision :shell, :inline => set_user, :args => "opendaq"
+
+    # Install only necessary opendaq binaries to /home/opendaq/opendaq/
+    config.vm.provision "file", source: "#{PACKAGE_NAME}", destination: "/tmp/pgk.deb"
+    config.vm.provision :shell, :inline => <<-SCRIPT
+    mkdir /tmp/pkg
+    dpkg -x /tmp/pgk.deb /tmp/pkg/
+    mkdir -p /home/opendaq/opendaq/lib/modules
+    mv /tmp/pkg/opt/opendaq/lib/*.so /home/opendaq/opendaq/lib/
+    mv /tmp/pkg/opt/opendaq/lib/modules/*server* /home/opendaq/opendaq/lib/modules/
+    mv /tmp/pkg/opt/opendaq/lib/modules/*stream_srv* /home/opendaq/opendaq/lib/modules/
+    mv /tmp/pkg/opt/opendaq/lib/modules/*ref_device* /home/opendaq/opendaq/lib/modules/
+    ls -Rhl /home/opendaq/opendaq
+    SCRIPT
+
+    # Install application_simulator binary
+    config.vm.provision "file", source: "application_simulator", destination: "/tmp/"
+    config.vm.provision :shell, :inline => <<-SCRIPT
+    cp /tmp/application_simulator /home/opendaq/opendaq/
+    chmod +x /home/opendaq/opendaq/application_simulator
+    SCRIPT
+
+    # Remove unused packages
+    list_packages = <<-SCRIPT
+    dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 30
+    SCRIPT
+    remove_package = <<-SCRIPT
+    sudo apt-get --purge autoremove $1 -y
+    SCRIPT
+    config.vm.provision :shell, :inline => list_packages
+    config.vm.provision :shell, :inline => remove_package, :args => "snapd"
+    config.vm.provision :shell, :inline => remove_package, :args => "vim"
+    config.vm.provision :shell, :inline => remove_package, :args => "git"
+    config.vm.provision :shell, :inline => remove_package, :args => "perl"
+    config.vm.provision :shell, :inline => remove_package, :args => "binutils"
+    config.vm.provision :shell, :inline => remove_package, :args => "python3-twisted"
+    config.vm.provision :shell, :inline => remove_package, :args => "python-babel-localedata"
+    config.vm.provision :shell, :inline => <<-SCRIPT
+    sudo apt-get autoremove --purge -y
+    sudo apt-get update
+    sudo apt-get check
+    sudo apt-get --fix-broken install
+    SCRIPT
+    config.vm.provision :shell, :inline => list_packages
+
+    # Install avahi daemon
+    config.vm.provision :shell, :inline => <<-SCRIPT
+    sudo apt-get update
+    sudo apt-get install avahi-daemon net-tools -y
+    SCRIPT
+
+    # Modify netplan to make VM export/import easier
+    config.vm.provision :shell, :inline => <<-SCRIPT
+    sudo netplan set network.ethernets.enp0s3.set-name=null
+    sudo netplan set network.ethernets.enp0s3.match.macaddress=null
+    sudo netplan set network.ethernets.enp0s3.match=null
+    SCRIPT
+
+    # Copy MDNS services configs
+    config.vm.provision "file", source: "opcuatms.service", destination: "/tmp/opcuatms.service"
+    config.vm.provision "file", source: "native_streaming.service", destination: "/tmp/native_streaming.service"
+    config.vm.provision "shell", inline: "cp /tmp/*.service /etc/avahi/services/"
+
+    # Reduce memory usage
+    config.vm.provision :shell, :inline => <<-SCRIPT
+    sudo du -csh /var/cache/apt
+    sudo du -csh /var/lib/apt/lists
+    sudo apt-get clean -y
+    rm -rf /var/lib/apt/lists/*
+    sudo du -csh /var/cache/apt
+    sudo du -csh /var/lib/apt/lists
+    SCRIPT
+
+    # Fill free disk memory with zeros
+    config.vm.provision :shell, :inline => <<-SCRIPT
+    dd if=/dev/zero of=/var/tmp/dummyfile bs=1k
+    rm /var/tmp/dummyfile
+    SCRIPT
+end

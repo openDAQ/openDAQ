@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+    <Type Name="daq::TaskImpl">
+        <DisplayString>Task Id: {id}</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="name" Optional="true">name</Item>
+            <Item Name="id">id</Item>
+            <Item Name="inputs">inputs</Item>
+            <Item Name="outputs">outputs</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::SchedulerBase">
+        <DisplayString>Scheduler, &lt;{refCount}&gt;</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="[dirty]">dirty</Item>
+            <Item Name="scheduledDependencies">scheduledDependencies</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::SchedulerSt">
+        <DisplayString>ST Scheduler, &lt;{refCount}&gt;</DisplayString>
+        <Expand>
+            <ExpandedItem>(daq::SchedulerBase*)this,nd</ExpandedItem>
+            <Item Name="orderedTasks">orderedTasks</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::SchedulerMt">
+        <DisplayString>MT Scheduler, &lt;{refCount}&gt;</DisplayString>
+        <Expand>
+            <ExpandedItem>(daq::SchedulerBase*)this,nd</ExpandedItem>
+            <Item Name="tasks">tasks</Item>
+            <Item Name="orderedTasks">rootTasks</Item>
+        </Expand>
+    </Type>
+</AutoVisualizer>

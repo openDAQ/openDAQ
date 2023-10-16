@@ -1,0 +1,180 @@
+= Add Function Block
+
+openDAQ(TM) provides processing features through xref:background_info:function_blocks.adoc[Function Blocks].
+They can process Signals either on a xref:background_info:device.adoc[Device] or on a host PC where the SDK
+is running.
+
+:tip-caption: Averager Function Block
+[TIP]
+====
+The SDK is bundled with a few Function Blocks:
+
+ * Renderer (displays Signal on a desktop window)
+ * Averager (calculates average and RMS from an input Signal)
+ * Power (calculates DC power from the input voltage and current Signal)
+ 
+These Function Blocks serve as an example of what is possible to achieve with openDAQ(TM) SDK. They are not
+meant to be used in production code.
+
+The following examples use the Averager Function Block to show how to add a Function Block. Same methods can
+be used to add other function blocks.
+====
+
+== Get a list of available function blocks
+
+The SDK provides a method to get a list of all available types of 
+xref:background_info:function_blocks.adoc[Function Blocks]. This step is optional if the application uses a fixed 
+configuration of modules and the available Function Blocks are predefined.
+
+The result is a dictionary with Function Block id as a key and Function Block type information as a value of the
+dictionary.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// get available function block types
+DictPtr<IString, IFunctionBlockType> functionBlockTypes = instance.getAvailableFunctionBlockTypes();
+for (const auto& functionBlockType: functionBlockTypes.getKeys())
+    std::cout << functionBlockType << std::endl;
+----
+Python::
++
+[source,python]
+----
+function_block_types = instance.available_function_block_types
+for function_block_type in function_block_types.keys():
+    print(function_block_type)
+----
+====
+
+== Add a Function Block
+
+To create and add a Function Block, specify its id in the add Function Block method. If there is no such
+Function Block available, the method will fail. The result is the Function Block object.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// add function block on the host computer
+FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_averager");
+----
+Python::
++
+[source,python]
+----
+function_block = instance.add_function_block("ref_fb_module_averager")
+----
+====
+
+== Get function block type information
+
+It is possible to get additional detailed information about the type of the Function Block:
+
+ * through Function Block instance,
+ * through dictionary returned by get available function blocks method.
+ 
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+FunctionBlockTypePtr functionBlockType = functionBlock.getFunctionBlockType();
+std::cout << functionBlockType.getId() << std::endl;
+std::cout << functionBlockType.getName() << std::endl;
+std::cout << functionBlockType.getDescription() << std::endl;
+----
+Python::
++
+[source,python]
+----
+function_block_type = function_block.function_block_type
+print(function_block_type.id)
+print(function_block_type.name)
+print(function_block_type.description)
+---- 
+====
+
+== Full listing
+
+The following is a fully working example of listing available and adding Function Blocks.
+
+.The full example code listing
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+using namespace daq;
+
+// Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
+int main()
+{
+    // Create an openDAQ(TM) instance, loading modules from the current directory
+    InstancePtr instance = Instance(MODULE_PATH);
+
+    // add simulated device
+    DevicePtr device = instance.addDevice("daqref://device0");
+
+    // get available function block types
+    DictPtr<IString, IFunctionBlockType> functionBlockTypes = instance.getAvailableFunctionBlockTypes();
+    for (const auto& functionBlockType: functionBlockTypes.getKeys())
+        std::cout << functionBlockType << std::endl;
+
+    // if there is no averager function block available, exit with an error
+    if (!functionBlockTypes.hasKey("ref_fb_module_averager"))
+        return 1;
+
+    // add function block on the host computer
+    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_averager");
+
+    // print function block type info
+    FunctionBlockTypePtr functionBlockType = functionBlock.getFunctionBlockType();
+    std::cout << functionBlockType.getId() << std::endl;
+    std::cout << functionBlockType.getName() << std::endl;
+    std::cout << functionBlockType.getDescription() << std::endl;
+
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+import opendaq
+
+# Create an openDAQ(TM) instance, loading modules from the current directory
+instance = opendaq.Instance()
+
+# add simulated device
+device = instance.add_device('daqref://device0')
+
+# get available function block types
+function_block_types = instance.available_function_block_types
+for function_block_type in function_block_types.keys():
+    print(function_block_type)
+
+# if there is no averager function block available, exit with an error
+if not "ref_fb_module_averager" in function_block_types.keys():
+    self.assertTrue(False, "Function block not found")
+
+# add function block on the host computer
+function_block = instance.add_function_block("ref_fb_module_averager")
+
+# print function block type info
+function_block_type = function_block.function_block_type
+print(function_block_type.id)
+print(function_block_type.name)
+print(function_block_type.description)
+----
+====

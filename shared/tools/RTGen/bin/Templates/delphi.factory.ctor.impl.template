@@ -1,0 +1,10 @@
+﻿constructor T$NonInterfaceType$Ptr$PtrTemplateImplementation$.Create$FactoryName$($Arguments$);
+var
+  RawInterface: $InterfaceTemplate$;
+  Err: ErrCode;
+begin
+  Err := $UnitSpecifier$$FactoryDelphiName$(RawInterface$ArgumentNames$);
+  CheckRtErrorInfo(Err);
+
+  inherited Create(RawInterface);
+end;

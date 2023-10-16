@@ -1,0 +1,83 @@
+From facca9d9c27cdc12791e3001ac08aac81111f07f Mon Sep 17 00:00:00 2001
+From: Martin Kraner <martin.kraner@dewesoft.com>
+Date: Wed, 23 Nov 2022 14:30:36 +0100
+Subject: [PATCH 1/2] <TBBAS-280> Fix Executor async functions to set
+ exceptions on a promise instead of crashing
+
+---
+ taskflow/core/executor.hpp | 53 ++++++++++++++++++++++++++++----------
+ 1 file changed, 40 insertions(+), 13 deletions(-)
+
+diff --git a/taskflow/core/executor.hpp b/taskflow/core/executor.hpp
+index c2f25cf..c3de580 100644
+--- a/taskflow/core/executor.hpp
++++ b/taskflow/core/executor.hpp
+@@ -794,25 +794,52 @@ auto Executor::named_async(const std::string& name, F&& f, ArgsT&&... args) {
+ 
+   Future<R> fu(p.get_future(), tpg);
+ 
+-  auto node = node_pool.animate(
+-    std::in_place_type_t<Node::Async>{},
+-    [p=make_moc(std::move(p)), f=std::forward<F>(f), args...]
+-    (bool cancel) mutable {
+-      if constexpr(std::is_same_v<R, void>) {
+-        if(!cancel) {
++  std::function<void(bool)> work;
++  if constexpr (std::is_same<R, void>::value)
++  {
++    work = [p = make_moc(std::move(p)), f = std::forward<F>(f), args...](bool cancel) mutable {
++      if (!cancel) {
++        try {
+           f(args...);
+         }
+-        p.object.set_value();
+-      }
+-      else {
+-        p.object.set_value(cancel ? std::nullopt : std::make_optional(f(args...)));
++        catch (...) {
++          try {
++              p.object.set_exception(std::current_exception());
++          }
++          catch (...) {
++              // Ignore
++          }
++        }
+       }
+-    },
++      p.object.set_value();
++    };
++  }
++  else
++  {
++      work = [p = make_moc(std::move(p)), f = std::forward<F>(f), args...](bool cancel) mutable {
++        if (cancel)
++            p.object.set_value(std::nullopt);
++        
++        try {
++            p.object.set_value(std::make_optional(f(args...)));
++        }
++        catch (...) {
++          try {
++            p.object.set_exception(std::current_exception());
++          }
++          catch (...) {
++            // Ignore
++          }
++        }
++      };
++  }
++
++  auto node = node_pool.animate(
++    std::in_place_type_t<Node::Async>{},
++    std::move(work),
+     std::move(tpg)
+   );
+ 
+-  node->_name = name;
+-
+   if(auto w = _this_worker(); w) {
+     _schedule(*w, node);
+   }
+-- 
+2.36.1.windows.1
+

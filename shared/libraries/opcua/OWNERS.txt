@@ -1,0 +1,12 @@
+# This is a list of owners of the subtree.
+
+# if any of the changes are made to this subtree at least one 
+# of the owners should review and confirm those changes.
+
+# Owners are listed at the bottom of this file.
+
+# Names should be added to this file like so:
+# Name or Organization <email address>
+
+Dewesoft d.o.o.
+Anže Škerjanc <anze.skerjanc@dewesoft.com>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+    <Type Name="daq::GenericPropertyObjectImpl&lt;*&gt;">
+        <DisplayString>{{ className={className}, &lt;{refCount->strong},{refCount->weak}&gt; }}</DisplayString>
+        <Expand>
+            <Item IncludeView="withRefCount" Name="[refCount]">refCount,na</Item>
+            <Item Name="[className]" Condition="className.object != nullptr">className.object,na</Item>
+            <Item Name="[localProperties]">localProperties</Item>
+            <Item Name="[owner]">owner</Item>
+            <ExpandedItem>propValues._List,view(PropsView)</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="daq::PropertyImpl">
+        <DisplayString Condition="frozen == true">{{ name={name}, {valueType,en}, &lt;{refCount}&gt; [Frozen] }}</DisplayString>
+        <DisplayString Condition="frozen == false">{{ name={name}, {valueType,en}, &lt;{refCount}&gt;}}</DisplayString>
+        <Expand>
+            <Item IncludeView="withRefCount" Name="[refCount]">refCount,na</Item>
+            <Item Name="[frozen]">frozen</Item>
+            <Item Name="(onValueWrite)">onValueWrite</Item>
+            <Item Name="(onValueRead)">onValueRead</Item>
+            <Item Name="name">name</Item>
+            <Item Name="valueType">valueType,en</Item>
+            <Item Name="description">description</Item>
+            <Item Name="unit">unit</Item>
+            <Item Name="minValue">minValue</Item>
+            <Item Name="maxValue">maxValue</Item>
+            <Item Name="defaultValue">defaultValue</Item>
+            <Item Name="visible">visible</Item>
+            <Item Name="readOnly">readOnly</Item>
+            <Item Name="selectionValues">selectionValues</Item>
+            <Item Name="refProp">refProp</Item>
+            <Item Name="validator">validator</Item>
+            <Item Name="coercer">coercer</Item>
+            <Item Name="suggestedValues">suggestedValues</Item>
+            <Item Name="callableInfo">callableInfo</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::EvalValueImpl">
+        <DisplayString Condition="resolveStatus == 1 &amp;&amp; calculated">{{ {eval,view(simple)}, resolved, calculated, &lt;{refCount}&gt; }}</DisplayString>
+        <DisplayString Condition="resolveStatus != 1 &amp;&amp; calculated">{{ {eval,view(simple)}, NOT resolved, calculated, &lt;{refCount}&gt; }}</DisplayString>
+        <DisplayString Condition="resolveStatus == 1 &amp;&amp; !calculated">{{ {eval,view(simple)}, NOT resolved, NOT calculated, &lt;{refCount}&gt; }}</DisplayString>
+        <DisplayString Condition="resolveStatus != 1 &amp;&amp; !calculated">{{ {eval,view(simple)}, NOT resolved, NOT calculated, &lt;{refCount}&gt; }}</DisplayString>
+    </Type>
+    <Type Name="daq::PropertyObjectClassImpl">
+        <DisplayString Condition="parent.object == nullptr">{{ name={name}, parent=empty, &lt;{refCount}&gt; }}</DisplayString>
+        <DisplayString Condition="parent.object != nullptr">{{ name={name}, parent={parent}, &lt;{refCount}&gt; }}</DisplayString>
+        <Expand>
+            <Item Name="[className]">name</Item>
+            <Item Name="[parent]">parent</Item>
+            <ExpandedItem>props._List,view(MapHelper)</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="daq::PropertyValueEventArgsImpl">
+        <DisplayString>{{ PropertyChangedEventArgs, &lt;{refCount}&gt; }}</DisplayString>
+        <Expand>
+          <Item Name="[changeType]">type</Item>
+        </Expand>
+    </Type>
+</AutoVisualizer>

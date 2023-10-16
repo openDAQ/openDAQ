@@ -1,0 +1,563 @@
+#include <testutils/testutils.h>
+#include <ref_device_module/module_dll.h>
+#include <ref_device_module/version.h>
+#include <gmock/gmock.h>
+
+#include <opendaq/module_ptr.h>
+#include <opendaq/device_ptr.h>
+#include <opendaq/input_port_factory.h>
+#include <opendaq/removable_ptr.h>
+#include <opendaq/range_factory.h>
+#include <coretypes/common.h>
+
+#include <opendaq/context_factory.h>
+
+using RefDeviceModuleTest = testing::Test;
+using namespace daq;
+
+static ModulePtr CreateModule()
+{
+    ModulePtr module;
+    createModule(&module, NullContext());
+    return module;
+}
+
+TEST_F(RefDeviceModuleTest, CreateModule)
+{
+    IModule* module = nullptr;
+    ErrCode errCode = createModule(&module, NullContext());
+    ASSERT_TRUE(OPENDAQ_SUCCEEDED(errCode));
+
+    ASSERT_NE(module, nullptr);
+    module->releaseRef();
+}
+
+TEST_F(RefDeviceModuleTest, ModuleName)
+{
+    auto module = CreateModule();
+    ASSERT_EQ(module.getName(), "Reference device module");
+}
+
+TEST_F(RefDeviceModuleTest, VersionAvailable)
+{
+    auto module = CreateModule();
+    ASSERT_TRUE(module.getVersionInfo().assigned());
+}
+
+TEST_F(RefDeviceModuleTest, VersionCorrect)
+{
+    auto module = CreateModule();
+    auto version = module.getVersionInfo();
+
+    ASSERT_EQ(version.getMajor(), REF_DEVICE_MODULE_MAJOR_VERSION);
+    ASSERT_EQ(version.getMinor(), REF_DEVICE_MODULE_MINOR_VERSION);
+    ASSERT_EQ(version.getPatch(), REF_DEVICE_MODULE_PATCH_VERSION);
+}
+
+TEST_F(RefDeviceModuleTest, EnumerateDevices)
+{
+    auto module = CreateModule();
+
+    ListPtr<IDeviceInfo> deviceInfo;
+    ASSERT_NO_THROW(deviceInfo = module.getAvailableDevices());
+
+    ASSERT_EQ(deviceInfo.getCount(), 2u);
+    ASSERT_EQ(deviceInfo[0].getConnectionString(), "daqref://device0");
+    ASSERT_EQ(deviceInfo[1].getConnectionString(), "daqref://device1");
+}
+
+TEST_F(RefDeviceModuleTest, AcceptsConnectionStringNull)
+{
+    auto module = CreateModule();
+    ASSERT_THROW(module.acceptsConnectionParameters(nullptr), ArgumentNullException);
+}
+
+TEST_F(RefDeviceModuleTest, AcceptsConnectionStringEmpty)
+{
+    auto module = CreateModule();
+
+    bool accepts = true;
+    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters(""));
+    ASSERT_FALSE(accepts);
+}
+
+TEST_F(RefDeviceModuleTest, AcceptsConnectionStringInvalid)
+{
+    auto module = CreateModule();
+
+    bool accepts = true;
+    ASSERT_NO_THROW(accepts = module.acceptsConnectionParameters("drfrfgt"));
+    ASSERT_FALSE(accepts);
+}
+
+TEST_F(RefDeviceModuleTest, AcceptsConnectionStringCorrect)
+{
+    auto module = CreateModule();
+
+    ASSERT_TRUE(module.acceptsConnectionParameters("daqref://device8"));
+}
+
+TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringNull)
+{
+    auto module = CreateModule();
+
+    DevicePtr device;
+    ASSERT_THROW(device = module.createDevice(nullptr, nullptr), ArgumentNullException);
+}
+
+TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringEmpty)
+{
+    auto module = CreateModule();
+
+    ASSERT_THROW(module.createDevice("", nullptr), InvalidParameterException);
+}
+
+TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringInvalid)
+{
+    auto module = CreateModule();
+
+    ASSERT_THROW(module.createDevice("fdfdfdfdde", nullptr), InvalidParameterException);
+}
+
+TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringInvalidId)
+{
+    auto module = CreateModule();
+
+    ASSERT_THROW(module.createDevice("daqref://devicett3axxr1", nullptr), InvalidParameterException);
+}
+
+TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringOutOfRange)
+{
+    auto module = CreateModule();
+
+    ASSERT_THROW(module.createDevice("daqref://device3", nullptr), NotFoundException);
+}
+
+TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringCorrect)
+{
+    auto module = CreateModule();
+
+    DevicePtr device;
+    ASSERT_NO_THROW(device = module.createDevice("daqref://device1", nullptr));
+}
+
+TEST_F(RefDeviceModuleTest, DeviceDomainResolution)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getTickResolution();
+    ASSERT_EQ(res, Ratio(1, 1000000));
+}
+
+TEST_F(RefDeviceModuleTest, DeviceDomainUnit)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto unit = domain.getUnit();
+    ASSERT_EQ(unit.getSymbol(), "s");
+    ASSERT_EQ(unit.getName(), "second");
+    ASSERT_EQ(unit.getQuantity(), "time");
+}
+
+TEST_F(RefDeviceModuleTest, DeviceDomainTicksSinceEpoch)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getTicksSinceOrigin();
+    ASSERT_GT(res, 0u);
+}
+
+TEST_F(RefDeviceModuleTest, DeviceDomainOrigin)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getOrigin();
+    ASSERT_FALSE(static_cast<std::string>(res).empty());
+}
+
+TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
+{
+    const auto module = CreateModule();
+
+    DictPtr<IString, IFunctionBlockType> functionBlockTypes;
+    ASSERT_NO_THROW(functionBlockTypes = module.getAvailableFunctionBlockTypes());
+    ASSERT_EQ(functionBlockTypes.getCount(), 0u);
+
+    DictPtr<IString, IDeviceType> deviceTypes;
+    ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
+    ASSERT_EQ(deviceTypes.getCount(), 1u);
+    ASSERT_TRUE(deviceTypes.hasKey("daqref"));
+    ASSERT_EQ(deviceTypes.get("daqref").getId(), "daqref");
+
+    DictPtr<IString, IServerType> serverTypes;
+    ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
+    ASSERT_EQ(serverTypes.getCount(), 0u);
+}
+
+TEST_F(RefDeviceModuleTest, CreateFunctionBlockIdNull)
+{
+    auto module = CreateModule();
+
+    FunctionBlockPtr functionBlock;
+    ASSERT_THROW(functionBlock = module.createFunctionBlock(nullptr, nullptr, "id"), ArgumentNullException);
+}
+
+TEST_F(RefDeviceModuleTest, CreateFunctionBlockIdEmpty)
+{
+    auto module = CreateModule();
+
+    ASSERT_THROW(module.createFunctionBlock("", nullptr, "id"), NotFoundException);
+}
+
+
+TEST_F(RefDeviceModuleTest, DeviceNumberOfChannels)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+
+    Int numChannels = device.getPropertyValue("NumberOfChannels");
+    ASSERT_EQ(numChannels, 2);
+
+    ASSERT_EQ(device.getChannels().getCount(), 2u);
+}
+
+TEST_F(RefDeviceModuleTest, DeviceChangeNumberOfChannels)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+
+    device.setPropertyValue("NumberOfChannels", 5);
+    Int numChannels = device.getPropertyValue("NumberOfChannels");
+    ASSERT_EQ(numChannels, 5);
+    ASSERT_EQ(device.getChannels().getCount(), 5u);
+
+    device.setPropertyValue("NumberOfChannels", 3);
+    numChannels = device.getPropertyValue("NumberOfChannels");
+    ASSERT_EQ(numChannels, 3);
+    ASSERT_EQ(device.getChannels().getCount(), 3u);
+
+}
+
+TEST_F(RefDeviceModuleTest, DeviceChangeAcqLoopTime)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+
+    device.setPropertyValue("AcquisitionLoopTime", 100);
+    Int acqLoopTime = device.getPropertyValue("AcquisitionLoopTime");
+    ASSERT_EQ(acqLoopTime, 100);
+}
+
+TEST_F(RefDeviceModuleTest, DeviceGlobalSampleRate)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+
+    Float globalSampleRate = device.getPropertyValue("GlobalSampleRate");
+    ASSERT_DOUBLE_EQ(globalSampleRate, 1000.0);
+
+    device.setPropertyValue("GlobalSampleRate", 500.0);
+    globalSampleRate = device.getPropertyValue("GlobalSampleRate");
+    ASSERT_DOUBLE_EQ(globalSampleRate, 500.0);
+}
+
+TEST_F(RefDeviceModuleTest, ChannelWaveform)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channels = device.getChannels();
+    auto channel = channels[0];
+
+    Int waveform = channel.getPropertyValue("Waveform");
+    ASSERT_EQ(waveform, 0);
+    channel.setPropertyValue("Waveform", 1);
+    waveform = channel.getPropertyValue("Waveform");
+    ASSERT_EQ(waveform, 1);
+}
+
+TEST_F(RefDeviceModuleTest, ChannelFrequency)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channels = device.getChannels();
+    auto channel = channels[0];
+
+    Int frequency = channel.getPropertyValue("Frequency");
+    ASSERT_FLOAT_EQ(frequency, 10.0);
+    channel.setPropertyValue("Frequency", 100.0);
+    frequency = channel.getPropertyValue("Frequency");
+    ASSERT_FLOAT_EQ(frequency, 100.0);
+}
+
+TEST_F(RefDeviceModuleTest, ChannelDC)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channels = device.getChannels();
+    auto channel = channels[0];
+
+    Int dc = channel.getPropertyValue("DC");
+    ASSERT_FLOAT_EQ(dc, 0.0);
+    channel.setPropertyValue("DC", 1.0);
+    dc = channel.getPropertyValue("DC");
+    ASSERT_FLOAT_EQ(dc, 1.0);
+}
+
+TEST_F(RefDeviceModuleTest, ChannelAmplitude)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channels = device.getChannels();
+    auto channel = channels[0];
+
+    Int amplitude = channel.getPropertyValue("Amplitude");
+    ASSERT_FLOAT_EQ(amplitude, 5.0);
+    channel.setPropertyValue("Amplitude", 6.0);
+    amplitude = channel.getPropertyValue("Amplitude");
+    ASSERT_FLOAT_EQ(amplitude, 6.0);
+}
+
+TEST_F(RefDeviceModuleTest, ChannelName)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channels = device.getChannels();
+
+    size_t i = 0;
+    for (const auto& ch : channels)
+    {
+        std::string chName = ch.getFunctionBlockType().getName();
+        ASSERT_EQ(chName, fmt::format("AI{}", ++i));
+    }
+}
+
+TEST_F(RefDeviceModuleTest, ChannelNoiseAmplitude)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channels = device.getChannels();
+    auto channel = channels[0];
+
+    Int noiseAmpl = channel.getPropertyValue("NoiseAmplitude");
+    ASSERT_FLOAT_EQ(noiseAmpl, 0.0);
+    channel.setPropertyValue("NoiseAmplitude", 1.0);
+    noiseAmpl = channel.getPropertyValue("NoiseAmplitude");
+    ASSERT_FLOAT_EQ(noiseAmpl, 1.0);
+}
+
+TEST_F(RefDeviceModuleTest, ChannelCustomRange)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channel = device.getChannels()[0];
+    auto signal = channel.getSignals()[0];
+
+    auto desc = signal.getDescriptor();
+    ASSERT_EQ(desc.getValueRange().getHighValue(), 10.0);
+    ASSERT_EQ(desc.getValueRange().getLowValue(), -10.0);
+
+    channel.setPropertyValue("CustomRange", Range(-5.0, 5.0));
+
+    desc = signal.getDescriptor();
+    ASSERT_EQ(desc.getValueRange().getHighValue(), 5.0);
+    ASSERT_EQ(desc.getValueRange().getLowValue(), -5.0);
+}
+
+TEST_F(RefDeviceModuleTest, ChannelSampleRate)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channels = device.getChannels();
+    auto channel = channels[0];
+
+    channel.setPropertyValue("SampleRate", 10000.0);
+
+    ASSERT_FALSE(channel.getProperty("SampleRate").getVisible());
+    channel.setPropertyValue("UseGlobalSampleRate", False);
+    auto sampleRate = channel.getPropertyValue("SampleRate");
+    ASSERT_DOUBLE_EQ(sampleRate, 10000.0);
+
+    ASSERT_TRUE(channel.getProperty("SampleRate").getVisible());
+}
+
+TEST_F(RefDeviceModuleTest, CoerceChannelSampleRate)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channels = device.getChannels();
+    auto channel = channels[0];
+
+    device.setPropertyValue("GlobalSampleRate", 49999);
+    double sampleRate = channel.getPropertyValue("SampleRate");
+    ASSERT_DOUBLE_EQ(sampleRate, 50000.0);
+}
+
+TEST_F(RefDeviceModuleTest, Ids)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channels = device.getChannels();
+    auto channel = channels[0];
+    auto valueSignal = channel.getSignals()[0];
+    auto domainSignal = channel.getSignals()[1];
+
+    ASSERT_EQ(channel.getLocalId(), "refch0");
+    ASSERT_EQ(channel.getGlobalId(), "ref_dev1/io/ai/refch0");
+
+    ASSERT_EQ(valueSignal.getLocalId(), "ai0");
+    ASSERT_EQ(valueSignal.getGlobalId(), "ref_dev1/io/ai/refch0/sig/ai0");
+
+    ASSERT_EQ(domainSignal.getLocalId(), "ai0_time");
+    ASSERT_EQ(domainSignal.getGlobalId(), "ref_dev1/io/ai/refch0/sig/ai0_time");
+}
+
+bool propertyInfoListContainsProperty(const ListPtr<IProperty>& list, const std::string& propName)
+{
+    auto it = std::find_if(list.begin(), list.end(), [propName](const PropertyPtr& prop)
+        {
+            return prop.getName() == propName;
+        });
+
+    return it != list.end();
+}
+
+bool propertyInfoListDoesntContainProperty(const ListPtr<IProperty>& list, const std::string& propName)
+{
+    return !propertyInfoListContainsProperty(list, propName);
+}
+
+TEST_F(RefDeviceModuleTest, ChannelProperties)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channels = device.getChannels();
+    auto channel = channels[0];
+
+    channel.setPropertyValue("Waveform", 0);
+    auto visibleProps = channel.getVisibleProperties();
+    ASSERT_PRED2(propertyInfoListContainsProperty, visibleProps, "Amplitude");
+
+    channel.setPropertyValue("Waveform", 3);
+    visibleProps = channel.getVisibleProperties();
+    ASSERT_PRED2(propertyInfoListDoesntContainProperty, visibleProps, "Amplitude");
+}
+
+TEST_F(RefDeviceModuleTest, SignalCheck)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channels = device.getChannels();
+    auto channel = channels[0];
+    auto signals = channel.getSignals();
+    ASSERT_EQ(signals.getCount(), 2u);
+}
+
+TEST_F(RefDeviceModuleTest, DeviceRemoveDisconnectsInputPort)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channels = device.getChannels();
+    auto channel = channels[0];
+    auto signals = channel.getSignals();
+
+    auto inputPort = InputPort(NullContext(), nullptr, "input");
+    inputPort.connect(signals[0]);
+
+    ASSERT_EQ(inputPort.getSignal(), signals[0]);
+
+    device.asPtr<IRemovable>().remove();
+    ASSERT_EQ(inputPort.getSignal(), nullptr);
+}
+
+TEST_F(RefDeviceModuleTest, ChannelRemovedDisconnectsInputPort)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto channels = device.getChannels();
+    auto channel = channels[1];
+    auto signals = channel.getSignals();
+
+    auto inputPort = InputPort(NullContext(), nullptr, "input");
+    inputPort.connect(signals[0]);
+
+    ASSERT_EQ(inputPort.getSignal(), signals[0]);
+
+    device.setPropertyValue("NumberOfChannels", 1);
+    ASSERT_EQ(inputPort.getSignal(), nullptr);
+}
+
+TEST_F(RefDeviceModuleTest, CreateDeviceTwice)
+{
+    auto module = CreateModule();
+
+    DevicePtr device;
+    ASSERT_NO_THROW(device = module.createDevice("daqref://device1", nullptr));
+    ASSERT_THROW(module.createDevice("daqref://device1", nullptr), AlreadyExistsException);
+}
+
+TEST_F(RefDeviceModuleTest, CreateReleaseAndCreateDevice)
+{
+    auto module = CreateModule();
+
+    DevicePtr device;
+    ASSERT_NO_THROW(device = module.createDevice("daqref://device1", nullptr));
+    device.release();
+    ASSERT_NO_THROW(module.createDevice("daqref://device1", nullptr));
+}
+
+TEST_F(RefDeviceModuleTest, Folders)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    FolderPtr ioFolder = device.getItem("io");
+    FolderPtr aiFolder = ioFolder.getItem("ai");
+    ChannelPtr chX = aiFolder.getItems()[0];
+
+    auto channels = device.getChannels();
+    auto chY = channels[0];
+
+    ASSERT_EQ(chX, chY);
+}
+
+TEST_F(RefDeviceModuleTest, Sync)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+    ComponentPtr syncComponent = device.getItem("sync");
+    
+    ASSERT_FALSE(syncComponent.getPropertyValue("UseSync"));
+    syncComponent.setPropertyValue("UseSync", True);
+    ASSERT_TRUE(syncComponent.getPropertyValue("UseSync"));
+}
+
+TEST_F(RefDeviceModuleTest, Serialize)
+{
+    auto module = CreateModule();
+    auto device = module.createDevice("daqref://device1", nullptr);
+
+    device.setPropertyValue("NumberOfChannels", 5);
+    device.setPropertyValue("GlobalSampleRate", 500.0);
+
+    auto serializer = JsonSerializer(True);
+
+    device.serialize(serializer);
+
+    auto str = serializer.getOutput();
+    std::cout << str << std::endl;
+}

@@ -1,0 +1,6 @@
+﻿Procedure([this](daq::IBaseObject* args) -> ErrCode
+        {
+            auto ptr = InterfaceToSmartPtr<CoreTypeHelper<$Interface$>::Interface>::SmartPtr::borrow(args);
+
+            return $MethodName$(ptr);
+        })

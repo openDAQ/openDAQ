@@ -1,0 +1,48 @@
+#include "opcuatms_server/objects/tms_server_variable.h"
+#include "coreobjects/eval_value_ptr.h"
+#include "open62541/server.h"
+
+BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
+
+using namespace daq::opcua;
+
+template <class CoreType>
+TmsServerVariable<CoreType>::TmsServerVariable(const CoreType& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context)
+    : Super(object, server, context)
+{
+}
+
+template <class CoreType>
+opcua::OpcUaNodeId TmsServerVariable<CoreType>::createNode(const opcua::OpcUaNodeId& parentNodeId)
+{
+    OpcUaNodeId newNodeId;
+
+    this->typeBrowseName = this->readTypeBrowseName();
+    std::string name = this->getBrowseName();
+
+    auto params = AddVariableNodeParams(UA_NODEID_NULL, parentNodeId);
+    configureVariableNodeAttributes(params.attr);
+    params.setBrowseName(name);
+    params.typeDefinition = this->getTmsTypeId();
+    params.nodeContext = this;
+    params.addOptionalNodeCallback = [this](const OpcUaNodeId& nodeId) { return this->createOptionalNode(nodeId); };
+    newNodeId = this->server->addVariableNode(params);
+
+    return OpcUaNodeId(newNodeId);
+}
+
+template <class CoreType>
+void TmsServerVariable<CoreType>::configureVariableNodeAttributes(opcua::OpcUaObject<UA_VariableAttributes>& attr)
+{
+    const auto dataTypeId = this->server->readDataType(this->getTmsTypeId());
+
+    attr->dataType = *dataTypeId;
+    attr->accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
+    attr->writeMask |= UA_WRITEMASK_DISPLAYNAME | UA_WRITEMASK_DESCRIPTION;
+}
+
+template class TmsServerVariable<ListPtr<IFloat>>;
+template class TmsServerVariable<EvalValuePtr>;
+template class TmsServerVariable<PropertyPtr>;
+
+END_NAMESPACE_OPENDAQ_OPCUA_TMS

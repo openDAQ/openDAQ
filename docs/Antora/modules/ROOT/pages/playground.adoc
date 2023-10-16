@@ -1,0 +1,160 @@
+// Variable definition
+:url-org: https://example.org/projects
+
+// Variable use
+{url-org}
+
+. Automatically
+. Ordered
+. List
+.. With
+.. Sub-lists
+
+// An <hr /> (horizontal line)
+'''
+
+// Page break in supported generators (e.g. PDF)
+<<<
+
+* Bullet
+* Point
+* List
+** with
+** sub-lists
+
+// Separates two adjacent lists
+//-
+
+[square]
+* Square
+* List
+** with
+** sub-lists
+
+.Title sidebar
+****
+fsdsssdfsdfs
+****
+
+****
+titles sidebar
+xref:background_info:function_blocks.adoc#channel[More in the architecture section]
+****
+
+.Example title
+====
+xref:background_info:function_blocks.adoc#channel[More in the architecture section]
+====
+
+.Title delimited (verbatim)
+....
+xref:background_info:function_blocks.adoc#channel[More in the architecture section]
+....
+
+.Titled code block
+[source,yaml]
+----
+image: node:16-buster
+stages: [ init, verify, deploy ]
+----
+
+[verse,Carl Sandburg,Fog]
+A quotation or verse
+with optional attribution
+
+[verse,Carl Sandburg,Fog]
+____
+A quotation or verse
+containing empty lines
+
+and optional attribution
+____
+
+.After landing the cloaked Klingon bird of prey in Golden Gate park:
+[quote,Captain James T. Kirk,Star Trek IV: The Voyage Home]
+Everybody remember where we parked.
+
+[quote,Monty Python and the Holy Grail]
+____
+Dennis: Come and see the violence inherent in the system. Help! Help! I'm being repressed!
+
+King Arthur: Bloody peasant!
+
+Dennis: Oh, what a giveaway! Did you hear that? Did you hear that, eh? That's what I'm on about! Did you see him repressing me? You saw him, Didn't you?
+____
+
+[NOTE]
+Remember the milk paragraph.
+
+[NOTE]
+====
+Remember the milk block.
+====
+
+:note-caption: TODO
+[NOTE]
+====
+Note with changed title.
+====
+
+[TIP]
+====
+Remember the milk.
+====
+
+[WARNING]
+====
+Remember the milk.
+====
+
+[CAUTION]
+====
+Remember the milk.
+====
+
+[IMPORTANT]
+====
+Remember the milk.
+====
+
+
+.I am a table
+|===
+|Header 1 |Header 2 |Header 3
+
+|Column 1, row 1
+|Column 2, row 1
+|Column 3, row 1
+
+|Column 1, row 2
+|Column 2, row 2
+|Column 3, row 2
+
+|Column 1, row 3
+|Column 2, row 3
+|Column 3, row 3
+|===
+
+#higlighted text#
+
+`monspace text`
+
+[.line-through]#strike trough text#
+
+_italic text_
+
+*Bold text*
+
+
+[source,cpp]
+----
+// The `context` variable represents an openDAQ(TM) daq::ContextPtr object created by the daq::Instance() constructor
+// Create the module manager and load modules in the executable directory
+daq::ModuleManagerPtr manager = daq::ModuleManager("", context);
+daq::ModulePtr _module = manager.getModules()[0];
+----
+
+== UI element references:
+
+Press the btn:[OK] button when you are finished in the menu:View[Zoom > Reset].
+Then go to the "More Tools > Extensions" or press the kbd:[Ctrl+Shift+N] shortcut.

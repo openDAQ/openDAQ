@@ -1,0 +1,15 @@
+﻿Procedure([this](daq::IBaseObject* args) -> ErrCode
+        {
+            $SmartPtr$ ptr;
+
+            if (args != nullptr)
+            {
+                ErrCode errCode = args->queryInterface($Interface$::Id, reinterpret_cast<void**>(&ptr));
+                if (OPENDAQ_FAILED(errCode))
+                {
+                    return errCode;
+                }
+            }
+
+            return $MethodName$(ptr);
+        })

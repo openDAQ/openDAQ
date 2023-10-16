@@ -1,0 +1,29 @@
+﻿Procedure([this](const daq::BaseObjectPtr& ptr) -> ErrCode
+        {
+            if (!ptr.assigned())
+            {
+                return this->makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Parameter must not be null (Must be a list with 2 elements).");
+            }
+
+            ListPtr<IBaseObject> list = ptr.asPtrOrNull<IList, ListPtr<IBaseObject>>(true);
+            if (!list.assigned())
+            {
+                return this->makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Parameter must be a list.");
+            }
+
+            if (list.getCount() == 0)
+            {
+                return this->makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Parameter list must contain at least 1 element (an output value).");
+            }
+
+            $OutParamType$ outParam;
+            ErrCode err = this->$MethodName$(&outParam);
+            if (OPENDAQ_FAILED(err))
+            {
+                return err;
+            }
+
+            list.setItemAt(0, outParam);
+
+            return OPENDAQ_SUCCESS;
+        })

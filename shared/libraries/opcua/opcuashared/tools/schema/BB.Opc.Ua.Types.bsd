@@ -1,0 +1,37 @@
+<opc:TypeDictionary
+  xmlns:opc="http://opcfoundation.org/BinarySchema/"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ua="http://opcfoundation.org/UA/"
+  xmlns:tns="https://blueberrydaq.com/ua"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  DefaultByteOrder="LittleEndian"
+  TargetNamespace="https://blueberrydaq.com/ua"
+>
+
+  <opc:Import Namespace="http://opcfoundation.org/BinarySchema/" />
+  
+  <opc:StructuredType Name="BufferValue">
+	<opc:Field Name="Values" TypeName="ua:Variant" />
+	<opc:Field Name="TSDiff" TypeName="opc:Int64" LengthField="TSDiffLength"/>
+  </opc:StructuredType>
+  
+  <opc:StructuredType Name="PropertyInfoDataType" BaseType="ua:ExtensionObject">
+	<opc:Field Name="Type" TypeName="opc:Int32"/>
+	<opc:Field Name="Description" TypeName="opc:String"/>
+	<opc:Field Name="Unit" TypeName="opc:String"/>
+	<opc:Field Name="UnitVisible" TypeName="opc:String"/>
+	<opc:Field Name="IsEnum" TypeName="opc:Boolean"/>
+	<opc:Field Name="MinValue" TypeName="opc:String"/>
+	<opc:Field Name="MaxValue" TypeName="opc:String"/>
+	<opc:Field Name="DefaultValue" TypeName="opc:String"/>
+	<opc:Field Name="Enabled" TypeName="opc:String"/>
+	<opc:Field Name="VisibleThroughtRef" TypeName="opc:Boolean"/>
+	<opc:Field Name="Visible" TypeName="opc:String"/>
+	<opc:Field Name="ReadOnly" TypeName="opc:String"/>
+	<opc:Field Name="ReadOnlyValue" TypeName="opc:String"/>
+	<opc:Field Name="Values" TypeName="opc:String"/>
+	<opc:Field Name="RefProp" TypeName="opc:String"/>
+	<opc:Field Name="Index" TypeName="opc:Int64"/>
+  </opc:StructuredType>
+
+</opc:TypeDictionary>

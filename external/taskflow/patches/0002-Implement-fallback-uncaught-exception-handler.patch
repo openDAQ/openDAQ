@@ -1,0 +1,742 @@
+From e6f26d6e097a15377315ce8f2f831772b4daf50d Mon Sep 17 00:00:00 2001
+From: Povilas Kanapickas <povilas@radix.lt>
+Date: Tue, 8 Nov 2022 01:55:00 +0100
+Subject: [PATCH 2/2] Implement fallback uncaught exception handler
+
+Currently taskflow is not exception safe as exceptions thrown from user
+tasks will break invariants required by the library and most likely
+result in deadlocks. This situation can be improved by providing a
+fallback exception handler which is called for any exceptions
+originating from user tasks. This way exceptions are processed in a
+well-defined way.
+
+The API explicitly disclaims guarantee to provide the same exact way to
+handle exceptions in future versions of the library, so this change does
+not reduce freedom to improve exception handling in the future.
+---
+ taskflow/core/executor.hpp | 107 +++++++++++++++++++++++---
+ unittests/basics.cpp       |  51 ++++++++++++-
+ unittests/runtimes.cpp     | 152 ++++++++++++++++++++++++-------------
+ 3 files changed, 242 insertions(+), 68 deletions(-)
+
+diff --git a/taskflow/core/executor.hpp b/taskflow/core/executor.hpp
+index c3de580..b16eeec 100644
+--- a/taskflow/core/executor.hpp
++++ b/taskflow/core/executor.hpp
+@@ -653,6 +653,22 @@ class Executor {
+     */
+     size_t num_observers() const noexcept;
+ 
++    /**
++    @brief sets handler for exceptions that are propagated from
++    user-provided task callables and for which the library does not
++    specify any other way of handling them.
++    There is no synchronization when invoking the handler.
++    If exception propagates out of handler it is ignored.
++    This exception handler is considered a fallback to handle exceptions.
++    There is no guarantee that exceptions originating from a particular
++    task will be delivered to the handler passed to this function in
++    future versions of the library. The future versions of the library
++    may introduce different, more specific ways to handle exceptions.
++    @param handler that accepts a caught exception pointer.
++    This member function is not thread-safe.
++    */
++    void set_uncaught_exception_handler(std::function<void(std::exception_ptr)> handler);
++
+   private:
+ 
+     std::condition_variable _topology_cv;
+@@ -676,6 +692,7 @@ class Executor {
+     std::atomic<bool>   _done {0};
+ 
+     std::unordered_set<std::shared_ptr<ObserverInterface>> _observers;
++    std::function<void(std::exception_ptr)> _uncaught_exception_handler;
+ 
+     Worker* _this_worker();
+ 
+@@ -740,6 +757,8 @@ inline Executor::Executor(size_t N) :
+   if(has_env(TF_ENABLE_PROFILER)) {
+     TFProfManager::get()._manage(make_observer<TFProfObserver>());
+   }
++
++  set_uncaught_exception_handler({});
+ }
+ 
+ // Destructor
+@@ -773,6 +792,32 @@ inline size_t Executor::num_taskflows() const {
+   return _taskflows.size();
+ }
+ 
++inline void Executor::set_uncaught_exception_handler(std::function<void(std::exception_ptr)> handler)
++{
++  if (handler)
++  {
++    _uncaught_exception_handler = handler;
++  }
++  else
++  {
++    // Setup default uncaught exception handler to print a message to stderr
++    _uncaught_exception_handler = [](std::exception_ptr eptr) {
++      try
++      {
++          std::rethrow_exception(eptr);
++      }
++      catch (const std::exception& e)
++      {
++        std::fprintf(stderr, "[taskflow] Got uncaught exception: %s\n", e.what());
++      }
++      catch (...)
++      {
++        std::fprintf(stderr, "[taskflow] Got unknown uncaught exception\n");
++      }
++    };
++  }
++}
++
+ // Function: _this_worker
+ inline Worker* Executor::_this_worker() {
+   auto itr = _wids.find(std::this_thread::get_id());
+@@ -1430,7 +1475,11 @@ inline void Executor::_cancel_invoke(Worker& worker, Node* node) {
+   switch(node->_handle.index()) {
+     // async task needs to carry out the promise
+     case Node::ASYNC:
+-      std::get_if<Node::Async>(&(node->_handle))->work(true);
++      try {
++        std::get_if<Node::Async>(&(node->_handle))->work(true);
++      } catch (...) {
++        _uncaught_exception_handler(std::current_exception());
++      }
+       _tear_down_async(node);
+     break;
+ 
+@@ -1464,7 +1513,11 @@ inline void Executor::_observer_epilogue(Worker& worker, Node* node) {
+ // Procedure: _invoke_static_task
+ inline void Executor::_invoke_static_task(Worker& worker, Node* node) {
+   _observer_prologue(worker, node);
+-  std::get_if<Node::Static>(&node->_handle)->work();
++  try {
++    std::get_if<Node::Static>(&node->_handle)->work();
++  } catch (...) {
++    _uncaught_exception_handler(std::current_exception());
++  }
+   _observer_epilogue(worker, node);
+ }
+ 
+@@ -1479,7 +1532,11 @@ inline void Executor::_invoke_dynamic_task(Worker& w, Node* node) {
+ 
+   Subflow sf(*this, w, node, handle->subgraph);
+ 
+-  handle->work(sf);
++  try {
++    handle->work(sf);
++  } catch (...) {
++    _uncaught_exception_handler(std::current_exception());
++  }
+ 
+   if(sf._joinable) {
+     _join_graph(w, node, handle->subgraph);
+@@ -1550,7 +1607,12 @@ inline void Executor::_invoke_condition_task(
+   Worker& worker, Node* node, SmallVector<int>& conds
+ ) {
+   _observer_prologue(worker, node);
+-  conds = { std::get_if<Node::Condition>(&node->_handle)->work() };
++  try {
++    conds = { std::get_if<Node::Condition>(&node->_handle)->work() };
++  } catch (...) {
++    _uncaught_exception_handler(std::current_exception());
++    // Storing nothing into conds will skip any successor tasks
++  }
+   _observer_epilogue(worker, node);
+ }
+ 
+@@ -1559,21 +1621,34 @@ inline void Executor::_invoke_multi_condition_task(
+   Worker& worker, Node* node, SmallVector<int>& conds
+ ) {
+   _observer_prologue(worker, node);
+-  conds = std::get_if<Node::MultiCondition>(&node->_handle)->work();
++  try {
++    conds = std::get_if<Node::MultiCondition>(&node->_handle)->work();
++  } catch (...) {
++    _uncaught_exception_handler(std::current_exception());
++    // Storing nothing into conds will skip any successor tasks
++  }
+   _observer_epilogue(worker, node);
+ }
+ 
+ // Procedure: _invoke_cudaflow_task
+ inline void Executor::_invoke_cudaflow_task(Worker& worker, Node* node) {
+   _observer_prologue(worker, node);
+-  std::get_if<Node::cudaFlow>(&node->_handle)->work(*this, node);
++  try {
++    std::get_if<Node::cudaFlow>(&node->_handle)->work(*this, node);
++  } catch (...) {
++    _uncaught_exception_handler(std::current_exception());
++  }
+   _observer_epilogue(worker, node);
+ }
+ 
+ // Procedure: _invoke_syclflow_task
+ inline void Executor::_invoke_syclflow_task(Worker& worker, Node* node) {
+   _observer_prologue(worker, node);
+-  std::get_if<Node::syclFlow>(&node->_handle)->work(*this, node);
++  try {
++    std::get_if<Node::syclFlow>(&node->_handle)->work(*this, node);
++  } catch (...) {
++    _uncaught_exception_handler(std::current_exception());
++  }
+   _observer_epilogue(worker, node);
+ }
+ 
+@@ -1589,14 +1664,22 @@ inline void Executor::_invoke_module_task(Worker& w, Node* node) {
+ // Procedure: _invoke_async_task
+ inline void Executor::_invoke_async_task(Worker& w, Node* node) {
+   _observer_prologue(w, node);
+-  std::get_if<Node::Async>(&node->_handle)->work(false);
++  try {
++    std::get_if<Node::Async>(&node->_handle)->work(false);
++  } catch (...) {
++    _uncaught_exception_handler(std::current_exception());
++  }
+   _observer_epilogue(w, node);
+ }
+ 
+ // Procedure: _invoke_silent_async_task
+ inline void Executor::_invoke_silent_async_task(Worker& w, Node* node) {
+   _observer_prologue(w, node);
+-  std::get_if<Node::SilentAsync>(&node->_handle)->work();
++  try {
++    std::get_if<Node::SilentAsync>(&node->_handle)->work();
++  } catch (...) {
++    _uncaught_exception_handler(std::current_exception());
++  }
+   _observer_epilogue(w, node);
+ }
+ 
+@@ -1604,7 +1687,11 @@ inline void Executor::_invoke_silent_async_task(Worker& w, Node* node) {
+ inline void Executor::_invoke_runtime_task(Worker& w, Node* node) {
+   _observer_prologue(w, node);
+   Runtime rt(*this, w, node);
+-  std::get_if<Node::Runtime>(&node->_handle)->work(rt);
++  try {
++    std::get_if<Node::Runtime>(&node->_handle)->work(rt);
++  } catch (...) {
++    _uncaught_exception_handler(std::current_exception());
++  }
+   _observer_epilogue(w, node);
+ }
+ 
+diff --git a/unittests/basics.cpp b/unittests/basics.cpp
+index 290abcc..d32df58 100644
+--- a/unittests/basics.cpp
++++ b/unittests/basics.cpp
+@@ -706,13 +706,13 @@ TEST_CASE("SerialRuns.8threads" * doctest::timeout(300)) {
+ // --------------------------------------------------------
+ 
+ TEST_CASE("RunAndWait.Simple") {
+-  
++
+   // create an executor and a taskflow
+   tf::Executor executor(2);
+   tf::Taskflow taskflow("Demo");
+ 
+   int counter{0};
+-  
++
+   // taskflow to run by the main taskflow
+   tf::Taskflow others;
+   tf::Task A = others.emplace([&](){ counter++; });
+@@ -742,7 +742,7 @@ TEST_CASE("RunAndWait.Complex") {
+ 
+   const size_t N = 100;
+   const size_t T = 1000;
+-  
++
+   // create an executor and a taskflow
+   tf::Executor executor(2);
+   tf::Taskflow taskflow;
+@@ -750,7 +750,7 @@ TEST_CASE("RunAndWait.Complex") {
+   std::array<tf::Taskflow, N> taskflows;
+ 
+   std::atomic<size_t> counter{0};
+-  
++
+   for(size_t n=0; n<N; n++) {
+     for(size_t i=0; i<T; i++) {
+       taskflows[n].emplace([&](){ counter++; });
+@@ -1389,4 +1389,47 @@ TEST_CASE("Observer.4threads" * doctest::timeout(300)) {
+   observer(4);
+ }
+ 
++// --------------------------------------------------------
++// Testcase: Basic.Exception
++// --------------------------------------------------------
++
++TEST_CASE("Basic.Exception" * doctest::timeout(300)) {
++  // This test checks whether procuding an uncaught exception from a task
++  // does not cause the library to misbehave.
++  std::atomic<uint64_t> uncaught_exceptions{0};
++  tf::Executor executor(4);
++  executor.set_uncaught_exception_handler([&](const auto&) { uncaught_exceptions++; });
++
++  tf::Taskflow tf;
++  std::vector<tf::Task> exception_tasks;
++
++  for (unsigned i = 0; i < 20; ++i) {
++    exception_tasks.emplace_back(tf.emplace([&]() {
++      throw std::runtime_error("error");
++    }));
++  }
++
++
++  tf::Task common_task = tf.emplace([&]() {});
++  for (auto& task : exception_tasks) {
++    task.precede(common_task);
++  }
++
++
++  std::vector<tf::Task> normal_tasks;
++  std::atomic<uint64_t> normal_task_executions{0};
+ 
++  for (unsigned i = 0; i < 20; ++i) {
++    normal_tasks.emplace_back(tf.emplace([&]() {
++      normal_task_executions++;
++    }));
++  }
++
++  for (auto& task : normal_tasks) {
++    task.succeed(common_task);
++  }
++
++  executor.run(tf).get();
++  REQUIRE(uncaught_exceptions == 20);
++  REQUIRE(normal_task_executions == 20);
++}
+diff --git a/unittests/runtimes.cpp b/unittests/runtimes.cpp
+index 5a6155b..0e8b0b1 100644
+--- a/unittests/runtimes.cpp
++++ b/unittests/runtimes.cpp
+@@ -66,7 +66,7 @@ TEST_CASE("Runtime.ExternalGraph.Simple" * doctest::timeout(300)) {
+ 
+   tf::Executor executor;
+   tf::Taskflow taskflow;
+-  
++
+   std::vector<int> results(N, 0);
+   std::vector<tf::Taskflow> graphs(N);
+ 
+@@ -87,7 +87,7 @@ TEST_CASE("Runtime.ExternalGraph.Simple" * doctest::timeout(300)) {
+       rt.run_and_wait(graph);
+     });
+   }
+-  
++
+   executor.run_n(taskflow, 100).wait();
+ 
+   for(size_t i=0; i<N; i++) {
+@@ -101,7 +101,7 @@ TEST_CASE("Runtime.ExternalGraph.Simple" * doctest::timeout(300)) {
+ // --------------------------------------------------------
+ 
+ void runtime_subflow(size_t w) {
+-  
++
+   const size_t runtime_tasks_per_line = 20;
+   const size_t lines = 4;
+   const size_t subtasks = 4096;
+@@ -111,7 +111,7 @@ void runtime_subflow(size_t w) {
+   tf::Taskflow taskflow;
+ 
+   for (size_t subtask = 0; subtask <= subtasks; subtask = subtask == 0 ? subtask + 1 : subtask*2) {
+-    
++
+     parent.clear();
+     taskflow.clear();
+ 
+@@ -120,10 +120,10 @@ void runtime_subflow(size_t w) {
+ 
+     std::vector<tf::Task> rts;
+     std::atomic<size_t> sums = 0;
+-    
++
+     for (size_t i = 0; i < runtime_tasks_per_line * lines; ++i) {
+       std::string rt_name = "rt-" + std::to_string(i);
+-      
++
+       rts.emplace_back(taskflow.emplace([&sums, &subtask](tf::Runtime& rt) {
+         rt.run_and_wait([&sums, &subtask](tf::Subflow& sf) {
+           for (size_t j = 0; j < subtask; ++j) {
+@@ -131,7 +131,7 @@ void runtime_subflow(size_t w) {
+               sums.fetch_add(1, std::memory_order_relaxed);
+               //std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+             });
+-          }  
++          }
+         });
+       }).name(rt_name));
+     }
+@@ -196,19 +196,19 @@ TEST_CASE("Runtime.Subflow.8threads" * doctest::timeout(300)){
+ // --------------------------------------------------------
+ 
+ void pipeline_sp_runtime_subflow(size_t w) {
+-  
++
+   const size_t num_lines = 2;
+   const size_t subtask = 2;
+   const size_t max_tokens = 100000;
+ 
+   tf::Executor executor(w);
+   tf::Taskflow taskflow;
+- 
++
+   //for (subtask = 0; subtask <= subtasks; subtask = subtask == 0 ? subtask + 1 : subtask*2) {
+-   
++
+     std::atomic<size_t> sums = 0;
+     tf::Pipeline pl(
+-      num_lines, 
++      num_lines,
+       tf::Pipe{
+         tf::PipeType::SERIAL, [max_tokens](tf::Pipeflow& pf){
+           //std::cout << tf::stringify(pf.token(), '\n');
+@@ -223,7 +223,7 @@ void pipeline_sp_runtime_subflow(size_t w) {
+           rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+             for (size_t i = 0; i < subtask; ++i) {
+               sf.emplace([&sums](){
+-                sums.fetch_add(1, std::memory_order_relaxed);  
++                sums.fetch_add(1, std::memory_order_relaxed);
+               });
+             }
+           });
+@@ -276,21 +276,21 @@ TEST_CASE("Pipeline(SP).Runtime.Subflow.8threads" * doctest::timeout(300)){
+ // --------------------------------------------------------
+ 
+ void pipeline_spspspsp_runtime_subflow(size_t w) {
+-  
++
+   const size_t num_lines = 4;
+   const size_t subtasks = 8;
+   const size_t max_tokens = 4096;
+ 
+   tf::Executor executor(w);
+   tf::Taskflow taskflow;
+- 
++
+   for (size_t subtask = 0; subtask <= subtasks; subtask = subtask == 0 ? subtask + 1 : subtask*2) {
+-   
++
+     taskflow.clear();
+-    
++
+     std::atomic<size_t> sums = 0;
+     tf::Pipeline pl(
+-      num_lines, 
++      num_lines,
+       tf::Pipe{
+         tf::PipeType::SERIAL, [max_tokens](tf::Pipeflow& pf){
+           if (pf.token() == max_tokens) {
+@@ -304,7 +304,7 @@ void pipeline_spspspsp_runtime_subflow(size_t w) {
+           rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+             for (size_t i = 0; i < subtask; ++i) {
+               sf.emplace([&sums](){
+-                sums.fetch_add(1, std::memory_order_relaxed);  
++                sums.fetch_add(1, std::memory_order_relaxed);
+               });
+             }
+           });
+@@ -316,7 +316,7 @@ void pipeline_spspspsp_runtime_subflow(size_t w) {
+           rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+             for (size_t i = 0; i < subtask; ++i) {
+               sf.emplace([&sums](){
+-                sums.fetch_add(1, std::memory_order_relaxed);  
++                sums.fetch_add(1, std::memory_order_relaxed);
+               });
+             }
+           });
+@@ -328,7 +328,7 @@ void pipeline_spspspsp_runtime_subflow(size_t w) {
+           rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+             for (size_t i = 0; i < subtask; ++i) {
+               sf.emplace([&sums](){
+-                sums.fetch_add(1, std::memory_order_relaxed);  
++                sums.fetch_add(1, std::memory_order_relaxed);
+               });
+             }
+           });
+@@ -340,7 +340,7 @@ void pipeline_spspspsp_runtime_subflow(size_t w) {
+           rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+             for (size_t i = 0; i < subtask; ++i) {
+               sf.emplace([&sums](){
+-                sums.fetch_add(1, std::memory_order_relaxed);  
++                sums.fetch_add(1, std::memory_order_relaxed);
+               });
+             }
+           });
+@@ -352,7 +352,7 @@ void pipeline_spspspsp_runtime_subflow(size_t w) {
+           rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+             for (size_t i = 0; i < subtask; ++i) {
+               sf.emplace([&sums](){
+-                sums.fetch_add(1, std::memory_order_relaxed);  
++                sums.fetch_add(1, std::memory_order_relaxed);
+               });
+             }
+           });
+@@ -364,7 +364,7 @@ void pipeline_spspspsp_runtime_subflow(size_t w) {
+           rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+             for (size_t i = 0; i < subtask; ++i) {
+               sf.emplace([&sums](){
+-                sums.fetch_add(1, std::memory_order_relaxed);  
++                sums.fetch_add(1, std::memory_order_relaxed);
+               });
+             }
+           });
+@@ -376,7 +376,7 @@ void pipeline_spspspsp_runtime_subflow(size_t w) {
+           rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+             for (size_t i = 0; i < subtask; ++i) {
+               sf.emplace([&sums](){
+-                sums.fetch_add(1, std::memory_order_relaxed);  
++                sums.fetch_add(1, std::memory_order_relaxed);
+               });
+             }
+           });
+@@ -429,17 +429,17 @@ TEST_CASE("Pipeline(SPSPSPSP).Runtime.Subflow.8threads" * doctest::timeout(300))
+ // --------------------------------------------------------
+ 
+ void pipeline_spspspsp_runtime_irregular_subflow(size_t w) {
+-  
++
+   const size_t num_lines = 4;
+   const size_t max_tokens = 32767;
+ 
+   tf::Executor executor(w);
+   tf::Taskflow taskflow;
+- 
++
+   std::atomic<size_t> sums = 0;
+-  
++
+   tf::Pipeline pl(
+-    num_lines, 
++    num_lines,
+     tf::Pipe{
+       tf::PipeType::SERIAL, [max_tokens](tf::Pipeflow& pf){
+         if (pf.token() == max_tokens) {
+@@ -449,7 +449,7 @@ void pipeline_spspspsp_runtime_irregular_subflow(size_t w) {
+     },
+ 
+     /* subflow has the following dependency
+-     *    
++     *
+      *     |--> B
+      *  A--|
+      *     |--> C
+@@ -467,7 +467,7 @@ void pipeline_spspspsp_runtime_irregular_subflow(size_t w) {
+ 
+     /* subflow has the following dependency
+      *
+-     *     |--> B--| 
++     *     |--> B--|
+      *     |       v
+      *  A--|       D
+      *     |       ^
+@@ -489,11 +489,11 @@ void pipeline_spspspsp_runtime_irregular_subflow(size_t w) {
+ 
+     /* subflow has the following dependency
+      *
+-     *       |--> C 
+-     *       |       
+-     *  A--> B       
+-     *       |       
+-     *       |--> D 
++     *       |--> C
++     *       |
++     *  A--> B
++     *       |
++     *       |--> D
+      *
+      */
+     tf::Pipe{
+@@ -513,7 +513,7 @@ void pipeline_spspspsp_runtime_irregular_subflow(size_t w) {
+      *
+      *     |--> B--|   |--> E
+      *     |       v   |
+-     *  A--|       D --| 
++     *  A--|       D --|
+      *     |       ^   |
+      *     |--> C--|   |--> F
+      *
+@@ -556,7 +556,7 @@ void pipeline_spspspsp_runtime_irregular_subflow(size_t w) {
+     },
+ 
+     /* subflow has the following dependency
+-     *    
++     *
+      *        |-----------|
+      *        |           v
+      *  A --> B --> C --> D -->  E
+@@ -581,10 +581,10 @@ void pipeline_spspspsp_runtime_irregular_subflow(size_t w) {
+     },
+ 
+     /* subflow has the following dependency
+-     *    
++     *
+      *  |-----------|
+      *  |           v
+-     *  A --> B --> C --> D 
++     *  A --> B --> C --> D
+      *  |                 ^
+      *  |-----------------|
+      *
+@@ -650,7 +650,7 @@ TEST_CASE("Pipeline(SPSPSPSP).Runtime.Irregular.Subflow.8threads" * doctest::tim
+ // --------------------------------------------------------
+ 
+ void scalable_pipeline_spspspsp_runtime_subflow(size_t w) {
+-  
++
+   const size_t num_lines = 4;
+   const size_t subtasks = 8;
+   const size_t max_tokens = 4096;
+@@ -662,12 +662,12 @@ void scalable_pipeline_spspspsp_runtime_subflow(size_t w) {
+   std::vector<pipe_t> pipes;
+ 
+   tf::ScalablePipeline<std::vector<pipe_t>::iterator> sp;
+- 
++
+   for (size_t subtask = 0; subtask <= subtasks; subtask = subtask == 0 ? subtask + 1 : subtask*2) {
+-   
++
+     taskflow.clear();
+     pipes.clear();
+-    
++
+     std::atomic<size_t> sums = 0;
+ 
+     pipes.emplace_back(tf::PipeType::SERIAL, [max_tokens](tf::Pipeflow& pf, tf::Runtime&){
+@@ -681,7 +681,7 @@ void scalable_pipeline_spspspsp_runtime_subflow(size_t w) {
+       rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+         for (size_t i = 0; i < subtask; ++i) {
+           sf.emplace([&sums](){
+-            sums.fetch_add(1, std::memory_order_relaxed);  
++            sums.fetch_add(1, std::memory_order_relaxed);
+           });
+         }
+       });
+@@ -691,27 +691,27 @@ void scalable_pipeline_spspspsp_runtime_subflow(size_t w) {
+       rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+         for (size_t i = 0; i < subtask; ++i) {
+           sf.emplace([&sums](){
+-            sums.fetch_add(1, std::memory_order_relaxed);  
++            sums.fetch_add(1, std::memory_order_relaxed);
+           });
+         }
+       });
+     });
+-    
++
+     pipes.emplace_back(tf::PipeType::PARALLEL, [subtask, &sums](tf::Pipeflow&, tf::Runtime& rt) {
+       rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+         for (size_t i = 0; i < subtask; ++i) {
+           sf.emplace([&sums](){
+-            sums.fetch_add(1, std::memory_order_relaxed);  
++            sums.fetch_add(1, std::memory_order_relaxed);
+           });
+         }
+       });
+     });
+-    
++
+     pipes.emplace_back(tf::PipeType::SERIAL, [subtask, &sums](tf::Pipeflow&, tf::Runtime& rt) {
+       rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+         for (size_t i = 0; i < subtask; ++i) {
+           sf.emplace([&sums](){
+-            sums.fetch_add(1, std::memory_order_relaxed);  
++            sums.fetch_add(1, std::memory_order_relaxed);
+           });
+         }
+       });
+@@ -721,18 +721,18 @@ void scalable_pipeline_spspspsp_runtime_subflow(size_t w) {
+       rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+         for (size_t i = 0; i < subtask; ++i) {
+           sf.emplace([&sums](){
+-            sums.fetch_add(1, std::memory_order_relaxed);  
++            sums.fetch_add(1, std::memory_order_relaxed);
+           });
+         }
+       });
+     });
+-    
++
+ 
+     pipes.emplace_back(tf::PipeType::SERIAL, [subtask, &sums](tf::Pipeflow&, tf::Runtime& rt) {
+       rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+         for (size_t i = 0; i < subtask; ++i) {
+           sf.emplace([&sums](){
+-            sums.fetch_add(1, std::memory_order_relaxed);  
++            sums.fetch_add(1, std::memory_order_relaxed);
+           });
+         }
+       });
+@@ -742,13 +742,13 @@ void scalable_pipeline_spspspsp_runtime_subflow(size_t w) {
+       rt.run_and_wait([subtask, &sums](tf::Subflow& sf) {
+         for (size_t i = 0; i < subtask; ++i) {
+           sf.emplace([&sums](){
+-            sums.fetch_add(1, std::memory_order_relaxed);  
++            sums.fetch_add(1, std::memory_order_relaxed);
+           });
+         }
+       });
+     });
+     //
+-    
++
+     sp.reset(num_lines, pipes.begin(), pipes.end());
+ 
+     taskflow.composed_of(sp).name("pipeline");
+@@ -790,3 +790,47 @@ TEST_CASE("ScalablePipeline(SPSPSPSP).Runtime.Subflow.8threads" * doctest::timeo
+   scalable_pipeline_spspspsp_runtime_subflow(8);
+ }
+ 
++// --------------------------------------------------------
++// Testcase: Runtime.Exceptions
++// --------------------------------------------------------
++
++TEST_CASE("Runtime.Exceptions" * doctest::timeout(300)) {
++  // This test checks whether procuding an uncaught exception from a subflow task
++  // does not cause the library to misbehave.
++  std::atomic<uint64_t> uncaught_exceptions{0};
++  tf::Executor executor(4);
++  executor.set_uncaught_exception_handler([&](const auto& e) { uncaught_exceptions++; });
++
++  tf::Taskflow tf;
++  std::vector<tf::Task> exception_tasks;
++
++  for(unsigned i = 0; i < 10; ++i) {
++    tf.emplace([&](tf::Runtime& rt){
++      rt.run_and_wait([&](tf::Subflow& sf){
++        sf.emplace([&](){ throw std::runtime_error("error"); });
++        sf.emplace([&](){ throw std::runtime_error("error"); });
++        sf.emplace([&](){ throw std::runtime_error("error"); });
++        sf.emplace([&](){ throw std::runtime_error("error"); });
++        sf.emplace([&](){ throw std::runtime_error("error"); });
++      });
++    });
++  }
++
++  std::atomic<uint64_t> normal_task_executions{0};
++
++  for(unsigned i = 0; i < 10; ++i) {
++    tf.emplace([&](tf::Runtime& rt){
++      rt.run_and_wait([&](tf::Subflow& sf){
++        sf.emplace([&](){ normal_task_executions++; });
++        sf.emplace([&](){ normal_task_executions++; });
++        sf.emplace([&](){ normal_task_executions++; });
++        sf.emplace([&](){ normal_task_executions++; });
++        sf.emplace([&](){ normal_task_executions++; });
++      });
++    });
++  }
++
++  executor.run(tf).get();
++  REQUIRE(uncaught_exceptions == 50);
++  REQUIRE(normal_task_executions == 50);
++}
+-- 
+2.36.1.windows.1
+

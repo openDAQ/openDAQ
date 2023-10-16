@@ -1,0 +1,12 @@
+﻿    $DocComment$
+    $ReturnTypePtr$ $Name$($Arguments$) const
+    {
+        if (this->object == nullptr)
+            throw daq::InvalidParameterException();
+
+        $ReturnTypeIntf$ $ReturnArgName$;
+        auto errCode = this->object->$Name$($ArgumentNames$);
+        daq::checkErrorInfo(errCode);
+
+        return $ExitReturnArgName$;
+    }

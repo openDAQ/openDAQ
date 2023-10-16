@@ -1,0 +1,9 @@
+﻿function $FactoryDelphiName$($Arguments$): $Interface$;
+var
+  RawInterface: $Interface$;
+  Err: ErrCode;
+begin
+  Err := $FactoryUnwrappedName$(RawInterface$ArgumentNames$);
+  CheckRtErrorInfo(Err);
+  Result := RawInterface;
+end;

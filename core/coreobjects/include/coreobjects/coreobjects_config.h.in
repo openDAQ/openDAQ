@@ -1,0 +1,21 @@
+#pragma once
+
+#define OPENDAQ_COREOBJECTS_MAJOR_VERSION    ${PROJECT_VERSION_MAJOR}u
+#define OPENDAQ_COREOBJECTS_MINOR_VERSION    ${PROJECT_VERSION_MINOR}u
+#define OPENDAQ_COREOBJECTS_PATCH_VERSION    ${PROJECT_VERSION_PATCH}u
+
+#if defined(_MSC_VER) && !defined(OPENDAQ_SKIP_LIB_LINK)
+    #ifdef _WIN64
+        #ifndef NDEBUG
+            #pragma comment(lib, "${LIB_NAME}-64-${PROJECT_VERSION_MAJOR}-debug.lib")
+        #else
+            #pragma comment(lib, "${LIB_NAME}-64-${PROJECT_VERSION_MAJOR}.lib")
+        #endif
+    #else
+        #ifndef NDEBUG
+            #pragma comment(lib, "${LIB_NAME}-32-${PROJECT_VERSION_MAJOR}-debug.lib")
+        #else
+            #pragma comment(lib, "${LIB_NAME}-32-${PROJECT_VERSION_MAJOR}.lib")
+        #endif
+    #endif
+#endif

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="202"
+     height="281"
+     viewBox="-0.5 -0.5 202 281"
+     style="background-color:rgb(255, 255, 255)"
+     xmlns:v="https://vecta.io/nano">
+    <style><![CDATA[.B{stroke:#000}.C{pointer-events:all}.D{font-family:Open Sans}.E{text-anchor:middle}.F{stroke-miterlimit:10}.G{pointer-events:stroke}]]></style>
+    <defs>
+        <style>@import url(https://fonts.googleapis.com/css?family=Noto+Serif); @import url(https://fonts.googleapis.com/css?family=Open+Sans); @import url(https://fonts.googleapis.com/css?family=Noto+Serif); @import url(https://fonts.googleapis.com/css?family=Open+Sans); </style>
+    </defs>
+    <rect x="40"
+          width="120"
+          height="80"
+          rx="12"
+          fill="#fff"
+          class="B C"/>
+    <text x="99.5"
+          y="44.5"
+          fill="#000"
+          font-size="16"
+          class="D E">Signal Generator</text>
+    <rect x="40"
+          y="100"
+          width="120"
+          height="80"
+          rx="12"
+          fill="#fff"
+          class="B C"/>
+    <text x="99.5"
+          y="144.5"
+          fill="#000"
+          font-size="16"
+          class="D E">Averager</text>
+    <rect x="40"
+          y="200"
+          width="120"
+          height="80"
+          rx="12"
+          fill="#fff"
+          class="B C"/>
+    <text x="99.5"
+          y="244.5"
+          fill="#000"
+          font-size="16"
+          class="D E">File Writer</text>
+    <path d="M160 10q10 0 10 10 0 10-10 10zm0 40q10 0 10 10 0 10-10 10zm0 80q10 0 10 10 0 10-10 10zM40 150q-10 0-10-10 0-10 10-10zm0 100q-10 0-10-10 0-10 10-10z"
+          fill="#fff"
+          class="B F C"/>
+    <g fill="none"
+       class="B F G">
+        <path d="M170 20h30m-30 40h30m-30 80h30M30 240H0"/>
+        <path d="M30 140H0"/>
+    </g>
+</svg>

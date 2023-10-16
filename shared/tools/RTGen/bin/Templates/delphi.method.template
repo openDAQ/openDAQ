@@ -1,0 +1,5 @@
+﻿procedure $Name$($Arguments$) $CallingConvention$;
+function $Name$($Arguments$): $ReturnTypeName$; $CallingConvention$;
+out $ArgName$: $ArgTypeName$
+$ArgName$: $ArgTypeName$
+; 

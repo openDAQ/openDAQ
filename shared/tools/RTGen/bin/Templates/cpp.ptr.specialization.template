@@ -1,0 +1,5 @@
+﻿template <$TemplateArgs$>
+struct InterfaceToSmartPtr<$InterfaceFull$>
+{
+    using SmartPtr = $PtrNameQualified$$PtrInterfaceFullTemplate$;
+};

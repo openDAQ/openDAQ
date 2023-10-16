@@ -1,0 +1,13 @@
+<?xml version="1.0" standalone='no'?><!--*-nxml-*-->
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="yes">%h</name>
+  <service>
+    <type>_opcua-tcp._tcp</type>
+    <port>4840</port>
+    <txt-record>name=Device 1</txt-record>
+    <txt-record>model=Reference device</txt-record>
+    <txt-record>serialNumber=dev_ser_1</txt-record>
+    <txt-record>caps=OPENDAQ</txt-record>
+  </service>
+</service-group>

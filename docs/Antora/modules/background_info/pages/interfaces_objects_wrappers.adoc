@@ -1,0 +1,253 @@
+= Interfaces, Objects and Wrappers
+
+One of the primary goals of the openDAQ(TM) SDK is its cross-platform and cross-language operability. Its architecture was
+designed with the said goal in mind, while still striving to keep its API simple and easy to use. As a solution, openDAQ(TM)
+creates C-compatible interfaces that can be passed across shared libraries. It uses the fact that the C ABI is
+well-defined and standardized to create a framework of interfaces between the library and application that closely
+follows that of the COM architecture.
+
+In this article, we provide insight into the lower-level working of the interfaces, mostly used in the openDAQ(TM) internals,
+and describe how the shortcomings of these interfaces are addressed through pointer wrappers. Users of openDAQ(TM) will
+in most cases only interact with the pointer wrapper objects, however, a general understanding of interface programming
+in openDAQ(TM) is advisable for integrators and openDAQ(TM) developers.
+
+== Interfaces
+
+The aforementioned architecture is implemented in C++ through the use of abstract structs with pure virtual functions. Such structs
+share the C interface ability to be passed across shared library boundaries by all compilers on any platform in the same
+manner. To be more precise, objects can be passed as pointers to interfaces, allowing for sharing of OOP structures and
+modularized components across multiple shared libraries.
+
+As with COM interfaces, all openDAQ(TM) interfaces implement the `IUnknown` interface, which provides functions for reference
+counting and type casting. openDAQ(TM) interfaces also implement the `IBaseObject` interface, providing
+functions for tasks such as object hashing, comparison, and cleanup.
+
+[source,cpp]
+----
+struct IUnknown
+{
+    virtual ErrCode INTERFACE_FUNC queryInterface(const IntfID& intfID, void** obj) = 0;
+    virtual int INTERFACE_FUNC addRef() = 0;
+    virtual int INTERFACE_FUNC releaseRef() = 0;
+};
+----
+
+[source,cpp]
+[%unbreakable]
+----
+struct IBaseObject : public IUnknown
+{
+    virtual ErrCode INTERFACE_FUNC borrowInterface(const IntfID& intfID, void** obj) const = 0;
+    virtual ErrCode INTERFACE_FUNC dispose() = 0;
+    virtual ErrCode INTERFACE_FUNC getHashCode(SizeT* hashCode) = 0;
+    virtual ErrCode INTERFACE_FUNC equals(IBaseObject* other) const = 0;
+    virtual ErrCode INTERFACE_FUNC toString(CharPtr* str) = 0;
+};
+----
+
+The fundamental mechanism of working with interfaces is expressed through the `queryInterface` function. Modeled
+after the namesake COM function, `queryInterface` allows an object to be queried for a pointer to a different
+interface with the `intfID` interface ID. If the queried object supports that interface, `queryInterface` retrieves
+a pointer and automatically calls `addRef`, increasing the object's reference count.
+
+Briefly mentioned earlier, reference counting in openDAQ(TM) is done at its lowest level through the `addRef` and
+`releaseRef` calls that increment or decrement an object's reference count. Following intuition, every object
+is created with a reference count of one and destroyed once it reaches zero. openDAQ(TM) interfaces embrace a model
+where its objects do not increment their reference count when passed as function parameters. They instead "borrow" the
+reference. `borrowInterface` provides a function embracing said behavior by returning a pointer to a different
+interface without incrementing the caller object's reference count.
+
+=== openDAQ(TM) Interface Structure
+
+In the following example, we declare a new interface `ICustomInterface` with a `foo()` method.
+The `DECLARE_OPENDAQ_INTERFACE` macro defines a struct, named as input in the 1st macro parameter, that inherits the interface
+in the 2nd parameter. The macro generates an interface ID that is used when querying the interface.
+
+NOTE: INTERFACE_FUNC evaluates to `__stdcall` on Windows systems.
+
+[source,cpp]
+----
+// custom_interface.h
+#pragma once
+#include <coretypes/baseobject.h>
+
+DECLARE_OPENDAQ_INTERFACE(ICustomInterface, IBaseObject)
+{
+    virtual ErrCode INTERFACE_FUNC foo() = 0;
+}
+----
+
+=== Interface Levels
+
+The openDAQ(TM) SDK defines three levels of interfaces. Here we provide a very rough overview of the levels:
+
+* Core types: Basic type interfaces that wrap common programming constructs such as integers (`IInteger`), lists (`IList`),
+dictionaries (`IDict`), strings (`IString`)...
+* Core objects: Interfaces allowing for the creation of property objects (`IPropertyObject`). Property Objects are containers for
+a set of properties, with each property having a string key, value, and metadata description of the property (IPropertyInfo).
+* openDAQ(TM): Interfaces that correspond to data acquisition concepts. Devices (`IDevice`), signals (`ISignal`), channels (`IChannel`),
+and other similar concepts are featured here. A lot of the concepts (the three mentioned earlier for example) are property objects
+that inherit the `IPropertyObject` interface.
+
+NOTE: openDAQ(TM) creates interfaces for basic structures such as integers and floating point numbers to allow for them to be contained
+within openDAQ(TM) containers such as lists, dictionaries, and property objects.
+
+== Objects
+
+Interfaces, however, are only that - an interface into an implementation. An openDAQ(TM) object class can implement one or more
+openDAQ(TM) interfaces, defining their behavior and effects. An interface describes a function in general, but each
+implementation defines what exactly happens during the function call. For example, when supporting measurement
+devices in openDAQ(TM), each will provide its own implementation of the `IDevice` interface, which will differ
+depending on the device's behavior and requirements.
+
+The below code snippet features an example implementation of the above `ICustomInterface` interface.
+
+[source,cpp]
+----
+// custom_interface_impl.h
+#pragma once
+#include <opendaq/custom_interface.h>
+#include <iostream>
+
+class CustomInterfaceImpl : public ImplementationOf<ICustomInterface>
+{
+    CustomInterfaceImpl(Int num)
+    {
+        for (int i = 0; i < num; ++i)
+            std::cout << "foo" << std::endl;
+    }
+
+    ErrCode INTERFACE_FUNC foo() override
+    {
+        std::cout << "foo" << std::endl;
+        return OPENDAQ_SUCCESS;
+    }
+}
+----
+
+To bind interfaces and implementations, openDAQ(TM) provides factory functions used to create an implementation
+class object and return it as a pointer to one of its implemented interfaces. Internally, factories create an
+`extern "C"` factory function that calls the class constructor and creates a new openDAQ(TM) object. These factories
+can, in the cross-platform spirit of openDAQ(TM), be invoked from any application that uses the openDAQ(TM) shared libraries.
+
+[source,cpp]
+----
+// custom_interface.h
+OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, CustomInterface, Int, num)
+
+// custom_interface_impl.cpp
+OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, CustomInterface, Int, num)
+----
+
+The above two macros define the factories, binding `ICustomInterface` to `CustomInterfaceImpl`, specifying that the
+constructor has an integer parameter `num`.
+
+The above macros expand to the following function definitions/declarations:
+
+[source,cpp]
+----
+// custom_interface.h
+extern "C" daq::ErrCode __declspec(dllexport) createCustomInterface(ICustomInterface** obj, Int num);
+
+inline ICustomInterface* CustomInterface_Create(Int num)
+{
+    ICustomInterface* obj;
+    daq::ErrCode res = createCustomInterface(&obj, num);
+    daq::checkErrorInfo(res);
+    return obj;
+}
+
+// custom_interface_impl.cpp
+extern "C" daq::ErrCode __declspec(dllexport) createCustomInterface(ICustomInterface** objTmp, Int num)
+{
+    return daq::createObject<ICustomInterface, CustomInterfaceImpl, Int>(objTmp, num);
+}
+----
+
+== Pointer Wrappers
+
+These building blocks available in openDAQ(TM) enable users to construct their data acquisition applications and shared
+libraries, accessible from various platforms and programming languages. However, generality and multi-platform frameworks
+tend to come with a slew of disadvantages. Manually handling reference counting and needing to cast between different interfaces
+to perform simple type conversions and value comparisons is very tedious. It requires developers to write significant
+amounts of boilerplate code that can lead to more errors and buggy code. To combat this, openDAQ(TM) introduces
+openDAQ(TM) pointer wrappers.
+
+openDAQ(TM) pointer wrappers automatically handle several basic mechanisms and abstract away many complexities of
+working with interfaces. They wrap an interface, allowing access to all interface functions, but provide
+features available in modern programming languages.
+
+Some of the main features are:
+
+* **Reference counting:** Reference count is managed by smart pointers, incrementing it on creation from an `lvalue`
+and decrementing it once the pointer goes out of scope.
+* **Boxing & unboxing:** Conversion from value types (`int`, `double`, `bool`,...) to openDAQ(TM) objects.
+* **Conversion:** Conversion between objects of base value types (`IInteger`, `IBool`, `IFloat`,...).
+* **Comparison:** Comparison between smart pointers and openDAQ(TM) objects and value types.
+* **Casting:** Helper methods for casting between interfaces.
+
+In the 1st example below, we make use of pure interface programming, while the 2nd example features the use of
+openDAQ(TM) pointer wrappers.
+
+.Comparing and converting two numbers using raw interfaces
+[source,cpp]
+----
+using namespace daq;
+
+{
+    // Create Integer object, with a pointer to its IInteger interface
+    IInteger* intObj = Integer_Create(10);
+
+    // Query intObj for the IConvertible interface
+    IConvertible* convertible;
+    intObj->queryInterface(IConvertible::Id, reinterpret_cast<void**>(&convertible));
+
+    // Convert the integer object to a Float value type
+    Float floatVal;
+    convertible->toFloat(&floatVal);
+
+    // Create a Float object, with a pointer to its IFloat interface
+    IFloat* floatObj = Float_Create(10.0);
+
+    // Query intObj for the IComparable interface and compare it to floatObj
+    IComparable* comparable;
+    intObj->queryInterface(IComparable::Id, reinterpret_cast<void**>(&comparable));
+    if (comparable->compareTo(floatObj) == OPENDAQ_EQUAL)
+        std::cout << "equal" << std::endl;
+
+    // Query intObj for the INumber interface which it implements
+    INumber* number;
+    intObj->queryInterface(INumber::Id, reinterpret_cast<void**>(&number));
+
+    // Release the references from the openDAQ objects to avoid memory leaks
+    floatObj->releaseRef();
+    intObj->releaseRef();
+    convertible->releaseRef();
+    comparable->releaseRef();
+    number->releaseRef();
+}
+----
+
+.Comparing and converting two numbers using smart-pointer wrappers
+[source,cpp]
+----
+using namespace daq;
+
+{
+    // Boxing & Unboxing
+    IntegerPtr intObj = 10;
+    FloatPtr floatObj = 10.0;
+
+    // Conversion
+    Float floatVal = intObj;
+
+    // Comparison
+    if (floatObj == intObj)
+        std::cout << "equal" << std::endl;
+
+    // Casting
+    NumberPtr number = intObj;
+
+    // ReleaseRef is called automatically once the objects go out of scope
+}
+----

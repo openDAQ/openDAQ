@@ -1,0 +1,32 @@
+= Set up an openDAQ(TM) VirtualBox Device simulator
+
+:sdk-docs-website: https://docs.opendaq.com
+
+The openDAQ(TM) VirtualBox image provides a simulated xref:glossary:glossary.adoc#device[Device] that is discoverable by openDAQ(TM), and can be connected to using the openDAQ(TM) client.
+The Device itself outputs two sine wave xref:background_info:signals.adoc[Signal]s, with configurable parameters such as the signal amplitude and frequency.
+
+To start, head over to {sdk-docs-website}[The openDAQ(TM) downloads page] and download the simulator image. Within this guide we will be using https://www.virtualbox.org/wiki/Downloads[VirtualBox] to run the simulator.
+
+[#running_the_simulator]
+== Running the simulator
+
+:vm-name: opendaq_device_simulator
+
+. Open VirtualBox and import the .ova simulator image by navigating to "File > Import Appliance".
+Select the image file and click "Next > Finish".
+. Start the `{vm-name}` image, and wait for it to prompt for the username and password
+. Login with the credentials `User: opendaq`, `Password:` opendaq
+
+Your virtual machine should look similar to this:
+
+image::howto_guides:simulator.png[image,align="center"]
+
+== Running multiple simulators at once
+
+To run multiple simulated xref:glossary:glossary.adoc#device[Device]s at once, for us to be able to connect to them, they must be set up on a separate network adapter:
+
+. Follow <<running_the_simulator,Step 1>> above to import another virtual machine.
+. Navigate to VirtualBox "File > Tools > Network manager" and click btn:[Create] to create a new network adapter.
+. Open the settings for your 2nd virtual machine, and under "Network > Name" switch the adapter to the newly created one.
+
+You should now be able to discover and connect to both simulators.

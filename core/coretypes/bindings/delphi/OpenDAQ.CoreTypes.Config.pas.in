@@ -1,0 +1,22 @@
+unit OpenDAQ.CoreTypes.Config;
+
+interface
+
+const
+{$IF defined(DEBUG) and (not defined(OPENDAQ_RELEASE_ONLY))}
+  {$IFDEF CPUX64}
+    DSCoreTypesDLL = 'daqcoretypes-64-${LIB_MAJOR_VERSION}-debug.dll';
+  {$ELSE}
+    DSCoreTypesDLL = 'daqcoretypes-32-${LIB_MAJOR_VERSION}-debug.dll';
+  {$ENDIF}
+{$ELSE}
+  {$IFDEF CPUX64}
+    DSCoreTypesDLL = 'daqcoretypes-64-${LIB_MAJOR_VERSION}.dll';
+  {$ELSE}
+    DSCoreTypesDLL = 'daqcoretypes-32-${LIB_MAJOR_VERSION}.dll';
+  {$ENDIF}
+{$ENDIF}
+
+implementation
+
+end.

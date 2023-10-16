@@ -1,0 +1,20 @@
+set(MAIN_TARGET opendaq)
+set_cmake_folder_context(TARGET_FOLDER_NAME)
+
+include(DaqComponents)
+set(RTGEN_LIBRARY_NAME ${SDK_NAME})
+
+add_subdirectory(logger)
+add_subdirectory(scheduler)
+add_subdirectory(context)
+add_subdirectory(signal)
+add_subdirectory(functionblock)
+add_subdirectory(device)
+add_subdirectory(server)
+add_subdirectory(modulemanager)
+add_subdirectory(reader)
+add_subdirectory(utility)
+add_subdirectory(component)
+add_subdirectory(streaming)
+
+add_subdirectory(opendaq)

@@ -1,0 +1,4 @@
+set_cmake_folder_context(TARGET_FOLDER_NAME examples)
+
+add_subdirectory(bb_ref_modules_example)
+#add_subdirectory(opendaq_ref_modules_example)

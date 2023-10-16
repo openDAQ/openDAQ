@@ -1,0 +1,7 @@
+﻿  if TypeInfo(T) = TypeInfo($SampleType1$) then
+  begin
+    Err := $FactoryName$($OutputArgName$, $ArgNames$);
+    CheckRtErrorInfo(Err);
+
+    inherited Create($OutputArgName$);
+  end;

@@ -1,0 +1,7 @@
+if(CMAKE_COMPILER_IS_GNUCXX)
+	include(CodeCoverageGcc)
+elseif(MSVC)
+	include(CodeCoverageMsvc)
+else()
+	message(FATAL_ERROR "Only Gcc, G++ and MSVC are supported")
+endif()

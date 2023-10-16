@@ -1,0 +1,15 @@
+root = true
+
+[{*.{cpp,h},CMakeLists.txt,*.rtclass,*.cmake,*.json}]
+indent_style = space
+indent_size = 4
+tab_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.yml]
+ident_style = space
+ident_size = 2
+tab_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true

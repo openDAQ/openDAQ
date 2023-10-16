@@ -1,13 +1,5 @@
 # openDAQ
 
-## LFS
-
-The openDAQ repository uses Git LFS. Please make sure when cloning/pulling the repository that the LFS files
-are retrieved properly. To do so, within the openDAQ repository folder, run:
-
-    git lfs install
-    git lfs pull
-
 ## Documentation
 
 The Doxygen documentation can be built by enabling the OPENDAQ_BUILD_DOCUMENTATION cmake flag. The user guide

@@ -64,8 +64,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          lfs: true
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'
@@ -193,11 +191,10 @@ jobs:
       - name: Install basic dependencies
         run: |
           apt-get update
-          apt-get install -y git git-lfs openssh-client
+          apt-get install -y git openssh-client
 
-      - uses: actions/checkout@v3
-        with:
-          lfs: true
+      - name: Checkout
+        uses: actions/checkout@v3
 
       - name: Install build dependencies
         run: |
@@ -280,11 +277,10 @@ jobs:
       - name: Install basic dependencies
         run: |
           yum update -y
-          yum install -y git git-lfs
+          yum install -y git
 
-      - uses: actions/checkout@v3
-        with:
-          lfs: true
+      - name: Checkout
+        uses: actions/checkout@v3
 
       - name: Install build dependencies
         run: |
@@ -354,8 +350,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          lfs: true
 
       - name: Install ninja-build
         uses: seanmiddleditch/gha-setup-ninja@v3
@@ -415,8 +409,8 @@ jobs:
   #   steps:
   #
   #     - uses: actions/checkout@v3
-  #       with:
-  #         lfs: true
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
   #
   #     - name: Install build dependencies
   #       run: |

@@ -1,0 +1,5 @@
+﻿virtual void $CallingConvention$ $Name$($Arguments$)$ConstMethod$ $Override$ = 0;
+virtual $ReturnType$ $CallingConvention$ $Name$($Arguments$)$ConstMethod$ $Override$ = 0;
+$ArgTypeFull$* $ArgName$$ArgDefaultValue$
+$ArgTypeFull$ $ArgName$$ArgDefaultValue$
+, 

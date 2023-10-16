@@ -1,0 +1,26 @@
+site:
+  title: openDAQ
+  start_page: opendaq::introduction.adoc
+asciidoc:
+  attributes:
+    page-pagination: true
+    tabs-sync-option: true
+    gpp: g++
+    docs-prefix: docs-dev
+    docs-website: https://{docs-prefix}.opendaq.com/
+  extensions:
+    - "@asciidoctor/tabs"
+
+antora:
+  extensions:
+    - require: "@springio/antora-extensions/tabs-migration-extension"
+
+content:
+  sources:
+  - url: .
+    branches: HEAD
+    start_path: docs/Antora
+ui:
+  bundle:
+    url: https://github.com/openDAQ/antora-ui-spring/releases/download/1.0-opendaq/ui-bundle.zip
+    snapshot: true

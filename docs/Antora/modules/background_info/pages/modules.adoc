@@ -1,0 +1,238 @@
+= Modules
+
+An openDAQ(TM) module is usually a dynamic library that contains implementations of xref:device.adoc[Device] drivers,
+xref:glossary:glossary.adoc#opendaq_opcua_server_module[Servers], xref:glossary:glossary.adoc#opendaq_opcua_client_module[Clients],
+or xref:function_blocks.adoc[Function Blocks]. Once loaded, they provide openDAQ(TM) applications with the capability of
+connecting to/adding Devices, adding new Function Blocks, and hosting available types of Servers.
+
+The modules bundled with openDAQ(TM) are, for example, the openDAQ(TM) OpcUa Client, OpcUa Server,
+Native Streaming Server, Native Streaming Client, Websocket Streaming Server and Websocket Streaming Client.
+The xref:glossary:glossary.adoc#opendaq_opcua_server_module[OpcUa Server Module] contains a Server implementation
+that allows an openDAQ(TM) xref:glossary:glossary.adoc#device[Device] to publish its structure.
+The Streaming Server Modules contain a server implementations that allow an openDAQ(TM) device to stream its data.
+The OpcUa Client module is used to connect to any device with openDAQ(TM) OpcUa Server running,
+allowing to view its structure and modify its configuration.
+The Streaming Client Modules are used to connect to devices with corresponding Streaming Server running,
+allowing to read device signals data.
+
+Those modules are present in the binary files available at the
+{docs-website}[openDAQ(TM) documentation and releases webpage] in the `modules`
+directory, as files with the `.module.dll` / `.module.so` / `.module.dylib` extension, depending on your operating
+system.
+
+== Loading modules
+
+The module shared libraries are loaded from a specified folder and its sub-folders by the Module Manager when the "load modules" function is executed.
+The folder path is specied as a contruction parameter of the Module Manager and can be relative to the current working directory, or absolute.
+
+The following code snippet shows different methods of specifying the module path.
+
+[NOTE]
+====
+The `context` parameter of the "load modules" function refers to the openDAQ(TM) Context that is created when constructing the xref:opendaq_architecture.adoc#instance[openDAQ(TM) instance].
+The Module Manager is part of the Context, and the "load modules" function is automatically called when the Context is constructed and should only ever be called once.
+As the examples below showcase the Module Manager in isolation, the "load modules" function is called manually.
+====
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// The `context` variable represents an openDAQ(TM) daq::ContextPtr object created by the daq::Instance() constructor
+// Loads modules from the executable directory
+daq::ModuleManagerPtr manager1 = daq::ModuleManager("");
+manager1.loadModules(context);
+
+// Loads modules from the current working directory
+daq::ModuleManagerPtr manager2 = daq::ModuleManager(".");
+manager2.loadModules(context);
+
+// Loads modules from a path relative to the current directory
+daq::ModuleManagerPtr manager3 = daq::ModuleManager("./dir1/dir2");
+manager3.loadModules(context);
+
+// Loads modules from an absolute path
+daq::ModuleManagerPtr manager4 = daq::ModuleManager("/dir1/dir2");
+manager4.loadModules(context);
+
+// Does not load any modules
+daq::ModuleManagerPtr manager5 = daq::ModuleManager("[[none]]");
+manager5.loadModules(context);
+----
+Python::
++
+[source,python]
+----
+def loading_modules(context: opendaq.IContext):
+    # Loads modules from the executable directory
+    manager1 = opendaq.ModuleManager(opendaq.String(''), context)
+# Loads modules from the current working directory
+    manager2 = opendaq.ModuleManager(opendaq.String('.'), context)
+# Loads modules from a path relative to the current directory
+    manager3 = opendaq.ModuleManager(opendaq.String('./dir1/dir2'), context)
+# Loads modules from an absolute path
+    manager4 = opendaq.ModuleManager(opendaq.String('/dir1/dir2'), context)
+# Does not load any modules
+    manager5 = opendaq.ModuleManager(opendaq.String('[[none]]'), context)
+----
+====
+
+The user does not usually create the Module Manager on their own. Its construction is done silently by the openDAQ(TM) xref:glossary:glossary.adoc#instance[Instance], which also automatically sets the Context parameter.
+In order for the xref:glossary:glossary.adoc#instance[Instance] to know with what module path to initialize the manager, it takes the module path as a constructor parameter.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// if the path is not specified, the executable directory is used for the module path
+daq::InstancePtr instance1 = daq::Instance();
+
+// Uses the  current working directory as the module path
+daq::InstancePtr instance2 = daq::Instance(".");
+----
+Python::
++
+[source,python]
+----
+def instance():
+# if the path is not specified, the executable directory is used for the module path
+    instance1 = opendaq.Instance()
+# Uses the  current working directory as the module path
+    instance2 = opendaq.Instance(opendaq.String('.'))
+----
+====
+
+=== Overriding module path via environment variable
+
+Module path can be overriden by the environment variable named `OPENDAQ_MODULES_PATH`. If the Module Manager
+finds the environment variable, it ignores the given module path parameter value and uses the one from the environment
+variable. The exception to this rule is `"\[[none]]"` which never loads anything.
+
+== Adding/removing modules
+
+As the openDAQ(TM) modules are loaded from a specified directory when the module manager is created,
+adding or removing a module is as simple as copying the `.module.dll` / `.module.so` / `.module.dylib` file into the
+folder, or deleting an existing one. Note, however, that the openDAQ(TM) application has to be restarted
+for it to re-load the modules from disk.
+
+== Listing available components
+
+Once loaded, the modules provide getter methods that return available server types, device types, devices, and 
+function block types it can create. The getter methods return available components as lists or dictionaries of metadata 
+objects as values and string keys. The metadata contains basic information about the component, as well as an 
+identifier that can be used to create the component. Said identifier also acts as the key under which
+the metadata object is available in dictionary.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// The `context` variable represents an openDAQ(TM) daq::ContextPtr object created by the daq::Instance() constructor
+// Create the module manager and load modules in the executable directory
+daq::ModuleManagerPtr manager = daq::ModuleManager("");
+manager.loadModules(context);
+daq::ModulePtr _module = manager.getModules()[0];
+
+// List of information about available devices that the module can create/connect to
+daq::ListPtr<daq::IDeviceInfo> availableDevices = _module.getAvailableDevices(); 
+daq::DeviceInfoPtr referenceDeviceInfo = availableDevices[0];
+
+// Dictionary of information about available device types that the module can create/connect to
+daq::DictPtr<daq::IString, daq::IDeviceType> availableDeviceTypes = _module.getAvailableDeviceTypes(); 
+daq::DeviceTypePtr referenceDeviceType = availableDeviceTypes.get("daqref");
+
+// Dictionary of information about available function block types that the module provides
+daq::DictPtr<daq::IString, daq::IFunctionBlockType> functionBlockTypes = _module.getAvailableFunctionBlockTypes(); 
+daq::FunctionBlockTypePtr averagerFbType = functionBlockTypes.get("ref_fb_module_averager");
+
+// Dictionary of information about available server types that the module provides
+daq::DictPtr<daq::IString, daq::IServerType> serverTypes = _module.getAvailableServerTypes(); 
+daq::ServerTypePtr opcUaServerType = serverTypes.get("openDAQ(TM) OpcUa");
+----
+====
+
+== Creating objects
+
+The above metadata objects provide string parameters that allow for the creation of their corresponding
+openDAQ(TM) components. For devices, they contain a connection string, for function blocks, the
+function block ID and the server type for servers. In the example below, we use the metadata objects
+to create 3 different openDAQ(TM) components.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Create/connect to a device with the given connection string
+// In this case we create a simulated reference device bundled with openDAQ(TM)
+daq::DevicePtr device = _module.createDevice(referenceDeviceInfo.getConnectionString(), nullptr);
+
+// Create a function block with the given unique ID and a local ID "fb"
+// In this case we create a `renderer` function block bundled with openDAQ(TM)
+daq::FunctionBlockPtr functionBlock = _module.createFunctionBlock(averagerFbType.getId(), nullptr, "fb");
+
+// Create a server with the given server type, default config, and the device we 
+// just created as the root of the openDAQ(TM) tree
+daq::ServerPtr server = _module.createServer(opcUaServerType.getId(), nullptr, device);
+----
+====
+
+Of the above create methods, servers have two specifics - they allow for a server configuration to be provided, and
+the root node of the structure to be specified. Each server info object provides a copy of its default configuration, which
+can be configured and used when creating the server.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Create default config of the "openDAQ(TM) OpcUa" server
+daq::PropertyObjectPtr config = opcUaServerType.createDefaultConfig();
+
+// Create a list of visible properties
+daq::ListPtr<daq::IProperty> configFields = config.getVisibleProperties(); 
+
+// Configure the "Port" property to the integer value 4840
+config.setPropertyValue("Port", 4840);
+
+// Create a server with the modified configuration
+daq::ServerPtr server = _module.createServer(opcUaServerType.getId(), config, device);
+----
+====
+
+== Accessing modules through the root device
+
+When creating an xref:opendaq_architecture.adoc#instance[openDAQ(TM) instance, a default root device is created] that
+simplifies iterating through loaded modules and accessing their provided components. When enumerating available 
+components from the default root device, all modules are queried for the components they provide. The obtained
+metadata is compiled into a single list.
+
+Additionally, when adding a component, the root device finds the first module which accepts the component's string 
+identifier. It uses that module to create and add the component. The following example shows how to get all available
+function blocks, and add one via the openDAQ(TM) instance (root device).
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Create the instance and load modules
+daq::InstancePtr instance = Instance();
+
+// List available function blocks
+daq::DictPtr<daq::IString, daq::IFunctionBlockType> functionBlockTypes = instance.getAvailableFunctionBlockTypes();
+
+// Add the averager function block, if available
+if(functionBlockTypes.hasKey("ref_fb_module_averager"))
+        daq::FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_averager");
+----
+====

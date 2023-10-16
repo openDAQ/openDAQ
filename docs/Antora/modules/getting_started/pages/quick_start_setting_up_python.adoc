@@ -1,0 +1,54 @@
+= Setting up (Python)
+
+Pre-built packages of Python bindings for the openDAQ(TM) SDK are currently only available
+for Python 3.11 on Windows and Python 3.10 on Ubuntu 22.04.
+
+They can be installed on one of those systems with the following command:
+[source,bash]
+----
+pip install opendaq
+----
+
+// To use the SDK on a different platform or with a different version of Python, you need
+// to xref:quick_start_building_opendaq.adoc[build the bindings from source] first.
+// The minimum required Python version is 3.7.
+
+We plan to provide `pip` packages and cover a wider range of operating systems and Python versions in the future.
+
+== Prerequisites
+
+Python *3.11* for Windows can be downloaded from https://www.python.org/downloads/.
+On Linux it can be installed via the package manager.
+
+It may also be desirable to install `matplotlib` depending on how the software is to be used.
+
+== Installing Python bindings
+
+To install the bindings on Windows simply run
+
+[source,bash]
+----
+pip install opendaq
+----
+
+== Testing the installation
+
+To test the installation, start the Python interactive shell (type `python`) from the directory where the binaries live and type:
+
+[source,python]
+----
+import opendaq as daq
+
+instance = daq.Instance()
+----
+
+// [NOTE]
+// ====
+// In order to change the path from where openDAQ(TM) looks for xref:background_info:modules.adoc[Modules]
+// that allow for connection to devices and performing data calculations you can also specify the path explicitly:
+//
+// [source,python]
+// ----
+// instance = daq.Instance('path/to/modules')
+// ----
+// ====

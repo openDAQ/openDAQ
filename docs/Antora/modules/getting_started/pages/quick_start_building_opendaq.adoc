@@ -1,0 +1,139 @@
+= Building openDAQ(TM) from source
+
+In this guide, we go through the motions of building and installing openDAQ(TM) from source. While this guide
+uses Visual Studio as the Windows CMake generator, and Ninja as the Linux generator, you can use different
+ones depending on your set-up and development environment.
+
+Note that building openDAQ(TM) from source is meant for advanced users. We recommend for anyone new to openDAQ(TM)
+to start out by downloading the binary packages, and following the
+Setting up (xref:quick_start_setting_up_cpp.adoc[{cpp}]/xref:quick_start_setting_up_python.adoc[Python]) guide.
+
+== Building openDAQ(TM)
+
+[tabs]
+====
+Windows::
++
+--
+**1. Install all required tools/packages**
+
+* CMake 3.24 or higher: https://cmake.org/
+* Git: https://git-scm.com/
+* Git-LFS: https://git-lfs.github.com/
+* Python3: https://www.python.org/downloads/
+* Visual Studio (2017 / 2019 / 2022): https://visualstudio.microsoft.com/downloads/
+
+**2. Clone the openDAQ(TM) repository**
+
+[source,shell]
+----
+git clone git@github.com:openDAQ/openDAQ.git
+cd openDAQ
+git lfs install
+git lfs pull
+----
+
+**3. Generate CMake project**
+
+Select the appropriate CMake preset. Below, we list all presets, and select the full installation, using Visual
+Studio 2022 as the generator.
+
+[source,shell]
+----
+cmake --list-presets=all
+cmake --preset "x64/msvc-22/full"
+----
+
+If you are using a different generator / compiler, you can select a different preset, or override the generator with
+the `-G` CMake argument.
+
+[source,shell]
+----
+cmake --preset "x64/msvc-22/full" -G "Visual Studio 16 2019"
+----
+
+**4. Build and install the project**
+
+Run the following code to build and install openDAQ(TM). Note that if using a different preset, your build directory
+might be located at a slightly different path within the `build` folder.
+
+[source,shell]
+----
+cd build/x64/msvc-22/full
+cmake --build .
+cmake --install . --prefix "openDAQ"
+----
+
+This will install the binaries in the build directory within the `"openDAQ"` folder. To specify a different
+installation directory, you can provide the path in the CMake install `--prefix` argument.
+
+--
+
+Linux::
++
+--
+**1. Install all required tools/packages**
+
+* CMake 3.24 or higher: https://cmake.org/
+* Git: https://git-scm.com/
+* Git-LFS: https://git-lfs.github.com/
+* Python3: https://www.python.org/downloads/
+* Mono: https://www.mono-project.com/download/stable/
+* Ninja-build: https://ninja-build.org/
+* {gpp}
+* X11
+* LLD (optional)
+
+NOTE: Ninja is used as the default build system in the `"gcc/full"` preset. X11 is needed for data visualization.
+LLD speeds up the linker step when building openDAQ(TM).
+
+On Ubuntu and Debian distributions we can run the following terminal commands to install all requirements:
+
+[source,shell]
+----
+sudo apt-get update
+sudo apt-get install -y git git-lfs build-essential lld cmake ninja-build mono-complete python3
+sudo apt-get install -y libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+----
+
+**2. Clone the openDAQ(TM) repository**
+
+[source,shell]
+----
+git clone git@github.com:openDAQ/openDAQ.git
+cd openDAQ
+git lfs install
+git lfs pull
+----
+
+**3. Generate the CMake project**
+
+Select the appropriate CMake preset. Below, we list all presets, and select the full preset, using `ninja` as the
+generator and build tool.
+
+[source,shell]
+----
+cmake --list-presets=all
+cmake --preset "x64/gcc/full/release"
+----
+
+If you are using a different generator / compiler, you can select a different preset, or override the generator with
+the `-G` CMake argument.
+
+**4. Build and install the project**
+
+Run the following code to build and install openDAQ(TM). Note that if using a different preset, your build directory might
+be located at a slightly different path within the `build` folder.
+
+[source,shell]
+----
+cd build/x64/gcc/full/release
+cmake --build .
+cmake --install . --prefix "openDAQ"
+----
+
+This will install the binaries in the build directory within the `"openDAQ"` folder. To specify a different installation
+directory, you can provide the path in the CMake install `--prefix` argument.
+
+--
+====

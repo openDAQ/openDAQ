@@ -1,0 +1,51 @@
+﻿    $PtrName$(IControl* control)
+        : $BasePtrNameFull$$PtrInterfaceTemplate$(control)
+$EventWrappers$
+    {
+    }
+
+    $PtrName$($InterfaceFull$*&& control)
+        : $BasePtrNameFull$$PtrInterfaceTemplate$(control)
+$EventWrappers$
+    {
+    }
+
+    $PtrName$(const Dewesoft::RT::Core::ObjectPtr<IControl>& control)
+        : $BasePtrNameFull$$PtrInterfaceTemplate$(control)
+$EventWrappers$
+    {
+    }
+
+    $PtrName$(Dewesoft::RT::Core::ObjectPtr<IControl>&& other)
+        : $BasePtrNameFull$$PtrInterfaceTemplate$(other)
+$EventWrappers$
+    {
+    }
+
+    static $PtrName$ Connect(const Dewesoft::MUI::WindowPtr& ui, const std::string& name)
+    {
+        if (!ui.assigned())
+        {
+            throw RT::Core::InvalidParameterException("Window must not be null.");
+        }
+
+        return ui.findControl(name);
+    }
+
+    static $PtrName$ Create(const Dewesoft::MUI::ControlFactory& ui)
+    {
+        if (!ui.assigned())
+        {
+            throw RT::Core::InvalidParameterException("ControlFactory must not be null.");
+        }
+        return ui.createControl("$ControlTagName$", nullptr);
+    }
+
+    static $PtrName$ Create(const Dewesoft::MUI::ControlFactory& ui, const std::string& name)
+    {
+        if (!ui.assigned())
+        {
+            throw RT::Core::InvalidParameterException("ControlFactory must not be null.");
+        }
+        return ui.createControl("$ControlTagName$", name);
+    }

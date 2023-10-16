@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="daq::SignalBase&lt;*&gt;">
+    <DisplayString Condition="localId.object != nullptr">{{ Signal {localId}, &lt;{(*refCount).strong},{(*refCount).weak}&gt; }}</DisplayString>
+    <DisplayString Condition="localId.object == nullptr">{{ Signal &lt;unnamed&gt;, &lt;{(*refCount).strong},{(*refCount).weak}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">*refCount</Item>
+      <Item Name="[localId]">localId</Item>
+      <Item Name="name">name</Item>
+      <Item Name="active">active</Item>
+      <Item Name="public">isPublic</Item>
+      <Item Name="descriptor">dataDescriptor</Item>
+      <Item Name="domain">domainSignal</Item>
+      <Item Name="connections">connections</Item>
+      <Item Name="relatedSignals">relatedSignals</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::SignalBase&lt;*,*&gt;">
+    <DisplayString Condition="localId.object != nullptr">{{ Signal {localId}, &lt;{(*refCount).strong},{(*refCount).weak}&gt; }}</DisplayString>
+    <DisplayString Condition="localId.object == nullptr">{{ Signal &lt;unnamed&gt;, &lt;{(*refCount).strong},{(*refCount).weak}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">*refCount</Item>
+      <Item Name="[localId]">localId</Item>
+      <Item Name="name">name</Item>
+      <Item Name="active">active</Item>
+      <Item Name="public">isPublic</Item>
+      <Item Name="descriptor">signalDescriptor</Item>
+      <Item Name="domain">domainSignal</Item>
+      <Item Name="connections">connections</Item>
+      <Item Name="relatedSignals">relatedSignals</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::InputPortImpl">
+    <DisplayString>{{ InputPort {localId}, &lt;{(*refCount).strong},{(*refCount).weak}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">*refCount</Item>
+      <Item Name="localId">localId</Item>
+      <Item Name="requiresSignal">requiresSignal != 0</Item>
+      <Item Name="customData">customData</Item>
+      <Item Name="listener">listenerRef</Item>
+      <Item Name="connection">connectionRef</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::PacketImpl&lt;*&gt;">
+    <DisplayString>{{ Packet , &lt;{refCount}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="type">type</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::EventPacketImpl">
+    <DisplayString>{{ EventPacket {eventId}, &lt;{refCount}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="eventId">eventId</Item>
+      <Item Name="parameters">parameters</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::DataPacketImpl&lt;*&gt;">
+    <DisplayString>{{ DataPacket, samples={sampleCount}, &lt;{refCount}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="descriptor">descriptor</Item>
+      <Item Name="sampleCount">sampleCount</Item>
+      <Item Name="offset" Condition="offset.object != nullptr">offset</Item>
+      <Item Name="offset" Condition="offset.object == nullptr">empty</Item>
+      <Item Name="sampleMemSize">sampleMemSize</Item>
+      <Item Name="data">data</Item>
+      <Item Name="scaledData">scaledData</Item>
+      <Item Name="hasScalingCalc">hasScalingCalc</Item>
+      <Item Name="hasDataRuleCalc">hasDataRuleCalc</Item>
+      <Item Name="hasRawDataOnly">hasRawDataOnly</Item>
+      <Item Name="domainPacket">domainPacket</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::DataDescriptorImpl">
+    <DisplayString Condition="frozen == true">{{ DataDescriptor: {name} [Frozen] &lt;{refCount}&gt; }}</DisplayString>
+    <DisplayString Condition="frozen == false">{{ DataDescriptor: {name} &lt;{refCount}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="[frozen]">frozen</Item>
+      <Item Name="name">name</Item>
+      <Item Name="dimensions">dimensions</Item>
+      <Item Name="sampleType">sampleType</Item>
+      <Item Name="unit">unit</Item>
+      <Item Name="valueRange">valueRange</Item>
+      <Item Name="dataRule">dataRule</Item>
+      <Item Name="scaling">scaling</Item>
+      <Item Name="origin">origin</Item>
+      <Item Name="resolution">resolution</Item>
+      <Item Name="structFields">structFields</Item>
+      <Item Name="metadata">metadata</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::DataRuleImpl">
+    <DisplayString Condition="frozen == true">{{ DataRule: {ruleType} [Frozen] &lt;{refCount}&gt; }}</DisplayString>
+    <DisplayString Condition="frozen == false">{{ DataDescriptor: {ruleType} &lt;{refCount}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="[frozen]">frozen</Item>
+      <Item Name="type">ruleType</Item>
+      <Item Name="params">params</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::ConnectionImpl">
+    <DisplayString>{{ Connection, &lt;{(*refCount).strong},{(*refCount).weak}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">*refCount</Item>
+      <Item Name="signal">signalRef</Item>
+      <Item Name="port">port</Item>
+      <Item Name="packets">packets</Item>
+      <Item Name="mutex">mutex</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::DimensionRuleImpl">
+    <DisplayString Condition="frozen == true">{{ DimensionRule, {ruleType} [Frozen] }}</DisplayString>
+    <DisplayString Condition="frozen == false">{{ DimensionRule, {ruleType} }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="[frozen]">frozen</Item>
+      <Item Name="type">ruleType</Item>
+      <Item Name="params">params</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::DimensionImpl">
+    <DisplayString Condition="frozen == true">{{ Dimension, {name} [Frozen] }}</DisplayString>
+    <DisplayString Condition="frozen == false">{{ Dimension, {name} }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="[frozen]">frozen</Item>
+      <Item Name="name">name</Item>
+      <Item Name="rule">rule</Item>
+      <Item Name="unit">unit</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::ScalingImpl">
+    <DisplayString Condition="frozen == true">{{ Scaling, {ruleType} [Frozen] }}</DisplayString>
+    <DisplayString Condition="frozen == false">{{ Scaling, {ruleType} }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="[frozen]">frozen</Item>
+      <Item Name="ruleType">ruleType</Item>
+      <Item Name="inputType">inputDataType</Item>
+      <Item Name="outputType">outputDataType</Item>
+      <Item Name="params">params</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::UnitImpl">
+    <DisplayString Condition="frozen == true">{{ Unit: {name} / {symbol} [Frozen] }}</DisplayString>
+    <DisplayString Condition="frozen == false">{{ Unit: {name} / {symbol} }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="[frozen]">frozen</Item>
+      <Item Name="symbol">symbol</Item>
+      <Item Name="name">name,sb</Item>
+      <Item Name="quantity">quantity</Item>
+    </Expand>
+  </Type>
+</AutoVisualizer>

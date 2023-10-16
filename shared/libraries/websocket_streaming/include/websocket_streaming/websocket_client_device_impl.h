@@ -1,0 +1,51 @@
+/*
+ * Copyright 2022-2023 Blueberry d.o.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+#include <opendaq/device_impl.h>
+#include "websocket_streaming/streaming_client.h"
+#include <opendaq/signal_ptr.h>
+#include <opendaq/streaming_ptr.h>
+
+BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
+
+class WebsocketClientDeviceImpl : public Device
+{
+public:
+    explicit WebsocketClientDeviceImpl(const ContextPtr& ctx,
+                                       const ComponentPtr& parent,
+                                       const StringPtr& localId,
+                                       const StringPtr& connectionString);
+
+protected:
+    DeviceInfoPtr onGetInfo() override;
+    void createWebsocketStreaming();
+    void activateStreaming();
+    void registerSignalAttributes(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
+    void updateSignal(const SignalPtr& signal, const SubscribedSignalInfo& sInfo);
+    void onNewSignal(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
+    void onSignalUpdated(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
+    void onDomainDescriptor(const StringPtr& signalId, const DataDescriptorPtr& domainDescriptor);
+    void initializeDeviceSignals(const std::vector<std::string>& signalIds);
+
+    DeviceInfoConfigPtr deviceInfo;
+    std::map<StringPtr, SignalPtr> deviceSignals;
+    std::map<StringPtr, std::pair<DataDescriptorPtr, SubscribedSignalInfo>> deviceSignalsAttributes;
+    StreamingPtr websocketStreaming;
+    StringPtr connectionString;
+};
+
+END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

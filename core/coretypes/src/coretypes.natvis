@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+    <Type Name="daq::StringImpl">
+        <!--<DisplayString ExcludeView="simple">{{ {str,s}, &lt;{refCount}&gt; }}</DisplayString>-->
+        <DisplayString ExcludeView="simple">{str,s8}</DisplayString>
+        <StringView>str</StringView>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="value">str,s8</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::ListImpl">
+        <DisplayString>List {{ {list}, &lt;{refCount}&gt; }}</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="[elementId]">iid</Item>          
+            <ExpandedItem>list</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="daq::CustomProcedureImpl&lt;*,*&gt;">
+        <DisplayString>Procedure, &lt;{refCount}&gt;</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="proc">proc</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::ProcedureImpl&lt;*,*&gt;">
+        <DisplayString>Procedure, &lt;{refCount}&gt;</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="proc">functor</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::CustomFunctionImpl&lt;*,*&gt;">
+        <DisplayString>Procedure, &lt;{refCount}&gt;</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="proc">functor</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::FunctionImpl&lt;*,*&gt;">
+        <DisplayString>Procedure, &lt;{refCount}&gt;</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="proc">functor</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::DictImpl">
+        <DisplayString>{{ dict={hashTable}, &lt;{refCount}&gt; }}</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="[keyId]">keyId</Item>
+            <Item Name="[valueId]">valueId</Item>
+            <ExpandedItem>hashTable</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="daq::RatioImpl">
+        <DisplayString>{{ num={numerator}, den={denominator}, &lt;{refCount}&gt; }}</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="numerator">numerator</Item>
+            <Item Name="denominator">denominator</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::EventImpl">
+        <DisplayString>{{ Event, &lt;{refCount}&gt; }}</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="[frozen]">frozen</Item>
+            <Item Name="muted">muted</Item>
+            <Item Name="handlers">handlers</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::EventHandlerImpl&lt;*,*&gt;">
+        <DisplayString>{{ EventHander, hash={subscription.hashCode,x}, &lt;{refCount}&gt; }}</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="hashCode">subscription.hashCode</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::WeakRefImpl">
+        <DisplayString Condition="(*refCount).strong._My_val > 0">{object} &lt;{(*refCount).strong}, {(*refCount).weak}&gt;</DisplayString>
+        <DisplayString Condition="(*refCount).strong._My_val == 0">Expired &lt;{(*refCount).strong}, {(*refCount).weak}&gt;</DisplayString>
+        <Expand>
+            <Item Name="[strongRefCount]">(*refCount).strong</Item>
+            <Item Name="[weakRefCount]">(*refCount).weak</Item>
+            <ExpandedItem Condition="(*refCount).strong._My_val > 0">(*object),na</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="daq::OrdinalObjectImpl&lt;unsigned char,*&gt;">
+        <DisplayString Condition="value==0">False</DisplayString>
+        <DisplayString Condition="value==1">True</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="value" Condition="value==0">false</Item>
+            <Item Name="value" Condition="value==1">true</Item>
+            <Item Name="value" Condition="value!=1&amp;&amp;value!=0">value</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::OrdinalObjectImpl&lt;*,*&gt;">
+        <DisplayString>{value}</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="value">value,na</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::ObjectDecorator&lt;*,*&gt;">
+        <DisplayString>{{ {object} }}</DisplayString>
+        <Expand>
+            <ExpandedItem>object,na</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="daq::ObjInstance&lt;*&gt;">
+        <DisplayString>{{ &lt;{refCount}&gt; }}</DisplayString>
+    </Type>
+    <Type Name="daq::ObjectPtr&lt;*&gt;">
+        <DisplayString Condition="object == nullptr">empty</DisplayString>
+        <DisplayString>{object,na}</DisplayString>
+        <StringView>object</StringView>
+        <Expand>
+            <Item Name="[borrowed]">borrowed</Item>
+            <ExpandedItem>object,na</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="daq::EventArgsImplTemplate&lt;*&gt;">
+        <DisplayString>{{ {eventName}, &lt;{refCount}&gt; }}</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="eventId">eventId</Item>
+        <Item Name="eventName">eventName</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::ConstexprString&lt;*&gt;">
+        <DisplayString>{{{string._Elems,[$T1]} size={$T1} }}</DisplayString>
+        <StringView>string._Elems,s8</StringView>
+        <Expand>
+            <ExpandedItem>string</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="daq::VersionInfoImpl">
+        <DisplayString>VersionInfo {{ v{major}.{minor}.{patch}, &lt;{refCount}&gt; }}</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="major">major,d</Item>
+            <Item Name="minor">minor,d</Item>
+            <Item Name="patch">patch,d</Item>
+        </Expand>
+    </Type>
+    <Type Name="daq::IteratorBaseImpl&lt;*,*&gt;">
+      <DisplayString>{{ Iterator, &lt;{refCount}&gt; }}</DisplayString>
+      <Expand>
+        <Item Name="[refCount]">refCount</Item>
+        <Item Name="[container]">coreContainer</Item>
+        <Item Name="current">*it</Item>
+        <Item Name="end">*end</Item>
+        <Item Name="started">started</Item>
+      </Expand>
+    </Type>
+    <Type Name="daq::NativeIterator&lt;*&gt;">
+      <DisplayString>{iterator}</DisplayString>
+      <Expand>
+        <ExpandedItem>iterator</ExpandedItem>
+      </Expand>
+    </Type>
+    <Type Name="daq::RefCount">
+      <DisplayString>{{ strong={strong} weak={weak} }}</DisplayString>
+      <Expand>
+        <Item Name="strong">strong</Item>
+        <Item Name="weak">weak</Item>
+      </Expand>
+    </Type>
+</AutoVisualizer>

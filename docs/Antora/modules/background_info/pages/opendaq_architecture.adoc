@@ -1,0 +1,230 @@
+= Architecture
+
+The openDAQ(TM) SDK defines a tree-structured architecture layout, with Devices as the top-level tree node, and Signals as leaves.
+It is designed such that child objects cannot access their parents, while the parents have a complete overview of their descendants.
+In this article, we explain the purpose of each openDAQ(TM) object in the architecture and piece the objects together to obtain a full overview of the system.
+
+The SDK is designed to allow for the easy integration of different data acquisition Devices within a single framework, allowing for interoperability between previously incompatible Devices.
+As such, openDAQ(TM) aims to define all standard DAQ concepts to allow for any Device to be described and used within the openDAQ(TM) ecosystem.
+We now describe these concepts, starting from the leaves of the architecture tree - the Signal.
+
+[#Signal]
+== Signal
+
+xref:signals.adoc[Signals] are objects that carry data in the form of xref:packets.adoc[packets].
+A measurement xref:devices[Device] might output analog or digital signals. A Fourier transform mathematics 
+block outputs a spectrum signal. In either case, a signal is owned by a data producer, which sends the data to any 
+listener that subscribes to the signal. 
+
+This producer-consumer relationship forms a connection between the two. Each signal can have
+multiple listeners, and whenever data is sent through a signal, each listener is notified
+of the arrival of new data. To form a xref:data_path.adoc#connection[connection], openDAQ defines 
+xref:function_blocks.adoc#input_port[input port] objects, to which signals can be connected.
+The connection itself is represented in openDAQ as an object containing a queue of packets sent by the producer.
+
+**Related articles**
+
+* xref:signals.adoc[Signals]
+
+=== Data descriptor
+
+xref:signals.adoc[Signals] are described by a data descriptor object that contains meta-information about the signal.
+It defines the type of the data, specifying parameters such as its data type (int, float, byte...),
+its rank (scalar, vector, matrix), and others. 
+
+A signal can be explicit, meaning that its data is written to a buffer within a xref:packets.adoc[packet]. 
+Conversely, it can be implicit. In that case, its data is calculated via a rule. That rule can, for example, be 
+a linear rule, where the packet carries an `packetOffset` that is used as an input parameter for
+the rule. Each rule has a set of pre-defined parameters, such as the "start" and "delta" for the 
+linear rule. The parameters and rule input value are used to calculate linear rule values for
+the nth sample in a packet as follows: `packetOffset + start + delta * n`.
+
+=== Domain signals
+
+To interpret xref:signals.adoc[signal] data, time (or in the case of openDAQ, domain) information of each sample is
+required. Thus, signals can have a reference to a domain signal, which carries the domain data.
+The data is usually in the time domain, but openDAQ allows for any other domain (for example the angle domain)
+to be used - it's up to the developer to interpret it at the application level. Data xref:packets.adoc[packets]
+of signals that have a reference to a domain signal, also have a reference to the corresponding domain data packet
+of equal sample count.
+
+== Reader
+
+xref:signals.adoc[Signal]s on their own are a medium for transferring data from producer to consumer.
+We now define the different types of producers / consumers openDAQ(TM) has available.
+The most fundamental consumer is the Reader.
+
+Readers are objects that allow for reading Signal data in a specific manner, as defined by the Reader.
+When created, they form a connection with one or more Signals, listen for data and retrieve the data when requested by the user.
+Two basic readers provided by openDAQ(TM) are the xref:background_info:readers.adoc#packet_reader[Packet] and xref:background_info:readers.adoc#stream_reader[Stream Reader].
+They both contain a single xref:function_blocks.adoc#input_port[Input Port], which is connected to the Signal used as the constructor parameter of the Reader.
+
+ * *Packet reader*: Provides access to the queue of packets in a Signal's xref:data_path.adoc#connection[Connection].
+Allows the user to read an arbitrary number of xref:packets.adoc[Packet]s at a time.
+ * *Stream reader*: Allows for reading Signal data as a stream.
+It unwraps the Packets into a data stream, allowing users to up to a chosen number of samples at a time, regardless of if they are spread across multiple consecutive Packets or not.
+
+**Related articles**
+
+  * xref:readers.adoc[Readers]
+  * xref:howto_guides:howto_read_last_n_samples.adoc[How to Read Last N Samples]
+  * xref:howto_guides:howto_read_with_domain.adoc[How to Read Basic Value And Domain Data]
+  * xref:howto_guides:howto_read_with_timeouts.adoc[How to Read With Time-Outs]
+  * xref:howto_guides:howto_read_with_timestamps.adoc[How to Read With Absolute Time-Stamps]
+
+
+== Function block
+
+xref:function_blocks.adoc[Function blocks] are data processing entities in openDAQ that can act as both consumer, 
+or producer. They specify a list of zero or more xref:function_blocks.adoc#input_port[input ports] and a list of 
+zero or more output xref:signals.adoc[signals]. A function block is most often used to gather and process data, 
+and output the data to a sink (signal, file, etc.).
+
+Some examples of function blocks include:
+
+ * A FFT function block, which performs the Fourier transform on input data obtained through its input port,
+   and outputs a spectrum signal.
+ * A file writer, which writes all input data received through its input port into a file.
+ * A signal generator, which generates sine waves, and outputs them as signals.
+
+Combining function blocks to form extended signal path chains is the core of signal processing in openDAQ.
+It allows users to create sequences of function blocks to perform data analysis.
+
+Function blocks also provide a set of properties allowing users to modify their behavior. For example,
+a FFT function block might provide a set of available windowing functions, as well as allow the number of
+samples per block to be configured.
+
+**Related articles**
+
+  * xref:function_blocks.adoc[Function Block]
+
+=== Channel
+
+openDAQ(TM) channels are specializations of xref:function_blocks.adoc[function blocks] that represent a channel on 
+physical hardware. Within openDAQ(TM), they behave in the same way as a standard function block, but are used to identify
+function blocks that correspond to hardware components such as analog inputs, CAN busses, digital outputs,
+and others.
+
+**Related articles**
+
+  * xref:background_info:function_blocks.adoc#channel[Function Block: Channel]
+
+[#Device]
+== Device
+
+A xref:device.adoc[Device] in openDAQ functionally acts as a container for xref:signals.adoc[Signals], 
+xref:function_blocks.adoc[Function blocks], Channels, and other Devices. It is most often a representation of physical 
+measurement hardware, but it could also represent a simulated Device or a client that connects multiple devices. By 
+functionality, we could split a Device roughly into three types. A Device can be one or more of these types.  
+
+  * Physical Device: Used for measuring data and is used to represent data acquisition hardware
+    in openDAQ. Physical devices usually contain channels.
+  * Client Device: Used to connect to another Device, adding them below itself in the Device hierarchy.
+    It forms a parent-child relationship between itself and the connected-to devices.
+  * Function block Device: The Device allows for function blocks to be added to it. It acts as the parent 
+    of zero-or-more function blocks and allows for their creation/removal/configuration.
+
+As is the case with all openDAQ components, devices expose a set of user-configurable properties that can be changed to modify the Device's behavior.
+
+**Related articles**
+
+  * xref:device.adoc[Devices]
+  * xref:howto_guides:howto_connect_to_device.adoc[How to connect to a Device]
+
+== Module
+
+openDAQ(TM) xref:function_blocks.adoc[Function Block]s and xref:device.adoc[Device] drivers are bundled within Modules, usually dynamically loaded libraries.
+The Modules are loaded by a xref:background_info:modules.adoc#module_manager[Module Manager], which can access any Component implementation provided by the Module.
+A Module can contain any of the following components:
+
+ * **Function block**: Provides a set of Function Block types that can be created.
+ * **Device driver**: Allows for connection to the supported Device types, as well as reading the Device's xref:signals.adoc[Signal] data.
+ * **Server**: Provides a set of Server types that can be created at the openDAQ(TM) tree root.
+These are mostly used to make the openDAQ(TM) tree accessible to Clients and to stream data.
+
+The Module Manager is most often created within the xref:opendaq_architecture.adoc#instance[Instance],
+and passed to child Devices if they can use it.
+
+Modules provide getter methods that list all Function Block and Server types they provide access to, as well as allow for the discovery of all Devices they are currently able to connect to.
+
+**Related articles**
+ 
+ * xref:modules.adoc[Modules]
+
+=== openDAQ(TM) Clients and Servers
+
+The openDAQ(TM) OpcUaClient, WebsocketStreamingClient, NativeStreamingClient, OpcUaServer, WebsocketStreamingServer
+and NativeStreamingServer are xref:modules.adoc[Module] implementations that allow for
+connecting to openDAQ(TM) xref:device.adoc[Device]s and streaming their xref:signals.adoc[Signal] data.
+The OpcUaClient and OpcUaServer Modules use OPC UA to read / configure the Device's structure,
+the WebsocketStreamingServer and WebsocketStreamingClient use web-socket streaming protocol to publish / read the list of Server Signal and stream data from Server to Client,
+and the NativeStreamingServer and NativeStreamingClient use openDAQ(TM) native streaming protocol to publish / read the list of Server Signal and stream data from Server to Client.
+
+The OPC UA structure is defined by the openDAQ(TM) OPC UA standard for Devices, and the openDAQ(TM) OpcUaClient can connect to any Device that conforms to that standard.
+Notably, the web-socket streaming and native streaming protocols are not parts of OPC UA standard and are openDAQ(TM)-specific.
+
+A Device that is connected to using the openDAQ(TM) Client is mirrored below the client Device, allowing users to inspect
+and configure the Device as if it were available locally.
+
+[NOTE]
+====
+Not all functions are fully functional on mirrored Devices.
+As openDAQ(TM) development continues, support for all functionalities will be added.
+Any method that is not available on mirrored Devices throws an `OpcUaClientCallNotAvailableException` exception.
+====
+
+// TODO: Add a link to client/server how-tos and background info once written.
+
+[#instance]
+== Instance
+
+The Instance is the entry point into the SDK. The first line of code in every openDAQ(TM) application should create an Instance.
+When created, it initializes the module manager, loading all modules available at a specified folder (and its sub-folders).
+
+While the Instance has access to all functions available to xref:device.adoc[Device]s, it is not a Device, it is a proxy that forwards all calls to the openDAQ(TM) Root Device.
+The Root Device is the topmost Device in the openDAQ(TM) tree.
+By default, the openDAQ(TM) Instance constructor creates a standard Root Device.
+It is a virtual Device that provides easy access to the functionalities of xref:modules.adoc[Module]s loaded by the xref:modules.adoc#module_manager[Module Manager].
+When listing available xref:function_blocks.adoc[Function Block]s or Devices, it simply asks each Module what components are available and compiles the information into a singular list.
+When adding a Function Block or Device, it checks which Module can add that Function Block / connect to that Device, and uses that Module to do so.
+
+The Root Device can, however, be overridden.
+If we, for example, want to start a Server that advertises only a specific physical Device, we can set that Device to be the root.
+
+Notably, the Server is not part of the Root Device.
+All created Servers are part of the Instance, but not the Root Device.
+As such, the Server can react to the Root Device changing.
+
+[NOTE]
+====
+The openDAQ(TM) Server does not yet react to changes to the openDAQ(TM) structure it is advertising.
+As such, currently, any change such as adding / removing a Function Block will not be visible on the Server without restarting it.
+====
+
+
+// TODO: Add a link to openDAQ(TM) instance how-tos and background info once written.
+
+== Overview
+
+To summarize, the openDAQ(TM) architecture is formed as a tree.
+At the top is the openDAQ(TM) instance and its corresponding xref:device.adoc[Root Device].
+The openDAQ(TM) instance holds two Servers, one allows for broadcasting the structure and another for streaming data.
+
+Each Device (including the Root Device) can connect to an arbitrary number of other Devices, placing them below itself in the tree and forming a parent-child relationship.
+Additionally, each Device can have any number of child Function Blocks, Channels, and xref:signals.adoc[Signal]s.
+
+[NOTE]
+====
+openDAQ(TM) does not prevent Device cycles from being formed.
+Users must take caution to not create cycles in the structure.
+====
+
+xref:function_blocks.adoc[Function Block], Server, and Device driver implementations are provided within modules.
+xref:modules.adoc[Module]s are usually dynamically loaded libraries that are loaded by the xref:background_info:modules.adoc#module_manager[Module Manager] when an Instance is created.
+
+The behavior of an individual Function Block, Server, or Device driver depends on the implementation of the Module.
+By default, openDAQ(TM) provides the openDAQ(TM) Client and two Server modules that allow for connecting to openDAQ(TM) OPC UA compatible Devices and streaming data of openDAQ(TM) Devices via web socket streaming.
+
+// TODO: Add a diagram showing an overview of an example openDAQ(TM) system
+
+// TODO: Explain openDAQ(TM) component and ID system

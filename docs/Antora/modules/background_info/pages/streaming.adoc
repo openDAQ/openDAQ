@@ -1,0 +1,10 @@
+= Streaming
+
+:note-caption: TODO
+[NOTE]
+====
+* Streaming types
+* Creating and using Streaming objects
+* How to manage Streaming sources per signal
+* Streaming connection heuristic usage
+====

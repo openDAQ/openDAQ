@@ -1,0 +1,20 @@
+* xref:howto.adoc[**How-to guides**]
+** xref:howto_vbox_simulator.adoc[Set up VirtualBox simulator]
+** xref:howto_connect_to_device.adoc[]
+** xref:howto_add_function_block.adoc[Add function block]
+** xref:howto_configure_function_block.adoc[Configure function block]
+// ** xref:howto_configure_a_device.adoc[Configure a Device]
+// ** Configure a Signal
+// *** xref:howto_create_a_signal.adoc[]
+// *** xref:howto_configure_data_rule.adoc[]
+// *** xref:howto_create_dimension_objects.adoc[]
+// *** xref:howto_configure_a_time_signal.adoc[]
+
+** Read data with Readers
+*** xref:howto_read_with_domain.adoc[Basic value and domain]
+*** xref:howto_read_with_timeouts.adoc[Time-outs]
+*** xref:howto_read_with_timestamps.adoc[Absolute time-stamps]
+*** xref:howto_read_last_n_samples.adoc[Only latest N samples]
+*** xref:howto_read_aligned_signals.adoc[Align multiple Signals]
+
+** xref:howto_save_load_configuration.adoc[Save and load configuration]

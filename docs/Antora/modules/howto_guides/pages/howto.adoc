@@ -1,0 +1,22 @@
+= How-to guides
+
+* xref:howto_vbox_simulator.adoc[]
+* xref:howto_connect_to_device.adoc[]
+// * xref:howto_configure_a_device.adoc[]
+* xref:howto_add_function_block.adoc[]
+* xref:howto_configure_function_block.adoc[]
+
+// == Configure a Signal
+
+// * xref:howto_create_a_signal.adoc[]
+// * xref:howto_configure_data_rule.adoc[]
+// * xref:howto_create_dimension_objects.adoc[]
+// * xref:howto_configure_a_time_signal.adoc[]
+
+== Read data with Readers
+
+* xref:howto_read_with_domain.adoc[]
+* xref:howto_read_last_n_samples.adoc[]
+* xref:howto_read_with_timeouts.adoc[]
+* xref:howto_read_with_timestamps.adoc[]
+* xref:howto_read_aligned_signals.adoc[]

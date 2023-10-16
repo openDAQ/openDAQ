@@ -1,0 +1,41 @@
+program CoreTypesUT;
+
+{$APPTYPE CONSOLE}
+
+{$R *.res}
+
+uses
+  System.SysUtils,
+  DS.UT.DSUnitTestEngineUnit,
+  Test.OpenDAQ.BaseObject in '${TestSourceDir}\Test.OpenDAQ.BaseObject.pas',
+  Test.OpenDAQ.BaseObjectImpl in '${TestSourceDir}\Test.OpenDAQ.BaseObjectImpl.pas',
+  Test.OpenDAQ.ProcedureImpl in '${TestSourceDir}\Test.OpenDAQ.ProcedureImpl.pas',
+  Test.OpenDAQ.FunctionImpl in '${TestSourceDir}\Test.OpenDAQ.FunctionImpl.pas',
+  Test.OpenDAQ.BinaryData in '${TestSourceDir}\Test.OpenDAQ.BinaryData.pas',
+  Test.OpenDAQ.BinaryDataPtr in '${TestSourceDir}\Test.OpenDAQ.BinaryDataPtr.pas',
+  Test.OpenDAQ.Integer in '${TestSourceDir}\Test.OpenDAQ.Integer.pas',
+  Test.OpenDAQ.Float in '${TestSourceDir}\Test.OpenDAQ.Float.pas',
+  Test.OpenDAQ.Boolean in '${TestSourceDir}\Test.OpenDAQ.Boolean.pas',
+  Test.OpenDAQ.ConvertibleObject in '${TestSourceDir}\Test.OpenDAQ.ConvertibleObject.pas',
+  Test.OpenDAQ.ConvertiblePtr in '${TestSourceDir}\Test.OpenDAQ.ConvertiblePtr.pas',
+  Test.OpenDAQ.StringObject in '${TestSourceDir}\Test.OpenDAQ.StringObject.pas',
+  Test.OpenDAQ.StringPtr in '${TestSourceDir}\Test.OpenDAQ.StringPtr.pas',
+  Test.OpenDAQ.ListObject in '${TestSourceDir}\Test.OpenDAQ.ListObject.pas',
+  Test.OpenDAQ.ListPtr in '${TestSourceDir}\Test.OpenDAQ.ListPtr.pas',
+  Test.OpenDAQ.DictObject in '${TestSourceDir}\Test.OpenDAQ.DictObject.pas',
+  Test.OpenDAQ.DictPtr in '${TestSourceDir}\Test.OpenDAQ.DictPtr.pas',
+  Test.OpenDAQ.JsonSerializer in '${TestSourceDir}\Test.OpenDAQ.JsonSerializer.pas',  
+  Test.OpenDAQ.SerializerPtr in '${TestSourceDir}\Test.OpenDAQ.SerializerPtr.pas',  
+  Test.OpenDAQ.JsonDeserializer in '${TestSourceDir}\Test.OpenDAQ.JsonDeserializer.pas',
+  Test.OpenDAQ.DeserializerPtr in '${TestSourceDir}\Test.OpenDAQ.DeserializerPtr.pas',
+  Test.OpenDAQ.JsonSerializedList in '${TestSourceDir}\Test.OpenDAQ.JsonSerializedList.pas',
+  Test.OpenDAQ.JsonSerializedListPtr in '${TestSourceDir}\Test.OpenDAQ.JsonSerializedListPtr.pas',
+  Test.OpenDAQ.JsonSerializedObject in '${TestSourceDir}\Test.OpenDAQ.JsonSerializedObject.pas',
+  Test.OpenDAQ.JsonSerializedObjectPtr in '${TestSourceDir}\Test.OpenDAQ.JsonSerializedObjectPtr.pas',
+  Test.OpenDAQ.ProxyValue in '${TestSourceDir}\Test.OpenDAQ.ProxyValue.pas',
+  Test.OpenDAQ.Ratio in '${TestSourceDir}\Test.OpenDAQ.Ratio.pas',
+  Test.OpenDAQ.RatioPtr in '${TestSourceDir}\Test.OpenDAQ.RatioPtr.pas'; 
+  
+begin
+  TDSUnitTestEngine.RunTests;
+end.

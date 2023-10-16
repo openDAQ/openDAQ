@@ -1,0 +1,54 @@
+# file types
+*.bin
+*.cache
+*.check_cache
+*.db
+*.dcu
+*.depend
+*.exp
+*.filters
+*.idb
+*.ilk
+*.list
+*.log
+*.obj
+*.orig
+*.pdb
+*.pyc
+*.rule
+*.rsm
+*.stamp
+*.stat
+*.suo
+*.tlog
+
+# IDE files
+.idea/
+.idea_/
+.vs/
+.vscode/
+__history/
+__recovery/
+__pycache__/
+
+# build and backup folders
+/_build*
+/build*
+/cmake-build*
+/out*
+bckp
+
+# cmake
+CMakeUserPresets.json
+
+# RTGen
+shared/tools/RTGen/src/project/bin/
+shared/tools/RTGen/src/project/doc/
+shared/tools/RTGen/src/project/packages/
+shared/tools/RTGen/src/project/RTGen*/bin/
+shared/tools/RTGen/src/project/RTGen*/obj/
+shared/tools/RTGen/src/project/*.user
+/docs/Antora/ui-bundle*/
+
+# license-header-checker
+shared/tools/license-header-checker/bin/

@@ -1,0 +1,125 @@
+= Save and load configuration
+
+openDAQ(TM) provides features to save the current configuration to JSON format. The configuration is defined as the current state of
+the complete openDAQ tree. It consists of:
+
+ * devices and their properties,
+ * device channels and their properties,
+ * device custom components and their properties,
+ * subdevices (recursively) and their properties,
+ * function blocks and their properties,
+ * signals and their properties,
+ * input ports with connections to signals.
+ 
+When loading a configuration from JSON format all components except xref:background_info:function_blocks.adoc[Function blocks] are 
+matched by their local ID and the properties are applied from JSON to the objects themselves. Function blocks are first constructed 
+from their type ID (if a module exists) and then the properties are applied from JSON. 
+
+== Save configuration
+
+The SDK provides a method on the instance interface to save the configuration to a string. The application can use this string to save the
+configuration to a file or any other media.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// save configuration to string
+std::string jsonStr = instance.saveConfiguration();
+
+// write configuration string to file
+std::ofstream configFile("config.json");
+configFile << jsonStr;
+configFile.close();
+----
+Python::
++
+[source,python]
+----
+# save configuration to string
+json_str = instance.save_configuration();
+
+# write configuration string to file
+config_file = open("config.json", "w")       
+config_file.write(json_str)
+config_file.close()
+----
+====
+
+[NOTE]
+====
+Saving configuration will produce a string similar to this:
+[source,json]
+----
+"refch0": {
+    "__type": "Channel",
+    "typeId": "ref_channel",
+    "sig": {
+        "__type": "Folder",
+        "items": {
+            "ai0": {
+                "__type": "Signal",
+                "domainSignalId": "dev/ref_dev0/io/ai/refch0/sig/ai0_time"
+            },
+            "ai0_time": {
+                "__type": "Signal"
+            }
+        }
+    },
+    "propValues": {
+        "Amplitude": 1.0,
+        "TestReadOnly": true
+    }
+}
+----
+Because the configuration string can be very long, the one shown above has been trimmed to show only a part of it.
+====
+
+== Load configuration
+
+Once the configuration has been saved, it can be applied to the openDAQ instance. The configuration is passed as a
+string parameter which can be read from a file or any other media.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// read configuration from file
+std::ifstream configFile("config.json");
+std::stringstream jsonStr;
+jsonStr << configFile.rdbuf();
+
+// load configuration from string
+instance.loadConfiguration(jsonStr.str());
+----
+Python::
++
+[source,python]
+----
+# read configuration from file
+config_file = open("config.json", "r")
+json_str = config_file.read();
+config_file.close()
+
+# load configuration from string
+instance.load_configuration(json_str);
+----
+====
+
+[NOTE]
+====
+The current implementation of SDK does not add devices that are described in the configuration string. 
+xref:background_info:device.adoc[Devices] must be already mounted in the openDAQ tree. However, 
+xref:background_info:function_blocks.adoc[Function blocks] present in the configuration string will be 
+instantiated and added under the function blocks folder before they are configured from JSON configuration string.
+====
+
+== Saving and loading configuration of specific components
+
+openDAQ SDK also supports storing and loading of configuration for individual components (device, channel, function block, etc ...)
+
+TODO

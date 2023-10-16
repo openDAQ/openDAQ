@@ -1,0 +1,6 @@
+# build and backup folders
+_build*/
+build*/
+cmake-build*/
+out*/
+bckp/

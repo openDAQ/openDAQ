@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="daq::StreamReaderImpl">
+    <DisplayString>{{ StreamReader, &lt;{(*refCount).strong},{(*refCount).weak}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">*refCount</Item>
+      <Item Name="[invalid]">invalid</Item>
+      <Item Name="timeoutType">timeoutType</Item>
+      <Item Name="connection">connection</Item>
+      <Item Name="port">inputPort</Item>
+      <Item Name="readInfo">info</Item>
+      <Item Name="valueReader">*valueReader</Item>
+      <Item Name="domainReader">*domainReader</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::ComparableValue&lt;*&gt;">
+    <DisplayString>{{ Comparable: {value} }}</DisplayString>
+    <Expand>
+      <Item Name="value">value</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::PacketReaderImpl">
+    <DisplayString>{{ PacketReader, &lt;{(*refCount).strong}, {(*refCount).weak}&gt; }}</DisplayString>
+    <Expand>
+      <ExpandedItem>this,na</ExpandedItem>
+    </Expand>
+  </Type>
+  <Type Name="daq::BlockReaderImpl">
+    <DisplayString>{{ BlockReader, blockSize={blockSize}, &lt;{(*refCount).strong}, {(*refCount).weak}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">*refCount</Item>
+      <Item Name="[invalid]">invalid</Item>
+      <Item Name="timeoutType">timeoutType</Item>
+      <Item Name="blockSize">blockSize</Item>
+      <Item Name="connection">connection</Item>
+      <Item Name="port">port</Item>
+      <Item Name="readInfo">info</Item>
+      <Item Name="valueReader">*valueReader</Item>
+      <Item Name="domainReader">*domainReader</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::ReaderImpl&lt;*&gt;">
+    <DisplayString>{{ Reader, &lt;{(*refCount).strong}, {(*refCount).weak}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">*refCount</Item>
+      <Item Name="mutex">mutex</Item>
+      <Item Name="port">port</Item>
+      <Item Name="connection">connection</Item>
+      <Item Name="timeoutType">timeoutType</Item>
+      <Item Name="valueReader">*valueReader</Item>
+      <Item Name="domainReader">*domainReader</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::ReaderTransform">
+    <DisplayString>{{ ReaderTransform: samples:{samplesToRead} type: {type}, &lt;{refCount}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="samplesToRead">samplesToRead</Item>
+      <Item Name="type">type</Item>
+      <Item Name="input">input</Item>
+      <Item Name="output">output</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::TypedReader&lt;*&gt;">
+    <DisplayString>{{ TypedReader, read: {"$T1"}, data: {dataSampleType} }}</DisplayString>
+  </Type>
+  <Type Name="daq::UndefinedReader">
+    <DisplayString>{{ UndefinedReader }}</DisplayString>
+  </Type>
+</AutoVisualizer>

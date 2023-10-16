@@ -1,0 +1,1254 @@
+= openDAQ(TM) Application Quick Start
+:page-toclevels: 4
+:toclevels: 4
+
+The openDAQ(TM) SDK allows users to quickly and easily set up an application that can connect to an openDAQ(TM)-compatible
+device, configure it and read its data. It allows for easy signal processing and routing of
+signals through blocks that process and manipulate signal data.
+
+This guide illustrates the process of configuring and connecting to Devices, using simulated
+xref:glossary:glossary.adoc#device[Device]s and xref:glossary:glossary.adoc#signal[Signal]s, requiring no prior knowledge of the openDAQ(TM) framework.
+
+Full final source files of the examples featured in this guide are available at the bottom of the page, as well
+as within the binary packages available at {docs-website}[the openDAQ(TM) documentation and releases webpage].
+
+This guide continues from the openDAQ(TM) project state at the end of the Setting up guide
+(xref:quick_start_setting_up_cpp.adoc[{cpp}]/xref:quick_start_setting_up_python.adoc[Python]),
+making use of the provided openDAQ(TM) binaries and examples.
+
+== Simulating an openDAQ(TM) Device
+
+For this guide, we will be using a xref:glossary:glossary.adoc#device[Device] simulator that outputs synthetic sine xref:glossary:glossary.adoc#signal[Signal]s at a chosen sample rate,
+with a chosen amplitude and frequency. It hosts an xref:glossary:glossary.adoc#opc_ua[OPC UA] server and a Native streaming server, allowing
+clients to inspect and configure the Device, and read its data.
+
+The simulator can be downloaded in the form of a VirtualBox image, or built from source. We recommend the former,
+as it allows for the simulator to be discovered automatically by openDAQ(TM).
+
+IMPORTANT: If building from source, all function calls used to get available Devices later in the guide will not
+find any Devices. They will instead return an empty list. As such, when not using the provided virtual machine, the
+code examples will need to be modified to specify the connection string `"daq.opcua://127.0.0.1/"` whenever attempting to add
+a openDAQ(TM) OPC UA-enabled Device; to add the Device without using openDAQ(TM) OPC UA protocol the connection string 
+`"daq.nsd://127.0.0.1/"` should be used for the Devices that utilize the openDAQ(TM) Native streaming protocol.
+
+=== Using a virtual machine (recommended)
+
+The simulator can be used in the form of a VirtualBox `.ova` image. The image (opendaq-version_device_simulator.ova) can be found at
+{docs-website}[the openDAQ(TM) documentation and releases webpage],
+and should be run with https://www.virtualbox.org/wiki/Downloads/[VirtualBox 7.0.6 or newer].
+
+Once the simulator is started, log in using the username `opendaq` and password `opendaq`:
+
+[listing]
+--
+User: opendaq
+Password: opendaq
+--
+
+Detailed instructions on setting up the simulator can be found xref:howto_guides:howto_vbox_simulator.adoc[here].
+
+NOTE: For a simulator that is a simulator or a physical openDAQ(TM) DAQ device, the openDAQ-reference-device-vm-version.ova image can be used instead. Note that the properties and configuration of the device does not fully match that of the one described in this guide, but the general principles still apply. 
+
+[#own_simulator]
+=== Building a simulator from source (optional)
+
+[tabs]
+====
+Cpp::
++
+--
+To create an application that simulates an openDAQ(TM) Device, we build and run the
+`cpp/quick_start/quick_start_simulator.cpp` code example.  To do so, navigate
+to the `cpp/quick_start` examples folder and run the following commands:
+
+[source,bash]
+----
+cmake -DCMAKE_BUILD_TYPE=Release -DOPENDAQ_CREATE_DEVICE_SIMULATOR=ON -Bbuild .
+cd build
+cmake --build .
+----
+
+We start the simulated device:
+
+[source,bash]
+----
+# Windows
+cd Release
+quick_start_simulator.exe
+----
+
+[source,bash]
+----
+# Linux
+./quick_start_simulator
+----
+
+If using this method of simulating a Device, use the "daq.opcua://127.0.0.1" connection string in all
+`addDevice(std::string connectionString)` calls in the later examples of this guide, except 
+xref:#websocket_example[Connecting to remote Device using Web-socket streaming protocol] and
+xref:#native_streaming_example[Connecting to remote Device using Native streaming protocol] examples.
+--
+
+Python::
++
+--
+To create an application that simulates an openDAQ(TM) Device, we run the following code example:
+
+[,python]
+----
+import openDAQ(TM)
+
+# Create openDAQ instance
+instance = opendaq.Instance()
+
+# Add a reference device and set it as root
+instance.set_root_device('daqref://device0')
+device = instance.root_device
+
+# Start an openDAQ OpcUa and native streaming servers
+instance.add_standard_servers()
+
+input('Press "Enter" to exit the application ...')
+----
+
+If using this method of simulating a Device, use `add_device('daq.opcua://127.0.0.1')`
+in all `add_device` calls in the later examples of this guide, except
+xref:#native_streaming_example[Connecting to remote Device using Native streaming protocol] examples.
+--
+====
+
+== openDAQ(TM) client application
+
+Having set up a simulator Device that is running openDAQ(TM) OPC UA and Native streaming servers, we now move on to
+implement the client application that connects to the simulated Device. The client-side application uses
+an OPC UA Client to connect to an openDAQ(TM) OPC UA Server. When connected, the application is used to read the
+Device's Signal data, read / modify its Properties, and perform structural changes such as
+adding / removing / re-routing Function Blocks or Devices - all of which will be explained throughout this guide.
+
+Also the client-side application can uses a the Native streaming client to connect to devices which do not have
+an openDAQ(TM) OPC UA Server running. Description of how to do this can be found in the corresponding
+xref:#native_streaming_example[Connecting to remote Device using Native streaming protocol] example.
+
+[tabs]
+====
+Cpp::
++
+--
+We start by editing our code with a basic openDAQ(TM) application skeleton `quick_start_empty.cpp` found in the
+`cpp/quick_start` directory, starting with creating a openDAQ(TM) Instance:
+
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main(int argc, const char* argv[])
+{
+    // Create a fresh openDAQ(TM) instance, which acts as the entry point into our application
+    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
+}
+----
+--
+
+Python::
++
+--
+We start by editing our code with a basic openDAQ(TM) application skeleton in a new `.py` file, starting with creating
+a openDAQ(TM) instance:
+
+[source,python]
+----
+import opendaq
+
+instance = opendaq.Instance()
+----
+--
+====
+
+The openDAQ(TM) Instance acts as our entry point to the openDAQ(TM) application. It loads all available
+modules that allow for connecting to Devices, starting Servers, and doing data processing and calculations.
+
+NOTE: Modules are dynamic libraries that are loaded when creating an openDAQ(TM) instance. They look at the
+provided directory path - in the case above - the `MODULE_PATH` path, which points to our openDAQ(TM) binaries.
+They provide functions to connect to devices, start servers, and add function blocks that are used to process data
+and perform calculations.
+
+=== Discovering devices
+
+openDAQ(TM) Devices represent physical data acquisition hardware, and allow for processing, generation, and
+manipulation of data. They can also be used to connect to other Devices, forming a device hierarchy.
+
+The provided simulator represents a physical data acquisition Device. Such devices contain a list of Channels
+that correspond to the physical input / output connectors of the Device. A Channel outputs data received from
+sensors connected to the connectors as Signals, carrying data bundled in Packets. The simulator Device
+simulates two such Channels, both outputting sine wave Signals.
+
+We can obtain a list of Devices that we can add / connect to via by getting a list of available Devices.
+openDAQ(TM) can ask all loaded Modules to return information about any Device it discovers. In this guide, we use
+three Modules that can connect to / add Devices - the openDAQ(TM) `opcua_client_module`, `native_stream_cl_module` 
+(Native streaming client module), and a reference device module.
+
+The latter allows for the creation of simulated Devices that output sine waves. Those are used by the
+provided simulator to generate sample data. The OPC UA Client (opcua_client_module) allows us to
+connect to all openDAQ(TM) OPC UA-enabled Devices that are running an openDAQ(TM) OPC UA Server. The
+`native_stream_cl_module` is a Native data streaming client implementation that allows us to connect to Devices that are running
+a Native streaming Server and read their Signal data. The two client modules use mDNS discovery to find compatible 
+Devices on our local network.
+
+IMPORTANT: The description of using `native_stream_cl_module` can be found in xref:#native_streaming_example[this example].
+In all other later examples we are going to consider on using our simulator as a openDAQ(TM) OPC UA-enabled Device.
+
+The code snippet below searches for all available Devices, asking all Modules to produce a list of Device metadata
+including information on how to connect to said Devices in the form of connection strings.
+
+IMPORTANT: The provided Virtual box simulator image hosts a mDNS discovery service, allowing it to be discovered by
+openDAQ(TM). Such a service is, as of now, not provided by openDAQ(TM). Thus, if you have
+xref:#own_simulator[compiled your own simulator device] it will not appear in the list of available Devices.
+You are therefore required to enter the simulator's connection string manually when connecting to it ("daq.opcua://127.0.0.1").
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main(int argc, const char* argv[])
+{
+    // Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
+    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+
+    // Find and output the names and connection strings of all available devices
+    daq::ListPtr<daq::IDeviceInfo> availableDevicesInfo = instance.getAvailableDevices();
+    for (const auto& deviceInfo : availableDevicesInfo)
+        std::cout << "Name: " << deviceInfo.getName() << ", Connection string: " << deviceInfo.getConnectionString() << std::endl;
+
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+import opendaq
+
+# Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
+instance = opendaq.Instance()
+
+# Find and output the names and connection strings of all available devices
+for device_info in instance.available_devices:
+    print("Name:", device_info.name, "Connection string:", device_info.connection_string)
+----
+====
+
+Now run the simulator and the above client code. We should see the console output several Device names and connection
+strings. For example: `Device 0 : daqref://device0`, `Device 1 : daqref://device1`, `Device 1 : daq.opcua://xxx.xxx.xxx.xxx/`,
+ `NativeStreamingClientPseudoDevice : daq.nsd://xxx.xxx.xxx.xxx/`
+(the `daq.*://` addresses are specific to your simulator instance). We can use their corresponding connection strings to add / connect to the devices.
+
+=== Connecting to a remote device
+
+Once we have the list of available Devices, we can connect to one of them. In the following example, we connect to
+our simulator, filtering out Devices of which discovered addresses do not start with the `daq.opcua://` prefix.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main(int argc, const char* argv[])
+{
+    // Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
+    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+
+    // Find and connect to a device hosting an openDAQ(TM) OPC UA server
+    const auto availableDevices = instance.getAvailableDevices();
+    daq::DevicePtr device;
+    for (const auto& deviceInfo : availableDevices)
+    {
+        if (deviceInfo.getConnectionString().toStdString().find("daq.opcua://") != std::string::npos)
+        {
+            device = instance.addDevice(deviceInfo.getConnectionString());
+            break;
+        }
+    }
+
+    // Exit if no device is found
+    if (!device.assigned())
+        return 0;
+
+    // Output the name of the added device
+    std::cout << device.getInfo().getName() << std::endl;
+
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+import opendaq
+
+# Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
+instance = opendaq.Instance()
+
+# Find and connect to a device hosting an openDAQ(TM) OPC UA server
+for device_info in instance.available_devices:
+    if 'daq.opcua://' in device_info.connection_string:
+        device = instance.add_device(device_info.connection_string)
+        break
+else:
+    # Exit if no device is found
+    exit(0)
+
+# Output the name of the added device
+print(device.info.name)
+----
+====
+
+Adding a remote Device with its connection string connects to said Device. The Device can be used as
+if it were local. This means we can read the Device's data, as well as configure its Properties and Components.
+
+IMPORTANT: Not all functionalities are supported as of this moment. Property configuration and reading data are already
+possible, but manipulating the data paths, and adding / removing Devices or Function Blocks is not possible yet.
+
+The Device we connect to is added as a child below the openDAQ(TM) Instance, or more accurately, below our Root Device.
+
+=== The openDAQ(TM) Instance and Root Device
+
+As mentioned above, the openDAQ(TM) Instance is our entry point to the openDAQ(TM) application. However, this is only a
+convenient abstraction. The Instance is from the application perspective a simple object that forwards
+all calls (except server-related) to its `Root Device`. For example, when accessing the Instance's sub-devices, we
+are accessing the sub-devices of the Root Device.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// The following two calls are equivalent
+instance.getDevices();
+instance.getRootDevice().getDevices();
+----
+
+Python::
++
+[source,python]
+----
+# The following two calls are equivalent
+instance.devices
+instance.root_device.devices
+----
+====
+
+The openDAQ(TM) Instance creates a default Root Device when constructed. The default Root Device gains access
+to all loaded Modules, thus allowing for the addition of Devices, and other openDAQ(TM) Components that are made available
+by the loaded Modules. The Root Device always appears at the top of the Device hierarchy.
+
+Conveniently, our simulator overrides the default Root Device, by setting the reference Device as the Root Device.
+
+=== Reading Device data
+
+The SDK uses _Packets_ to send data through Signal objects to all listeners. To act as a listener, a Connection
+with a Signal must be formed which is done by connecting it to an Input Port.
+
+[#signal_reader]
+To ease reading data sent by Signals, openDAQ(TM) defines a set of Reader implementations. Readers create an Input Port
+to which a Signal is connected, and provide helper methods to read any data that arrives through the Connection.
+
+One such Reader implementation is the Stream reader. It presents Packets that arrive through the Connection as a
+stream of data, abstracting away the concept of Packets from the user. In the example below we create such a Reader
+that interprets the data sent by the reference Device as a stream of `double` type values. We read up to `100`
+samples every `25ms`.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main(int argc, const char* argv[])
+{
+    ...
+
+    // Get the first device signal
+    daq::SignalPtr signal = device.getSignalsRecursive()[0];
+
+    // Output 40 samples using reader
+    using namespace std::chrono_literals;
+    daq::StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
+
+    // Allocate buffer for reading double samples
+    double samples[100];
+    int cnt = 0;
+    while (cnt < 40)
+    {
+        std::this_thread::sleep_for(25ms);
+
+        // Read up to 100 samples, storing the amount read into `count`
+        daq::SizeT count = 100;
+        reader.read(samples, &count);
+        if (count > 0)
+        {
+            std::cout << samples[count - 1] << std::endl;
+            cnt++;
+        }
+    }
+
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
+}
+----
+
+Python::
++
+[source,python]
+----
+# ...
+
+import time
+
+# Find the first signal
+signal = device.signals_recursive[0]
+reader = opendaq.StreamReader(signal)
+
+# Output 40 samples using reader
+cnt = 0
+while cnt < 40:
+    time.sleep(0.025)
+    # Read up to 100 samples and print the last one
+    samples = reader.read(100)
+    if len(samples) > 0:
+        print(samples[-1])
+        cnt += 1
+----
+====
+
+==== Reading time-stamps
+
+Most often, to interpret Signal data, we want to determine the time at which the data was measured. To do
+so, Signals that carry measurement data contain a reference to another Signal - its _domain_ Signal. The domain
+Signal outputs domain data at the same rate as the measured signal. openDAQ(TM) allows for any application-specific
+domain type to be used (angle, frequency,...), but most often the time domain is used. For example, our
+simulator Device outputs time Signal data in seconds.
+
+To not lose timestamp accuracy, openDAQ(TM) provides a `tickResolution` parameter that is used to scale data
+from an integer `tick` to a value corresponding to the Signal's physical unit. Our simulated Device does just that -
+it outputs time data as integers and provides a resolution ratio which scales the integers into double precision
+values in seconds. To scale the time data, the values of the domain Signal must be multiplied by the resolution.
+Where the domain is time the SDK also provides a Reader to perform the conversion from `ticks` to system wall-clock time.
+
+In the following example, we use our Stream Reader to read both the Signal and domain data.
+
+[#reading-basic]
+.Reading basic data and domain
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main(int argc, const char* argv[])
+{
+    ...
+
+    // Output 10 samples using reader
+    using namespace std::chrono_literals;
+
+    // Get the first signal
+    daq::SignalPtr signal = device.getSignalsRecursive()[0];
+
+    daq::StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
+
+    // Get the resolution and origin
+    daq::DataDescriptorPtr descriptor = signal.getDomainSignal().getDescriptor();
+    daq::RatioPtr resolution = descriptor.getTickResolution();
+    daq::StringPtr origin = descriptor.getOrigin();
+    daq::StringPtr unitSymbol = descriptor.getUnit().getSymbol();
+
+    std::cout << "Origin: " << origin << std::endl;
+
+    // Allocate buffer for reading double samples
+    double samples[100];
+    uint64_t domainSamples[100];
+    int cnt = 0;
+    while(cnt < 40)
+    {
+        std::this_thread::sleep_for(25ms);
+
+        // Read up to 100 samples, storing the amount read into `count`
+        daq::SizeT count = 100;
+        reader.readWithDomain(samples, domainSamples, &count);
+        if (count > 0)
+        {
+            daq::Float domainValue = (daq::Int) domainSamples[count - 1] * resolution;
+            std::cout << "Value: " << samples[count - 1] << ", Domain: " << domainValue << unitSymbol << std::endl;
+            cnt++;
+        }
+    }
+
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
+}
+----
+
+Python::
++
+[source,python]
+----
+# ...
+
+# Get the resolution and origin
+descriptor = signal.domain_signal.descriptor
+resolution = descriptor.tick_resolution
+origin = descriptor.origin
+unit_symbol = descriptor.unit.symbol
+
+print('Origin:', origin)
+
+# Output 4 samples using reader
+cnt = 0
+while(cnt < 4)
+    time.sleep(0.025)
+    # Read up to 100 samples and print the last one
+    samples, domain_samples = reader.read_with_domain(100)
+    domain_values = domain_samples * float(resolution)
+    if len(samples) > 0:
+        print('Value:', samples[-1], ', Domain:', domain_values[-1], unit_symbol)
+        cnt += 1
+----
+====
+
+Running the example, we can see very high numbers for the domain values. This is due to them being relative to
+the domain signal's origin. Above, we read and output the domain signal origin, noting that it equates to the
+UNIX epoch of `"1970-01-01T00:00:00Z"`. The domain values read are thus relative to the UNIX epoch.
+
+===== Using a Time Reader
+:iso-8601-url: https://www.iso.org/iso-8601-date-and-time-format.html
+
+As making the conversion from `ticks` to an actual domain unit manually can be tedious and cumbersome when the domain is _time_ and the origin is an epoch specified in {iso-8601-url}[ISO-8601] format a Time Reader can be used to perform the conversion automatically.
+The example of <<reading-basic>> can then be rewritten as below to read a system-clock time-points instead of ticks.
+How to use a Time Reader is further explained in the xref:howto_guides:howto_read_with_timestamps.adoc[] guide.
+
+[#reading-timestamps]
+.Reading with Time Reader
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main(int argc, const char* argv[])
+{
+    ...
+    using namespace std::chrono_literals;
+    using namespace date;
+
+    // Output 10 samples using reader
+
+    // Get the first signal
+    daq::SignalPtr signal = device.getSignalsRecursive()[0];
+    daq::StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
+
+    // From here on the reader returns system-clock time-points as a domain
+    auto timeReader = daq::TimeReader(reader);
+
+    // Allocate buffer for reading double samples
+    double samples[100];
+    std::chrono::system_clock::time_point timeStamps[100];
+    cnt = 0;
+    while (cnt < 40)
+    {
+        std::this_thread::sleep_for(25ms);
+
+        // Read up to 100 samples, storing the amount read into `count`
+        daq::SizeT count = 100;
+        reader.readWithDomain(samples, timeStamps, &count);
+        if (count > 0)
+        {
+            std::cout << "Value: " << samples[count - 1] << ", Time: " << domainSamples[count - 1] << std::endl;
+            cnt++;
+        }
+    }
+
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
+}
+----
+
+Python::
++
+[source,python]
+----
+# ...
+# Output 4 samples using reader
+cnt = 0
+while cnt < 4:
+    time.sleep(0.025)
+    # Read up to 100 samples and print the last one
+    samples, time_stamps = reader.read_with_timestamps(100)
+    if len(samples) > 0:
+        print('Value:', samples[-1], ', Domain:', time_stamps[-1])
+        cnt += 1
+----
+====
+
+=== Function Blocks
+
+[#renderer]
+Instead of printing Signal data to the standard terminal output, the openDAQ(TM) package provides a simple
+renderer Function Block that displays a graph, visualizing the data.
+
+The openDAQ(TM) Function Blocks are data processing objects. They receive data through Signals connected to the
+Function Block's Input Ports, process the data, and output processed data as new Signals. An example of
+such a Function Block is an averaging Function Block that averages input Signal data over the last `n`
+samples, outputting the average as a new Signal.
+
+Not all Function Blocks are required to have Input Ports or output Signals, however. For example, a function
+generator Function Block might only output generated Signals, without requiring any input data. The Channels
+of our simulated Device are another such example - they do not receive any input data but still produce output
+Signals.
+
+Conversely, a file writer Function Block has no output Signals, but only receives input data, and writes it to a
+file on a hard drive. Another example of the latter is the renderer Function Block that is provided by one
+of the Modules within the openDAQ(TM) binaries. It provides an Input Port to which a Signal can be connected.
+Once connected, the renderer draws a graph that visualizes the Signal data over time. The Function Block
+can be added to our openDAQ(TM) Instance using its `"ref_fb_module_renderer"` unique ID.
+
+.Function Blocks with different combinations of Input Ports and output Signals
+image::opendaq:getting_started:function-block-types.svg[Function Blocks,align="center"]
+
+NOTE: As with Devices, we can list the metadata of all Function Blocks made available by loaded Modules
+by getting all available Function Blocks. Doing so we can obtain a list of Function Block information
+objects, providing metadata, as well as the IDs of the Function Blocks.
+
+We now extend our code to add the renderer Function Block and connect the first output Signal
+of our simulated Device to its Input Port.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main(int argc, const char* argv[])
+{
+    ...
+
+    // Create an instance of the renderer function block
+    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("ref_fb_module_renderer");
+
+    // Connect the first output signal of the device to the renderer
+    renderer.getInputPorts()[0].connect(signal);
+
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+# ...
+# Create an instance of the renderer function block
+renderer = instance.add_function_block('ref_fb_module_renderer')
+# Connect the first output signal of the device to the renderer
+renderer.input_ports[0].connect(signal)
+
+time.sleep(5)
+----
+====
+
+Try running the above code snippet. You should see a new window pop-up, displaying the sine wave Device Signal,
+similar to the window shown in the image below.
+
+.Image of the renderer drawing a signal graph
+image::getting_started:renderer.PNG[image,align="center"]
+
+=== The data path
+
+As mentioned, the renderer is a Function Block that receives input data but produces no output Signals.
+However, the loaded reference Modules also provide another Function Block - the averager. The averager
+takes an input Signal, averages its data over the last _n_ samples, and outputs the averaged data as an
+output Signal.
+
+Such Function Blocks can form a longer xref:background_info:data_path.adoc[Data Path], where multiple Function
+Blocks are chained together, each using the output of the previous block as its input data. In the next part of
+our example, we connect the output Signal of the simulated Device's first Channel through the averager and into
+the renderer, forming the following data path:
+
+.Image of the data path from the Channel through the averager and into the renderer
+image::getting_started:signal-path.svg[image,align="center"]
+
+The renderer can be added using its unique ID defined by the openDAQ(TM) Module: `"ref_fb_module_renderer"`.
+
+We extend our code to add and connect the averager Function Block:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main(int argc, const char* argv[])
+{
+    ...
+
+    // Create an instance of the averager function block
+    daq::FunctionBlockPtr averager = instance.addFunctionBlock("ref_fb_module_averager");
+
+    // Connect the first output signal of the device to the averager
+    averager.getInputPorts()[0].connect(signal);
+
+    // Connect the first output signal of the averager to the renderer
+    renderer.getInputPorts()[1].connect(averager.getSignals()[0]);
+
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+# ...
+
+# Create an instance of the averager function block
+averager = instance.add_function_block('ref_fb_module_averager')
+# Connect the first output signal of the device to the averager
+averager.input_ports[0].connect(signal)
+# Connect the first output signal of the averager to the renderer
+renderer.input_ports[1].connect(averager.signals[0])
+----
+====
+
+NOTE: We now connected the averager Signal to the 2nd Input Port of the renderer. Both the renderer
+and the averager Function Blocks are designed to always have an available Input Port. Whenever a Signal
+is connected to one of its ports, a new Input Port is created.
+
+When running the above example, we should be able to see the renderer display two Signals - the original
+sine wave, and the averaged Signal below.
+
+=== Configuring properties
+
+The openDAQ(TM) Devices, Function Blocks, and Channels (which are a specialization of Function Blocks)
+are Property Objects. Property Objects allow for configuring a set of Properties associated with the Device.
+Each Property contains a set of metadata that describes the Property, and a corresponding value.
+
+For example, the reference Device's Channel has the Properties `"Amplitude"` and `"Frequency"` which control
+the amplitude and frequency of the sine wave it outputs as its data. Their metadata
+defines their default values, as well as a minimum and maximum value. These Properties represent the settings
+that Devices, Channels, and Function Blocks allow users to configure.
+
+With the below code snippet, we extend our application example to list the Property names of the first Channel
+of the simulated Device. We adjust its Signal's frequency and noise level and modulate the amplitude.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main(int argc, const char* argv[])
+{
+    ...
+
+    // Get the first channel of the device
+    const daq::ChannelPtr sineChannel = device.getChannels()[0];
+
+    // List the names of all properties
+    for (daq::PropertyPtr prop : sineChannel.getVisibleProperties())
+        std::cout << prop.getName() << std::endl;
+
+    // Set the frequency to 5 Hz
+    sineChannel.setPropertyValue("Frequency", 5);
+    // Set the noise amplitude to 0.75
+    sineChannel.setPropertyValue("NoiseAmplitude", 0.75);
+
+    // Modulate the signal amplitude by a step of 0.1 every 25ms.
+    double amplStep = 0.1;
+    while (true)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+        const double ampl = sineChannel.getPropertyValue("Amplitude");
+        if (9.95 < ampl || ampl < 1.05)
+            amplStep *= -1;
+        sineChannel.setPropertyValue("Amplitude", ampl + amplStep);
+    }
+
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+# ...
+
+# Get the first AI channel of the device
+sine_channel = device.channels[0]
+# List the names of all properties
+for prop in sine_channel.visible_properties:
+    print(prop.name)
+
+# Set the frequency to 5 Hz
+sine_channel.set_property_value('Frequency', 5)
+# Set the noise amplitude to 0.75
+sine_channel.set_property_value('NoiseAmplitude', 0.75)
+
+# Modulate the signal amplitude by a step of 0.1 every 25 ms.
+amplitude_step = 0.1
+while True:
+    time.sleep(0.025)
+    amplitude = sine_channel.get_property_value('Amplitude')
+    if not (1.05 <= amplitude <= 9.95):
+        amplitude_step = -amplitude_step
+    sine_channel.set_property_value('Amplitude', amplitude + amplitude_step)
+----
+====
+
+The rendered output now displays a noisy Signal with a modulating amplitude. Below it, it shows the
+averaged Signal, drawing a smoother sine wave.
+
+== Full example code
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <chrono>
+#include <iostream>
+#include <thread>
+#include <opendaq/opendaq.h>
+
+int main(int /*argc*/, const char* /*argv*/[])
+{
+    // Create a new Instance that we will use for all the interactions with the SDK
+    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+
+    // Find and connect to a device hosting an OPC UA TMS server
+    const auto availableDevices = instance.getAvailableDevices();
+    daq::DevicePtr device;
+    for (const auto& deviceInfo : availableDevices)
+    {
+        if (deviceInfo.getConnectionString().toView().find("daq.opcua://") != std::string::npos)
+        {
+            device = instance.addDevice(deviceInfo.getConnectionString());
+            break;
+        }
+    }
+
+    // Exit if no device is found
+    if (!device.assigned())
+    {
+        std::cerr << "No relevant device found!" << std::endl;
+        return 0;
+    }
+
+    // Output the name of the added device
+    std::cout << device.getInfo().getName() << std::endl;
+
+    // Output 10 samples using reader
+    using namespace std::chrono_literals;
+    auto signals = device.getSignalsRecursive();
+
+    // Get the first channel and its signal
+    daq::ChannelPtr channel = device.getChannels()[0];
+    daq::SignalPtr signal = channel.getSignals()[0];
+
+    daq::StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
+
+    // Get the resolution and origin
+    daq::DataDescriptorPtr descriptor = signal.getDomainSignal().getDescriptor();
+    daq::RatioPtr resolution = descriptor.getTickResolution();
+    daq::StringPtr origin = descriptor.getOrigin();
+    daq::StringPtr unitSymbol = descriptor.getUnit().getSymbol();
+
+    std::cout << "Reading signal: " << signal.getName() << std::endl;
+    std::cout << "Origin: " << origin << std::endl;
+
+    // Allocate buffer for reading double samples
+    double samples[100];
+    uint64_t domainSamples[100];
+    int cnt = 0;
+    while (cnt < 40)
+    {
+        std::this_thread::sleep_for(100ms);
+
+        // Read up to 100 samples every 25ms, storing the amount read into `count`
+        daq::SizeT count = 100;
+        reader.readWithDomain(samples, domainSamples, &count);
+        if (count > 0)
+        {
+            daq::Float domainValue = (daq::Int) domainSamples[count - 1] * resolution;
+            std::cout << "Value: " << samples[count - 1] << ", Domain: " << domainValue << unitSymbol << std::endl;
+            cnt++;
+        }
+    }
+
+    using namespace date;
+
+    // From here on the reader returns system-clock time-points as a domain
+    auto timeReader = daq::TimeReader(reader);
+
+    // Allocate buffer for reading time-stamps
+    std::chrono::system_clock::time_point timeStamps[100];
+    cnt = 0;
+    while (cnt < 40)
+    {
+        std::this_thread::sleep_for(100ms);
+
+        // Read up to 100 samples every 25ms, storing the amount read into `count`
+        daq::SizeT count = 100;
+        reader.readWithDomain(samples, timeStamps, &count);
+        if (count > 0)
+        {
+            std::cout << "Value: " << samples[count - 1] << ", Domain: " << timeStamps[count - 1] << std::endl;
+            cnt++;
+        }
+    }
+
+    // Create an instance of the renderer function block
+    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("ref_fb_module_renderer");
+    // Connect the first output signal of the device to the renderer
+    renderer.getInputPorts()[0].connect(signal);
+
+    // Create an instance of the averager function block
+    daq::FunctionBlockPtr averager = instance.addFunctionBlock("ref_fb_module_averager");
+
+    // Connect the first output signal of the device to the averager
+    averager.getInputPorts()[0].connect(signal);
+    // Connect the first output signal of the averager to the renderer
+    renderer.getInputPorts()[1].connect(averager.getSignals()[0]);
+
+    // Get the first channel of the device
+    const daq::ChannelPtr sineChannel = channel;
+
+    // List the names of all properties
+    for (daq::PropertyPtr prop : sineChannel.getVisibleProperties())
+        std::cout << prop.getName() << std::endl;
+
+    // Set the frequency to 5Hz
+    sineChannel.setPropertyValue("Frequency", 5);
+    // Set the noise amplitude to 0.75
+    sineChannel.setPropertyValue("NoiseAmplitude", 0.75);
+
+    // Modulate the signal amplitude by a step of 0.1 every 25ms. Modulate for 15 seconds.
+    double amplStep = 0.1;
+    for (cnt = 0; cnt < 400; ++cnt)
+    {
+        std::this_thread::sleep_for(25ms);
+
+        const double ampl = sineChannel.getPropertyValue("Amplitude");
+        if (9.95 < ampl || ampl < 1.05)
+            amplStep *= -1;
+
+        sineChannel.setPropertyValue("Amplitude", ampl + amplStep);
+    }
+
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+import opendaq
+import time
+
+# Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
+instance = opendaq.Instance()
+
+# Find and connect to a device hosting an openDAQ(TM) OPC UA server
+for device_info in instance.available_devices:
+    if 'daq.opcua://' in device_info.connection_string:
+        device = instance.add_device(device_info.connection_string)
+        break
+else:
+    # Exit if no device is found
+    exit(0)
+
+# Output the name of the added device
+print(device.info.name)
+
+# Find the first channel and its signal
+channel = device.channels[0]
+signal = channel.signals[0]
+
+reader = opendaq.StreamReader(signal)
+
+# Output 40 samples using reader
+cnt = 0
+while cnt < 40:
+    time.sleep(0.025)
+    # Read up to 100 samples and print the last one
+    samples = reader.read(100)
+    if len(samples) > 0:
+        print(samples[-1])
+        cnt += 1
+
+# Create an instance of the renderer function block
+renderer = instance.add_function_block('ref_fb_module_renderer')
+# Connect the first output signal of the device to the renderer
+renderer.input_ports[0].connect(signal)
+
+# Create an instance of the averager function block
+averager = instance.add_function_block('ref_fb_module_averager')
+# Connect the first output signal of the device to the averager
+averager.input_ports[0].connect(signal)
+# Connect the first output signal of the averager to the renderer
+renderer.input_ports[1].connect(averager.signals[0])
+
+# List the names of all properties
+for prop in channel.visible_properties:
+    print(prop.name)
+
+# Set the frequency to 5 Hz
+channel.set_property_value('Frequency', 5)
+# Set the noise amplitude to 0.75
+channel.set_property_value('NoiseAmplitude', 0.75)
+
+# Modulate the signal amplitude by a step of 0.1 every 25 ms.
+amplitude_step = 0.1
+for i in range(400):
+    time.sleep(0.025)
+    amplitude = channel.get_property_value('Amplitude')
+    if not (1.05 <= amplitude <= 9.95):
+        amplitude_step = -amplitude_step
+    channel.set_property_value('Amplitude', amplitude + amplitude_step)
+----
+====
+
+[#native_streaming_example]
+== Connecting to remote Device using Native streaming protocol
+
+To connect to simulator using the Native streaming protocol we filter out Devices of which discovered addresses do not start
+with the `daq.nsd://` prefix.
+
+IMPORTANT: The provided Virtual Box simulator image hosts a mDNS discovery service, allowing it to be discovered by
+openDAQ(TM). Such a service is, as of now, not provided by openDAQ(TM). Thus, if you have
+xref:#own_simulator[compiled your own simulator device] it will not appear in the list of available Devices.
+You are therefore required to enter the simulator's connection string manually when connecting to it (`"daq.nsd://127.0.0.1"`).
+
+Adding a remote Device with its connection string connects to said Device and creates a pseudo Device containing only Signals
+of the remote Device.
+The pseudo Device is added as a child below the openDAQ(TM) Instance, or more accurately, below our Root Device.
+
+In this case we don't use the OPC UA Server or Client which means we can only read the Device's data,
+and are not able to configure its Properties or Components, and as mentioned before only Device Signals are available
+as a flat list and no Function Blocks or Channels are present.
+
+After the Device added we read the Signal and domain data of its first Signal using the Stream xref:#signal_reader[Reader].
+Next, we add the xref:#renderer[renderer] Function Block and connect the first and second output data Signals
+of our simulated Device to its Input Ports.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main(int /*argc*/, const char* /*argv*/[])
+{
+    // Create a new Instance that we will use for all the interactions with the SDK
+    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+
+    // Find and connect to a device hosting a Native streaming server
+    const auto availableDevices = instance.getAvailableDevices();
+    daq::DevicePtr device;
+    for (const auto& deviceInfo : availableDevices)
+    {
+        if (deviceInfo.getConnectionString().toStdString().find("daq.nsd://") != std::string::npos)
+        {
+            device = instance.addDevice(deviceInfo.getConnectionString());
+            break;
+        }
+    }
+
+    // Exit if no device is found
+    if (!device.assigned())
+    {
+        std::cerr << "No relevant device found!" << std::endl;
+        return 0;
+    }
+
+    // Output the name of the added device
+    std::cout << device.getInfo().getName() << std::endl;
+
+    // Output 10 samples using reader
+    using namespace std::chrono_literals;
+
+    // Find the first signal
+    daq::SignalPtr signal = device.getSignalsRecursive()[0];
+    daq::StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
+
+    // Get the resolution and origin
+    daq::DataDescriptorPtr descriptor = signal.getDomainSignal().getDescriptor();
+    daq::RatioPtr resolution = descriptor.getTickResolution();
+    daq::StringPtr origin = descriptor.getOrigin();
+    daq::StringPtr unitSymbol = descriptor.getUnit().getSymbol();
+
+    std::cout << "Origin: " << origin << std::endl;
+
+    // Allocate buffer for reading double samples
+    double samples[100];
+    uint64_t domainSamples[100];
+    for (int i = 0; i < 40; ++i)
+    {
+        std::this_thread::sleep_for(25ms);
+
+        // Read up to 100 samples every 25ms, storing the amount read into `count`
+        daq::SizeT count = 100;
+        reader.readWithDomain(samples, domainSamples, &count);
+        if (count > 0)
+        {
+            daq::Float domainValue = (daq::Int) domainSamples[count - 1] * resolution;
+            std::cout << "Value: " << samples[count - 1] << ", Domain: " << domainValue << unitSymbol << std::endl;
+        }
+    }
+
+    using namespace date;
+
+    // From here on the reader returns system-clock time-points as a domain
+    auto timeReader = daq::TimeReader(reader);
+
+    // Allocate buffer for reading time-stamps
+    std::chrono::system_clock::time_point timeStamps[100];
+    for (int i = 0; i < 40; ++i)
+    {
+        std::this_thread::sleep_for(25ms);
+
+        // Read up to 100 samples every 25ms, storing the amount read into `count`
+        daq::SizeT count = 100;
+        reader.readWithDomain(samples, timeStamps, &count);
+        if (count > 0)
+        {
+            std::cout << "Value: " << samples[count - 1] << ", Domain: " << timeStamps[count - 1] << std::endl;
+        }
+    }
+
+    // Create an instance of the renderer function block
+    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("ref_fb_module_renderer");
+
+    // Connect the first output signal of the device to the renderer
+    renderer.getInputPorts()[0].connect(signal);
+    // Connect the second output signal of the device to the renderer
+    renderer.getInputPorts()[1].connect(device.getSignals()[2]);
+
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+import opendaq
+import time
+
+# Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
+instance = opendaq.Instance()
+
+# Find and connect to a device hosting a WebSocket server
+for device_info in instance.available_devices:
+    if 'daq.nsd://' in device_info.connection_string:
+        device = instance.add_device(device_info.connection_string)
+        break
+else:
+    # Exit if no device is found
+    exit(0)
+
+# Output the name of the added device
+print(device.info.name)
+
+# Find the first signal
+signal = device.signals_recursive[0]
+
+# Output 40 samples using reader
+reader = opendaq.StreamReader(signal)
+cnt = 0
+while cnt < 40:
+    time.sleep(0.025)
+    # Read up to 100 samples and print the last one
+    samples = reader.read(100)
+    if len(samples) > 0:
+        print(samples[-1])
+        cnt += 1
+
+# Create an instance of the renderer function block
+renderer = instance.add_function_block('ref_fb_module_renderer')
+
+# Connect the first output signal of the device to the renderer
+renderer.input_ports[0].connect(signal)
+# Connect the second output signal of the device to the renderer
+renderer.input_ports[1].connect(device.signals[2])
+
+time.sleep(10)
+----
+====

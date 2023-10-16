@@ -1,0 +1,13 @@
+﻿function T$NonInterfaceType$Ptr$PtrTemplateImplementation$.$Name$($Arguments$): $ReturnTypePtr$;
+var
+  Err: ErrCode;
+  $ReturnArgName$: $ReturnArgTypeName$;$InterfaceArgs$
+begin
+  if not Assigned(FObject) then
+    raise ERTInvalidParameterException.Create('Interface object is nil.');$PtrNullChecks$
+
+  Err := FObject.$Name$($ArgumentNames$);
+  CheckRtErrorInfo(Err);
+
+  Result := $PtrCreateStart$$ReturnArgName$$PtrCreateEnd$;
+end;

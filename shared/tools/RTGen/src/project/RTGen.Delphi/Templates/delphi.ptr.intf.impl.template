@@ -1,0 +1,4 @@
+﻿function T$NonInterfaceType$Ptr$PtrTemplateImplementation$.Interface_$UppercaseName$($Arguments$): ErrCode; stdcall;
+begin
+  Result := FObject.$Name$($ArgumentNames$);
+end;

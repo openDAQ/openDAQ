@@ -1,0 +1,4 @@
+﻿  if Assigned($ArgName$) then
+    $ArgName2$Intf := $ArgName$.$GetInterface$()
+  else
+    $ArgName2$Intf := nil;

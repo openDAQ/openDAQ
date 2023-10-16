@@ -1,0 +1,245 @@
+= Signals
+
+Signals form the crux of data transfer in the openDAT(TM) SDK. They, alongside
+xref:function_blocks.adoc#input_port[Input Ports] and xref:data_path.adoc#connection[Connections],
+form data paths through which data is transferred in the form of xref:packets.adoc[Packets].
+Signals are part of xref:device.adoc[Devices], xref:function_blocks.adoc[Function blocks], and
+xref:function_blocks.adoc#channel[Channels], all of which define a set of output Signals
+that contain the data they produce.
+
+For example, a Statistics Function block might output a signal that averages the samples
+of an input Signal. A physical data acquisition device will output Signals that contain
+analog input data. A Function block that performs a Fourier analysis will output a signal
+containing vector samples that represent the frequency spectrum of the data.
+
+As shown in the examples below, Signals are designed to allow for flexible descriptions
+of different kinds of data of different dimensions (scalar, vector, matrix, or higher 
+dimensionality) and various data types (integers, strings, floating point numbers,...).
+In this article we provide an overview of the structure of a Signal, and what sort of
+data varieties openDAQ(TM) signals can describe.
+
+[#domain_signal]
+== Domain Signals
+
+A Signal is often referred to as either the "Value" Signal or the "Domain" Signal. In
+actuality, what this refers to is that any Signal can have a reference to another Signal
+that carries Domain data that the signal is supposed to be read with. 
+
+Domain data represents points in measurement that can be used to determine the relative
+distance between Value Signal samples, or their absolute position within the chosen
+physical domain. In openDAQ(TM) most often the Time domain is used, where the Time Domain 
+Signal carries timestamps that are relative to an Origin (most often the 
+xref:https://en.wikipedia.org/wiki/Unix_time[UNIX Epoch]).
+
+Other examples of possible domains include:
+
+* Number of rotations,
+* Distance,
+* Angle,
+* Automotive track lap count...
+
+When a signal sends data via xref:packets.adoc[Packets], they usually contain a reference to 
+the Domain Signal's corresponding Packet that carries the Domain data required for analysis. 
+As such, both the Value and corresponding Domain Signal must have the same sampling rate, and 
+their Packets should be of equal size.
+
+// For instructions on how to configure Time Domain Signals, the 
+// xref:howto_guides:howto_configure_a_time_signal.adoc[following how-to guide] is available.
+
+== Properties
+
+As with other xref:components.adoc[Components], a Signal has access to the 
+xref:property_system.adoc[Property Object] features where it can define a set of custom
+Properties with metadata and values. These Properties allow for user-customizable features
+to be added to Signals such as a custom user-defined name, or description.
+
+By default, a signal has a "Name" pre-defined Property that can be configured by users.
+Doing so will send a notification to all Input Ports connected to the Signal, notifying them
+of the change.
+
+Other metadata of a Signal is accessible through its Data Descriptor
+
+== Data Descriptor
+
+The Data Descriptor defines the sort of data that is sent by Signals. It allows anyone
+receiving the data to interpret the raw buffers and make sense of their contents. 
+Descriptors are immutable objects of which individual fields (eg. SampleType) cannot be modified. 
+To change the Descriptor of a Signal, the entire Descriptor object must be replaced. Changing the 
+Descriptor of a Signal triggers an xref:packets.adoc#event[Event Packet] to be sent to all connected 
+xref:function_blocks#input_port[Input Ports]. 
+
+The following fields are part of a Data Descriptor, with some containing further explanations
+in later sections.
+
+[cols="1,4"]
+|===
+
+| Name
+| A descriptive name of the data being described. For example, when the values describe the amplitude of spectrum data, the name would be Amplitude.
+
+| Dimensions
+| A list of Signal Dimension. A sample descriptor can have 0 or more dimensions. A signal with 1 dimension has vector data. A signal with 2 dimensions has matrix data, while a signal with 0 has a single value for each sample.
+
+| Sample Type
+| An enum value that specifies the underlying data type (eg. Float64, Int32, String,...)
+
+| Unit
+| The Unit of the data in the Signal's Packets.
+
+| Value Range
+| The Value Range of the data in a Signal's Packets defines the lowest and highest expected values. The range is not enforced by openDAQ(TM).
+
+| Data Rule
+| The Data Rule that defines how a Signal value is calculated from an implicit initialization value when the rule type is not Explicit.
+
+| Origin
+| Defines the starting point of the Signal. If set, all values of the Signal are relative to the Origin.
+
+| Tick Resolution
+| Used to scale Signal ticks into their physical unit. For example, a Tick Resolution of 1/1000 with the unit being "seconds" states that a value of 1 correlates to 1 millisecond.
+
+| Post Scaling
+| Defines a scaling transformation, which should be applied to data carried by the Signal's Packets when read. If Post Scaling is used, the Rule must be Explicit, and Tick Resolution and Origin must not be configured. The Sample Type must match the Output Data Type of the Post Scaling.
+
+| Struct Fields
+| A list of Data Descriptors. The descriptor list is used to define complex data samples. When defined, the sample buffer is laid out so that the data described by the first Data Descriptor is at the start, followed by the data described by the second, and so on. If the list is not empty, all Descriptor parameters except for Name and Dimensions should not be configured.
+
+| Metadata
+| A dictionary of key-value pairs. The metadata dictionary is used to add any additional information required to correctly interpret the data. This information is not interpreted by openDAQ core.
+
+|===
+
+=== Data Rule
+
+The Data Rule can be defined for data of a signal to be calculated implicitly. When
+the Rule Type is configured to a type other than `Explicit`, the data buffers of
+xref:packets.adoc[Packets] will not contain any data.
+
+To obtain data from Packets of Signals with an `Implicit` Data Rule, the values are
+calculated depending on the Rule type. Currently, two rules are available in openDAQ:
+
+* **Linear Rule**: The Rule parameters include a `delta` and `start` numbers. The values are calculated according to the following equation: `PacketOffset + SampleIndex * delta + start`, where the `PacketOffset` is available on the Packet carrying the data and the `SampleIndex` represents the index of the data entry being calculated within a given packet.
+
+* **Constant Rule**: All values of the signal are equal to the `constant` Rule Number-type parameter.
+
+=== Dimensions
+
+The list of Dimensions within a Data Descriptor defines whether the data in the signal
+is a Scalar, Vector, Matrix, or a higher-dimension structure. The number of Dimension
+objects in the list defines the data rank:
+ 
+ * 0 Dimensions = Scalar data
+ * 1 Dimension = Vector data
+ * 2 Dimensions = Matrix data
+ * _n_ Dimensions = _n_ rank data  
+
+A singular Dimension is defined via its Size and Rule. The Size defines the number of
+samples per Dimension. For example, data samples of a Signal with 1 Dimension of 
+size 1024 would have 1024 values per sample (Vector). A Signal with 2 Dimensions of sizes 
+16 and 32 would have _16 * 32 = 512_ values per sample (Matrix).
+
+The Dimension Rule defines the Labels of each given Dimension. The Labels are used to
+interpret the meaning of each value within higher-rank data. For example, a
+frequency spectrum sample of 1024 values could span the frequency range from 0 Hz to
+4096 Hz. The labels allow us to interpret the physical meaning of a value within a sample.
+For example, the 10th value of a sample within the spectrum Signal described above would
+correspond to the amplitude at the 40Hz frequency band.
+
+To define the Labels, the following Rule types are available:
+
+[cols="1,4"]
+|===
+| Linear
+| The Rule parameters contain a `delta`, `start`, and `size` parameters member. Calculated as: _index * delta + start_ for `size` number of elements.
+
+| Logarithmic
+| The Rule parameters contain a `delta`, `start`, `base`, and `size` parameters member. Calculated as: _base ^ (index * delta + start)_ for `size` number of elements.
+
+| List
+| The Rule parameters contain a `list` parameters member. The list contains all dimension labels.
+|===
+
+// NOTE: To get more info on configuring Signal Dimensions, the following how-to guide illustrates
+// how to xref:howto_guides:howto_create_dimension_objects.adoc[Create and Configure Signal Dimensions].
+
+=== Post Scaling
+
+Post Scaling allows for a Rule to be defined as to how Signal data should be scaled to
+the appropriate physical Unit as defined by the Data Descriptor. When Post Scaling is
+configured, the Packet buffers of a Signal will contain raw data that should be scaled
+by anyone reading the data by applying the Post Scaling Rule. 
+
+IMPORTANT: When the Post Scalign is configured, the Origin and Tick Resolution cannot be part of the Data Descriptor, and the Data Rule must be "Explicit".
+
+Post Scaling defines an input and output Sample Type, where the input defines the 
+raw Sample Type of data in Packet buffers, while the output type should match the
+Data Descriptor's Sample Type, and defines the type into which raw data is scaled by
+applying the Rule.
+
+As the input and output Sample Types can be different, Post Scaling allows Devices
+to reduce bandwidth usage by sending data in lower bit-count types (eg. `Int32`) that
+is then scaled to different data types with higher bit-count (eg. `double`) by clients.
+
+Currently, openDAQ(TM) provides only the Linear Post Scaling rule:
+
+[cols="1,4"]
+|===
+
+| Linear Post Scaling
+| The parameters contain a `scale` and `offset`. Calculated as: _inputValue * scale + offset_
+
+|===
+
+=== Origin and Tick Resolution
+
+:iso-8601-url: https://www.iso.org/iso-8601-date-and-time-format.html
+
+The Origin and Tick Resolution allow for accurate definitions of absolute time (domain) 
+values. The origin defines the starting point of all data within a Signal. All data
+sent within its packets is relative to the Origin value. As such the absolute value
+of the data is calculated as _Origin + DataValue_. A common Origin is the 
+xref:https://en.wikipedia.org/wiki/Unix_time[UNIX Epoch]
+of "1970-00-00T00:00:00Z" specified in the format of the 
+{iso-8601-url}[ISO 8601] standard.
+
+The Tick Resolution represents a ratio used to scale Signal data (ticks) into their
+Physical unit. It allows us to circumvent the loss of accuracy when using floating-point
+numbers to represent fractions of domain values (eg. fractions of a second) by presenting
+data in the form of ticks that are scaled when read.
+
+For example, a Signal with the Unit set to "seconds", with a Tick Resolution of 1/1000 
+states that a Tick value of 1 correlates to 1 millisecond.
+
+=== Struct data
+
+Data Descriptors allow for complex structures of data to be defined. This can be achieved
+through the usage of the Struct Fields list component. It allows for the nesting of 
+Data Descriptors. When the Struct Fields list is filled, Packet buffers are constructed in
+the following manner: the data described by the first Data Descriptor is at the start, 
+followed by the data described by the second, and so on. 
+
+IMPORTANT: When configuring a Data Descriptor with Struct Fields, only the Dimensions and 
+Name can be configured in addition. Dimensions function the same way as with normal 
+Signal data, where each Sample will contain `n` structs, depending on the Dimension sizes.
+
+== Configuring Signals
+
+// TODO: Fill in once Signal construction helpers are available.
+
+:note-caption: TODO
+[NOTE]
+====
+* Create a Signal
+* Create and configure Descriptors
+* Change Descriptor
+** Event triggers
+====
+
+== Status Signals and Related Signals
+
+// TODO: Status signals
+// TODO: Related signals
+
+A signal can currently have a reference to a list of Related Signals and a single
+Status Signal. These features, however, are not yet fully defined. The documentation
+on the above concepts will be extended once made available.

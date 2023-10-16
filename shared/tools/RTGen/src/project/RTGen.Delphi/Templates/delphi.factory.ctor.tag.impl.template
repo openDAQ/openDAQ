@@ -1,0 +1,12 @@
+﻿constructor T$NonInterfaceType$Ptr$PtrTemplateImplementation$.Create($Arguments$);
+var
+  RawInterface: $Interface$;
+  Err: ErrCode;
+begin
+  case Kind of
+$EnumKinds$    else raise ERTInvalidParameterException.Create('Invalid kind parameter to create $NonInterfaceType$.');
+  end;
+
+  CheckRtErrorInfo(Err);
+  inherited Create(RawInterface);
+end;

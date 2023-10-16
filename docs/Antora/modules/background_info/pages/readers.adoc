@@ -1,0 +1,276 @@
+= Readers
+
+Readers are helpers that enable easy reading of data from xref:background_info:signals.adoc[Signals] by eliminating the need for having to manually establish a xref:background_info:data_path.adoc#connection[Connection] to the Signal, parsing the xref:background_info:signals.adoc[Data Descriptor] info and then read xref:glossary:glossary.adoc#data_packet[Data Packets] in a correct format while still making sure that it is correct when the metadata changes.
+
+Since this is always a chore and prone to mistakes, the Readers automate all this and enable you to handle reading the Signal data as it were a simple memory-stream conveniently already in your desired format. This way you can focus on actually doing your work instead of data juggling and worrying about all the details and options.
+
+== Types of Readers
+The openDAQ(TM) SDK provides multiple types of Readers depending on what do you actually need or want to achieve.
+Some of the most used ones are listed below:
+
+* xref:packet_reader[*Packet reader*] just forms a Connection to the Signal and passes the queued packets to the user on request without doing any other processing.
+* xref:stream_reader[*Stream reader*] reads data as it were a stream of values, merging data packets into a continuous data buffer.
+* xref:tail_reader[*Tail reader*] always reads the latest _n_ values output by the signal.
+* xref:block_reader[*Block reader*] Reads the data in predefined block size and can't read less than a full block.
+* xref:multi_reader[*Multi reader*] Reads aligned data from multiple signals. (Not yet implemented)
+
+[#common_behavior]
+== Common Behavior
+
+=== Initialization
+All the Readers provided by openDAQ(TM) are initialized and behave in a common manner.
+As a parameter, they receive the xref:background_info:signals.adoc[Signal] to read and the wanted sample-type the data and domain values should be read as. The example of <<example-constructor>> shows how a Reader for xref:background_info:signals.adoc[Signal] `signal` is constructed to read _value_ data as `double` and _domain_ data as `Int64`.
+
+[#example-constructor]
+.Constructing a reader
+[source,cpp,caption="Example {counter:example-nr:1.} "]
+----
+// Standard factory signature
+Reader(signal, SampleType::Float64, SampleType::Int64);
+
+// In C++ there is also a templated helper
+Reader<double, std::int64_t>(signal);
+----
+
+[CAUTION]
+====
+There is also a way to construct a Reader without knowing the sample-types in advance by using `SampleType::Undefined`.
+
+.Reading without knowing the sample-types in advance
+----
+Reader(signal, SampleType::Undefined, SampleType::Undefined);
+----
+In this case, the user must take extra care to <<value_read_type,check>> the actual types before reading and provide correct buffers to the reader _read_ calls otherwise the results are undefined and will probably cause a crash.
+====
+
+When the requested xref:glossary:glossary.adoc#sample[Sample]-type for value or domain doesn't match with the ones produced by the xref:background_info:signals.adoc[Signal], the reader attempts to convert the read data into the requested Sample type. If the data can't be converted the Reader goes into an `invalid` mode and all subsequent read operations will fail. How to resolve the invalid state is explained in <<reader_invalidation>>.
+
+[#reader_auto_conversion]
+[NOTE]
+====
+For the purposes of a Reader a conversion exists if it can be performed with an assignment cast.
+
+.E.g: The following expression must be valid in C++
+----
+Type1 a{};
+Type2 b = (Type2) a;
+----
+====
+
+As the Reader receives the xref:background_info:signals.adoc[Signal] as a parameter it must first establish a xref:background_info:data_path.adoc#connection[Connection] to it.
+To perform this, the Readers usually create an internal xref:glossary:glossary.adoc#input_port[Input Port] to which they connect the passed-in Signal to form a Connection and start to listen to the port events.
+This enables a Reader to receive xref:glossary:glossary.adoc#data_packet[Packets] and by definition the first packet sent after a new Connection is established is a xref:glossary:glossary.adoc#descriptor_changed[Data Descriptor Changed] event packet containing the descriptors for both value and domain data.
+These are then sent to the internal data-readers for value and domain to be able to read and convert data.
+If the data-reader determines that the read operations can't be performed for a certain reason (e.g. incompatible or inconvertible sample-types) the reader is __invalidated__.
+
+When re-using an existing Reader the initialization procedure is the same.
+The only difference is that the Input Port with its Connection is reused and event listening reassigned to the new Reader. After this a check is made if the packet on the top of the connection queue is a Data Descriptor Changed event otherwise it is read directly from the Signal. The old Reader is _invalidated_ after re-use if it wasn't already.
+
+[#reader_invalidation]
+=== Reader invalidation and reuse
+Once the Reader falls into *__invalid__* state, it can't be used to read data anymore and all attempts will result in an `OPENDAQ_ERR_INVALID_DATA` error code or the associated exception.
+The only way to resolve this is to pass the Reader to a new Reader instance with valid sample-types and settings.
+This enables the new reader to reuse the xref:background_info:data_path.adoc#connection[Connection] from the invalidated one and as such, provides the ability to losslessly continue reading.
+
+You can also reuse a valid Reader, for example, if you want to change the read sample-type or change any other configuration that is immutable after creating a Reader.
+This will make the old reader invalid.
+
+* *How-to:* xref:howto_guides:howto_read_with_domain.adoc#invalidation[Handling invalidated readers and reusing existing ones]
+
+[#read_calls]
+=== Read calls
+
+All the Readers expose at least two common operations:
+
+* `getAvailableCount()` reports how much of _something_ is still left to read. This _something_ can differ between the kinds of readers.
+In the case of xref:packet_reader[Packet Reader] this is the number of _packets_ ready and available in the xref:background_info:data_path.adoc#connection[Connection] queue, while for xref:stream_reader[Stream Reader] this is the number of _samples_ stored in the available packets.
+
+[#descriptor_changed_callback]
+* `setOnDescriptorChanged(callback)` assigns a callback function to be called when the Reader encounters a xref:glossary:glossary.adoc#descriptor_changed[Data Descriptor Changed] event packet.
+With this callback, the user can control whether the change is still permissible and perform any needed changes. How this is handled is described in more detail in the xref:handling_descriptor_changed[Handling a Descriptor Changed Event] section below.
+
+In addition to these two operations, Readers also define their own methods to read data. These __read__ calls usually follow the <<example-read>> where two functions `read` and `readWithDomain` are defined.
+
+[#example-read]
+.Read calls function signature
+[source,cpp,caption="Example {counter:example-nr:1.} "]
+----
+read(void* values, std::size_t* count);
+readWithDomain(void* values, void* domain, std::size_t* count);
+----
+The way to use the read calls is to have a memory buffer of a desired size and type pre-allocated.
+Then you pass it into the call where it will get filled with at maximum `count` elements.
+
+[CAUTION]
+The count / size parameter needs to be set _before_ the call to a desired maximum count and will be modified with the actual amount read _after_.
+
+[WARNING]
+The type of the allocated memory buffer must match with the type the Reader is configured to read.
+There are no run-time checks to enforce this.
+If the buffer is bigger than the read amount, the rest of the buffer is not modified.
+
+* *How-to:* xref:howto_guides:howto_read_with_domain.adoc#reading_data[Reading Signal data with Stream Reader]
+
+=== Sample Reader
+Sample Reader is an extension of the basic reader that operates on samples, and all openDAQ(TM) provided Readers except the basic <<packet_reader>> are specializations of it.
+
+The Sample Reader provides another four operations:
+
+[#value_read_type]
+* `getValueReadType()` / `getDomainReadType()` reports the sample-type of samples the Reader outputs on _read_ calls.
+This should be the same as the one passed in on construction except in the case where `SampleType::Undefined` was used.
+There it is the Signal's data type.
+
+[#transform_callback]
+* `setValueTransformFunction(callback)` / `setDomainTransformFunction(callback)` enables custom user transformation of raw signal data specific to the programming language or use case. See the chapter <<custom_conversion>> for more info.
+
+[NOTE]
+====
+If there is a custom transform function assigned the corresponding value or domain `SampleType` requested at construction is completely ignored and the Reader directly returns whatever data the callback produces.
+No additional processing is done except to advance the reading position if required.
+====
+
+
+[#handling_descriptor_changed]
+=== Handling a Descriptor changed event
+Whenever the xref:background_info:signals.adoc[Signal] information changes, it sends an xref:glossary:glossary.adoc#event_packet[Event Packet] with and id of xref:background_info:packets.adoc#descriptor_changed[`"SIGNAL_DESCRIPTOR_CHANGED"`].
+This event contains new xref:background_info:signals.adoc[Data Descriptor]s for both value and domain data.
+The Reader first forwards the descriptors to their respective internal data-readers to update their information and check if the data can still be converted to the requested sample-types.
+
+If all these internal checks pass, the <<descriptor_changed_callback,user callback>> is called (if installed) with the event's descriptors to check if the change is still permissible to the user otherwise the Reader is _invalidated_.
+
+.The user callback signature
+[source,cpp]
+----
+bool callback(SignalDesciptor valueDescriptor,
+              SignalDesciptor domainDescriptor)
+----
+
+// // Raw C-style IFunction.call
+// ErrCode call(IBaseObject* params,  // is an IList where
+//                                    // [0] - value descriptor
+//                                    // [1] - domain descriptor
+//              IBaseObject** result, // is an IBoolean
+//
+// // effectively becoming
+// ErrCode callback(IList* descriptors, // [0] - value descriptor
+//                                      // [1] - domain descriptor
+//                  IBoolean* valid)
+
+//* See xref:howto_guides:howto_custom_reader_signal_changed_callback[How-To 123]
+
+[NOTE]
+====
+If the Reader was created with `SampleType::Undefined` the actual sample-type returned by the `getValueSampleType()` and `getDomainSampleType()` gets inferred at the first xref:background_info:packets.adoc#descriptor_changed[`"DATA_DESCRIPTOR_CHANGED"`] event where the respective xref:background_info:signals.adoc[Data Descriptor] is available.
+Until then these calls will return `SampleType::Invalid`.
+
+In the case of domain the xref:background_info:signals.adoc[Signal] might not even have associated domain data descriptor defined, so it will be inferred at the first `readWithDomain()` call.
+====
+
+* *How-to:* xref:howto_guides:howto_read_with_domain.adoc#descriptor_changed[Handling Descriptor changed event]
+
+[#custom_conversion]
+=== Custom conversion of signal data
+Sometimes the Reader can't auto convert the data with a normal cast for whatever reason.
+Maybe the conversion is not available during SDK compilation or is specific to the language or use case.
+For these cases, there are basically three ways to proceed:
+
+. *Read into an intermediate buffer and then convert*:
+    * Easy to program
+    * Heavy on the memory usage.
+. *Create a whole new reader*:
+    * Time-consuming even if inherited from an existing implementation.
+    * It has to be specialized for every new kind of reader.
+    * Fully flexible
+. *Use a transform callback*:
+    * A simple function that receives raw data and the current xref:background_info:signals.adoc[Data Descriptor] and outputs the transformed values back.
+    * It works for any reader and without intermediate buffers.
+    * The only catch is that the user must expect this transformation and allocate the buffers correctly.
+
+To use the *third* option, install a custom callback with the respective  <<transform_callback,domain or value transform setters>>.
+The callback signature is shown <<transform_callback_signatrue,below>> where `inputBuffer` and `inputBuffer` are passed over the SDK boundary as `Int` and need to be cast back to `void*` or the correctly typed pointers. The pointer data type is the same as the one you'd get directly from the xref:glossary:glossary.adoc#data_packet[Packet] `getData()` and can be read from the passed-in descriptor.
+
+[#transform_callback_signatrue]
+.The transform callback signature
+[source,cpp]
+----
+bool callback(Int inputBuffer,
+              Int outputBuffer,
+              SizeT toRead,
+              DataDescriptor descriptor)
+----
+
+[#packet_reader]
+== Packet Reader
+Packet reader is the simplest of all the Readers provided by the openDAQ(TM).
+It only creates a xref:background_info:data_path.adoc#connection[Connection] between the xref:background_info:signals.adoc[Signal] and the Reader and gives the user the option to read xref:glossary:glossary.adoc#data_packet[Packet] after Packet or get all the currently queued ones as a list.
+
+By itself, this does not accomplish much, but it is a great base to build upon if you need some custom specific handling that you can't achieve using any other provided reader plus you get the xref:background_info:data_path.adoc#connection[Connection] queue handling for free, and since there is no other processing being done on packets, it is also as fast as it can be.
+
+[#stream_reader]
+== Stream Reader
+This is the reader that will be useful in most cases.
+It represents the xref:background_info:data_path.adoc#connection[Connection] packet queue to the user as a continuous stream of samples and automatically advances the current read position, handles reading over xref:glossary:glossary.adoc#data_packet[Packet] boundaries and can optionally wait for the requested samples with a time-out.
+
+The _read_ calls follow the common <<example-read>> with an additional parameter specifying the time-out in milliseconds.
+On construction Stream Reader also requires you to specify how this time-outs should be handled.
+
+[#timeout_options]
+There are two options:
+
+* `ReadTimeoutType::Any` will return immediately with samples available without waiting for the time-out.
+If there are none available, it will wait until time-out is exceeded or the next packet arrives.
+On the next packet it returns immediately even if there is time remaining.
+* `ReadTimeoutType::All` is the default and always waits for the time-out to be exceeded if the requested number of samples has not been read yet.
+
+**Related articles**
+
+* xref:howto_guides:howto_read_with_domain.adoc[] with a Stream Reader
+* xref:howto_guides:howto_read_with_timeouts.adoc[How To Read With Timeouts] and a Stream Reader
+* xref:howto_guides:howto_read_with_timestamps.adoc[How To Read System Clock Time-Points] with a Stream Reader
+
+[#tail_reader]
+== Tail Reader
+This Reader always reads the latest *N* values output by the signal.
+On subsequent calls, the samples can overlap and will return already read samples if there isn't enough of new ones.
+This is useful if you have some visual control displaying value history, e.g. a scope.
+
+The _read_ calls follow the common <<example-read>> and on construction there is an additional parameter specifying the maximum number of samples in history to keep.
+
+[CAUTION]
+====
+The reader keeps just enough packets in the cache to store at least *N* samples and removes the oldest packets when new arrive if there are enough samples in the remaining ones.
+
+The Reader will throw an error if trying to read more than *N* packets except in the case that the cache happens to have enough samples due to having to keep a larger packet to satisfy the history limit.
+
+.The following will succeed even if more than history size
+----
+History size: 5
+Packet sizes: 1 + 3 + 4 (latest to oldest)
+Requested samples: 6
+----
+====
+
+**Related articles**
+
+* xref:howto_guides:howto_read_last_n_samples.adoc[How To Read Last N Samples] with a Tail Reader
+
+[#block_reader]
+== Block Reader
+This reader functions almost exactly the same as the <<stream_reader>> except that it reads the data only in predefined **block size** and can’t read less than a full block. This is useful in filters and, for example, when calculating FFT.
+
+The **block size** is defined on construction:
+[source,cpp]
+----
+BlockReader(signal, blockSize, valueType, domainType);
+----
+
+[#multi_reader]
+== Multi Reader
+Multi Reader is "just" a <<stream_reader>> that reads multiple signals at once.
+The catch is that in openDAQ(TM) xref:background_info:signals.adoc[Signal]s can have different starting points, sample rates and clocks.
+Therefore, the job of a Multi Reader is to align all xref:background_info:signals.adoc[Signal]s to the same starting point and on _read_ calls return values for all signals on the same domain point, usually the same time-stamp.
+
+**Related articles**
+
+* xref:howto_guides:howto_read_aligned_signals.adoc[Read Multiple Signals Aligned] with a Multi Reader

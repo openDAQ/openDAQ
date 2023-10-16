@@ -1,0 +1,68 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2010
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RTGen", "RTGen\RTGen.csproj", "{50BD9C36-2B1C-4792-BCC1-C91C6F6C53E8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2F7791BC-6B4D-4BD6-AC0A-78B757D69697} = {2F7791BC-6B4D-4BD6-AC0A-78B757D69697}
+		{ADC22C01-08A2-474A-B614-8D8F4B731BEE} = {ADC22C01-08A2-474A-B614-8D8F4B731BEE}
+		{D32CD864-164C-4D28-BB31-B69772CF0871} = {D32CD864-164C-4D28-BB31-B69772CF0871}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RTGen.Library", "RTGen.Library\RTGen.Library.csproj", "{11C0C1B8-EAFE-4354-90BF-95236756EACB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RTGen.Cpp", "RTGen.Cpp\RTGen.Cpp.csproj", "{2F7791BC-6B4D-4BD6-AC0A-78B757D69697}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RTGen.Delphi", "RTGen.Delphi\RTGen.Delphi.csproj", "{D32CD864-164C-4D28-BB31-B69772CF0871}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Languages", "Languages", "{DEEFBFAF-92DD-47C2-89BE-00860696A6F9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{7888965D-6D5D-4C46-A629-70898758EF60}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RTGen.Python", "RTGen.Python\RTGen.Python.csproj", "{ADC22C01-08A2-474A-B614-8D8F4B731BEE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{50BD9C36-2B1C-4792-BCC1-C91C6F6C53E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50BD9C36-2B1C-4792-BCC1-C91C6F6C53E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50BD9C36-2B1C-4792-BCC1-C91C6F6C53E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50BD9C36-2B1C-4792-BCC1-C91C6F6C53E8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11C0C1B8-EAFE-4354-90BF-95236756EACB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11C0C1B8-EAFE-4354-90BF-95236756EACB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11C0C1B8-EAFE-4354-90BF-95236756EACB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11C0C1B8-EAFE-4354-90BF-95236756EACB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F7791BC-6B4D-4BD6-AC0A-78B757D69697}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F7791BC-6B4D-4BD6-AC0A-78B757D69697}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F7791BC-6B4D-4BD6-AC0A-78B757D69697}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F7791BC-6B4D-4BD6-AC0A-78B757D69697}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D32CD864-164C-4D28-BB31-B69772CF0871}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D32CD864-164C-4D28-BB31-B69772CF0871}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D32CD864-164C-4D28-BB31-B69772CF0871}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D32CD864-164C-4D28-BB31-B69772CF0871}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ADC22C01-08A2-474A-B614-8D8F4B731BEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ADC22C01-08A2-474A-B614-8D8F4B731BEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ADC22C01-08A2-474A-B614-8D8F4B731BEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADC22C01-08A2-474A-B614-8D8F4B731BEE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{50BD9C36-2B1C-4792-BCC1-C91C6F6C53E8} = {7888965D-6D5D-4C46-A629-70898758EF60}
+		{11C0C1B8-EAFE-4354-90BF-95236756EACB} = {7888965D-6D5D-4C46-A629-70898758EF60}
+		{2F7791BC-6B4D-4BD6-AC0A-78B757D69697} = {DEEFBFAF-92DD-47C2-89BE-00860696A6F9}
+		{D32CD864-164C-4D28-BB31-B69772CF0871} = {DEEFBFAF-92DD-47C2-89BE-00860696A6F9}
+		{ADC22C01-08A2-474A-B614-8D8F4B731BEE} = {DEEFBFAF-92DD-47C2-89BE-00860696A6F9}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {97F2EA13-A468-495F-A8A0-F30EE66748E5}
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
+EndGlobal

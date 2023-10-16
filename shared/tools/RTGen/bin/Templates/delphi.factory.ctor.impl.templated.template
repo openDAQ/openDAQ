@@ -1,0 +1,7 @@
+﻿constructor T$NonInterfaceType$Ptr$PtrTemplateImplementation$.Create$FactoryName$($Arguments$);
+var
+$InterfaceTemplatesVars$
+  Err: ErrCode;
+begin
+$InterfaceTemplateFactories$
+end;

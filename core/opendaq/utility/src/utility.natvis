@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="daq::TagsImpl">
+    <DisplayString Condition="frozen == true">{{ Tags, [Frozen] &lt;{refCount}&gt; }}</DisplayString>
+    <DisplayString Condition="frozen == false">{{ Tags, &lt;{refCount}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="[frozen]">frozen</Item>
+      <Item Name="tags">tags</Item>
+    </Expand>
+  </Type>
+</AutoVisualizer>

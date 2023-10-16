@@ -1,0 +1,165 @@
+= Data Path
+
+Components of openDAQ SDK create a Data Path when they are connected. The components that form the data
+path are:
+
+ * xref:background_info:signals.adoc[Signal]. 
+ * Connection, 
+ * Input Port, 
+ * xref:background_info:function_blocks.adoc[Function Block], 
+ * xref:background_info:function_blocks.adoc#channel[Channel], 
+ * xref:background_info:readers.adoc[reader]. 
+ 
+ 
+image::datapath1.svg[image,align="center"]
+
+
+A Connection object is created when a Signal is connected to an Input Port. When connected, 
+xref:background_info:packets.adoc[Packets] are transmitted from the source Signal 
+and travel through the Connection and Input Port to its owner (usually a 
+Function Block or a reader), where they are processed.
+
+[#connection]
+== Connection
+
+A Connection is an object that contains xref:background_info:packets.adoc[Packets] in a queue. When a
+Packet is added to a Connection object, it is inserted into a queue of Packets and the Input Port
+attached to the Connection is notified.
+
+Although it is possible to manually create a Connection object, the client code will rarely need this.
+A Connection is automatically created when a xref:background_info:signals.adoc[Signal] is connected to 
+the xref:function_blocks.adoc#input_port[Input Port].
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+inputPort.connect(signal);
+// connection object is now accessible on inputPort
+daq::ConnectionPtr connection = inputPort.getConnection();
+----
+Python::
++
+[source,python]
+----
+input_port.connect(signal)
+# connection object is now accessible on input_port
+connection = input_port.connection
+----
+====
+
+[#input_port]
+== Input Port
+
+Input Ports are objects that accept a xref:background_info:signals.adoc[Signal] and create a Connection object. 
+A single Input Port accepts exactly one Signal. Most Input Ports require a Connection to Signal. In this case 
+Function Block that owns the Input Port does not process the data and it enters an invalid state. Some 
+xref:background_info:function_blocks.adoc[Function Blocks] may create optional Input Ports. In this case, 
+the Function Block can process data (from other connected Input Ports) even if the optional Input Port 
+is not connected. 
+
+Input Ports do not automatically dequeue the xref:background_info:packets.adoc[Packets] from the Connection 
+objects. The owner of the Input Port is responsible to dequeue the Packets and process them.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+daq::PacketPtr packet = inputPort.getConnection().dequeue();
+// process packet, i.e. read samples from the packet
+processPacket(packet);
+----
+Python::
++
+[source,python]
+----
+packet = input_port.connection.dequeue()
+# process packet, i.e. read samples from the packet
+process_packet(packet)
+----
+====
+
+=== Input Port notifications
+
+The owner of an Input Port can assign a notification event that is triggered when a 
+xref:background_info:packets.adoc[Packet] arrives at its Connection. The Input Port can be configured 
+to trigger the notification event either:
+
+ * within the same thread in which the Packet was added to the Signal,
+ * is scheduled as a task, which is executed by the scheduler in an arbitrary worker thread.
+
+Most often Input Ports of xref:background_info:function_blocks.adoc[Function Blocks] will schedule 
+notifications on a worker thread in order not to interfere with the Signal producer thread.
+
+Usually, the notification handler will deque the Packets from the Connection queue and process the 
+data contained in the Packet.
+
+== Packet generation, transmission, and destruction
+
+xref:background_info:packets.adoc[Packets] are always produced by a component, such as a Channel, 
+and inserted into the Data Path through a xref:background_info:signals.adoc[Signal]. When a Packet 
+is added to the Signal, it is immediately distributed to all connected Input Ports via Connection objects. 
+
+Packets (as all openDAQ objects) are reference counted. The Connection object only stores a reference 
+to a Packet. If a Signal is connected to multiple Input Ports, only a single instance of the Packet 
+will be referenced in all Connections.
+
+Packets are automatically destroyed when they are no longer referenced by other objects.
+
+=== Value and domain Packets
+
+Input Ports connect value xref:background_info:signals.adoc[Signal]. 
+xref:background_info:signals.adoc#domain_signal[Domain Signals] are usually not connected to an Input Port 
+unless the domain Signal is treated as a value Signal. To correctly interpret the data, both value and
+domain Packets must be transmitted. If a value Packet that is transmitted on a Data Path 
+has a reference to a domain Packet then the domain Packet will also be transmitted automatically. 
+
+== Complex Data Path
+
+When a xref:background_info:packets.adoc[Packet] arrives at the xref:background_info:function_blocks.adoc[Function Block]
+or other component, it is processed and new Packets can be 
+created in their xref:background_info:signals.adoc[Signal] and distributed to other components. Function 
+blocks can be chained to other Function Blocks. This way a complex Data Path is created. 
+
+
+image::datapath2.svg[image,align="center"]
+
+== Packet transmission over a network
+
+Suppose openDAQ is used on a xref:background_info:device.adoc[Device], as well as on a host computer.
+In that case, xref:background_info:packets.adoc[Packets] are generated on the device where they are 
+serialized to binary format, transmitted over a network, and deserialized on the host PC. On the host PC, 
+the Packets are added to mirrored xref:background_info:signals.adoc[Signal] which may be connected to 
+other Input Ports.
+
+The current implementation of openDAQ supports only device-to-host Packet transmission. 
+
+image::datapath3.svg[image,align="center"]
+
+== Packet congestion
+
+:note-caption: TODO
+[NOTE]
+====
+Packet congestion
+====
+
+== Extracting Packets
+
+The client application should read the data from xref:background_info:signals.adoc[Signals] using various 
+types of xref:background_info:readers.adoc[readers]. Using readers the application does not have to read the 
+data from the xref:background_info:packets.adoc[Packets]. However, in some cases, it might be beneficial 
+to directly work with Packets. The easiest way to do this is to create a Packet reader. The Packet 
+reader returns the Packets when the read function is called. It can also block the current thread until a 
+Packet arrives or a timeout 
+elapses.
+
+:note-caption: TODO
+[NOTE]
+====
+Link to Packet reader how-to
+====

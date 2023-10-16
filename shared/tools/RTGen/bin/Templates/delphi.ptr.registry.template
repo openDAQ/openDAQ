@@ -1,0 +1,5 @@
+﻿initialization
+  TSmartPtrRegistry.RegisterPtr($Interface$, I$PtrName$, T$NonInterfaceType$Ptr);
+
+finalization
+  TSmartPtrRegistry.UnregisterPtr($Interface$);

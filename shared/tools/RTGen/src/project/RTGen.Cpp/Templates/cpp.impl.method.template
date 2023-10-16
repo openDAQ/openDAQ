@@ -1,0 +1,9 @@
+﻿    $DocComment$
+    void $Name$($Arguments$) const
+    {
+        if (this->object == nullptr)
+            throw daq::InvalidParameterException();
+
+        auto errCode = this->object->$Name$($ArgumentNames$);
+        daq::checkErrorInfo(errCode);
+    }

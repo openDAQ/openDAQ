@@ -1,0 +1,2 @@
+﻿  T$NonInterfaceType$Ptr$PtrTemplateHelper$ = class(T$NonInterfaceType$Ptr$PtrTemplateOpen$, I$PtrNameOnly$$PtrTemplateHelperPlain$)
+  end;

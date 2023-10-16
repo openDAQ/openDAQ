@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="daq::Module">
+    <DisplayString>Module {{ {name} {version}, &lt;{refCount}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="name">name</Item>
+      <Item Name="version">version</Item>
+      <Item Name="context">context</Item>
+      <Item Name="manager">manager</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::ContextImpl">
+    <DisplayString>{{ Context, &lt;{refCount}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="logger">logger</Item>
+      <Item Name="scheduler">scheduler</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::ModuleManagerImpl">
+    <DisplayString>{{ ModuleManager, &lt;{refCount}&gt; }}</DisplayString>
+    <Expand>
+      <ExpandedItem>libraries</ExpandedItem>
+    </Expand>
+  </Type>
+</AutoVisualizer>

@@ -1,0 +1,5 @@
+* text=auto
+*.[tT][xX][tT] text
+*.[sS][hH]     text eol=lf
+# get consistent/native newlines when generating files with rtgen
+shared/tools/RTGen/**/*.template text

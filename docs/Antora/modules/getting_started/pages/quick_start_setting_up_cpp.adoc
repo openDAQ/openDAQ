@@ -1,0 +1,153 @@
+= Setting up ({cpp})
+
+To start working with openDAQ(TM), the requisite binaries are required. They can be obtained
+at {docs-website}[the openDAQ(TM) documentation and releases webpage]. The binaries are currently available
+for Windows and Ubuntu (20.04 or newer).
+
+NOTE: While openDAQ(TM) can be xref:quick_start_building_opendaq.adoc[built from source],  we recommend using the pre-compiled
+binaries for new users.
+
+[tabs]
+====
+Windows::
++
+--
+To install openDAQ(TM), download the `opendaq-1.0.0-win64.exe` installer, run it, and follow its instructions. Make sure
+to add openDAQ(TM) to the system path to be able to run openDAQ(TM) application examples.
+
+We recommend using the default installation path to avoid issues requiring additional environment variable modifications
+and troubleshooting.
+--
+
+Linux::
++
+--
+To install openDAQ(TM) on Ubuntu 20.04 or newer, download the `opendaq-1.0.0-ubuntu20.04-x86_64.deb` Debian package. Install it
+using the following command:
+
+[source,shell]
+----
+sudo apt install ./opendaq-1.0.0-ubuntu20.04-x86_64.deb
+----
+--
+====
+
+== Creating an openDAQ(TM) project
+
+We start our project from the `"quick_start_app"` example that can be found at the
+{docs-website}[openDAQ(TM) documentation and releases webpage]. Download the `examples.zip`
+archive and extract it to a folder of choice.
+
+=== Requirements
+
+[tabs]
+====
+Windows::
++
+--
+
+ * CMake (3.20 or newer)
+ * CMake generator and {cpp} compiler (Visual Studio 2022 is recommended)
+--
+
+Linux::
++
+--
+
+ * CMake (3.20 or newer)
+ * CMake generator and {cpp} compiler ({gpp} is recommended)
+
+NOTE: Run `sudo apt install cmake build-essential` to install the required tools.
+--
+====
+
+=== Building the project
+
+To build the project, navigate to the `cpp/quick_start` directory and enter the following command
+into a terminal or command prompt instance:
+
+[source,shell]
+----
+cmake -DCMAKE_BUILD_TYPE=Release -Bbuild .
+----
+
+With this, we are ready to start developing. We fill in our `quick_start_empty.cpp` executable code as follows:
+
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+#include <thread>
+
+int main(int argc, const char* argv[])
+{
+    // Create a fresh openDAQ(TM) instance, which acts as the entry point into our application
+    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
+}
+----
+
+When creating the openDAQ(TM) instance, we need to specify the root directory of our openDAQ(TM) Modules.
+Conveniently, the CMake configuration pre-filled the correct directory into the `MODULE_PATH` macro definition.
+
+We now compile and run our program.
+
+[tabs]
+====
+Windows::
++
+[source,shell]
+----
+cd build
+cmake --build . --config Release
+cd Release
+quick_start_empty.exe
+----
+
+Linux::
++
+[source,shell]
+----
+cd build
+cmake --build .
+./quick_start_empty
+----
+====
+
+If you managed to reach this point, you have successfully created your first openDAQ(TM) project! To find
+out more about using openDAQ(TM) applications to connect to, configure, and read data of Devices, continue
+with the xref:quick_start_application.adoc[openDAQ(TM) application quick start guide].
+
+== Troubleshooting
+
+[tabs]
+====
+Windows::
++
+--
+1. If, when running a CMake command, the following error is displayed: "`cmake` is not recognized as an internal or 
+   external command, operable program or batch file.", make sure that 
+   https://learn.microsoft.com/en-us/previous-versions/office/developer/sharepoint-2010/ee537574(v=office.14)[CMake is added to the `PATH` environment variable].
+2. If openDAQ(TM) is not found when running CMake, create a new environment variable named `openDAQ_ROOT`, with its
+   value being the directory where openDAQ(TM) is installed.
+3. If the `.dll` shared libraries are not found when running the above example, add the `openDAQ/bin` folder path
+   https://learn.microsoft.com/en-us/previous-versions/office/developer/sharepoint-2010/ee537574(v=office.14)[to the `PATH` environment variable]. The
+   `bin` folder is located within the openDAQ(TM) installation folder.
+4. If no devices are found when discovering devices, check the `MODULE_PATH` variable if it points to the folder where modules are located. This is usually
+   `c:\Program Files\openDAQ\bin\modules`. If not, replace the `MODULE_PATH` with folder string.
+--
+
+Linux::
++
+--
+1. If the `cmake` command is not found, make sure that the `cmake` executable is located in a folder that is included in your `PATH` environment variable.
+2. If openDAQ(TM) is not found when running CMake, export the `openDAQ_ROOT` variable to point at `/opt/opendaq` (`export openDAQ_ROOT=/opt/opendaq`).
+3. If the `.so` shared libraries are not found when running the above example, add `/opt/opendaq/lib` to the `LD_LIBRARY_PATH` environment variable
+   (`export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/opendaq/lib`)
+4. If no devices are found when discovering devices, check the `MODULE_PATH` variable if it points to the folder where modules are located. This is usually
+   `opt/opendaq/lib/modules`. If not, replace the `MODULE_PATH` with folder string.
+--
+====

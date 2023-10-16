@@ -1,0 +1,55 @@
+name: Trigger downstream pipelines
+
+on:
+  push:
+    branches-ignore:
+      - 'master'
+      - 'release/**'
+
+  workflow_dispatch:
+
+jobs:
+  trigger_downstream:
+    runs-on: ubuntu-22.04
+    name: Trigger downstream pipelines
+    steps:
+      - name: Checkout openDAQ repository
+        uses: actions/checkout@v4
+
+      - name: Get branch names
+        id: branch-name
+        uses: tj-actions/branch-names@v7
+
+      - name: Check for changelog changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            changelog:
+              - 'changelog/**'
+
+      - name: Check for pat availability
+        id: check-pat
+        env:
+          PAT_TOKEN: ${{ secrets.PIPELINES_PAT }}
+        run: echo "pat_available=${{ env.PAT_TOKEN != '' }}" >> $GITHUB_OUTPUT
+
+      - name: Repository Dispatch
+        if: steps.check-pat.outputs.pat_available == 'true'
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.PIPELINES_PAT }}
+          repository: openDAQ/openDAQ-Pipelines
+          event-type: trigger-webhook
+          client-payload: '{"current_branch": "${{ steps.branch-name.outputs.current_branch }}", "changelog-modified": "${{ steps.changes.outputs.changelog }}", "github": ${{ toJson(github) }}}'
+          
+      - name: Trigger downstream
+        if: steps.check-pat.outputs.pat_available == 'true'
+        uses: convictional/trigger-workflow-and-wait@v1.6.1
+        with:
+          github_token: ${{ secrets.PIPELINES_PAT }}
+          repo: openDAQ-Pipelines
+          owner: openDAQ
+          workflow_file_name: build_and_test.yml
+          client_payload: '{"sha": "${{ github.sha }}", "branch_ref": "${{ github.ref }}"}'
+          wait_interval: 60

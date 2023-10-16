@@ -96,7 +96,6 @@ documentation can be built with Antora by following the guide found in docs/Anto
 
  - CMake 3.24 or higher: https://cmake.org/ (might come with development environment like Visual Studio)
  - Git: https://git-scm.com/
- - Git-LFS: https://git-lfs.github.com/
  - Compiler:
    - (msvc) Visual Studio 2017 or higher with installed Workload for C++
    - (gcc windows) MSYS2: http://www.msys2.org, https://github.com/msys2/msys2/wiki/MSYS2-installation
@@ -118,8 +117,6 @@ See [Required tools before building](#required-tools-before-building) above.
 ```shell
 git clone git@github.com:openDAQ/openDAQ.git
 cd openDAQ
-git lfs install
-git lfs pull
 ```
 
 #### 3. Generate CMake project for specific compiler / preset.
@@ -167,7 +164,7 @@ For other compilers than ``msvc`` one can add parameter ``-j 4`` to the build co
 For example in Ubuntu
 ```shell
 sudo apt-get update
-sudo apt-get install -y git git-lfs cmake g++ ninja-build mono-complete python3
+sudo apt-get install -y git cmake g++ ninja-build mono-complete python3
 ```
 
 #### 2. Clone openDAQ repo.
@@ -175,8 +172,6 @@ sudo apt-get install -y git git-lfs cmake g++ ninja-build mono-complete python3
 ```shell
 git clone git@github.com:openDAQ/openDAQ.git
 cd openDAQ
-git lfs install
-git lfs pull
 ```
 
 #### 3. Generate CMake project for specific compiler / preset.

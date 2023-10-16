@@ -19,7 +19,6 @@ Windows::
 
 * CMake 3.24 or higher: https://cmake.org/
 * Git: https://git-scm.com/
-* Git-LFS: https://git-lfs.github.com/
 * Python3: https://www.python.org/downloads/
 * Visual Studio (2017 / 2019 / 2022): https://visualstudio.microsoft.com/downloads/
 
@@ -29,8 +28,6 @@ Windows::
 ----
 git clone git@github.com:openDAQ/openDAQ.git
 cd openDAQ
-git lfs install
-git lfs pull
 ----
 
 **3. Generate CMake project**
@@ -76,7 +73,6 @@ Linux::
 
 * CMake 3.24 or higher: https://cmake.org/
 * Git: https://git-scm.com/
-* Git-LFS: https://git-lfs.github.com/
 * Python3: https://www.python.org/downloads/
 * Mono: https://www.mono-project.com/download/stable/
 * Ninja-build: https://ninja-build.org/
@@ -92,7 +88,7 @@ On Ubuntu and Debian distributions we can run the following terminal commands to
 [source,shell]
 ----
 sudo apt-get update
-sudo apt-get install -y git git-lfs build-essential lld cmake ninja-build mono-complete python3
+sudo apt-get install -y git build-essential lld cmake ninja-build mono-complete python3
 sudo apt-get install -y libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
 ----
 
@@ -102,8 +98,6 @@ sudo apt-get install -y libx11-dev libxcursor-dev libxrandr-dev libgl-dev libude
 ----
 git clone git@github.com:openDAQ/openDAQ.git
 cd openDAQ
-git lfs install
-git lfs pull
 ----
 
 **3. Generate the CMake project**

@@ -1,0 +1,19 @@
+﻿    public bool $Name$($Arguments$)
+    {
+        unsafe //use native function pointer
+        {
+            //call native function
+            ErrorCode errorCode = (ErrorCode)_raw$NonInterfaceType$.$CSRawMethodName$($ArgumentNames$);
+
+            if (errorCode == ErrorCode.OPENDAQ_ERR_NOMOREITEMS)
+            {
+                return false;
+            }
+            else if (Result.Failed(errorCode))
+            {
+                throw new OpenDaqException(errorCode);
+            }
+
+            return (errorCode != ErrorCode.OPENDAQ_NO_MORE_ITEMS);
+        }
+    }

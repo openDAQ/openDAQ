@@ -1,0 +1,172 @@
+﻿
+    #region IDictObject<$CSGenericClassParameters$> implementation
+
+    /// <inheritdoc/>
+    bool IDictObject<$CSGenericClassParameters$>.IsDisposed()
+    {
+        return this.IsDisposed;
+    }
+
+    #endregion IDictObject<$CSGenericClassParameters$> implementation
+
+    #region IDictionary<$CSGenericClassParameters$> implementation
+
+    /// <inheritdoc/>
+    ICollection<$CSGenericClassParameter1$> IDictionary<$CSGenericClassParameters$>.Keys => this.GetKeyList();
+
+    /// <inheritdoc/>
+    ICollection<$CSGenericClassParameter2$> IDictionary<$CSGenericClassParameters$>.Values => this.GetValueList();
+
+    /// <inheritdoc/>
+    $CSGenericClassParameter2$ IDictionary<$CSGenericClassParameters$>.this[$CSGenericClassParameter1$ key]
+    {
+        get => this.Get(key);
+        set => this.Set(key, value);
+    }
+
+    /// <inheritdoc/>
+    void IDictionary<$CSGenericClassParameters$>.Add($CSGenericClassParameter1$ key, $CSGenericClassParameter2$ value)
+    {
+        this.Set(key, value);
+    }
+
+    /// <inheritdoc/>
+    bool IDictionary<$CSGenericClassParameters$>.ContainsKey($CSGenericClassParameter1$ key)
+    {
+        return this.HasKey(key);
+    }
+
+    /// <inheritdoc/>
+    bool IDictionary<$CSGenericClassParameters$>.Remove($CSGenericClassParameter1$ key)
+    {
+        try
+        {
+            if (this.HasKey(key))
+            {
+                this.DeleteItem(key);
+                return true;
+            }
+        }
+        catch //(Exception)
+        {
+            //intentionally left blank, we don't want an exception here and return 'false' at the end
+        }
+
+        return false;
+    }
+
+    /// <inheritdoc/>
+    bool IDictionary<$CSGenericClassParameters$>.TryGetValue($CSGenericClassParameter1$ key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out $CSGenericClassParameter2$ value)
+    {
+        value = default($CSGenericClassParameter2$);
+
+        if (!this.HasKey(key))
+        {
+            return false;
+        }
+
+        value = ((IDictionary<$CSGenericClassParameters$>)this)[key];
+        return true;
+    }
+
+    #endregion IDictionary<$CSGenericClassParameters$> implementation
+
+    #region ICollection<T> implementation
+
+    /// <inheritdoc/>
+    int ICollection<KeyValuePair<$CSGenericClassParameters$>>.Count => (int)this.GetCount();
+
+    /// <inheritdoc/>
+    bool ICollection<KeyValuePair<$CSGenericClassParameters$>>.IsReadOnly => false;
+
+
+    /// <inheritdoc/>
+    void ICollection<KeyValuePair<$CSGenericClassParameters$>>.Add(KeyValuePair<$CSGenericClassParameters$> item)
+    {
+        this.Set(item.Key, item.Value);
+    }
+
+    /// <inheritdoc/>
+    void ICollection<KeyValuePair<$CSGenericClassParameters$>>.Clear()
+    {
+        this.Clear();
+    }
+
+    /// <inheritdoc/>
+    bool ICollection<KeyValuePair<$CSGenericClassParameters$>>.Contains(KeyValuePair<$CSGenericClassParameters$> item)
+    {
+        if (!this.HasKey(item.Key))
+        {
+            return false;
+        }
+
+        return this.Get(item.Key).Equals(item.Value);
+    }
+
+    /// <inheritdoc/>
+    void ICollection<KeyValuePair<$CSGenericClassParameters$>>.CopyTo(KeyValuePair<$CSGenericClassParameters$>[] array, int arrayIndex)
+    {
+        if (array == null)
+        {
+            throw new System.ArgumentNullException(nameof(array));
+        }
+
+        if ((uint)arrayIndex > (uint)array.Length)
+        {
+            throw new IndexOutOfRangeException(nameof(arrayIndex));
+        }
+
+        int count = (int)this.GetCount();
+
+        if (array.Length - arrayIndex < count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+        }
+
+        foreach ($CSGenericClassParameter1$ key in this.GetKeyList())
+        {
+            $CSGenericClassParameter2$ value = this.Get(key);
+            array[arrayIndex++] = new KeyValuePair<$CSGenericClassParameters$>(key, value);
+        }
+    }
+
+    /// <inheritdoc/>
+    bool ICollection<KeyValuePair<$CSGenericClassParameters$>>.Remove(KeyValuePair<$CSGenericClassParameters$> item)
+    {
+        try
+        {
+            if (!((ICollection<KeyValuePair<$CSGenericClassParameters$>>)this).Contains(item))
+            {
+                this.DeleteItem(item.Key);
+                return true;
+            }
+        }
+        catch //(Exception)
+        {
+            //intentionally left blank, we don't want an exception here and return 'false' at the end
+        }
+
+        return false;
+    }
+
+    #endregion ICollection<T> implementation
+
+    #region IEnumerable<T> implementation
+
+    /// <inheritdoc/>
+    IEnumerator<KeyValuePair<$CSGenericClassParameters$>> IEnumerable<KeyValuePair<$CSGenericClassParameters$>>.GetEnumerator()
+    {
+        throw new NotImplementedException();
+    }
+
+    #endregion IEnumerable<T> implementation
+
+    #region IEnumerator implementation
+
+    /// <inheritdoc/>
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return ((IEnumerable<KeyValuePair<$CSGenericClassParameters$>>)this).GetEnumerator();
+    }
+
+    #endregion IEnumerator implementation

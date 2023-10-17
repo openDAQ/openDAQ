@@ -1,0 +1,67 @@
+﻿    public void $Name$($Arguments$)
+    {
+        //use full array
+        nuint startIndex = 0;
+
+        $Name$Internal($CSArgumentNamesReader$);
+    }
+
+    $CSMethodDocReader$
+    public void $Name$($CSArgumentsReader$)
+    {
+        //preset, will be adapted
+        count = nuint.MaxValue;
+
+        $Name$Internal($CSArgumentNamesReader$);
+    }
+
+    $CSMethodDocReader$
+    private void $Name$Internal($CSArgumentsReader$)
+    {
+        if (count == 0)
+        {
+            return;
+            //ToDo: or throw exception?
+        }
+
+        nuint arrayLength = $CSArrayLength$;
+
+        if (arrayLength == 0)
+        {
+            count = 0;
+            return;
+            //ToDo: or throw exception?
+        }
+
+        if (startIndex >= arrayLength)
+        {
+            count = 0;
+            return;
+            //ToDo: or throw exception?
+        }
+
+        nuint maxReadCount = arrayLength - startIndex;
+
+        if (count > maxReadCount)
+        {
+            //adapt
+            count = maxReadCount;
+        }
+
+        $CSCheckArrayTypeAndThrow$
+        unsafe //use native method pointer
+        {
+#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
+            $CSFixedArrays$
+#pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
+            {
+                //call native method
+                $ReturnType$ $CSReturnVariable$ = ($ReturnType$)_raw$NonInterfaceType$.$CSRawMethodName$($ArgumentNames$);
+
+                if (Result.Failed($CSReturnVariable$))
+                {
+                    throw new OpenDaqException($CSReturnVariable$);
+                }
+            }
+        }
+    }

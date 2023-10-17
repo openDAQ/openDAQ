@@ -178,29 +178,26 @@ void ScalingFbImpl::onPacketReceived(const InputPortPtr& port)
     if (!connection.assigned())
         return;
 
-    do
+    packet = connection.dequeue();
+
+    while (packet.assigned())
     {
-        packet = connection.dequeue();
-        if (packet.assigned())
+        switch (packet.getType())
         {
-            switch (packet.getType())
-            {
-                case PacketType::Event:
-                    processEventPacket(packet);
-                    break;
+            case PacketType::Event:
+                processEventPacket(packet);
+                break;
 
-                case PacketType::Data:
-                    SAMPLE_TYPE_DISPATCH(inputSampleType, processDataPacket, packet);
-                    break;
+            case PacketType::Data:
+                SAMPLE_TYPE_DISPATCH(inputSampleType, processDataPacket, packet);
+                break;
 
-                default:
-                    break;
-            }
-
-            packet = connection.dequeue();
+            default:
+                break;
         }
 
-    } while (packet.assigned());
+        packet = connection.dequeue();
+    };
 }
 
 void ScalingFbImpl::processEventPacket(const EventPacketPtr& packet)

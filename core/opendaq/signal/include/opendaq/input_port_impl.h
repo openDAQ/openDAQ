@@ -82,6 +82,7 @@ private:
     FunctionPtr notifySchedulerCallback;
 
     LoggerComponentPtr loggerComponent;
+    SchedulerPtr scheduler;
 
     StringPtr serializedSignalId;
     SignalPtr dummySignal;

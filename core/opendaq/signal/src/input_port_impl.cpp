@@ -18,6 +18,8 @@ InputPortImpl::InputPortImpl(const ContextPtr& context, const ComponentPtr& pare
     , isInputPortRemoved(false)
 {
     loggerComponent = context.getLogger().getOrAddComponent("InputPort");
+    if (context.assigned())
+        scheduler = context.getScheduler();
 }
 
 ErrCode InputPortImpl::acceptsSignal(ISignal* signal, Bool* accepts)
@@ -219,7 +221,13 @@ ErrCode InputPortImpl::setNotificationMethod(PacketReadyNotification method)
 {
     std::scoped_lock lock(sync);
 
-    notifyMethod = method;
+    if (method == PacketReadyNotification::Scheduler && !scheduler.assigned())
+    {
+        LOG_W("Scheduler based notification not available");
+        notifyMethod = PacketReadyNotification::SameThread;
+    }
+    else
+        notifyMethod = method;
 
     return OPENDAQ_SUCCESS;
 }
@@ -245,8 +253,7 @@ void InputPortImpl::notifyPacketEnqueuedSameThread()
 
 void InputPortImpl::notifyPacketEnqueuedScheduler()
 {
-    if (context.assigned() && listenerRef.assigned())
-        context.getScheduler().scheduleWork(notifySchedulerCallback);
+    scheduler.scheduleWork(notifySchedulerCallback);
 }
 
 ErrCode InputPortImpl::notifyPacketEnqueued()

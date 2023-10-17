@@ -38,10 +38,8 @@ tsl::ordered_set<daq::opcua::OpcUaNodeId> TmsClientFunctionBlockBaseImpl<Impl>::
 template <typename Impl> 
 tsl::ordered_set<daq::opcua::OpcUaNodeId> TmsClientFunctionBlockBaseImpl<Impl>::getOutputSignalNodeIds()
 {
-    auto signalsNodeId = this->getNodeId("OutputSignals");
     OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASVALUESIGNAL);
-
-    return this->referenceUtils.getReferencedNodes(signalsNodeId, referenceTypeId, true);
+    return this->referenceUtils.getReferencedNodes(this->nodeId, referenceTypeId, true);
 }
 
 template <typename Impl>

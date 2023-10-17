@@ -52,6 +52,7 @@ void TmsServerFunctionBlock<T>::addChildNodes()
     for (const auto& signal : this->object.getSignals())
     {
         auto tmsSignal = this->template registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal);
+        this->server->addReference(this->getNodeId(), tmsSignal->getNonHierachicalReferenceType(), tmsSignal->getNodeId(), true);
         signals.push_back(std::move(tmsSignal));
     }
 

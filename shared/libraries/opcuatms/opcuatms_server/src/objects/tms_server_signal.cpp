@@ -26,7 +26,7 @@ std::string TmsServerSignal::getDisplayName()
     return {};
 }
 
-OpcUaNodeId TmsServerSignal::getReferenceType()
+OpcUaNodeId TmsServerSignal::getNonHierachicalReferenceType()
 {
     //TODO UA_TMSBSPID_HASSTATUSSIGNAL 
     return OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASVALUESIGNAL);

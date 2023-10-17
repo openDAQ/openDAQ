@@ -32,7 +32,8 @@ public:
 
     std::string getBrowseName() override;
     std::string getDisplayName() override;
-    opcua::OpcUaNodeId getReferenceType() override;
+    OpcUaNodeId getNonHierachicalReferenceType();
+
     void bindCallbacks() override;
     bool createOptionalNode(const opcua::OpcUaNodeId& nodeId) override;
 

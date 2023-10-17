@@ -1,5 +1,3 @@
-Fixes or implements **#TBBAS-123** (ticket)
-
 ## Type of change
 
 Please delete options that are not relevant.

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
   push:
-    branches: [master]
+    branches: [main]
 
 env:
   cmake_preset: package

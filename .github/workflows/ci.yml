@@ -3,6 +3,8 @@ name: Build and Test openDAQ
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
+  push:
+    branches: [main, release/**]
 
 ### TODO: Enable Python binding tests on all distributions
 

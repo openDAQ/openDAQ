@@ -3,7 +3,7 @@ name: GitHub documentation deploy
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
       - 'release/**'
 
   workflow_dispatch:

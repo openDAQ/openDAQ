@@ -7,6 +7,7 @@ from tkinter import ttk, simpledialog
 from tkinter.filedialog import asksaveasfile, askopenfile
 import tkinter.font as tkfont
 import uuid
+from functools import cmp_to_key
 
 import opendaq as daq
 
@@ -27,7 +28,12 @@ class DeviceInfoLocal:
         self.connection_string = 'daq.opcua://{}'.format(ip)
         self.serial_number = 'no-serial-number'
 
-def showSelection(title, current_value, values: daq.IList):
+def show_modal(window):
+    window.wait_visibility()
+    window.grab_set()
+    window.wait_window(window)
+
+def show_selection(title, current_value, values: daq.IList):
     global result
     result = current_value
     top = tk.Toplevel()
@@ -67,9 +73,7 @@ def showSelection(title, current_value, values: daq.IList):
     pd = int(top.winfo_screenheight() / 2 - wh / 2)
     top.geometry("+{}+{}".format(pr, pd))
 
-    top.wait_visibility()
-    top.grab_set()
-    top.wait_window(top)
+    show_modal(top)
     return result
 
 class App(tk.Tk):
@@ -142,12 +146,7 @@ class App(tk.Tk):
         # init device
         instance = daq.Instance()
 
-        for function_block_id in instance.available_function_block_types.keys():
-            if function_block_id == 'ref_fb_module_renderer':
-                renderer = instance.add_function_block(function_block_id)
-
         self.instance = instance
-        self.opendaq_renderer = renderer
 
         self.all_devices = {}
         self.scan_devices()
@@ -190,20 +189,12 @@ class App(tk.Tk):
     # INIT WIDGETS
     #
 
-    #def create_menu(self):
-    #    menubar = tk.Menu(self)
-    #    self.config(menu=menubar)
-    #    self.menubar = menubar
-    #
-    #    file_menu = tk.Menu(menubar, tearoff=False)
-    #    file_menu.add_command(label='Add or remove devices', command=self.open_device_selection_window)
-    #    file_menu.add_command(label='Add device', command=self.add_first_available_device)
-    #    file_menu.add_command(label='Exit', command=self.destroy)
-    #    menubar.add_cascade(label="File", menu=file_menu, underline=0)
-
     def create_tree_widget(self, parent_frame):
+        frame = ttk.Frame(parent_frame)
+
         # define columns
-        tree = ttk.Treeview(parent_frame, columns=('name', 'hash'), displaycolumns=('name'), show='tree', selectmode='browse')
+        tree = ttk.Treeview(frame, columns=('name', 'hash'), displaycolumns=('name'), show='tree', selectmode='browse')
+        tree.pack(fill="y", expand=True, side="left")
 
         # layout
         tree.column('#0', width=350*self.ui_scaling_factor)
@@ -213,20 +204,25 @@ class App(tk.Tk):
 
         # bind selection
         tree.bind('<<TreeviewSelect>>', self.tree_item_selected)
-        # bind double-click to add a channel to the renderer
-        #tree.bind('<Double-1>', self.toggle_channel)
 
         # add a scrollbar
-        #scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=tree.yview)
-        #tree.configure(yscroll=scrollbar.set)
-        #scrollbar.grid(row=0, column=1, rowspan=2, sticky=tk.NS)
+        scroll_bar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscroll=scroll_bar.set)
+        scroll_bar.pack(fill="y", side="right")
 
-        parent_frame.add(tree)
+        parent_frame.add(frame)
         self.tree = tree
 
     def create_property_widget(self, parent_frame):
+        frame = tk.Frame()
         # define columns
-        tree = ttk.Treeview(parent_frame, columns=('value', 'unit', 'access'), show='tree headings')
+        tree = ttk.Treeview(frame, columns=('value', 'unit', 'access'), show='tree headings')
+
+        scroll_bar = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=scroll_bar.set)
+        scroll_bar.pack(side="right", fill="y")
+        tree.pack(fill="both", expand=True)
+
         # define headings
         tree.heading('#0', text='Property')
         tree.heading('value', text='Value')
@@ -237,40 +233,51 @@ class App(tk.Tk):
         tree.column('#1', anchor=tk.CENTER)
         tree.column('#2', anchor=tk.CENTER, width=100, stretch=False)
         tree.column('#3', anchor=tk.CENTER, width=150, stretch=False)
-        tree.grid(row=0, column=2, sticky=tk.NSEW)
         style = ttk.Style()
         style.configure("Treeview.Heading", font='Arial 10 bold')
         # bind double-click to editing
         tree.bind('<Double-1>', self.set_tree_cell_value)
 
         parent_frame.add(ttk.Label(parent_frame, text='Properties'))
-        parent_frame.add(tree, height=480)
+        parent_frame.add(frame, height=480)
         self.property_tree = tree
 
     def create_input_ports_widget(self, parent_frame):
+        frame = tk.Frame()
+
         # define columns
-        tree = ttk.Treeview(parent_frame, columns=('signal', 'disconnect'), show='tree headings')
+        tree = ttk.Treeview(frame, columns=('signal'), show='tree headings')
+
+        scroll_bar = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=scroll_bar.set)
+        scroll_bar.pack(side="right", fill="y")
+        tree.pack(fill="both", expand=True)
+
         # define headings
         tree.heading('#0', text='Port name')
         tree.heading('signal', text='Connected signal')
-        tree.heading('disconnect', text='Disconnect')
         # layout
         tree.column('#0', anchor=tk.CENTER)
         tree.column('#1', anchor=tk.CENTER)
-        tree.column('#2', anchor=tk.CENTER, width=250, stretch=False)
-        #tree.grid(row=0, column=2, sticky=tk.NSEW)
         style = ttk.Style()
         style.configure("Treeview.Heading", font='Arial 10 bold')
         # bind double-click to editing
         tree.bind('<Double-1>', self.open_connect_input_port_window)
 
         parent_frame.add(ttk.Label(parent_frame, text='Input ports'))
-        parent_frame.add(tree, height=180)
+        parent_frame.add(frame, height=180)
         self.input_ports_widget = tree
 
     def create_output_signals_widget(self, parent_frame):
+        frame = tk.Frame()
         # define columns
-        tree = ttk.Treeview(parent_frame, columns=('description', 'active', 'unique_id'), displaycolumns=('description', 'active'), show='tree headings')
+        tree = ttk.Treeview(frame, columns=('description', 'active', 'unique_id'), displaycolumns=('description', 'active'), show='tree headings')
+
+        scroll_bar = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=scroll_bar.set)
+        scroll_bar.pack(side="right", fill="y")
+        tree.pack(fill="both", expand=True)
+
         # define headings
         tree.heading('#0', text='Name')
         tree.heading('description', text='Description')
@@ -283,10 +290,10 @@ class App(tk.Tk):
         style = ttk.Style()
         style.configure("Treeview.Heading", font='Arial 10 bold')
         # bind double-click to editing
-        tree.bind('<Double-1>', self.toggle_signal)
+        #tree.bind('<Double-1>', self.toggle_signal)
 
         parent_frame.add(ttk.Label(parent_frame, text='Output signals'))
-        parent_frame.add(tree, height=180)
+        parent_frame.add(frame, height=180)
         self.output_signals_widget = tree
 
     #
@@ -301,6 +308,21 @@ class App(tk.Tk):
         self.output_signals_widget.delete(*self.output_signals_widget.get_children())
         self.output_signal_nodes.clear()
 
+    def sort_properties(self, list):
+        def compare_strings(item1, item2):
+            if (item2.name > item1.name):
+                return -1
+            elif (item2.name < item1.name):
+                return 1
+            else:
+                return 0
+
+        new_list = []
+        for item in list:
+            new_list.append(item)
+        sorted_list = sorted(new_list, key = cmp_to_key(compare_strings))
+        return sorted_list
+
     def list_properties(self, node):
         def printed_value(value_type, value):
             if value_type == daq.CoreType.ctBool:
@@ -309,7 +331,8 @@ class App(tk.Tk):
                 return value
 
         properties_info = node.visible_properties
-        for property_info in properties_info:
+        sorted_properties_info = self.sort_properties(properties_info)
+        for property_info in sorted_properties_info:
             show_read_write = 'R/W'
             if property_info.read_only:
                 show_read_write = 'R'
@@ -336,11 +359,9 @@ class App(tk.Tk):
                 if signal != None:
                     comp = daq.IComponent.cast_from(signal)
                     name = comp.name
-                    disconnect = '[Disconnect]'
                 else:
                     name = '(None)'
-                    disconnect = ''
-                self.input_ports_widget.insert('', tk.END, iid=input_port.local_id, text=input_port.name, values=(name, disconnect))
+                self.input_ports_widget.insert('', tk.END, iid=input_port.local_id, text=input_port.name, values=(name))
 
         if (type(node) is daq.IFunctionBlock) or (type(node) is daq.IChannel) or (type(node) is daq.IDevice):
             for output_signal in node.signals:
@@ -359,7 +380,10 @@ class App(tk.Tk):
 
     def tree_item_selected(self, event):
         self.clear_property_tree()
-        selected_item = self.tree.selection()[0]
+        sel = self.tree.selection()
+        if len(sel) == 0:
+            return
+        selected_item = sel[0]
         item = self.tree.item(selected_item)
 
         node_unique_id = item['values'][0]
@@ -411,7 +435,7 @@ class App(tk.Tk):
                 #max_value = property_info.max_value
                 #property_value = simpledialog.askinteger(property_name, prompt=prompt, initialvalue=property_value, minvalue=min_value, maxvalue=max_value)        
                 if property_info.selection_values is not None:
-                    property_value = showSelection(prompt, property_value, property_info.selection_values)
+                    property_value = show_selection(prompt, property_value, property_info.selection_values)
                 else:
                     property_value = simpledialog.askinteger(property_name, prompt=prompt, initialvalue=property_value)
             case daq.CoreType.ctFloat:
@@ -431,44 +455,6 @@ class App(tk.Tk):
         self.update_properties()
 
     # (Signals)
-
-    def toggle_signal(self, event):
-        '''Add or remove a channel from the renderer'''
-
-        # connects a signal to the renderer
-        def add_to_renderer(signal, unique_id):
-            input_ports_from_renderer = self.opendaq_renderer.input_ports
-            index = len(input_ports_from_renderer) - 1
-            input_ports_from_renderer[index].connect(signal)
-            self.signal_is_rendered[unique_id] = index
-
-        def remove_from_renderer(signal, unique_id):
-            self.signal_is_rendered.pop(unique_id)
-            input_ports_from_renderer = self.opendaq_renderer.input_ports
-            for input_port in input_ports_from_renderer:
-                connected_signal = input_port.signal
-                if connected_signal == None:
-                    continue
-                if connected_signal.global_id == signal.global_id:
-                    input_port.disconnect()
-
-        selected_item = self.output_signals_widget.selection()[0]
-        item = self.output_signals_widget.item(selected_item)
-
-        unique_id = item['values'][2]
-        # this should not happen, but just in case we aren't able to locate the signal, simply return
-        if not unique_id in self.output_signal_nodes:
-            return
-        signal = self.output_signal_nodes[unique_id]
-
-        #is_rendered = len(signal.connections) > 0
-        is_rendered = unique_id in self.signal_is_rendered
-
-        # toggle activity of a channel
-        if not is_rendered:
-            add_to_renderer(signal, unique_id)
-        else:
-            remove_from_renderer(signal, unique_id)
 
     # (Tree)
     def add_component_to_tree(self, parent_node_id, component):
@@ -558,9 +544,7 @@ class App(tk.Tk):
         for function_block in function_blocks:
             fb_unique_id = functions_node_id + '_' + function_block.global_id
             self.add_function_block_to_tree(functions_node_id, fb_unique_id, function_block) 
-
         
-        #self.add_function_block_to_tree(functions_node_id, 'renderer', self.opendaq_renderer)
         # devices
         self.tree.insert('', tk.END, iid='root_devices', text='Devices', open=True, values=('title_devices'))
         for connection_string in self.all_devices:
@@ -568,14 +552,16 @@ class App(tk.Tk):
             if device['enabled'] and device['device'] != None:
                 self.add_device_to_tree('root_devices', device['device'], device['device_info'].connection_string)
 
-    # DEVICE SELECTION (TODO)
-
     def open_device_selection_window(self):
         window = tk.Toplevel(self)
         window.title("Add or remove devices")
         window.geometry('{}x{}'.format(600*self.ui_scaling_factor, 400*self.ui_scaling_factor))
 
         tree = ttk.Treeview(window, columns=('used', 'name', 'conn'), displaycolumns=('used', 'name', 'conn'), show='tree headings', selectmode='browse')
+        scroll_bar = ttk.Scrollbar(window, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=scroll_bar.set)
+        scroll_bar.pack(side="right", fill="y")
+
         self.device_tree = tree
 
         # define headings
@@ -592,7 +578,7 @@ class App(tk.Tk):
         # bind double-click to editing
         tree.bind('<Double-1>', self.toggle_device)
 
-        tree.grid(row=0, column=0, sticky=tk.NSEW)
+        tree.pack(fill="both", expand=True)
 
         self.scan_devices()
         for conn in self.all_devices:
@@ -601,36 +587,7 @@ class App(tk.Tk):
             used = self.all_devices[conn]['enabled']
             tree.insert('', tk.END, iid=conn, values=(yes_no[used], name, conn))
 
-    def open_device_selection_window(self):
-        window = tk.Toplevel(self)
-        window.title("Add or remove devices")
-        window.geometry('{}x{}'.format(600*self.ui_scaling_factor, 400*self.ui_scaling_factor))
-
-        tree = ttk.Treeview(window, columns=('used', 'name', 'conn'), displaycolumns=('used', 'name', 'conn'), show='tree headings', selectmode='browse')
-        self.device_tree = tree
-
-        # define headings
-        tree.heading('used', text='Used')
-        tree.heading('name', text='Name')
-        tree.heading('conn', text='Connection string')
-
-        # layout
-        tree.column('#0', anchor=tk.CENTER, width=0,   stretch=False)
-        tree.column('#1', anchor=tk.CENTER, width=80,  stretch=False)
-        tree.column('#2', anchor=tk.CENTER, width=200, stretch=True)
-        tree.column('#3', anchor=tk.CENTER, width=350, stretch=True)
-
-        # bind double-click to editing
-        tree.bind('<Double-1>', self.toggle_device)
-
-        tree.grid(row=0, column=0, sticky=tk.NSEW)
-
-        self.scan_devices()
-        for conn in self.all_devices:
-            device_info = self.all_devices[conn]['device_info']
-            name = device_info.name
-            used = self.all_devices[conn]['enabled']
-            tree.insert('', tk.END, iid=conn, values=(yes_no[used], name, conn))
+        show_modal(window)
 
     def open_add_function_block_window(self):
         window = tk.Toplevel(self)
@@ -638,9 +595,10 @@ class App(tk.Tk):
         window.geometry('{}x{}'.format(600*self.ui_scaling_factor, 400*self.ui_scaling_factor))
 
         tree = ttk.Treeview(window, columns=('id', 'name'), displaycolumns=('id', 'name'), show='tree headings', selectmode='browse')
+        scroll_bar = ttk.Scrollbar(window, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=scroll_bar.set)
+        scroll_bar.pack(side="right", fill="y")
         
-        self.add_fb_tree = tree
-
         # define headings
         tree.heading('id', text='TypeId')
         tree.heading('name', text='Name')
@@ -651,26 +609,37 @@ class App(tk.Tk):
         tree.column('#2', anchor=tk.CENTER, width=300*self.ui_scaling_factor,  stretch=True)
 
         # bind double-click to editing
-        tree.bind('<Double-1>', self.add_function_block)
+        tree.bind('<Double-1>', lambda event: self.add_function_block(event, tree, window))
 
-        tree.grid(row=0, column=0, sticky=tk.NSEW)
+        tree.pack(fill="both", expand=True)
 
         available_function_block_types = self.instance.available_function_block_types
         for function_block_id in available_function_block_types.keys():
             tree.insert('', tk.END, iid=function_block_id, values=(function_block_id, daq.IFunctionBlockType.cast_from(available_function_block_types[function_block_id]).name))
+
+        show_modal(window)
             
-    def add_function_block(self, event):
-        selected_items = self.add_fb_tree.selection()
+    def add_function_block(self, event, tree, window):
+        selected_items = tree.selection()
         if len(selected_items) < 1:
             return
             
         selected_item = selected_items[0]
-        item = self.add_fb_tree.item(selected_item)
+        item = tree.item(selected_item)
 
         function_block_id = item['values'][0]
         self.instance.add_function_block(function_block_id)
 
         self.update_tree_widget()
+
+        window.destroy()
+        
+    def find_input_port_from_list(self, list, local_id):        
+        for item in list:
+            ip = daq.IInputPort.cast_from(item)
+            if ip.local_id == local_id:
+                return ip
+        return None
         
     def open_connect_input_port_window(self, event):
         selected_items = self.input_ports_widget.selection()
@@ -678,18 +647,19 @@ class App(tk.Tk):
             return
        
         selected_item = selected_items[0]
-        fb = daq.IFunctionBlock.cast_from(self.selected_node)     
-        input_ports = daq.IFolder.cast_from(fb.get_item("ip"))
-        port = daq.IInputPort.cast_from(input_ports.get_item(selected_item))
-        self.ip = port
+        fb = daq.IFunctionBlock.cast_from(self.selected_node)
+        port = self.find_input_port_from_list(fb.input_ports, selected_item)
+        if (port == None):
+            return
 
         window = tk.Toplevel(self)
         window.title("Connect signal to input port")
         window.geometry('{}x{}'.format(800*self.ui_scaling_factor, 400*self.ui_scaling_factor))
 
         tree = ttk.Treeview(window, columns=('id', 'name'), displaycolumns=('id', 'name'), show='tree headings', selectmode='browse')
-        
-        self.ip_tree = tree
+        scroll_bar = ttk.Scrollbar(window, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=scroll_bar.set)
+        scroll_bar.pack(side="right", fill="y")
         
         # define headings
         tree.heading('id', text='TypeId')
@@ -701,28 +671,34 @@ class App(tk.Tk):
         tree.column('#2', anchor=tk.CENTER, width=300*self.ui_scaling_factor,  stretch=True)
 
         # bind double-click to editing
-        tree.bind('<Double-1>', self.connect_signal_to_input_port)
+        tree.bind('<Double-1>', lambda event: self.connect_signal_to_input_port(event, tree, window, port))
 
-        tree.grid(row=0, column=0, sticky=tk.NSEW)
+        tree.pack(fill="both", expand=True)
+
+        tree.insert('', tk.END, iid="__none__", values=("[Unassigned]", "N/A"))
 
         signals = self.instance.signals_recursive        
         for signal in signals:
             comp = daq.IComponent.cast_from(signal)
             if signal.domain_signal is not None:
                 tree.insert('', tk.END, iid=signal.global_id, values=(signal.global_id, comp.name))
+
+        show_modal(window)
             
-    def connect_signal_to_input_port(self, event):
-        selected_item = self.ip_tree.selection()[0]
-        item = self.ip_tree.item(selected_item)
+    def connect_signal_to_input_port(self, event, tree, window, port):
+        global_id = tree.selection()[0]
+                
+        if global_id == "__none__":
+            port.disconnect()
+        else:
+            signals = self.instance.signals_recursive        
+            for signal in signals:
+                if signal.global_id == global_id:
+                    port.connect(signal)
         
-        global_id = item['values'][0]
-        signals = self.instance.signals_recursive        
-        for signal in signals:
-            if signal.global_id == global_id:
-                self.ip.connect(signal)
-        
+        window.destroy()
+
         self.update_properties()
-        self.ip = None
         
     def save_config(self):
         file = asksaveasfile(initialfile = 'config.json', title = "Save configuration", defaultextension=".json",filetypes=[("All Files","*.*"),("Json","*.json")])        
@@ -735,7 +711,7 @@ class App(tk.Tk):
         config_string = file.read();
         file.close()        
         self.instance.load_configuration(config_string)            
-        self.configuration_updated()
+        self.update_tree_widget()
 
     def update_device_tree(self):
         self.device_tree.delete(*self.device_tree.get_children())
@@ -768,17 +744,7 @@ class App(tk.Tk):
         #    self.all_devices[conn]['device'] = None
 
         self.update_device_tree()
-        self.update_tree_widget()
-        
-    def configuration_updated(self):
-        self.opendaq_renderer = None
-
-        for function_block in self.instance.function_blocks:
-            if function_block.function_block_type.id == 'ref_fb_module_renderer':
-                self.opendaq_renderer = function_block
-
-        self.update_tree_widget()
-        
+        self.update_tree_widget()              
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Display openDAQ device configuration and plot values')

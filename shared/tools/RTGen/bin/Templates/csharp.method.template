@@ -1,0 +1,5 @@
+﻿void $Name$($Arguments$);
+$ReturnTypePtr$ $Name$($Arguments$);
+out $ArgType$ $ArgName$
+$ArgType$ $ArgName$
+, 

@@ -1,0 +1,13 @@
+﻿    public$CSHideDefault$ void $Name$($Arguments$)
+    {$CSCastArgumentObjects$
+        unsafe //use native method pointer
+        {
+            //call native method
+            $ReturnType$ $CSReturnVariable$ = ($ReturnType$)_raw$NonInterfaceType$.$CSRawMethodName$($ArgumentNames$);
+
+            if (Result.Failed($CSReturnVariable$))
+            {
+                throw new OpenDaqException($CSReturnVariable$);
+            }
+        }
+    }

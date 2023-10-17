@@ -153,6 +153,7 @@
                 "OPENDAQ_DEBUG_WARNINGS_AS_ERRORS": true,
                 "OPENDAQ_ALWAYS_FETCH_BOOST": false,
                 "OPENDAQ_GENERATE_PYTHON_BINDINGS": true,
+                "OPENDAQ_GENERATE_CSHARP_BINDINGS": true,
                 "APP_ENABLE_AUDIO_APP": true,
                 "APP_ENABLE_EXAMPLE_APPS": true,
                 "DAQSIMULATOR_ENABLE_SIMULATOR_APP": true

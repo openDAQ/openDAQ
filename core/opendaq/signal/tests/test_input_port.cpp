@@ -97,3 +97,9 @@ TEST_F(InputPortTest, UnconnectableSignal)
 
     EXPECT_THROW(inputPort.connect(signal), InvalidStateException);
 }
+
+TEST_F(InputPortTest, SwitchToSameThreadNotification)
+{
+    inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
+    ASSERT_NO_THROW(inputPort.notifyPacketEnqueued());
+}

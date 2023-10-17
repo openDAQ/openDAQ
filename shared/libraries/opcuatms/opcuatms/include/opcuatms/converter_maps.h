@@ -290,6 +290,9 @@ namespace converters
 
     static BaseObjectPtr convertToDaqList(const OpcUaVariant& variant, const ContextPtr& context)
     {
+        if (variant.isNull()) 
+            return nullptr;
+
         const auto typeId = variant.getValue().type->typeId;
         if (const auto it = uaTypeToDaqList.find(OpcUaNodeId(typeId)); it != uaTypeToDaqList.cend())
             return it->second(variant, context);

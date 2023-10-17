@@ -3,7 +3,7 @@ name: Trigger downstream pipelines
 on:
   push:
     branches-ignore:
-      - 'master'
+      - 'main'
       - 'release/**'
 
   workflow_dispatch:

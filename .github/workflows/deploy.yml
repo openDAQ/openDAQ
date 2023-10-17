@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
   push:
-    branches: [master]
+    branches: [main]
 
 env:
   cmake_preset: package
@@ -375,7 +375,7 @@ jobs:
 
       - name: Run Antora
         run: >
-          [ "refs/heads/master" != "${{ github.ref }}" ] && npx antora antora-playbook.yml
+          [ "refs/heads/main" != "${{ github.ref }}" ] && npx antora antora-playbook.yml
           || (export DAQ_DEV_WEBSITE=docs-dev; npx antora antora-playbook-dev.yml)
 
       - name: Compress Documentation

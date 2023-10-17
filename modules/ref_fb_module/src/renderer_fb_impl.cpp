@@ -95,7 +95,7 @@ void RendererFbImpl::initProperties()
         resolutionChanged();
     };
 
-    const auto showLastValueProp = FloatProperty("ShowLastValue", False);
+    const auto showLastValueProp = BoolProperty("ShowLastValue", False);
     objPtr.addProperty(showLastValueProp);
     objPtr.getOnPropertyValueWrite("ShowLastValue") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
     {

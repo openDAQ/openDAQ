@@ -1,0 +1,24 @@
+﻿
+    #region IEnumerator<$CSGenericClassParameters$> implementation
+
+    /// <inheritdoc/>
+    $CSGenericClassParameters$ IEnumerator<$CSGenericClassParameters$>.Current => this.GetCurrent();
+
+    #endregion IEnumerator<TValue> implementation
+
+    #region IEnumerator implementation
+
+    /// <inheritdoc/>
+    object IEnumerator.Current => this.GetCurrent();
+
+    /// <inheritdoc/>
+    bool IEnumerator.MoveNext() => this.MoveNext();
+
+    /// <inheritdoc/>
+    void IEnumerator.Reset()
+    {
+        //does nothing for now, since we cannot reset IIterator as if newly created
+        //throw new NotImplementedException();
+    }
+
+    #endregion IEnumerator implementation

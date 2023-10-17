@@ -1,0 +1,16 @@
+﻿    //implicit cast operators
+
+    /// <summary>Performs an implicit conversion from <see cref="$CSMappedType$"/> to <see cref="Daq.Core.Types.$NonInterfaceType$"/>.</summary>
+    /// <param name="value">The managed <c>$CSMappedType$</c> value.</param>
+    /// <returns>The SDK <c>$NonInterfaceType$</c>.</returns>
+    public static implicit operator $NonInterfaceType$($CSMappedType$ value) => $LibraryName$Factory.$CSCreatorFactory$(value);
+
+    /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.$NonInterfaceType$"/> to <see cref="$CSMappedType$"/>.</summary>
+    /// <param name="$NonInterfaceTypeCC$">The SDK <c>$NonInterfaceType$</c>.</param>
+    /// <returns>The managed <c>$CSMappedType$</c> value.</returns>
+    public static implicit operator $CSMappedType$($NonInterfaceType$ $NonInterfaceTypeCC$) => $NonInterfaceTypeCC$.$CSValueGetter$();
+
+    /// <summary>Determines whether this instance and a specified <c>$CSMappedType$</c>, have the same value.</summary>
+    /// <param name="other">The other <c>$CSMappedType$</c> to compare to this instance.</param>
+    /// <returns><c>true</c> if the other <c>$CSMappedType$</c> value is the same as this instance; otherwise, <c>false</c>.</returns>
+    public bool Equals($CSMappedType$ other) => (($CSMappedType$)this).Equals(other$CSEqualsOptions$);

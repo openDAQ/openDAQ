@@ -30,6 +30,9 @@
 # RTGEN_VERBOSE
 #   - Output additional log messages and more extensive error reports.
 #
+# RTGEN_NO_TIMESTAMP
+#   - Date & time in generated files replaced by D-E-B-U-G.
+#
 #---------------------------------------------------------------------------------
 function(_rtgen_interface FILENAME OUTFILES_VAR)
     if (NOT DEFINED RTGEN_OUTPUT_DIR)
@@ -71,6 +74,10 @@ function(_rtgen_interface FILENAME OUTFILES_VAR)
         list(APPEND RTGEN_OPTIONS_GLOBAL -v)
     endif()
 
+    if(RTGEN_NO_TIMESTAMP)
+        list(APPEND RTGEN_OPTIONS_GLOBAL -nt)
+    endif()
+
     if (LANGUAGES STREQUAL "ALL")
         set(ARGN cpp delphi python)
     else()
@@ -93,7 +100,11 @@ function(_rtgen_interface FILENAME OUTFILES_VAR)
         if (NOT LOWERCASE_LANG STREQUAL "cpp")
             # If generating bindings set the output directory to "bindings/{LANG}"
             # Create the directory if it doesn't exist yet
-            set(RTGEN_OUTPUT_DIR "${CURR_BINDINGS_DIR}/${LANG}")
+            if (LOWERCASE_LANG STREQUAL "csharp")
+                set_output_dir_for_bindings(RTGEN_OUTPUT_DIR)
+            else()
+                set(RTGEN_OUTPUT_DIR "${CURR_BINDINGS_DIR}/${LANG}")
+            endif()
             if (NOT EXISTS RTGEN_OUTPUT_DIR)
                 opendaq_create_dir(${RTGEN_OUTPUT_DIR})
             endif()
@@ -107,6 +118,10 @@ function(_rtgen_interface FILENAME OUTFILES_VAR)
             endif()
         endif()
 
+        if (LOWERCASE_LANG STREQUAL "csharp")
+            modify_or_set_namespace(RTGEN_OPTIONS RTGEN_NAMESPACE)
+        endif()
+
         set(_LANG_COMMAND ${MONO_C} ${RTGEN}
                                     ${RTGEN_OPTIONS}
                                     -ln ${RTGEN_LIBRARY_NAME}
@@ -115,6 +130,11 @@ function(_rtgen_interface FILENAME OUTFILES_VAR)
                                     --lang ${LOWERCASE_LANG}
                                     --source="${FILENAME}" &&)
         set(RTGEN_COMMAND ${RTGEN_COMMAND} ${_LANG_COMMAND})
+
+        if (DEFINED RTGEN_VERBOSE)
+            message(STATUS "Adding RTGen command:")
+            message(STATUS "${_LANG_COMMAND}")
+        endif()
     endforeach()
 
     # Remove the trailing "&&"
@@ -287,6 +307,10 @@ function(rtgen_config LIB_NAME LIB_OUTPUT_NAME MAJOR_VER MINOR_VER PATCH_VER)
         list(APPEND RTGEN_OPTIONS_GLOBAL -v)
     endif()
 
+    if(RTGEN_NO_TIMESTAMP)
+        list(APPEND RTGEN_OPTIONS_GLOBAL -nt)
+    endif()
+
     set(LANGUAGES ${OPENDAQ_GENERATE_BINDINGS_LANG})
 
     foreach(LANG ${LANGUAGES})
@@ -296,7 +320,11 @@ function(rtgen_config LIB_NAME LIB_OUTPUT_NAME MAJOR_VER MINOR_VER PATCH_VER)
         if (NOT LOWERCASE_LANG STREQUAL "cpp")
             # If generating bindings set the output directory to "bindings/{LANG}"
             # Create the directory if it doesn't exist yet
-            set(RTGEN_OUTPUT_DIR "${CURR_BINDINGS_DIR}/${LANG}")
+            if (LOWERCASE_LANG STREQUAL "csharp")
+                set_output_dir_for_bindings(RTGEN_OUTPUT_DIR)
+            else()
+                set(RTGEN_OUTPUT_DIR "${CURR_BINDINGS_DIR}/${LANG}")
+            endif()
             if (NOT EXISTS RTGEN_OUTPUT_DIR)
                 opendaq_create_dir(${RTGEN_OUTPUT_DIR})
             endif()
@@ -308,8 +336,17 @@ function(rtgen_config LIB_NAME LIB_OUTPUT_NAME MAJOR_VER MINOR_VER PATCH_VER)
             list(APPEND RTGEN_OPTIONS -ns "${_NAMESPACE_NAME}")
         endif()
 
+        if (LOWERCASE_LANG STREQUAL "csharp")
+            modify_or_set_namespace(RTGEN_OPTIONS RTGEN_NAMESPACE)
+        endif()
+
         list(APPEND RTGEN_OPTIONS -ln ${LIB_NAME} -config -lo ${LIB_OUTPUT_NAME} -lv ${MAJOR_VER}.${MINOR_VER}.${PATCH_VER} -lang ${LOWERCASE_LANG})
         set(RTGEN_COMMAND ${MONO_C} ${RTGEN} ${RTGEN_OPTIONS} -d "${RTGEN_OUTPUT_DIR}")
+
+        if (DEFINED RTGEN_VERBOSE)
+            message(STATUS "Adding RTGen config command:")
+            message(STATUS "${RTGEN_COMMAND}")
+        endif()
 
         add_custom_command(
             TARGET ${LIB_OUTPUT_NAME} POST_BUILD
@@ -365,3 +402,54 @@ function(rtgen_sample_types HEADER_NAME OUT_FILE)
                        COMMENT "Parsing pre-defined sample-type macros in ${HEADER_NAME}"
     )
 endfunction(rtgen_sample_types)
+
+function(get_rel_project_dir OUT_REL_PROJECT_DIR)
+    # Get the relative build project path
+    string(LENGTH "${CMAKE_BINARY_DIR}" _PATH_LENGTH)
+    math(EXPR _PATH_LENGTH "${_PATH_LENGTH}+1") #include trailing forward slash
+    string(SUBSTRING "${CMAKE_CURRENT_BINARY_DIR}" ${_PATH_LENGTH} -1 _REL_PROJECT_DIR)
+
+    # Remove last sub-dir
+    string(FIND "${_REL_PROJECT_DIR}" "/" _PATH_LENGTH REVERSE)
+    string(SUBSTRING "${_REL_PROJECT_DIR}" 0 ${_PATH_LENGTH} _REL_PROJECT_DIR)
+
+    # Set output argument
+    set(${OUT_REL_PROJECT_DIR} ${_REL_PROJECT_DIR} PARENT_SCOPE)
+endfunction(get_rel_project_dir)
+
+function(set_output_dir_for_bindings OUT_OUTPUT_DIR)
+    get_rel_project_dir(_REL_PROJECT_DIR)
+
+    # Expand the new output dir
+    get_filename_component(_OUTPUT_DIR
+                           "${CMAKE_SOURCE_DIR}/build/bindings/${LANG}/${_REL_PROJECT_DIR}"
+                           ABSOLUTE)
+
+    #flat output
+    #set(_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build/bindings/${LANG}")
+
+    # Set output argument
+    set(${OUT_OUTPUT_DIR} ${_OUTPUT_DIR} PARENT_SCOPE)
+endfunction(set_output_dir_for_bindings)
+
+function(modify_or_set_namespace OUT_OPTIONS NAMESPACE_NAME)
+    get_rel_project_dir(_REL_PROJECT_DIR)
+
+    set(_OPTIONS ${${OUT_OPTIONS}})
+
+    # Modify/add the namespace option to "<base-ns>.<rel-project-structure>"
+    string(REPLACE "/" "." _SUB_NS "${_REL_PROJECT_DIR}")
+    if (${NAMESPACE_NAME})
+        # Modify
+        list(FIND _OPTIONS -ns _NS_INDEX)
+        math(EXPR _NS_INDEX "${_NS_INDEX}+1") #index of namespace value
+        list(REMOVE_AT _OPTIONS "${_NS_INDEX}")
+        list(INSERT _OPTIONS "${_NS_INDEX}" "${${NAMESPACE_NAME}}.${_SUB_NS}")
+    else()
+        # Add
+        list(APPEND _OPTIONS -ns "${_SUB_NS}")
+    endif()
+
+    # Set output argument
+    set(${OUT_OPTIONS} ${_OPTIONS} PARENT_SCOPE)
+endfunction(modify_or_set_namespace)

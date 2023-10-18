@@ -111,14 +111,14 @@ void AveragerFbImpl::onConnected(const InputPortPtr& inputPort)
 {
     std::scoped_lock lock(sync);
     updateAveragerContexts();
-    LOG_I("Connected to port {}", inputPort.getLocalId());
+    LOG_T("Connected to port {}", inputPort.getLocalId());
 }
 
 void AveragerFbImpl::onDisconnected(const InputPortPtr& inputPort)
 {
     std::scoped_lock lock(sync);
     updateAveragerContexts();
-    LOG_I("Disconnected from port {}", inputPort.getLocalId());
+    LOG_T("Disconnected from port {}", inputPort.getLocalId());
 }
 
 ErrCode AveragerFbImpl::getInputPorts(IList** inputPorts)

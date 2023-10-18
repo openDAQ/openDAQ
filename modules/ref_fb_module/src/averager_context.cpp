@@ -34,7 +34,7 @@ void AveragerContext::onConnected(const InputPortPtr& port)
     if (const auto ownerPtr = owner.getRef(); ownerPtr.assigned())
     {
         ownerPtr.connected(port);
-        LOG_I("Connected to port {}", port.getLocalId());
+        LOG_T("Connected to port {}", port.getLocalId());
     }
 }
 
@@ -43,7 +43,7 @@ void AveragerContext::onDisconnected(const InputPortPtr& port)
     if (const auto ownerPtr = owner.getRef(); ownerPtr.assigned())
     {
         ownerPtr.disconnected(port);
-        LOG_I("Disconnected from port {}", port.getLocalId());
+        LOG_T("Disconnected from port {}", port.getLocalId());
     }
 }
 

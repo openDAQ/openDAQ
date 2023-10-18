@@ -3,6 +3,10 @@ name: Build and Test openDAQ
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
+    paths-ignore:
+      - '*.md'
+      - 'media/**'
+      - 'docs/**'
 
 ### TODO: Enable Python binding tests on all distributions
 

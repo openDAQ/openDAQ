@@ -3,20 +3,21 @@
         <img height="100" alt="openDAQ" src="media/openDAQ-logo-orange-blue-rgb.svg" />
     </a>
     <br>
-    openDAQ: SDK by Dewesoft and HBK that bridges the gap between test and measurement devices in an era where incompatibility is the norm
+    SDK that bridges the gap between data acquisition devices in an era where incompatibility is the norm
 </h3>
 
 ---
 
-openDAQ is a software development kit that allows for easy integration of test and measurement devices into its ecosystem. It provides a simple API that 
-allows users to connect to openDAQ devices, configure their properties, and read their measurement data. The SDK also contains a framework
-for developing custom signal processing blocks that process and analyze signal data. In a world where test and measurement devices cannot
-communicate, openDAQ provides a common language for all to speak.
+openDAQ is a software development kit that allows for easy integration of data acquisition devices into its ecosystem. It provides a simple generic API that 
+allows users to connect to DAQ devices that are compliant with openDAQ and any of its supported open standards. With the SDK users can configure the device's 
+and properties read its measurement data. It also contains a framework for developing custom signal processing blocks that process and analyze signal data. 
+In a world where DAQ devices cannot communicate, openDAQ provides a common language for all to speak, while also embracing existing
+standards such as MQTT and XCP via Ethernet. 
 
 ## Features
 
 - Simple connection to openDAQ-enabled devices, allowing for property visualization/configuration and data streaming.
-- Simple integration of existing test and measurement devices into the openDAQ ecosystem.
+- Simple integration of existing data acquisition devices into the openDAQ ecosystem.
 - SDK that runs the same code on both the device (server) and application (client).
 - Signal processing framework that allows for implementation of custom data processing blocks that run on any SDK instance (device or application).
 - OPC UA for structure/property transfer, WebSocket streaming for data.

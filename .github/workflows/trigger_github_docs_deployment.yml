@@ -17,5 +17,5 @@ jobs:
         uses: peter-evans/repository-dispatch@v2
         with:
           token: ${{ secrets.PIPELINES_PAT }}
-          repository: openDAQ/openDAQ-AntoraPlaybook
+          repository: openDAQ/opendaq.github.io
           event-type: deploy-docs

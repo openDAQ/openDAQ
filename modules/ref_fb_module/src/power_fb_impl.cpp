@@ -459,13 +459,13 @@ void PowerFbImpl::createSignals()
 void PowerFbImpl::onConnected(const InputPortPtr& inputPort)
 {
     std::scoped_lock lock(sync);
-    LOG_I("Connected to port {}", inputPort.getLocalId())
+    LOG_T("Connected to port {}", inputPort.getLocalId())
 }
 
 void PowerFbImpl::onDisconnected(const InputPortPtr& inputPort)
 {
     std::scoped_lock lock(sync);
-    LOG_I("Disconnected from port {}", inputPort.getLocalId())
+    LOG_T("Disconnected from port {}", inputPort.getLocalId())
 }
 
 }

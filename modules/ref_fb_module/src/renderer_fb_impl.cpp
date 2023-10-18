@@ -551,7 +551,7 @@ void RendererFbImpl::onConnected(const InputPortPtr& inputPort)
     std::scoped_lock lock(sync);
 
     updateInputPorts();
-    LOG_I("Connected to port {}", inputPort.getLocalId());
+    LOG_T("Connected to port {}", inputPort.getLocalId());
 }
 
 void RendererFbImpl::onDisconnected(const InputPortPtr& inputPort)
@@ -559,7 +559,7 @@ void RendererFbImpl::onDisconnected(const InputPortPtr& inputPort)
     std::scoped_lock lock(sync);
 
     updateInputPorts();
-    LOG_I("Disconnected from port {}", inputPort.getLocalId());
+    LOG_T("Disconnected from port {}", inputPort.getLocalId());
 }
 
 void RendererFbImpl::getWidthAndHeight(unsigned int& width, unsigned int& height)

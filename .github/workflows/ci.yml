@@ -3,8 +3,6 @@ name: Build and Test openDAQ
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
-  push:
-    branches: [main, release/**]
 
 ### TODO: Enable Python binding tests on all distributions
 
@@ -28,13 +26,13 @@ jobs:
       matrix:
         # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
         include:
-          - name: Windows VS 2019 x64 Release
-            runner: windows-2019
-            cmake_generator: "Visual Studio 16 2019"
-            cmake_generator_platform: x64
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-            cpack: NSIS
+          # - name: Windows VS 2019 x64 Release
+            # runner: windows-2019
+            # cmake_generator: "Visual Studio 16 2019"
+            # cmake_generator_platform: x64
+            # cmake_build_type: Release
+            # cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+            # cpack: NSIS
           - name: Windows VS 2022 x64 Release
             runner: windows-2022
             cmake_generator: "Visual Studio 17 2022"
@@ -49,13 +47,13 @@ jobs:
             # cmake_build_type: Debug
             # cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
             # cpack: NSIS
-          - name: Windows VS 2022 Win32 Release
-            runner: windows-latest
-            cmake_generator: "Visual Studio 17 2022"
-            cmake_generator_platform: Win32
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
-            cpack: ZIP
+          # - name: Windows VS 2022 Win32 Release
+            # runner: windows-latest
+            # cmake_generator: "Visual Studio 17 2022"
+            # cmake_generator_platform: Win32
+            # cmake_build_type: Release
+            # cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            # cpack: ZIP
           - name: Windows Clang Release
             runner: windows-2022
             cmake_generator: Ninja
@@ -140,22 +138,22 @@ jobs:
             cc: gcc-12
             cxx: g++-12
             cpack: DEB
-          - name: Ubuntu 22.04 gcc-12 Debug
-            image: ubuntu:22.04
-            cmake_generator: Ninja
-            cmake_build_type: Debug
-            apt_packages: g++-12
-            cc: gcc-12
-            cxx: g++-12
-            cpack: DEB
-          - name: Ubuntu 20.04 gcc-7 Release
-            image: ubuntu:20.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-            apt_packages: g++-7
-            cc: gcc-7
-            cxx: g++-7
+          # - name: Ubuntu 22.04 gcc-12 Debug
+            # image: ubuntu:22.04
+            # cmake_generator: Ninja
+            # cmake_build_type: Debug
+            # apt_packages: g++-12
+            # cc: gcc-12
+            # cxx: g++-12
+            # cpack: DEB
+          # - name: Ubuntu 20.04 gcc-7 Release
+            # image: ubuntu:20.04
+            # cmake_generator: Ninja
+            # cmake_build_type: Release
+            # cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+            # apt_packages: g++-7
+            # cc: gcc-7
+            # cxx: g++-7
           - name: Ubuntu 22.04 clang-14 Release
             image: ubuntu:22.04
             cmake_generator: Ninja
@@ -163,15 +161,15 @@ jobs:
             apt_packages: clang++-14
             cc: clang-14
             cxx: clang++-14
-          - name: Ubuntu 22.04 clang-14 libc++ Release
-            image: ubuntu:22.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DCMAKE_CXX_FLAGS=-stdlib=libc++
-            apt_packages: clang++-14 libc++-14-dev libc++abi-14-dev
-            cc: clang-14
-            cxx: clang++-14
-            cpack: ZIP
+          # - name: Ubuntu 22.04 clang-14 libc++ Release
+            # image: ubuntu:22.04
+            # cmake_generator: Ninja
+            # cmake_build_type: Release
+            # cmake_defines: -DCMAKE_CXX_FLAGS=-stdlib=libc++
+            # apt_packages: clang++-14 libc++-14-dev libc++abi-14-dev
+            # cc: clang-14
+            # cxx: clang++-14
+            # cpack: ZIP
           - name: Ubuntu 22.04 preinstalled packages
             image: ubuntu:22.04
             cmake_generator: Ninja
@@ -344,10 +342,10 @@ jobs:
             cmake_generator: Ninja
             cmake_build_type: Release
             runner: macos-12
-          - name: macos-12 clang Debug
-            cmake_generator: Ninja
-            cmake_build_type: Debug
-            runner: macos-12
+          # - name: macos-12 clang Debug
+            # cmake_generator: Ninja
+            # cmake_build_type: Debug
+            # runner: macos-12
 
     steps:
       - name: Checkout

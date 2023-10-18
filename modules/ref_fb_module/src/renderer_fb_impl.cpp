@@ -34,14 +34,18 @@ RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent
     renderThread = std::thread{ &RendererFbImpl::renderLoop, this };
 }
 
+void RendererFbImpl::stopRendering()
+{
+    if (!stopRender)
+    {
+        stopRender = true;
+        cv.notify_one();
+    }
+}
+
 RendererFbImpl::~RendererFbImpl()
 {
-    {
-        std::scoped_lock<std::mutex> lock(sync);
-        stopRender = true;
-    }
-
-    cv.notify_one();
+    stopRendering();
 
     renderThread.join();
     LOGP_D("Render thread stopped")
@@ -54,6 +58,13 @@ FunctionBlockTypePtr RendererFbImpl::CreateType()
         "Renderer",
         "Signal visualization"
     );
+}
+
+void RendererFbImpl::removed()
+{
+    stopRendering();
+
+    FunctionBlockImpl::removed();
 }
 
 void RendererFbImpl::initProperties()

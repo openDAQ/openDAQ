@@ -128,6 +128,9 @@ public:
 
     static FunctionBlockTypePtr CreateType();
 
+protected:
+    void removed() override;
+
 private:
     std::vector<SignalContext> signalContexts;
     std::thread renderThread;
@@ -237,6 +240,7 @@ private:
 
     template <typename Iter, typename Cont>
     bool isLastIter(Iter iter, const Cont& cont);
+    void stopRendering();
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

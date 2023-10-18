@@ -151,7 +151,7 @@ void PowerFbImpl::processPackets()
                     processDataPackets();
                 }
 
-                voltagePacket = voltageConnection.dequeue();
+                voltagePacket = voltageConnection.peek();
             }
         }
 
@@ -179,7 +179,7 @@ void PowerFbImpl::processPackets()
                     processDataPackets();
                 }
 
-                currentPacket = currentConnection.dequeue();
+                currentPacket = currentConnection.peek();
             }
         }
 

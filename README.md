@@ -1,4 +1,33 @@
-# openDAQ
+<h3 align="center">
+    <a href="https://opendaq.com" target="blank_">
+        <img height="100" alt="openDAQ" src="media/openDAQ-logo-orange-blue-rgb.svg" />
+    </a>
+    <br>
+    openDAQ: SDK by Dewesoft and HBK that bridges the gap between test and measurement devices in an era where incompatibility is the norm
+</h3>
+
+---
+
+openDAQ is a software development kit that allows for easy integration of test and measurement devices into its ecosystem. It provides a simple API that 
+allows users to connect to openDAQ devices, configure their properties, and read their measurement data. The SDK also contains a framework
+for developing custom signal processing blocks that process and analyze signal data. In a world where test and measurement devices cannot
+communicate, openDAQ provides a common language for all to speak.
+
+## Features
+
+- Simple connection to openDAQ-enabled devices, allowing for property visualization/configuration and data streaming.
+- Simple integration of existing test and measurement devices into the openDAQ ecosystem.
+- SDK that runs the same code on both the device (server) and application (client).
+- Signal processing framework that allows for implementation of custom data processing blocks that run on any SDK instance (device or application).
+- OPC UA for structure/property transfer, WebSocket streaming for data.
+- API built of C-compatible interfaces that can be passed across shared libraries with C++ wrappers that ease the complexity of working with interfaces.
+- Wrappers for Python and Delphi (C# in development).
+
+## Getting started
+
+- [Downloads →](https://docs.opendaq.com)
+- [User documentation →](https://opendaq.github.io/)
+- [API documentation (Doxgen) →](https://docs.opendaq.com/doxygen/index.html)
 
 ## Documentation
 
@@ -21,7 +50,7 @@ documentation can be built with Antora by following the guide found in docs/Anto
    <td rowspan="2">Windows <br>(Visual Studio)</td>
    <td>x86, x64</td>
    <td rowspan="2">/</td>
-   <td>☑️</td>
+   <td>✅</td>
    <td>✅</td>
   </tr>
   <tr>
@@ -39,9 +68,9 @@ documentation can be built with Antora by following the guide found in docs/Anto
   </tr>
   <tr>
    <td rowspan="2">Linux</td>
-   <td>x86, x86</td>
+   <td>x86, x64</td>
    <td>✅</td>
-   <td>☑️</td>
+   <td>✅</td>
   </tr>
   <tr>
    <td>armhfv7, aarch64</td>
@@ -52,12 +81,12 @@ documentation can be built with Antora by following the guide found in docs/Anto
    <td rowspan="2">MacOS <br>(>= 10.15)</td>
    <td>x64</td>
    <td>☑️</td>
-   <td>☑️</td>
+   <td>✅</td>
   </tr>
   <tr>
    <td>arm64</td>
    <td>☑️</td>
-   <td>✅</td>
+   <td>☑️</td>
   </tr>
   <tr>
    <td>iOS</td>
@@ -104,8 +133,7 @@ documentation can be built with Antora by following the guide found in docs/Anto
  - (optional) Boost C++ Library: https://sourceforge.net/projects/boost/files/boost-binaries/ , http://theboostcpplibraries.com
    - If installed, set CMake option `OPENDAQ_ALWAYS_FETCH_BOOST=OFF` to allow the SDK to use it.
    - See also document [BUILD.md](BUILD.md).
- - (optional) OpenCPPCoverage 0.9.6.1 or higher: https://github.com/OpenCppCoverage/OpenCppCoverage
-
+   
 ### Building on Windows
 
 #### 1. Install all required tools / packages.
@@ -135,12 +163,6 @@ cmake --preset "x64/msvc-22/full"
 > cmake --preset "x64/msvc-17/full" -G "Visual Studio 16 2019"
 > ```
 
-> :warning: When cloning from a stakeholder mirror you have to specify `OPENDAQ_REPO_PREFIX` CMake variable to redirect cloning of the
-> dependent libraries to the mirror you have access to. To do this just append the variable to the end of the command like below.
-> ```shell
-> cmake --preset <your-preset> -DOPENDAQ_REPO_PREFIX=git@gitlab.hbkworld.com:blueberrydaq
-> ```
-
 #### 4. Build the project
 
 Open and build `build/x64/msvc-22/full/openDAQ.sln` using Visual Studio (if one ``msvc`` preset had been used above).
@@ -164,7 +186,7 @@ For other compilers than ``msvc`` one can add parameter ``-j 4`` to the build co
 For example in Ubuntu
 ```shell
 sudo apt-get update
-sudo apt-get install -y git cmake g++ ninja-build mono-complete python3
+sudo apt-get install -y git build-essential lld cmake ninja-build mono-complete python3
 ```
 
 #### 2. Clone openDAQ repo.

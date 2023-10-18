@@ -11,7 +11,10 @@ on:
 jobs:
   trigger_downstream:
     runs-on: ubuntu-22.04
-    name: Trigger downstream pipelines
+    name: Trigger downstream pipelines    
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
+      cancel-in-progress: true
     steps:
       - name: Checkout openDAQ repository
         uses: actions/checkout@v4

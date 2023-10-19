@@ -321,15 +321,17 @@ jobs:
         id: short-sha
         uses: benjlevesque/short-sha@v2.2
           
-      - name: Define simulator name (main)
-        if: ${{ github.ref }} == 'refs/heads/main'
-        id: simulator_name
-        run: echo "SIMULATOR_NAME=opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_${{ env.vm_name }}_${{ steps.short-sha.outputs.sha }}" >> "$GITHUB_OUTPUT"
-        
       - name: Define simulator name
-        if: ${{ github.ref }} != 'refs/heads/main'
         id: simulator_name
-        run: echo "SIMULATOR_NAME=opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_${{ env.vm_name }}" >> "$GITHUB_OUTPUT"
+        run: |
+          if ( "${{ github.ref }}" -eq "refs/heads/main" )
+          {
+            echo "SIMULATOR_NAME=opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_${{ env.vm_name }}_${{ steps.short-sha.outputs.sha }}" >> "$GITHUB_OUTPUT"
+          }
+          else
+          {
+            echo "SIMULATOR_NAME=opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_${{ env.vm_name }}" >> "$GITHUB_OUTPUT"
+          }
 
       - name: Find binaries and run vagrant
         run: |

@@ -72,7 +72,19 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-
+       
+      - name: Get short SHA
+        if: ${{ github.ref }} == 'refs/heads/main'
+        id: short-sha
+        uses: benjlevesque/short-sha@v2.2
+        
+      - name: Rename package (main)
+        if: ${{ github.ref }} == 'refs/heads/main'
+        shell: pwsh
+        working-directory: ${{ env.package_path }}
+        run: |
+           Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
+      
       - name: Upload package to S3
         if: github.event_name == 'push'
         working-directory: ${{ env.package_path }}
@@ -161,9 +173,22 @@ jobs:
       - name: Python package
         working-directory: build/bin
         run: tar -czvf $GITHUB_WORKSPACE/${{ env.package_path_rel }}/opendaq-python${{ matrix.python_version }}-x86_64-linux-gnu.tar.gz lib*.so opendaq*.so
-
-      - name: Rename
+      
+      - name: Get short SHA
+        if: ${{ github.ref }} == 'refs/heads/main'
+        id: short-sha
+        uses: benjlevesque/short-sha@v2.2
+      
+      - name: Rename package (main)
         working-directory: ${{ env.package_path_rel }}
+        if: ${{ github.ref }} == 'refs/heads/main'
+        run: |
+          rename 's/_amd64/-ubuntu20.04-x86_64_${{ steps.short-sha.outputs.sha }}/' *.deb
+          rename 's/opendaq_/opendaq-/' *.deb
+          
+      - name: Rename package
+        working-directory: ${{ env.package_path_rel }}
+        if: ${{ github.ref }} != 'refs/heads/main'
         run: |
           rename 's/_amd64/-ubuntu20.04-x86_64/' *.deb
           rename 's/opendaq_/opendaq-/' *.deb
@@ -291,7 +316,18 @@ jobs:
             echo Head openDAQ version: $DAQ_VER
             echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
 
+      - name: Get short SHA
+        if: ${{ github.ref }} == 'refs/heads/main'
+        id: short-sha
+        uses: benjlevesque/short-sha@v2.2
+          
+      - name: Define simulator name (main)
+        if: ${{ github.ref }} == 'refs/heads/main'
+        id: simulator_name
+        run: echo "SIMULATOR_NAME=opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_${{ env.vm_name }}_${{ steps.short-sha.outputs.sha }}" >> "$GITHUB_OUTPUT"
+        
       - name: Define simulator name
+        if: ${{ github.ref }} != 'refs/heads/main'
         id: simulator_name
         run: echo "SIMULATOR_NAME=opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_${{ env.vm_name }}" >> "$GITHUB_OUTPUT"
 
@@ -364,14 +400,6 @@ jobs:
         run: |
           npm i @asciidoctor/tabs
           npm i @springio/antora-extensions
-
-      - name: Read openDAQ version
-        id: daq_version
-        working-directory: .
-        run: |
-            DAQ_VER=$(cat opendaq_version)
-            echo Head openDAQ version: $DAQ_VER
-            echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
 
       - name: Run Antora
         run: >

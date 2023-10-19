@@ -686,13 +686,13 @@ void RendererFbImpl::renderAxes(sf::RenderTarget& renderTarget, const sf::Font& 
         {
             sigIt->topLeft = sf::Vector2f(75.0f, xAxisLabelHeight);
             sigIt->bottomRight = sf::Vector2f(bottomRight.x - 25.0f, bottomRight.y - xAxisLabelHeight);
-            if (isLastIter(sigIt, signalContexts))
-                renderAxis(renderTarget, *sigIt, font, true, false);
-
             if (sigIt->min < yMinValue)
                 yMinValue = sigIt->min;
             if (sigIt->max > yMaxValue)
                 yMaxValue = sigIt->max;
+
+            if (isLastIter(sigIt, signalContexts))
+                renderAxis(renderTarget, *sigIt, font, true, false);
         }
         renderMultiTitle(renderTarget, font);
     }

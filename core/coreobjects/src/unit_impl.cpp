@@ -118,7 +118,7 @@ ErrCode UnitImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*cont
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
         return err;
 
-    Int id;
+    Int id = -1;
     err = serializedObj->readInt(String("id"), &id);
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
         return err;

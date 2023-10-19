@@ -88,6 +88,9 @@ BaseObjectPtr VariantConverter<IBaseObject>::ToDaqObject(const OpcUaVariant& var
     const auto obj = converters::convertToDaqObject(unwrapped, context);
     if (obj.assigned())
         return obj;
+
+    if (unwrapped.isNull())
+        return nullptr; 
     
     const auto typeKind = unwrapped.getValue().type->typeKind;
     if (typeKind == UA_DATATYPEKIND_STRUCTURE || typeKind == UA_DATATYPEKIND_OPTSTRUCT)

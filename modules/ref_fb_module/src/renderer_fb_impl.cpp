@@ -24,6 +24,7 @@ RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent
     : FunctionBlock(CreateType(), ctx, parent, localId)
     , stopRender(false)
     , resChanged(false)
+    , signalContextIndex(0)
     , inputPortCount(0)
     , axisColor(150, 150, 150)
 {
@@ -190,17 +191,17 @@ void RendererFbImpl::updateInputPorts()
 
     const auto inputPort = createAndAddInputPort(fmt::format("Input{}", inputPortCount++), PacketReadyNotification::SameThread);
 
-    signalContexts.emplace_back(SignalContext{ signalContextIndex++, inputPort });
+    signalContexts.emplace_back(SignalContext{ 0, inputPort });
+    for (size_t i = 0; i < signalContexts.size(); i++)
+        signalContexts[i].index = i;
 }
 
 void RendererFbImpl::renderSignals(sf::RenderTarget& renderTarget, const sf::Font& font)
 {
-    size_t index = 0;
     for (auto& sigCtx : signalContexts)
     {
         if (sigCtx.valid)
             SAMPLE_TYPE_DISPATCH(sigCtx.domainSampleType, renderSignal, sigCtx, renderTarget, font);
-        index++;
     }
 }
 
@@ -537,10 +538,18 @@ void RendererFbImpl::renderSignal(SignalContext& signalContext, sf::RenderTarget
         lastValueText.setFillColor(axisColor);
         lastValueText.setCharacterSize(16);
         std::ostringstream valueStr;
-        valueStr << "Value = " << std::fixed << std::showpoint << std::setprecision(3) << signalContext.lastValue;
+        if (singleXAxis && singleYAxis)
+            valueStr << signalContext.caption;
+        else
+            valueStr << "Value";
+        valueStr << " = " << std::fixed << std::showpoint << std::setprecision(3) << signalContext.lastValue;
         lastValueText.setString(valueStr.str());
         const auto valueBounds = lastValueText.getGlobalBounds();
-        lastValueText.setPosition({signalContext.bottomRight.x - valueBounds.width, signalContext.topLeft.y - valueBounds.height * 2.0f});
+        float top = signalContext.topLeft.y - valueBounds.height * 2.0f;
+        if (singleXAxis && singleYAxis)
+            top += signalContext.index * valueBounds.height * 2.0f;
+
+        lastValueText.setPosition({signalContext.bottomRight.x - valueBounds.width, top});
 
         renderTarget.draw(lastValueText);
     }

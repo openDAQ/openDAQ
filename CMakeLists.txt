@@ -126,7 +126,7 @@ set(OPENDAQ_LOG_LEVEL_DEBUG "Debug" CACHE STRING "Compile time logging level for
 set_property(CACHE OPENDAQ_LOG_LEVEL_DEBUG PROPERTY STRINGS ${OPENDAQ_LOG_LEVELS})
 log_level_str_to_int(${OPENDAQ_LOG_LEVEL_DEBUG} OPENDAQ_LOG_LEVEL_DEBUG_INT)
 
-set(OPENDAQ_LOG_LEVEL_RELEASE "Warning" CACHE STRING "Compile time logging level for release builds")
+set(OPENDAQ_LOG_LEVEL_RELEASE "Info" CACHE STRING "Compile time logging level for release builds")
 set_property(CACHE OPENDAQ_LOG_LEVEL_RELEASE PROPERTY STRINGS ${OPENDAQ_LOG_LEVELS})
 log_level_str_to_int(${OPENDAQ_LOG_LEVEL_RELEASE} OPENDAQ_LOG_LEVEL_RELEASE_INT)
 

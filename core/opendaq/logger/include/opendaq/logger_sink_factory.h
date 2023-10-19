@@ -116,7 +116,14 @@ inline ListPtr<ILoggerSink> DefaultSinks(const StringPtr& fileName = nullptr)
 {
     auto sinks = List<ILoggerSink>();
 
-    auto consoleSinkLogLevel = getEnvLogLevel("OPENDAQ_SINK_CONSOLE_LOG_LEVEL", OPENDAQ_LOG_LEVEL_INFO);
+    int logLevel;
+#ifdef NDEBUG
+    logLevel = OPENDAQ_LOG_LEVEL_WARN;
+#else
+    logLevel = OPENDAQ_LOG_LEVEL_INFO;
+#endif
+
+    auto consoleSinkLogLevel = getEnvLogLevel("OPENDAQ_SINK_CONSOLE_LOG_LEVEL", logLevel);
     if (consoleSinkLogLevel != LogLevel::Off)
     {
         auto consoleSink = StdOutLoggerSink();
@@ -125,7 +132,7 @@ inline ListPtr<ILoggerSink> DefaultSinks(const StringPtr& fileName = nullptr)
     }
 
 #if defined(_WIN32)
-    auto winDebugSinkLogLevel = getEnvLogLevel("OPENDAQ_SINK_WINDEBUG_LOG_LEVEL", OPENDAQ_LOG_LEVEL_INFO);
+    auto winDebugSinkLogLevel = getEnvLogLevel("OPENDAQ_SINK_WINDEBUG_LOG_LEVEL", logLevel);
     if (winDebugSinkLogLevel != LogLevel::Off)
     {
         auto winDebugSink = WinDebugLoggerSink();

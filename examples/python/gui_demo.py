@@ -204,6 +204,8 @@ class App(tk.Tk):
 
         # bind selection
         tree.bind('<<TreeviewSelect>>', self.tree_item_selected)
+        tree.bind("<ButtonRelease-3>", self.tree_item_right_button_release)
+        tree.bind("<Button-3>", self.tree_item_right_button)
 
         # add a scrollbar
         scroll_bar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=tree.yview)
@@ -212,6 +214,14 @@ class App(tk.Tk):
 
         parent_frame.add(frame)
         self.tree = tree
+
+        popup = tk.Menu(tree, tearoff=0)
+        popup.add_command(label="Remove")
+        popup.add_command(label="Rename")
+        self.tree_popup = popup
+
+        self.functions_node_id = 'root_function_blocks'
+
 
     def create_property_widget(self, parent_frame):
         frame = tk.Frame()
@@ -289,12 +299,18 @@ class App(tk.Tk):
         #tree.grid(row=0, column=2, sticky=tk.NSEW)
         style = ttk.Style()
         style.configure("Treeview.Heading", font='Arial 10 bold')
-        # bind double-click to editing
-        #tree.bind('<Double-1>', self.toggle_signal)
+
+        tree.bind("<ButtonRelease-3>", self.signals_tree_item_right_button_release)
+        tree.bind("<Button-3>", self.tree_item_right_button)
 
         parent_frame.add(ttk.Label(parent_frame, text='Output signals'))
         parent_frame.add(frame, height=180)
         self.output_signals_widget = tree
+
+        popup = tk.Menu(tree, tearoff=0)
+        popup.add_command(label="Rename")
+        self.signals_popup = popup
+
 
     #
     # WIDGETS: Interaction
@@ -317,9 +333,7 @@ class App(tk.Tk):
             else:
                 return 0
 
-        new_list = []
-        for item in list:
-            new_list.append(item)
+        new_list = [item for item in list]
         sorted_list = sorted(new_list, key = cmp_to_key(compare_strings))
         return sorted_list
 
@@ -372,18 +386,54 @@ class App(tk.Tk):
                 description = output_signal.description
                 is_active = output_signal.active
                 self.output_signal_nodes[unique_id] = output_signal
-                self.output_signals_widget.insert('', tk.END, text=comp.name, values=(description, yes_no[is_active], unique_id))
+                self.output_signals_widget.insert('', tk.END, iid=output_signal.local_id, text=comp.name, values=(description, yes_no[is_active]))
 
     def update_properties(self):
         self.clear_property_tree()
-        self.list_properties(self.selected_node)
+        if (self.selected_node is not None):
+            self.list_properties(self.selected_node)
+
+    def tree_item_right_button(self, event):
+        iid = event.widget.identify_row(event.y)
+        if iid:
+            event.widget.selection_set(iid)
+        else:
+            event.widget.selection_set()
+
+    def tree_item_right_button_release(self, event):
+        iid = self.get_selected_iid(self.tree)
+        if iid:
+            is_function_block = iid.startswith(self.functions_node_id + "_")
+            if not is_function_block:
+                self.tree_popup.entryconfig("Remove", state="disabled", command = None)
+            else:
+                self.tree_popup.entryconfig("Remove", state="normal", command = lambda: self.remove_function_block(iid))
+            self.tree_popup.entryconfig("Rename", state="disabled", command = None)
+            try:
+                self.tree_popup.tk_popup(event.x_root, event.y_root, 0)
+            finally:
+                self.tree_popup.grab_release()
+
+    def remove_function_block(self, iid):
+        node = self.nodes[iid]
+        fbs = daq.IFolderConfig.cast_from(self.instance.get_item("fb"))
+        fbs.remove_item(node)
+        self.selected_node = None
+        self.update_tree_widget()
+
+    def get_selected_iid(self, treeview):
+        sel = treeview.selection()
+        if len(sel) == 0:
+            return None
+        return sel[0]
 
     def tree_item_selected(self, event):
         self.clear_property_tree()
-        sel = self.tree.selection()
-        if len(sel) == 0:
+
+        selected_item = self.get_selected_iid(self.tree)
+        if selected_item is None:
+            self.selected_node = None
             return
-        selected_item = sel[0]
         item = self.tree.item(selected_item)
 
         node_unique_id = item['values'][0]
@@ -529,21 +579,25 @@ class App(tk.Tk):
         name = node.function_block_type.name
         self.tree.insert(parent_id, tk.END, iid=unique_id, text=name, open=True, values=(unique_id))
 
+        if self.selected_node == node:
+            self.tree.selection_set(unique_id)
+
         for function_block in node.function_blocks:
             node_id = str(unique_id) + '_' + function_block.function_block_type.id
             self.add_function_block_to_tree(unique_id, node_id, function_block)
 
-    def update_tree_widget(self):
+    def update_tree_widget(self, new_selected_node = None):
         # make sure the tree is empty
         self.tree.delete(*self.tree.get_children())
         # function blocks
-        functions_node_id = 'root_function_blocks'
-        self.tree.insert('', tk.END, iid=functions_node_id, text='Function blocks', open=True, values=(functions_node_id))
+        self.tree.insert('', tk.END, iid=self.functions_node_id, text='Function blocks', open=True, values=(self.functions_node_id))
+
+        self.selected_node = new_selected_node
         
         function_blocks = self.instance.function_blocks
         for function_block in function_blocks:
-            fb_unique_id = functions_node_id + '_' + function_block.global_id
-            self.add_function_block_to_tree(functions_node_id, fb_unique_id, function_block) 
+            fb_unique_id = self.functions_node_id + '_' + function_block.global_id
+            self.add_function_block_to_tree(self.functions_node_id, fb_unique_id, function_block) 
         
         # devices
         self.tree.insert('', tk.END, iid='root_devices', text='Devices', open=True, values=('title_devices'))
@@ -551,6 +605,8 @@ class App(tk.Tk):
             device = self.all_devices[connection_string]
             if device['enabled'] and device['device'] != None:
                 self.add_device_to_tree('root_devices', device['device'], device['device_info'].connection_string)
+
+        self.update_properties()
 
     def open_device_selection_window(self):
         window = tk.Toplevel(self)
@@ -628,9 +684,9 @@ class App(tk.Tk):
         item = tree.item(selected_item)
 
         function_block_id = item['values'][0]
-        self.instance.add_function_block(function_block_id)
+        fb = self.instance.add_function_block(function_block_id)
 
-        self.update_tree_widget()
+        self.update_tree_widget(fb)
 
         window.destroy()
         
@@ -641,6 +697,13 @@ class App(tk.Tk):
                 return ip
         return None
         
+    def find_signal_from_list(self, list, local_id):        
+        for item in list:
+            sig = daq.ISignal.cast_from(item)
+            if sig.local_id == local_id:
+                return sig
+        return None
+
     def open_connect_input_port_window(self, event):
         selected_items = self.input_ports_widget.selection()
         if len(selected_items) < 1:
@@ -699,15 +762,43 @@ class App(tk.Tk):
         window.destroy()
 
         self.update_properties()
+
+    def signals_tree_item_right_button_release(self, event):
+        iid = self.get_selected_iid(self.output_signals_widget)
+        if iid:
+            if daq.IDevice.can_cast_from(self.selected_node):
+                signals = daq.IDevice.cast_from(self.selected_node).signals
+            else:
+                signals = daq.IFunctionBlock.cast_from(self.selected_node).signals
+            signal = self.find_signal_from_list(signals, iid)
+            if (signal == None):
+                return
+                
+            self.signals_popup.entryconfig("Rename", command = lambda: self.rename_signal(signal))
+            try:
+                self.signals_popup.tk_popup(event.x_root, event.y_root, 0)
+            finally:
+                self.signals_popup.grab_release()
+
+    def rename_signal(self, signal):
+        comp = daq.IComponent.cast_from(signal)
+        old_signal_name = comp.name
+        signal_name = simpledialog.askstring("Rename signal", prompt="Enter new name", initialvalue=old_signal_name)
+        signal.name = signal_name
+        self.update_properties()
         
     def save_config(self):
         file = asksaveasfile(initialfile = 'config.json', title = "Save configuration", defaultextension=".json",filetypes=[("All Files","*.*"),("Json","*.json")])        
+        if file is None:
+            return
         config_string = self.instance.save_configuration()
         a = file.write(config_string)
         file.close()
 
     def load_config(self):
         file = askopenfile(initialfile = 'config.json', title = "Load configuration", defaultextension=".json",filetypes=[("All Files","*.*"),("Json","*.json")])        
+        if file is None:
+            return
         config_string = file.read();
         file.close()        
         self.instance.load_configuration(config_string)            

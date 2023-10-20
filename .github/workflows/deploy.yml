@@ -74,7 +74,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
        
       - name: Get short SHA
-        if: ${{ github.ref }} == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         id: short-sha
         uses: benjlevesque/short-sha@v2.2
         
@@ -85,14 +85,13 @@ jobs:
            Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.FullName.ToLower()}
            
       - name: Rename package (main)
-        if: ${{ github.ref }} == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
            Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
            
       - name: Upload package to S3
-        if: github.event_name == 'push'
         working-directory: ${{ env.package_path }}
         run: |
           aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3path }}/ --recursive --exclude '*' --include '*.exe'
@@ -181,20 +180,20 @@ jobs:
         run: tar -czvf $GITHUB_WORKSPACE/${{ env.package_path_rel }}/opendaq-python${{ matrix.python_version }}-x86_64-linux-gnu.tar.gz lib*.so opendaq*.so
       
       - name: Get short SHA
-        if: ${{ github.ref }} == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         id: short-sha
         uses: benjlevesque/short-sha@v2.2
       
       - name: Rename package (main)
         working-directory: ${{ env.package_path_rel }}
-        if: ${{ github.ref }} == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         run: |
           rename 's/_amd64/-ubuntu20.04-x86_64_${{ steps.short-sha.outputs.sha }}/' *.deb
           rename 's/opendaq_/opendaq-/' *.deb
           
       - name: Rename package
         working-directory: ${{ env.package_path_rel }}
-        if: ${{ github.ref }} != 'refs/heads/main'
+        if: github.ref != 'refs/heads/main'
         run: |
           rename 's/_amd64/-ubuntu20.04-x86_64/' *.deb
           rename 's/opendaq_/opendaq-/' *.deb
@@ -219,7 +218,6 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Upload package to S3
-        if: github.event_name == 'push'
         working-directory: ${{ env.package_path_rel }}
         run: |
           aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3path }}/  --recursive --exclude '*' --include '*.deb'
@@ -233,19 +231,11 @@ jobs:
           retention-days: 7
 
       - name: Upload documentation to S3
-        if: matrix.build_documentation && github.event_name == 'push'
+        if: matrix.build_documentation
         working-directory: build
         run: |
           aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"  --recursive --exclude '*' --include 'cpp_api_reference.zip'
           aws s3 cp "cpp_api_reference.zip" "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
-
-      # We only need to deploy to one of the two sites, but an extra API call doesn't hurt,
-      # so for simplicity reasons we just call both.
-      - name: Call the API to deploy the documentation
-        if: github.event_name == 'push'
-        run: |
-          wget ${{ secrets.DEPLOY_DOCUMENTATION_URL_AND_TOKEN }}
-          wget ${{ secrets.DEPLOY_DEV_DOCUMENTATION_URL_AND_TOKEN }}
 
       - name: Upload API reference
         uses: actions/upload-artifact@v3
@@ -255,12 +245,11 @@ jobs:
           retention-days: 7
 
       - name: Upload examples to S3
-        if: github.event_name == 'push'
         working-directory: examples
         run: |
           zip -r opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip cpp python
           aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3path }}/  --recursive --exclude '*' --include '*examples.zip'
-          aws s3 cp opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_examples.zip s3://${{ env.s3bucket }}/${{ env.s3path }}/
+          aws s3 cp opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip s3://${{ env.s3bucket }}/${{ env.s3path }}/
 
       - name: Upload temporary package for simulator
         uses: actions/upload-artifact@v3
@@ -323,7 +312,7 @@ jobs:
             echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
 
       - name: Get short SHA
-        if: ${{ github.ref }} == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         id: short-sha
         uses: benjlevesque/short-sha@v2.2
           
@@ -367,7 +356,6 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Upload package to S3
-        if: github.event_name == 'push'
         run: |
           aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3simulatorpath }}/  --recursive --exclude '*' --include '*.ova'
           aws s3 cp ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova s3://${{ env.s3bucket }}/${{ env.s3simulatorpath }}/
@@ -389,6 +377,7 @@ jobs:
   build_documentation:
     runs-on: ubuntu-latest
     name: Build SDK Documentation
+    needs: [deploy_linux]
     timeout-minutes: 4
     steps:
       - name: Checkout repository
@@ -427,12 +416,14 @@ jobs:
           aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"  --recursive --exclude '*' --include 'user_guide.zip'
           aws s3 cp ${{ github.workspace }}/build/user_guide.zip "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
 
-      # We only need to deploy to one of the two sites, but an extra API call doesn't hurt,
-      # so for simplicity reasons we just call both.
       - name: Call the API to deploy the documentation
         run: |
-          wget ${{ secrets.DEPLOY_DOCUMENTATION_URL_AND_TOKEN }}
-          wget ${{ secrets.DEPLOY_DEV_DOCUMENTATION_URL_AND_TOKEN }}
+          if [ "${{ github.ref }}" == "refs/heads/main" ];
+          then
+            wget ${{ secrets.DEPLOY_DEV_DOCUMENTATION_URL_AND_TOKEN }}
+          else
+            wget ${{ secrets.DEPLOY_DOCUMENTATION_URL_AND_TOKEN }}
+          fi
 
       - uses: actions/upload-artifact@v3
         with:

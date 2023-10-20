@@ -4,21 +4,21 @@ openDAQ(TM) provides processing features through xref:background_info:function_b
 They can process Signals either on a xref:background_info:device.adoc[Device] or on a host PC where the SDK
 is running.
 
-:tip-caption: Averager Function Block
+:tip-caption: Statistics Function Block
 [TIP]
 ====
 The SDK is bundled with a few Function Blocks:
 
  * Renderer (displays Signal on a desktop window)
- * Averager (calculates average and RMS from an input Signal)
+ * Statistics (calculates average and RMS from an input Signal)
  * Power (calculates DC power from the input voltage and current Signal)
  
 These Function Blocks serve as an example of what is possible to achieve with openDAQ(TM) SDK. They are not
 meant to be used in production code.
 
-The following examples use the Averager Function Block to show how to configure a Function Block.
+The following examples use the Statistics Function Block to show how to configure a Function Block.
 It is possible to use any other bundled or custom function block. However, Input Ports, output Signals, and
-properties in code snippets are specific to the Averager function block. Other function blocks may have
+properties in code snippets are specific to the Statistics function block. Other function blocks may have
 different Input Ports, output Signals, and properties.
 ====
 
@@ -51,7 +51,7 @@ for prop in function_block_properties:
 == Reading and configuring properties
 
 The Function Block will provide default values for the properties, but they can be set to other values. In the example
-snippet for the Averager Function Block we print the current block size and then set it to 100 samples.
+snippet for the Statistics Function Block we print the current block size and then set it to 100 samples.
 
 [tabs]
 ====
@@ -77,14 +77,14 @@ function_block.set_property_value("BlockSize", 100)
 [NOTE]
 ====
 What happens when a property is changed on a function while processing data depends on the implementation of the
-Function Block. In the case of the Averager Function Block when the BlockSize property is changed it will reconfigure the
+Function Block. In the case of the Statistics Function Block when the BlockSize property is changed it will reconfigure the
 domain Signal (new sample rate) of the output Signal and it will continue to produce the packets.
 ====
 
 == Connecting Function Block Input Ports
 
 Function blocks that process data require that their xref:background_info:data_path.adoc#input_port[Input Ports] connect to 
-Signals. Function blocks can have a variable number of Input Ports. The Averager Function Block provides one Input Port that 
+Signals. Function blocks can have a variable number of Input Ports. The Statistics Function Block provides one Input Port that 
 is required to calculate the average value. Once the Input Port is connected, the output Signal will start to produce the data.
  
 [tabs]
@@ -142,7 +142,7 @@ int main()
     DevicePtr device = instance.addDevice("daqref://device0");
 
     // add function block on the host computer
-    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_averager");
+    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 
     // list properties of the function block
     ListPtr<IProperty> functionBlockProperties = functionBlock.getVisibleProperties();
@@ -180,7 +180,7 @@ instance = opendaq.Instance()
 device = instance.add_device('daqref://device0')
 
 # add function block on the host computer
-function_block = instance.add_function_block("ref_fb_module_averager")
+function_block = instance.add_function_block("ref_fb_module_statistics")
 
 #list properties of the function block
 function_block_properties = function_block.visible_properties

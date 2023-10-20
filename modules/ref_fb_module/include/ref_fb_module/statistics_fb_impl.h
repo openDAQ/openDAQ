@@ -16,20 +16,15 @@
 
 #pragma once
 #include <ref_fb_module/common.h>
-#include <opendaq/signal_config_ptr.h>
+#include <opendaq/function_block_impl.h>
+#include <opendaq/input_port_config_ptr.h>
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/sample_type_traits.h>
-#include <opendaq/function_block_impl.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
-namespace Averager
+namespace Statistics
 {
-
-struct FreeDeleter
-{
-    void operator()(uint8_t* p) const { free(p); }
-};
 
 template <SampleType T>
 struct AggSample
@@ -37,8 +32,12 @@ struct AggSample
     static constexpr SampleType Type = T;
 };
 
-#define DEFINE_AGGREGATE_SAMPLE_TYPE(Input, Agg) \
-template<> struct AggSample<SampleType::Input> { static constexpr SampleType Type = SampleType::Agg; }
+#define DEFINE_AGGREGATE_SAMPLE_TYPE(Input, Agg)            \
+    template <>                                             \
+    struct AggSample<SampleType::Input>                     \
+    {                                                       \
+        static constexpr SampleType Type = SampleType::Agg; \
+    }
 
 DEFINE_AGGREGATE_SAMPLE_TYPE(UInt8, UInt16);
 DEFINE_AGGREGATE_SAMPLE_TYPE(Int8, Int16);
@@ -48,34 +47,31 @@ DEFINE_AGGREGATE_SAMPLE_TYPE(UInt32, UInt64);
 DEFINE_AGGREGATE_SAMPLE_TYPE(Int32, Int64);
 DEFINE_AGGREGATE_SAMPLE_TYPE(Float32, Float64);
 
-enum class DomainSignalType { implicit, explicit_, explicitRange };
-
-class AveragerContext;
-
-DECLARE_OPENDAQ_INTERFACE(IAveragerContext, IFunctionBlock)
+enum class DomainSignalType
 {
-    virtual AveragerContext& getAveragerContext() = 0;
+    implicit,
+    explicit_,
+    explicitRange
 };
 
-class AveragerContext : public FunctionBlockImpl<IAveragerContext>
+class StatisticsFbImpl final : public FunctionBlock
 {
 public:
-    size_t blockSize;
-    DomainSignalType domainSignalType;
-    InputPortConfigPtr inputPort;
-
-    AveragerContext(const InputPortNotificationsPtr& inputPortNotifications, const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId);
-    AveragerContext& getAveragerContext() override;
-
-    void onConnected(const InputPortPtr& port) override;
-    void onDisconnected(const InputPortPtr& port) override;
-
-    std::mutex& getSync();
-    void configure();
-
-    WeakRefPtr<IInputPortNotifications> owner;
+    StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    static FunctionBlockTypePtr CreateType();
 
 private:
+    struct FreeDeleter
+    {
+        void operator()(uint8_t* p) const
+        {
+            free(p);
+        }
+    };
+
+    size_t blockSize;
+    DomainSignalType domainSignalType;
+
     SignalConfigPtr avgSignal;
     SignalConfigPtr rmsSignal;
     SignalConfigPtr domainSignal;
@@ -98,6 +94,11 @@ private:
     Int nextExpectedDomainValue;
     bool valid;
 
+    void initProperties();
+    void propertyChanged();
+    void configure();
+    void readProperties();
+
     bool acceptSampleType(SampleType sampleType);
     void checkCalcBuf(size_t newSamples);
     void copyToCalcBuf(uint8_t* buf, size_t sampleCount);
@@ -108,18 +109,26 @@ private:
     void processDataPacket(const DataPacketPtr& packet);
     NumberPtr addNumbers(const NumberPtr a, const NumberPtr& b);
 
-    template <SampleType ST, SampleType DST, SampleType AT = AggSample<ST>::Type, class SampleT = typename SampleTypeToType<ST>::Type, class AggT = typename SampleTypeToType<AT>::Type, class DomainSampleT = typename SampleTypeToType<DST>::Type>
+    template <SampleType ST,
+              SampleType DST,
+              SampleType AT = AggSample<ST>::Type,
+              class SampleT = typename SampleTypeToType<ST>::Type,
+              class AggT = typename SampleTypeToType<AT>::Type,
+              class DomainSampleT = typename SampleTypeToType<DST>::Type>
     void calc(SampleT* data, int64_t firstTick, SampleT* outAvgData, SampleT* outRmsData, DomainSampleT* outDomainData, size_t avgCount);
 
-    template <SampleType ST, SampleType DST, SampleType AT = AggSample<ST>::Type, class SampleT = typename SampleTypeToType<ST>::Type, class AggT = typename SampleTypeToType<AT>::Type, class DomainSampleT = typename SampleTypeToType<DST>::Type>
+    template <SampleType ST,
+              SampleType DST,
+              SampleType AT = AggSample<ST>::Type,
+              class SampleT = typename SampleTypeToType<ST>::Type,
+              class AggT = typename SampleTypeToType<AT>::Type,
+              class DomainSampleT = typename SampleTypeToType<DST>::Type>
     void calcUntyped(uint8_t* data, int64_t firstTick, uint8_t* outAvgData, uint8_t* outRmsData, uint8_t* outDomainData, size_t avgCount);
 
     void calculate(uint8_t* data, int64_t firstTick, uint8_t* outAvgData, uint8_t* outRmsData, uint8_t* outDomainData, size_t avgCount);
 
-    static FunctionBlockTypePtr CreateType();
-
     void onPacketReceived(const InputPortPtr& port) override;
-    void processPackets();
+    void processPackets(const InputPortPtr& port);
 };
 
 }

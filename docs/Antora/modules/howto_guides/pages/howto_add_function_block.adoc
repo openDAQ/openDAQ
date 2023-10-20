@@ -4,19 +4,19 @@ openDAQ(TM) provides processing features through xref:background_info:function_b
 They can process Signals either on a xref:background_info:device.adoc[Device] or on a host PC where the SDK
 is running.
 
-:tip-caption: Averager Function Block
+:tip-caption: Statistics Function Block
 [TIP]
 ====
 The SDK is bundled with a few Function Blocks:
 
  * Renderer (displays Signal on a desktop window)
- * Averager (calculates average and RMS from an input Signal)
+ * Statistics (calculates average and RMS from an input Signal)
  * Power (calculates DC power from the input voltage and current Signal)
  
 These Function Blocks serve as an example of what is possible to achieve with openDAQ(TM) SDK. They are not
 meant to be used in production code.
 
-The following examples use the Averager Function Block to show how to add a Function Block. Same methods can
+The following examples use the Statistics Function Block to show how to add a Function Block. Same methods can
 be used to add other function blocks.
 ====
 
@@ -62,13 +62,13 @@ Cpp::
 [source,cpp]
 ----
 // add function block on the host computer
-FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_averager");
+FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 ----
 Python::
 +
 [source,python]
 ----
-function_block = instance.add_function_block("ref_fb_module_averager")
+function_block = instance.add_function_block("ref_fb_module_statistics")
 ----
 ====
 
@@ -131,12 +131,12 @@ int main()
     for (const auto& functionBlockType: functionBlockTypes.getKeys())
         std::cout << functionBlockType << std::endl;
 
-    // if there is no averager function block available, exit with an error
-    if (!functionBlockTypes.hasKey("ref_fb_module_averager"))
+    // if there is no statistics function block available, exit with an error
+    if (!functionBlockTypes.hasKey("ref_fb_module_statistics"))
         return 1;
 
     // add function block on the host computer
-    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_averager");
+    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 
     // print function block type info
     FunctionBlockTypePtr functionBlockType = functionBlock.getFunctionBlockType();
@@ -164,12 +164,12 @@ function_block_types = instance.available_function_block_types
 for function_block_type in function_block_types.keys():
     print(function_block_type)
 
-# if there is no averager function block available, exit with an error
-if not "ref_fb_module_averager" in function_block_types.keys():
+# if there is no statistics function block available, exit with an error
+if not "ref_fb_module_statistics" in function_block_types.keys():
     self.assertTrue(False, "Function block not found")
 
 # add function block on the host computer
-function_block = instance.add_function_block("ref_fb_module_averager")
+function_block = instance.add_function_block("ref_fb_module_statistics")
 
 # print function block type info
 function_block_type = function_block.function_block_type

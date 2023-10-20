@@ -53,7 +53,7 @@ TEST_F(ArchitectureTest, AddDevice)
     std::this_thread::sleep_for(1000ms);
 }
 
-TEST_F(ArchitectureTest, Averager)
+TEST_F(ArchitectureTest, Statistics)
 {
     SKIP_TEST_MAC_CI;
 
@@ -62,22 +62,22 @@ TEST_F(ArchitectureTest, Averager)
 
     DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
 
-    FunctionBlockPtr averager = instance.addFunctionBlock("ref_fb_module_averager");
-    ASSERT_TRUE(averager.asPtr<IPropertyObject>().assigned());
-    ASSERT_GT(averager.getInputPorts().getCount(), 0);
-    ASSERT_GT(averager.getSignals().getCount(), 0);
+    FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+    ASSERT_TRUE(statistics.asPtr<IPropertyObject>().assigned());
+    ASSERT_GT(statistics.getInputPorts().getCount(), 0);
+    ASSERT_GT(statistics.getSignals().getCount(), 0);
 
     SignalPtr deviceOut = device.getSignalsRecursive()[0];
 
-    averager.getInputPorts()[0].connect(deviceOut);
+    statistics.getInputPorts()[0].connect(deviceOut);
 
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(500ms);
 
-    SignalPtr averagerOut = averager.getSignalsRecursive()[0];
-    ASSERT_TRUE(averagerOut.getDomainSignal().assigned());
+    SignalPtr statisticsOut = statistics.getSignalsRecursive()[0];
+    ASSERT_TRUE(statisticsOut.getDomainSignal().assigned());
 
-    ASSERT_TRUE(averager.getInputPorts()[0].getConnection().assigned());
+    ASSERT_TRUE(statistics.getInputPorts()[0].getConnection().assigned());
     ASSERT_GT(deviceOut.getConnections().getCount(), 0);
 }
 
@@ -105,11 +105,11 @@ TEST_F(ArchitectureTest, Readers)
 
     DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
 
-    FunctionBlockPtr averager = instance.addFunctionBlock("ref_fb_module_averager");
-    averager.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
+    FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+    statistics.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
 
-    PacketReaderPtr packetReader = PacketReader(averager.getSignalsRecursive()[0]);
-    StreamReaderPtr streamReader = StreamReader<double, uint64_t>(averager.getSignalsRecursive()[0]);
+    PacketReaderPtr packetReader = PacketReader(statistics.getSignalsRecursive()[0]);
+    StreamReaderPtr streamReader = StreamReader<double, uint64_t>(statistics.getSignalsRecursive()[0]);
 
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(1000ms);
@@ -138,7 +138,7 @@ TEST_F(ArchitectureTest, ConnectSignal)
 {
     InstancePtr instance = daq::Instance();
     DevicePtr device = instance.addDevice("daqref://device0");
-    FunctionBlockPtr fb = instance.addFunctionBlock("ref_fb_module_averager");
+    FunctionBlockPtr fb = instance.addFunctionBlock("ref_fb_module_statistics");
     SignalPtr signal = device.getSignalsRecursive()[0];
     InputPortPtr inputPort = fb.getInputPorts()[0];
     // doc code
@@ -155,7 +155,7 @@ TEST_F(ArchitectureTest, CreateFunctionBlock)
     InstancePtr instance = daq::Instance();
     DevicePtr device = instance.addDevice("daqref://device0");
     // doc code
-    daq::FunctionBlockPtr fb = instance.addFunctionBlock("ref_fb_module_averager");
+    daq::FunctionBlockPtr fb = instance.addFunctionBlock("ref_fb_module_statistics");
     // function block appears under FunctionBlocks of the instance
     daq::ListPtr<IFunctionBlock> fbs = instance.getFunctionBlocks();
     daq::FunctionBlockPtr fb1 = fbs[fbs.getCount() - 1];
@@ -168,7 +168,7 @@ TEST_F(ArchitectureTest, InputPortConnection)
     InstancePtr instance = daq::Instance();
     DevicePtr device = instance.addDevice("daqref://device0");
     SignalPtr signal = device.getSignalsRecursive()[0];
-    FunctionBlockPtr fb = instance.addFunctionBlock("ref_fb_module_averager");
+    FunctionBlockPtr fb = instance.addFunctionBlock("ref_fb_module_statistics");
     InputPortPtr inputPort = fb.getInputPorts()[0];
     // doc code
     inputPort.connect(signal);
@@ -184,7 +184,7 @@ TEST_F(ArchitectureTest, ConnectionDequeue)
     InstancePtr instance = daq::Instance();
     DevicePtr device = instance.addDevice("daqref://device0");
     SignalPtr signal = device.getSignalsRecursive()[0];
-    FunctionBlockPtr fb = instance.addFunctionBlock("ref_fb_module_averager");
+    FunctionBlockPtr fb = instance.addFunctionBlock("ref_fb_module_statistics");
     InputPortPtr inputPort = fb.getInputPorts()[0];
     inputPort.connect(signal);
     // doc code

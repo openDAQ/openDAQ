@@ -307,9 +307,9 @@ protected:
 
         const auto mockDevice = instance.addDevice("mock_phys_device");
 
-        const auto averagerFb = instance.addFunctionBlock("ref_fb_module_averager");
-        averagerFb.setPropertyValue("DomainSignalType", 1);// 1 - Explicit
-        averagerFb.getInputPorts()[0].connect(getSignal(instance, "ByteStep"));
+        const auto statisticsFb = instance.addFunctionBlock("ref_fb_module_statistics");
+        statisticsFb.setPropertyValue("DomainSignalType", 1);  // 1 - Explicit
+        statisticsFb.getInputPorts()[0].connect(getSignal(instance, "ByteStep"));
 
         auto streamingServer = std::get<0>(GetParam());
         instance.addServer(streamingServer, nullptr);

@@ -72,7 +72,7 @@ class TestDocumentationQuickStartGuide(opendaq_test.TestCase):
     def test_connect_signal(self):
         instance = opendaq.Instance()
         device = instance.add_device("daqref://device0")
-        fb = instance.add_function_block("ref_fb_module_averager")
+        fb = instance.add_function_block("ref_fb_module_statistics")
         signal = device.signals_recursive[0]
         input_port = fb.input_ports[0]
         # doc code
@@ -83,7 +83,7 @@ class TestDocumentationQuickStartGuide(opendaq_test.TestCase):
     def test_create_fb(self):
         instance = opendaq.Instance()
         # doc code
-        fb = instance.add_function_block("ref_fb_module_averager")
+        fb = instance.add_function_block("ref_fb_module_statistics")
         fbs = instance.function_blocks
         fb1 = fbs[-1]
         assert fb1 == fb
@@ -93,7 +93,7 @@ class TestDocumentationQuickStartGuide(opendaq_test.TestCase):
     def test_input_port_connection(self):
         instance = opendaq.Instance()
         device = instance.add_device("daqref://device0")
-        fb = instance.add_function_block("ref_fb_module_averager")
+        fb = instance.add_function_block("ref_fb_module_statistics")
         signal = device.signals_recursive[0]
         input_port = fb.input_ports[0]
         # doc code
@@ -106,7 +106,7 @@ class TestDocumentationQuickStartGuide(opendaq_test.TestCase):
     def test_connection_dequeue(self):
         instance = opendaq.Instance()
         device = instance.add_device("daqref://device0")
-        fb = instance.add_function_block("ref_fb_module_averager")
+        fb = instance.add_function_block("ref_fb_module_statistics")
         signal = device.signals_recursive[0]
         input_port = fb.input_ports[0]
         input_port.connect(signal)

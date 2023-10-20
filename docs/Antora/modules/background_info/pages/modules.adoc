@@ -149,7 +149,7 @@ daq::DeviceTypePtr referenceDeviceType = availableDeviceTypes.get("daqref");
 
 // Dictionary of information about available function block types that the module provides
 daq::DictPtr<daq::IString, daq::IFunctionBlockType> functionBlockTypes = _module.getAvailableFunctionBlockTypes(); 
-daq::FunctionBlockTypePtr averagerFbType = functionBlockTypes.get("ref_fb_module_averager");
+daq::FunctionBlockTypePtr statisticsFbType = functionBlockTypes.get("ref_fb_module_statistics");
 
 // Dictionary of information about available server types that the module provides
 daq::DictPtr<daq::IString, daq::IServerType> serverTypes = _module.getAvailableServerTypes(); 
@@ -176,7 +176,7 @@ daq::DevicePtr device = _module.createDevice(referenceDeviceInfo.getConnectionSt
 
 // Create a function block with the given unique ID and a local ID "fb"
 // In this case we create a `renderer` function block bundled with openDAQ(TM)
-daq::FunctionBlockPtr functionBlock = _module.createFunctionBlock(averagerFbType.getId(), nullptr, "fb");
+daq::FunctionBlockPtr functionBlock = _module.createFunctionBlock(statisticsFbType.getId(), nullptr, "fb");
 
 // Create a server with the given server type, default config, and the device we 
 // just created as the root of the openDAQ(TM) tree
@@ -231,8 +231,8 @@ daq::InstancePtr instance = Instance();
 // List available function blocks
 daq::DictPtr<daq::IString, daq::IFunctionBlockType> functionBlockTypes = instance.getAvailableFunctionBlockTypes();
 
-// Add the averager function block, if available
-if(functionBlockTypes.hasKey("ref_fb_module_averager"))
-        daq::FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_averager");
+// Add the statistics function block, if available
+if(functionBlockTypes.hasKey("ref_fb_module_statistics"))
+        daq::FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 ----
 ====

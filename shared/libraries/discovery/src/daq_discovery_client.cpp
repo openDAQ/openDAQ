@@ -62,6 +62,38 @@ void DiscoveryClient::discoverMdnsDevices()
     }
 }
 
+template <typename T>
+void addInfoProperty(DeviceInfoConfigPtr& info, std::string propName, T propValue)
+{
+    if (info.hasProperty(propName))
+    {
+        info.setPropertyValue(propName, propValue);
+    }
+    else
+    {
+        if constexpr (std::is_same_v<T, std::string>)
+        {
+            info.addProperty(StringProperty(propName, propValue));
+        }
+        else if constexpr (std::is_integral_v<T>)
+        {
+            info.addProperty(IntProperty(propName, propValue));
+        }
+        else if constexpr (std::is_floating_point_v<T>)
+        {
+            info.addProperty(DoubleProperty(propName, propValue));
+        }
+        else if constexpr (std::is_same_v<T, bool>)
+        {
+            info.addProperty(BoolProperty(propName, propValue));
+        }
+        else
+        {
+            return;
+        }
+    }
+}
+
 DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredDevice) const
 {
     auto exceptionMessage = "Failed to parse discovery data. Not a openDAQ device.";
@@ -89,12 +121,15 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
 
     DeviceInfoConfigPtr deviceInfo = DeviceInfo(connectionStringFormatCb(discoveredDevice));
 
+    addInfoProperty(deviceInfo, "canonicalName", discoveredDevice.canonicalName);
+    addInfoProperty(deviceInfo, "serviceWeight", discoveredDevice.serviceWeight);
+    addInfoProperty(deviceInfo, "servicePort", discoveredDevice.servicePort);
+    addInfoProperty(deviceInfo, "ipv4Address", discoveredDevice.ipv4Address);
+    addInfoProperty(deviceInfo, "ipv6Address", discoveredDevice.ipv6Address);
+
     for (const auto& prop : discoveredDevice.properties)
     {
-        if (deviceInfo.hasProperty(prop.first))
-            deviceInfo.setPropertyValue(prop.first, prop.second);
-        else
-            deviceInfo.addProperty(StringProperty(prop.first, prop.second));
+        addInfoProperty(deviceInfo, prop.first, prop.second);
     }
 
     return deviceInfo;

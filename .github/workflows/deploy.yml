@@ -78,13 +78,19 @@ jobs:
         id: short-sha
         uses: benjlevesque/short-sha@v2.2
         
+      - name: Rename package
+        shell: pwsh
+        working-directory: ${{ env.package_path }}
+        run: |
+           Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.FullName.ToLower()}
+           
       - name: Rename package (main)
         if: ${{ github.ref }} == 'refs/heads/main'
         shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
            Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
-      
+           
       - name: Upload package to S3
         if: github.event_name == 'push'
         working-directory: ${{ env.package_path }}
@@ -252,7 +258,7 @@ jobs:
         if: github.event_name == 'push'
         working-directory: examples
         run: |
-          zip -r opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_examples.zip cpp python
+          zip -r opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip cpp python
           aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3path }}/  --recursive --exclude '*' --include '*examples.zip'
           aws s3 cp opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_examples.zip s3://${{ env.s3bucket }}/${{ env.s3path }}/
 

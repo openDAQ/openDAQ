@@ -149,7 +149,7 @@ class App(tk.Tk):
         self.instance = instance
 
         self.all_devices = {}
-        self.scan_devices()
+#        self.scan_devices()
         if self.ip != None:
             self.add_first_available_device() # also calls self.update_tree_widget()
         self.update_tree_widget()
@@ -719,19 +719,19 @@ class App(tk.Tk):
         window.title("Connect signal to input port")
         window.geometry('{}x{}'.format(800*self.ui_scaling_factor, 400*self.ui_scaling_factor))
 
-        tree = ttk.Treeview(window, columns=('id', 'name'), displaycolumns=('id', 'name'), show='tree headings', selectmode='browse')
+        tree = ttk.Treeview(window, columns=('name', 'id'), displaycolumns=('name', 'id'), show='tree headings', selectmode='browse')
         scroll_bar = ttk.Scrollbar(window, orient="vertical", command=tree.yview)
         tree.configure(yscrollcommand=scroll_bar.set)
         scroll_bar.pack(side="right", fill="y")
         
         # define headings
-        tree.heading('id', text='TypeId')
         tree.heading('name', text='Name')
+        tree.heading('id', text='GlobalId')
 
         # layout
         tree.column('#0', anchor=tk.CENTER, width=0,    stretch=False)
-        tree.column('#1', anchor=tk.CENTER, width=500*self.ui_scaling_factor,  stretch=False)
-        tree.column('#2', anchor=tk.CENTER, width=300*self.ui_scaling_factor,  stretch=True)
+        tree.column('#1', anchor=tk.CENTER, width=250*self.ui_scaling_factor,  stretch=False)
+        tree.column('#2', anchor=tk.CENTER, width=550*self.ui_scaling_factor,  stretch=True)
 
         # bind double-click to editing
         tree.bind('<Double-1>', lambda event: self.connect_signal_to_input_port(event, tree, window, port))
@@ -744,7 +744,7 @@ class App(tk.Tk):
         for signal in signals:
             comp = daq.IComponent.cast_from(signal)
             if signal.domain_signal is not None:
-                tree.insert('', tk.END, iid=signal.global_id, values=(signal.global_id, comp.name))
+                tree.insert('', tk.END, iid=signal.global_id, values=(comp.name, signal.global_id))
 
         show_modal(window)
             

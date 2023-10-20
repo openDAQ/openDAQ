@@ -159,6 +159,6 @@ initialization
   TSmartPtrRegistry.RegisterPtr(IEvent, IEventPtr<IEvent>, TEventPtr<IEvent>);
 
 finalization
-  TSmartPtrRegistry.UnregisterPtr(IDictObject);
+  TSmartPtrRegistry.UnregisterPtr(IEvent);
 
 end.

@@ -324,14 +324,12 @@ jobs:
       - name: Define simulator name
         id: simulator_name
         run: |
-          if ( "${{ github.ref }}" -eq "refs/heads/main" )
-          {
+          if [ "${{ github.ref }}" == "refs/heads/main" ];
+          then
             echo "SIMULATOR_NAME=opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_${{ env.vm_name }}_${{ steps.short-sha.outputs.sha }}" >> "$GITHUB_OUTPUT"
-          }
           else
-          {
             echo "SIMULATOR_NAME=opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_${{ env.vm_name }}" >> "$GITHUB_OUTPUT"
-          }
+          fi
 
       - name: Find binaries and run vagrant
         run: |

@@ -21,8 +21,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     const auto device = instance.addDevice(availableAudioDevices[deviceIndex].getConnectionString());
     device.setPropertyValue("SampleRate", 44100);
     const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
-    const auto averagerFb = instance.addFunctionBlock("ref_fb_module_averager");
-    averagerFb.setPropertyValue("BlockSize", 1000);
+    const auto statisticsFb = instance.addFunctionBlock("ref_fb_module_statistics");
+    statisticsFb.setPropertyValue("BlockSize", 1000);
     const auto wavWriterFb = instance.addFunctionBlock("audio_device_module_wav_writer");
     wavWriterFb.setPropertyValue("FileName", "test1.wav");
 
@@ -31,8 +31,8 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     wavWriterFb.getInputPorts()[0].connect(deviceSignal);
 
-    averagerFb.getInputPorts()[0].connect(deviceSignal);
-    const auto rmsSignal = averagerFb.getSignals()[1];
+    statisticsFb.getInputPorts()[0].connect(deviceSignal);
+    const auto rmsSignal = statisticsFb.getSignals()[1];
 
     rendererFb.getInputPorts()[0].connect(deviceSignal);
     rendererFb.getInputPorts()[1].connect(rmsSignal);

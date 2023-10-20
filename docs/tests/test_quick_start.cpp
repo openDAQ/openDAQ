@@ -60,7 +60,7 @@ TEST_F(QuickStartTest, QuickStartAppReader)
 }
 
 // Corresponding document: Antora/modules/quick_start/pages/quick_start_application.adoc
-TEST_F(QuickStartTest, QuickStartAppAverager)
+TEST_F(QuickStartTest, QuickStartAppStatistics)
 {
     SKIP_TEST_MAC_CI;
 
@@ -70,8 +70,8 @@ TEST_F(QuickStartTest, QuickStartAppAverager)
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
     ASSERT_TRUE(device.assigned());
 
-    daq::FunctionBlockPtr averager = instance.addFunctionBlock("ref_fb_module_averager");
-    averager.getInputPorts()[0].connect(device.getSignalsRecursive()[0]);
+    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
+    statistics.getInputPorts()[0].connect(device.getSignalsRecursive()[0]);
     const daq::ChannelPtr sineChannel = device.getChannels()[0];
 
     for (daq::PropertyPtr prop : sineChannel.getVisibleProperties())
@@ -82,7 +82,7 @@ TEST_F(QuickStartTest, QuickStartAppAverager)
     sineChannel.setPropertyValue("NoiseAmplitude", 0.75);
     ASSERT_EQ(sineChannel.getPropertyValue("NoiseAmplitude"), 0.75);
 
-    daq::StreamReaderPtr reader2 = daq::StreamReader<double, uint64_t>(averager.getSignalsRecursive()[0]);
+    daq::StreamReaderPtr reader2 = daq::StreamReader<double, uint64_t>(statistics.getSignalsRecursive()[0]);
     double amplStep = 0.1;
     double samples[100];
     std::this_thread::sleep_for(std::chrono::milliseconds(500));

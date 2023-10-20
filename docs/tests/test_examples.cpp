@@ -38,7 +38,7 @@ TEST_F(ExamplesTest, FunctionBlock)
 	
     const InstancePtr instance = Instance();
     DevicePtr device = instance.addDevice("daqref://device0");
-    FunctionBlockPtr averager = instance.addFunctionBlock("ref_fb_module_averager");
+    FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
 
     const ChannelPtr sineChannel = device.getChannels()[0];
     const SignalPtr sineSignal = sineChannel.getSignals()[0];
@@ -46,8 +46,8 @@ TEST_F(ExamplesTest, FunctionBlock)
     sineChannel.setPropertyValue("NoiseAmplitude", 1);
     ASSERT_EQ(sineChannel.getPropertyValue("NoiseAmplitude"), 1);
     
-    averager.getInputPorts()[0].connect(sineSignal);
-    const SignalPtr averagedSine = averager.getSignalsRecursive()[0];
+    statistics.getInputPorts()[0].connect(sineSignal);
+    const SignalPtr averagedSine = statistics.getSignalsRecursive()[0];
     StreamReaderPtr reader = StreamReader<double, uint64_t>(averagedSine);
     std::this_thread::sleep_for(std::chrono::milliseconds(900));
 

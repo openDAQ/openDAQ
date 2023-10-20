@@ -23,9 +23,9 @@ static InstancePtr CreateServerInstance()
 
     auto instance = InstanceCustom(context, "local");
 
-    const auto averager = instance.addFunctionBlock("ref_fb_module_averager");
+    const auto statistics = instance.addFunctionBlock("ref_fb_module_statistics");
     const auto refDevice = instance.addDevice("daqref://device1");
-    averager.getInputPorts()[0].connect(refDevice.getSignalsRecursive()[0]);
+    statistics.getInputPorts()[0].connect(refDevice.getSignalsRecursive()[0]);
 
     instance.addServer("openDAQ WebsocketTcp Streaming", nullptr);
 
@@ -60,7 +60,7 @@ TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
     auto signals = client.getSignalsRecursive();
-    ASSERT_EQ(signals.getCount(), 10u);
+    ASSERT_EQ(signals.getCount(), 7u);
 }
 
 TEST_F(WebsocketModulesTest, SignalConfig_Server)

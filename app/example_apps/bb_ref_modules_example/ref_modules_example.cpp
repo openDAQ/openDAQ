@@ -20,17 +20,17 @@ int main(int /*argc*/, const char* /*argv*/[])
         return 0;
 
     FunctionBlockPtr renderer;
-    FunctionBlockPtr averager;
+    FunctionBlockPtr statistics;
 
     for (auto fbInfo : availableFunctionBlocks)
     {
         if (fbInfo.getId() == "ref_fb_module_renderer")
             renderer = instance.addFunctionBlock(fbInfo.getId());
         if (fbInfo.getId() == "ref_fb_module_averager")
-            averager = instance.addFunctionBlock(fbInfo.getId());
+            statistics = instance.addFunctionBlock(fbInfo.getId());
     }
 
-    if (!renderer.assigned() || !averager.assigned())
+    if (!renderer.assigned() || !statistics.assigned())
         return 0;
 
     const auto sineChannel = device.getChannels()[0];
@@ -39,13 +39,13 @@ int main(int /*argc*/, const char* /*argv*/[])
     sineChannel.setPropertyValue("Amplitude", 5);
 
     renderer.setPropertyValue("Duration", 5);
-    averager.setPropertyValue("BlockSize", 20);
+    statistics.setPropertyValue("BlockSize", 20);
 
     renderer.getInputPorts()[0].connect(sineSignal);
 
-    const auto averagedSine = averager.getSignals()[0];
+    const auto averagedSine = statistics.getSignals()[0];
     renderer.getInputPorts()[1].connect(averagedSine);
-    averager.getInputPorts()[0].connect(sineSignal);
+    statistics.getInputPorts()[0].connect(sineSignal);
 
     double ampl_step = 0.1;
     while (true)

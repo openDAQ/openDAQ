@@ -1,7 +1,7 @@
 #include <ref_fb_module/ref_fb_module_impl.h>
 #include <ref_fb_module/version.h>
 #include <ref_fb_module/renderer_fb_impl.h>
-#include <ref_fb_module/averager_fb_impl.h>
+#include <ref_fb_module/statistics_fb_impl.h>
 #include <ref_fb_module/power_fb_impl.h>
 #include <ref_fb_module/scaling_fb_impl.h>
 #include <coretypes/version_info_factory.h>
@@ -23,8 +23,8 @@ DictPtr<IString, IFunctionBlockType> RefFbModule::onGetAvailableFunctionBlockTyp
     auto typeRenderer = Renderer::RendererFbImpl::CreateType();
     types.set(typeRenderer.getId(), typeRenderer);
 
-    auto typeAverager = Averager::AveragerFbImpl::CreateType();
-    types.set(typeAverager.getId(), typeAverager);
+    auto typeStatistics = Statistics::StatisticsFbImpl::CreateType();
+    types.set(typeStatistics.getId(), typeStatistics);
 
     auto typePower = Power::PowerFbImpl::CreateType();
     types.set(typePower.getId(), typePower);
@@ -42,9 +42,9 @@ FunctionBlockPtr RefFbModule::onCreateFunctionBlock(const StringPtr& id, const C
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Renderer::RendererFbImpl>(context, parent, localId);
         return fb;
     }
-    if (id == Averager::AveragerFbImpl::CreateType().getId())
+    if (id == Statistics::StatisticsFbImpl::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Averager::AveragerFbImpl>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Statistics::StatisticsFbImpl>(context, parent, localId);
         return fb;
     }
     if (id == Power::PowerFbImpl::CreateType().getId())

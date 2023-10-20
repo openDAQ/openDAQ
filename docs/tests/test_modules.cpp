@@ -105,7 +105,7 @@ TEST_F(ModulesTest, CreateComponents)
     ASSERT_TRUE(it != availableDevices.end());
 
     daq::DictPtr<daq::IString, daq::IFunctionBlockType> functionBlockTypes = fbModule.getAvailableFunctionBlockTypes();
-    daq::FunctionBlockTypePtr averagerFbType = functionBlockTypes.get("ref_fb_module_averager");
+    daq::FunctionBlockTypePtr statisticsFbType = functionBlockTypes.get("ref_fb_module_statistics");
     
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     daq::DictPtr<daq::IString, daq::IServerType> nativeStreamingServerTypes =
@@ -126,7 +126,7 @@ TEST_F(ModulesTest, CreateComponents)
     ASSERT_GT(availableDevices.getCount(), 0);
     ASSERT_GT(serverTypes.getCount(), 0);
 
-    daq::FunctionBlockPtr functionBlock = fbModule.createFunctionBlock(averagerFbType.getId(), nullptr, "fb");
+    daq::FunctionBlockPtr functionBlock = fbModule.createFunctionBlock(statisticsFbType.getId(), nullptr, "fb");
     daq::DevicePtr device = devModule.createDevice("daqref://device0", nullptr);
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     daq::ServerPtr nativeStreamingServer = nativeStreamingServerModule.createServer(nativeStreamingServerType.getId(), device);
@@ -220,9 +220,9 @@ TEST_F(ModulesTest, InstanceModules)
     // List available function blocks
     daq::DictPtr<daq::IString, daq::IFunctionBlockType> functionBlockTypes = instance.getAvailableFunctionBlockTypes();
 
-    // Add the averager function block, if available
-    if (functionBlockTypes.hasKey("ref_fb_module_averager"))
-        daq::FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_averager");
+    // Add the statistics function block, if available
+    if (functionBlockTypes.hasKey("ref_fb_module_statistics"))
+        daq::FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 }
 
 END_NAMESPACE_OPENDAQ

@@ -260,7 +260,7 @@ jobs:
         run: |
           zip -r opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip cpp python
           aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3path }}/  --recursive --exclude '*' --include '*examples.zip'
-          aws s3 cp opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_examples.zip s3://${{ env.s3bucket }}/${{ env.s3path }}/
+          aws s3 cp opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip s3://${{ env.s3bucket }}/${{ env.s3path }}/
 
       - name: Upload temporary package for simulator
         uses: actions/upload-artifact@v3

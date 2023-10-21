@@ -1,8 +1,8 @@
 #include "websocket_streaming/websocket_streaming_impl.h"
-#include <opendaq/signal_config_ptr.h>
 #include <opendaq/event_packet.h>
-#include <opendaq/signal_remote.h>
+#include <opendaq/mirrored_signal_config.h>
 #include <opendaq/streaming_ptr.h>
+#include <opendaq/mirrored_signal_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -29,18 +29,27 @@ void WebsocketStreamingImpl::onSetActive(bool active)
 {
 }
 
-StringPtr WebsocketStreamingImpl::onAddSignal(const SignalRemotePtr& signal)
+StringPtr WebsocketStreamingImpl::onAddSignal(const MirroredSignalConfigPtr& signal)
 {
-    StringPtr signalStreamingId = this->getSignalStreamingId(signal);
-    if ( !signalStreamingId.assigned() )
-        throw NotFoundException("Signal with id {} is not available in Websocket streaming", signal.getRemoteId());
-
-    handleCachedEventPackets(signalStreamingId, signal);
-    return signalStreamingId;
+    return getSignalStreamingId(signal);
 }
 
-void WebsocketStreamingImpl::onRemoveSignal(const SignalRemotePtr& /*signal*/)
+void WebsocketStreamingImpl::onRemoveSignal(const MirroredSignalConfigPtr& /*signal*/)
 {
+}
+
+void WebsocketStreamingImpl::onSubscribeSignal(const MirroredSignalConfigPtr& /*signal*/)
+{
+}
+
+void WebsocketStreamingImpl::onUnsubscribeSignal(const MirroredSignalConfigPtr& /*signal*/)
+{
+}
+
+EventPacketPtr WebsocketStreamingImpl::onCreateDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal)
+{
+    StringPtr signalStreamingId = getSignalStreamingId(signal);
+    return streamingClient->getDataDescriptorChangedEventPacket(signalStreamingId);
 }
 
 void WebsocketStreamingImpl::prepareStreamingClient()
@@ -58,62 +67,30 @@ void WebsocketStreamingImpl::prepareStreamingClient()
     streamingClient->onAvailableStreamingSignals(availableSignalsCallback);
 }
 
-void WebsocketStreamingImpl::handleEventPacket(const StringPtr& signalId, const EventPacketPtr& eventPacket)
+void WebsocketStreamingImpl::handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket)
 {
-    if (auto it = streamingSignals.find(signalId); it != streamingSignals.end())
-    {
-        SignalRemotePtr signal = it->second;
-        Bool forwardPacket = signal.triggerEvent(eventPacket);
-        auto signalConfig = signal.asPtr<ISignalConfig>();
-        auto sourceStreamingConnectionString = signalConfig.getActiveStreamingSource();
-        if (sourceStreamingConnectionString == connectionString && isActive && forwardPacket)
-        {
-            signalConfig.sendPacket(eventPacket);
-        }
-    }
-    else
-    {
-        cachedEventPackets[signalId].push_back(eventPacket);
-    }
-}
-
-void WebsocketStreamingImpl::handleCachedEventPackets(const StringPtr& signalStreamingId,
-                                                      const SignalRemotePtr& signal)
-{
-    if (auto it = cachedEventPackets.find(signalStreamingId); it != cachedEventPackets.end())
-    {
-        for (const auto& eventPacket : it->second)
-            signal.triggerEvent(eventPacket);
-        cachedEventPackets.erase(it);
-    }
-}
-
-void WebsocketStreamingImpl::handleDataPacket(const StringPtr& signalId, const PacketPtr& dataPacket)
-{
-    if (auto it = streamingSignals.find(signalId); it != streamingSignals.end() && isActive)
-    {
-        auto signal = (it->second).asPtr<ISignalConfig>();
-        auto sourceStreamingConnectionString = signal.getActiveStreamingSource();
-        if (sourceStreamingConnectionString == connectionString)
-        {
-            signal.sendPacket(dataPacket);
-        }
-    }
+    Bool forwardPacket = signal.template asPtr<IMirroredSignalPrivate>()->triggerEvent(eventPacket);
+    if (forwardPacket)
+        signal.sendPacket(eventPacket);
 }
 
 void WebsocketStreamingImpl::onPacket(const StringPtr& signalId, const PacketPtr& packet)
 {
-    if (!packet.assigned())
+    if (!packet.assigned() || !this->isActive)
         return;
 
-    const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
-    if (eventPacket.assigned())
+    if (auto it = streamingSignalsRefs.find(signalId); it != streamingSignalsRefs.end())
     {
-        handleEventPacket(signalId, eventPacket);
-    }
-    else
-    {
-        handleDataPacket(signalId, packet);
+        auto signalRef = it->second;
+        MirroredSignalConfigPtr signal = signalRef.assigned() ? signalRef.getRef() : nullptr;
+        if (signal.assigned() && signal.getActiveStreamingSource() == connectionString)
+        {
+            const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
+            if (eventPacket.assigned())
+                handleEventPacket(signal, eventPacket);
+            else
+                signal.sendPacket(packet);
+        }
     }
 }
 
@@ -122,7 +99,7 @@ void WebsocketStreamingImpl::onAvailableSignals(const std::vector<std::string>& 
     availableSignalIds = signalIds;
 }
 
-StringPtr WebsocketStreamingImpl::getSignalStreamingId(const SignalRemotePtr &signal)
+StringPtr WebsocketStreamingImpl::getSignalStreamingId(const MirroredSignalConfigPtr &signal)
 {
     std::string signalFullId = signal.getRemoteId().toStdString();
     const auto it = std::find_if(
@@ -139,7 +116,7 @@ StringPtr WebsocketStreamingImpl::getSignalStreamingId(const SignalRemotePtr &si
     if (it != availableSignalIds.end())
         return String(*it);
     else
-        return nullptr;
+        throw NotFoundException("Signal with id {} is not available in Websocket streaming", signal.getRemoteId());
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

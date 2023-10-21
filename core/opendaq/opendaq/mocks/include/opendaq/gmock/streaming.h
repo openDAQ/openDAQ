@@ -20,20 +20,25 @@
 #include <opendaq/streaming_ptr.h>
 #include <gmock/gmock.h>
 #include <coretypes/gmock/mock_ptr.h>
+#include <opendaq/packet_factory.h>
 
 struct MockStreaming : daq::Streaming
 {
     typedef MockPtr<
         daq::IStreaming,
         daq::StreamingPtr,
-        MockStreaming
+        MockStreaming,
+        const daq::StringPtr&
     > Strict;
 
     MOCK_METHOD(void, onSetActive, (bool active), (override));
-    MOCK_METHOD(daq::StringPtr, onAddSignal, (const daq::SignalRemotePtr& signal), (override));
-    MOCK_METHOD(void, onRemoveSignal, (const daq::SignalRemotePtr& signal), (override));
+    MOCK_METHOD(daq::StringPtr, onAddSignal, (const daq::MirroredSignalConfigPtr& signal), (override));
+    MOCK_METHOD(void, onRemoveSignal, (const daq::MirroredSignalConfigPtr& signal), (override));
+    MOCK_METHOD(void, onSubscribeSignal, (const daq::MirroredSignalConfigPtr& signal), (override));
+    MOCK_METHOD(void, onUnsubscribeSignal, (const daq::MirroredSignalConfigPtr& signal), (override));
+    MOCK_METHOD(daq::EventPacketPtr, onCreateDataDescriptorChangedEventPacket, (const daq::MirroredSignalConfigPtr& signal), (override));
 
-    MockStreaming() : daq::Streaming("MockStreaming", nullptr)
+    MockStreaming(const daq::StringPtr& connectionString) : daq::Streaming(connectionString, nullptr)
     {
         using namespace testing;
 
@@ -44,12 +49,30 @@ struct MockStreaming : daq::Streaming
 
         ON_CALL(*this, onAddSignal)
             .WillByDefault(DoAll(
-                Invoke([&](const daq::SignalRemotePtr& signal) { return signal.getRemoteId(); })
+                Invoke([&](const daq::MirroredSignalConfigPtr& signal) { return signal.getRemoteId(); })
             ));
 
         ON_CALL(*this, onRemoveSignal)
             .WillByDefault(DoAll(
-                Invoke([&](const daq::SignalRemotePtr& signal) {})
+                Invoke([&](const daq::MirroredSignalConfigPtr& signal) {})
+            ));
+
+        ON_CALL(*this, onSubscribeSignal)
+            .WillByDefault(DoAll(
+                Invoke([&](const daq::MirroredSignalConfigPtr& signal) {})
+            ));
+
+        ON_CALL(*this, onUnsubscribeSignal)
+            .WillByDefault(DoAll(
+                Invoke([&](const daq::MirroredSignalConfigPtr& signal) {})
+            ));
+
+        ON_CALL(*this, onCreateDataDescriptorChangedEventPacket)
+            .WillByDefault(DoAll(
+                Invoke([&](const daq::MirroredSignalConfigPtr& signal)
+                       {
+                           return daq::DataDescriptorChangedEventPacket(nullptr, nullptr);
+                       })
             ));
     }
 };

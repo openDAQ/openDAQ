@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <opendaq/signal_remote_impl.h>
+#include <opendaq/mirrored_signal_impl.h>
 
 #include <native_streaming_client_module/common.h>
 
@@ -27,7 +27,7 @@ DECLARE_OPENDAQ_INTERFACE(INativeStreamingSignalPrivate, IBaseObject)
     virtual void removeDomainSignal() = 0;
 };
 
-class NativeStreamingSignalImpl final : public SignalRemoteBase<SignalStandardProps::AddReadOnly, INativeStreamingSignalPrivate>
+class NativeStreamingSignalImpl final : public MirroredSignalBase<SignalStandardProps::AddReadOnly, INativeStreamingSignalPrivate>
 {
 public:
     explicit NativeStreamingSignalImpl(const ContextPtr& ctx,
@@ -45,15 +45,14 @@ public:
     void assignDomainSignal(const SignalPtr& domainSignal) override;
     void removeDomainSignal() override;
 
-protected:
-    EventPacketPtr createDataDescriptorChangedEventPacket() override;
-
 private:
     static StringPtr createLocalId(const StringPtr& streamingId);
 
     StringPtr streamingId;
     DataDescriptorPtr mirroredDataDescriptor;
     SignalPtr mirroredDomainSignal;
+
+    std::mutex signalMutex;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

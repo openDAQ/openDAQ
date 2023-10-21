@@ -29,7 +29,7 @@ PacketPtr InputSignal::asPacket(uint64_t packetOffset, const uint8_t* data, size
     return dataPacket;
 }
 
-PacketPtr InputSignal::createDecriptorChangedPacket()
+EventPacketPtr InputSignal::createDecriptorChangedPacket()
 {
     return DataDescriptorChangedEventPacket(currentDataDescriptor, currentDomainDataDescriptor);
 }

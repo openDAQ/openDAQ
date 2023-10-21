@@ -46,6 +46,21 @@ bool PacketStreamingClient::areReferencesCleared() const
     return (referencedPacketBuffers.empty() && referencedPackets.empty() && packetBuffersWaitingForDomainPackets.empty());
 }
 
+EventPacketPtr PacketStreamingClient::getDataDescriptorChangedEventPacket(uint32_t signalId) const
+{
+    const auto dataDescIt = dataDescriptors.find(signalId);
+    if (dataDescIt == dataDescriptors.end())
+        throw PacketStreamingException("Data descriptor not registered");
+
+    DataDescriptorPtr dataDescriptor = dataDescIt->second;
+    DataDescriptorPtr domainDescriptor;
+    const auto domainDescIt = domainDescriptors.find(signalId);
+    if (domainDescIt != domainDescriptors.end())
+        domainDescriptor = domainDescIt->second;
+
+    return DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor);
+}
+
 void PacketStreamingClient::addEventPacketBuffer(const PacketBufferPtr& packetBuffer)
 {
     auto signalId = packetBuffer->packetHeader->signalId;
@@ -54,12 +69,16 @@ void PacketStreamingClient::addEventPacketBuffer(const PacketBufferPtr& packetBu
 
     EventPacketPtr packet = jsonDeserializer.deserialize(eventPayloadString);
 
-    if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED &&
-        packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR).assigned())
+    if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        dataDescriptors.insert_or_assign(
-            signalId,
-            packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR));
+        if (packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR).assigned())
+            dataDescriptors.insert_or_assign(
+                signalId,
+                packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR));
+        if (packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR).assigned())
+            domainDescriptors.insert_or_assign(
+                signalId,
+                packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
     }
 
     queue.push({signalId, packet});

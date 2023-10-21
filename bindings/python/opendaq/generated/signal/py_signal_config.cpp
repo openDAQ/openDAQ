@@ -95,31 +95,4 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
         },
         py::arg("packet"),
         "Sends a packet through all connections of the signal.");
-    cls.def_property_readonly("streaming_sources",
-        [](daq::ISignalConfig *object)
-        {
-            const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
-            return objectPtr.getStreamingSources().detach();
-        },
-        py::return_value_policy::take_ownership,
-        "Gets a list of connection strings of all available streaming sources of the signal.");
-    cls.def_property("active_streaming_source",
-        [](daq::ISignalConfig *object)
-        {
-            const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
-            return objectPtr.getActiveStreamingSource().toStdString();
-        },
-        [](daq::ISignalConfig *object, const std::string& streamingConnectionString)
-        {
-            const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
-            objectPtr.setActiveStreamingSource(streamingConnectionString);
-        },
-        "Gets a connection strings of the active streaming source of the signal. / Sets the active streaming source of the signal.");
-    cls.def("deactivate_streaming",
-        [](daq::ISignalConfig *object)
-        {
-            const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
-            objectPtr.deactivateStreaming();
-        },
-        "Stops the streaming and clears the active streaming source of the signal.");
 }

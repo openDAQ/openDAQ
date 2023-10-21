@@ -43,16 +43,17 @@ enum class SignalStandardProps
     Skip
 };
 
-template <SignalStandardProps Props, typename... Interfaces>
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
 class SignalBase;
 
-using SignalImpl = SignalBase<SignalStandardProps::Add>;
+using SignalImpl = SignalBase<SignalStandardProps::Add, ISignalConfig>;
 
-template <SignalStandardProps Props, typename... Interfaces>
-class SignalBase : public ComponentImpl<ISignalConfig, ISignalEvents, ISignalPrivate, Interfaces...>
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+class SignalBase : public ComponentImpl<TInterface, ISignalEvents, ISignalPrivate, Interfaces...>
 {
 public:
-    using Super = ComponentImpl<ISignalConfig, ISignalEvents, ISignalPrivate, Interfaces...>;
+    using Super = ComponentImpl<TInterface, ISignalEvents, ISignalPrivate, Interfaces...>;
+    using Self = SignalBase<Props, TInterface, Interfaces...>;
 
     SignalBase(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className = nullptr);
     SignalBase(const ContextPtr& context, DataDescriptorPtr descriptor, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className);
@@ -77,10 +78,6 @@ public:
     ErrCode INTERFACE_FUNC removeRelatedSignal(ISignal* signal) override;
     ErrCode INTERFACE_FUNC clearRelatedSignals() override;
     ErrCode INTERFACE_FUNC sendPacket(IPacket* packet) override;
-    ErrCode INTERFACE_FUNC getStreamingSources(IList** streamingConnectionStrings) override;
-    ErrCode INTERFACE_FUNC setActiveStreamingSource(IString* streamingConnectionString) override;
-    ErrCode INTERFACE_FUNC getActiveStreamingSource(IString** streamingConnectionString) override;
-    ErrCode INTERFACE_FUNC deactivateStreaming() override;
 
     // ISignalEvents
     ErrCode INTERFACE_FUNC listenerConnected(IConnection* connection) override;
@@ -105,11 +102,9 @@ protected:
     int getSerializeFlags() override;
 
     virtual EventPacketPtr createDataDescriptorChangedEventPacket();
+    virtual void onConnectionStatusChanged(bool connected);
 
     void removed() override;
-
-    std::vector<StringPtr> streamingSources;
-    StringPtr activeStreamingSource;
 
 private:
     StringPtr name;
@@ -125,17 +120,17 @@ private:
     bool sendPacketInternal(const PacketPtr& packet) const;
 };
 
-template <SignalStandardProps Props, typename... Interfaces>
-SignalBase<Props, Interfaces...>::SignalBase(const ContextPtr& context,
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+SignalBase<Props, TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
                                       const ComponentPtr& parent,
                                       const StringPtr& localId,
                                       const StringPtr& className)
-    : SignalBase<Props, Interfaces...>(context, nullptr, parent, localId, className)
+    : SignalBase<Props, TInterface, Interfaces...>(context, nullptr, parent, localId, className)
 {
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-SignalBase<Props, Interfaces...>::SignalBase(const ContextPtr& context,
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+SignalBase<Props, TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
                                       DataDescriptorPtr descriptor,
                                       const ComponentPtr& parent,
                                       const StringPtr& localId,
@@ -147,15 +142,15 @@ SignalBase<Props, Interfaces...>::SignalBase(const ContextPtr& context,
     initProperties();
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-SignalBase<Props, Interfaces...>::~SignalBase()
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+SignalBase<Props, TInterface, Interfaces...>::~SignalBase()
 {
     if (domainSignal.assigned())
         domainSignal.asPtr<ISignalEvents>().domainSignalReferenceRemoved(this->template borrowPtr<SignalPtr>());
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-void SignalBase<Props, Interfaces...>::initProperties()
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+void SignalBase<Props, TInterface, Interfaces...>::initProperties()
 {
     auto objPtr = this->template borrowPtr<ComponentPtr>();
 
@@ -173,8 +168,8 @@ void SignalBase<Props, Interfaces...>::initProperties()
     }
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-void SignalBase<Props, Interfaces...>::propertyValueChanged(const PropertyPtr& prop, const BaseObjectPtr& value)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+void SignalBase<Props, TInterface, Interfaces...>::propertyValueChanged(const PropertyPtr& prop, const BaseObjectPtr& value)
 {
     auto packet = PropertyChangedEventPacket(prop.getName(), value);
     std::scoped_lock lock(this->sync);
@@ -182,8 +177,8 @@ void SignalBase<Props, Interfaces...>::propertyValueChanged(const PropertyPtr& p
     static_cast<void>(sendPacketInternal(packet));
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::getPublic(Bool* isPublic)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::getPublic(Bool* isPublic)
 {
     OPENDAQ_PARAM_NOT_NULL(isPublic);
 
@@ -193,8 +188,8 @@ ErrCode SignalBase<Props, Interfaces...>::getPublic(Bool* isPublic)
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::setPublic(Bool isPublic)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::setPublic(Bool isPublic)
 {
     std::scoped_lock lock(this->sync);
 
@@ -202,8 +197,8 @@ ErrCode SignalBase<Props, Interfaces...>::setPublic(Bool isPublic)
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::getDescriptor(IDataDescriptor** descriptor)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::getDescriptor(IDataDescriptor** descriptor)
 {
     OPENDAQ_PARAM_NOT_NULL(descriptor);
 
@@ -213,8 +208,8 @@ ErrCode SignalBase<Props, Interfaces...>::getDescriptor(IDataDescriptor** descri
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-EventPacketPtr SignalBase<Props, Interfaces...>::createDataDescriptorChangedEventPacket()
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+EventPacketPtr SignalBase<Props, TInterface, Interfaces...>::createDataDescriptorChangedEventPacket()
 {
     DataDescriptorPtr domainDataDescriptor;
     if (domainSignal.assigned())
@@ -224,8 +219,13 @@ EventPacketPtr SignalBase<Props, Interfaces...>::createDataDescriptorChangedEven
     return packet;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::getDescription(IString** description)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+void SignalBase<Props, TInterface, Interfaces...>::onConnectionStatusChanged(bool /*connected*/)
+{
+}
+
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::getDescription(IString** description)
 {
     OPENDAQ_PARAM_NOT_NULL(description);
 
@@ -239,8 +239,8 @@ ErrCode SignalBase<Props, Interfaces...>::getDescription(IString** description)
         });
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::setDescriptor(IDataDescriptor* descriptor)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::setDescriptor(IDataDescriptor* descriptor)
 {
     OPENDAQ_PARAM_NOT_NULL(descriptor);
 
@@ -281,8 +281,8 @@ ErrCode SignalBase<Props, Interfaces...>::setDescriptor(IDataDescriptor* descrip
         : OPENDAQ_IGNORED;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::getDomainSignal(ISignal** signal)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::getDomainSignal(ISignal** signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
@@ -292,8 +292,8 @@ ErrCode SignalBase<Props, Interfaces...>::getDomainSignal(ISignal** signal)
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::setDomainSignal(ISignal* signal)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::setDomainSignal(ISignal* signal)
 {
     std::scoped_lock lock(this->sync);
 
@@ -311,8 +311,8 @@ ErrCode SignalBase<Props, Interfaces...>::setDomainSignal(ISignal* signal)
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::getRelatedSignals(IList** signals)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::getRelatedSignals(IList** signals)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
 
@@ -324,8 +324,8 @@ ErrCode SignalBase<Props, Interfaces...>::getRelatedSignals(IList** signals)
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::setRelatedSignals(IList* signals)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::setRelatedSignals(IList* signals)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
 
@@ -339,8 +339,8 @@ ErrCode SignalBase<Props, Interfaces...>::setRelatedSignals(IList* signals)
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::addRelatedSignal(ISignal* signal)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::addRelatedSignal(ISignal* signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
@@ -355,8 +355,8 @@ ErrCode SignalBase<Props, Interfaces...>::addRelatedSignal(ISignal* signal)
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::removeRelatedSignal(ISignal* signal)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::removeRelatedSignal(ISignal* signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
@@ -371,8 +371,8 @@ ErrCode SignalBase<Props, Interfaces...>::removeRelatedSignal(ISignal* signal)
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::clearRelatedSignals()
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::clearRelatedSignals()
 {
     std::scoped_lock lock(this->sync);
     relatedSignals.clear();
@@ -380,8 +380,8 @@ ErrCode SignalBase<Props, Interfaces...>::clearRelatedSignals()
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::getConnections(IList** connections)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::getConnections(IList** connections)
 {
     OPENDAQ_PARAM_NOT_NULL(connections);
 
@@ -393,8 +393,8 @@ ErrCode SignalBase<Props, Interfaces...>::getConnections(IList** connections)
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::setName(IString* name)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::setName(IString* name)
 {
     auto namePtr = StringPtr::Borrow(name);
     auto objPtr = this->template borrowPtr<ComponentPtr>();
@@ -407,8 +407,8 @@ ErrCode SignalBase<Props, Interfaces...>::setName(IString* name)
         });
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::setDescription(IString* description)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::setDescription(IString* description)
 {
     auto descPtr = StringPtr::Borrow(description);
     auto objPtr = this->template borrowPtr<ComponentPtr>();
@@ -421,8 +421,8 @@ ErrCode SignalBase<Props, Interfaces...>::setDescription(IString* description)
         });
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::sendPacket(IPacket* packet)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::sendPacket(IPacket* packet)
 {
     OPENDAQ_PARAM_NOT_NULL(packet);
 
@@ -436,8 +436,8 @@ ErrCode SignalBase<Props, Interfaces...>::sendPacket(IPacket* packet)
     return  OPENDAQ_IGNORED;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-bool SignalBase<Props, Interfaces...>::sendPacketInternal(const PacketPtr& packet) const
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+bool SignalBase<Props, TInterface, Interfaces...>::sendPacketInternal(const PacketPtr& packet) const
 {
     if (!this->active)
         return false;
@@ -448,8 +448,10 @@ bool SignalBase<Props, Interfaces...>::sendPacketInternal(const PacketPtr& packe
     return true;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::listenerConnected(IConnection* connection)
+#include <opendaq/event_packet_params.h>
+
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::listenerConnected(IConnection* connection)
 {
     OPENDAQ_PARAM_NOT_NULL(connection);
 
@@ -460,6 +462,13 @@ ErrCode SignalBase<Props, Interfaces...>::listenerConnected(IConnection* connect
     if (it != connections.end())
         return OPENDAQ_ERR_DUPLICATEITEM;
 
+    if (connections.empty())
+    {
+        const ErrCode errCode = wrapHandler(this, &Self::onConnectionStatusChanged, true);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+
     connections.push_back(connectionPtr);
 
     const auto packet = createDataDescriptorChangedEventPacket();
@@ -468,8 +477,8 @@ ErrCode SignalBase<Props, Interfaces...>::listenerConnected(IConnection* connect
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::listenerDisconnected(IConnection* connection)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::listenerDisconnected(IConnection* connection)
 {
     OPENDAQ_PARAM_NOT_NULL(connection);
 
@@ -481,11 +490,19 @@ ErrCode SignalBase<Props, Interfaces...>::listenerDisconnected(IConnection* conn
         return OPENDAQ_ERR_NOTFOUND;
 
     connections.erase(it);
+
+    if (connections.empty())
+    {
+        const ErrCode errCode = wrapHandler(this, &Self::onConnectionStatusChanged, false);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::domainSignalReferenceSet(ISignal* signal)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::domainSignalReferenceSet(ISignal* signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
@@ -504,8 +521,8 @@ ErrCode SignalBase<Props, Interfaces...>::domainSignalReferenceSet(ISignal* sign
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::domainSignalReferenceRemoved(ISignal* signal)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::domainSignalReferenceRemoved(ISignal* signal)
 {
     std::scoped_lock lock(this->sync);
 
@@ -526,8 +543,8 @@ ErrCode SignalBase<Props, Interfaces...>::domainSignalReferenceRemoved(ISignal* 
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::clearDomainSignalWithoutNotification()
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::clearDomainSignalWithoutNotification()
 {
     std::scoped_lock lock(this->sync);
 
@@ -536,8 +553,8 @@ ErrCode SignalBase<Props, Interfaces...>::clearDomainSignalWithoutNotification()
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::getName(IString** name)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
 
@@ -550,8 +567,8 @@ ErrCode SignalBase<Props, Interfaces...>::getName(IString** name)
         });
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode INTERFACE_FUNC SignalBase<Props, Interfaces...>::getSerializeId(ConstCharPtr* id) const
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode INTERFACE_FUNC SignalBase<Props, TInterface, Interfaces...>::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);
 
@@ -560,20 +577,20 @@ ErrCode INTERFACE_FUNC SignalBase<Props, Interfaces...>::getSerializeId(ConstCha
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ConstCharPtr SignalBase<Props, Interfaces...>::SerializeId()
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ConstCharPtr SignalBase<Props, TInterface, Interfaces...>::SerializeId()
 {
     return "Signal";
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-void SignalBase<Props, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+void SignalBase<Props, TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer)
 {
     if (domainSignal.assigned())
     {
@@ -585,21 +602,21 @@ void SignalBase<Props, Interfaces...>::serializeCustomObjectValues(const Seriali
     Super::serializeCustomObjectValues(serializer);
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-void SignalBase<Props, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+void SignalBase<Props, TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
 {
     Super::updateObject(obj);
 }
 
 
-template <SignalStandardProps Props, typename... Interfaces>
-int SignalBase<Props, Interfaces...>::getSerializeFlags()
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+int SignalBase<Props, TInterface, Interfaces...>::getSerializeFlags()
 {
     return ComponentSerializeFlag_SerializeActiveProp;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-void SignalBase<Props, Interfaces...>::removed()
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+void SignalBase<Props, TInterface, Interfaces...>::removed()
 {
     for (auto& connection : connections)
     {
@@ -628,53 +645,6 @@ void SignalBase<Props, Interfaces...>::removed()
 
     domainSignalReferences.clear();
     relatedSignals.clear();
-}
-
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::getStreamingSources(IList** streamingConnectionStrings)
-{
-    OPENDAQ_PARAM_NOT_NULL(streamingConnectionStrings);
-
-    std::scoped_lock lock(this->sync);
-
-    ListPtr<IString> stringsPtr{streamingSources};
-    *streamingConnectionStrings = stringsPtr.detach();
-
-    return OPENDAQ_SUCCESS;
-}
-
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::setActiveStreamingSource(IString* streamingConnectionString)
-{
-    OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
-
-    const auto connectionStringPtr = StringPtr::Borrow(streamingConnectionString);
-
-    std::scoped_lock lock(this->sync);
-    auto it = std::find(streamingSources.begin(), streamingSources.end(), connectionStringPtr);
-    if (it == streamingSources.end())
-        return OPENDAQ_ERR_NOTFOUND;
-
-    activeStreamingSource = connectionStringPtr;
-    return OPENDAQ_SUCCESS;
-}
-
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::getActiveStreamingSource(IString** streamingConnectionString)
-{
-    OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
-
-    std::scoped_lock lock(this->sync);
-    *streamingConnectionString = activeStreamingSource.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode SignalBase<Props, Interfaces...>::deactivateStreaming()
-{
-    std::scoped_lock lock(this->sync);
-    activeStreamingSource = nullptr;
-    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ

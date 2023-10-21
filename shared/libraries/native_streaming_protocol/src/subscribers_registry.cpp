@@ -43,6 +43,25 @@ void SubscribersRegistry::sendToSubscribers(const SignalPtr& signal, SendToClien
     }
 }
 
+void SubscribersRegistry::sendToClient(SessionPtr session, SendToClientCallback sendCallback)
+{
+    std::scoped_lock lock(sync);
+    auto iter = std::find_if(sessionHandlers.begin(),
+                             sessionHandlers.end(),
+                             [&session](std::shared_ptr<ServerSessionHandler>& handler)
+                             {
+                                 return handler->getSession() == session;
+                             });
+    if (iter != sessionHandlers.end())
+    {
+        sendCallback(*iter);
+    }
+    else
+    {
+        throw NativeStreamingProtocolException("Client is not registered");
+    }
+}
+
 void SubscribersRegistry::registerSignal(const SignalPtr& signal)
 {
     auto signalKey = signal.getGlobalId().toStdString();

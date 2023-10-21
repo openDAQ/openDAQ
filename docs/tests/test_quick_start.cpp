@@ -48,6 +48,7 @@ TEST_F(QuickStartTest, QuickStartAppReader)
 
     using namespace std::chrono_literals;
     StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignalsRecursive()[0]);
+    docs_test_helpers::waitForSignalSubscription();
 
     double samples[100];
     for (int i = 0; i < 5; ++i)
@@ -72,6 +73,7 @@ TEST_F(QuickStartTest, QuickStartAppStatistics)
 
     daq::FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
     statistics.getInputPorts()[0].connect(device.getSignalsRecursive()[0]);
+    docs_test_helpers::waitForSignalSubscription();
     const daq::ChannelPtr sineChannel = device.getChannels()[0];
 
     for (daq::PropertyPtr prop : sineChannel.getVisibleProperties())
@@ -129,6 +131,7 @@ TEST_F(QuickStartTest, QuickStartAppReaderWebsocket)
 
     using namespace std::chrono_literals;
     StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignals()[0]);
+    docs_test_helpers::waitForSignalSubscription();
 
     double samples[100];
     for (int i = 0; i < 5; ++i)
@@ -169,6 +172,7 @@ TEST_F(QuickStartTest, QuickStartAppReaderNativePseudoDevice)
 
     using namespace std::chrono_literals;
     StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignals()[0]);
+    docs_test_helpers::waitForSignalSubscription();
 
     double samples[100];
     for (int i = 0; i < 5; ++i)

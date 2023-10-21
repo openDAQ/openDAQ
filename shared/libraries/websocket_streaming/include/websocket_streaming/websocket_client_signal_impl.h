@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <opendaq/signal_remote_impl.h>
+#include <opendaq/mirrored_signal_impl.h>
 
 #include "websocket_streaming/websocket_streaming.h"
 
@@ -27,7 +27,7 @@ DECLARE_OPENDAQ_INTERFACE(IWebsocketStreamingSignalPrivate, IBaseObject)
     virtual void assignDescriptor(const DataDescriptorPtr& descriptor) = 0;
 };
 
-class WebsocketClientSignalImpl final : public SignalRemoteBase<SignalStandardProps::AddReadOnly, IWebsocketStreamingSignalPrivate>
+class WebsocketClientSignalImpl final : public MirroredSignalBase<SignalStandardProps::AddReadOnly, IWebsocketStreamingSignalPrivate>
 {
 public:
     explicit WebsocketClientSignalImpl(const ContextPtr& ctx,
@@ -44,15 +44,14 @@ public:
     void assignDomainSignal(const DataDescriptorPtr& domainDescriptor) override;
     void assignDescriptor(const DataDescriptorPtr& descriptor) override;
 
-protected:
-    EventPacketPtr createDataDescriptorChangedEventPacket() override;
-
 private:
     static StringPtr CreateLocalId(const StringPtr& streamingId);
 
     StringPtr streamingId;
     DataDescriptorPtr mirroredDataDescriptor;
     SignalConfigPtr domainSignalArtificial;
+
+    std::mutex signalMutex;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

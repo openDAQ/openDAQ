@@ -22,8 +22,10 @@
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
 #include <coreobjects/string_keys.h>
-#include <opendaq/signal_remote_ptr.h>
+#include <opendaq/mirrored_signal_config_ptr.h>
 #include <coretypes/validation.h>
+#include <opendaq/streaming_private.h>
+#include <opendaq/mirrored_signal_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -33,23 +35,28 @@ class StreamingImpl;
 using Streaming = StreamingImpl<>;
 
 template <typename... Interfaces>
-class StreamingImpl : public ImplementationOf<IStreaming, Interfaces...>
+class StreamingImpl : public ImplementationOfWeak<IStreaming, IStreamingPrivate, Interfaces...>
 {
 public:
-    using Super = ImplementationOf<IStreaming, Interfaces...>;
+    using Super = ImplementationOfWeak<IStreaming, IStreamingPrivate, Interfaces...>;
     using Self = StreamingImpl<Interfaces...>;
 
-    explicit StreamingImpl(const StringPtr& connectionString,
-                           ContextPtr context);
+    explicit StreamingImpl(const StringPtr& connectionString, ContextPtr context);
 
     ~StreamingImpl() override;
 
+    // IStreaming
     ErrCode INTERFACE_FUNC getActive(Bool* active) override;
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
     ErrCode INTERFACE_FUNC addSignals(IList* signals) override;
     ErrCode INTERFACE_FUNC removeSignals(IList* signals) override;
     ErrCode INTERFACE_FUNC removeAllSignals() override;
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) const override;
+
+    // IStreamingPrivate
+    ErrCode INTERFACE_FUNC subscribeSignal(const MirroredSignalConfigPtr& signal) override;
+    ErrCode INTERFACE_FUNC unsubscribeSignal(const MirroredSignalConfigPtr& signal) override;
+    EventPacketPtr INTERFACE_FUNC createDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal) override;
 
 protected:
     /*!
@@ -63,13 +70,27 @@ protected:
      * @param signal The signal to be added to the Streaming.
      * @returns The signal ID used as a key to store/access the signal within the Streaming.
      */
-    virtual StringPtr onAddSignal(const SignalRemotePtr& signal) = 0;
+    virtual StringPtr onAddSignal(const MirroredSignalConfigPtr& signal) = 0;
 
     /*!
      * @brief A function is called when signal is being removed from the Streaming.
      * @param signal The signal to be removed from the Streaming.
      */
-    virtual void onRemoveSignal(const SignalRemotePtr& signal) = 0;
+    virtual void onRemoveSignal(const MirroredSignalConfigPtr& signal) = 0;
+
+    /*!
+     * @brief A function is called when signal is being subscribed within the Streaming.
+     * @param signal The signal to be subscribed within the Streaming.
+     */
+    virtual void onSubscribeSignal(const MirroredSignalConfigPtr& signal) = 0;
+
+    /*!
+     * @brief A function is called when signal is being unsubscribed within the Streaming.
+     * @param signal The signal to be unsubscribed within the Streaming.
+     */
+    virtual void onUnsubscribeSignal(const MirroredSignalConfigPtr& signal) = 0;
+
+    virtual EventPacketPtr onCreateDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal) = 0;
 
     void removeAllSignalsInternal();
 
@@ -77,11 +98,11 @@ protected:
     StringPtr connectionString;
     ContextPtr context;
     bool isActive{};
-    std::unordered_map<StringPtr, SignalRemotePtr, StringHash, StringEqualTo> streamingSignals;
+    std::unordered_map<StringPtr, WeakRefPtr<IMirroredSignalConfig>, StringHash, StringEqualTo> streamingSignalsRefs;
 };
 
 template <typename... Interfaces>
-StreamingImpl<Interfaces...>::StreamingImpl(const StringPtr &connectionString, ContextPtr context)
+StreamingImpl<Interfaces...>::StreamingImpl(const StringPtr& connectionString, ContextPtr context)
     : connectionString(connectionString)
     , context(std::move(context))
 {
@@ -132,24 +153,28 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList *signals)
     const auto signalsPtr = ListPtr<ISignal>::Borrow(signals);
     for (const auto& signal : signalsPtr)
     {
-        auto remoteSignal = signal.asPtrOrNull<ISignalRemote>();
-        if (remoteSignal == nullptr)
+        auto mirroredSignal = signal.asPtrOrNull<IMirroredSignalConfig>();
+        if (mirroredSignal == nullptr)
         {
             return this->makeErrorInfo(OPENDAQ_ERR_NOINTERFACE,
-                                       fmt::format(R"(Signal "{}" does not implement ISignalRemote interface.)",
+                                       fmt::format(R"(Signal "{}" does not implement IMirroredSignalConfig interface.)",
                                                    signal.getGlobalId()));
         }
 
         auto it = std::find_if(
-            streamingSignals.begin(),
-            streamingSignals.end(),
-            [remoteSignal](const std::pair<StringPtr, SignalRemotePtr>& element) -> bool
+            streamingSignalsRefs.begin(),
+            streamingSignalsRefs.end(),
+            [mirroredSignal](const std::pair<StringPtr, WeakRefPtr<IMirroredSignalConfig>>& element) -> bool
             {
-                return element.second == remoteSignal;
+                auto signalRef = element.second;
+                if (signalRef.assigned())
+                    return signalRef.getRef() == mirroredSignal;
+                else
+                    return false;
             }
         );
 
-        if (it != streamingSignals.end())
+        if (it != streamingSignalsRefs.end())
         {
             return this->makeErrorInfo(
                 OPENDAQ_ERR_DUPLICATEITEM,
@@ -162,13 +187,13 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList *signals)
         }
 
         StringPtr streamingSignalId;
-        ErrCode errCode = wrapHandlerReturn(this, &Self::onAddSignal, streamingSignalId, remoteSignal);
+        ErrCode errCode = wrapHandlerReturn(this, &Self::onAddSignal, streamingSignalId, mirroredSignal);
         if (OPENDAQ_FAILED(errCode))
         {
             return errCode;
         }
 
-        if (streamingSignals.find(streamingSignalId) != streamingSignals.end())
+        if (streamingSignalsRefs.find(streamingSignalId) != streamingSignalsRefs.end())
         {
             return this->makeErrorInfo(
                 OPENDAQ_ERR_DUPLICATEITEM,
@@ -180,10 +205,14 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList *signals)
                     )
                 );
         }
-        streamingSignals.insert({streamingSignalId, remoteSignal});
+        streamingSignalsRefs.insert({streamingSignalId, WeakRefPtr<IMirroredSignalConfig>(mirroredSignal)});
 
         auto thisPtr = this->template borrowPtr<StreamingPtr>();
-        remoteSignal.addStreamingSource(thisPtr);
+        errCode = mirroredSignal.template asPtr<IMirroredSignalPrivate>()->addStreamingSource(thisPtr);
+        if (OPENDAQ_FAILED(errCode))
+        {
+            return errCode;
+        }
     }
 
     return OPENDAQ_SUCCESS;
@@ -199,33 +228,40 @@ ErrCode StreamingImpl<Interfaces...>::removeSignals(IList *signals)
     const auto signalsPtr = ListPtr<ISignal>::Borrow(signals);
     for (const auto& signal : signalsPtr)
     {
-        auto remoteSignal = signal.asPtrOrNull<ISignalRemote>();
-        if (remoteSignal == nullptr)
+        auto mirroredSignal = signal.asPtrOrNull<IMirroredSignalConfig>();
+        if (mirroredSignal == nullptr)
         {
             return this->makeErrorInfo(OPENDAQ_ERR_NOINTERFACE,
-                                 fmt::format(R"(Signal "{}" does not implement ISignalRemote interface.)",
+                                 fmt::format(R"(Signal "{}" does not implement IMirroredSignalConfig interface.)",
                                              signal.getGlobalId()));
         }
 
         auto it = std::find_if(
-            streamingSignals.begin(),
-            streamingSignals.end(),
-            [remoteSignal](const std::pair<StringPtr, SignalRemotePtr>& element) -> bool
+            streamingSignalsRefs.begin(),
+            streamingSignalsRefs.end(),
+            [mirroredSignal](const std::pair<StringPtr, WeakRefPtr<IMirroredSignalConfig>>& element) -> bool
             {
-                return element.second == remoteSignal;
+                auto signalRef = element.second;
+                if (signalRef.assigned())
+                    return signalRef.getRef() == mirroredSignal;
+                else
+                    return false;
             }
-            );
-        if (it != streamingSignals.end())
+        );
+        if (it != streamingSignalsRefs.end())
         {
-            ErrCode errCode = wrapHandler(this, &Self::onRemoveSignal, remoteSignal);
+            ErrCode errCode = wrapHandler(this, &Self::onRemoveSignal, mirroredSignal);
             if (OPENDAQ_FAILED(errCode))
             {
                 return errCode;
             }
-            streamingSignals.erase(it);
+            streamingSignalsRefs.erase(it);
 
-            auto thisPtr = this->template borrowPtr<StreamingPtr>();
-            remoteSignal.removeStreamingSource(thisPtr);
+            errCode = mirroredSignal.template asPtr<IMirroredSignalPrivate>()->removeStreamingSource(connectionString);
+            if (OPENDAQ_FAILED(errCode))
+            {
+                return errCode;
+            }
         }
         else
         {
@@ -248,13 +284,19 @@ ErrCode StreamingImpl<Interfaces...>::removeAllSignals()
 {
     std::scoped_lock lock(sync);
 
-    for (const auto& element : streamingSignals)
+    for (const auto& [_, mirroredSignalRef] : streamingSignalsRefs)
     {
-        auto remoteSignal = element.second;
-        ErrCode errCode = wrapHandler(this, &Self::onRemoveSignal, remoteSignal);
-        if (OPENDAQ_FAILED(errCode))
+        if (mirroredSignalRef.assigned())
         {
-            return errCode;
+            auto mirroredSignal = mirroredSignalRef.getRef();
+            if (mirroredSignal.assigned())
+            {
+                ErrCode errCode = wrapHandler(this, &Self::onRemoveSignal, mirroredSignal);
+                if (OPENDAQ_FAILED(errCode))
+                {
+                    return errCode;
+                }
+            }
         }
     }
     removeAllSignalsInternal();
@@ -272,15 +314,48 @@ ErrCode StreamingImpl<Interfaces...>::getConnectionString(IString** connectionSt
 }
 
 template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::subscribeSignal(const MirroredSignalConfigPtr& signal)
+{
+    ErrCode errCode = wrapHandler(this, &Self::onSubscribeSignal, signal);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::unsubscribeSignal(const MirroredSignalConfigPtr& signal)
+{
+    ErrCode errCode = wrapHandler(this, &Self::onUnsubscribeSignal, signal);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+EventPacketPtr StreamingImpl<Interfaces...>::createDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal)
+{
+    return onCreateDataDescriptorChangedEventPacket(signal);
+}
+
+template <typename... Interfaces>
 void StreamingImpl<Interfaces...>::removeAllSignalsInternal()
 {
-    for (const auto& element : streamingSignals)
+    for (const auto& [_, mirroredSignalRef] : streamingSignalsRefs)
     {
-        auto remoteSignal = element.second;
-        auto thisPtr = this->template borrowPtr<StreamingPtr>();
-        remoteSignal.removeStreamingSource(thisPtr);
+        if (mirroredSignalRef.assigned())
+        {
+            auto mirroredSignal = mirroredSignalRef.getRef();
+            if (mirroredSignal.assigned())
+                mirroredSignal.template asPtr<IMirroredSignalPrivate>()->removeStreamingSource(connectionString);
+        }
     }
-    streamingSignals.clear();
+    streamingSignalsRefs.clear();
 }
 
 END_NAMESPACE_OPENDAQ

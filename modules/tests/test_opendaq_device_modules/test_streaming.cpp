@@ -55,6 +55,21 @@ public:
         throw NotFoundException();
     }
 
+    PacketReaderPtr createServerReader(const std::string& signalName)
+    {
+        return PacketReader(getSignal(serverInstance, signalName));
+    }
+
+    PacketReaderPtr createClientReader(const std::string& signalName)
+    {
+        PacketReaderPtr reader = PacketReader(getSignal(clientInstance, signalName));
+
+        // wait for signal subscription finished
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        return reader;
+    }
+
     ListPtr<IPacket> tryReadPackets(const PacketReaderPtr& reader, size_t packetCount, uint64_t timeoutMs = 500)
     {
         auto allPackets = List<IPacket>();
@@ -156,8 +171,9 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
 
     auto serverSignal = getSignal(serverInstance, "ChangingSignal");
     auto clientSignal = getSignal(clientInstance, "ChangingSignal");
-    auto serverReader = PacketReader(serverSignal);
-    auto clientReader = PacketReader(clientSignal);
+
+    auto serverReader = createServerReader("ChangingSignal");
+    auto clientReader = createClientReader("ChangingSignal");
 
     generatePackets(packetsToGenerate); 
 
@@ -185,7 +201,7 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     }
 
     // recreate client reader and test initial event packet
-    clientReader = PacketReader(clientSignal);
+    clientReader = createClientReader(clientSignal.getDescriptor().getName());
     auto clientReceivedPackets = tryReadPackets(clientReader, 1);
 
     ASSERT_EQ(clientReceivedPackets.getCount(), 1);
@@ -214,8 +230,8 @@ TEST_P(StreamingTest, DataPackets)
     // +1 signal initial descriptor changed event packet
     const size_t packetsToRead = packetsToGenerate + 1;
 
-    auto serverReader = PacketReader(getSignal(serverInstance, "ByteStep"));
-    auto clientReader = PacketReader(getSignal(clientInstance, "ByteStep"));
+    auto serverReader = createServerReader("ByteStep");
+    auto clientReader = createClientReader("ByteStep");
 
     generatePackets(packetsToGenerate);
 
@@ -236,14 +252,14 @@ TEST_P(StreamingTest, SignalPropertyEvents)
     // +2 signal property changed event packet
     const size_t packetsToReceive = packetsToRead + 1 + 2;
 
-    SignalConfigPtr serverSignal = getSignal(serverInstance, "ByteStep");
+    SignalPtr serverSignal = getSignal(serverInstance, "ByteStep");
     SignalPtr clientSignal = getSignal(clientInstance, "ByteStep");
 
     ASSERT_EQ(clientSignal.getName(), serverSignal.getName());
     ASSERT_EQ(clientSignal.getDescription(), serverSignal.getDescription());
 
-    auto serverReader = PacketReader(serverSignal);
-    auto clientReader = PacketReader(clientSignal);
+    auto serverReader = createServerReader("ByteStep");
+    auto clientReader = createClientReader("ByteStep");
 
     serverSignal.setName("ByteStepChanged");
     serverSignal.setDescription("DescriptionChanged");
@@ -253,8 +269,8 @@ TEST_P(StreamingTest, SignalPropertyEvents)
     auto serverReceivedPackets = tryReadPackets(serverReader, packetsToReceive);
     auto clientReceivedPackets = tryReadPackets(clientReader, packetsToReceive);
 
-    ASSERT_EQ(clientSignal.getName(), serverSignal.getName());
-    ASSERT_EQ(clientSignal.getDescription(), serverSignal.getDescription());
+    EXPECT_EQ(clientSignal.getName(), serverSignal.getName());
+    EXPECT_EQ(clientSignal.getDescription(), serverSignal.getDescription());
 
     // TODO
     // packet comparing for web-socket streaming is skipped since it does not recreate "PROPERTY_CHANGED"
@@ -334,8 +350,8 @@ TEST_P(StreamingAsyncSignalTest, SigWithExplicitDomain)
 {
     const size_t packetsToRead = 10;
 
-    auto serverReader = PacketReader(getSignal(serverInstance, "ByteStep/Avg"));
-    auto clientReader = PacketReader(getSignal(clientInstance, "ByteStep/Avg"));
+    auto serverReader = createServerReader("ByteStep/Avg");
+    auto clientReader = createClientReader("ByteStep/Avg");
 
     generatePackets(packetsToRead);
 

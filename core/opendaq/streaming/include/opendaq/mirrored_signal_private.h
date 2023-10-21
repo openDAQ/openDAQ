@@ -17,49 +17,42 @@
 #pragma once
 #include <coretypes/baseobject.h>
 #include <coretypes/stringobject.h>
-#include <opendaq/event_packet.h>
-#include <opendaq/streaming.h>
+#include <opendaq/event_packet_ptr.h>
+#include <opendaq/streaming_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_streamings
- * @addtogroup opendaq_streaming_signal Signal Remote
+ * @addtogroup opendaq_streaming_signal Mirrored Signal private
  * @{
  */
 
 /*!
- * @brief Represents an internal interface for a signal. Provides methods that are called only for
- * mirrored signals.
- * Allows adding/removing streaming data sources per signal.
+ * @brief Internal functions used by openDAQ core. This interface should never be used in
+ * client SDK or module code.
  */
-DECLARE_OPENDAQ_INTERFACE(ISignalRemote, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IMirroredSignalPrivate, IBaseObject)
 {
-    /*!
-     * @brief Gets the global ID of the signal as it appears on the remote device.
-     * @param[out] id The signal id.
-     */
-    virtual ErrCode INTERFACE_FUNC getRemoteId(IString** id) const = 0;
-
     /*!
      * @brief Handles event packet e.g. packet with changes of the signals descriptors or
      * signal properties
      * @param eventPacket The event packet to be handled.
-     * @param[out] forwardEvent True if the eventPacket should be sent along the signal path; false otherwise.
+     * @returns True if the eventPacket should be sent along the signal path; False otherwise.
      */
-    virtual ErrCode INTERFACE_FUNC triggerEvent(IEventPacket* eventPacket, Bool* forwardEvent) = 0;
+    virtual Bool INTERFACE_FUNC triggerEvent(const EventPacketPtr& eventPacket) = 0;
 
     /*!
      * @brief Adds streaming source for signal.
      * @param streaming The Streaming object representing the data source.
      */
-    virtual ErrCode INTERFACE_FUNC addStreamingSource(IStreaming* streaming) = 0;
+    virtual ErrCode INTERFACE_FUNC addStreamingSource(const StreamingPtr& streaming) = 0;
 
     /*!
      * @brief Removes streaming source for signal.
-     * @param streaming The Streaming object representing the data source.
+     * @param streamingConnectionString The connection string of streaming source to be removed.
      */
-    virtual ErrCode INTERFACE_FUNC removeStreamingSource(IStreaming* streaming) = 0;
+    virtual ErrCode INTERFACE_FUNC removeStreamingSource(const StringPtr& streamingConnectionString) = 0;
 };
 /*!@}*/
 

@@ -156,8 +156,8 @@ protected:
     {
         for (const auto& signal : device.getSignalsRecursive())
         {
-            auto signalConfigPtr = signal.asPtr<ISignalConfig>();
-            signalConfigPtr.setActiveStreamingSource(STREAMING_URL);
+            auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
+            mirroredSignalConfigPtr.setActiveStreamingSource(STREAMING_URL);
         }
     }
 

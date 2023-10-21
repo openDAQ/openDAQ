@@ -58,6 +58,11 @@ TEST_F(PacketStreamingTest, EventPacket)
     ASSERT_EQ(serverEventPacket, clientEventPacket);
 
     ASSERT_TRUE(client.areReferencesCleared());
+
+    EventPacketPtr descriptorEventPacket;
+    ASSERT_NO_THROW(descriptorEventPacket = client.getDataDescriptorChangedEventPacket(1));
+
+    ASSERT_EQ(descriptorEventPacket, clientEventPacket);
 }
 
 TEST_F(PacketStreamingTest, DataPacket)

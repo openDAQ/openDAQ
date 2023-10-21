@@ -40,8 +40,8 @@ void WebsocketClientDeviceImpl::activateStreaming()
 
     for (const auto& signal : signals)
     {
-        auto signalConfigPtr = signal.asPtr<ISignalConfig>();
-        signalConfigPtr.setActiveStreamingSource(websocketStreaming.getConnectionString());
+        auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
+        mirroredSignalConfigPtr.setActiveStreamingSource(websocketStreaming.getConnectionString());
     }
 }
 

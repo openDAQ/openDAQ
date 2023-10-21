@@ -3,6 +3,8 @@
 #include <opendaq/signal_config_ptr.h>
 #include <opendaq/custom_log.h>
 
+#include <opendaq/mirrored_signal_private.h>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 using namespace opendaq_native_streaming_protocol;
@@ -63,10 +65,9 @@ void NativeStreamingImpl::addToAvailableSignals(const StringPtr& signalStringId)
     std::string idToAdd = signalStringId.toStdString();
 
     std::scoped_lock lock(availableSignalsSync);
-    const auto it = std::find(availableSignalIds.begin(), availableSignalIds.end(), idToAdd);
-    if (it == availableSignalIds.end())
+    if (const auto it = availableSignals.find(idToAdd); it == availableSignals.end())
     {
-        availableSignalIds.push_back(idToAdd);
+        availableSignals.insert({idToAdd, 0});
     }
     else
     {
@@ -89,10 +90,9 @@ void NativeStreamingImpl::removeFromAvailableSignals(const StringPtr& signalStri
     std::string idToRemove = signalStringId.toStdString();
 
     std::scoped_lock lock(availableSignalsSync);
-    const auto it = std::find(availableSignalIds.begin(), availableSignalIds.end(), idToRemove);
-    if (it != availableSignalIds.end())
+    if (const auto it = availableSignals.find(idToRemove); it != availableSignals.end())
     {
-        availableSignalIds.erase(it);
+        availableSignals.erase(it);
     }
     else
     {
@@ -129,124 +129,114 @@ void NativeStreamingImpl::prepareClientHandler()
 
 void NativeStreamingImpl::onPacket(const StringPtr& signalStringId, const PacketPtr& packet)
 {
-    const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
-    if (eventPacket.assigned())
+    if (!this->isActive)
+        return;
+
+    if (auto it = streamingSignalsRefs.find(signalStringId); it != streamingSignalsRefs.end())
     {
-        handleEventPacket(signalStringId, eventPacket);
-    }
-    else
-    {
-        handleDataPacket(signalStringId, packet);
+        auto signalRef = it->second;
+        MirroredSignalConfigPtr signal = signalRef.assigned() ? signalRef.getRef() : nullptr;
+        if (signal.assigned() && signal.getActiveStreamingSource() == connectionString)
+        {
+            const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
+            if (eventPacket.assigned())
+                handleEventPacket(signal, eventPacket);
+            else
+                signal.sendPacket(packet);
+        }
     }
 }
 
 void NativeStreamingImpl::onSetActive(bool active)
 {
-    for (const auto& [signalStreamingId, _] : streamingSignals)
-    {
-        if (active)
-        {
-            // TODO subscribe when listener connected
-            //clientHandler->subscribeSignal(signalStreamingId);
-        }
-        else
-        {
-            // TODO unsubscribe when all listeners disconnected
-            //clientHandler->unsubscribeSignal(signalStreamingId);
-        }
-    }
 }
 
-StringPtr NativeStreamingImpl::onAddSignal(const SignalRemotePtr& signal)
+StringPtr NativeStreamingImpl::onAddSignal(const MirroredSignalConfigPtr& signal)
 {
-    StringPtr signalStreamingId = this->getSignalStreamingId(signal);
-    if ( !signalStreamingId.assigned() )
-        throw NotFoundException("Signal with id {} is not available in Native streaming", signal.getRemoteId());
-
-    handleCachedEventPackets(signalStreamingId, signal);
-    if (this->isActive)
-    {
-        // TODO subscribe when listener connected
-        //clientHandler->subscribeSignal(signalStreamingId);
-    }
-    return signalStreamingId;
+    return getSignalStreamingId(signal);
 }
 
-void NativeStreamingImpl::onRemoveSignal(const SignalRemotePtr& signal)
+void NativeStreamingImpl::onRemoveSignal(const MirroredSignalConfigPtr& signal)
 {
-    StringPtr signalStreamingId = this->getSignalStreamingId(signal);
-    if ( !signalStreamingId.assigned() )
-        throw NotFoundException("Signal with id {} is not available in Native streaming", signal.getRemoteId());
-    if (this->isActive)
-    {
-        // TODO unsubscribe when all listeners disconnected
-        //clientHandler->unsubscribeSignal(signalStreamingId);
-    }
 }
 
-void NativeStreamingImpl::handleEventPacket(const StringPtr& signalId, const EventPacketPtr& eventPacket)
+void NativeStreamingImpl::onSubscribeSignal(const MirroredSignalConfigPtr& signal)
 {
-    if (auto it = streamingSignals.find(signalId); it != streamingSignals.end())
-    {
-        SignalRemotePtr signal = it->second;
-        Bool forwardPacket = signal.triggerEvent(eventPacket);
-        auto signalConfig = signal.asPtr<ISignalConfig>();
-        auto sourceStreamingConnectionString = signalConfig.getActiveStreamingSource();
-        if (sourceStreamingConnectionString == connectionString && isActive && forwardPacket)
-        {
-            signalConfig.sendPacket(eventPacket);
-        }
-    }
-    else
-    {
-        cachedEventPackets[signalId].push_back(eventPacket);
-    }
+    auto domainSignal = signal.getDomainSignal();
+    if (domainSignal.assigned())
+        checkAndSubscribe(domainSignal.template asPtr<IMirroredSignalConfig>());
+    checkAndSubscribe(signal);
 }
 
-void NativeStreamingImpl::handleDataPacket(const StringPtr& signalId, const PacketPtr& dataPacket)
+void NativeStreamingImpl::onUnsubscribeSignal(const MirroredSignalConfigPtr& signal)
 {
-    if (auto it = streamingSignals.find(signalId); it != streamingSignals.end() && isActive)
-    {
-        auto signal = (it->second).asPtr<ISignalConfig>();
-        auto sourceStreamingConnectionString = signal.getActiveStreamingSource();
-        if (sourceStreamingConnectionString == connectionString)
-        {
-            signal.sendPacket(dataPacket);
-        }
-    }
+    auto domainSignal = signal.getDomainSignal();
+    if (domainSignal.assigned())
+        checkAndUnsubscribe(domainSignal.template asPtr<IMirroredSignalConfig>());
+    checkAndUnsubscribe(signal);
 }
 
-void NativeStreamingImpl::handleCachedEventPackets(const StringPtr& signalStreamingId,
-                                                   const SignalRemotePtr& signal)
+void NativeStreamingImpl::checkAndSubscribe(const MirroredSignalConfigPtr& signal)
 {
-    if (auto it = cachedEventPackets.find(signalStreamingId); it != cachedEventPackets.end())
+    auto signalStreamingId = getSignalStreamingId(signal);
+
+    std::scoped_lock lock(availableSignalsSync);
+    if (const auto it = availableSignals.find(signalStreamingId); it != availableSignals.end())
     {
-        for (const auto& eventPacket : it->second)
-            signal.triggerEvent(eventPacket);
-        cachedEventPackets.erase(it);
+        if (it->second == 0)
+            clientHandler->subscribeSignal(signalStreamingId);
+        it->second++;
     }
 }
 
-StringPtr NativeStreamingImpl::getSignalStreamingId(const SignalRemotePtr &signal)
+void NativeStreamingImpl::checkAndUnsubscribe(const MirroredSignalConfigPtr& signal)
+{
+    auto signalStreamingId = getSignalStreamingId(signal);
+
+    std::scoped_lock lock(availableSignalsSync);
+    if (const auto it = availableSignals.find(signalStreamingId);
+        it != availableSignals.end() && it->second > 0)
+    {
+        it->second--;
+        if (it->second == 0)
+            clientHandler->unsubscribeSignal(signalStreamingId);
+    }
+}
+
+EventPacketPtr NativeStreamingImpl::onCreateDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal)
+{
+    StringPtr signalStreamingId = getSignalStreamingId(signal);
+    return clientHandler->getDataDescriptorChangedEventPacket(signalStreamingId);
+}
+
+void NativeStreamingImpl::handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket)
+{
+    Bool forwardPacket = signal.template asPtr<IMirroredSignalPrivate>()->triggerEvent(eventPacket);
+    if (forwardPacket)
+        signal.sendPacket(eventPacket);
+}
+
+StringPtr NativeStreamingImpl::getSignalStreamingId(const MirroredSignalConfigPtr& signal)
 {
     std::string signalFullId = signal.getRemoteId().toStdString();
 
     std::scoped_lock lock(availableSignalsSync);
     const auto it = std::find_if(
-        availableSignalIds.begin(),
-        availableSignalIds.end(),
-        [signalFullId](std::string idEnding)
+        availableSignals.begin(),
+        availableSignals.end(),
+        [signalFullId](std::pair<std::string, SizeT> element)
         {
+            std::string idEnding = element.first;
             if (idEnding.size() > signalFullId.size())
                 return false;
             return std::equal(idEnding.rbegin(), idEnding.rend(), signalFullId.rbegin());
         }
     );
 
-    if (it != availableSignalIds.end())
-        return String(*it);
+    if (it != availableSignals.end())
+        return String(it->first);
     else
-        return nullptr;
+        throw NotFoundException("Signal with id {} is not available in Native streaming", signal.getRemoteId());
 }
 
 void NativeStreamingImpl::startAsyncOperations()

@@ -34,6 +34,7 @@ public:
 
     void sendToClients(SendToClientCallback sendCallback);
     void sendToSubscribers(const SignalPtr& signal, SendToClientCallback sendCallback);
+    void sendToClient(SessionPtr session, SendToClientCallback sendCallback);
 
     void registerSignal(const SignalPtr& signal);
     void removeSignal(const SignalPtr& signal);

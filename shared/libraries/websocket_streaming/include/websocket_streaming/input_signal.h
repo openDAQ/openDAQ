@@ -20,6 +20,7 @@
 #include <streaming_protocol/SynchronousSignal.hpp>
 #include <opendaq/sample_type.h>
 #include <opendaq/signal_factory.h>
+#include <opendaq/event_packet_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -32,7 +33,7 @@ public:
     InputSignal();
 
     PacketPtr asPacket(uint64_t packetOffset, const uint8_t* data, size_t size);
-    PacketPtr createDecriptorChangedPacket();
+    EventPacketPtr createDecriptorChangedPacket();
     void setDataDescriptor(const DataDescriptorPtr& dataDescriptor);
     void setDomainDescriptor(const DataDescriptorPtr& domainDescriptor);
     bool hasDescriptors();

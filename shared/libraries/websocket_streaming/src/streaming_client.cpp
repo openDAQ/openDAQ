@@ -6,6 +6,7 @@
 #include "stream/WebsocketClientStream.hpp"
 #include "streaming_protocol/SignalContainer.hpp"
 #include "opendaq/custom_log.h"
+#include <opendaq/packet_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -155,6 +156,14 @@ bool StreamingClient::isConnected()
 void StreamingClient::setConnectTimeout(std::chrono::milliseconds timeout)
 {
     this->connectTimeout = timeout;
+}
+
+EventPacketPtr StreamingClient::getDataDescriptorChangedEventPacket(const StringPtr& signalStringId)
+{
+    if (auto it = signals.find(signalStringId); it == signals.end())
+        return DataDescriptorChangedEventPacket(nullptr, nullptr);
+    else
+        return it->second->createDecriptorChangedPacket();
 }
 
 void StreamingClient::parseConnectionString(const std::string& url)

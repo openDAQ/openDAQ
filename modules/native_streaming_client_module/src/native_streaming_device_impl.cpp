@@ -64,8 +64,8 @@ void NativeStreamingDeviceImpl::activateStreaming()
 
     for (const auto& signal : signals)
     {
-        auto signalConfigPtr = signal.asPtr<ISignalConfig>();
-        signalConfigPtr.setActiveStreamingSource(nativeStreaming.getConnectionString());
+        auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
+        mirroredSignalConfigPtr.setActiveStreamingSource(nativeStreaming.getConnectionString());
     }
 }
 

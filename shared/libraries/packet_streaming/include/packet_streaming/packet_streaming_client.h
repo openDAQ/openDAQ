@@ -42,10 +42,13 @@ public:
     std::tuple<uint32_t, PacketPtr> getNextDaqPacket();
 
     bool areReferencesCleared() const;
+
+    EventPacketPtr getDataDescriptorChangedEventPacket(uint32_t signalId) const;
 private:
     DeserializerPtr jsonDeserializer;
     std::queue<std::tuple<uint32_t, PacketPtr>> queue;
     std::unordered_map<uint32_t, DataDescriptorPtr> dataDescriptors;
+    std::unordered_map<uint32_t, DataDescriptorPtr> domainDescriptors;
 
     std::unordered_map<Int, DataPacketPtr> referencedPackets;
     std::unordered_map<Int, PacketBufferPtr> referencedPacketBuffers;

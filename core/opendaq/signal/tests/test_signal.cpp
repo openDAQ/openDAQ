@@ -387,17 +387,4 @@ TEST_F(SignalTest, Remove)
     ASSERT_TRUE(removable.isRemoved());
 }
 
-TEST_F(SignalTest, StreamingSourcesEmpty)
-{
-    auto signal = Signal(NullContext(), nullptr, "sig");
-
-    auto sources = signal.getStreamingSources();
-    ASSERT_EQ(sources.getCount(), 0u);
-
-    auto activeSource = signal.getActiveStreamingSource();
-    ASSERT_FALSE(activeSource.assigned());
-
-    ASSERT_THROW(signal.setActiveStreamingSource("connectionString"), NotFoundException);
-}
-
 END_NAMESPACE_OPENDAQ

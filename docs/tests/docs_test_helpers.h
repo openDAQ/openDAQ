@@ -62,6 +62,14 @@ namespace docs_test_helpers
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(1000ms);
     }
+
+    // waits for signal subscription request from client to be delivered to and handled by server
+    [[maybe_unused]]
+    static void waitForSignalSubscription()
+    {
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(50ms);
+    }
 }
 
 END_NAMESPACE_OPENDAQ

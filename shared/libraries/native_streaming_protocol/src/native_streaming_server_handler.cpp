@@ -85,31 +85,12 @@ void NativeStreamingServerHandler::removeSignal(const SignalPtr& signal)
 void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, const PacketPtr& packet)
 {
     auto signalNumericId = findSignalNumericId(signal);
-    subscribersRegistry.sendToClients(
+    subscribersRegistry.sendToSubscribers(
+        signal,
         [signalNumericId, &packet](std::shared_ptr<ServerSessionHandler>& sessionHandler)
         {
             sessionHandler->sendPacket(signalNumericId, packet);
         });
-    return;
-
-    // TODO send data packets only to subscribers
-    if (packet.getType() == PacketType::Event)
-    {
-        subscribersRegistry.sendToClients(
-            [signalNumericId, &packet](std::shared_ptr<ServerSessionHandler>& sessionHandler)
-            {
-                sessionHandler->sendPacket(signalNumericId, packet);
-            });
-    }
-    else
-    {
-        subscribersRegistry.sendToSubscribers(
-            signal,
-            [signalNumericId, &packet](std::shared_ptr<ServerSessionHandler>& sessionHandler)
-            {
-                sessionHandler->sendPacket(signalNumericId, packet);
-            });
-    }
 }
 
 void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
@@ -141,7 +122,7 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
     {
         if (subscribe)
         {
-            LOG_D("Server received subscribe command for signal: {}, numeric Id {}",
+            LOG_I("Server received subscribe command for signal: {}, numeric Id {}",
                   signalStringId, signalNumericId);
             if (subscribersRegistry.registerSignalSubscriber(signalStringId, session))
             {
@@ -150,7 +131,7 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
         }
         else
         {
-            LOG_D("Server received unsubscribe command for signal: {}, numeric Id {}",
+            LOG_I("Server received unsubscribe command for signal: {}, numeric Id {}",
                   signalStringId, signalNumericId);
             if (subscribersRegistry.removeSignalSubscriber(signalStringId, session))
             {
@@ -225,7 +206,6 @@ SignalPtr NativeStreamingServerHandler::findRegisteredSignal(const std::string& 
     else
         throw NativeStreamingProtocolException("Signal is not registered");
 }
-
 
 EventPacketPtr NativeStreamingServerHandler::createDataDescriptorChangedEventPacket(const SignalPtr& signal)
 {

@@ -7,6 +7,7 @@
 #include <opendaq/streaming_info_factory.h>
 #include <opendaq/reader_factory.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/event_packet_ids.h>
 
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 
@@ -147,9 +148,9 @@ void NativeStreamingServerImpl::stopReading()
 
 void NativeStreamingServerImpl::startReadThread()
 {
-    createReaders();
     while (readThreadActive)
     {
+        updateReaders();
         for (const auto& [signal, reader] : signalReaders)
         {
             PacketPtr packet = reader.read();
@@ -192,7 +193,22 @@ void NativeStreamingServerImpl::updateReaders()
 
 void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
 {
+    auto it = std::find_if(signalReaders.begin(),
+                           signalReaders.end(),
+                           [&signalToRead](const std::pair<SignalPtr, PacketReaderPtr>& element)
+                           {
+                               return element.first == signalToRead;
+                           });
+    if (it != signalReaders.end())
+        return;
+
     auto reader = PacketReader(signalToRead);
+
+    [[maybe_unused]]
+    auto packet = reader.read(); // drops initial event packet
+    assert(packet.getType() == PacketType::Event);
+    assert(packet.asPtr<IEventPacket>().getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED);
+
     signalReaders.push_back(std::pair<SignalPtr, PacketReaderPtr>({signalToRead, reader}));
 }
 

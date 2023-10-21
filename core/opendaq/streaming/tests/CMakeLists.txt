@@ -1,12 +1,12 @@
 set_cmake_folder_context(TARGET_FOLDER_NAME)
 set(MODULE_NAME streaming)
 
-set(TEST_MOCKS mock/mock_signal_remote.h
-               mock/mock_signal_remote.cpp
+set(TEST_MOCKS mock/mock_mirrored_signal.h
+               mock/mock_mirrored_signal.cpp
 )
 
 set(TEST_SOURCES test_streaming.cpp
-                 test_signal_remote.cpp
+                 test_mirrored_signal.cpp
                  test_streaming_info.cpp
                  ${TEST_MOCKS}
 )

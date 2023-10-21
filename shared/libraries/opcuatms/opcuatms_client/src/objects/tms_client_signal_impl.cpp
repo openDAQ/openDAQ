@@ -167,9 +167,6 @@ ErrCode TmsClientSignalImpl::setName(IString* name)
 
 Bool TmsClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
 {
-    if (eventPacket.assigned() && eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-        triggerDataDescriptorChanged(eventPacket);
-
     // No new duplicated event packets have been created so returns true to forward original packet
     return True;
 }
@@ -177,29 +174,6 @@ Bool TmsClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
 StringPtr TmsClientSignalImpl::onGetRemoteId() const
 {
     return String(deviceSignalId);
-}
-
-EventPacketPtr TmsClientSignalImpl::createDataDescriptorChangedEventPacket()
-{
-    const std::lock_guard<std::mutex> lock(signalMutex);
-    return DataDescriptorChangedEventPacket(lastSignalDescriptor, lastDomainDescriptor);
-}
-
-void TmsClientSignalImpl::triggerDataDescriptorChanged(const EventPacketPtr& eventPacket)
-{
-    const auto params = eventPacket.getParameters();
-    DataDescriptorPtr newSignalDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-    DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-
-    const std::lock_guard<std::mutex> lock(signalMutex);
-    if (newSignalDescriptor.assigned())
-    {
-        lastSignalDescriptor = newSignalDescriptor;
-    }
-    if (newDomainDescriptor.assigned())
-    {
-        lastDomainDescriptor = newDomainDescriptor;
-    }
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

@@ -66,6 +66,7 @@ protected:
     DataDescriptorPtr lastDomainDescriptor;
     std::mutex signalMutex;
     std::string deviceSignalId;
+    StringPtr name;
 
 private:
     std::unique_ptr<opcua::OpcUaNodeId> descriptorNodeId;

@@ -26,6 +26,7 @@ TmsClientSignalImpl::TmsClientSignalImpl(
     if (referenceUtils.hasReference(nodeId, "Value"))
         descriptorNodeId = std::make_unique<OpcUaNodeId>(referenceUtils.getChildNodeId(referenceUtils.getChildNodeId(nodeId, "Value"), "DataDescriptor"));
 
+    this->name = String(client->readDisplayName(nodeId));
     registerObject(this->borrowPtr<BaseObjectPtr>());
 }
 
@@ -140,20 +141,16 @@ ErrCode TmsClientSignalImpl::clearRelatedSignals()
 ErrCode TmsClientSignalImpl::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
-
-    auto objPtr = this->borrowPtr<ComponentPtr>();
-
-    return daqTry(
-        [&name, &objPtr]()
-        {
-            *name = objPtr.getPropertyValue("Name").asPtr<IString>().detach();
-            return OPENDAQ_SUCCESS;
-        });
+    *name = this->name.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode TmsClientSignalImpl::setName(IString* name)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    OPENDAQ_PARAM_NOT_NULL(name);
+    this->name = name;
+    client->writeDisplayName(nodeId, this->name.toStdString());
+    return OPENDAQ_SUCCESS;
 }
 
 Bool TmsClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)

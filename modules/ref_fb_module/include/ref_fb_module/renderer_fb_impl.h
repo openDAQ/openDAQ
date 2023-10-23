@@ -188,8 +188,9 @@ private:
                       bool& end);
 
     template <SampleType DST>
-    void renderPacketImplicit(
+    void renderPacketImplicitAndExplicit(
         SignalContext& signalContext,
+        DataRuleType domainRuleType,
         sf::RenderTarget& renderTarget,
         const  sf::Font& font,
         const DataPacketPtr& packet,

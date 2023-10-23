@@ -235,63 +235,6 @@ sf::Color RendererFbImpl::getColor(const SignalContext& signalContext)
 }
 
 /*
-void RendererFbImpl::renderSignalExplicit(SignalContext& signalContext, sf::RenderTarget& renderTarget) const
-{
-    if (signalContext.dataPackets.empty())
-        return;
-
-    auto packetIt = signalContext.dataPackets.begin();
-    auto domainPacket = packetIt->getDomainPacket();
-
-    if (domainPacket.getSampleCount() == 0)
-        return;
-
-    const float xSize = signalContext.bottomRight.x - signalContext.topLeft.x;
-    const float xOffset = signalContext.topLeft.x;
-    const float ySize = signalContext.bottomRight.y - signalContext.topLeft.y;
-    const float yOffset = signalContext.bottomRight.y;
-
-    const sf::Color color = getColor(signalContext);
-
-    Polyline line(lineThickness, LineStyle::solid);
-    line.setColor(color);
-
-    const auto domainData_ = static_cast<int64_t*>(domainPacket.getData());
-    auto domainValue = *(domainData_ + domainPacket.getSampleCount() - 1);
-    const auto firstDomainValueLimit = domainValue - signalContext.durationInTicks;
-    const auto domainRange = domainValue - firstDomainValueLimit;
-    if (domainRange == 0)
-        return;
-
-    while (packetIt != signalContext.dataPackets.end())
-    {
-        domainPacket = packetIt->getDomainPacket();
-        const auto samplesInPacket = packetIt->getSampleCount();
-        auto data = static_cast<double*>(packetIt->getData()) + samplesInPacket;
-        auto domainData = static_cast<int64_t*>(domainPacket.getData()) + samplesInPacket;
-
-        for (size_t i = 0; i < samplesInPacket; i++)
-        {
-            const double value = *(--data);
-            domainValue = *(--domainData);
-            if (domainValue < firstDomainValueLimit)
-                goto end;
-
-            const float xPos = xOffset + static_cast<double>(domainValue - firstDomainValueLimit) / static_cast<double>(domainRange) * static_cast<float>(xSize);
-            const float yPos = yOffset - ((value - signalContext.min) / (signalContext.max - signalContext.min) * static_cast<float>(ySize));
-            line.addPoint(xPos, yPos);
-        }
-
-        ++packetIt;
-    }
-
-    end:
-
-    signalContext.dataPackets.erase(packetIt, signalContext.dataPackets.end());
-
-    renderTarget.draw(line);
-}
-
 void RendererFbImpl::renderSignalExplicitRange(SignalContext& signalContext, sf::RenderTarget& renderTarget) const
 {
     if (signalContext.dataPackets.empty())
@@ -371,15 +314,16 @@ void RendererFbImpl::renderPacket(
 
     auto domainDataDescriptor = domainPacket.getDataDescriptor();
     auto domainRule = domainDataDescriptor.getRule();
-    if (domainRule.getType() == DataRuleType::Linear)
+    if (domainRule.getType() == DataRuleType::Linear || domainRule.getType() == DataRuleType::Explicit)
     {
-        renderPacketImplicit<DST>(signalContext, renderTarget, font, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
+        renderPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, font, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
     }
 }
 
 template <SampleType DST>
-void RendererFbImpl::renderPacketImplicit(
+void RendererFbImpl::renderPacketImplicitAndExplicit(
     SignalContext& signalContext,
+    DataRuleType domainRuleType,
     sf::RenderTarget& renderTarget,
     const sf::Font& font,
     const DataPacketPtr& packet,
@@ -388,6 +332,7 @@ void RendererFbImpl::renderPacketImplicit(
     std::unique_ptr<Polyline>& line,
     bool& end)
 {
+    using SourceDomainType = typename SampleTypeToType<DST>::Type;
     using DestDomainType = typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type;
 
     const float xSize = signalContext.bottomRight.x - signalContext.topLeft.x;
@@ -395,15 +340,37 @@ void RendererFbImpl::renderPacketImplicit(
     const float ySize = signalContext.bottomRight.y - signalContext.topLeft.y;
     const float yOffset = signalContext.bottomRight.y;
 
+    bool gap;
     auto domainPacket = packet.getDomainPacket();
     auto domainDataDescriptor = domainPacket.getDataDescriptor();
-    DestDomainType firstDomainPacketValue = domainPacket.getOffset();
-
+    SizeT domainPacketSampleCount{};
     const auto domainRule = domainDataDescriptor.getRule();
     const auto domainRuleParams = domainRule.getParameters();
-    const DestDomainType delta = domainRuleParams.get("delta");
-    const DestDomainType start = domainRuleParams.get("start");
+    const auto domainOffset = domainPacket.getOffset();
     const auto samplesInPacket = packet.getSampleCount();
+    DestDomainType curDomainPacketValue{};
+    DestDomainType firstDomainPacketValue{};
+    DestDomainType delta{};
+    DestDomainType start{};
+    SourceDomainType* domainData{};
+
+    if (domainRuleType == DataRuleType::Linear)
+    {
+        firstDomainPacketValue = domainPacket.getOffset();
+        delta = domainRuleParams.get("delta");
+        start = domainRuleParams.get("start");
+        curDomainPacketValue = firstDomainPacketValue + static_cast<DestDomainType>(samplesInPacket - 1) * delta + start;
+        gap = havePrevPacket && curDomainPacketValue != nextExpectedDomainPacketValue;
+        nextExpectedDomainPacketValue = firstDomainPacketValue - delta + start;
+    }
+    else
+    {
+        domainPacketSampleCount = domainPacket.getSampleCount();
+        domainData = static_cast<SourceDomainType*>(domainPacket.getData());
+        domainData += domainPacket.getSampleCount() - 1;
+        curDomainPacketValue = static_cast<DestDomainType>(*domainData);
+        gap = havePrevPacket && domainPacketSampleCount == 0;
+    }
 
     DestDomainType firstDomainValue;
     DestDomainType lastDomainValue;
@@ -418,7 +385,6 @@ void RendererFbImpl::renderPacketImplicit(
         lastDomainValue = std::get<DestDomainType>(signalContext.lastDomainStamp);
     }
 
-
     auto domainFactor = (lastDomainValue - firstDomainValue) / static_cast<double>(xSize);
 
     double yMax, yMin;
@@ -426,19 +392,17 @@ void RendererFbImpl::renderPacketImplicit(
 
     auto valueFactor = (yMax - yMin) / static_cast<double>(ySize);
 
-    DestDomainType curDomainPacketValue = firstDomainPacketValue + static_cast<DestDomainType>(samplesInPacket - 1) * delta + start;
-    if (havePrevPacket)
+    if (gap)
     {
-        if (curDomainPacketValue != nextExpectedDomainPacketValue)
-        {
-            renderTarget.draw(*line);
-            line = std::make_unique<Polyline>(lineThickness, LineStyle::solid);
-            line->setColor(getColor(signalContext));
-        }
+        renderTarget.draw(*line);
+        line = std::make_unique<Polyline>(lineThickness, LineStyle::solid);
+        line->setColor(getColor(signalContext));
     }
 
-    nextExpectedDomainPacketValue = firstDomainPacketValue - delta + start;
     havePrevPacket = true;
+
+    if (domainRuleType == DataRuleType::Explicit && domainPacketSampleCount == 0)
+        return;
 
     size_t sampleSize = getSampleSize(signalContext.sampleType);
     auto data = reinterpret_cast<uint8_t*>(packet.getData()) + samplesInPacket * sampleSize;
@@ -495,7 +459,10 @@ void RendererFbImpl::renderPacketImplicit(
             yPos = signalContext.bottomRight.y;
 
         line->addPoint(xPos, yPos);
-        curDomainPacketValue -= delta;
+        if (domainRuleType == DataRuleType::Linear)
+            curDomainPacketValue -= delta;
+        else
+            curDomainPacketValue = static_cast<DestDomainType>(*(--domainData));
         i++;
     }
     if (i == 0)

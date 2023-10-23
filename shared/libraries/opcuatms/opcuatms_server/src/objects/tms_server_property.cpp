@@ -26,14 +26,24 @@ TmsServerProperty::TmsServerProperty(const PropertyPtr& object, const opcua::Opc
         hideSelectionTypeChildren();
     if (isStructureType())
         hideStructureTypeChildren();
-
 }
 
 TmsServerProperty::TmsServerProperty(const PropertyPtr& object,
                                      const opcua::OpcUaServerPtr& server,
                                      const ContextPtr& context,
-                                     const PropertyObjectPtr& parent)
-    : TmsServerProperty(object, server, context)
+                                     const std::unordered_map<std::string, uint32_t>& propOrder)
+    : TmsServerProperty(object, server, context) 
+{
+    this->propOrder = propOrder;
+    this->numberInList = propOrder.at(object.getName());
+}
+
+TmsServerProperty::TmsServerProperty(const PropertyPtr& object,
+                                     const opcua::OpcUaServerPtr& server,
+                                     const ContextPtr& context,
+                                     const PropertyObjectPtr& parent,
+                                     const std::unordered_map<std::string, uint32_t>& propOrder)
+    : TmsServerProperty(object, server, context, propOrder)
 {
     this->parent = parent;
 }
@@ -241,7 +251,7 @@ void TmsServerProperty::addReferenceTypeChildNodes()
         auto prop = parent.getRef().getProperty(propName);
         if (prop.getValueType() != ctObject)
         {
-            auto serverInfo = registerTmsObjectOrAddReference<TmsServerProperty>(nodeId, prop, parent.getRef());
+            auto serverInfo = registerTmsObjectOrAddReference<TmsServerProperty>(nodeId, prop, parent.getRef(), propOrder);
             auto childNodeId = serverInfo->getNodeId();
             childProperties.insert({childNodeId, serverInfo});
         }

@@ -2,8 +2,7 @@
 #include <opendaq/instance_ptr.h>
 #include <opendaq/signal_ptr.h>
 #include <coreobjects/eval_value_ptr.h>
-#include <coreobjects/property_object_ptr.h>
-#include <coreobjects/property_object.h>
+#include "opcuatms/converters/variant_converter.h"
 #include "open62541/server.h"
 #include "open62541/tmsbsp_nodeids.h"
 
@@ -15,6 +14,7 @@ namespace opcua_utils = opcua::utils;
 TmsServerObject::TmsServerObject(const OpcUaServerPtr& server, const ContextPtr& context)
     : server(server)
     , daqContext(context)
+    , numberInList(0)
 {
 }
 
@@ -58,6 +58,7 @@ OpcUaNodeId TmsServerObject::registerToExistingOpcUaNode(const OpcUaNodeId& node
     browseReferences();
     addChildNodes();
     browseReferences();
+    bindCallbacksInternal();
     bindCallbacks();
     bindReadWriteCallbacks();
     return this->nodeId;
@@ -66,6 +67,11 @@ OpcUaNodeId TmsServerObject::registerToExistingOpcUaNode(const OpcUaNodeId& node
 OpcUaNodeId TmsServerObject::getNodeId()
 {
     return nodeId;
+}
+
+void TmsServerObject::setNumberInList(uint32_t numberInList)
+{
+    this->numberInList = numberInList;
 }
 
 void TmsServerObject::addHierarchicalReference(const OpcUaNodeId& parent)
@@ -145,6 +151,12 @@ OpcUaNodeId TmsServerObject::getChildNodeId(const std::string& nodeName)
 OpcUaNodeId TmsServerObject::findSignalNodeId(const SignalPtr& signal) const
 {
     return findTmsObjectNodeId(signal);
+}
+
+void TmsServerObject::bindCallbacksInternal()
+{
+    if (hasChildNode("NumberInList"))
+        this->addReadCallback("NumberInList", [this]() { return VariantConverter<IInteger>::ToVariant(numberInList); });
 }
 
 void TmsServerObject::bindCallbacks()

@@ -108,9 +108,6 @@ void TmsServerComponent<Ptr>::bindCallbacks()
             return UA_STATUSCODE_GOOD;
         });
     }
-
-    // TODO
-    this->addReadCallback("NumberInList", [this]() { return VariantConverter<IInteger>::ToVariant(0); });
 }
 
 template <typename Ptr>

@@ -22,7 +22,8 @@ while also embracing existing standards such as MQTT and XCP via Ethernet.
 - SDK that runs the same code on both the device (server) and application (client).
 - Signal processing framework that allows for implementation of custom data processing blocks that run on any SDK instance (device or application).
 - OPC UA for structure/property transfer, WebSocket streaming for data.
-- API built of C-compatible interfaces that can be passed across shared libraries with C++ wrappers that ease the complexity of working with interfaces.
+- API built of C++ pure abstract classes that can be passed across shared library boundaries regardless of compiler and platform used.
+- C++ pointer wrappers that allow for C++ features to be used in conjunction with the openDAQ pure abstract classes.
 - Wrappers for Python and Delphi (C# in development).
 
 ## Getting started

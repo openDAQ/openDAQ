@@ -30,12 +30,19 @@ class TmsServerProperty : public TmsServerVariable<PropertyPtr>
 {
 public:
     using Super = TmsServerVariable<PropertyPtr>;
-
-    TmsServerProperty(const PropertyPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context);
+    
+    TmsServerProperty(const PropertyPtr& object,
+                      const opcua::OpcUaServerPtr& server,
+                      const ContextPtr& context);
     TmsServerProperty(const PropertyPtr& object,
                       const opcua::OpcUaServerPtr& server,
                       const ContextPtr& context,
-                      const PropertyObjectPtr& parent);
+                      const std::unordered_map<std::string, uint32_t>& propOrder);
+    TmsServerProperty(const PropertyPtr& object,
+                      const opcua::OpcUaServerPtr& server,
+                      const ContextPtr& context,
+                      const PropertyObjectPtr& parent,
+                      const std::unordered_map<std::string, uint32_t>& propOrder);
 
     std::string getBrowseName() override;
     void bindCallbacks() override;
@@ -72,6 +79,7 @@ private:
 
     std::unordered_set<std::string> HiddenNodes = {"FieldCoercionExpression", "FieldValidationExpression", "<BaseDataVariable>"};
     std::unordered_map<opcua::OpcUaNodeId, TmsServerPropertyPtr> childProperties;
+    std::unordered_map<std::string, uint32_t> propOrder;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

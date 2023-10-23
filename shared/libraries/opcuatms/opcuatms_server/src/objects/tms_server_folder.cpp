@@ -15,6 +15,7 @@ TmsServerFolder::TmsServerFolder(const FolderPtr& object, const OpcUaServerPtr& 
 
 void TmsServerFolder::addChildNodes()
 {
+    uint32_t numberInList = 0;
     for (auto item : object.getItems())
     {
         auto folder = item.asPtrOrNull<IFolder>();
@@ -24,16 +25,19 @@ void TmsServerFolder::addChildNodes()
         if (channel.assigned())
         {
             auto tmsChannel = registerTmsObjectOrAddReference<TmsServerChannel>(this->nodeId, channel);
+            tmsChannel->setNumberInList(numberInList++);
             channels.push_back(std::move(tmsChannel));
         }
         else if (folder.assigned()) // It is important to test for folder last as a channel also is a folder!
         {
             auto tmsFolder = registerTmsObjectOrAddReference<TmsServerFolder>(this->nodeId, folder);
+            tmsFolder->setNumberInList(numberInList++);
             folders.push_back(std::move(tmsFolder));
         }
         else if (component.assigned())  // It is important to test for component after folder!
         {
             auto tmsComponent = registerTmsObjectOrAddReference<TmsServerComponent<>>(this->nodeId, component);
+            tmsComponent->setNumberInList(numberInList++);
             components.push_back(std::move(tmsComponent));
         }
         else

@@ -219,11 +219,15 @@ void TmsServerDevice::populateStreamingOptions()
 
     ListPtr<IStreamingInfo> streamingOptions;
     devicePrivatePtr->getStreamingOptions(&streamingOptions);
+
+    uint32_t numberInList = 0;
     for (const auto& streamingOption : streamingOptions)
     {
         auto tmsStreamingOption = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
             streamingOptionsNodeId, streamingOption.asPtr<IPropertyObject>(), streamingOption.getProtocolId());
+        tmsStreamingOption->setNumberInList(numberInList);
         this->streamingOptions.push_back(std::move(tmsStreamingOption));
+        numberInList++;
     }
 }
 
@@ -234,25 +238,31 @@ void TmsServerDevice::addChildNodes()
     auto methodSetNodeId = getChildNodeId("MethodSet");
     tmsPropertyObject->setMethodParentNodeId(methodSetNodeId);
 
+    uint32_t numberInList = 0;
     for (const auto& device : object.getDevices())
     {
         auto tmsDevice = registerTmsObjectOrAddReference<TmsServerDevice>(nodeId, device);
+        tmsDevice->setNumberInList(numberInList++);
         devices.push_back(std::move(tmsDevice));
     }
 
     auto functionBlockNodeId = getChildNodeId("FunctionBlocks");
     assert(!functionBlockNodeId.isNull());
+    numberInList = 0;
     for (const auto& functionBlock : object.getFunctionBlocks())
     {
         auto tmsFunctionBlock = registerTmsObjectOrAddReference<TmsServerFunctionBlock<>>(functionBlockNodeId, functionBlock);
+        tmsFunctionBlock->setNumberInList(numberInList++);
         functionBlocks.push_back(std::move(tmsFunctionBlock));
     }
 
     auto signalsNodeId = getChildNodeId("Signals");
     assert(!signalsNodeId.isNull());
+    numberInList = 0;
     for (const auto& signal : object.getSignals())
     {
         auto tmsSignal = registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal);
+        tmsSignal->setNumberInList(numberInList++);
         signals.push_back(std::move(tmsSignal));
     }
 
@@ -263,7 +273,8 @@ void TmsServerDevice::addChildNodes()
     auto inputsOutputsNode = std::make_unique<TmsServerFolder>(topFolder, server, daqContext);
     inputsOutputsNode->registerToExistingOpcUaNode(inputsOutputsNodeId);
     folders.push_back(std::move(inputsOutputsNode));
-
+    
+    numberInList = 0;
     for (auto component : object.getItems())
     {
         auto id = component.getName();
@@ -273,11 +284,13 @@ void TmsServerDevice::addChildNodes()
         if (component.asPtrOrNull<IFolder>().assigned())
         {
             auto folderNode = registerTmsObjectOrAddReference<TmsServerFolder>(nodeId, component);
+            folderNode->setNumberInList(numberInList++);
             folders.push_back(std::move(folderNode));
         }
         else
         {
             auto componentNode = registerTmsObjectOrAddReference<TmsServerComponent<>>(nodeId, component);
+            componentNode->setNumberInList(numberInList++);
             components.push_back(std::move(componentNode));
         }
     }

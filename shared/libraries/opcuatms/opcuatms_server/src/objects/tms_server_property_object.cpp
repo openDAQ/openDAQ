@@ -68,6 +68,14 @@ void TmsServerPropertyObject::addChildNodes()
             registerEvalValueNode("IsReadOnly", [this]() { return objProp.getReadOnlyUnresolved(); });
     }
 
+    uint32_t propNumber = 0;
+    std::unordered_map<std::string, uint32_t> propOrder;
+    for (const auto& prop : object.getAllProperties())
+    {
+        propOrder.insert(std::pair<std::string, uint32_t>(prop.getName(), propNumber));
+        propNumber++;
+    }
+
     for (const auto& prop : object.getAllProperties())
     {
         // NOTE: ctObject types cannot be placed below ReferenceVariableType properties
@@ -83,17 +91,18 @@ void TmsServerPropertyObject::addChildNodes()
 
             OpcUaNodeId childNodeId;
             std::shared_ptr<TmsServerProperty> serverInfo;
-            if (hasChildNode(prop.getName()))
+            const auto propName = prop.getName();
+            if (hasChildNode(propName))
             {
-                serverInfo = std::make_shared<TmsServerProperty>(prop, server, daqContext, object);
+                serverInfo = std::make_shared<TmsServerProperty>(prop, server, daqContext, object, propOrder);
                 childNodeId = serverInfo->registerToExistingOpcUaNode(nodeId);
             }
             else
             {
-                serverInfo = registerTmsObjectOrAddReference<TmsServerProperty>(nodeId, prop, object);
+                serverInfo = registerTmsObjectOrAddReference<TmsServerProperty>(nodeId, prop, object, propOrder);
                 childNodeId = serverInfo->getNodeId();
             }
-
+            
             childProperties.insert({childNodeId, serverInfo});
         }
         else
@@ -102,6 +111,7 @@ void TmsServerPropertyObject::addChildNodes()
             PropertyObjectPtr obj = object.getPropertyValue(propName);
             auto serverInfo = registerTmsObjectOrAddReference<TmsServerPropertyObject>(nodeId, obj, propName, prop);
             auto childNodeId = serverInfo->getNodeId();
+            serverInfo->setNumberInList(propOrder[propName]);
             childObjects.insert({childNodeId, serverInfo});
         }
     }

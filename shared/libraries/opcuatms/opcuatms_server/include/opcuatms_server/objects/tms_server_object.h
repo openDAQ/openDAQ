@@ -64,6 +64,7 @@ public:
         const opcua::OpcUaNodeId& parentNodeId = opcua::OpcUaNodeId(UA_NS0ID_OBJECTSFOLDER));
     opcua::OpcUaNodeId registerToExistingOpcUaNode(const opcua::OpcUaNodeId& nodeId);
     opcua::OpcUaNodeId getNodeId();
+    void setNumberInList(uint32_t numberInList);
 
     void addHierarchicalReference(const opcua::OpcUaNodeId& parent);
     virtual void createNonhierarchicalReferences();
@@ -133,8 +134,11 @@ protected:
     std::mutex valueMutex;
     opcua::OpcUaNodeId nodeId;
     ContextPtr daqContext;
+    uint32_t numberInList;
 
 private:
+    void bindCallbacksInternal();
+
     std::unordered_map<opcua::OpcUaNodeId, ReadVariantCallback> readCallbacks;
     std::unordered_map<opcua::OpcUaNodeId, WriteVariantCallback> writeCallbacks;
     std::unordered_map<std::string, opcua::OpcUaObject<UA_ReferenceDescription>> references;

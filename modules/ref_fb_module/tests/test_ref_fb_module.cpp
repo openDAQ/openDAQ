@@ -106,8 +106,8 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_renderer"));
     ASSERT_EQ("ref_fb_module_renderer", functionBlockTypes.get("ref_fb_module_renderer").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_averager"));
-    ASSERT_EQ("ref_fb_module_averager", functionBlockTypes.get("ref_fb_module_averager").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_statistics"));
+    ASSERT_EQ("ref_fb_module_statistics", functionBlockTypes.get("ref_fb_module_statistics").getId());
 
     ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_power"));
     ASSERT_EQ("ref_fb_module_power", functionBlockTypes.get("ref_fb_module_power").getId());
@@ -135,35 +135,18 @@ TEST_F(RefFbModuleTest, DISABLED_CreateFunctionBlockRenderer)
 //    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 }
 
-TEST_F(RefFbModuleTest, CreateFunctionBlockAverager)
+TEST_F(RefFbModuleTest, CreateFunctionBlockStatistics)
 {
     const auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("ref_fb_module_averager", nullptr, "id");
+    auto fb = module.createFunctionBlock("ref_fb_module_statistics", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 }
 
-TEST_F(RefFbModuleTest, AveragerNumOfSignals)
+TEST_F(RefFbModuleTest, StatisticsNumOfSignals)
 {
     auto module = CreateModule();
 
-    auto fb = module.createFunctionBlock("ref_fb_module_averager", nullptr, "id");
+    auto fb = module.createFunctionBlock("ref_fb_module_statistics", nullptr, "id");
     ASSERT_EQ(fb.getSignalsRecursive().getCount(), 3u);
-}
-
-TEST_F(RefFbModuleTest, AveragerNumOfSignalsAfterConnect)
-{
-    const auto module = CreateModule();
-
-    auto fb = module.createFunctionBlock("ref_fb_module_averager", nullptr, "id");
-
-    auto sig = Signal(NullContext(), nullptr, "sig");
-
-    fb.getInputPorts()[0].connect(sig);
-
-    ASSERT_EQ(fb.getSignals().getCount(), 6u);
-
-    // Scheduler is destroyed before tasks finish if no wait is present
-    using namespace std::chrono_literals;
-    std::this_thread::sleep_for(500ms);
 }

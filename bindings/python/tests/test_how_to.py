@@ -19,12 +19,12 @@ class TestDocumentationHowTo(opendaq_test.TestCase):
         for function_block_type in function_block_types.keys():
             print(function_block_type)
 
-        # if there is not averager function block available, exit with error
-        if not "ref_fb_module_averager" in function_block_types.keys():
+        # if there is not statistics function block available, exit with error
+        if not "ref_fb_module_statistics" in function_block_types.keys():
             self.assertTrue(False, "Function block not found")
 
         # add function block on the host computer
-        function_block = instance.add_function_block("ref_fb_module_averager")
+        function_block = instance.add_function_block("ref_fb_module_statistics")
 
         # print function block type info
         function_block_type = function_block.function_block_type
@@ -40,7 +40,7 @@ class TestDocumentationHowTo(opendaq_test.TestCase):
         device = instance.add_device('daqref://device0')
 
         # add function block on the host computer
-        function_block = instance.add_function_block("ref_fb_module_averager")
+        function_block = instance.add_function_block("ref_fb_module_statistics")
 
         #list properties of the function block
         function_block_properties = function_block.visible_properties

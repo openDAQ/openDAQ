@@ -131,7 +131,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRenderer)
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
 
-TEST_F(RefModulesTest, DISABLED_RunDeviceAveragerRenderer)
+TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRenderer)
 {
     const auto instance = Instance();
 
@@ -140,57 +140,57 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAveragerRenderer)
 
     const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
     rendererFb.setPropertyValue("Duration", 10.0);
-    const auto averagerFb = instance.addFunctionBlock("ref_fb_module_averager");
-    averagerFb.setPropertyValue("BlockSize", 20);
+    const auto statisticsFb = instance.addFunctionBlock("ref_fb_module_statistics");
+    statisticsFb.setPropertyValue("BlockSize", 20);
 
     const auto deviceChannel = device.getChannels()[0];
     deviceChannel.setPropertyValue("Frequency", 10.0);
     const auto deviceSignal = deviceChannel.getSignals()[0];
 
-    const auto averagerInputPort = averagerFb.getInputPorts()[0];
-    const auto averagerSignal = averagerFb.getSignals()[1];
-    averagerInputPort.connect(deviceSignal);
+    const auto statisticsInputPort = statisticsFb.getInputPorts()[0];
+    const auto rmsSignal = statisticsFb.getSignals()[1];
+    statisticsInputPort.connect(deviceSignal);
 
     const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
     rendererInputPort0.connect(deviceSignal);
 
     const auto rendererInputPort1 = rendererFb.getInputPorts()[1];
-    rendererInputPort1.connect(averagerSignal);
+    rendererInputPort1.connect(rmsSignal);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 
-/*    averagerFb.setPropertyValue("DomainSignalType", 1);
-    averagerFb.setPropertyValue("BlockSize", 50);
+/*    statisticsFb.setPropertyValue("DomainSignalType", 1);
+    statisticsFb.setPropertyValue("BlockSize", 50);
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
-    averagerFb.setPropertyValue("DomainSignalType", 2);
+    statisticsFb.setPropertyValue("DomainSignalType", 2);
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));*/
 }
 
-TEST_F(RefModulesTest, DISABLED_RunDeviceAveragerRendererDeviceRemove)
+TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRendererDeviceRemove)
 {
     const auto instance = Instance();
 
     const auto device = instance.addDevice("daqref://device1");
 
     const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
-    const auto averagerFb = instance.addFunctionBlock("ref_fb_module_averager");
+    const auto statisticsFb = instance.addFunctionBlock("ref_fb_module_statistics");
 
     const auto deviceChannel = device.getChannels()[0];
     const auto deviceSignal = deviceChannel.getSignals()[0];
 
-    const auto averagerInputPort = averagerFb.getInputPorts()[0];
-    const auto averagerSignal = averagerFb.getSignals()[0];
-    averagerInputPort.connect(deviceSignal);
+    const auto statisticsInputPort = statisticsFb.getInputPorts()[0];
+    const auto statisticsSignal = statisticsFb.getSignals()[0];
+    statisticsInputPort.connect(deviceSignal);
 
     const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
     rendererInputPort0.connect(deviceSignal);
 
     const auto rendererInputPort1 = rendererFb.getInputPorts()[1];
-    rendererInputPort1.connect(averagerSignal);
+    rendererInputPort1.connect(statisticsSignal);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-    instance.removeFunctionBlock(averagerFb);
+    instance.removeFunctionBlock(statisticsFb);
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     instance.removeDevice(device);
     ASSERT_EQ(rendererFb.getInputPorts().getCount(), 1u);
@@ -213,19 +213,19 @@ TEST_F(RefModulesTest, DISABLED_RendererSync)
     rendererFb.setPropertyValue("Duration", 10.0);
     rendererFb.setPropertyValue("SingleXAxis", True);
 
-    const auto averagerFb = instance.addFunctionBlock("ref_fb_module_averager");
-    averagerFb.setPropertyValue("BlockSize", 5);
+    const auto statisticsFb = instance.addFunctionBlock("ref_fb_module_statistics");
+    statisticsFb.setPropertyValue("BlockSize", 5);
 
     const auto deviceSignal0 = deviceChannel0.getSignals()[0];
-    const auto averagerSignal = averagerFb.getSignals()[0];
+    const auto avgSignal = statisticsFb.getSignals()[0];
 
-    const auto averagerInputPort0 = averagerFb.getInputPorts()[0];
-    averagerInputPort0.connect(deviceSignal0);
+    const auto statisticsInputPort0 = statisticsFb.getInputPorts()[0];
+    statisticsInputPort0.connect(deviceSignal0);
 
     const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
     rendererInputPort0.connect(deviceSignal0);
     const auto rendererInputPort1 = rendererFb.getInputPorts()[1];
-    rendererInputPort1.connect(averagerSignal);
+    rendererInputPort1.connect(avgSignal);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     deviceSignal0.setActive(false);

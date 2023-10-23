@@ -153,7 +153,16 @@ ErrCode TmsClientSignalImpl::getName(IString** name)
 
 ErrCode TmsClientSignalImpl::setName(IString* name)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    OPENDAQ_PARAM_NOT_NULL(name);
+
+    auto objPtr = this->borrowPtr<ComponentPtr>();
+
+    return daqTry(
+        [&name, &objPtr]()
+        {
+            objPtr.setPropertyValue("Name", name);
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 Bool TmsClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)

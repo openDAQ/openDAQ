@@ -1,6 +1,6 @@
 /**
  * Adds a reference device that outputs sine waves. Its noisy output signal is averagedSine
- * by an averager function block. Both the noisy and averaged sine waves are rendered with
+ * by an statistics function block. Both the noisy and averaged sine waves are rendered with
  * the renderer function block for 10s.
  */
 
@@ -18,8 +18,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Add a reference device and set it as root
     auto device = instance.addDevice("daqref://device0");
 
-    // Add averager and renderer function block
-    FunctionBlockPtr averager = instance.addFunctionBlock("ref_fb_module_averager");
+    // Add statistics and renderer function block
+    FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
     FunctionBlockPtr renderer = instance.addFunctionBlock("ref_fb_module_renderer");
 
     // Set renderer to draw 2.5s of data
@@ -32,9 +32,9 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Add noise to the sine wave
     sineChannel.setPropertyValue("NoiseAmplitude", 1);
 
-    // Connect the signals to the renderer and averager
-    averager.getInputPorts()[0].connect(sineSignal);
-    const auto averagedSine = averager.getSignalsRecursive()[0];
+    // Connect the signals to the renderer and statistics
+    statistics.getInputPorts()[0].connect(sineSignal);
+    const auto averagedSine = statistics.getSignalsRecursive()[0];
     
     renderer.getInputPorts()[0].connect(sineSignal);
     renderer.getInputPorts()[1].connect(averagedSine);

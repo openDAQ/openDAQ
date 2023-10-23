@@ -640,7 +640,7 @@ renderer Function Block that displays a graph, visualizing the data.
 
 The openDAQ(TM) Function Blocks are data processing objects. They receive data through Signals connected to the
 Function Block's Input Ports, process the data, and output processed data as new Signals. An example of
-such a Function Block is an averaging Function Block that averages input Signal data over the last `n`
+such a Function Block is an statistics Function Block that averages input Signal data over the last `n`
 samples, outputting the average as a new Signal.
 
 Not all Function Blocks are required to have Input Ports or output Signals, however. For example, a function
@@ -713,21 +713,21 @@ image::getting_started:renderer.PNG[image,align="center"]
 === The data path
 
 As mentioned, the renderer is a Function Block that receives input data but produces no output Signals.
-However, the loaded reference Modules also provide another Function Block - the averager. The averager
+However, the loaded reference Modules also provide another Function Block - the statistics. The statistics
 takes an input Signal, averages its data over the last _n_ samples, and outputs the averaged data as an
 output Signal.
 
 Such Function Blocks can form a longer xref:background_info:data_path.adoc[Data Path], where multiple Function
 Blocks are chained together, each using the output of the previous block as its input data. In the next part of
-our example, we connect the output Signal of the simulated Device's first Channel through the averager and into
+our example, we connect the output Signal of the simulated Device's first Channel through the statistics and into
 the renderer, forming the following data path:
 
-.Image of the data path from the Channel through the averager and into the renderer
+.Image of the data path from the Channel through the statistics and into the renderer
 image::getting_started:signal-path.svg[image,align="center"]
 
 The renderer can be added using its unique ID defined by the openDAQ(TM) Module: `"ref_fb_module_renderer"`.
 
-We extend our code to add and connect the averager Function Block:
+We extend our code to add and connect the statistics Function Block:
 
 [tabs]
 ====
@@ -744,14 +744,14 @@ int main(int argc, const char* argv[])
 {
     ...
 
-    // Create an instance of the averager function block
-    daq::FunctionBlockPtr averager = instance.addFunctionBlock("ref_fb_module_averager");
+    // Create an instance of the statistics function block
+    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
 
-    // Connect the first output signal of the device to the averager
-    averager.getInputPorts()[0].connect(signal);
+    // Connect the first output signal of the device to the statistics
+    statistics.getInputPorts()[0].connect(signal);
 
-    // Connect the first output signal of the averager to the renderer
-    renderer.getInputPorts()[1].connect(averager.getSignals()[0]);
+    // Connect the first output signal of the statistics to the renderer
+    renderer.getInputPorts()[1].connect(statistics.getSignals()[0]);
 
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
     std::cin.get();
@@ -764,17 +764,17 @@ Python::
 ----
 # ...
 
-# Create an instance of the averager function block
-averager = instance.add_function_block('ref_fb_module_averager')
-# Connect the first output signal of the device to the averager
-averager.input_ports[0].connect(signal)
-# Connect the first output signal of the averager to the renderer
-renderer.input_ports[1].connect(averager.signals[0])
+# Create an instance of the statistics function block
+statistics = instance.add_function_block('ref_fb_module_statistics')
+# Connect the first output signal of the device to the statistics
+statistics.input_ports[0].connect(signal)
+# Connect the first output signal of the statistics to the renderer
+renderer.input_ports[1].connect(statistics.signals[0])
 ----
 ====
 
-NOTE: We now connected the averager Signal to the 2nd Input Port of the renderer. Both the renderer
-and the averager Function Blocks are designed to always have an available Input Port. Whenever a Signal
+NOTE: We now connected the statistics Signal to the 2nd Input Port of the renderer. Both the renderer
+and the statistics Function Blocks are designed to always have an available Input Port. Whenever a Signal
 is connected to one of its ports, a new Input Port is created.
 
 When running the above example, we should be able to see the renderer display two Signals - the original
@@ -971,13 +971,13 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Connect the first output signal of the device to the renderer
     renderer.getInputPorts()[0].connect(signal);
 
-    // Create an instance of the averager function block
-    daq::FunctionBlockPtr averager = instance.addFunctionBlock("ref_fb_module_averager");
+    // Create an instance of the statistics function block
+    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
 
-    // Connect the first output signal of the device to the averager
-    averager.getInputPorts()[0].connect(signal);
-    // Connect the first output signal of the averager to the renderer
-    renderer.getInputPorts()[1].connect(averager.getSignals()[0]);
+    // Connect the first output signal of the device to the statistics
+    statistics.getInputPorts()[0].connect(signal);
+    // Connect the first output signal of the statistics to the renderer
+    renderer.getInputPorts()[1].connect(statistics.getSignals()[0]);
 
     // Get the first channel of the device
     const daq::ChannelPtr sineChannel = channel;
@@ -1052,12 +1052,12 @@ renderer = instance.add_function_block('ref_fb_module_renderer')
 # Connect the first output signal of the device to the renderer
 renderer.input_ports[0].connect(signal)
 
-# Create an instance of the averager function block
-averager = instance.add_function_block('ref_fb_module_averager')
-# Connect the first output signal of the device to the averager
-averager.input_ports[0].connect(signal)
-# Connect the first output signal of the averager to the renderer
-renderer.input_ports[1].connect(averager.signals[0])
+# Create an instance of the statistics function block
+statistics = instance.add_function_block('ref_fb_module_statistics')
+# Connect the first output signal of the device to the statistics
+statistics.input_ports[0].connect(signal)
+# Connect the first output signal of the statistics to the renderer
+renderer.input_ports[1].connect(statistics.signals[0])
 
 # List the names of all properties
 for prop in channel.visible_properties:

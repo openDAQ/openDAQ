@@ -95,13 +95,13 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Connect the first output signal of the device to the renderer
     renderer.getInputPorts()[0].connect(signal);
 
-    // Create an instance of the averager function block
-    daq::FunctionBlockPtr averager = instance.addFunctionBlock("ref_fb_module_averager");
+    // Create an instance of the statistics function block
+    daq::FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
 
-    // Connect the first output signal of the device to the averager
-    averager.getInputPorts()[0].connect(signal);
-    // Connect the first output signal of the averager to the renderer
-    renderer.getInputPorts()[1].connect(averager.getSignals()[0]);
+    // Connect the first output signal of the device to the statistics
+    statistics.getInputPorts()[0].connect(signal);
+    // Connect the first output signal of the statistics to the renderer
+    renderer.getInputPorts()[1].connect(statistics.getSignals()[0]);
 
     // Get the first channel of the device
     const daq::ChannelPtr sineChannel = channel;

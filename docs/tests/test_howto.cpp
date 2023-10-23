@@ -53,12 +53,12 @@ TEST_F(HowToTest, AddFunctionBlock)
     for (const auto& functionBlockType : functionBlockTypes.getKeys())
         std::cout << functionBlockType << std::endl;
 
-    // if there is not averager function block available, exit with error
-    if (!functionBlockTypes.hasKey("ref_fb_module_averager"))
+    // if there is not statistics function block available, exit with error
+    if (!functionBlockTypes.hasKey("ref_fb_module_statistics"))
         ASSERT_TRUE(false) << "Function block does not exist";
 
     // add function block on the host computer
-    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_averager");
+    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 
     // print function block type info
     FunctionBlockTypePtr functionBlockType = functionBlock.getFunctionBlockType();
@@ -77,7 +77,7 @@ TEST_F(HowToTest, ConfigureFunctionBlock)
     DevicePtr device = instance.addDevice("daqref://device0");
 
     // add function block on the host computer
-    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_averager");
+    FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 
     // list properties of the function block
     ListPtr<IProperty> functionBlockProperties = functionBlock.getVisibleProperties();

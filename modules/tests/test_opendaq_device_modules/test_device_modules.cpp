@@ -25,12 +25,12 @@ static InstancePtr CreateServerInstance()
 
     auto instance = InstanceCustom(context, "local");
 
-    const auto averager = instance.addFunctionBlock("ref_fb_module_averager");
+    const auto statistics = instance.addFunctionBlock("ref_fb_module_statistics");
     const auto refDevice = instance.addDevice("daqref://device1");
-    averager.getInputPorts()[0].connect(refDevice.getSignalsRecursive()[0]);
+    statistics.getInputPorts()[0].connect(refDevice.getSignalsRecursive()[0]);
 
     auto sigs = instance.getSignalsRecursive();
-    auto avgSigs = averager.getSignalsRecursive();
+    auto avgSigs = statistics.getSignalsRecursive();
     auto devSigs = refDevice.getSignalsRecursive();
 
     instance.addServer("openDAQ OpcUa", nullptr);
@@ -62,7 +62,7 @@ TEST_F(DeviceModulesTest, GetRemoteDeviceObjects)
     auto client = CreateClientInstance();
     
     auto signals = client.getSignalsRecursive();
-    ASSERT_EQ(signals.getCount(), 10u);
+    ASSERT_EQ(signals.getCount(), 7u);
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
     auto fbs = devices[0].getFunctionBlocks();
@@ -428,7 +428,7 @@ TEST_F(DeviceModulesTest, FunctionBlocksOnClient)
     
     instance.setRootDevice("daqref://device1");
 
-    const auto averager = instance.addFunctionBlock("ref_fb_module_averager");
+    const auto statistics = instance.addFunctionBlock("ref_fb_module_statistics");
     instance.addServer("openDAQ OpcUa", nullptr);
     auto client = CreateClientInstance();
 

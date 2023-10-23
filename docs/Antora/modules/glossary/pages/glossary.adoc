@@ -180,7 +180,7 @@ They contain a set of <<property,Properties>> and corresponding <<property_value
 
 Examples of Function Blocks:
 
-* *Averager* averages its inputs, outputting averaged signals
+* *Statistics* calculates statistics of its inputs, outputting averaged and rms signals
 * *Signal Generator* outputs simulated sine waves
 * *File Writer* writes input signal data into text files
 

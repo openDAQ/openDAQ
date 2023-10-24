@@ -16,7 +16,7 @@ Removed ConfigurationMode from SDK as it was not used anyway.
 +m  [function] IUpdatable::update(ISerializedObject* update)
 
 28.9.2023
-openDAQ Package version: 2.1.0
+openDAQ Package version: 2.0.0
 
 Description:
 Large change that implements the Struct core type, and object creation through the builder pattern.

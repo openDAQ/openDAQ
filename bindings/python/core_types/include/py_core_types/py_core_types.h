@@ -28,6 +28,7 @@ PyDaqIntf<daq::IBoolean> declareIBoolean(pybind11::module_ m);
 PyDaqIntf<daq::IString> declareIString(pybind11::module_ m);
 PyDaqIntf<daq::IRatio> declareIRatio(pybind11::module_ m);
 PyDaqIntf<daq::IComplexNumber> declareIComplexNumber(pybind11::module_ m);
+PyDaqIntf<daq::INumber> declareINumber(pybind11::module_ m);
 
 PyDaqIntf<daq::IIterable> declareIIterable(pybind11::module_ m);
 PyDaqIntf<daq::IIterator> declareIIterator(pybind11::module_ m);
@@ -50,6 +51,7 @@ void defineIBoolean(pybind11::module_ m, PyDaqIntf<daq::IBoolean> cls);
 void defineIString(pybind11::module_ m, PyDaqIntf<daq::IString> cls);
 void defineIRatio(pybind11::module_ m, PyDaqIntf<daq::IRatio> cls);
 void defineIComplexNumber(pybind11::module_ m, PyDaqIntf<daq::IComplexNumber> cls);
+void defineINumber(pybind11::module_ m, PyDaqIntf<daq::INumber> cls);
 
 void defineIIterable(pybind11::module_ m, PyDaqIntf<daq::IIterable> cls);
 void defineIIterator(pybind11::module_ m, PyDaqIntf<daq::IIterator> cls);

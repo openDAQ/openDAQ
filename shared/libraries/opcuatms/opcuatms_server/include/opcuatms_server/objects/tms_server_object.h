@@ -110,6 +110,7 @@ protected:
     template <class TMS_T, class DAQ_T, class... Params>
     std::shared_ptr<TMS_T> registerTmsObjectOrAddReference(const opcua::OpcUaNodeId& parentNodeId,
                                                            const DAQ_T& daqObject,
+                                                           uint32_t numberInList,
                                                            Params... params)
     {
         auto tmsObjectNodeId = findTmsObjectNodeId(daqObject);
@@ -125,6 +126,8 @@ protected:
         {
             auto tmsObject = std::make_shared<TMS_T>(daqObject, this->server, daqContext, std::forward<Params>(params)...);
             tmsObject->registerOpcUaNode(parentNodeId);
+            if(numberInList != std::numeric_limits<uint32_t>::max())
+                tmsObject->setNumberInList(numberInList);
             return tmsObject;
         }
     }

@@ -52,8 +52,7 @@ void TmsServerFunctionBlock<T>::addChildNodes()
     uint32_t numberInList = 0;
     for (const auto& signal : this->object.getSignals())
     {
-        auto tmsSignal = this->template registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal);
-        tmsSignal->setNumberInList(numberInList++);
+        auto tmsSignal = this->template registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal, numberInList++);
         signals.push_back(std::move(tmsSignal));
     }
 
@@ -63,16 +62,14 @@ void TmsServerFunctionBlock<T>::addChildNodes()
     numberInList = 0;
     for (const auto& inputPort : this->object.getInputPorts())
     {
-        auto tmsInputPort = this->template registerTmsObjectOrAddReference<TmsServerInputPort>(inputPortsNodeId, inputPort);
-        tmsInputPort->setNumberInList(numberInList++);
+        auto tmsInputPort = this->template registerTmsObjectOrAddReference<TmsServerInputPort>(inputPortsNodeId, inputPort, numberInList++);
         inputPorts.push_back(std::move(tmsInputPort));
     }
     
     numberInList = 0;
     for (const auto& fb : this->object.getFunctionBlocks())
     {
-        auto tmsFunctionBlock = this->template registerTmsObjectOrAddReference<TmsServerFunctionBlock<>>(this->nodeId, fb);
-        tmsFunctionBlock->setNumberInList(numberInList++);
+        auto tmsFunctionBlock = this->template registerTmsObjectOrAddReference<TmsServerFunctionBlock<>>(this->nodeId, fb, numberInList++);
         functionBlocks.push_back(std::move(tmsFunctionBlock));
     }
 

@@ -101,7 +101,7 @@ void TmsServerPropertyObject::addChildNodes()
             }
             else
             {
-                serverInfo = registerTmsObjectOrAddReference<TmsServerProperty>(nodeId, prop, object, propOrder);
+                serverInfo = registerTmsObjectOrAddReference<TmsServerProperty>(nodeId, prop, std::numeric_limits<uint32_t>::max(), object, propOrder);
                 childNodeId = serverInfo->getNodeId();
             }
             
@@ -111,9 +111,8 @@ void TmsServerPropertyObject::addChildNodes()
         {
             const auto propName = prop.getName();
             PropertyObjectPtr obj = object.getPropertyValue(propName);
-            auto serverInfo = registerTmsObjectOrAddReference<TmsServerPropertyObject>(nodeId, obj, propName, prop);
+            auto serverInfo = registerTmsObjectOrAddReference<TmsServerPropertyObject>(nodeId, obj, propOrder[propName], propName, prop);
             auto childNodeId = serverInfo->getNodeId();
-            serverInfo->setNumberInList(propOrder[propName]);
             childObjects.insert({childNodeId, serverInfo});
         }
     }

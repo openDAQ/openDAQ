@@ -136,6 +136,7 @@ TEST_F(TmsDeviceTest, Property)
     auto ctx = NullContext();
     auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
 
+    auto serverVisibleProps = serverDevice.getVisibleProperties();
     auto visibleProperties = clientDevice.getVisibleProperties();
     ASSERT_EQ(visibleProperties.getCount(), 3u);
     ASSERT_EQ(visibleProperties[2].getName(), "SampleRate");

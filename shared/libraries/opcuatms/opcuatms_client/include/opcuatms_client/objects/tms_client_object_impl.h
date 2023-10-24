@@ -41,7 +41,9 @@ protected:
     void writeValue(const std::string& nodeName, const opcua::OpcUaVariant& value);
     opcua::OpcUaVariant readValue(const std::string& nodeName);
     virtual void subscriptionStatusChangeCallback(UA_StatusChangeNotification* notification);
-
+    uint32_t tryReadChildNumberInList(const std::string& nodeName);
+    uint32_t tryReadChildNumberInList(const opcua::OpcUaNodeId& nodeId);
+    
     /*!
     * @brief Returns child nodes of a specific type. By default it returns also the nodes which are a
     *        a subtype of the specific type. It can be disabled.

@@ -162,7 +162,10 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(I
 }
 
 template <typename Impl>
-void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const tsl::ordered_map<OpcUaNodeId, OpcUaObject<UA_ReferenceDescription>>& references)
+void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(
+    const tsl::ordered_map<OpcUaNodeId, OpcUaObject<UA_ReferenceDescription>>& references,
+    std::map<uint32_t, PropertyPtr>& orderedProperties,
+    std::vector<PropertyPtr> unorderedProperties)
 {
     const auto introspectionVariableTypeId = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_INTROSPECTIONVARIABLETYPE);
     const auto structureVariableTypeId = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_STRUCTUREVARIABLETYPE);
@@ -175,7 +178,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const tsl::ordered_map
         auto propName = String(client->readBrowseName(childNodeId));
         Bool hasProp;
         daq::checkErrorInfo(Impl::hasProperty(propName, &hasProp));
-
+        PropertyPtr prop;
         if (referenceUtils.isInstanceOf(typeId, referenceVariableTypeId))
         {
             try
@@ -183,13 +186,12 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const tsl::ordered_map
                 if (!hasProp)
                 {
                     StringPtr refPropEval = VariantConverter<IString>::ToDaqObject(client->readValue(childNodeId));
-                    auto refProp = ReferenceProperty(propName, EvalValue(refPropEval));
-                    daq::checkErrorInfo(Impl::addProperty(refProp));
+                    prop = ReferenceProperty(propName, EvalValue(refPropEval));
                 }
 
                 referenceVariableIdMap.insert(std::pair(propName, childNodeId));
                 const auto& refPropReferences = referenceUtils.getReferences(childNodeId);
-                addProperties(refPropReferences);
+                addProperties(refPropReferences, orderedProperties, unorderedProperties);
             }
             catch(...)
             {
@@ -203,10 +205,8 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const tsl::ordered_map
             try
             {
                 if (!hasProp)
-                {
-                    auto prop = TmsClientProperty(daqContext, clientContext, ref->nodeId.nodeId);
-                    daq::checkErrorInfo(Impl::addProperty(prop));
-                }
+                    prop = TmsClientProperty(daqContext, clientContext, ref->nodeId.nodeId);
+
                 introspectionVariableIdMap.insert(std::pair(propName, childNodeId));
             }                     
             catch(...)
@@ -220,7 +220,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const tsl::ordered_map
             if (!hasProp)
             {
                 auto obj = TmsClientPropertyObject(daqContext, clientContext, childNodeId);
-                auto prop = ObjectPropertyBuilder(propName, obj).setDescription(String(client->readDescription(childNodeId)));
+                auto propBuilder = ObjectPropertyBuilder(propName, obj).setDescription(String(client->readDescription(childNodeId)));
 
                 const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_EVALUATIONVARIABLETYPE);
                 const auto variableBlockRefs = referenceUtils.getReferences(childNodeId);
@@ -237,32 +237,41 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const tsl::ordered_map
                         if (browseName == "IsReadOnly")
                         {
                             if (evalStr.assigned())
-                                prop.setReadOnly(EvalValue(evalStr).asPtr<IBoolean>());
+                                propBuilder.setReadOnly(EvalValue(evalStr).asPtr<IBoolean>());
                             else
-                                prop.setReadOnly(VariantConverter<IBoolean>::ToDaqObject(client->readValue(variableBlockNodeId)));
+                                propBuilder.setReadOnly(VariantConverter<IBoolean>::ToDaqObject(client->readValue(variableBlockNodeId)));
                         }
                         else if (browseName == "IsVisible")
                         {
                             if (evalStr.assigned())
-                                prop.setVisible(EvalValue(evalStr).asPtr<IBoolean>());
+                                propBuilder.setVisible(EvalValue(evalStr).asPtr<IBoolean>());
                             else
-                                prop.setVisible(VariantConverter<IBoolean>::ToDaqObject(client->readValue(variableBlockNodeId)));
+                                propBuilder.setVisible(VariantConverter<IBoolean>::ToDaqObject(client->readValue(variableBlockNodeId)));
                         }
                     }
                 }
-                
-                daq::checkErrorInfo(Impl::addProperty(prop.build()));
+
+                prop = propBuilder.build();
             }
 
             objectTypeIdMap.insert(std::pair(propName, childNodeId));
         }
-        
+
+        if (prop.assigned())
+        {
+            auto numberInList = tryReadChildNumberInList(childNodeId);
+            if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedProperties.count(numberInList))
+                orderedProperties.insert(std::pair<uint32_t, PropertyPtr>(numberInList, prop));
+            else
+                unorderedProperties.push_back(prop);
+        }
     }
 }
 
 template <class Impl>
 void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(
-    const tsl::ordered_map<opcua::OpcUaNodeId, opcua::OpcUaObject<UA_ReferenceDescription>>& references, const OpcUaNodeId& parentNodeId)
+    const tsl::ordered_map<opcua::OpcUaNodeId, opcua::OpcUaObject<UA_ReferenceDescription>>& references,
+    const OpcUaNodeId& parentNodeId)
 {
     const auto methodTypeId = OpcUaNodeId(0, UA_NS0ID_METHODNODE);
 
@@ -321,7 +330,16 @@ template <typename Impl>
 void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
 {
     const auto& references = referenceUtils.getReferences(nodeId);
-    addProperties(references);
+
+    std::map<uint32_t, PropertyPtr> orderedProperties;
+    std::vector<PropertyPtr> unorderedProperties;
+
+    addProperties(references, orderedProperties, unorderedProperties);
+    
+    for (const auto& val : orderedProperties)
+        daq::checkErrorInfo(Impl::addProperty(val.second));
+    for (const auto& val : unorderedProperties)
+        daq::checkErrorInfo(Impl::addProperty(val));
 
     // TODO: Make sure that this is a DeviceType node
     if (hasReference("MethodSet"))

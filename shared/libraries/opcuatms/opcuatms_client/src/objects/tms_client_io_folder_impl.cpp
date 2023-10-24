@@ -15,11 +15,20 @@ TmsClientIoFolderImpl::TmsClientIoFolderImpl(const ContextPtr& ctx,
                                              const opcua::OpcUaNodeId& nodeId)
     : TmsClientFolderImpl<IoFolderImpl>(ctx, parent, localId, clientContext, nodeId, true)
 {
-    findAndCreateIoFolders();
-    findAndCreateChannels();
+    std::map<uint32_t, ComponentPtr> orderedComponents;
+    std::vector<ComponentPtr> unorderedComponents;
+
+    findAndCreateIoFolders(orderedComponents, unorderedComponents);
+    findAndCreateChannels(orderedComponents, unorderedComponents);
+
+    auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
+    for (const auto& val : orderedComponents)
+        thisPtr.addItem(val.second);
+    for (const auto& val : unorderedComponents)
+        thisPtr.addItem(val);
 }
 
-void TmsClientIoFolderImpl::findAndCreateChannels()
+void TmsClientIoFolderImpl::findAndCreateChannels(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents)
 {
     auto channelNodeIds = getChildNodes(this->client, this->nodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_CHANNELTYPE));
     for (const auto& channelNodeId : channelNodeIds)
@@ -27,11 +36,16 @@ void TmsClientIoFolderImpl::findAndCreateChannels()
         auto browseName = this->client->readBrowseName(channelNodeId);
         auto thisPtr = this->borrowPtr<FolderConfigPtr>();
         auto tmsClientChannel = TmsClientChannel(this->context, thisPtr, browseName, this->clientContext, channelNodeId);
-        thisPtr.addItem(tmsClientChannel);
+            
+        auto numberInList = this->tryReadChildNumberInList(channelNodeId);
+        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
+            orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientChannel));
+        else
+            unorderedComponents.emplace_back(tmsClientChannel);
     }
 }
 
-void TmsClientIoFolderImpl::findAndCreateIoFolders()
+void TmsClientIoFolderImpl::findAndCreateIoFolders(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents)
 {
     auto folderNodeIds = getChildNodes(this->client, this->nodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_IOCOMPONENTTYPE));
     for (const auto& folderNodeId : folderNodeIds)
@@ -39,7 +53,12 @@ void TmsClientIoFolderImpl::findAndCreateIoFolders()
         auto browseName = this->client->readBrowseName(folderNodeId);
         auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
         auto tmsClientFolder = TmsClientIoFolder(this->context, thisPtr, browseName, this->clientContext, folderNodeId);
-        thisPtr.addItem(tmsClientFolder);
+
+        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
+        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
+            orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientFolder));
+        else
+            unorderedComponents.emplace_back(tmsClientFolder);
     }
 }
 

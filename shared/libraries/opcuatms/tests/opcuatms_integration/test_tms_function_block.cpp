@@ -118,6 +118,7 @@ TEST_F(TmsFunctionBlockTest, MethodGetSignals)
 
     auto clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, functionBlockNodeId);
 
+    ListPtr<ISignal> serverSignals = serverFunctionBlock.getSignals();
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = clientFunctionBlock.getSignals());
     ASSERT_TRUE(signals.assigned());

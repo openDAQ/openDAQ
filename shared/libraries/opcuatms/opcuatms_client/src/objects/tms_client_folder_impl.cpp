@@ -17,11 +17,20 @@ TmsClientFolderImpl<Impl>::TmsClientFolderImpl(const ContextPtr& ctx,
     : TmsClientComponentBaseImpl<Impl>(ctx, parent, localId, clientContext, nodeId)
 {
     if (!customFolderType)
-        findAndCreateFolders();
+    {
+        std::map<uint32_t, ComponentPtr> orderedComponents;
+        std::vector<ComponentPtr> unorderedComponents;
+        findAndCreateFolders(orderedComponents, unorderedComponents);
+        auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
+        for (const auto& val : orderedComponents)
+            thisPtr.addItem(val.second);
+        for (const auto& val : unorderedComponents)
+            thisPtr.addItem(val);
+    }
 }
 
 template <class Impl>
-void TmsClientFolderImpl<Impl>::findAndCreateFolders()
+void TmsClientFolderImpl<Impl>::findAndCreateFolders(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents)
 {
     auto componentId = OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQCOMPONENTTYPE);
     auto folderNodeIds = this->getChildNodes(this->client, this->nodeId, componentId);
@@ -31,10 +40,17 @@ void TmsClientFolderImpl<Impl>::findAndCreateFolders()
         auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
 
         auto childComponents = this->getChildNodes(this->client, folderNodeId, componentId);
+        ComponentPtr child;
         if (childComponents.size())
-            thisPtr.addItem(TmsClientFolder(this->context, thisPtr, browseName, this->clientContext, folderNodeId));
+            child = TmsClientFolder(this->context, thisPtr, browseName, this->clientContext, folderNodeId);
         else
-            thisPtr.addItem(TmsClientComponent(this->context, thisPtr, browseName, this->clientContext, folderNodeId));
+            child = TmsClientComponent(this->context, thisPtr, browseName, this->clientContext, folderNodeId);
+    
+        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
+        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
+            orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, child));
+        else
+            unorderedComponents.push_back(child);
     }
 }
 

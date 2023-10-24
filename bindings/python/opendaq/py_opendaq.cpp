@@ -127,6 +127,6 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIStreamingInfo(m, classIStreamingInfo);
     defineIStreamingInfoConfig(m, classIStreamingInfoConfig);
     defineISignalRemote(m, classISignalRemote);
-    
+
     m.def("Instance", []() { return daq::Instance(".").detach(); });
 }

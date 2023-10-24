@@ -30,6 +30,12 @@
 
 PyDaqIntf<daq::IDataRule, daq::IBaseObject> declareIDataRule(pybind11::module_ m)
 {
+    py::enum_<daq::DataRuleType>(m, "DataRuleType")
+        .value("Other", daq::DataRuleType::Other)
+        .value("Linear", daq::DataRuleType::Linear)
+        .value("Constant", daq::DataRuleType::Constant)
+        .value("Explicit", daq::DataRuleType::Explicit);
+
     return wrapInterface<daq::IDataRule, daq::IBaseObject>(m, "IDataRule");
 }
 
@@ -41,12 +47,6 @@ void defineIDataRule(pybind11::module_ m, PyDaqIntf<daq::IDataRule, daq::IBaseOb
     m.def("ConstantDataRule", &daq::ConstantDataRule_Create);
     m.def("ExplicitDataRule", &daq::ExplicitDataRule_Create);
     m.def("DataRule", &daq::DataRule_Create);
-
-    py::enum_<daq::DataRuleType>(m, "DataRuleType")
-        .value("Other", daq::DataRuleType::Other)
-        .value("Linear", daq::DataRuleType::Linear)
-        .value("Constant", daq::DataRuleType::Constant)
-        .value("Explicit", daq::DataRuleType::Explicit);
 
     cls.def_property_readonly("type",
         [](daq::IDataRule *object)

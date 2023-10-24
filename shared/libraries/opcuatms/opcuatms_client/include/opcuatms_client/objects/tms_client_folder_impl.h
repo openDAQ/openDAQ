@@ -31,7 +31,7 @@ public:
                                  const opcua::OpcUaNodeId& nodeId,
                                  bool customFolderType);
 private:
-    void findAndCreateFolders();
+    void findAndCreateFolders(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents);
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

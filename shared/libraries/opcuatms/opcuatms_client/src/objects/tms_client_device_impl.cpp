@@ -79,13 +79,26 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
 
 void TmsClientDeviceImpl::findAndCreateSubdevices()
 {
+    std::map<uint32_t, DevicePtr> orderedDevices;
+    std::vector<DevicePtr> unorderedDevices;
+
     auto subdeviceNodeIds = this->getChildNodes(client, nodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQDEVICETYPE));
     for (const auto& subdeviceNodeId : subdeviceNodeIds)
     {
         auto browseName = client->readBrowseName(subdeviceNodeId);
         auto clientSubdevice = TmsClientDevice(context, devices, browseName, clientContext, subdeviceNodeId, createStreamingCallback);
-        addSubDevice(clientSubdevice);
+                    
+        auto numberInList = this->tryReadChildNumberInList(subdeviceNodeId);
+        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedDevices.count(numberInList))
+            orderedDevices.insert(std::pair<uint32_t, ComponentPtr>(numberInList, clientSubdevice));
+        else
+            unorderedDevices.emplace_back(clientSubdevice);
     }
+
+    for (const auto& val : orderedDevices)
+        addSubDevice(val.second);
+    for (const auto& val : unorderedDevices)
+        addSubDevice(val);
 }
 
 DevicePtr TmsClientDeviceImpl::onAddDevice(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
@@ -208,30 +221,65 @@ UnitPtr TmsClientDeviceImpl::onGetDomainUnit()
 
 void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
 {
+
+    std::map<uint32_t, FunctionBlockPtr> orderedFunctionBlocks;
+    std::vector<FunctionBlockPtr> unorderedFunctionBlocks;
+
     auto functionBlocksNodeId = getNodeId("FunctionBlocks");
     auto functionBlockNodeIds =
         this->getChildNodes(client, functionBlocksNodeId, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_FUNCTIONBLOCKTYPE));
     for (const auto& functionBlockNodeId : functionBlockNodeIds)
     {
-        auto browseName = client->readBrowseName(functionBlockNodeId);
-        auto clientFunctionBlock = TmsClientFunctionBlock(context, this->functionBlocks, browseName, clientContext, functionBlockNodeId);
-        this->addNestedFunctionBlock(clientFunctionBlock);
+        auto browseName = this->client->readBrowseName(functionBlockNodeId);
+        try
+        {
+            auto clientFunctionBlock = TmsClientFunctionBlock(context, this->functionBlocks, browseName, clientContext, functionBlockNodeId);
+            const auto numberInList = this->tryReadChildNumberInList(functionBlockNodeId);
+            if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedFunctionBlocks.count(numberInList))
+                orderedFunctionBlocks.insert(std::pair<uint32_t, FunctionBlockPtr>(numberInList, clientFunctionBlock));
+            else
+                unorderedFunctionBlocks.emplace_back(clientFunctionBlock);
+        }
+        catch(...)
+        {
+            // TODO: Log failure to add fb
+        }
     }
+
+    for (const auto& val : orderedFunctionBlocks)
+        this->addNestedFunctionBlock(val.second);
+    for (const auto& val : unorderedFunctionBlocks)
+        this->addNestedFunctionBlock(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateSignals()
 {
-    auto signalsNodeId = getNodeId("Signals");
-    auto signalNodeIds = this->getChildNodes(client, signalsNodeId, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_SIGNALTYPE));
+    std::map<uint32_t, SignalPtr> orderedSignals;
+    std::vector<SignalPtr> unorderedSignals;
+    
+    const auto signalsNodeId = getNodeId("Signals");
+    const auto signalNodeIds = this->getChildNodes(client, signalsNodeId, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_SIGNALTYPE));
     for (const auto& signalNodeId : signalNodeIds)
     {
         auto clientSignal = FindOrCreateTmsClientSignal(context, signals, clientContext, signalNodeId);
-        this->addSignal(clientSignal);
+        const auto numberInList = this->tryReadChildNumberInList(signalNodeId);
+        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedSignals.count(numberInList))
+            orderedSignals.insert(std::pair<uint32_t, SignalPtr>(numberInList, clientSignal));
+        else
+            unorderedSignals.emplace_back(clientSignal);
     }
+    
+    for (const auto& val : orderedSignals)
+        this->addSignal(val.second);
+    for (const auto& val : unorderedSignals)
+        this->addSignal(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateInputsOutputs()
 {
+    std::map<uint32_t, ComponentPtr> orderedComponents;
+    std::vector<ComponentPtr> unorderedComponents;
+
     this->ioFolder.clear();
     auto inputsOutputsNodeId = getNodeId("InputsOutputs");
 
@@ -240,7 +288,12 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
     {
         auto browseName = client->readBrowseName(channelNodeId);
         auto tmsClientChannel = TmsClientChannel(context, this->ioFolder, browseName, clientContext, channelNodeId);
-        this->ioFolder.addItem(tmsClientChannel);
+
+        auto numberInList = this->tryReadChildNumberInList(channelNodeId);
+        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
+            orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientChannel));
+        else
+            unorderedComponents.emplace_back(tmsClientChannel);
     }
 
     auto folderNodeIds = this->getChildNodes(client, inputsOutputsNodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_IOCOMPONENTTYPE));
@@ -248,12 +301,25 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
     {
         auto browseName = client->readBrowseName(folderNodeId);
         auto tmsClientFolder = TmsClientIoFolder(context, this->ioFolder, browseName, clientContext, folderNodeId);
-        this->ioFolder.addItem(tmsClientFolder);
+
+        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
+        if (numberInList != std::numeric_limits<uint32_t>::max())
+            orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientFolder));
+        else
+            unorderedComponents.emplace_back(tmsClientFolder);
     }
+
+    for (const auto& val : orderedComponents)
+        this->ioFolder.addItem(val.second);
+    for (const auto& val : unorderedComponents)
+        this->ioFolder.addItem(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateStreamingOptions()
 {
+    std::map<uint32_t, PropertyObjectPtr> orderedStreamings;
+    std::vector<PropertyObjectPtr> unorderedStreamings;
+
     this->streamingOptions.clear();
     auto streamingOptionsNodeId = getNodeId("StreamingOptions");
     try
@@ -264,24 +330,30 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
         {
             auto browseName = client->readBrowseName(streamingOptionNodeId);
             auto clientStreamingInfo = TmsClientStreamingInfo(daqContext, browseName, clientContext, streamingOptionNodeId);
-            this->streamingOptions.push_back(clientStreamingInfo);
+
+            auto numberInList = this->tryReadChildNumberInList(streamingOptionNodeId);
+            if (numberInList != std::numeric_limits<uint32_t>::max())
+                orderedStreamings.insert(std::pair<uint32_t, PropertyObjectPtr>(numberInList, clientStreamingInfo));
+            else
+                unorderedStreamings.emplace_back(clientStreamingInfo);
         }
     }
     catch (const std::exception& e)
     {
         LOG_E("Failed to find 'StreamingOptions' OpcUa node: {}", e.what());
-        // FIXME this is a temporary workaround for compability with legacy simulator
-        if (isRootDevice)
-        {
-            auto streamingInfo = StreamingInfo("daq.wss");
-            streamingInfo.addProperty(IntProperty("Port", 7414));
-            this->streamingOptions.push_back(streamingInfo);
-        }
     }
+
+    for (const auto& val : orderedStreamings)
+        this->streamingOptions.push_back(val.second);
+    for (const auto& val : unorderedStreamings)
+        this->streamingOptions.push_back(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateCustomComponents()
 {
+    std::map<uint32_t, ComponentPtr> orderedComponents;
+    std::vector<ComponentPtr> unorderedComponents;
+
     auto componentId = OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQCOMPONENTTYPE);
     auto folderNodeIds = this->getChildNodes(client, nodeId, componentId);
     for (const auto& folderNodeId : folderNodeIds)
@@ -291,15 +363,23 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
             continue;
 
         auto childComponents = this->getChildNodes(client, folderNodeId, componentId);
+        ComponentPtr child;
         if (childComponents.size())
-        {
-            this->components.push_back(TmsClientFolder(context, this->thisPtr<ComponentPtr>(), browseName, clientContext, folderNodeId));
-        }
+            child = TmsClientFolder(context, this->thisPtr<ComponentPtr>(), browseName, clientContext, folderNodeId);
         else
-        {
-            this->components.push_back(TmsClientComponent(context, this->thisPtr<ComponentPtr>(), browseName, clientContext, folderNodeId));
-        }
+            child = TmsClientComponent(context, this->thisPtr<ComponentPtr>(), browseName, clientContext, folderNodeId);
+    
+        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
+        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
+            orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, child));
+        else
+            unorderedComponents.push_back(child);
     }
+
+    for (const auto& val : orderedComponents)
+        this->components.push_back(val.second);
+    for (const auto& val : unorderedComponents)
+        this->components.push_back(val);
 }
 
 FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)

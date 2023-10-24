@@ -78,6 +78,40 @@ void TmsClientObjectImpl::subscriptionStatusChangeCallback(UA_StatusChangeNotifi
     //TODO report on disconnect
 }
 
+uint32_t TmsClientObjectImpl::tryReadChildNumberInList(const std::string& nodeName)
+{
+    try
+    {
+        const auto childId = this->getNodeId(nodeName);
+        return tryReadChildNumberInList(childId);
+    }
+    catch(...)
+    {
+    }
+
+    return std::numeric_limits<uint32_t>::max();
+}
+
+uint32_t TmsClientObjectImpl::tryReadChildNumberInList(const opcua::OpcUaNodeId& nodeId)
+{
+    try
+    {
+        const auto& childReferences = referenceUtils.getReferences(nodeId);
+        for (auto& [addedPropChildId, addedPropChildRef] : childReferences)
+        {
+            if (client->readBrowseName(addedPropChildId) == "NumberInList")
+            {
+                return VariantConverter<IInteger>::ToDaqObject(client->readValue(addedPropChildId));
+            }
+        }
+    }
+    catch(...)
+    {
+    }
+
+    return std::numeric_limits<uint32_t>::max();
+}
+
 std::vector<daq::opcua::OpcUaNodeId> TmsClientObjectImpl::getChildNodes(const opcua::OpcUaClientPtr& client,
                                                                         const opcua::OpcUaNodeId& nodeId,
                                                                         const opcua::OpcUaNodeId& typeId,

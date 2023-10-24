@@ -47,6 +47,9 @@ tsl::ordered_set<daq::opcua::OpcUaNodeId> TmsClientFunctionBlockBaseImpl<Impl>::
 template <typename Impl>
 void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateFunctionBlocks()
 {
+    std::map<uint32_t, FunctionBlockPtr> orderedFunctionBlocks;
+    std::vector<FunctionBlockPtr> unorderedFunctionBlocks;
+
     auto functionBlockNodeIds = getFunctionBlockNodeIds();
     for (const auto& functionBlockNodeId : functionBlockNodeIds)
     {
@@ -57,7 +60,12 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateFunctionBlocks()
             // is thrown which results that the application stops. However, this block should
             // just be ignored. It is not an error at all.
             auto clientFunctionBlock = TmsClientFunctionBlock(this->context, this->functionBlocks, browseName, this->clientContext, functionBlockNodeId);
-            this->addNestedFunctionBlock(clientFunctionBlock);
+
+            const auto numberInList = this->tryReadChildNumberInList(functionBlockNodeId);
+            if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedFunctionBlocks.count(numberInList))
+                orderedFunctionBlocks.insert(std::pair<uint32_t, FunctionBlockPtr>(numberInList, clientFunctionBlock));
+            else
+                unorderedFunctionBlocks.emplace_back(clientFunctionBlock);
         }
         catch(...)
         {
@@ -65,17 +73,34 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateFunctionBlocks()
             continue;
         }
     }
+
+    for (const auto& val : orderedFunctionBlocks)
+        this->addNestedFunctionBlock(val.second);
+    for (const auto& val : unorderedFunctionBlocks)
+        this->addNestedFunctionBlock(val);
 }
 
 template <typename Impl> 
 void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateSignals()
 {
+    std::map<uint32_t, SignalPtr> orderedSignals;
+    std::vector<SignalPtr> unorderedSignals;
+
     auto signalNodeIds = getOutputSignalNodeIds();
     for (const auto& signalNodeId : signalNodeIds)
     {
         auto clientSignal = FindOrCreateTmsClientSignal(this->context, this->signals, this->clientContext, signalNodeId);
-        this->addSignal(clientSignal);
+        const auto numberInList = this->tryReadChildNumberInList(signalNodeId);
+        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedSignals.count(numberInList))
+            orderedSignals.insert(std::pair<uint32_t, SignalPtr>(numberInList, clientSignal));
+        else
+            unorderedSignals.emplace_back(clientSignal);
     }
+    
+    for (const auto& val : orderedSignals)
+        this->addSignal(val.second);
+    for (const auto& val : unorderedSignals)
+        this->addSignal(val);
 }
 
 template <typename Impl> 
@@ -90,14 +115,26 @@ tsl::ordered_set<daq::opcua::OpcUaNodeId> TmsClientFunctionBlockBaseImpl<Impl>::
 template <typename Impl> 
 void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateInputPorts()
 {
+    std::map<uint32_t, InputPortPtr> orderedInputPorts;
+    std::vector<InputPortPtr> unorderedInputPorts;
+
     auto inputPortNodeIds = getInputPortNodeIds();
     for (const auto& inputPortNodeId : inputPortNodeIds)
     {
         auto browseName = this->client->readBrowseName(inputPortNodeId);
         auto clientInputPort = TmsClientInputPort(this->context, this->inputPorts, browseName,  this->clientContext, inputPortNodeId);
 
-        this->addInputPort(clientInputPort);
+        const auto numberInList = this->tryReadChildNumberInList(inputPortNodeId);
+        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedInputPorts.count(numberInList))
+            orderedInputPorts.insert(std::pair<uint32_t, InputPortPtr>(numberInList, clientInputPort));
+        else
+            unorderedInputPorts.emplace_back(clientInputPort);
     }
+    
+    for (const auto& val : orderedInputPorts)
+        this->addInputPort(val.second);
+    for (const auto& val : unorderedInputPorts)
+        this->addInputPort(val);
 }
 
 template <typename Impl>

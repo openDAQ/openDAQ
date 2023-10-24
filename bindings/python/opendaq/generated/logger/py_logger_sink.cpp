@@ -30,6 +30,16 @@
 
 PyDaqIntf<daq::ILoggerSink, daq::IBaseObject> declareILoggerSink(pybind11::module_ m)
 {
+    py::enum_<daq::LogLevel>(m, "LogLevel")
+        .value("Trace", daq::LogLevel::Trace)
+        .value("Debug", daq::LogLevel::Debug)
+        .value("Info", daq::LogLevel::Info)
+        .value("Warn", daq::LogLevel::Warn)
+        .value("Error", daq::LogLevel::Error)
+        .value("Critical", daq::LogLevel::Critical)
+        .value("Off", daq::LogLevel::Off)
+        .value("Default", daq::LogLevel::Default);
+
     return wrapInterface<daq::ILoggerSink, daq::IBaseObject>(m, "ILoggerSink");
 }
 
@@ -44,16 +54,6 @@ void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBa
 #ifdef _WIN32
     m.def("WinDebugLoggerSink", &daq::WinDebugLoggerSink_Create);
 #endif
-
-    py::enum_<daq::LogLevel>(m, "LogLevel")
-        .value("Trace", daq::LogLevel::Trace)
-        .value("Debug", daq::LogLevel::Debug)
-        .value("Info", daq::LogLevel::Info)
-        .value("Warn", daq::LogLevel::Warn)
-        .value("Error", daq::LogLevel::Error)
-        .value("Critical", daq::LogLevel::Critical)
-        .value("Off", daq::LogLevel::Off)
-        .value("Default", daq::LogLevel::Default);
 
     cls.def_property("level",
         [](daq::ILoggerSink *object)

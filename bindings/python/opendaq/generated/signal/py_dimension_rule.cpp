@@ -30,6 +30,12 @@
 
 PyDaqIntf<daq::IDimensionRule, daq::IBaseObject> declareIDimensionRule(pybind11::module_ m)
 {
+    py::enum_<daq::DimensionRuleType>(m, "DimensionRuleType")
+        .value("Other", daq::DimensionRuleType::Other)
+        .value("Linear", daq::DimensionRuleType::Linear)
+        .value("Logarithmic", daq::DimensionRuleType::Logarithmic)
+        .value("List", daq::DimensionRuleType::List);
+
     return wrapInterface<daq::IDimensionRule, daq::IBaseObject>(m, "IDimensionRule");
 }
 
@@ -41,12 +47,6 @@ void defineIDimensionRule(pybind11::module_ m, PyDaqIntf<daq::IDimensionRule, da
     m.def("ListDimensionRule", &daq::ListDimensionRule_Create);
     m.def("LogarithmicDimensionRule", &daq::LogarithmicDimensionRule_Create);
     m.def("DimensionRule", &daq::DimensionRule_Create);
-
-    py::enum_<daq::DimensionRuleType>(m, "DimensionRuleType")
-        .value("Other", daq::DimensionRuleType::Other)
-        .value("Linear", daq::DimensionRuleType::Linear)
-        .value("Logarithmic", daq::DimensionRuleType::Logarithmic)
-        .value("List", daq::DimensionRuleType::List);
 
     cls.def_property_readonly("type",
         [](daq::IDimensionRule *object)

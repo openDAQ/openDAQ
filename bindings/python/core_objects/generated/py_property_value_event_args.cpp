@@ -30,6 +30,11 @@
 
 PyDaqIntf<daq::IPropertyValueEventArgs, daq::IEventArgs> declareIPropertyValueEventArgs(pybind11::module_ m)
 {
+    py::enum_<daq::PropertyEventType>(m, "PropertyEventType")
+        .value("Update", daq::PropertyEventType::Update)
+        .value("Clear", daq::PropertyEventType::Clear)
+        .value("Read", daq::PropertyEventType::Read);
+
     return wrapInterface<daq::IPropertyValueEventArgs, daq::IEventArgs>(m, "IPropertyValueEventArgs");
 }
 
@@ -38,11 +43,6 @@ void defineIPropertyValueEventArgs(pybind11::module_ m, PyDaqIntf<daq::IProperty
     cls.doc() = "";
 
     m.def("PropertyValueEventArgs", &daq::PropertyValueEventArgs_Create);
-
-    py::enum_<daq::PropertyEventType>(m, "PropertyEventType")
-        .value("Update", daq::PropertyEventType::Update)
-        .value("Clear", daq::PropertyEventType::Clear)
-        .value("Read", daq::PropertyEventType::Read);
 
     cls.def_property_readonly("property",
         [](daq::IPropertyValueEventArgs *object)

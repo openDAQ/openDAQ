@@ -30,6 +30,10 @@
 
 PyDaqIntf<daq::IScaling, daq::IBaseObject> declareIScaling(pybind11::module_ m)
 {
+    py::enum_<daq::ScalingType>(m, "ScalingType")
+        .value("Other", daq::ScalingType::Other)
+        .value("Linear", daq::ScalingType::Linear);
+
     return wrapInterface<daq::IScaling, daq::IBaseObject>(m, "IScaling");
 }
 
@@ -39,10 +43,6 @@ void defineIScaling(pybind11::module_ m, PyDaqIntf<daq::IScaling, daq::IBaseObje
 
     m.def("LinearScaling", &daq::LinearScaling_Create);
     m.def("Scaling", &daq::Scaling_Create);
-
-    py::enum_<daq::ScalingType>(m, "ScalingType")
-        .value("Other", daq::ScalingType::Other)
-        .value("Linear", daq::ScalingType::Linear);
 
     cls.def_property_readonly("input_sample_type",
         [](daq::IScaling *object)

@@ -30,17 +30,17 @@
 
 PyDaqIntf<daq::IPacket, daq::IBaseObject> declareIPacket(pybind11::module_ m)
 {
+    py::enum_<daq::PacketType>(m, "PacketType")
+        .value("None", daq::PacketType::None)
+        .value("Data", daq::PacketType::Data)
+        .value("Event", daq::PacketType::Event);
+
     return wrapInterface<daq::IPacket, daq::IBaseObject>(m, "IPacket");
 }
 
 void defineIPacket(pybind11::module_ m, PyDaqIntf<daq::IPacket, daq::IBaseObject> cls)
 {
     cls.doc() = "Base packet type. Data, Value, and Event packets are all also packets. Provides the packet's unique ID that is unique to a given device, as well as the packet type.";
-
-    py::enum_<daq::PacketType>(m, "PacketType")
-        .value("None", daq::PacketType::None)
-        .value("Data", daq::PacketType::Data)
-        .value("Event", daq::PacketType::Event);
 
     cls.def_property_readonly("type",
         [](daq::IPacket *object)

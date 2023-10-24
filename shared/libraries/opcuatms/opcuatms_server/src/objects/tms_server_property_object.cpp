@@ -5,9 +5,11 @@
 #include "coreobjects/property_object_internal_ptr.h"
 #include "opcuatms/converters/variant_converter.h"
 #include "opcuatms_server/objects/tms_server_property.h"
+#include "open62541/nodeids.h"
 #include "open62541/statuscodes.h"
 #include "open62541/tmsbsp_nodeids.h"
 #include "open62541/tmsbt_nodeids.h"
+#include "open62541/types_generated.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
     using namespace opcua;
@@ -85,7 +87,7 @@ void TmsServerPropertyObject::addChildNodes()
                 continue;
             if (prop.getValueType() == ctFunc || prop.getValueType() == ctProc)
             {
-                addMethodPropertyNode(prop);
+                addMethodPropertyNode(prop, propOrder[prop.getName()]);
                 continue;
             }
 
@@ -184,7 +186,7 @@ void TmsServerPropertyObject::registerEvalValueNode(const std::string& nodeName,
     childEvalValues.insert({childNodeId, serverObject});
 }
 
-void TmsServerPropertyObject::addMethodPropertyNode(const PropertyPtr& prop)
+void TmsServerPropertyObject::addMethodPropertyNode(const PropertyPtr& prop, uint32_t numberInList)
 {
     const auto name = prop.getName();
     OpcUaNodeId parentId = methodParentNodeId.isNull() ? nodeId : methodParentNodeId;
@@ -214,6 +216,15 @@ void TmsServerPropertyObject::addMethodPropertyNode(const PropertyPtr& prop)
 
         params.setBrowseName(name);
         auto methodNodeId = server->addMethodNode(params);
+
+        OpcUaNodeId numberInListRequestedNodeId(0);
+        AddVariableNodeParams numberInListParams(numberInListRequestedNodeId, methodNodeId);
+        numberInListParams.setBrowseName("NumberInList");
+        numberInListParams.setDataType(OpcUaNodeId(UA_TYPES[UA_TYPES_UINT32].typeId));
+        
+        numberInListParams.typeDefinition = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_PROPERTYTYPE));
+        const auto numberInListNodeId = server->addVariableNode(numberInListParams);
+        server->writeValue(numberInListNodeId, OpcUaVariant(numberInList));
 
         methodProps.insert({methodNodeId, {name, prop.getValueType()}});
     }

@@ -61,7 +61,7 @@ protected:
 
 private:
     void registerEvalValueNode(const std::string& nodeName, TmsServerEvalValue::ReadCallback readCallback);
-    void addMethodPropertyNode(const PropertyPtr& prop);
+    void addMethodPropertyNode(const PropertyPtr& prop, uint32_t numberInList);
     void bindMethodCallbacks();
 
     StringPtr name;

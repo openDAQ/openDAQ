@@ -271,7 +271,10 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(
 template <class Impl>
 void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(
     const tsl::ordered_map<opcua::OpcUaNodeId, opcua::OpcUaObject<UA_ReferenceDescription>>& references,
-    const OpcUaNodeId& parentNodeId)
+    const OpcUaNodeId& parentNodeId,
+    std::map<uint32_t, PropertyPtr>& orderedProperties,
+    std::vector<PropertyPtr> unorderedProperties,
+    std::unordered_map<std::string, BaseObjectPtr>& functionPropValues)
 {
     const auto methodTypeId = OpcUaNodeId(0, UA_NS0ID_METHODNODE);
 
@@ -288,6 +291,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(
             {
                 ListPtr<IArgumentInfo> inputArgs;
                 ListPtr<IArgumentInfo> outputArgs;
+                uint32_t numberInList = std::numeric_limits<uint32_t>::max();
 
                 try
                 {
@@ -296,6 +300,9 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(
 
                     if (referenceUtils.hasReference(childNodeId, "OutputArguments"))
                         outputArgs = VariantConverter<IArgumentInfo>::ToDaqList(client->readValue(referenceUtils.getChildNodeId(childNodeId, "OutputArguments")));
+
+                    if (referenceUtils.hasReference(childNodeId, "NumberInList"))
+                        numberInList = VariantConverter<IInteger>::ToDaqObject(client->readValue(referenceUtils.getChildNodeId(childNodeId, "NumberInList")));
                 }
                 catch(...)
                 {
@@ -303,24 +310,26 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(
                     continue;
                 }
 
+                BaseObjectPtr prop;
+                BaseObjectPtr func;
                 if (outputArgs.assigned() && outputArgs.getCount() == 1)
                 {
                     auto callableInfo = FunctionInfo(outputArgs[0].getType(), inputArgs);
-                    auto prop = FunctionPropertyBuilder(propName, callableInfo).setReadOnly(true).build();
-                    daq::checkErrorInfo(Impl::addProperty(prop));
-
-                    auto clientFunc = TmsClientFunction(clientContext, daqContext, parentNodeId, childNodeId);
-                    daq::checkErrorInfo(Impl::setProtectedPropertyValue(propName, clientFunc));
+                    prop = FunctionPropertyBuilder(propName, callableInfo).setReadOnly(true).build();
+                    func = TmsClientFunction(clientContext, daqContext, parentNodeId, childNodeId);
                 }
                 else
                 {
                     auto callableInfo = ProcedureInfo(inputArgs);
-                    auto prop = FunctionPropertyBuilder(propName, callableInfo).setReadOnly(true).build();
-                    daq::checkErrorInfo(Impl::addProperty(prop));
-
-                    auto clientProcedure = TmsClientProcedure(clientContext, daqContext, parentNodeId, childNodeId);
-                    daq::checkErrorInfo(Impl::setProtectedPropertyValue(propName, clientProcedure));
+                    prop = FunctionPropertyBuilder(propName, callableInfo).setReadOnly(true).build();
+                    func = TmsClientProcedure(clientContext, daqContext, parentNodeId, childNodeId);
                 }
+
+                functionPropValues.insert(std::pair<std::string, BaseObjectPtr>(propName, func));
+                if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedProperties.count(numberInList))
+                    orderedProperties.insert(std::pair<uint32_t, PropertyPtr>(numberInList, prop));
+                else
+                    unorderedProperties.push_back(prop);
             }
         }
     }
@@ -333,25 +342,29 @@ void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
 
     std::map<uint32_t, PropertyPtr> orderedProperties;
     std::vector<PropertyPtr> unorderedProperties;
+    std::unordered_map<std::string, BaseObjectPtr> functionPropValues;
 
     addProperties(references, orderedProperties, unorderedProperties);
     
-    for (const auto& val : orderedProperties)
-        daq::checkErrorInfo(Impl::addProperty(val.second));
-    for (const auto& val : unorderedProperties)
-        daq::checkErrorInfo(Impl::addProperty(val));
-
     // TODO: Make sure that this is a DeviceType node
     if (hasReference("MethodSet"))
     {
         const auto methodNodeId = referenceUtils.getChildNodeId(nodeId, "MethodSet");
         const auto& methodReferences = referenceUtils.getReferences(methodNodeId);
-        addMethodProperties(methodReferences, methodNodeId);
+        addMethodProperties(methodReferences, methodNodeId, orderedProperties, unorderedProperties, functionPropValues);
     }
     else
     {
-        addMethodProperties(references, nodeId);
+        addMethodProperties(references, nodeId, orderedProperties, unorderedProperties, functionPropValues);
     }
+
+    for (const auto& val : orderedProperties)
+        daq::checkErrorInfo(Impl::addProperty(val.second));
+    for (const auto& val : unorderedProperties)
+        daq::checkErrorInfo(Impl::addProperty(val));
+    for (const auto& val : functionPropValues)
+        daq::checkErrorInfo(Impl::setProtectedPropertyValue(String(val.first), val.second));
+
 }
 
 template class TmsClientPropertyObjectBaseImpl<PropertyObjectImpl>;

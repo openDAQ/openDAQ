@@ -107,6 +107,7 @@ public:
     OpcUaVariant();
 
     explicit OpcUaVariant(const uint16_t& value);
+    explicit OpcUaVariant(const uint32_t& value);
     explicit OpcUaVariant(const int32_t& value);
     explicit OpcUaVariant(const int64_t& value);
     explicit OpcUaVariant(const char* value);

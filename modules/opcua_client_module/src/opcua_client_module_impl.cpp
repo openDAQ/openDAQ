@@ -176,10 +176,10 @@ PropertyObjectPtr OpcUaClientModule::createDeviceDefaultConfig()
 // when it will have subscribe/unsubscribe support
 //#if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
 //    allowedStreamingProtocols.pushBack("daq.wss");
-//#endif
-#elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
+#endif
+#if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     allowedStreamingProtocols.pushBack("daq.wss");
-    primaryStreamingProtocol = "daq.wss";
+//    primaryStreamingProtocol = "daq.wss";
 #endif
 
     defaultConfig.addProperty(ListProperty("AllowedStreamingProtocols", allowedStreamingProtocols));
@@ -211,6 +211,7 @@ void OpcUaClientModule::configureStreamingSources(const PropertyObjectPtr& devic
         return;
 
     const StringPtr primaryStreamingProtocol = deviceConfig.getPropertyValue("PrimaryStreamingProtocol");
+    const ListPtr<IString> allowedStreamingProtocols = deviceConfig.getPropertyValue("AllowedStreamingProtocols");
 
     for (const auto& signal : device.getSignalsRecursive())
     {
@@ -240,6 +241,28 @@ void OpcUaClientModule::configureStreamingSources(const PropertyObjectPtr& devic
                 rootStreaming = streamingConnectionString;
             }
         }
+
+        if (!leafStreaming.assigned() || !rootStreaming.assigned())
+        {
+            for (const auto& streamingConnectionString : streamingSources)
+            {
+                std::string connectionString = streamingConnectionString.toStdString();
+                for (const auto& protocol : allowedStreamingProtocols)
+                {
+                    std::string protocolPrefix = protocol.toStdString();
+                    if (connectionString.find(protocolPrefix) == 0)
+                    {
+                        // save the first streaming source as the leaf streaming
+                        if (!leafStreaming.assigned())
+                            leafStreaming = streamingConnectionString;
+
+                        // save the last streaming source as the root streaming
+                        rootStreaming = streamingConnectionString;
+                    }
+                }
+            }
+        }
+
         if (!leafStreaming.assigned() || !rootStreaming.assigned())
             continue;
 

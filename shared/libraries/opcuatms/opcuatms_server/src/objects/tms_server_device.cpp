@@ -224,10 +224,8 @@ void TmsServerDevice::populateStreamingOptions()
     for (const auto& streamingOption : streamingOptions)
     {
         auto tmsStreamingOption = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
-            streamingOptionsNodeId, streamingOption.asPtr<IPropertyObject>(), streamingOption.getProtocolId());
-        tmsStreamingOption->setNumberInList(numberInList);
+            streamingOptionsNodeId, streamingOption.asPtr<IPropertyObject>(), numberInList++, streamingOption.getProtocolId());
         this->streamingOptions.push_back(std::move(tmsStreamingOption));
-        numberInList++;
     }
 }
 
@@ -241,8 +239,7 @@ void TmsServerDevice::addChildNodes()
     uint32_t numberInList = 0;
     for (const auto& device : object.getDevices())
     {
-        auto tmsDevice = registerTmsObjectOrAddReference<TmsServerDevice>(nodeId, device);
-        tmsDevice->setNumberInList(numberInList++);
+        auto tmsDevice = registerTmsObjectOrAddReference<TmsServerDevice>(nodeId, device, numberInList++);
         devices.push_back(std::move(tmsDevice));
     }
 
@@ -251,8 +248,7 @@ void TmsServerDevice::addChildNodes()
     numberInList = 0;
     for (const auto& functionBlock : object.getFunctionBlocks())
     {
-        auto tmsFunctionBlock = registerTmsObjectOrAddReference<TmsServerFunctionBlock<>>(functionBlockNodeId, functionBlock);
-        tmsFunctionBlock->setNumberInList(numberInList++);
+        auto tmsFunctionBlock = registerTmsObjectOrAddReference<TmsServerFunctionBlock<>>(functionBlockNodeId, functionBlock, numberInList++);
         functionBlocks.push_back(std::move(tmsFunctionBlock));
     }
 
@@ -261,8 +257,7 @@ void TmsServerDevice::addChildNodes()
     numberInList = 0;
     for (const auto& signal : object.getSignals())
     {
-        auto tmsSignal = registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal);
-        tmsSignal->setNumberInList(numberInList++);
+        auto tmsSignal = registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal, numberInList++);
         signals.push_back(std::move(tmsSignal));
     }
 
@@ -283,14 +278,12 @@ void TmsServerDevice::addChildNodes()
 
         if (component.asPtrOrNull<IFolder>().assigned())
         {
-            auto folderNode = registerTmsObjectOrAddReference<TmsServerFolder>(nodeId, component);
-            folderNode->setNumberInList(numberInList++);
+            auto folderNode = registerTmsObjectOrAddReference<TmsServerFolder>(nodeId, component, numberInList++);
             folders.push_back(std::move(folderNode));
         }
         else
         {
-            auto componentNode = registerTmsObjectOrAddReference<TmsServerComponent<>>(nodeId, component);
-            componentNode->setNumberInList(numberInList++);
+            auto componentNode = registerTmsObjectOrAddReference<TmsServerComponent<>>(nodeId, component, numberInList++);
             components.push_back(std::move(componentNode));
         }
     }

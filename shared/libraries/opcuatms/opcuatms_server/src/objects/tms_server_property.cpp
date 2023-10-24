@@ -251,7 +251,7 @@ void TmsServerProperty::addReferenceTypeChildNodes()
         auto prop = parent.getRef().getProperty(propName);
         if (prop.getValueType() != ctObject)
         {
-            auto serverInfo = registerTmsObjectOrAddReference<TmsServerProperty>(nodeId, prop, parent.getRef(), propOrder);
+            auto serverInfo = registerTmsObjectOrAddReference<TmsServerProperty>(nodeId, prop, std::numeric_limits<uint32_t>::max(), parent.getRef(),propOrder);
             auto childNodeId = serverInfo->getNodeId();
             childProperties.insert({childNodeId, serverInfo});
         }

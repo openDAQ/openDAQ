@@ -24,20 +24,17 @@ void TmsServerFolder::addChildNodes()
 
         if (channel.assigned())
         {
-            auto tmsChannel = registerTmsObjectOrAddReference<TmsServerChannel>(this->nodeId, channel);
-            tmsChannel->setNumberInList(numberInList++);
+            auto tmsChannel = registerTmsObjectOrAddReference<TmsServerChannel>(this->nodeId, channel, numberInList++);
             channels.push_back(std::move(tmsChannel));
         }
         else if (folder.assigned()) // It is important to test for folder last as a channel also is a folder!
         {
-            auto tmsFolder = registerTmsObjectOrAddReference<TmsServerFolder>(this->nodeId, folder);
-            tmsFolder->setNumberInList(numberInList++);
+            auto tmsFolder = registerTmsObjectOrAddReference<TmsServerFolder>(this->nodeId, folder, numberInList++);
             folders.push_back(std::move(tmsFolder));
         }
         else if (component.assigned())  // It is important to test for component after folder!
         {
-            auto tmsComponent = registerTmsObjectOrAddReference<TmsServerComponent<>>(this->nodeId, component);
-            tmsComponent->setNumberInList(numberInList++);
+            auto tmsComponent = registerTmsObjectOrAddReference<TmsServerComponent<>>(this->nodeId, component, numberInList++);
             components.push_back(std::move(tmsComponent));
         }
         else

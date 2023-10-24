@@ -63,7 +63,7 @@ DECLARE_OPENDAQ_INTERFACE(IPacket, IBaseObject)
 
     /*!
      * @brief Gets the reference count of the packet.
-     * @param refCount The reference count of the packet.
+     * @param[out] refCount The reference count of the packet.
      */
     virtual ErrCode INTERFACE_FUNC getRefCount(SizeT* refCount) = 0;
 };

@@ -117,7 +117,9 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 )
 
 /*!
- * @brief Creates a DataRule with an Explicit rule type configuration and no parameters.
+ * @brief Creates a DataRule with an Explicit rule type configuration and parameters.
+ * @param ruleType .
+ * @param parameters .
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, DataRule, IDataRule,

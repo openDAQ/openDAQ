@@ -124,7 +124,7 @@ DECLARE_OPENDAQ_INTERFACE(IInstance, IDevice)
 /*!@}*/
 
 /*!
- * @brief Creates a openDAQ instance.
+ * @brief Creates an openDAQ instance.
  * @param context The context object.
  * @param localId The localID of the instance.
  *
@@ -142,6 +142,11 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IString*, localId
 )
 
+ /*!
+ * @brief Creates an openDAQ client.
+ * @param ctx The context object.
+ * @param localId The localID of the client.
+ */
 /*#
  * [factory(NoConstructor)]
  */

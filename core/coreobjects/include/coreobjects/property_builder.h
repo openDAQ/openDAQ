@@ -200,6 +200,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
 
 /*!
  * @brief Creates an Property builder object with only the name field configured.
+ * @param name The name of the Property.
  *
  * The default Value type is `ctUndefined`.
  */

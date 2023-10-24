@@ -19,6 +19,11 @@ OpcUaVariant::OpcUaVariant(const uint16_t& value)
     UA_Variant_setScalarCopy(&this->value, &value, &UA_TYPES[UA_TYPES_UINT16]);
 }
 
+OpcUaVariant::OpcUaVariant(const uint32_t& value)
+{
+    UA_Variant_setScalarCopy(&this->value, &value, &UA_TYPES[UA_TYPES_UINT32]);
+}
+
 OpcUaVariant::OpcUaVariant(const int32_t& value)
     : OpcUaVariant()
 {

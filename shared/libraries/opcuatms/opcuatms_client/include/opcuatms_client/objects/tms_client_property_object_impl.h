@@ -118,7 +118,10 @@ protected:
                        std::map<uint32_t, PropertyPtr>& orderedProperties,
                        std::vector<PropertyPtr> unorderedProperties);
     void addMethodProperties(const tsl::ordered_map<opcua::OpcUaNodeId, opcua::OpcUaObject<UA_ReferenceDescription>>& references,
-                             const opcua::OpcUaNodeId& parentNodeId);
+                             const opcua::OpcUaNodeId& parentNodeId,
+                             std::map<uint32_t, PropertyPtr>& orderedProperties,
+                             std::vector<PropertyPtr> unorderedProperties,
+                             std::unordered_map<std::string, BaseObjectPtr>& functionPropValues);
     void browseRawProperties();
     ErrCode INTERFACE_FUNC setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite);
 };

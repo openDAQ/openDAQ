@@ -1,35 +1,19 @@
 = Setting up (Python)
 
-Pre-built packages of Python bindings for the openDAQ(TM) SDK are currently only available
-for Python 3.11 on Windows and Python 3.10 on Ubuntu 22.04.
+Pre-built packages of Python bindings for the openDAQ(TM) SDK are currently only available for:
 
-They can be installed on one of those systems with the following command:
+ * 64-bit Windows 
+ * x86_64 Linux (built on manylinux 2014, requires GLIBC >= 2.17)
+
+On supported systems you can install it with:
 [source,bash]
 ----
 pip install opendaq
 ----
-
-// To use the SDK on a different platform or with a different version of Python, you need
-// to xref:quick_start_building_opendaq.adoc[build the bindings from source] first.
-// The minimum required Python version is 3.7.
-
-We plan to provide `pip` packages and cover a wider range of operating systems and Python versions in the future.
-
 == Prerequisites
 
-Python *3.11* for Windows can be downloaded from https://www.python.org/downloads/.
+Python *3.8-12* for Windows can be downloaded from https://www.python.org/downloads/.
 On Linux it can be installed via the package manager.
-
-It may also be desirable to install `matplotlib` depending on how the software is to be used.
-
-== Installing Python bindings
-
-To install the bindings on Windows simply run
-
-[source,bash]
-----
-pip install opendaq
-----
 
 == Testing the installation
 
@@ -40,15 +24,14 @@ To test the installation, start the Python interactive shell (type `python`) fro
 import opendaq as daq
 
 instance = daq.Instance()
+for device_info in instance.available_devices:
+    print("Name:", device_info.name, "Connection string:", device_info.connection_string)
 ----
 
-// [NOTE]
-// ====
-// In order to change the path from where openDAQ(TM) looks for xref:background_info:modules.adoc[Modules]
-// that allow for connection to devices and performing data calculations you can also specify the path explicitly:
-//
-// [source,python]
-// ----
-// instance = daq.Instance('path/to/modules')
-// ----
-// ====
+When using just a reference module without being connected to a physical device, the expected output will be something similar to:
+
+[source]
+----
+Name: Device 0 Connection string: daqref://device0
+Name: Device 1 Connection string: daqref://device1
+----

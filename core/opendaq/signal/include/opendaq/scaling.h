@@ -125,10 +125,10 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 /*!
  * @brief Creates a Scaling object with given input/output types, Scaling type and parameters.
  *
- * @param type The type of the Dimension rule.
- * @param parameters Tha parameters of the Dimension rule.
- * @param outputDataType The data type output by the rule after calculation.
  * @param inputDataType The type of input data expected by the rule.
+ * @param outputDataType The data type output by the rule after calculation.
+ * @param scalingType The type of the scaling.
+ * @param parameters Tha parameters of the Dimension rule.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, Scaling, IScaling,

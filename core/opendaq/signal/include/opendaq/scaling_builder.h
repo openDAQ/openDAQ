@@ -111,7 +111,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, ScalingBuilder, IS
 /*!
  * @brief Scaling builder copy factory that creates a configurable Scaling object from a
  * non-configurable one.
- * @param scaling The scaling of which configuration should be copied.
+ * @param scalingToCopy The scaling of which configuration should be copied.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, ScalingBuilderFromExisting, IScalingBuilder,

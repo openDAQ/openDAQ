@@ -80,7 +80,7 @@ DECLARE_OPENDAQ_INTERFACE(ISampleReader, IReader)
 
     /*!
      * @brief Gets the reader's read mode which determines if the reader will also scale the read data or not.
-     * @param mode The mode the reader is in (either Raw or Scaled)
+     * @param[out] mode The mode the reader is in (either Raw or Scaled)
      */
     virtual ErrCode INTERFACE_FUNC getReadMode(ReadMode* mode) = 0;
 };

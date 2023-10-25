@@ -83,7 +83,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, DimensionBuilder, 
 
 /*!
  * @brief Creates a builder copy of the dimension object passed as parameter.
- * @param dimension The dimension object to be copied.
+ * @param dimensionToCopy The dimension object to be copied.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, DimensionBuilderFromExisting, IDimensionBuilder,

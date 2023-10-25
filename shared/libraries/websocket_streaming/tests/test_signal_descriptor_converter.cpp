@@ -213,7 +213,7 @@ TEST(SignalConverter, synchronousSignalWithPostScaling)
     ASSERT_EQ(syncSigna1->getMemberName(), valueDescriptor.getName());
 }
 
-TEST(SignalConverter, DISABLED_subscribedDataSignal)
+TEST(SignalConverter, subscribedDataSignal)
 {
     std::string method;
     int result;
@@ -253,24 +253,22 @@ TEST(SignalConverter, DISABLED_subscribedDataSignal)
     ASSERT_FALSE(subscribedSignal.isTimeSignal());
 
     auto dataDescriptor = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal).dataDescriptor;
-    ASSERT_EQ(dataDescriptor.getName(), signalId);
 
     ASSERT_EQ(dataDescriptor.getName(), memberName);
-    daq::SampleType sampleType;
-    daq::ErrCode err = dataDescriptor->getSampleType(&sampleType);
-    ASSERT_EQ(err, OPENDAQ_SUCCESS);
-    ASSERT_EQ(sampleType, daq::SampleType::Float64);
 
-    daq::UnitPtr unit;
-    dataDescriptor->getUnit(&unit);
+    ASSERT_EQ(dataDescriptor.getSampleType(), daq::SampleType::Float64);
+
+    auto unit = dataDescriptor.getUnit();
+    ASSERT_TRUE(unit.assigned());
     ASSERT_EQ(unit.getId(), unitId);
     ASSERT_EQ(unit.getSymbol(), unitDisplayName);
-    daq::DataRulePtr rule;
-    dataDescriptor->getRule(&rule);
+
+    auto rule = dataDescriptor.getRule();
+    ASSERT_TRUE(rule.assigned());
     ASSERT_EQ(daq::DataRuleType::Explicit, rule.getType());
 }
 
-TEST(SignalConverter, DISABLED_subscribedTimeSignal)
+TEST(SignalConverter, subscribedTimeSignal)
 {
     std::string method;
     int result;
@@ -303,7 +301,6 @@ TEST(SignalConverter, DISABLED_subscribedTimeSignal)
 
     timeSignalParams[bsp::META_TABLEID] = tableId;
     timeSignalParams[bsp::META_DEFINITION][bsp::META_NAME] = memberName;
-    timeSignalParams[bsp::META_DEFINITION][bsp::META_DATATYPE] = bsp::DATA_TYPE_REAL64;
 
     timeSignalParams[bsp::META_DEFINITION][bsp::META_RULE] = bsp::META_RULETYPE_LINEAR;
 
@@ -312,28 +309,29 @@ TEST(SignalConverter, DISABLED_subscribedTimeSignal)
 
     timeSignalParams[bsp::META_DEFINITION][bsp::META_UNIT][bsp::META_UNIT_ID] = unitId;
     timeSignalParams[bsp::META_DEFINITION][bsp::META_UNIT][bsp::META_DISPLAY_NAME] = unitDisplayName;
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_UNIT][bsp::META_QUANTITY] = bsp::META_TIME;
 
-    timeSignalParams[bsp::META_DEFINITION][bsp::META_TIME][bsp::META_ABSOLUTE_REFERENCE] = bsp::UNIX_EPOCH;
-    timeSignalParams[bsp::META_DEFINITION][bsp::META_TIME][bsp::META_RESOLUTION][bsp::META_NUMERATOR] = 1;
-    timeSignalParams[bsp::META_DEFINITION][bsp::META_TIME][bsp::META_RESOLUTION][bsp::META_DENOMINATOR] = ticksPerSecond;
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_ABSOLUTE_REFERENCE] = bsp::UNIX_EPOCH;
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_RESOLUTION][bsp::META_NUMERATOR] = 1;
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_RESOLUTION][bsp::META_DENOMINATOR] = ticksPerSecond;
     result = subscribedSignal.processSignalMetaInformation(method, timeSignalParams);
     ASSERT_EQ(result, 0);
     subscribedSignal.setTime(startTime);
     ASSERT_TRUE(subscribedSignal.isTimeSignal());
 
     auto dataDescriptor = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal).dataDescriptor;
-    ASSERT_EQ(dataDescriptor.getName(), signalId);
-    daq::SampleType sampleType;
-    ErrCode err = dataDescriptor->getSampleType(&sampleType);
-    ASSERT_EQ(err, OPENDAQ_SUCCESS);
-    ASSERT_EQ(sampleType, daq::SampleType::UInt64);
 
-    daq::UnitPtr unit;
-    dataDescriptor->getUnit(&unit);
+    ASSERT_EQ(dataDescriptor.getName(), memberName);
+
+    ASSERT_EQ(dataDescriptor.getSampleType(), daq::SampleType::UInt64);
+
+    auto unit = dataDescriptor.getUnit();
+    ASSERT_TRUE(unit.assigned());
     ASSERT_EQ(unit.getId(), unitId);
     ASSERT_EQ(unit.getSymbol(), unitDisplayName);
-    daq::DataRulePtr rule;
-    dataDescriptor->getRule(&rule);
+
+    auto rule = dataDescriptor.getRule();
+    ASSERT_TRUE(rule.assigned());
     ASSERT_EQ(daq::DataRuleType::Linear, rule.getType());
     DictPtr<IString, IBaseObject> params = rule.getParameters();
     ASSERT_EQ(params.getCount(), 2u);

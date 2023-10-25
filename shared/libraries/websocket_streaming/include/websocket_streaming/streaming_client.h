@@ -32,6 +32,7 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <future>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -103,6 +104,7 @@ protected:
     std::mutex clientMutex;
     std::condition_variable conditionVariable;
     std::chrono::milliseconds connectTimeout{1000};
+    std::unordered_map<std::string, std::pair<std::promise<void>, std::future<void>>> signalInitializedStatus;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

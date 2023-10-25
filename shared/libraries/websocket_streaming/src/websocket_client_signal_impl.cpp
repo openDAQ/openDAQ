@@ -10,18 +10,10 @@ static constexpr char delimeter = '#';
 
 WebsocketClientSignalImpl::WebsocketClientSignalImpl(const ContextPtr& ctx,
                                                      const ComponentPtr& parent,
-                                                     const DataDescriptorPtr& descriptor,
-                                                     const DataDescriptorPtr& domainDescriptor,
                                                      const StringPtr& streamingId)
-    : SignalRemote<SignalStandardProps::AddReadOnly>(ctx, parent, CreateLocalId(streamingId))
+    : SignalRemoteBase(ctx, parent, CreateLocalId(streamingId))
     , streamingId(streamingId)
-    , mirroredDataDescriptor(descriptor)
 {
-    if (domainDescriptor.assigned())
-        domainSignalArtificial = SignalWithDescriptor(ctx,
-                                                      domainDescriptor,
-                                                      parent,
-                                                      CreateLocalId(streamingId+"_time_artificial"));
 }
 
 StringPtr WebsocketClientSignalImpl::CreateLocalId(const StringPtr& streamingId)
@@ -67,6 +59,8 @@ Bool WebsocketClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
         DataDescriptorPtr newSignalDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
         DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
 
+        std::scoped_lock lock(this->sync);
+
         if (newSignalDescriptor.assigned())
         {
             mirroredDataDescriptor = newSignalDescriptor;
@@ -80,6 +74,23 @@ Bool WebsocketClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
 
     // No new duplicated event packets have been created so returns true to forward original packet
     return True;
+}
+
+void WebsocketClientSignalImpl::assignDomainSignal(const DataDescriptorPtr& domainDescriptor)
+{
+    std::scoped_lock lock(this->sync);
+
+    domainSignalArtificial = SignalWithDescriptor(this->context,
+                                                  domainDescriptor,
+                                                  this->parent.getRef(),
+                                                  CreateLocalId(streamingId+"_time_artificial"));
+}
+
+void WebsocketClientSignalImpl::assignDescriptor(const DataDescriptorPtr& descriptor)
+{
+    std::scoped_lock lock(this->sync);
+
+    mirroredDataDescriptor = descriptor;
 }
 
 EventPacketPtr WebsocketClientSignalImpl::createDataDescriptorChangedEventPacket()

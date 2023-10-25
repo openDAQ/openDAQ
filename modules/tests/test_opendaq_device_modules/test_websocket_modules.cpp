@@ -1,6 +1,7 @@
 #include <testutils/testutils.h>
 #include <opendaq/opendaq.h>
 #include "testutils/memcheck_listener.h"
+#include <thread>
 
 using WebsocketModulesTest = testing::Test;
 

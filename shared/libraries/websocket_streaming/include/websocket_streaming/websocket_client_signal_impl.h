@@ -21,13 +21,17 @@
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
-class WebsocketClientSignalImpl final : public SignalRemote<SignalStandardProps::AddReadOnly>
+DECLARE_OPENDAQ_INTERFACE(IWebsocketStreamingSignalPrivate, IBaseObject)
+{
+    virtual void assignDomainSignal(const DataDescriptorPtr& domainDescriptor) = 0;
+    virtual void assignDescriptor(const DataDescriptorPtr& descriptor) = 0;
+};
+
+class WebsocketClientSignalImpl final : public SignalRemoteBase<SignalStandardProps::AddReadOnly, IWebsocketStreamingSignalPrivate>
 {
 public:
     explicit WebsocketClientSignalImpl(const ContextPtr& ctx,
                                        const ComponentPtr& parent,
-                                       const DataDescriptorPtr& descriptor,
-                                       const DataDescriptorPtr& domainDescriptor,
                                        const StringPtr& streamingId);
 
     // ISignal
@@ -36,6 +40,9 @@ public:
 
     StringPtr onGetRemoteId() const override;
     Bool onTriggerEvent(EventPacketPtr eventPacket) override;
+
+    void assignDomainSignal(const DataDescriptorPtr& domainDescriptor) override;
+    void assignDescriptor(const DataDescriptorPtr& descriptor) override;
 
 protected:
     EventPacketPtr createDataDescriptorChangedEventPacket() override;

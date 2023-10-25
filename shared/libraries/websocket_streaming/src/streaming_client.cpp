@@ -71,6 +71,19 @@ bool StreamingClient::connect()
     clientThread = std::thread([this]() { ioContext.run(); });
 
     conditionVariable.wait_for(lock, connectTimeout, [this]() { return connected; });
+
+    const auto timeout = std::chrono::seconds(1);
+    auto timeoutExpired = std::chrono::system_clock::now() + timeout;
+
+    for (const auto& [id, promiseFuturePair] : signalInitializedStatus)
+    {
+        auto status = promiseFuturePair.second.wait_until(timeoutExpired);
+        if (status != std::future_status::ready)
+        {
+            LOG_W("singal {} has incomplete descriptors", id);
+        }
+    }
+
     return connected;
 }
 
@@ -194,7 +207,16 @@ void StreamingClient::onProtocolMeta(daq::streaming_protocol::ProtocolHandler& p
         if (availableSignals != params.end() && availableSignals->is_array())
         {
             for (const auto& arrayItem : *availableSignals)
-                signalIds.push_back(arrayItem);
+            {
+                std::string signalId = arrayItem;
+                signalIds.push_back(signalId);
+
+                std::promise<void> signalInitPromise;
+                std::future<void> signalInitFuture = signalInitPromise.get_future();
+                signalInitializedStatus.insert({signalId, std::make_pair(std::move(signalInitPromise), std::move(signalInitFuture))});
+            }
+
+            protocolHandler.subscribe(signalIds);
 
             onAvailableDeviceSignalsCb(signalIds);
             onAvailableStreamingSignalsCb(signalIds);
@@ -249,13 +271,20 @@ void StreamingClient::setTimeSignal(const daq::streaming_protocol::SubscribedSig
         return;
 
     auto inputSignal = signals[tableId];
+    const bool assignDomainDescriptor =
+        inputSignal->getSignalDescriptor().assigned() && !inputSignal->getDomainSignalDescriptor().assigned() ? true : false;
     inputSignal->setDomainDescriptor(subscribedSignal);
 
     // Sets the descriptors when first connecting
-    if (!connected)
+    if (assignDomainDescriptor)
     {
         auto domainDescriptor = inputSignal->getDomainSignalDescriptor();
         onDomainDescriptorCallback(tableId, domainDescriptor);
+
+        if (auto iterator = signalInitializedStatus.find(tableId); iterator != signalInitializedStatus.end())
+        {
+            iterator->second.first.set_value();
+        }
     }
 }
 

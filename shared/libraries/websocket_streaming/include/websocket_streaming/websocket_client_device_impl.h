@@ -34,16 +34,14 @@ protected:
     DeviceInfoPtr onGetInfo() override;
     void createWebsocketStreaming();
     void activateStreaming();
-    void registerSignalAttributes(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
     void updateSignal(const SignalPtr& signal, const SubscribedSignalInfo& sInfo);
     void onNewSignal(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
     void onSignalUpdated(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
     void onDomainDescriptor(const StringPtr& signalId, const DataDescriptorPtr& domainDescriptor);
-    void initializeDeviceSignals(const std::vector<std::string>& signalIds);
+    void createDeviceSignals(const std::vector<std::string>& signalIds);
 
     DeviceInfoConfigPtr deviceInfo;
     std::map<StringPtr, SignalPtr> deviceSignals;
-    std::map<StringPtr, std::pair<DataDescriptorPtr, SubscribedSignalInfo>> deviceSignalsAttributes;
     StreamingPtr websocketStreaming;
     StringPtr connectionString;
 };

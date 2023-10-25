@@ -20,14 +20,10 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
 inline SignalPtr WebsocketClientSignal(const ContextPtr& ctx,
                                        const ComponentPtr& parent,
-                                       const DataDescriptorPtr& descriptor,
-                                       const DataDescriptorPtr& domainDescriptor,
                                        const StringPtr& streamingId)
 {
     SignalPtr obj(createWithImplementation<ISignal, WebsocketClientSignalImpl>(ctx,
                                                                                parent,
-                                                                               descriptor,
-                                                                               domainDescriptor,
                                                                                streamingId));
     return obj;
 }

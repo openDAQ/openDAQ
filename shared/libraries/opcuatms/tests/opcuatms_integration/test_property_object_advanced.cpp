@@ -749,3 +749,17 @@ TEST_F(TmsPropertyObjectAdvancedTest, StructureSet)
     ASSERT_EQ(clientObj.getPropertyValue("CustomRuleDescriptionStructure"), obj.getPropertyValue("CustomRuleDescriptionStructure"));
     ASSERT_EQ(clientObj.getPropertyValue("AdditionalParametersType"), obj.getPropertyValue("AdditionalParametersType"));
 }
+
+TEST_F(TmsPropertyObjectAdvancedTest, PropertyOrder)
+{
+    const auto obj = PropertyObject(manager, "TestClass");
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+
+    auto serverProps = obj.getAllProperties();
+    auto clientProps = clientObj.getAllProperties();
+
+    ASSERT_EQ(serverProps.getCount(), clientProps.getCount());
+
+    for (SizeT i = 0; i < serverProps.getCount(); ++i)
+        ASSERT_EQ(serverProps[i].getName(), clientProps[i].getName());
+}

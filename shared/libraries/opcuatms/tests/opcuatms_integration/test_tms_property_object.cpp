@@ -10,6 +10,8 @@
 #include "tms_object_integration_test.h"
 #include "opcuatms_client/objects/tms_client_property_object_factory.h"
 #include <coreobjects/property_object_class_factory.h>
+
+#include "coreobjects/callable_info_factory.h"
 #include "opendaq/context_factory.h"
 
 using namespace daq;
@@ -196,4 +198,29 @@ TEST_F(TmsPropertyObjectTest, TestListProperty)
     auto [serverProp, clientProp] = registerPropertyObject(propObj);
     auto clientDict = clientProp.getPropertyValue("ListProp");
     ASSERT_EQ(list, clientDict);
+}
+
+TEST_F(TmsPropertyObjectTest, TestPropertyOrder)
+{
+    auto obj = PropertyObject();
+    for (SizeT i = 0; i < 200; ++i)
+        obj.addProperty(BoolProperty("bool" + std::to_string(i), true));
+    for (SizeT i = 0; i < 200; ++i)
+        obj.addProperty(StringProperty("string" + std::to_string(i), "test"));
+    for (SizeT i = 0; i < 200; ++i)
+    {
+        obj.addProperty(FunctionProperty("func" + std::to_string(i), ProcedureInfo()));
+        ProcedurePtr test = Procedure([](){});
+        obj.setPropertyValue("func" + std::to_string(i), test);
+    }
+
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+        auto serverProps = obj.getAllProperties();
+    auto clientProps = clientObj.getAllProperties();
+
+    ASSERT_EQ(serverProps.getCount(), clientProps.getCount());
+
+    for (SizeT i = 0; i < serverProps.getCount(); ++i)
+        ASSERT_EQ(serverProps[i].getName(), clientProps[i].getName());
+
 }

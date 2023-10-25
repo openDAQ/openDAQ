@@ -14,6 +14,8 @@ set(MOCK_HEADERS mock_device_module.h
                  mock_server_factory.h
                  mock_streaming.h
                  mock_streaming_factory.h
+                 default_mocks.h
+                 default_mocks_factory.h
 )
 
 opendaq_prepend_path(include/${SDK_TARGET_NAME}/mock MOCK_HEADERS)
@@ -27,6 +29,7 @@ set(MOCK_SOURCES mock_device_module.cpp
                  mock_server_module.cpp
                  mock_server.cpp
                  mock_streaming.cpp
+                 default_mocks.cpp
 )
 
 source_group("mock" FILES ${MOCK_HEADERS}

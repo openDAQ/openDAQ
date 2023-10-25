@@ -16,8 +16,10 @@
 #include "opcuatms_client/objects/tms_client_signal_factory.h"
 #include "open62541/tmsbsp_nodeids.h"
 #include "tms_object_integration_test.h"
+#include "opendaq/folder_config_ptr.h"
 
 #include "opendaq/mock/mock_fb_factory.h"
+#include "opendaq/mock/default_mocks_factory.h"
 
 using namespace daq;
 using namespace opcua::tms;
@@ -231,4 +233,58 @@ TEST_F(TmsFunctionBlockTest, ComponentMethods)
 
     clientFunctionBlock.setActive(true);
     ASSERT_EQ(serverFunctionBlock.getActive(), clientFunctionBlock.getActive());
+}
+
+TEST_F(TmsFunctionBlockTest, SignalOrder)
+{
+    auto serverFunctionBlock = DefaultFunctionBlock(NullContext(), nullptr, "mock");
+    FolderConfigPtr folder = serverFunctionBlock.getItem("sig");
+    for (int i = 0; i < 100; ++i)
+        folder.addItem(Signal(NullContext(), folder, "sig_" + std::to_string(i)));
+    
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto functionBlockNodeId = tmsServerFunctionBlock.registerOpcUaNode();
+    FunctionBlockPtr clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, functionBlockNodeId);
+
+    const auto serverSignals = serverFunctionBlock.getSignals();
+    const auto clientSignals = clientFunctionBlock.getSignals();
+
+    for (SizeT i = 0; i < serverSignals.getCount(); ++i)
+        ASSERT_EQ(serverSignals[i].getName(), clientSignals[i].getName());
+}
+
+TEST_F(TmsFunctionBlockTest, InputPortOrder)
+{
+    auto serverFunctionBlock = DefaultFunctionBlock(NullContext(), nullptr, "mock");
+    FolderConfigPtr folder = serverFunctionBlock.getItem("ip");
+    for (int i = 0; i < 100; ++i)
+        folder.addItem(InputPort(NullContext(), folder, "ip_" + std::to_string(i)));
+    
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto functionBlockNodeId = tmsServerFunctionBlock.registerOpcUaNode();
+    FunctionBlockPtr clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, functionBlockNodeId);
+
+    const auto serverInputPorts = serverFunctionBlock.getInputPorts();
+    const auto clientInputPorts = clientFunctionBlock.getInputPorts();
+
+    for (SizeT i = 0; i < serverInputPorts.getCount(); ++i)
+        ASSERT_EQ(serverInputPorts[i].getName(), clientInputPorts[i].getName());
+}
+
+TEST_F(TmsFunctionBlockTest, FunctionBlockOrder)
+{
+    auto serverFunctionBlock = DefaultFunctionBlock(NullContext(), nullptr, "mock");
+    FolderConfigPtr folder = serverFunctionBlock.getItem("fb");
+    for (int i = 0; i < 40; ++i)
+        folder.addItem(DefaultFunctionBlock(NullContext(), folder, "fb_" + std::to_string(i)));
+    
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto functionBlockNodeId = tmsServerFunctionBlock.registerOpcUaNode();
+    FunctionBlockPtr clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, functionBlockNodeId);
+
+    const auto serverFunctionBlocks = serverFunctionBlock.getFunctionBlocks();
+    const auto clientFunctionBlocks = clientFunctionBlock.getFunctionBlocks();
+
+    for (SizeT i = 0; i < serverFunctionBlocks.getCount(); ++i)
+        ASSERT_EQ(serverFunctionBlocks[i].getName(), clientFunctionBlocks[i].getName());
 }

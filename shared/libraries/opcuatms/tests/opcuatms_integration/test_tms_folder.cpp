@@ -148,3 +148,42 @@ TEST_F(TmsFolderTest, IOFolder)
     ASSERT_TRUE(folder.serverFolder.getItems()[0].asPtrOrNull<IFolder>().getItems()[0].asPtrOrNull<IChannel>().assigned());
     ASSERT_TRUE(folder.clientFolder.getItems()[0].asPtrOrNull<IFolder>().getItems()[0].asPtrOrNull<IChannel>().assigned());
 }
+
+TEST_F(TmsFolderTest, IOFolderNodeOrder)
+{
+    auto folder = IoFolder(NullContext(), nullptr, "parent");
+    for (int i = 0; i < 100; ++i)
+    {
+        folder.addItem(IoFolder(NullContext(), folder, "child" + std::to_string(i)));
+    }
+
+    for (int i = 0; i < 10; ++i)
+    {
+        folder.addItem(MockChannel(NullContext(), folder, "channel" + std::to_string(i)));
+    }
+
+    auto registered = registerTestFolder(folder);
+
+    auto serverItems = folder.getItems();
+    auto clientItems = registered.clientFolder.getItems();
+
+    for (SizeT i = 0; i < serverItems.getCount(); ++i)
+        ASSERT_EQ(serverItems[i].getName(), clientItems[i].getName());
+}
+
+TEST_F(TmsFolderTest, FolderNodeOrder)
+{
+    auto folder = Folder(NullContext(), nullptr, "parent");
+    for (int i = 0; i < 100; ++i)
+    {
+        folder.addItem(Folder(NullContext(), folder, "child" + std::to_string(i)));
+    }
+
+    auto registered = registerTestFolder(folder);
+
+    auto serverItems = folder.getItems();
+    auto clientItems = registered.clientFolder.getItems();
+
+    for (SizeT i = 0; i < serverItems.getCount(); ++i)
+        ASSERT_EQ(serverItems[i].getName(), clientItems[i].getName());
+}

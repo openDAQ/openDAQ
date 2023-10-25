@@ -87,6 +87,8 @@ void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
     if (onAcceptCallback)
         signals = onAcceptCallback(writer);
 
+    writeSignalsAvailable(writer, signals);
+
     auto outputSignals = std::unordered_map<std::string, OutputSignalPtr>();
     for (const auto& signal : signals)
     {
@@ -106,7 +108,6 @@ void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
     }
 
     clients.insert({writer, outputSignals});
-    writeSignalsAvailable(writer, signals);
 }
 
 void StreamingServer::writeProtocolInfo(const daq::streaming_protocol::StreamWriterPtr& writer)

@@ -28,6 +28,8 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(const daq::stre
 {
     SubscribedSignalInfo sInfo;
 
+    // *** meta "definition" start ***
+    // get metainfo received via signal "definition" object and stored in SubscribedSignal struct
     auto dataDescriptor = DataDescriptorBuilder().setRule(GetRule(subscribedSignal));
 
     if (subscribedSignal.isTimeSignal())
@@ -38,6 +40,34 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(const daq::stre
         dataDescriptor.setTickResolution(resolution);
     }
 
+    daq::streaming_protocol::SampleType streamingSampleType = subscribedSignal.dataValueType();
+    daq::SampleType daqSampleType = Convert(streamingSampleType);
+    dataDescriptor.setSampleType(daqSampleType);
+
+    dataDescriptor.setName(subscribedSignal.memberName());
+
+    if (subscribedSignal.unitId() != daq::streaming_protocol::Unit::UNIT_ID_NONE)
+    {
+        auto unit = Unit(subscribedSignal.unitDisplayName(),
+                         subscribedSignal.unitId(),
+                         "",
+                         subscribedSignal.unitQuantity());
+
+        dataDescriptor.setUnit(unit);
+    }
+    // *** meta "definition" end ***
+
+    if (!subscribedSignal.isTimeSignal())
+    {
+        // "definition" object does not contain signal value range used to configure renderer,
+        // we need to set the some default value for the fusion (non-openDAQ) device signals
+        // if the signal is owned by the openDAQ-enabled server
+        // than the value range from "interpretation" will overwrite the default value
+        dataDescriptor.setValueRange(daq::Range(-15.0, 15.0));
+    }
+
+    // --- meta "interpretation" start ---
+    // overwrite/add descriptor fields with ones from optional "interpretation" object
     auto extra = subscribedSignal.interpretationObject();
     DecodeInterpretationObject(extra, dataDescriptor);
 
@@ -46,6 +76,7 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(const daq::stre
         sInfo.signalProps.name = extra["sig_name"];
     if (extra.count("sig_desc") > 0)
         sInfo.signalProps.description = extra["sig_desc"];
+    // --- meta "interpretation" end ---
 
     return sInfo;
 }
@@ -60,6 +91,8 @@ void SignalDescriptorConverter::ToStreamedSignal(const daq::SignalPtr& signal,
 
     auto domainDescriptor = signal.getDomainSignal().getDescriptor();
 
+    // *** meta "definition" start ***
+    // set/verify fields which will be lately encoded into signal "definition" object
     stream->setMemberName(dataDescriptor.getName());
 
     // Data type of stream can not be changed. Complain upon change!
@@ -72,9 +105,10 @@ void SignalDescriptorConverter::ToStreamedSignal(const daq::SignalPtr& signal,
         throw ConversionFailedException();
 
     UnitPtr unit = dataDescriptor.getUnit();
-    stream->setUnit(unit.getId(), unit.getSymbol());
+    if (unit.assigned())
+        stream->setUnit(unit.getId(), unit.getSymbol());
 
-    // causes an error
+    // causes an error, so openDAQ utilizes fields of "interpretation" object to encode time rule
     // DataRulePtr rule = domainDescriptor.getRule();
     // SetTimeRule(rule, stream);
 
@@ -83,7 +117,9 @@ void SignalDescriptorConverter::ToStreamedSignal(const daq::SignalPtr& signal,
         auto resolution = domainDescriptor.getTickResolution();
         stream->setTimeTicksPerSecond(resolution.getDenominator() / resolution.getNumerator());
     }
+    // *** meta "definition" end ***
 
+    // --- meta "interpretation" start ---
     nlohmann::json extra;
     EncodeInterpretationObject(dataDescriptor, extra);
 
@@ -93,7 +129,11 @@ void SignalDescriptorConverter::ToStreamedSignal(const daq::SignalPtr& signal,
         extra["sig_desc"] = sigProps.description.value();
 
     stream->setDataInterpretationObject(extra);
+    // --- meta "interpretation" end ---
 
+    // openDAQ does not encode meta "definition" object directly for domain signal
+    // domain signal "definition" is hardcoded on library level
+    // so openDAQ uses "interpretation" object to transmit metadata which describes domain signal
     nlohmann::json domainExtra;
     if (domainDescriptor.assigned())
         EncodeInterpretationObject(domainDescriptor, domainExtra);
@@ -157,7 +197,7 @@ void SignalDescriptorConverter::SetTimeRule(const daq::DataRulePtr& rule, daq::s
             NumberPtr delta = rule.getParameters().get("delta");
             NumberPtr start = rule.getParameters().get("start");
             baseSyncSignal->setOutputRate(delta);
-            baseSyncSignal->setTimeStart(start);
+            baseSyncSignal->setTimeStart(start); // this call performs write which causes protocol error
         }
         break;
         case daq::DataRuleType::Explicit:
@@ -201,7 +241,7 @@ daq::SampleType SignalDescriptorConverter::Convert(daq::streaming_protocol::Samp
         case daq::streaming_protocol::SampleType::SAMPLETYPE_COMPLEX64:
             return daq::SampleType::ComplexFloat64;
         case daq::streaming_protocol::SampleType::SAMPLETYPE_REAL32:
-            return daq::SampleType::Float64;
+            return daq::SampleType::Float32;
         case daq::streaming_protocol::SampleType::SAMPLETYPE_REAL64:
             return daq::SampleType::Float64;
         case daq::streaming_protocol::SampleType::SAMPLETYPE_BITFIELD32:
@@ -265,8 +305,8 @@ daq::streaming_protocol::SampleType SignalDescriptorConverter::Convert(daq::Samp
 
 void SignalDescriptorConverter::EncodeInterpretationObject(const DataDescriptorPtr& dataDescriptor, nlohmann::json& extra)
 {
-    extra["sampleType"] = dataDescriptor.getSampleType();
-
+    // put signal name into interpretation object
+    // required to replace the time signal name hardcoded inside the StreamingClient library
     if (dataDescriptor.getName().assigned())
         extra["name"] = dataDescriptor.getName();
 
@@ -316,6 +356,8 @@ void SignalDescriptorConverter::EncodeInterpretationObject(const DataDescriptorP
 
 void SignalDescriptorConverter::DecodeInterpretationObject(const nlohmann::json& extra, DataDescriptorBuilderPtr& dataDescriptor)
 {
+    // overwrite signal name when corresponding field is present in interpretation object
+    // required to replace the time signal name hardcoded inside the StreamingClient library
     if (extra.count("name") > 0)
         dataDescriptor.setName(extra["name"]);
 
@@ -365,12 +407,9 @@ void SignalDescriptorConverter::DecodeInterpretationObject(const nlohmann::json&
                            .setParameters(params)
                            .build();
         dataDescriptor.setPostScaling(scaling);
-    }
 
-    if (extra.count("sampleType") > 0)
-    {
-        SampleType sampleType = (SampleType) extra["sampleType"];
-        dataDescriptor.setSampleType(sampleType);
+        // overwrite sample type when scaling is present
+        dataDescriptor.setSampleType(convertScaledToSampleType(scaling.getOutputSampleType()));
     }
 }
 

@@ -745,3 +745,31 @@ TEST_F(TMSAmplifierTest, GetRefPropSelectionValuesAfterChange)
     stgAmpl.setPropertyValue("Measurement", 1);
     ASSERT_EQ(rangeProp.getSelectionValues(), bridgeRangeValues);
 }
+
+TEST_F(TMSAmplifierTest, PropertyOrder1)
+{
+    const auto obj = PropertyObject(objManager, "StgAmp");
+    auto [serverObj, stgAmpl] = registerPropertyObject(obj);
+
+    auto serverProps = obj.getAllProperties();
+    auto clientProps = stgAmpl.getAllProperties();
+
+    ASSERT_EQ(serverProps.getCount(), clientProps.getCount());
+
+    for (SizeT i = 0; i < serverProps.getCount(); ++i)
+        ASSERT_EQ(serverProps[i].getName(), clientProps[i].getName());
+}
+
+TEST_F(TMSAmplifierTest, PropertyOrder2)
+{
+    const auto obj = PropertyObject(objManager, "LvAmp");
+    auto [serverObj, lvAmpl] = registerPropertyObject(obj);
+
+    auto serverProps = obj.getAllProperties();
+    auto clientProps = lvAmpl.getAllProperties();
+
+    ASSERT_EQ(serverProps.getCount(), clientProps.getCount());
+
+    for (SizeT i = 0; i < serverProps.getCount(); ++i)
+        ASSERT_EQ(serverProps[i].getName(), clientProps[i].getName());
+}

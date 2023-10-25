@@ -5,6 +5,8 @@
 #include <opendaq/mock/mock_device_module.h>
 #include <opendaq/mock/mock_fb_module.h>
 #include <opendaq/mock/mock_physical_device.h>
+#include <opendaq/mock/default_mocks_factory.h>
+#include <opendaq/folder_config_ptr.h>
 #include "opcuatms/exceptions.h"
 #include <opcuatms_server/objects/tms_server_device.h>
 #include <opcuatms_client/objects/tms_client_device_factory.h>
@@ -340,4 +342,97 @@ TEST_F(TmsDeviceTest, DeviceProcedureProperty)
 
     ProcedurePtr proc = clientSubDevice.getPropertyValue("stop");
     ASSERT_NO_THROW(proc());
+}
+
+TEST_F(TmsDeviceTest, SignalOrder)
+{
+    auto serverDevice = DefaultDevice(NullContext(), nullptr, "mock");
+    FolderConfigPtr folder = serverDevice.getItem("sig");
+    for (int i = 0; i < 100; ++i)
+        folder.addItem(Signal(NullContext(), folder, "sig_" + std::to_string(i)));
+    
+    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto nodeId = tmsServerDevice.registerOpcUaNode();
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "dev", clientContext, nodeId, nullptr);
+
+    const auto serverSignals = serverDevice.getSignals();
+    const auto clientSignals = clientDevice.getSignals();
+
+    for (SizeT i = 0; i < serverSignals.getCount(); ++i)
+        ASSERT_EQ(serverSignals[i].getName(), clientSignals[i].getName());
+}
+
+TEST_F(TmsDeviceTest, DeviceOrder)
+{
+    auto serverDevice = DefaultDevice(NullContext(), nullptr, "mock");
+    FolderConfigPtr folder = serverDevice.getItem("dev");
+    for (int i = 0; i < 100; ++i)
+        folder.addItem(DefaultDevice(NullContext(), folder, "dev_" + std::to_string(i)));
+    
+    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto nodeId = tmsServerDevice.registerOpcUaNode();
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "dev", clientContext, nodeId, nullptr);
+
+    const auto serverDevices = serverDevice.getDevices();
+    const auto clientDevices = clientDevice.getDevices();
+
+    for (SizeT i = 0; i < serverDevices.getCount(); ++i)
+        ASSERT_EQ(serverDevices[i].getName(), clientDevices[i].getName());
+}
+
+TEST_F(TmsDeviceTest, FunctionBlockOrder)
+{
+    auto serverDevice = DefaultDevice(NullContext(), nullptr, "mock");
+    FolderConfigPtr folder = serverDevice.getItem("fb");
+    for (int i = 0; i < 100; ++i)
+        folder.addItem(DefaultFunctionBlock(NullContext(), folder, "fb_" + std::to_string(i)));
+    
+    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto nodeId = tmsServerDevice.registerOpcUaNode();
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "dev", clientContext, nodeId, nullptr);
+
+    const auto serverFbs = serverDevice.getFunctionBlocks();
+    const auto clientFbs = clientDevice.getFunctionBlocks();
+
+    for (SizeT i = 0; i < serverFbs.getCount(); ++i)
+        ASSERT_EQ(serverFbs[i].getName(), clientFbs[i].getName());
+}
+
+TEST_F(TmsDeviceTest, IOFolderOrder)
+{
+    auto serverDevice = DefaultDevice(NullContext(), nullptr, "mock");
+    FolderConfigPtr folder = serverDevice.getItem("io");
+    for (int i = 0; i < 100; ++i)
+    {
+        folder.addItem(IoFolder(NullContext(), folder, "cmp_" + std::to_string(i)));
+        folder.addItem(DefaultChannel(NullContext(), folder, "ch_" + std::to_string(i)));
+    }
+    
+    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto nodeId = tmsServerDevice.registerOpcUaNode();
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "dev", clientContext, nodeId, nullptr);
+
+    const auto serverIO = serverDevice.getInputsOutputsFolder().getItems();
+    const auto clientIO = clientDevice.getInputsOutputsFolder().getItems();
+
+    for (SizeT i = 0; i < serverIO.getCount(); ++i)
+        ASSERT_EQ(serverIO[i].getName(), clientIO[i].getName());
+}
+
+TEST_F(TmsDeviceTest, CustomComponentOrder)
+{
+    auto serverDevice = DefaultDevice(NullContext(), nullptr, "mock");
+    auto folder = serverDevice.asPtr<IMockDefaultDevice>();
+    for (int i = 0; i < 100; ++i)
+        folder->addCustomComponent(Component(NullContext(), folder, "cmp_" + std::to_string(i)));
+    
+    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto nodeId = tmsServerDevice.registerOpcUaNode();
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "dev", clientContext, nodeId, nullptr);
+
+    const auto serverCmps = serverDevice.getCustomComponents();
+    const auto clientCmps = clientDevice.getCustomComponents();
+
+    for (SizeT i = 0; i < serverCmps.getCount(); ++i)
+        ASSERT_EQ(serverCmps[i].getName(), clientCmps[i].getName());
 }

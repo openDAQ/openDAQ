@@ -107,6 +107,8 @@ protected:
             item->createNonhierarchicalReferences();
     }
 
+    // TODO: NumberInList is configured only when object is registered. Order of nodes on objects of which child nodes
+    // reference other ones will not be correct!
     template <class TMS_T, class DAQ_T, class... Params>
     std::shared_ptr<TMS_T> registerTmsObjectOrAddReference(const opcua::OpcUaNodeId& parentNodeId,
                                                            const DAQ_T& daqObject,

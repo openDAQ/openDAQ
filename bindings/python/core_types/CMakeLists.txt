@@ -17,6 +17,7 @@ set(SRC_Cpp
     src/py_opendaq_daq.cpp
     src/py_converter.cpp
     #
+    src/py_base_object.cpp
     src/py_integer.cpp
     src/py_float.cpp
     src/py_boolean.cpp

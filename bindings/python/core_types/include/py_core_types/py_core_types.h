@@ -22,6 +22,8 @@
 #include "py_core_types/py_procedure.h"
 #include "py_core_types/py_converter.h"
 
+void declareAndDefineIBaseObject(pybind11::module_ m);
+
 PyDaqIntf<daq::IInteger> declareIInteger(pybind11::module_ m);
 PyDaqIntf<daq::IFloat> declareIFloat(pybind11::module_ m);
 PyDaqIntf<daq::IBoolean> declareIBoolean(pybind11::module_ m);

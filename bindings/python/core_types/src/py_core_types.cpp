@@ -18,6 +18,8 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
         .value("ctStruct", daq::CoreType::ctStruct)
         .value("ctUndefined", daq::CoreType::ctUndefined);
 
+    declareAndDefineIBaseObject(m);
+
     auto classIInteger = declareIInteger(m);
     auto classIFloat = declareIFloat(m);
     auto classIBoolean = declareIBoolean(m);

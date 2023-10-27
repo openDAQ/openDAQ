@@ -6,6 +6,8 @@ add_subdirectory(opendaq)
 
 add_subdirectory(py_opendaq_daq)
 
-if(OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS)
+option(OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY "Enable only the python bindings tests" OFF)
+
+if(OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS OR OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY)
     add_subdirectory(tests)
 endif()

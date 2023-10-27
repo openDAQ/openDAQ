@@ -9,10 +9,13 @@ on:
 env:
   cmake_preset: package
   package_path: ${{ github.workspace }}/build/_packages
+  wheels_path: ${{ github.workspace }}/build/wheels
   package_path_rel: build/_packages # WA for https://github.com/actions/checkout/issues/785
   vm_name: device_simulator
   simulator_app_artifact: SimulatorApp
   simulator_package_artifact: SimulatorPackage
+  python_version_build: 3.11
+  python_versions: 3.8 3.9 3.10 3.11 3.12
 
 jobs:
   package_windows:
@@ -35,39 +38,57 @@ jobs:
             cmake_build_type: Release
             cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
             cpack: NSIS
-            python_version: 3.11
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python_version }}
-
-      - name: Configure
+      - name: Configure and build Wheels
         run: |
           mkdir build
           cd build
-          cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
-
-      - name: Build
-        working-directory: build
-        run: cmake --build . --config ${{ matrix.cmake_build_type }}
+          mkdir wheels
+          $versions = "${{ env.python_versions }}".split(" ")
+          foreach ($version in $versions) {
+            Write-Output "Building for Python $version"
+            cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
+            cmake --build . --config ${{ matrix.cmake_build_type }}
+            Write-Output "Creating virtual environment for Python $version"
+            Invoke-Expression "py -$version -m venv venv"
+            ./venv/Scripts/activate
+            pip install numpy pybind11-stubgen
+            $remove_python_module_flag = "-r"
+            if ($version -eq $versions[-1]) {
+              $remove_python_module_flag = $null
+            }
+            Invoke-Expression "py -${{env.python_version_build}} ../bindings/python/package/build_pip.py -l bin/${{ matrix.cmake_build_type }} $remove_python_module_flag"
+            Copy-Item pip/packages/*.whl wheels
+            deactivate
+            Remove-Item venv -Recurse
+          }
 
       - name: Package
         working-directory: build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
-      - name: Python package
-        working-directory: build/bin/${{ matrix.cmake_build_type }}
-        run: tar -a -c -f ${{ env.package_path }}/opendaq-python${{ matrix.python_version }}-win64.zip *.dll opendaq.*.pyd
+      - name: Rename package
+        shell: pwsh
+        working-directory: ${{ env.package_path }}
+        run: |
+           Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.FullName.ToLower()}
 
       - name: Upload package
         uses: actions/upload-artifact@v3
         with:
           name: Package (${{ matrix.name }})
           path: ${{ env.package_path }}
+          retention-days: 7
+
+      - name: Upload Wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: Wheels (${{ matrix.name }})
+          path: ${{ env.wheels_path }}
           retention-days: 7
 
   package_linux:
@@ -92,7 +113,6 @@ jobs:
             apt_packages: g++-10
             cc: gcc-10
             cxx: g++-10
-            python_version: 38
 
     container:
       image: ${{ matrix.image }}
@@ -140,10 +160,6 @@ jobs:
         working-directory: build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
-      - name: Python package
-        working-directory: build/bin
-        run: tar -czvf $GITHUB_WORKSPACE/${{ env.package_path_rel }}/opendaq-python${{ matrix.python_version }}-x86_64-linux-gnu.tar.gz lib*.so opendaq*.so
-
       - name: Rename
         working-directory: ${{ env.package_path_rel }}
         run: |
@@ -188,6 +204,77 @@ jobs:
         with:
           name: ${{ env.simulator_app_artifact }}
           path: build/bin/application_simulator
+
+  package_linux_wheels:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.name }}
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
+      cancel-in-progress: true
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: manylinux2014 gcc Release
+            image: quay.io/pypa/manylinux2014_x86_64
+            cmake_generator: Ninja
+            cmake_build_type: Release
+            additional_packages:
+            cc: gcc
+            cxx: g++
+            cpack: ZIP
+
+    container:
+      image: ${{ matrix.image }}
+      env:
+        TZ: Europe/Berlin
+        CC: ${{ matrix.cc }}
+        CXX: ${{ matrix.cxx }}
+
+    steps:
+      - name: Install basic dependencies
+        run: |
+          yum update -y
+          yum install -y git
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install build dependencies
+        run: |
+          yum install -y ${{ matrix.additional_packages }} \
+              ninja-build \
+              mono-core \
+              freetype-devel libudev-devel libX11-devel libXcursor-devel libXrandr-devel
+
+      - name: Create build dir
+        run: mkdir build
+
+      - name: Configure and build Python Wheels
+        working-directory: build
+        run: |
+          mkdir wheels
+          for version in ${{ env.python_versions }}; do
+              echo "Building for Python $version"
+              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DOPENDAQ_PYTHON_VERSION=$version ..
+              cmake --build .
+              python$version -m venv venv
+              . venv/bin/activate
+              pip install numpy pybind11-stubgen
+              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r
+              cp -f pip/packages/opendaq*.whl wheels
+              deactivate
+              rm -rf venv
+          done
+
+      - name: Upload Wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: Wheels (${{ matrix.name }})
+          path: ${{ env.wheels_path }}
+          retention-days: 7
 
   simulator-build:
     runs-on: ubuntu-latest-4-cores

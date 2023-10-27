@@ -39,12 +39,7 @@ set(SRC_Cpp
     generated/py_struct.cpp
 )
 
-pybind11_add_module(${LIB_NAME}
-    STATIC STRIP_UNNEEDED
-        ${SRC_Headers}
-        ${SRC_Cpp}
-)
-
+add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
 target_link_libraries(${LIB_NAME}
@@ -53,7 +48,21 @@ target_link_libraries(${LIB_NAME}
     PRIVATE
         daq::coreobjects
         daq::opendaq
+        pybind11::headers
+        pybind11::module
+        pybind11::lto
 )
+
+if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
+    set_target_properties(${LIB_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+endif()
+
+if(MSVC)
+    target_link_libraries(${LIB_NAME} 
+        PRIVATE 
+            pybind11::windows_extras
+    )
+endif()
 
 target_include_directories(${LIB_NAME}
     PUBLIC

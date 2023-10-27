@@ -500,11 +500,19 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 if(OPENDAQ_GENERATE_PYTHON_BINDINGS OR OPENDAQ_ENABLE_COVERAGE) #gcc coverage
-    if(NOT PYTHON_EXECUTABLE)
-        find_package(PythonInterp 3.6 REQUIRED)
-    else()
-        message(STATUS "Using python executable: ${PYTHON_EXECUTABLE}")
+    set(PYTHON_VERSION 3.6)
+    set(COMPONENTS Interpreter)
+    if(OPENDAQ_GENERATE_PYTHON_BINDINGS)
+        list(APPEND COMPONENTS Development.Module)
     endif()
+    set(OPENDAQ_PYTHON_VERSION "" CACHE STRING "Exact Python version to use for bindings generation")
+    if(OPENDAQ_PYTHON_VERSION)
+        set(PYTHON_VERSION ${OPENDAQ_PYTHON_VERSION})
+        set(PYTHON_EXACT EXACT)
+        set(PYTHON_REQUIRED REQUIRED)
+    endif()
+
+    find_package(Python ${PYTHON_VERSION} ${PYTHON_EXACT} ${PYTHON_REQUIRED} COMPONENTS ${COMPONENTS})
 endif()
 
 if (MSVC)

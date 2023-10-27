@@ -16,6 +16,15 @@ set(PYHTON_TEST_SRC
     test_property_system.py
 )
 
+option(OPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS "Use python executable from virtual environment for tests" OFF)
+set(PYTHON_EXECUTABLE ${Python_EXECUTABLE})
+
+if(OPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS)
+    set(PYTHON_EXECUTABLE python)
+endif()
+
+message(STATUS "Python executable for tests: ${PYTHON_EXECUTABLE}")
+
 add_custom_target(
     ${PYTHON_TESTS}
     COMMAND ${PYTHON_EXECUTABLE} ${PYTHON_TESTS_COMMAND_ARGS}

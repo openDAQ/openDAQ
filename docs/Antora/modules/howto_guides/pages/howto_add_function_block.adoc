@@ -47,6 +47,15 @@ Python::
 for function_block_type in instance.available_function_block_types:
     print(function_block_type)
 ----
+C#::
++
+[source,csharp]
+----
+// get available function block types
+IDictionary<StringObject, FunctionBlockType> functionBlockTypes = instance.GetAvailableFunctionBlockTypes();
+foreach (string functionBlockType in functionBlockTypes.Keys)
+    Console.WriteLine(functionBlockType);
+----
 ====
 
 == Add a Function Block
@@ -68,6 +77,13 @@ Python::
 [source,python]
 ----
 function_block = instance.add_function_block('ref_fb_module_statistics')
+----
+C#::
++
+[source,csharp]
+----
+// add function block on the host computer
+FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
 ----
 ====
 
@@ -97,7 +113,16 @@ function_block_type = function_block.function_block_type
 print(function_block_type.id)
 print(function_block_type.name)
 print(function_block_type.description)
----- 
+----
+C#::
++
+[source,csharp]
+----
+FunctionBlockType functionBlockType = functionBlock.GetFunctionBlockType();
+Console.WriteLine(functionBlockType.GetId());
+Console.WriteLine(functionBlockType.GetName());
+Console.WriteLine(functionBlockType.GetDescription());
+----
 ====
 
 == Full listing
@@ -176,5 +201,41 @@ function_block_type = function_block.function_block_type
 print(function_block_type.id)
 print(function_block_type.name)
 print(function_block_type.description)
+----
+C#::
++
+[source,csharp]
+----
+// See https://aka.ms/new-console-template for more information
+
+using Daq.Core.Types;
+using Daq.Core.Objects;
+using Daq.Core.OpenDAQ;
+
+// Create an openDAQ(TM) instance, loading modules from the current directory
+Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+
+// add simulated device
+Device device = instance.AddDevice("daqref://device0");
+
+// get available function block types
+IDictObject<StringObject, FunctionBlockType> functionBlockTypes = instance.GetAvailableFunctionBlockTypes();
+foreach (string functionBlockTypeName in functionBlockTypes.Keys)
+    Console.WriteLine(functionBlockTypeName);
+
+// if there is no statistics function block available, exit with an error
+if (!functionBlockTypes.ContainsKey("ref_fb_module_statistics"))
+    return 1;
+
+// add function block on the host computer
+FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
+
+// print function block type info
+FunctionBlockType functionBlockType = functionBlock.GetFunctionBlockType();
+Console.WriteLine(functionBlockType.GetId());
+Console.WriteLine(functionBlockType.GetName());
+Console.WriteLine(functionBlockType.GetDescription());
+
+return 0;
 ----
 ====

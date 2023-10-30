@@ -44,7 +44,15 @@ Python::
 ----
 for prop in function_block.visible_properties:
     print(prop.name)
----- 
+----
+C#::
++
+[source,csharp]
+----
+IListObject<Property> functionBlockProperties = functionBlock.GetVisibleProperties();
+foreach (var prop in functionBlockProperties)
+    Console.WriteLine(prop.GetName());
+----
 ====
 
 == Reading and configuring properties
@@ -69,7 +77,15 @@ Python::
 currentBlockSize = function_block.get_property_value('BlockSize')
 print(f'Current block size is {currentBlockSize}')
 function_block.set_property_value('BlockSize', 100)
----- 
+----
+C#::
++
+[source,csharp]
+----
+long currentBlockSize = functionBlock.GetPropertyValue("BlockSize");
+Console.WriteLine($"Current block size is {currentBlockSize}");
+functionBlock.SetPropertyValue("BlockSize", 100);
+----
 ====
 
 :note-caption: Live update of configuration
@@ -105,7 +121,16 @@ function_block.input_ports[0].connect(device.channels[0].signals[0])
 output_signal = function_block.signals[0]
 # read data from the signal
 # ...
----- 
+----
+C#::
++
+[source,csharp]
+----
+functionBlock.GetInputPorts()[0].Connect(device.GetChannels()[0].GetSignals()[0]);
+Signal outputSignal = functionBlock.GetSignals()[0];
+// read data from the signal
+// ...
+----
 ====
 
 :note-caption: Dynamic input ports
@@ -200,5 +225,44 @@ output_signal = function_block.signals[0]
 
 # wait while the output signal is configured
 print(otuput_signal.descriptor.name)
+----
+C#::
++
+[source,csharp]
+----
+// See https://aka.ms/new-console-template for more information
+
+using Daq.Core.Types;
+using Daq.Core.Objects;
+using Daq.Core.OpenDAQ;
+
+// Create an openDAQ(TM) instance, loading modules from the current directory
+Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+
+// add simulated device
+Device device = instance.AddDevice("daqref://device0");
+
+// add function block on the host computer
+FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
+
+// list properties of the function block
+IListObject<Property> functionBlockProperties = functionBlock.GetVisibleProperties();
+foreach (var prop in functionBlockProperties)
+    Console.WriteLine(prop.GetName());
+
+// print current block size
+long currentBlockSize = functionBlock.GetPropertyValue("BlockSize");
+Console.WriteLine($"Current block size is {currentBlockSize}");
+
+// configure the properties of the function block
+functionBlock.SetPropertyValue("BlockSize", 100);
+
+// connect the first signal of the first channel from the device to the first input port on the function block
+functionBlock.GetInputPorts()[0].Connect(device.GetChannels()[0].GetSignals()[0]);
+
+// get the output signal of the function block
+Signal outputSignal = functionBlock.GetSignals()[0];
+
+Console.WriteLine(outputSignal.GetDescriptor().GetName());
 ----
 ====

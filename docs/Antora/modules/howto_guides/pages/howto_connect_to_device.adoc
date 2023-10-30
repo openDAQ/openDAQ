@@ -53,6 +53,25 @@ for device_info in instance.available_devices:
     if device_info.connection_string.startswith('daq.opcua://'):
         print('Name:', device_info.name, 'Address:', device_info.connection_string)
 ----
+C#::
++
+[source,csharp]
+----
+// See https://aka.ms/new-console-template for more information
+
+using Daq.Core.Types;
+using Daq.Core.Objects;
+using Daq.Core.OpenDAQ;
+
+// Create an openDAQ(TM) instance, loading modules from the current directory
+Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+
+// Discover and print the names and connection strings of openDAQ(TM) devices
+IListObject<DeviceInfo> availableDevicesInfo = instance.GetAvailableDevices();
+foreach (var deviceInfo in availableDevicesInfo)
+    if (deviceInfo.GetConnectionString().StartsWith("daq.opcua://"))
+        Console.WriteLine($"Name: {deviceInfo.GetName()}, Address: {deviceInfo.GetConnectionString()}");
+----
 ====
 
 The connection string of discovered devices can be used to connect to them. Doing so adds the remote device as a
@@ -95,6 +114,25 @@ instance = opendaq.Instance()
 devices = [instance.add_device(d.connection_string)
            for d in instance.available_devices
            if d.connection_string.startswith('daq.opcua://')]
+----
+C#::
++
+[source,csharp]
+----
+// See https://aka.ms/new-console-template for more information
+
+using Daq.Core.Types;
+using Daq.Core.Objects;
+using Daq.Core.OpenDAQ;
+
+// Create an openDAQ(TM) instance, loading modules from the current directory
+Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+
+IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
+// Discover and connect to all openDAQ(TM) devices
+foreach (var deviceInfo in instance.GetAvailableDevices())
+if (deviceInfo.GetConnectionString().StartsWith("daq.opcua://"))
+    devices.Add(instance.AddDevice(deviceInfo.GetConnectionString()));
 ----
 ====
 
@@ -148,5 +186,24 @@ instance = opendaq.Instance()
 devices = [instance.add_device(d.connection_string)
            for d in instance.enumerate_available_devices()
            if d.connection_string.startswith('daqref://')]
+----
+C#::
++
+[source,csharp]
+----
+// See https://aka.ms/new-console-template for more information
+
+using Daq.Core.Types;
+using Daq.Core.Objects;
+using Daq.Core.OpenDAQ;
+
+// Create an openDAQ(TM) instance, loading modules from the current directory
+Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+
+IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
+// Discover and connect to all openDAQ(TM) reference devices
+foreach (var deviceInfo in instance.GetAvailableDevices())
+    if (deviceInfo.GetConnectionString().StartsWith("daqref://"))
+        devices.Add(instance.AddDevice(deviceInfo.GetConnectionString()));
 ----
 ====

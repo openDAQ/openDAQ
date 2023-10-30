@@ -42,9 +42,19 @@ Python::
 json_str = instance.save_configuration();
 
 # write configuration string to file
-config_file = open("config.json", "w")       
+config_file = open("config.json", "w")
 config_file.write(json_str)
 config_file.close()
+----
+C#::
++
+[source,csharp]
+----
+// save configuration to string
+string jsonStr = instance.SaveConfiguration();
+
+// write configuration string to file
+File.WriteAllText("config.json", jsonStr, System.Text.Encoding.UTF8);
 ----
 ====
 
@@ -107,6 +117,16 @@ config_file.close()
 
 # load configuration from string
 instance.load_configuration(json_str);
+----
+C#::
++
+[source,csharp]
+----
+// read configuration from file
+string jsonStr = File.ReadAllText("config.json", System.Text.Encoding.UTF8);
+
+// load configuration from string
+instance.LoadConfiguration(jsonStr);
 ----
 ====
 

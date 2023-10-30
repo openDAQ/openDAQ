@@ -1,0 +1,179 @@
+Thoughts about C# Bindings
+
+- Currently targeting net6.0 (LTS; end-of-support by Nov. 2024).
+  => (done) Dejan thinks to stick to LTS will be sufficient
+
+- Find an easy way to handle (C++) reference counting; internally, hidden to the user.
+  // C++ -> Smart-Pointers,
+  // Python -> has something similar to C++ (at least SDK example code looks similar), I need to take a closer look
+  // C# uses Garbage-Collector which is non-deterministic so not clear when objects will be destroyed in time
+  // e.g.: not disposing of instance would leave 192 open objects tracked
+  // e.g.: not disposing of a connected device would leave 550 open objects tracked
+  => Dejan and Martin assume that it would be OK to leave object destruction up to the (automatic) garbage collection (destructor calls Dispose())
+  // need special handling for IList.MoveXXX(), .PopXXX(), RemoveAt(), DeleteAt() because reference count incremented in C++ code
+  => (done) no, 'incrementReference' is already always set to 'false'
+
+- RTGen -> Use C# native value-types instead of the SDK core-types ('IInt'->'long', 'IFloat'->'double', 'IString'->'string', etc.; convert internally).
+  // 'IString' needs to be handled specially as it is marked as 'Flags.IsValueType' but needs to be used as 'object'
+  // 'ConstCharPtr' needs to be handled specially as marshaling should be done as stated here: https://learn.microsoft.com/en-us/dotnet/standard/native-interop/best-practices#string-parameters
+  => (done) trying to implement (implicit) cast operators
+  // no => use '[Out]byte[]' for 'ConstCharPtr' and convert to 'string' with 'System.Text.Encoding.Default.GetString(result)'
+  => done (implicit cast operators in 'BoolObject', 'IntegerObject', 'FloatObject' and 'StringObject' as well as in 'BaseObject' to and from those value types)
+
+- RTGen -> Use C# types 'Dictionary<,>' and 'List<>' (internally convert from 'IDict<>' and 'IList<>'; cleanup, especially of SDK types and their reference counting). -> See below
+  => (done) for 'ListObject<>', 'DictObject<,>' and 'Iterator<>', implementing .NET interfaces ('IList<>', 'IDictionary<,>' and 'IEnumerator<>')
+  => Dejan: how about 'partial' class instead of using template?
+X     Daniel: -> thinking about a way now
+
+- RTGen -> Really identify generic types
+  // several generics are not "commented" as such in header files (especially for factories none are because not possible). How to determine it is a generic type?
+  => use translation table
+  // some are used with themselves as their generic parameter which is illegal in C# (e.g 'IGenType<IGenType>') and have to be translated into something like 'IGenType<IBaseObject>' (constraints?).
+X  => for now giving something like 'IGenType<IBaseObject>/*<IGenType>*/'
+  // Problem:
+  //   '// [templateType(event, "PropertyObjectPtr, PropertyValueEventArgsPtr")]' for 'virtual ErrCode INTERFACE_FUNC getOnPropertyValueRead(IString* propertyName, IEvent** event) = 0;'
+  //   because in RTGen '"PropertyObjectPtr, PropertyValueEventArgsPtr"' is one single 'type.GenericArguments[i].Name'
+  //   and 'xxxPtr' is not even an interface type (wrong type-name usage?); expected -> '"IPropertyObject, IPropertyValueEventArgs"'
+  // (done) for 'CreateLogger' factory: '_genericTypeParameters.Add("createLogger,IListObject,sink", "LoggerSink");' with "<methodName>,<argType>,<argName>"
+
+- RTGen -> how to deal with C++ "type-parameterless generics"
+X  // some generics used without generic parameters; e.g. 'IGenType<>'
+
+- RTGen -> Translate C++ void-pointers into 'IntPtr' using 'Marshal.AllocCoTaskMem()' to get data from C++. ('void**' are already out parameters and thus 'IntPtr').
+  // perhaps a better approach would be to make it a generic function with the value type as parameter and allocate and block managed memory to hand over to C++ to be filled
+  // 'void *' might be used in C' directly
+  => manually done so far using 'IntPtr' directly handing over memory to C++ (very unsafe due to possible access violation which terminates process)
+
+- RTGen -> Translate C++ 'SizeT' into 'IntPtr' and cast it. Can use 'using size_t System.UIntPtr;' in C#.
+  => (done) Dejan: use 'nuint' instead
+
+- Dejan: Do we really need 3 code-blocks for our objects? 'ITypeStruct' + 'IType' + 'Type'
+  => (done) DR: trying without interface block 'IType' ( works) //renamed 'ITypeStruct' to 'RawType'
+
+- Do we really want to have Date/Time in the generated file headers?
+  // this way it is hard to compare for "real" changes.
+  => (done) Martin: provides a parameter to don't give timestamps
+
+- Enumerations are parsed, but their (class-) documentation is stored "somewhere" in 'RtFile.LeadingDocumentation' and the options' documentation/comments get not parsed at all
+  => (done) for now taking the first 'RtFile.LeadingDocumentation' brief entry that's not 'null'
+  // 'sample_type.h' contains only 2 enumerations and is not being parsed                   => (still needed?)
+X  => Martin: looking into enumeration documentation (elements have '///>' comment but no '@brief')
+
+- (done) Inline documentation errors -> special characters ('<','>')
+
+- Lib-version
+X  => Martin: options.LibraryVersion (or so)
+
+- class 'Function'
+X  => Dejan: I should look at the solution in Python bindings (needs to be implemented completely in C#, not using RTGen)
+
+- Changes in RTGen base
+  => (done) Dejan: create PR where we can discuss it (merged)
+
+- IDeviceInfoConfig: isn't this an internal-only object (only setters until object "frozen")?
+  // I would expect this class to be removed from (CSharp) RTGen
+  // Dejan: there are even more objects like this, intended for future use in e.g. modules written in C#, Python etc.
+  => done, keep in
+
+- IDevice.addDevice()
+  // returns the connected device instance without incrementing the reference counter and keeps its own reference in a list.
+  // thus the application has to increment for its own use, otherwise disposing the 'instance' before the 'device' will give an access violation and crashes (GC).
+  // Dejan: wrong, it is incremented, there is something else.
+  // now 'Instance' before 'Device' works
+  // but using 'Signal signal = device.GetChannels()[0].GetSignals()[0];' gives access violation again
+X  => DR: incrementing reference counter in List.GetItemAt() removes access violation, but that is no true solution
+
+- Convert GetSetPair to property in .NET?
+  // Event though it would make sense in some cases, there is nothing like properties with arguments,
+  // so e.g. 'get/setPropertyValue' would not be possible as property since they need the property name as argument (perhaps using an indexer would be applicable here)
+  => (done) no, won't do
+X  => Dejan: In Python generator these are used and should only provide parameterless methods. (maybe ask Martin)
+
+- 'IList<>'
+  - PushBack/MoveBack
+    // Does an SDK user really need "non-incrementing" functions (RefCount)?
+    => (done) Dejan: 'Move...' can safely be removed from .NET bindings. -> Exceptions-list in RTGen CSharpGenerator.
+
+- 'IList<>', 'IDictionary<,>' and 'IEnumerator<>'
+  - Should the use of SDK 'ListObject<>' be hidden from user by always returning / taking the .NET 'IList<>' interface cast?
+  - Same for returned SDK 'Iterator<>' to .NET 'IEnumerator<>'?
+  - Same for SDK 'DictObject<,>' to .NET 'IDictionary<,>'?
+  => Dejan: sounds good, try it
+    - (done) Provided 'IListObject<,>' and 'IDictObject<,>' which inherit from the .NET interfaces plus 'IDisposable' for convenience to directly call 'Dispose()'
+
+- Integration into openDAQ repository
+  // Naming: 'openDAQ.NET' ok?
+  // where? './bindings/openDAQ.NET/' or './shared/openDAQ.NET/' (important for retrieving e.g. SDK binaries for NuGet)
+  => (done) Dejan: 'bindings' would be the right place.
+  // As Solution rather than CMake?
+  => Dejan: CMake would be better. (ask Martin in case of questions)
+  => (done) Dejan: Maybe make CMake use 'dotnet build' command directly.
+  - Jaka: How to integrate into Repo/CI?
+  - Jaka: How to address or check for braking changes?
+  // Perhaps Windows x64 only at the beginning (NuGet)?
+  => (done) Dejan: Lets start with Windows.
+
+- NuGet
+  // Most probably needs to be created through *.nuspec rather than from .csproj file (dependencies on openDAQ SDK)
+  // Perhaps Windows x64 only in the beginning?
+  - Dejan: Can it be made platform independent (platform paths inside package?)
+X    => Yes, binaries would go into platform-dependent directories (e.g. SDK into 'runtimes\win-x64\native\' and Assembly into 'lib\net6.0'). (done)
+
+- Reader
+  - try to pin managed memory and give pointer down to C++ to be filled
+  => (done) use 'fixed (TValueType* pArrayValues = samples)' for referencing to the .NET array
+     so that we can use 'pArrayValues' as 'IntPtr' parameter in 'Read()' function to be filled in C++
+  - (done) adapt RTGen to generate readers with this scheme
+
+
+
+
+
+  Type conversion thoughts:
+  =========================
+- PropertyObject.SetPropertyValue()
+  -> give value as 'object' and convert to 'IntegerObject', 'FloatObject', 'StringObject' etc.
+  => (done) with (implicit) cast operators to/from 'BaseObject' this is possible: 'channel.SetPropertyValue("Amplitude", amplitude);'
+- PropertyObject.GetPropertyValue()
+  -> return as 'object' and convert from 'IntegerObject', 'FloatObject', 'StringObject' etc.
+  => (done) with (implicit) cast operators to/from 'BaseObject' this is possible: 'double amplitude = channel.GetPropertyValue("Amplitude");'
+
+
+
+
+
+
+.NET:
+=====
+- https://learn.microsoft.com/en-us/dotnet/core/tutorials/top-level-templates
+- https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/using-directive
+- https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/configure-language-version#defaults
+- https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/unsafe-code#function-pointers
+- https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/function-pointers
+- https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.safehandle?view=net-7.0
+- https://learn.microsoft.com/en-us/dotnet/api/system.runtime.exceptionservices.handleprocesscorruptedstateexceptionsattribute?view=net-6.0
+- https://learn.microsoft.com/en-us/dotnet/standard/native-interop/
+- https://www.mono-project.com/docs/advanced/pinvoke/
+
+
+
+CMake:
+======
+- https://stackoverflow.com/a/6604782 (old discussion of "why" and "why not")
+- https://github.com/crud89/DotNetWithCMake/tree/master
+
+
+
+NuGet:
+======
+- https://learn.microsoft.com/en-us/nuget/create-packages/supporting-multiple-target-frameworks#architecture-specific-folders
+
+
+
+
+Repos:
+======
+
+VM:
+- SDK:          https://github.com/blueberrydaq/Blueberry/actions/workflows/package.yml
+- Mid-Platform: https://github.com/blueberrydaq/mid-buildroot/releases

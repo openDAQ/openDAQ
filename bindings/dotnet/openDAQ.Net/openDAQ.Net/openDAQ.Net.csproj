@@ -1,0 +1,125 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- using function pointers (C# 9) and file scoped namespaces (C# 10) so netstandard2.0 not possible (C# 7.3) -->
+    <!--<TargetFramework>netstandard2.0</TargetFramework>-->
+    <TargetFrameworks>net6.0</TargetFrameworks>
+    <RuntimeIdentifiers>win-x64;win-x86;linux-x64;osx-x64</RuntimeIdentifiers>
+    <Platforms>x64;x86</Platforms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Configurations>Debug;Release</Configurations>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <Title>openDAQ SDK .Net-Bindings</Title>
+    <Authors>openDAQ</Authors>
+    <Description>.Net bindings to the openDAQ SDK (open data-acquisition source-development-kit)</Description>
+    <Company>Blueberry d.o.o., Slovenia</Company>
+    <Copyright>2023 by Blueberry d.o.o.</Copyright>
+    <Version>2.0.0.6</Version>
+    <AssemblyVersion>2.0.0.6</AssemblyVersion>
+    <FileVersion>2.0.0.6</FileVersion>
+    <PackageProjectUrl>https://opendaq.com/</PackageProjectUrl>
+    <PackageTags>open;daq;sdk;bindings</PackageTags>
+    <GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">True</GeneratePackageOnBuild>
+    <PackageIcon>openDAQ-logo-orange-blue-rgb64x18.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- constants -->
+    <_RTGenOutputPath>..\..\..\..\build\bindings\CSharp</_RTGenOutputPath>
+    <_DocsPath>..\..\..\..\docs\Antora\modules\howto_guides\pages</_DocsPath>
+    <!-- there is no other way to get the runtime identifier (RID) https://learn.microsoft.com/en-us/dotnet/core/rid-catalog -->
+    <_IsOSX Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</_IsOSX>
+    <_IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</_IsLinux>
+    <_RuntimeIdentifier>win-$(Platform)</_RuntimeIdentifier>
+    <_RuntimeIdentifier Condition="'$(_IsOSX)' == 'true'">osx-$(Platform)</_RuntimeIdentifier>
+    <_RuntimeIdentifier Condition="'$(_IsLinunx)' == 'true'">linux-$(Platform)</_RuntimeIdentifier>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)'=='x64'">
+    <DefineConstants>$(DefineConstants);_X64</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)'=='x86'">
+    <DefineConstants>$(DefineConstants);_X86</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
+    <BaseOutputPath>$(_RTGenOutputPath)\bin\</BaseOutputPath>
+    <!--<BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>-->
+    <!-- see  https://github.com/dotnet/msbuild/issues/1603 -->
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="build\**" />
+    <None Remove="runtimes*\**" />
+    <Content Remove="runtimes*\**" />
+    <Compile Remove="runtimes*\**" />
+    <EmbeddedResource Remove="runtimes*\**" />
+  </ItemGroup>
+  <!-- $(BaseOutputPath) -->
+  <ItemGroup>
+    <!-- include the RTGen build output; exclude files which are managed manually -->
+    <Compile Include="$(_RTGenOutputPath)\**\*.cs" /> <!-- Exclude="$(_RTGenOutputPath)\**\Logger.cs;$(_RTGenOutputPath)\**\StreamReader.cs"-->
+    <!-- include the documentation path -->
+    <None Include="$(_DocsPath)\**\*.adoc">
+      <Link>docs\%(RecursiveDir)\%(FileName)%(Extension)</Link>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </EmbeddedResource>
+    <EmbeddedResource Include="media\openDAQ-logo-orange-blue-rgb64x18.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </EmbeddedResource>
+    <EmbeddedResource Include="media\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- https://learn.microsoft.com/en-us/visualstudio/msbuild/common-msbuild-project-items?view=vs-2022#none -->
+    <!-- NuGet (Release): pack all runtime DLLs into this layout 'runtimes\**' -->
+    <Runtimes Include="runtimes-release\**" Condition="'$(Configuration)' == 'Release'" />
+    <None Include="@(Runtimes)" PackagePath="runtimes\" Pack="true" Visible="false">
+      <Link>runtimes\%(RecursiveDir)\%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <!-- VS (Debug): have the bin output in layout '*.*' and 'modules\*.*' -->
+    <NativeLibs Include="runtimes-debug\$(_RuntimeIdentifier)\native\**" Condition="'$(Configuration)' == 'Debug'" />
+    <None Include="@(NativeLibs)" Visible="false">
+      <Link>%(RecursiveDir)\%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="System.Collections" />
+    <Using Include="System.Runtime.InteropServices" />
+    <!--<Using Include="Daq.Core.Types.BaseObject">
+      <Alias>WeakRef</Alias>
+    </Using>-->
+  </ItemGroup>
+<!--
+  <Target Name="MessageBeforeBuild" BeforeTargets="BeforeBuild">
+    <Message Importance="High" Text="+++++++++++++++++++++++ Building $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+  </Target>
+  <Target Name="MessageAfterBuild" BeforeTargets="AfterBuild">
+    <Message Importance="High" Text="+++++++++++++++++++++++ Build of $(MSBuildProjectFile) finished ++++++++++++++++++++++++++++++++++++" />
+  </Target>
+  <Target Name="MessageBeforeRebuild" BeforeTargets="BeforeRebuild">
+    <Message Importance="High" Text="+++++++++++++++++++++++ Re-building $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+  </Target>
+  <Target Name="MessageAfterRebuild" BeforeTargets="AfterRebuild">
+    <Message Importance="High" Text="+++++++++++++++++++++++ Re-build of $(MSBuildProjectFile) finished ++++++++++++++++++++++++++++++++++++" />
+  </Target>
+  <Target Name="MessageBeforeCompile" BeforeTargets="BeforeCompile">
+    <Message Importance="High" Text="+++++++++++++++++++++++ Compiling $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+  </Target>
+  <Target Name="MessageAfterCompile" BeforeTargets="AfterCompile">
+    <Message Importance="High" Text="+++++++++++++++++++++++ Compiling of $(MSBuildProjectFile) finished ++++++++++++++++++++++++++++++++++++" />
+  </Target>
+-->
+</Project>

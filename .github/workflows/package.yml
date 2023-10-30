@@ -8,8 +8,10 @@ on:
 
 env:
   cmake_preset: package
+  build_path: ${{ github.workspace }}/build
   package_path: ${{ github.workspace }}/build/_packages
   wheels_path: ${{ github.workspace }}/build/wheels
+  dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
   package_path_rel: build/_packages # WA for https://github.com/actions/checkout/issues/785
   vm_name: device_simulator
   simulator_app_artifact: SimulatorApp
@@ -74,6 +76,8 @@ jobs:
             deactivate
             Remove-Item venv -Recurse
           }
+          mkdir _packages
+          Copy-Item "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}/*.nupkg" _packages
 
       - name: Configure and build without Wheels
         if: matrix.cmake_generator_platform == 'Win32'
@@ -92,7 +96,8 @@ jobs:
         shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
-           Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.FullName.ToLower()}
+          Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.FullName.ToLower()}
+          Get-ChildItem -Path .\* -Include *.nupkg | Rename-Item -NewName {$_.FullName.ToLower()}
 
       - name: Upload package
         uses: actions/upload-artifact@v3

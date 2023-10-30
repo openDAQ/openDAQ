@@ -9,6 +9,7 @@ on:
 env:
   cmake_preset: ci
   test_path: ${{ github.workspace }}/junit_reports/
+  build_path: ${{ github.workspace }}/build
   package_path: ${{ github.workspace }}/build/_packages/
   python_version_build: 3.11
   python_versions: 3.8 3.9 3.10 3.11 3.12
@@ -359,7 +360,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: PIP Package (${{ matrix.name }})
-          path: ${{ github.workspace }}/build/wheels/opendaq*.whl
+          path: ${{ env.build_path }}/wheels/opendaq*.whl
           retention-days: 7
 
   build_macos:
@@ -493,7 +494,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: PIP Package (${{ matrix.name }})
-          path: ${{ github.workspace }}/build/wheels/*.whl
+          path: ${{ env.build_path }}/wheels/*.whl
           retention-days: 7
 
   # build_android:

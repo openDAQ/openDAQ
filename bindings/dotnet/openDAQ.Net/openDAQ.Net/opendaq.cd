@@ -1,0 +1,422 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Daq.Core.Types.BaseObject" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="5.25" Y="0.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EAAAJEAAACAAAAAMwAIIBDAgAAAEwYAAJACABQAAAiA=</HashCode>
+      <FileName>core\coretypes\BaseObject.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Daq.Core.Objects.PropertyObject" Collapsed="true">
+    <Position X="5.25" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>FAAAAAQAEBAAAAAAAAAAAAAAAAAQoCEYBAAAEAAAAIA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\coreobjects\PropertyObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.Component" Collapsed="true">
+    <Position X="4.25" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAACAAAQAAAAAAAAAAAAAAAAIAAAAAAACAIBIQABAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\component\Component.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.InputPort" Collapsed="true">
+    <Position X="0.75" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAAAAAAIAEAAAAAAIAAAAAAEAACAAAAABAAAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\signal\InputPort.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.Folder" Collapsed="true">
+    <Position X="4.25" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AABAAgAAAAAAAEAAAAAAAAAAAAAAAgAAAAAAAAAAABA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\component\Folder.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.Signal" Collapsed="true">
+    <Position X="7.5" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAIAFCACAEAAAABAACAAAAQAEAAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\signal\Signal.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.Device" Collapsed="true">
+    <Position X="3" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAQABAAAAQAAABAAAFAAEEAAAhAAlQAAAAAAAAAVCg=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\device\Device.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.FunctionBlock" Collapsed="true">
+    <Position X="5.25" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAAAAAAAAAAAAAAAAAAGAgAAgAAAAAAAAAAFAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\functionblock\FunctionBlock.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.Instance" Collapsed="true">
+    <Position X="3" Y="8" Width="1.5" />
+    <InheritanceLine Type="Daq.Core.OpenDAQ.Device" FixedFromPoint="true">
+      <Path>
+        <Point X="3.75" Y="7.191" />
+        <Point X="3.75" Y="8" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAACAAAAAEAAAAAABAEKAAEQgAAAAAAAAIAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\opendaq\Instance.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.Channel" Collapsed="true">
+    <Position X="5.25" Y="8" Width="1.5" />
+    <InheritanceLine Type="Daq.Core.OpenDAQ.FunctionBlock" FixedFromPoint="true">
+      <Path>
+        <Point X="6" Y="7.191" />
+        <Point X="6" Y="8" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\functionblock\Channel.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.DeviceInfo" Collapsed="true">
+    <Position X="9.75" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AACGAAIAICCAAAASEQgAgygIAAIgAAAAACACAAIABAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\device\DeviceInfo.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.Objects.Property" Collapsed="true">
+    <Position X="20" Y="0.75" Width="1.5" />
+    <InheritanceLine Type="Daq.Core.Types.BaseObject" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="6.75" Y="1.062" />
+        <Point X="13.355" Y="1.062" />
+        <Point X="13.355" Y="1.062" />
+        <Point X="20" Y="1.062" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>BIAACCAAgDAAAAAAJAAAAAIAAEAAgABBAoQIAAACBBg=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\coreobjects\Property.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.Objects.PropertyObjectClass" Collapsed="true">
+    <Position X="22.5" Y="1.75" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>EAAACAAAAAgAAAAABAAAAAAAAAAAACAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\coreobjects\PropertyObjectClass.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.Context" Collapsed="true">
+    <Position X="20" Y="4" Width="1.5" />
+    <InheritanceLine Type="Daq.Core.Types.BaseObject" ManuallyRouted="true" FixedFromPoint="true">
+      <Path>
+        <Point X="6.75" Y="1.062" />
+        <Point X="19.26" Y="1.062" />
+        <Point X="19.26" Y="4.346" />
+        <Point X="20" Y="4.346" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAACAgAAAAAAAAAAQAAAgCAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\context\Context.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.FunctionBlockType" Collapsed="true">
+    <Position X="22.5" Y="4.5" Width="1.75" />
+    <InheritanceLine Type="Daq.Core.Objects.ComponentType" FixedFromPoint="true">
+      <Path>
+        <Point X="21.5" Y="5.375" />
+        <Point X="21.875" Y="5.375" />
+        <Point X="21.875" Y="4.846" />
+        <Point X="22.5" Y="4.846" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\functionblock\FunctionBlockType.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.Logger" Collapsed="true">
+    <Position X="20" Y="6" Width="1.5" />
+    <InheritanceLine Type="Daq.Core.Types.BaseObject" ManuallyRouted="true" FixedFromPoint="true">
+      <Path>
+        <Point X="6.75" Y="1.062" />
+        <Point X="19.227" Y="1.062" />
+        <Point X="19.227" Y="6.346" />
+        <Point X="20" Y="6.346" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAIEAAAEAAQBAAhAAAAAAAEAAAAAAAIAQA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\logger\Logger.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.Module" Collapsed="true">
+    <Position X="20" Y="7" Width="1.5" />
+    <InheritanceLine Type="Daq.Core.Types.BaseObject" ManuallyRouted="true" FixedFromPoint="true">
+      <Path>
+        <Point X="6.75" Y="1.062" />
+        <Point X="19.246" Y="1.062" />
+        <Point X="19.246" Y="7.346" />
+        <Point X="20" Y="7.346" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>CAICAAAAAAAAAAkAAAEAAEAAAAACAQAAAAAAAIAARAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\modulemanager\Module.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.ModuleManager" Collapsed="true">
+    <Position X="20" Y="8" Width="1.5" />
+    <InheritanceLine Type="Daq.Core.Types.BaseObject" ManuallyRouted="true">
+      <Path>
+        <Point X="6.75" Y="1.062" />
+        <Point X="19.271" Y="1.062" />
+        <Point X="19.271" Y="8.346" />
+        <Point X="20" Y="8.346" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAFAAAIAAAAAAAAAABA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\modulemanager\ModuleManager.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.Reader" Collapsed="true">
+    <Position X="12.5" Y="2.25" Width="1.5" />
+    <InheritanceLine Type="Daq.Core.Types.BaseObject" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="6.75" Y="1.062" />
+        <Point X="13.344" Y="1.062" />
+        <Point X="13.344" Y="2.25" />
+        <Point X="13.312" Y="2.25" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAEAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\reader\Reader.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.SampleReader" Collapsed="true">
+    <Position X="12.5" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AIAAAAAAAAAAAEAAIEAAAAAAAAAAAAAAAQAAAAAAAIA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\reader\SampleReader.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.Scheduler" Collapsed="true">
+    <Position X="20" Y="9" Width="1.5" />
+    <InheritanceLine Type="Daq.Core.Types.BaseObject" ManuallyRouted="true" FixedFromPoint="true">
+      <Path>
+        <Point X="6.75" Y="1.062" />
+        <Point X="19.294" Y="1.062" />
+        <Point X="19.294" Y="9.346" />
+        <Point X="20" Y="9.346" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAIAAAAAAEAAACAAAIAAAAAAAAAAAIAAAIAAAAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\scheduler\Scheduler.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.ServerType" Collapsed="true">
+    <Position X="22.5" Y="5.5" Width="1.5" />
+    <InheritanceLine Type="Daq.Core.Objects.ComponentType" FixedFromPoint="true">
+      <Path>
+        <Point X="21.5" Y="5.375" />
+        <Point X="21.875" Y="5.375" />
+        <Point X="21.875" Y="5.846" />
+        <Point X="22.5" Y="5.846" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\server\ServerType.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.Objects.PropertyObjectClassBuilder" Collapsed="true">
+    <Position X="20" Y="2.75" Width="2.25" />
+    <InheritanceLine Type="Daq.Core.Types.BaseObject" ManuallyRouted="true" FixedFromPoint="true">
+      <Path>
+        <Point X="6.75" Y="1.062" />
+        <Point X="19.277" Y="1.062" />
+        <Point X="19.277" Y="3.096" />
+        <Point X="20" Y="3.096" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAEAAAQAAAAAAAAAAAAQAAgAAYAAAAQAAAAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\coreobjects\PropertyObjectClassBuilder.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.Objects.ComponentType" Collapsed="true">
+    <Position X="20" Y="5" Width="1.5" />
+    <InheritanceLine Type="Daq.Core.Types.BaseObject" ManuallyRouted="true" FixedFromPoint="true">
+      <Path>
+        <Point X="6.75" Y="1.062" />
+        <Point X="19.221" Y="1.062" />
+        <Point X="19.221" Y="5.346" />
+        <Point X="20" Y="5.346" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAIAAAAAAQAAAAAIAAAAAAAAAAAAAAAAAAAAAIABAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\coreobjects\ComponentType.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.StreamReader&lt;TValue, TDomain&gt;" Collapsed="true">
+    <Position X="14" Y="5" Width="2.5" />
+    <InheritanceLine Type="Daq.Core.OpenDAQ.SampleReader" FixedToPoint="true">
+      <Path>
+        <Point X="13.25" Y="4.441" />
+        <Point X="13.25" Y="5.312" />
+        <Point X="14" Y="5.312" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAgAACACAAAAAgAAAAAAAAAAAAAAAUAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\reader\StreamReader.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.PacketReader" Collapsed="true">
+    <Position X="16.75" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAgAAAgAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\reader\PacketReader.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.Types.ListObject&lt;TValue&gt;" Collapsed="true">
+    <Position X="9.75" Y="6.5" Width="1.75" />
+    <InheritanceLine Type="Daq.Core.Types.BaseObject" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="6.75" Y="1.062" />
+        <Point X="12.077" Y="1.062" />
+        <Point X="12.077" Y="6.812" />
+        <Point X="11.5" Y="6.812" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>IAQAKIAwAAEABEAAAACwAIBAAAIAAAAECJAASIBgAAk=</HashCode>
+      <FileName>core\coretypes\ListObject.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Daq.Core.Types.DictObject&lt;TKey, TValue&gt;" Collapsed="true">
+    <Position X="9.75" Y="8" Width="2" />
+    <InheritanceLine Type="Daq.Core.Types.BaseObject" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="6.75" Y="1.062" />
+        <Point X="12.08" Y="1.062" />
+        <Point X="12.08" Y="8.312" />
+        <Point X="11.75" Y="8.312" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAQKCgAAYAAAhFBAEScQBgAAAAAAgAAGAAAAIABAAQA=</HashCode>
+      <FileName>core\coretypes\DictObject.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Daq.Core.Types.DaqType" Collapsed="true">
+    <Position X="20" Y="1.75" Width="1.5" />
+    <InheritanceLine Type="Daq.Core.Types.BaseObject" FixedFromPoint="true">
+      <Path>
+        <Point X="6.75" Y="1.062" />
+        <Point X="19.294" Y="1.062" />
+        <Point X="19.294" Y="2.096" />
+        <Point X="20" Y="2.096" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAABAA=</HashCode>
+      <FileName>core\coretypes\DaqType.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.BlockReader&lt;TValue, TDomain&gt;" Collapsed="true">
+    <Position X="14" Y="6" Width="2.5" />
+    <InheritanceLine Type="Daq.Core.OpenDAQ.SampleReader" FixedToPoint="true">
+      <Path>
+        <Point X="13.25" Y="4.441" />
+        <Point X="13.25" Y="6.312" />
+        <Point X="14" Y="6.312" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAgAACACAAAAAgAAAAAAAIAAAAAAQEAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\reader\BlockReader.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.MultiReader&lt;TValue, TDomain&gt;" Collapsed="true">
+    <Position X="14" Y="8" Width="2.5" />
+    <InheritanceLine Type="Daq.Core.OpenDAQ.SampleReader" FixedToPoint="true">
+      <Path>
+        <Point X="13.25" Y="4.441" />
+        <Point X="13.25" Y="8.312" />
+        <Point X="14" Y="8.312" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAgAACACAAAAAgAAAAAAAAAAAAIAAEAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\reader\MultiReader.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Daq.Core.OpenDAQ.TailReader&lt;TValue, TDomain&gt;" Collapsed="true">
+    <Position X="14" Y="7" Width="2.25" />
+    <InheritanceLine Type="Daq.Core.OpenDAQ.SampleReader" FixedToPoint="true">
+      <Path>
+        <Point X="13.25" Y="4.441" />
+        <Point X="13.25" Y="7.312" />
+        <Point X="14" Y="7.312" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAQAAgAACACAAAAAgAAAAAAAAAAAIAAAEAAA=</HashCode>
+      <FileName>C:\VS_NETProjects\C++\BlueBerry\openDAQ\build\bindings\CSharp\core\opendaq\reader\TailReader.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Interface Name="System.IDisposable" Collapsed="true">
+    <Position X="3" Y="0.75" Width="1.5" />
+    <TypeIdentifier />
+  </Interface>
+  <Interface Name="Daq.Core.Types.IDictObject&lt;TKey, TValue&gt;" Collapsed="true">
+    <Position X="0.75" Y="3" Width="2.25" />
+    <InheritanceLine Type="System.IDisposable" FixedToPoint="true">
+      <Path>
+        <Point X="3.75" Y="1.312" />
+        <Point X="3.75" Y="3.438" />
+        <Point X="3" Y="3.438" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>core\coretypes\Interfaces\IDictObject.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="Daq.Core.Types.IListObject&lt;TValue&gt;" Collapsed="true">
+    <Position X="0.75" Y="1.75" Width="1.75" />
+    <InheritanceLine Type="System.IDisposable" FixedToPoint="true">
+      <Path>
+        <Point X="3.75" Y="1.312" />
+        <Point X="3.75" Y="2.188" />
+        <Point X="2.5" Y="2.188" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>core\coretypes\Interfaces\IListObject.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="Daq.Core.Types.Interfaces.IUnknown" Collapsed="true">
+    <Position X="0.75" Y="0.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAEAAAAAAAAAAAAAAAAAAAAAAgAAAAAIAAAAAAAA=</HashCode>
+      <FileName>core\coretypes\Interfaces\IUnknown.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

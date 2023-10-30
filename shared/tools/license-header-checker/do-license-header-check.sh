@@ -27,7 +27,7 @@ check_or_fix()
     echo -e "\n${GRN}Fixing license headers ...${NC}\n"
   fi
   filter="$(cat ./ignore-filter.txt | tr '\n' ',' | tr -d '\r')"
-  ./bin/license-header-checker -v $fixargs -i "$filter" "license.in" "../../../" h > $outFile
+  ./bin/license-header-checker -v $fixargs -i "$filter" "license.in" "../../../" h cs > $outFile
   if [[ $? != 0 ]]; then echo -e "\n${RED}Please use option --install or -i first${NC}"; return 0; fi
   echo -e "${YLW}> $outFile${NC}"
 

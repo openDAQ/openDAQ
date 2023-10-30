@@ -333,3 +333,24 @@ function(get_custom_fetch_content_params LIBRARY_NAME OUTPARAM)
         PARENT_SCOPE
     )
 endfunction()
+
+function(add_cmake_targets DIR INOUT_TARGET_LIST)
+    #prerequisite is that the directory has already been added/processed
+
+    set(_TARGETS ${${INOUT_TARGET_LIST}})
+
+    get_property(_TGTS DIRECTORY "${DIR}" PROPERTY BUILDSYSTEM_TARGETS)
+    list(APPEND _TARGETS ${_TGTS})
+    #foreach(_TGT IN LISTS _TGTS)
+    #    #message(STATUS "Adding target: ${_TGT}")
+    #endforeach()
+
+    #recursively through all sub directories
+    get_property(SUBDIRS DIRECTORY "${DIR}" PROPERTY SUBDIRECTORIES)
+    foreach(SUBDIR IN LISTS SUBDIRS)
+        add_cmake_targets("${SUBDIR}" _TARGETS)
+    endforeach()
+
+    # Set output argument
+    set(${INOUT_TARGET_LIST} ${_TARGETS} PARENT_SCOPE)
+endfunction(add_cmake_targets)

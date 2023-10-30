@@ -2045,14 +2045,27 @@ namespace RTGen.CSharp.Generators
             return (genericParams != default);
         }
 
-        private void GetGenericParametersAndConstraints(string typeName, ref string[] genericParams, ref string[] constraintTypes)
+        private bool GetGenericParametersAndConstraints(string typeName,
+                                                        ref string[] genericParams,
+                                                        ref string[] constraintTypes)
         {
             if (_genericTypeParameters.TryGetValue(typeName, out string genParams))
             {
                 string[] splitParams = genParams.Split(',');
-                genericParams   = splitParams.Select(p => p.Split(':')[0]).ToArray();
-                constraintTypes = splitParams.Select(p => p.Split(':')[1]).ToArray();
+                if (splitParams.All(p => p.Contains(":")))
+                {
+                    genericParams = splitParams.Select(p => p.Split(':')[0]).ToArray();
+                    constraintTypes = splitParams.Select(p => p.Split(':')[1]).ToArray();
+                }
+                else
+                {
+                    genericParams = splitParams;
+                }
+
+                return true;
             }
+
+            return false;
         }
 
         private string GetFirstGenericParameterFromClass(string defaultName = "BaseObject")
@@ -2379,10 +2392,13 @@ namespace RTGen.CSharp.Generators
             if (!_dotNetClassInterfaces.TryGetValue(rtClass.Type.Name, out string interfaceName))
                 return string.Empty;
 
-            if (!_genericTypeParameters.TryGetValue(rtClass.Type.Name, out string genericParameters))
+            string[] genericParameters = default;
+            string[] _                 = default;
+
+            if (!GetGenericParametersAndConstraints(rtClass.Type.Name, ref genericParameters, ref _))
                 return string.Empty;
 
-            return $", {interfaceName}<{genericParameters.Replace(",", ", ")}>";
+            return $", {interfaceName}<{string.Join(", ", genericParameters)}>";
         }
 
         private string GetInterfaceImplementation(IRTInterface rtClass)
@@ -2390,7 +2406,10 @@ namespace RTGen.CSharp.Generators
             if (!IsDotNetInterface(rtClass.Type.Name))
                 return string.Empty;
 
-            if (!_genericTypeParameters.TryGetValue(rtClass.Type.Name, out string genericParameters))
+            string[] genericParameters = default;
+            string[] _                 = default;
+
+            if (!GetGenericParametersAndConstraints(rtClass.Type.Name, ref genericParameters, ref _))
                 return string.Empty;
 
             string indentation   = base.Indentation;
@@ -2433,13 +2452,13 @@ namespace RTGen.CSharp.Generators
                     switch (variable)
                     {
                         case "CSGenericClassParameters":
-                            return genericParameters.Replace(",", ", ");
+                            return string.Join(", ", genericParameters);
 
                         case "CSGenericClassParameter1":
-                            return genericParameters.Split(',')[0];
+                            return genericParameters[0];
 
                         case "CSGenericClassParameter2":
-                            return genericParameters.Contains(',') ? genericParameters.Split(',')[1] : genericParameters;
+                            return genericParameters.Last();
                     }
 
                     return GetMethodVariable(theMethod, variable);

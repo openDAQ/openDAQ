@@ -7,3 +7,8 @@ if (DAQMODULES_OPENDAQ_CLIENT_MODULE AND DAQMODULES_OPENDAQ_SERVER_MODULE AND DA
     message(STATUS "${SDK_NAME} device and server module test app")
     add_subdirectory(test_opendaq_device_modules)
 endif()
+
+if (OPENDAQ_ENABLE_WS_SIGGEN_INTEGRATION_TESTS)
+    message(STATUS "Websocket streaming signal generator tool integration test app")
+    add_subdirectory(test_ws_siggen_integration)
+endif()

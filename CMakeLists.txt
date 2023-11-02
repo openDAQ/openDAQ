@@ -117,6 +117,9 @@ option(OPENDAQ_USE_CCACHE "Use compiler cache driver if available" ON)
 # Dependent options
 cmake_dependent_option(OPENDAQ_ENABLE_DELPHI_BINDINGS_TESTS "Enable delphi bindings tests" ON "OPENDAQ_GENERATE_DELPHI_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS "Enable python bindings tests" ON "OPENDAQ_GENERATE_PYTHON_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
+if (NOT APPLE AND UNIX)
+    cmake_dependent_option(OPENDAQ_ENABLE_WS_SIGGEN_INTEGRATION_TESTS "Enable websocket streaming integration tests" ON "OPENDAQ_ENABLE_TESTS" OFF)
+endif()
 
 # logging
 

@@ -418,13 +418,13 @@ TEST_F(RefDeviceModuleTest, Ids)
     auto domainSignal = channel.getSignals()[1];
 
     ASSERT_EQ(channel.getLocalId(), "refch0");
-    ASSERT_EQ(channel.getGlobalId(), "ref_dev1/io/ai/refch0");
+    ASSERT_EQ(channel.getGlobalId(), "ref_dev1/IO/ai/refch0");
 
     ASSERT_EQ(valueSignal.getLocalId(), "ai0");
-    ASSERT_EQ(valueSignal.getGlobalId(), "ref_dev1/io/ai/refch0/sig/ai0");
+    ASSERT_EQ(valueSignal.getGlobalId(), "ref_dev1/IO/ai/refch0/Sig/ai0");
 
     ASSERT_EQ(domainSignal.getLocalId(), "ai0_time");
-    ASSERT_EQ(domainSignal.getGlobalId(), "ref_dev1/io/ai/refch0/sig/ai0_time");
+    ASSERT_EQ(domainSignal.getGlobalId(), "ref_dev1/IO/ai/refch0/Sig/ai0_time");
 }
 
 bool propertyInfoListContainsProperty(const ListPtr<IProperty>& list, const std::string& propName)
@@ -525,7 +525,7 @@ TEST_F(RefDeviceModuleTest, Folders)
 {
     auto module = CreateModule();
     auto device = module.createDevice("daqref://device1", nullptr);
-    FolderPtr ioFolder = device.getItem("io");
+    FolderPtr ioFolder = device.getItem("IO");
     FolderPtr aiFolder = ioFolder.getItem("ai");
     ChannelPtr chX = aiFolder.getItems()[0];
 

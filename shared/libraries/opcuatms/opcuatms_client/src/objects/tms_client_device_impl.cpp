@@ -25,7 +25,7 @@ using namespace daq::opcua;
 
 namespace detail
 {
-    static std::unordered_set<std::string> defaultComponents = {"Signals", "FunctionBlocks", "InputsOutputs", "StreamingOptions"};
+    static std::unordered_set<std::string> defaultComponents = {"Sig", "FB", "IO", "StreamingOptions"};
 
     static std::unordered_map<std::string, std::function<void (const DeviceInfoConfigPtr&, const OpcUaVariant&)>> deviceInfoSetterMap = {
         {"AssetId", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setAssetId(v.toString()); }},
@@ -225,7 +225,7 @@ void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
     std::map<uint32_t, FunctionBlockPtr> orderedFunctionBlocks;
     std::vector<FunctionBlockPtr> unorderedFunctionBlocks;
 
-    auto functionBlocksNodeId = getNodeId("FunctionBlocks");
+    auto functionBlocksNodeId = getNodeId("FB");
     auto functionBlockNodeIds =
         this->getChildNodes(client, functionBlocksNodeId, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_FUNCTIONBLOCKTYPE));
     for (const auto& functionBlockNodeId : functionBlockNodeIds)
@@ -257,7 +257,7 @@ void TmsClientDeviceImpl::findAndCreateSignals()
     std::map<uint32_t, SignalPtr> orderedSignals;
     std::vector<SignalPtr> unorderedSignals;
     
-    const auto signalsNodeId = getNodeId("Signals");
+    const auto signalsNodeId = getNodeId("Sig");
     const auto signalNodeIds = this->getChildNodes(client, signalsNodeId, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_SIGNALTYPE));
     for (const auto& signalNodeId : signalNodeIds)
     {
@@ -281,7 +281,7 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
     std::vector<ComponentPtr> unorderedComponents;
 
     this->ioFolder.clear();
-    auto inputsOutputsNodeId = getNodeId("InputsOutputs");
+    auto inputsOutputsNodeId = getNodeId("IO");
 
     auto channelNodeIds = this->getChildNodes(client, inputsOutputsNodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_CHANNELTYPE));
     for (const auto& channelNodeId : channelNodeIds)

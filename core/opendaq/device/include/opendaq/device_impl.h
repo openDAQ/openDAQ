@@ -155,11 +155,11 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
                                                            : throw ArgumentNullException("Logger must not be null"))
 
 {
-    devices = this->template addFolder<IDevice>("dev");
-    ioFolder = this->addIoFolder("io");
+    devices = this->template addFolder<IDevice>("Dev");
+    ioFolder = this->addIoFolder("IO");
 
-    this->defaultComponents.insert("dev");
-    this->defaultComponents.insert("io");
+    this->defaultComponents.insert("Dev");
+    this->defaultComponents.insert("IO");
 
     this->addProperty(StringProperty("UserName", ""));
     this->addProperty(StringProperty("Location", ""));

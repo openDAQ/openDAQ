@@ -264,7 +264,7 @@ TEST_F(TmsDeviceTest, CustomComponents)
     auto nodeId = serverTmsDevice.registerOpcUaNode();
 
     auto serverSubDevice = serverDevice.getDevices()[1];
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "Dev", clientContext, nodeId, nullptr);
     auto clientSubDevice = clientDevice.getDevices()[1];
 
     ASSERT_EQ(serverSubDevice.getItems().getCount(), clientSubDevice.getItems().getCount());
@@ -286,7 +286,7 @@ TEST_F(TmsDeviceTest, CustomComponentsProperties)
     auto nodeId = serverTmsDevice.registerOpcUaNode();
 
     auto serverSubDevice = serverDevice.getDevices()[1];
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "Dev", clientContext, nodeId, nullptr);
     auto clientSubDevice = clientDevice.getDevices()[1];
 
     ASSERT_EQ(serverSubDevice.getItems().getCount(), clientSubDevice.getItems().getCount());
@@ -309,7 +309,7 @@ TEST_F(TmsDeviceTest, ComponentMethods)
     auto nodeId = serverTmsDevice.registerOpcUaNode();
 
     auto serverSubDevice = serverDevice.getDevices()[1];
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "Dev", clientContext, nodeId, nullptr);
     auto clientSubDevice = clientDevice.getDevices()[1];
 
     ASSERT_EQ(serverSubDevice.getName(), clientSubDevice.getName());
@@ -334,7 +334,7 @@ TEST_F(TmsDeviceTest, DeviceProcedureProperty)
 
     auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
     auto nodeId = serverTmsDevice.registerOpcUaNode();
-    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "Dev", clientContext, nodeId, nullptr);
     auto clientSubDevice = clientDevice.getDevices()[1];
 
     auto procProp = clientSubDevice.getProperty("stop");
@@ -347,13 +347,13 @@ TEST_F(TmsDeviceTest, DeviceProcedureProperty)
 TEST_F(TmsDeviceTest, SignalOrder)
 {
     auto serverDevice = DefaultDevice(NullContext(), nullptr, "mock");
-    FolderConfigPtr folder = serverDevice.getItem("sig");
+    FolderConfigPtr folder = serverDevice.getItem("Sig");
     for (int i = 0; i < 100; ++i)
         folder.addItem(Signal(NullContext(), folder, "sig_" + std::to_string(i)));
     
     auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
     auto nodeId = tmsServerDevice.registerOpcUaNode();
-    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "dev", clientContext, nodeId, nullptr);
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
 
     const auto serverSignals = serverDevice.getSignals();
     const auto clientSignals = clientDevice.getSignals();
@@ -365,13 +365,13 @@ TEST_F(TmsDeviceTest, SignalOrder)
 TEST_F(TmsDeviceTest, DeviceOrder)
 {
     auto serverDevice = DefaultDevice(NullContext(), nullptr, "mock");
-    FolderConfigPtr folder = serverDevice.getItem("dev");
+    FolderConfigPtr folder = serverDevice.getItem("Dev");
     for (int i = 0; i < 100; ++i)
         folder.addItem(DefaultDevice(NullContext(), folder, "dev_" + std::to_string(i)));
     
     auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
     auto nodeId = tmsServerDevice.registerOpcUaNode();
-    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "dev", clientContext, nodeId, nullptr);
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
 
     const auto serverDevices = serverDevice.getDevices();
     const auto clientDevices = clientDevice.getDevices();
@@ -383,13 +383,13 @@ TEST_F(TmsDeviceTest, DeviceOrder)
 TEST_F(TmsDeviceTest, FunctionBlockOrder)
 {
     auto serverDevice = DefaultDevice(NullContext(), nullptr, "mock");
-    FolderConfigPtr folder = serverDevice.getItem("fb");
+    FolderConfigPtr folder = serverDevice.getItem("FB");
     for (int i = 0; i < 100; ++i)
         folder.addItem(DefaultFunctionBlock(NullContext(), folder, "fb_" + std::to_string(i)));
     
     auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
     auto nodeId = tmsServerDevice.registerOpcUaNode();
-    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "dev", clientContext, nodeId, nullptr);
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
 
     const auto serverFbs = serverDevice.getFunctionBlocks();
     const auto clientFbs = clientDevice.getFunctionBlocks();
@@ -401,7 +401,7 @@ TEST_F(TmsDeviceTest, FunctionBlockOrder)
 TEST_F(TmsDeviceTest, IOFolderOrder)
 {
     auto serverDevice = DefaultDevice(NullContext(), nullptr, "mock");
-    FolderConfigPtr folder = serverDevice.getItem("io");
+    FolderConfigPtr folder = serverDevice.getItem("IO");
     for (int i = 0; i < 100; ++i)
     {
         folder.addItem(IoFolder(NullContext(), folder, "cmp_" + std::to_string(i)));
@@ -410,7 +410,7 @@ TEST_F(TmsDeviceTest, IOFolderOrder)
     
     auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
     auto nodeId = tmsServerDevice.registerOpcUaNode();
-    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "dev", clientContext, nodeId, nullptr);
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
 
     const auto serverIO = serverDevice.getInputsOutputsFolder().getItems();
     const auto clientIO = clientDevice.getInputsOutputsFolder().getItems();
@@ -428,7 +428,7 @@ TEST_F(TmsDeviceTest, CustomComponentOrder)
     
     auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
     auto nodeId = tmsServerDevice.registerOpcUaNode();
-    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "dev", clientContext, nodeId, nullptr);
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
 
     const auto serverCmps = serverDevice.getCustomComponents();
     const auto clientCmps = clientDevice.getCustomComponents();

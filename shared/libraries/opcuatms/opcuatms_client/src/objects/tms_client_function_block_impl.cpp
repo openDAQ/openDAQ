@@ -38,7 +38,7 @@ tsl::ordered_set<daq::opcua::OpcUaNodeId> TmsClientFunctionBlockBaseImpl<Impl>::
 template <typename Impl> 
 tsl::ordered_set<daq::opcua::OpcUaNodeId> TmsClientFunctionBlockBaseImpl<Impl>::getOutputSignalNodeIds()
 {
-    auto signalsNodeId = this->getNodeId("OutputSignals");
+    auto signalsNodeId = this->getNodeId("Sig");
     OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASVALUESIGNAL);
 
     return this->referenceUtils.getReferencedNodes(signalsNodeId, referenceTypeId, true);
@@ -106,7 +106,7 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateSignals()
 template <typename Impl> 
 tsl::ordered_set<daq::opcua::OpcUaNodeId> TmsClientFunctionBlockBaseImpl<Impl>::getInputPortNodeIds()
 {
-    auto inputPortsNodeId = this->getNodeId("InputPorts");
+    auto inputPortsNodeId = this->getNodeId("IP");
     OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASINPUTPORT);
 
     return this->referenceUtils.getReferencedNodes(inputPortsNodeId, referenceTypeId, true);

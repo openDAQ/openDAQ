@@ -30,7 +30,7 @@ if (OPC_UA_TMS_BT_NODESET_SUPPORT OR
     OPC_UA_TMS_DEVICE_NODESET_SUPPORT OR
     OPC_UA_TMS_ESP_NODESET_SUPPORT)
 
-  set(tms_spec_REQUIREDVERSION "3.0.0")
+  set(tms_spec_REQUIREDVERSION "3.0.1")
   get_custom_fetch_content_params(tmsspec FC_PARAMS)
 
   FetchContent_Declare(tmsspec
@@ -42,7 +42,7 @@ if (OPC_UA_TMS_BT_NODESET_SUPPORT OR
   if(NOT tmsspec_POPULATED)
       message(STATUS "Fetching tms specification ${tms_spec_REQUIREDVERSION}...")
       FetchContent_Populate(tmsspec)
-      set(COMPANION_SPECIFICATIONS_DIRPREFIX "${tmsspec_SOURCE_DIR}/openDAQ_opc-ua-companion-spec")
+      set(COMPANION_SPECIFICATIONS_DIRPREFIX "${tmsspec_SOURCE_DIR}/opendaq")
   endif()
 endif()
 

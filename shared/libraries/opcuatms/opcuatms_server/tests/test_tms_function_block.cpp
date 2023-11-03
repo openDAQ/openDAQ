@@ -72,7 +72,7 @@ TEST_F(TmsFunctionBlockTest, BrowseSignals)
     auto nodeId = serverFunctionBlock.registerOpcUaNode();
 
     OpcUaServerNode serverNodeFB(*this->getServer(), nodeId);
-    auto signalServerNode = serverNodeFB.getChildNode(UA_QUALIFIEDNAME_ALLOC(NAMESPACE_TMSBSP, "OutputSignals"));
+    auto signalServerNode = serverNodeFB.getChildNode(UA_QUALIFIEDNAME_ALLOC(NAMESPACE_TMSBSP, "Sig"));
     auto signalReferences = signalServerNode->browse(OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASVALUESIGNAL));
     ASSERT_EQ(signalReferences.size(), 5u);
 }

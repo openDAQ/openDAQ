@@ -17,3 +17,10 @@ set_target_properties(${LIB_NAME}
         OUTPUT_NAME "opendaq"
         DEBUG_POSTFIX ""
 )
+
+if(UNIX)
+    set_target_properties(${LIB_NAME}
+        PROPERTIES
+            BUILD_RPATH_USE_ORIGIN ON
+    )
+endif()

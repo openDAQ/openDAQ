@@ -30,16 +30,16 @@
 
 PyDaqIntf<daq::ISampleReader, daq::IReader> declareISampleReader(pybind11::module_ m)
 {
+    py::enum_<daq::ReadMode>(m, "ReadMode")
+        .value("Raw", daq::ReadMode::Raw)
+        .value("Scaled", daq::ReadMode::Scaled);
+
     return wrapInterface<daq::ISampleReader, daq::IReader>(m, "ISampleReader");
 }
 
 void defineISampleReader(pybind11::module_ m, PyDaqIntf<daq::ISampleReader, daq::IReader> cls)
 {
     cls.doc() = "A basic signal reader that simplifies reading the signals's samples.";
-
-    py::enum_<daq::ReadMode>(m, "ReadMode")
-        .value("Raw", daq::ReadMode::Raw)
-        .value("Scaled", daq::ReadMode::Scaled);
 
     cls.def_property_readonly("value_read_type",
         [](daq::ISampleReader *object)

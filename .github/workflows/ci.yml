@@ -14,6 +14,8 @@ env:
   cmake_preset: ci
   test_path: ${{ github.workspace }}/junit_reports/
   package_path: ${{ github.workspace }}/build/_packages/
+  python_version_build: 3.11
+  python_versions: 3.8 3.9 3.10 3.11 3.12
 
 jobs:
   build_windows:
@@ -75,6 +77,13 @@ jobs:
         with:
           version: 1.10.2
 
+      - name: Install Python dependencies
+        run: |
+          foreach($version in "${{ env.python_versions }}".split(" ")) {
+            Write-Output "Installing numpy for Python $version"
+            Invoke-Expression "py -$version -m pip install numpy"
+          }
+
       - name: Configure
         run: |
           mkdir build
@@ -91,9 +100,6 @@ jobs:
       - name: Build
         working-directory: build
         run: cmake --build . --config ${{ matrix.cmake_build_type }}
-
-      - name: Install Python dependencies
-        run: pip install numpy
 
       - name: Test
         working-directory: build
@@ -264,7 +270,6 @@ jobs:
             image: quay.io/pypa/manylinux2014_x86_64
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
             additional_packages:
             cc: gcc
             cxx: g++
@@ -293,21 +298,39 @@ jobs:
               mono-core \
               freetype-devel libudev-devel libX11-devel libXcursor-devel libXrandr-devel
 
-      - name: Configure
-        run: |
-          mkdir build
-          cd build
-          cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+      - name: Create build dir
+        run: mkdir build
 
-      - name: Build
+      - name: Configure and build python packages
         working-directory: build
-        run: cmake --build .
+        run: |
+          mkdir wheels
+          last_version="3.7"
+          for version in ${{ env.python_versions }}; do
+              echo "Building for Python $version"
+              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ..
+              cmake --build .
+              python$version -m venv venv
+              . venv/bin/activate
+              pip install numpy pybind11-stubgen
+              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r
+              cp -f pip/packages/opendaq*.whl wheels
+              deactivate
+              rm -rf venv
+              last_version=$version
+          done
+          echo "last_version=$last_version" >> "$GITHUB_ENV"
 
       - name: Test
         working-directory: build
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
-        run: ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
+        run: |
+          python$last_version -m venv venv
+          . venv/bin/activate
+          pip install numpy
+          pip install pip/packages/opendaq*.whl
+          ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
 
       - name: Upload test results
         if: always()
@@ -327,6 +350,13 @@ jobs:
         with:
           name: Packages (${{ matrix.name }})
           path: ${{ env.package_path }}
+          retention-days: 7
+
+      - name: Upload PIP packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: PIP Package (${{ matrix.name }})
+          path: ${{ github.workspace }}/build/wheels/opendaq*.whl
           retention-days: 7
 
   build_macos:
@@ -389,6 +419,79 @@ jobs:
         with:
           name: Unit Test Results (${{ matrix.name }})
           path: ${{ env.test_path }}
+
+  build_windows_pip:
+    runs-on: ${{ matrix.runner }}
+    name: ${{ matrix.name }}
+    if: '! github.event.pull_request.draft'
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
+      cancel-in-progress: true
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
+        include:
+          - name: Windows VS 2022 x64 Release PIP
+            runner: windows-2022
+            cmake_generator: "Visual Studio 17 2022"
+            cmake_generator_platform: x64
+            cmake_build_type: Release
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DOPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY=ON
+            cpack: NSIS
+            cmake_preset: package
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install ninja-build
+        if: matrix.cmake_generator == 'Ninja'
+        uses: seanmiddleditch/gha-setup-ninja@v3
+        with:
+          version: 1.10.2
+
+      - name: Create build dir
+        run: New-Item build -ItemType Directory
+
+      - name: Configure, build and test Python packages
+        working-directory: build
+        run: |
+          New-Item wheels -ItemType Directory
+          foreach ($version in "${{ env.python_versions }}".split(" ")) {
+            Write-Output "Building for Python $version"
+            if ( "${{ matrix.cmake_generator_platform }}" -eq "" )
+            {
+              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ matrix.cmake_preset }} ${{ matrix.cmake_defines }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
+            }
+            else
+            {
+              cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ matrix.cmake_preset }} ${{ matrix.cmake_defines }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
+            }
+            cmake --build . --config ${{ matrix.cmake_build_type }}
+            Write-Output "Creating virtual environment for Python $version"
+            Invoke-Expression "py -$version -m venv venv"
+            ./venv/Scripts/activate
+            pip install numpy pybind11-stubgen
+            py -${{env.python_version_build}} ../bindings/python/package/build_pip.py -l bin/${{ matrix.cmake_build_type }} -r
+            foreach ($file in Get-ChildItem -Filter *.whl -Path pip/packages) {
+              Write-Output "Installing $file"
+              pip install $file
+            }
+            cmake --build . --config ${{ matrix.cmake_build_type }} -t test_py_opendaq
+            Copy-Item pip/packages/*.whl wheels
+            deactivate
+            Remove-Item venv -Recurse
+          }
+
+      - name: Upload PIP packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: PIP Package (${{ matrix.name }})
+          path: ${{ github.workspace }}/build/wheels/*.whl
+          retention-days: 7
 
   # build_android:
   #   runs-on: ubuntu-latest-8-cores

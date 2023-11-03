@@ -30,6 +30,11 @@
 
 PyDaqIntf<daq::IInputPortConfig, daq::IInputPort> declareIInputPortConfig(pybind11::module_ m)
 {
+    py::enum_<daq::PacketReadyNotification>(m, "PacketReadyNotification")
+        .value("None", daq::PacketReadyNotification::None)
+        .value("SameThread", daq::PacketReadyNotification::SameThread)
+        .value("Scheduler", daq::PacketReadyNotification::Scheduler);
+
     return wrapInterface<daq::IInputPortConfig, daq::IInputPort>(m, "IInputPortConfig");
 }
 
@@ -38,11 +43,6 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
     cls.doc() = "The configuration component of input ports. Provides access to Input port owners to internal components of the input port.";
 
     m.def("InputPort", &daq::InputPort_Create);
-
-    py::enum_<daq::PacketReadyNotification>(m, "PacketReadyNotification")
-        .value("None", daq::PacketReadyNotification::None)
-        .value("SameThread", daq::PacketReadyNotification::SameThread)
-        .value("Scheduler", daq::PacketReadyNotification::Scheduler);
 
     cls.def_property("notification_method",
         nullptr,

@@ -30,16 +30,16 @@
 
 PyDaqIntf<daq::IReader, daq::IBaseObject> declareIReader(pybind11::module_ m)
 {
+    py::enum_<daq::ReadTimeoutType>(m, "ReadTimeoutType")
+        .value("Any", daq::ReadTimeoutType::Any)
+        .value("All", daq::ReadTimeoutType::All);
+
     return wrapInterface<daq::IReader, daq::IBaseObject>(m, "IReader");
 }
 
 void defineIReader(pybind11::module_ m, PyDaqIntf<daq::IReader, daq::IBaseObject> cls)
 {
     cls.doc() = "A basic signal reader that simplifies accessing the signals's data stream.";
-
-    py::enum_<daq::ReadTimeoutType>(m, "ReadTimeoutType")
-        .value("Any", daq::ReadTimeoutType::Any)
-        .value("All", daq::ReadTimeoutType::All);
 
     cls.def_property_readonly("available_count",
         [](daq::IReader *object)

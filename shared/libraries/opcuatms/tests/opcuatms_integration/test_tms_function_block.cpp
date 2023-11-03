@@ -238,7 +238,7 @@ TEST_F(TmsFunctionBlockTest, ComponentMethods)
 TEST_F(TmsFunctionBlockTest, SignalOrder)
 {
     auto serverFunctionBlock = DefaultFunctionBlock(NullContext(), nullptr, "mock");
-    FolderConfigPtr folder = serverFunctionBlock.getItem("sig");
+    FolderConfigPtr folder = serverFunctionBlock.getItem("Sig");
     for (int i = 0; i < 100; ++i)
         folder.addItem(Signal(NullContext(), folder, "sig_" + std::to_string(i)));
     
@@ -256,7 +256,7 @@ TEST_F(TmsFunctionBlockTest, SignalOrder)
 TEST_F(TmsFunctionBlockTest, InputPortOrder)
 {
     auto serverFunctionBlock = DefaultFunctionBlock(NullContext(), nullptr, "mock");
-    FolderConfigPtr folder = serverFunctionBlock.getItem("ip");
+    FolderConfigPtr folder = serverFunctionBlock.getItem("IP");
     for (int i = 0; i < 100; ++i)
         folder.addItem(InputPort(NullContext(), folder, "ip_" + std::to_string(i)));
     
@@ -274,7 +274,7 @@ TEST_F(TmsFunctionBlockTest, InputPortOrder)
 TEST_F(TmsFunctionBlockTest, FunctionBlockOrder)
 {
     auto serverFunctionBlock = DefaultFunctionBlock(NullContext(), nullptr, "mock");
-    FolderConfigPtr folder = serverFunctionBlock.getItem("fb");
+    FolderConfigPtr folder = serverFunctionBlock.getItem("FB");
     for (int i = 0; i < 40; ++i)
         folder.addItem(DefaultFunctionBlock(NullContext(), folder, "fb_" + std::to_string(i)));
     

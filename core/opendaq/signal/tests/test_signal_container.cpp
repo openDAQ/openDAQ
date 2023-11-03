@@ -48,7 +48,7 @@ TEST_F(SignalContainerTest, SignalId)
 {
     auto signal = createAndAddSignal("sigId");
 
-    ASSERT_EQ(signal.getGlobalId(), "localId/sig/sigId");
+    ASSERT_EQ(signal.getGlobalId(), "localId/Sig/sigId");
 }
 
 TEST_F(SignalContainerTest, RemoveSignal)
@@ -65,9 +65,9 @@ TEST_F(SignalContainerTest, CreateAndAddFunctionBlock)
     auto fb2 = createAndAddNestedFunctionBlock("mock_fb_uid", "fb2");
     auto fb3 = createAndAddNestedFunctionBlock("mock_fb_uid", "fb3");
 
-    ASSERT_EQ(fb1.getGlobalId(), "localId/fb/fb1");
-    ASSERT_EQ(fb2.getGlobalId(), "localId/fb/fb2");
-    ASSERT_EQ(fb3.getGlobalId(), "localId/fb/fb3");
+    ASSERT_EQ(fb1.getGlobalId(), "localId/FB/fb1");
+    ASSERT_EQ(fb2.getGlobalId(), "localId/FB/fb2");
+    ASSERT_EQ(fb3.getGlobalId(), "localId/FB/fb3");
 }
 
 TEST_F(SignalContainerTest, RemoveFunctionBlock)

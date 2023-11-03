@@ -71,18 +71,18 @@ xref:function_blocks.adoc#channel[Channel] named "CH1" with xref:signals.adoc[Ou
 | DAQDevice
 
 | CH1
-| DAQDevice/io/CH1
+| DAQDevice/IO/CH1
 
 | Scaled
-| DAQDevice/io/CH1/Scaled
+| DAQDevice/IO/CH1/Scaled
 
 | Raw
-| DAQDevice/io/CH1/Raw
+| DAQDevice/IO/CH1/Raw
 
 |===
 
-Of note are the `io` components that separate the Device and Channel Components. These represent the Device's IO Folder
-that is automatically created by the openDAQ(TM) Device in addition to the `fb` (Function Blocks) and `sig` (Signals)
+Of note are the `IO` components that separate the Device and Channel Components. These represent the Device's IO Folder
+that is automatically created by the openDAQ(TM) Device in addition to the `FB` (Function Blocks) and `Sig` (Signals)
 folders. 
 
 [#folder]
@@ -90,7 +90,7 @@ folders.
 
 Folders are standard Components that can also have child Components. A xref:device.adoc[Device] for example, is a Folder,
 as is a xref:function_blocks.adoc[Function Block]. Folders are used to define the structure of an openDAQ(TM) system. 
-Organization of standardized Folders such as Function Blocks and Devices, as well as standard Device folders (`io`, `sig`, `fb`, `dev`)
+Organization of standardized Folders such as Function Blocks and Devices, as well as standard Device folders (`IO`, `Sig`, `Fb`, `Dev`)
 is done automatically when such Components are added in an openDAQ(TM) system.
 
 Non-standardized Folder structures can be designed by Devices with custom Components/Folders, as well as Function Blocks with
@@ -147,7 +147,7 @@ contains only the IO Folder specialization. IO Folders can only have other IO Fo
 allows Devices to organize their channels below the IO Folder in a tree structure but prevents them from placing 
 non-Channel Components into the folder.
 
-NOTE: Each Device always has an `io` folder as its child, and all its Channels should be children of the IO Folder. 
+NOTE: Each Device always has an `IO` folder as its child, and all its Channels should be children of the IO Folder. 
 
 == Component search
 

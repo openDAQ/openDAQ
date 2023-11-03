@@ -64,7 +64,7 @@ TEST_F(TmsChannelTest, BrowseSignals)
     auto nodeId = serverChannel.registerOpcUaNode();
 
     OpcUaServerNode serverNodeFB(*this->getServer(), nodeId);
-    auto signalServerNode = serverNodeFB.getChildNode(UA_QUALIFIEDNAME_ALLOC(NAMESPACE_TMSBSP, "OutputSignals"));
+    auto signalServerNode = serverNodeFB.getChildNode(UA_QUALIFIEDNAME_ALLOC(NAMESPACE_TMSBSP, "Sig"));
     auto signalReferences = signalServerNode->browse(OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASVALUESIGNAL));
     ASSERT_EQ(signalReferences.size(), 10u);
 }

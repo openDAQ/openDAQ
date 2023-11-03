@@ -62,13 +62,13 @@ TEST_F(TmsServerTest, Channels)
     auto client = TmsObjectTest::CreateAndConnectTestClient();
     auto mockPhysicalDevice = GetMockPhysicalDevice(client);
 
-    auto inputsOutputsFolder = BrowseForChild(client, mockPhysicalDevice, "InputsOutputs");
+    auto inputsOutputsFolder = BrowseForChild(client, mockPhysicalDevice, "IO");
     ASSERT_FALSE(inputsOutputsFolder.isNull());
 
     auto channels = BrowseChannels(client, inputsOutputsFolder);
     ASSERT_EQ(channels.size(), 1u);
 
-    auto signalsNode = BrowseForChild(client, channels[0], "OutputSignals");
+    auto signalsNode = BrowseForChild(client, channels[0], "Sig");
     ASSERT_FALSE(signalsNode.isNull());
 
     auto signals = BrowseSignals(client, signalsNode);

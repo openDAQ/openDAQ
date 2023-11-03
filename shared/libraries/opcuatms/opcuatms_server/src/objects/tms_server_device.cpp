@@ -243,7 +243,7 @@ void TmsServerDevice::addChildNodes()
         devices.push_back(std::move(tmsDevice));
     }
 
-    auto functionBlockNodeId = getChildNodeId("FunctionBlocks");
+    auto functionBlockNodeId = getChildNodeId("FB");
     assert(!functionBlockNodeId.isNull());
     numberInList = 0;
     for (const auto& functionBlock : object.getFunctionBlocks())
@@ -252,7 +252,7 @@ void TmsServerDevice::addChildNodes()
         functionBlocks.push_back(std::move(tmsFunctionBlock));
     }
 
-    auto signalsNodeId = getChildNodeId("Signals");
+    auto signalsNodeId = getChildNodeId("Sig");
     assert(!signalsNodeId.isNull());
     numberInList = 0;
     for (const auto& signal : object.getSignals())
@@ -261,7 +261,7 @@ void TmsServerDevice::addChildNodes()
         signals.push_back(std::move(tmsSignal));
     }
 
-    auto inputsOutputsNodeId = getChildNodeId("InputsOutputs");
+    auto inputsOutputsNodeId = getChildNodeId("IO");
     assert(!inputsOutputsNodeId.isNull());
 
     auto topFolder = object.getInputsOutputsFolder();
@@ -272,8 +272,8 @@ void TmsServerDevice::addChildNodes()
     numberInList = 0;
     for (auto component : object.getItems())
     {
-        auto id = component.getName();
-        if (id == "dev" || id == "fb" || id == "io" || id == "sig")
+        auto id = component.getLocalId();
+        if (id == "Dev" || id == "FB" || id == "IO" || id == "Sig")
             continue;
 
         if (component.asPtrOrNull<IFolder>().assigned())

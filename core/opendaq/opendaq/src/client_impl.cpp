@@ -67,7 +67,7 @@ ComponentPtr ClientImpl::getFunctionBlocksFolder()
             const auto folders = rootDevicePtr.asPtr<IFolder>(true);
             try
             {
-                functionBlocksFolder = folders.getItem("fb");
+                functionBlocksFolder = folders.getItem("FB");
             }
             catch (NotFoundException&)
             {

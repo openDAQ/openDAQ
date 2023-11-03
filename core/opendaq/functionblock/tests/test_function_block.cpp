@@ -43,8 +43,8 @@ TEST_F(FunctionBlockTest, HasItem)
     daq::FunctionBlockTypePtr fbType = daq::FunctionBlockType("test_uid", "test_name", "test_description");
     const auto fb = daq::createWithImplementation<daq::IFunctionBlock, daq::FunctionBlock>(fbType, daq::NullContext(), nullptr, "fb");
 
-    ASSERT_TRUE(fb.hasItem("sig"));
-    ASSERT_TRUE(fb.hasItem("ip"));
-    ASSERT_TRUE(fb.hasItem("fb"));
+    ASSERT_TRUE(fb.hasItem("Sig"));
+    ASSERT_TRUE(fb.hasItem("IP"));
+    ASSERT_TRUE(fb.hasItem("FB"));
     ASSERT_FALSE(fb.hasItem("none"));
 }

@@ -99,11 +99,11 @@ GenericSignalContainerImpl<Intf, Intfs...>::GenericSignalContainerImpl(const Con
         context.getLogger().assigned() ? context.getLogger().getOrAddComponent("GenericSignalContainerImpl")
                                        : throw ArgumentNullException{"Logger not assigned!"})
 {
-    signals = addFolder<ISignal>("sig");
-    functionBlocks = addFolder<IFunctionBlock>("fb");
+    signals = addFolder<ISignal>("Sig");
+    functionBlocks = addFolder<IFunctionBlock>("FB");
 
-    defaultComponents.insert("sig");
-    defaultComponents.insert("fb");
+    defaultComponents.insert("Sig");
+    defaultComponents.insert("FB");
 }
 
 template <class Intf, class ... Intfs>

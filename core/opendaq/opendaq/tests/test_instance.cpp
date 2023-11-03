@@ -74,7 +74,7 @@ TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
     ASSERT_EQ(fb, fbs[0]);
 
     auto sig = fb.getSignals()[0];
-    ASSERT_EQ(sig.getGlobalId(), "mockdev/fb/mock_fb_uid_0/sig/UniqueId_1");
+    ASSERT_EQ(sig.getGlobalId(), "mockdev/FB/mock_fb_uid_0/Sig/UniqueId_1");
 
     instance.removeFunctionBlock(fb);
     fbs = instance.getFunctionBlocks();

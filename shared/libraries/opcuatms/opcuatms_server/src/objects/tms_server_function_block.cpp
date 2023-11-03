@@ -25,7 +25,7 @@ template <typename T>
 bool TmsServerFunctionBlock<T>::createOptionalNode(const OpcUaNodeId& nodeId)
 {
     auto browseName = this->server->readBrowseName(nodeId);
-    auto create = browseName->name == "OutputSignals" || browseName->name == "InputPorts";
+    auto create = browseName->name == "Sig" || browseName->name == "IP";
     return create || Super::createOptionalNode(nodeId);
 }
 
@@ -46,7 +46,7 @@ void TmsServerFunctionBlock<T>::bindCallbacks()
 template <typename T>
 void TmsServerFunctionBlock<T>::addChildNodes()
 {
-    auto signalsNodeId = this->getChildNodeId("OutputSignals");
+    auto signalsNodeId = this->getChildNodeId("Sig");
     assert(!signalsNodeId.isNull());
     
     uint32_t numberInList = 0;
@@ -56,7 +56,7 @@ void TmsServerFunctionBlock<T>::addChildNodes()
         signals.push_back(std::move(tmsSignal));
     }
 
-    auto inputPortsNodeId = this->getChildNodeId("InputPorts");
+    auto inputPortsNodeId = this->getChildNodeId("IP");
     assert(!inputPortsNodeId.isNull());
     
     numberInList = 0;

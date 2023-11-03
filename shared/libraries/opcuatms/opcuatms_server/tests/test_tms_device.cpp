@@ -48,7 +48,7 @@ TEST_F(TmsDeviceTest, FunctionBlock)
     auto tmsDevice = TmsServerDevice(device, this->getServer(), NullContext());
     auto nodeId = tmsDevice.registerOpcUaNode();
 
-    auto functionBlockNodeId = getChildNodeId(nodeId, "FunctionBlocks");
+    auto functionBlockNodeId = getChildNodeId(nodeId, "FB");
     ASSERT_EQ(test_helpers::BrowseFunctionBlocks(client, functionBlockNodeId).size(), 1u);
 }
 

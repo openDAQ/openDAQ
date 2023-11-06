@@ -273,7 +273,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(
     const tsl::ordered_map<opcua::OpcUaNodeId, opcua::OpcUaObject<UA_ReferenceDescription>>& references,
     const OpcUaNodeId& parentNodeId,
     std::map<uint32_t, PropertyPtr>& orderedProperties,
-    std::vector<PropertyPtr> unorderedProperties,
+    std::vector<PropertyPtr>& unorderedProperties,
     std::unordered_map<std::string, BaseObjectPtr>& functionPropValues)
 {
     const auto methodTypeId = OpcUaNodeId(0, UA_NS0ID_METHODNODE);

@@ -57,7 +57,7 @@ jobs:
           $versions = "${{ env.python_versions }}".split(" ")
           foreach ($version in $versions) {
             Write-Output "Building for Python $version"
-            cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
+            cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
             cmake --build . --config ${{ matrix.cmake_build_type }}
             Write-Output "Creating virtual environment for Python $version"
             Invoke-Expression "py -$version -m venv venv"
@@ -200,7 +200,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
       - name: Build
         working-directory: build
@@ -347,7 +347,7 @@ jobs:
           mkdir wheels
           for version in ${{ env.python_versions }}; do
               echo "Building for Python $version"
-              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DOPENDAQ_PYTHON_VERSION=$version ..
+              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCI_GIT_BRANCH=${{ github.ref }}  -DOPENDAQ_PYTHON_VERSION=$version ..
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate

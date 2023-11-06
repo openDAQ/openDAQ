@@ -67,8 +67,6 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     if (!context.assigned())
         throw InvalidParameterException{"Context is not available."};
 
-
-
     const auto deviceUrl = GetUrlFromConnectionString(connectionString);
     StringPtr rootDeviceAddress;
     std::smatch match;

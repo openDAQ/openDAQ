@@ -10,7 +10,6 @@ set(SDK_OPTION_PREFIX OPENDAQ)
 file(READ "opendaq_version" package_version)
 string(STRIP ${package_version} package_version)
 set(OPENDAQ_PACKAGE_VERSION "${package_version}")
-message(STATUS "openDAQ package version: ${package_version}")
 
 set(CMAKE_MESSAGE_CONTEXT ${SDK_NAME})
 set(CMAKE_MESSAGE_CONTEXT_SHOW ON CACHE BOOL "Show CMake message context")
@@ -23,7 +22,41 @@ project(${SDK_NAME}
     LANGUAGES CXX
     VERSION ${OPENDAQ_PACKAGE_VERSION}
 )
-add_compile_definitions(OPENDAQ_PACKAGE_VERSION="${OPENDAQ_PACKAGE_VERSION}")
+
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
+)
+
+get_filename_component(ROOT_DIR ${CMAKE_SOURCE_DIR} REALPATH)
+get_filename_component(PROJ_DIR ${PROJECT_SOURCE_DIR} REALPATH)
+
+if (NOT ${PROJECT_SOURCE_DIR} STREQUAL ${ROOT_DIR})
+    set(BUILDING_AS_SUBMODULE ON)
+    message(STATUS "Building as submodule")
+else()
+    message(STATUS "Building standalone")
+    set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ".CMakePredefinedTargets")
+endif()
+
+if (NOT BUILDING_AS_SUBMODULE)
+    find_package(GitInfo)
+    if (COMMAND GIT_WC_INFO)
+        GIT_WC_INFO("${CMAKE_CURRENT_SOURCE_DIR}" "OPENDAQ")
+        message(STATUS "Git branch: ${OPENDAQ_WC_BRANCH_NAME} | ${OPENDAQ_WC_REVISION_HASH}")
+	    if (${OPENDAQ_WC_BRANCH_NAME} STREQUAL "opcua/publish-sdk-version")
+	        set (OPENDAQ_PACKAGE_VERSION_WITH_SHA "${OPENDAQ_PACKAGE_VERSION}_${OPENDAQ_WC_REVISION_HASH}")
+        endif()
+    else()
+        set(OPENDAQ_WC_REVISION "NA")
+    endif()
+endif()
+
+if (NOT ${OPENDAQ_PACKAGE_VERSION_WITH_SHA} STREQUAL "")
+    message(STATUS "openDAQ package version: ${OPENDAQ_PACKAGE_VERSION_WITH_SHA}")
+    add_compile_definitions(OPENDAQ_PACKAGE_VERSION="${OPENDAQ_PACKAGE_VERSION_WITH_SHA}")
+else()
+    message(STATUS "openDAQ package version: ${OPENDAQ_PACKAGE_VERSION}")
+    add_compile_definitions(OPENDAQ_PACKAGE_VERSION="${OPENDAQ_PACKAGE_VERSION}")
+endif()
 
 include(CheckCompilerFlag)
 include(CheckLinkerFlag)
@@ -49,9 +82,6 @@ endif()
 if  (POLICY CMP0076)
      cmake_policy(SET CMP0076 NEW)
 endif()
-
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
-)
 
 # All install targets from within the project should eventually specify the component name.
 # This changes the default name for all the targets without an explicit name ("Unspecified").
@@ -135,17 +165,6 @@ add_compile_definitions(OPENDAQ_LOG_LEVEL=$<IF:$<CONFIG:Debug>,${OPENDAQ_LOG_LEV
 set(OPENDAQ_REPO_PREFIX "https://github.com/openDAQ" CACHE STRING "Set this if using a repository mirror")
 message(STATUS "${SDK_NAME} repository prefix: ${OPENDAQ_REPO_PREFIX}")
 
-get_filename_component(ROOT_DIR ${CMAKE_SOURCE_DIR} REALPATH)
-get_filename_component(PROJ_DIR ${PROJECT_SOURCE_DIR} REALPATH)
-
-if (NOT ${PROJECT_SOURCE_DIR} STREQUAL ${ROOT_DIR})
-    set(BUILDING_AS_SUBMODULE ON)
-    message(STATUS "Building as submodule")
-else()
-    message(STATUS "Building standalone")
-    set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ".CMakePredefinedTargets")
-endif()
-
 include(CMakePrintHelpers)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -196,16 +215,6 @@ if (MSVC AND NOT (${CMAKE_GENERATOR} MATCHES "Visual Studio"))
         link_directories(${WIN_SDK_LIBRARIES})
     else()
         message(WARNING "Windows SDK not found. Some projects might not build or link correctly.")
-    endif()
-endif()
-
-if (NOT BUILDING_AS_SUBMODULE)
-    find_package(GitInfo)
-    if (COMMAND GIT_WC_INFO)
-       GIT_WC_INFO("${CMAKE_CURRENT_SOURCE_DIR}" "OPENDAQ")
-       message(STATUS "Git branch: ${OPENDAQ_WC_BRANCH_NAME} | ${OPENDAQ_WC_REVISION_HASH}")
-    else()
-        set(OPENDAQ_WC_REVISION "NA")
     endif()
 endif()
 

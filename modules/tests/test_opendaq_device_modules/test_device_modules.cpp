@@ -381,6 +381,14 @@ TEST_F(DeviceModulesTest, ProcedureProp)
     ASSERT_NO_THROW(proc());
 }
 
+TEST_F(DeviceModulesTest, PackageVersion1)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto info = client.getDevices()[0].getInfo();
+    ASSERT_EQ(info.getPropertyValue("OpenDaqPackageVersion"), OPENDAQ_PACKAGE_VERSION);
+}
+
 ////////
 // Tests defining future requirements
 ////////

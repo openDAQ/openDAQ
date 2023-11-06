@@ -127,7 +127,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         std::string browseName = daq::opcua::utils::ToStdString(reference.browseName.name);
         if (detail::deviceInfoSetterMap.count(browseName))
             detail::deviceInfoSetterMap[browseName](deviceInfo, client->readValue(OpcUaNodeId(reference.nodeId.nodeId)));
-        else if (browseName != "NumberInList" && browseName != "OpenDaqPackageVersion")
+        else if (browseName != "NumberInList")
         {
             // TODO: Group requests for data type and scalar/array checks and only read required values
             try

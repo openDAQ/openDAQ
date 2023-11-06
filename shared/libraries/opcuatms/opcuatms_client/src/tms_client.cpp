@@ -49,6 +49,22 @@ daq::DevicePtr TmsClient::connect()
     auto localId = getUniqueLocalId(client->readBrowseName(rootDeviceNodeId));
 
     auto device = TmsClientRootDevice(context, parent, localId, tmsClientContext, rootDeviceNodeId, createStreamingCallback);
+
+    const auto deviceInfo = device.getInfo();
+    if (deviceInfo.hasProperty("OpenDaqPackageVersion"))
+    {
+        const std::string packageVersion = deviceInfo.getPropertyValue("OpenDaqPackageVersion");
+        if (packageVersion != OPENDAQ_PACKAGE_VERSION)
+        {
+            const auto logger = context.getLogger();
+            if (logger.assigned())
+            {
+                const auto loggerComponent = logger.getOrAddComponent("OpcUaClient");
+                LOG_I("Connected to openDAQ OPC UA server with different version. Client version: {}, server version: {}", OPENDAQ_PACKAGE_VERSION, packageVersion)
+            }
+        }
+    }
+
     return device;
 }
 

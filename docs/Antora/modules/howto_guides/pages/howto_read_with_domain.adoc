@@ -27,6 +27,15 @@ auto reader = StreamReader(signal);
 auto reader = StreamReader<double, Int>(signal);
 auto reader = StreamReader(signal, SampleType::Float64, SampleType::Int64);
 ----
+Python::
++
+[source,python]
+----
+#These calls all create the same reader
+reader = opendaq.StreamReader(signal)
+reader = opendaq.StreamReader(
+    signal, value_type=opendaq.SampleType.Float64, domain_type=opendaq.SampleType.Int64)
+----
 ====
 
 [NOTE]
@@ -73,6 +82,17 @@ auto reader = StreamReader(signal, SampleType::Undefined, SampleType::Int64);
 
 // or ony for domain
 auto reader = StreamReader(signal, SampleType::Float64, SampleType::Undefined);
+----
+Python::
++
+[source,python]
+----
+#Use the Signal's sample-types for both value and domain
+reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Undefined, domain_type=opendaq.SampleType.Undefined)
+#only for values
+reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Undefined, domain_type=opendaq.SampleType.Int64)
+#or only for domain
+reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Float64, domain_type=opendaq.SampleType.Undefined)
 ----
 ====
 
@@ -135,6 +155,33 @@ for (SizeT i = 0; i < readCount; ++i)
 {
     std::cout << newValues[i] << ", " << newDomain[i] << std::endl;
 }
+----
+Python::
++
+[source,python]
+----
+reader = opendaq.StreamReader(signal)
+
+# should be 0
+available = reader.available_count
+
+#signal produces 8 samples
+
+# should be 8
+available = reader.available_count
+
+values = reader.read(5)
+print(f'Read {len(values)} samples:')
+print(values)
+
+to_read = 5
+values,domain = reader.read_with_domain(to_read)
+
+# should be 3
+to_read = len(values)
+print(f'Read another {to_read} samples with domain:')
+for value, domain in zip(values, domain):
+    print(domain, value)
 ----
 ====
 

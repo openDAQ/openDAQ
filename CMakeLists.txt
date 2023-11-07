@@ -46,7 +46,7 @@ if (NOT BUILDING_AS_SUBMODULE)
 		endif()
 		
         message(STATUS "Git branch: ${OPENDAQ_WC_BRANCH_NAME} | ${OPENDAQ_WC_REVISION_HASH}")
-	    if (${OPENDAQ_WC_BRANCH_NAME} STREQUAL "main")
+	    if (NOT ${OPENDAQ_WC_BRANCH_NAME} MATCHES "^release\/[0-9]+\.[0-9]+(\.[0-9])?(\.[0-9])?(-[a-z|A-Z|0-9]*)?$")
 	        set (OPENDAQ_PACKAGE_VERSION_WITH_SHA "${OPENDAQ_PACKAGE_VERSION}_${OPENDAQ_WC_REVISION_HASH}")
         endif()
     else()

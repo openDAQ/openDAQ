@@ -55,6 +55,8 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(const daq::stre
 
         dataDescriptor.setUnit(unit);
     }
+
+    dataDescriptor.setOrigin(subscribedSignal.timeBaseEpochAsString());
     // *** meta "definition" end ***
 
     if (!subscribedSignal.isTimeSignal())

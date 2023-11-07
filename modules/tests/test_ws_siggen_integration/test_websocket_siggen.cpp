@@ -55,7 +55,7 @@ TEST_F(WebsocketSiggenTest, SyncSignalDescriptors)
     EXPECT_EQ(domainDescriptor.getRule().getType(), DataRuleType::Linear);
     EXPECT_EQ(domainDescriptor.getUnit().getSymbol(), "s");
     EXPECT_EQ(domainDescriptor.getUnit().getQuantity(), "time");
-    EXPECT_EQ(domainDescriptor.getOrigin(), "");
+    EXPECT_NE(domainDescriptor.getOrigin(), "");
     EXPECT_NE(domainDescriptor.getTickResolution().getNumerator(), 0);
     EXPECT_NE(domainDescriptor.getTickResolution().getDenominator(), 0);
 }
@@ -85,7 +85,7 @@ TEST_F(WebsocketSiggenTest, AsyncSignalDescriptors)
     EXPECT_EQ(domainDescriptor.getRule().getType(), DataRuleType::Explicit);
     EXPECT_EQ(domainDescriptor.getUnit().getSymbol(), "s");
     EXPECT_EQ(domainDescriptor.getUnit().getQuantity(), "time");
-    EXPECT_EQ(domainDescriptor.getOrigin(), "");
+    EXPECT_NE(domainDescriptor.getOrigin(), "");
     EXPECT_NE(domainDescriptor.getTickResolution().getNumerator(), 0);
     EXPECT_NE(domainDescriptor.getTickResolution().getDenominator(), 0);
 }

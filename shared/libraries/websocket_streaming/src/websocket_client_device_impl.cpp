@@ -50,11 +50,11 @@ void WebsocketClientDeviceImpl::createWebsocketStreaming()
 {
     auto streamingClient = std::make_shared<StreamingClient>(context, connectionString);
 
-    auto newSignalCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
+    auto dataDescriptorCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
     {
-        this->onNewSignal(signalId, sInfo);
+        this->onDataDescriptor(signalId, sInfo);
     };
-    streamingClient->onNewSignal(newSignalCallback);
+    streamingClient->onDataDescriptor(dataDescriptorCallback);
 
     auto signalUpdatedCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
     {
@@ -77,7 +77,7 @@ void WebsocketClientDeviceImpl::createWebsocketStreaming()
     websocketStreaming = WebsocketStreaming(streamingClient, connectionString, context);
 }
 
-void WebsocketClientDeviceImpl::onNewSignal(const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
+void WebsocketClientDeviceImpl::onDataDescriptor(const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
 {
     if (!sInfo.dataDescriptor.assigned())
         return;

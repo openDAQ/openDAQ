@@ -35,7 +35,7 @@ protected:
     void createWebsocketStreaming();
     void activateStreaming();
     void updateSignal(const SignalPtr& signal, const SubscribedSignalInfo& sInfo);
-    void onNewSignal(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
+    void onDataDescriptor(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
     void onSignalUpdated(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
     void onDomainDescriptor(const StringPtr& signalId, const DataDescriptorPtr& domainDescriptor);
     void createDeviceSignals(const std::vector<std::string>& signalIds);

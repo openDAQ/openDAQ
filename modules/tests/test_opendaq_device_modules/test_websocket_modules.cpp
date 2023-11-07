@@ -112,3 +112,15 @@ TEST_F(WebsocketModulesTest, DataDescriptor)
     ASSERT_EQ(domainDataDescriptor.getOrigin(), serverDomainDataDescriptor.getOrigin());
     ASSERT_EQ(domainDataDescriptor.getTickResolution(), serverDomainDataDescriptor.getTickResolution());
 }
+
+TEST_F(WebsocketModulesTest, DISABLED_RenderSignal)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto signals = client.getSignalsRecursive();
+    const auto renderer = client.addFunctionBlock("ref_fb_module_renderer");
+    renderer.getInputPorts()[0].connect(signals[0]);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+}

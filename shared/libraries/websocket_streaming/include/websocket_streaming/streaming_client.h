@@ -56,7 +56,7 @@ public:
     bool connect();
     void disconnect();
     void onPacket(const OnPacketCallback& callack);
-    void onNewSignal(const OnSignalCallback& callback);
+    void onDataDescriptor(const OnSignalCallback& callback);
     void onSignalUpdated(const OnSignalCallback& callback);
     void onDomainDescriptor(const OnDomainDescriptorCallback& callback);
     void onAvailableStreamingSignals(const OnAvailableSignalsCallback& callback);
@@ -78,8 +78,12 @@ protected:
     void onMessage(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, uint64_t timeStamp, const uint8_t* data, size_t size);
     void setDataSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
     void setTimeSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
-    void publishSignal(const std::string& signalId);
+    void publishSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
     void onSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, const nlohmann::json& params);
+    void setSignalInitSatisfied(const std::string& signalId);
+    void setDomainDescriptor(const std::string& signalId,
+                             const InputSignalPtr& inputSignal,
+                             const DataDescriptorPtr& domainDescriptor);
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
@@ -94,7 +98,7 @@ protected:
     daq::streaming_protocol::ProtocolHanlderPtr protocolHandler;
     std::unordered_map<std::string, InputSignalPtr> signals;
     OnPacketCallback onPacketCallback = [](const StringPtr&, const PacketPtr&) {};
-    OnSignalCallback onNewSignalCallback = [](const StringPtr&, const SubscribedSignalInfo&) {};
+    OnSignalCallback onDataDescriptorCallback = [](const StringPtr&, const SubscribedSignalInfo&) {};
     OnDomainDescriptorCallback onDomainDescriptorCallback = [](const StringPtr&, const DataDescriptorPtr&) {};
     OnAvailableSignalsCallback onAvailableStreamingSignalsCb = [](const std::vector<std::string>& signalIds) {};
     OnAvailableSignalsCallback onAvailableDeviceSignalsCb = [](const std::vector<std::string>& signalIds) {};
@@ -105,6 +109,7 @@ protected:
     std::condition_variable conditionVariable;
     std::chrono::milliseconds connectTimeout{1000};
     std::unordered_map<std::string, std::pair<std::promise<void>, std::future<void>>> signalInitializedStatus;
+    std::unordered_map<std::string, DataDescriptorPtr> cachedDomainDescriptors;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

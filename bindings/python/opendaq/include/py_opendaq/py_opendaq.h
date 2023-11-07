@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 #pragma once
 
 #include <pybind11/pybind11.h>
@@ -85,6 +85,8 @@ PyDaqIntf<daq::IStreamingInfo, daq::IPropertyObject> declareIStreamingInfo(pybin
 PyDaqIntf<daq::IStreamingInfoConfig, daq::IStreamingInfo> declareIStreamingInfoConfig(pybind11::module_ m);
 PyDaqIntf<daq::IMirroredSignalConfig, daq::ISignalConfig> declareIMirroredSignalConfig(pybind11::module_ m);
 
+py::class_<daq::TimeReader<daq::StreamReaderPtr>> declareTimeStreamReader(pybind11::module_ m);
+
 void defineIAllocator(pybind11::module_ m, PyDaqIntf<daq::IAllocator, daq::IBaseObject> cls);
 void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice> cls);
 void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObject> cls);
@@ -111,6 +113,7 @@ void defineIPacketReader(pybind11::module_ m, PyDaqIntf<daq::IPacketReader, daq:
 void defineISampleReader(pybind11::module_ m, PyDaqIntf<daq::ISampleReader, daq::IReader> cls);
 void defineIBlockReader(pybind11::module_ m, PyDaqIntf<daq::IBlockReader, daq::ISampleReader> cls);
 void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq::ISampleReader> cls);
+void defineTimeStreamReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::StreamReaderPtr>> cls);
 void defineITailReader(pybind11::module_ m, PyDaqIntf<daq::ITailReader, daq::ISampleReader> cls);
 void defineIAwaitable(pybind11::module_ m, PyDaqIntf<daq::IAwaitable, daq::IBaseObject> cls);
 void defineIGraphVisualization(pybind11::module_ m, PyDaqIntf<daq::IGraphVisualization, daq::IBaseObject> cls);

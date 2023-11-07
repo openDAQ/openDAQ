@@ -407,10 +407,13 @@ namespace RTGen.Cpp.Parser {
                 return true;
             }
 
+            NumberStyles numberStyle = NumberStyles.Integer;
+
             opt.Value = value.GetText();
 
             if (opt.Value.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
             {
+                numberStyle = NumberStyles.HexNumber;
                 opt.Value = opt.Value.Substring(2);
             }
             else if (opt.Value.StartsWith("0b", StringComparison.OrdinalIgnoreCase))
@@ -425,13 +428,16 @@ namespace RTGen.Cpp.Parser {
                 }
             }
 
-            if (!int.TryParse(opt.Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int parsedCounter))
+            if (!int.TryParse(opt.Value, numberStyle, CultureInfo.InvariantCulture, out int parsedCounter))
             {
                 counterValue = 0;
                 return false;
             }
 
+            //store the integer value due to language differences for hex (0x1 or $1)
+            opt.Value = parsedCounter.ToString(CultureInfo.InvariantCulture);
             counterValue = parsedCounter;
+
             return true;
         }
 

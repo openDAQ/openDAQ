@@ -26,11 +26,15 @@ BEGIN_NAMESPACE_OPENDAQ
 class PropertyValueEventArgsImpl : public EventArgsBase<IPropertyValueEventArgs>
 {
 public:
-    explicit PropertyValueEventArgsImpl(const PropertyPtr& property, const ObjectPtr<IBaseObject>& value, PropertyEventType type)
+    explicit PropertyValueEventArgsImpl(const PropertyPtr& property,
+                                        const ObjectPtr<IBaseObject>& value,
+                                        PropertyEventType type,
+                                        Bool isUpdating)
         : EventArgsImplTemplate<IPropertyValueEventArgs>(0, "PropertyValueEvent")
         , property(property)
         , newValue(value)
         , type(type)
+        , isUpdating(isUpdating)
     {
     }
 
@@ -38,11 +42,13 @@ public:
     ErrCode INTERFACE_FUNC getValue(IBaseObject** value) override;
     ErrCode INTERFACE_FUNC setValue(IBaseObject* value) override;
     ErrCode INTERFACE_FUNC getPropertyEventType(PropertyEventType* changeType) override;
+    ErrCode INTERFACE_FUNC getIsUpdating(bool* isUpdating) override;
 
 private:
     PropertyPtr property;
     BaseObjectPtr newValue;
     PropertyEventType type;
+    Bool isUpdating;
 };
 
 END_NAMESPACE_OPENDAQ

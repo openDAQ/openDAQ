@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <coreobjects/string_keys.h>
+#include <coreobjects/object_keys.h>
 #include <opendaq/component_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ

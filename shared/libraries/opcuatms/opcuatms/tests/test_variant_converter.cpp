@@ -242,6 +242,16 @@ TEST_F(VariantConverterTest, ExplicitDataRule)
     ASSERT_TRUE(daqDataRuleOut.equals(daqDataRule));
 }
 
+TEST_F(VariantConverterTest, ExplicitDomainDataRule)
+{
+    const DataRulePtr daqDataRule = ExplicitDomainDataRule(5.123, 10);
+
+    const auto variant = VariantConverter<IDataRule>::ToVariant(daqDataRule);
+    const auto daqDataRuleOut = VariantConverter<IDataRule>::ToDaqObject(variant);
+
+    ASSERT_TRUE(daqDataRuleOut.equals(daqDataRule));
+}
+
 TEST_F(VariantConverterTest, CustomDataRule)
 {
     auto params = Dict<IString, IBaseObject>();

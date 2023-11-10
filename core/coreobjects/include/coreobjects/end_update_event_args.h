@@ -16,44 +16,23 @@
 
 #pragma once
 #include <coretypes/coretypes.h>
+#include <coretypes/event_args.h>
+#include <coreobjects/property.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-struct StringHash
+/*#
+ * [interfaceSmartPtr(IEventArgs, EventArgsPtr, "<coretypes/event_args_ptr.h>")]
+ */
+DECLARE_OPENDAQ_INTERFACE(IEndUpdateEventArgs, IEventArgs)
 {
-    size_t operator()(const StringPtr& str) const
-    {
-        SizeT hashCode;
-        str->getHashCode(&hashCode);
-        return hashCode;
-    }
+    // [elementType(properties, IString)]
+    virtual ErrCode INTERFACE_FUNC getProperties(IList** properties) = 0;
 };
 
-struct StringEqualTo
-{
-    bool operator()(const StringPtr& a, const StringPtr& b) const
-    {
-        assert(a != nullptr && b != nullptr);
-
-        ConstCharPtr aChPtr;
-        a->getCharPtr(&aChPtr);
-        ConstCharPtr bChPtr;
-        b->getCharPtr(&bChPtr);
-        return strcmp(aChPtr, bChPtr) == 0;
-    };
-};
+OPENDAQ_DECLARE_CLASS_FACTORY(
+    LIBRARY_FACTORY, EndUpdateEventArgs,
+    IList*, properties
+)
 
 END_NAMESPACE_OPENDAQ
-
-namespace std
-{
-    template <>
-    struct hash<daq::StringPtr> : daq::StringHash
-    {
-    };
-
-    template <>
-    struct equal_to<daq::StringPtr> : daq::StringEqualTo
-    {
-    };
-}

@@ -659,6 +659,21 @@ ErrCode InstanceImpl::getOnPropertyValueRead(IString* propertyName, IEvent** eve
     return rootDevice->getOnPropertyValueRead(propertyName, event);
 }
 
+ErrCode InstanceImpl::beginUpdate()
+{
+    return rootDevice->beginUpdate();
+}
+
+ErrCode InstanceImpl::endUpdate()
+{
+    return rootDevice->endUpdate();
+}
+
+ErrCode InstanceImpl::getOnEndUpdate(IEvent** event)
+{
+    return rootDevice->endUpdate();
+}
+
 ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)
 {
     return rootDevice->hasProperty(propertyName, hasProperty);

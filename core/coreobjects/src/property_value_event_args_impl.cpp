@@ -1,4 +1,5 @@
 #include <coreobjects/property_value_event_args_impl.h>
+#include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -41,6 +42,14 @@ ErrCode PropertyValueEventArgsImpl::getPropertyEventType(PropertyEventType* chan
     return OPENDAQ_SUCCESS;
 }
 
-OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PropertyValueEventArgs, IProperty*, prop, IBaseObject*, value, PropertyEventType, type)
+ErrCode PropertyValueEventArgsImpl::getIsUpdating(bool* isUpdating)
+{
+    OPENDAQ_PARAM_NOT_NULL(isUpdating);
+
+    *isUpdating = this->isUpdating;
+    return OPENDAQ_SUCCESS;
+}
+
+OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PropertyValueEventArgs, IProperty*, prop, IBaseObject*, value, PropertyEventType, type, Bool, isUpdating)
 
 END_NAMESPACE_OPENDAQ

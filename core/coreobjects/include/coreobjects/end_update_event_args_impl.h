@@ -16,16 +16,21 @@
 
 #pragma once
 #include <coretypes/common.h>
-#include <coreobjects/property_value_event_args_ptr.h>
+#include <coretypes/intfs.h>
+#include <coreobjects/end_update_event_args.h>
+#include <coreobjects/property_ptr.h>
+#include <coretypes/event_args_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline PropertyValueEventArgsPtr PropertyValueEventArgs(const PropertyPtr& propChanged,
-                                                        const BaseObjectPtr& newValue,
-                                                        PropertyEventType changeType,
-                                                        Bool isUpdating)
+class EndUpdateEventArgsImpl : public EventArgsBase<IEndUpdateEventArgs>
 {
-    return PropertyValueEventArgsPtr(PropertyValueEventArgs_Create(propChanged, newValue, changeType, isUpdating));
-}
+public:
+    explicit EndUpdateEventArgsImpl(const ListPtr<IString>& properties);
+
+    ErrCode INTERFACE_FUNC getProperties(IList** properties) override;
+private:
+    ListPtr<IString> properties;
+};
 
 END_NAMESPACE_OPENDAQ

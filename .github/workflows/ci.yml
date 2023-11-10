@@ -16,6 +16,7 @@ env:
   package_path: ${{ github.workspace }}/build/_packages/
   python_version_build: 3.11
   python_versions: 3.8 3.9 3.10 3.11 3.12
+  OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
 
 jobs:
   build_windows:

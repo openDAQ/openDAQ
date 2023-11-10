@@ -30,7 +30,7 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief Creates a DataRuleConfig with no parameters.
  */
-inline DataRulePtr DataRule(DataRuleType type, DictPtr<IString, IBaseObject>& parameters)
+inline DataRulePtr DataRule(DataRuleType type, const DictPtr<IString, IBaseObject>& parameters)
 {
     DataRulePtr obj(DataRule_Create(type, parameters));
     return obj;
@@ -71,7 +71,21 @@ inline DataRulePtr ExplicitDataRule()
 }
 
 /*!
- * @brief Creates a Data rule ubilder with no parameters.
+ * @brief Creates a DataRule with an Explicit rule type configuration two optional parameters.
+ * @param minExpectedDelta The lowest expected distance between two samples.
+ * @param maxExpectedDelta The highest expected distance between two samples.
+ *
+ * Most often used for domain signals to specify estimates on how close together/far apart two
+ * subsequent samples might be.
+ */
+inline DataRulePtr ExplicitDomainDataRule(const NumberPtr& minExpectedDelta = 0, const NumberPtr& maxExpectedDelta = 0)
+{
+    DataRulePtr obj(ExplicitDomainDataRule_Create(minExpectedDelta, maxExpectedDelta));
+    return obj;
+}
+
+/*!
+ * @brief Creates a Data rule builder with no parameters.
  */
 inline DataRuleBuilderPtr DataRuleBuilder()
 {

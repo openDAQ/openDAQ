@@ -48,6 +48,17 @@ enum class DataRuleType
  * When the rule type of the Data rule is set to `Explicit`, the values passed through the signal path, described by
  * the Value descriptor are stored in packet buffers.
  *
+ * The Explicit rule can have 2 optional parameters:
+ *
+ * - `minExpectedDelta`: Specifies the minimum difference in value between two subsequent samples
+ * - `maxExpectedDelta`: Specifies the maximum difference in value between two subsequent samples
+ *
+ * These are mostly used for domain signals to specify the expected rate of a signal, or the expected timeout of a signal.
+ * The delta parameters should be configured to match the deltas in terms of the raw signal values (before scaling/resolution
+ * are applied).
+ *
+ * An explicit rule must have either both or none of these parameters. To use only one, the other must be set to 0.
+ *
  * @subsection data_rule_implicit Implicit rule
  * When the rule type of the Data rule is not `Explicit`, the buffers of packets are empty. The values must instead be
  * calculated via the Implicit value found in the packet buffers in conjunction with the parameters of the rule. Each
@@ -114,6 +125,20 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, ExplicitDataRule, IDataRule,
     OPENDAQ_FACTORY_PARAMS()
+)
+
+/*!
+ * @brief Creates a DataRule with an Explicit rule type configuration two optional parameters.
+ * @param minExpectedDelta The lowest expected distance between two samples.
+ * @param maxExpectedDelta The highest expected distance between two samples.
+ *
+ * Most often used for domain signals to specify estimates on how close together/far apart two
+ * subsequent samples might be.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, ExplicitDomainDataRule, IDataRule,
+    INumber*, minExpectedDelta,
+    INumber*, maxExpectedDelta
 )
 
 /*!

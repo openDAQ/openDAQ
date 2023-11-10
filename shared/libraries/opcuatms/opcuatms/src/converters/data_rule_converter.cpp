@@ -89,6 +89,39 @@ OpcUaObject<UA_BaseRuleDescriptionStructure> StructConverter<IDataRule, UA_BaseR
     return uaRuleDescription;
 }
 
+// UA_ExplicitDomainRuleDescription
+
+template <>
+DataRulePtr StructConverter<IDataRule, UA_ExplicitDomainRuleDescriptionStructure>::ToDaqObject(
+    const UA_ExplicitDomainRuleDescriptionStructure& tmsStruct,
+    const ContextPtr& /*context*/)
+{
+    if (tmsStruct.type != "explicit")
+        throw ConversionFailedException();
+
+    const NumberPtr minExpectedDelta = VariantConverter<INumber>::ToDaqObject(OpcUaVariant(tmsStruct.minExpectedDelta));
+    const NumberPtr maxExpectedDelta = VariantConverter<INumber>::ToDaqObject(OpcUaVariant(tmsStruct.maxExpectedDelta));
+
+    return ExplicitDomainDataRule(minExpectedDelta, maxExpectedDelta);
+}
+
+template <>
+OpcUaObject<UA_ExplicitDomainRuleDescriptionStructure> StructConverter<IDataRule, UA_ExplicitDomainRuleDescriptionStructure>::ToTmsType(
+    const DataRulePtr& object,
+    const ContextPtr& /*context*/)
+{
+    const NumberPtr minExpectedDelta = object.getParameters().get("minExpectedDelta");
+    const NumberPtr maxExpectedDelta = object.getParameters().get("maxExpectedDelta");
+
+    OpcUaObject<UA_ExplicitDomainRuleDescriptionStructure> uaRuleDescription;
+
+    uaRuleDescription->type = UA_STRING_ALLOC("explicit");
+    uaRuleDescription->minExpectedDelta = VariantConverter<INumber>::ToVariant(minExpectedDelta).getDetachedValue();
+    uaRuleDescription->maxExpectedDelta = VariantConverter<INumber>::ToVariant(maxExpectedDelta).getDetachedValue();
+
+    return uaRuleDescription;
+}
+
 // UA_CustomRuleDescription
 
 template <>
@@ -168,6 +201,12 @@ DataRulePtr VariantConverter<IDataRule>::ToDaqObject(const OpcUaVariant& variant
         const auto tmsStruct = static_cast<UA_CustomRuleDescriptionStructure*>(decodedVariant->data);
         return StructConverter<IDataRule, UA_CustomRuleDescriptionStructure>::ToDaqObject(*tmsStruct);
     }
+    
+    if (decodedVariant.isType<UA_ExplicitDomainRuleDescriptionStructure>())
+    {
+        const auto tmsStruct = static_cast<UA_ExplicitDomainRuleDescriptionStructure*>(decodedVariant->data);
+        return StructConverter<IDataRule, UA_ExplicitDomainRuleDescriptionStructure>::ToDaqObject(*tmsStruct);
+    }
 
     if (decodedVariant.isType<UA_BaseRuleDescriptionStructure>())
     {
@@ -199,7 +238,10 @@ OpcUaVariant VariantConverter<IDataRule>::ToVariant(const DataRulePtr& object, c
             }
             case DataRuleType::Explicit:
             {
-                variant.setScalar(*StructConverter<IDataRule, UA_BaseRuleDescriptionStructure>::ToTmsType(object));
+                if (object.getParameters().hasKey("minExpectedDelta") && object.getParameters().hasKey("maxExpectedDelta"))
+                    variant.setScalar(*StructConverter<IDataRule, UA_ExplicitDomainRuleDescriptionStructure>::ToTmsType(object));
+                else
+                    variant.setScalar(*StructConverter<IDataRule, UA_BaseRuleDescriptionStructure>::ToTmsType(object));
                 break;
             }
             case DataRuleType::Other:
@@ -217,6 +259,8 @@ OpcUaVariant VariantConverter<IDataRule>::ToVariant(const DataRulePtr& object, c
         variant.setScalar(*StructConverter<IDataRule, UA_BaseRuleDescriptionStructure>::ToTmsType(object));
     else if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDataRule, UA_CustomRuleDescriptionStructure>::ToTmsType(object));
+    else if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_EXPLICITDOMAINRULEDESCRIPTIONSTRUCTURE])
+        variant.setScalar(*StructConverter<IDataRule, UA_ExplicitDomainRuleDescriptionStructure>::ToTmsType(object));
     else
         throw ConversionFailedException{};
 
@@ -232,10 +276,12 @@ ListPtr<IDataRule> VariantConverter<IDataRule>::ToDaqList(const OpcUaVariant& va
         return ListConversionUtils::VariantToList<IDataRule, UA_LinearRuleDescriptionStructure>(variant);
     if (variant.isType<UA_ConstantRuleDescriptionStructure>())
         return ListConversionUtils::VariantToList<IDataRule, UA_ConstantRuleDescriptionStructure>(variant);
-    if (variant.isType<UA_BaseRuleDescriptionStructure>())
-        return ListConversionUtils::VariantToList<IDataRule, UA_BaseRuleDescriptionStructure>(variant);
     if (variant.isType<UA_CustomRuleDescriptionStructure>())
         return ListConversionUtils::VariantToList<IDataRule, UA_CustomRuleDescriptionStructure>(variant);
+    if (variant.isType<UA_ExplicitDomainRuleDescriptionStructure>())
+        return ListConversionUtils::VariantToList<IDataRule, UA_ExplicitDomainRuleDescriptionStructure>(variant);
+    if (variant.isType<UA_BaseRuleDescriptionStructure>())
+        return ListConversionUtils::VariantToList<IDataRule, UA_BaseRuleDescriptionStructure>(variant);
 
     throw ConversionFailedException{};
 }
@@ -251,6 +297,8 @@ OpcUaVariant VariantConverter<IDataRule>::ToArrayVariant(const ListPtr<IDataRule
         return ListConversionUtils::ToArrayVariant<IDataRule, UA_LinearRuleDescriptionStructure>(list);
     if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_CONSTANTRULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDataRule, UA_ConstantRuleDescriptionStructure>(list);
+    if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_EXPLICITDOMAINRULEDESCRIPTIONSTRUCTURE])
+        return ListConversionUtils::ToArrayVariant<IDataRule, UA_ExplicitDomainRuleDescriptionStructure>(list);
     if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_BASERULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDataRule, UA_BaseRuleDescriptionStructure>(list);
     if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])

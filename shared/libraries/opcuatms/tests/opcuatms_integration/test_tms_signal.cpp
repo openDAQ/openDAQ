@@ -314,3 +314,15 @@ TEST_F(TmsSignalTest, ComponentMethods)
     auto clientTags = clientSignal.getTags();
     ASSERT_TRUE(clientTags.query("tag1") && clientTags.query("tag2"));
 }
+
+TEST_F(TmsSignalTest, ExplicitDomainRuleDescriptor)
+{
+    const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Int64).setRule(ExplicitDomainDataRule(5.1, 20)).build();
+    const auto signal = SignalWithDescriptor(NullContext(), descriptor, nullptr, "sig");
+    auto serverSignal = TmsServerSignal(signal, this->getServer(), NullContext());
+    auto nodeId = serverSignal.registerOpcUaNode();
+
+    SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
+
+    ASSERT_EQ(signal.getDescriptor().getRule(), clientSignal.getDescriptor().getRule());
+}

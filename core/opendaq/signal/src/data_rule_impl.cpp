@@ -11,6 +11,16 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace detail
 {
     static const StructTypePtr dataRuleStructType = DataRuleStructType();
+
+    static DictPtr<IString, IBaseObject> checkTypeAndBuildParams(DataRuleType ruleType, const NumberPtr& param1, const NumberPtr& param2)
+    {
+        if (ruleType == DataRuleType::Explicit)
+            return Dict<IString, IBaseObject>({{"minExpectedDelta", param1}, {"maxExpectedDelta", param2}});
+        if (ruleType == DataRuleType::Linear)
+            return Dict<IString, IBaseObject>({{"delta", param1}, {"start", param2}});
+
+        throw InvalidParameterException{"Invalid type of data rule. Rules with 2 number parameters can only be explicit or linear."};
+    }
 }
 
 DataRuleImpl::DataRuleImpl(DataRuleType ruleType, const DictPtr<IString, IBaseObject>& params)
@@ -22,8 +32,8 @@ DataRuleImpl::DataRuleImpl(DataRuleType ruleType, const DictPtr<IString, IBaseOb
     checkErrorInfo(verifyParametersInternal());
 }
 
-DataRuleImpl::DataRuleImpl(const NumberPtr delta, const NumberPtr& start)
-    : DataRuleImpl(DataRuleType::Linear, Dict<IString, IBaseObject>({{"delta", delta}, {"start", start}}))
+DataRuleImpl::DataRuleImpl(DataRuleType ruleType, const NumberPtr& param1, const NumberPtr& param2)
+    : DataRuleImpl(ruleType, detail::checkTypeAndBuildParams(ruleType, param1, param2))
 {
 }
 
@@ -192,7 +202,7 @@ ErrCode DataRuleImpl::verifyParametersInternal()
 extern "C"
 daq::ErrCode PUBLIC_EXPORT createLinearDataRule(IDataRule** objTmp, INumber* delta, INumber* start)
 {
-    return daq::createObject<IDataRule, DataRuleImpl>(objTmp, delta, start);
+    return daq::createObject<IDataRule, DataRuleImpl>(objTmp, DataRuleType::Linear, delta, start);
 }
 
 extern "C"
@@ -205,6 +215,12 @@ extern "C"
 daq::ErrCode PUBLIC_EXPORT createExplicitDataRule(IDataRule** objTmp)
 {
     return daq::createObject<IDataRule, DataRuleImpl>(objTmp);
+}
+
+extern "C"
+daq::ErrCode PUBLIC_EXPORT createExplicitDomainDataRule(IDataRule** objTmp, INumber* minExpectedDelta, INumber* maxExpectedDelta)
+{
+    return daq::createObject<IDataRule, DataRuleImpl>(objTmp, DataRuleType::Explicit, minExpectedDelta, maxExpectedDelta);
 }
 
 extern "C" daq::ErrCode PUBLIC_EXPORT createDataRule(IDataRule** objTmp, DataRuleType ruleType, IDict* parameters)

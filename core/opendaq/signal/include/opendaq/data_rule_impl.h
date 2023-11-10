@@ -26,7 +26,7 @@ class DataRuleImpl final : public GenericStructImpl<IDataRule, IStruct, IRulePri
 {
 public:
     explicit DataRuleImpl(DataRuleType ruleType, const DictPtr<IString, IBaseObject>& params);
-    explicit DataRuleImpl(NumberPtr delta, const NumberPtr& start);
+    explicit DataRuleImpl(DataRuleType ruleType, const NumberPtr& param1, const NumberPtr& param2);
     explicit DataRuleImpl(const NumberPtr& constant);
     explicit DataRuleImpl();
     

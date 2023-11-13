@@ -497,15 +497,10 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
     auto domainDataDescriptor = domainPacket.getDataDescriptor();
     const auto samplesInPacket = packet.getSampleCount();
     
-    SourceDomainType delta{};
-    SourceDomainType start{};
-    size_t count{};
-    
-    {
-        auto domainDataRuleParams = signalContext.inputDataSignalDescriptor.getDimensions()[0].getRule().getParameters();
-
-        delta = domainDataRuleParams.get("delta");
-        start = domainDataRuleParams.get("start");
+    size_t count = 1;
+    auto domainDataRule = signalContext.inputDataSignalDescriptor.getDimensions()[0].getRule();
+    if (domainDataRule.getType() == DataRuleType::Linear) {
+        auto domainDataRuleParams = domainDataRule.getParameters();
         count = domainDataRuleParams.get("size");
     }
     

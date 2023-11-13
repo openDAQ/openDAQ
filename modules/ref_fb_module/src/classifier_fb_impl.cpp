@@ -41,29 +41,24 @@ void ClassifierFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("EpochMs") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    const auto useCustomOutputRangeProp = BoolProperty("UseCustomOutputRange", False);
-    objPtr.addProperty(useCustomOutputRangeProp);
-    objPtr.getOnPropertyValueWrite("UseCustomOutputRange") +=
+    const auto ClassCountProp = IntProperty("ClassCount", 3);
+    objPtr.addProperty(ClassCountProp);
+    objPtr.getOnPropertyValueWrite("ClassCount") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    const auto customHighValueProp = FloatProperty("OutputHighValue", 10.0, EvalValue("$UseCustomOutputRange"));
+    const auto customHighValueProp = FloatProperty("InputHighValue", 10.0);
     objPtr.addProperty(customHighValueProp);
-    objPtr.getOnPropertyValueWrite("OutputHighValue") +=
+    objPtr.getOnPropertyValueWrite("InputHighValue") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    const auto customLowValueProp = FloatProperty("OutputLowValue", -10.0, EvalValue("$UseCustomOutputRange"));
+    const auto customLowValueProp = FloatProperty("InputLowValue", -10.0);
     objPtr.addProperty(customLowValueProp);
-    objPtr.getOnPropertyValueWrite("OutputLowValue") +=
+    objPtr.getOnPropertyValueWrite("InputLowValue") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
     const auto outputNameProp = StringProperty("OutputName", "");
     objPtr.addProperty(outputNameProp);
     objPtr.getOnPropertyValueWrite("OutputName") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
-
-    const auto outputUnitProp = StringProperty("OutputUnit", "");
-    objPtr.addProperty(outputUnitProp);
-    objPtr.getOnPropertyValueWrite("OutputUnit") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
     readProperties();
@@ -80,11 +75,14 @@ void ClassifierFbImpl::propertyChanged(bool configure)
 void ClassifierFbImpl::readProperties()
 {
     epochMs = objPtr.getPropertyValue("EpochMs");
-    useCustomOutputRange = objPtr.getPropertyValue("UseCustomOutputRange");
-    outputHighValue = objPtr.getPropertyValue("OutputHighValue");
-    outputLowValue = objPtr.getPropertyValue("OutputLowValue");
-    outputUnit = static_cast<std::string>(objPtr.getPropertyValue("OutputUnit"));
+    classCount = objPtr.getPropertyValue("ClassCount");
+    inputHighValue = objPtr.getPropertyValue("InputHighValue");
+    inputLowValue = objPtr.getPropertyValue("InputLowValue");
     outputName = static_cast<std::string>(objPtr.getPropertyValue("OutputName"));
+
+    assert(epochMs > 0);
+    assert(classCount > 0);
+
 }
 
 FunctionBlockTypePtr ClassifierFbImpl::CreateType()
@@ -131,20 +129,18 @@ void ClassifierFbImpl::configure()
 
         auto outputDataDescriptorBuilder = DataDescriptorBuilder().setSampleType(SampleType::Float64);
 
-        if (!useCustomOutputRange)
-        {
-            outputLowValue = static_cast<Float>(inputDataDescriptor.getValueRange().getLowValue());
-            outputHighValue = static_cast<Float>(inputDataDescriptor.getValueRange().getHighValue());
-        }
+        inputLowValue = static_cast<Float>(inputDataDescriptor.getValueRange().getLowValue());
+        inputHighValue = static_cast<Float>(inputDataDescriptor.getValueRange().getHighValue());
 
-        if (outputLowValue > outputHighValue)
-            std::swap(outputLowValue, outputHighValue);
+        if (inputLowValue > inputHighValue)
+            std::swap(inputLowValue, inputHighValue);
         
         RangePtr outputRange;
         {
-            auto rangeSize = size_t((Int)outputHighValue - (Int)outputLowValue + 1);
+            size_t rangeSize = inputHighValue - inputLowValue;
+            rangeSize = (rangeSize / classCount) + (rangeSize % classCount != 0) + 1;
             auto dimensions = List<IDimension>();
-            dimensions.pushBack(Dimension(LinearDimensionRule(1, (Int)outputLowValue, rangeSize)));
+            dimensions.pushBack(Dimension(LinearDimensionRule(classCount, (Int)inputLowValue, rangeSize)));
             outputDataDescriptorBuilder.setDimensions(dimensions);
 
             outputRange = Range(0, 1);
@@ -157,10 +153,7 @@ void ClassifierFbImpl::configure()
         else
             outputDataDescriptorBuilder.setName(outputName);
 
-        if (outputUnit.empty())
-            outputDataDescriptorBuilder.setUnit(Unit("freq/val", -1, "frequency of each value"));
-        else
-            outputDataDescriptorBuilder.setUnit(Unit(outputUnit));
+        outputDataDescriptorBuilder.setUnit(Unit("%"));
 
         outputDataDescriptor = outputDataDescriptorBuilder.build();
         outputSignal.setDescriptor(outputDataDescriptor);
@@ -262,15 +255,14 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
     {   
         auto& lastPacket = packets.back();
         auto inputDomainData = static_cast<UInt*>(lastPacket.getDomainPacket().getData());
-        bool wasBreaked = false;
 
         for(; lastPacketSamples < lastPacket.getSampleCount(); lastPacketSamples++) {
-            if (inputDomainData[lastPacketSamples] - packetStarted >= 1000 * epochMs) {
-                wasBreaked = true;
+            if (inputDomainData[lastPacketSamples] - packetStarted >= 1000 * epochMs)
                 break;
-            }
         }
-        lastPacketSamples += wasBreaked;
+
+        // in case all blocks are match expression - do not skip last one
+        lastPacketSamples += lastPacketSamples == lastPacket.getSampleCount() - 1;
 
         *outputDomainData = inputDomainData[lastPacketSamples - 1];
         packetStarted += 1000 * epochMs;
@@ -287,12 +279,12 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
         for (; sampleIdx < packetSamples; sampleIdx++) {
             auto& rawData = inputData[sampleIdx];
             
-            if (rawData < outputLowValue)
-                rawData = outputLowValue;
-            else if (rawData > outputHighValue)
-                rawData = outputHighValue;
+            if (rawData < inputLowValue)
+                rawData = inputLowValue;
+            else if (rawData > inputHighValue)
+                rawData = inputHighValue;
 
-            Int index = static_cast<Int>(rawData) - offset;
+            Int index = (static_cast<Int>(rawData) - offset) / classCount;
             outputData[index] += 1;
             valCnt++;
         }

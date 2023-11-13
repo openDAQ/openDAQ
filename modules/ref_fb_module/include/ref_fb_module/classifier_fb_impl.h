@@ -52,10 +52,9 @@ private:
     SignalConfigPtr outputDomainSignal;
 
     size_t epochMs;
-    Float outputHighValue;
-    Float outputLowValue;
-    Bool useCustomOutputRange;
-    std::string outputUnit;
+    size_t classCount;
+    Float inputHighValue;
+    Float inputLowValue;
     std::string outputName;
 
     UInt packetStarted {};

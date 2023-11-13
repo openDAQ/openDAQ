@@ -498,9 +498,8 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
     const auto samplesInPacket = packet.getSampleCount();
     
     size_t count = 1;
-    auto domainDataRule = signalContext.inputDataSignalDescriptor.getDimensions()[0].getRule();
-    if (domainDataRule.getType() == DataRuleType::Linear) {
-        auto domainDataRuleParams = domainDataRule.getParameters();
+    {
+        auto domainDataRuleParams = signalContext.inputDataSignalDescriptor.getDimensions()[0].getRule().getParameters();
         count = domainDataRuleParams.get("size");
     }
     

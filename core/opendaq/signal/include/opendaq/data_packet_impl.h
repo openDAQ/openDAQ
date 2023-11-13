@@ -275,16 +275,16 @@ void DataPacketImpl<TInterface>::calculateSampleMemSize()
 
         sampleMemSize = getSampleSize(type);
 
-        size_t elements_cnt = 1;
+        size_t elementCnt = 1;
         for (const auto & dimension : descriptor.getDimensions()) {
-            elements_cnt *= dimension.getSize();
+            elementCnt *= dimension.getSize();
         }
 
-        if (elements_cnt == 0) {
-            elements_cnt = 1;
+        if (elementCnt == 0) {
+            elementCnt = 1;
         }
 
-        sampleMemSize *= elements_cnt;
+        sampleMemSize *= elementCnt;
     }
 }
 

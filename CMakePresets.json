@@ -207,7 +207,7 @@
             "name": "x64/msvc-22/full",
             "displayName": "[MSVC 22] Full - x64",
             "inherits": [
-                "full/release",
+                "full/debug",
                 "msvc-22",
                 "msvc-x64"
             ]

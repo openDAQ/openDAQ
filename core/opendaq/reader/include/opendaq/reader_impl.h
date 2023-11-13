@@ -447,7 +447,7 @@ protected:
     {
         switch (readMode)
         {
-            case ReadMode::Raw:
+            case ReadMode::Unscaled:
                 return packet.getRawData();
             case ReadMode::Scaled:
                 return packet.getData();

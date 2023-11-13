@@ -53,7 +53,8 @@ void DiscoveryClient::discoverMdnsDevices()
     {
         try
         {
-            discoveredDevices.pushBack(createDeviceInfo(device));
+            if (auto deviceInfo = createDeviceInfo(device); deviceInfo.assigned())
+                discoveredDevices.pushBack(deviceInfo);
         }
         catch (...)
         {
@@ -99,8 +100,8 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
     auto exceptionMessage = "Failed to parse discovery data. Not a openDAQ device.";
 
     if (discoveredDevice.ipv4Address.empty())
-        throw DaqException(OPENDAQ_ERR_INVALIDPARAMETER, exceptionMessage);
-    
+        return nullptr;
+
     std::unordered_set<std::string> requiredCapsCopy = requiredCaps;
     auto caps = discoveredDevice.getPropertyOrDefault("caps");
     std::stringstream ss(caps);

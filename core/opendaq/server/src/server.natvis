@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="daq::ServerImpl">
+    <DisplayString>Server, &lt;{refCount}&gt;</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="serverConfig">serverConfig</Item>
+      <Item Name="rootDevice">rootDevice</Item>
+      <Item Name="context">context</Item>
+      <Item Name="moduleManager">moduleManager</Item>
+    </Expand>
+	</Type>
+</AutoVisualizer>

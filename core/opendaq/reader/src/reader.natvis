@@ -62,7 +62,7 @@
     </Expand>
   </Type>
   <Type Name="daq::TypedReader&lt;*&gt;">
-    <DisplayString>{{ TypedReader, read: {"$T1"}, data: {dataSampleType} }}</DisplayString>
+    <DisplayString>{{ TypedReader, read: {"$T1",sb}, data: {dataSampleType} }}</DisplayString>
   </Type>
   <Type Name="daq::UndefinedReader">
     <DisplayString>{{ UndefinedReader }}</DisplayString>

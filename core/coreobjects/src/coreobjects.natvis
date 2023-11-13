@@ -5,17 +5,15 @@
         <Expand>
             <Item IncludeView="withRefCount" Name="[refCount]">refCount,na</Item>
             <Item Name="[className]" Condition="className.object != nullptr">className.object,na</Item>
-            <Item Name="[localProperties]">localProperties</Item>
+            <Item Name="[localProperties]">localProperties,view(simple)</Item>
             <Item Name="[owner]">owner</Item>
-            <ExpandedItem>propValues._List,view(PropsView)</ExpandedItem>
+            <ExpandedItem>propValues._List,view(MapHelper)</ExpandedItem>
         </Expand>
     </Type>
     <Type Name="daq::PropertyImpl">
-        <DisplayString Condition="frozen == true">{{ name={name}, {valueType,en}, &lt;{refCount}&gt; [Frozen] }}</DisplayString>
-        <DisplayString Condition="frozen == false">{{ name={name}, {valueType,en}, &lt;{refCount}&gt;}}</DisplayString>
+        <DisplayString>{{ Property {name}, {valueType,en}, &lt;{refCount}&gt;}}</DisplayString>
         <Expand>
             <Item IncludeView="withRefCount" Name="[refCount]">refCount,na</Item>
-            <Item Name="[frozen]">frozen</Item>
             <Item Name="(onValueWrite)">onValueWrite</Item>
             <Item Name="(onValueRead)">onValueRead</Item>
             <Item Name="name">name</Item>
@@ -56,4 +54,22 @@
           <Item Name="[changeType]">type</Item>
         </Expand>
     </Type>
+    <Type Name="daq::GenericComponentTypeImpl&lt;*&gt;">
+        <DisplayString>{{ ComponentType: {name}, &lt;{refCount}&gt; }}</DisplayString>
+        <Expand>
+            <Item Name="[refCount]">refCount</Item>
+            <Item Name="id">id</Item>
+            <Item Name="name">name</Item>
+            <Item Name="description">description</Item>
+            <Item Name="createDefaultConfigCallback">createDefaultConfigCallback</Item>
+        </Expand>
+    </Type>
+  <Type Name="daq::UnitImpl">
+    <DisplayString>{{ Unit &lt;{refCount}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">refCount</Item>
+      <Item Name="structType">structType</Item>
+      <ExpandedItem>((daq::DictImpl*)fields.object)->hashTable</ExpandedItem>
+    </Expand>
+  </Type>
 </AutoVisualizer>

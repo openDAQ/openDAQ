@@ -49,6 +49,7 @@ opendaq_add_library(${BASE_NAME} STATIC
     ${SRC_PrivateHeaders}
     ${SRC_PublicHeaders}
     ${ConfigHeaderSource}
+    server.natvis
 )
 
 opendaq_target_link_libraries(${BASE_NAME}

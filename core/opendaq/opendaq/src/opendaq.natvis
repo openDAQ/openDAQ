@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="daq::FolderImpl&lt;*&gt;">
+    <DisplayString>{{ Folder {localId} ({items.m_ht.m_values._Mypair._Myval2._Mysize}) &lt;{refCount->strong},{refCount->weak}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="name">name</Item>
+      <Item Name="itemId">itemId</Item>
+      <ExpandedItem>(daq::ComponentImpl&lt;$T1&gt;*)this,nd</ExpandedItem>
+      <ExpandedItem>items.m_ht.m_values,view(simple)</ExpandedItem>
+      <!--<Item Name="raw">this,!</Item>-->
+    </Expand>
+  </Type>
+  <Type Name="daq::ChannelImpl&lt;*&gt;">
+    <DisplayString>{{ Channel {localId} }}</DisplayString>
+    <Expand>
+      <ExpandedItem>(daq::FunctionBlockImpl&lt;daq::IChannel,$T1&gt;*)this,nd</ExpandedItem>
+    </Expand>
+  </Type>    
+  <Type Name="daq::ComponentImpl&lt;*,*,*&gt;">
+    <DisplayString>{{ Component {localId} }}</DisplayString>
+    <Expand>
+      <Item Name="active">active</Item>
+      <Item Name="isRemoved">isComponentRemoved</Item>
+      <Item Name="localId">localId</Item>
+      <Item Name="globalId">globalId</Item>
+      <Item Name="tags">tags</Item>
+      <Item Name="parent">parent</Item>
+      <ExpandedItem>(daq::GenericPropertyObjectImpl&lt;$T1,daq::IRemovable,$T2,$T3&gt;*)this,nd</ExpandedItem>
+      <Item Name="[object]">this,!</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::ComponentImpl&lt;*,*&gt;">
+    <DisplayString>{{ Component {localId} }}</DisplayString>
+    <Expand>
+      <Item Name="active">active</Item>
+      <Item Name="isRemoved">isComponentRemoved</Item>
+      <Item Name="localId">localId</Item>
+      <Item Name="globalId">globalId</Item>
+      <Item Name="tags">tags</Item>
+      <Item Name="parent">parent</Item>
+      <ExpandedItem>(daq::GenericPropertyObjectImpl&lt;$T1,daq::IRemovable,$T2&gt;*)this,nd</ExpandedItem>
+      <Item Name="[object]">this,!</Item>
+    </Expand>
+  </Type>
+  <Type Name="daq::ComponentImpl&lt;*&gt;">
+    <DisplayString>{{ Component {localId} }}</DisplayString>
+    <Expand>
+      <Item Name="active">active</Item>
+      <Item Name="isRemoved">isComponentRemoved</Item>
+      <Item Name="localId">localId</Item>
+      <Item Name="globalId">globalId</Item>
+      <Item Name="tags">tags</Item>
+      <Item Name="parent">parent</Item>
+      <ExpandedItem>(daq::GenericPropertyObjectImpl&lt;$T1,daq::IRemovable&gt;*)this,nd</ExpandedItem>
+      <Item Name="[object]">this,!</Item>
+    </Expand>
+  </Type>
+</AutoVisualizer>

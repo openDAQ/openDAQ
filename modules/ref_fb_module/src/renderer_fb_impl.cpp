@@ -486,8 +486,6 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
     std::unique_ptr<Polyline>& line,
     bool& end)
 {
-    using SourceDomainType = typename SampleTypeToType<DST>::Type;
-
     const float xSize = signalContext.bottomRight.x - signalContext.topLeft.x;
     const float xOffset = signalContext.topLeft.x;
     const float ySize = signalContext.bottomRight.y - signalContext.topLeft.y;

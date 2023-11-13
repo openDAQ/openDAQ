@@ -23,6 +23,7 @@
 
 #include "opendaq/data_packet_ptr.h"
 #include "opendaq/event_packet_ptr.h"
+#include <list>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
     

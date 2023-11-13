@@ -29,7 +29,7 @@ template <typename Intf = IComponentType, typename... Interfaces>
 class GenericComponentTypeImpl : public GenericStructImpl<Intf, IStruct, Interfaces...>
 {
 public:
-    explicit GenericComponentTypeImpl(const StructTypePtr& structType,
+    explicit GenericComponentTypeImpl(const StructTypePtr& type,
                                       const StringPtr& id,
                                       const StringPtr& name,
                                       const StringPtr& description,
@@ -48,13 +48,13 @@ protected:
 };
 
 template <class Intf, class... Interfaces>
-GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const StructTypePtr& structType,
+GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const StructTypePtr& type,
                                                                         const StringPtr& id,
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
                                                                         const FunctionPtr& createDefaultConfigCallback)
     : GenericStructImpl<Intf, IStruct, Interfaces...>(
-          structType, Dict<IString, IBaseObject>({{"id", id}, {"name", name}, {"description", description}}))
+          type, Dict<IString, IBaseObject>({{"id", id}, {"name", name}, {"description", description}}))
     , id(id)
     , name(name)
     , description(description)

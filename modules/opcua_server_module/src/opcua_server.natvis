@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="daq::modules::opcua_server_module::OpcUaServerImpl">
+    <DisplayString>OpcUaServerImpl, &lt;{refCount}&gt;</DisplayString>
+      <Expand>
+        <ExpandedItem>(daq::ServerImpl*)this,nd</ExpandedItem>
+          <Item Name="server">server</Item>
+          <Item Name="config">config</Item>
+          <Item Name="context">context</Item>
+      </Expand>
+  </Type>
+</AutoVisualizer>

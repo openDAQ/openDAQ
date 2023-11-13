@@ -84,6 +84,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     logger = contextPtr.getLogger();
     if (!logger.assigned())
         return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Logger must not be null");
+
     loggerComponent = this->logger.getOrAddComponent("ModuleManager");
     
     return daqTry([&](){

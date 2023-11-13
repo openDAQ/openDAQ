@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="daq::StreamingInfoConfigImpl">
+    <DisplayString>{StreamingInfo}</DisplayString>
+    <Expand>
+      <ExpandedItem>(daq::GenericPropertyObjectImpl&lt;daq::IStreamingInfoConfig&gt;*)this,nd</ExpandedItem>
+    </Expand>
+  </Type>
+</AutoVisualizer>

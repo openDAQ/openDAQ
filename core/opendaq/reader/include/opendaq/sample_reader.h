@@ -28,8 +28,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 enum class ReadMode
 {
-    Raw,
-    Scaled
+    Unscaled,
+    Scaled,
+    RawValue
 };
 
 /*#

@@ -139,10 +139,10 @@ public:
         return LoggerWithSinks(List<ILoggerSink>(sink), LogLevel::Trace);
     }
 
-    ReadSignal& addSignal(Int packetOffset, Int packetSize, const SignalPtr& domain)
+    ReadSignal& addSignal(Int packetOffset, Int packetSize, const SignalPtr& domain, SampleType valueType = SampleType::Float64)
     {
         auto newSignal = Signal(context, nullptr, fmt::format("sig{}", counter++));
-        newSignal.setDescriptor(setupDescriptor(SampleType::Float64));
+        newSignal.setDescriptor(setupDescriptor(valueType));
         newSignal.setDomainSignal(domain);
 
         return readSignals.emplace_back(newSignal, packetOffset, packetSize);
@@ -299,6 +299,59 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0)
 
     std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};
     printData<std::chrono::microseconds>(SAMPLES, time, values, domain);
+
+    ASSERT_THAT(time[1], ElementsAreArray(time[0]));
+    ASSERT_THAT(time[2], ElementsAreArray(time[0]));
+}
+
+TEST_F(MultiReaderTest, SignalStartDomainFrom0Raw)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(3);
+
+    auto& sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"), SampleType::Float64);
+    auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00"), SampleType::Int64);
+    auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"), SampleType::UInt32);
+
+    auto multi = MultiReaderRaw(signalsToList());
+
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    sig0.createAndSendPacket<double>(0);
+    sig1.createAndSendPacket<int64_t>(0);
+    sig2.createAndSendPacket<uint32_t>(0);
+
+    sig0.createAndSendPacket<double>(1);
+    sig1.createAndSendPacket<int64_t>(1);
+    sig2.createAndSendPacket<uint32_t>(1);
+
+    sig0.createAndSendPacket<double>(2);
+    sig1.createAndSendPacket<int64_t>(2);
+    sig2.createAndSendPacket<uint32_t>(2);
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 446u);
+
+    constexpr const SizeT SAMPLES = 5u;
+
+    double values0[SAMPLES]{};
+    std::int64_t values1[SAMPLES]{};
+    std::uint32_t values2[SAMPLES]{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values0, values1, values2};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+
+    SizeT count{SAMPLES};
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    ASSERT_EQ(count, SAMPLES);
+
+    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};
+    // printData<std::chrono::microseconds>(SAMPLES, time, values, domain);
 
     ASSERT_THAT(time[1], ElementsAreArray(time[0]));
     ASSERT_THAT(time[2], ElementsAreArray(time[0]));

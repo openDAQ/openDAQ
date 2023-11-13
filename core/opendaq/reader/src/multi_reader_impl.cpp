@@ -542,7 +542,6 @@ ErrCode MultiReaderImpl::readPackets()
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
             auto start = std::chrono::steady_clock::now();
 #endif
-
             readSamples(toRead);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)

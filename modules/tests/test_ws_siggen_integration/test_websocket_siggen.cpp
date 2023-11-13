@@ -41,7 +41,7 @@ TEST_F(WebsocketSiggenTest, SyncSignalDescriptors)
     DataDescriptorPtr dataDescriptor = signal.getDescriptor();
     DataDescriptorPtr domainDescriptor = signal.getDomainSignal().getDescriptor();
 
-    EXPECT_EQ(dataDescriptor.getName(), "value");
+    EXPECT_EQ(signal.getName(), "value");
 
     EXPECT_EQ(dataDescriptor.getSampleType(), SampleType::Float64);
     EXPECT_EQ(dataDescriptor.getRule().getType(), DataRuleType::Explicit);
@@ -51,7 +51,6 @@ TEST_F(WebsocketSiggenTest, SyncSignalDescriptors)
     EXPECT_EQ(dataDescriptor.getMetadata().getCount(), 0u);
     EXPECT_FALSE(dataDescriptor.getUnit().assigned());
 
-    EXPECT_EQ(domainDescriptor.getName(), "time");
     EXPECT_EQ(domainDescriptor.getRule().getType(), DataRuleType::Linear);
     EXPECT_EQ(domainDescriptor.getUnit().getSymbol(), "s");
     EXPECT_EQ(domainDescriptor.getUnit().getQuantity(), "time");
@@ -71,7 +70,7 @@ TEST_F(WebsocketSiggenTest, AsyncSignalDescriptors)
     DataDescriptorPtr dataDescriptor = signal.getDescriptor();
     DataDescriptorPtr domainDescriptor = signal.getDomainSignal().getDescriptor();
 
-    EXPECT_EQ(dataDescriptor.getName(), "value");
+    EXPECT_EQ(signal.getName(), "value");
 
     EXPECT_EQ(dataDescriptor.getSampleType(), SampleType::Float64);
     EXPECT_EQ(dataDescriptor.getRule().getType(), DataRuleType::Explicit);
@@ -81,7 +80,6 @@ TEST_F(WebsocketSiggenTest, AsyncSignalDescriptors)
     EXPECT_EQ(dataDescriptor.getMetadata().getCount(), 0u);
     EXPECT_FALSE(dataDescriptor.getUnit().assigned());
 
-    EXPECT_EQ(domainDescriptor.getName(), "time");
     EXPECT_EQ(domainDescriptor.getRule().getType(), DataRuleType::Explicit);
     EXPECT_EQ(domainDescriptor.getUnit().getSymbol(), "s");
     EXPECT_EQ(domainDescriptor.getUnit().getQuantity(), "time");

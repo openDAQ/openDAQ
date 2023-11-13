@@ -56,7 +56,7 @@ public:
     bool connect();
     void disconnect();
     void onPacket(const OnPacketCallback& callack);
-    void onDataDescriptor(const OnSignalCallback& callback);
+    void onSignalInit(const OnSignalCallback& callback);
     void onSignalUpdated(const OnSignalCallback& callback);
     void onDomainDescriptor(const OnDomainDescriptorCallback& callback);
     void onAvailableStreamingSignals(const OnAvailableSignalsCallback& callback);
@@ -98,7 +98,7 @@ protected:
     daq::streaming_protocol::ProtocolHanlderPtr protocolHandler;
     std::unordered_map<std::string, InputSignalPtr> signals;
     OnPacketCallback onPacketCallback = [](const StringPtr&, const PacketPtr&) {};
-    OnSignalCallback onDataDescriptorCallback = [](const StringPtr&, const SubscribedSignalInfo&) {};
+    OnSignalCallback onSignalInitCallback = [](const StringPtr&, const SubscribedSignalInfo&) {};
     OnDomainDescriptorCallback onDomainDescriptorCallback = [](const StringPtr&, const DataDescriptorPtr&) {};
     OnAvailableSignalsCallback onAvailableStreamingSignalsCb = [](const std::vector<std::string>& signalIds) {};
     OnAvailableSignalsCallback onAvailableDeviceSignalsCb = [](const std::vector<std::string>& signalIds) {};

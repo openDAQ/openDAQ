@@ -102,9 +102,9 @@ void StreamingClient::onPacket(const OnPacketCallback& callack)
     onPacketCallback = callack;
 }
 
-void StreamingClient::onDataDescriptor(const OnSignalCallback& callback)
+void StreamingClient::onSignalInit(const OnSignalCallback& callback)
 {
-    onDataDescriptorCallback = callback;
+    onSignalInitCallback = callback;
 }
 
 void StreamingClient::onSignalUpdated(const OnSignalCallback& callback)
@@ -262,7 +262,7 @@ void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSig
     {
         auto sInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
         if (!signalIt->second->getSignalDescriptor().assigned())
-            onDataDescriptorCallback(id, sInfo);
+            onSignalInitCallback(id, sInfo);
         else
             onSignalUpdatedCallback(id, sInfo);
         signalIt->second->setDataDescriptor(sInfo.dataDescriptor);

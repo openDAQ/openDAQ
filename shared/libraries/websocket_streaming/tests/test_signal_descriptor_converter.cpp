@@ -153,7 +153,7 @@ TEST(SignalConverter, synchronousSignal)
     ASSERT_EQ(syncSigna1->getTimeStart(), start);
     ASSERT_EQ(syncSigna1->getUnitId(), unit.getId());
     ASSERT_EQ(syncSigna1->getUnitDisplayName(), unit.getSymbol());
-    ASSERT_EQ(syncSigna1->getMemberName(), dataDescriptor.getName());
+    ASSERT_EQ(syncSigna1->getMemberName(), signal.getName());
 }
 
 TEST(SignalConverter, TickResolution)
@@ -210,7 +210,7 @@ TEST(SignalConverter, synchronousSignalWithPostScaling)
     ASSERT_EQ(syncSigna1->getTimeStart(), start);
     ASSERT_EQ(syncSigna1->getUnitId(), unit.getId());
     ASSERT_EQ(syncSigna1->getUnitDisplayName(), unit.getSymbol());
-    ASSERT_EQ(syncSigna1->getMemberName(), valueDescriptor.getName());
+    ASSERT_EQ(syncSigna1->getMemberName(), signal.getName());
 }
 
 TEST(SignalConverter, subscribedDataSignal)
@@ -252,9 +252,9 @@ TEST(SignalConverter, subscribedDataSignal)
     ASSERT_EQ(result, 0);
     ASSERT_FALSE(subscribedSignal.isTimeSignal());
 
-    auto dataDescriptor = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal).dataDescriptor;
-
-    ASSERT_EQ(dataDescriptor.getName(), memberName);
+    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto dataDescriptor = subscribedSignalInfo.dataDescriptor;
+    ASSERT_EQ(subscribedSignalInfo.signalName, memberName);
 
     ASSERT_EQ(dataDescriptor.getSampleType(), daq::SampleType::Float64);
 
@@ -319,9 +319,9 @@ TEST(SignalConverter, subscribedTimeSignal)
     subscribedSignal.setTime(startTime);
     ASSERT_TRUE(subscribedSignal.isTimeSignal());
 
-    auto dataDescriptor = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal).dataDescriptor;
-
-    ASSERT_EQ(dataDescriptor.getName(), memberName);
+    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto dataDescriptor = subscribedSignalInfo.dataDescriptor;
+    ASSERT_EQ(subscribedSignalInfo.signalName, memberName);
 
     ASSERT_EQ(dataDescriptor.getSampleType(), daq::SampleType::UInt64);
 

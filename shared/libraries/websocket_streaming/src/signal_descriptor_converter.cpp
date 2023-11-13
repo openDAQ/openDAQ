@@ -44,7 +44,7 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(const daq::stre
     daq::SampleType daqSampleType = Convert(streamingSampleType);
     dataDescriptor.setSampleType(daqSampleType);
 
-    dataDescriptor.setName(subscribedSignal.memberName());
+    sInfo.signalName = subscribedSignal.memberName();
 
     if (subscribedSignal.unitId() != daq::streaming_protocol::Unit::UNIT_ID_NONE)
     {
@@ -95,7 +95,7 @@ void SignalDescriptorConverter::ToStreamedSignal(const daq::SignalPtr& signal,
 
     // *** meta "definition" start ***
     // set/verify fields which will be lately encoded into signal "definition" object
-    stream->setMemberName(dataDescriptor.getName());
+    stream->setMemberName(signal.getName());
 
     // Data type of stream can not be changed. Complain upon change!
     daq::SampleType daqSampleType = dataDescriptor.getSampleType();
@@ -307,10 +307,9 @@ daq::streaming_protocol::SampleType SignalDescriptorConverter::Convert(daq::Samp
 
 void SignalDescriptorConverter::EncodeInterpretationObject(const DataDescriptorPtr& dataDescriptor, nlohmann::json& extra)
 {
-    // put signal name into interpretation object
-    // required to replace the time signal name hardcoded inside the StreamingClient library
+    // put descriptor name into interpretation object
     if (dataDescriptor.getName().assigned())
-        extra["name"] = dataDescriptor.getName();
+        extra["desc_name"] = dataDescriptor.getName();
 
     if (dataDescriptor.getMetadata().assigned())
     {
@@ -358,10 +357,9 @@ void SignalDescriptorConverter::EncodeInterpretationObject(const DataDescriptorP
 
 void SignalDescriptorConverter::DecodeInterpretationObject(const nlohmann::json& extra, DataDescriptorBuilderPtr& dataDescriptor)
 {
-    // overwrite signal name when corresponding field is present in interpretation object
-    // required to replace the time signal name hardcoded inside the StreamingClient library
-    if (extra.count("name") > 0)
-        dataDescriptor.setName(extra["name"]);
+    // sets descriptor name when corresponding field is present in interpretation object
+    if (extra.count("desc_name") > 0)
+        dataDescriptor.setName(extra["desc_name"]);
 
     if (extra.count("metadata") > 0)
     {

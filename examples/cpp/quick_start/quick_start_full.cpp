@@ -102,7 +102,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     statistics.getInputPorts()[0].connect(signal);
 
     // Create an instance of the classifier function block
-    daq::FunctionBlockPtr classifier = instance.addFunctionBlock("ref_fb_module_classifer");
+    daq::FunctionBlockPtr classifier = instance.addFunctionBlock("ref_fb_module_classifier");
 
     // Connect the first output signal of the device to the classifier
     classifier.getInputPorts()[0].connect(statistics.getSignals()[0]);

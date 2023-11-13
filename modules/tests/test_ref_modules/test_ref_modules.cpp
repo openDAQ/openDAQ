@@ -131,6 +131,75 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRenderer)
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
 
+TEST_F(RefModulesTest, DISABLED_RunDeviceClassifierRenderer)
+{
+    const auto instance = Instance();
+
+    const auto device = instance.addDevice("daqref://device1");
+    device.setPropertyValue("GlobalSampleRate", 10000);
+
+    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    rendererFb.setPropertyValue("Duration", 10.0);
+    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    classifierFb.setPropertyValue("BlockSize", 20);
+
+    const auto deviceChannel = device.getChannels()[0];
+    deviceChannel.setPropertyValue("Frequency", 10.0);
+    const auto deviceSignal = deviceChannel.getSignals()[0];
+
+    const auto statisticsInputPort = classifierFb.getInputPorts()[0];
+    const auto rmsSignal = classifierFb.getSignals()[1];
+    statisticsInputPort.connect(deviceSignal);
+
+    const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
+    rendererInputPort0.connect(deviceSignal);
+
+    const auto rendererInputPort1 = rendererFb.getInputPorts()[1];
+    rendererInputPort1.connect(rmsSignal);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+
+/*    statisticsFb.setPropertyValue("DomainSignalType", 1);
+    statisticsFb.setPropertyValue("BlockSize", 50);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
+    statisticsFb.setPropertyValue("DomainSignalType", 2);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));*/
+}
+
+TEST_F(RefModulesTest, DISABLED_RunDeviceClassifierRendererDeviceRemove)
+{
+    const auto instance = Instance();
+
+    const auto device = instance.addDevice("daqref://device1");
+
+    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+
+    const auto deviceChannel = device.getChannels()[0];
+    const auto deviceSignal = deviceChannel.getSignals()[0];
+
+    const auto statisticsInputPort = classifierFb.getInputPorts()[0];
+    const auto statisticsSignal = classifierFb.getSignals()[0];
+    statisticsInputPort.connect(deviceSignal);
+
+    const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
+    rendererInputPort0.connect(deviceSignal);
+
+    const auto rendererInputPort1 = rendererFb.getInputPorts()[1];
+    rendererInputPort1.connect(statisticsSignal);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    instance.removeFunctionBlock(classifierFb);
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    instance.removeDevice(device);
+    ASSERT_EQ(rendererFb.getInputPorts().getCount(), 1u);
+    ASSERT_FALSE(rendererFb.getInputPorts()[0].getSignal().assigned());
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    instance.removeFunctionBlock(rendererFb);
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+}
+
 TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRenderer)
 {
     const auto instance = Instance();

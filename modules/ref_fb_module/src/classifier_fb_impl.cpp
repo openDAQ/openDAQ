@@ -89,7 +89,7 @@ void ClassifierFbImpl::readProperties()
 
 FunctionBlockTypePtr ClassifierFbImpl::CreateType()
 {
-    return FunctionBlockType("ref_fb_module_classifer", "Classifier", "Signal classifing");
+    return FunctionBlockType("ref_fb_module_classifier", "Classifier", "Signal classifing");
 }
 
 void ClassifierFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,

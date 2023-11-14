@@ -36,12 +36,12 @@ set(SRC_PublicHeaders
     component_impl.h
     component_ptr.custom.h
     folder_factory.h
+    folder_impl.h
     component_factory.h
     component_keys.h
 )
 
 set(SRC_PrivateHeaders 
-    folder_impl.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PublicHeaders)

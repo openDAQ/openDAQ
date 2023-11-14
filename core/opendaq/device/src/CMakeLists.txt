@@ -47,12 +47,12 @@ set(SRC_PublicHeaders device_info_factory.h
                       device_exceptions.h
                       device_impl.h
                       io_folder_factory.h
+                      io_folder_impl.h
                       device_type_factory.h
                       device_private.h
 )
 
 set(SRC_PrivateHeaders device_info_impl.h
-                       io_folder_impl.h
                        device_type_impl.h
 )
 

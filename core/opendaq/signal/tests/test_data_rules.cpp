@@ -142,4 +142,21 @@ TEST_F(DataRulesTest, StructNames)
     const daq::StructPtr structPtr = LinearDataRule(10, 10);
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
+
+TEST_F(DataRulesTest, ExplicitDomainDataRule)
+{
+    const auto rule = ExplicitDomainDataRule(10, 20.5);
+    const auto rule1 = ExplicitDomainDataRule(10);
+    const auto rule2 = ExplicitDomainDataRule();
+
+    ASSERT_EQ(rule.getParameters().get("minExpectedDelta"), 10);
+    ASSERT_EQ(rule.getParameters().get("maxExpectedDelta"), 20.5);
+
+    ASSERT_EQ(rule1.getParameters().get("minExpectedDelta"), 10);
+    ASSERT_EQ(rule1.getParameters().get("maxExpectedDelta"), 0);
+
+    ASSERT_EQ(rule2.getParameters().get("minExpectedDelta"), 0);
+    ASSERT_EQ(rule2.getParameters().get("maxExpectedDelta"), 0);
+}
+
 END_NAMESPACE_OPENDAQ

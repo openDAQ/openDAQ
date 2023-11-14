@@ -30,7 +30,7 @@ if (OPC_UA_TMS_BT_NODESET_SUPPORT OR
     OPC_UA_TMS_DEVICE_NODESET_SUPPORT OR
     OPC_UA_TMS_ESP_NODESET_SUPPORT)
 
-  set(tms_spec_REQUIREDVERSION "3.0.1")
+  set(tms_spec_REQUIREDVERSION "3.0.2")
   get_custom_fetch_content_params(tmsspec FC_PARAMS)
 
   FetchContent_Declare(tmsspec

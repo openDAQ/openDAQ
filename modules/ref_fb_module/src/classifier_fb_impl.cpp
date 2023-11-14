@@ -23,6 +23,8 @@
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
+#define timeMs(x) (1000 * x)
+
 namespace Classifier
 {
 
@@ -36,12 +38,12 @@ ClassifierFbImpl::ClassifierFbImpl(const ContextPtr& ctx, const ComponentPtr& pa
 
 void ClassifierFbImpl::initProperties()
 {
-    const auto epochMsProp = IntProperty("EpochMs", 1);
+    const auto epochMsProp = IntProperty("EpochMs", 100);
     objPtr.addProperty(epochMsProp);
     objPtr.getOnPropertyValueWrite("EpochMs") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    const auto ClassCountProp = IntProperty("ClassCount", 3);
+    const auto ClassCountProp = IntProperty("ClassCount", 1);
     objPtr.addProperty(ClassCountProp);
     objPtr.getOnPropertyValueWrite("ClassCount") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
@@ -210,75 +212,75 @@ void ClassifierFbImpl::processEventPacket(const EventPacketPtr& packet)
     }
 }
 
+inline bool ClassifierFbImpl::timeInInterval(UInt startTime, UInt endTime) {
+    return (endTime - startTime) < timeMs(epochMs);
+}
+
 template <SampleType InputSampleType>
 void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
 {
     using InputType = typename SampleTypeToType<InputSampleType>::Type;
+    using OutputType = Float;
 
+    // if packet does not have samples - ignore
     if (packet.getSampleCount() == 0) {
         return;
     }
-    
-    //checking reaching of a new epoch
+
+    packets.push_back(packet);
+
+    size_t outputPackages = 0;
     {
         auto inputDomainData = static_cast<UInt*>(packet.getDomainPacket().getData());
+        UInt lastTime = inputDomainData[packet.getSampleCount() - 1];
 
-        UInt cur_time = inputDomainData[0];
-
+        // initialize members
         if (packetStarted == UInt{}) {
-            packetStarted = cur_time;
-                sampleStarted = 0; 
+            packetStarted = inputDomainData[0];
+            sampleStarted = 0; 
         }
 
-        auto diff = cur_time - packetStarted;
-            if (diff < 1000 * epochMs) {
-            packets.push_back(packet);
-            return;
-        }
+        outputPackages = (lastTime - packetStarted) / timeMs(epochMs);
     }
 
-    if (packets.empty()) {
+    if (!outputPackages)
         return;
-    }
-
-    auto rangeSize = outputDataDescriptor.getDimensions()[0].getSize();
 
     auto outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1);
     auto outputDomainData = static_cast<UInt*>(outputDomainPacket.getData());
 
-    auto outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
-    auto outputData = static_cast<InputType*>(outputPacket.getData());
-    memset(outputData, 0, rangeSize * sizeof(InputType));
+    DataPacketPtr outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
+    OutputType* outputData = static_cast<OutputType*>(outputPacket.getData());
 
-    // calculating end block for classifier
-    size_t lastPacketSamples = 1;
-    {   
-        auto& lastPacket = packets.back();
-        auto inputDomainData = static_cast<UInt*>(lastPacket.getDomainPacket().getData());
+    auto rangeSize = outputDataDescriptor.getDimensions()[0].getSize();
+    Int offset = static_cast<Int>(outputDataDescriptor.getDimensions()[0].getRule().getParameters().get("start"));
 
-        for(; lastPacketSamples < lastPacket.getSampleCount(); lastPacketSamples++) {
-            if (inputDomainData[lastPacketSamples] - packetStarted >= 1000 * epochMs)
-                break;
+    size_t packageVals = 0;
+    while (outputPackages && packets.size()) {
+        auto listPacket = packets.front();
+
+        auto sampleCnt = listPacket.getSampleCount();
+        auto inputData = static_cast<InputType*>(listPacket.getData());
+        auto inputDomainData = static_cast<UInt*>(listPacket.getDomainPacket().getData());
+       
+        // reset array for new package
+        if (packageVals == 0) {
+            memset(outputData, 0, rangeSize * sizeof(OutputType));
         }
 
-        // in case all blocks are match expression - do not skip last one
-        lastPacketSamples += lastPacketSamples == lastPacket.getSampleCount() - 1;
+        bool packetInEpoch = timeInInterval(packetStarted, inputDomainData[sampleCnt - 1]);
 
-        *outputDomainData = inputDomainData[lastPacketSamples - 1];
-        packetStarted += 1000 * epochMs;
-    }
+        size_t sampleIdx = sampleStarted;
+        for (; sampleIdx < sampleCnt; sampleIdx++) {
+            // if there are values from another interval - check each value
+            if (!packetInEpoch) {
+                if (!timeInInterval(packetStarted, inputDomainData[sampleIdx]))
+                    break;
+            }
 
-    Int offset = static_cast<Int>(outputDataDescriptor.getDimensions()[0].getRule().getParameters().get("start"));
-    double valCnt = 0;
-
-    for (const auto & list_packet: packets) {
-        auto inputData = static_cast<InputType*>(list_packet.getData());
-        size_t sampleIdx = list_packet == packets.front() ? sampleStarted : 0; 
-        size_t packetSamples = list_packet == packets.back() ? lastPacketSamples : list_packet.getSampleCount();
-
-        for (; sampleIdx < packetSamples; sampleIdx++) {
             auto& rawData = inputData[sampleIdx];
-            
+
+            // filter values
             if (rawData < inputLowValue)
                 rawData = inputLowValue;
             else if (rawData > inputHighValue)
@@ -286,26 +288,29 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
 
             Int index = (static_cast<Int>(rawData) - offset) / classCount;
             outputData[index] += 1;
-            valCnt++;
+            outputDomainData[0] = inputDomainData[sampleIdx];
+            packageVals++;
+        }
+
+        if (packetInEpoch) {
+            sampleStarted = 0;
+            packets.pop_front();
+        } else {
+            if (packageVals) {
+                for (size_t i = 0; i < rangeSize; i++) {
+                    outputData[i] /= packageVals;
+                }
+            }
+
+            outputSignal.sendPacket(outputPacket);
+            outputDomainSignal.sendPacket(outputDomainPacket);
+
+            sampleStarted = sampleIdx;
+            packageVals = 0;
+            outputPackages--;
+            packetStarted += timeMs(epochMs);
         }
     }
-    
-    if (valCnt == 0.0) valCnt = 1.0;
-    for (size_t i = 0; i < rangeSize; i++) {
-        outputData[i] /= valCnt;
-    }
-
-    outputSignal.sendPacket(outputPacket);
-    outputDomainSignal.sendPacket(outputDomainPacket);
-
-    auto lastPacket = packets.back();
-    packets.clear();
-    sampleStarted = 0;
-    if (lastPacketSamples != lastPacket.getSampleCount()) {
-        sampleStarted = lastPacketSamples;
-        packets.push_back(lastPacket);
-    }
-    packets.push_back(packet);
 }
 
 void ClassifierFbImpl::createInputPorts()

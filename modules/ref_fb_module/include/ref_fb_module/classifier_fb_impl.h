@@ -79,6 +79,8 @@ private:
     void initProperties();
     void propertyChanged(bool configure);
     void readProperties();
+
+    inline bool timeInInterval(UInt startTime, UInt endTime);
 };
 
 }

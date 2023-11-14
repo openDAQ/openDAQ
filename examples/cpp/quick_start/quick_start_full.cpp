@@ -101,15 +101,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Connect the first output signal of the device to the statistics
     statistics.getInputPorts()[0].connect(signal);
 
-    // Create an instance of the classifier function block
-    daq::FunctionBlockPtr classifier = instance.addFunctionBlock("ref_fb_module_classifier");
-
-    // Connect the first output signal of the device to the classifier
-    classifier.getInputPorts()[0].connect(statistics.getSignals()[0]);
-
     // Connect the first output signal of the statistics to the renderer
     renderer.getInputPorts()[1].connect(statistics.getSignals()[0]);
-    renderer.getInputPorts()[2].connect(classifier.getSignals()[0]);
 
     // Get the first channel of the device
     const daq::ChannelPtr sineChannel = channel;

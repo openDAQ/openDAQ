@@ -31,8 +31,9 @@
 PyDaqIntf<daq::ISampleReader, daq::IReader> declareISampleReader(pybind11::module_ m)
 {
     py::enum_<daq::ReadMode>(m, "ReadMode")
-        .value("Raw", daq::ReadMode::Raw)
-        .value("Scaled", daq::ReadMode::Scaled);
+        .value("Unscaled", daq::ReadMode::Unscaled)
+        .value("Scaled", daq::ReadMode::Scaled)
+        .value("RawValue", daq::ReadMode::RawValue);
 
     return wrapInterface<daq::ISampleReader, daq::IReader>(m, "ISampleReader");
 }

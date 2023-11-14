@@ -52,7 +52,7 @@ private:
     SignalConfigPtr outputSignal;
     SignalConfigPtr outputDomainSignal;
 
-    size_t epochMs;
+    size_t blockSize;
     size_t classCount;
     Float inputHighValue;
     Float inputLowValue;

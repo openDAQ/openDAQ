@@ -38,13 +38,13 @@ ClassifierFbImpl::ClassifierFbImpl(const ContextPtr& ctx, const ComponentPtr& pa
 
 void ClassifierFbImpl::initProperties()
 {
-    const auto epochMsProp = IntProperty("EpochMs", 100);
-    objPtr.addProperty(epochMsProp);
-    objPtr.getOnPropertyValueWrite("EpochMs") +=
+    const auto blockSizeProp = IntProperty("BlockSize", 100);
+    objPtr.addProperty(blockSizeProp);
+    objPtr.getOnPropertyValueWrite("BlockSize") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    const auto ClassCountProp = IntProperty("ClassCount", 1);
-    objPtr.addProperty(ClassCountProp);
+    const auto classCountProp = IntProperty("ClassCount", 1);
+    objPtr.addProperty(classCountProp);
     objPtr.getOnPropertyValueWrite("ClassCount") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
@@ -76,13 +76,13 @@ void ClassifierFbImpl::propertyChanged(bool configure)
 
 void ClassifierFbImpl::readProperties()
 {
-    epochMs = objPtr.getPropertyValue("EpochMs");
+    blockSize = objPtr.getPropertyValue("BlockSize");
     classCount = objPtr.getPropertyValue("ClassCount");
     inputHighValue = objPtr.getPropertyValue("InputHighValue");
     inputLowValue = objPtr.getPropertyValue("InputLowValue");
     outputName = static_cast<std::string>(objPtr.getPropertyValue("OutputName"));
 
-    assert(epochMs > 0);
+    assert(blockSize > 0);
     assert(classCount > 0);
 
 }
@@ -213,7 +213,7 @@ void ClassifierFbImpl::processEventPacket(const EventPacketPtr& packet)
 }
 
 inline bool ClassifierFbImpl::timeInInterval(UInt startTime, UInt endTime) {
-    return (endTime - startTime) < timeMs(epochMs);
+    return (endTime - startTime) < timeMs(blockSize);
 }
 
 template <SampleType InputSampleType>
@@ -240,7 +240,7 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
             sampleStarted = 0; 
         }
 
-        outputPackages = (lastTime - packetStarted) / timeMs(epochMs);
+        outputPackages = (lastTime - packetStarted) / timeMs(blockSize);
     }
 
     if (!outputPackages)
@@ -308,7 +308,7 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
             sampleStarted = sampleIdx;
             packageVals = 0;
             outputPackages--;
-            packetStarted += timeMs(epochMs);
+            packetStarted += timeMs(blockSize);
         }
     }
 }

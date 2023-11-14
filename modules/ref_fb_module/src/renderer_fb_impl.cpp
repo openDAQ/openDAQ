@@ -319,8 +319,7 @@ void RendererFbImpl::renderPacket(
     if (signalDimension == 1) {
         renderArrayPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, font, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
     }
-    else if (domainRule.getType() == DataRuleType::Linear || domainRule.getType() == DataRuleType::Explicit)
-    {
+    else {
         renderPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, font, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
     }
 }
@@ -495,11 +494,7 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
     auto domainDataDescriptor = domainPacket.getDataDescriptor();
     const auto samplesInPacket = packet.getSampleCount();
     
-    size_t count = 1;
-    {
-        auto domainDataRuleParams = signalContext.inputDataSignalDescriptor.getDimensions()[0].getRule().getParameters();
-        count = domainDataRuleParams.get("size");
-    }
+    size_t count = signalContext.inputDataSignalDescriptor.getDimensions()[0].getSize();
     
     double domainFactor = static_cast<double>(count-1) / static_cast<double>(xSize);
 

@@ -58,6 +58,8 @@ private:
     Float inputLowValue;
     std::string outputName;
 
+    ListPtr<INumber> explicitDimension;
+
     UInt packetStarted {};
     size_t sampleStarted {};
     std::list<DataPacketPtr> packets;

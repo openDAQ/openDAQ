@@ -38,7 +38,12 @@ ClassifierFbImpl::ClassifierFbImpl(const ContextPtr& ctx, const ComponentPtr& pa
 
 void ClassifierFbImpl::initProperties()
 {
-    const auto blockSizeProp = IntProperty("BlockSize", 100);
+    const auto explcitRuleProp = ListProperty("ExplicitRule", List<INumber>());
+    objPtr.addProperty(explcitRuleProp);
+    objPtr.getOnPropertyValueWrite("ExplicitRule") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
+
+    const auto blockSizeProp = IntProperty("BlockSize", 10);
     objPtr.addProperty(blockSizeProp);
     objPtr.getOnPropertyValueWrite("BlockSize") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
@@ -76,6 +81,7 @@ void ClassifierFbImpl::propertyChanged(bool configure)
 
 void ClassifierFbImpl::readProperties()
 {
+    explicitDimension =  objPtr.getPropertyValue("ExplicitRule");
     blockSize = objPtr.getPropertyValue("BlockSize");
     classCount = objPtr.getPropertyValue("ClassCount");
     inputHighValue = objPtr.getPropertyValue("InputHighValue");
@@ -139,10 +145,14 @@ void ClassifierFbImpl::configure()
         
         RangePtr outputRange;
         {
-            size_t rangeSize = inputHighValue - inputLowValue;
-            rangeSize = (rangeSize / classCount) + (rangeSize % classCount != 0) + 1;
             auto dimensions = List<IDimension>();
-            dimensions.pushBack(Dimension(LinearDimensionRule(classCount, (Int)inputLowValue, rangeSize)));
+            if (explicitDimension.getCount() != 0) {
+                dimensions.pushBack(Dimension(ListDimensionRule(explicitDimension)));
+            } else {
+                size_t rangeSize = inputHighValue - inputLowValue;
+                rangeSize = (rangeSize / classCount) + (rangeSize % classCount != 0) + 1;
+                dimensions.pushBack(Dimension(LinearDimensionRule(classCount, (Int)inputLowValue, rangeSize)));
+            }
             outputDataDescriptorBuilder.setDimensions(dimensions);
 
             outputRange = Range(0, 1);
@@ -253,7 +263,7 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
     OutputType* outputData = static_cast<OutputType*>(outputPacket.getData());
 
     auto rangeSize = outputDataDescriptor.getDimensions()[0].getSize();
-    Int offset = static_cast<Int>(outputDataDescriptor.getDimensions()[0].getRule().getParameters().get("start"));
+    auto labels = outputDataDescriptor.getDimensions()[0].getLabels();
 
     size_t packageVals = 0;
     while (outputPackages && packets.size()) {
@@ -278,18 +288,25 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
                     break;
             }
 
+            outputDomainData[0] = inputDomainData[sampleIdx];
+            packageVals++;
+
             auto& rawData = inputData[sampleIdx];
 
             // filter values
-            if (rawData < inputLowValue)
-                rawData = inputLowValue;
-            else if (rawData > inputHighValue)
-                rawData = inputHighValue;
+            if (static_cast<Float>(rawData) < static_cast<Float>(labels[0]))
+                continue;
+            else if (static_cast<Float>(rawData) > static_cast<Float>(labels[rangeSize - 1]))
+                continue;
 
-            Int index = (static_cast<Int>(rawData) - offset) / classCount;
-            outputData[index] += 1;
-            outputDomainData[0] = inputDomainData[sampleIdx];
-            packageVals++;
+            int index = -1;
+            for (const auto & label : labels) {
+                if (static_cast<Float>(rawData) < static_cast<Float>(label))  {
+                    outputData[index] += 1;
+                    break;
+                }
+                index++;
+            }
         }
 
         if (packetInEpoch) {

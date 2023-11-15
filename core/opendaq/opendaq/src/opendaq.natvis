@@ -15,7 +15,31 @@
     <Expand>
       <ExpandedItem>(daq::FunctionBlockImpl&lt;daq::IChannel,$T1&gt;*)this,nd</ExpandedItem>
     </Expand>
-  </Type>    
+  </Type>
+  <Type Name="daq::GenericSignalContainerImpl&lt;*&gt;">
+    <Expand>
+      <Item Name="signals">signals</Item>
+      <Item Name="functionBlocks">functionBlocks</Item>
+      <Item Name="components">components</Item>
+      <ExpandedItem>(daq::ComponentImpl&lt;*&gt;*)this,nd</ExpandedItem>
+    </Expand>
+  </Type>
+  <Type Name="daq::GenericSignalContainerImpl&lt;*,*&gt;">
+    <Expand>
+      <Item Name="components">components</Item>
+      <Item Name="signals">signals</Item>
+      <Item Name="functionBlocks">functionBlocks</Item>
+      <ExpandedItem>(daq::ComponentImpl&lt;$T1,$T2&gt;*)this,nd</ExpandedItem>
+    </Expand>
+  </Type>
+  <Type Name="daq::GenericSignalContainerImpl&lt;*,*,*&gt;">
+    <Expand>
+      <Item Name="signals">signals</Item>
+      <Item Name="functionBlocks">functionBlocks</Item>
+      <Item Name="components">components</Item>
+      <ExpandedItem>(daq::ComponentImpl&lt;$T1,$T2,$T3&gt;*)this,nd</ExpandedItem>
+    </Expand>
+  </Type>
   <Type Name="daq::ComponentImpl&lt;*,*,*&gt;">
     <DisplayString>{{ Component {localId} }}</DisplayString>
     <Expand>

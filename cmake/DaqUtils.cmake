@@ -69,7 +69,7 @@ function(create_version_header LIB_NAME)
     set(INCLUDE_FOLDER_NAME ${TARGET_FOLDER_NAME})
 
     set(options ONLY_RC NO_RC)
-    set(oneValueArgs INCLUDE_FOLDER)
+    set(oneValueArgs INCLUDE_FOLDER HEADER_NAME_PREFIX)
     set(multiValueArgs VARIANTS)
     cmake_parse_arguments(GENERATE_VERSION "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -78,6 +78,11 @@ function(create_version_header LIB_NAME)
         set(INCLUDE_FOLDER_NAME ${GENERATE_VERSION_INCLUDE_FOLDER})
         set(HEADER_NAME_PREFIX "${TARGET_FOLDER_NAME}_")
     endif()
+
+    if (DEFINED GENERATE_VERSION_HEADER_NAME_PREFIX)
+        set(HEADER_NAME_PREFIX ${GENERATE_VERSION_HEADER_NAME_PREFIX})
+    endif()
+    string(STRIP "${HEADER_NAME_PREFIX}" HEADER_NAME_PREFIX)
 
     set(GENERATE_RC ON)
     set(GENERATE_HEADER ON)

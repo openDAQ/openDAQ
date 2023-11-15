@@ -264,6 +264,7 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
 
     auto rangeSize = outputDataDescriptor.getDimensions()[0].getSize();
     auto labels = outputDataDescriptor.getDimensions()[0].getLabels();
+    if (labels.getCount() == 0) return;
 
     size_t packageVals = 0;
     while (outputPackages && packets.size()) {
@@ -299,13 +300,25 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
             else if (static_cast<Float>(rawData) > static_cast<Float>(labels[rangeSize - 1]))
                 continue;
 
-            int index = -1;
-            for (const auto & label : labels) {
-                if (static_cast<Float>(rawData) < static_cast<Float>(label))  {
-                    outputData[index] += 1;
-                    break;
+            if (labels.getCount() == 1) {
+                outputData[0] += 1;
+            } else {
+                // binary search 
+                size_t low = 0;
+                size_t high = labels.getCount() - 1;
+
+                while (low <= high) {
+                    size_t mid = low + (high - low) / 2;
+
+                    if (rawData >= static_cast<Float>(labels[mid]) && rawData < static_cast<Float>(labels[mid + 1])) {
+                        outputData[mid] += 1;
+                        break;
+                    } else if (rawData < static_cast<Float>(labels[mid])) {
+                        high = mid - 1;
+                    } else {
+                        low = mid + 1;
+                    }
                 }
-                index++;
             }
         }
 

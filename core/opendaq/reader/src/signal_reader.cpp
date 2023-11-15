@@ -136,9 +136,7 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
     DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
     DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
 
-    if (readMode == ReadMode::RawValue &&
-        newValueDescriptor.assigned() &&
-        valueReader->getReadType() == SampleType::Undefined)
+    if (newValueDescriptor.assigned() && valueReader->getReadType() == SampleType::Undefined)
     {
         valueReader = createReaderForType(newValueDescriptor.getSampleType(), valueReader->getTransformFunction());
     }

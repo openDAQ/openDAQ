@@ -189,7 +189,7 @@ int streamReaderTest(int /*argc*/, const char* /*argv*/ [])
         now = std::chrono::system_clock::now();
     }
 
-    for (int i = 0; i < std::size(counts); ++i)
+    for (int i = 0; i < static_cast<int>(std::size(counts)); ++i)
     {
         if (counts[i] != 0)
         {

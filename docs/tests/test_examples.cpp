@@ -20,7 +20,6 @@ TEST_F(ExamplesTest, StreamReader)
     SignalPtr signal = device.getSignalsRecursive()[0];
     
     StreamReaderPtr reader = StreamReader<double, uint64_t>(signal);
-    docs_test_helpers::waitForSignalSubscription();
     
     double samples[5000];
     for (int i = 0; i < 10; ++i)
@@ -94,7 +93,6 @@ TEST_F(ExamplesTest, Client)
     ASSERT_EQ(info.getName(), "Device 1");
 
     StreamReaderPtr reader = StreamReader<double, uint64_t>(device.getSignalsRecursive()[0]);
-    docs_test_helpers::waitForSignalSubscription();
 
     double samples[5000];
     for (int i = 0; i < 10; ++i)

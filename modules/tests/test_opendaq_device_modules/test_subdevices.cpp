@@ -162,9 +162,6 @@ TEST_P(SubDevicesTest, RootStreamingActive)
     StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(client.getSignalsRecursive()[0]);
 
     std::this_thread::sleep_for(1000ms);
-    // wait for signal subscription chain finished
-    std::this_thread::sleep_for(100ms);
-
     double samples[100];
     for (int i = 0; i < 10; ++i)
     {
@@ -201,10 +198,6 @@ TEST_P(SubDevicesTest, LeafStreamingsActive)
     StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(client.getSignalsRecursive()[0]);
     
     std::this_thread::sleep_for(1000ms);
-
-    // wait for signal single subscription finished
-    std::this_thread::sleep_for(50ms);
-
     double samples[100];
     for (int i = 0; i < 10; ++i)
     {

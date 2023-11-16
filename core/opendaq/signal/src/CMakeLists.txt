@@ -206,6 +206,7 @@ set(SRC_PublicHeaders
     event_packet_params.h
     packet_destruct_callback_impl.h
     packet_destruct_callback_factory.h
+    signal_impl.h
 )
 
 set(SRC_PrivateHeaders connection_impl.h
@@ -214,7 +215,6 @@ set(SRC_PrivateHeaders connection_impl.h
                        range_impl.h
                        data_descriptor_impl.h
                        data_descriptor_builder_impl.h
-                       signal_impl.h
                        input_port_impl.h
                        packet_impl.h
                        generic_data_packet_impl.h
@@ -303,6 +303,8 @@ list(APPEND SRC_PublicHeaders ${SRC_Connection_PublicHeaders}
                               ${SRC_InputPortNotifications_PublicHeaders}
                               ${SRC_Deleter_PublicHeaders}
                               ${SRC_Allocator_PublicHeaders}
+                              ${SRC_InputPortPrivate_PublicHeaders}
+                              ${SRC_SignalPrivate_PublicHeaders}
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_Connection_PrivateHeaders}
@@ -318,12 +320,10 @@ list(APPEND SRC_PrivateHeaders ${SRC_Connection_PrivateHeaders}
                                ${SRC_Signal_PrivateHeaders}
                                ${SRC_SignalEvents_PrivateHeaders}
                                ${SRC_SignalPrivate_PrivateHeaders}
-                               ${SRC_SignalPrivate_PublicHeaders}
                                ${SRC_SignalConfig_PrivateHeaders}
                                ${SRC_InputPort_PrivateHeaders}
                                ${SRC_InputPortConfig_PrivateHeaders}
                                ${SRC_InputPortPrivate_PrivateHeaders}
-                               ${SRC_InputPortPrivate_PublicHeaders}
                                ${SRC_DimensionRule_PrivateHeaders}
                                ${SRC_DimensionRuleBuilder_PrivateHeaders}
                                ${SRC_DataRule_PrivateHeaders}

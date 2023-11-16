@@ -35,11 +35,11 @@ set(SRC_Cpp streaming_info_impl.cpp
 set(SRC_PublicHeaders streaming_impl.h
                       mirrored_signal_impl.h
                       streaming_info_factory.h
+                      streaming_private.h
+                      mirrored_signal_private.h
 )
 
 set(SRC_PrivateHeaders streaming_info_impl.h
-                       streaming_private.h
-                       mirrored_signal_private.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)

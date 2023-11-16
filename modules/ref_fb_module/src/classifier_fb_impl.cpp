@@ -9,17 +9,15 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
 
-#include "coreobjects/unit_factory.h"
-#include "opendaq/data_packet.h"
-#include "opendaq/data_packet_ptr.h"
-#include "opendaq/event_packet_ids.h"
-#include "opendaq/packet_factory.h"
-#include "opendaq/range_factory.h"
-#include "opendaq/sample_type_traits.h"
+#include <coreobjects/unit_factory.h>
+#include <opendaq/data_packet.h>
+#include <opendaq/data_packet_ptr.h>
+#include <opendaq/event_packet_ids.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/range_factory.h>
+#include <opendaq/sample_type_traits.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/dimension_factory.h>
-
-#include <iostream>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -38,14 +36,14 @@ ClassifierFbImpl::ClassifierFbImpl(const ContextPtr& ctx, const ComponentPtr& pa
 
 void ClassifierFbImpl::initProperties()
 {
-    const auto explcitRuleProp = ListProperty("ExplicitRule", List<INumber>());
-    objPtr.addProperty(explcitRuleProp);
-    objPtr.getOnPropertyValueWrite("ExplicitRule") +=
+    const auto explcitDimensionProp = ListProperty("ExplcitDimension", List<INumber>());
+    objPtr.addProperty(explcitDimensionProp);
+    objPtr.getOnPropertyValueWrite("ExplcitDimension") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    const auto blockSizeProp = IntProperty("BlockSize", 10);
-    objPtr.addProperty(blockSizeProp);
-    objPtr.getOnPropertyValueWrite("BlockSize") +=
+    const auto blockSizeMsProp = IntProperty("BlockSizeMs", 10);
+    objPtr.addProperty(blockSizeMsProp);
+    objPtr.getOnPropertyValueWrite("BlockSizeMs") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
     const auto classCountProp = IntProperty("ClassCount", 1);
@@ -81,14 +79,14 @@ void ClassifierFbImpl::propertyChanged(bool configure)
 
 void ClassifierFbImpl::readProperties()
 {
-    explicitDimension =  objPtr.getPropertyValue("ExplicitRule");
-    blockSize = objPtr.getPropertyValue("BlockSize");
+    explicitDimension =  objPtr.getPropertyValue("ExplcitDimension");
+    blockSizeMs = objPtr.getPropertyValue("BlockSizeMs");
     classCount = objPtr.getPropertyValue("ClassCount");
     inputHighValue = objPtr.getPropertyValue("InputHighValue");
     inputLowValue = objPtr.getPropertyValue("InputLowValue");
     outputName = static_cast<std::string>(objPtr.getPropertyValue("OutputName"));
 
-    assert(blockSize > 0);
+    assert(blockSizeMs > 0);
     assert(classCount > 0);
 
 }
@@ -146,9 +144,10 @@ void ClassifierFbImpl::configure()
         RangePtr outputRange;
         {
             auto dimensions = List<IDimension>();
-            if (explicitDimension.getCount() != 0) {
+            if (explicitDimension.getCount() != 0) 
                 dimensions.pushBack(Dimension(ListDimensionRule(explicitDimension)));
-            } else {
+            else 
+            {
                 size_t rangeSize = inputHighValue - inputLowValue;
                 rangeSize = (rangeSize / classCount) + (rangeSize % classCount != 0) + 1;
                 dimensions.pushBack(Dimension(LinearDimensionRule(classCount, (Int)inputLowValue, rangeSize)));
@@ -222,8 +221,9 @@ void ClassifierFbImpl::processEventPacket(const EventPacketPtr& packet)
     }
 }
 
-inline bool ClassifierFbImpl::timeInInterval(UInt startTime, UInt endTime) {
-    return (endTime - startTime) < timeMs(blockSize);
+inline bool ClassifierFbImpl::timeInInterval(UInt startTime, UInt endTime) 
+{
+    return (endTime - startTime) < timeMs(blockSizeMs);
 }
 
 template <SampleType InputSampleType>
@@ -233,9 +233,8 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
     using OutputType = Float;
 
     // if packet does not have samples - ignore
-    if (packet.getSampleCount() == 0) {
+    if (packet.getSampleCount() == 0)
         return;
-    }
 
     packets.push_back(packet);
 
@@ -245,12 +244,13 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
         UInt lastTime = inputDomainData[packet.getSampleCount() - 1];
 
         // initialize members
-        if (packetStarted == UInt{}) {
+        if (packetStarted == UInt{})
+        {
             packetStarted = inputDomainData[0];
             sampleStarted = 0; 
         }
 
-        outputPackages = (lastTime - packetStarted) / timeMs(blockSize);
+        outputPackages = (lastTime - packetStarted) / timeMs(blockSizeMs);
     }
 
     if (!outputPackages)
@@ -267,7 +267,8 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
     if (labels.getCount() == 0) return;
 
     size_t packageVals = 0;
-    while (outputPackages && packets.size()) {
+    while (outputPackages && packets.size()) 
+    {
         auto listPacket = packets.front();
 
         auto sampleCnt = listPacket.getSampleCount();
@@ -275,19 +276,17 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
         auto inputDomainData = static_cast<UInt*>(listPacket.getDomainPacket().getData());
        
         // reset array for new package
-        if (packageVals == 0) {
+        if (packageVals == 0)
             memset(outputData, 0, rangeSize * sizeof(OutputType));
-        }
 
         bool packetInEpoch = timeInInterval(packetStarted, inputDomainData[sampleCnt - 1]);
 
         size_t sampleIdx = sampleStarted;
-        for (; sampleIdx < sampleCnt; sampleIdx++) {
+        for (; sampleIdx < sampleCnt; sampleIdx++) 
+        {
             // if there are values from another interval - check each value
-            if (!packetInEpoch) {
-                if (!timeInInterval(packetStarted, inputDomainData[sampleIdx]))
+            if (!packetInEpoch && !timeInInterval(packetStarted, inputDomainData[sampleIdx]))
                     break;
-            }
 
             outputDomainData[0] = inputDomainData[sampleIdx];
             packageVals++;
@@ -300,37 +299,41 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
             else if (static_cast<Float>(rawData) > static_cast<Float>(labels[rangeSize - 1]))
                 continue;
 
-            if (labels.getCount() == 1) {
+            if (labels.getCount() == 1) 
                 outputData[0] += 1;
-            } else {
+            else 
+            {
                 // binary search 
                 size_t low = 0;
                 size_t high = labels.getCount() - 1;
 
-                while (low <= high) {
+                while (low <= high) 
+                {
                     size_t mid = low + (high - low) / 2;
 
-                    if (rawData >= static_cast<Float>(labels[mid]) && rawData < static_cast<Float>(labels[mid + 1])) {
+                    if (rawData >= static_cast<Float>(labels[mid]) && rawData < static_cast<Float>(labels[mid + 1])) 
+                    {
                         outputData[mid] += 1;
                         break;
-                    } else if (rawData < static_cast<Float>(labels[mid])) {
+                    } 
+                    else if (rawData < static_cast<Float>(labels[mid])) 
                         high = mid - 1;
-                    } else {
+                    else 
                         low = mid + 1;
-                    }
                 }
             }
         }
 
-        if (packetInEpoch) {
+        if (packetInEpoch) 
+        {
             sampleStarted = 0;
             packets.pop_front();
-        } else {
-            if (packageVals) {
-                for (size_t i = 0; i < rangeSize; i++) {
+        } 
+        else 
+        {
+            if (packageVals) 
+                for (size_t i = 0; i < rangeSize; i++) 
                     outputData[i] /= packageVals;
-                }
-            }
 
             outputSignal.sendPacket(outputPacket);
             outputDomainSignal.sendPacket(outputDomainPacket);
@@ -338,7 +341,7 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
             sampleStarted = sampleIdx;
             packageVals = 0;
             outputPackages--;
-            packetStarted += timeMs(blockSize);
+            packetStarted += timeMs(blockSizeMs);
         }
     }
 }

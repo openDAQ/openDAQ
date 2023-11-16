@@ -316,12 +316,10 @@ void RendererFbImpl::renderPacket(
     auto domainRule = domainDataDescriptor.getRule();
     size_t signalDimension = signalContext.inputDataSignalDescriptor.getDimensions().getCount();
     
-    if (signalDimension == 1) {
+    if (signalDimension == 1)
         renderArrayPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, font, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
-    }
-    else {
+    else
         renderPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, font, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
-    }
 }
 
 template <SampleType DST>
@@ -507,60 +505,57 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
     havePrevPacket = false;
     auto data = reinterpret_cast<uint8_t*>(packet.getData());
 
-    if (samplesInPacket == 0) {
+    if (samplesInPacket == 0)
         return;
-    }
 
+    double value;
+    for (size_t idx = 0; idx < count; idx++) 
     {
-        double value;
-        for (size_t idx = 0; idx < count; idx++) {
-            switch (signalContext.sampleType)
-            {
-                case (SampleType::Float32):
-                    value = reinterpret_cast<float*>(data)[idx];
-                    break;
-                case (SampleType::Float64):
-                    value = reinterpret_cast<double*>(data)[idx];
-                    break;
-                case (SampleType::UInt8):
-                    value = reinterpret_cast<uint8_t*>(data)[idx];
-                    break;
-                case (SampleType::Int8):
-                    value = reinterpret_cast<int8_t*>(data)[idx];
-                    break;
-                case (SampleType::UInt16):
-                    value = reinterpret_cast<uint16_t*>(data)[idx];
-                    break;
-                case (SampleType::Int16):
-                    value = reinterpret_cast<int16_t*>(data)[idx];
-                    break;
-                case (SampleType::UInt32):
-                    value = reinterpret_cast<uint32_t*>(data)[idx];
-                    break;
-                case (SampleType::Int32):
-                    value = reinterpret_cast<int32_t*>(data)[idx];
-                    break;
-                case (SampleType::UInt64):
-                    value = reinterpret_cast<uint64_t*>(data)[idx];
-                    break;
-                case (SampleType::Int64):
-                    value = reinterpret_cast<int64_t*>(data)[idx];
-                    break;
-                default:
-                    value = 0.0;
-            }
-
-            float xPos = xOffset + static_cast<float>(1.0 * idx / domainFactor);
-            float yPos = yOffset - static_cast<float>((value - yMin) / valueFactor);
-
-            if (yPos < signalContext.topLeft.y)
-                yPos = signalContext.topLeft.y;
-            else if (yPos > signalContext.bottomRight.y)
-                yPos = signalContext.bottomRight.y;
-
-            line->addPoint(xPos, yPos);
-            
+        switch (signalContext.sampleType)
+        {
+            case (SampleType::Float32):
+                value = reinterpret_cast<float*>(data)[idx];
+                break;
+            case (SampleType::Float64):
+                value = reinterpret_cast<double*>(data)[idx];
+                break;
+            case (SampleType::UInt8):
+                value = reinterpret_cast<uint8_t*>(data)[idx];
+                break;
+            case (SampleType::Int8):
+                value = reinterpret_cast<int8_t*>(data)[idx];
+                break;
+            case (SampleType::UInt16):
+                value = reinterpret_cast<uint16_t*>(data)[idx];
+                break;
+            case (SampleType::Int16):
+                value = reinterpret_cast<int16_t*>(data)[idx];
+                break;
+            case (SampleType::UInt32):
+                value = reinterpret_cast<uint32_t*>(data)[idx];
+                break;
+            case (SampleType::Int32):
+                value = reinterpret_cast<int32_t*>(data)[idx];
+                break;
+            case (SampleType::UInt64):
+                value = reinterpret_cast<uint64_t*>(data)[idx];
+                break;
+            case (SampleType::Int64):
+                value = reinterpret_cast<int64_t*>(data)[idx];
+                break;
+            default:
+                value = 0.0;
         }
+
+        float xPos = xOffset + static_cast<float>(1.0 * idx / domainFactor);
+        float yPos = yOffset - static_cast<float>((value - yMin) / valueFactor);
+
+        if (yPos < signalContext.topLeft.y)
+            yPos = signalContext.topLeft.y;
+        else if (yPos > signalContext.bottomRight.y)
+            yPos = signalContext.bottomRight.y;
+
+        line->addPoint(xPos, yPos);
     }
 }
 
@@ -931,7 +926,8 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
 
     size_t signalDimension = signalContext.inputDataSignalDescriptor.getDimensions().getCount();
 
-    if (signalDimension == 1) {
+    if (signalDimension == 1) 
+    {
         auto domainDataDimension = signalContext.inputDataSignalDescriptor.getDimensions()[0];
         labels = domainDataDimension.getLabels();
         xTickCount = labels.getCount();
@@ -1006,46 +1002,47 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
     }
     
     // create labeles for horizontal axi
-    if (drawXAxisLabels) {
-        for (size_t i = 0; i < xTickCount; i++)
+    for (size_t i = 0; i < xTickCount; i++)
+    {
+        if (!drawXAxisLabels) 
+            break;
+
+        const float xPos = signalContext.topLeft.x + (1.0f * static_cast<float>(i) * xSize / static_cast<float>(xTickCount - 1));
+
+        // for absolute time show only 3 domain values, otherwise 5
+        if (i % 2 == 0 || !signalContext.hasTimeOrigin)
         {
-            const float xPos = signalContext.topLeft.x + (1.0f * static_cast<float>(i) * xSize / static_cast<float>(xTickCount - 1));
-
-            // for absolute time show only 3 domain values, otherwise 5
-            if (i % 2 == 0 || !signalContext.hasTimeOrigin)
+            sf::Text domainText;
+            domainText.setFont(font);
+            domainText.setFillColor(axisColor);
+            domainText.setCharacterSize(16);
+            std::ostringstream domainStr;
+            if (signalDimension == 1) 
             {
-                sf::Text domainText;
-                domainText.setFont(font);
-                domainText.setFillColor(axisColor);
-                domainText.setCharacterSize(16);
-                std::ostringstream domainStr;
-                if (signalDimension == 1) 
-                {
-                    domainStr << std::fixed << std::showpoint << std::setprecision(2) << labels[i];
-                }
-                else if (signalContext.hasTimeOrigin)
-                {
-                    const auto tp = signalContext.lastTimeValue - timeValueToDuration(signalContext, duration * (static_cast<double>(xTickCount - 1 - i) / static_cast<double>(xTickCount - 1)));
-                    const auto tpms = date::floor<std::chrono::milliseconds>(tp);
-                    domainStr << date::format("%F %T", tpms);
-                }
-                else
-                    domainStr << std::fixed << std::showpoint << std::setprecision(2) << duration * (static_cast<double>(i) / static_cast<double>(xTickCount - 1));
+                domainStr << std::fixed << std::showpoint << std::setprecision(2) << labels[i];
+            }
+            else if (signalContext.hasTimeOrigin)
+            {
+                const auto tp = signalContext.lastTimeValue - timeValueToDuration(signalContext, duration * (static_cast<double>(xTickCount - 1 - i) / static_cast<double>(xTickCount - 1)));
+                const auto tpms = date::floor<std::chrono::milliseconds>(tp);
+                domainStr << date::format("%F %T", tpms);
+            }
+            else
+                domainStr << std::fixed << std::showpoint << std::setprecision(2) << duration * (static_cast<double>(i) / static_cast<double>(xTickCount - 1));
 
-                domainText.setString(domainStr.str());
-                const auto domainBounds = domainText.getGlobalBounds();
-                float xOffset;
-                if (i == 0)
+            domainText.setString(domainStr.str());
+            const auto domainBounds = domainText.getGlobalBounds();
+            float xOffset;
+            if (i == 0)
                 xOffset = 0;
-                else if (i == xTickCount - 1)
+            else if (i == xTickCount - 1)
                 xOffset = domainBounds.width;
-                else
+            else
                 xOffset = domainBounds.width / 2.0f;
 
-                domainText.setPosition({xPos - xOffset, signalContext.bottomRight.y + domainBounds.height - 5.0f});
+            domainText.setPosition({xPos - xOffset, signalContext.bottomRight.y + domainBounds.height - 5.0f});
 
-                renderTarget.draw(domainText);
-            }
+            renderTarget.draw(domainText);
         }
     }
 

@@ -21,8 +21,8 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/signal_config_ptr.h>
 
-#include "opendaq/data_packet_ptr.h"
-#include "opendaq/event_packet_ptr.h"
+#include <opendaq/data_packet_ptr.h>
+#include <opendaq/event_packet_ptr.h>
 #include <list>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
@@ -52,7 +52,7 @@ private:
     SignalConfigPtr outputSignal;
     SignalConfigPtr outputDomainSignal;
 
-    size_t blockSize;
+    size_t blockSizeMs;
     size_t classCount;
     Float inputHighValue;
     Float inputLowValue;

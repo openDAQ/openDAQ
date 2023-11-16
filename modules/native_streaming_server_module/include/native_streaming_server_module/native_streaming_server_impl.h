@@ -66,7 +66,7 @@ protected:
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
 
-    std::mutex sync;
+    std::mutex readersSync;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

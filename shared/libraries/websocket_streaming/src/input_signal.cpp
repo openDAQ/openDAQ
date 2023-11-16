@@ -14,8 +14,9 @@ InputSignal::InputSignal()
 {
 }
 
-PacketPtr InputSignal::asPacket(uint64_t packetOffset, const uint8_t* data, size_t size)
+PacketPtr InputSignal::createDataPacket(uint64_t packetOffset, const uint8_t* data, size_t size) const
 {
+    std::scoped_lock lock(descriptorsSync);
     auto sampleType = currentDataDescriptor.getSampleType();
     if (currentDataDescriptor.getPostScaling().assigned())
         sampleType = currentDataDescriptor.getPostScaling().getInputSampleType();
@@ -29,33 +30,39 @@ PacketPtr InputSignal::asPacket(uint64_t packetOffset, const uint8_t* data, size
     return dataPacket;
 }
 
-EventPacketPtr InputSignal::createDecriptorChangedPacket()
+EventPacketPtr InputSignal::createDecriptorChangedPacket() const
 {
+    std::scoped_lock lock(descriptorsSync);
     return DataDescriptorChangedEventPacket(currentDataDescriptor, currentDomainDataDescriptor);
 }
 
 void InputSignal::setDataDescriptor(const DataDescriptorPtr& dataDescriptor)
 {
+    std::scoped_lock lock(descriptorsSync);
     currentDataDescriptor = dataDescriptor;
 }
 
 void InputSignal::setDomainDescriptor(const DataDescriptorPtr& domainDescriptor)
 {
+    std::scoped_lock lock(descriptorsSync);
     currentDomainDataDescriptor = domainDescriptor;
 }
 
-bool InputSignal::hasDescriptors()
+bool InputSignal::hasDescriptors() const
 {
+    std::scoped_lock lock(descriptorsSync);
     return currentDataDescriptor.assigned() && currentDomainDataDescriptor.assigned();
 }
 
-DataDescriptorPtr InputSignal::getSignalDescriptor()
+DataDescriptorPtr InputSignal::getSignalDescriptor() const
 {
+    std::scoped_lock lock(descriptorsSync);
     return currentDataDescriptor;
 }
 
-DataDescriptorPtr InputSignal::getDomainSignalDescriptor()
+DataDescriptorPtr InputSignal::getDomainSignalDescriptor() const
 {
+    std::scoped_lock lock(descriptorsSync);
     return currentDomainDataDescriptor;
 }
 
@@ -64,7 +71,7 @@ void InputSignal::setTableId(std::string id)
     tableId = id;
 }
 
-std::string InputSignal::getTableId()
+std::string InputSignal::getTableId() const
 {
     return tableId;
 }

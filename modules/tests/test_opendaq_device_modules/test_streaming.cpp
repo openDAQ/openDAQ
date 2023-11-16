@@ -63,10 +63,6 @@ public:
     PacketReaderPtr createClientReader(const std::string& signalName)
     {
         PacketReaderPtr reader = PacketReader(getSignal(clientInstance, signalName));
-
-        // wait for signal subscription finished
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
         return reader;
     }
 
@@ -260,6 +256,11 @@ TEST_P(StreamingTest, SignalPropertyEvents)
 
     auto serverReader = createServerReader("ByteStep");
     auto clientReader = createClientReader("ByteStep");
+
+    // signal subscribing triggers creating Reader on server-side for a server signal
+    // wait before changing server signal properties to make sure that server-side reader
+    // catches signal property changed event packets
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
     serverSignal.setName("ByteStepChanged");
     serverSignal.setDescription("DescriptionChanged");

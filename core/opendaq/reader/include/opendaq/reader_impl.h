@@ -56,7 +56,7 @@ public:
         domainReader = createReaderForType(domainReadType, nullptr);
     }
 
-    ReaderImpl()
+    ~ReaderImpl() override
     {
         if (port.assigned())
             port.remove();

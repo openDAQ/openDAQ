@@ -331,17 +331,20 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
         } 
         else 
         {
+            packetStarted += timeMs(blockSizeMs);
+            
             if (packageVals) 
+            {
                 for (size_t i = 0; i < rangeSize; i++) 
                     outputData[i] /= packageVals;
-
+                 outputDomainData[0] = packetStarted;
+            }
             outputSignal.sendPacket(outputPacket);
             outputDomainSignal.sendPacket(outputDomainPacket);
 
             sampleStarted = sampleIdx;
             packageVals = 0;
             outputPackages--;
-            packetStarted += timeMs(blockSizeMs);
         }
     }
 }

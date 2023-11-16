@@ -258,7 +258,7 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
         signalIter->second->hasDescriptors() &&
         !signalIter->second->getSignalDescriptor().isStructDescriptor())
     {
-        auto packet = signalIter->second->asPacket(timeStamp, data, size);
+        auto packet = signalIter->second->createDataPacket(timeStamp, data, size);
         onPacketCallback(id, packet);
     }
 }

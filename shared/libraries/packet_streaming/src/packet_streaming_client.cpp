@@ -48,11 +48,13 @@ bool PacketStreamingClient::areReferencesCleared() const
 
 EventPacketPtr PacketStreamingClient::getDataDescriptorChangedEventPacket(uint32_t signalId) const
 {
-    const auto dataDescIt = dataDescriptors.find(signalId);
-    if (dataDescIt == dataDescriptors.end())
-        throw PacketStreamingException("Data descriptor not registered");
+    std::scoped_lock lock(descriptorsSync);
 
-    DataDescriptorPtr dataDescriptor = dataDescIt->second;
+    DataDescriptorPtr dataDescriptor;
+    const auto dataDescIt = dataDescriptors.find(signalId);
+    if (dataDescIt != dataDescriptors.end())
+        dataDescriptor = dataDescIt->second;
+
     DataDescriptorPtr domainDescriptor;
     const auto domainDescIt = domainDescriptors.find(signalId);
     if (domainDescIt != domainDescriptors.end())
@@ -63,6 +65,7 @@ EventPacketPtr PacketStreamingClient::getDataDescriptorChangedEventPacket(uint32
 
 void PacketStreamingClient::addEventPacketBuffer(const PacketBufferPtr& packetBuffer)
 {
+    bool forwardPacket = true;
     auto signalId = packetBuffer->packetHeader->signalId;
 
     const auto eventPayloadString = String((ConstCharPtr) packetBuffer->payload);
@@ -71,6 +74,11 @@ void PacketStreamingClient::addEventPacketBuffer(const PacketBufferPtr& packetBu
 
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
+        // drop packet if signal descriptors have not been changed
+        if (BaseObjectPtr::Equals(packet, getDataDescriptorChangedEventPacket(signalId)))
+            forwardPacket = false;
+
+        std::scoped_lock lock(descriptorsSync);
         if (packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR).assigned())
             dataDescriptors.insert_or_assign(
                 signalId,
@@ -81,7 +89,8 @@ void PacketStreamingClient::addEventPacketBuffer(const PacketBufferPtr& packetBu
                 packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
     }
 
-    queue.push({signalId, packet});
+    if (forwardPacket)
+        queue.push({signalId, packet});
 }
 
 DataPacketPtr PacketStreamingClient::addDataPacketBuffer(const PacketBufferPtr& packetBuffer, const DataPacketPtr& domainPacket)

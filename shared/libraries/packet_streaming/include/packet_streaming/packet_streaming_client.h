@@ -54,6 +54,8 @@ private:
     std::unordered_map<Int, PacketBufferPtr> referencedPacketBuffers;
     std::unordered_map<Int, std::vector<PacketBufferPtr>> packetBuffersWaitingForDomainPackets;
 
+    mutable std::mutex descriptorsSync;
+
     void addEventPacketBuffer(const PacketBufferPtr& packetBuffer);
     DataPacketPtr addDataPacketBuffer(const PacketBufferPtr& packetBuffer, const DataPacketPtr& domainPacket);
     void addReleasePacketBuffer(const PacketBufferPtr& packetBuffer);

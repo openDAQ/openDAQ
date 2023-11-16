@@ -14,6 +14,12 @@ PacketReaderImpl::PacketReaderImpl(const SignalPtr& signal)
     connection = port.getConnection();
 }
 
+PacketReaderImpl::~PacketReaderImpl()
+{
+    if (port.assigned())
+        port.remove();
+}
+
 ErrCode PacketReaderImpl::getAvailableCount(SizeT* count)
 {
     std::scoped_lock lock(mutex);

@@ -16,8 +16,6 @@ InputSignal::InputSignal()
 
 PacketPtr InputSignal::asPacket(uint64_t packetOffset, const uint8_t* data, size_t size)
 {
-    assert(!currentDataDescriptor.isStructDescriptor());
-
     auto sampleType = currentDataDescriptor.getSampleType();
     if (currentDataDescriptor.getPostScaling().assigned())
         sampleType = currentDataDescriptor.getPostScaling().getInputSampleType();
@@ -36,18 +34,14 @@ PacketPtr InputSignal::createDecriptorChangedPacket()
     return DataDescriptorChangedEventPacket(currentDataDescriptor, currentDomainDataDescriptor);
 }
 
-void InputSignal::setDataDescriptor(const daq::streaming_protocol::SubscribedSignal &dataSignal)
+void InputSignal::setDataDescriptor(const DataDescriptorPtr& dataDescriptor)
 {
-    auto sInfo = SignalDescriptorConverter::ToDataDescriptor(dataSignal);
-    auto descriptor = sInfo.dataDescriptor;
-    currentDataDescriptor = descriptor;
+    currentDataDescriptor = dataDescriptor;
 }
 
-void InputSignal::setDomainDescriptor(const daq::streaming_protocol::SubscribedSignal& timeSignal)
+void InputSignal::setDomainDescriptor(const DataDescriptorPtr& domainDescriptor)
 {
-    auto sInfo = SignalDescriptorConverter::ToDataDescriptor(timeSignal);
-    auto descriptor = sInfo.dataDescriptor;
-    currentDomainDataDescriptor = descriptor;
+    currentDomainDataDescriptor = domainDescriptor;
 }
 
 bool InputSignal::hasDescriptors()
@@ -63,6 +57,16 @@ DataDescriptorPtr InputSignal::getSignalDescriptor()
 DataDescriptorPtr InputSignal::getDomainSignalDescriptor()
 {
     return currentDomainDataDescriptor;
+}
+
+void InputSignal::setTableId(std::string id)
+{
+    tableId = id;
+}
+
+std::string InputSignal::getTableId()
+{
+    return tableId;
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

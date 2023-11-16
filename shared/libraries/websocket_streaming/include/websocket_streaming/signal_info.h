@@ -33,6 +33,7 @@ struct SubscribedSignalInfo
 {
     DataDescriptorPtr dataDescriptor;
     SignalProps signalProps;
+    std::string signalName;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

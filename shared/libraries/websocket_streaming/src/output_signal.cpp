@@ -164,6 +164,8 @@ void OutputSignal::createStreamedSignal()
     auto domainSignal = Signal(context, nullptr, "domain");
     streamedSignal = Signal(context, nullptr, signal.getLocalId());
     streamedSignal.setDomainSignal(domainSignal);
+    streamedSignal.setName(signal.getName());
+    streamedSignal.setDescription(signal.getDescription());
 }
 
 void OutputSignal::writeEventPacket(const EventPacketPtr& packet)
@@ -213,9 +215,15 @@ void OutputSignal::writePropertyChangedPacket(const EventPacketPtr& packet)
 
     SignalProps sigProps;
     if (name == "Name")
+    {
         sigProps.name = value;
+        streamedSignal.setName(value);
+    }
     else if (name == "Description")
+    {
         sigProps.description = value;
+        streamedSignal.setDescription(value);
+    }
 
     SignalDescriptorConverter::ToStreamedSignal(signal, stream, sigProps);
     stream->writeSignalMetaInformation();

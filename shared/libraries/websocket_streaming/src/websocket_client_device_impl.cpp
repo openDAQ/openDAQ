@@ -50,11 +50,11 @@ void WebsocketClientDeviceImpl::createWebsocketStreaming()
 {
     auto streamingClient = std::make_shared<StreamingClient>(context, connectionString);
 
-    auto newSignalCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
+    auto signalInitCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
     {
-        this->onNewSignal(signalId, sInfo);
+        this->onSignalInit(signalId, sInfo);
     };
-    streamingClient->onNewSignal(newSignalCallback);
+    streamingClient->onSignalInit(signalInitCallback);
 
     auto signalUpdatedCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
     {
@@ -77,15 +77,19 @@ void WebsocketClientDeviceImpl::createWebsocketStreaming()
     websocketStreaming = WebsocketStreaming(streamingClient, connectionString, context);
 }
 
-void WebsocketClientDeviceImpl::onNewSignal(const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
+void WebsocketClientDeviceImpl::onSignalInit(const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
 {
     if (!sInfo.dataDescriptor.assigned())
         return;
 
     if (auto signalIt = deviceSignals.find(signalId); signalIt != deviceSignals.end())
     {
+        // sets signal name as it appeared in metadata "name"
+        auto protectedObject = signalIt->second.asPtr<IPropertyObjectProtected>();
+        protectedObject.setProtectedPropertyValue("Name", sInfo.signalName);
+
         signalIt->second.asPtr<IWebsocketStreamingSignalPrivate>()->assignDescriptor(sInfo.dataDescriptor);
-        updateSignal(signalIt->second, sInfo);
+        updateSignalProperties(signalIt->second, sInfo);
     }
 }
 
@@ -95,7 +99,7 @@ void WebsocketClientDeviceImpl::onSignalUpdated(const StringPtr& signalId, const
         return;
 
     if (auto signalIt = deviceSignals.find(signalId); signalIt != deviceSignals.end())
-        updateSignal(signalIt->second, sInfo);
+        updateSignalProperties(signalIt->second, sInfo);
 }
 
 void WebsocketClientDeviceImpl::onDomainDescriptor(const StringPtr& signalId,
@@ -122,7 +126,7 @@ void WebsocketClientDeviceImpl::createDeviceSignals(const std::vector<std::strin
     }
 }
 
-void WebsocketClientDeviceImpl::updateSignal(const SignalPtr& signal, const SubscribedSignalInfo& sInfo)
+void WebsocketClientDeviceImpl::updateSignalProperties(const SignalPtr& signal, const SubscribedSignalInfo& sInfo)
 {
     auto protectedObject = signal.asPtr<IPropertyObjectProtected>();
     if (sInfo.signalProps.name.has_value())

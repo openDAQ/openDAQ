@@ -33,11 +33,13 @@ public:
 
     PacketPtr asPacket(uint64_t packetOffset, const uint8_t* data, size_t size);
     PacketPtr createDecriptorChangedPacket();
-    void setDataDescriptor(const daq::streaming_protocol::SubscribedSignal& dataSignal);
-    void setDomainDescriptor(const daq::streaming_protocol::SubscribedSignal& timeSignal);
+    void setDataDescriptor(const DataDescriptorPtr& dataDescriptor);
+    void setDomainDescriptor(const DataDescriptorPtr& domainDescriptor);
     bool hasDescriptors();
     DataDescriptorPtr getSignalDescriptor();
     DataDescriptorPtr getDomainSignalDescriptor();
+    void setTableId(std::string id);
+    std::string getTableId();
 
 protected:
     DataDescriptorPtr currentDataDescriptor;
@@ -45,6 +47,7 @@ protected:
 
     std::string name;
     std::string description;
+    std::string tableId;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

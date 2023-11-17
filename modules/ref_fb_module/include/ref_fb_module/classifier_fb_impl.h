@@ -55,9 +55,7 @@ private:
     size_t blockSizeMs;
     size_t classCount;
     Float inputDeltaTicks;
-    
-    Float inputHighValue;
-    Float inputLowValue;
+
     std::string outputName;
 
     bool useExplicitDomain;

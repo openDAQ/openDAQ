@@ -53,16 +53,6 @@ void ClassifierFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("ClassCount") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    const auto customHighValueProp = FloatProperty("InputHighValue", 10.0);
-    objPtr.addProperty(customHighValueProp);
-    objPtr.getOnPropertyValueWrite("InputHighValue") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
-
-    const auto customLowValueProp = FloatProperty("InputLowValue", -10.0);
-    objPtr.addProperty(customLowValueProp);
-    objPtr.getOnPropertyValueWrite("InputLowValue") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
-
     const auto outputNameProp = StringProperty("OutputName", "");
     objPtr.addProperty(outputNameProp);
     objPtr.getOnPropertyValueWrite("OutputName") +=
@@ -85,8 +75,6 @@ void ClassifierFbImpl::readProperties()
     explicitDimension =  objPtr.getPropertyValue("ExplcitDimension");
     blockSizeMs = objPtr.getPropertyValue("BlockSizeMs");
     classCount = objPtr.getPropertyValue("ClassCount");
-    inputHighValue = objPtr.getPropertyValue("InputHighValue");
-    inputLowValue = objPtr.getPropertyValue("InputLowValue");
     outputName = static_cast<std::string>(objPtr.getPropertyValue("OutputName"));
 
     assert(blockSizeMs > 0);
@@ -152,28 +140,25 @@ void ClassifierFbImpl::configure()
         inputDeltaTicks = domainRuleParams.get("delta");
 
         auto outputDataDescriptorBuilder = DataDescriptorBuilder().setSampleType(SampleType::Float64);
-
-        inputLowValue = static_cast<Float>(inputDataDescriptor.getValueRange().getLowValue());
-        inputHighValue = static_cast<Float>(inputDataDescriptor.getValueRange().getHighValue());
-
-        if (inputLowValue > inputHighValue)
-            std::swap(inputLowValue, inputHighValue);
         
-            auto dimensions = List<IDimension>();
-            if (useExplicitDomain) 
-                dimensions.pushBack(Dimension(ListDimensionRule(explicitDimension)));
-            else 
-            {
-                size_t rangeSize = inputHighValue - inputLowValue;
-                rangeSize = (rangeSize / classCount) + (rangeSize % classCount != 0) + 1;
-                dimensions.pushBack(Dimension(LinearDimensionRule(classCount, (Int)inputLowValue, rangeSize)));
-            }
-            outputDataDescriptorBuilder.setDimensions(dimensions);
+        auto dimensions = List<IDimension>();
+        if (useExplicitDomain) 
+            dimensions.pushBack(Dimension(ListDimensionRule(explicitDimension)));
+        else 
+        {
+            auto inputLowValue = static_cast<Float>(inputDataDescriptor.getValueRange().getLowValue());
+            auto inputHighValue = static_cast<Float>(inputDataDescriptor.getValueRange().getHighValue());
+
+            size_t rangeSize = inputHighValue - inputLowValue;
+            rangeSize = (rangeSize / classCount) + (rangeSize % classCount != 0) + 1;
+            dimensions.pushBack(Dimension(LinearDimensionRule(classCount, (Int)inputLowValue, rangeSize)));
+        }
+        outputDataDescriptorBuilder.setDimensions(dimensions);
 
         outputDataDescriptorBuilder.setValueRange(Range(0, 1));
 
         if (outputName.empty())
-            outputDataDescriptorBuilder.setName(inputDataDescriptor.getName().toStdString() + "/Classifired");
+            outputDataDescriptorBuilder.setName(inputDataDescriptor.getName().toStdString() + "/Classified");
         else
             outputDataDescriptorBuilder.setName(outputName);
 
@@ -187,7 +172,7 @@ void ClassifierFbImpl::configure()
     }
     catch (const std::exception& e)
     {
-        LOG_W("ClassifierFb: Failed to set descriptor for power signal: {}", e.what())
+        LOG_W("ClassifierFb: Failed to set descriptor for classification signal: {}", e.what())
         outputSignal.setDescriptor(nullptr);
     }
 }

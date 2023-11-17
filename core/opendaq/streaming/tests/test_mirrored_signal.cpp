@@ -161,4 +161,18 @@ TEST_F(MirroredSignalTest, DeactivateStreaming)
     ASSERT_FALSE(signal.getActiveStreamingSource().assigned());
 }
 
+
+TEST_F(MirroredSignalTest, Streamed)
+{
+    auto signal = createMirroredSignal("signal");
+
+    ASSERT_TRUE(signal.getStreamed());
+
+    ASSERT_EQ(signal->setStreamed(true), OPENDAQ_IGNORED);
+    ASSERT_EQ(signal->setStreamed(false), OPENDAQ_SUCCESS);
+    ASSERT_EQ(signal->setStreamed(false), OPENDAQ_IGNORED);
+
+    ASSERT_FALSE(signal.getStreamed());
+}
+
 END_NAMESPACE_OPENDAQ

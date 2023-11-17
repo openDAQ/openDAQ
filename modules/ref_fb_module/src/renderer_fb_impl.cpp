@@ -657,6 +657,24 @@ void RendererFbImpl::getWidthAndHeight(unsigned int& width, unsigned int& height
     }
 }
 
+void RendererFbImpl::updateSingleXAxis() {
+    // we can use singleXAxis only on the same dimension signals
+    if (singleXAxis && signalContexts.size() > 2) 
+    {
+        auto firstSignalDimension = signalContexts.front().inputDataSignalDescriptor.getDimensions().getCount();
+        for (auto sigCtx = signalContexts.begin() + 1; sigCtx != signalContexts.end() - 1; sigCtx++) 
+        {
+            auto curSignalDimension = sigCtx->inputDataSignalDescriptor.getDimensions().getCount();
+            if (firstSignalDimension != curSignalDimension) 
+            {
+                singleXAxis = false;
+                LOG_W("Renderer has multiple input signals with different dimension. Property singleXAxis has turned off");
+                break;
+            }
+        }
+    }
+}
+
 void RendererFbImpl::renderLoop()
 {
     unsigned int width;
@@ -695,6 +713,8 @@ void RendererFbImpl::renderLoop()
             processSignalContexts();
 
             window.clear();
+
+            updateSingleXAxis();
 
             if (singleXAxis)
                 prepareSingleXAxis();

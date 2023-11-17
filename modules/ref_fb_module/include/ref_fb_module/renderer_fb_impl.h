@@ -254,6 +254,8 @@ private:
     template <typename Iter, typename Cont>
     bool isLastIter(Iter iter, const Cont& cont);
     void stopRendering();
+
+    void updateSingleXAxis();
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

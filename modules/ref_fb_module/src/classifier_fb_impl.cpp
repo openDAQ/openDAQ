@@ -36,17 +36,21 @@ ClassifierFbImpl::ClassifierFbImpl(const ContextPtr& ctx, const ComponentPtr& pa
 
 void ClassifierFbImpl::initProperties()
 {
-    const auto explcitDimensionProp = ListProperty("ExplcitDimension", List<INumber>());
+    objPtr.addProperty(BoolProperty("UseExplicitDomain", false));
+    objPtr.getOnPropertyValueWrite("UseExplicitDomain") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
+
+    auto explcitDimensionProp = ListPropertyBuilder("ExplcitDimension", List<Float>()).setVisible(EvalValue("$UseExplicitDomain")).build();
     objPtr.addProperty(explcitDimensionProp);
     objPtr.getOnPropertyValueWrite("ExplcitDimension") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    const auto blockSizeMsProp = IntProperty("BlockSizeMs", 10);
+    auto blockSizeMsProp = IntPropertyBuilder("BlockSizeMs", 10).setVisible(EvalValue("!$UseExplicitDomain")).build();
     objPtr.addProperty(blockSizeMsProp);
     objPtr.getOnPropertyValueWrite("BlockSizeMs") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    const auto classCountProp = IntProperty("ClassCount", 1);
+    auto classCountProp = IntPropertyBuilder("ClassCount", 1).setVisible(EvalValue("!$UseExplicitDomain")).build();
     objPtr.addProperty(classCountProp);
     objPtr.getOnPropertyValueWrite("ClassCount") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
@@ -79,6 +83,7 @@ void ClassifierFbImpl::propertyChanged(bool configure)
 
 void ClassifierFbImpl::readProperties()
 {
+    useExplicitDomain = objPtr.getPropertyValue("UseExplicitDomain");
     explicitDimension =  objPtr.getPropertyValue("ExplcitDimension");
     blockSizeMs = objPtr.getPropertyValue("BlockSizeMs");
     classCount = objPtr.getPropertyValue("ClassCount");
@@ -144,7 +149,7 @@ void ClassifierFbImpl::configure()
         RangePtr outputRange;
         {
             auto dimensions = List<IDimension>();
-            if (explicitDimension.getCount() != 0) 
+            if (useExplicitDomain) 
                 dimensions.pushBack(Dimension(ListDimensionRule(explicitDimension)));
             else 
             {

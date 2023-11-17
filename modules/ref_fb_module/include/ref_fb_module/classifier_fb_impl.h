@@ -58,7 +58,8 @@ private:
     Float inputLowValue;
     std::string outputName;
 
-    ListPtr<INumber> explicitDimension;
+    bool useExplicitDomain;
+    ListPtr<Float> explicitDimension;
 
     UInt packetStarted {};
     size_t sampleStarted {};

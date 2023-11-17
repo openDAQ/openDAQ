@@ -66,6 +66,10 @@ function(prepend_include SUBFOLDER SOURCE_FILES)
 endfunction()
 
 function(create_version_header LIB_NAME)
+    if (WIN32 AND NOT CMAKE_GENERATOR MATCHES "Visual Studio" )
+        return()
+    endif()
+
     set(INCLUDE_FOLDER_NAME ${TARGET_FOLDER_NAME})
 
     set(options ONLY_RC NO_RC)

@@ -69,6 +69,8 @@ public:
     ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
+    ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) override;
+    ErrCode INTERFACE_FUNC setStreamed(Bool streamed) override;
 
     // ISignalConfig
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
@@ -102,7 +104,7 @@ protected:
     int getSerializeFlags() override;
 
     virtual EventPacketPtr createDataDescriptorChangedEventPacket();
-    virtual void onConnectionStatusChanged(bool connected);
+    virtual void onListenedStatusChanged(bool connected);
 
     void removed() override;
 
@@ -220,7 +222,7 @@ EventPacketPtr SignalBase<Props, TInterface, Interfaces...>::createDataDescripto
 }
 
 template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
-void SignalBase<Props, TInterface, Interfaces...>::onConnectionStatusChanged(bool /*connected*/)
+void SignalBase<Props, TInterface, Interfaces...>::onListenedStatusChanged(bool /*listened*/)
 {
 }
 
@@ -464,7 +466,7 @@ ErrCode SignalBase<Props, TInterface, Interfaces...>::listenerConnected(IConnect
 
     if (connections.empty())
     {
-        const ErrCode errCode = wrapHandler(this, &Self::onConnectionStatusChanged, true);
+        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, true);
         if (OPENDAQ_FAILED(errCode))
             return errCode;
     }
@@ -493,7 +495,7 @@ ErrCode SignalBase<Props, TInterface, Interfaces...>::listenerDisconnected(IConn
 
     if (connections.empty())
     {
-        const ErrCode errCode = wrapHandler(this, &Self::onConnectionStatusChanged, false);
+        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, false);
         if (OPENDAQ_FAILED(errCode))
             return errCode;
     }
@@ -645,6 +647,21 @@ void SignalBase<Props, TInterface, Interfaces...>::removed()
 
     domainSignalReferences.clear();
     relatedSignals.clear();
+}
+
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::getStreamed(Bool* streamed)
+{
+    OPENDAQ_PARAM_NOT_NULL(streamed);
+
+    *streamed = False;
+    return OPENDAQ_SUCCESS;
+}
+
+template <SignalStandardProps Props, typename TInterface, typename... Interfaces>
+ErrCode SignalBase<Props, TInterface, Interfaces...>::setStreamed(Bool streamed)
+{
+    return OPENDAQ_IGNORED;
 }
 
 END_NAMESPACE_OPENDAQ

@@ -351,4 +351,27 @@ TEST_F(SubscriptionTest, TriggeredByRemovedStreamingSource)
     ASSERT_TRUE(Mock::VerifyAndClearExpectations(&streaming.mock()));
 }
 
+TEST_F(SubscriptionTest, TriggeredByStreamedFlag)
+{
+    auto signal = createMirroredSignal("Signal");
+    auto inputPort = InputPort(NullContext(), nullptr, "TestPort");
+    inputPort.connect(signal);
+
+    auto streaming = MockStreaming::Strict("MockStreaming");
+
+    EXPECT_CALL(streaming.mock(), onAddSignal(signal)).Times(Exactly(1));
+    streaming.ptr.addSignals({signal});
+
+    EXPECT_CALL(streaming.mock(), onSubscribeSignal(signal)).Times(Exactly(1));
+    signal.setActiveStreamingSource(streaming.ptr.getConnectionString());
+
+    EXPECT_CALL(streaming.mock(), onUnsubscribeSignal(signal)).Times(Exactly(1));
+    signal.setStreamed(false);
+
+    EXPECT_CALL(streaming.mock(), onSubscribeSignal(signal)).Times(Exactly(1));
+    signal.setStreamed(true);
+
+    ASSERT_TRUE(Mock::VerifyAndClearExpectations(&streaming.mock()));
+}
+
 END_NAMESPACE_OPENDAQ

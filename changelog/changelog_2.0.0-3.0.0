@@ -1,4 +1,4 @@
-16.11.2023
+17.11.2023
 
 Description:
 
@@ -36,3 +36,5 @@ Streaming framework changes:
 + [function] IStreamingPrivate::unsubscribeSignal(const MirroredSignalConfigPtr& signal)
 + [function] EventPacketPtr IStreamingPrivate::createDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal)
 
++ [function] ISignal::getStreamed(Bool* streamed)
++ [function] ISignal::setStreamed(Bool streamed)

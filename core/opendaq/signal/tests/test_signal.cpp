@@ -387,4 +387,16 @@ TEST_F(SignalTest, Remove)
     ASSERT_TRUE(removable.isRemoved());
 }
 
+TEST_F(SignalTest, Streamed)
+{
+    auto signal = Signal(NullContext(), nullptr, "sig");
+
+    ASSERT_FALSE(signal.getStreamed());
+
+    ASSERT_EQ(signal->setStreamed(false), OPENDAQ_IGNORED);
+    ASSERT_EQ(signal->setStreamed(true), OPENDAQ_IGNORED);
+
+    ASSERT_FALSE(signal.getStreamed());
+}
+
 END_NAMESPACE_OPENDAQ

@@ -83,7 +83,9 @@ void WebsocketStreamingImpl::onPacket(const StringPtr& signalId, const PacketPtr
     {
         auto signalRef = it->second;
         MirroredSignalConfigPtr signal = signalRef.assigned() ? signalRef.getRef() : nullptr;
-        if (signal.assigned() && signal.getActiveStreamingSource() == connectionString)
+        if (signal.assigned() &&
+            signal.getStreamed() &&
+            signal.getActiveStreamingSource() == connectionString)
         {
             const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
             if (eventPacket.assigned())

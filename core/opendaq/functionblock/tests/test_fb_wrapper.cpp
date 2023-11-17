@@ -45,6 +45,8 @@ struct MockSignal : daq::MockGenericComponent<MockSignal, daq::ISignal>
     MOCK_METHOD(daq::ErrCode, setName, (daq::IString* name), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, setDescription, (daq::IString* name), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getDescription, (daq::IString** name), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, setStreamed, (daq::Bool streamed), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getStreamed, (daq::Bool* streamed), (override MOCK_CALL));
 
     MockSignal()
         : MockGenericComponent<MockSignal, daq::ISignal>()

@@ -54,6 +54,8 @@ private:
 
     size_t blockSizeMs;
     size_t classCount;
+    Float inputDeltaTicks;
+    
     Float inputHighValue;
     Float inputLowValue;
     std::string outputName;
@@ -83,6 +85,7 @@ private:
     void propertyChanged(bool configure);
     void readProperties();
 
+    inline UInt timeMs(UInt time);
     inline bool timeInInterval(UInt startTime, UInt endTime);
 };
 

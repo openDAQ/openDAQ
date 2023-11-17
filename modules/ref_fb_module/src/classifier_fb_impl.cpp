@@ -21,8 +21,6 @@
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
-#define timeMs(x) (1000 * x)
-
 namespace Classifier
 {
 
@@ -122,8 +120,8 @@ void ClassifierFbImpl::configure()
 
     try
     {
-        if (inputDataDescriptor.getDimensions().getCount() > 0)
-            throw std::runtime_error("Arrays not supported");
+        if (inputDataDescriptor.isStructDescriptor() || inputDataDescriptor.getDimensions().getCount() > 0)
+            throw std::runtime_error("Incompatible input value data descriptor");
 
         inputSampleType = inputDataDescriptor.getSampleType();
         if (inputSampleType != SampleType::Float64 &&
@@ -138,6 +136,21 @@ void ClassifierFbImpl::configure()
             inputSampleType != SampleType::UInt64)
             throw std::runtime_error("Invalid sample type");
 
+        if (inputDomainDataDescriptor.getSampleType() != SampleType::Int64 && inputDomainDataDescriptor.getSampleType() != SampleType::UInt64)
+        {
+            throw std::runtime_error("Incompatible domain data sample type");
+        }
+
+        const auto domainRule = inputDomainDataDescriptor.getRule();
+        if (domainRule.getType() != DataRuleType::Linear)
+        {
+            throw std::runtime_error("Domain rule type is not Linear");
+        }
+
+        const auto domainRuleParams = domainRule.getParameters();
+
+        inputDeltaTicks = domainRuleParams.get("delta");
+
         auto outputDataDescriptorBuilder = DataDescriptorBuilder().setSampleType(SampleType::Float64);
 
         inputLowValue = static_cast<Float>(inputDataDescriptor.getValueRange().getLowValue());
@@ -146,8 +159,6 @@ void ClassifierFbImpl::configure()
         if (inputLowValue > inputHighValue)
             std::swap(inputLowValue, inputHighValue);
         
-        RangePtr outputRange;
-        {
             auto dimensions = List<IDimension>();
             if (useExplicitDomain) 
                 dimensions.pushBack(Dimension(ListDimensionRule(explicitDimension)));
@@ -159,10 +170,7 @@ void ClassifierFbImpl::configure()
             }
             outputDataDescriptorBuilder.setDimensions(dimensions);
 
-            outputRange = Range(0, 1);
-        }
-
-        outputDataDescriptorBuilder.setValueRange(outputRange);
+        outputDataDescriptorBuilder.setValueRange(Range(0, 1));
 
         if (outputName.empty())
             outputDataDescriptorBuilder.setName(inputDataDescriptor.getName().toStdString() + "/Classifired");
@@ -179,7 +187,7 @@ void ClassifierFbImpl::configure()
     }
     catch (const std::exception& e)
     {
-        LOG_W("Failed to set descriptor for power signal: {}", e.what())
+        LOG_W("ClassifierFb: Failed to set descriptor for power signal: {}", e.what())
         outputSignal.setDescriptor(nullptr);
     }
 }
@@ -226,6 +234,11 @@ void ClassifierFbImpl::processEventPacket(const EventPacketPtr& packet)
     }
 }
 
+inline UInt ClassifierFbImpl::timeMs(UInt time) 
+{
+    return time * inputDeltaTicks;
+}
+
 inline bool ClassifierFbImpl::timeInInterval(UInt startTime, UInt endTime) 
 {
     return (endTime - startTime) < timeMs(blockSizeMs);
@@ -264,12 +277,13 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
     auto outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1);
     auto outputDomainData = static_cast<UInt*>(outputDomainPacket.getData());
 
-    DataPacketPtr outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
-    OutputType* outputData = static_cast<OutputType*>(outputPacket.getData());
+    DataPacketPtr outputPacket {};
+    OutputType* outputData {};
 
     auto rangeSize = outputDataDescriptor.getDimensions()[0].getSize();
     auto labels = outputDataDescriptor.getDimensions()[0].getLabels();
-    if (labels.getCount() == 0) return;
+    if (labels.getCount() == 0) 
+        return;
 
     size_t packageVals = 0;
     while (outputPackages && packets.size()) 
@@ -282,7 +296,11 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
        
         // reset array for new package
         if (packageVals == 0)
+        {
+            outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
+            outputData = static_cast<OutputType*>(outputPacket.getData());
             memset(outputData, 0, rangeSize * sizeof(OutputType));
+        }
 
         bool packetInEpoch = timeInInterval(packetStarted, inputDomainData[sampleCnt - 1]);
 

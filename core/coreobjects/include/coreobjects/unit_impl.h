@@ -19,6 +19,7 @@
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/struct_impl.h>
+#include <coreobjects/unit_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -27,6 +28,7 @@ class UnitImpl : public GenericStructImpl<IUnit, IStruct>
 public:
     explicit UnitImpl(Int id, StringPtr symbol, StringPtr name, StringPtr quantity);
     explicit UnitImpl(DictPtr<IString, IBaseObject> buildParams);
+    explicit UnitImpl(UnitBuilderPtr & unitBuilder);
 
     ErrCode INTERFACE_FUNC getId(Int* id) override;
     ErrCode INTERFACE_FUNC getSymbol(IString** symbol) override;

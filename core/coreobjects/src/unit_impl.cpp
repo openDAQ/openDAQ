@@ -24,6 +24,18 @@ UnitImpl::UnitImpl(DictPtr<IString, IBaseObject> buildParams)
 {
 }
 
+UnitImpl::UnitImpl(UnitBuilderPtr & unitBuilder) 
+    : GenericStructImpl<IUnit, IStruct>(
+        detail::unitStructType,
+        Dict<IString, IBaseObject>(
+            {{"id", unitBuilder.getId()}, 
+            {"symbol", unitBuilder.getSymbol()}, 
+            {"name", unitBuilder.getName()}, 
+            {"quantity",  unitBuilder.getQuantity()}}))
+{
+}
+
+
 ErrCode UnitImpl::getId(Int* id)
 {
     if (!id)
@@ -157,5 +169,12 @@ daq::ErrCode PUBLIC_EXPORT createUnitFromBuildParams(IUnit** objTmp, IDict* stru
 {
     return daq::createObject<IUnit, UnitImpl>(objTmp, structParams);
 }
+
+extern "C"
+daq::ErrCode PUBLIC_EXPORT createUnitFromBuilder(IUnit** objTmp, IUnitBuilder* unitBuilder)
+{
+    return daq::createObject<IUnit, UnitImpl>(objTmp, unitBuilder);
+}
+
 
 END_NAMESPACE_OPENDAQ

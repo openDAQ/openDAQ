@@ -48,6 +48,43 @@ ErrCode UnitBuilderImpl::setQuantity(IString* quantity)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode UnitBuilderImpl::getId(Int* id)
+{
+    if (!id)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *id = this->id;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode UnitBuilderImpl::getSymbol(IString** symbol)
+{
+    if (!symbol)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *symbol = this->symbol;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode UnitBuilderImpl::getName(IString** name)
+{
+    if (!name)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *name = this->name;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode UnitBuilderImpl::getQuantity(IString** quantity)
+{
+    if (!quantity)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    *quantity = this->quantity;
+    return OPENDAQ_SUCCESS;
+}
+
+
 ErrCode UnitBuilderImpl::build(IUnit** unit)
 {
     if (unit == nullptr)

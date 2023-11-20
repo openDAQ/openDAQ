@@ -52,6 +52,21 @@ void ClassifierFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("ClassCount") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
+    const auto useCustomInputRangeProp = BoolProperty("UseCustomInputRange", False);
+    objPtr.addProperty(useCustomInputRangeProp);
+    objPtr.getOnPropertyValueWrite("UseCustomInputRange") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
+
+    const auto customHighValueProp = FloatProperty("InputHighValue", 10.0, EvalValue("$UseCustomInputRange"));
+    objPtr.addProperty(customHighValueProp);
+    objPtr.getOnPropertyValueWrite("InputHighValue") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
+
+    const auto customLowValueProp = FloatProperty("inputLowValue", -10.0, EvalValue("$UseCustomInputRange"));
+    objPtr.addProperty(customLowValueProp);
+    objPtr.getOnPropertyValueWrite("inputLowValue") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
+
     const auto outputNameProp = StringProperty("OutputName", "");
     objPtr.addProperty(outputNameProp);
     objPtr.getOnPropertyValueWrite("OutputName") +=
@@ -74,6 +89,9 @@ void ClassifierFbImpl::readProperties()
     explicitDimension = objPtr.getPropertyValue("ExplicitDimension");
     blockSize = objPtr.getPropertyValue("BlockSize");
     classCount = objPtr.getPropertyValue("ClassCount");
+    useCustomInputRange = objPtr.getPropertyValue("UseCustomInputRange");
+    inputHighValue = objPtr.getPropertyValue("InputHighValue");
+    inputLowValue = objPtr.getPropertyValue("inputLowValue");
     outputName = static_cast<std::string>(objPtr.getPropertyValue("OutputName"));
 
     assert(blockSize > 0);
@@ -163,8 +181,13 @@ void ClassifierFbImpl::configure()
             dimensions.pushBack(Dimension(ListDimensionRule(explicitDimension)));
         else 
         {
-            auto inputLowValue = static_cast<Float>(inputDataDescriptor.getValueRange().getLowValue());
-            auto inputHighValue = static_cast<Float>(inputDataDescriptor.getValueRange().getHighValue());
+            if (!useCustomInputRange)
+            {
+                inputLowValue = static_cast<Float>(inputDataDescriptor.getValueRange().getLowValue());
+                inputHighValue = static_cast<Float>(inputDataDescriptor.getValueRange().getHighValue());
+                if (inputLowValue > inputHighValue)
+                    std::swap(inputLowValue, inputHighValue);
+            }
 
             size_t rangeSize = inputHighValue - inputLowValue;
             rangeSize = (rangeSize / classCount) + (rangeSize % classCount != 0) + 1;

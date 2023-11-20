@@ -51,7 +51,7 @@ private:
 
     SignalConfigPtr outputSignal;
     SignalConfigPtr outputDomainSignal;
-    
+
     bool domainLinear;
     size_t linearBlockCount;
 
@@ -59,6 +59,9 @@ private:
     size_t classCount;
     Float inputDeltaTicks;
 
+    bool useCustomInputRange;
+    Float inputHighValue;
+    Float inputLowValue;
     std::string outputName;
 
     bool useExplicitDomain;

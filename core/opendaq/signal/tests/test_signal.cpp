@@ -387,17 +387,16 @@ TEST_F(SignalTest, Remove)
     ASSERT_TRUE(removable.isRemoved());
 }
 
-TEST_F(SignalTest, StreamingSourcesEmpty)
+TEST_F(SignalTest, Streamed)
 {
     auto signal = Signal(NullContext(), nullptr, "sig");
 
-    auto sources = signal.getStreamingSources();
-    ASSERT_EQ(sources.getCount(), 0u);
+    ASSERT_FALSE(signal.getStreamed());
 
-    auto activeSource = signal.getActiveStreamingSource();
-    ASSERT_FALSE(activeSource.assigned());
+    ASSERT_EQ(signal->setStreamed(false), OPENDAQ_IGNORED);
+    ASSERT_EQ(signal->setStreamed(true), OPENDAQ_IGNORED);
 
-    ASSERT_THROW(signal.setActiveStreamingSource("connectionString"), NotFoundException);
+    ASSERT_FALSE(signal.getStreamed());
 }
 
 END_NAMESPACE_OPENDAQ

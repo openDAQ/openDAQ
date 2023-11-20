@@ -20,6 +20,7 @@
 #include <streaming_protocol/SynchronousSignal.hpp>
 #include <opendaq/sample_type.h>
 #include <opendaq/signal_factory.h>
+#include <opendaq/event_packet_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -31,15 +32,15 @@ class InputSignal
 public:
     InputSignal();
 
-    PacketPtr asPacket(uint64_t packetOffset, const uint8_t* data, size_t size);
-    PacketPtr createDecriptorChangedPacket();
+    PacketPtr createDataPacket(uint64_t packetOffset, const uint8_t* data, size_t size) const;
+    EventPacketPtr createDecriptorChangedPacket() const;
     void setDataDescriptor(const DataDescriptorPtr& dataDescriptor);
     void setDomainDescriptor(const DataDescriptorPtr& domainDescriptor);
-    bool hasDescriptors();
-    DataDescriptorPtr getSignalDescriptor();
-    DataDescriptorPtr getDomainSignalDescriptor();
+    bool hasDescriptors() const;
+    DataDescriptorPtr getSignalDescriptor() const;
+    DataDescriptorPtr getDomainSignalDescriptor() const;
     void setTableId(std::string id);
-    std::string getTableId();
+    std::string getTableId() const;
 
 protected:
     DataDescriptorPtr currentDataDescriptor;
@@ -48,6 +49,8 @@ protected:
     std::string name;
     std::string description;
     std::string tableId;
+
+    mutable std::mutex descriptorsSync;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

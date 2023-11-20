@@ -492,15 +492,22 @@ TEST_P(ProtocolTest, SendEventPacket)
                                                            client.packetHandler);
         ASSERT_TRUE(client.clientHandler->connect(client.ioContextPtrClient, SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
-        ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
-        auto [signalId, packet] = client.packetReceivedFuture.get();
-        ASSERT_EQ(signalId, serverSignal.getGlobalId());
-        ASSERT_EQ(packet, initialEventPacket);
+        ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
+        auto [clientSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription] =
+            client.signalAvailableFuture.get();
 
+        // wait for initial event packet
+        ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
         // reset packet future / promise
         client.packetReceivedPromise = std::promise< std::tuple<StringPtr, PacketPtr> >();
         client.packetReceivedFuture = client.packetReceivedPromise.get_future();
+
+        client.clientHandler->subscribeSignal(clientSignalStringId);
     }
+
+    // wait extra time until all subscribers become known by server
+    std::this_thread::sleep_for(timeout);
+    ASSERT_EQ(signalSubscribedFuture.wait_for(timeout), std::future_status::ready);
 
     const auto newValueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Binary).build();
     auto serverEventPacket = DataDescriptorChangedEventPacket(newValueDescriptor, nullptr);
@@ -515,12 +522,9 @@ TEST_P(ProtocolTest, SendEventPacket)
     }
 }
 
-// TODO enable when subscription implementation completed
-TEST_P(ProtocolTest, DISABLED_SendDataPacketNoSubscribers)
+TEST_P(ProtocolTest, SendPacketsNoSubscribers)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
-    valueDescriptor.freeze();
-    auto serverDataPacket = DataPacket(valueDescriptor, 100);
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
 
     serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
@@ -547,16 +551,20 @@ TEST_P(ProtocolTest, DISABLED_SendDataPacketNoSubscribers)
         client.packetReceivedFuture = client.packetReceivedPromise.get_future();
     }
 
+    auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
+    auto serverDataPacket = DataPacket(valueDescriptor, 100);
+
+    serverHandler->sendPacket(serverSignal, serverEventPacket);
     serverHandler->sendPacket(serverSignal, serverDataPacket);
 
-    // no subscribers - so data packet wont be sent to clients
+    // no subscribers - so packets wont be sent to clients
     for (auto& client : clients)
     {
         ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::timeout);
     }
 }
 
-TEST_P(ProtocolTest, SendDataPacketAllSubscribed)
+TEST_P(ProtocolTest, SendDataPacket)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
     auto serverDataPacket = DataPacket(valueDescriptor, 100);
@@ -581,13 +589,14 @@ TEST_P(ProtocolTest, SendDataPacketAllSubscribed)
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
         auto [clientSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription] =
             client.signalAvailableFuture.get();
-        client.clientHandler->subscribeSignal(clientSignalStringId);
 
         // wait for initial event packet
         ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
         // reset packet future / promise
         client.packetReceivedPromise = std::promise< std::tuple<StringPtr, PacketPtr> >();
         client.packetReceivedFuture = client.packetReceivedPromise.get_future();
+
+        client.clientHandler->subscribeSignal(clientSignalStringId);
     }
 
     // wait extra time until all subscribers become known by server

@@ -29,6 +29,7 @@
 #include <opendaq/context_ptr.h>
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
+#include <opendaq/event_packet_ptr.h>
 
 #include <condition_variable>
 #include <mutex>
@@ -67,6 +68,7 @@ public:
     std::string getTarget();
     bool isConnected();
     void setConnectTimeout(std::chrono::milliseconds timeout);
+    EventPacketPtr getDataDescriptorChangedEventPacket(const StringPtr& signalStringId);
     
 
 protected:

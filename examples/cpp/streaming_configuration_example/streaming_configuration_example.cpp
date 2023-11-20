@@ -8,7 +8,7 @@
 #include <thread>
 #include <opendaq/opendaq.h>
 
-void readSamples(const daq::SignalConfigPtr signal)
+void readSamples(const daq::MirroredSignalConfigPtr signal)
 {
     using namespace std::chrono_literals;
     daq::StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
@@ -82,7 +82,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto signals = device.getSignalsRecursive();
 
     daq::ChannelPtr channel;
-    daq::SignalConfigPtr signal;
+    daq::MirroredSignalConfigPtr signal;
     for (const auto& sig : signals)
     {
         auto name = sig.getDescriptor().getName();

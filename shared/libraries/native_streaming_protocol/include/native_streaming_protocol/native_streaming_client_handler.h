@@ -52,6 +52,7 @@ public:
 
     void subscribeSignal(const StringPtr& signalStringId);
     void unsubscribeSignal(const StringPtr& signalStringId);
+    EventPacketPtr getDataDescriptorChangedEventPacket(const StringPtr& signalStringId);
 
 protected:
     void initClientSessionHandler(SessionPtr session);

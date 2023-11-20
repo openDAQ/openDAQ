@@ -1,0 +1,40 @@
+17.11.2023
+
+Description:
+
+Streaming framework changes:
+  - ISignalRemote renamed to IMirroredSignalConfig
+  - IMirroredSignalConfig inherits ISignalConfig
+  - Streaming source management methods moved from ISignalConfig to IMirroredSignalConfig
+
+- [function] ISignalConfig::getStreamingSources(IList** streamingConnectionStrings)
+- [function] ISignalConfig::setActiveStreamingSource(IString* streamingConnectionString)
+- [function] ISignalConfig::getActiveStreamingSource(IString** streamingConnectionString)
+- [function] ISignalConfig::deactivateStreaming()
+
+- [function] ISignalRemote::getRemoteId(IString** id)
+- [function] ISignalRemote::triggerEvent(IEventPacket* eventPacket, Bool* forwardEvent)
+- [function] ISignalRemote::addStreamingSource(IStreaming* streaming)
+- [function] ISignalRemote::removeStreamingSource(IStreaming* streaming)
+
+-m [interface] ISignalRemote : IBaseObject
++m [interface] IMirroredSignalConfig : ISignalConfig
+
++ [function] IMirroredSignalConfig::getRemoteId(IString** id)
++ [function] IMirroredSignalConfig::getStreamingSources(IList** streamingConnectionStrings)
++ [function] IMirroredSignalConfig::setActiveStreamingSource(IString* streamingConnectionString)
++ [function] IMirroredSignalConfig::getActiveStreamingSource(IString** streamingConnectionString)
++ [function] IMirroredSignalConfig::deactivateStreaming()
+
++ [interface] IMirroredSignalPrivate : IBaseObject
++ [function] Bool IMirroredSignalPrivate::triggerEvent(const EventPacketPtr& eventPacket)
++ [function] IMirroredSignalPrivate::addStreamingSource(const StreamingPtr& streaming)
++ [function] IMirroredSignalPrivate::removeStreamingSource(const StringPtr& streamingConnectionString)
+
++ [interface] IStreamingPrivate : IBaseObject
++ [function] IStreamingPrivate::subscribeSignal(const MirroredSignalConfigPtr& signal)
++ [function] IStreamingPrivate::unsubscribeSignal(const MirroredSignalConfigPtr& signal)
++ [function] EventPacketPtr IStreamingPrivate::createDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal)
+
++ [function] ISignal::getStreamed(Bool* streamed)
++ [function] ISignal::setStreamed(Bool streamed)

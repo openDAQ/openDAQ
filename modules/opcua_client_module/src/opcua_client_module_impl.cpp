@@ -6,6 +6,7 @@
 #include <opendaq/custom_log.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/mirrored_signal_config_ptr.h>
 #include <regex>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
@@ -213,9 +214,10 @@ void OpcUaClientModule::configureStreamingSources(const PropertyObjectPtr& devic
 
     for (const auto& signal : device.getSignalsRecursive())
     {
-        auto signalConfigPtr = signal.asPtr<ISignalConfig>();
+        MirroredSignalConfigPtr mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
 
-        auto streamingSources = signalConfigPtr.getStreamingSources();
+        auto streamingSources = mirroredSignalConfigPtr.getStreamingSources();
+
         if (streamingSources.empty())
             continue;
 
@@ -266,11 +268,11 @@ void OpcUaClientModule::configureStreamingSources(const PropertyObjectPtr& devic
 
         if (streamingHeuristic == "MinConnections" || streamingHeuristic == "Fallbacks")
         {
-            signalConfigPtr.setActiveStreamingSource(rootStreaming);
+            mirroredSignalConfigPtr.setActiveStreamingSource(rootStreaming);
         }
         else if (streamingHeuristic == "MinHops")
         {
-            signalConfigPtr.setActiveStreamingSource(leafStreaming);
+            mirroredSignalConfigPtr.setActiveStreamingSource(leafStreaming);
         }
     }
 }

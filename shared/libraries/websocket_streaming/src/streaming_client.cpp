@@ -6,6 +6,7 @@
 #include "stream/WebsocketClientStream.hpp"
 #include "streaming_protocol/SignalContainer.hpp"
 #include "opendaq/custom_log.h"
+#include <opendaq/packet_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -157,6 +158,14 @@ void StreamingClient::setConnectTimeout(std::chrono::milliseconds timeout)
     this->connectTimeout = timeout;
 }
 
+EventPacketPtr StreamingClient::getDataDescriptorChangedEventPacket(const StringPtr& signalStringId)
+{
+    if (auto it = signals.find(signalStringId); it == signals.end())
+        return DataDescriptorChangedEventPacket(nullptr, nullptr);
+    else
+        return it->second->createDecriptorChangedPacket();
+}
+
 void StreamingClient::parseConnectionString(const std::string& url)
 {
     // this is not great but it is convenient until we have a way to pass configuration parameters to a client device
@@ -249,7 +258,7 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
         signalIter->second->hasDescriptors() &&
         !signalIter->second->getSignalDescriptor().isStructDescriptor())
     {
-        auto packet = signalIter->second->asPacket(timeStamp, data, size);
+        auto packet = signalIter->second->createDataPacket(timeStamp, data, size);
         onPacketCallback(id, packet);
     }
 }

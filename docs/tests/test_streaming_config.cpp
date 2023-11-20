@@ -60,7 +60,7 @@ TEST_F(StreamingConfigTest, StreamingSources)
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
     ASSERT_TRUE(device.assigned());
 
-    daq::SignalConfigPtr signal = device.getSignalsRecursive()[0];
+    daq::MirroredSignalConfigPtr signal = device.getSignalsRecursive()[0];
 
     ASSERT_TRUE(signal.getActiveStreamingSource().assigned());
     ASSERT_TRUE(signal.getActiveStreamingSource().toView().find("daq.wss://") != std::string::npos);
@@ -89,7 +89,7 @@ TEST_F(StreamingConfigTest, WebsocketStreamingRead)
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
     ASSERT_TRUE(device.assigned());
 
-    daq::SignalConfigPtr signal = device.getSignalsRecursive()[0];
+    daq::MirroredSignalConfigPtr signal = device.getSignalsRecursive()[0];
     ASSERT_NO_THROW(signal.setActiveStreamingSource("daq.wss://127.0.0.1:7414"));
 
     using namespace std::chrono_literals;
@@ -120,7 +120,7 @@ TEST_F(StreamingConfigTest, NativeStreamingRead)
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
     ASSERT_TRUE(device.assigned());
 
-    daq::SignalConfigPtr signal = device.getSignalsRecursive()[0];
+    daq::MirroredSignalConfigPtr signal = device.getSignalsRecursive()[0];
     ASSERT_NO_THROW(signal.setActiveStreamingSource("daq.ns://127.0.0.1:7420"));
 
     using namespace std::chrono_literals;

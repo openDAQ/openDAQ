@@ -74,6 +74,25 @@ void NativeStreamingClientHandler::unsubscribeSignal(const StringPtr& signalStri
     }
 }
 
+EventPacketPtr NativeStreamingClientHandler::getDataDescriptorChangedEventPacket(const StringPtr& signalStringId)
+{
+    const auto it = std::find_if(std::begin(signalIds),
+                                 std::end(signalIds),
+                                 [signalStringId](const auto& pair)
+                                 {
+                                     return signalStringId == pair.second;
+                                 });
+
+    if (it != std::end(signalIds))
+    {
+        return sessionHandler->getDataDescriptorChangedEventPacket(it->first);
+    }
+    else
+    {
+        throw NativeStreamingProtocolException("Signal Id not found");
+    }
+}
+
 void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
 {
     LOG_D("Client connected");

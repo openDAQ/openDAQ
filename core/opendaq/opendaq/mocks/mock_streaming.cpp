@@ -1,4 +1,5 @@
 #include "opendaq/mock/mock_streaming.h"
+#include <opendaq/packet_factory.h>
 
 using namespace daq;
 
@@ -12,14 +13,29 @@ void MockStreamingImpl::onSetActive(bool /*active*/)
 
 }
 
-StringPtr MockStreamingImpl::onAddSignal(const SignalRemotePtr& signal)
+StringPtr MockStreamingImpl::onAddSignal(const MirroredSignalConfigPtr& signal)
 {
     return signal.getRemoteId();
 }
 
-void MockStreamingImpl::onRemoveSignal(const SignalRemotePtr& /*signal*/)
+void MockStreamingImpl::onRemoveSignal(const MirroredSignalConfigPtr& /*signal*/)
 {
 
+}
+
+void MockStreamingImpl::onSubscribeSignal(const MirroredSignalConfigPtr& /*signal*/)
+{
+
+}
+
+void MockStreamingImpl::onUnsubscribeSignal(const MirroredSignalConfigPtr& /*signal*/)
+{
+
+}
+
+EventPacketPtr MockStreamingImpl::onCreateDataDescriptorChangedEventPacket(const daq::MirroredSignalConfigPtr& /*signal*/)
+{
+    return DataDescriptorChangedEventPacket(nullptr, nullptr);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

@@ -16,12 +16,12 @@
 
 #pragma once
 #include <coretypes/intfs.h>
-#include <opendaq/signal_remote_impl.h>
+#include <opendaq/mirrored_signal_impl.h>
 
-class MockSignalRemoteImpl : public daq::SignalRemote<daq::SignalStandardProps::Skip>
+class MockMirroredSignalImpl : public daq::MirroredSignal<daq::SignalStandardProps::Skip>
 {
 public:
-    explicit MockSignalRemoteImpl(const daq::ContextPtr& ctx,
+    explicit MockMirroredSignalImpl(const daq::ContextPtr& ctx,
                                   const daq::ComponentPtr& parent,
                                   const daq::StringPtr& localId);
 

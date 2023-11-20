@@ -340,7 +340,6 @@ void ClassifierFbImpl::processLinearDataPacket(const DataPacketPtr& packet)
         return;
 
     DataPacketPtr outputDomainPacket {};
-    UInt* outputDomainData {};
 
     DataPacketPtr outputPacket {};
     OutputType* outputData {};
@@ -358,7 +357,6 @@ void ClassifierFbImpl::processLinearDataPacket(const DataPacketPtr& packet)
         if (packetValueCount == 0)
         {
             outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1, packetStarted);
-            outputDomainData = static_cast<UInt*>(outputDomainPacket.getData());
 
             outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
             outputData = static_cast<OutputType*>(outputPacket.getData());

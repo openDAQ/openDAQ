@@ -51,8 +51,11 @@ private:
 
     SignalConfigPtr outputSignal;
     SignalConfigPtr outputDomainSignal;
+    
+    bool domainLinear;
+    size_t linearBlockCount;
 
-    size_t blockSizeMs;
+    size_t blockSize;
     size_t classCount;
     Float inputDeltaTicks;
 
@@ -62,14 +65,17 @@ private:
     ListPtr<Float> explicitDimension;
 
     UInt packetStarted {};
-    size_t sampleStarted {};
+    size_t lastReadSampleInBlock {};
     std::list<DataPacketPtr> packets;
+    size_t samplesInPacketList {};
 
     void createInputPorts();
     void createSignals();
 
     template <SampleType InputSampleType>
     void processDataPacket(const DataPacketPtr& packet);
+    template <SampleType InputSampleType>
+    void processLinearDataPacket(const DataPacketPtr& packet);
 
     void processEventPacket(const EventPacketPtr& packet);
     void onPacketReceived(const InputPortPtr& port) override;
@@ -85,6 +91,7 @@ private:
 
     inline UInt timeMs(UInt time);
     inline bool timeInInterval(UInt startTime, UInt endTime);
+    Int binarySearch(float value, const ListPtr<IBaseObject>& labels);
 };
 
 }

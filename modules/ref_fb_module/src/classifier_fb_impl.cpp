@@ -2,13 +2,10 @@
 #include <ref_fb_module/dispatch.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
-
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/signal_factory.h>
-
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
-
 #include <coreobjects/unit_factory.h>
 #include <opendaq/data_packet.h>
 #include <opendaq/data_packet_ptr.h>
@@ -34,21 +31,23 @@ ClassifierFbImpl::ClassifierFbImpl(const ContextPtr& ctx, const ComponentPtr& pa
 
 void ClassifierFbImpl::initProperties()
 {
-    objPtr.addProperty(BoolProperty("UseExplicitDomain", false));
-    objPtr.getOnPropertyValueWrite("UseExplicitDomain") +=
+    objPtr.addProperty(BoolPropertyBuilder("UseExplicitDimension", false)
+        .setDescription("Choose classification based on input signal min max with step of ClassCount or custom marks").build());
+    objPtr.getOnPropertyValueWrite("UseExplicitDimension") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    auto explcitDimensionProp = ListPropertyBuilder("ExplcitDimension", List<Float>()).setVisible(EvalValue("$UseExplicitDomain")).build();
+    auto explcitDimensionProp = ListPropertyBuilder("ExplicitDimension", List<Float>()).setVisible(EvalValue("$UseExplicitDimension"))
+        .setDescription("Set custom list for classification rule").build();
     objPtr.addProperty(explcitDimensionProp);
-    objPtr.getOnPropertyValueWrite("ExplcitDimension") +=
+    objPtr.getOnPropertyValueWrite("ExplicitDimension") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    auto blockSizeMsProp = IntPropertyBuilder("BlockSizeMs", 10).setVisible(EvalValue("!$UseExplicitDomain")).build();
-    objPtr.addProperty(blockSizeMsProp);
-    objPtr.getOnPropertyValueWrite("BlockSizeMs") +=
+    auto blockSizeProp = IntPropertyBuilder("BlockSize", 1).setVisible(EvalValue("!$UseExplicitDimension")).setUnit(Unit("ms")).build();
+    objPtr.addProperty(blockSizeProp);
+    objPtr.getOnPropertyValueWrite("BlockSize") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    auto classCountProp = IntPropertyBuilder("ClassCount", 1).setVisible(EvalValue("!$UseExplicitDomain")).build();
+    auto classCountProp = IntPropertyBuilder("ClassCount", 1).setVisible(EvalValue("!$UseExplicitDimension")).build();
     objPtr.addProperty(classCountProp);
     objPtr.getOnPropertyValueWrite("ClassCount") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
@@ -71,14 +70,15 @@ void ClassifierFbImpl::propertyChanged(bool configure)
 
 void ClassifierFbImpl::readProperties()
 {
-    useExplicitDomain = objPtr.getPropertyValue("UseExplicitDomain");
-    explicitDimension =  objPtr.getPropertyValue("ExplcitDimension");
-    blockSizeMs = objPtr.getPropertyValue("BlockSizeMs");
+    useExplicitDomain = objPtr.getPropertyValue("UseExplicitDimension");
+    explicitDimension = objPtr.getPropertyValue("ExplicitDimension");
+    blockSize = objPtr.getPropertyValue("BlockSize");
     classCount = objPtr.getPropertyValue("ClassCount");
     outputName = static_cast<std::string>(objPtr.getPropertyValue("OutputName"));
 
-    assert(blockSizeMs > 0);
-    assert(classCount > 0);
+    assert(blockSize > 0);
+    if (!useExplicitDomain)
+        assert(classCount > 0);
 
 }
 
@@ -100,9 +100,15 @@ void ClassifierFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& i
 
 void ClassifierFbImpl::configure()
 {
-    if (!inputDataDescriptor.assigned() || !inputDomainDataDescriptor.assigned())
+    if (!inputDataDescriptor.assigned())
     {
-        LOG_D("Incomplete signal descriptors")
+        LOG_D("ClassifierFb: Incomplete input data signal descriptor")
+        return;
+    }
+
+    if (!inputDomainDataDescriptor.assigned())
+    {
+        LOG_D("ClassifierFb: Incomplete input domain signal descriptor")
         return;
     }
 
@@ -129,15 +135,26 @@ void ClassifierFbImpl::configure()
             throw std::runtime_error("Incompatible domain data sample type");
         }
 
-        const auto domainRule = inputDomainDataDescriptor.getRule();
-        if (domainRule.getType() != DataRuleType::Linear)
+        auto domainUnit = inputDomainDataDescriptor.getUnit();
+        if (domainUnit.getSymbol() != "s" && domainUnit.getSymbol() != "seconds")
         {
-            throw std::runtime_error("Domain rule type is not Linear");
+            throw std::runtime_error("Domain unit expected in seconds");
         }
 
-        const auto domainRuleParams = domainRule.getParameters();
+        const auto domainRule = inputDomainDataDescriptor.getRule();
+        domainLinear = domainRule.getType() == DataRuleType::Linear;
+        
+        if (domainLinear)
+        {
+            const auto domainRuleParams = domainRule.getParameters();
 
-        inputDeltaTicks = domainRuleParams.get("delta");
+            inputDeltaTicks = domainRuleParams.get("delta");
+            auto resolution = inputDomainDataDescriptor.getTickResolution();
+            // packets per second
+            linearBlockCount = resolution.getDenominator() / resolution.getNumerator() / inputDeltaTicks;
+            // packets per BlockSize
+            linearBlockCount = blockSize * linearBlockCount / 1000;
+        }
 
         auto outputDataDescriptorBuilder = DataDescriptorBuilder().setSampleType(SampleType::Float64);
         
@@ -167,7 +184,14 @@ void ClassifierFbImpl::configure()
         outputDataDescriptor = outputDataDescriptorBuilder.build();
         outputSignal.setDescriptor(outputDataDescriptor);
         
-        outputDomainDataDescriptor = DataDescriptorBuilderCopy(inputDomainDataDescriptor).setRule(ExplicitDataRule()).build();
+        if (domainLinear)
+        {
+            const auto domainRuleParams = domainRule.getParameters();
+            outputDomainDataDescriptor = DataDescriptorBuilderCopy(inputDomainDataDescriptor).setRule(LinearDataRule(static_cast<UInt>(linearBlockCount * inputDeltaTicks), domainRuleParams.get("start"))).build();
+        }
+        else
+            outputDomainDataDescriptor = DataDescriptorBuilderCopy(inputDomainDataDescriptor).setRule(ExplicitDataRule()).build();
+        
         outputDomainSignal.setDescriptor(outputDomainDataDescriptor);
     }
     catch (const std::exception& e)
@@ -176,7 +200,6 @@ void ClassifierFbImpl::configure()
         outputSignal.setDescriptor(nullptr);
     }
 }
-
 
 void ClassifierFbImpl::onPacketReceived(const InputPortPtr& port)
 {
@@ -221,17 +244,148 @@ void ClassifierFbImpl::processEventPacket(const EventPacketPtr& packet)
 
 inline UInt ClassifierFbImpl::timeMs(UInt time) 
 {
-    return time * inputDeltaTicks;
+    return time * 1000;
 }
 
 inline bool ClassifierFbImpl::timeInInterval(UInt startTime, UInt endTime) 
 {
-    return (endTime - startTime) < timeMs(blockSizeMs);
+    return (endTime - startTime) < timeMs(blockSize);
+}
+
+Int ClassifierFbImpl::binarySearch(float value, const ListPtr<IBaseObject>& labels) 
+{
+    // filter values
+    if (value < static_cast<Float>(labels[0]))
+        return -1;
+    else if (value > static_cast<Float>(labels[labels.getCount() - 1]))
+        return -1;
+
+    if (labels.getCount() == 1) 
+        return 0;
+
+    // binary search 
+    Int low = 0;
+    Int high = labels.getCount() - 1;
+
+    while (low <= high) 
+    {
+        Int mid = low + (high - low) / 2;
+
+        if (value >= static_cast<Float>(labels.getItemAt(mid)) && value < static_cast<Float>(labels.getItemAt(mid+1))) 
+            return mid;
+        else if (value < static_cast<Float>(labels.getItemAt(mid))) 
+            high = mid - 1;
+        else 
+            low = mid + 1;
+    }
+    return -1;
+}
+
+template <SampleType InputSampleType>
+void ClassifierFbImpl::processLinearDataPacket(const DataPacketPtr& packet)
+{
+    using InputType = typename SampleTypeToType<InputSampleType>::Type;
+    using OutputType = Float;
+    
+    if (linearBlockCount == 0)
+    {
+        LOG_D("blockSize is too small");
+        return;
+    }
+
+    // if packet does not have samples - ignore
+    if (packet.getSampleCount() == 0)
+        return;
+
+    packets.push_back(packet);
+    samplesInPacketList += packet.getSampleCount();
+
+    // initialize members
+    if (packetStarted == UInt{})
+    {
+        auto inputDomainData = static_cast<UInt*>(packet.getDomainPacket().getData());
+        packetStarted = inputDomainData[0];
+        lastReadSampleInBlock = 0;
+    }
+
+    size_t outputPackets = samplesInPacketList / linearBlockCount;
+    if (!outputPackets)
+        return;
+
+    auto labels = outputDataDescriptor.getDimensions()[0].getLabels();
+    if (labels.getCount() == 0) 
+        return;
+
+    DataPacketPtr outputDomainPacket {};
+    UInt* outputDomainData {};
+
+    DataPacketPtr outputPacket {};
+    OutputType* outputData {};
+
+    size_t packetValueCount = 0;
+
+    while (samplesInPacketList >= linearBlockCount) 
+    {
+        auto listPacket = packets.front();
+
+        auto sampleCnt = listPacket.getSampleCount();
+        auto inputData = static_cast<InputType*>(listPacket.getData());
+       
+        // reset array for new package
+        if (packetValueCount == 0)
+        {
+            outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1, packetStarted);
+            outputDomainData = static_cast<UInt*>(outputDomainPacket.getData());
+
+            outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
+            outputData = static_cast<OutputType*>(outputPacket.getData());
+            memset(outputData, 0, labels.getCount() * sizeof(OutputType));
+        }
+
+        size_t sampleIdx = lastReadSampleInBlock;
+        for (; sampleIdx < sampleCnt; sampleIdx++) 
+        {
+            if (packetValueCount == linearBlockCount)
+                break;
+    
+            packetValueCount++;
+
+            auto& rawData = inputData[sampleIdx];
+
+            auto idx = binarySearch(static_cast<Float>(rawData), labels);
+            if (idx != -1)
+                outputData[idx] += 1;
+        }
+
+        if (packetValueCount != linearBlockCount) 
+        {
+            lastReadSampleInBlock = 0;
+            packets.pop_front();
+        } 
+        else 
+        {
+            for (size_t i = 0; i < labels.getCount(); i++) 
+                outputData[i] /= packetValueCount;
+
+            outputSignal.sendPacket(outputPacket);
+            outputDomainSignal.sendPacket(outputDomainPacket);
+
+            lastReadSampleInBlock = sampleIdx;
+            packetValueCount = 0;
+            samplesInPacketList -= linearBlockCount;
+        }
+    }
 }
 
 template <SampleType InputSampleType>
 void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
 {
+    if (domainLinear)
+    {
+        processLinearDataPacket<InputSampleType>(packet);
+        return;
+    }
+
     using InputType = typename SampleTypeToType<InputSampleType>::Type;
     using OutputType = Float;
 
@@ -241,7 +395,7 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
 
     packets.push_back(packet);
 
-    size_t outputPackages = 0;
+    UInt outputPackets = 0;
     {
         auto inputDomainData = static_cast<UInt*>(packet.getDomainPacket().getData());
         UInt lastTime = inputDomainData[packet.getSampleCount() - 1];
@@ -250,28 +404,27 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
         if (packetStarted == UInt{})
         {
             packetStarted = inputDomainData[0];
-            sampleStarted = 0; 
+            lastReadSampleInBlock = 0; 
         }
 
-        outputPackages = (lastTime - packetStarted) / timeMs(blockSizeMs);
+        outputPackets = (lastTime - packetStarted) / timeMs(blockSize);
     }
 
-    if (!outputPackages)
+    if (!outputPackets)
         return;
 
-    auto outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1);
-    auto outputDomainData = static_cast<UInt*>(outputDomainPacket.getData());
-
-    DataPacketPtr outputPacket {};
-    OutputType* outputData {};
-
-    auto rangeSize = outputDataDescriptor.getDimensions()[0].getSize();
     auto labels = outputDataDescriptor.getDimensions()[0].getLabels();
     if (labels.getCount() == 0) 
         return;
 
-    size_t packageVals = 0;
-    while (outputPackages && packets.size()) 
+    DataPacketPtr outputDomainPacket {};
+    UInt* outputDomainData {};
+
+    DataPacketPtr outputPacket {};
+    OutputType* outputData {};
+
+    size_t packetValueCount = 0;
+    while (outputPackets && packets.size()) 
     {
         auto listPacket = packets.front();
 
@@ -280,79 +433,60 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
         auto inputDomainData = static_cast<UInt*>(listPacket.getDomainPacket().getData());
        
         // reset array for new package
-        if (packageVals == 0)
+        if (packetValueCount == 0)
         {
+            outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1);
+            outputDomainData = static_cast<UInt*>(outputDomainPacket.getData());
+
             outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
             outputData = static_cast<OutputType*>(outputPacket.getData());
-            memset(outputData, 0, rangeSize * sizeof(OutputType));
+            memset(outputData, 0, labels.getCount() * sizeof(OutputType));
         }
 
         bool packetInEpoch = timeInInterval(packetStarted, inputDomainData[sampleCnt - 1]);
 
-        size_t sampleIdx = sampleStarted;
+        size_t sampleIdx = lastReadSampleInBlock;
         for (; sampleIdx < sampleCnt; sampleIdx++) 
         {
             // if there are values from another interval - check each value
             if (!packetInEpoch && !timeInInterval(packetStarted, inputDomainData[sampleIdx]))
-                    break;
+                break;
 
             outputDomainData[0] = inputDomainData[sampleIdx];
-            packageVals++;
+            packetValueCount++;
 
             auto& rawData = inputData[sampleIdx];
 
-            // filter values
-            if (static_cast<Float>(rawData) < static_cast<Float>(labels[0]))
-                continue;
-            else if (static_cast<Float>(rawData) > static_cast<Float>(labels[rangeSize - 1]))
-                continue;
-
-            if (labels.getCount() == 1) 
-                outputData[0] += 1;
-            else 
-            {
-                // binary search 
-                size_t low = 0;
-                size_t high = labels.getCount() - 1;
-
-                while (low <= high) 
-                {
-                    size_t mid = low + (high - low) / 2;
-
-                    if (rawData >= static_cast<Float>(labels[mid]) && rawData < static_cast<Float>(labels[mid + 1])) 
-                    {
-                        outputData[mid] += 1;
-                        break;
-                    } 
-                    else if (rawData < static_cast<Float>(labels[mid])) 
-                        high = mid - 1;
-                    else 
-                        low = mid + 1;
-                }
-            }
+            auto idx = binarySearch(static_cast<Float>(rawData), labels);
+            if (idx != -1)
+                outputData[idx] += 1;
         }
 
         if (packetInEpoch) 
         {
-            sampleStarted = 0;
+            lastReadSampleInBlock = 0;
             packets.pop_front();
         } 
         else 
         {
-            packetStarted += timeMs(blockSizeMs);
-            
-            if (packageVals) 
+            packetStarted += timeMs(blockSize);
+
+            if (!packetValueCount) 
             {
-                for (size_t i = 0; i < rangeSize; i++) 
-                    outputData[i] /= packageVals;
-                 outputDomainData[0] = packetStarted;
+                if (outputDomainData)
+                    outputDomainData[0] = packetStarted;
+                packetValueCount = 1;   
             }
+
+            for (size_t i = 0; i < labels.getCount(); i++) 
+                outputData[i] /= packetValueCount;
+
             outputSignal.sendPacket(outputPacket);
             outputDomainSignal.sendPacket(outputDomainPacket);
 
-            sampleStarted = sampleIdx;
-            packageVals = 0;
-            outputPackages--;
+            lastReadSampleInBlock = sampleIdx;
+            packetValueCount = 0;
+            outputPackets--;
         }
     }
 }

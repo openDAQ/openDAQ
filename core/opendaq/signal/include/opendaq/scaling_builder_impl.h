@@ -47,6 +47,12 @@ public:
     ErrCode INTERFACE_FUNC setScalingType(ScalingType type) override;
     ErrCode INTERFACE_FUNC setParameters(IDict* parameters) override;
 
+    ErrCode INTERFACE_FUNC getInputDataType(SampleType* type) override;
+    ErrCode INTERFACE_FUNC getOutputDataType(ScaledSampleType* type) override;
+
+    ErrCode INTERFACE_FUNC getScalingType(ScalingType* type) override;
+    ErrCode INTERFACE_FUNC getParameters(IDict** parameters) override;
+
     ErrCode INTERFACE_FUNC addParameter(IString* name, IBaseObject* parameter) override;
     ErrCode INTERFACE_FUNC removeParameter(IString* name) override;
 

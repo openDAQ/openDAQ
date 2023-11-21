@@ -80,6 +80,38 @@ ErrCode ScalingBuilderImpl::setParameters(IDict* parameters)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ScalingBuilderImpl::getInputDataType(SampleType* type)
+{
+    OPENDAQ_PARAM_NOT_NULL(type);
+    
+    *type = this->inputDataType;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ScalingBuilderImpl::getOutputDataType(ScaledSampleType* type)
+{
+    OPENDAQ_PARAM_NOT_NULL(type);
+    
+    *type = this->outputDataType;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ScalingBuilderImpl::getScalingType(ScalingType* type)
+{
+    OPENDAQ_PARAM_NOT_NULL(type);
+    
+    *type = this->ruleType;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ScalingBuilderImpl::getParameters(IDict** parameters)
+{
+    OPENDAQ_PARAM_NOT_NULL(parameters);
+
+    *parameters = this->params;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode ScalingBuilderImpl::addParameter(IString* name, IBaseObject* parameter)
 {
     OPENDAQ_PARAM_NOT_NULL(name);

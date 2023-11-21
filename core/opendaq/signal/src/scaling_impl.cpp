@@ -42,6 +42,15 @@ ScalingImpl::ScalingImpl(NumberPtr scale, NumberPtr offset, SampleType inputType
 {
 }
 
+ScalingImpl::ScalingImpl(IScalingBuilder* scalingBuilder)
+    : ScalingImpl(
+        ScalingBuilderPtr(scalingBuilder).getInputDataType(),
+        ScalingBuilderPtr(scalingBuilder).getOutputDataType(),
+        ScalingBuilderPtr(scalingBuilder).getScalingType(),
+        ScalingBuilderPtr(scalingBuilder).getParameters())
+{
+}
+
 ErrCode ScalingImpl::getInputSampleType(SampleType* type)
 {
     if (!type)

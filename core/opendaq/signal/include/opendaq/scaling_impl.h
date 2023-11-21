@@ -19,6 +19,7 @@
 #include <opendaq/rule_private.h>
 #include <coretypes/struct_impl.h>
 #include <coretypes/dictobject_factory.h>
+#include <opendaq/scaling_builder_ptr.h>
 #include <opendaq/scaling_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -35,6 +36,8 @@ public:
                          NumberPtr offset,
                          SampleType inputType,
                          ScaledSampleType outputType);
+
+    explicit ScalingImpl(IScalingBuilder* scalingBuilder);
 
     ErrCode INTERFACE_FUNC getInputSampleType(SampleType* type) override;
     ErrCode INTERFACE_FUNC getOutputSampleType(ScaledSampleType* type) override;

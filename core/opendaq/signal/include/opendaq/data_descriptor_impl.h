@@ -24,6 +24,7 @@
 #include <opendaq/data_rule_calc_private.h>
 #include <opendaq/scaling_calc.h>
 #include <opendaq/data_rule_calc.h>
+#include <opendaq/data_descriptor_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,6 +32,7 @@ class DataDescriptorImpl : public GenericStructImpl<IDataDescriptor, IStruct, IS
 {
 public:
     explicit DataDescriptorImpl(const DictPtr<IString, IBaseObject>& descriptorParameters);
+    explicit DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBuilder);
 
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getDimensions(IList** dimensions) override;

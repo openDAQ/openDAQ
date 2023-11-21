@@ -143,6 +143,82 @@ ErrCode DataDescriptorBuilderImpl::setStructFields(IList* structFields)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode DataDescriptorBuilderImpl::getName(IString** name)
+{
+    OPENDAQ_PARAM_NOT_NULL(name);
+    *name = this->name;
+    return OPENDAQ_SUCCESS;
+}
+ErrCode DataDescriptorBuilderImpl::getDimensions(IList** dimensions)
+{
+    OPENDAQ_PARAM_NOT_NULL(dimensions);
+    *dimensions = this->dimensions;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getSampleType(SampleType* sampleType)
+{
+    OPENDAQ_PARAM_NOT_NULL(sampleType);
+    *sampleType = this->sampleType;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getUnit(IUnit** unit)
+{
+    OPENDAQ_PARAM_NOT_NULL(unit);
+    *unit = this->unit;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getValueRange(IRange** valueRange)
+{
+    OPENDAQ_PARAM_NOT_NULL(valueRange);
+    *valueRange = this->valueRange;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getRule(IDataRule** rule)
+{
+    OPENDAQ_PARAM_NOT_NULL(rule);
+    *rule = this->dataRule;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getOrigin(IString** origin)
+{
+    OPENDAQ_PARAM_NOT_NULL(origin);
+    *origin = this->origin;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getTickResolution(IRatio** tickResolution)
+{
+    OPENDAQ_PARAM_NOT_NULL(tickResolution);
+    *tickResolution = this->resolution;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getPostScaling(IScaling** scaling)
+{
+    OPENDAQ_PARAM_NOT_NULL(scaling);
+    *scaling = this->scaling;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getMetadata(IDict** metadata)
+{
+    OPENDAQ_PARAM_NOT_NULL(metadata);
+    *metadata = this->metadata;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getStructFields(IList** structFields)
+{
+    OPENDAQ_PARAM_NOT_NULL(structFields);
+    *structFields = this->structFields;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode DataDescriptorBuilderImpl::build(IDataDescriptor** dataDescriptor)
 {
     OPENDAQ_PARAM_NOT_NULL(dataDescriptor);

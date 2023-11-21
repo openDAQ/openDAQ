@@ -36,6 +36,26 @@ DataDescriptorImpl::DataDescriptorImpl(const DictPtr<IString, IBaseObject>& desc
     checkErrorInfo(validate());
 }
 
+DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBuilder)
+    : GenericStructImpl<IDataDescriptor, IStruct, IScalingCalcPrivate, IDataRuleCalcPrivate>(detail::dataDescriptorStructType, daq::DictPtr<daq::IString, daq::IBaseObject>{})
+{
+    const auto dataDescriptorBuilderPtr = DataDescriptorBuilderPtr(dataDescriptorBuilder);
+    this->dimensions = dataDescriptorBuilderPtr.getDimensions();
+    this->name = dataDescriptorBuilderPtr.getName();
+    this->sampleType = dataDescriptorBuilderPtr.getSampleType(); 
+    this->unit = dataDescriptorBuilderPtr.getUnit(); 
+    this->valueRange = dataDescriptorBuilderPtr.getValueRange(); 
+    this->dataRule = dataDescriptorBuilderPtr.getRule(); 
+    this->scaling = dataDescriptorBuilderPtr.getPostScaling(); 
+    this->origin = dataDescriptorBuilderPtr.getOrigin(); 
+    this->resolution = dataDescriptorBuilderPtr.getTickResolution(); 
+    this->structFields = dataDescriptorBuilderPtr.getStructFields(); 
+    this->metadata = dataDescriptorBuilderPtr.getMetadata(); 
+    this->scalingCalc = nullptr;
+    this->dataRuleCalc = nullptr;
+    checkErrorInfo(validate());
+}
+
 ErrCode DataDescriptorImpl::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);

@@ -136,6 +136,75 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptorBuilder, IBaseObject)
      * All objects in the metadata dictionary must be serializable.
      */
     virtual ErrCode INTERFACE_FUNC setMetadata(IDict* metadata) = 0;
+    
+    /*!
+     * @brief Gets a descriptive name for the signal's value.
+     * @param[out] name The name of the signal value.
+     */
+    virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
+
+    // [elementType(dimensions, IDimension)]
+    /*!
+     * @brief Gets the list of the descriptor's dimension's.
+     * @param[out] dimensions The list of dimensions.
+     */
+    virtual ErrCode INTERFACE_FUNC getDimensions(IList** dimensions) = 0;
+
+    /*!
+     * @brief Gets the descriptor's sample type.
+     * @param[out] sampleType The descriptor's sample type.
+     */
+    virtual ErrCode INTERFACE_FUNC getSampleType(SampleType* sampleType) = 0;
+
+    /*!
+     * @brief Gets the unit of the data in a signal's packets.
+     * @param[out] unit The unit specified by the descriptor.
+     */
+    virtual ErrCode INTERFACE_FUNC getUnit(IUnit** unit) = 0;
+
+    /*!
+     * @brief Gets the value range of the data in a signal's packets defining the lowest and highest expected values.
+     * @param[out] range The value range the signal's data.
+     */
+    virtual ErrCode INTERFACE_FUNC getValueRange(IRange** range) = 0;
+
+    /*!
+     * @brief Gets the value Data rule.
+     * @param[out] rule The value Data rule.
+     */
+    virtual ErrCode INTERFACE_FUNC getRule(IDataRule** rule) = 0;
+
+    /*!
+     * @brief Gets the absolute origin of a signal value component.
+     * @param[out] origin The absolute origin.
+     */
+    virtual ErrCode INTERFACE_FUNC getOrigin(IString** origin) = 0;
+
+    /*!
+     * @brief Gets the Resolution which scales the an explicit or implicit value to the physical unit defined in `unit`.
+     * @param[out] tickResolution The Resolution.
+     */
+    virtual ErrCode INTERFACE_FUNC getTickResolution(IRatio** tickResolution) = 0;
+
+    /*!
+     * @brief Gets the scaling rule that needs to be applied to explicit/implicit data by readers.
+     * @param[out] scaling The scaling rule.
+     */
+    virtual ErrCode INTERFACE_FUNC getPostScaling(IScaling** scaling) = 0;
+
+    // [elementType(structFields, IDataDescriptor)]
+    /*!
+     * @brief Gets the fields of the struct, forming a recursive value descriptor definition.
+     * @param[out] structFields The list of data descriptors forming the struct fields.
+     */
+    virtual ErrCode INTERFACE_FUNC getStructFields(IList** structFields) = 0;
+
+    // [templateType(metadata, IString, IString)]
+    /*!
+     * @brief Gets any extra metadata defined by the data descriptor.
+     * @param[out] metadata Additional metadata of the descriptor as a dictionary.
+     */
+    virtual ErrCode INTERFACE_FUNC getMetadata(IDict** metadata) = 0;
 
     /*!
      * @brief Builds and returns a Data descriptor object using the currently set values of the Builder.

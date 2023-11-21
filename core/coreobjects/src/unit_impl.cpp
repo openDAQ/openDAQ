@@ -24,14 +24,14 @@ UnitImpl::UnitImpl(DictPtr<IString, IBaseObject> buildParams)
 {
 }
 
-UnitImpl::UnitImpl(UnitBuilderPtr & unitBuilder) 
+UnitImpl::UnitImpl(IUnitBuilder* unitBuilder) 
     : GenericStructImpl<IUnit, IStruct>(
         detail::unitStructType,
         Dict<IString, IBaseObject>(
-            {{"id", unitBuilder.getId()}, 
-            {"symbol", unitBuilder.getSymbol()}, 
-            {"name", unitBuilder.getName()}, 
-            {"quantity",  unitBuilder.getQuantity()}}))
+            {{"id", UnitBuilderPtr(unitBuilder).getId()}, 
+            {"symbol", UnitBuilderPtr(unitBuilder).getSymbol()}, 
+            {"name", UnitBuilderPtr(unitBuilder).getName()}, 
+            {"quantity",  UnitBuilderPtr(unitBuilder).getQuantity()}}))
 {
 }
 

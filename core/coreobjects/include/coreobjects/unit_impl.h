@@ -28,7 +28,7 @@ class UnitImpl : public GenericStructImpl<IUnit, IStruct>
 public:
     explicit UnitImpl(Int id, StringPtr symbol, StringPtr name, StringPtr quantity);
     explicit UnitImpl(DictPtr<IString, IBaseObject> buildParams);
-    explicit UnitImpl(UnitBuilderPtr & unitBuilder);
+    explicit UnitImpl(IUnitBuilder* unitBuilder);
 
     ErrCode INTERFACE_FUNC getId(Int* id) override;
     ErrCode INTERFACE_FUNC getSymbol(IString** symbol) override;

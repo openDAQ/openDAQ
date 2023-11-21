@@ -294,6 +294,159 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC getValueType(CoreType* type) override
+    {
+        if (!type)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *type = this->valueType;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getName(IString** name) override
+    {
+        if (!name)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *name = this->name;
+        return OPENDAQ_SUCCESS;
+    }
+    
+    ErrCode INTERFACE_FUNC getDescription(IString** description) override
+    {
+        if (!description)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *description = this->description;
+        return OPENDAQ_SUCCESS;
+    }
+    
+    ErrCode INTERFACE_FUNC getUnit(IUnit** unit) override
+    {
+        if (!unit)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *unit = this->unit;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getMinValue(INumber** min) override
+    {
+        if (!min)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *min = this->minValue;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getMaxValue(INumber** max) override
+    {
+        if (!max)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *max = this->maxValue;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getDefaultValue(IBaseObject** value) override
+    {
+        if (!value)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *value = this->defaultValue;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getSuggestedValues(IList** values) override
+    {
+        if (!values)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *values = this->suggestedValues;
+        return OPENDAQ_SUCCESS;
+    }
+    
+    ErrCode INTERFACE_FUNC getVisible(IBoolean** visible) override
+    {
+        if (!visible)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *visible = this->visible;
+        return OPENDAQ_SUCCESS;
+    }
+    
+    ErrCode INTERFACE_FUNC getReadOnly(IBoolean** readOnly) override
+    {
+        if (!readOnly)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *readOnly = this->readOnly;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getSelectionValues(IBaseObject** values) override
+    {
+        if (!values)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+        
+        *values = this->selectionValues;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getReferencedProperty(IEvalValue** propertyEval) override
+    {
+        if (!propertyEval)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *propertyEval = this->refProp;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getValidator(IValidator** validator) override
+    {
+        if (!validator)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *validator = this->validator;
+        return OPENDAQ_SUCCESS;
+    }
+    
+    ErrCode INTERFACE_FUNC getCoercer(ICoercer** coercer) override
+    {
+        if (!coercer)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *coercer = this->coercer;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getCallableInfo(ICallableInfo** callable) override
+    {
+        if (!callable)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *callable = this->callableInfo;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IEvent** event) override
+    {
+        if (!event)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *event = this->onValueWrite;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event) override
+    {
+        if (!event)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *event = this->onValueRead;
+        return OPENDAQ_SUCCESS;
+    }
+
     ErrCode INTERFACE_FUNC build(IProperty** property) override
     {
         if (property == nullptr)

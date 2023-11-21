@@ -28,6 +28,7 @@
 #include <coreobjects/property_ptr.h>
 #include <coreobjects/serialization_utils.h>
 #include <coreobjects/unit_ptr.h>
+#include <coreobjects/property_builder_ptr.h>
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
 #include <iostream>
@@ -108,6 +109,33 @@ public:
         this->onValueWrite = buildParamsPtr.get("onValueWrite");
         this->onValueRead = buildParamsPtr.get("onValueRead");
         
+        propPtr = this->borrowPtr<PropertyPtr>();
+        owner = nullptr;
+
+        checkErrorInfo(validateDuringConstruction());
+    }
+
+    PropertyImpl(IPropertyBuilder* propertyBuilder)
+    {
+        const auto propertyBuilderPtr = PropertyBuilderPtr(propertyBuilder);
+        this->valueType = propertyBuilderPtr.getValueType();
+        this->name = propertyBuilderPtr.getName();
+        this->description = propertyBuilderPtr.getDescription();
+        this->unit = propertyBuilderPtr.getUnit();
+        this->minValue = propertyBuilderPtr.getMinValue();
+        this->maxValue = propertyBuilderPtr.getMaxValue();
+        this->defaultValue = propertyBuilderPtr.getDefaultValue();
+        this->visible = propertyBuilderPtr.getVisible();
+        this->readOnly = propertyBuilderPtr.getReadOnly();
+        this->selectionValues = propertyBuilderPtr.getSelectionValues();
+        this->suggestedValues = propertyBuilderPtr.getSuggestedValues();
+        this->refProp = propertyBuilderPtr.getReferencedProperty();
+        this->coercer = propertyBuilderPtr.getCoercer();
+        this->validator = propertyBuilderPtr.getValidator();
+        this->callableInfo = propertyBuilderPtr.getCallableInfo();
+        this->onValueWrite = EventEmitter(propertyBuilderPtr.getOnPropertyValueWrite());
+        this->onValueRead = EventEmitter(propertyBuilderPtr.getOnPropertyValueRead());
+
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
 

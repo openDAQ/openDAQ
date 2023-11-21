@@ -31,23 +31,23 @@ ClassifierFbImpl::ClassifierFbImpl(const ContextPtr& ctx, const ComponentPtr& pa
 
 void ClassifierFbImpl::initProperties()
 {
-    objPtr.addProperty(BoolPropertyBuilder("UseExplicitDimension", false)
+    objPtr.addProperty(BoolPropertyBuilder("UseCustomClasses", false)
         .setDescription("Choose classification based on input signal min max with step of ClassCount or custom marks").build());
-    objPtr.getOnPropertyValueWrite("UseExplicitDimension") +=
+    objPtr.getOnPropertyValueWrite("UseCustomClasses") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    auto explcitDimensionProp = ListPropertyBuilder("ExplicitDimension", List<Float>()).setVisible(EvalValue("$UseExplicitDimension"))
+    auto explcitDimensionProp = ListPropertyBuilder("CustomClassList", List<Float>()).setVisible(EvalValue("$UseCustomClasses"))
         .setDescription("Set custom list for classification rule").build();
     objPtr.addProperty(explcitDimensionProp);
-    objPtr.getOnPropertyValueWrite("ExplicitDimension") +=
+    objPtr.getOnPropertyValueWrite("CustomClassList") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    auto blockSizeProp = IntPropertyBuilder("BlockSize", 1).setVisible(EvalValue("!$UseExplicitDimension")).setUnit(Unit("ms")).build();
+    auto blockSizeProp = IntPropertyBuilder("BlockSize", 1).setVisible(EvalValue("!$UseCustomClasses")).setUnit(Unit("ms")).build();
     objPtr.addProperty(blockSizeProp);
     objPtr.getOnPropertyValueWrite("BlockSize") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    auto classCountProp = IntPropertyBuilder("ClassCount", 1).setVisible(EvalValue("!$UseExplicitDimension")).build();
+    auto classCountProp = IntPropertyBuilder("ClassCount", 1).setVisible(EvalValue("!$UseCustomClasses")).build();
     objPtr.addProperty(classCountProp);
     objPtr.getOnPropertyValueWrite("ClassCount") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
@@ -85,8 +85,8 @@ void ClassifierFbImpl::propertyChanged(bool configure)
 
 void ClassifierFbImpl::readProperties()
 {
-    useExplicitDomain = objPtr.getPropertyValue("UseExplicitDimension");
-    explicitDimension = objPtr.getPropertyValue("ExplicitDimension");
+    useCustomClasses = objPtr.getPropertyValue("UseCustomClasses");
+    customClassList = objPtr.getPropertyValue("CustomClassList");
     blockSize = objPtr.getPropertyValue("BlockSize");
     classCount = objPtr.getPropertyValue("ClassCount");
     useCustomInputRange = objPtr.getPropertyValue("UseCustomInputRange");
@@ -95,7 +95,7 @@ void ClassifierFbImpl::readProperties()
     outputName = static_cast<std::string>(objPtr.getPropertyValue("OutputName"));
 
     assert(blockSize > 0);
-    if (!useExplicitDomain)
+    if (!useCustomClasses)
         assert(classCount > 0);
 
 }
@@ -161,15 +161,19 @@ void ClassifierFbImpl::configure()
 
         const auto domainRule = inputDomainDataDescriptor.getRule();
         domainLinear = domainRule.getType() == DataRuleType::Linear;
+
+        {
+            auto resolution = inputDomainDataDescriptor.getTickResolution();
+            inputResolution = resolution.getDenominator() / resolution.getNumerator();
+        }
         
         if (domainLinear)
         {
             const auto domainRuleParams = domainRule.getParameters();
 
             inputDeltaTicks = domainRuleParams.get("delta");
-            auto resolution = inputDomainDataDescriptor.getTickResolution();
             // packets per second
-            linearBlockCount = resolution.getDenominator() / resolution.getNumerator() / inputDeltaTicks;
+            linearBlockCount = inputResolution / inputDeltaTicks;
             // packets per BlockSize
             linearBlockCount = blockSize * linearBlockCount / 1000;
         }
@@ -177,8 +181,8 @@ void ClassifierFbImpl::configure()
         auto outputDataDescriptorBuilder = DataDescriptorBuilder().setSampleType(SampleType::Float64);
         
         auto dimensions = List<IDimension>();
-        if (useExplicitDomain) 
-            dimensions.pushBack(Dimension(ListDimensionRule(explicitDimension)));
+        if (useCustomClasses) 
+            dimensions.pushBack(Dimension(ListDimensionRule(customClassList)));
         else 
         {
             if (!useCustomInputRange)
@@ -244,7 +248,14 @@ void ClassifierFbImpl::onPacketReceived(const InputPortPtr& port)
                 break;
 
             case PacketType::Data:
-                SAMPLE_TYPE_DISPATCH(inputSampleType, processDataPacket, packet);
+                if (domainLinear)
+                {
+                    SAMPLE_TYPE_DISPATCH(inputSampleType, processLinearDataPacket, packet);
+                }
+                else
+                {
+                    SAMPLE_TYPE_DISPATCH(inputSampleType, processDataPacket, packet);
+                }
                 break;
 
             default:
@@ -267,12 +278,12 @@ void ClassifierFbImpl::processEventPacket(const EventPacketPtr& packet)
 
 inline UInt ClassifierFbImpl::timeMs(UInt time) 
 {
-    return time * 1000;
+    return time * 1000 / inputResolution;
 }
 
 inline bool ClassifierFbImpl::timeInInterval(UInt startTime, UInt endTime) 
 {
-    return (endTime - startTime) < timeMs(blockSize);
+    return timeMs(endTime - startTime) < blockSize;
 }
 
 Int ClassifierFbImpl::binarySearch(float value, const ListPtr<IBaseObject>& labels) 
@@ -401,12 +412,6 @@ void ClassifierFbImpl::processLinearDataPacket(const DataPacketPtr& packet)
 template <SampleType InputSampleType>
 void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
 {
-    if (domainLinear)
-    {
-        processLinearDataPacket<InputSampleType>(packet);
-        return;
-    }
-
     using InputType = typename SampleTypeToType<InputSampleType>::Type;
     using OutputType = Float;
 
@@ -428,7 +433,7 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
             lastReadSampleInBlock = 0; 
         }
 
-        outputPackets = (lastTime - packetStarted) / timeMs(blockSize);
+        outputPackets = timeMs(lastTime - packetStarted) / blockSize;
     }
 
     if (!outputPackets)
@@ -490,7 +495,7 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
         } 
         else 
         {
-            packetStarted += timeMs(blockSize);
+            packetStarted += blockSize * inputResolution / 1000;
 
             if (!packetValueCount) 
             {

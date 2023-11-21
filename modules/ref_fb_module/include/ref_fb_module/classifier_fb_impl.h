@@ -58,14 +58,15 @@ private:
     size_t blockSize;
     size_t classCount;
     Float inputDeltaTicks;
+    Float inputResolution;
 
     bool useCustomInputRange;
     Float inputHighValue;
     Float inputLowValue;
     std::string outputName;
 
-    bool useExplicitDomain;
-    ListPtr<Float> explicitDimension;
+    bool useCustomClasses;
+    ListPtr<Float> customClassList;
 
     UInt packetStarted {};
     size_t lastReadSampleInBlock {};

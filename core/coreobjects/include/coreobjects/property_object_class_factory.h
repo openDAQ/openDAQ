@@ -57,6 +57,16 @@ inline PropertyObjectClassPtr PropertyObjectClassFromBuildParams(const DictPtr<I
     return obj;
 }
 
+/*!
+ * @brief Creates a PropertyObjectClass using Builder
+ * @param builder PropertyObjectClass Builder
+ */
+inline PropertyObjectClassPtr PropertyObjectClassFromBuilder(const PropertyObjectClassBuilderPtr& builder)
+{
+    PropertyObjectClassPtr obj(PropertyObjectClassFromBuilder_Create(builder));
+    return obj;
+}
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

@@ -458,6 +458,16 @@ inline PropertyPtr PropertyFromBuildParams(const DictPtr<IString, IBaseObject>& 
     return obj;
 }
 
+/*!
+ * @brief Creates a Property using Builder
+ * @param builder Property Builder
+ */
+inline PropertyPtr PropertyFromBuilder(const PropertyBuilderPtr& builder)
+{
+    PropertyPtr obj(PropertyFromBuilder_Create(builder));
+    return obj;
+}
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

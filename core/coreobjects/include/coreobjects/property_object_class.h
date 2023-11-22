@@ -21,6 +21,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IPropertyObjectClassBuilder;
+
 /*!
  * @ingroup objects_property_object
  * @addtogroup objects_property_object_class PropertyObjectClass
@@ -91,6 +93,15 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClass, IType)
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, PropertyObjectClassFromBuildParams, IPropertyObjectClass,
     IDict*, buildParams
+)
+
+/*!
+ * @brief Creates a PropertyObjectClass using Builder
+ * @param builder PropertyObjectClass Builder
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, PropertyObjectClassFromBuilder, IPropertyObjectClass,
+    IPropertyObjectClassBuilder*, builder
 )
 
 END_NAMESPACE_OPENDAQ

@@ -62,6 +62,16 @@ inline DataDescriptorPtr DataDescriptor(const DictPtr<IString, IBaseObject>& des
 }
 
 /*!
+ * @brief Creates a DataDescriptor using Builder
+ * @param builder DataDescriptor Builder
+ */
+inline DataDescriptorPtr DataDescriptorFromBuilder(const DataDescriptorBuilderPtr& builder)
+{
+    DataDescriptorPtr obj(DataDescriptorFromBuilder_Create(builder));
+    return obj;
+}
+
+/*!
  * @brief Creates the Struct type object that defines the Data descriptor struct.
  */
 inline StructTypePtr DataDescriptorStructType()

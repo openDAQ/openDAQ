@@ -25,6 +25,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 struct IPropertyObject;
 struct IEvalValue;
+struct IPropertyBuilder;
 
 /*!
  * @ingroup objects_property
@@ -603,6 +604,15 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, PropertyFromBuildParams, IProperty,
     IDict*, buildParams
+)
+
+/*!
+ * @brief Creates a Property using Builder
+ * @param builder Property Builder
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, PropertyFromBuilder, IProperty,
+    IPropertyBuilder*, builder
 )
 
 END_NAMESPACE_OPENDAQ

@@ -21,6 +21,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IDimensionBuilder;
 /*#
  * [interfaceLibrary(IUnit, CoreObjects)]
  */
@@ -117,6 +118,15 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IDimensionRule*, rule,
     IUnit*, unit,
     IString*, name
+)
+
+/*!
+ * @brief Creates a Dimension using Builder
+ * @param builder Dimension Builder
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, DimensionFromBuilder, IDimension,
+    IDimensionBuilder*, builder
 )
 
 /*!@}*/

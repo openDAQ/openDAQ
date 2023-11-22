@@ -26,6 +26,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IDataDescriptorBuilder;
+
 /*#
  * [interfaceLibrary(INumber, CoreTypes)]
  * [interfaceLibrary(IUnit, CoreObjects)]
@@ -225,6 +227,15 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptor, IBaseObject)
  * @param descriptorParameters Dictionary of build parameters such as the Name and Dimensions.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, DataDescriptor, IDataDescriptor, IDict*, descriptorParameters)
+
+/*!
+ * @brief Creates a DataDescriptor using Builder
+ * @param builder DataDescriptor Builder
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, DataDescriptorFromBuilder, IDataDescriptor,
+    IDataDescriptorBuilder*, builder
+)
 
 /*!@}*/
 

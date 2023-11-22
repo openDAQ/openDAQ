@@ -121,6 +121,16 @@ inline StructTypePtr DimensionRuleStructType()
                       List<IType>(SimpleType(ctInt), SimpleType(ctDict)));
 }
 
+/*!
+ * @brief Creates a DimensionRule using Builder
+ * @param builder DimensionRule Builder
+ */
+inline DimensionRulePtr DimensionRuleFromBuilder(const DimensionRuleBuilderPtr& builder)
+{
+    DimensionRulePtr obj(DimensionRuleFromBuilder_Create(builder));
+    return obj;
+}
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

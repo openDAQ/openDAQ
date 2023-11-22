@@ -21,6 +21,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IScalingBuilder;
+
 /*!
  * @ingroup opendaq_data_descriptor
  * @addtogroup opendaq_scaling Scaling
@@ -136,6 +138,16 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     ScaledSampleType, outputDataType,
     ScalingType, scalingType,
     IDict*, parameters
+)
+
+/*!
+ * @brief Creates a Scaling object from Builder
+ *
+ * @param builder Scaling Builder
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, ScalingFromBuilder, IScaling,
+    IScalingBuilder*, builder
 )
 
 /*!@}*/

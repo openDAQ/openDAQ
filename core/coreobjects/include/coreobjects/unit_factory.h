@@ -43,6 +43,16 @@ inline UnitPtr Unit(const StringPtr& symbol, const Int id = -1, const StringPtr&
 }
 
 /*!
+ * @brief Creates a Unit with Builder
+ * @param builder Unit Builder
+ */
+inline UnitPtr UnitFromBuilder(const UnitBuilderPtr& builder)
+{
+    UnitPtr obj(UnitFromBuilder_Create(builder));
+    return obj;
+}
+
+/*!
  * @brief Creates a UnitBuilder with no parameters configured.
  */
 inline UnitBuilderPtr UnitBuilder()

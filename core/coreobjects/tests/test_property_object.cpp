@@ -1559,3 +1559,56 @@ TEST_F(PropertyObjectTest, UpdateOrder)
 
     ASSERT_THAT(readProps, testing::ElementsAre("Prop1", "Prop2"));
 }
+
+TEST_F(PropertyObjectTest, BeginEndUpdate)
+{
+    const auto propObj = PropertyObject();
+
+    auto endUpdateCalled = false;
+
+    propObj.getOnEndUpdate() += [&endUpdateCalled](PropertyObjectPtr&, EndUpdateEventArgsPtr& args)
+    {
+        ASSERT_THAT(args.getProperties(), testing::ElementsAre("Prop1", "Prop2", "Prop3"));
+        endUpdateCalled = true;
+    };
+
+    propObj.addProperty(StringProperty("Prop1", "-"));
+    auto propValueWriteCalled = false;
+    propObj.getOnPropertyValueWrite("Prop1") += [&propValueWriteCalled](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getPropertyEventType(), PropertyEventType::Update);
+        ASSERT_TRUE(args.getIsUpdating());
+        ASSERT_EQ(args.getValue(), "Value1");
+
+        args.setValue("Value1_1");
+
+        propValueWriteCalled = true;
+    };
+
+    propObj.addProperty(StringProperty("Prop2", "-"));
+
+    propObj.addProperty(StringProperty("Prop3", "-"));
+    propObj.setPropertyValue("Prop3", "Value3");
+
+    propObj.beginUpdate();
+
+    propObj.setPropertyValue("Prop1", "Value1");
+    propObj.setPropertyValue("Prop2", "Value2");
+    propObj.clearPropertyValue("Prop3");
+
+    ASSERT_EQ(propObj.getPropertyValue("Prop1"), "-");
+    ASSERT_EQ(propObj.getPropertyValue("Prop2"), "-");
+    ASSERT_EQ(propObj.getPropertyValue("Prop3"), "Value3");
+
+    ASSERT_FALSE(propValueWriteCalled);
+    ASSERT_FALSE(endUpdateCalled);
+
+    propObj.endUpdate();
+
+    ASSERT_TRUE(propValueWriteCalled);
+    ASSERT_TRUE(endUpdateCalled);
+
+    ASSERT_EQ(propObj.getPropertyValue("Prop1"), "Value1_1");
+    ASSERT_EQ(propObj.getPropertyValue("Prop2"), "Value2");
+    ASSERT_EQ(propObj.getPropertyValue("Prop3"), "-");
+}

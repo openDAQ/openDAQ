@@ -133,6 +133,8 @@ ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverCo
     OPENDAQ_PARAM_NOT_NULL(serverTypeId);
     OPENDAQ_PARAM_NOT_NULL(server);
 
+    auto typeId = toStdString(serverTypeId);
+
     for (const auto module : moduleManager.getModules())
     {
         DictPtr<IString, IServerType> serverTypes;
@@ -148,13 +150,11 @@ ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverCo
         if (!serverTypes.assigned())
             continue;
 
-        auto typeId = toStdString(serverTypeId);
-
         for (const auto& [id, serverType] : serverTypes)
         {
             if (id == typeId)
             {
-                // Use root device instead of BluberryInstance(this) to prevent cycling reference.
+                // Use root device instead of Instance(this) to prevent cycling reference.
                 auto createdServer = module.createServer(typeId, rootDevice, serverConfig);
 
                 std::scoped_lock lock(configSync);
@@ -657,6 +657,21 @@ ErrCode InstanceImpl::getOnPropertyValueWrite(IString* propertyName, IEvent** ev
 ErrCode InstanceImpl::getOnPropertyValueRead(IString* propertyName, IEvent** event)
 {
     return rootDevice->getOnPropertyValueRead(propertyName, event);
+}
+
+ErrCode InstanceImpl::beginUpdate()
+{
+    return rootDevice->beginUpdate();
+}
+
+ErrCode InstanceImpl::endUpdate()
+{
+    return rootDevice->endUpdate();
+}
+
+ErrCode InstanceImpl::getOnEndUpdate(IEvent** event)
+{
+    return rootDevice->endUpdate();
 }
 
 ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)

@@ -21,7 +21,7 @@
 #include <coreobjects/property_object_class_builder_ptr.h>
 #include <coreobjects/property_ptr.h>
 #include <coretypes/type_manager_ptr.h>
-#include <coreobjects/string_keys.h>
+#include <coreobjects/object_keys.h>
 #include <tsl/ordered_map.h>
 #include <vector>
 

@@ -21,7 +21,7 @@
 #include <coretypes/impl.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
-#include <coreobjects/string_keys.h>
+#include <coreobjects/object_keys.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <coretypes/validation.h>
 #include <opendaq/streaming_private.h>

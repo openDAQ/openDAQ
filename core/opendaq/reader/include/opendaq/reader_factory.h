@@ -307,6 +307,18 @@ MultiReaderPtr MultiReader(ListPtr<ISignal> signals, ReadMode mode, ReadTimeoutT
     );
 }
 
+template <typename TDomainType = ClockTick>
+MultiReaderPtr MultiReaderRaw(ListPtr<ISignal> signals, ReadTimeoutType timeoutType = ReadTimeoutType::All)
+{
+    return MultiReader(
+        signals,
+        SampleType::Undefined,
+        SampleTypeFromType<TDomainType>::SampleType,
+        ReadMode::RawValue,
+        timeoutType
+    );
+}
+
 template <typename TValueType = double, typename TDomainType = ClockTick>
 MultiReaderPtr MultiReaderFromExisting(MultiReaderPtr invalidatedReader)
 {

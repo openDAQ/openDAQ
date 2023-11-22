@@ -24,7 +24,7 @@
       <Item Name="name">name</Item>
       <Item Name="active">active</Item>
       <Item Name="public">isPublic</Item>
-      <Item Name="descriptor">signalDescriptor</Item>
+      <Item Name="descriptor">dataDescriptor</Item>
       <Item Name="domain">domainSignal</Item>
       <Item Name="connections">connections</Item>
       <Item Name="relatedSignals">relatedSignals</Item>
@@ -63,7 +63,7 @@
       <Item Name="descriptor">descriptor</Item>
       <Item Name="sampleCount">sampleCount</Item>
       <Item Name="offset" Condition="offset.object != nullptr">offset</Item>
-      <Item Name="offset" Condition="offset.object == nullptr">empty</Item>
+      <Item Name="offset" Condition="offset.object == nullptr">"empty",sb</Item>
       <Item Name="sampleMemSize">sampleMemSize</Item>
       <Item Name="data">data</Item>
       <Item Name="scaledData">scaledData</Item>
@@ -74,11 +74,9 @@
     </Expand>
   </Type>
   <Type Name="daq::DataDescriptorImpl">
-    <DisplayString Condition="frozen == true">{{ DataDescriptor: {name} [Frozen] &lt;{refCount}&gt; }}</DisplayString>
-    <DisplayString Condition="frozen == false">{{ DataDescriptor: {name} &lt;{refCount}&gt; }}</DisplayString>
+    <DisplayString>{{ DataDescriptor: {name} &lt;{refCount}&gt; }}</DisplayString>
     <Expand>
       <Item Name="[refCount]">refCount</Item>
-      <Item Name="[frozen]">frozen</Item>
       <Item Name="name">name</Item>
       <Item Name="dimensions">dimensions</Item>
       <Item Name="sampleType">sampleType</Item>
@@ -93,11 +91,9 @@
     </Expand>
   </Type>
   <Type Name="daq::DataRuleImpl">
-    <DisplayString Condition="frozen == true">{{ DataRule: {ruleType} [Frozen] &lt;{refCount}&gt; }}</DisplayString>
-    <DisplayString Condition="frozen == false">{{ DataDescriptor: {ruleType} &lt;{refCount}&gt; }}</DisplayString>
+    <DisplayString>{{ DataDescriptor: {ruleType} &lt;{refCount}&gt; }}</DisplayString>
     <Expand>
       <Item Name="[refCount]">refCount</Item>
-      <Item Name="[frozen]">frozen</Item>
       <Item Name="type">ruleType</Item>
       <Item Name="params">params</Item>
     </Expand>
@@ -143,17 +139,6 @@
       <Item Name="inputType">inputDataType</Item>
       <Item Name="outputType">outputDataType</Item>
       <Item Name="params">params</Item>
-    </Expand>
-  </Type>
-  <Type Name="daq::UnitImpl">
-    <DisplayString Condition="frozen == true">{{ Unit: {name} / {symbol} [Frozen] }}</DisplayString>
-    <DisplayString Condition="frozen == false">{{ Unit: {name} / {symbol} }}</DisplayString>
-    <Expand>
-      <Item Name="[refCount]">refCount</Item>
-      <Item Name="[frozen]">frozen</Item>
-      <Item Name="symbol">symbol</Item>
-      <Item Name="name">name,sb</Item>
-      <Item Name="quantity">quantity</Item>
     </Expand>
   </Type>
 </AutoVisualizer>

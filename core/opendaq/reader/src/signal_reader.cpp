@@ -13,7 +13,7 @@ SignalReader::SignalReader(const InputPortConfigPtr& port,
                            ReadMode mode,
                            const LoggerComponentPtr& logger)
     : loggerComponent(logger)
-    , valueReader(createReaderForType(valueReadType, nullptr))
+    , valueReader(createReaderForType(mode == ReadMode::RawValue ? SampleType::Undefined : valueReadType, nullptr))
     , domainReader(createReaderForType(domainReadType, nullptr))
     , port(port)
     , connection(port.getConnection())
@@ -28,7 +28,8 @@ SignalReader::SignalReader(const SignalReader& old,
                            SampleType valueReadType,
                            SampleType domainReadType)
     : loggerComponent(old.loggerComponent)
-    , valueReader(createReaderForType(valueReadType, old.valueReader->getTransformFunction()))
+    , valueReader(createReaderForType(old.readMode == ReadMode::RawValue ? SampleType::Undefined : valueReadType,
+                                      old.valueReader->getTransformFunction()))
     , domainReader(createReaderForType(domainReadType, old.domainReader->getTransformFunction()))
     , port(old.port)
     , connection(port.getConnection())
@@ -48,7 +49,7 @@ SignalReader::SignalReader(const SignalInfo& old,
                            SampleType valueReadType,
                            SampleType domainReadType)
     : loggerComponent(old.loggerComponent)
-    , valueReader(createReaderForType(valueReadType, old.valueTransformFunction))
+    , valueReader(createReaderForType(old.readMode == ReadMode::RawValue ? SampleType::Undefined : valueReadType, old.valueTransformFunction))
     , domainReader(createReaderForType(domainReadType, old.domainTransformFunction))
     , port(old.port)
     , connection(port.getConnection())
@@ -134,6 +135,11 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
     auto params = eventPacket.getParameters();
     DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
     DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+
+    if (newValueDescriptor.assigned() && valueReader->getReadType() == SampleType::Undefined)
+    {
+        valueReader = createReaderForType(newValueDescriptor.getSampleType(), valueReader->getTransformFunction());
+    }
     
     invalid = !valueReader->handleDescriptorChanged(newValueDescriptor);
     auto validDomain = domainReader->handleDescriptorChanged(newDomainDescriptor);
@@ -371,7 +377,8 @@ void* SignalReader::getValuePacketData(const DataPacketPtr& packet) const
 {
     switch (readMode)
     {
-        case ReadMode::Raw:
+        case ReadMode::RawValue:
+        case ReadMode::Unscaled:
             return packet.getRawData();
         case ReadMode::Scaled:
             return packet.getData();

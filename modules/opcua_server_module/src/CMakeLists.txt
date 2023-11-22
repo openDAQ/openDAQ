@@ -25,6 +25,7 @@ source_group("module" FILES ${MODULE_HEADERS_DIR}/opcua_server_module_impl.h
 
 add_library(${LIB_NAME} SHARED ${SRC_Include}
                                ${SRC_Srcs}
+                               opcua_server.natvis
 )
 
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})

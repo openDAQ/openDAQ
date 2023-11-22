@@ -3,6 +3,7 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/create_device.h>
 #include <boost/algorithm/string.hpp>
+#include <future>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -148,12 +149,37 @@ void ClientImpl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
 {
     auto availableDevices = List<IDeviceInfo>();
+
+    using AsyncEnumerationResult = std::future<ListPtr<IDeviceInfo>>;
+    std::vector<std::pair<AsyncEnumerationResult, ModulePtr>> enumerationResults;
+
     for (const auto module : manager.getModules())
     {
-        ListPtr<IDeviceInfo> moduleAvailableDevices;
         try
         {
-            moduleAvailableDevices = module.getAvailableDevices();
+            // Parallelize the process of each module enumerating/discovering available devices,
+            // as it may be time-consuming
+            AsyncEnumerationResult deviceListFuture =
+                std::async([module = module]()
+                           {
+                               return module.getAvailableDevices();
+                           });
+            enumerationResults.push_back(std::make_pair(std::move(deviceListFuture), module));
+        }
+        catch (const std::exception& e)
+        {
+            LOG_E("Failed to run device enumeration asynchronously within the module: {}. Result {}",
+                  module.getName(), e.what())
+        }
+    }
+
+    for (auto& enumerationResult : enumerationResults)
+    {
+        ListPtr<IDeviceInfo> moduleAvailableDevices;
+        auto module = enumerationResult.second;
+        try
+        {
+            moduleAvailableDevices = enumerationResult.first.get();
         }
         catch (NotImplementedException&)
         {

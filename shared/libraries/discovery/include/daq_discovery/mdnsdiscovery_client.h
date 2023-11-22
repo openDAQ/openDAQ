@@ -492,6 +492,8 @@ inline int MDNSDiscoveryClient::queryCallback(int sock,
 
 inline void MDNSDiscoveryClient::sendMdnsQuery()
 {
+    std::chrono::steady_clock::time_point queryingStarted = std::chrono::steady_clock::now();
+
     constexpr int maxSockets = 32;
     std::vector<int> sockets;
     openClientSockets(sockets, maxSockets);
@@ -575,9 +577,23 @@ inline void MDNSDiscoveryClient::sendMdnsQuery()
     int res;
     do
     {
+        std::chrono::microseconds elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now() - queryingStarted
+        );
+        std::chrono::microseconds timeoutDuration;
+        if (discoveryDuration > elapsedTime)
+        {
+            timeoutDuration =
+                std::chrono::duration_cast<std::chrono::microseconds>(discoveryDuration) - elapsedTime;
+        }
+        else
+        {
+            break;
+        }
+
         timeval timeout;
-        timeout.tv_sec = 2;
-        timeout.tv_usec = 0;
+        timeout.tv_sec = 0;
+        timeout.tv_usec = timeoutDuration.count();
 
         int nfds = 0;
         fd_set readfs;

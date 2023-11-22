@@ -34,6 +34,7 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
     , lastCollectTime(0)
     , samplesGenerated(0)
     , re(std::random_device()())
+    , needsSignalTypeChanged(false)
 {
     initProperties();
     waveformChangedInternal();
@@ -41,6 +42,14 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
     resetCounter();
     createSignals();
     buildSignalDescriptors();
+}
+
+void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
+{
+    if (!args.getIsUpdating())
+        signalTypeChanged();
+    else
+        needsSignalTypeChanged = true;
 }
 
 void RefChannelImpl::initProperties()
@@ -90,8 +99,8 @@ void RefChannelImpl::initProperties()
     const auto useGlobalSampleRateProp = BoolProperty("UseGlobalSampleRate", True);
 
     objPtr.addProperty(useGlobalSampleRateProp);
-    objPtr.getOnPropertyValueWrite("NoiseAmplitude") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChanged(); };
+    objPtr.getOnPropertyValueWrite("UseGlobalSampleRate") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChangedIfNotUpdating(args); };
 
     const auto sampleRateProp = FloatPropertyBuilder("SampleRate", 100.0)
                                     .setVisible(EvalValue("!$UseGlobalSampleRate"))
@@ -104,25 +113,17 @@ void RefChannelImpl::initProperties()
     objPtr.addProperty(sampleRateProp);
     objPtr.getOnPropertyValueWrite("SampleRate") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
     {
-        double sr = args.getValue();
         if (args.getPropertyEventType() == PropertyEventType::Update)
         {
-            sr = this->coerceSampleRate(sr);
-            args.setValue(sr);
-        }
-        else
-        {
-            sr = objPtr.getPropertyValue("SampleRate");
+            double sr = args.getValue();
+            auto coercedSr = this->coerceSampleRate(sr);
+            if (coercedSr != sr)
+                args.setValue(coercedSr);
         }
 
-        if (!objPtr.getPropertyValue("UseGlobalSampleRate"))
-        {
-            std::scoped_lock lock(sync);
-            sampleRate = sr;
-            buildSignalDescriptors();
-            updateSamplesGenerated();
-        }
+        signalTypeChangedIfNotUpdating(args);
     };
+
     objPtr.getOnPropertyValueRead("SampleRate") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
     {
         if (objPtr.getPropertyValue("UseGlobalSampleRate"))
@@ -139,8 +140,7 @@ void RefChannelImpl::initProperties()
     const auto clientSideScalingProp = BoolProperty("ClientSideScaling", False);
 
     objPtr.addProperty(clientSideScalingProp);
-    objPtr.getOnPropertyValueWrite("ClientSideScaling") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChanged(); };
+    objPtr.getOnPropertyValueWrite("ClientSideScaling") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChangedIfNotUpdating(args); };
 
     const auto testReadOnlyProp = BoolPropertyBuilder("TestReadOnly", False).setReadOnly(True).build();
     objPtr.addProperty(testReadOnlyProp);
@@ -149,7 +149,7 @@ void RefChannelImpl::initProperties()
     const auto defaultCustomRange = Range(-10.0, 10.0);
     objPtr.addProperty(StructPropertyBuilder("CustomRange", defaultCustomRange).build());
     objPtr.getOnPropertyValueWrite("CustomRange") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChanged(); };
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChangedIfNotUpdating(args); };
 }
 
 void RefChannelImpl::waveformChangedInternal()
@@ -377,6 +377,17 @@ std::string RefChannelImpl::getEpoch()
 RatioPtr RefChannelImpl::getResolution()
 {
     return Ratio(1, 1000000);
+}
+
+void RefChannelImpl::updatingValuesWrite(const UpdatingActions& propsAndValues)
+{
+    ChannelImpl<IRefChannel>::updatingValuesWrite(propsAndValues);
+
+    if (needsSignalTypeChanged)
+    {
+        signalTypeChanged();
+        needsSignalTypeChanged = false;
+    }
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

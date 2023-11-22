@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright 2022-2023 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -288,6 +288,38 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * kept in insertion order at the end of the Property object's list of properties.
      */
     virtual ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) = 0;
+
+    /*!
+     * @brief Begins batch configuration of the object.
+     *
+     * Batched configuration is used to apply several settings at once. To begin batch configuration, call `beginUpdate`.
+     * When the `setPropertyValue` is called on the object, the changes are not immediately applied to it. When `endUpdate`
+     * is called, the property values set between the `beginUpdate` and `endUpdate` method calls are
+     * applied. It triggers the ˙OnPropertyWriteEvent` for each property value set, and the `OnEndUpdate` event.
+     */
+    virtual ErrCode INTERFACE_FUNC beginUpdate() = 0;
+
+    /*!
+     * @brief Ends batch configuration of the object.
+     *
+     * Batched configuration is used to apply several settings at once. To begin batch configuration, call `beginUpdate`.
+     * When the `setPropertyValue` is called on the object, the changes are not immediately applied to it. When `endUpdate`
+     * is called, the property values set between the `beginUpdate` and `endUpdate` method calls are
+     * applied. It triggers the ˙OnPropertyWriteEvent` for each property value set, and the `OnEndUpdate` event.
+     */
+    virtual ErrCode INTERFACE_FUNC endUpdate() = 0;
+
+    // [templateType(event, IPropertyObject, IEndUpdateEventArgs)]
+    /*!
+     * @brief Gets the Event that is triggered whenever the batch configuration is applied.
+     * @param[out] event The Event.
+     *
+     * A handler can be added to the event containing a callback function which is invoked whenever the event is triggered.
+     * The callback function requires one parameter - a "End update value event args" object.
+     * The callback will be invoked with the batch configuration is applied, i.e. from the `endUpdate` method. The first argument
+     * holds an event args object that contains a list of properties updated.
+     */
+    virtual ErrCode INTERFACE_FUNC getOnEndUpdate(IEvent** event) = 0;
 };
 
 /*!@}*/

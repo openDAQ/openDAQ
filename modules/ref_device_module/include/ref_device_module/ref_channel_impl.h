@@ -49,6 +49,8 @@ public:
     void globalSampleRateChanged(double newGlobalSampleRate) override;
     static std::string getEpoch();
     static RatioPtr getResolution();
+protected:
+    void updatingValuesWrite(const UpdatingActions& propsAndValues) override;
 private:
     WaveformType waveformType;
     double freq;
@@ -70,6 +72,7 @@ private:
     std::normal_distribution<double> dist;
     SignalConfigPtr valueSignal;
     SignalConfigPtr timeSignal;
+    bool needsSignalTypeChanged;
 
     void initProperties();
     void waveformChanged();
@@ -84,6 +87,7 @@ private:
     [[nodiscard]] Int getDeltaT(const double sr) const;
     void buildSignalDescriptors();
     [[nodiscard]] double coerceSampleRate(const double wantedSampleRate) const;
+    void signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args);
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

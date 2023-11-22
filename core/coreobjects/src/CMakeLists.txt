@@ -23,6 +23,7 @@ rtgen(SRC_Property property.h)
 rtgen(SRC_PropertyInternal property_internal.h)
 rtgen(SRC_PropertyBuilder property_builder.h)
 rtgen(SRC_PropertyValueEventArgs property_value_event_args.h)
+rtgen(SRC_EndUpdateEventArgs end_update_event_args.h)
 rtgen(SRC_PropertyObject property_object.h)
 rtgen(SRC_PropertyObjectInternal property_object_internal.h)
 rtgen(SRC_PropertyObjectClass property_object_class.h)
@@ -85,7 +86,7 @@ source_group("property" FILES ${SDK_HEADERS_DIR}/property.h
 source_group("property_object" FILES ${SDK_HEADERS_DIR}/property_object.h
                                      ${SDK_HEADERS_DIR}/property_object_factory.h
                                      ${SDK_HEADERS_DIR}/property_object_impl.h
-                                     ${SDK_HEADERS_DIR}/string_keys.h
+                                     ${SDK_HEADERS_DIR}/object_keys.h
                                      ${SDK_HEADERS_DIR}/property_object_ptr.custom.h
                                      ${SDK_HEADERS_DIR}/property_object_protected.h
                                      ${SDK_HEADERS_DIR}/property_object_internal.h
@@ -106,6 +107,12 @@ source_group("property_value" FILES ${SDK_HEADERS_DIR}/property_value.h
                                     ${SDK_HEADERS_DIR}/property_value_event_args_factory.h
                                     ${SDK_HEADERS_DIR}/property_value_event_args_impl.h
                                     property_value_event_args_impl.cpp
+)
+
+source_group("end_update_event_args" FILES ${SDK_HEADERS_DIR}/end_update_event_args.h
+                                           ${SDK_HEADERS_DIR}/end_update_event_args_factory.h
+                                           ${SDK_HEADERS_DIR}/end_update_event_args_impl.h
+                                           end_update_event_args_impl.cpp
 )
 
 source_group("owning_containers" FILES ${SDK_HEADERS_DIR}/owning_dict_factory.h
@@ -140,6 +147,7 @@ set(SRC_Cpp version.cpp
             property_object_class_impl.cpp
             property_object_class_builder_impl.cpp
             property_value_event_args_impl.cpp
+            end_update_event_args_impl.cpp
             owning_list_impl.cpp
             owning_dict_impl.cpp
             callable_info_impl.cpp
@@ -152,7 +160,7 @@ set(SRC_Cpp version.cpp
 )
 
 set(SRC_PublicHeaders coreobjects.h
-                      string_keys.h
+                      object_keys.h
                       version.h
                       serialization_utils.h
                       eval_value_factory.h
@@ -161,6 +169,7 @@ set(SRC_PublicHeaders coreobjects.h
                       property_ptr.fwd_declare.h
                       property_impl.h
                       property_value_event_args_factory.h
+                      end_update_event_args_factory.h
                       property_object_impl.h
                       property_object_factory.h
                       property_object_class_factory.h
@@ -191,6 +200,7 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        callable_info_impl.h
                        argument_info_impl.h
                        property_value_event_args_impl.h
+                       end_update_event_args_impl.h
                        validator_impl.h
                        coercer_impl.h
                        unit_impl.h
@@ -217,6 +227,7 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_EvalValue}
                                ${SRC_DelphiBindings}
                                ${SRC_PropertyValueEventArgs}
+                               ${SRC_EndUpdateEventArgs}
                                ${SRC_CallableInfo}
                                ${SRC_ArgumentInfo}
                                ${SRC_Validator}

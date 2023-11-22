@@ -131,6 +131,37 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRenderer)
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
 
+TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererInUpdate)
+{
+    const auto instance = Instance();
+
+    const auto device = instance.addDevice("daqref://device1");
+    device.setPropertyValue("GlobalSampleRate", 25.0);
+
+    const auto deviceChannel0 = device.getChannels()[0];
+
+    ASSERT_FLOAT_EQ(deviceChannel0.getPropertyValue("SampleRate"), 25.0);
+
+    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+
+    const auto deviceSignal0_0 = deviceChannel0.getSignals()[0];
+    const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
+    rendererInputPort0.connect(deviceSignal0_0);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
+    deviceChannel0.beginUpdate();
+    deviceChannel0.setPropertyValue("UseGlobalSampleRate", False);
+    deviceChannel0.setPropertyValue("SampleRate", 50.0);
+    deviceChannel0.setPropertyValue("ClientSideScaling", True);
+    deviceChannel0.setPropertyValue("CustomRange", Range(-5.0, 5.0));
+    ASSERT_FLOAT_EQ(deviceChannel0.getPropertyValue("SampleRate"), 25.0);
+    deviceChannel0.endUpdate();
+    ASSERT_FLOAT_EQ(deviceChannel0.getPropertyValue("SampleRate"), 50.0);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+}
+
 TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRenderer)
 {
     const auto instance = Instance();

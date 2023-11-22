@@ -19,7 +19,7 @@
 #include <string>
 #include <variant>
 #include <vector>
-
+#include <cstdint>
 
 struct EvalValueToken
 {

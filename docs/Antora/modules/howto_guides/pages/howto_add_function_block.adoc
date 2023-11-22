@@ -44,8 +44,7 @@ Python::
 +
 [source,python]
 ----
-function_block_types = instance.available_function_block_types
-for function_block_type in function_block_types.keys():
+for function_block_type in instance.available_function_block_types:
     print(function_block_type)
 ----
 ====
@@ -68,7 +67,7 @@ Python::
 +
 [source,python]
 ----
-function_block = instance.add_function_block("ref_fb_module_statistics")
+function_block = instance.add_function_block('ref_fb_module_statistics')
 ----
 ====
 
@@ -161,15 +160,16 @@ device = instance.add_device('daqref://device0')
 
 # get available function block types
 function_block_types = instance.available_function_block_types
-for function_block_type in function_block_types.keys():
+for function_block_type in function_block_types:
     print(function_block_type)
 
 # if there is no statistics function block available, exit with an error
-if not "ref_fb_module_statistics" in function_block_types.keys():
-    self.assertTrue(False, "Function block not found")
+if 'ref_fb_module_statistics' not in function_block_types:
+    print('Function block not found')
+    exit(1)
 
 # add function block on the host computer
-function_block = instance.add_function_block("ref_fb_module_statistics")
+function_block = instance.add_function_block('ref_fb_module_statistics')
 
 # print function block type info
 function_block_type = function_block.function_block_type

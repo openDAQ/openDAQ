@@ -1,12 +1,12 @@
 = Building openDAQ(TM) from source
 
-In this guide, we go through the motions of building and installing openDAQ(TM) from source. While this guide
-uses Visual Studio as the Windows CMake generator, and Ninja as the Linux generator, you can use different
-ones depending on your set-up and development environment.
+IMPORTANT: Building openDAQ(TM) from source is meant for advanced users. We recommend for anyone new to openDAQ(TM)
+to start out by downloading the pre-build binary packages as described in the
+xref:quick_start_setting_up_cpp.adoc[Setting up ({cpp})] and xref:quick_start_setting_up_python.adoc[Setting up (Python)] guides instead.
 
-Note that building openDAQ(TM) from source is meant for advanced users. We recommend for anyone new to openDAQ(TM)
-to start out by downloading the binary packages, and following the
-Setting up (xref:quick_start_setting_up_cpp.adoc[{cpp}]/xref:quick_start_setting_up_python.adoc[Python]) guide.
+While this guide uses Visual Studio as the Windows CMake generator, and Ninja
+as the Linux generator, you can use different ones depending on your set-up and
+development environment.
 
 == Building openDAQ(TM)
 

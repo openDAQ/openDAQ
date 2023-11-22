@@ -34,6 +34,11 @@ public:
     ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC setUnit(IUnit* unit) override;
     ErrCode INTERFACE_FUNC setRule(IDimensionRule* rule) override;
+
+    ErrCode INTERFACE_FUNC getName(IString** name) override;
+    ErrCode INTERFACE_FUNC getUnit(IUnit** unit) override;
+    ErrCode INTERFACE_FUNC getRule(IDimensionRule** rule) override;
+
     ErrCode INTERFACE_FUNC build(IDimension** dimension) override;
 
 private:

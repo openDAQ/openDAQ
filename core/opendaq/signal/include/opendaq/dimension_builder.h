@@ -63,6 +63,24 @@ DECLARE_OPENDAQ_INTERFACE(IDimensionBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setRule(IDimensionRule* rule) = 0;
 
     /*!
+     * @brief Gets the name of the dimension.
+     * @param name The name of the dimension.
+     */
+    virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
+
+    /*!
+     * @brief Gets the unit of the dimension's labels.
+     * @param unit The unit of the dimension.
+     */  
+    virtual ErrCode INTERFACE_FUNC getUnit(IUnit** unit) = 0;
+
+    /*!
+     * @brief Gets the rule that defines the labels and size of the dimension.
+     * @param rule The dimension rule.
+     */
+    virtual ErrCode INTERFACE_FUNC getRule(IDimensionRule** rule) = 0;
+
+    /*!
      * @brief Builds and returns a Dimension object using the currently set values of the Builder.
      * @param[out] dimension The built Dimension.
      */

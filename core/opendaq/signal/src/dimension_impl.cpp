@@ -32,6 +32,14 @@ DimensionImpl::DimensionImpl(const DimensionRulePtr& rule, const UnitPtr& unit, 
         throw ConfigurationIncompleteException{"Dimension rule is not assigned."};
 }
 
+DimensionImpl::DimensionImpl(IDimensionBuilder* dimensionBuilder)
+    :DimensionImpl(
+        DimensionBuilderPtr(dimensionBuilder).getRule(), 
+        DimensionBuilderPtr(dimensionBuilder).getUnit(), 
+        DimensionBuilderPtr(dimensionBuilder).getName())
+{
+}
+
 
 ErrCode DimensionImpl::getName(IString** name)
 {

@@ -19,6 +19,7 @@
 #include <coreobjects/unit_ptr.h>
 #include <opendaq/dimension_rule_ptr.h>
 #include <coretypes/struct_impl.h>
+#include <opendaq/dimension_builder.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -28,6 +29,8 @@ public:
     explicit DimensionImpl(const DimensionRulePtr& rule,
                            const UnitPtr& unit,
                            const StringPtr& name);
+
+    explicit DimensionImpl(IDimensionBuilder* dimensionBuilder);
 
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getSize(SizeT* size) override;

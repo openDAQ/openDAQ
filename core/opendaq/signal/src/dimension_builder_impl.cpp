@@ -39,6 +39,30 @@ ErrCode DimensionBuilderImpl::setRule(IDimensionRule* rule)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode DimensionBuilderImpl::getName(IString** name)
+{
+    OPENDAQ_PARAM_NOT_NULL(name);
+
+    *name = this->name;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DimensionBuilderImpl::getUnit(IUnit** unit)
+{
+    OPENDAQ_PARAM_NOT_NULL(unit);
+
+    *unit = this->unit;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DimensionBuilderImpl::getRule(IDimensionRule** rule)
+{
+    OPENDAQ_PARAM_NOT_NULL(rule);
+
+    *rule = this->rule;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode DimensionBuilderImpl::build(IDimension** dimension)
 {
     OPENDAQ_PARAM_NOT_NULL(dimension);

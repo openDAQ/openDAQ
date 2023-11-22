@@ -4,9 +4,6 @@ To start working with openDAQ(TM), the requisite binaries are required. They can
 at {docs-website}[the openDAQ(TM) documentation and releases webpage]. The binaries are currently available
 for Windows and Ubuntu (20.04 or newer).
 
-NOTE: While openDAQ(TM) can be xref:quick_start_building_opendaq.adoc[built from source],  we recommend using the pre-compiled
-binaries for new users.
-
 [tabs]
 ====
 Windows::

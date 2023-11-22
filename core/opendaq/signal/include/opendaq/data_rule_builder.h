@@ -48,14 +48,14 @@ DECLARE_OPENDAQ_INTERFACE(IDataRuleBuilder, IBaseObject)
 
     /*!
      * @brief Gets the type of the data rule.
-     * @param type The type of the data rule.
+     * @param[out] type The type of the data rule.
      */
     virtual ErrCode INTERFACE_FUNC getType(DataRuleType* type) = 0;
 
     // [templateType(parameters, IString, IBaseObject)]
     /*!
      * @brief Gets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.
-     * @param parameters The dictionary containing the rule parameter members.
+     * @param[out] parameters The dictionary containing the rule parameter members.
      */
     virtual ErrCode INTERFACE_FUNC getParameters(IDict** parameters) = 0;
 

@@ -24,6 +24,23 @@ PropertyObjectClassImpl::PropertyObjectClassImpl(const DictPtr<IString, IBaseObj
         this->customOrder.push_back(name);
 }
 
+PropertyObjectClassImpl::PropertyObjectClassImpl(IPropertyObjectClassBuilder* builder)
+{
+    const auto builderPtr = PropertyObjectClassBuilderPtr(builder);
+    this->name = builderPtr.getName();
+    this->parent = builderPtr.getParentName();
+    this->manager = builderPtr.getManager();
+
+    const DictPtr<IString, IProperty> props = builderPtr.getProperties();
+    for (const auto& [name, prop] : props)
+        this->props.insert(std::make_pair(name, prop));
+
+    const ListPtr<IString> customOrder = builderPtr.getPropertyOrder();
+    for (const auto& name : customOrder)
+        this->customOrder.push_back(name);
+}
+
+
 ErrCode PropertyObjectClassImpl::getName(IString** typeName)
 {
     if (typeName == nullptr)

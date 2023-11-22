@@ -87,6 +87,56 @@ ErrCode PropertyObjectClassBuilderImpl::setPropertyOrder(IList* orderedPropertyN
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode PropertyObjectClassBuilderImpl::getName(IString** className)
+{
+    if (!className)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *className = this->name;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PropertyObjectClassBuilderImpl::getParentName(IString** parentName)
+{
+    if (!parentName)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *parentName = this->parent;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PropertyObjectClassBuilderImpl::getProperties(IDict** properties)
+{
+    if (!properties)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *properties = this->props;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PropertyObjectClassBuilderImpl::getPropertyOrder(IList** orderedPropertyNames)
+{
+    if (!orderedPropertyNames)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *orderedPropertyNames = this->customOrder;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PropertyObjectClassBuilderImpl::getManager(ITypeManager** manager)
+{
+    if (!manager)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    if (this->manager.assigned() && this->manager.getRef().assigned())
+    {    
+       *manager = this->manager.getRef();
+       return OPENDAQ_SUCCESS;
+    }
+
+    return OPENDAQ_ERR_ARGUMENT_NULL;
+}
+
 ErrCode PropertyObjectClassBuilderImpl::build(IPropertyObjectClass** propertyObjectClass)
 {
     if (propertyObjectClass == nullptr)

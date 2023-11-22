@@ -26,6 +26,9 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
+/*#
+ * [interfaceLibrary(ITypeManager, CoreTypes)]
+ */
 /*!
  * @brief The builder interface of Property object classes. Allows for their modification and building of
  * Property object classes.
@@ -78,6 +81,38 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
      * kept in insertion order at the end of the class's list of properties.
      */
     virtual ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) = 0;
+
+    /*!
+     * @brief Gets the name of the property class.
+     * @param[out] className The name of the class.
+     */
+    virtual ErrCode INTERFACE_FUNC getName(IString** className) = 0;
+    
+    /*!
+     * @brief Gets the name of the parent of the property class.
+     * @param[out] parentName The parent class's name.
+     */
+    virtual ErrCode INTERFACE_FUNC getParentName(IString** parentName) = 0;
+
+    // [templateType(properties, IString, IProperty)]
+    /*!
+     * @brief Gets the dictonary of properties
+     * @param[out] properties dictonary of properties
+     */
+    virtual ErrCode INTERFACE_FUNC getProperties(IDict** properties) = 0;
+
+    // [elementType(orderedPropertyNames, IString)]
+    /*!
+     * @brief Gets a custom order of properties as defined in the list of property names.
+     * @param[out] orderedPropertyNames A list of names of properties. The order of the list is applied to the class's properties.
+     */
+    virtual ErrCode INTERFACE_FUNC getPropertyOrder(IList** orderedPropertyNames) = 0;
+
+    /*!
+     * @brief Gets a manager
+     * @param[out] manager ITypeManager
+     */
+    virtual ErrCode INTERFACE_FUNC getManager(ITypeManager** manager) = 0;
 
     /*!
      * @brief Builds and returns a Property object class using the currently set values of the Builder.

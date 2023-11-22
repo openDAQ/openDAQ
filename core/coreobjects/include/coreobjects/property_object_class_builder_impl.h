@@ -35,6 +35,13 @@ public:
     ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
     ErrCode INTERFACE_FUNC removeProperty(IString* propertyName) override;
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
+
+    ErrCode INTERFACE_FUNC getName(IString** className) override;
+    ErrCode INTERFACE_FUNC getParentName(IString** parentName) override;
+    ErrCode INTERFACE_FUNC getProperties(IDict** properties) override;
+    ErrCode INTERFACE_FUNC getPropertyOrder(IList** orderedPropertyNames) override;
+    ErrCode INTERFACE_FUNC getManager(ITypeManager** manager) override;
+
     ErrCode INTERFACE_FUNC build(IPropertyObjectClass** propertyObjectClass) override;
 
 private:

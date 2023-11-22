@@ -33,7 +33,12 @@ class ChannelImpl : public FunctionBlockImpl<IChannel, Interfaces...>
 public:
     using Self = ChannelImpl<Interfaces...>;
 
-    explicit ChannelImpl(const FunctionBlockTypePtr& fbType, const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className = nullptr);
+    explicit ChannelImpl(const FunctionBlockTypePtr& fbType,
+                         const ContextPtr& context,
+                         const ComponentPtr& parent,
+                         const StringPtr& localId,
+                         const StringPtr& className = nullptr,
+                         ComponentStandardProps propsMode = ComponentStandardProps::Add);
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -43,8 +48,13 @@ public:
 };
 
 template <typename... Interfaces>
-ChannelImpl<Interfaces...>::ChannelImpl(const FunctionBlockTypePtr& fbType, const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className)
-    : FunctionBlockImpl<IChannel, Interfaces...>(fbType, context, parent, localId, className)
+ChannelImpl<Interfaces...>::ChannelImpl(const FunctionBlockTypePtr& fbType,
+                                        const ContextPtr& context,
+                                        const ComponentPtr& parent,
+                                        const StringPtr& localId,
+                                        const StringPtr& className,
+                                        const ComponentStandardProps propsMode)
+    : FunctionBlockImpl<IChannel, Interfaces...>(fbType, context, parent, localId, className, propsMode)
 {
 }
 

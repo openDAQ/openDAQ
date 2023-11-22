@@ -42,7 +42,8 @@ public:
                       const ContextPtr& context,
                       const ComponentPtr& parent,
                       const StringPtr& localId,
-                      const StringPtr& className = nullptr);
+                      const StringPtr& className = nullptr,
+                      ComponentStandardProps propsMode = ComponentStandardProps::Add);
 
     ErrCode INTERFACE_FUNC getFunctionBlockType(IFunctionBlockType** type) override;
 
@@ -96,13 +97,14 @@ FunctionBlockImpl<TInterface, Interfaces...>::FunctionBlockImpl(const FunctionBl
                                                                 const ContextPtr& context,
                                                                 const ComponentPtr& parent,
                                                                 const StringPtr& localId,
-                                                                const StringPtr& className)
-    : Super(context, parent, localId, className)
+                                                                const StringPtr& className,
+                                                                const ComponentStandardProps propsMode)
+    : Super(context, parent, localId, className, propsMode)
     , type(type)
     , loggerComponent(this->context.getLogger().assigned() ? this->context.getLogger().getOrAddComponent(this->globalId)
                                                            : throw ArgumentNullException("Logger must not be null"))
 {
-    inputPorts = this->template addFolder<IInputPort>("IP");
+    inputPorts = this->template addFolder<IInputPort>("IP", nullptr, ComponentStandardProps::Skip);
 }
 
 template <typename TInterface, typename... Interfaces>

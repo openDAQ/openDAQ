@@ -374,7 +374,7 @@ template class TmsClientPropertyObjectBaseImpl<IoFolderImpl>;
 template class TmsClientPropertyObjectBaseImpl<Device>;
 template class TmsClientPropertyObjectBaseImpl<FunctionBlock>;
 template class TmsClientPropertyObjectBaseImpl<Channel>;
-template class TmsClientPropertyObjectBaseImpl<MirroredSignal<SignalStandardProps::Skip>>;
+template class TmsClientPropertyObjectBaseImpl<MirroredSignal>;
 template class TmsClientPropertyObjectBaseImpl<InputPortImpl>;
 template class TmsClientPropertyObjectBaseImpl<StreamingInfoConfigImpl>;
 

@@ -52,7 +52,11 @@ public:
     using Super = SignalContainerImpl<TInterface, IDeviceDomain, IDevicePrivate, Interfaces...>;
     using Self = GenericDevice<TInterface, Interfaces...>;
 
-    GenericDevice(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className = nullptr);
+    GenericDevice(const ContextPtr& ctx,
+                  const ComponentPtr& parent,
+                  const StringPtr& localId,
+                  const StringPtr& className = nullptr,
+                  ComponentStandardProps propsMode = ComponentStandardProps::Add);
 
     virtual DeviceInfoPtr onGetInfo() = 0;
 
@@ -128,7 +132,9 @@ protected:
     void addSubDevice(const DevicePtr& device);
     void removeSubDevice(const DevicePtr& device);
 
-    IoFolderConfigPtr addIoFolder(const std::string& localId, const IoFolderConfigPtr& parent = nullptr);
+    IoFolderConfigPtr addIoFolder(const std::string& localId,
+                                  const IoFolderConfigPtr& parent = nullptr,
+                                  ComponentStandardProps standardPropsConfig = ComponentStandardProps::Add);
 
     void serializeCustomObjectValues(const SerializerPtr& serializer) override;
     void deserializeFunctionBlock(const std::string& fbId,
@@ -149,14 +155,15 @@ template <typename TInterface, typename... Interfaces>
 GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
                                                         const ComponentPtr& parent,
                                                         const StringPtr& localId,
-                                                        const StringPtr& className)
-    : Super(ctx, parent, localId, className)
+                                                        const StringPtr& className,
+                                                        const ComponentStandardProps propsMode)
+    : Super(ctx, parent, localId, className, propsMode)
     , loggerComponent(this->context.getLogger().assigned() ? this->context.getLogger().getOrAddComponent(this->globalId)
                                                            : throw ArgumentNullException("Logger must not be null"))
 
 {
-    devices = this->template addFolder<IDevice>("Dev");
-    ioFolder = this->addIoFolder("IO");
+    devices = this->template addFolder<IDevice>("Dev", nullptr, ComponentStandardProps::Skip);
+    ioFolder = this->addIoFolder("IO", nullptr, ComponentStandardProps::Skip);
 
     this->defaultComponents.insert("Dev");
     this->defaultComponents.insert("IO");
@@ -680,18 +687,20 @@ void GenericDevice<TInterface, Interfaces...>::removeSubDevice(const DevicePtr& 
 }
 
 template <typename TInterface, typename... Interfaces>
-inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(const std::string& localId, const IoFolderConfigPtr& parent)
+inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(const std::string& localId,
+                                                                               const IoFolderConfigPtr& parent,
+                                                                               const ComponentStandardProps standardPropsConfig)
 {
     if (!parent.assigned())
     {
         this->validateComponentNotExists(localId);
 
-        auto folder = IoFolder(this->context, this->template thisPtr<ComponentPtr>(), localId);
+        auto folder = IoFolder(this->context, this->template thisPtr<ComponentPtr>(), localId, standardPropsConfig);
         this->components.push_back(folder);
         return folder;
     }
 
-    auto folder = IoFolder(this->context, parent, localId);
+    auto folder = IoFolder(this->context, parent, localId, standardPropsConfig);
     parent.addItem(folder);
     return folder;
 }

@@ -3,8 +3,12 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-IoFolderImpl::IoFolderImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
-    : Super(context, parent, localId)
+IoFolderImpl::IoFolderImpl(const ContextPtr& context,
+                           const ComponentPtr& parent,
+                           const StringPtr& localId,
+                           const StringPtr& className,
+                           const ComponentStandardProps propsMode)
+    : Super(context, parent, localId, className, propsMode)
 {
 }
 
@@ -36,9 +40,26 @@ bool IoFolderImpl::addItemInternal(const ComponentPtr& component)
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, IoFolder, IFolderConfig, 
+    LIBRARY_FACTORY, IoFolder, IFolderConfig,
     IContext*, context,
     IComponent*, parent,
     IString*, localId)
+
+#if !defined(BUILDING_STATIC_LIBRARY)
+extern "C" daq::ErrCode PUBLIC_EXPORT createIoFolderWithDefaultPropertyMode(IFolderConfig** objTmp,
+                                                                            IContext* context,
+                                                                            IComponent* parent,
+                                                                            IString* localId,
+                                                                            Int propertyMode)
+{
+    return daq::createObject<IFolderConfig, IoFolderImpl, IContext*, IComponent*, IString*, IString*, ComponentStandardProps>(
+        objTmp,
+        context,
+        parent,
+        localId,
+        nullptr,
+        static_cast<ComponentStandardProps>(propertyMode));
+}
+#endif
 
 END_NAMESPACE_OPENDAQ

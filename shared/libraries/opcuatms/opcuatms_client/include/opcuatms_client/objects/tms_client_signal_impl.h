@@ -23,9 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 // TmsClientSignalImpl
 
-using MirroredSignalNoProps = MirroredSignal<SignalStandardProps::Skip>;
-
-class TmsClientSignalImpl final : public TmsClientComponentBaseImpl<MirroredSignalNoProps>
+class TmsClientSignalImpl final : public TmsClientComponentBaseImpl<MirroredSignal>
 {
 public:
     explicit TmsClientSignalImpl(const ContextPtr& ctx,

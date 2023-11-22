@@ -27,7 +27,7 @@ DECLARE_OPENDAQ_INTERFACE(INativeStreamingSignalPrivate, IBaseObject)
     virtual void removeDomainSignal() = 0;
 };
 
-class NativeStreamingSignalImpl final : public MirroredSignalBase<SignalStandardProps::AddReadOnly, INativeStreamingSignalPrivate>
+class NativeStreamingSignalImpl final : public MirroredSignalBase<INativeStreamingSignalPrivate>
 {
 public:
     explicit NativeStreamingSignalImpl(const ContextPtr& ctx,

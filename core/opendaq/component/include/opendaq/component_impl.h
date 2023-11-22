@@ -28,7 +28,6 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
-static constexpr int ComponentSerializeFlag_SerializeNameProp = 2;
 
 template <class Intf = IComponent, class ... Intfs>
 class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, Intfs ...>
@@ -36,7 +35,11 @@ class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, Intfs .
 public:
     using Super = GenericPropertyObjectImpl<Intf, IRemovable, Intfs ...>;
 
-    ComponentImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className = nullptr);
+    ComponentImpl(const ContextPtr& context,
+                  const ComponentPtr& parent,
+                  const StringPtr& localId,
+                  const StringPtr& className = nullptr,
+                  ComponentStandardProps propsMode = ComponentStandardProps::Add);
 
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getGlobalId(IString** globalId) override;
@@ -45,6 +48,9 @@ public:
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
+    ErrCode INTERFACE_FUNC setName(IString* name) override;
+    ErrCode INTERFACE_FUNC getDescription(IString** description) override;
+    ErrCode INTERFACE_FUNC setDescription(IString* description) override;
     ErrCode INTERFACE_FUNC getTags(ITagsConfig** tags) override;
 
     ErrCode INTERFACE_FUNC remove() override;
@@ -74,6 +80,9 @@ protected:
     virtual void updateObject(const SerializedObjectPtr& obj);
     virtual void serializeCustomObjectValues(const SerializerPtr& serializer);
     static std::string getRelativeGlobalId(const std::string& globalId);
+
+private:
+    void initComponentProperties(ComponentStandardProps propsMode);
 };
 
 template <class Intf, class ... Intfs>
@@ -81,7 +90,8 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     const ContextPtr& context,
     const ComponentPtr& parent,
     const StringPtr& localId,
-    const StringPtr& className)
+    const StringPtr& className,
+    const ComponentStandardProps propsMode)
     : GenericPropertyObjectImpl<Intf, IRemovable, Intfs ...>(context.assigned() ? context.getTypeManager() : nullptr,
                                                              className)
       , context(context)
@@ -98,6 +108,8 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
         globalId = parent.getGlobalId().toStdString() + "/" + static_cast<std::string>(localId);
     else
         globalId = localId;
+
+    initComponentProperties(propsMode);
 }
 
 template <class Intf, class ... Intfs>
@@ -177,11 +189,68 @@ ErrCode ComponentImpl<Intf, Intfs...>::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
 
-    std::scoped_lock lock(sync);
+    auto objPtr = this->template borrowPtr<ComponentPtr>();
 
-    *name = localId.addRefAndReturn();
+    return daqTry([this, &name, &objPtr]()
+        {
+            if (!objPtr.hasProperty("Name"))
+                *name = localId.addRefAndReturn();
+            else
+                *name = objPtr.getPropertyValue("Name").template asPtr<IString>().detach();
+            return OPENDAQ_SUCCESS;
+        });
+}
 
-    return OPENDAQ_SUCCESS;
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
+{
+    auto namePtr = StringPtr::Borrow(name);
+    auto objPtr = this->template borrowPtr<ComponentPtr>();
+
+    if (!objPtr.hasProperty("Name"))
+        return OPENDAQ_IGNORED;
+
+    return daqTry(
+        [&namePtr, &objPtr, this]()
+        {
+            objPtr.setPropertyValue("Name", namePtr);
+            return OPENDAQ_SUCCESS;
+        });
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getDescription(IString** description)
+{
+    OPENDAQ_PARAM_NOT_NULL(description);
+
+    auto objPtr = this->template borrowPtr<ComponentPtr>();
+
+    return daqTry(
+        [&description, &objPtr]()
+        {
+            if (!objPtr.hasProperty("Description"))
+                *description = String("").detach();
+            else
+                *description = objPtr.getPropertyValue("Description").template asPtr<IString>().detach();
+            return OPENDAQ_SUCCESS;
+        });
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
+{
+    auto descPtr = StringPtr::Borrow(description);
+    auto objPtr = this->template borrowPtr<ComponentPtr>();
+
+    if (!objPtr.hasProperty("Description"))
+        return OPENDAQ_IGNORED;
+
+    return daqTry(
+        [&descPtr, &objPtr, this]()
+        {
+            objPtr.setPropertyValue("Description", descPtr);
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 template <class Intf, class ... Intfs>
@@ -309,20 +378,25 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         serializer.writeBool(active);
     }
 
-    if (flags & ComponentSerializeFlag_SerializeNameProp)
-    {
-        StringPtr name;
-        checkErrorInfo(getName(&name));
-
-        serializer.key("name");
-        serializer.writeString(name.getCharPtr(), name.getLength());
-    }
-
     if (!tags.getList().empty())
     {
         serializer.key("tags");
         tags.serialize(serializer);
     }
+}
+
+template <class Intf, class ... Intfs>
+void ComponentImpl<Intf, Intfs...>::initComponentProperties(const ComponentStandardProps propsMode)
+{
+    if (propsMode == ComponentStandardProps::Skip)
+        return;
+
+    auto objPtr = this->template borrowPtr<ComponentPtr>();
+    const auto nameProp = StringPropertyBuilder("Name", objPtr.getLocalId()).setReadOnly(propsMode == ComponentStandardProps::AddReadOnly).build();
+    objPtr.addProperty(nameProp);
+
+    const auto descProp = StringPropertyBuilder("Description", "").setReadOnly(propsMode == ComponentStandardProps::AddReadOnly).build();
+    objPtr.addProperty(descProp);
 }
 
 template <class Intf, class... Intfs>

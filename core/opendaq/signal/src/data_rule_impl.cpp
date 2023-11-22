@@ -47,6 +47,11 @@ DataRuleImpl::DataRuleImpl()
 {
 }
 
+DataRuleImpl::DataRuleImpl(IDataRuleBuilder * dataRuleBuilder)
+    : DataRuleImpl(DataRuleBuilderPtr(dataRuleBuilder).getType(), DataRuleBuilderPtr(dataRuleBuilder).getParameters())
+{
+}
+
 ErrCode DataRuleImpl::getType(DataRuleType* type)
 {
     if (!type)

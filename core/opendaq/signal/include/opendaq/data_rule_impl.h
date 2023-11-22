@@ -19,6 +19,7 @@
 #include <opendaq/rule_private.h>
 #include <coretypes/struct_impl.h>
 #include <opendaq/data_rule_ptr.h>
+#include <opendaq/data_rule_builder.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -29,6 +30,7 @@ public:
     explicit DataRuleImpl(DataRuleType ruleType, const NumberPtr& param1, const NumberPtr& param2);
     explicit DataRuleImpl(const NumberPtr& constant);
     explicit DataRuleImpl();
+    explicit DataRuleImpl(IDataRuleBuilder * dataRuleBuilder);
     
     ErrCode INTERFACE_FUNC getType(DataRuleType* type) override;
     ErrCode INTERFACE_FUNC getParameters(IDict** parameters) override;

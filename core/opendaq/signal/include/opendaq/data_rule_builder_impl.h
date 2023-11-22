@@ -32,8 +32,13 @@ public:
     ErrCode INTERFACE_FUNC setType(DataRuleType type) override;
     ErrCode INTERFACE_FUNC setParameters(IDict* parameters) override;
 
+    ErrCode INTERFACE_FUNC getType(DataRuleType* type) override;
+    ErrCode INTERFACE_FUNC getParameters(IDict** parameters) override;
+
+
     ErrCode INTERFACE_FUNC addParameter(IString* name, IBaseObject* parameter) override;
     ErrCode INTERFACE_FUNC removeParameter(IString* name) override;
+
     ErrCode INTERFACE_FUNC build(IDataRule** scaling) override;
 
 private:

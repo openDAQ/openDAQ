@@ -40,6 +40,20 @@ ErrCode DataRuleBuilderImpl::setParameters(IDict* parameters)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode DataRuleBuilderImpl::getType(DataRuleType* type)
+{
+    OPENDAQ_PARAM_NOT_NULL(type);
+    *type = this->ruleType;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataRuleBuilderImpl::getParameters(IDict** parameters)
+{
+    OPENDAQ_PARAM_NOT_NULL(parameters);
+    *parameters = this->params;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode DataRuleBuilderImpl::addParameter(IString* name, IBaseObject* parameter)
 {
     OPENDAQ_PARAM_NOT_NULL(name);

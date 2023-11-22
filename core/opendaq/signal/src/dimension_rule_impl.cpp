@@ -55,6 +55,11 @@ DimensionRuleImpl::DimensionRuleImpl(const NumberPtr& delta, const NumberPtr& st
 {
 }
 
+DimensionRuleImpl::DimensionRuleImpl(IDimensionRule* dimensionRule)
+    :DimensionRuleImpl(DimensionRulePtr(dimensionRule).getType(), DimensionRulePtr(dimensionRule).getParameters())
+{
+}
+
 ErrCode DimensionRuleImpl::getType(DimensionRuleType* type)
 {
     if (!type)

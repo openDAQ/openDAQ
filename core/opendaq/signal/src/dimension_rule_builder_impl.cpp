@@ -39,6 +39,22 @@ ErrCode DimensionRuleBuilderImpl::setParameters(IDict* parameters)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode DimensionRuleBuilderImpl::getType(DimensionRuleType* type)
+{
+    OPENDAQ_PARAM_NOT_NULL(type);
+
+    *type = this->ruleType;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DimensionRuleBuilderImpl::getParameters(IDict** parameters)
+{
+    OPENDAQ_PARAM_NOT_NULL(parameters);
+
+    *parameters = this->params;
+    return OPENDAQ_SUCCESS;
+}
+
 
 ErrCode DimensionRuleBuilderImpl::addParameter(IString* name, IBaseObject* parameter)
 {

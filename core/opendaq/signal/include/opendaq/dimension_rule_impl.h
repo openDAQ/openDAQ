@@ -18,6 +18,7 @@
 #include <coretypes/struct_impl.h>
 #include <opendaq/dimension_rule_ptr.h>
 #include <opendaq/rule_private.h>
+#include <opendaq/dimension_rule.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -28,6 +29,7 @@ public:
     explicit DimensionRuleImpl(const ListPtr<INumber>& list);
     explicit DimensionRuleImpl(const NumberPtr& delta, const NumberPtr& start, const SizeT& size);   
     explicit DimensionRuleImpl(const NumberPtr& delta, const NumberPtr& start, const NumberPtr& base, const SizeT& size);
+    explicit DimensionRuleImpl(IDimensionRule* dimensionRule);
 
     ErrCode INTERFACE_FUNC getType(DimensionRuleType* type) override;
     ErrCode INTERFACE_FUNC getParameters(IDict** parameters) override;

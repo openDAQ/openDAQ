@@ -15,15 +15,15 @@
  */
 
 #pragma once
-#include <coretypes/intfs.h>
 #include <opendaq/mirrored_signal_impl.h>
 
-class MockMirroredSignalImpl : public daq::MirroredSignal<daq::SignalStandardProps::Skip>
+class MockMirroredSignalImpl : public daq::MirroredSignal
 {
 public:
     explicit MockMirroredSignalImpl(const daq::ContextPtr& ctx,
-                                  const daq::ComponentPtr& parent,
-                                  const daq::StringPtr& localId);
+                                    const daq::ComponentPtr& parent,
+                                    const daq::StringPtr& localId,
+                                    daq::ComponentStandardProps propsMode = daq::ComponentStandardProps::Add);
 
     daq::StringPtr onGetRemoteId() const override;
     daq::Bool onTriggerEvent(daq::EventPacketPtr eventPacket) override;

@@ -28,11 +28,18 @@ class FolderImpl : public ComponentImpl<Intf, Intfs...>
 public:
     using Super = ComponentImpl<Intf, Intfs ...>;
 
-    FolderImpl(const IntfID& itemId, const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId);
-    FolderImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId);
+    FolderImpl(const IntfID& itemId,
+               const ContextPtr& context,
+               const ComponentPtr& parent,
+               const StringPtr& localId,
+               const StringPtr& className = nullptr,
+               ComponentStandardProps propsMode = ComponentStandardProps::Add);
 
-    // IComponent
-    ErrCode INTERFACE_FUNC getName(IString** name) override;
+    FolderImpl(const ContextPtr& context,
+               const ComponentPtr& parent,
+               const StringPtr& localId,
+               const StringPtr& className = nullptr,
+               ComponentStandardProps propsMode = ComponentStandardProps::Add);
 
     // IFolder
     ErrCode INTERFACE_FUNC getItems(IList** items) override;
@@ -45,7 +52,6 @@ public:
     ErrCode INTERFACE_FUNC removeItem(IComponent* item) override;
     ErrCode INTERFACE_FUNC removeItemWithLocalId(IString* localId) override;
     ErrCode INTERFACE_FUNC clear() override;
-    ErrCode INTERFACE_FUNC setName(IString* name) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -60,8 +66,6 @@ protected:
     virtual bool addItemInternal(const ComponentPtr& component);
     void serializeCustomObjectValues(const SerializerPtr& serializer) override;
 private:
-    StringPtr name;
-
     bool removeItemWithLocalIdInternal(const std::string& str);
     void clearInternal();
 
@@ -72,31 +76,22 @@ template <class Intf, class... Intfs>
 FolderImpl<Intf, Intfs...>::FolderImpl(const IntfID& itemId,
                                        const ContextPtr& context,
                                        const ComponentPtr& parent,
-                                       const StringPtr& localId)
-    : ComponentImpl<Intf, Intfs...>(context, parent, localId)
+                                       const StringPtr& localId,
+                                       const StringPtr& className,
+                                       const ComponentStandardProps propsMode)
+    : ComponentImpl<Intf, Intfs...>(context, parent, localId, className, propsMode)
     , itemId(itemId)
 {
 }
 
 template <class Intf, class... Intfs>
-FolderImpl<Intf, Intfs...>::FolderImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
-    : FolderImpl(IComponent::Id, context, parent, localId)
+FolderImpl<Intf, Intfs...>::FolderImpl(const ContextPtr& context,
+                                       const ComponentPtr& parent,
+                                       const StringPtr& localId,
+                                       const StringPtr& className,
+                                       const ComponentStandardProps propsMode)
+    : FolderImpl(IComponent::Id, context, parent, localId, className, propsMode)
 {
-}
-
-template <class Intf, class... Intfs>
-ErrCode FolderImpl<Intf, Intfs...>::getName(IString** name)
-{
-    OPENDAQ_PARAM_NOT_NULL(name);
-
-    std::scoped_lock lock(this->sync);
-
-    if (this->name.assigned() && !this->name.toStdString().empty())
-        *name = this->name.addRefAndReturn();
-    else
-        *name = this->localId.addRefAndReturn();
-
-    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>
@@ -223,18 +218,6 @@ ErrCode FolderImpl<Intf, Intfs...>::clear()
 {
     std::scoped_lock lock(this->sync);
     clearInternal();
-
-    return OPENDAQ_SUCCESS;
-}
-
-template <class Intf, class... Intfs>
-ErrCode FolderImpl<Intf, Intfs...>::setName(IString* name)
-{
-    OPENDAQ_PARAM_NOT_NULL(name);
-
-    std::scoped_lock lock(this->sync);
-
-    this->name = name;
 
     return OPENDAQ_SUCCESS;
 }

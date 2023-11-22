@@ -22,6 +22,13 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+enum class ComponentStandardProps
+{
+    Add,
+    AddReadOnly,
+    Skip
+};
+
 /*#
  * [includeHeader("<opendaq/removable.h>")]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
@@ -98,11 +105,39 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
 
     /*!
      * @brief Gets the name of the component.
-     * @param[out] name The name of the component.
+     * @param[out] name The name of the component. Local ID if name is not configured.
      *
      * The object that implements this interface defines how the name is specified.
      */
     virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
+
+    /*!
+     * @brief Sets the name of the component.
+     * @param name The name of the component.
+     * @retval OPENDAQ_IGNORED if the name is not configurable.
+     * @retval OPENDAQ_ERR_ACCESSDENIED if the name is read-only.
+     *
+     * The object that implements this interface defines how the name is specified.
+     */
+    virtual ErrCode INTERFACE_FUNC setName(IString* name) = 0;
+
+    /*!
+     * @brief Gets the description of the component.
+     * @param[out] description The description of the component. Empty if not configured.
+     *
+     * The object that implements this interface defines how the description is specified.
+     */
+    virtual ErrCode INTERFACE_FUNC getDescription(IString** description) = 0;
+
+    /*!
+     * @brief Sets the description of the component.
+     * @param description The description of the component.
+     * @retval OPENDAQ_IGNORED if the description is not configurable.
+     * @retval OPENDAQ_ERR_ACCESSDENIED if the description is read-only.
+     *
+     * The object that implements this interface defines how the description is specified.
+     */
+    virtual ErrCode INTERFACE_FUNC setDescription(IString* description) = 0;
 
     /*!
      * @brief Gets the tags of the component.
@@ -114,6 +149,18 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
 };
 /*!@}*/
 
+/*!
+ * @ingroup opendaq_component
+ * @addtogroup opendaq_component_factories Factories
+ * @{
+ */
+
+/*!
+ * @brief Creates a component.
+ * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
+ * @param parent The parent component.
+ * @param localId The local ID of the component.
+ */
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, Component,
     IContext*, context,
@@ -121,5 +168,25 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IString*, localId,
     IString*, className
 )
+
+/*!
+ * @brief Creates a component with a specific property mode for default properties.
+ * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
+ * @param parent The parent component.
+ * @param localId The local ID of the component.
+ * @param propertyMode Integer property defining whether standard properties such as "Name" and "Description" are created.
+ *                     0 to create the default properties; 1 to create the properties, but configure them as "read-only"; 2 to skip creation.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY,
+    ComponentWithDefaultPropertyMode, IComponent,
+    IContext*, context,
+    IComponent*, parent,
+    IString*, localId,
+    IString*, className,
+    Int, propertyMode
+)
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

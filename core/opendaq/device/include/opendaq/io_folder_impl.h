@@ -25,7 +25,11 @@ class IoFolderImpl : public FolderImpl<IIoFolderConfig>
 public:
     using Super = FolderImpl<IIoFolderConfig>;
 
-    IoFolderImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId);
+    IoFolderImpl(const ContextPtr& context,
+                 const ComponentPtr& parent,
+                 const StringPtr& localId,
+                 const StringPtr& className = nullptr,
+                 ComponentStandardProps propsMode = ComponentStandardProps::Add);
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;

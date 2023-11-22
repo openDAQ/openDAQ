@@ -34,7 +34,11 @@ public:
     using Self = GenericSignalContainerImpl<Intf, Intfs...>;
     using Super = ComponentImpl<Intf, Intfs ...>;
 
-    GenericSignalContainerImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className = nullptr);
+    GenericSignalContainerImpl(const ContextPtr& context,
+                               const ComponentPtr& parent,
+                               const StringPtr& localId,
+                               const StringPtr& className = nullptr,
+                               ComponentStandardProps propsMode = ComponentStandardProps::Add);
 
 protected:
     FolderConfigPtr signals;
@@ -57,9 +61,9 @@ protected:
     void validateComponentNotExists(const std::string& localId);
 
     template <class TItemInterface = IComponent>
-    FolderConfigPtr addFolder(const std::string& localId, const FolderConfigPtr& parent = nullptr);
+    FolderConfigPtr addFolder(const std::string& localId, const FolderConfigPtr& parent = nullptr, ComponentStandardProps standardPropsConfig = ComponentStandardProps::Add);
 
-    ComponentPtr addComponent(const std::string& localId, const FolderConfigPtr& parent = nullptr);
+    ComponentPtr addComponent(const std::string& localId, const FolderConfigPtr& parent = nullptr, ComponentStandardProps standardPropsConfig = ComponentStandardProps::Add);
 
     void removed() override;
 
@@ -84,7 +88,11 @@ public:
     using Self = SignalContainerImpl<Intf, Intfs...>;
     using Super = GenericSignalContainerImpl<Intf, Intfs...>;
 
-    SignalContainerImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className = nullptr);
+    SignalContainerImpl(const ContextPtr& context,
+                        const ComponentPtr& parent,
+                        const StringPtr& localId,
+                        const StringPtr& className = nullptr,
+                        ComponentStandardProps propsMode = ComponentStandardProps::Add);
 
     ErrCode INTERFACE_FUNC getItems(IList** items) override;
     ErrCode INTERFACE_FUNC getItem(IString* localId, IComponent** item) override;
@@ -93,22 +101,30 @@ public:
 };
 
 template <class Intf, class... Intfs>
-GenericSignalContainerImpl<Intf, Intfs...>::GenericSignalContainerImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className)
-    : Super(context, parent, localId, className)
+GenericSignalContainerImpl<Intf, Intfs...>::GenericSignalContainerImpl(const ContextPtr& context,
+                                                                       const ComponentPtr& parent,
+                                                                       const StringPtr& localId,
+                                                                       const StringPtr& className,
+                                                                       const ComponentStandardProps propsMode)
+    : Super(context, parent, localId, className, propsMode)
     , signalContainerLoggerComponent(
         context.getLogger().assigned() ? context.getLogger().getOrAddComponent("GenericSignalContainerImpl")
                                        : throw ArgumentNullException{"Logger not assigned!"})
 {
-    signals = addFolder<ISignal>("Sig");
-    functionBlocks = addFolder<IFunctionBlock>("FB");
+    signals = addFolder<ISignal>("Sig", nullptr, ComponentStandardProps::Skip);
+    functionBlocks = addFolder<IFunctionBlock>("FB", nullptr, ComponentStandardProps::Skip);
 
     defaultComponents.insert("Sig");
     defaultComponents.insert("FB");
 }
 
 template <class Intf, class ... Intfs>
-SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className)
-    : Super(context, parent, localId, className)
+SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& context,
+                                                         const ComponentPtr& parent,
+                                                         const StringPtr& localId,
+                                                         const StringPtr& className,
+                                                         const ComponentStandardProps propsMode)
+    : Super(context, parent, localId, className, propsMode)
 {
 }
 
@@ -297,35 +313,35 @@ void GenericSignalContainerImpl<Intf, Intfs...>::validateComponentNotExists(cons
 
 template <class Intf, class ... Intfs>
 template <class TItemInterface>
-FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std::string& localId, const FolderConfigPtr& parent)
+FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std::string& localId, const FolderConfigPtr& parent, const ComponentStandardProps standardPropsConfig)
 {
     if (!parent.assigned())
     {
         validateComponentNotExists(localId);
 
-        auto folder = Folder<TItemInterface>(this->context, this->template thisPtr<ComponentPtr>(), localId);
+        auto folder = Folder<TItemInterface>(this->context, this->template thisPtr<ComponentPtr>(), localId, standardPropsConfig);
         this->components.push_back(folder);
         return folder;
     }
 
-    auto folder = Folder(this->context, parent, localId);
+    auto folder = Folder(this->context, parent, localId, standardPropsConfig);
     parent.addItem(folder);
     return folder;
 }
 
 template <class Intf, class ... Intfs>
-ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addComponent(const std::string& localId, const FolderConfigPtr& parent)
+ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addComponent(const std::string& localId, const FolderConfigPtr& parent, const ComponentStandardProps standardPropsConfig)
 {
     if (!parent.assigned())
     {
         validateComponentNotExists(localId);
 
-        auto component = Component(this->context, this->template thisPtr<ComponentPtr>(), localId);
+        auto component = Component(this->context, this->template thisPtr<ComponentPtr>(), localId, standardPropsConfig);
         this->components.push_back(component);
         return component;
     }
 
-    auto component = Component(this->context, parent, localId);
+    auto component = Component(this->context, parent, localId, standardPropsConfig);
     parent.addItem(component);
     return component;
 }

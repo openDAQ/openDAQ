@@ -23,20 +23,23 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-template <SignalStandardProps Props, typename... Interfaces>
+template <typename... Interfaces>
 class MirroredSignalBase;
 
-template <SignalStandardProps Props>
-using MirroredSignal = MirroredSignalBase<Props>;
+using MirroredSignal = MirroredSignalBase<>;
 
-template <SignalStandardProps Props, typename... Interfaces>
-class MirroredSignalBase : public SignalBase<Props, IMirroredSignalConfig, IMirroredSignalPrivate, Interfaces...>
+template <typename... Interfaces>
+class MirroredSignalBase : public SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, Interfaces...>
 {
 public:
-    using Super = SignalBase<Props, IMirroredSignalConfig, IMirroredSignalPrivate, Interfaces...>;
-    using Self = MirroredSignalBase<Props, Interfaces...>;
+    using Super = SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, Interfaces...>;
+    using Self = MirroredSignalBase<Interfaces...>;
 
-    explicit MirroredSignalBase(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit MirroredSignalBase(const ContextPtr& ctx,
+                                const ComponentPtr& parent,
+                                const StringPtr& localId,
+                                const StringPtr& className = nullptr,
+                                ComponentStandardProps propsMode = ComponentStandardProps::Add);
 
     virtual StringPtr onGetRemoteId() const = 0;
     virtual Bool onTriggerEvent(EventPacketPtr eventPacket) = 0;
@@ -80,16 +83,20 @@ private:
     std::mutex mirroredSignalSync;
 };
 
-template <SignalStandardProps Props, typename... Interfaces>
-MirroredSignalBase<Props, Interfaces...>::MirroredSignalBase(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : Super(ctx, parent, localId)
-    , listened(false)
-    , streamed(true)
+template <typename... Interfaces>
+MirroredSignalBase<Interfaces...>::MirroredSignalBase(const ContextPtr& ctx,
+                                                      const ComponentPtr& parent,
+                                                      const StringPtr& localId,
+                                                      const StringPtr& className,
+                                                      const ComponentStandardProps propsMode)
+    : Super(ctx, parent, localId, className, propsMode)
+      , listened(false)
+      , streamed(true)
 {
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::getRemoteId(IString** id) const
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::getRemoteId(IString** id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);
 
@@ -101,8 +108,8 @@ ErrCode MirroredSignalBase<Props, Interfaces...>::getRemoteId(IString** id) cons
     return errCode;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-Bool MirroredSignalBase<Props, Interfaces...>::triggerEvent(const EventPacketPtr& eventPacket)
+template <typename... Interfaces>
+Bool MirroredSignalBase<Interfaces...>::triggerEvent(const EventPacketPtr& eventPacket)
 {
     Bool forwardEvent;
 
@@ -112,8 +119,8 @@ Bool MirroredSignalBase<Props, Interfaces...>::triggerEvent(const EventPacketPtr
     return forwardEvent;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::addStreamingSource(const StreamingPtr& streaming)
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::addStreamingSource(const StreamingPtr& streaming)
 {
     if (!streaming.assigned())
         return OPENDAQ_ERR_ARGUMENT_NULL;
@@ -137,8 +144,8 @@ ErrCode MirroredSignalBase<Props, Interfaces...>::addStreamingSource(const Strea
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::removeStreamingSource(const StringPtr& streamingConnectionString)
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(const StringPtr& streamingConnectionString)
 {
     if (!streamingConnectionString.assigned())
         return OPENDAQ_ERR_ARGUMENT_NULL;
@@ -177,44 +184,44 @@ ErrCode MirroredSignalBase<Props, Interfaces...>::removeStreamingSource(const St
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::setDescriptor(IDataDescriptor* /*descriptor*/)
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::setDescriptor(IDataDescriptor* /*descriptor*/)
 {
     return this->makeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::setDomainSignal(ISignal* /*signal*/)
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::setDomainSignal(ISignal* /*signal*/)
 {
     return this->makeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::setRelatedSignals(IList* /*signals*/)
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::setRelatedSignals(IList* /*signals*/)
 {
     return this->makeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::addRelatedSignal(ISignal* /*signal*/)
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::addRelatedSignal(ISignal* /*signal*/)
 {
     return this->makeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::removeRelatedSignal(ISignal* /*signal*/)
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::removeRelatedSignal(ISignal* /*signal*/)
 {
     return this->makeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::clearRelatedSignals()
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::clearRelatedSignals()
 {
     return this->makeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-void MirroredSignalBase<Props, Interfaces...>::onListenedStatusChanged(bool listened)
+template <typename... Interfaces>
+void MirroredSignalBase<Interfaces...>::onListenedStatusChanged(bool listened)
 {
     std::scoped_lock lock(mirroredSignalSync);
 
@@ -234,8 +241,8 @@ void MirroredSignalBase<Props, Interfaces...>::onListenedStatusChanged(bool list
     }
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::getStreamingSources(IList** streamingConnectionStrings)
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::getStreamingSources(IList** streamingConnectionStrings)
 {
     OPENDAQ_PARAM_NOT_NULL(streamingConnectionStrings);
 
@@ -254,8 +261,8 @@ ErrCode MirroredSignalBase<Props, Interfaces...>::getStreamingSources(IList** st
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::setActiveStreamingSource(IString* streamingConnectionString)
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::setActiveStreamingSource(IString* streamingConnectionString)
 {
     OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
 
@@ -303,8 +310,8 @@ ErrCode MirroredSignalBase<Props, Interfaces...>::setActiveStreamingSource(IStri
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::getActiveStreamingSource(IString** streamingConnectionString)
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::getActiveStreamingSource(IString** streamingConnectionString)
 {
     OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
 
@@ -318,8 +325,8 @@ ErrCode MirroredSignalBase<Props, Interfaces...>::getActiveStreamingSource(IStri
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::deactivateStreaming()
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::deactivateStreaming()
 {
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
 
@@ -336,8 +343,8 @@ ErrCode MirroredSignalBase<Props, Interfaces...>::deactivateStreaming()
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-EventPacketPtr MirroredSignalBase<Props, Interfaces...>::createDataDescriptorChangedEventPacket()
+template <typename... Interfaces>
+EventPacketPtr MirroredSignalBase<Interfaces...>::createDataDescriptorChangedEventPacket()
 {
     std::scoped_lock lock(mirroredSignalSync);
 
@@ -351,8 +358,8 @@ EventPacketPtr MirroredSignalBase<Props, Interfaces...>::createDataDescriptorCha
     return DataDescriptorChangedEventPacket(nullptr, nullptr);
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::subscribeInternal()
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::subscribeInternal()
 {
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned())
@@ -366,8 +373,8 @@ ErrCode MirroredSignalBase<Props, Interfaces...>::subscribeInternal()
     }
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::unsubscribeInternal()
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::unsubscribeInternal()
 {
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned())
@@ -381,8 +388,8 @@ ErrCode MirroredSignalBase<Props, Interfaces...>::unsubscribeInternal()
     }
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::getStreamed(Bool* streamed)
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::getStreamed(Bool* streamed)
 {
     OPENDAQ_PARAM_NOT_NULL(streamed);
 
@@ -391,8 +398,8 @@ ErrCode MirroredSignalBase<Props, Interfaces...>::getStreamed(Bool* streamed)
     return OPENDAQ_SUCCESS;
 }
 
-template <SignalStandardProps Props, typename... Interfaces>
-ErrCode MirroredSignalBase<Props, Interfaces...>::setStreamed(Bool streamed)
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::setStreamed(Bool streamed)
 {
     std::scoped_lock lock(mirroredSignalSync);
 

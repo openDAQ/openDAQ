@@ -19,6 +19,7 @@ void ServerEventManager::registerEvents()
 
     config->nodeLifecycle.context = this;
     config->displayNameChanged = DisplayNameChanged;
+    config->descriptionChanged = DescriptionChanged;
     config->nodeLifecycle.createOptionalChild = CreateOptionalNode;
 }
 
@@ -31,14 +32,24 @@ UA_Boolean ServerEventManager::triggerCreateOptionalNode(const UA_NodeId* nodeId
     return createOptionalNodeCallback(nodeIdObj);
 }
 
-void ServerEventManager::triggerDisplayNameChanged(const UA_NodeId* nodeId, UA_LocalizedText* name)
+void ServerEventManager::triggerDisplayNameChanged(const UA_NodeId* nodeId, UA_LocalizedText* name, void* context)
 {
     const auto nodeIdObj = OpcUaNodeId(*nodeId);
     if (displayNameCallbacks.count(nodeIdObj) == 0)
         return;
 
     auto callback = displayNameCallbacks[nodeIdObj];
-    callback(nodeIdObj, OpcUaObject<UA_LocalizedText>(*name));
+    callback(nodeIdObj, OpcUaObject<UA_LocalizedText>(*name), context);
+}
+
+void ServerEventManager::triggerDescriptionChanged(const UA_NodeId* nodeId, UA_LocalizedText* description, void* context)
+{
+    const auto nodeIdObj = OpcUaNodeId(*nodeId);
+    if (descriptionCallbacks.count(nodeIdObj) == 0)
+        return;
+
+    auto callback = descriptionCallbacks[nodeIdObj];
+    callback(nodeIdObj, OpcUaObject<UA_LocalizedText>(*description), context);
 }
 
 void ServerEventManager::onCreateOptionalNode(const CreatOptionalNodeCallback& callback)
@@ -51,9 +62,19 @@ void ServerEventManager::onDisplayNameChanged(const OpcUaNodeId& nodeId, const D
     displayNameCallbacks.insert({nodeId, callback});
 }
 
+void ServerEventManager::onDescriptionChanged(const OpcUaNodeId& nodeId, const DescriptionChangedCallback& callback)
+{
+    descriptionCallbacks.insert({nodeId, callback});
+}
+
 void ServerEventManager::removeOnDisplayNameChanged(const OpcUaNodeId& nodeId)
 {
     displayNameCallbacks.erase(nodeId);
+}
+
+void ServerEventManager::removeOnDescriptionChanged(const OpcUaNodeId& nodeId)
+{
+    descriptionCallbacks.erase(nodeId);
 }
 
 // Static callbacks
@@ -70,11 +91,18 @@ UA_Boolean ServerEventManager::CreateOptionalNode(UA_Server* server,
     return eventManager->triggerCreateOptionalNode(sourceNodeId);
 }
 
-void ServerEventManager::DisplayNameChanged(UA_Server* server, UA_NodeId* nodeId, UA_LocalizedText* newDisplayName)
+void ServerEventManager::DisplayNameChanged(UA_Server* server, UA_NodeId* nodeId, UA_LocalizedText* newDisplayName, void* context)
 {
     auto& lifecycle = UA_Server_getConfig(server)->nodeLifecycle;
     auto eventManager = (ServerEventManager*) lifecycle.context;
-    eventManager->triggerDisplayNameChanged(nodeId, newDisplayName);
+    eventManager->triggerDisplayNameChanged(nodeId, newDisplayName, context);
+}
+
+void ServerEventManager::DescriptionChanged(UA_Server* server, UA_NodeId* nodeId, UA_LocalizedText* newDescription, void* context)
+{
+    auto& lifecycle = UA_Server_getConfig(server)->nodeLifecycle;
+    auto eventManager = (ServerEventManager*) lifecycle.context;
+    eventManager->triggerDescriptionChanged(nodeId, newDescription, context);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA

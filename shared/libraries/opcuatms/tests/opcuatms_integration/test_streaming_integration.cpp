@@ -31,6 +31,7 @@ class StreamingIntegrationTest : public testing::Test
 {
 public:
     const uint16_t STREAMING_PORT = 7414;
+    const uint16_t STREAMING_CONTROL_PORT = 7438;
     const std::string OPCUA_URL = "opc.tcp://127.0.0.1/";
     const std::string STREAMING_URL = "daq.wss://127.0.0.1/";
 
@@ -229,6 +230,7 @@ TEST_F(StreamingIntegrationTest, ByteStep)
 
     auto streamingServer = WebsocketStreamingServer(instance);
     streamingServer.setStreamingPort(STREAMING_PORT);
+    streamingServer.setControlPort(STREAMING_CONTROL_PORT);
     streamingServer.start();
 
     auto server = TmsServer(instance);
@@ -266,6 +268,7 @@ TEST_F(StreamingIntegrationTest, DISABLED_ChangingSignal)
 
     auto streamingServer = WebsocketStreamingServer(instance);
     streamingServer.setStreamingPort(STREAMING_PORT);
+    streamingServer.setControlPort(STREAMING_CONTROL_PORT);
     streamingServer.start();
 
     auto server = TmsServer(instance);
@@ -302,6 +305,7 @@ TEST_F(StreamingIntegrationTest, AllSignalsAsync)
 
     auto streamingServer = WebsocketStreamingServer(instance);
     streamingServer.setStreamingPort(STREAMING_PORT);
+    streamingServer.setControlPort(STREAMING_CONTROL_PORT);
     streamingServer.start();
 
     auto server = TmsServer(instance);
@@ -360,6 +364,7 @@ TEST_F(StreamingIntegrationTest, StreamingDeactivate)
 
     auto streamingServer = WebsocketStreamingServer(instance);
     streamingServer.setStreamingPort(STREAMING_PORT);
+    streamingServer.setControlPort(STREAMING_CONTROL_PORT);
     streamingServer.start();
 
     auto server = TmsServer(instance);

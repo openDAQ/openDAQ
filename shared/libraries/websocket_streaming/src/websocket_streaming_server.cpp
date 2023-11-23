@@ -31,26 +31,36 @@ void WebsocketStreamingServer::setStreamingPort(uint16_t port)
     this->streamingPort = port;
 }
 
+void WebsocketStreamingServer::setControlPort(uint16_t port)
+{
+    this->controlPort = port;
+}
+
 void WebsocketStreamingServer::start()
 {
     if (!device.assigned())
         throw InvalidStateException("Device is not set.");
     if (!context.assigned())
         throw InvalidStateException("Context is not set.");
-    if (streamingPort == 0)
+    if (streamingPort == 0 || controlPort == 0)
         return;
 
     streamingServer.onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) { return device.getSignalsRecursive(); });
-    streamingServer.start(streamingPort);
+    // TODO implement subscribe/unsubscribe callbacks
+    streamingServer.onSubscribe([](const std::string& signalId) {} );
+    streamingServer.onUnsubscribe([](const std::string& signalId) {} );
+    streamingServer.start(streamingPort, controlPort);
 
     packetReader.setLoopFrequency(50);
     packetReader.onPacket([this](const SignalPtr& signal, const ListPtr<IPacket>& packets) {
         const auto signalId = signal.getGlobalId();
         for (const auto& packet : packets)
-            streamingServer.broadcastPacket(signalId, packet);
+            streamingServer.sendPacketToSubscribers(signalId, packet);
     });
     packetReader.startReading(device, context);
 
+    // The control port is published thru the streaming protocol itself
+    // so here the streaming port only is added to the StreamingInfo object
     StreamingInfoConfigPtr streamingInfo = StreamingInfo("daq.wss");
     streamingInfo.addProperty(IntProperty("Port", streamingPort));
     ErrCode errCode = this->device.asPtr<IDevicePrivate>()->addStreamingOption(streamingInfo);

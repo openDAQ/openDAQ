@@ -134,3 +134,16 @@ TEST_F(DeviceTest, DeviceTypeStructNames)
     const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc");
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
+
+TEST_F(DeviceTest, StandardProperties)
+{
+    const auto name = "foo";
+    const auto desc = "bar";
+    const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+
+    device.setName(name);
+    device.setDescription(desc);
+
+    ASSERT_EQ(device.getName(), name);
+    ASSERT_EQ(device.getDescription(), desc);
+}

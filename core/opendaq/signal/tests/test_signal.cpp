@@ -399,4 +399,46 @@ TEST_F(SignalTest, Streamed)
     ASSERT_FALSE(signal.getStreamed());
 }
 
+TEST_F(SignalTest, StandardProperties)
+{
+    const auto name = "foo";
+    const auto desc = "bar";
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    signal.setName(name);
+    signal.setDescription(desc);
+
+    ASSERT_EQ(signal.getName(), name);
+    ASSERT_EQ(signal.getDescription(), desc);
+}
+
+TEST_F(SignalTest, SerializeAndUpdate)
+{
+    const auto name = "foo";
+    const auto desc = "bar";
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    signal.setName(name);
+    signal.setDescription(desc);
+
+    const auto serializer = JsonSerializer(True);
+    signal.serialize(serializer);
+    const auto str1 = serializer.getOutput();
+
+    const auto newSignal = Signal(NullContext(), nullptr, "sig");
+    const auto deserializer = JsonDeserializer();
+    const auto updatable = newSignal.asPtr<IUpdatable>();
+
+    deserializer.update(updatable, str1);
+
+    ASSERT_EQ(newSignal.getName(), name);
+    ASSERT_EQ(newSignal.getDescription(), desc);
+
+    const auto serializer2 = JsonSerializer(True);
+    newSignal.serialize(serializer2);
+    const auto str2 = serializer2.getOutput();
+
+    ASSERT_EQ(str1, str2);
+}
+
 END_NAMESPACE_OPENDAQ

@@ -30,8 +30,6 @@ public:
 
     TmsServerSignal(const SignalPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context);
 
-    std::string getBrowseName() override;
-    std::string getDisplayName() override;
     opcua::OpcUaNodeId getReferenceType() override;
     void bindCallbacks() override;
     bool createOptionalNode(const opcua::OpcUaNodeId& nodeId) override;

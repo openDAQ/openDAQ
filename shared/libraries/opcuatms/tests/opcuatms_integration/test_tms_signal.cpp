@@ -308,7 +308,10 @@ TEST_F(TmsSignalTest, ComponentMethods)
 
     // TODO: Support changing read-only properties over OPC UA
     ASSERT_NO_THROW(clientSignal.setName("new_name"));
-    //ASSERT_EQ(signal.getName(), clientSignal.getName());
+    ASSERT_EQ(signal.getName(), clientSignal.getName());
+
+    ASSERT_NO_THROW(clientSignal.setDescription("new_description"));
+    ASSERT_EQ(signal.getDescription(), clientSignal.getDescription());
 
     auto tags = signal.getTags();
     auto clientTags = clientSignal.getTags();

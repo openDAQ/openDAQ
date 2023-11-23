@@ -432,6 +432,18 @@ OpcUaObject<UA_LocalizedText> OpcUaServer::readDisplayName(const OpcUaNodeId& no
     return localizedText;
 }
 
+void OpcUaServer::setDescription(const OpcUaNodeId& nodeId, const OpcUaObject<UA_LocalizedText>& localizedText)
+{
+    const auto status = UA_Server_writeDescription(server, *nodeId, *localizedText);
+    CheckStatusCodeException(status);
+}
+
+void OpcUaServer::setDescription(const OpcUaNodeId& nodeId, const std::string& text)
+{
+    OpcUaObject<UA_LocalizedText> localizedText = UA_LOCALIZEDTEXT_ALLOC("", text.c_str());
+    setDescription(nodeId, localizedText);
+}
+
 void OpcUaServer::writeValue(const OpcUaNodeId& nodeId, const OpcUaVariant& value)
 {
     CheckStatusCodeException(UA_Server_writeValue(server, *nodeId, *value));

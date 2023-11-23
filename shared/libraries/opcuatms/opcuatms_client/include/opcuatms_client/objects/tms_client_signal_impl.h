@@ -49,9 +49,6 @@ public:
     ErrCode INTERFACE_FUNC removeRelatedSignal(ISignal* signal) override;
     ErrCode INTERFACE_FUNC clearRelatedSignals() override;
 
-    ErrCode INTERFACE_FUNC getName(IString** name) override;
-    ErrCode INTERFACE_FUNC setName(IString* name) override;
-
     StringPtr onGetRemoteId() const override;
     Bool onTriggerEvent(EventPacketPtr eventPacket) override;
 

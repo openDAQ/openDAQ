@@ -12,20 +12,6 @@ TmsServerSignal::TmsServerSignal(const SignalPtr& object, const OpcUaServerPtr& 
 {
 }
 
-std::string TmsServerSignal::getBrowseName()
-{
-    return this->object.getLocalId();
-}
-
-std::string TmsServerSignal::getDisplayName()
-{
-    const auto name = object.getName();
-    if (name.assigned())
-        return name;
-
-    return {};
-}
-
 OpcUaNodeId TmsServerSignal::getReferenceType()
 {
     //TODO UA_TMSBSPID_HASSTATUSSIGNAL 

@@ -15,7 +15,7 @@ opendaq_dependency(
     NAME                open62541
     REQUIRED_VERSION    1.3.6
     GIT_REPOSITORY      https://github.com/openDAQ/open62541.git
-    GIT_REF             v1.3.6-opendaq-2
+    GIT_REF             v1.3.6-opendaq-3
     GIT_SUBMODULES      ""
     EXPECT_TARGET       open62541
 )

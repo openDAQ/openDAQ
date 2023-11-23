@@ -58,6 +58,7 @@ public:
 
     virtual std::string getBrowseName();
     virtual std::string getDisplayName();
+    virtual std::string getDescription();
     opcua::NodeEventManagerPtr addEvent(const StringPtr& nodeName);
     opcua::NodeEventManagerPtr addEvent(const opcua::OpcUaNodeId& nodeId);
     opcua::OpcUaNodeId registerOpcUaNode(

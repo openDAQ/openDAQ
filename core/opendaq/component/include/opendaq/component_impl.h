@@ -24,10 +24,10 @@
 #include <coretypes/weakrefptr.h>
 #include <opendaq/tags_factory.h>
 #include <mutex>
+#include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
-static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
+    static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
 
 template <class Intf = IComponent, class ... Intfs>
 class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, Intfs ...>
@@ -208,7 +208,16 @@ ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
     auto objPtr = this->template borrowPtr<ComponentPtr>();
 
     if (!objPtr.hasProperty("Name"))
+    {
+        if (context.assigned() && context.getLogger().assigned())
+        {
+            const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+            StringPtr nameObj;
+            this->getName(&nameObj);
+            LOG_I("Name of {} cannot be changed", nameObj);
+        }
         return OPENDAQ_IGNORED;
+    }
 
     return daqTry(
         [&namePtr, &objPtr, this]()
@@ -243,7 +252,16 @@ ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
     auto objPtr = this->template borrowPtr<ComponentPtr>();
 
     if (!objPtr.hasProperty("Description"))
+    {
+        if (context.assigned() && context.getLogger().assigned())
+        {
+            const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+            StringPtr descObj;
+            this->getDescription(&descObj);
+            LOG_I("Description of {} cannot be changed", descObj);
+        }
         return OPENDAQ_IGNORED;
+    }
 
     return daqTry(
         [&descPtr, &objPtr, this]()

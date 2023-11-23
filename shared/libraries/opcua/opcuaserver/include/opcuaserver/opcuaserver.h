@@ -87,6 +87,9 @@ public:
     void setDisplayName(const OpcUaNodeId& nodeId, const std::string& text);
     OpcUaObject<UA_LocalizedText> readDisplayName(const OpcUaNodeId& nodeId) const;
 
+    void setDescription(const OpcUaNodeId& nodeId, const OpcUaObject<UA_LocalizedText>& localizedText);
+    void setDescription(const OpcUaNodeId& nodeId, const std::string& text);
+
     void writeValue(const OpcUaNodeId& nodeId, const OpcUaVariant& var);
     OpcUaVariant readValue(const OpcUaNodeId& nodeId);
     OpcUaNodeId readDataType(const OpcUaNodeId& typeNodeId);

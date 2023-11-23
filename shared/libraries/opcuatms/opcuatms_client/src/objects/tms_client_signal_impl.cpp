@@ -137,34 +137,6 @@ ErrCode TmsClientSignalImpl::clearRelatedSignals()
     return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
 }
 
-ErrCode TmsClientSignalImpl::getName(IString** name)
-{
-    OPENDAQ_PARAM_NOT_NULL(name);
-
-    auto objPtr = this->borrowPtr<ComponentPtr>();
-
-    return daqTry(
-        [&name, &objPtr]()
-        {
-            *name = objPtr.getPropertyValue("Name").asPtr<IString>().detach();
-            return OPENDAQ_SUCCESS;
-        });
-}
-
-ErrCode TmsClientSignalImpl::setName(IString* name)
-{
-    OPENDAQ_PARAM_NOT_NULL(name);
-
-    auto objPtr = this->borrowPtr<ComponentPtr>();
-
-    return daqTry(
-        [&name, &objPtr]()
-        {
-            objPtr.setPropertyValue("Name", name);
-            return OPENDAQ_SUCCESS;
-        });
-}
-
 Bool TmsClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
 {
     // No new duplicated event packets have been created so returns true to forward original packet

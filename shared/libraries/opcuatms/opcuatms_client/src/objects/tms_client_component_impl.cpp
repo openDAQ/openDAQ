@@ -41,6 +41,76 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getTags(ITagsConfig** tags)
     });
 }
 
+template <class Impl>
+ErrCode TmsClientComponentBaseImpl<Impl>::getName(IString** name)
+{
+    OPENDAQ_PARAM_NOT_NULL(name);
+
+    return daqTry([&]
+    {
+        StringPtr nameObj =this->client->readDisplayName(this->nodeId);
+        *name = nameObj.detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <class Impl>
+ErrCode TmsClientComponentBaseImpl<Impl>::setName(IString* name)
+{
+    OPENDAQ_PARAM_NOT_NULL(name);
+
+    try
+    {
+        StringPtr nameObj = name;
+        this->client->writeDisplayName(this->nodeId, nameObj);
+        return OPENDAQ_SUCCESS;
+    }
+    catch(...)
+    {
+        auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientComponent");
+        StringPtr nameObj;
+        this->getName(&nameObj);
+        LOG_W("Failed to set name of component \"{}\"", nameObj);
+    }
+
+    return OPENDAQ_IGNORED;
+}
+
+template <class Impl>
+ErrCode TmsClientComponentBaseImpl<Impl>::getDescription(IString** description)
+{
+    OPENDAQ_PARAM_NOT_NULL(description);
+
+    return daqTry([&]
+    {
+        StringPtr descObj = this->client->readDescription(this->nodeId);
+        *description = descObj.detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <class Impl>
+ErrCode TmsClientComponentBaseImpl<Impl>::setDescription(IString* description)
+{
+    OPENDAQ_PARAM_NOT_NULL(description);
+
+    try
+    {
+        StringPtr descriptionObj = description;
+        this->client->writeDescription(this->nodeId, descriptionObj);
+        return OPENDAQ_SUCCESS;
+    }
+    catch(...)
+    {
+        auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientComponent");
+        StringPtr descObj;
+        this->getName(&descObj);
+        LOG_W("Failed to set description of component \"{}\"", descObj);
+    }
+
+    return OPENDAQ_IGNORED;
+}
+
 template class TmsClientComponentBaseImpl<ComponentImpl<>>;
 template class TmsClientComponentBaseImpl<FolderImpl<IFolderConfig>>;
 template class TmsClientComponentBaseImpl<IoFolderImpl>;

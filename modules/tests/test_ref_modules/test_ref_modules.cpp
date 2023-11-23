@@ -577,3 +577,245 @@ TEST_F(RefModulesTest, UpdateDevicePower)
 
 //    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
+
+TEST_F(RefModulesTest, ClassifierCheckCustomClass)
+{
+    const auto instance = Instance();
+
+    const auto device = instance.addDevice("daqref://device0");
+
+    auto customClassList = List<Float>(1,10,100,1000);
+    auto blockSize = 10;
+    auto classCount = 2;
+
+    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    classifierFb.setPropertyValue("UseCustomClasses", true);
+    classifierFb.setPropertyValue("CustomClassList", customClassList);
+    classifierFb.setPropertyValue("BlockSize", blockSize);
+    classifierFb.setPropertyValue("ClassCount", classCount);
+
+    const auto deviceChannel = device.getChannels()[0];
+    const auto deviceSignal = deviceChannel.getSignals()[0];
+
+    const auto classifierInputPort = classifierFb.getInputPorts()[0];
+    classifierInputPort.connect(deviceSignal);
+
+    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierSignalDescription = classifierSignal.getDescriptor();
+
+    // Classifier returning values with float float
+    ASSERT_EQ(classifierSignalDescription.getSampleType(), SampleType::Float64);
+
+    // Dimension of classifier's output signal have to be 1 (vector)
+    ASSERT_EQ(classifierSignalDescription.getDimensions().getCount(), 1);
+
+    // Classifier returns values in range [0, 1]
+    ASSERT_EQ(classifierSignalDescription.getValueRange(), Range(0,1));
+
+    // Classifier returns values are %
+    ASSERT_EQ(classifierSignalDescription.getUnit().getSymbol(), "%");
+
+    // Size of output signal have to be equaled to  size of customClassList
+    auto signalDimension = classifierSignalDescription.getDimensions()[0];
+    ASSERT_EQ(signalDimension.getSize(), customClassList.getCount());
+    
+    // Dimension of classifier's output have to be the same as customClassList
+    ASSERT_EQ(signalDimension.getLabels(), customClassList);
+
+    const auto classifierDomainSignal = classifierSignal.getDomainSignal();
+    const auto classifierDomainSignalDescription = classifierDomainSignal.getDescriptor();
+
+    const auto deviceDomainDescriptor = deviceSignal.getDomainSignal().getDescriptor();
+
+    const auto deviceDomainRule = deviceDomainDescriptor.getRule();
+    const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
+
+    // Check Linear Rule
+    if (deviceDomainRule.getType() == DataRuleType::Linear) 
+    {
+        printf("ClassifierCheckCustomClassCount::Linear rule");
+        ASSERT_EQ(deviceDomainRule.getType(), classifierDomainRule.getType());
+        ASSERT_EQ(classifierDomainSignalDescription.getTickResolution(), deviceDomainDescriptor.getTickResolution());
+
+        auto deviceResolution = deviceDomainDescriptor.getTickResolution() * Int(1000);
+
+        auto classifierDelta = classifierDomainRule.getParameters().get("delta");
+        auto expectedClassifierDelata = static_cast<Float>(blockSize) / static_cast<Float>(deviceResolution);
+
+        ASSERT_EQ(classifierDelta, expectedClassifierDelata);
+    }
+    else 
+    {
+        printf("ClassifierCheckCustomClassCount::Explicit rule");
+        ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
+    }
+}
+
+TEST_F(RefModulesTest, ClassifierCheckBuildinClass)
+{
+    const auto instance = Instance();
+
+    const auto device = instance.addDevice("daqref://device0");
+
+    auto customClassList = List<Float>(1,10,100,1000);
+    auto blockSize = 2;
+    auto classCount = 2;
+    auto inputRange = Range(-20.0, 20.0);
+
+    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    classifierFb.setPropertyValue("UseCustomClasses", false);
+    classifierFb.setPropertyValue("CustomClassList", customClassList);
+    classifierFb.setPropertyValue("BlockSize", blockSize);
+    classifierFb.setPropertyValue("ClassCount", classCount);
+
+    const auto deviceChannel = device.getChannels()[0];
+    deviceChannel.setPropertyValue("CustomRange", inputRange);
+    const auto deviceSignal = deviceChannel.getSignals()[0];
+
+    const auto classifierInputPort = classifierFb.getInputPorts()[0];
+    classifierInputPort.connect(deviceSignal);
+
+    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierSignalDescription = classifierSignal.getDescriptor();
+
+    // Classifier returning values with float float
+    ASSERT_EQ(classifierSignalDescription.getSampleType(), SampleType::Float64);
+
+    // Dimension of classifier's output signal have to be 1 (vector)
+    ASSERT_EQ(classifierSignalDescription.getDimensions().getCount(), 1);
+
+    // Classifier returns values in range [0, 1]
+    ASSERT_EQ(classifierSignalDescription.getValueRange(), Range(0,1));
+
+    // Classifier returns values are %
+    ASSERT_EQ(classifierSignalDescription.getUnit().getSymbol(), "%");
+
+    // Checking dimension of classifier
+    {
+        auto signalDimension = classifierSignalDescription.getDimensions()[0];
+        auto labels = signalDimension.getLabels();
+        Float expectedMark = inputRange.getLowValue();
+        for (const auto & mark : labels)
+        {
+            ASSERT_EQ(static_cast<Float>(mark), expectedMark);
+            expectedMark += classCount;
+        }
+        ASSERT_EQ(labels[labels.getCount() - 1], inputRange.getHighValue());
+    }
+
+    const auto classifierDomainSignal = classifierSignal.getDomainSignal();
+    const auto classifierDomainSignalDescription = classifierDomainSignal.getDescriptor();
+
+    const auto deviceDomainDescriptor = deviceSignal.getDomainSignal().getDescriptor();
+
+    const auto deviceDomainRule = deviceDomainDescriptor.getRule();
+    const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
+
+    // Check Linear Rule
+    if (deviceDomainRule.getType() == DataRuleType::Linear) 
+    {
+        printf("ClassifierCheckCustomClassCount::Linear rule");
+        ASSERT_EQ(deviceDomainRule.getType(), classifierDomainRule.getType());
+        ASSERT_EQ(classifierDomainSignalDescription.getTickResolution(), deviceDomainDescriptor.getTickResolution());
+
+        auto deviceResolution = deviceDomainDescriptor.getTickResolution() * Int(1000);
+
+        auto classifierDelta = classifierDomainRule.getParameters().get("delta");
+        auto expectedClassifierDelata = static_cast<Float>(blockSize) / static_cast<Float>(deviceResolution);
+
+        ASSERT_EQ(classifierDelta, expectedClassifierDelata);
+    }
+    else 
+    {
+        printf("ClassifierCheckCustomClassCount::Explicit rule");
+        ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
+    }
+
+}
+
+TEST_F(RefModulesTest, ClassifierCheckBuildinClassCustomRange)
+{
+    const auto instance = Instance();
+
+    const auto device = instance.addDevice("daqref://device0");
+
+    auto customClassList = List<Float>(1,10,100,1000);
+    auto blockSize = 2;
+    auto classCount = 2;
+    auto inputRange = Range(-20.0, 20.0);
+    auto classifierInputRange = Range(0.0, 20.0);
+
+    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    classifierFb.setPropertyValue("UseCustomClasses", false);
+    classifierFb.setPropertyValue("CustomClassList", customClassList);
+    classifierFb.setPropertyValue("BlockSize", blockSize);
+    classifierFb.setPropertyValue("ClassCount", classCount);
+    classifierFb.setPropertyValue("BlockSize", blockSize);
+    classifierFb.setPropertyValue("UseCustomInputRange", true);
+    classifierFb.setPropertyValue("inputLowValue", classifierInputRange.getLowValue());
+    classifierFb.setPropertyValue("InputHighValue", classifierInputRange.getHighValue());
+
+    const auto deviceChannel = device.getChannels()[0];
+    deviceChannel.setPropertyValue("CustomRange", inputRange);
+    const auto deviceSignal = deviceChannel.getSignals()[0];
+
+    const auto classifierInputPort = classifierFb.getInputPorts()[0];
+    classifierInputPort.connect(deviceSignal);
+
+    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierSignalDescription = classifierSignal.getDescriptor();
+
+    // Classifier returning values with float float
+    ASSERT_EQ(classifierSignalDescription.getSampleType(), SampleType::Float64);
+
+    // Dimension of classifier's output signal have to be 1 (vector)
+    ASSERT_EQ(classifierSignalDescription.getDimensions().getCount(), 1);
+
+    // Classifier returns values in range [0, 1]
+    ASSERT_EQ(classifierSignalDescription.getValueRange(), Range(0,1));
+
+    // Classifier returns values are %
+    ASSERT_EQ(classifierSignalDescription.getUnit().getSymbol(), "%");
+
+    // Checking dimension of classifier
+    {
+        auto signalDimension = classifierSignalDescription.getDimensions()[0];
+        auto labels = signalDimension.getLabels();
+        Float expectedMark = classifierInputRange.getLowValue();
+        for (const auto & mark : labels)
+        {
+            ASSERT_EQ(static_cast<Float>(mark), expectedMark);
+            expectedMark += classCount;
+        }
+        ASSERT_EQ(labels[labels.getCount() - 1], classifierInputRange.getHighValue());
+    }
+
+    const auto classifierDomainSignal = classifierSignal.getDomainSignal();
+    const auto classifierDomainSignalDescription = classifierDomainSignal.getDescriptor();
+
+    const auto deviceDomainDescriptor = deviceSignal.getDomainSignal().getDescriptor();
+
+    const auto deviceDomainRule = deviceDomainDescriptor.getRule();
+    const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
+
+    // Check Linear Rule
+    if (deviceDomainRule.getType() == DataRuleType::Linear) 
+    {
+        printf("ClassifierCheckCustomClassCount::Linear rule");
+        ASSERT_EQ(deviceDomainRule.getType(), classifierDomainRule.getType());
+        ASSERT_EQ(classifierDomainSignalDescription.getTickResolution(), deviceDomainDescriptor.getTickResolution());
+
+        auto deviceResolution = deviceDomainDescriptor.getTickResolution() * Int(1000);
+
+        auto classifierDelta = classifierDomainRule.getParameters().get("delta");
+        auto expectedClassifierDelata = static_cast<Float>(blockSize) / static_cast<Float>(deviceResolution);
+
+        ASSERT_EQ(classifierDelta, expectedClassifierDelata);
+    }
+    else 
+    {
+        printf("ClassifierCheckCustomClassCount::Explicit rule");
+        ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
+    }
+
+}

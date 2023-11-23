@@ -57,6 +57,7 @@ static PropertyObjectPtr CreateServerConfig(const InstancePtr& instance)
 {
     auto config = instance.getAvailableServerTypes().get("openDAQ WebsocketTcp Streaming").createDefaultConfig();
     config.setPropertyValue("WebsocketStreamingPort", 0);
+    config.setPropertyValue("WebsocketControlPort", 0);
     return config;
 }
 
@@ -122,6 +123,9 @@ TEST_F(WebsocketStreamingServerModuleTest, ServerConfig)
 
     ASSERT_TRUE(config.hasProperty("WebsocketStreamingPort"));
     ASSERT_EQ(config.getPropertyValue("WebsocketStreamingPort"), 7414);
+
+    ASSERT_TRUE(config.hasProperty("WebsocketControlPort"));
+    ASSERT_EQ(config.getPropertyValue("WebsocketControlPort"), 7438);
 }
 
 TEST_F(WebsocketStreamingServerModuleTest, CreateServer)

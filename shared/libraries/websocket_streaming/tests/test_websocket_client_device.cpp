@@ -14,6 +14,7 @@ class WebsocketClientDeviceTest : public testing::Test
 {
 public:
     const uint16_t STREAMING_PORT = daq::streaming_protocol::WEBSOCKET_LISTENING_PORT;
+    const uint16_t CONTROL_PORT = daq::streaming_protocol::HTTP_CONTROL_PORT;
     const std::string HOST = "127.0.0.1";
     ContextPtr context;
 
@@ -40,6 +41,7 @@ TEST_F(WebsocketClientDeviceTest, CreateSuccess)
     // Setup and start streaming server
     auto server = WebsocketStreamingServer(serverInstance);
     server.setStreamingPort(STREAMING_PORT);
+    server.setControlPort(CONTROL_PORT);
     server.start();
 
     DevicePtr clientDevice;
@@ -54,6 +56,7 @@ TEST_F(WebsocketClientDeviceTest, DeviceInfo)
     // Setup and start streaming server
     auto server = WebsocketStreamingServer(serverInstance);
     server.setStreamingPort(STREAMING_PORT);
+    server.setControlPort(CONTROL_PORT);
     server.start();
 
     // Create the client device
@@ -78,7 +81,7 @@ TEST_F(WebsocketClientDeviceTest, SingleSignalWithDomain)
         signals.pushBack(testSignal);
         return signals;
     });
-    server->start(STREAMING_PORT);
+    server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
     auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
@@ -131,7 +134,7 @@ TEST_F(WebsocketClientDeviceTest, SingleSignalWithoutDomain)
         signals.pushBack(testSignal);
         return signals;
     });
-    server->start(STREAMING_PORT);
+    server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
     auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
@@ -150,6 +153,7 @@ TEST_F(WebsocketClientDeviceTest, DeviceWithMultipleSignals)
     // Setup and start streaming server
     auto server = WebsocketStreamingServer(serverInstance);
     server.setStreamingPort(STREAMING_PORT);
+    server.setControlPort(CONTROL_PORT);
     server.start();
 
     // Create the client device

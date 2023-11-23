@@ -13,9 +13,11 @@ WebsocketStreamingServerImpl::WebsocketStreamingServerImpl(DevicePtr rootDevice,
     , websocketStreamingServer(rootDevice, context)
     , config(config)
 {
-    const uint16_t port = config.getPropertyValue("WebsocketStreamingPort");
+    const uint16_t streamingPort = config.getPropertyValue("WebsocketStreamingPort");
+    const uint16_t controlPort = config.getPropertyValue("WebsocketControlPort");
 
-    websocketStreamingServer.setStreamingPort(port);
+    websocketStreamingServer.setStreamingPort(streamingPort);
+    websocketStreamingServer.setControlPort(controlPort);
     websocketStreamingServer.start();
 }
 
@@ -28,8 +30,11 @@ PropertyObjectPtr WebsocketStreamingServerImpl::createDefaultConfig()
 
     const auto websocketPortProp =
         IntPropertyBuilder("WebsocketStreamingPort", 7414).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
-
     defaultConfig.addProperty(websocketPortProp);
+
+    const auto websocketControlPortProp =
+        IntPropertyBuilder("WebsocketControlPort", 7438).setMinValue(minPortValue).setMaxValue(maxPortValue).build();
+    defaultConfig.addProperty(websocketControlPortProp);
 
     return defaultConfig;
 }

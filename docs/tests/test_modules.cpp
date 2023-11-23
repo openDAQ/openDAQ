@@ -199,6 +199,7 @@ TEST_F(ModulesTest, CreateServer)
     daq::ListPtr<IProperty> webSocketConfigFields = webSocketConfig.getVisibleProperties();
     ASSERT_NO_THROW(webSocketConfigFields[0].getName());
     webSocketConfig.setPropertyValue("WebsocketStreamingPort", 7414);
+    webSocketConfig.setPropertyValue("WebsocketControlPort", 7438);
     ASSERT_NO_THROW(websocketStreamingServerModule.createServer(webSocketServerType.getId(), device, webSocketConfig));
 #endif
 

@@ -30,6 +30,7 @@ public:
     ~WebsocketStreamingServer();
 
     void setStreamingPort(uint16_t port);
+    void setControlPort(uint16_t port);
     void start();
     void stop();
 
@@ -38,6 +39,7 @@ protected:
     ContextPtr context;
 
     uint16_t streamingPort = 0;
+    uint16_t controlPort = 0;
     daq::websocket_streaming::StreamingServer streamingServer;
     daq::websocket_streaming::AsyncPacketReader packetReader;
 

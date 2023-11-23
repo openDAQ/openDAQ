@@ -1,3 +1,26 @@
+23.11.2023
+
+Description:
+ - setDescription, getDescription, and setName were moved to IComponent.
+ - OPC UA now uses DisplayName to set/get component names, and node Description to get/set component descriptions
+ 
++ [function] IComponent::setName(IString* name)
++ [function] IComponent::getDescription(IString** description)
++ [function] IComponent::setDescription(IString* description)
+
+- [function] ISignal::setName(IString* name)
+- [function] ISignal::getDescription(IString** description)
+- [function] ISignal::setDescription(IString* description)
+
+- [function] IFolderConfig::setName(IString* name)
+
+-m [factory] ComponentPtr Component(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
++m [factory] ComponentPtr Component(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, ComponentStandardProps propertyMode = ComponentStandardProps::Add)
+-m [factory] FolderConfigPtr Folder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
++m [factory] FolderConfigPtr Folder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const ComponentStandardProps propertyMode = ComponentStandardProps::Add)
+-m [factory] inline IoFolderConfigPtr IoFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
++m [factory] inline IoFolderConfigPtr IoFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const ComponentStandardProps propertyMode = ComponentStandardProps::Add)
+
 17.11.2023
 
 Description:

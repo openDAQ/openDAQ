@@ -633,7 +633,6 @@ TEST_F(RefModulesTest, ClassifierCheckCustomClass)
     // Check Linear Rule
     if (deviceDomainRule.getType() == DataRuleType::Linear) 
     {
-        printf("ClassifierCheckCustomClassCount::Linear rule");
         ASSERT_EQ(deviceDomainRule.getType(), classifierDomainRule.getType());
         ASSERT_EQ(classifierDomainSignalDescription.getTickResolution(), deviceDomainDescriptor.getTickResolution());
 
@@ -646,7 +645,6 @@ TEST_F(RefModulesTest, ClassifierCheckCustomClass)
     }
     else 
     {
-        printf("ClassifierCheckCustomClassCount::Explicit rule");
         ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
     }
 }
@@ -714,7 +712,6 @@ TEST_F(RefModulesTest, ClassifierCheckBuildinClass)
     // Check Linear Rule
     if (deviceDomainRule.getType() == DataRuleType::Linear) 
     {
-        printf("ClassifierCheckCustomClassCount::Linear rule");
         ASSERT_EQ(deviceDomainRule.getType(), classifierDomainRule.getType());
         ASSERT_EQ(classifierDomainSignalDescription.getTickResolution(), deviceDomainDescriptor.getTickResolution());
 
@@ -727,7 +724,6 @@ TEST_F(RefModulesTest, ClassifierCheckBuildinClass)
     }
     else 
     {
-        printf("ClassifierCheckCustomClassCount::Explicit rule");
         ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
     }
 
@@ -801,7 +797,6 @@ TEST_F(RefModulesTest, ClassifierCheckBuildinClassCustomRange)
     // Check Linear Rule
     if (deviceDomainRule.getType() == DataRuleType::Linear) 
     {
-        printf("ClassifierCheckCustomClassCount::Linear rule");
         ASSERT_EQ(deviceDomainRule.getType(), classifierDomainRule.getType());
         ASSERT_EQ(classifierDomainSignalDescription.getTickResolution(), deviceDomainDescriptor.getTickResolution());
 
@@ -814,7 +809,6 @@ TEST_F(RefModulesTest, ClassifierCheckBuildinClassCustomRange)
     }
     else 
     {
-        printf("ClassifierCheckCustomClassCount::Explicit rule");
         ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
     }
 

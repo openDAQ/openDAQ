@@ -8,6 +8,7 @@
 #include <opendaq/gmock/context.h>
 #include <coreobjects/property_object_class_factory.h>
 #include <opendaq/context_factory.h>
+#include <opendaq/component_factory.h>
 
 using namespace daq;
 using namespace testing;
@@ -78,4 +79,46 @@ TEST_F(ComponentTest, Name)
     auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("comp"), nullptr));
     auto name = comp.getName();
     ASSERT_EQ(name, "comp");
+}
+
+TEST_F(ComponentTest, StandardProperties)
+{
+    const auto name = "foo";
+    const auto desc = "bar";
+    const auto component = Component(nullptr, nullptr, "temp");
+
+    component.setName(name);
+    component.setDescription(desc);
+
+    ASSERT_EQ(component.getName(), name);
+    ASSERT_EQ(component.getDescription(), desc);
+}
+
+TEST_F(ComponentTest, SerializeAndUpdate)
+{
+    const auto name = "foo";
+    const auto desc = "bar";
+    const auto component = Component(nullptr, nullptr, "temp");
+
+    component.setName(name);
+    component.setDescription(desc);
+
+    const auto serializer = JsonSerializer(True);
+    component.serialize(serializer);
+    const auto str1 = serializer.getOutput();
+
+    const auto newComponent = Component(nullptr, nullptr, "temp");
+    const auto deserializer = JsonDeserializer();
+    const auto updatable = newComponent.asPtr<IUpdatable>();
+
+    deserializer.update(updatable, str1);
+
+    ASSERT_EQ(newComponent.getName(), name);
+    ASSERT_EQ(newComponent.getDescription(), desc);
+
+    const auto serializer2 = JsonSerializer(True);
+    newComponent.serialize(serializer2);
+    const auto str2 = serializer2.getOutput();
+
+    ASSERT_EQ(str1, str2);
 }

@@ -38,8 +38,11 @@ void defineIFolderConfig(pybind11::module_ m, PyDaqIntf<daq::IFolderConfig, daq:
     cls.doc() = "Allows write access to folder.";
 
     m.def("Folder", &daq::Folder_Create);
+    m.def("FolderWithDefaultPropertyMode", &daq::FolderWithDefaultPropertyMode_Create);
     m.def("FolderWithItemType", &daq::FolderWithItemType_Create);
+    m.def("FolderWithItemTypeAndDefaultPropertyMode", &daq::FolderWithItemTypeAndDefaultPropertyMode_Create);
     m.def("IoFolder", &daq::IoFolder_Create);
+    m.def("IoFolderWithDefaultPropertyMode", &daq::IoFolderWithDefaultPropertyMode_Create);
 
     cls.def("add_item",
         [](daq::IFolderConfig *object, daq::IComponent* item)
@@ -72,12 +75,4 @@ void defineIFolderConfig(pybind11::module_ m, PyDaqIntf<daq::IFolderConfig, daq:
             objectPtr.clear();
         },
         "Removes all items from the folder.");
-    cls.def_property("name",
-        nullptr,
-        [](daq::IFolderConfig *object, const std::string& name)
-        {
-            const auto objectPtr = daq::FolderConfigPtr::Borrow(object);
-            objectPtr.setName(name);
-        },
-        "Sets the name of the folder.");
 }

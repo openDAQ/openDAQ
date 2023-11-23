@@ -72,4 +72,11 @@ void defineIPropertyValueEventArgs(pybind11::module_ m, PyDaqIntf<daq::IProperty
             return objectPtr.getPropertyEventType();
         },
         "");
+    cls.def_property_readonly("is_updating",
+        [](daq::IPropertyValueEventArgs *object)
+        {
+            const auto objectPtr = daq::PropertyValueEventArgsPtr::Borrow(object);
+            return objectPtr.getIsUpdating();
+        },
+        "");
 }

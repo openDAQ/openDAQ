@@ -30,6 +30,11 @@
 
 PyDaqIntf<daq::IComponent, daq::IPropertyObject> declareIComponent(pybind11::module_ m)
 {
+    py::enum_<daq::ComponentStandardProps>(m, "ComponentStandardProps")
+        .value("Add", daq::ComponentStandardProps::Add)
+        .value("AddReadOnly", daq::ComponentStandardProps::AddReadOnly)
+        .value("Skip", daq::ComponentStandardProps::Skip);
+
     return wrapInterface<daq::IComponent, daq::IPropertyObject>(m, "IComponent");
 }
 
@@ -38,6 +43,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.doc() = "Acts as a base interface for components, such as device, function block, channel and signal.";
 
     m.def("Component", &daq::Component_Create);
+    m.def("ComponentWithDefaultPropertyMode", &daq::ComponentWithDefaultPropertyMode_Create);
 
     cls.def_property_readonly("local_id",
         [](daq::IComponent *object)
@@ -81,13 +87,30 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
         },
         py::return_value_policy::take_ownership,
         "Gets the parent of the component.");
-    cls.def_property_readonly("name",
+    cls.def_property("name",
         [](daq::IComponent *object)
         {
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
-        "Gets the name of the component.");
+        [](daq::IComponent *object, const std::string& name)
+        {
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            objectPtr.setName(name);
+        },
+        "Gets the name of the component. / Sets the name of the component.");
+    cls.def_property("description",
+        [](daq::IComponent *object)
+        {
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            return objectPtr.getDescription().toStdString();
+        },
+        [](daq::IComponent *object, const std::string& description)
+        {
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            objectPtr.setDescription(description);
+        },
+        "Gets the description of the component. / Sets the description of the component.");
     cls.def_property_readonly("tags",
         [](daq::IComponent *object)
         {

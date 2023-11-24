@@ -4,11 +4,8 @@ set(TEST_SOURCES test_device_modules.cpp
                  test_app.cpp
 )
 
-# Integration tests for websocket client/server modules are disabled on Windows since
-# occasional failures can occur due to a streaming connection issue (ticket TBBAS-818).
-if (NOT MSVC AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
+if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     list(APPEND TEST_SOURCES test_websocket_modules.cpp)
-    add_compile_definitions(TEST_WEBSOCKET_MODULES)
 endif()
 
 if (OPENDAQ_ENABLE_NATIVE_STREAMING)

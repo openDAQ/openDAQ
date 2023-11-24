@@ -330,7 +330,7 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
         if (std::is_same_v<TReadType, TDataType>)
         {
             // Returns the pointer to the value after the last copied one
-            *outputBuffer = std::copy_n(dataStart, toRead, dataOut);
+            *outputBuffer = std::copy_n(dataStart, valuesPerSample * toRead, dataOut);
         }
         else
         {

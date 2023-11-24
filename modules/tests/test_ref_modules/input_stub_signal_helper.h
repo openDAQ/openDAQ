@@ -18,23 +18,22 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_rule_factory.h>
+#include <opendaq/instance_factory.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/reader_utils.h>
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/signal_factory.h>
 #include <testutils/testutils.h>
-#include <opendaq/reader_utils.h>
-#include <opendaq/instance_factory.h>
+#include <random>
 
 using namespace daq;
 
-struct InputStub
+struct InputStubSignal
 {
-    void setUp (
-        SampleType signalType = SampleType::UInt64,
-        RangePtr signalRange = Range(-10, 10),
-        bool domainSync = true) 
+    void setUp(SampleType signalType = SampleType::UInt64, RangePtr signalRange = Range(-10, 10), bool domainSync = true)
     {
+        this->sentSamples = 0;
         this->domainSync = domainSync;
         this->instance = Instance();
         this->context = this->instance.getContext();
@@ -44,17 +43,17 @@ struct InputStub
         this->signal.setDomainSignal(this->domainSignal);
     }
 
-    InstancePtr getInstance () 
+    InstancePtr getInstance()
     {
         return instance;
     }
 
-    SignalConfigPtr getSignal ()
+    SignalConfigPtr getSignal()
     {
         return signal;
     }
 
-    void sendPacket (const PacketPtr& packet, bool wait = true) const
+    void sendPacket(const PacketPtr& packet, bool wait = true) const
     {
         signal.sendPacket(packet);
 
@@ -62,31 +61,29 @@ struct InputStub
             scheduler.waitAll();
     }
 
-    DataPacketPtr createDataPacket (SizeT numSamples, Int offset = 0) const
+    DataPacketPtr createDataPacket(SizeT numSamples, Int offset = 0)
     {
-        auto domainPacket = DataPacket(
-            domainSignal.getDescriptor(),
-            numSamples,
-            offset
-        );
+        auto domainPacket = DataPacket(domainSignal.getDescriptor(), numSamples, offset);
 
-        return DataPacketWithDomain (
-            domainPacket,
-            this->signal.getDescriptor(),
-            numSamples
-        );
+        if (!domainSync)
+        {
+            auto outputData = static_cast<UInt*>(domainPacket.getData());
+            static std::uniform_int_distribution<size_t> d(0, 1000);
+            for (size_t i = 0; i < numSamples; i++)
+                outputData[i] = (sentSamples + i) * 1000 + d(random);
+
+            if (sentSamples == 0 && numSamples)
+                outputData[0] = 0;
+
+            sentSamples += numSamples;
+        }
+
+        return DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), numSamples);
     }
 
-    static SignalConfigPtr createSignal (
-        ContextPtr context, 
-        SampleType type = SampleType::UInt64, 
-        RangePtr range = Range(-10, 10))
+    static SignalConfigPtr createSignal(ContextPtr context, SampleType type = SampleType::UInt64, RangePtr range = Range(-10, 10))
     {
-        auto descriptor = DataDescriptorBuilder()
-                                .setName("stub")
-                                .setSampleType(type)
-                                .setValueRange(range)
-                                .build();
+        auto descriptor = DataDescriptorBuilder().setName("stub").setSampleType(type).setValueRange(range).build();
 
         auto signal = Signal(context, nullptr, "sig");
         signal.setDescriptor(descriptor);
@@ -94,19 +91,16 @@ struct InputStub
         return signal;
     }
 
-    static SignalConfigPtr createDomainSignal (
-        ContextPtr context, 
-        bool domainSync,
-        std::string epoch = "2023-11-24T00:02:03+00:00")
+    static SignalConfigPtr createDomainSignal(ContextPtr context, bool domainSync, std::string epoch = "2023-11-24T00:02:03+00:00")
     {
         auto descriptor = DataDescriptorBuilder()
-                                    .setName("domain stub")
-                                    .setSampleType(SampleType::UInt64)
-                                    .setOrigin(epoch)
-                                    .setTickResolution(Ratio(1, 1000000))
-                                    .setRule(domainSync ? LinearDataRule(1000, 0) : ExplicitDataRule())
-                                    .setUnit(Unit("s", -1, "seconds", "time"))
-                                    .build();
+                              .setName("domain stub")
+                              .setSampleType(SampleType::UInt64)
+                              .setOrigin(epoch)
+                              .setTickResolution(Ratio(1, 1000000))
+                              .setRule(domainSync ? LinearDataRule(1000, 0) : ExplicitDataRule())
+                              .setUnit(Unit("s", -1, "seconds", "time"))
+                              .build();
 
         auto domain = Signal(context, nullptr, "time");
         domain.setDescriptor(descriptor);
@@ -115,10 +109,13 @@ struct InputStub
     }
 
 protected:
-    bool domainSync {true};
+    bool domainSync{true};
     InstancePtr instance;
     ContextPtr context;
     SchedulerPtr scheduler;
     SignalConfigPtr signal;
     SignalConfigPtr domainSignal;
+
+    size_t sentSamples;
+    std::random_device random;
 };

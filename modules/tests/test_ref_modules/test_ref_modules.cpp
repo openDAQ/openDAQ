@@ -6,7 +6,12 @@
 #include <thread>
 #include <opendaq/range_factory.h>
 #include "testutils/memcheck_listener.h"
-
+// #include <opendaq/signal_ptr.h>
+// #include <opendaq/signal_factory.h>
+// #include <opendaq/data_descriptor_factory.h>
+#include <opendaq/reader_factory.h>
+// #include <opendaq/packet_factory.h>
+#include "sender_helper.h"
 using RefModulesTest = testing::Test;
 using namespace daq;
 
@@ -812,4 +817,56 @@ TEST_F(RefModulesTest, ClassifierCheckBuildinClassCustomRange)
         ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
     }
 
+}
+
+
+TEST_F(RefModulesTest, ClassifierBlackBox)
+{
+    using inputSignalType = Int;
+    SampleType inputSignalSampleType = SampleType::Int64;
+    using outputSignalType = Float;
+    
+    auto inputSignalRange = Range(-10, 10);
+    bool inputSignalSync = true;
+
+    InputStub input;
+    input.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
+    auto instance = input.getInstance();
+    auto inputSignal = input.getSignal();
+
+    SizeT blockSizeMs = 5;
+    SizeT classCount = 1;
+    SizeT inputPacketCount = blockSizeMs;
+    SizeT outputPacketCount = inputPacketCount / blockSizeMs;
+
+    auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    classifierFb.setPropertyValue("UseCustomClasses", false);
+    classifierFb.setPropertyValue("BlockSize", blockSizeMs);
+    classifierFb.setPropertyValue("ClassCount", classCount);
+    
+    const auto classifierPort = classifierFb.getInputPorts()[0];
+    classifierPort.connect(inputSignal);
+    const auto classifierSignal = classifierFb.getSignals()[0];
+
+    const auto classifierSignalDescription = classifierSignal.getDescriptor();
+    const auto classifierSignalLabelsSize = classifierSignal.getDescriptor().getDimensions()[0].getSize();
+
+    auto reader = BlockReader<inputSignalType>(classifierSignal, outputPacketCount);
+    auto dataPacket = input.createDataPacket(inputPacketCount);
+    auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
+
+    for (size_t i = 0; i < inputPacketCount; i++) 
+    {
+        auto deliter = inputPacketCount > 1 ? inputPacketCount - 1 : 1;
+        auto delta = (static_cast<Float>(inputSignalRange.getHighValue()) - static_cast<Float>(inputSignalRange.getLowValue())) / deliter;
+        dataPtr[i] = inputSignalRange.getLowValue() + delta * i;
+    }
+
+    input.sendPacket(dataPacket);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
+    SizeT blockCnt = outputPacketCount;
+    auto outputData = std::make_unique<outputSignalType[]>(classifierSignalLabelsSize * outputPacketCount);
+    reader.read(outputData.get(), &blockCnt);
 }

@@ -303,8 +303,10 @@ Int ClassifierFbImpl::binarySearch(float value, const ListPtr<IBaseObject>& labe
 
     while (low <= high) 
     {
-        Int mid = low + (high - low) / 2;
+        if (low == high)
+            return low;
 
+        Int mid = low + (high - low) / 2;
         if (value >= static_cast<Float>(labels.getItemAt(mid)) && value < static_cast<Float>(labels.getItemAt(mid+1))) 
             return mid;
         else if (value < static_cast<Float>(labels.getItemAt(mid))) 

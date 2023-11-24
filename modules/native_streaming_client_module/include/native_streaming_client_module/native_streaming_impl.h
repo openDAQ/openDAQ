@@ -37,8 +37,14 @@ public:
 
 protected:
     void onSetActive(bool active) override;
-    StringPtr onAddSignal(const SignalRemotePtr& signal) override;
-    void onRemoveSignal(const SignalRemotePtr& signal) override;
+    StringPtr onAddSignal(const MirroredSignalConfigPtr& signal) override;
+    void onRemoveSignal(const MirroredSignalConfigPtr& signal) override;
+    void onSubscribeSignal(const MirroredSignalConfigPtr& signal) override;
+    void onUnsubscribeSignal(const MirroredSignalConfigPtr& signal) override;
+    EventPacketPtr onCreateDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal) override;
+
+    void checkAndSubscribe(const MirroredSignalConfigPtr& signal);
+    void checkAndUnsubscribe(const MirroredSignalConfigPtr& signal);
 
     void signalAvailableHandler(const StringPtr& signalStringId,
                                 const StringPtr& domainSignalStringId,
@@ -53,10 +59,8 @@ protected:
     void prepareClientHandler();
 
     void onPacket(const StringPtr& signalStringId, const PacketPtr& packet);
-    void handleEventPacket(const StringPtr& signalId, const EventPacketPtr &eventPacket);
-    void handleDataPacket(const StringPtr& signalId, const PacketPtr& dataPacket);
-    void handleCachedEventPackets(const StringPtr& signalStreamingId, const SignalRemotePtr& signal);
-    StringPtr getSignalStreamingId(const SignalRemotePtr& signal);
+    void handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket);
+    StringPtr getSignalStreamingId(const MirroredSignalConfigPtr& signal);
 
     void startAsyncOperations();
     void stopAsyncOperations();
@@ -64,8 +68,7 @@ protected:
     std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingClientHandler> clientHandler;
     ProcedurePtr onDeviceSignalAvailableCallback;
     ProcedurePtr onDeviceSignalUnavailableCallback;
-    std::vector<std::string> availableSignalIds;
-    std::map<StringPtr, std::vector<EventPacketPtr>> cachedEventPackets;
+    std::map<std::string, SizeT> availableSignals;
 
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> workGuard;

@@ -7,7 +7,6 @@
       <Item Name="name">name</Item>
       <Item Name="version">version</Item>
       <Item Name="context">context</Item>
-      <Item Name="manager">manager</Item>
     </Expand>
   </Type>
   <Type Name="daq::ContextImpl">
@@ -16,12 +15,21 @@
       <Item Name="[refCount]">refCount</Item>
       <Item Name="logger">logger</Item>
       <Item Name="scheduler">scheduler</Item>
+      <Item Name="moduleManager">moduleManager</Item>
+      <Item Name="typeManager">typeManager</Item>
     </Expand>
   </Type>
   <Type Name="daq::ModuleManagerImpl">
-    <DisplayString>{{ ModuleManager, &lt;{refCount}&gt; }}</DisplayString>
+    <DisplayString>{{ ModuleManager, &lt;{refCount->strong}, {refCount->weak}&gt; }}</DisplayString>
     <Expand>
       <ExpandedItem>libraries</ExpandedItem>
+    </Expand>
+  </Type>
+  <Type Name="daq::ModuleLibrary">
+    <DisplayString>{{ ModuleLibrary, {module} }}</DisplayString>
+    <Expand>
+      <Item Name="handle">handle</Item>
+      <Item Name="module">module</Item>
     </Expand>
   </Type>
 </AutoVisualizer>

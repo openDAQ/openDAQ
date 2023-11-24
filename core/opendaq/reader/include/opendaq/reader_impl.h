@@ -56,7 +56,7 @@ public:
         domainReader = createReaderForType(domainReadType, nullptr);
     }
 
-    ReaderImpl()
+    ~ReaderImpl() override
     {
         if (port.assigned())
             port.remove();
@@ -447,7 +447,8 @@ protected:
     {
         switch (readMode)
         {
-            case ReadMode::Raw:
+            case ReadMode::Unscaled:
+            case ReadMode::RawValue:
                 return packet.getRawData();
             case ReadMode::Scaled:
                 return packet.getData();

@@ -34,20 +34,20 @@ public:
                                     const ContextPtr& context);
 protected:
     void onSetActive(bool active) override;
-    StringPtr onAddSignal(const SignalRemotePtr& signal) override;
-    void onRemoveSignal(const SignalRemotePtr& signal) override;
+    StringPtr onAddSignal(const MirroredSignalConfigPtr& signal) override;
+    void onRemoveSignal(const MirroredSignalConfigPtr& signal) override;
+    void onSubscribeSignal(const MirroredSignalConfigPtr& signal) override;
+    void onUnsubscribeSignal(const MirroredSignalConfigPtr& signal) override;
+    EventPacketPtr onCreateDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal) override;
 
     void prepareStreamingClient();
-    void handleEventPacket(const StringPtr& signalId, const EventPacketPtr &eventPacket);
-    void handleCachedEventPackets(const StringPtr& signalStreamingId, const SignalRemotePtr& signal);
-    void handleDataPacket(const StringPtr& signalId, const PacketPtr& dataPacket);
+    void handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket);
     void onPacket(const StringPtr& signalId, const PacketPtr& packet);
     void onAvailableSignals(const std::vector<std::string>& signalIds);
-    StringPtr getSignalStreamingId(const SignalRemotePtr& signal);
+    StringPtr getSignalStreamingId(const MirroredSignalConfigPtr& signal);
 
     daq::websocket_streaming::StreamingClientPtr streamingClient;
     std::vector<std::string> availableSignalIds;
-    std::map<StringPtr, std::vector<EventPacketPtr>> cachedEventPackets;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

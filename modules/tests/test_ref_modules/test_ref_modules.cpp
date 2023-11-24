@@ -132,73 +132,35 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRenderer)
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
 
-TEST_F(RefModulesTest, DISABLED_RunDeviceClassifierRenderer)
+TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererInUpdate)
 {
     const auto instance = Instance();
 
     const auto device = instance.addDevice("daqref://device1");
-    device.setPropertyValue("GlobalSampleRate", 10000);
+    device.setPropertyValue("GlobalSampleRate", 25.0);
+
+    const auto deviceChannel0 = device.getChannels()[0];
+
+    ASSERT_FLOAT_EQ(deviceChannel0.getPropertyValue("SampleRate"), 25.0);
 
     const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
-    rendererFb.setPropertyValue("Duration", 10.0);
-    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
-    classifierFb.setPropertyValue("BlockSize", 20);
 
-    const auto deviceChannel = device.getChannels()[0];
-    deviceChannel.setPropertyValue("Frequency", 10.0);
-    const auto deviceSignal = deviceChannel.getSignals()[0];
-
-    const auto statisticsInputPort = classifierFb.getInputPorts()[0];
-    const auto rmsSignal = classifierFb.getSignals()[1];
-    statisticsInputPort.connect(deviceSignal);
-
+    const auto deviceSignal0_0 = deviceChannel0.getSignals()[0];
     const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
-    rendererInputPort0.connect(deviceSignal);
+    rendererInputPort0.connect(deviceSignal0_0);
 
-    const auto rendererInputPort1 = rendererFb.getInputPorts()[1];
-    rendererInputPort1.connect(rmsSignal);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+    deviceChannel0.beginUpdate();
+    deviceChannel0.setPropertyValue("UseGlobalSampleRate", False);
+    deviceChannel0.setPropertyValue("SampleRate", 50.0);
+    deviceChannel0.setPropertyValue("ClientSideScaling", True);
+    deviceChannel0.setPropertyValue("CustomRange", Range(-5.0, 5.0));
+    ASSERT_FLOAT_EQ(deviceChannel0.getPropertyValue("SampleRate"), 25.0);
+    deviceChannel0.endUpdate();
+    ASSERT_FLOAT_EQ(deviceChannel0.getPropertyValue("SampleRate"), 50.0);
 
-    /*    statisticsFb.setPropertyValue("DomainSignalType", 1);
-        statisticsFb.setPropertyValue("BlockSize", 50);
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-
-        statisticsFb.setPropertyValue("DomainSignalType", 2);
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));*/
-}
-
-TEST_F(RefModulesTest, DISABLED_RunDeviceClassifierRendererDeviceRemove)
-{
-    const auto instance = Instance();
-
-    const auto device = instance.addDevice("daqref://device1");
-
-    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
-    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
-
-    const auto deviceChannel = device.getChannels()[0];
-    const auto deviceSignal = deviceChannel.getSignals()[0];
-
-    const auto statisticsInputPort = classifierFb.getInputPorts()[0];
-    const auto statisticsSignal = classifierFb.getSignals()[0];
-    statisticsInputPort.connect(deviceSignal);
-
-    const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
-    rendererInputPort0.connect(deviceSignal);
-
-    const auto rendererInputPort1 = rendererFb.getInputPorts()[1];
-    rendererInputPort1.connect(statisticsSignal);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-    instance.removeFunctionBlock(classifierFb);
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-    instance.removeDevice(device);
-    ASSERT_EQ(rendererFb.getInputPorts().getCount(), 1u);
-    ASSERT_FALSE(rendererFb.getInputPorts()[0].getSignal().assigned());
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-    instance.removeFunctionBlock(rendererFb);
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRenderer)

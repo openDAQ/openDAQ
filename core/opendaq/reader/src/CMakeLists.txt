@@ -24,6 +24,7 @@ source_group("reader" FILES ${SDK_HEADERS_DIR}/reader.h
                             ${SDK_HEADERS_DIR}/time_reader.h
                             ${SDK_HEADERS_DIR}/read_info.h
                             ${SDK_HEADERS_DIR}/typed_reader.h
+                            ${SDK_HEADERS_DIR}/reader_impl.h
                             reader_impl.cpp
                             typed_reader.cpp
 )
@@ -53,10 +54,8 @@ source_group("multi" FILES ${SDK_HEADERS_DIR}/multi_reader.h
                            ${SDK_HEADERS_DIR}/signal_reader.h
                            ${SDK_HEADERS_DIR}/multi_reader_impl.h
                            ${SDK_HEADERS_DIR}/multi_typed_reader.h
-                           ${SDK_HEADERS_DIR}/multi_reader_info.h
                            ${SDK_HEADERS_DIR}/reader_domain_info.h
                            multi_reader_impl.cpp
-                           multi_reader_info.cpp
                            signal_reader.cpp
 )
 
@@ -87,6 +86,7 @@ set(SRC_PrivateHeaders stream_reader_impl.h
                        multi_reader_impl.h
                        multi_typed_reader.h
                        signal_reader.h
+                       reader_impl.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)

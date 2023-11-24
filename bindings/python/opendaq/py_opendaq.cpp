@@ -52,6 +52,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classISampleReader = declareISampleReader(m);
     auto classIBlockReader = declareIBlockReader(m);
     auto classIStreamReader = declareIStreamReader(m);
+    auto classTimedStreamReader = declareTimeStreamReader(m);
     auto classITailReader = declareITailReader(m);
     auto classIAwaitable = declareIAwaitable(m);
     auto classIGraphVisualization = declareIGraphVisualization(m);
@@ -87,7 +88,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIStreaming = declareIStreaming(m);
     auto classIStreamingInfo = declareIStreamingInfo(m);
     auto classIStreamingInfoConfig = declareIStreamingInfoConfig(m);
-    auto classISignalRemote = declareISignalRemote(m);
+    auto classIMirroredSignalConfig = declareIMirroredSignalConfig(m);
 
     defineIAllocator(m, classIAllocator);
     defineIRemovable(m, classIRemovable);
@@ -115,6 +116,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineISampleReader(m, classISampleReader);
     defineIBlockReader(m, classIBlockReader);
     defineIStreamReader(m, classIStreamReader);
+    defineTimeStreamReader(m, classTimedStreamReader);
     defineITailReader(m, classITailReader);
     defineIAwaitable(m, classIAwaitable);
     defineIGraphVisualization(m, classIGraphVisualization);
@@ -150,7 +152,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIStreaming(m, classIStreaming);
     defineIStreamingInfo(m, classIStreamingInfo);
     defineIStreamingInfoConfig(m, classIStreamingInfoConfig);
-    defineISignalRemote(m, classISignalRemote);
-
+    defineIMirroredSignalConfig(m, classIMirroredSignalConfig);
+    
     m.def("Instance", []() { return daq::Instance(".").detach(); });
 }

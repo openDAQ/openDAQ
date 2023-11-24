@@ -7,6 +7,7 @@
 #include <opendaq/streaming_info_factory.h>
 #include <opendaq/reader_factory.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/event_packet_ids.h>
 
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 
@@ -67,12 +68,12 @@ void NativeStreamingServerImpl::prepareServerHandler()
 {
     auto signalSubscribedHandler = [this](const SignalPtr& signal)
     {
-        std::scoped_lock lock(sync);
+        std::scoped_lock lock(readersSync);
         signalsToStartRead.push(signal);
     };
     auto signalUnsubscribedHandler = [this](const SignalPtr& signal)
     {
-        std::scoped_lock lock(sync);
+        std::scoped_lock lock(readersSync);
         signalsToStopRead.push(signal);
     };
     serverHandler = std::make_shared<NativeStreamingServerHandler>(context,
@@ -147,9 +148,9 @@ void NativeStreamingServerImpl::stopReading()
 
 void NativeStreamingServerImpl::startReadThread()
 {
-    createReaders();
     while (readThreadActive)
     {
+        updateReaders();
         for (const auto& [signal, reader] : signalReaders)
         {
             PacketPtr packet = reader.read();
@@ -177,7 +178,7 @@ void NativeStreamingServerImpl::createReaders()
 
 void NativeStreamingServerImpl::updateReaders()
 {
-    std::scoped_lock lock(sync);
+    std::scoped_lock lock(readersSync);
     while (!signalsToStartRead.empty())
     {
         addReader(signalsToStartRead.front());
@@ -192,6 +193,15 @@ void NativeStreamingServerImpl::updateReaders()
 
 void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
 {
+    auto it = std::find_if(signalReaders.begin(),
+                           signalReaders.end(),
+                           [&signalToRead](const std::pair<SignalPtr, PacketReaderPtr>& element)
+                           {
+                               return element.first == signalToRead;
+                           });
+    if (it != signalReaders.end())
+        return;
+
     auto reader = PacketReader(signalToRead);
     signalReaders.push_back(std::pair<SignalPtr, PacketReaderPtr>({signalToRead, reader}));
 }

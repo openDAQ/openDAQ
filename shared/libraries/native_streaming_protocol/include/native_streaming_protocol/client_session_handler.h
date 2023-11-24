@@ -42,6 +42,8 @@ public:
     void sendSignalSubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId);
     void sendSignalUnsubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId);
 
+    EventPacketPtr getDataDescriptorChangedEventPacket(const SignalNumericIdType& signalNumericId);
+
 private:
     daq::native_streaming::ReadTask readHeader(const void* data, size_t size) override;
 

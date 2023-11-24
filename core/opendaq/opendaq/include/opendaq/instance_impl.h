@@ -119,6 +119,11 @@ public:
     ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IString* propertyName, IEvent** event) override;
     ErrCode INTERFACE_FUNC getOnPropertyValueRead(IString* propertyName, IEvent** event) override;
 
+    ErrCode INTERFACE_FUNC beginUpdate() override;
+    ErrCode INTERFACE_FUNC endUpdate() override;
+    ErrCode INTERFACE_FUNC getOnEndUpdate(IEvent** event) override;
+
+
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;

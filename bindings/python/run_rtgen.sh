@@ -120,6 +120,6 @@ run_rtgen opendaq opendaq/signal        opendaq opendaq/generated/signal        
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     streaming
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     streaming_info
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     streaming_info_config
-run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     signal_remote
+run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     mirrored_signal_config
 run_rtgen opendaq opendaq/utility       opendaq opendaq/generated/utility       tags
 run_rtgen opendaq opendaq/utility       opendaq opendaq/generated/utility       tags_config

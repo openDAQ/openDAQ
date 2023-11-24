@@ -2,7 +2,7 @@
 #include "opendaq/device_impl.h"
 #include "opendaq/folder_impl.h"
 #include "opendaq/io_folder_impl.h"
-#include "opendaq/signal_remote_impl.h"
+#include "opendaq/mirrored_signal_impl.h"
 #include "opendaq/input_port_impl.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -47,7 +47,7 @@ template class TmsClientComponentBaseImpl<IoFolderImpl>;
 template class TmsClientComponentBaseImpl<Device>;
 template class TmsClientComponentBaseImpl<FunctionBlock>;
 template class TmsClientComponentBaseImpl<Channel>;
-template class TmsClientComponentBaseImpl<SignalRemote<SignalStandardProps::Skip>>;
+template class TmsClientComponentBaseImpl<MirroredSignal<SignalStandardProps::Skip>>;
 template class TmsClientComponentBaseImpl<InputPortImpl>;
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

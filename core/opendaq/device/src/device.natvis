@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="daq::GenericDevice&lt;*,*&gt;">
+    <DisplayString>{{ Device, &lt;{(*refCount).strong},{(*refCount).weak}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">*refCount</Item>
+      <Item Name="deviceInfo">deviceInfo</Item>
+      <Item Name="devices">devices</Item>
+      <Item Name="ioFolder">ioFolder</Item>
+      <Item Name="streamingOptions">streamingOptions,view(simple)</Item>
+      <ExpandedItem>(daq::SignalContainerImpl&lt;$T1,daq::IDeviceDomain,daq::IDevicePrivate,$T2&gt;*)this,nd</ExpandedItem>
+    </Expand>
+  </Type>
+  <Type Name="daq::GenericDevice&lt;*&gt;">
+    <DisplayString>{{ Device, &lt;{(*refCount).strong},{(*refCount).weak}&gt; }}</DisplayString>
+    <Expand>
+      <Item Name="[refCount]">*refCount</Item>
+      <Item Name="deviceInfo">deviceInfo</Item>
+      <Item Name="devices">devices</Item>
+      <Item Name="ioFolder">ioFolder</Item>
+      <Item Name="streamingOptions">streamingOptions,view(simple)</Item>
+      <ExpandedItem>(daq::SignalContainerImpl&lt;$T1,daq::IDeviceDomain,daq::IDevicePrivate&gt;*)this,nd</ExpandedItem>
+    </Expand>
+  </Type>
+  <Type Name="daq::GenericSignalContainerImpl&lt;*,daq::IDeviceDomain,daq::IDevicePrivate,*&gt;">
+    <Expand>
+      <Item Name="signals">signals</Item>
+      <Item Name="functionBlocks">functionBlocks</Item>
+      <Item Name="components">components,view(simple)</Item>
+      <Item Name="defaultComponents">defaultComponents,view(simple)</Item>
+      <ExpandedItem>(daq::ComponentImpl&lt;$T1,daq::IDeviceDomain,daq::IDevicePrivate,$T2&gt;*)this,nd</ExpandedItem>
+    </Expand>
+  </Type>
+  <Type Name="daq::GenericSignalContainerImpl&lt;*,daq::IDeviceDomain,daq::IDevicePrivate&gt;">
+    <Expand>
+      <Item Name="signals">signals</Item>
+      <Item Name="functionBlocks">functionBlocks</Item>
+      <Item Name="components">components,view(simple)</Item>
+      <Item Name="defaultComponents">defaultComponents,view(simple)</Item>
+      <ExpandedItem>(daq::ComponentImpl&lt;$T1,daq::IDeviceDomain,daq::IDevicePrivate&gt;*)this,nd</ExpandedItem>
+    </Expand>
+  </Type>
+</AutoVisualizer>

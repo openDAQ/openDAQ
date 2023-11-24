@@ -151,12 +151,11 @@ TEST_P(SubDevicesTest, RootStreamingActive)
 
     for (size_t index = 0; index < clientSignals.getCount(); ++index)
     {
-        auto signalConfigPtr = clientSignals[index].asPtr<ISignalConfig>();
-        ASSERT_EQ(signalConfigPtr.getStreamingSources().getCount(), 1u);
-        ASSERT_TRUE(signalConfigPtr.getActiveStreamingSource().assigned());
-
-        ASSERT_NE(signalConfigPtr.getActiveStreamingSource(),
-                  gatewaySignals[index].asPtr<ISignalConfig>().getActiveStreamingSource());
+        auto mirroredSignalConfigPtr = clientSignals[index].template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirroredSignalConfigPtr.getStreamingSources().getCount(), 1u);
+        ASSERT_TRUE(mirroredSignalConfigPtr.getActiveStreamingSource().assigned());
+        ASSERT_NE(mirroredSignalConfigPtr.getActiveStreamingSource(),
+                  gatewaySignals[index].template asPtr<IMirroredSignalConfig>().getActiveStreamingSource());
     }
 
     using namespace std::chrono_literals;
@@ -187,12 +186,12 @@ TEST_P(SubDevicesTest, LeafStreamingsActive)
 
     for (size_t index = 0; index < clientSignals.getCount(); ++index)
     {
-        auto signalConfigPtr = clientSignals[index].asPtr<ISignalConfig>();
-        ASSERT_EQ(signalConfigPtr.getStreamingSources().getCount(), 2u);
-        ASSERT_TRUE(signalConfigPtr.getActiveStreamingSource().assigned());
+        auto mirroredSignalConfigPtr = clientSignals[index].template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirroredSignalConfigPtr.getStreamingSources().getCount(), 2u);
+        ASSERT_TRUE(mirroredSignalConfigPtr.getActiveStreamingSource().assigned());
 
-        ASSERT_EQ(signalConfigPtr.getActiveStreamingSource(),
-                  gatewaySignals[index].asPtr<ISignalConfig>().getActiveStreamingSource());
+        ASSERT_EQ(mirroredSignalConfigPtr.getActiveStreamingSource(),
+                  gatewaySignals[index].template asPtr<IMirroredSignalConfig>().getActiveStreamingSource());
     }
 
     using namespace std::chrono_literals;

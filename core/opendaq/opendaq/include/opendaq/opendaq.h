@@ -73,7 +73,7 @@
 #include <opendaq/io_folder_factory.h>
 
 #include <opendaq/streaming_ptr.h>
-#include <opendaq/signal_remote_ptr.h>
+#include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/streaming_info_factory.h>
 
 

@@ -66,6 +66,7 @@ add_library(${LIB_NAME} SHARED ${SRC_Cpp}
                                ${SRC_PrivateHeaders}
                                ${SRC_PublicHeaders}
                                ${ConfigHeaderSource}
+                               opendaq.natvis
 )
 
 add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${LIB_NAME})

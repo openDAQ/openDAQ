@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include "opendaq/signal_remote_impl.h"
+#include "opendaq/mirrored_signal_impl.h"
 #include "opcuatms_client/objects/tms_client_component_impl.h"
 #include "opendaq/data_descriptor_ptr.h"
 
@@ -23,9 +23,9 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 // TmsClientSignalImpl
 
-using SignalRemoteNoProps = SignalRemote<SignalStandardProps::Skip>;
+using MirroredSignalNoProps = MirroredSignal<SignalStandardProps::Skip>;
 
-class TmsClientSignalImpl final : public TmsClientComponentBaseImpl<SignalRemoteNoProps>
+class TmsClientSignalImpl final : public TmsClientComponentBaseImpl<MirroredSignalNoProps>
 {
 public:
     explicit TmsClientSignalImpl(const ContextPtr& ctx,
@@ -58,13 +58,7 @@ public:
     Bool onTriggerEvent(EventPacketPtr eventPacket) override;
 
 protected:
-    EventPacketPtr createDataDescriptorChangedEventPacket() override;
-    void triggerDataDescriptorChanged(const EventPacketPtr& eventPacket);
-
     std::atomic<Bool> isPublic = true;
-    DataDescriptorPtr lastSignalDescriptor;
-    DataDescriptorPtr lastDomainDescriptor;
-    std::mutex signalMutex;
     std::string deviceSignalId;
 
 private:

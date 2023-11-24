@@ -69,7 +69,7 @@ function(create_version_header LIB_NAME)
     set(INCLUDE_FOLDER_NAME ${TARGET_FOLDER_NAME})
 
     set(options ONLY_RC NO_RC)
-    set(oneValueArgs INCLUDE_FOLDER)
+    set(oneValueArgs INCLUDE_FOLDER HEADER_NAME_PREFIX)
     set(multiValueArgs VARIANTS)
     cmake_parse_arguments(GENERATE_VERSION "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -79,9 +79,19 @@ function(create_version_header LIB_NAME)
         set(HEADER_NAME_PREFIX "${TARGET_FOLDER_NAME}_")
     endif()
 
-    set(GENERATE_RC ON)
-    set(GENERATE_HEADER ON)
+    if (DEFINED GENERATE_VERSION_HEADER_NAME_PREFIX)
+        set(HEADER_NAME_PREFIX ${GENERATE_VERSION_HEADER_NAME_PREFIX})
+    endif()
+    string(STRIP "${HEADER_NAME_PREFIX}" HEADER_NAME_PREFIX)
 
+    set(GENERATE_HEADER ON)
+	
+    if (WIN32 AND NOT CMAKE_GENERATOR MATCHES "Visual Studio")
+        set(GENERATE_RC OFF)
+    else()
+	    set(GENERATE_RC ON)
+	endif()
+	
     if (GENERATE_VERSION_NO_RC)
         set(GENERATE_RC OFF)
     endif()

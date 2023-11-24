@@ -23,6 +23,8 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceSmartPtr(ISignal, GenericSignalPtr)]
+ * [templated(defaultAliasName: SignalConfigPtr)]
+ * [interfaceSmartPtr(ISignalConfig, GenericSignalConfigPtr)]
  */
 
 /*!
@@ -94,32 +96,6 @@ DECLARE_OPENDAQ_INTERFACE(ISignalConfig, ISignal)
      * @param packet The packet to be sent.
      */
     virtual ErrCode INTERFACE_FUNC sendPacket(IPacket* packet) = 0;
-
-    // [elementType(streamingConnectionStrings, IString)]
-    /*!
-     * @brief Gets a list of connection strings of all available streaming sources of the signal.
-     * @param[out] streamingConnectionStrings The list of streaming connection strings.
-     */
-    virtual ErrCode INTERFACE_FUNC getStreamingSources(IList** streamingConnectionStrings) = 0;
-
-    /*!
-     * @brief Sets the active streaming source of the signal.
-     * @param streamingConnectionString The connection string of streaming source to be set as active.
-     * @retval OPENDAQ_ERR_NOTFOUND if the streaming source with the corresponding connection string is not
-     * part of the available streaming sources for the signal.
-     */
-    virtual ErrCode INTERFACE_FUNC setActiveStreamingSource(IString* streamingConnectionString) = 0;
-
-    /*!
-     * @brief Gets a connection strings of the active streaming source of the signal.
-     * @param[out] streamingConnectionString The connection string of active streaming source.
-     */
-    virtual ErrCode INTERFACE_FUNC getActiveStreamingSource(IString** streamingConnectionString) = 0;
-
-    /*!
-     * @brief Stops the streaming and clears the active streaming source of the signal.
-     */
-    virtual ErrCode INTERFACE_FUNC deactivateStreaming() = 0;
 };
 /*!@}*/
 

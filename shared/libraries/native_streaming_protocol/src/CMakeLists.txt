@@ -54,6 +54,13 @@ target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq
                                          daq::native_streaming
 )
 
+if (WIN32)
+    target_link_libraries(${LIB_NAME} PUBLIC
+            ws2_32
+            wsock32
+    )
+endif()
+
 set_target_properties(${LIB_NAME} PROPERTIES PUBLIC_HEADER "${SRC_PublicHeaders}")
 
 opendaq_set_output_lib_name(${LIB_NAME} ${LIB_MAJOR_VERSION})

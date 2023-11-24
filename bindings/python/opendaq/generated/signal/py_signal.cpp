@@ -101,4 +101,16 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
             objectPtr.setDescription(description);
         },
         "Gets the description of the signal. / Sets the description of the signal.");
+    cls.def_property("streamed",
+        [](daq::ISignal *object)
+        {
+            const auto objectPtr = daq::SignalPtr::Borrow(object);
+            return objectPtr.getStreamed();
+        },
+        [](daq::ISignal *object, const bool streamed)
+        {
+            const auto objectPtr = daq::SignalPtr::Borrow(object);
+            objectPtr.setStreamed(streamed);
+        },
+        "Returns true if the signal is streamed; false otherwise. / Sets the signal to be either streamed or not.");
 }

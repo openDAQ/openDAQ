@@ -23,6 +23,7 @@ class PacketReaderImpl : public ImplementationOf<IPacketReader>
 {
 public:
     explicit PacketReaderImpl(const SignalPtr& signal);
+    ~PacketReaderImpl() override;
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) override;

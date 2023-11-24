@@ -15,19 +15,14 @@
  */
 
 #pragma once
-#include <coretypes/intfs.h>
-#include <opendaq/signal_remote_impl.h>
+#include <coretypes/common.h>
+#include <coreobjects/end_update_event_args_ptr.h>
 
-class MockSignalRemoteImpl : public daq::SignalRemote<daq::SignalStandardProps::Skip>
+BEGIN_NAMESPACE_OPENDAQ
+
+inline EndUpdateEventArgsPtr EndUpdateEventArgs(const ListPtr<IString>& properties)
 {
-public:
-    explicit MockSignalRemoteImpl(const daq::ContextPtr& ctx,
-                                  const daq::ComponentPtr& parent,
-                                  const daq::StringPtr& localId);
+    return EndUpdateEventArgsPtr(EndUpdateEventArgs_Create(properties));
+}
 
-    daq::StringPtr onGetRemoteId() const override;
-    daq::Bool onTriggerEvent(daq::EventPacketPtr eventPacket) override;
-
-private:
-    daq::StringPtr streamingId;
-};
+END_NAMESPACE_OPENDAQ

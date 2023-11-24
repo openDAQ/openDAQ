@@ -50,7 +50,7 @@ protected:
 
     StringPtr connectionString;
     StreamingPtr nativeStreaming;
-    std::map<StringPtr, std::pair<SignalPtr, StringPtr>> deviceSignals;
+    std::unordered_map<StringPtr, std::pair<SignalPtr, StringPtr>, StringHash, StringEqualTo> deviceSignals;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

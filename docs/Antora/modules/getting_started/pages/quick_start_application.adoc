@@ -448,6 +448,12 @@ while cnt < 40:
     if len(samples) > 0:
         print(samples[-1])
         cnt += 1
+
+# Output 10 samples with overriden type
+reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Int64)
+time.sleep(0.5)
+for overriden_type_value in reader.read(10):
+    print(overriden_type_value)
 ----
 ====
 
@@ -620,12 +626,12 @@ Python::
 [source,python]
 ----
 # ...
-# Output 4 samples using reader
+# Output 4 samples using time reader wrapper over stream reader
 cnt = 0
 while cnt < 4:
     time.sleep(0.025)
     # Read up to 100 samples and print the last one
-    samples, time_stamps = reader.read_with_timestamps(100)
+    samples, time_stamps = opendaq.TimeReader(reader).read_with_timestamps(100)
     if len(samples) > 0:
         print('Value:', samples[-1], ', Domain:', time_stamps[-1])
         cnt += 1

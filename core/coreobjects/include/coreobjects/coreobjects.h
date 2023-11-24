@@ -40,9 +40,8 @@
 
 #include <coreobjects/eval_value_factory.h>
 
-#include <coreobjects/property_value_event_args.h>
-#include <coreobjects/property_value_event_args_ptr.h>
 #include <coreobjects/property_value_event_args_factory.h>
+#include <coreobjects/end_update_event_args_factory.h>
 
 #include <coreobjects/owning_list_factory.h>
 #include <coreobjects/owning_dict_factory.h>

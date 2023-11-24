@@ -37,13 +37,16 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyValueEventArgs, IEventArgs)
     virtual ErrCode INTERFACE_FUNC getValue(IBaseObject** value) = 0;
     virtual ErrCode INTERFACE_FUNC setValue(IBaseObject* value) = 0;
     virtual ErrCode INTERFACE_FUNC getPropertyEventType(PropertyEventType* changeType) = 0;
+    virtual ErrCode INTERFACE_FUNC getIsUpdating(bool* isUpdating) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, PropertyValueEventArgs,
     IProperty*, prop,
     IBaseObject*, value,
-    PropertyEventType, type
+    PropertyEventType, type,
+    Bool,
+    isUpdating
 )
 
 END_NAMESPACE_OPENDAQ

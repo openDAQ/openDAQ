@@ -9,7 +9,7 @@
 #include "opcuatms_client/objects/tms_client_property_object_factory.h"
 #include "opcuatms_client/objects/tms_client_function_factory.h"
 #include "opcuatms_client/objects/tms_client_procedure_factory.h"
-#include "opendaq/signal_remote_impl.h"
+#include "opendaq/mirrored_signal_impl.h"
 #include "opendaq/input_port_impl.h"
 #include "opendaq/channel_impl.h"
 #include "opendaq/device_impl.h"
@@ -374,7 +374,7 @@ template class TmsClientPropertyObjectBaseImpl<IoFolderImpl>;
 template class TmsClientPropertyObjectBaseImpl<Device>;
 template class TmsClientPropertyObjectBaseImpl<FunctionBlock>;
 template class TmsClientPropertyObjectBaseImpl<Channel>;
-template class TmsClientPropertyObjectBaseImpl<SignalRemote<SignalStandardProps::Skip>>;
+template class TmsClientPropertyObjectBaseImpl<MirroredSignal<SignalStandardProps::Skip>>;
 template class TmsClientPropertyObjectBaseImpl<InputPortImpl>;
 template class TmsClientPropertyObjectBaseImpl<StreamingInfoConfigImpl>;
 

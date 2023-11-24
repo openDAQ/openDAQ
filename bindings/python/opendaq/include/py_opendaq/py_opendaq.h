@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 #pragma once
 
 #include <pybind11/pybind11.h>
@@ -83,7 +83,9 @@ PyDaqIntf<daq::IServerType, daq::IComponentType> declareIServerType(pybind11::mo
 PyDaqIntf<daq::IStreaming, daq::IBaseObject> declareIStreaming(pybind11::module_ m);
 PyDaqIntf<daq::IStreamingInfo, daq::IPropertyObject> declareIStreamingInfo(pybind11::module_ m);
 PyDaqIntf<daq::IStreamingInfoConfig, daq::IStreamingInfo> declareIStreamingInfoConfig(pybind11::module_ m);
-PyDaqIntf<daq::ISignalRemote, daq::IBaseObject> declareISignalRemote(pybind11::module_ m);
+PyDaqIntf<daq::IMirroredSignalConfig, daq::ISignalConfig> declareIMirroredSignalConfig(pybind11::module_ m);
+
+py::class_<daq::TimeReader<daq::StreamReaderPtr>> declareTimeStreamReader(pybind11::module_ m);
 
 void defineIAllocator(pybind11::module_ m, PyDaqIntf<daq::IAllocator, daq::IBaseObject> cls);
 void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice> cls);
@@ -111,6 +113,7 @@ void defineIPacketReader(pybind11::module_ m, PyDaqIntf<daq::IPacketReader, daq:
 void defineISampleReader(pybind11::module_ m, PyDaqIntf<daq::ISampleReader, daq::IReader> cls);
 void defineIBlockReader(pybind11::module_ m, PyDaqIntf<daq::IBlockReader, daq::ISampleReader> cls);
 void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq::ISampleReader> cls);
+void defineTimeStreamReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::StreamReaderPtr>> cls);
 void defineITailReader(pybind11::module_ m, PyDaqIntf<daq::ITailReader, daq::ISampleReader> cls);
 void defineIAwaitable(pybind11::module_ m, PyDaqIntf<daq::IAwaitable, daq::IBaseObject> cls);
 void defineIGraphVisualization(pybind11::module_ m, PyDaqIntf<daq::IGraphVisualization, daq::IBaseObject> cls);
@@ -146,4 +149,4 @@ void defineIServerType(pybind11::module_ m, PyDaqIntf<daq::IServerType, daq::ICo
 void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBaseObject> cls);
 void defineIStreamingInfo(pybind11::module_ m, PyDaqIntf<daq::IStreamingInfo, daq::IPropertyObject> cls);
 void defineIStreamingInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IStreamingInfoConfig, daq::IStreamingInfo> cls);
-void defineISignalRemote(pybind11::module_ m, PyDaqIntf<daq::ISignalRemote, daq::IBaseObject> cls);
+void defineIMirroredSignalConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredSignalConfig, daq::ISignalConfig> cls);

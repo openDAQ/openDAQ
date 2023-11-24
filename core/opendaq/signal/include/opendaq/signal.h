@@ -135,6 +135,25 @@ DECLARE_OPENDAQ_INTERFACE(ISignal, IComponent)
      * interpret the description in any way.
      */
     virtual ErrCode INTERFACE_FUNC getDescription(IString** description) = 0;
+
+    /*!
+     * @brief Returns true if the signal is streamed; false otherwise.
+     * @param[out] streamed True if the signal is streamed; false otherwise.
+     *
+     * A streamed signal receives packets from a streaming server and forwards packets on the signal path.
+     * Method always sets `streamed` parameter to False if the signal is local to the current Instance.
+     */
+    virtual ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) = 0;
+
+    /*!
+     * @brief Sets the signal to be either streamed or not.
+     * @param streamed The new streamed state of the signal.
+     *
+     * A streamed signal receives packets from a streaming server and forwards packets on the signal path.
+     * Setting the "Streamed" flag has no effect if the signal is local to the current Instance.
+     * Method returns OPENDAQ_IGNORED if that is the case.
+     */
+    virtual ErrCode INTERFACE_FUNC setStreamed(Bool streamed) = 0;
 };
 /*!@}*/
 

@@ -165,7 +165,7 @@ template <typename Impl>
 void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(
     const tsl::ordered_map<OpcUaNodeId, OpcUaObject<UA_ReferenceDescription>>& references,
     std::map<uint32_t, PropertyPtr>& orderedProperties,
-    std::vector<PropertyPtr> unorderedProperties)
+    std::vector<PropertyPtr>& unorderedProperties)
 {
     const auto introspectionVariableTypeId = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_INTROSPECTIONVARIABLETYPE);
     const auto structureVariableTypeId = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_STRUCTUREVARIABLETYPE);

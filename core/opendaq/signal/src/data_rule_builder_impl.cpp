@@ -50,7 +50,7 @@ ErrCode DataRuleBuilderImpl::getType(DataRuleType* type)
 ErrCode DataRuleBuilderImpl::getParameters(IDict** parameters)
 {
     OPENDAQ_PARAM_NOT_NULL(parameters);
-    *parameters = this->params;
+    *parameters = this->params.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -72,16 +72,12 @@ ErrCode DataRuleBuilderImpl::build(IDataRule** dataRule)
 {
     OPENDAQ_PARAM_NOT_NULL(dataRule);
 
+    const auto builderPtr = this->borrowPtr<DataRuleBuilderPtr>();
+
     return daqTry(
         [&]()
         {
-            DictPtr<IString, IBaseObject> paramsCopy = Dict<IString, IBaseObject>();
-            for (const auto& [k, v] : params)
-                paramsCopy.set(k, v);
-
-            auto dataRuleObj = DataRule(ruleType, paramsCopy);
-            dataRuleObj.asPtr<IRulePrivate>().verifyParameters();
-            *dataRule = dataRuleObj.detach();
+            *dataRule = DataRuleFromBuilder(builderPtr).detach();
             return OPENDAQ_SUCCESS;
         });
 }

@@ -233,6 +233,11 @@ extern "C" daq::ErrCode PUBLIC_EXPORT createDataRule(IDataRule** objTmp, DataRul
     return daq::createObject<IDataRule, DataRuleImpl>(objTmp, ruleType, parameters);
 }
 
+extern "C" daq::ErrCode PUBLIC_EXPORT createDataRuleFromBuilder(IDataRule** objTmp, IDataRuleBuilder* builder)
+{
+    return daq::createObject<IDataRule, DataRuleImpl>(objTmp, builder);
+}
+
 #endif
 
 END_NAMESPACE_OPENDAQ

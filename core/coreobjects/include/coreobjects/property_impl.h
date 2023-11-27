@@ -20,6 +20,7 @@
 #include <coreobjects/ownable.h>
 #include <coreobjects/ownable_ptr.h>
 #include <coreobjects/property.h>
+#include <coreobjects/property_builder_ptr.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_internal_ptr.h>
 #include <coreobjects/property_object_factory.h>
@@ -28,7 +29,6 @@
 #include <coreobjects/property_ptr.h>
 #include <coreobjects/serialization_utils.h>
 #include <coreobjects/unit_ptr.h>
-#include <coreobjects/property_builder_ptr.h>
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
 #include <iostream>
@@ -81,7 +81,6 @@ protected:
     }
 
 public:
-    
     explicit PropertyImpl(const StringPtr& name)
         : PropertyImpl()
     {
@@ -133,8 +132,8 @@ public:
         this->coercer = propertyBuilderPtr.getCoercer();
         this->validator = propertyBuilderPtr.getValidator();
         this->callableInfo = propertyBuilderPtr.getCallableInfo();
-        this->onValueWrite = EventEmitter(propertyBuilderPtr.getOnPropertyValueWrite());
-        this->onValueRead = EventEmitter(propertyBuilderPtr.getOnPropertyValueRead());
+        this->onValueWrite = (IEvent*) propertyBuilderPtr.getOnPropertyValueWrite();
+        this->onValueRead = (IEvent*) propertyBuilderPtr.getOnPropertyValueRead();
 
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;

@@ -15,8 +15,8 @@
  */
 
 #pragma once
-#include <opendaq/data_rule.h>
 #include <coretypes/stringobject.h>
+#include <opendaq/data_rule.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -39,18 +39,18 @@ DECLARE_OPENDAQ_INTERFACE(IDataRuleBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setType(DataRuleType type) = 0;
 
+    /*!
+     * @brief Gets the type of the data rule.
+     * @param[out] type The type of the data rule.
+     */
+    virtual ErrCode INTERFACE_FUNC getType(DataRuleType* type) = 0;
+
     // [templateType(parameters, IString, IBaseObject), returnSelf]
     /*!
      * @brief Sets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.
      * @param parameters The dictionary containing the rule parameter members.
      */
     virtual ErrCode INTERFACE_FUNC setParameters(IDict* parameters) = 0;
-
-    /*!
-     * @brief Gets the type of the data rule.
-     * @param[out] type The type of the data rule.
-     */
-    virtual ErrCode INTERFACE_FUNC getType(DataRuleType* type) = 0;
 
     // [templateType(parameters, IString, IBaseObject)]
     /*!

@@ -15,11 +15,11 @@
  */
 
 #pragma once
-#include <opendaq/scaling_builder.h>
-#include <opendaq/rule_private.h>
+#include <coretypes/dictobject_factory.h>
 #include <coretypes/impl.h>
 #include <coretypes/intfs.h>
-#include <coretypes/dictobject_factory.h>
+#include <opendaq/rule_private.h>
+#include <opendaq/scaling_builder.h>
 #include <opendaq/scaling_builder_ptr.h>
 #include <opendaq/scaling_ptr.h>
 
@@ -41,22 +41,21 @@ public:
                                 SampleType inputType,
                                 ScaledSampleType outputType);
 
+    ErrCode INTERFACE_FUNC build(IScaling** scaling) override;
+
     ErrCode INTERFACE_FUNC setInputDataType(SampleType type) override;
-    ErrCode INTERFACE_FUNC setOutputDataType(ScaledSampleType type) override;
-
-    ErrCode INTERFACE_FUNC setScalingType(ScalingType type) override;
-    ErrCode INTERFACE_FUNC setParameters(IDict* parameters) override;
-
     ErrCode INTERFACE_FUNC getInputDataType(SampleType* type) override;
+
+    ErrCode INTERFACE_FUNC setOutputDataType(ScaledSampleType type) override;
     ErrCode INTERFACE_FUNC getOutputDataType(ScaledSampleType* type) override;
 
+    ErrCode INTERFACE_FUNC setScalingType(ScalingType type) override;
     ErrCode INTERFACE_FUNC getScalingType(ScalingType* type) override;
-    ErrCode INTERFACE_FUNC getParameters(IDict** parameters) override;
 
+    ErrCode INTERFACE_FUNC setParameters(IDict* parameters) override;
+    ErrCode INTERFACE_FUNC getParameters(IDict** parameters) override;
     ErrCode INTERFACE_FUNC addParameter(IString* name, IBaseObject* parameter) override;
     ErrCode INTERFACE_FUNC removeParameter(IString* name) override;
-
-    ErrCode INTERFACE_FUNC build(IScaling** scaling) override;
 
 private:
     ScaledSampleType outputDataType;

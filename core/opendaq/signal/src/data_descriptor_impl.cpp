@@ -1,39 +1,20 @@
-#include <opendaq/data_descriptor_impl.h>
-#include <opendaq/data_descriptor_builder_ptr.h>
-#include <opendaq/data_descriptor_builder_impl.h>
 #include <coretypes/coretype_utils.h>
-#include <opendaq/signal_errors.h>
+#include <coretypes/validation.h>
+#include <opendaq/data_descriptor_builder_impl.h>
+#include <opendaq/data_descriptor_builder_ptr.h>
+#include <opendaq/data_descriptor_factory.h>
+#include <opendaq/data_descriptor_impl.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/dimension_factory.h>
-#include <opendaq/scaling_factory.h>
 #include <opendaq/range_factory.h>
-#include <opendaq/data_descriptor_factory.h>
-#include <coretypes/validation.h>
+#include <opendaq/scaling_factory.h>
+#include <opendaq/signal_errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 namespace detail
 {
     static const StructTypePtr dataDescriptorStructType = DataDescriptorStructType();
-}
-
-DataDescriptorImpl::DataDescriptorImpl(const DictPtr<IString, IBaseObject>& descriptorParams)
-    : GenericStructImpl<IDataDescriptor, IStruct, IScalingCalcPrivate, IDataRuleCalcPrivate>(detail::dataDescriptorStructType, descriptorParams)
-    , dimensions(this->fields.get("dimensions"))
-    , name(this->fields.get("name"))
-    , sampleType(this->fields.get("sampleType"))
-    , unit(this->fields.get("unit"))
-    , valueRange(this->fields.get("valueRange"))
-    , dataRule(this->fields.get("dataRule"))
-    , scaling(this->fields.get("scaling"))
-    , origin(this->fields.get("origin"))
-    , resolution(this->fields.get("tickResolution"))
-    , structFields(this->fields.get("structFields"))
-    , metadata(this->fields.get("metadata"))
-    , scalingCalc(nullptr)
-    , dataRuleCalc(nullptr)
-{
-    checkErrorInfo(validate());
 }
 
 DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBuilder)
@@ -261,7 +242,7 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::equals(IBaseObject* other, Bool* equa
 // IScalingCalcPrivate
 void* DataDescriptorImpl::scaleData(void* data, SizeT sampleCount) const
 {
-    if(scalingCalc)
+    if (scalingCalc)
         return scalingCalc->scaleData(data, sampleCount);
 
     return nullptr;
@@ -269,7 +250,7 @@ void* DataDescriptorImpl::scaleData(void* data, SizeT sampleCount) const
 
 void DataDescriptorImpl::scaleData(void* data, SizeT sampleCount, void** output) const
 {
-    if(scalingCalc)
+    if (scalingCalc)
         scalingCalc->scaleData(data, sampleCount, output);
 }
 
@@ -281,7 +262,7 @@ bool DataDescriptorImpl::hasScalingCalc() const
 // IDataRuleCalcPrivate
 void* DataDescriptorImpl::calculateRule(const NumberPtr& packetOffset, SizeT sampleCount) const
 {
-    if(dataRuleCalc)
+    if (dataRuleCalc)
         return dataRuleCalc->calculateRule(packetOffset, sampleCount);
 
     return nullptr;
@@ -289,7 +270,7 @@ void* DataDescriptorImpl::calculateRule(const NumberPtr& packetOffset, SizeT sam
 
 void DataDescriptorImpl::calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void** output) const
 {
-    if(dataRuleCalc)
+    if (dataRuleCalc)
         dataRuleCalc->calculateRule(packetOffset, sampleCount, output);
 }
 
@@ -442,7 +423,10 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
     return OPENDAQ_SUCCESS;
 }
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, DataDescriptor, IDataDescriptor, IDict*, descriptorParameters)
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, DataDescriptor, IDataDescriptor, 
+    IDict*, descriptorParameters)
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, DataDescriptor,
     IDataDescriptor, createDataDescriptorFromBuilder,

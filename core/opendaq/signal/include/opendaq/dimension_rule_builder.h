@@ -43,18 +43,18 @@ DECLARE_OPENDAQ_INTERFACE(IDimensionRuleBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setType(DimensionRuleType type) = 0;
 
+    /*!
+     * @brief Gets the type of the dimension rule.
+     * @param[out] type The type of the dimension rule.
+     */
+    virtual ErrCode INTERFACE_FUNC getType(DimensionRuleType* type) = 0;
+
     // [templateType(parameters, IString, IBaseObject), returnSelf]
     /*!
      * @brief Sets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.
      * @param parameters The dictionary containing the rule parameter members.
      */
     virtual ErrCode INTERFACE_FUNC setParameters(IDict* parameters) = 0;
-
-    /*!
-     * @brief Gets the type of the dimension rule.
-     * @param[out] type The type of the dimension rule.
-     */
-    virtual ErrCode INTERFACE_FUNC getType(DimensionRuleType* type) = 0;
 
     // [templateType(parameters, IString, IBaseObject)]
     /*!

@@ -44,6 +44,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
      * @param className The name of the class.
      */
     virtual ErrCode INTERFACE_FUNC setName(IString* className) = 0;
+
+    /*!
+     * @brief Gets the name of the property class.
+     * @param[out] className The name of the class.
+     */
+    virtual ErrCode INTERFACE_FUNC getName(IString** className) = 0;
     
     // [returnSelf]
     /*!
@@ -51,6 +57,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
      * @param parentName The parent class's name.
      */
     virtual ErrCode INTERFACE_FUNC setParentName(IString* parentName) = 0;
+
+    /*!
+     * @brief Gets the name of the parent of the property class.
+     * @param[out] parentName The parent class's name.
+     */
+    virtual ErrCode INTERFACE_FUNC getParentName(IString** parentName) = 0;
     
     // [returnSelf]
     /*!
@@ -62,6 +74,13 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
      * The default value of object-type properties that are added to a class are frozen once added.
      */
     virtual ErrCode INTERFACE_FUNC addProperty(IProperty* property) = 0;
+
+    // [templateType(properties, IString, IProperty)]
+    /*!
+     * @brief Gets the dictonary of properties
+     * @param[out] properties dictonary of properties
+     */
+    virtual ErrCode INTERFACE_FUNC getProperties(IDict** properties) = 0;
     
     // [returnSelf]
     /*!
@@ -81,25 +100,6 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
      * kept in insertion order at the end of the class's list of properties.
      */
     virtual ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) = 0;
-
-    /*!
-     * @brief Gets the name of the property class.
-     * @param[out] className The name of the class.
-     */
-    virtual ErrCode INTERFACE_FUNC getName(IString** className) = 0;
-    
-    /*!
-     * @brief Gets the name of the parent of the property class.
-     * @param[out] parentName The parent class's name.
-     */
-    virtual ErrCode INTERFACE_FUNC getParentName(IString** parentName) = 0;
-
-    // [templateType(properties, IString, IProperty)]
-    /*!
-     * @brief Gets the dictonary of properties
-     * @param[out] properties dictonary of properties
-     */
-    virtual ErrCode INTERFACE_FUNC getProperties(IDict** properties) = 0;
 
     // [elementType(orderedPropertyNames, IString)]
     /*!

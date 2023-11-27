@@ -1,9 +1,9 @@
-#include <coreobjects/property_object_class_builder_impl.h>
-#include <coretypes/type_manager_factory.h>
-#include <coreobjects/property_ptr.h>
 #include <coreobjects/errors.h>
 #include <coreobjects/property_internal_ptr.h>
+#include <coreobjects/property_object_class_builder_impl.h>
 #include <coreobjects/property_object_class_factory.h>
+#include <coreobjects/property_ptr.h>
+#include <coretypes/type_manager_factory.h>
 
 #include <utility>
 
@@ -22,16 +22,49 @@ PropertyObjectClassBuilderImpl::PropertyObjectClassBuilderImpl(const TypeManager
     this->manager = manager;
 }
 
+ErrCode PropertyObjectClassBuilderImpl::build(IPropertyObjectClass** propertyObjectClass)
+{
+    if (propertyObjectClass == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    const auto builderPtr = this->borrowPtr<PropertyObjectClassBuilderPtr>();
+
+    return daqTry([&]()
+    {
+        *propertyObjectClass = PropertyObjectClassFromBuilder(builderPtr).detach();
+        return OPENDAQ_SUCCESS;
+    });
+    return OPENDAQ_SUCCESS;
+}
+
+
 ErrCode PropertyObjectClassBuilderImpl::setName(IString* className)
 {
     this->name = className;
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode PropertyObjectClassBuilderImpl::getName(IString** className)
+{
+    if (!className)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *className = this->name.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
 
 inline ErrCode PropertyObjectClassBuilderImpl::setParentName(IString* parentName)
 {
     this->parent = parentName;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PropertyObjectClassBuilderImpl::getParentName(IString** parentName)
+{
+    if (!parentName)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *parentName = this->parent.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -54,6 +87,15 @@ ErrCode PropertyObjectClassBuilderImpl::addProperty(IProperty* property)
 
         return OPENDAQ_SUCCESS;
     });
+}
+
+ErrCode PropertyObjectClassBuilderImpl::getProperties(IDict** properties)
+{
+    if (!properties)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *properties = this->props.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode PropertyObjectClassBuilderImpl::removeProperty(IString* propertyName)
@@ -87,33 +129,6 @@ ErrCode PropertyObjectClassBuilderImpl::setPropertyOrder(IList* orderedPropertyN
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyObjectClassBuilderImpl::getName(IString** className)
-{
-    if (!className)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    *className = this->name.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode PropertyObjectClassBuilderImpl::getParentName(IString** parentName)
-{
-    if (!parentName)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    *parentName = this->parent.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode PropertyObjectClassBuilderImpl::getProperties(IDict** properties)
-{
-    if (!properties)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    *properties = this->props.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode PropertyObjectClassBuilderImpl::getPropertyOrder(IList** orderedPropertyNames)
 {
     if (!orderedPropertyNames)
@@ -135,21 +150,6 @@ ErrCode PropertyObjectClassBuilderImpl::getManager(ITypeManager** manager)
     }
 
     return OPENDAQ_ERR_ARGUMENT_NULL;
-}
-
-ErrCode PropertyObjectClassBuilderImpl::build(IPropertyObjectClass** propertyObjectClass)
-{
-    if (propertyObjectClass == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    const auto builderPtr = this->borrowPtr<PropertyObjectClassBuilderPtr>();
-
-    return daqTry([&]()
-    {
-        *propertyObjectClass = PropertyObjectClassFromBuilder(builderPtr).detach();
-        return OPENDAQ_SUCCESS;
-    });
-    return OPENDAQ_SUCCESS;
 }
 
 bool PropertyObjectClassBuilderImpl::hasDuplicateReferences(const PropertyPtr& prop) const
@@ -180,7 +180,7 @@ bool PropertyObjectClassBuilderImpl::hasDuplicateReferences(const PropertyPtr& p
 
 ListPtr<IProperty> PropertyObjectClassBuilderImpl::getProperties() const
 {
-    ListPtr<IProperty> properties = List<IProperty>();;
+    ListPtr<IProperty> properties = List<IProperty>();
 
     if (parent.assigned() && manager.assigned())
     {
@@ -209,7 +209,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     IPropertyObjectClassBuilder,
     IString*,
     name
-    )
+)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, PropertyObjectClassBuilder,

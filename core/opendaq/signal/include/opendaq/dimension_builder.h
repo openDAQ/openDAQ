@@ -44,12 +44,24 @@ DECLARE_OPENDAQ_INTERFACE(IDimensionBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setName(IString* name) = 0;
 
+    /*!
+     * @brief Gets the name of the dimension.
+     * @param[out] name The name of the dimension.
+     */
+    virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the unit of the dimension's labels.
      * @param unit The unit of the dimension.
      */  
     virtual ErrCode INTERFACE_FUNC setUnit(IUnit* unit) = 0;
+
+    /*!
+     * @brief Gets the unit of the dimension's labels.
+     * @param[out] unit The unit of the dimension.
+     */
+    virtual ErrCode INTERFACE_FUNC getUnit(IUnit** unit) = 0;
 
     // [returnSelf]
     /*!
@@ -61,18 +73,6 @@ DECLARE_OPENDAQ_INTERFACE(IDimensionBuilder, IBaseObject)
      * with that index.
      */
     virtual ErrCode INTERFACE_FUNC setRule(IDimensionRule* rule) = 0;
-
-    /*!
-     * @brief Gets the name of the dimension.
-     * @param[out] name The name of the dimension.
-     */
-    virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
-
-    /*!
-     * @brief Gets the unit of the dimension's labels.
-     * @param[out] unit The unit of the dimension.
-     */  
-    virtual ErrCode INTERFACE_FUNC getUnit(IUnit** unit) = 0;
 
     /*!
      * @brief Gets the rule that defines the labels and size of the dimension.

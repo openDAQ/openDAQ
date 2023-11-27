@@ -15,8 +15,8 @@
  */
 
 #pragma once
-#include <coretypes/stringobject.h>
 #include <coreobjects/unit.h>
+#include <coretypes/stringobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -42,12 +42,27 @@ DECLARE_OPENDAQ_INTERFACE(IUnitBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setId(Int id) = 0;
 
+    /*!
+     * @brief Gets the unit ID as defined in <a href="https://unece.org/trade/cefact/UNLOCODE-Download">Codes for Units of Measurement used
+     * in International Trade</a>.
+     * @param[out] id The unit ID.
+     *
+     * Returns -1 if the unit id is not available.
+     */
+    virtual ErrCode INTERFACE_FUNC getId(Int* id) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the symbol of the unit, i.e. "m/s".
      * @param symbol The unit's symbol.
      */
     virtual ErrCode INTERFACE_FUNC setSymbol(IString* symbol) = 0;
+
+    /*!
+     * @brief Gets the symbol of the unit, i.e. "m/s".
+     * @param[out] symbol The unit's symbol.
+     */
+    virtual ErrCode INTERFACE_FUNC getSymbol(IString** symbol) = 0;
 
     // [returnSelf]
     /*!
@@ -56,27 +71,6 @@ DECLARE_OPENDAQ_INTERFACE(IUnitBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setName(IString* name) = 0;
 
-    // [returnSelf]
-    /*!
-     * @brief Sets the quantity represented by the unit, i.e. "Velocity"
-     * @param quantity The unit's quantity.
-     */
-    virtual ErrCode INTERFACE_FUNC setQuantity(IString* quantity) = 0;
-
-    /*!
-     * @brief Gets the unit ID as defined in <a href="https://unece.org/trade/cefact/UNLOCODE-Download">Codes for Units of Measurement used in International Trade</a>.
-     * @param[out] id The unit ID.
-     *
-     * Returns -1 if the unit id is not available.
-     */
-    virtual ErrCode INTERFACE_FUNC getId(Int* id) = 0;
-
-    /*!
-     * @brief Gets the symbol of the unit, i.e. "m/s". 
-     * @param[out] symbol The unit's symbol.
-     */
-    virtual ErrCode INTERFACE_FUNC getSymbol(IString** symbol) = 0;
-
     /*!
      * @brief Gets the full name of the unit, i.e. "meters per second".
      * @param[out] name The unit's full name.
@@ -84,6 +78,13 @@ DECLARE_OPENDAQ_INTERFACE(IUnitBuilder, IBaseObject)
      * `nullptr` if not set.
      */
     virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the quantity represented by the unit, i.e. "Velocity"
+     * @param quantity The unit's quantity.
+     */
+    virtual ErrCode INTERFACE_FUNC setQuantity(IString* quantity) = 0;
 
     /*!
      * @brief Gets the quantity represented by the unit, i.e. "Velocity" 

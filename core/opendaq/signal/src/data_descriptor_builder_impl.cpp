@@ -1,10 +1,10 @@
-#include <opendaq/data_descriptor_builder_impl.h>
 #include <coretypes/coretype_utils.h>
 #include <coretypes/validation.h>
+#include <opendaq/data_descriptor_builder_impl.h>
+#include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/dimension_factory.h>
 #include <opendaq/scaling_factory.h>
-#include <opendaq/data_descriptor_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -78,147 +78,6 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl(const DataDescriptorPtr& de
 {
 }
 
-ErrCode DataDescriptorBuilderImpl::setName(IString* name)
-{
-    this->name = name;
-    return OPENDAQ_SUCCESS;
-}
-ErrCode DataDescriptorBuilderImpl::setDimensions(IList* dimensions)
-{
-    this->dimensions = dimensions;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::setSampleType(SampleType sampleType)
-{
-    this->sampleType = sampleType;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::setUnit(IUnit* unit)
-{
-    this->unit = unit;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::setValueRange(IRange* valueRange)
-{
-    this->valueRange = valueRange;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::setRule(IDataRule* rule)
-{
-    this->dataRule = rule;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::setOrigin(IString* origin)
-{
-    this->origin = origin;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::setTickResolution(IRatio* tickResolution)
-{
-    this->resolution = tickResolution;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::setPostScaling(IScaling* scaling)
-{
-    this->scaling = scaling;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::setMetadata(IDict* metadata)
-{
-    this->metadata = metadata;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::setStructFields(IList* structFields)
-{
-    this->structFields = structFields;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::getName(IString** name)
-{
-    OPENDAQ_PARAM_NOT_NULL(name);
-    *name = this->name.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-ErrCode DataDescriptorBuilderImpl::getDimensions(IList** dimensions)
-{
-    OPENDAQ_PARAM_NOT_NULL(dimensions);
-    *dimensions = this->dimensions.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::getSampleType(SampleType* sampleType)
-{
-    OPENDAQ_PARAM_NOT_NULL(sampleType);
-    *sampleType = this->sampleType;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::getUnit(IUnit** unit)
-{
-    OPENDAQ_PARAM_NOT_NULL(unit);
-    *unit = this->unit.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::getValueRange(IRange** valueRange)
-{
-    OPENDAQ_PARAM_NOT_NULL(valueRange);
-    *valueRange = this->valueRange.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::getRule(IDataRule** rule)
-{
-    OPENDAQ_PARAM_NOT_NULL(rule);
-    *rule = this->dataRule.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::getOrigin(IString** origin)
-{
-    OPENDAQ_PARAM_NOT_NULL(origin);
-    *origin = this->origin.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::getTickResolution(IRatio** tickResolution)
-{
-    OPENDAQ_PARAM_NOT_NULL(tickResolution);
-    *tickResolution = this->resolution.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::getPostScaling(IScaling** scaling)
-{
-    OPENDAQ_PARAM_NOT_NULL(scaling);
-    *scaling = this->scaling.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::getMetadata(IDict** metadata)
-{
-    OPENDAQ_PARAM_NOT_NULL(metadata);
-    *metadata = this->metadata.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DataDescriptorBuilderImpl::getStructFields(IList** structFields)
-{
-    OPENDAQ_PARAM_NOT_NULL(structFields);
-    *structFields = this->structFields.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode DataDescriptorBuilderImpl::build(IDataDescriptor** dataDescriptor)
 {
     OPENDAQ_PARAM_NOT_NULL(dataDescriptor);
@@ -230,6 +89,149 @@ ErrCode DataDescriptorBuilderImpl::build(IDataDescriptor** dataDescriptor)
         *dataDescriptor = DataDescriptorFromBuilder(builder).detach();
         return OPENDAQ_SUCCESS;
     });
+}
+
+ErrCode DataDescriptorBuilderImpl::setName(IString* name)
+{
+    this->name = name;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getName(IString** name)
+{
+    OPENDAQ_PARAM_NOT_NULL(name);
+    *name = this->name.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setDimensions(IList* dimensions)
+{
+    this->dimensions = dimensions;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getDimensions(IList** dimensions)
+{
+    OPENDAQ_PARAM_NOT_NULL(dimensions);
+    *dimensions = this->dimensions.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setSampleType(SampleType sampleType)
+{
+    this->sampleType = sampleType;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getSampleType(SampleType* sampleType)
+{
+    OPENDAQ_PARAM_NOT_NULL(sampleType);
+    *sampleType = this->sampleType;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setUnit(IUnit* unit)
+{
+    this->unit = unit;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getUnit(IUnit** unit)
+{
+    OPENDAQ_PARAM_NOT_NULL(unit);
+    *unit = this->unit.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setValueRange(IRange* valueRange)
+{
+    this->valueRange = valueRange;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getValueRange(IRange** valueRange)
+{
+    OPENDAQ_PARAM_NOT_NULL(valueRange);
+    *valueRange = this->valueRange.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setRule(IDataRule* rule)
+{
+    this->dataRule = rule;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getRule(IDataRule** rule)
+{
+    OPENDAQ_PARAM_NOT_NULL(rule);
+    *rule = this->dataRule.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setOrigin(IString* origin)
+{
+    this->origin = origin;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getOrigin(IString** origin)
+{
+    OPENDAQ_PARAM_NOT_NULL(origin);
+    *origin = this->origin.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setTickResolution(IRatio* tickResolution)
+{
+    this->resolution = tickResolution;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getTickResolution(IRatio** tickResolution)
+{
+    OPENDAQ_PARAM_NOT_NULL(tickResolution);
+    *tickResolution = this->resolution.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setPostScaling(IScaling* scaling)
+{
+    this->scaling = scaling;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getPostScaling(IScaling** scaling)
+{
+    OPENDAQ_PARAM_NOT_NULL(scaling);
+    *scaling = this->scaling.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setMetadata(IDict* metadata)
+{
+    this->metadata = metadata;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getMetadata(IDict** metadata)
+{
+    OPENDAQ_PARAM_NOT_NULL(metadata);
+    *metadata = this->metadata.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setStructFields(IList* structFields)
+{
+    this->structFields = structFields;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getStructFields(IList** structFields)
+{
+    OPENDAQ_PARAM_NOT_NULL(structFields);
+    *structFields = this->structFields.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

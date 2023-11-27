@@ -29,20 +29,21 @@ public:
     explicit UnitBuilderImpl(const UnitPtr& unitToCopy);
     explicit UnitBuilderImpl(Int id, StringPtr symbol, StringPtr name, StringPtr quantity);
 
-    ErrCode INTERFACE_FUNC setId(Int id) override;
-    ErrCode INTERFACE_FUNC setSymbol(IString* symbol) override;
-    ErrCode INTERFACE_FUNC setName(IString* name) override;
-    ErrCode INTERFACE_FUNC setQuantity(IString* quantity) override;
-
-    ErrCode INTERFACE_FUNC getId(Int* id) override;
-    ErrCode INTERFACE_FUNC getSymbol(IString** symbol) override;
-    ErrCode INTERFACE_FUNC getName(IString** name) override;
-    ErrCode INTERFACE_FUNC getQuantity(IString** quantity) override;
-
     ErrCode INTERFACE_FUNC build(IUnit** unit) override;
 
-private:
+    ErrCode INTERFACE_FUNC setId(Int id) override;
+    ErrCode INTERFACE_FUNC getId(Int* id) override;
 
+    ErrCode INTERFACE_FUNC setSymbol(IString* symbol) override;
+    ErrCode INTERFACE_FUNC getSymbol(IString** symbol) override;
+
+    ErrCode INTERFACE_FUNC setName(IString* name) override;
+    ErrCode INTERFACE_FUNC getName(IString** name) override;
+
+    ErrCode INTERFACE_FUNC setQuantity(IString* quantity) override;
+    ErrCode INTERFACE_FUNC getQuantity(IString** quantity) override;
+
+private:
     Int id;
     StringPtr symbol;
     StringPtr name;

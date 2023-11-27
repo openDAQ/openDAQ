@@ -62,7 +62,7 @@ ErrCode UnitBuilderImpl::getSymbol(IString** symbol)
     if (!symbol)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *symbol = this->symbol;
+    *symbol = this->symbol.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -71,7 +71,7 @@ ErrCode UnitBuilderImpl::getName(IString** name)
     if (!name)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *name = this->name;
+    *name = this->name.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -80,7 +80,7 @@ ErrCode UnitBuilderImpl::getQuantity(IString** quantity)
     if (!quantity)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    *quantity = this->quantity;
+    *quantity = this->quantity.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -90,9 +90,11 @@ ErrCode UnitBuilderImpl::build(IUnit** unit)
     if (unit == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
+    const auto builderPtr = this->borrowPtr<UnitBuilderPtr>();
+
     return daqTry([&]()
     {
-        *unit = Unit(symbol, id, name, quantity).detach();
+        *unit = UnitFromBuilder(builderPtr).detach();
         return OPENDAQ_SUCCESS;
     });
 }

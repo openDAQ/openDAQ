@@ -117,7 +117,7 @@ public:
 
     PropertyImpl(IPropertyBuilder* propertyBuilder)
     {
-        const auto propertyBuilderPtr = PropertyBuilderPtr(propertyBuilder);
+        const auto propertyBuilderPtr = PropertyBuilderPtr::Borrow(propertyBuilder);
         this->valueType = propertyBuilderPtr.getValueType();
         this->name = propertyBuilderPtr.getName();
         this->description = propertyBuilderPtr.getDescription();

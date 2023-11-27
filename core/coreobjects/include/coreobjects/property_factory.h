@@ -446,17 +446,6 @@ inline PropertyBuilderPtr StructPropertyBuilder(const StringPtr& name, const Str
     return obj;
 }
 
-/*!
- * @brief Creates a Property using the given dictionary of Property parameters. The Dictionary contains
- * keys that correspond to the Property fields (visible, defaultValue...) in conjunction with the intended
- * values of the fields.
- * @param buildParams the Dictionary of build parameters for the Property.
- */
-inline PropertyPtr PropertyFromBuildParams(const DictPtr<IString, IBaseObject>& buildParams)
-{
-    PropertyPtr obj(PropertyFromBuildParams_Create(buildParams));
-    return obj;
-}
 
 /*!
  * @brief Creates a Property using Builder

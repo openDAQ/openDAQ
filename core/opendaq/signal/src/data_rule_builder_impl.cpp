@@ -79,7 +79,7 @@ ErrCode DataRuleBuilderImpl::build(IDataRule** dataRule)
             for (const auto& [k, v] : params)
                 paramsCopy.set(k, v);
 
-            auto dataRuleObj = DataRule(ruleType, params);
+            auto dataRuleObj = DataRule(ruleType, paramsCopy);
             dataRuleObj.asPtr<IRulePrivate>().verifyParameters();
             *dataRule = dataRuleObj.detach();
             return OPENDAQ_SUCCESS;

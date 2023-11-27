@@ -308,7 +308,7 @@ public:
         if (!name)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *name = this->name;
+        *name = this->name.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
     
@@ -317,7 +317,7 @@ public:
         if (!description)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *description = this->description;
+        *description = this->description.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
     
@@ -326,7 +326,7 @@ public:
         if (!unit)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *unit = this->unit;
+        *unit = this->unit.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -335,7 +335,7 @@ public:
         if (!min)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *min = this->minValue;
+        *min = this->minValue.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -344,7 +344,7 @@ public:
         if (!max)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *max = this->maxValue;
+        *max = this->maxValue.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -353,7 +353,7 @@ public:
         if (!value)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *value = this->defaultValue;
+        *value = this->defaultValue.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -362,7 +362,7 @@ public:
         if (!values)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *values = this->suggestedValues;
+        *values = this->suggestedValues.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
     
@@ -371,7 +371,7 @@ public:
         if (!visible)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *visible = this->visible;
+        *visible = this->visible.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
     
@@ -380,7 +380,7 @@ public:
         if (!readOnly)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *readOnly = this->readOnly;
+        *readOnly = this->readOnly.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -389,7 +389,7 @@ public:
         if (!values)
             return OPENDAQ_ERR_ARGUMENT_NULL;
         
-        *values = this->selectionValues;
+        *values = this->selectionValues.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -398,7 +398,7 @@ public:
         if (!propertyEval)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *propertyEval = this->refProp;
+        *propertyEval = this->refProp.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -407,7 +407,7 @@ public:
         if (!validator)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *validator = this->validator;
+        *validator = this->validator.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
     
@@ -416,7 +416,7 @@ public:
         if (!coercer)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *coercer = this->coercer;
+        *coercer = this->coercer.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -425,7 +425,7 @@ public:
         if (!callable)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *callable = this->callableInfo;
+        *callable = this->callableInfo.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -434,7 +434,7 @@ public:
         if (!event)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *event = this->onValueWrite;
+        *event = this->onValueWrite.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -443,7 +443,7 @@ public:
         if (!event)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *event = this->onValueRead;
+        *event = this->onValueRead.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -452,9 +452,11 @@ public:
         if (property == nullptr)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
+        const auto propertyBuilderPtr = this->borrowPtr<PropertyBuilderPtr>();
+
         return daqTry([&]()
         {
-            *property = PropertyFromBuildParams(packBuildParams()).detach(); 
+            *property = PropertyFromBuilder(propertyBuilderPtr).detach(); 
             return OPENDAQ_SUCCESS;
         });
     }

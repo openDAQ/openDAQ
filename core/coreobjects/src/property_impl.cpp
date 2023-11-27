@@ -112,8 +112,8 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, Property,
-    IProperty, createPropertyFromBuildParams,
-    IDict*, buildParams
+    IProperty, createPropertyFromBuilder,
+    IPropertyBuilder*, builder
 )
 
 END_NAMESPACE_OPENDAQ

@@ -596,17 +596,6 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 )
 
 /*!
- * @brief Creates a Property using the given dictionary of Property parameters. The Dictionary contains
- * keys that correspond to the Property fields (visible, defaultValue...) in conjunction with the intended
- * values of the fields.
- * @param buildParams the Dictionary of build parameters for the Property.
- */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, PropertyFromBuildParams, IProperty,
-    IDict*, buildParams
-)
-
-/*!
  * @brief Creates a Property using Builder
  * @param builder Property Builder
  */

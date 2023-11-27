@@ -203,22 +203,6 @@ ListPtr<IProperty> PropertyObjectClassBuilderImpl::getProperties() const
     return properties;
 }
 
-DictPtr<IString, IBaseObject> PropertyObjectClassBuilderImpl::packBuildParams()
-{
-    auto buildParams = Dict<IString, IBaseObject>();
-    buildParams.set("name", name);
-    buildParams.set("parent", parent);
-    buildParams.set("props", props);
-    buildParams.set("customOrder", customOrder);
-    if (manager.assigned() && manager.getRef().assigned())
-        buildParams.set("manager", manager.getRef());
-    else
-        buildParams.set("manager", nullptr);
-
-    return buildParams;
-}
-
-
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY,
     PropertyObjectClassBuilder,

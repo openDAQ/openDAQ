@@ -232,24 +232,6 @@ ErrCode DataDescriptorBuilderImpl::build(IDataDescriptor** dataDescriptor)
     });
 }
 
-DictPtr<IString, IBaseObject> DataDescriptorBuilderImpl::packBuildParams()
-{
-    auto params = Dict<IString, IBaseObject>();
-    params.set("dimensions", copyDimensions(dimensions));
-    params.set("name", name);
-    params.set("sampleType", static_cast<Int>(sampleType));
-    params.set("unit", unit);
-    params.set("valueRange", valueRange);
-    params.set("dataRule", dataRule);
-    params.set("scaling", scaling);
-    params.set("origin", origin);
-    params.set("tickResolution", resolution);
-    params.set("structFields", copyStructFields(structFields));
-    params.set("metadata", copyMetadata(metadata));
-
-    return params;
-}
-
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY,
     DataDescriptorBuilder,

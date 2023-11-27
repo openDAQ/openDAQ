@@ -42,7 +42,6 @@ public:
     ErrCode INTERFACE_FUNC build(IUnit** unit) override;
 
 private:
-    DictPtr<IString, IBaseObject> packBuildParams() const;
 
     Int id;
     StringPtr symbol;

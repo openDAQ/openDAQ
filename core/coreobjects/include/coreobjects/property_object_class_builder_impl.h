@@ -53,7 +53,6 @@ private:
 
     bool hasDuplicateReferences(const PropertyPtr& prop) const;
     ListPtr<IProperty> getProperties() const;
-    DictPtr<IString, IBaseObject> packBuildParams();
 };
 
 END_NAMESPACE_OPENDAQ

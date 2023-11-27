@@ -463,31 +463,6 @@ public:
 
 private:
 
-    DictPtr<IString, IBaseObject> packBuildParams()
-    {
-        auto buildParams = Dict<IString, IBaseObject>({
-            {"valueType", Integer(valueType)},
-            {"name", name},
-            {"description", description},
-            {"unit", unit},
-            {"minValue", minValue},
-            {"maxValue", maxValue},
-            {"defaultValue", defaultValue},
-            {"visible", visible},
-            {"readOnly", readOnly},
-            {"selectionValues", selectionValues},
-            {"suggestedValues", suggestedValues},
-            {"refProp", refProp},
-            {"coercer", coercer},
-            {"validator", validator},
-            {"callableInfo", callableInfo},
-            {"onValueWrite", onValueWrite},
-            {"onValueRead", onValueRead},
-        });
-
-        return buildParams;
-    }
-
     CoreType valueType;
 
     StringPtr name;

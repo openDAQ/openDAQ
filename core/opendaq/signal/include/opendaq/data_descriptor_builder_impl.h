@@ -70,9 +70,6 @@ protected:
     RatioPtr resolution;
     ListPtr<IDataDescriptor> structFields;
     DictPtr<IString, IString> metadata;
-
-private:
-    DictPtr<IString, IBaseObject> packBuildParams();
 };
 
 

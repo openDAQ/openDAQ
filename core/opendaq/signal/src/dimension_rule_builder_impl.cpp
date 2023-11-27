@@ -51,7 +51,7 @@ ErrCode DimensionRuleBuilderImpl::getParameters(IDict** parameters)
 {
     OPENDAQ_PARAM_NOT_NULL(parameters);
 
-    *parameters = this->params;
+    *parameters = this->params.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -74,16 +74,12 @@ ErrCode DimensionRuleBuilderImpl::build(IDimensionRule** dimensionRule)
 {
     OPENDAQ_PARAM_NOT_NULL(dimensionRule);
 
+    const auto builderPtr = this->borrowPtr<DimensionRuleBuilderPtr>();
+
     return daqTry(
         [&]()
         {
-            DictPtr<IString, IBaseObject> paramsCopy = Dict<IString, IBaseObject>();
-            for (const auto& [k, v] : params)
-                paramsCopy.set(k, v);
-
-            auto dimensionRuleObj = DimensionRule(ruleType, paramsCopy);
-            dimensionRuleObj.asPtr<IRulePrivate>().verifyParameters();
-            *dimensionRule = dimensionRuleObj.detach();
+            *dimensionRule = DimensionRuleFromBuilder(builderPtr).detach();
             return OPENDAQ_SUCCESS;
         });
 }

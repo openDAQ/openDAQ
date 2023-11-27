@@ -1,7 +1,7 @@
-#include <opendaq/scaling_impl.h>
-#include <opendaq/signal_errors.h>
 #include <coretypes/validation.h>
 #include <opendaq/scaling_factory.h>
+#include <opendaq/scaling_impl.h>
+#include <opendaq/signal_errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -10,23 +10,18 @@ namespace detail
     static const StructTypePtr scalingStructType = ScalingStructType();
 }
 
-ScalingImpl::ScalingImpl(SampleType inputType,
-                         ScaledSampleType outputType,
-                         ScalingType ruleType,
-                         DictPtr<IString, IBaseObject> params)
-    : GenericStructImpl<IScaling, IStruct, IRulePrivate>(
-          detail::scalingStructType,
-          Dict<IString, IBaseObject>({
-              {"outputDataType", static_cast<Int>(outputType)},
-              {"inputDataType", static_cast<Int>(inputType)},
-              {"ruleType", static_cast<Int>(ruleType)},
-              {"parameters", params},
-          })
-          )
-      , outputDataType(outputType)
-      , inputDataType(inputType)
-      , ruleType(ruleType)
-      , params(std::move(params))
+ScalingImpl::ScalingImpl(SampleType inputType, ScaledSampleType outputType, ScalingType ruleType, DictPtr<IString, IBaseObject> params)
+    : GenericStructImpl<IScaling, IStruct, IRulePrivate>(detail::scalingStructType,
+                                                         Dict<IString, IBaseObject>({
+                                                             {"outputDataType", static_cast<Int>(outputType)},
+                                                             {"inputDataType", static_cast<Int>(inputType)},
+                                                             {"ruleType", static_cast<Int>(ruleType)},
+                                                             {"parameters", params},
+                                                         }))
+    , outputDataType(outputType)
+    , inputDataType(inputType)
+    , ruleType(ruleType)
+    , params(std::move(params))
 {
     checkErrorInfo(verifyParametersInternal());
 
@@ -35,25 +30,20 @@ ScalingImpl::ScalingImpl(SampleType inputType,
 }
 
 ScalingImpl::ScalingImpl(NumberPtr scale, NumberPtr offset, SampleType inputType, ScaledSampleType outputType)
-    : ScalingImpl(inputType, outputType, ScalingType::Linear, Dict<IString, IBaseObject>({
-        { "scale", scale },
-        { "offset", offset }
-    }))
+    : ScalingImpl(inputType, outputType, ScalingType::Linear, Dict<IString, IBaseObject>({{"scale", scale}, {"offset", offset}}))
 {
 }
 
 ScalingImpl::ScalingImpl(ScalingBuilderPtr scalingBuilder)
-    : ScalingImpl(
-        scalingBuilder.getInputDataType(),
-        scalingBuilder.getOutputDataType(),
-        scalingBuilder.getScalingType(),
-        scalingBuilder.getParameters())
+    : ScalingImpl(scalingBuilder.getInputDataType(),
+                  scalingBuilder.getOutputDataType(),
+                  scalingBuilder.getScalingType(),
+                  scalingBuilder.getParameters())
 {
 }
 
 ScalingImpl::ScalingImpl(IScalingBuilder* scalingBuilder)
-    : ScalingImpl(
-        ScalingBuilderPtr::Borrow(scalingBuilder))
+    : ScalingImpl(ScalingBuilderPtr::Borrow(scalingBuilder))
 {
 }
 
@@ -92,7 +82,6 @@ ErrCode ScalingImpl::getParameters(IDict** parameters)
     *parameters = params.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
-
 
 ErrCode ScalingImpl::verifyParameters()
 {
@@ -203,47 +192,33 @@ ErrCode ScalingImpl::verifyParametersInternal() const
     return OPENDAQ_SUCCESS;
 }
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY,
-    Scaling,
-    IScaling,
-    SampleType,
-    inputDataType,
-    ScaledSampleType,
-    outputDataType,
-    ScalingType,
-    scalingType,
-    IDict*,
-    parameters
-    )
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
+                                            Scaling,
+                                            IScaling,
+                                            SampleType,
+                                            inputDataType,
+                                            ScaledSampleType,
+                                            outputDataType,
+                                            ScalingType,
+                                            scalingType,
+                                            IDict*,
+                                            parameters)
 
 #if !defined(BUILDING_STATIC_LIBRARY)
 
 // Specializations
 
-extern "C"
-daq::ErrCode PUBLIC_EXPORT createLinearScaling(IScaling** objTmp,
-                                              INumber* scale,
-                                              INumber* offset,
-                                              SampleType inputType,
-                                              ScaledSampleType outputType)
+extern "C" daq::ErrCode PUBLIC_EXPORT
+createLinearScaling(IScaling** objTmp, INumber* scale, INumber* offset, SampleType inputType, ScaledSampleType outputType)
 {
-    return daq::createObject<IScaling, ScalingImpl>(
-        objTmp,
-        scale,
-        offset,
-        inputType,
-        outputType
-    );
+    return daq::createObject<IScaling, ScalingImpl>(objTmp, scale, offset, inputType, outputType);
+}
+
+extern "C" daq::ErrCode PUBLIC_EXPORT createScalingFromBuilder(IScaling** objTmp, IScalingBuilder* builder)
+{
+    return daq::createObject<IScaling, ScalingImpl>(objTmp, builder);
 }
 
 #endif
-
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY, Scaling,
-    IScaling, createScalingFromBuilder,
-    IScalingBuilder*, builder
-)
-
 
 END_NAMESPACE_OPENDAQ

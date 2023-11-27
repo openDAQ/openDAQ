@@ -29,7 +29,7 @@ public:
     explicit DimensionRuleImpl(const ListPtr<INumber>& list);
     explicit DimensionRuleImpl(const NumberPtr& delta, const NumberPtr& start, const SizeT& size);   
     explicit DimensionRuleImpl(const NumberPtr& delta, const NumberPtr& start, const NumberPtr& base, const SizeT& size);
-    explicit DimensionRuleImpl(IDimensionRule* dimensionRule);
+    explicit DimensionRuleImpl(IDimensionRuleBuilder* dimensionRuleBuilder);
 
     ErrCode INTERFACE_FUNC getType(DimensionRuleType* type) override;
     ErrCode INTERFACE_FUNC getParameters(IDict** parameters) override;

@@ -37,7 +37,7 @@ DataDescriptorImpl::DataDescriptorImpl(const DictPtr<IString, IBaseObject>& desc
 }
 
 DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBuilder)
-    : GenericStructImpl<IDataDescriptor, IStruct, IScalingCalcPrivate, IDataRuleCalcPrivate>(detail::dataDescriptorStructType, daq::DictPtr<daq::IString, daq::IBaseObject>{})
+    : GenericStructImpl<IDataDescriptor, IStruct, IScalingCalcPrivate, IDataRuleCalcPrivate>(detail::dataDescriptorStructType, Dict<IString, IBaseObject>())
 {
     const auto dataDescriptorBuilderPtr = DataDescriptorBuilderPtr(dataDescriptorBuilder);
     this->dimensions = dataDescriptorBuilderPtr.getDimensions();
@@ -443,6 +443,10 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, DataDescriptor, IDataDescriptor, IDict*, descriptorParameters)
-
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, DataDescriptor,
+    IDataDescriptor, createDataDescriptorFromBuilder,
+    IDataDescriptorBuilder*, builder
+)
 
 END_NAMESPACE_OPENDAQ

@@ -146,13 +146,13 @@ ErrCode DataDescriptorBuilderImpl::setStructFields(IList* structFields)
 ErrCode DataDescriptorBuilderImpl::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
-    *name = this->name;
+    *name = this->name.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 ErrCode DataDescriptorBuilderImpl::getDimensions(IList** dimensions)
 {
     OPENDAQ_PARAM_NOT_NULL(dimensions);
-    *dimensions = this->dimensions;
+    *dimensions = this->dimensions.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -166,56 +166,56 @@ ErrCode DataDescriptorBuilderImpl::getSampleType(SampleType* sampleType)
 ErrCode DataDescriptorBuilderImpl::getUnit(IUnit** unit)
 {
     OPENDAQ_PARAM_NOT_NULL(unit);
-    *unit = this->unit;
+    *unit = this->unit.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode DataDescriptorBuilderImpl::getValueRange(IRange** valueRange)
 {
     OPENDAQ_PARAM_NOT_NULL(valueRange);
-    *valueRange = this->valueRange;
+    *valueRange = this->valueRange.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode DataDescriptorBuilderImpl::getRule(IDataRule** rule)
 {
     OPENDAQ_PARAM_NOT_NULL(rule);
-    *rule = this->dataRule;
+    *rule = this->dataRule.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode DataDescriptorBuilderImpl::getOrigin(IString** origin)
 {
     OPENDAQ_PARAM_NOT_NULL(origin);
-    *origin = this->origin;
+    *origin = this->origin.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode DataDescriptorBuilderImpl::getTickResolution(IRatio** tickResolution)
 {
     OPENDAQ_PARAM_NOT_NULL(tickResolution);
-    *tickResolution = this->resolution;
+    *tickResolution = this->resolution.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode DataDescriptorBuilderImpl::getPostScaling(IScaling** scaling)
 {
     OPENDAQ_PARAM_NOT_NULL(scaling);
-    *scaling = this->scaling;
+    *scaling = this->scaling.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode DataDescriptorBuilderImpl::getMetadata(IDict** metadata)
 {
     OPENDAQ_PARAM_NOT_NULL(metadata);
-    *metadata = this->metadata;
+    *metadata = this->metadata.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode DataDescriptorBuilderImpl::getStructFields(IList** structFields)
 {
     OPENDAQ_PARAM_NOT_NULL(structFields);
-    *structFields = this->structFields;
+    *structFields = this->structFields.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -223,10 +223,11 @@ ErrCode DataDescriptorBuilderImpl::build(IDataDescriptor** dataDescriptor)
 {
     OPENDAQ_PARAM_NOT_NULL(dataDescriptor);
 
+    const auto builder = this->borrowPtr<DataDescriptorBuilderPtr>();
+
     return daqTry([&]()
     {
-        auto descriptor = DataDescriptor(packBuildParams());
-        *dataDescriptor = descriptor.detach();
+        *dataDescriptor = DataDescriptorFromBuilder(builder).detach();
         return OPENDAQ_SUCCESS;
     });
 }

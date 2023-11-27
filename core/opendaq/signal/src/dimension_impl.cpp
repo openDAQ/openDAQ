@@ -244,6 +244,11 @@ daq::ErrCode PUBLIC_EXPORT createDimension(IDimension** objTmp, IDimensionRule* 
 {
     return daq::createObject<IDimension, DimensionImpl>(objTmp, rule, unit, name);
 }
+extern "C"
+daq::ErrCode PUBLIC_EXPORT createDimensionFromBuilder(IDimension** objTmp, IDimensionBuilder* builder)
+{
+    return daq::createObject<IDimension, DimensionImpl>(objTmp, builder);
+}
 
 #endif
 

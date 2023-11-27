@@ -125,7 +125,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
  * @param builder Dimension Builder
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, DimensionFromBuilder, IDimension,
+    LIBRARY_FACTORY, DimensionFromBuilder,
+    IDimension,
     IDimensionBuilder*, builder
 )
 

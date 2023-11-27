@@ -43,7 +43,7 @@ ErrCode DimensionBuilderImpl::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
 
-    *name = this->name;
+    *name = this->name.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -51,7 +51,7 @@ ErrCode DimensionBuilderImpl::getUnit(IUnit** unit)
 {
     OPENDAQ_PARAM_NOT_NULL(unit);
 
-    *unit = this->unit;
+    *unit = this->unit.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -59,7 +59,7 @@ ErrCode DimensionBuilderImpl::getRule(IDimensionRule** rule)
 {
     OPENDAQ_PARAM_NOT_NULL(rule);
 
-    *rule = this->rule;
+    *rule = this->rule.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -67,11 +67,12 @@ ErrCode DimensionBuilderImpl::build(IDimension** dimension)
 {
     OPENDAQ_PARAM_NOT_NULL(dimension);
 
+    const auto builderPtr = this->borrowPtr<DimensionBuilderPtr>();
+
     return daqTry(
         [&]()
         {
-            auto dimensionObj = Dimension(rule, unit, name);
-            *dimension = dimensionObj.detach();
+            *dimension = DimensionFromBuilder(builderPtr).detach();
             return OPENDAQ_SUCCESS;
         });
 }

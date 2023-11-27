@@ -34,7 +34,6 @@ using PropertyOrderedMap = tsl::ordered_map<StringPtr, PropertyPtr, StringHash, 
 class PropertyObjectClassImpl : public ImplementationOf<IPropertyObjectClass, ISerializable>
 {
 public:
-    explicit PropertyObjectClassImpl(const DictPtr<IString, IBaseObject>& buildParams);
     explicit PropertyObjectClassImpl(IPropertyObjectClassBuilder* builder);
 
     // IPropertyObjectClass

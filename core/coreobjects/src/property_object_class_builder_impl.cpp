@@ -92,7 +92,7 @@ ErrCode PropertyObjectClassBuilderImpl::getName(IString** className)
     if (!className)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *className = this->name;
+    *className = this->name.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -101,7 +101,7 @@ ErrCode PropertyObjectClassBuilderImpl::getParentName(IString** parentName)
     if (!parentName)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *parentName = this->parent;
+    *parentName = this->parent.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -110,7 +110,7 @@ ErrCode PropertyObjectClassBuilderImpl::getProperties(IDict** properties)
     if (!properties)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *properties = this->props;
+    *properties = this->props.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -119,7 +119,7 @@ ErrCode PropertyObjectClassBuilderImpl::getPropertyOrder(IList** orderedProperty
     if (!orderedPropertyNames)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *orderedPropertyNames = this->customOrder;
+    *orderedPropertyNames = this->customOrder.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -142,7 +142,13 @@ ErrCode PropertyObjectClassBuilderImpl::build(IPropertyObjectClass** propertyObj
     if (propertyObjectClass == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *propertyObjectClass = PropertyObjectClassFromBuildParams(packBuildParams()).detach();
+    const auto builderPtr = this->borrowPtr<PropertyObjectClassBuilderPtr>();
+
+    return daqTry([&]()
+    {
+        *propertyObjectClass = PropertyObjectClassFromBuilder(builderPtr).detach();
+        return OPENDAQ_SUCCESS;
+    });
     return OPENDAQ_SUCCESS;
 }
 

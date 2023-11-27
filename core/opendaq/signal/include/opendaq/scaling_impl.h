@@ -37,6 +37,7 @@ public:
                          SampleType inputType,
                          ScaledSampleType outputType);
 
+    explicit ScalingImpl(ScalingBuilderPtr scalingBuilder);
     explicit ScalingImpl(IScalingBuilder* scalingBuilder);
 
     ErrCode INTERFACE_FUNC getInputSampleType(SampleType* type) override;

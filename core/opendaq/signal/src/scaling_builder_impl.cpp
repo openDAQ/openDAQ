@@ -108,7 +108,7 @@ ErrCode ScalingBuilderImpl::getParameters(IDict** parameters)
 {
     OPENDAQ_PARAM_NOT_NULL(parameters);
 
-    *parameters = this->params;
+    *parameters = this->params.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -130,15 +130,11 @@ ErrCode ScalingBuilderImpl::build(IScaling** scaling)
 {
     OPENDAQ_PARAM_NOT_NULL(scaling);
 
+    const auto builderPtr = this->borrowPtr<ScalingBuilderPtr>();
+
     return daqTry([&]()
     {
-        DictPtr<IString, IBaseObject> paramsCopy = Dict<IString, IBaseObject>();
-        for (const auto& [k, v] : params)
-            paramsCopy.set(k, v);
-        
-        auto scalingObj = Scaling(inputDataType, outputDataType, ruleType, paramsCopy);
-        scalingObj.asPtr<IRulePrivate>().verifyParameters();
-        *scaling = scalingObj.detach();
+        *scaling = ScalingFromBuilder(builderPtr).detach();
         return OPENDAQ_SUCCESS;
     });
 }

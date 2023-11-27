@@ -42,12 +42,18 @@ ScalingImpl::ScalingImpl(NumberPtr scale, NumberPtr offset, SampleType inputType
 {
 }
 
+ScalingImpl::ScalingImpl(ScalingBuilderPtr scalingBuilder)
+    : ScalingImpl(
+        scalingBuilder.getInputDataType(),
+        scalingBuilder.getOutputDataType(),
+        scalingBuilder.getScalingType(),
+        scalingBuilder.getParameters())
+{
+}
+
 ScalingImpl::ScalingImpl(IScalingBuilder* scalingBuilder)
     : ScalingImpl(
-        ScalingBuilderPtr(scalingBuilder).getInputDataType(),
-        ScalingBuilderPtr(scalingBuilder).getOutputDataType(),
-        ScalingBuilderPtr(scalingBuilder).getScalingType(),
-        ScalingBuilderPtr(scalingBuilder).getParameters())
+        ScalingBuilderPtr::Borrow(scalingBuilder))
 {
 }
 
@@ -232,5 +238,12 @@ daq::ErrCode PUBLIC_EXPORT createLinearScaling(IScaling** objTmp,
 }
 
 #endif
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, Scaling,
+    IScaling, createScalingFromBuilder,
+    IScalingBuilder*, builder
+)
+
 
 END_NAMESPACE_OPENDAQ

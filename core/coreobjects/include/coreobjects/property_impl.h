@@ -86,33 +86,6 @@ public:
     {
         this->name = name;
     }
-    
-    PropertyImpl(IDict* buildParams)
-    {
-        const auto buildParamsPtr = DictPtr<IString, IBaseObject>(buildParams);
-        this->valueType = buildParamsPtr.get("valueType");
-        this->name = buildParamsPtr.get("name");
-        this->description = buildParamsPtr.get("description");
-        this->unit = buildParamsPtr.get("unit");
-        this->minValue = buildParamsPtr.get("minValue");
-        this->maxValue = buildParamsPtr.get("maxValue");
-        this->defaultValue = buildParamsPtr.get("defaultValue");
-        this->visible = buildParamsPtr.get("visible");
-        this->readOnly = buildParamsPtr.get("readOnly");
-        this->selectionValues = buildParamsPtr.get("selectionValues");
-        this->suggestedValues = buildParamsPtr.get("suggestedValues");
-        this->refProp = buildParamsPtr.get("refProp");
-        this->coercer = buildParamsPtr.get("coercer");
-        this->validator = buildParamsPtr.get("validator");
-        this->callableInfo = buildParamsPtr.get("callableInfo");
-        this->onValueWrite = buildParamsPtr.get("onValueWrite");
-        this->onValueRead = buildParamsPtr.get("onValueRead");
-        
-        propPtr = this->borrowPtr<PropertyPtr>();
-        owner = nullptr;
-
-        checkErrorInfo(validateDuringConstruction());
-    }
 
     PropertyImpl(IPropertyBuilder* propertyBuilder)
     {

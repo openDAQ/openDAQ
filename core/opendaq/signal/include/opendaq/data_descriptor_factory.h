@@ -52,16 +52,6 @@ inline DataDescriptorBuilderPtr DataDescriptorBuilderCopy(const DataDescriptorPt
 }
 
 /*!
- * @brief Creates a Data descriptor object using the build parameters Dictionary.
- * @param buildParams Dictionary of build parameters such as the Name and Dimensions.
- */
-inline DataDescriptorPtr DataDescriptor(const DictPtr<IString, IBaseObject>& descriptorParams)
-{
-    DataDescriptorPtr obj(DataDescriptor_Create(descriptorParams));
-    return obj;
-}
-
-/*!
  * @brief Creates a DataDescriptor using Builder
  * @param builder DataDescriptor Builder
  */

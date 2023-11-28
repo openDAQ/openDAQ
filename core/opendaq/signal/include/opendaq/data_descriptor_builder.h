@@ -37,6 +37,12 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IDataDescriptorBuilder, IBaseObject)
 {
+    /*!
+     * @brief Builds and returns a Data descriptor object using the currently set values of the Builder.
+     * @param[out] dataDescriptor The built Data descriptor.
+     */
+    virtual ErrCode INTERFACE_FUNC build(IDataDescriptor** dataDescriptor) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets a descriptive name for the signal's value.
@@ -205,12 +211,6 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptorBuilder, IBaseObject)
      * @param[out] metadata Additional metadata of the descriptor as a dictionary.
      */
     virtual ErrCode INTERFACE_FUNC getMetadata(IDict** metadata) = 0;
-
-    /*!
-     * @brief Builds and returns a Data descriptor object using the currently set values of the Builder.
-     * @param[out] dataDescriptor The built Data descriptor.
-     */
-    virtual ErrCode INTERFACE_FUNC build(IDataDescriptor** dataDescriptor) = 0;
 };
 /*!@}*/
 

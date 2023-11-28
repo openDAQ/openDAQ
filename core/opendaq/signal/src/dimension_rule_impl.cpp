@@ -284,6 +284,11 @@ daq::ErrCode PUBLIC_EXPORT createLogarithmicDimensionRule(IDimensionRule** objTm
     return daq::createObject<IDimensionRule, DimensionRuleImpl>(objTmp, delta, start, base, size);
 }
 
+extern "C" daq::ErrCode PUBLIC_EXPORT createDimensionRule(IDimensionRule** objTmp, DimensionRuleType type, IDict* parameters)
+{
+    return daq::createObject<IDimensionRule, DimensionRuleImpl>(objTmp, type, parameters);
+}
+
 extern "C" daq::ErrCode PUBLIC_EXPORT createDimensionRuleFromBuilder(IDimensionRule** objTmp, IDimensionRuleBuilder* builder)
 {
     return daq::createObject<IDimensionRule, DimensionRuleImpl>(objTmp, builder);

@@ -17,6 +17,17 @@ namespace detail
     static const StructTypePtr dimensionStructType = DimensionStructType();
 }
 
+DictPtr<IString, IBaseObject> DimensionImpl::packBuilder(IDimensionBuilder* dimensionBuilder)
+{
+    const auto builderPtr = DimensionBuilderPtr::Borrow(dimensionBuilder);
+    auto params = Dict<IString, IBaseObject>();
+    params.set("name", builderPtr.getName());
+    params.set("unit", builderPtr.getUnit());
+    params.set("rule", builderPtr.getRule());
+
+    return params;
+}
+
 DimensionImpl::DimensionImpl(const DimensionRulePtr& rule, const UnitPtr& unit, const StringPtr& name)
     : GenericStructImpl<IDimension, IStruct>(detail::dimensionStructType,
           Dict<IString, IBaseObject>({
@@ -33,11 +44,10 @@ DimensionImpl::DimensionImpl(const DimensionRulePtr& rule, const UnitPtr& unit, 
 }
 
 DimensionImpl::DimensionImpl(IDimensionBuilder* dimensionBuilder)
-    :DimensionImpl(
-        DimensionBuilderPtr(dimensionBuilder).getRule(), 
-        DimensionBuilderPtr(dimensionBuilder).getUnit(), 
-        DimensionBuilderPtr(dimensionBuilder).getName())
+    : GenericStructImpl<IDimension, IStruct>(detail::dimensionStructType, packBuilder(dimensionBuilder))
 {
+    if (!rule.assigned())
+        throw ConfigurationIncompleteException{"Dimension rule is not assigned."};
 }
 
 

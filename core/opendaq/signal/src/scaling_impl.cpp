@@ -10,6 +10,17 @@ namespace detail
     static const StructTypePtr scalingStructType = ScalingStructType();
 }
 
+DictPtr<IString, IBaseObject> ScalingImpl::packBuilder(IScalingBuilder* scalingBuilder)
+{
+    const auto builderPtr = ScalingBuilderPtr::Borrow(scalingBuilder);
+    auto params = Dict<IString, IBaseObject>();
+    params.set("inputDataType", static_cast<Int>(builderPtr.getInputDataType()));
+    params.set("outputDataType", static_cast<Int>(builderPtr.getOutputDataType()));
+    params.set("ruleType", static_cast<Int>(builderPtr.getScalingType()));
+    params.set("parameters", builderPtr.getParameters());
+    return params;
+}
+
 ScalingImpl::ScalingImpl(SampleType inputType, ScaledSampleType outputType, ScalingType ruleType, DictPtr<IString, IBaseObject> params)
     : GenericStructImpl<IScaling, IStruct, IRulePrivate>(detail::scalingStructType,
                                                          Dict<IString, IBaseObject>({
@@ -34,17 +45,13 @@ ScalingImpl::ScalingImpl(NumberPtr scale, NumberPtr offset, SampleType inputType
 {
 }
 
-ScalingImpl::ScalingImpl(ScalingBuilderPtr scalingBuilder)
-    : ScalingImpl(scalingBuilder.getInputDataType(),
-                  scalingBuilder.getOutputDataType(),
-                  scalingBuilder.getScalingType(),
-                  scalingBuilder.getParameters())
-{
-}
-
 ScalingImpl::ScalingImpl(IScalingBuilder* scalingBuilder)
-    : ScalingImpl(ScalingBuilderPtr::Borrow(scalingBuilder))
+    : GenericStructImpl<IScaling, IStruct, IRulePrivate>(detail::scalingStructType, packBuilder(scalingBuilder))
 {
+    checkErrorInfo(verifyParametersInternal());
+
+    if (params.assigned() && params.asPtrOrNull<IFreezable>().assigned())
+        params.freeze();
 }
 
 ErrCode ScalingImpl::getInputSampleType(SampleType* type)

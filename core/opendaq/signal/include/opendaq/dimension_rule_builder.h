@@ -31,6 +31,12 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IDimensionRuleBuilder, IBaseObject)
 {
+    /*!
+     * @brief Builds and returns a Dimension rule object using the currently set values of the Builder.
+     * @param[out] dataRule The built Dimension rule.
+     */
+    virtual ErrCode INTERFACE_FUNC build(IDimensionRule** dimensionRule) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the type of the dimension rule. Rule parameters must be configured to match the requirements of the rule type.
@@ -76,12 +82,6 @@ DECLARE_OPENDAQ_INTERFACE(IDimensionRuleBuilder, IBaseObject)
      * @brief Removes the parameter with the given name from the Dictionary of Dimension rule parameters.
      */
     virtual ErrCode INTERFACE_FUNC removeParameter(IString* name) = 0;
-
-    /*!
-     * @brief Builds and returns a Dimension rule object using the currently set values of the Builder.
-     * @param[out] dataRule The built Dimension rule.
-     */
-    virtual ErrCode INTERFACE_FUNC build(IDimensionRule** dimensionRule) = 0;
 };
 /*!@}*/
 

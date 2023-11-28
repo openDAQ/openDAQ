@@ -17,8 +17,27 @@ namespace detail
     static const StructTypePtr dataDescriptorStructType = DataDescriptorStructType();
 }
 
+DictPtr<IString, IBaseObject> DataDescriptorImpl::packBuilder(IDataDescriptorBuilder* dataDescriptorBuilder)
+{
+    const auto builderPtr = DataDescriptorBuilderPtr::Borrow(dataDescriptorBuilder);
+    auto params = Dict<IString, IBaseObject>();
+    params.set("dimensions", builderPtr.getDimensions());
+    params.set("name", builderPtr.getName());
+    params.set("sampleType", static_cast<Int>(builderPtr.getSampleType()));
+    params.set("unit", builderPtr.getUnit());
+    params.set("valueRange", builderPtr.getValueRange());
+    params.set("dataRule", builderPtr.getRule());
+    params.set("scaling", builderPtr.getPostScaling());
+    params.set("origin", builderPtr.getOrigin());
+    params.set("tickResolution", builderPtr.getTickResolution());
+    params.set("structFields", builderPtr.getStructFields());
+    params.set("metadata", builderPtr.getMetadata());
+
+    return params;
+}
+
 DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBuilder)
-    : GenericStructImpl<IDataDescriptor, IStruct, IScalingCalcPrivate, IDataRuleCalcPrivate>(detail::dataDescriptorStructType, Dict<IString, IBaseObject>())
+    : GenericStructImpl<IDataDescriptor, IStruct, IScalingCalcPrivate, IDataRuleCalcPrivate>(detail::dataDescriptorStructType, packBuilder(dataDescriptorBuilder))
 {
     const auto dataDescriptorBuilderPtr = DataDescriptorBuilderPtr(dataDescriptorBuilder);
     this->dimensions = dataDescriptorBuilderPtr.getDimensions();
@@ -422,10 +441,6 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
 
     return OPENDAQ_SUCCESS;
 }
-
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, DataDescriptor, IDataDescriptor, 
-    IDict*, descriptorParameters)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, DataDescriptor,

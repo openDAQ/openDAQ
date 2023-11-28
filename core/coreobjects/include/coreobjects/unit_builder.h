@@ -32,6 +32,12 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IUnitBuilder, IBaseObject)
 {
+    /*!
+     * @brief Builds and returns a Unit object using the currently set values of the Builder.
+     * @param[out] unit The built Unit.
+     */
+    virtual ErrCode INTERFACE_FUNC build(IUnit** unit) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the unit ID as defined in <a href="https://unece.org/trade/cefact/UNLOCODE-Download">Codes for Units of Measurement used
@@ -93,12 +99,6 @@ DECLARE_OPENDAQ_INTERFACE(IUnitBuilder, IBaseObject)
      * `nullptr` if not set.
      */
     virtual ErrCode INTERFACE_FUNC getQuantity(IString** quantity) = 0;
-
-    /*!
-     * @brief Builds and returns a Unit object using the currently set values of the Builder.
-     * @param[out] unit The built Unit.
-     */
-    virtual ErrCode INTERFACE_FUNC build(IUnit** unit) = 0;
 };
 /*!@}*/
 

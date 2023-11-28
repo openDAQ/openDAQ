@@ -35,6 +35,12 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IDimensionBuilder, IBaseObject)
 {
+    /*!
+     * @brief Builds and returns a Dimension object using the currently set values of the Builder.
+     * @param[out] dimension The built Dimension.
+     */
+    virtual ErrCode INTERFACE_FUNC build(IDimension** dimension) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the name of the dimension.
@@ -79,12 +85,6 @@ DECLARE_OPENDAQ_INTERFACE(IDimensionBuilder, IBaseObject)
      * @param[out] rule The dimension rule.
      */
     virtual ErrCode INTERFACE_FUNC getRule(IDimensionRule** rule) = 0;
-
-    /*!
-     * @brief Builds and returns a Dimension object using the currently set values of the Builder.
-     * @param[out] dimension The built Dimension.
-     */
-    virtual ErrCode INTERFACE_FUNC build(IDimension** dimension) = 0;
 };
 /*!@}*/
 

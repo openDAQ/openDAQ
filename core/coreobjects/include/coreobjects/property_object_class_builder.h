@@ -39,6 +39,12 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
 {
+    /*!
+     * @brief Builds and returns a Property object class using the currently set values of the Builder.
+     * @param[out] property The built Property object class.
+     */
+    virtual ErrCode INTERFACE_FUNC build(IPropertyObjectClass** propertyObjectClass) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the name of the property class.
@@ -115,12 +121,6 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
      * @param[out] manager weak reference of type manager
      */
     virtual ErrCode INTERFACE_FUNC getManager(IWeakRef** manager) = 0;
-
-    /*!
-     * @brief Builds and returns a Property object class using the currently set values of the Builder.
-     * @param[out] property The built Property object class.
-     */
-    virtual ErrCode INTERFACE_FUNC build(IPropertyObjectClass** propertyObjectClass) = 0;
 };
 
 /*!@}*/

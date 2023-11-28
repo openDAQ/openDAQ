@@ -27,7 +27,6 @@ class UnitImpl : public GenericStructImpl<IUnit, IStruct>
 {
 public:
     explicit UnitImpl(Int id, StringPtr symbol, StringPtr name, StringPtr quantity);
-    explicit UnitImpl(DictPtr<IString, IBaseObject> buildParams);
     explicit UnitImpl(IUnitBuilder* unitBuilder);
 
     ErrCode INTERFACE_FUNC getId(Int* id) override;
@@ -41,6 +40,9 @@ public:
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj);
+
+private:
+    static DictPtr<IString, IBaseObject> packBuilder(IUnitBuilder* unitBuilder);
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(UnitImpl)

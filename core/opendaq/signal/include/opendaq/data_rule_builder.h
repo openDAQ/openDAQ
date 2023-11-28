@@ -32,6 +32,12 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IDataRuleBuilder, IBaseObject)
 {
+    /*!
+     * @brief Builds and returns a Data rule object using the currently set values of the Builder.
+     * @param[out] dataRule The built Data rule.
+     */
+    virtual ErrCode INTERFACE_FUNC build(IDataRule** dataRule) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the type of the data rule.
@@ -72,12 +78,6 @@ DECLARE_OPENDAQ_INTERFACE(IDataRuleBuilder, IBaseObject)
      * @brief Removes the parameter with the given name from the Dictionary of Data rule parameters.
      */
     virtual ErrCode INTERFACE_FUNC removeParameter(IString* name) = 0;
-
-    /*!
-     * @brief Builds and returns a Data rule object using the currently set values of the Builder.
-     * @param[out] dataRule The built Data rule.
-     */
-    virtual ErrCode INTERFACE_FUNC build(IDataRule** dataRule) = 0;
 };
 /*!@}*/
 

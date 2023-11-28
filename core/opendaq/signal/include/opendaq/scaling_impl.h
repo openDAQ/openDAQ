@@ -37,7 +37,6 @@ public:
                          SampleType inputType,
                          ScaledSampleType outputType);
 
-    explicit ScalingImpl(ScalingBuilderPtr scalingBuilder);
     explicit ScalingImpl(IScalingBuilder* scalingBuilder);
 
     ErrCode INTERFACE_FUNC getInputSampleType(SampleType* type) override;
@@ -59,6 +58,7 @@ public:
 
 private:
     ErrCode verifyParametersInternal() const;
+    static DictPtr<IString, IBaseObject> packBuilder(IScalingBuilder* scalingBuilder);
 
     ScaledSampleType outputDataType;
     SampleType inputDataType;

@@ -56,8 +56,8 @@ protected:
     std::chrono::milliseconds readThreadSleepTime;
     std::vector<std::pair<SignalPtr, PacketReaderPtr>> signalReaders;
 
-    std::queue<SignalPtr> signalsToStartRead;
-    std::queue<SignalPtr> signalsToStopRead;
+    // second element of pair is true for adding signal reader request, false for removing
+    std::queue<std::pair<SignalPtr, bool>> readerControlQueue;
 
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> workGuard;

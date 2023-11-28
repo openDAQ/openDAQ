@@ -28,6 +28,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceLibrary(ITypeManager, CoreTypes)]
+ * [interfaceSmartPtr(IWeakRef, WeakRefPtr, "<coretypes/weakrefptr.h>")]
  */
 /*!
  * @brief The builder interface of Property object classes. Allows for their modification and building of
@@ -108,11 +109,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getPropertyOrder(IList** orderedPropertyNames) = 0;
 
+    // [templateType(manager, ITypeManager)]
     /*!
-     * @brief Gets a manager
-     * @param[out] manager ITypeManager
+     * @brief Gets a weak reference of type manager
+     * @param[out] manager weak reference of type manager
      */
-    virtual ErrCode INTERFACE_FUNC getManager(ITypeManager** manager) = 0;
+    virtual ErrCode INTERFACE_FUNC getManager(IWeakRef** manager) = 0;
 
     /*!
      * @brief Builds and returns a Property object class using the currently set values of the Builder.

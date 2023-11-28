@@ -45,7 +45,7 @@ public:
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
     ErrCode INTERFACE_FUNC getPropertyOrder(IList** orderedPropertyNames) override;
 
-    ErrCode INTERFACE_FUNC getManager(ITypeManager** manager) override;
+    ErrCode INTERFACE_FUNC getManager(IWeakRef** manager) override;
 
 private:
     StringPtr name;

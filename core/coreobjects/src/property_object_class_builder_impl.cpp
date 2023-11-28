@@ -138,18 +138,13 @@ ErrCode PropertyObjectClassBuilderImpl::getPropertyOrder(IList** orderedProperty
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyObjectClassBuilderImpl::getManager(ITypeManager** manager)
+ErrCode PropertyObjectClassBuilderImpl::getManager(IWeakRef** manager)
 {
     if (!manager)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    if (this->manager.assigned() && this->manager.getRef().assigned())
-    {    
-       *manager = this->manager.getRef();
-       return OPENDAQ_SUCCESS;
-    }
-
-    return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    *manager = this->manager.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 bool PropertyObjectClassBuilderImpl::hasDuplicateReferences(const PropertyPtr& prop) const

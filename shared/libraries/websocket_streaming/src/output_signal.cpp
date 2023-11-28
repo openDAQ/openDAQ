@@ -23,6 +23,7 @@ OutputSignal::OutputSignal(const daq::streaming_protocol::StreamWriterPtr& write
                            daq::streaming_protocol::LogCallback logCb)
     : signal(signal)
     , writer(writer)
+    , subscribed(false)
     , logCallback(logCb)
 {
     createSignalStream();
@@ -154,7 +155,6 @@ void OutputSignal::createSignalStream()
     sigProps.name = signal.getName();
     sigProps.description = signal.getDescription();
     SignalDescriptorConverter::ToStreamedSignal(signal, stream, sigProps);
-    stream->subscribe();
 }
 
 void OutputSignal::createStreamedSignal()
@@ -232,6 +232,28 @@ void OutputSignal::writePropertyChangedPacket(const EventPacketPtr& packet)
 SignalPtr OutputSignal::getCoreSignal()
 {
     return signal;
+}
+
+void OutputSignal::setSubscribed(bool subscribed)
+{
+    if (subscribed)
+    {
+        // first provide signal meta information to client and only then
+        // toggle the member variable which will enable streaming signal data
+        stream->subscribe();
+        this->subscribed = subscribed;
+    }
+    else
+    {
+        // first toggle the member variable to disable streaming signal data
+        this->subscribed = subscribed;
+        stream->unsubscribe();
+    }
+}
+
+bool OutputSignal::isSubscribed()
+{
+    return subscribed;
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

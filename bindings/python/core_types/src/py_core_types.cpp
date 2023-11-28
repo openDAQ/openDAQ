@@ -18,12 +18,15 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
         .value("ctStruct", daq::CoreType::ctStruct)
         .value("ctUndefined", daq::CoreType::ctUndefined);
 
+    declareAndDefineIBaseObject(m);
+
     auto classIInteger = declareIInteger(m);
     auto classIFloat = declareIFloat(m);
     auto classIBoolean = declareIBoolean(m);
     auto classIString = declareIString(m);
     auto classIRatio = declareIRatio(m);
     auto classIComplexNumber = declareIComplexNumber(m);
+    auto classINumber = declareINumber(m);
 
     auto classIIterable = declareIIterable(m);
     auto classIIterator = declareIIterator(m);
@@ -45,6 +48,7 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
     defineIString(m, classIString);
     defineIRatio(m, classIRatio);
     defineIComplexNumber(m, classIComplexNumber);
+    defineINumber(m, classINumber);
 
     defineIIterable(m, classIIterable);
     defineIIterator(m, classIIterator);

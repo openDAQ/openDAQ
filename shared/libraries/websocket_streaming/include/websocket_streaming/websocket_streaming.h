@@ -27,6 +27,7 @@
 namespace daq::streaming_protocol
 {
     static const uint16_t WEBSOCKET_LISTENING_PORT = 7414;
+    static const uint16_t HTTP_CONTROL_PORT = 7438;
     class SubscribedSignal;
     using SubscribedSignalPtr = std::shared_ptr<SubscribedSignal>;
 

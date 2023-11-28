@@ -40,6 +40,8 @@ public:
     virtual void write(const PacketPtr& packet);
     virtual void write(const void* data, size_t sampleCount);
     SignalPtr getCoreSignal();
+    void setSubscribed(bool subscribed);
+    bool isSubscribed();
 
 protected:
     DataDescriptorPtr getValueDescriptor();
@@ -58,6 +60,7 @@ protected:
     daq::streaming_protocol::StreamWriterPtr writer;
     SignalStreamPtr stream;
     size_t sampleSize;
+    bool subscribed;
     daq::streaming_protocol::LogCallback logCallback;
 };
 

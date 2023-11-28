@@ -1,9 +1,14 @@
 #include "websocket_streaming/async_packet_reader.h"
 #include <opendaq/instance_factory.h>
+#include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
-AsyncPacketReader::AsyncPacketReader()
+AsyncPacketReader::AsyncPacketReader(const DevicePtr& device, const ContextPtr& context)
+    : device(device)
+    , context(context)
+    , logger(context.getLogger())
+    , loggerComponent(logger.getOrAddComponent("WebsocketStreamingPacketReader"))
 {
     setLoopFrequency(50);
     onPacketCallback = [](const SignalPtr& signal, const ListPtr<IPacket>& packets) {};
@@ -11,23 +16,27 @@ AsyncPacketReader::AsyncPacketReader()
 
 AsyncPacketReader::~AsyncPacketReader()
 {
-    stopReading();
+    stop();
 }
 
-void AsyncPacketReader::startReading(const DevicePtr& device, const ContextPtr& context)
+void AsyncPacketReader::start()
 {
-    this->device = device;
-    this->context = context;
-
     readThreadStarted = true;
-    this->readThread = std::thread([this]() { this->startReadThread(); });
+    this->readThread = std::thread([this]()
+    {
+        this->startReadThread();
+        LOG_I("Reading thread finished");
+    });
 }
 
-void AsyncPacketReader::stopReading()
+void AsyncPacketReader::stop()
 {
     readThreadStarted = false;
     if (readThread.joinable())
+    {
         readThread.join();
+        LOG_I("Reading thread joined");
+    }
 
     signalReaders.clear();
 }
@@ -45,10 +54,9 @@ void AsyncPacketReader::setLoopFrequency(uint32_t freqency)
 
 void AsyncPacketReader::startReadThread()
 {
-    createReaders();
-    
     while (readThreadStarted)
     {
+        updateReaders();
         for (const auto& [signal, reader] : signalReaders)
         {
             if (reader.getAvailableCount() == 0)
@@ -69,9 +77,65 @@ void AsyncPacketReader::createReaders()
 
     for (const auto& signal : signals)
     {
-        auto reader = PacketReader(signal);
-        signalReaders.push_back(std::pair<SignalPtr, PacketReaderPtr>({signal, reader}));
+        addReader(signal);
     }
+}
+
+void AsyncPacketReader::startReadSignal(const SignalPtr& signal)
+{
+    std::scoped_lock lock(readersSync);
+    readerControlQueue.push({signal, true});
+}
+
+void AsyncPacketReader::stopReadSignal(const SignalPtr& signal)
+{
+    std::scoped_lock lock(readersSync);
+    readerControlQueue.push({signal, false});
+}
+
+void AsyncPacketReader::updateReaders()
+{
+    std::scoped_lock lock(readersSync);
+    while (!readerControlQueue.empty())
+    {
+        auto [signal, doRead] = readerControlQueue.front();
+        if (doRead)
+            addReader(signal);
+        else
+            removeReader(signal);
+        readerControlQueue.pop();
+    }
+}
+
+void AsyncPacketReader::addReader(SignalPtr signalToRead)
+{
+    auto it = std::find_if(signalReaders.begin(),
+                           signalReaders.end(),
+                           [&signalToRead](const std::pair<SignalPtr, PacketReaderPtr>& element)
+                           {
+                               return element.first == signalToRead;
+                           });
+    if (it != signalReaders.end())
+        return;
+
+    LOG_I("Add reader for signal {}", signalToRead.getGlobalId());
+    auto reader = PacketReader(signalToRead);
+    signalReaders.push_back(std::pair<SignalPtr, PacketReaderPtr>({signalToRead, reader}));
+}
+
+void AsyncPacketReader::removeReader(SignalPtr signalToRead)
+{
+    auto it = std::find_if(signalReaders.begin(),
+                           signalReaders.end(),
+                           [&signalToRead](const std::pair<SignalPtr, PacketReaderPtr>& element)
+                           {
+                               return element.first == signalToRead;
+                           });
+    if (it == signalReaders.end())
+        return;
+
+    LOG_I("Remove reader for signal {}", signalToRead.getGlobalId());
+    signalReaders.erase(it);
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

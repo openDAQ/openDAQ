@@ -38,12 +38,14 @@ void WebsocketStreamingImpl::onRemoveSignal(const MirroredSignalConfigPtr& /*sig
 {
 }
 
-void WebsocketStreamingImpl::onSubscribeSignal(const MirroredSignalConfigPtr& /*signal*/)
+void WebsocketStreamingImpl::onSubscribeSignal(const MirroredSignalConfigPtr& signal)
 {
+    streamingClient->subscribeSignals({getSignalStreamingId(signal).toStdString()});
 }
 
-void WebsocketStreamingImpl::onUnsubscribeSignal(const MirroredSignalConfigPtr& /*signal*/)
+void WebsocketStreamingImpl::onUnsubscribeSignal(const MirroredSignalConfigPtr& signal)
 {
+    streamingClient->unsubscribeSignals({getSignalStreamingId(signal).toStdString()});
 }
 
 EventPacketPtr WebsocketStreamingImpl::onCreateDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal)

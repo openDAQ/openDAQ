@@ -69,7 +69,8 @@ public:
     bool isConnected();
     void setConnectTimeout(std::chrono::milliseconds timeout);
     EventPacketPtr getDataDescriptorChangedEventPacket(const StringPtr& signalStringId);
-    
+    void subscribeSignals(const std::vector<std::string>& signalIds);
+    void unsubscribeSignals(const std::vector<std::string>& signalIds);
 
 protected:
     void parseConnectionString(const std::string& url);
@@ -80,12 +81,13 @@ protected:
     void onMessage(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, uint64_t timeStamp, const uint8_t* data, size_t size);
     void setDataSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
     void setTimeSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
-    void publishSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
+    void publishSignalChanges(const std::string& signalId, const InputSignalPtr& signal);
     void onSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, const nlohmann::json& params);
     void setSignalInitSatisfied(const std::string& signalId);
     void setDomainDescriptor(const std::string& signalId,
                              const InputSignalPtr& inputSignal,
                              const DataDescriptorPtr& domainDescriptor);
+    std::pair<std::string, InputSignalPtr> findSignalByTableId(const std::string& tableId);
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;

@@ -15,6 +15,7 @@ class StreamingTest : public testing::Test
 public:
     const uint16_t StreamingPort = daq::streaming_protocol::WEBSOCKET_LISTENING_PORT;
     const std::string StreamingTarget = "/";
+    const uint16_t ControlPort = daq::streaming_protocol::HTTP_CONTROL_PORT;
     SignalPtr testDoubleSignal;
     ContextPtr context;
 
@@ -41,7 +42,7 @@ public:
 TEST_F(StreamingTest, Connect)
 {
     auto server = std::make_shared<StreamingServer>(context);
-    server->start(StreamingPort);
+    server->start(StreamingPort, ControlPort);
 
     auto client = StreamingClient(context, "127.0.0.1", StreamingPort, StreamingTarget);
 
@@ -57,7 +58,7 @@ TEST_F(StreamingTest, Connect)
 TEST_F(StreamingTest, ConnectTimeout)
 {
     auto server = std::make_shared<StreamingServer>(context);
-    server->start(StreamingPort);
+    server->start(StreamingPort, ControlPort);
 
     auto client = StreamingClient(context, "127.0.0.1", 7000, StreamingTarget);
 
@@ -68,7 +69,7 @@ TEST_F(StreamingTest, ConnectTimeout)
 TEST_F(StreamingTest, ConnectTwice)
 {
     auto server = std::make_shared<StreamingServer>(context);
-    server->start(StreamingPort);
+    server->start(StreamingPort, ControlPort);
 
     auto client = StreamingClient(context, "127.0.0.1", StreamingPort, StreamingTarget);
 
@@ -111,7 +112,7 @@ TEST_F(StreamingTest, SimpePacket)
         signals.pushBack(testDoubleSignal);
         return signals;
     });
-    server->start(StreamingPort);
+    server->start(StreamingPort, ControlPort);
 
     std::vector<PacketPtr> receivedPackets;
     auto client = StreamingClient(context, "127.0.0.1", StreamingPort, StreamingTarget);
@@ -128,9 +129,11 @@ TEST_F(StreamingTest, SimpePacket)
     client.connect();
     ASSERT_TRUE(client.isConnected());
 
-    std::string signalId = testDoubleSignal.getGlobalId();
-    server->broadcastPacket(signalId, packet);
+    client.subscribeSignals({testDoubleSignal.getGlobalId()});
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
 
+    std::string signalId = testDoubleSignal.getGlobalId();
+    server->sendPacketToSubscribers(signalId, packet);
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
 
     ASSERT_EQ(receivedPackets.size(), 2u);

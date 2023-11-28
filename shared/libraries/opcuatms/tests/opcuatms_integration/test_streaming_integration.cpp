@@ -252,12 +252,7 @@ TEST_F(StreamingIntegrationTest, ByteStep)
     ASSERT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 
-// TODO websocket streaming does not recreate half assigned data descriptor changed event packet on client side
-// both: value and domain descriptors are always assigned in event packet
-// while on server side one descriptor can be assigned only
-// client side always generates 2 event packets for each server side event packet:
-// one for value descriptor changed and another for domain descriptor changed
-TEST_F(StreamingIntegrationTest, DISABLED_ChangingSignal)
+TEST_F(StreamingIntegrationTest, ChangingSignal)
 {
     const size_t packetsToGenerate = 5;
     const size_t initialEventPackets = 1;
@@ -287,6 +282,9 @@ TEST_F(StreamingIntegrationTest, DISABLED_ChangingSignal)
     ASSERT_EQ(serverReceivedPackets.getCount(), packetsToRead);
     ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     // TODO: this fails
+    // TODO websocket streaming does not recreate half assigned data descriptor changed event packet on client side
+    // both: value and domain descriptors are always assigned in event packet
+    // while on server side one descriptor can be assigned only
     //ASSERT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 

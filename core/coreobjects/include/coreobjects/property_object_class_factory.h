@@ -48,16 +48,6 @@ inline PropertyObjectClassBuilderPtr PropertyObjectClassBuilder(const TypeManage
 }
 
 /*!
- * @brief Creates a Property object class object using the build parameters Dictionary.
- * @param buildParams Dictionary of build parameters such as the Class name and properties.
- */
-inline PropertyObjectClassPtr PropertyObjectClassFromBuildParams(const DictPtr<IString, IBaseObject>& buildParams)
-{
-    PropertyObjectClassPtr obj(PropertyObjectClassFromBuildParams_Create(buildParams));
-    return obj;
-}
-
-/*!
  * @brief Creates a PropertyObjectClass using Builder
  * @param builder PropertyObjectClass Builder
  */

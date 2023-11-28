@@ -90,11 +90,6 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClass, IType)
 
 /*!@}*/
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, PropertyObjectClassFromBuildParams, IPropertyObjectClass,
-    IDict*, buildParams
-)
-
 /*!
  * @brief Creates a PropertyObjectClass using Builder
  * @param builder PropertyObjectClass Builder

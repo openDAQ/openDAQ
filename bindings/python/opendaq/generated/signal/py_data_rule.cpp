@@ -47,7 +47,8 @@ void defineIDataRule(pybind11::module_ m, PyDaqIntf<daq::IDataRule, daq::IBaseOb
     m.def("ConstantDataRule", &daq::ConstantDataRule_Create);
     m.def("ExplicitDataRule", &daq::ExplicitDataRule_Create);
     m.def("DataRule", &daq::DataRule_Create);
-
+    m.def("DataRuleFromBuilder", &daq::DataRuleFromBuilder_Create);
+    
     cls.def_property_readonly("type",
         [](daq::IDataRule *object)
         {

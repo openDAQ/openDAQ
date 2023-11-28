@@ -47,6 +47,7 @@ void defineIDimensionRule(pybind11::module_ m, PyDaqIntf<daq::IDimensionRule, da
     m.def("ListDimensionRule", &daq::ListDimensionRule_Create);
     m.def("LogarithmicDimensionRule", &daq::LogarithmicDimensionRule_Create);
     m.def("DimensionRule", &daq::DimensionRule_Create);
+    m.def("DimensionRuleFromBuilder", &daq::DimensionRuleFromBuilder_Create);
 
     cls.def_property_readonly("type",
         [](daq::IDimensionRule *object)

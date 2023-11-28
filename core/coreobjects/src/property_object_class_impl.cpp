@@ -10,7 +10,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 PropertyObjectClassImpl::PropertyObjectClassImpl(IPropertyObjectClassBuilder* builder)
 {
-    const auto builderPtr = PropertyObjectClassBuilderPtr(builder);
+    const auto builderPtr = PropertyObjectClassBuilderPtr::Borrow(builder);
     this->name = builderPtr.getName();
     this->parent = builderPtr.getParentName();
     this->manager = builderPtr.getManager();

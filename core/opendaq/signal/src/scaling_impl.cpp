@@ -47,7 +47,14 @@ ScalingImpl::ScalingImpl(NumberPtr scale, NumberPtr offset, SampleType inputType
 
 ScalingImpl::ScalingImpl(IScalingBuilder* scalingBuilder)
     : GenericStructImpl<IScaling, IStruct, IRulePrivate>(detail::scalingStructType, packBuilder(scalingBuilder))
+
 {
+    const auto builderPtr = ScalingBuilderPtr::Borrow(scalingBuilder);
+    this->inputDataType = builderPtr.getInputDataType();
+    this->outputDataType = builderPtr.getOutputDataType();
+    this->ruleType = builderPtr.getScalingType();
+    this->params = builderPtr.getParameters();
+
     checkErrorInfo(verifyParametersInternal());
 
     if (params.assigned() && params.asPtrOrNull<IFreezable>().assigned())

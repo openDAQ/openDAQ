@@ -46,6 +46,11 @@ DimensionImpl::DimensionImpl(const DimensionRulePtr& rule, const UnitPtr& unit, 
 DimensionImpl::DimensionImpl(IDimensionBuilder* dimensionBuilder)
     : GenericStructImpl<IDimension, IStruct>(detail::dimensionStructType, packBuilder(dimensionBuilder))
 {
+    const auto builderPtr = DimensionBuilderPtr::Borrow(dimensionBuilder);
+    this->name = builderPtr.getName();
+    this->unit = builderPtr.getUnit();
+    this->rule = builderPtr.getRule();
+
     if (!rule.assigned())
         throw ConfigurationIncompleteException{"Dimension rule is not assigned."};
 }

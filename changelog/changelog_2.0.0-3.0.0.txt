@@ -39,6 +39,13 @@ Streaming framework changes:
 + [function] ISignal::getStreamed(Bool* streamed)
 + [function] ISignal::setStreamed(Bool streamed)
 
+28.11.2023
+
+Description:
+Builder pattern improvement
+  - Expand builder classes with getters
+  - Support creating objects from builder
+
 + [function] IPropertyBuilder::getValueType(CoreType* type)
 + [function] IPropertyBuilder::getName(IString** name)
 + [function] IPropertyBuilder::getDescription(IString** description)

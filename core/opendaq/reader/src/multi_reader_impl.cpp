@@ -220,6 +220,9 @@ void MultiReaderImpl::setStartInfo()
         maxResolution = Ratio(system_clock::period::num, system_clock::period::den);
     }
 
+    readResolution = maxResolution;
+    readOrigin = date::format("%FT%TZ", minEpoch);
+
     LOG_T("MaxResolution: {}", maxResolution)
     LOG_T("MinEpoch: {}", minEpoch)
 
@@ -708,6 +711,42 @@ void MultiReaderImpl::sync()
 }
 
 #pragma endregion MultiReaderInfo
+
+ErrCode MultiReaderImpl::getTickResolution(IRatio** resolution)
+{
+    if (resolution == nullptr)
+    {
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    }
+
+    *resolution = readResolution.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderImpl::getOrigin(IString** origin)
+{
+    if (origin == nullptr)
+    {
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    }
+
+    *origin = readOrigin.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderImpl::getOffset(void* domainStart)
+{
+    if (domainStart == nullptr)
+    {
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    }
+
+    commonStart
+        ? commonStart->getValue(domainStart)
+        : domainStart = nullptr;
+
+    return OPENDAQ_SUCCESS;
+}
 
 #pragma region ReaderConfig
 

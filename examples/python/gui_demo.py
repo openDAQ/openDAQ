@@ -40,7 +40,7 @@ def show_selection(title, current_value, values: daq.IList):
     top.resizable(False, False)
 
     tk.Label(top, text=title).pack()
-    
+
     def select_value(v):
         global result
         top.destroy()
@@ -48,15 +48,15 @@ def show_selection(title, current_value, values: daq.IList):
 
     def make_closure(v):
         return lambda: select_value(v)
-    
+
     def fill_buttons(idx, value):
         if current_value == idx:
             sel_text = "* "
         else:
-            sel_text = ""  
+            sel_text = ""
         button = tk.Button(top, text=sel_text + value, command=make_closure(idx))
         button.pack(expand=True, fill=tk.BOTH)
-      
+
     if daq.IDict.can_cast_from(values):
         for idx, value in daq.IDict.cast_from(values).items():
             fill_buttons(idx, value)
@@ -380,7 +380,7 @@ class App(tk.Tk):
             for output_signal in node.signals:
                 if output_signal.domain_signal == None:
                     continue
-                unique_id = output_signal.global_id                
+                unique_id = output_signal.global_id
                 description = output_signal.description
                 is_active = output_signal.active
                 self.output_signal_nodes[unique_id] = output_signal
@@ -474,29 +474,29 @@ class App(tk.Tk):
 
         prompt = 'Enter the new value for {}:'.format(property_name)
 
-        match property_info.value_type:
-            case daq.CoreType.ctBool:
-                property_value = not property_value
-            case daq.CoreType.ctInt:
-                # TODO
-                #min_value = property_info.min_value
-                #max_value = property_info.max_value
-                #property_value = simpledialog.askinteger(property_name, prompt=prompt, initialvalue=property_value, minvalue=min_value, maxvalue=max_value)        
-                if property_info.selection_values is not None:
-                    property_value = show_selection(prompt, property_value, property_info.selection_values)
-                else:
-                    property_value = simpledialog.askinteger(property_name, prompt=prompt, initialvalue=property_value)
-            case daq.CoreType.ctFloat:
-                # TODO
-                #min_value = property_info.min_value
-                #max_value = property_info.max_value
-                #property_value = simpledialog.askfloat(property_name, prompt=prompt, initialvalue=property_value, minvalue=min_value, maxvalue=max_value)
-                property_value = simpledialog.askfloat(property_name, prompt=prompt, initialvalue=property_value)
-            case daq.CoreType.ctString:
-                property_value = simpledialog.askstring(property_name, prompt=prompt, initialvalue=property_value)
-            case _:
-                return
-        if property_value == None:
+        if property_info.value_type == daq.CoreType.ctBool:
+            property_value = not property_value
+        elif property_info.value_type == daq.CoreType.ctInt:
+            # TODO
+            #min_value = property_info.min_value
+            #max_value = property_info.max_value
+            #property_value = simpledialog.askinteger(property_name, prompt=prompt, initialvalue=property_value, minvalue=min_value, maxvalue=max_value)
+            if property_info.selection_values is not None:
+                property_value = show_selection(prompt, property_value, property_info.selection_values)
+            else:
+                property_value = simpledialog.askinteger(property_name, prompt=prompt, initialvalue=property_value)
+        elif property_info.value_type == daq.CoreType.ctFloat:
+            # TODO
+            #min_value = property_info.min_value
+            #max_value = property_info.max_value
+            #property_value = simpledialog.askfloat(property_name, prompt=prompt, initialvalue=property_value, minvalue=min_value, maxvalue=max_value)
+            property_value = simpledialog.askfloat(property_name, prompt=prompt, initialvalue=property_value)
+        elif property_info.value_type == daq.CoreType.ctString:
+            property_value = simpledialog.askstring(property_name, prompt=prompt, initialvalue=property_value)
+        else:
+            return
+
+        if property_value is None:
             return
 
         self.selected_node.set_property_value(property_name, property_value)
@@ -517,8 +517,8 @@ class App(tk.Tk):
         else:
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, text=component_name, open=True, values=(component_node_id))
             self.nodes[component_node_id] = component
-        
-                
+
+
 
     def add_channel_to_tree(self, parent_node_id, channel):
         channel_node_id = id(channel)
@@ -562,7 +562,7 @@ class App(tk.Tk):
             self.tree.insert(node_id, tk.END, iid=function_blocks_node_id, text='Function Blocks', open=True, values=(function_blocks_node_id))
             for function_block in function_blocks:
                 fb_unique_id = node_id + '_' + function_block.function_block_type.id
-                self.add_function_block_to_tree(function_blocks_node_id, fb_unique_id, function_block) 
+                self.add_function_block_to_tree(function_blocks_node_id, fb_unique_id, function_block)
 
         # add custom components
         custom_components = device.custom_components
@@ -591,12 +591,12 @@ class App(tk.Tk):
         self.tree.insert('', tk.END, iid=self.functions_node_id, text='Function blocks', open=True, values=(self.functions_node_id))
 
         self.selected_node = new_selected_node
-        
+
         function_blocks = self.instance.function_blocks
         for function_block in function_blocks:
             fb_unique_id = self.functions_node_id + '_' + function_block.global_id
-            self.add_function_block_to_tree(self.functions_node_id, fb_unique_id, function_block) 
-        
+            self.add_function_block_to_tree(self.functions_node_id, fb_unique_id, function_block)
+
         # devices
         self.tree.insert('', tk.END, iid='root_devices', text='Devices', open=True, values=('title_devices'))
         for connection_string in self.all_devices:
@@ -652,7 +652,7 @@ class App(tk.Tk):
         scroll_bar = ttk.Scrollbar(window, orient="vertical", command=tree.yview)
         tree.configure(yscrollcommand=scroll_bar.set)
         scroll_bar.pack(side="right", fill="y")
-        
+
         # define headings
         tree.heading('id', text='TypeId')
         tree.heading('name', text='Name')
@@ -672,12 +672,12 @@ class App(tk.Tk):
             tree.insert('', tk.END, iid=function_block_id, values=(function_block_id, daq.IFunctionBlockType.cast_from(available_function_block_types[function_block_id]).name))
 
         show_modal(window)
-            
+
     def add_function_block(self, event, tree, window):
         selected_items = tree.selection()
         if len(selected_items) < 1:
             return
-            
+
         selected_item = selected_items[0]
         item = tree.item(selected_item)
 
@@ -687,15 +687,15 @@ class App(tk.Tk):
         self.update_tree_widget(fb)
 
         window.destroy()
-        
-    def find_input_port_from_list(self, list, local_id):        
+
+    def find_input_port_from_list(self, list, local_id):
         for item in list:
             ip = daq.IInputPort.cast_from(item)
             if ip.local_id == local_id:
                 return ip
         return None
-        
-    def find_signal_from_list(self, list, local_id):        
+
+    def find_signal_from_list(self, list, local_id):
         for item in list:
             sig = daq.ISignal.cast_from(item)
             if sig.local_id == local_id:
@@ -706,7 +706,7 @@ class App(tk.Tk):
         selected_items = self.input_ports_widget.selection()
         if len(selected_items) < 1:
             return
-       
+
         selected_item = selected_items[0]
         fb = daq.IFunctionBlock.cast_from(self.selected_node)
         port = self.find_input_port_from_list(fb.input_ports, selected_item)
@@ -721,7 +721,7 @@ class App(tk.Tk):
         scroll_bar = ttk.Scrollbar(window, orient="vertical", command=tree.yview)
         tree.configure(yscrollcommand=scroll_bar.set)
         scroll_bar.pack(side="right", fill="y")
-        
+
         # define headings
         tree.heading('name', text='Name')
         tree.heading('id', text='GlobalId')
@@ -738,24 +738,24 @@ class App(tk.Tk):
 
         tree.insert('', tk.END, iid="__none__", values=("[Unassigned]", "N/A"))
 
-        signals = self.instance.signals_recursive        
+        signals = self.instance.signals_recursive
         for signal in signals:
             if signal.domain_signal is not None:
                 tree.insert('', tk.END, iid=signal.global_id, values=(signal.name, signal.global_id))
 
         show_modal(window)
-            
+
     def connect_signal_to_input_port(self, event, tree, window, port):
         global_id = tree.selection()[0]
-                
+
         if global_id == "__none__":
             port.disconnect()
         else:
-            signals = self.instance.signals_recursive        
+            signals = self.instance.signals_recursive
             for signal in signals:
                 if signal.global_id == global_id:
                     port.connect(signal)
-        
+
         window.destroy()
 
         self.update_properties()
@@ -770,7 +770,7 @@ class App(tk.Tk):
             signal = self.find_signal_from_list(signals, iid)
             if (signal == None):
                 return
-                
+
             self.signals_popup.entryconfig("Rename", command = lambda: self.rename_signal(signal))
             try:
                 self.signals_popup.tk_popup(event.x_root, event.y_root, 0)
@@ -782,9 +782,9 @@ class App(tk.Tk):
         signal_name = simpledialog.askstring("Rename signal", prompt="Enter new name", initialvalue=old_signal_name)
         signal.name = signal_name
         self.update_properties()
-        
+
     def save_config(self):
-        file = asksaveasfile(initialfile = 'config.json', title = "Save configuration", defaultextension=".json",filetypes=[("All Files","*.*"),("Json","*.json")])        
+        file = asksaveasfile(initialfile = 'config.json', title = "Save configuration", defaultextension=".json",filetypes=[("All Files","*.*"),("Json","*.json")])
         if file is None:
             return
         config_string = self.instance.save_configuration()
@@ -792,12 +792,12 @@ class App(tk.Tk):
         file.close()
 
     def load_config(self):
-        file = askopenfile(initialfile = 'config.json', title = "Load configuration", defaultextension=".json",filetypes=[("All Files","*.*"),("Json","*.json")])        
+        file = askopenfile(initialfile = 'config.json', title = "Load configuration", defaultextension=".json",filetypes=[("All Files","*.*"),("Json","*.json")])
         if file is None:
             return
         config_string = file.read();
-        file.close()        
-        self.instance.load_configuration(config_string)            
+        file.close()
+        self.instance.load_configuration(config_string)
         self.update_tree_widget()
 
     def update_device_tree(self):
@@ -814,7 +814,7 @@ class App(tk.Tk):
         selected_items = self.device_tree.selection()
         if len(selected_items) < 1:
             return
-            
+
         selected_item = selected_items[0]
         item = self.device_tree.item(selected_item)
 
@@ -831,7 +831,7 @@ class App(tk.Tk):
         #    self.all_devices[conn]['device'] = None
 
         self.update_device_tree()
-        self.update_tree_widget()              
+        self.update_tree_widget()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Display openDAQ device configuration and plot values')

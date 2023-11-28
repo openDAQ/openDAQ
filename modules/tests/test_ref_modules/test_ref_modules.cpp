@@ -6,7 +6,7 @@
 #include <opendaq/reader_factory.h>
 #include <testutils/testutils.h>
 #include <thread>
-#include "input_stub_signal_helper.h"
+#include "classifier_test_helper.h"
 #include "testutils/memcheck_listener.h"
 using RefModulesTest = testing::Test;
 using namespace daq;

@@ -177,28 +177,17 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     // websocket streaming does not recreate half assigned data descriptor changed event packet on client side
     // both: value and domain descriptors are always assigned in event packet
     // while on server side one descriptor can be assigned only
-    // client side always generates 2 event packets for each server side event packet:
-    // one for value descriptor changed and another for domain descriptor changed
-    if (std::get<0>(GetParam()) != "openDAQ WebsocketTcp Streaming")
-    {
-        auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
-        auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead);
-        ASSERT_EQ(serverReceivedPackets.getCount(), packetsToRead);
-        ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead);
-        ASSERT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
-    }
-    else
-    {
-        auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
-        const size_t clientPacketsToRead = initialEventPackets + packetsToGenerate + (packetsToGenerate - 1) * 4;
-        auto clientReceivedPackets = tryReadPackets(clientReader, clientPacketsToRead);
-        ASSERT_EQ(serverReceivedPackets.getCount(), packetsToRead);
-        ASSERT_EQ(clientReceivedPackets.getCount(), clientPacketsToRead);
-    }
+    auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
+    auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead);
+    ASSERT_EQ(serverReceivedPackets.getCount(), packetsToRead);
+    ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead);
+    ASSERT_TRUE(packetsEqual(serverReceivedPackets,
+                             clientReceivedPackets,
+                             std::get<0>(GetParam()) == "openDAQ WebsocketTcp Streaming"));
 
     // recreate client reader and test initial event packet
     clientReader = createClientReader(clientSignal.getDescriptor().getName());
-    auto clientReceivedPackets = tryReadPackets(clientReader, 1);
+    clientReceivedPackets = tryReadPackets(clientReader, 1);
 
     ASSERT_EQ(clientReceivedPackets.getCount(), 1);
 

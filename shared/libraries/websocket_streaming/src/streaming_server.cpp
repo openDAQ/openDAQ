@@ -187,7 +187,7 @@ int StreamingServer::onControlCommand(const std::string& streamId,
                     // wasn't subscribed by any client
                     if (!isSignalSubscribed(signalId) && onSubscribeCallback)
                     {
-                        onSubscribeCallback(signalId);
+                        onSubscribeCallback(signalIter->second->getCoreSignal());
                     }
                     signalIter->second->setSubscribed(true);
                 }
@@ -198,7 +198,7 @@ int StreamingServer::onControlCommand(const std::string& streamId,
                     // became not subscribed by any client
                     if (!isSignalSubscribed(signalId) && onUnsubscribeCallback)
                     {
-                        onUnsubscribeCallback(signalId);
+                        onUnsubscribeCallback(signalIter->second->getCoreSignal());
                     }
                 }
             }

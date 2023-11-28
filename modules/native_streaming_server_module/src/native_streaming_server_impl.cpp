@@ -69,12 +69,12 @@ void NativeStreamingServerImpl::prepareServerHandler()
     auto signalSubscribedHandler = [this](const SignalPtr& signal)
     {
         std::scoped_lock lock(readersSync);
-        signalsToStartRead.push(signal);
+        readerControlQueue.push({signal, true});
     };
     auto signalUnsubscribedHandler = [this](const SignalPtr& signal)
     {
         std::scoped_lock lock(readersSync);
-        signalsToStopRead.push(signal);
+        readerControlQueue.push({signal, false});
     };
     serverHandler = std::make_shared<NativeStreamingServerHandler>(context,
                                                                    ioContextPtr,
@@ -179,15 +179,14 @@ void NativeStreamingServerImpl::createReaders()
 void NativeStreamingServerImpl::updateReaders()
 {
     std::scoped_lock lock(readersSync);
-    while (!signalsToStartRead.empty())
+    while (!readerControlQueue.empty())
     {
-        addReader(signalsToStartRead.front());
-        signalsToStartRead.pop();
-    }
-    while (!signalsToStopRead.empty())
-    {
-        removeReader(signalsToStopRead.front());
-        signalsToStopRead.pop();
+        auto [signal, doRead] = readerControlQueue.front();
+        if (doRead)
+            addReader(signal);
+        else
+            removeReader(signal);
+        readerControlQueue.pop();
     }
 }
 
@@ -202,18 +201,24 @@ void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
     if (it != signalReaders.end())
         return;
 
+    LOG_I("Add reader for signal {}", signalToRead.getGlobalId());
     auto reader = PacketReader(signalToRead);
     signalReaders.push_back(std::pair<SignalPtr, PacketReaderPtr>({signalToRead, reader}));
 }
 
 void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
 {
-    signalReaders.erase(std::remove_if(signalReaders.begin(),
-                                       signalReaders.end(),
-                                       [&signalToRead](std::pair<SignalPtr, PacketReaderPtr>& item)
-                                       {
-                                           return item.first == signalToRead;
-                                       }));
+    auto it = std::find_if(signalReaders.begin(),
+                           signalReaders.end(),
+                           [&signalToRead](const std::pair<SignalPtr, PacketReaderPtr>& element)
+                           {
+                               return element.first == signalToRead;
+                           });
+    if (it == signalReaders.end())
+        return;
+
+    LOG_I("Remove reader for signal {}", signalToRead.getGlobalId());
+    signalReaders.erase(it);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

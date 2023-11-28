@@ -28,6 +28,7 @@ public:
     const uint16_t NATIVE_STREAMING_PORT = 7420;
     const uint16_t WEBSOCKET_STREAMING_PORT = 7414;
     const uint16_t OPCUA_PORT = 4840;
+    const uint16_t WEBSOCKET_CONTROL_PORT = 7438;
 
     const uint16_t MIN_CONNECTIONS = 0;
     const uint16_t MIN_HOPS = 1;
@@ -53,6 +54,7 @@ public:
         {
             auto ws_config = instance.getAvailableServerTypes().get("openDAQ WebsocketTcp Streaming").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT + index);
+            ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT + index);
             instance.addServer("openDAQ WebsocketTcp Streaming", ws_config);
         }
         else if (subdeviceStreamingType == StreamingType::NativeStreaming)
@@ -98,6 +100,7 @@ public:
         {
             auto ws_config = instance.getAvailableServerTypes().get("openDAQ WebsocketTcp Streaming").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT);
+            ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT);
             instance.addServer("openDAQ WebsocketTcp Streaming", ws_config);
         }
         else if (gatewayStreamingType == StreamingType::NativeStreaming)

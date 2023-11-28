@@ -42,8 +42,7 @@ Python::
 +
 [source,python]
 ----
-function_block_properties = function_block.visible_properties
-for prop in function_block_properties:
+for prop in function_block.visible_properties:
     print(prop.name)
 ---- 
 ====
@@ -67,9 +66,9 @@ Python::
 +
 [source,python]
 ----
-currentBlockSize = function_block.get_property_value("BlockSize")
-print("Current block size is %d" % (currentBlockSize))
-function_block.set_property_value("BlockSize", 100)
+currentBlockSize = function_block.get_property_value('BlockSize')
+print(f'Current block size is {currentBlockSize}')
+function_block.set_property_value('BlockSize', 100)
 ---- 
 ====
 
@@ -180,19 +179,18 @@ instance = opendaq.Instance()
 device = instance.add_device('daqref://device0')
 
 # add function block on the host computer
-function_block = instance.add_function_block("ref_fb_module_statistics")
+function_block = instance.add_function_block('ref_fb_module_statistics')
 
 #list properties of the function block
-function_block_properties = function_block.visible_properties
-for prop in function_block_properties:
+for prop in function_block.visible_properties:
     print(prop.name)
 
 # print current block size
-currentBlockSize = function_block.get_property_value("BlockSize")
-print("Current block size is %d" % (currentBlockSize))
+currentBlockSize = function_block.get_property_value('BlockSize')
+print(f'Current block size is {currentBlockSize}')
 
 # configure the properties of the function block
-function_block.set_property_value("BlockSize", 100)
+function_block.set_property_value('BlockSize', 100)
 
 # connect the first signal of the first channel from the device to the first input port on the function block
 function_block.input_ports[0].connect(device.channels[0].signals[0])

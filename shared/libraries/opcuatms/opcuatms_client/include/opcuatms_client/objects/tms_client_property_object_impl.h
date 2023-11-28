@@ -116,7 +116,7 @@ protected:
 
     void addProperties(const tsl::ordered_map<opcua::OpcUaNodeId, opcua::OpcUaObject<UA_ReferenceDescription>>& references,
                        std::map<uint32_t, PropertyPtr>& orderedProperties,
-                       std::vector<PropertyPtr> unorderedProperties);
+                       std::vector<PropertyPtr>& unorderedProperties);
     void addMethodProperties(const tsl::ordered_map<opcua::OpcUaNodeId, opcua::OpcUaObject<UA_ReferenceDescription>>& references,
                              const opcua::OpcUaNodeId& parentNodeId,
                              std::map<uint32_t, PropertyPtr>& orderedProperties,

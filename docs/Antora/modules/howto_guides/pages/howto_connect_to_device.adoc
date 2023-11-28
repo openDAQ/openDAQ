@@ -49,9 +49,8 @@ import opendaq
 instance = opendaq.Instance()
 
 # Discover and print the names and connection strings of openDAQ(TM) devices
-available_devices_info = instance.available_devices
-for device_info in available_devices_info:
-    if 'daq.opcua://' in device_info.connection_string:
+for device_info in instance.available_devices:
+    if device_info.connection_string.startswith('daq.opcua://'):
         print('Name:', device_info.name, 'Address:', device_info.connection_string)
 ----
 ====
@@ -92,12 +91,10 @@ import opendaq
 # Create an openDAQ(TM) instance
 instance = opendaq.Instance()
 
-devices = []
 # Discover and connect to all openDAQ(TM) devices
-available_devices_info = instance.available_devices
-for device_info in available_devices_info:
-    if 'daq.opcua://' in device_info.connection_string:
-        devices.append(instance.add_device(device_info.connection_string))
+devices = [instance.add_device(d.connection_string)
+           for d in instance.available_devices
+           if d.connection_string.startswith('daq.opcua://')]
 ----
 ====
 
@@ -147,11 +144,9 @@ import opendaq
 # Create an openDAQ(TM) instance
 instance = opendaq.Instance()
 
-devices = []
 # Discover and add all openDAQ(TM) reference devices
-available_devices = instance.enumerate_available_devices()
-for device_info in available_devices:
-    if 'daqref://' in device_info.connection_string:
-        devices.append(instance.add_device(device_info.connection_string))
+devices = [instance.add_device(d.connection_string)
+           for d in instance.enumerate_available_devices()
+           if d.connection_string.startswith('daqref://')]
 ----
 ====

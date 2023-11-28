@@ -17,12 +17,14 @@ set(SRC_Cpp
     src/py_opendaq_daq.cpp
     src/py_converter.cpp
     #
+    src/py_base_object.cpp
     src/py_integer.cpp
     src/py_float.cpp
     src/py_boolean.cpp
     src/py_string.cpp
     src/py_ratio.cpp
     src/py_complex_number.cpp
+    src/py_number.cpp
     #
     src/py_iterable.cpp
     src/py_iterator.cpp

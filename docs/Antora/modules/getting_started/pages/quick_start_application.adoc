@@ -96,7 +96,7 @@ To create an application that simulates an openDAQ(TM) Device, we run the follow
 
 [,python]
 ----
-import openDAQ(TM)
+import opendaq
 
 # Create openDAQ instance
 instance = opendaq.Instance()
@@ -314,7 +314,7 @@ instance = opendaq.Instance()
 
 # Find and connect to a device hosting an openDAQ(TM) OPC UA server
 for device_info in instance.available_devices:
-    if 'daq.opcua://' in device_info.connection_string:
+    if device_info.connection_string.startswith('daq.opcua://'):
         device = instance.add_device(device_info.connection_string)
         break
 else:
@@ -449,11 +449,11 @@ while cnt < 40:
         print(samples[-1])
         cnt += 1
 
-# Output 10 samples with overriden type
+# Output 10 samples with overridden type
 reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Int64)
 time.sleep(0.5)
-for overriden_type_value in reader.read(10):
-    print(overriden_type_value)
+for overridden_type_value in reader.read(10):
+    print(overridden_type_value)
 ----
 ====
 
@@ -547,7 +547,7 @@ print('Origin:', origin)
 
 # Output 4 samples using reader
 cnt = 0
-while(cnt < 4)
+while cnt < 4:
     time.sleep(0.025)
     # Read up to 100 samples and print the last one
     samples, domain_samples = reader.read_with_domain(100)
@@ -1027,7 +1027,7 @@ instance = opendaq.Instance()
 
 # Find and connect to a device hosting an openDAQ(TM) OPC UA server
 for device_info in instance.available_devices:
-    if 'daq.opcua://' in device_info.connection_string:
+    if device_info.connection_string.startswith('daq.opcua://'):
         device = instance.add_device(device_info.connection_string)
         break
 else:
@@ -1223,7 +1223,7 @@ instance = opendaq.Instance()
 
 # Find and connect to a device hosting a WebSocket server
 for device_info in instance.available_devices:
-    if 'daq.nsd://' in device_info.connection_string:
+    if device_info.connection_string.startswith('daq.nsd://'):
         device = instance.add_device(device_info.connection_string)
         break
 else:

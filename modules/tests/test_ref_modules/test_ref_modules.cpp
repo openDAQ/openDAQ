@@ -905,9 +905,6 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
     classifierPort.connect(inputSignal);
     const auto classifierSignal = classifierFb.getSignals()[0];
 
-    const auto classifierSignalDescription = classifierSignal.getDescriptor();
-    const auto classifierSignalLabelsSize = classifierSignal.getDescriptor().getDimensions()[0].getSize();
-
     auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
 
     auto dataPacket = helper.createDataPacket(5);
@@ -960,9 +957,6 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     const auto classifierPort = classifierFb.getInputPorts()[0];
     classifierPort.connect(inputSignal);
     const auto classifierSignal = classifierFb.getSignals()[0];
-
-    const auto classifierSignalDescription = classifierSignal.getDescriptor();
-    const auto classifierSignalLabelsSize = classifierSignal.getDescriptor().getDimensions()[0].getSize();
 
     auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
 

@@ -689,7 +689,7 @@ TEST_F(RefModulesTest, ClassifierRangeSizeCustomClasses)
     ASSERT_EQ(signalDimension.getLabels(), List<Float>(0, 1, 10, 100));
 }
 
-TEST_F(RefModulesTest, ClassifierBlackBox)
+TEST_F(RefModulesTest, ClassifierCheckSyncData)
 {
     using inputSignalType = Int;
     using outputSignalType = Float;
@@ -703,58 +703,129 @@ TEST_F(RefModulesTest, ClassifierBlackBox)
     auto instance = helper.getInstance();
     auto inputSignal = helper.getSignal();
 
-    SizeT blockSizeMs = 5;
-    SizeT classCount = 1;
-    SizeT inputPacketCount = blockSizeMs;
-    SizeT outputPacketCount = inputPacketCount / blockSizeMs;
-
     auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
     classifierFb.setPropertyValue("UseCustomClasses", false);
-    classifierFb.setPropertyValue("BlockSize", blockSizeMs);
-    classifierFb.setPropertyValue("ClassCount", classCount);
+    classifierFb.setPropertyValue("BlockSize", 5);
+    classifierFb.setPropertyValue("ClassCount", 1);
 
     const auto classifierPort = classifierFb.getInputPorts()[0];
     classifierPort.connect(inputSignal);
     const auto classifierSignal = classifierFb.getSignals()[0];
 
-    const auto classifierSignalDescription = classifierSignal.getDescriptor();
-    const auto classifierSignalLabelsSize = classifierSignal.getDescriptor().getDimensions()[0].getSize();
+    auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
 
-    auto reader = BlockReader<outputSignalType>(classifierSignal, outputPacketCount);
-
-    auto dataPacket = helper.createDataPacket(inputPacketCount);
+    auto dataPacket = helper.createDataPacket(5);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
-    for (size_t i = 0; i < inputPacketCount; i++)
-    {
-        auto deliter = inputPacketCount > 1 ? inputPacketCount - 1 : 1;
-        auto delta = (static_cast<Float>(inputSignalRange.getHighValue()) - static_cast<Float>(inputSignalRange.getLowValue())) / deliter;
-        dataPtr[i] = inputSignalRange.getLowValue() + delta * i;
-    }
+    dataPtr[0] = 0;
+    dataPtr[1] = 5;
+    dataPtr[2] = 10;
+    dataPtr[3] = 15;
+    dataPtr[4] = 20;
     helper.sendPacket(dataPacket);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    SizeT blockCnt = outputPacketCount;
-    auto outputData = std::make_unique<outputSignalType[]>(classifierSignalLabelsSize * outputPacketCount);
+    SizeT blockCnt = 1;
+    auto outputData = std::make_unique<outputSignalType[]>(21);
     reader.read(outputData.get(), &blockCnt);
     // check that was read output packet
-    ASSERT_EQ(blockCnt, outputPacketCount);
+    ASSERT_EQ(blockCnt, 1);
 
     // check that sum of output values is eqauled to 1
     outputSignalType valuesSum = 0;
-    for (size_t i = 0; i < classifierSignalLabelsSize; i++)
+    for (size_t i = 0; i < 21; i++)
         valuesSum += outputData[i];
     ASSERT_EQ(valuesSum, 1.0);
 
     // check that values are in expected intervals
-    for (size_t i = 0; i < inputPacketCount; i++)
-    {
-        auto index = dataPtr[i];
-        ASSERT_EQ(outputData[index], 1.0 / inputPacketCount);
-    }
+    ASSERT_EQ(outputData[0], 0.2);
+    ASSERT_EQ(outputData[5], 0.2);
+    ASSERT_EQ(outputData[10], 0.2);
+    ASSERT_EQ(outputData[15], 0.2);
+    ASSERT_EQ(outputData[20], 0.2);
 }
 
-TEST_F(RefModulesTest, ClassifierBlackBoxCustomClassCount)
+TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
+{
+    using inputSignalType = Int;
+    using outputSignalType = Float;
+
+    SampleType inputSignalSampleType = SampleType::Int64;
+    auto inputSignalRange = Range(0, 4);
+    bool inputSignalSync = true;
+
+    ClassifierTestHelper helper;
+    helper.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
+    auto instance = helper.getInstance();
+    auto inputSignal = helper.getSignal();
+
+    auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    classifierFb.setPropertyValue("UseCustomClasses", false);
+    classifierFb.setPropertyValue("BlockSize", 5);
+    classifierFb.setPropertyValue("ClassCount", 1);
+
+    const auto classifierPort = classifierFb.getInputPorts()[0];
+    classifierPort.connect(inputSignal);
+    const auto classifierSignal = classifierFb.getSignals()[0];
+
+    auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
+
+    auto dataPacket = helper.createDataPacket(10);
+    auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
+    dataPtr[0] = 0;
+    dataPtr[1] = 1;
+    dataPtr[2] = 2;
+    dataPtr[3] = 3;
+    dataPtr[4] = 4;
+    dataPtr[5] = 0;
+    dataPtr[6] = 1;
+    dataPtr[7] = 2;
+    dataPtr[8] = 3;
+    dataPtr[9] = 4;
+    helper.sendPacket(dataPacket);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // reading first output block
+    auto firstOutputData = std::make_unique<outputSignalType[]>(5);
+    SizeT firstBlockCnt = 1;
+    reader.read(firstOutputData.get(), &firstBlockCnt);
+    ASSERT_EQ(firstBlockCnt, 1);
+
+    // reading second output block
+    auto secondOutputData = std::make_unique<outputSignalType[]>(5);
+    SizeT secondBlockCnt = 1;
+    reader.read(secondOutputData.get(), &secondBlockCnt);
+    ASSERT_EQ(secondBlockCnt, 1);
+
+    // check that sum of first output block values is eqauled to 1
+    outputSignalType valuesSum = 0.0;
+    for (size_t i = 0; i < 5; i++)
+        valuesSum += firstOutputData[i];
+    ASSERT_EQ(valuesSum, 1.0);
+
+    // check that sum of second output block values is eqauled to 1
+    valuesSum = 0;
+    for (size_t i = 0; i < 5; i++)
+        valuesSum += secondOutputData[i];
+    ASSERT_EQ(valuesSum, 1.0);
+
+    // check that values are in expected intervals for first result
+    ASSERT_EQ(firstOutputData[0], 0.2);
+    ASSERT_EQ(firstOutputData[1], 0.2);
+    ASSERT_EQ(firstOutputData[2], 0.2);
+    ASSERT_EQ(firstOutputData[3], 0.2);
+    ASSERT_EQ(firstOutputData[4], 0.2);
+
+    // check that values are in expected intervals for second result
+    ASSERT_EQ(secondOutputData[0], 0.2);
+    ASSERT_EQ(secondOutputData[1], 0.2);
+    ASSERT_EQ(secondOutputData[2], 0.2);
+    ASSERT_EQ(secondOutputData[3], 0.2);
+    ASSERT_EQ(secondOutputData[4], 0.2);
+}
+
+TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClass)
 {
     using inputSignalType = Int;
     using outputSignalType = Float;
@@ -768,59 +839,50 @@ TEST_F(RefModulesTest, ClassifierBlackBoxCustomClassCount)
     auto instance = helper.getInstance();
     auto inputSignal = helper.getSignal();
 
-    SizeT blockSizeMs = 5;
-    SizeT classCount = 2;
-    SizeT inputPacketCount = blockSizeMs;
-    SizeT outputPacketCount = inputPacketCount / blockSizeMs;
-
     auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
     classifierFb.setPropertyValue("UseCustomClasses", false);
-    classifierFb.setPropertyValue("BlockSize", blockSizeMs);
-    classifierFb.setPropertyValue("ClassCount", classCount);
+    classifierFb.setPropertyValue("BlockSize", 5);
+    classifierFb.setPropertyValue("ClassCount", 2);
 
     const auto classifierPort = classifierFb.getInputPorts()[0];
     classifierPort.connect(inputSignal);
     const auto classifierSignal = classifierFb.getSignals()[0];
 
-    const auto classifierSignalDescription = classifierSignal.getDescriptor();
-    const auto classifierSignalLabelsSize = classifierSignal.getDescriptor().getDimensions()[0].getSize();
+    auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
 
-    auto reader = BlockReader<outputSignalType>(classifierSignal, outputPacketCount);
-
-    auto dataPacket = helper.createDataPacket(inputPacketCount);
+    auto dataPacket = helper.createDataPacket(5);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
-    for (size_t i = 0; i < inputPacketCount; i++)
-    {
-        auto deliter = inputPacketCount > 1 ? inputPacketCount - 1 : 1;
-        auto delta = (static_cast<Float>(inputSignalRange.getHighValue()) - static_cast<Float>(inputSignalRange.getLowValue())) / deliter;
-        dataPtr[i] = inputSignalRange.getLowValue() + delta * i;
-    }
+    dataPtr[0] = 0;
+    dataPtr[1] = 5;
+    dataPtr[2] = 10;
+    dataPtr[3] = 15;
+    dataPtr[4] = 20;
     helper.sendPacket(dataPacket);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    SizeT blockCnt = outputPacketCount;
-    auto outputData = std::make_unique<outputSignalType[]>(classifierSignalLabelsSize * outputPacketCount);
+    SizeT blockCnt = 1;
+    auto outputData = std::make_unique<outputSignalType[]>(11);
     reader.read(outputData.get(), &blockCnt);
 
     // check that was read output packet
-    ASSERT_EQ(blockCnt, outputPacketCount);
+    ASSERT_EQ(blockCnt, 1);
 
     // check that sum of output values is eqauled to 1
     outputSignalType valuesSum = 0;
-    for (size_t i = 0; i < classifierSignalLabelsSize; i++)
+    for (size_t i = 0; i < 11; i++)
         valuesSum += outputData[i];
     ASSERT_EQ(valuesSum, 1.0);
 
     // check that values are in expected intervals
-    for (size_t i = 0; i < inputPacketCount; i++)
-    {
-        auto index = dataPtr[i] / 2;
-        ASSERT_EQ(outputData[index], 1.0 / inputPacketCount);
-    }
+    ASSERT_EQ(outputData[0], 0.2);
+    ASSERT_EQ(outputData[2], 0.2);
+    ASSERT_EQ(outputData[5], 0.2);
+    ASSERT_EQ(outputData[7], 0.2);
+    ASSERT_EQ(outputData[10], 0.2);
 }
 
-TEST_F(RefModulesTest, ClassifierBlackBoxCustomClassList)
+TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
 {
     using inputSignalType = Int;
     using outputSignalType = Float;
@@ -834,15 +896,10 @@ TEST_F(RefModulesTest, ClassifierBlackBoxCustomClassList)
     auto instance = helper.getInstance();
     auto inputSignal = helper.getSignal();
 
-    SizeT blockSizeMs = 5;
-    auto customClassList = List<Float>(0, 20, 50, 100);
-    SizeT inputPacketCount = blockSizeMs;
-    SizeT outputPacketCount = inputPacketCount / blockSizeMs;
-
     auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
     classifierFb.setPropertyValue("UseCustomClasses", true);
-    classifierFb.setPropertyValue("BlockSize", blockSizeMs);
-    classifierFb.setPropertyValue("CustomClassList", customClassList);
+    classifierFb.setPropertyValue("BlockSize", 5);
+    classifierFb.setPropertyValue("CustomClassList", List<Float>(0, 20, 50, 100));
 
     const auto classifierPort = classifierFb.getInputPorts()[0];
     classifierPort.connect(inputSignal);
@@ -851,37 +908,37 @@ TEST_F(RefModulesTest, ClassifierBlackBoxCustomClassList)
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
     const auto classifierSignalLabelsSize = classifierSignal.getDescriptor().getDimensions()[0].getSize();
 
-    auto reader = BlockReader<outputSignalType>(classifierSignal, outputPacketCount);
+    auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
 
-    auto dataPacket = helper.createDataPacket(inputPacketCount);
+    auto dataPacket = helper.createDataPacket(5);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
-    for (size_t i = 0; i < inputPacketCount; i++)
-    {
-        auto deliter = inputPacketCount > 1 ? inputPacketCount - 1 : 1;
-        auto delta = (static_cast<Float>(inputSignalRange.getHighValue()) - static_cast<Float>(inputSignalRange.getLowValue())) / deliter;
-        dataPtr[i] = inputSignalRange.getLowValue() + delta * i;
-    }
+    dataPtr[0] = 0;
+    dataPtr[1] = 5;
+    dataPtr[2] = 10;
+    dataPtr[3] = 15;
+    dataPtr[4] = 20;
     helper.sendPacket(dataPacket);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    SizeT blockCnt = outputPacketCount;
-    auto outputData = std::make_unique<outputSignalType[]>(classifierSignalLabelsSize * outputPacketCount);
+    SizeT blockCnt = 1;
+    auto outputData = std::make_unique<outputSignalType[]>(4);
     reader.read(outputData.get(), &blockCnt);
     // check that was read output packet
-    ASSERT_EQ(blockCnt, outputPacketCount);
+    ASSERT_EQ(blockCnt, 1);
 
     // check that sum of output values is eqauled to 1
     outputSignalType valuesSum = 0;
-    for (size_t i = 0; i < classifierSignalLabelsSize; i++)
+    for (size_t i = 0; i < 4; i++)
         valuesSum += outputData[i];
     ASSERT_EQ(valuesSum, 1.0);
 
     // check that all values are in first interval from 0 to 20
-    ASSERT_EQ(outputData[0], 1.0);
+    ASSERT_EQ(outputData[0], 0.8);
+    ASSERT_EQ(outputData[1], 0.2);
 }
 
-TEST_F(RefModulesTest, ClassifierBlackBoxAsync)
+TEST_F(RefModulesTest, ClassifierAsyncData)
 {
     using inputSignalType = Int;
     using outputSignalType = Float;
@@ -895,15 +952,10 @@ TEST_F(RefModulesTest, ClassifierBlackBoxAsync)
     auto instance = helper.getInstance();
     auto inputSignal = helper.getSignal();
 
-    SizeT blockSizeMs = 5;
-    auto customClassList = List<Float>(0, 20, 50, 100);
-    SizeT inputPacketCount = blockSizeMs;
-    SizeT outputPacketCount = inputPacketCount / blockSizeMs;
-
     auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
     classifierFb.setPropertyValue("UseCustomClasses", true);
-    classifierFb.setPropertyValue("BlockSize", blockSizeMs);
-    classifierFb.setPropertyValue("CustomClassList", customClassList);
+    classifierFb.setPropertyValue("BlockSize", 5);
+    classifierFb.setPropertyValue("CustomClassList", List<Float>(0, 20, 50, 100));
 
     const auto classifierPort = classifierFb.getInputPorts()[0];
     classifierPort.connect(inputSignal);
@@ -912,33 +964,115 @@ TEST_F(RefModulesTest, ClassifierBlackBoxAsync)
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
     const auto classifierSignalLabelsSize = classifierSignal.getDescriptor().getDimensions()[0].getSize();
 
-    auto reader = BlockReader<outputSignalType>(classifierSignal, outputPacketCount);
+    auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
 
     // + 1 to add a markup of next block
-    auto dataPacket = helper.createDataPacket(inputPacketCount + 1);
+    auto dataPacket = helper.createDataPacket(6);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
-    for (size_t i = 0; i < inputPacketCount; i++)
-    {
-        auto deliter = inputPacketCount > 1 ? inputPacketCount - 1 : 1;
-        auto delta = (static_cast<Float>(inputSignalRange.getHighValue()) - static_cast<Float>(inputSignalRange.getLowValue())) / deliter;
-        dataPtr[i] = inputSignalRange.getLowValue() + delta * i;
-    }
+    dataPtr[0] = 0;
+    dataPtr[1] = 5;
+    dataPtr[2] = 10;
+    dataPtr[3] = 15;
+    dataPtr[4] = 20;
+    dataPtr[5] = 25;
     helper.sendPacket(dataPacket);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    SizeT blockCnt = outputPacketCount;
-    auto outputData = std::make_unique<outputSignalType[]>(classifierSignalLabelsSize * outputPacketCount);
+    SizeT blockCnt = 1;
+    auto outputData = std::make_unique<outputSignalType[]>(4);
     reader.read(outputData.get(), &blockCnt);
     // check that was read output packet
-    ASSERT_EQ(blockCnt, outputPacketCount);
+    ASSERT_EQ(blockCnt, 1);
 
     // check that sum of output values is eqauled to 1
     outputSignalType valuesSum = 0;
-    for (size_t i = 0; i < classifierSignalLabelsSize; i++)
+    for (size_t i = 0; i < 4; i++)
         valuesSum += outputData[i];
     ASSERT_EQ(valuesSum, 1.0);
 
     // check that all values are in first interval from 0 to 20
-    ASSERT_EQ(outputData[0], 1.0);
+    ASSERT_EQ(outputData[0], 0.8);
+    ASSERT_EQ(outputData[1], 0.2);
+}
+
+TEST_F(RefModulesTest, ClassifierCheckAsyncMultiData)
+{
+    using inputSignalType = Int;
+    using outputSignalType = Float;
+
+    SampleType inputSignalSampleType = SampleType::Int64;
+    auto inputSignalRange = Range(0, 4);
+    bool inputSignalSync = false;
+
+    ClassifierTestHelper helper;
+    helper.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
+    auto instance = helper.getInstance();
+    auto inputSignal = helper.getSignal();
+
+    auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    classifierFb.setPropertyValue("UseCustomClasses", false);
+    classifierFb.setPropertyValue("BlockSize", 5);
+    classifierFb.setPropertyValue("ClassCount", 1);
+
+    const auto classifierPort = classifierFb.getInputPorts()[0];
+    classifierPort.connect(inputSignal);
+    const auto classifierSignal = classifierFb.getSignals()[0];
+
+    auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
+
+    auto dataPacket = helper.createDataPacket(11);
+    auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
+    dataPtr[0] = 0;
+    dataPtr[1] = 1;
+    dataPtr[2] = 2;
+    dataPtr[3] = 3;
+    dataPtr[4] = 4;
+    dataPtr[5] = 0;
+    dataPtr[6] = 1;
+    dataPtr[7] = 2;
+    dataPtr[8] = 3;
+    dataPtr[9] = 4;
+    dataPtr[10] = 5;
+    helper.sendPacket(dataPacket);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // reading first output block
+    auto firstOutputData = std::make_unique<outputSignalType[]>(5);
+    SizeT firstBlockCnt = 1;
+    reader.read(firstOutputData.get(), &firstBlockCnt);
+    ASSERT_EQ(firstBlockCnt, 1);
+
+    // reading second output block
+    auto secondOutputData = std::make_unique<outputSignalType[]>(5);
+    SizeT secondBlockCnt = 1;
+    reader.read(secondOutputData.get(), &secondBlockCnt);
+    ASSERT_EQ(secondBlockCnt, 1);
+
+    // check that sum of first output block values is eqauled to 1
+    outputSignalType valuesSum = 0.0;
+    for (size_t i = 0; i < 5; i++)
+        valuesSum += firstOutputData[i];
+    ASSERT_EQ(valuesSum, 1.0);
+
+    // check that sum of second output block values is eqauled to 1
+    valuesSum = 0;
+    for (size_t i = 0; i < 5; i++)
+        valuesSum += secondOutputData[i];
+    ASSERT_EQ(valuesSum, 1.0);
+
+    // check that values are in expected intervals for first result
+    ASSERT_EQ(firstOutputData[0], 0.2);
+    ASSERT_EQ(firstOutputData[1], 0.2);
+    ASSERT_EQ(firstOutputData[2], 0.2);
+    ASSERT_EQ(firstOutputData[3], 0.2);
+    ASSERT_EQ(firstOutputData[4], 0.2);
+
+    // check that values are in expected intervals for second result
+    ASSERT_EQ(secondOutputData[0], 0.2);
+    ASSERT_EQ(secondOutputData[1], 0.2);
+    ASSERT_EQ(secondOutputData[2], 0.2);
+    ASSERT_EQ(secondOutputData[3], 0.2);
+    ASSERT_EQ(secondOutputData[4], 0.2);
 }

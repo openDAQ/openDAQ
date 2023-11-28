@@ -540,253 +540,168 @@ TEST_F(RefModulesTest, UpdateDevicePower)
     //    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
 
-TEST_F(RefModulesTest, ClassifierCheckCustomClass)
+TEST_F(RefModulesTest, ClassifierGeneralDescriptor)
 {
-    const auto instance = Instance();
+    ClassifierTestHelper helper;
+    helper.setUp();
+    auto instance = helper.getInstance();
+    auto inputSignal = helper.getSignal();
 
-    const auto device = instance.addDevice("daqref://device0");
+    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
 
-    auto customClassList = List<Float>(1, 10, 100, 1000);
-    auto blockSize = 10;
-    auto classCount = 2;
+    const auto classifierInputPort = classifierFb.getInputPorts()[0];
+    classifierInputPort.connect(inputSignal);
+
+    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierSignalDescription = classifierSignal.getDescriptor();
+
+    // Classifier returning values with float float
+    ASSERT_EQ(classifierSignalDescription.getSampleType(), SampleType::Float64);
+
+    // Dimension of classifier's output signal have to be 1 (vector)
+    ASSERT_EQ(classifierSignalDescription.getDimensions().getCount(), 1);
+
+    // Classifier returns values in range [0, 1]
+    ASSERT_EQ(classifierSignalDescription.getValueRange(), Range(0, 1));
+
+    // Classifier returns values are %
+    ASSERT_EQ(classifierSignalDescription.getUnit().getSymbol(), "%");
+
+    const auto classifierDomainSignalDescription = classifierSignal.getDomainSignal().getDescriptor();
+    const auto inputDomainDescriptor = inputSignal.getDomainSignal().getDescriptor();
+
+    // Check tick resolution
+    ASSERT_EQ(classifierDomainSignalDescription.getTickResolution(), inputDomainDescriptor.getTickResolution());
+}
+
+TEST_F(RefModulesTest, ClassifierRuleForSync)
+{
+    ClassifierTestHelper helper;
+    helper.setUp();
+    auto instance = helper.getInstance();
+    auto inputSignal = helper.getSignal();
+
+    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+
+    const auto classifierInputPort = classifierFb.getInputPorts()[0];
+    classifierInputPort.connect(inputSignal);
+
+    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierDomainSignalDescription = classifierSignal.getDomainSignal().getDescriptor();
+    const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
+
+    const auto inputDomainDescriptor = inputSignal.getDomainSignal().getDescriptor();
+    const auto inputDomainRule = inputDomainDescriptor.getRule();
+
+    // Check Linear Rule
+    ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Linear);
+
+    // Check deltas
+        auto classifierDelta = classifierDomainRule.getParameters().get("delta");
+    auto inputResolution = inputDomainDescriptor.getTickResolution() * Int(1000);
+    auto expectedClassifierDelata = 1.0 / static_cast<Float>(inputResolution);
+        ASSERT_EQ(classifierDelta, expectedClassifierDelata);
+    }
+
+TEST_F(RefModulesTest, ClassifierRuleForAsync)
+{
+    ClassifierTestHelper helper;
+    helper.setUp(daq::SampleType::UInt64, Range(-10, 10), false);
+    auto instance = helper.getInstance();
+    auto inputSignal = helper.getSignal();
+
+    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+
+    const auto classifierInputPort = classifierFb.getInputPorts()[0];
+    classifierInputPort.connect(inputSignal);
+
+    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierDomainSignalDescription = classifierSignal.getDomainSignal().getDescriptor();
+    const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
+
+    const auto inputDomainDescriptor = inputSignal.getDomainSignal().getDescriptor();
+    const auto inputDomainRule = inputDomainDescriptor.getRule();
+
+    // Check Explicit Rule
+    ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
+}
+
+TEST_F(RefModulesTest, ClassifierRangeSize)
+{
+    ClassifierTestHelper helper;
+    helper.setUp(daq::SampleType::UInt64, Range(-3, 3));
+    auto instance = helper.getInstance();
+    auto inputSignal = helper.getSignal();
+
+    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+
+    const auto classifierInputPort = classifierFb.getInputPorts()[0];
+    classifierInputPort.connect(inputSignal);
+
+    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierSignalDescription = classifierSignal.getDescriptor();
+
+    auto signalDimension = classifierSignalDescription.getDimensions()[0];
+
+    ASSERT_EQ(signalDimension.getLabels(), List<NumberPtr>(-3, -2, -1, 0, 1, 2, 3));
+}
+
+TEST_F(RefModulesTest, ClassifierRangeSizeCustomClassCount)
+{
+    ClassifierTestHelper helper;
+    helper.setUp(daq::SampleType::UInt64, Range(-5, 5));
+    auto instance = helper.getInstance();
+    auto inputSignal = helper.getSignal();
+
+    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    classifierFb.setPropertyValue("ClassCount", 4);
+
+    const auto classifierInputPort = classifierFb.getInputPorts()[0];
+    classifierInputPort.connect(inputSignal);
+
+    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierSignalDescription = classifierSignal.getDescriptor();
+
+    auto signalDimension = classifierSignalDescription.getDimensions()[0];
+
+    ASSERT_EQ(signalDimension.getLabels(), List<NumberPtr>(-5, -1, 3, 7));
+}
+
+TEST_F(RefModulesTest, ClassifierRangeSizeCustomClasses)
+{
+    ClassifierTestHelper helper;
+    helper.setUp(daq::SampleType::UInt64, Range(-10, 10));
+    auto instance = helper.getInstance();
+    auto inputSignal = helper.getSignal();
 
     const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
     classifierFb.setPropertyValue("UseCustomClasses", true);
-    classifierFb.setPropertyValue("CustomClassList", customClassList);
-    classifierFb.setPropertyValue("BlockSize", blockSize);
-    classifierFb.setPropertyValue("ClassCount", classCount);
-
-    const auto deviceChannel = device.getChannels()[0];
-    const auto deviceSignal = deviceChannel.getSignals()[0];
+    classifierFb.setPropertyValue("CustomClassList", List<Float>(0, 1, 10, 100));
 
     const auto classifierInputPort = classifierFb.getInputPorts()[0];
-    classifierInputPort.connect(deviceSignal);
+    classifierInputPort.connect(inputSignal);
 
     const auto classifierSignal = classifierFb.getSignals()[0];
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
 
-    // Classifier returning values with float float
-    ASSERT_EQ(classifierSignalDescription.getSampleType(), SampleType::Float64);
-
-    // Dimension of classifier's output signal have to be 1 (vector)
-    ASSERT_EQ(classifierSignalDescription.getDimensions().getCount(), 1);
-
-    // Classifier returns values in range [0, 1]
-    ASSERT_EQ(classifierSignalDescription.getValueRange(), Range(0, 1));
-
-    // Classifier returns values are %
-    ASSERT_EQ(classifierSignalDescription.getUnit().getSymbol(), "%");
-
-    // Size of output signal have to be equaled to  size of customClassList
     auto signalDimension = classifierSignalDescription.getDimensions()[0];
-    ASSERT_EQ(signalDimension.getSize(), customClassList.getCount());
 
-    // Dimension of classifier's output have to be the same as customClassList
-    ASSERT_EQ(signalDimension.getLabels(), customClassList);
-
-    const auto classifierDomainSignal = classifierSignal.getDomainSignal();
-    const auto classifierDomainSignalDescription = classifierDomainSignal.getDescriptor();
-
-    const auto deviceDomainDescriptor = deviceSignal.getDomainSignal().getDescriptor();
-
-    const auto deviceDomainRule = deviceDomainDescriptor.getRule();
-    const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
-
-    // Check Linear Rule
-    if (deviceDomainRule.getType() == DataRuleType::Linear)
-    {
-        ASSERT_EQ(deviceDomainRule.getType(), classifierDomainRule.getType());
-        ASSERT_EQ(classifierDomainSignalDescription.getTickResolution(), deviceDomainDescriptor.getTickResolution());
-
-        auto deviceResolution = deviceDomainDescriptor.getTickResolution() * Int(1000);
-
-        auto classifierDelta = classifierDomainRule.getParameters().get("delta");
-        auto expectedClassifierDelata = static_cast<Float>(blockSize) / static_cast<Float>(deviceResolution);
-
-        ASSERT_EQ(classifierDelta, expectedClassifierDelata);
-    }
-    else
-    {
-        ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
-    }
-}
-
-TEST_F(RefModulesTest, ClassifierCheckBuildinClass)
-{
-    const auto instance = Instance();
-
-    const auto device = instance.addDevice("daqref://device0");
-
-    auto customClassList = List<Float>(1, 10, 100, 1000);
-    auto blockSize = 2;
-    auto classCount = 2;
-    auto inputRange = Range(-20.0, 20.0);
-
-    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
-    classifierFb.setPropertyValue("UseCustomClasses", false);
-    classifierFb.setPropertyValue("CustomClassList", customClassList);
-    classifierFb.setPropertyValue("BlockSize", blockSize);
-    classifierFb.setPropertyValue("ClassCount", classCount);
-
-    const auto deviceChannel = device.getChannels()[0];
-    deviceChannel.setPropertyValue("CustomRange", inputRange);
-    const auto deviceSignal = deviceChannel.getSignals()[0];
-
-    const auto classifierInputPort = classifierFb.getInputPorts()[0];
-    classifierInputPort.connect(deviceSignal);
-
-    const auto classifierSignal = classifierFb.getSignals()[0];
-    const auto classifierSignalDescription = classifierSignal.getDescriptor();
-
-    // Classifier returning values with float float
-    ASSERT_EQ(classifierSignalDescription.getSampleType(), SampleType::Float64);
-
-    // Dimension of classifier's output signal have to be 1 (vector)
-    ASSERT_EQ(classifierSignalDescription.getDimensions().getCount(), 1);
-
-    // Classifier returns values in range [0, 1]
-    ASSERT_EQ(classifierSignalDescription.getValueRange(), Range(0, 1));
-
-    // Classifier returns values are %
-    ASSERT_EQ(classifierSignalDescription.getUnit().getSymbol(), "%");
-
-    // Checking dimension of classifier
-    {
-        auto signalDimension = classifierSignalDescription.getDimensions()[0];
-        auto labels = signalDimension.getLabels();
-        Float expectedMark = inputRange.getLowValue();
-        for (const auto& mark : labels)
-        {
-            ASSERT_EQ(static_cast<Float>(mark), expectedMark);
-            expectedMark += classCount;
-        }
-        ASSERT_EQ(labels[labels.getCount() - 1], inputRange.getHighValue());
-    }
-
-    const auto classifierDomainSignal = classifierSignal.getDomainSignal();
-    const auto classifierDomainSignalDescription = classifierDomainSignal.getDescriptor();
-
-    const auto deviceDomainDescriptor = deviceSignal.getDomainSignal().getDescriptor();
-
-    const auto deviceDomainRule = deviceDomainDescriptor.getRule();
-    const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
-
-    // Check Linear Rule
-    if (deviceDomainRule.getType() == DataRuleType::Linear)
-    {
-        ASSERT_EQ(deviceDomainRule.getType(), classifierDomainRule.getType());
-        ASSERT_EQ(classifierDomainSignalDescription.getTickResolution(), deviceDomainDescriptor.getTickResolution());
-
-        auto deviceResolution = deviceDomainDescriptor.getTickResolution() * Int(1000);
-
-        auto classifierDelta = classifierDomainRule.getParameters().get("delta");
-        auto expectedClassifierDelata = static_cast<Float>(blockSize) / static_cast<Float>(deviceResolution);
-
-        ASSERT_EQ(classifierDelta, expectedClassifierDelata);
-    }
-    else
-    {
-        ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
-    }
-}
-
-TEST_F(RefModulesTest, ClassifierCheckBuildinClassCustomRange)
-{
-    const auto instance = Instance();
-
-    const auto device = instance.addDevice("daqref://device0");
-
-    auto customClassList = List<Float>(1, 10, 100, 1000);
-    auto blockSize = 2;
-    auto classCount = 2;
-    auto inputRange = Range(-20.0, 20.0);
-    auto classifierInputRange = Range(0.0, 20.0);
-
-    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
-    classifierFb.setPropertyValue("UseCustomClasses", false);
-    classifierFb.setPropertyValue("CustomClassList", customClassList);
-    classifierFb.setPropertyValue("BlockSize", blockSize);
-    classifierFb.setPropertyValue("ClassCount", classCount);
-    classifierFb.setPropertyValue("BlockSize", blockSize);
-    classifierFb.setPropertyValue("UseCustomInputRange", true);
-    classifierFb.setPropertyValue("inputLowValue", classifierInputRange.getLowValue());
-    classifierFb.setPropertyValue("InputHighValue", classifierInputRange.getHighValue());
-
-    const auto deviceChannel = device.getChannels()[0];
-    deviceChannel.setPropertyValue("CustomRange", inputRange);
-    const auto deviceSignal = deviceChannel.getSignals()[0];
-
-    const auto classifierInputPort = classifierFb.getInputPorts()[0];
-    classifierInputPort.connect(deviceSignal);
-
-    const auto classifierSignal = classifierFb.getSignals()[0];
-    const auto classifierSignalDescription = classifierSignal.getDescriptor();
-
-    // Classifier returning values with float float
-    ASSERT_EQ(classifierSignalDescription.getSampleType(), SampleType::Float64);
-
-    // Dimension of classifier's output signal have to be 1 (vector)
-    ASSERT_EQ(classifierSignalDescription.getDimensions().getCount(), 1);
-
-    // Classifier returns values in range [0, 1]
-    ASSERT_EQ(classifierSignalDescription.getValueRange(), Range(0, 1));
-
-    // Classifier returns values are %
-    ASSERT_EQ(classifierSignalDescription.getUnit().getSymbol(), "%");
-
-    // Checking dimension of classifier
-    {
-        auto signalDimension = classifierSignalDescription.getDimensions()[0];
-        auto labels = signalDimension.getLabels();
-        Float expectedMark = classifierInputRange.getLowValue();
-        for (const auto& mark : labels)
-        {
-            ASSERT_EQ(static_cast<Float>(mark), expectedMark);
-            expectedMark += classCount;
-        }
-        ASSERT_EQ(labels[labels.getCount() - 1], classifierInputRange.getHighValue());
-    }
-
-    const auto classifierDomainSignal = classifierSignal.getDomainSignal();
-    const auto classifierDomainSignalDescription = classifierDomainSignal.getDescriptor();
-
-    const auto deviceDomainDescriptor = deviceSignal.getDomainSignal().getDescriptor();
-
-    const auto deviceDomainRule = deviceDomainDescriptor.getRule();
-    const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
-
-    // Check Linear Rule
-    if (deviceDomainRule.getType() == DataRuleType::Linear)
-    {
-        ASSERT_EQ(deviceDomainRule.getType(), classifierDomainRule.getType());
-        ASSERT_EQ(classifierDomainSignalDescription.getTickResolution(), deviceDomainDescriptor.getTickResolution());
-
-        auto deviceResolution = deviceDomainDescriptor.getTickResolution() * Int(1000);
-
-        auto classifierDelta = classifierDomainRule.getParameters().get("delta");
-        auto expectedClassifierDelata = static_cast<Float>(blockSize) / static_cast<Float>(deviceResolution);
-
-        ASSERT_EQ(classifierDelta, expectedClassifierDelata);
-    }
-    else
-    {
-        ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
-    }
+    ASSERT_EQ(signalDimension.getLabels(), List<Float>(0, 1, 10, 100));
 }
 
 TEST_F(RefModulesTest, ClassifierBlackBox)
 {
     using inputSignalType = Int;
-    SampleType inputSignalSampleType = SampleType::Int64;
     using outputSignalType = Float;
 
+    SampleType inputSignalSampleType = SampleType::Int64;
     auto inputSignalRange = Range(0, 20);
     bool inputSignalSync = true;
 
-    InputStubSignal input;
-    input.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
-    auto instance = input.getInstance();
-    auto inputSignal = input.getSignal();
+    ClassifierTestHelper helper;
+    helper.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
+    auto instance = helper.getInstance();
+    auto inputSignal = helper.getSignal();
 
     SizeT blockSizeMs = 5;
     SizeT classCount = 1;
@@ -807,7 +722,7 @@ TEST_F(RefModulesTest, ClassifierBlackBox)
 
     auto reader = BlockReader<outputSignalType>(classifierSignal, outputPacketCount);
 
-    auto dataPacket = input.createDataPacket(inputPacketCount);
+    auto dataPacket = helper.createDataPacket(inputPacketCount);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
     for (size_t i = 0; i < inputPacketCount; i++)
     {
@@ -815,7 +730,7 @@ TEST_F(RefModulesTest, ClassifierBlackBox)
         auto delta = (static_cast<Float>(inputSignalRange.getHighValue()) - static_cast<Float>(inputSignalRange.getLowValue())) / deliter;
         dataPtr[i] = inputSignalRange.getLowValue() + delta * i;
     }
-    input.sendPacket(dataPacket);
+    helper.sendPacket(dataPacket);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -842,16 +757,16 @@ TEST_F(RefModulesTest, ClassifierBlackBox)
 TEST_F(RefModulesTest, ClassifierBlackBoxCustomClassCount)
 {
     using inputSignalType = Int;
-    SampleType inputSignalSampleType = SampleType::Int64;
     using outputSignalType = Float;
 
+    SampleType inputSignalSampleType = SampleType::Int64;
     auto inputSignalRange = Range(0, 20);
     bool inputSignalSync = true;
 
-    InputStubSignal input;
-    input.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
-    auto instance = input.getInstance();
-    auto inputSignal = input.getSignal();
+    ClassifierTestHelper helper;
+    helper.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
+    auto instance = helper.getInstance();
+    auto inputSignal = helper.getSignal();
 
     SizeT blockSizeMs = 5;
     SizeT classCount = 2;
@@ -872,7 +787,7 @@ TEST_F(RefModulesTest, ClassifierBlackBoxCustomClassCount)
 
     auto reader = BlockReader<outputSignalType>(classifierSignal, outputPacketCount);
 
-    auto dataPacket = input.createDataPacket(inputPacketCount);
+    auto dataPacket = helper.createDataPacket(inputPacketCount);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
     for (size_t i = 0; i < inputPacketCount; i++)
     {
@@ -880,7 +795,7 @@ TEST_F(RefModulesTest, ClassifierBlackBoxCustomClassCount)
         auto delta = (static_cast<Float>(inputSignalRange.getHighValue()) - static_cast<Float>(inputSignalRange.getLowValue())) / deliter;
         dataPtr[i] = inputSignalRange.getLowValue() + delta * i;
     }
-    input.sendPacket(dataPacket);
+    helper.sendPacket(dataPacket);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -908,16 +823,16 @@ TEST_F(RefModulesTest, ClassifierBlackBoxCustomClassCount)
 TEST_F(RefModulesTest, ClassifierBlackBoxCustomClassList)
 {
     using inputSignalType = Int;
-    SampleType inputSignalSampleType = SampleType::Int64;
     using outputSignalType = Float;
 
+    SampleType inputSignalSampleType = SampleType::Int64;
     auto inputSignalRange = Range(0, 10);
     bool inputSignalSync = true;
 
-    InputStubSignal input;
-    input.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
-    auto instance = input.getInstance();
-    auto inputSignal = input.getSignal();
+    ClassifierTestHelper helper;
+    helper.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
+    auto instance = helper.getInstance();
+    auto inputSignal = helper.getSignal();
 
     SizeT blockSizeMs = 5;
     auto customClassList = List<Float>(0, 20, 50, 100);
@@ -938,7 +853,7 @@ TEST_F(RefModulesTest, ClassifierBlackBoxCustomClassList)
 
     auto reader = BlockReader<outputSignalType>(classifierSignal, outputPacketCount);
 
-    auto dataPacket = input.createDataPacket(inputPacketCount);
+    auto dataPacket = helper.createDataPacket(inputPacketCount);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
     for (size_t i = 0; i < inputPacketCount; i++)
     {
@@ -946,7 +861,7 @@ TEST_F(RefModulesTest, ClassifierBlackBoxCustomClassList)
         auto delta = (static_cast<Float>(inputSignalRange.getHighValue()) - static_cast<Float>(inputSignalRange.getLowValue())) / deliter;
         dataPtr[i] = inputSignalRange.getLowValue() + delta * i;
     }
-    input.sendPacket(dataPacket);
+    helper.sendPacket(dataPacket);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -969,16 +884,16 @@ TEST_F(RefModulesTest, ClassifierBlackBoxCustomClassList)
 TEST_F(RefModulesTest, ClassifierBlackBoxAsync)
 {
     using inputSignalType = Int;
-    SampleType inputSignalSampleType = SampleType::Int64;
     using outputSignalType = Float;
 
+    SampleType inputSignalSampleType = SampleType::Int64;
     auto inputSignalRange = Range(0, 10);
     bool inputSignalSync = false;
 
-    InputStubSignal input;
-    input.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
-    auto instance = input.getInstance();
-    auto inputSignal = input.getSignal();
+    ClassifierTestHelper helper;
+    helper.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
+    auto instance = helper.getInstance();
+    auto inputSignal = helper.getSignal();
 
     SizeT blockSizeMs = 5;
     auto customClassList = List<Float>(0, 20, 50, 100);
@@ -1000,7 +915,7 @@ TEST_F(RefModulesTest, ClassifierBlackBoxAsync)
     auto reader = BlockReader<outputSignalType>(classifierSignal, outputPacketCount);
 
     // + 1 to add a markup of next block
-    auto dataPacket = input.createDataPacket(inputPacketCount + 1);
+    auto dataPacket = helper.createDataPacket(inputPacketCount + 1);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
     for (size_t i = 0; i < inputPacketCount; i++)
     {
@@ -1008,7 +923,7 @@ TEST_F(RefModulesTest, ClassifierBlackBoxAsync)
         auto delta = (static_cast<Float>(inputSignalRange.getHighValue()) - static_cast<Float>(inputSignalRange.getLowValue())) / deliter;
         dataPtr[i] = inputSignalRange.getLowValue() + delta * i;
     }
-    input.sendPacket(dataPacket);
+    helper.sendPacket(dataPacket);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 

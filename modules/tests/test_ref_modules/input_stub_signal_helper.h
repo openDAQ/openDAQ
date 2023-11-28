@@ -29,7 +29,7 @@
 
 using namespace daq;
 
-struct InputStubSignal
+struct ClassifierTestHelper
 {
     void setUp(SampleType signalType = SampleType::UInt64, RangePtr signalRange = Range(-10, 10), bool domainSync = true)
     {

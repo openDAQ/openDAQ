@@ -41,7 +41,7 @@ TEST_F(IntfIdTest, TestSize)
 
 TEST_F(IntfIdTest, ActualBaseObjectGuidExplicit)
 {
-    constexpr IntfID baseObj = { 0xe8f364f8, 0xe940, 0x572d, { { 0xbb, 0x89, 0x8a, 0x7d, 0x2a, 0xe1, 0xdd, 0xe7 } } };
+    constexpr IntfID baseObj = { 0x9c911f6d, 0x1664, 0x5aa2, { { 0x97, 0xbd, 0x90, 0xfe, 0x31, 0x43, 0xe8, 0x81 } } };
     bool eq = baseObj == IBaseObject::Id;
 
     ASSERT_TRUE(eq);
@@ -107,8 +107,7 @@ TEST_F(IntfIdTest, CoreTypeId)
 
 TEST_F(IntfIdTest, CoreTypeIdExplicit)
 {
-    constexpr IntfID id = { 0x72e0d318, 0x84dd, 0x589f, { { 0xaa, 0x58, 0xd5, 0x70, 0xb8, 0x1c, 0xd7, 0x7d } } };
-
+    constexpr IntfID id = { 0x562d045, 0xc94e, 0x5e6d, { { 0x83, 0x60, 0x2c, 0xfc, 0x9d, 0xb7, 0x6a, 0x4 } } };
     ASSERT_EQ(id, ICoreType::Id);
 }
 
@@ -116,5 +115,4 @@ TEST_F(IntfIdTest, Hash)
 {
     std::hash<daq::IntfID> hash{};
     ASSERT_EQ(hash(IBaseObjectTest::Id), hash(IBaseObjectTest::Id));
-    ASSERT_NE(hash(IBaseObjectTest::Id), hash(IBaseObjectTest::Id));
 }

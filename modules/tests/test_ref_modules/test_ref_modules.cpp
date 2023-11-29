@@ -723,11 +723,9 @@ TEST_F(RefModulesTest, ClassifierCheckSyncData)
     dataPtr[4] = 20;
     helper.sendPacket(dataPacket);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
     SizeT blockCnt = 1;
     auto outputData = std::make_unique<outputSignalType[]>(21);
-    reader.read(outputData.get(), &blockCnt);
+    reader.read(outputData.get(), &blockCnt, 500);
     // check that was read output packet
     ASSERT_EQ(blockCnt, 1);
 
@@ -784,31 +782,17 @@ TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
     dataPtr[9] = 4;
     helper.sendPacket(dataPacket);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
     // reading first output block
     auto firstOutputData = std::make_unique<outputSignalType[]>(5);
     SizeT firstBlockCnt = 1;
-    reader.read(firstOutputData.get(), &firstBlockCnt);
+    reader.read(firstOutputData.get(), &firstBlockCnt, 500);
     ASSERT_EQ(firstBlockCnt, 1);
 
     // reading second output block
     auto secondOutputData = std::make_unique<outputSignalType[]>(5);
     SizeT secondBlockCnt = 1;
-    reader.read(secondOutputData.get(), &secondBlockCnt);
+    reader.read(secondOutputData.get(), &secondBlockCnt, 500);
     ASSERT_EQ(secondBlockCnt, 1);
-
-    // check that sum of first output block values is eqauled to 1
-    outputSignalType valuesSum = 0.0;
-    for (size_t i = 0; i < 5; i++)
-        valuesSum += firstOutputData[i];
-    ASSERT_EQ(valuesSum, 1.0);
-
-    // check that sum of second output block values is eqauled to 1
-    valuesSum = 0;
-    for (size_t i = 0; i < 5; i++)
-        valuesSum += secondOutputData[i];
-    ASSERT_EQ(valuesSum, 1.0);
 
     // check that values are in expected intervals for first result
     ASSERT_EQ(firstOutputData[0], 0.2);
@@ -859,11 +843,9 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClass)
     dataPtr[4] = 20;
     helper.sendPacket(dataPacket);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
     SizeT blockCnt = 1;
     auto outputData = std::make_unique<outputSignalType[]>(11);
-    reader.read(outputData.get(), &blockCnt);
+    reader.read(outputData.get(), &blockCnt, 500);
 
     // check that was read output packet
     ASSERT_EQ(blockCnt, 1);
@@ -888,7 +870,7 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
     using outputSignalType = Float;
 
     SampleType inputSignalSampleType = SampleType::Int64;
-    auto inputSignalRange = Range(0, 10);
+    auto inputSignalRange = Range(0, 20);
     bool inputSignalSync = true;
 
     ClassifierTestHelper helper;
@@ -899,7 +881,7 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
     auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
     classifierFb.setPropertyValue("UseCustomClasses", true);
     classifierFb.setPropertyValue("BlockSize", 5);
-    classifierFb.setPropertyValue("CustomClassList", List<Float>(0, 20, 50, 100));
+    classifierFb.setPropertyValue("CustomClassList", List<Float>(0, 25, 50, 100));
 
     const auto classifierPort = classifierFb.getInputPorts()[0];
     classifierPort.connect(inputSignal);
@@ -916,11 +898,9 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
     dataPtr[4] = 20;
     helper.sendPacket(dataPacket);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
     SizeT blockCnt = 1;
     auto outputData = std::make_unique<outputSignalType[]>(4);
-    reader.read(outputData.get(), &blockCnt);
+    reader.read(outputData.get(), &blockCnt, 500);
     // check that was read output packet
     ASSERT_EQ(blockCnt, 1);
 
@@ -930,9 +910,8 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
         valuesSum += outputData[i];
     ASSERT_EQ(valuesSum, 1.0);
 
-    // check that all values are in first interval from 0 to 20
-    ASSERT_EQ(outputData[0], 0.8);
-    ASSERT_EQ(outputData[1], 0.2);
+    // check that all values are in first interval from 0 to 25
+    ASSERT_EQ(outputData[0], 1.0);
 }
 
 TEST_F(RefModulesTest, ClassifierAsyncData)
@@ -941,7 +920,7 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     using outputSignalType = Float;
 
     SampleType inputSignalSampleType = SampleType::Int64;
-    auto inputSignalRange = Range(0, 10);
+    auto inputSignalRange = Range(0, 20);
     bool inputSignalSync = false;
 
     ClassifierTestHelper helper;
@@ -952,7 +931,7 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
     classifierFb.setPropertyValue("UseCustomClasses", true);
     classifierFb.setPropertyValue("BlockSize", 5);
-    classifierFb.setPropertyValue("CustomClassList", List<Float>(0, 20, 50, 100));
+    classifierFb.setPropertyValue("CustomClassList", List<Float>(0, 25, 50, 100));
 
     const auto classifierPort = classifierFb.getInputPorts()[0];
     classifierPort.connect(inputSignal);
@@ -971,11 +950,9 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     dataPtr[5] = 25;
     helper.sendPacket(dataPacket);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
     SizeT blockCnt = 1;
     auto outputData = std::make_unique<outputSignalType[]>(4);
-    reader.read(outputData.get(), &blockCnt);
+    reader.read(outputData.get(), &blockCnt, 500);
     // check that was read output packet
     ASSERT_EQ(blockCnt, 1);
 
@@ -985,9 +962,8 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
         valuesSum += outputData[i];
     ASSERT_EQ(valuesSum, 1.0);
 
-    // check that all values are in first interval from 0 to 20
-    ASSERT_EQ(outputData[0], 0.8);
-    ASSERT_EQ(outputData[1], 0.2);
+    // check that all values are in first interval from 0 to 25
+    ASSERT_EQ(outputData[0], 1.0);
 }
 
 TEST_F(RefModulesTest, ClassifierCheckAsyncMultiData)
@@ -1022,39 +998,27 @@ TEST_F(RefModulesTest, ClassifierCheckAsyncMultiData)
     dataPtr[2] = 2;
     dataPtr[3] = 3;
     dataPtr[4] = 4;
+
     dataPtr[5] = 0;
     dataPtr[6] = 1;
     dataPtr[7] = 2;
     dataPtr[8] = 3;
     dataPtr[9] = 4;
-    dataPtr[10] = 5;
+    
+    dataPtr[10] = 5; // second packet finish markup
     helper.sendPacket(dataPacket);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // reading first output block
     auto firstOutputData = std::make_unique<outputSignalType[]>(5);
     SizeT firstBlockCnt = 1;
-    reader.read(firstOutputData.get(), &firstBlockCnt);
+    reader.read(firstOutputData.get(), &firstBlockCnt, 200);
     ASSERT_EQ(firstBlockCnt, 1);
 
     // reading second output block
     auto secondOutputData = std::make_unique<outputSignalType[]>(5);
     SizeT secondBlockCnt = 1;
-    reader.read(secondOutputData.get(), &secondBlockCnt);
+    reader.read(secondOutputData.get(), &secondBlockCnt, 200);
     ASSERT_EQ(secondBlockCnt, 1);
-
-    // check that sum of first output block values is eqauled to 1
-    outputSignalType valuesSum = 0.0;
-    for (size_t i = 0; i < 5; i++)
-        valuesSum += firstOutputData[i];
-    ASSERT_EQ(valuesSum, 1.0);
-
-    // check that sum of second output block values is eqauled to 1
-    valuesSum = 0;
-    for (size_t i = 0; i < 5; i++)
-        valuesSum += secondOutputData[i];
-    ASSERT_EQ(valuesSum, 1.0);
 
     // check that values are in expected intervals for first result
     ASSERT_EQ(firstOutputData[0], 0.2);

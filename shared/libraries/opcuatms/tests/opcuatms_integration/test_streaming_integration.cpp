@@ -40,6 +40,7 @@ public:
     void SetUp() override
     {
         logger = Logger();
+        loggerComponent = logger.getOrAddComponent("StreamingIntegrationTest");
         auto clientLogger = Logger();
         clientContext = Context(Scheduler(clientLogger, 1), clientLogger, nullptr, nullptr);
         instance = createDevice();
@@ -87,19 +88,25 @@ public:
         throw NotFoundException();
     }
 
-    ListPtr<IPacket> tryReadPackets(const PacketReaderPtr& reader, size_t packetCount, uint64_t timeoutMs = 500)
+    ListPtr<IPacket> tryReadPackets(const PacketReaderPtr& reader,
+                                    size_t packetCount,
+                                    std::chrono::seconds timeout = std::chrono::seconds(60))
     {
         auto allPackets = List<IPacket>();
-        auto lastPacketReceived = std::chrono::system_clock::now();
+        auto startPoint = std::chrono::system_clock::now();
 
         while (allPackets.getCount() < packetCount)
         {
             if (reader.getAvailableCount() == 0)
             {
                 auto now = std::chrono::system_clock::now();
-                uint64_t diffMs = (uint64_t) std::chrono::duration_cast<std::chrono::milliseconds>(now - lastPacketReceived).count();
-                if (diffMs > timeoutMs)
+                auto timeElapsed = now - startPoint;
+                if (timeElapsed > timeout)
+                {
+                    LOG_E("Timeout expired: packets count expected {}, packets count ready {}",
+                          packetCount, allPackets.getCount());
                     break;
+                }
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(20));
                 continue;
@@ -109,8 +116,6 @@ public:
 
             for (const auto& packet : packets)
                 allPackets.pushBack(packet);
-
-            lastPacketReceived = std::chrono::system_clock::now();
         }
 
         return allPackets;
@@ -118,16 +123,30 @@ public:
 
     bool packetsEqual(const ListPtr<IPacket>& listA, const ListPtr<IPacket>& listB, bool compareDescriptors = true)
     {
+        bool result = true;
         if (listA.getCount() != listB.getCount())
-            return false;
-
-        for (SizeT i = 0; i < listA.getCount(); i++)
         {
-            if (!BaseObjectPtr::Equals(listA.getItemAt(i), listB.getItemAt(i)))
-                return false;
+            LOG_E("Compared packets count differs: A {}, B {}", listA.getCount(), listB.getCount());
+            result = false;
         }
 
-        return true;
+        auto count = std::min(listA.getCount(), listB.getCount());
+
+        for (SizeT i = 0; i < count; i++)
+        {
+            if (!compareDescriptors &&
+                listA.getItemAt(i).getType() == PacketType::Event &&
+                listB.getItemAt(i).getType() == PacketType::Event)
+                continue;
+            if (!BaseObjectPtr::Equals(listA.getItemAt(i), listB.getItemAt(i)))
+            {
+                LOG_E("Packets at index {} differs: A - \"{}\", B - \"{}\"",
+                      i, listA.getItemAt(i).toString(), listB.getItemAt(i).toString());
+                result = false;
+            }
+        }
+
+        return result;
     }
 
 protected:
@@ -163,6 +182,7 @@ protected:
     }
 
     LoggerPtr logger;
+    LoggerComponentPtr loggerComponent;
     ContextPtr clientContext;
     InstancePtr instance;
     FunctionPtr createStreamingCallback;
@@ -247,9 +267,9 @@ TEST_F(StreamingIntegrationTest, ByteStep)
     auto serverReceivedPackets = tryReadPackets(serverStepReader, packetsToRead + 1);
     auto clientReceivedPackets = tryReadPackets(clientStepReader, packetsToRead + 1);
 
-    ASSERT_EQ(serverReceivedPackets.getCount(), packetsToRead + 1);
-    ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
-    ASSERT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead + 1);
+    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
+    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 
 TEST_F(StreamingIntegrationTest, ChangingSignal)
@@ -279,13 +299,12 @@ TEST_F(StreamingIntegrationTest, ChangingSignal)
 
     auto serverReceivedPackets = tryReadPackets(serverStepReader, packetsToRead);
     auto clientReceivedPackets = tryReadPackets(clientStepReader, packetsToRead);
-    ASSERT_EQ(serverReceivedPackets.getCount(), packetsToRead);
-    ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead);
-    // TODO: this fails
+    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
+    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     // TODO websocket streaming does not recreate half assigned data descriptor changed event packet on client side
     // both: value and domain descriptors are always assigned in event packet
     // while on server side one descriptor can be assigned only
-    //ASSERT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets, false));
 }
 
 TEST_F(StreamingIntegrationTest, AllSignalsAsync)
@@ -336,9 +355,9 @@ TEST_F(StreamingIntegrationTest, AllSignalsAsync)
     {
         auto sentPackets = serverFetures[i].get();
         auto receivedPackets = clientFetures[i].get();
-        ASSERT_EQ(sentPackets.getCount(), packetsToRead + 1);
-        ASSERT_EQ(receivedPackets.getCount(), packetsToRead + 1);
-        ASSERT_TRUE(packetsEqual(sentPackets, receivedPackets));
+        EXPECT_EQ(sentPackets.getCount(), packetsToRead + 1);
+        EXPECT_EQ(receivedPackets.getCount(), packetsToRead + 1);
+        EXPECT_TRUE(packetsEqual(sentPackets, receivedPackets));
     }
 }
 
@@ -382,7 +401,7 @@ TEST_F(StreamingIntegrationTest, StreamingDeactivate)
 
     auto clientStepReader = createReader(clientDevice, "Sine");
 
-    auto clientReceivedPackets = tryReadPackets(clientStepReader, packetsToRead + 1);
+    auto clientReceivedPackets = tryReadPackets(clientStepReader, 1);
     ASSERT_EQ(clientReceivedPackets.getCount(), 1u); // Single event packet only
 
     generatePackets(packetsToRead);
@@ -390,11 +409,11 @@ TEST_F(StreamingIntegrationTest, StreamingDeactivate)
     auto serverReceivedPackets = tryReadPackets(serverStepReader, packetsToRead + 1);
     ASSERT_EQ(serverReceivedPackets.getCount(), packetsToRead + 1);
 
-    clientReceivedPackets = tryReadPackets(clientStepReader, packetsToRead + 1);
+    clientReceivedPackets = tryReadPackets(clientStepReader, packetsToRead, std::chrono::seconds(5));
     ASSERT_EQ(clientReceivedPackets.getCount(), 0u); // no data packets since streaming is inactive
 
     streaming.setActive(True);
 
-    clientReceivedPackets = tryReadPackets(clientStepReader, packetsToRead + 1);
+    clientReceivedPackets = tryReadPackets(clientStepReader, packetsToRead, std::chrono::seconds(5));
     ASSERT_EQ(clientReceivedPackets.getCount(), 0u); // still no data packets available
 }

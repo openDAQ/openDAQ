@@ -35,7 +35,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE_EX(IVersionInfo, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IVersionInfo")
+    DEFINE_INTFID("IVersionInfo")
 
     /*!
      * @brief The major version incremented at breaking changes.

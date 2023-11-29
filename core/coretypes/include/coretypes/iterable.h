@@ -36,7 +36,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE_EX(IIterable, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IIterable")
+    DEFINE_INTFID("IIterable")
 
     /*!
      * @brief Creates and returns the object's start iterator.

@@ -55,7 +55,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE_EX(IErrorInfo, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IErrorInfo")
+    DEFINE_INTFID("IErrorInfo")
 
     /*!
      * @brief Sets the message of the error.

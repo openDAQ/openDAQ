@@ -8,11 +8,6 @@
 using IntfIdTest = testing::Test;
 using namespace daq;
 
-struct ILegacyBaseObjectTest : IUnknown
-{
-    DEFINE_LEGACY_INTFID("IBaseObject")
-};
-
 struct IBaseObjectTest : IUnknown
 {
     DEFINE_INTFID("IBaseObject")
@@ -21,18 +16,18 @@ struct IBaseObjectTest : IUnknown
 template <class T>
 struct ITemplatedIntf : IUnknown
 {
-    DEFINE_LEGACY_INTFID("ITemplatedInterface", T)
+    DEFINE_INTFID("ITemplatedInterface", T)
 };
 
 template <class T, class U>
 struct ITemplated2Intf : IUnknown
 {
-    DEFINE_LEGACY_INTFID("ITemplated2Interface", T, U)
+    DEFINE_INTFID("ITemplated2Interface", T, U)
 };
 
 TEST_F(IntfIdTest, ActualBaseObjectGuid)
 {
-    constexpr IntfID baseObj = IntfID::FromTypeName("IBaseObject.Core.RT.Dewesoft");
+    constexpr IntfID baseObj = IntfID::FromTypeName("IBaseObject.daq");
     bool eq = baseObj == IBaseObject::Id;
 
     ASSERT_TRUE(eq);
@@ -40,7 +35,7 @@ TEST_F(IntfIdTest, ActualBaseObjectGuid)
 
 TEST_F(IntfIdTest, TestSize)
 {
-    constexpr IntfID baseObj = IntfID::FromTypeName("IBaseObject.Core.RT.Dewesoft");
+    constexpr IntfID baseObj = IntfID::FromTypeName("IBaseObject.daq");
     static_assert(sizeof(baseObj) == 16);
 }
 
@@ -48,14 +43,6 @@ TEST_F(IntfIdTest, ActualBaseObjectGuidExplicit)
 {
     constexpr IntfID baseObj = { 0xe8f364f8, 0xe940, 0x572d, { { 0xbb, 0x89, 0x8a, 0x7d, 0x2a, 0xe1, 0xdd, 0xe7 } } };
     bool eq = baseObj == IBaseObject::Id;
-
-    ASSERT_TRUE(eq);
-}
-
-TEST_F(IntfIdTest, LegacyBaseObjectGuid)
-{
-    constexpr IntfID baseObj = IntfID::FromTypeName("IBaseObject.Core.RT.Dewesoft");
-    bool eq = baseObj == ILegacyBaseObjectTest::Id;
 
     ASSERT_TRUE(eq);
 }
@@ -70,7 +57,7 @@ TEST_F(IntfIdTest, BaseObjectGuid)
 
 TEST_F(IntfIdTest, TemplatedTest)
 {
-    constexpr IntfID id = IntfID::FromTypeName("ITemplatedInterface<int32>.Core.RT.Dewesoft");
+    constexpr IntfID id = IntfID::FromTypeName("ITemplatedInterface<int32>.daq");
 
 #if !(defined(__GNUC__) && defined(NDEBUG))
     /* does not compile with GCC on release mode: http://eel.is/c++draft/temp#res-8
@@ -90,8 +77,8 @@ TEST_F(IntfIdTest, TemplatedTest)
 
 TEST_F(IntfIdTest, Templated2Test)
 {
-    constexpr IntfID id1 = IntfID::FromTypeName("ITemplated2Interface<int32,uint16>.Core.RT.Dewesoft");
-    constexpr IntfID id2 = IntfID::FromTypeName("ITemplated2Interface<float,double>.Core.RT.Dewesoft");
+    constexpr IntfID id1 = IntfID::FromTypeName("ITemplated2Interface<int32,uint16>.daq");
+    constexpr IntfID id2 = IntfID::FromTypeName("ITemplated2Interface<float,double>.daq");
 
 #if !(defined(__GNUC__) && defined(NDEBUG))
 
@@ -113,7 +100,7 @@ TEST_F(IntfIdTest, Templated2Test)
 
 TEST_F(IntfIdTest, CoreTypeId)
 {
-    constexpr auto id = LEGACY_INTFID("ICoreType");
+    constexpr auto id = OPENDAQ_INTFID("ICoreType");
 
     ASSERT_EQ(id, ICoreType::Id);
 }
@@ -129,5 +116,5 @@ TEST_F(IntfIdTest, Hash)
 {
     std::hash<daq::IntfID> hash{};
     ASSERT_EQ(hash(IBaseObjectTest::Id), hash(IBaseObjectTest::Id));
-    ASSERT_NE(hash(ILegacyBaseObjectTest::Id), hash(IBaseObjectTest::Id));
+    ASSERT_NE(hash(IBaseObjectTest::Id), hash(IBaseObjectTest::Id));
 }

@@ -48,7 +48,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE_EX(IString, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IString")
+    DEFINE_INTFID("IString")
 
     /*!
      * @brief Gets a string value stored in the object.

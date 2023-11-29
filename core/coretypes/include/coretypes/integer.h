@@ -41,7 +41,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE_EX(IInteger, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IIntObject")
+    DEFINE_INTFID("IIntObject")
 
     /*!
      * @brief Gets an int value stored in the object.

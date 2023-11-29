@@ -33,7 +33,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE_EX(IEventArgs, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IEventArgs")
+    DEFINE_INTFID("IEventArgs")
 
     virtual ErrCode INTERFACE_FUNC getEventId(Int* id) = 0;
     virtual ErrCode INTERFACE_FUNC getEventName(IString** name) = 0;

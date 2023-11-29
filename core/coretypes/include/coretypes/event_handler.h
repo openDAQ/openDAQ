@@ -29,7 +29,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE_EX(IEventHandler, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IEventHandler")
+    DEFINE_INTFID("IEventHandler")
 
     virtual ErrCode INTERFACE_FUNC handleEvent(IBaseObject* sender, IEventArgs* eventArgs) = 0;
 };

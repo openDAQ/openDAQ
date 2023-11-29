@@ -42,7 +42,7 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE_EX(IBoolean, IBaseObject)
 {
     /// @privatesection
-    DEFINE_LEGACY_INTFID("IBoolObject")
+    DEFINE_INTFID("IBoolObject")
     /// @publicsection
 
     /*!

@@ -57,7 +57,7 @@ enum CoreType : int
  */
 DECLARE_OPENDAQ_INTERFACE_EX(ICoreType, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("ICoreType")
+    DEFINE_INTFID("ICoreType")
 
     /*!
      * @brief Gets the object's CoreType.

@@ -43,7 +43,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE_EX(IFloat, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IFloatObject")
+    DEFINE_INTFID("IFloatObject")
 
     /*!
      * @brief Gets a float value stored in the object.

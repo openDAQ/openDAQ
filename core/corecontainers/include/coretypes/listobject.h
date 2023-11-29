@@ -33,7 +33,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE_EX(IList, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IList")
+    DEFINE_INTFID("IList")
 
     /*!
      * @brief Gets the element at a specific position.

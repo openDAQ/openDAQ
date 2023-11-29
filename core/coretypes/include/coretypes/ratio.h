@@ -44,7 +44,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE_EX(IRatio, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IRatio")
+    DEFINE_INTFID("IRatio")
 
     /*!
      * @brief Gets numerator part.

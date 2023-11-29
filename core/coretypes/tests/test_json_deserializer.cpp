@@ -424,19 +424,19 @@ TEST_F(JsonDeserializerTest, createToNull)
 
 TEST_F(JsonDeserializerTest, deserializerGuid)
 {
-    auto expected = LEGACY_INTFID("IDeserializer");
+    auto expected = OPENDAQ_INTFID("IDeserializer");
     ASSERT_EQ(IDeserializer::Id, expected);
 }
 
 TEST_F(JsonDeserializerTest, serializedListGuid)
 {
-    auto expected = LEGACY_INTFID("ISerializedList");
+    auto expected = OPENDAQ_INTFID("ISerializedList");
     ASSERT_EQ(ISerializedList::Id, expected);
 }
 
 TEST_F(JsonDeserializerTest, serializedObjectGuid)
 {
-    auto expected = LEGACY_INTFID("ISerializedObject");
+    auto expected = OPENDAQ_INTFID("ISerializedObject");
     ASSERT_EQ(ISerializedObject::Id, expected);
 }
 

@@ -44,7 +44,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE_EX(IComplexNumber, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IComplexNumber")
+    DEFINE_INTFID("IComplexNumber")
 
     /*!
      * @brief Gets the number as ComplexFloat64 type.

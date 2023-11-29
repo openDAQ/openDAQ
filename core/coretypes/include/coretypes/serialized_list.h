@@ -32,7 +32,7 @@ struct ISerializedObject;
 
 DECLARE_OPENDAQ_INTERFACE_EX(ISerializedList, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("ISerializedList")
+    DEFINE_INTFID("ISerializedList")
 
     virtual ErrCode INTERFACE_FUNC readSerializedObject(ISerializedObject** plainObj) = 0;
     virtual ErrCode INTERFACE_FUNC readSerializedList(ISerializedList** list) = 0;

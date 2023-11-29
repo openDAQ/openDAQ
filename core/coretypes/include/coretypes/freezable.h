@@ -34,7 +34,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE_EX(IFreezable, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IFreezable")
+    DEFINE_INTFID("IFreezable")
 
     /*!
      * @brief Makes the object frozen/immutable.

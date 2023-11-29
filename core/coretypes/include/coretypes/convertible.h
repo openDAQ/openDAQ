@@ -50,7 +50,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE_EX(IConvertible, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IConvertible")
+    DEFINE_INTFID("IConvertible")
 
     /*!
      * @brief Converts the object to Float type.

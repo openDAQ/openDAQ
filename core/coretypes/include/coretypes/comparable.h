@@ -36,7 +36,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE_EX(IComparable, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IComparable")
+    DEFINE_INTFID("IComparable")
 
     /*!
      * @brief Compares the object to another object.

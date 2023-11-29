@@ -72,7 +72,7 @@ struct ClassifierTestHelper
             for (size_t i = 0; i < numSamples; i++)
                 outputData[i] = (sentSamples + i) * 1000 + d(random);
 
-            if (sentSamples == 0 && numSamples)
+            if (!sentSamples && numSamples)
                 outputData[0] = 0;
 
             sentSamples += numSamples;

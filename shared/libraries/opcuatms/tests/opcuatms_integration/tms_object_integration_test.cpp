@@ -5,22 +5,20 @@ using namespace daq;
 using namespace daq::opcua;
 using namespace daq::opcua::tms;
 
-TmsObjectIntegrationTest::TmsObjectIntegrationTest()
-    : TmsObjectTest()
-{
-}
-
 void TmsObjectIntegrationTest::SetUp()
 {
     TmsObjectTest::SetUp();
 
-    context = NullContext();
-    clientContext = std::make_shared<TmsClientContext>(client, context);
+    ctx = daq::NullContext();
+    clientContext = std::make_shared<TmsClientContext>(client, ctx);
+    serverContext = std::make_shared<TmsServerContext>(ctx);
 }
 
 void TmsObjectIntegrationTest::TearDown()
 {
     clientContext.reset();
+    serverContext = nullptr;
+    ctx = nullptr;
 
     TmsObjectTest::TearDown();
 }

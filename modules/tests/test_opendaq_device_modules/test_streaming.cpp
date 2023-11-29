@@ -41,7 +41,7 @@ public:
 
     SignalPtr getSignal(const DevicePtr& device, const std::string& signalName)
     {
-        auto signals = device.getSignalsRecursive();
+        auto signals = device.getSignals(search::Recursive(search::Visible()));
 
         for (const auto& signal : signals)
         {
@@ -255,57 +255,6 @@ TEST_P(StreamingTest, DataPackets)
 
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
-    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
-}
-
-TEST_P(StreamingTest, SignalPropertyEvents)
-{
-    const size_t packetsToRead = 10;
-
-    // Expect to receive all data packets,
-    // +1 signal initial descriptor changed event packet
-    // +2 signal property changed event packet
-    // TODO web-socket streaming does not recreate "PROPERTY_CHANGED" event packet
-    // when property changed on server side
-    const size_t packetsToReceive = packetsToRead + 1 + 2;
-    const size_t clientPacketsToReceive =
-        (std::get<0>(GetParam()) == "openDAQ WebsocketTcp Streaming") ? (packetsToRead + 1) : packetsToReceive;
-
-    SignalPtr serverSignal = getSignal(serverInstance, "ByteStep");
-    SignalPtr clientSignal = getSignal(clientInstance, "ByteStep");
-
-    auto mirroredSignalPtr = clientSignal.template asPtr<IMirroredSignalConfig>();
-    std::promise<StringPtr> subscribeCompletePromise;
-    std::future<StringPtr> subscribeCompleteFuture;
-    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
-
-    ASSERT_EQ(clientSignal.getName(), serverSignal.getName());
-    ASSERT_EQ(clientSignal.getDescription(), serverSignal.getDescription());
-
-    auto serverReader = createServerReader("ByteStep");
-    auto clientReader = createClientReader("ByteStep");
-
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
-
-    serverSignal.setName("ByteStepChanged");
-    serverSignal.setDescription("DescriptionChanged");
-
-    generatePackets(packetsToRead);
-
-    auto serverReceivedPackets = tryReadPackets(serverReader, packetsToReceive);
-    auto clientReceivedPackets = tryReadPackets(clientReader, clientPacketsToReceive);
-
-    EXPECT_EQ(clientSignal.getName(), serverSignal.getName());
-    EXPECT_EQ(clientSignal.getDescription(), serverSignal.getDescription());
-
-    // TODO
-    // packet comparing for web-socket streaming is skipped since it does not recreate "PROPERTY_CHANGED"
-    // event packet when property changed on server side
-    if (std::get<0>(GetParam()) == "openDAQ WebsocketTcp Streaming")
-        return;
-
-    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToReceive);
-    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToReceive);
     EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 

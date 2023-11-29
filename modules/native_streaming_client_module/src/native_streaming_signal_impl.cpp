@@ -14,7 +14,7 @@ NativeStreamingSignalImpl::NativeStreamingSignalImpl(const ContextPtr& ctx,
                                                      const ComponentPtr& parent,
                                                      const DataDescriptorPtr& descriptor,
                                                      const StringPtr& streamingId)
-    : MirroredSignalBase(ctx, parent, createLocalId(streamingId), nullptr, ComponentStandardProps::AddReadOnly)
+    : MirroredSignalBase(ctx, parent, createLocalId(streamingId), nullptr)
     , streamingId(streamingId)
     , mirroredDataDescriptor(descriptor)
 {
@@ -78,19 +78,6 @@ Bool NativeStreamingSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
             mirroredDomainSignal.template asPtr<IMirroredSignalPrivate>()->triggerEvent(domainSignalEventPacket);
         }
         return True;
-    }
-    else if (eventPacket.getEventId() == event_packet_id::PROPERTY_CHANGED)
-    {
-        const auto params = eventPacket.getParameters();
-        StringPtr propName = params.get(event_packet_param::NAME);
-        BaseObjectPtr propValue = params.get(event_packet_param::VALUE);
-
-        auto protectedObject = this->template borrowPtr<PropertyObjectProtectedPtr>();
-        protectedObject.setProtectedPropertyValue(propName, propValue);
-
-        // setProtectedPropertyValue will create new eventPacket, so returns false to disable
-        // forwarding of original packet
-        return False;
     }
 
     // packet was not handled so returns True to forward the original packet

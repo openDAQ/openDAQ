@@ -7,7 +7,8 @@
 #include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
-    EventPacketImpl::EventPacketImpl(StringPtr eventId, DictPtr<IString, IBaseObject> parameters)
+
+EventPacketImpl::EventPacketImpl(StringPtr eventId, DictPtr<IString, IBaseObject> parameters)
     : eventId(std::move(eventId))
     , parameters(std::move(parameters))
 {
@@ -118,7 +119,6 @@ ErrCode EventPacketImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, EventPacket, IString*, id, IDict*, params)
 
 using DataDescriptorChangedEventPacketImpl = EventPacketImpl;
-using PropertyChangedEventPacketImpl = EventPacketImpl;
 
 #if !defined(BUILDING_STATIC_LIBRARY)
 
@@ -131,16 +131,6 @@ extern "C" daq::ErrCode PUBLIC_EXPORT createDataDescriptorChangedEventPacket(IEv
 
     return daq::createObject<IEventPacket, DataDescriptorChangedEventPacketImpl>(
         objTmp, event_packet_id::DATA_DESCRIPTOR_CHANGED, parameters);
-}
-
-extern "C" daq::ErrCode PUBLIC_EXPORT createPropertyChangedEventPacket(IEventPacket** objTmp,
-                                                                       IString* name,
-                                                                       IBaseObject* value)
-{
-    const auto parameters = Dict<IString, IBaseObject>(
-        {{event_packet_param::NAME, name}, {event_packet_param::VALUE, value }});
-
-    return daq::createObject<IEventPacket, PropertyChangedEventPacketImpl>(objTmp, event_packet_id::PROPERTY_CHANGED, parameters);
 }
 
 #endif

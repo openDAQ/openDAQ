@@ -39,7 +39,6 @@ void defineIEventPacket(pybind11::module_ m, PyDaqIntf<daq::IEventPacket, daq::I
 
     m.def("EventPacket", &daq::EventPacket_Create);
     m.def("DataDescriptorChangedEventPacket", &daq::DataDescriptorChangedEventPacket_Create);
-    m.def("PropertyChangedEventPacket", &daq::PropertyChangedEventPacket_Create);
 
     cls.def_property_readonly("event_id",
         [](daq::IEventPacket *object)

@@ -94,6 +94,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIMirroredSignalConfig = declareIMirroredSignalConfig(m);
     auto classISubscriptionEventArgs = declareISubscriptionEventArgs(m);
     auto classMockSignal = declareMockSignal(m);
+    auto classISearchFilter = declareISearchFilter(m);
+    auto classIComponentPrivate = declareIComponentPrivate(m);
 
     defineIAllocator(m, classIAllocator);
     defineIRemovable(m, classIRemovable);
@@ -164,6 +166,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIMirroredSignalConfig(m, classIMirroredSignalConfig);
     defineISubscriptionEventArgs(m, classISubscriptionEventArgs);
     defineMockSignal(m, classMockSignal);
+    defineISearchFilter(m, classISearchFilter);
+    defineIComponentPrivate(m, classIComponentPrivate);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
 }

@@ -17,8 +17,11 @@
 #pragma once
 #include <opendaq/component_ptr.h>
 #include <opendaq/tags_ptr.h>
+#include <opendaq/custom_log.h>
+#include <coreobjects/core_event_args_ids.h>
 #include "opcuatms_server/objects/tms_server_property_object.h"
 #include "opcuatms/converters/variant_converter.h"
+#include "opcuatms_server/tms_server_context.h"
 #include "open62541/daqdevice_nodeids.h"
 
 
@@ -34,7 +37,7 @@ class TmsServerComponent : public TmsServerObjectBaseImpl<Ptr>
 public:
     using Super = TmsServerObjectBaseImpl<Ptr>;
 
-    TmsServerComponent(const ComponentPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context);
+    TmsServerComponent(const ComponentPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
 
     bool createOptionalNode(const opcua::OpcUaNodeId& nodeId) override;
 
@@ -43,13 +46,16 @@ public:
     std::string getDescription() override;
     opcua::OpcUaNodeId getReferenceType() override;
     void bindCallbacks() override;
+    void registerToTmsServerContext() override;
     void addChildNodes() override;
+    void onCoreEvent(const CoreEventArgsPtr& args) override;
 
 protected:
     opcua::OpcUaNodeId getTmsTypeId() override;
     void configureNodeAttributes(opcua::OpcUaObject<UA_ObjectAttributes>& attr) override;
 
     std::unique_ptr<TmsServerPropertyObject> tmsPropertyObject;
+
 private:
     bool selfChange;
 };
@@ -57,11 +63,11 @@ private:
 using namespace opcua;
 
 template <typename Ptr>
-TmsServerComponent<Ptr>::TmsServerComponent(const ComponentPtr& object, const OpcUaServerPtr& server, const ContextPtr& context)
-    : Super(object, server, context)
+TmsServerComponent<Ptr>::TmsServerComponent(const ComponentPtr& object, const OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext)
+    : Super(object, server, context, tmsContext)
     , selfChange(false)
 {
-    tmsPropertyObject = std::make_unique<TmsServerPropertyObject>(this->object, this->server, this->daqContext, std::unordered_set<std::string>{"Name", "Description"});
+    tmsPropertyObject = std::make_unique<TmsServerPropertyObject>(this->object, this->server, this->daqContext, this->tmsContext, std::unordered_set<std::string>{"Name", "Description"});
 }
 
 template <typename Ptr>
@@ -98,9 +104,13 @@ template <typename Ptr>
 void TmsServerComponent<Ptr>::configureNodeAttributes(opcua::OpcUaObject<UA_ObjectAttributes>& attr)
 {
     TmsServerObject::configureNodeAttributes(attr);
-    if (this->object.hasProperty("Name") && !this->object.getProperty("Name").getReadOnly())
+    std::unordered_set<std::string> lockedAttrs;
+    for (const auto& str : this->object.getLockedAttributes())
+        lockedAttrs.insert(str);
+
+    if (!lockedAttrs.count("Name"))
         attr->writeMask |= UA_WRITEMASK_DISPLAYNAME;
-    if (this->object.hasProperty("Description") && !this->object.getProperty("Description").getReadOnly())
+    if (!lockedAttrs.count("Description"))
         attr->writeMask |= UA_WRITEMASK_DESCRIPTION;
 }
 
@@ -130,42 +140,36 @@ void TmsServerComponent<Ptr>::bindCallbacks()
         });
     }
 
-    if (this->object.hasProperty("Name"))
+	this->addReadCallback("Visible", [this]() { return VariantConverter<IBoolean>::ToVariant( this->object.getVisible()); });
+
+    if (!this->object.template asPtrOrNull<IFreezable>().assigned() || !this->object.isFrozen())
     {
-        this->object.getOnPropertyValueWrite("Name") +=
-            [&](const PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-            {
-                if (selfChange)
-                    return;
-
-                std::string name = args.getValue();
-                this->server->setDisplayName(this->nodeId, name);
-            };
-    }
-
-    if (this->object.hasProperty("Description"))
-    {
-        this->object.getOnPropertyValueWrite("Description") +=
-            [&](const PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-            {
-                if (selfChange)
-                    return;
-
-                std::string description = args.getValue();
-                this->server->setDescription(this->nodeId, description);
-            };
+        this->addWriteCallback("Visible", [this](const OpcUaVariant& variant){
+            this->object.setVisible(VariantConverter<IBoolean>::ToDaqObject(variant));
+            return UA_STATUSCODE_GOOD;
+        });
     }
 
     DisplayNameChangedCallback nameChangedCallback =
         [this](const OpcUaNodeId& /*nodeId*/, const OpcUaObject<UA_LocalizedText>& name, void* /*context*/)
         {
+            if (selfChange)
+                return;
+
             try
             {
                 selfChange = true;
                 this->object.setName(utils::ToStdString(name->text));
             }
-            catch(...)
+            catch ([[maybe_unused]] const std::exception& e)
             {
+                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
+                LOG_D("OPC UA Component {} failed to set component name: {}", this->object.getLocalId(), e.what());
+            }
+            catch (...)
+            {
+                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
+                LOG_D("OPC UA Component {} failed to set component name.", this->object.getLocalId());
             }
 
             selfChange = false;
@@ -175,13 +179,23 @@ void TmsServerComponent<Ptr>::bindCallbacks()
     DisplayNameChangedCallback descriptionChangedCallback =
         [this](const OpcUaNodeId& /*nodeId*/, const OpcUaObject<UA_LocalizedText>& description, void* /*context*/)
         {
+            if (selfChange)
+                return;
+
             try
             {
                 selfChange = true;
                 this->object.setDescription(utils::ToStdString(description->text));
             }
-            catch(...)
+            catch ([[maybe_unused]] const std::exception& e)
             {
+                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
+                LOG_D("OPC UA Component {} failed to set component description: {}", this->object.getLocalId(), e.what());
+            }
+            catch (...)
+            {
+                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
+                LOG_D("OPC UA Component {} failed to set component description.", this->object.getLocalId());
             }
 
             selfChange = false;
@@ -190,9 +204,60 @@ void TmsServerComponent<Ptr>::bindCallbacks()
 }
 
 template <typename Ptr>
+void TmsServerComponent<Ptr>::registerToTmsServerContext()
+{
+    Super::registerToTmsServerContext();
+    this->tmsContext->registerComponent(this->object, *this);
+}
+
+template <typename Ptr>
 void TmsServerComponent<Ptr>::addChildNodes()
 {
+	OpcUaNodeId newNodeId(0);
+	AddVariableNodeParams params(newNodeId, this->nodeId);
+	params.setBrowseName("Visible");
+	params.setDataType(OpcUaNodeId(UA_TYPES[UA_TYPES_BOOLEAN].typeId));
+    params.typeDefinition = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_PROPERTYTYPE));
+
+    OpcUaObject<UA_VariableAttributes> attr = UA_VariableAttributes_default;
+    attr->accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
+    params.attr = attr;
+    
+    this->server->addVariableNode(params);
+
     tmsPropertyObject->registerToExistingOpcUaNode(this->nodeId);
+}
+
+template <typename Ptr>
+void TmsServerComponent<Ptr>::onCoreEvent(const CoreEventArgsPtr& args)
+{
+    Super::onCoreEvent(args);
+
+    if (!selfChange && args.getEventId() == core_event_ids::AttributeChanged)
+    {
+        const StringPtr attrName = args.getParameters().get("AttributeName");
+
+        try
+        {
+            selfChange = true;
+            if (attrName == "Name")
+                this->server->setDisplayName(this->nodeId, args.getParameters().get("Name"));
+            else if (attrName == "Description")
+                this->server->setDescription(this->nodeId, args.getParameters().get("Description"));
+        }
+        catch ([[maybe_unused]] const std::exception& e)
+        {
+            const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
+            LOG_D("OPC UA Component {} failed to set node attribute \"{}\": {}", this->object.getLocalId(), attrName, e.what());
+        }
+        catch (...)
+        {
+            const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
+            LOG_D("OPC UA Component {} failed to set node attribute \"{}\".", this->object.getLocalId(), attrName);
+        }
+
+        selfChange = false;
+    }
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

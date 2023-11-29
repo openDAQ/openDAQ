@@ -1045,8 +1045,8 @@ TEST_F(CoreEventTest, ActiveChanged)
     getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::ComponentModified);
-            ASSERT_EQ(args.getEventName(), "ComponentModified");
+            ASSERT_EQ(args.getEventId(), core_event_ids::AttributeChanged);
+            ASSERT_EQ(args.getEventName(), "AttributeChanged");
             ASSERT_TRUE(args.getParameters().hasKey("Active"));
             changeCount++;
         };
@@ -1076,8 +1076,8 @@ TEST_F(CoreEventTest, DomainSignalChanged)
     getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::ComponentModified);
-            ASSERT_EQ(args.getEventName(), "ComponentModified");
+            ASSERT_EQ(args.getEventId(), core_event_ids::AttributeChanged);
+            ASSERT_EQ(args.getEventName(), "AttributeChanged");
             ASSERT_TRUE(args.getParameters().hasKey("DomainSignal"));
             if (changeCount % 2 == 0)
                 ASSERT_EQ(args.getParameters().get("DomainSignal"), domainSig1);
@@ -1113,8 +1113,8 @@ TEST_F(CoreEventTest, RelatedSignalsChanged)
     getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::ComponentModified);
-            ASSERT_EQ(args.getEventName(), "ComponentModified");
+            ASSERT_EQ(args.getEventId(), core_event_ids::AttributeChanged);
+            ASSERT_EQ(args.getEventName(), "AttributeChanged");
             ASSERT_TRUE(args.getParameters().hasKey("RelatedSignals"));
             ASSERT_TRUE(args.getParameters().get("RelatedSignals").asPtrOrNull<IList>().assigned());
             changeCount++;

@@ -449,9 +449,9 @@ void PowerFbImpl::createInputPorts()
 
 void PowerFbImpl::createSignals()
 {
-    powerSignal = createAndAddSignal(String("power"));
+    powerSignal = createAndAddSignal("power");
     powerSignal.setName("Power");
-    powerDomainSignal = createAndAddSignal(String("power_domain"));
+    powerDomainSignal = createAndAddSignal("power_domain", nullptr, false);
     powerDomainSignal.setName("PowerDomain");
     powerSignal.setDomainSignal(powerDomainSignal);
 }

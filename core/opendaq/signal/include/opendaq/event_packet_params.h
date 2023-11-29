@@ -21,7 +21,4 @@ namespace event_packet_param
 {
     const std::string DATA_DESCRIPTOR = "DataDescriptor";
     const std::string DOMAIN_DATA_DESCRIPTOR = "DomainDataDescriptor";
-
-    const std::string NAME = "Name";
-    const std::string VALUE = "Value";
 }

@@ -28,6 +28,7 @@ OutputSignal::OutputSignal(const daq::streaming_protocol::StreamWriterPtr& write
 {
     createSignalStream();
     createStreamedSignal();
+    subscribeToCoreEvent();
 }
 
 void OutputSignal::write(const PacketPtr& packet)
@@ -168,14 +169,17 @@ void OutputSignal::createStreamedSignal()
     streamedSignal.setDescription(signal.getDescription());
 }
 
+void OutputSignal::subscribeToCoreEvent()
+{
+    signal.getOnComponentCoreEvent() += event(this, &OutputSignal::processCoreEvent);
+}
+
 void OutputSignal::writeEventPacket(const EventPacketPtr& packet)
 {
     const auto eventId = packet.getEventId();
 
     if (eventId == event_packet_id::DATA_DESCRIPTOR_CHANGED)
         writeDescriptorChangedPacket(packet);
-    else if (eventId == event_packet_id::PROPERTY_CHANGED)
-        writePropertyChangedPacket(packet);
     else
     {
         STREAMING_PROTOCOL_LOG_E("Event type {} is not supported by streaming.", eventId);
@@ -207,11 +211,14 @@ void OutputSignal::writeDescriptorChangedPacket(const EventPacketPtr& packet)
     stream->writeSignalMetaInformation();
 }
 
-void OutputSignal::writePropertyChangedPacket(const EventPacketPtr& packet)
+void OutputSignal::processCoreEvent(ComponentPtr& /*component*/, CoreEventArgsPtr& args)
 {
-    const auto params = packet.getParameters();
-    const auto name = params.get(event_packet_param::NAME);
-    const auto value = params.get(event_packet_param::VALUE);
+    if (args.getEventId() != core_event_ids::AttributeChanged)
+        return;
+
+    const auto params = args.getParameters();
+    const auto name = params.get("AttributeName");
+    const auto value = params.get(name);
 
     SignalProps sigProps;
     if (name == "Name")
@@ -224,6 +231,12 @@ void OutputSignal::writePropertyChangedPacket(const EventPacketPtr& packet)
         sigProps.description = value;
         streamedSignal.setDescription(value);
     }
+    else
+    {
+        return;
+    }
+
+    // Streaming LT does not support attribute change forwarding for active, public, and visible
 
     SignalDescriptorConverter::ToStreamedSignal(signal, stream, sigProps);
     stream->writeSignalMetaInformation();

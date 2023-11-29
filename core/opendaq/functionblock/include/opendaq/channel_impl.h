@@ -37,8 +37,7 @@ public:
                          const ContextPtr& context,
                          const ComponentPtr& parent,
                          const StringPtr& localId,
-                         const StringPtr& className = nullptr,
-                         ComponentStandardProps propsMode = ComponentStandardProps::Add);
+                         const StringPtr& className = nullptr);
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -52,9 +51,8 @@ ChannelImpl<Interfaces...>::ChannelImpl(const FunctionBlockTypePtr& fbType,
                                         const ContextPtr& context,
                                         const ComponentPtr& parent,
                                         const StringPtr& localId,
-                                        const StringPtr& className,
-                                        const ComponentStandardProps propsMode)
-    : FunctionBlockImpl<IChannel, Interfaces...>(fbType, context, parent, localId, className, propsMode)
+                                        const StringPtr& className)
+    : FunctionBlockImpl<IChannel, Interfaces...>(fbType, context, parent, localId, className)
 {
 }
 

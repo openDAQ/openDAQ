@@ -22,8 +22,7 @@ class MockMirroredSignalImpl : public daq::MirroredSignal
 public:
     explicit MockMirroredSignalImpl(const daq::ContextPtr& ctx,
                                     const daq::ComponentPtr& parent,
-                                    const daq::StringPtr& localId,
-                                    daq::ComponentStandardProps propsMode = daq::ComponentStandardProps::Add);
+                                    const daq::StringPtr& localId);
 
     daq::StringPtr onGetRemoteId() const override;
     daq::Bool onTriggerEvent(daq::EventPacketPtr eventPacket) override;

@@ -47,8 +47,8 @@ namespace core_event_args_impl
                 return "DataDescriptorChanged";
             case core_event_ids::ComponentUpdateEnd:
                 return "ComponentUpdateEnd";
-            case core_event_ids::ComponentModified:
-                return "ComponentModified";
+            case core_event_ids::AttributeChanged:
+                return "AttributeChanged";
             default:
                 break;
         }
@@ -106,6 +106,8 @@ inline bool CoreEventArgsImpl::validateParameters() const
             return parameters.hasKey("Signal");
         case core_event_ids::DataDescriptorChanged:
             return parameters.hasKey("DataDescriptor");
+        case core_event_ids::AttributeChanged:
+            return parameters.hasKey("AttributeName");
         default:
             break;
     }

@@ -37,8 +37,7 @@ public:
     GenericSignalContainerImpl(const ContextPtr& context,
                                const ComponentPtr& parent,
                                const StringPtr& localId,
-                               const StringPtr& className = nullptr,
-                               ComponentStandardProps propsMode = ComponentStandardProps::Add);
+                               const StringPtr& className = nullptr);
     
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
@@ -54,7 +53,8 @@ protected:
 
     LoggerComponentPtr signalContainerLoggerComponent;
 
-    SignalConfigPtr createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor = nullptr);
+    SignalConfigPtr createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor = nullptr, bool visible = true);
+
     void addSignal(const SignalPtr& signal);
     void removeSignal(const SignalConfigPtr& signal);
 
@@ -67,9 +67,9 @@ protected:
     void validateComponentIsDefault(const std::string& localId);
 
     template <class TItemInterface = IComponent>
-    FolderConfigPtr addFolder(const std::string& localId, const FolderConfigPtr& parent = nullptr, ComponentStandardProps standardPropsConfig = ComponentStandardProps::Add);
+    FolderConfigPtr addFolder(const std::string& localId, const FolderConfigPtr& parent = nullptr);
 
-    ComponentPtr addComponent(const std::string& localId, const FolderConfigPtr& parent = nullptr, ComponentStandardProps standardPropsConfig = ComponentStandardProps::Add);
+    ComponentPtr addComponent(const std::string& localId, const FolderConfigPtr& parent = nullptr);
 
     void removed() override;
 
@@ -97,10 +97,9 @@ public:
     SignalContainerImpl(const ContextPtr& context,
                         const ComponentPtr& parent,
                         const StringPtr& localId,
-                        const StringPtr& className = nullptr,
-                        ComponentStandardProps propsMode = ComponentStandardProps::Add);
+                        const StringPtr& className = nullptr);
 
-    ErrCode INTERFACE_FUNC getItems(IList** items) override;
+    virtual ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter) override;
     ErrCode INTERFACE_FUNC getItem(IString* localId, IComponent** item) override;
     ErrCode INTERFACE_FUNC isEmpty(Bool* empty) override;
     ErrCode INTERFACE_FUNC hasItem(IString* localId, Bool* value) override;
@@ -110,9 +109,8 @@ template <class Intf, class... Intfs>
 GenericSignalContainerImpl<Intf, Intfs...>::GenericSignalContainerImpl(const ContextPtr& context,
                                                                        const ComponentPtr& parent,
                                                                        const StringPtr& localId,
-                                                                       const StringPtr& className,
-                                                                       const ComponentStandardProps propsMode)
-    : Super(context, parent, localId, className, propsMode)
+                                                                       const StringPtr& className)
+    : Super(context, parent, localId, className)
     , allowNonDefaultComponents(false)
     , signalContainerLoggerComponent(
         context.getLogger().assigned() ? context.getLogger().getOrAddComponent("GenericSignalContainerImpl")
@@ -121,8 +119,11 @@ GenericSignalContainerImpl<Intf, Intfs...>::GenericSignalContainerImpl(const Con
     defaultComponents.insert("Sig");
     defaultComponents.insert("FB");
 
-    signals = addFolder<ISignal>("Sig", nullptr, ComponentStandardProps::Skip);
-    functionBlocks = addFolder<IFunctionBlock>("FB", nullptr, ComponentStandardProps::Skip);
+    signals = addFolder<ISignal>("Sig", nullptr);
+    functionBlocks = addFolder<IFunctionBlock>("FB", nullptr);
+
+    signals.asPtr<IComponentPrivate>().lockAllAttributes();
+    functionBlocks.asPtr<IComponentPrivate>().lockAllAttributes();
 }
 
 template <class Intf, class ... Intfs>
@@ -155,20 +156,29 @@ template <class Intf, class ... Intfs>
 SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& context,
                                                          const ComponentPtr& parent,
                                                          const StringPtr& localId,
-                                                         const StringPtr& className,
-                                                         const ComponentStandardProps propsMode)
-    : Super(context, parent, localId, className, propsMode)
+                                                         const StringPtr& className)
+    : Super(context, parent, localId, className)
 {
 }
 
 template <class Intf, class ... Intfs>
-ErrCode SignalContainerImpl<Intf, Intfs...>::getItems(IList** items)
+ErrCode SignalContainerImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(items);
 
+    if (searchFilter)
+    {
+        return daqTry([&]
+        {
+            *items = this->searchItems(searchFilter, this->components).detach();
+            return OPENDAQ_SUCCESS;
+        });
+    }
+
     auto itemList = List<IComponent>();
     for (const auto& component : this->components)
-        itemList.pushBack(component);
+        if (component.getVisible())
+            itemList.pushBack(component);
 
     *items = itemList.detach();
     return OPENDAQ_SUCCESS;
@@ -224,11 +234,18 @@ ErrCode SignalContainerImpl<Intf, Intfs...>::getItem(IString* localId, IComponen
 }
 
 template<class Intf, class ...Intfs>
-SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs ...>::createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor)
+SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs ...>::createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor, bool visible)
 {
     auto signal = Signal(this->context, signals, localId);
     if (descriptor.assigned())
         signal.setDescriptor(descriptor);
+
+    if (!visible)
+    {
+        signal.template asPtr<IComponentPrivate>().unlockAttributes(List<IString>("visible"));
+        signal.setVisible(visible);
+        signal.template asPtr<IComponentPrivate>().lockAttributes(List<IString>("visible"));
+    }
 
     addSignal(signal);
     return signal;
@@ -353,7 +370,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::validateComponentIsDefault(cons
 
 template <class Intf, class ... Intfs>
 template <class TItemInterface>
-FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std::string& localId, const FolderConfigPtr& parent, const ComponentStandardProps standardPropsConfig)
+FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std::string& localId, const FolderConfigPtr& parent)
 {
     if (!parent.assigned())
     {
@@ -361,7 +378,7 @@ FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std:
         if (!allowNonDefaultComponents)
             validateComponentIsDefault(localId);
 
-        auto folder = Folder<TItemInterface>(this->context, this->template thisPtr<ComponentPtr>(), localId, standardPropsConfig);
+        auto folder = Folder<TItemInterface>(this->context, this->template thisPtr<ComponentPtr>(), localId);
         this->components.push_back(folder);
 
         if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -377,13 +394,13 @@ FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std:
         return folder;
     }
 
-    auto folder = Folder(this->context, parent, localId, standardPropsConfig);
+    auto folder = Folder(this->context, parent, localId);
     parent.addItem(folder);
     return folder;
 }
 
 template <class Intf, class ... Intfs>
-ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addComponent(const std::string& localId, const FolderConfigPtr& parent, const ComponentStandardProps standardPropsConfig)
+ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addComponent(const std::string& localId, const FolderConfigPtr& parent)
 {
     if (!parent.assigned())
     {
@@ -391,7 +408,7 @@ ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addComponent(const std:
         if (!allowNonDefaultComponents)
             validateComponentIsDefault(localId);
 
-        auto component = Component(this->context, this->template thisPtr<ComponentPtr>(), localId, standardPropsConfig);
+        auto component = Component(this->context, this->template thisPtr<ComponentPtr>(), localId);
         this->components.push_back(component);
 
         if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -407,7 +424,7 @@ ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addComponent(const std:
         return component;
     }
 
-    auto component = Component(this->context, parent, localId, standardPropsConfig);
+    auto component = Component(this->context, parent, localId);
     parent.addItem(component);
     return component;
 }

@@ -39,8 +39,7 @@ public:
     explicit MirroredSignalBase(const ContextPtr& ctx,
                                 const ComponentPtr& parent,
                                 const StringPtr& localId,
-                                const StringPtr& className = nullptr,
-                                ComponentStandardProps propsMode = ComponentStandardProps::Add);
+                                const StringPtr& className = nullptr);
 
     virtual StringPtr onGetRemoteId() const = 0;
     virtual Bool onTriggerEvent(EventPacketPtr eventPacket) = 0;
@@ -96,11 +95,10 @@ template <typename... Interfaces>
 MirroredSignalBase<Interfaces...>::MirroredSignalBase(const ContextPtr& ctx,
                                                       const ComponentPtr& parent,
                                                       const StringPtr& localId,
-                                                      const StringPtr& className,
-                                                      const ComponentStandardProps propsMode)
-    : Super(ctx, parent, localId, className, propsMode)
-      , listened(false)
-      , streamed(true)
+                                                      const StringPtr& className)
+    : Super(ctx, nullptr, parent, localId, className)
+    , listened(false)
+    , streamed(true)
 {
 }
 

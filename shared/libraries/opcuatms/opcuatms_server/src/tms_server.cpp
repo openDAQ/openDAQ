@@ -11,6 +11,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
 TmsServer::~TmsServer()
 {
+    tmsContext = nullptr;
     stop();
 }
 
@@ -46,7 +47,9 @@ void TmsServer::start()
     server->setPort(opcUaPort);
     server->prepare();
 
-    tmsDevice = std::make_unique<TmsServerDevice>(device, server, context);
+    tmsContext = std::make_shared<TmsServerContext>(context);
+
+    tmsDevice = std::make_unique<TmsServerDevice>(device, server, context, tmsContext);
     tmsDevice->registerOpcUaNode(OpcUaNodeId(NAMESPACE_DI, UA_DIID_DEVICESET));
     if (!versionStr.empty())
     {

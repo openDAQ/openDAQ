@@ -9,6 +9,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/function_block_type_factory.h>
+#include <opendaq/search_filter_factory.h>
 #include <opendaq/input_port_ptr.h>
 
 struct MockInputPort : daq::MockGenericComponent<MockInputPort, daq::IInputPort>
@@ -126,8 +127,8 @@ TEST_F(FunctionBlockWrapperTest, GetInputPorts)
     MockInputPort::Strict ip1;
     EXPECT_CALL(ip1.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>{"ip1"});
     inputPorts.pushBack(ip1);
-
-    EXPECT_CALL(fb.mock(), getInputPorts(_)).WillRepeatedly(daq::Get{inputPorts});
+    
+    EXPECT_CALL(fb.mock(), getInputPorts(_, _)).WillRepeatedly(daq::GetOptionalExtraArg<daq::ListPtr<daq::IInputPort>, daq::SearchFilterPtr>{inputPorts});
 
     auto fbw = daq::FunctionBlockWrapper(fb, true, true, true, true);
 
@@ -169,7 +170,7 @@ TEST_F(FunctionBlockWrapperTest, GetSignals)
     EXPECT_CALL(sig2.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("sig2"));
     signals.pushBack(sig2);
 
-    EXPECT_CALL(fb.mock(), getSignals(_)).WillRepeatedly(daq::Get{signals});
+    EXPECT_CALL(fb.mock(), getSignals(_, _)).WillRepeatedly(daq::GetOptionalExtraArg<daq::ListPtr<daq::ISignal>, daq::SearchFilterPtr>{signals});
 
     auto fbw = daq::FunctionBlockWrapper(fb, true, true, true, true);
 
@@ -210,8 +211,7 @@ TEST_F(FunctionBlockWrapperTest, GetFunctionBlocks)
     daq::MockFunctionBlock::Strict fb2;
     EXPECT_CALL(fb2.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("fb2"));
     fbs.pushBack(fb2);
-
-    EXPECT_CALL(fb.mock(), getFunctionBlocks(_)).WillRepeatedly(daq::Get{fbs});
+    EXPECT_CALL(fb.mock(), getFunctionBlocks(_, _)).WillRepeatedly(daq::GetOptionalExtraArg<daq::ListPtr<daq::IFunctionBlock>, daq::SearchFilterPtr>{fbs});
 
     auto fbw = daq::FunctionBlockWrapper(fb, true, true, true, true);
 

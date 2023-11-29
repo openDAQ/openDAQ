@@ -30,11 +30,6 @@
 
 PyDaqIntf<daq::IComponent, daq::IPropertyObject> declareIComponent(pybind11::module_ m)
 {
-    py::enum_<daq::ComponentStandardProps>(m, "ComponentStandardProps")
-        .value("Add", daq::ComponentStandardProps::Add)
-        .value("AddReadOnly", daq::ComponentStandardProps::AddReadOnly)
-        .value("Skip", daq::ComponentStandardProps::Skip);
-
     return wrapInterface<daq::IComponent, daq::IPropertyObject>(m, "IComponent");
 }
 
@@ -43,7 +38,6 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
     cls.doc() = "Acts as a base interface for components, such as device, function block, channel and signal.";
 
     m.def("Component", &daq::Component_Create);
-    m.def("ComponentWithDefaultPropertyMode", &daq::ComponentWithDefaultPropertyMode_Create);
 
     cls.def_property_readonly("local_id",
         [](daq::IComponent *object)
@@ -119,4 +113,34 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
         },
         py::return_value_policy::take_ownership,
         "Gets the tags of the component.");
+    cls.def_property("visible",
+        [](daq::IComponent *object)
+        {
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            return objectPtr.getVisible();
+        },
+        [](daq::IComponent *object, const bool visible)
+        {
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            objectPtr.setVisible(visible);
+        },
+        "Gets `visible` metadata state of the component");
+    cls.def_property_readonly("locked_attributes",
+        [](daq::IComponent *object)
+        {
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            return objectPtr.getLockedAttributes().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "");
+    /*
+    cls.def_property_readonly("on_component_core_event",
+        [](daq::IComponent *object)
+        {
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            return objectPtr.getOnComponentCoreEvent().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "");
+    */
 }

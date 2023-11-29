@@ -18,6 +18,7 @@
 #include <opendaq/folder_config.h>
 #include <opendaq/component_ptr.h>
 #include <opendaq/component_impl.h>
+#include <opendaq/folder_ptr.h>
 #include <tsl/ordered_map.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -32,17 +33,15 @@ public:
                const ContextPtr& context,
                const ComponentPtr& parent,
                const StringPtr& localId,
-               const StringPtr& className = nullptr,
-               ComponentStandardProps propsMode = ComponentStandardProps::Add);
+               const StringPtr& className = nullptr);
 
     FolderImpl(const ContextPtr& context,
                const ComponentPtr& parent,
                const StringPtr& localId,
-               const StringPtr& className = nullptr,
-               ComponentStandardProps propsMode = ComponentStandardProps::Add);
+               const StringPtr& className = nullptr);
 
     // IFolder
-    ErrCode INTERFACE_FUNC getItems(IList** items) override;
+    ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getItem(IString* localId, IComponent** item) override;
     ErrCode INTERFACE_FUNC isEmpty(Bool* empty) override;
     ErrCode INTERFACE_FUNC hasItem(IString* localId, Bool* value) override;
@@ -62,6 +61,7 @@ public:
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
+
 protected:
     tsl::ordered_map<std::string, ComponentPtr> items;
 
@@ -81,9 +81,8 @@ FolderImpl<Intf, Intfs...>::FolderImpl(const IntfID& itemId,
                                        const ContextPtr& context,
                                        const ComponentPtr& parent,
                                        const StringPtr& localId,
-                                       const StringPtr& className,
-                                       const ComponentStandardProps propsMode)
-    : ComponentImpl<Intf, Intfs...>(context, parent, localId, className, propsMode)
+                                       const StringPtr& className)
+    : ComponentImpl<Intf, Intfs...>(context, parent, localId, className)
     , itemId(itemId)
 {
 }
@@ -92,28 +91,40 @@ template <class Intf, class... Intfs>
 FolderImpl<Intf, Intfs...>::FolderImpl(const ContextPtr& context,
                                        const ComponentPtr& parent,
                                        const StringPtr& localId,
-                                       const StringPtr& className,
-                                       const ComponentStandardProps propsMode)
-    : FolderImpl(IComponent::Id, context, parent, localId, className, propsMode)
+                                       const StringPtr& className)
+    : FolderImpl(IComponent::Id, context, parent, localId, className)
 {
 }
 
 template <class Intf, class... Intfs>
-ErrCode FolderImpl<Intf, Intfs...>::getItems(IList** items)
+ErrCode FolderImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(items);
 
     std::scoped_lock lock(this->sync);
+
+    if (searchFilter)
+    {
+        return daqTry([&]
+        {
+            std::vector<ComponentPtr> itemsVec;
+            for (const auto& item : this->items)
+                itemsVec.emplace_back(item.second);
+
+            *items = this->searchItems(searchFilter, itemsVec).detach();
+            return OPENDAQ_SUCCESS;
+        });
+    }
 
     IList* list;
     auto err = createListWithElementType(&list, itemId);
     if (OPENDAQ_FAILED(err))
         return err;
 
-    auto childList = ListPtr<IComponent>::Adopt(list);
-
+    ListPtr<IComponent> childList = ListPtr<IComponent>::Adopt(list);
     for (const auto& item : this->items)
-        childList.pushBack(item.second);
+        if (item.second.getVisible())
+			childList.pushBack(item.second);
 
     *items = childList.detach();
 

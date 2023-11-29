@@ -11,10 +11,11 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 using namespace opcua;
 namespace opcua_utils = opcua::utils;
 
-TmsServerObject::TmsServerObject(const OpcUaServerPtr& server, const ContextPtr& context)
+TmsServerObject::TmsServerObject(const OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext)
     : server(server)
     , daqContext(context)
     , numberInList(0)
+    , tmsContext(tmsContext)
 {
 }
 
@@ -65,6 +66,7 @@ OpcUaNodeId TmsServerObject::registerToExistingOpcUaNode(const OpcUaNodeId& node
     browseReferences();
     bindCallbacksInternal();
     bindCallbacks();
+    registerToTmsServerContext();
     bindReadWriteCallbacks();
     return this->nodeId;
 }
@@ -85,6 +87,10 @@ void TmsServerObject::addHierarchicalReference(const OpcUaNodeId& parent)
 }
 
 void TmsServerObject::createNonhierarchicalReferences()
+{
+}
+
+void TmsServerObject::onCoreEvent(const CoreEventArgsPtr& /*eventArgs*/)
 {
 }
 
@@ -165,6 +171,10 @@ void TmsServerObject::bindCallbacksInternal()
 }
 
 void TmsServerObject::bindCallbacks()
+{
+}
+
+void TmsServerObject::registerToTmsServerContext()
 {
 }
 

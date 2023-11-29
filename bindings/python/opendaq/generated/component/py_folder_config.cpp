@@ -38,11 +38,8 @@ void defineIFolderConfig(pybind11::module_ m, PyDaqIntf<daq::IFolderConfig, daq:
     cls.doc() = "Allows write access to folder.";
 
     m.def("Folder", &daq::Folder_Create);
-    m.def("FolderWithDefaultPropertyMode", &daq::FolderWithDefaultPropertyMode_Create);
     m.def("FolderWithItemType", &daq::FolderWithItemType_Create);
-    m.def("FolderWithItemTypeAndDefaultPropertyMode", &daq::FolderWithItemTypeAndDefaultPropertyMode_Create);
     m.def("IoFolder", &daq::IoFolder_Create);
-    m.def("IoFolderWithDefaultPropertyMode", &daq::IoFolderWithDefaultPropertyMode_Create);
 
     cls.def("add_item",
         [](daq::IFolderConfig *object, daq::IComponent* item)

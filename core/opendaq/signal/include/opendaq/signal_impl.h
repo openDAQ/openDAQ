@@ -31,7 +31,6 @@
 #include <coretypes/validation.h>
 #include <opendaq/component_impl.h>
 #include <opendaq/input_port_private_ptr.h>
-
 #include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -49,16 +48,11 @@ public:
     using Self = SignalBase<TInterface, Interfaces...>;
 
     SignalBase(const ContextPtr& context,
-               const ComponentPtr& parent,
-               const StringPtr& localId,
-               const StringPtr& className = nullptr,
-               ComponentStandardProps propsMode = ComponentStandardProps::Add);
-    SignalBase(const ContextPtr& context,
                DataDescriptorPtr descriptor,
                const ComponentPtr& parent,
                const StringPtr& localId,
-               const StringPtr& className,
-               ComponentStandardProps propsMode = ComponentStandardProps::Add);
+               const StringPtr& className = nullptr);
+
     ~SignalBase() override;
 
     ErrCode INTERFACE_FUNC getPublic(Bool* isPublic) override;
@@ -105,7 +99,9 @@ protected:
     virtual void onListenedStatusChanged(bool connected);
 
     void removed() override;
-
+    ErrCode lockAllAttributesInternal() override;
+    
+    inline static std::unordered_set<std::string> signalAvailableAttributes = {"Public"};
 private:
     StringPtr name;
     bool isPublic{};
@@ -117,34 +113,20 @@ private:
     bool keepLastPacket = true;
     DataPacketPtr lastDataPacket;
 
-    void initSignalProperties(ComponentStandardProps propsMode);
-    void propertyValueChanged(const PropertyPtr& prop, const BaseObjectPtr& value);
-    bool sendPacketInternal(const PacketPtr& packet) const;
+    bool sendPacketInternal(const PacketPtr& packet, bool ignoreActive = false) const;
     void triggerRelatedSignalsChanged();
 };
-
-template <typename TInterface, typename... Interfaces>
-SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
-                                      const ComponentPtr& parent,
-                                      const StringPtr& localId,
-                                      const StringPtr& className,
-                                      const ComponentStandardProps propsMode)
-    : SignalBase<TInterface, Interfaces...>(context, nullptr, parent, localId, className, propsMode)
-{
-}
 
 template <typename TInterface, typename... Interfaces>
 SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
                                       DataDescriptorPtr descriptor,
                                       const ComponentPtr& parent,
                                       const StringPtr& localId,
-                                      const StringPtr& className,
-                                      const ComponentStandardProps propsMode)
-    : Super(context, parent, localId, className, propsMode)
+                                      const StringPtr& className)
+    : Super(context, parent, localId, className)
     , isPublic(true)
     , dataDescriptor(std::move(descriptor))
 {
-    initSignalProperties(propsMode);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -152,36 +134,6 @@ SignalBase<TInterface, Interfaces...>::~SignalBase()
 {
     if (domainSignal.assigned())
         domainSignal.asPtr<ISignalEvents>().domainSignalReferenceRemoved(this->template borrowPtr<SignalPtr>());
-}
-
-template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::initSignalProperties(const ComponentStandardProps propsMode)
-{
-    if (propsMode == ComponentStandardProps::Skip)
-        return;
-
-    auto objPtr = this->template borrowPtr<ComponentPtr>();
-
-    if (objPtr.hasProperty("Name"))
-    {
-        objPtr.getOnPropertyValueWrite("Name") +=
-            [this](PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args) { propertyValueChanged(args.getProperty(), args.getValue()); };
-    }
-
-    if (objPtr.hasProperty("Description"))
-    {
-        objPtr.getOnPropertyValueWrite("Description") +=
-            [this](PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args) { propertyValueChanged(args.getProperty(), args.getValue()); };
-    }
-}
-
-template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::propertyValueChanged(const PropertyPtr& prop, const BaseObjectPtr& value)
-{
-    const auto packet = PropertyChangedEventPacket(prop.getName(), value);
-    std::scoped_lock lock(this->sync);
-
-    static_cast<void>(sendPacketInternal(packet));
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -198,8 +150,24 @@ ErrCode SignalBase<TInterface, Interfaces...>::getPublic(Bool* isPublic)
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
 {
+    if (this->frozen)
+        return OPENDAQ_ERR_FROZEN;
+
     {
         std::scoped_lock lock(this->sync);
+
+        if (this->lockedAttributes.count("Public"))
+        {
+            if (this->context.assigned() && this->context.getLogger().assigned())
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("Active attribute of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
+        }
 
         this->isPublic = isPublic;
     }
@@ -207,8 +175,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::ComponentModified,
-                Dict<IString, IBaseObject>({{"Public", this->isPublic}}));
+                core_event_ids::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Public"}, {"Public", this->isPublic}}));
         
         this->triggerCoreEvent(args);
     }
@@ -257,7 +224,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
         const auto packet = DataDescriptorChangedEventPacket(descriptor, nullptr);
 
         // Should this return a failure error code or execute all sendPacket calls and return one of the errors?
-        success = sendPacketInternal(packet);
+        success = sendPacketInternal(packet, true);
         if (success)
         {
             for (const auto& signal : domainSignalReferences)
@@ -325,8 +292,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDomainSignal(ISignal* signal)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::ComponentModified,
-                Dict<IString, IBaseObject>({{"DomainSignal", domainSignal}}));
+                core_event_ids::AttributeChanged,
+                Dict<IString, IBaseObject>({{"AttributeName", "DomainSignal"}, {"DomainSignal", domainSignal}}));
         
         this->triggerCoreEvent(args);
     }
@@ -451,9 +418,9 @@ ErrCode SignalBase<TInterface, Interfaces...>::sendPacket(IPacket* packet)
 }
 
 template <typename TInterface, typename... Interfaces>
-bool SignalBase<TInterface, Interfaces...>::sendPacketInternal(const PacketPtr& packet) const
+bool SignalBase<TInterface, Interfaces...>::sendPacketInternal(const PacketPtr& packet, bool ignoreActive) const
 {
-    if (!this->active)
+    if (!ignoreActive && !this->active)
         return false;
 
     for (auto& connection : connections)
@@ -472,8 +439,8 @@ void SignalBase<TInterface, Interfaces...>::triggerRelatedSignalsChanged()
             sigs.pushBack(sig);
 
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::ComponentModified,
-                Dict<IString, IBaseObject>({{"RelatedSignals", sigs}}));
+                core_event_ids::AttributeChanged,
+                Dict<IString, IBaseObject>({{"AttributeName", "RelatedSignals"}, {"RelatedSignals", sigs}}));
         
         this->triggerCoreEvent(args);
     }
@@ -677,6 +644,15 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setStreamed(Bool streamed)
 {
     return OPENDAQ_IGNORED;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::lockAllAttributesInternal()
+{
+    for (const auto& str : this->signalAvailableAttributes)
+        this->lockedAttributes.insert(str);
+
+    return Super::lockAllAttributesInternal();
 }
 
 template <typename TInterface, typename... Interfaces>

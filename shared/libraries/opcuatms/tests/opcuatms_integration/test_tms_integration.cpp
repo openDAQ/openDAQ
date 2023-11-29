@@ -4,7 +4,7 @@
 #include <opendaq/mock/mock_fb_module.h>
 #include <opcuatms_client/tms_client.h>
 #include <opcuatms_server/tms_server.h>
-
+#include <opendaq/search_filter_factory.h>
 #include <chrono>
 #include <thread>
 
@@ -127,8 +127,8 @@ TEST_F(TmsIntegrationTest, GetSignals)
     DevicePtr clientDevice = tmsClient.connect();
 
     ListPtr<ISignal> signals;
-    ASSERT_NO_THROW(signals = clientDevice.getSignalsRecursive());
-    ASSERT_EQ(signals.getCount(), device.getSignalsRecursive().getCount());
+    ASSERT_NO_THROW(signals = clientDevice.getSignals(search::Recursive(search::Visible())));
+    ASSERT_EQ(signals.getCount(), device.getSignals(search::Recursive(search::Visible())).getCount());
 
     ASSERT_NO_THROW(signals = clientDevice.getSignals());
     ASSERT_EQ(signals.getCount(), 0u);
@@ -146,7 +146,7 @@ TEST_F(TmsIntegrationTest, GetChannels)
     auto device2 = devices.getItemAt(1);
     ASSERT_EQ(device2.getChannels().getCount(), 4u);
 
-    ASSERT_EQ(instance.getChannelsRecursive().getCount(), 4u);
+    ASSERT_EQ(instance.getChannels(search::Recursive(search::Visible())).getCount(), 4u);
     ASSERT_EQ(instance.getChannels().getCount(), 0u);
 }
 TEST_F(TmsIntegrationTest, InputsOutputs)
@@ -227,7 +227,7 @@ TEST_F(TmsIntegrationTest, GetDomainSignal)
         clientDevice = tmsClient.connect();
     }
 
-    ListPtr<ISignal> signals = clientDevice.getSignalsRecursive();
+    ListPtr<ISignal> signals = clientDevice.getSignals(search::Recursive(search::Visible()));
 
     auto byteStepSignal = *std::find_if(
         signals.begin(), signals.end(), [](const SignalPtr& signal) { return signal.getDescriptor().getName() == "ByteStep"; });

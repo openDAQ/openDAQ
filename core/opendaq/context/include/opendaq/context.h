@@ -72,10 +72,10 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
 
     // [templateType(event, IComponent, ICoreEventArgs)]
     /*!
-     * @brief Gets the Core Event object that triggers whenever a change happens within the SDK core structure.
+     * @brief Gets the Core Event object that triggers whenever a change happens within the openDAQ core structure.
      * @param[out] event The Core Event object. The event triggers with a Component reference and a CoreEventArgs object as arguments.
      *
-     * The Core Event is triggered on various changes to the SDK Components. This includes changes to property values,
+     * The Core Event is triggered on various changes to the openDAQ Components. This includes changes to property values,
      * addition/removal of child components, connecting signals to input ports and others. The event type can be identified
      * via the event ID available within the CoreEventArgs object. Each event type has a set of predetermined parameters
      * available in the `parameters` field of the arguments. These can be used by any openDAQ server, or other listener to

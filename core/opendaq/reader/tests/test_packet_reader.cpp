@@ -12,6 +12,7 @@
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/data_descriptor_builder_ptr.h>
 #include <opendaq/logger_factory.h>
+#include <opendaq/data_descriptor_factory.h>
 
 #include <chrono>
 #include <thread>

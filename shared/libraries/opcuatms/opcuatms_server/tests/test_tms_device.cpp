@@ -9,25 +9,25 @@
 #include "opcuaclient/opcuaclient.h"
 #include "opcuatms_server/objects/tms_server_device.h"
 #include "test_helpers.h"
-#include "tms_object_test.h"
+#include "tms_server_test.h"
 
 using namespace daq;
 using namespace opcua::tms;
 using namespace opcua;
 using namespace std::chrono_literals;
 
-using TmsDeviceTest = TmsObjectTest;
+using TmsDeviceTest = TmsServerObjectTest;
 
 TEST_F(TmsDeviceTest, Create)
 {
     DevicePtr device = test_helpers::SetupInstance();
-    auto tmsDevice = TmsServerDevice(device, this->getServer(), NullContext());
+    auto tmsDevice = TmsServerDevice(device, this->getServer(), ctx, tmsCtx);
 }
 
 TEST_F(TmsDeviceTest, Register)
 {
     DevicePtr device = test_helpers::SetupInstance();
-    auto tmsDevice = TmsServerDevice(device, this->getServer(), NullContext());
+    auto tmsDevice = TmsServerDevice(device, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsDevice.registerOpcUaNode();
 
     ASSERT_TRUE(this->getClient()->nodeExists(nodeId));
@@ -36,7 +36,7 @@ TEST_F(TmsDeviceTest, Register)
 TEST_F(TmsDeviceTest, SubDevices)
 {
     DevicePtr device = test_helpers::SetupInstance();
-    auto tmsDevice = TmsServerDevice(device, this->getServer(), NullContext());
+    auto tmsDevice = TmsServerDevice(device, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsDevice.registerOpcUaNode();
 
     ASSERT_EQ(test_helpers::BrowseSubDevices(client, nodeId).size(), 2u);
@@ -45,7 +45,7 @@ TEST_F(TmsDeviceTest, SubDevices)
 TEST_F(TmsDeviceTest, FunctionBlock)
 {
     DevicePtr device = test_helpers::SetupInstance();
-    auto tmsDevice = TmsServerDevice(device, this->getServer(), NullContext());
+    auto tmsDevice = TmsServerDevice(device, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsDevice.registerOpcUaNode();
 
     auto functionBlockNodeId = getChildNodeId(nodeId, "FB");
@@ -61,7 +61,7 @@ TEST_F(TmsDeviceTest, Property)
 
     device.addProperty(sampleRateProp);
 
-    auto tmsDevice = TmsServerDevice(device, this->getServer(), NullContext());
+    auto tmsDevice = TmsServerDevice(device, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsDevice.registerOpcUaNode();
 
     auto sampleRateNodeId = this->getChildNodeId(nodeId, "SampleRate");
@@ -87,7 +87,7 @@ TEST_F(TmsDeviceTest, Property)
 TEST_F(TmsDeviceTest, Components)
 {
     DevicePtr device = test_helpers::SetupInstance();
-    auto tmsDevice = TmsServerDevice(device, this->getServer(), NullContext());
+    auto tmsDevice = TmsServerDevice(device, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsDevice.registerOpcUaNode();
 
     auto devices = test_helpers::BrowseSubDevices(client, nodeId);

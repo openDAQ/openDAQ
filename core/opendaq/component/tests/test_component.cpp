@@ -122,3 +122,44 @@ TEST_F(ComponentTest, SerializeAndUpdate)
 
     ASSERT_EQ(str1, str2);
 }
+
+TEST_F(ComponentTest, LockedProperties)
+{
+    const auto component = Component(NullContext(), nullptr, "temp");
+
+    ASSERT_EQ(component.getLockedAttributes().getCount(), 1);
+
+    ASSERT_NO_THROW(component.setName("name"));
+    ASSERT_NO_THROW(component.setDescription("desc"));
+    ASSERT_NO_THROW(component.setVisible(false));
+    ASSERT_NO_THROW(component.setActive(false));
+
+    ASSERT_EQ(component.getName(), "name");
+    ASSERT_EQ(component.getDescription(), "desc");
+    ASSERT_EQ(component.getVisible(), true);
+    ASSERT_EQ(component.getActive(), false);
+
+    component.asPtr<IComponentPrivate>().lockAllAttributes();
+
+    ASSERT_NO_THROW(component.setName("ignored"));
+    ASSERT_NO_THROW(component.setDescription("ignored"));
+    ASSERT_NO_THROW(component.setVisible(false));
+    ASSERT_NO_THROW(component.setActive(true));
+
+    ASSERT_EQ(component.getName(), "name");
+    ASSERT_EQ(component.getDescription(), "desc");
+    ASSERT_EQ(component.getVisible(), true);
+    ASSERT_EQ(component.getActive(), false);
+    
+    component.asPtr<IComponentPrivate>().unlockAllAttributes();
+    
+    ASSERT_NO_THROW(component.setName("not_ignored"));
+    ASSERT_NO_THROW(component.setDescription("not_ignored"));
+    ASSERT_NO_THROW(component.setVisible(false));
+    ASSERT_NO_THROW(component.setActive(true));
+
+    ASSERT_EQ(component.getName(), "not_ignored");
+    ASSERT_EQ(component.getDescription(), "not_ignored");
+    ASSERT_EQ(component.getVisible(), false);
+    ASSERT_EQ(component.getActive(), true);
+}

@@ -29,14 +29,11 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
  * @param parent The parent component.
  * @param localId The local ID of the component.
- * @param propertyMode Enum defining whether standard properties such as "Name" and "Description" are created.
- *                     "Add" to create the default properties; "AddReadOnly" to create the properties, but configure them as "read-only";
- *                     "Skip" to skip creation.
  */
 template <class TInterface = IComponent>
-inline FolderConfigPtr Folder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const ComponentStandardProps propertyMode = ComponentStandardProps::Add)
+inline FolderConfigPtr Folder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 {
-    FolderConfigPtr obj(FolderWithItemTypeAndDefaultPropertyMode_Create(TInterface::Id, context, parent, localId, static_cast<Int>(propertyMode)));
+    FolderConfigPtr obj(FolderWithItemType_Create(TInterface::Id, context, parent, localId));
     return obj;
 }
 

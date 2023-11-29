@@ -64,7 +64,7 @@ public:
 
     RegisteredProperty registerProperty(const PropertyPtr& prop)
     {
-        auto serverProp = std::make_shared<TmsServerProperty>(prop, server, NullContext());
+        auto serverProp = std::make_shared<TmsServerProperty>(prop, server, ctx, serverContext);
         auto nodeId = serverProp->registerOpcUaNode();
         auto clientProp = TmsClientProperty(NullContext(), clientContext, nodeId);
         return {serverProp, clientProp};
@@ -75,7 +75,7 @@ TEST_F(TmsPropertyTest, Create)
 {
     auto prop = createIntProperty();
 
-    auto serverProp = TmsServerProperty(prop, server, NullContext());
+    auto serverProp = TmsServerProperty(prop, server, ctx, serverContext);
     auto nodeId = serverProp.registerOpcUaNode();
     ASSERT_TRUE(server->nodeExists(nodeId));
 

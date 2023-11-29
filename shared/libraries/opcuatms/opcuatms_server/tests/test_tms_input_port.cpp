@@ -5,7 +5,7 @@
 #include "opcuaclient/opcuaclient.h"
 #include "opcuatms_server/objects/tms_server_input_port.h"
 #include "opcuatms_server/objects/tms_server_signal.h"
-#include "tms_object_test.h"
+#include "tms_server_test.h"
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/logger_factory.h>
 #include <opendaq/context_factory.h>
@@ -17,12 +17,12 @@ using namespace daq;
 using namespace opcua::tms;
 using namespace opcua;
 
-class TmsInputPortTest : public TmsObjectTest
+class TmsInputPortTest : public TmsServerObjectTest
 {
 public:
     InputPortPtr createInputPort()
     {
-        auto port = InputPort(NullContext(), nullptr, "port");
+        auto port = InputPort(ctx, nullptr, "port");
         port.getTags().add("port");
         return port;
     }
@@ -31,13 +31,13 @@ public:
 TEST_F(TmsInputPortTest, Create)
 {
     InputPortPtr inputPort = createInputPort();
-    auto tmsInputPort = TmsServerInputPort(inputPort, this->getServer(), NullContext());
+    auto tmsInputPort = TmsServerInputPort(inputPort, this->getServer(), ctx, tmsCtx);
 }
 
 TEST_F(TmsInputPortTest, Register)
 {
     InputPortPtr inputPort = createInputPort();
-    auto serverInputPort = TmsServerInputPort(inputPort, this->getServer(), NullContext());
+    auto serverInputPort = TmsServerInputPort(inputPort, this->getServer(), ctx, tmsCtx);
     auto nodeId = serverInputPort.registerOpcUaNode();
 
     ASSERT_TRUE(this->getClient()->nodeExists(nodeId));
@@ -51,7 +51,7 @@ TEST_F(TmsInputPortTest, ConnectedToReference)
 
     SignalPtr signal = Signal(context, nullptr, "sig");
 
-    auto serverSignal = TmsServerSignal(signal, this->getServer(), NullContext());
+    auto serverSignal = TmsServerSignal(signal, this->getServer(), ctx, tmsCtx);
     auto signalNodeId = serverSignal.registerOpcUaNode();
 
     InputPortNotificationsPtr inputPortNotification = TestInputPortNotifications();
@@ -60,7 +60,7 @@ TEST_F(TmsInputPortTest, ConnectedToReference)
     inputPort.setListener(inputPortNotification);
     inputPort.connect(signal);
 
-    auto serverInputPort = TmsServerInputPort(inputPort, this->getServer(), NullContext());
+    auto serverInputPort = TmsServerInputPort(inputPort, this->getServer(), ctx, tmsCtx);
     auto inputPortNodeId = serverInputPort.registerOpcUaNode();
 
     ASSERT_NO_THROW(serverInputPort.createNonhierarchicalReferences());

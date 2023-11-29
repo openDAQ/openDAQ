@@ -40,38 +40,62 @@ void defineIScalingBuilder(pybind11::module_ m, PyDaqIntf<daq::IScalingBuilder, 
     m.def("ScalingBuilder", &daq::ScalingBuilder_Create);
     m.def("ScalingBuilderFromExisting", &daq::ScalingBuilderFromExisting_Create);
 
+    cls.def("build",
+        [](daq::IScalingBuilder *object)
+        {
+            const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
+            return objectPtr.build().detach();
+        },
+        "Builds and returns a Scaling object using the currently set values of the Builder.");
     cls.def_property("input_data_type",
-        nullptr,
+        [](daq::IScalingBuilder *object)
+        {
+            const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
+            return objectPtr.getInputDataType();
+        },
         [](daq::IScalingBuilder *object, daq::SampleType type)
         {
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             objectPtr.setInputDataType(type);
         },
-        "Sets the scaling's input data type.");
+        "Gets the scaling's input data type. / Sets the scaling's input data type.");
     cls.def_property("output_data_type",
-        nullptr,
+        [](daq::IScalingBuilder *object)
+        {
+            const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
+            return objectPtr.getOutputDataType();
+        },
         [](daq::IScalingBuilder *object, daq::ScaledSampleType type)
         {
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             objectPtr.setOutputDataType(type);
         },
-        "Sets the scaling's output data type.");
+        "Gets the scaling's output data type. / Sets the scaling's output data type.");
     cls.def_property("scaling_type",
-        nullptr,
+        [](daq::IScalingBuilder *object)
+        {
+            const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
+            return objectPtr.getScalingType();
+        },
         [](daq::IScalingBuilder *object, daq::ScalingType type)
         {
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             objectPtr.setScalingType(type);
         },
-        "Sets the type of the scaling that determines how the scaling parameters should be interpreted and how the scaling should be calculated.");
+        "Gets the type of the scaling that determines how the scaling parameters should be interpreted and how the scaling should be calculated. / Sets the type of the scaling that determines how the scaling parameters should be interpreted and how the scaling should be calculated.");
     cls.def_property("parameters",
-        nullptr,
+        [](daq::IScalingBuilder *object)
+        {
+            const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
+            return objectPtr.getParameters().detach();
+        },
         [](daq::IScalingBuilder *object, daq::IDict* parameters)
         {
             const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
             objectPtr.setParameters(parameters);
         },
-        "Gets the list of parameters that are used to calculate the scaling in conjunction with the input data.");
+        py::return_value_policy::take_ownership,
+        "Gets the list of parameters that are used to calculate the scaling in conjunction with the input data. / Gets the list of parameters that are used to calculate the scaling in conjunction with the input data.");
     cls.def("add_parameter",
         [](daq::IScalingBuilder *object, const std::string& name, const py::object& parameter)
         {
@@ -88,11 +112,4 @@ void defineIScalingBuilder(pybind11::module_ m, PyDaqIntf<daq::IScalingBuilder, 
         },
         py::arg("name"),
         "Removes the parameter with the given name from the Dictionary of Scaling parameters.");
-    cls.def("build",
-        [](daq::IScalingBuilder *object)
-        {
-            const auto objectPtr = daq::ScalingBuilderPtr::Borrow(object);
-            return objectPtr.build().detach();
-        },
-        "Builds and returns a Scaling object using the currently set values of the Builder.");
 }

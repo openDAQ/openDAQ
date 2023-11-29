@@ -39,7 +39,7 @@ void defineIUnit(pybind11::module_ m, PyDaqIntf<daq::IUnit, daq::IBaseObject> cl
 
     m.def("Unit", &daq::Unit_Create);
     m.def("UnitFromBuilder", &daq::UnitFromBuilder_Create);
-    
+
     cls.def_property_readonly("id",
         [](daq::IUnit *object)
         {

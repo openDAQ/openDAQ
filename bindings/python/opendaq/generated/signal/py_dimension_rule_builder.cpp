@@ -40,22 +40,38 @@ void defineIDimensionRuleBuilder(pybind11::module_ m, PyDaqIntf<daq::IDimensionR
     m.def("DimensionRuleBuilder", &daq::DimensionRuleBuilder_Create);
     m.def("DimensionRuleBuilderFromExisting", &daq::DimensionRuleBuilderFromExisting_Create);
 
+    cls.def("build",
+        [](daq::IDimensionRuleBuilder *object)
+        {
+            const auto objectPtr = daq::DimensionRuleBuilderPtr::Borrow(object);
+            return objectPtr.build().detach();
+        },
+        "Builds and returns a Dimension rule object using the currently set values of the Builder.");
     cls.def_property("type",
-        nullptr,
+        [](daq::IDimensionRuleBuilder *object)
+        {
+            const auto objectPtr = daq::DimensionRuleBuilderPtr::Borrow(object);
+            return objectPtr.getType();
+        },
         [](daq::IDimensionRuleBuilder *object, daq::DimensionRuleType type)
         {
             const auto objectPtr = daq::DimensionRuleBuilderPtr::Borrow(object);
             objectPtr.setType(type);
         },
-        "Sets the type of the dimension rule. Rule parameters must be configured to match the requirements of the rule type.");
+        "Gets the type of the dimension rule. / Sets the type of the dimension rule. Rule parameters must be configured to match the requirements of the rule type.");
     cls.def_property("parameters",
-        nullptr,
+        [](daq::IDimensionRuleBuilder *object)
+        {
+            const auto objectPtr = daq::DimensionRuleBuilderPtr::Borrow(object);
+            return objectPtr.getParameters().detach();
+        },
         [](daq::IDimensionRuleBuilder *object, daq::IDict* parameters)
         {
             const auto objectPtr = daq::DimensionRuleBuilderPtr::Borrow(object);
             objectPtr.setParameters(parameters);
         },
-        "Sets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.");
+        py::return_value_policy::take_ownership,
+        "Gets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule. / Sets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.");
     cls.def("add_parameter",
         [](daq::IDimensionRuleBuilder *object, const std::string& name, const py::object& parameter)
         {
@@ -72,11 +88,4 @@ void defineIDimensionRuleBuilder(pybind11::module_ m, PyDaqIntf<daq::IDimensionR
         },
         py::arg("name"),
         "Removes the parameter with the given name from the Dictionary of Dimension rule parameters.");
-    cls.def("build",
-        [](daq::IDimensionRuleBuilder *object)
-        {
-            const auto objectPtr = daq::DimensionRuleBuilderPtr::Borrow(object);
-            return objectPtr.build().detach();
-        },
-        "Builds and returns a Dimension rule object using the currently set values of the Builder.");
 }

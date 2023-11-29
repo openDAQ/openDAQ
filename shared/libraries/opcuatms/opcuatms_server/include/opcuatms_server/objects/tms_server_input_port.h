@@ -28,7 +28,7 @@ class TmsServerInputPort : public TmsServerComponent<InputPortPtr>
 public:
     using Super = TmsServerComponent<InputPortPtr>;
 
-    TmsServerInputPort(const InputPortPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context);
+    TmsServerInputPort(const InputPortPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
 
     opcua::OpcUaNodeId getReferenceType() override;
     void bindCallbacks() override;

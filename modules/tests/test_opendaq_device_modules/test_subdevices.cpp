@@ -136,8 +136,8 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
     auto gateway = CreateGatewayInstance();
     auto client = CreateClientInstance(MIN_CONNECTIONS);
 
-    auto clientSignals = client.getSignalsRecursive();
-    auto gatewaySignals = gateway.getSignalsRecursive();
+    auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
+    auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
     ASSERT_EQ(clientSignals.getCount(), gatewaySignals.getCount());
 
     for (size_t index = 0; index < clientSignals.getCount(); ++index)
@@ -186,8 +186,8 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
     auto gateway = CreateGatewayInstance();
     auto client = CreateClientInstance(MIN_HOPS);
 
-    auto clientSignals = client.getSignalsRecursive();
-    auto gatewaySignals = gateway.getSignalsRecursive();
+    auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
+    auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
     ASSERT_EQ(clientSignals.getCount(), gatewaySignals.getCount());
 
     for (size_t index = 0; index < clientSignals.getCount(); ++index)

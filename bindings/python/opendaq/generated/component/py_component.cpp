@@ -119,4 +119,11 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
         },
         py::return_value_policy::take_ownership,
         "Gets the tags of the component.");
+    cls.def_property_readonly("visible",
+        [](daq::IComponent *object)
+        {
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            return objectPtr.getVisible();
+        },
+        "");
 }

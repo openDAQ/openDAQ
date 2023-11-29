@@ -51,9 +51,9 @@ public:
     ErrCode INTERFACE_FUNC setPropertySelectionValues(IString* propertyName, IList* enumValues) override;
     ErrCode INTERFACE_FUNC getWrappedFunctionBlock(IFunctionBlock** functionBlock) override;
 
-    ErrCode INTERFACE_FUNC getInputPorts(IList** ports) override;
-    ErrCode INTERFACE_FUNC getSignals(IList** signals) override;
-    ErrCode INTERFACE_FUNC getFunctionBlocks(IList** functionBlocks) override;
+    ErrCode INTERFACE_FUNC getInputPorts(IList** ports, ISearchFilter* searchFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC getSignals(IList** signals, ISearchFilter* searchFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr) override;
 
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;

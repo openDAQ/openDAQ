@@ -24,7 +24,7 @@ class TmsFunctionTest: public TmsObjectIntegrationTest
 public:
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& obj)
     {
-        const auto serverProp = std::make_shared<TmsServerPropertyObject>(obj, server, NullContext());
+        const auto serverProp = std::make_shared<TmsServerPropertyObject>(obj, server, ctx, serverContext);
         const auto nodeId = serverProp->registerOpcUaNode();
         const auto clientProp = TmsClientPropertyObject(NullContext(), clientContext, nodeId);
         return {serverProp, clientProp};

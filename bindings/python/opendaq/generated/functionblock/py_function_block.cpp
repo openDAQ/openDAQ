@@ -53,6 +53,14 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
         },
         py::return_value_policy::take_ownership,
         "Gets a list of the function block's input ports.");
+    cls.def("get_input_ports",
+        [](daq::IFunctionBlock *object, daq::ISearchParams* searchParams)
+        {
+            const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
+            return objectPtr.getInputPorts(searchParams).detach();
+        },
+        py::arg("search_params") = nullptr,
+        "Gets a list of the function block's input ports.");
     cls.def_property_readonly("signals",
         [](daq::IFunctionBlock *object)
         {
@@ -61,14 +69,22 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
         },
         py::return_value_policy::take_ownership,
         "Gets the list of the function block's output signals.");
-    cls.def_property_readonly("signals_recursive",
+    cls.def("get_signals",
+        [](daq::IFunctionBlock *object, daq::ISearchParams* searchParams)
+        {
+            const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
+            return objectPtr.getSignals(searchParams).detach();
+        },
+        py::arg("search_params") = nullptr,
+        "Gets the list of the function block's output signals.");
+	cls.def_property_readonly("signals_recursive",
         [](daq::IFunctionBlock *object)
         {
             const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
             return objectPtr.getSignalsRecursive().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the list of the function block's output signals including signals from child function blocks.");
+        "Gets the list of the function block's output signals including signals from child function blocks.");	
     cls.def_property_readonly("status_signal",
         [](daq::IFunctionBlock *object)
         {
@@ -84,5 +100,13 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
             return objectPtr.getFunctionBlocks().detach();
         },
         py::return_value_policy::take_ownership,
+        "Gets a list of sub-function blocks.");
+    cls.def("get_function_blocks",
+        [](daq::IFunctionBlock *object, daq::ISearchParams* searchParams)
+        {
+            const auto objectPtr = daq::FunctionBlockPtr::Borrow(object);
+            return objectPtr.getFunctionBlocks(searchParams).detach();
+        },
+        py::arg("search_params") = nullptr,
         "Gets a list of sub-function blocks.");
 }

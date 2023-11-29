@@ -121,7 +121,7 @@ inline EventPacketPtr DataDescriptorChangedEventPacket(const DataDescriptorPtr& 
 }
 
 /*!
- * @brief Creates a PropertyChanged Event packet.
+ * @brief Creates a PropertyChanged Event packet. Sent when a dynamic property of a signal is changed.
  * @param name The name of the property.
  * @param value New value of the property.
  *
@@ -131,6 +131,22 @@ inline EventPacketPtr DataDescriptorChangedEventPacket(const DataDescriptorPtr& 
 inline EventPacketPtr PropertyChangedEventPacket(const StringPtr& name, const BaseObjectPtr& value)
 {
     EventPacketPtr obj(PropertyChangedEventPacket_Create(name, value));
+    return obj;
+}
+
+/*!
+ * @brief Creates a AttributeChanged Event packet. Sent when an attribute of a signal is changed. Attributes are signal
+ * fields that are not dynamic properties.
+ *
+ * @param name The name of the attribute.
+ * @param value New value of the attribute.
+ *
+ * The ID of the packet is "ATTRIBUTE_CHANGED". Its parameters dictionary contains the keys "Name"
+ * and "Value". The value provided is coerced and validated.
+ */
+inline EventPacketPtr AttributeChangedEventPacket(const StringPtr& name, const BaseObjectPtr& value)
+{
+    EventPacketPtr obj(AttributeChangedEventPacket_Create(name, value));
     return obj;
 }
 

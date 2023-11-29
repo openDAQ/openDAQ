@@ -47,7 +47,7 @@ TEST_F(QuickStartTest, QuickStartAppReader)
     ASSERT_TRUE(device.assigned());
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignalsRecursive()[0]);
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignals(search::Recursive(search::Any()))[0]);
 
     double samples[100];
     for (int i = 0; i < 5; ++i)
@@ -82,7 +82,7 @@ TEST_F(QuickStartTest, QuickStartAppStatistics)
     sineChannel.setPropertyValue("NoiseAmplitude", 0.75);
     ASSERT_EQ(sineChannel.getPropertyValue("NoiseAmplitude"), 0.75);
 
-    daq::StreamReaderPtr reader2 = daq::StreamReader<double, uint64_t>(statistics.getSignalsRecursive()[0]);
+    daq::StreamReaderPtr reader2 = daq::StreamReader<double, uint64_t>(statistics.getSignals(search::Recursive(search::Any()))[0]);
     double amplStep = 0.1;
     double samples[100];
     std::this_thread::sleep_for(std::chrono::milliseconds(500));

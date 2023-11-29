@@ -29,7 +29,7 @@ class TmsServerChannel : public TmsServerFunctionBlock<ChannelPtr>
 public:
     using Super = TmsServerFunctionBlock<ChannelPtr>;
 
-    TmsServerChannel(const ChannelPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context);
+    TmsServerChannel(const ChannelPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
 
 protected:
     opcua::OpcUaNodeId getTmsTypeId() override;

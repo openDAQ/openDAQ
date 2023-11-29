@@ -3,20 +3,21 @@
 #include "opcuatms/converters/variant_converter.h"
 #include "open62541/daqdevice_nodeids.h"
 #include "opendaq/io_folder_config.h"
+#include "opendaq/search_filter_factory.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 using namespace opcua;
 
-TmsServerFolder::TmsServerFolder(const FolderPtr& object, const OpcUaServerPtr& server, const ContextPtr& context)
-    : Super(object, server, context)
+TmsServerFolder::TmsServerFolder(const FolderPtr& object, const OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext)
+    : Super(object, server, context, tmsContext)
 {
 }
 
 void TmsServerFolder::addChildNodes()
 {
     uint32_t numberInList = 0;
-    for (auto item : object.getItems())
+    for (auto item : object.getItems(search::Any()))
     {
         auto folder = item.asPtrOrNull<IFolder>();
         auto channel = item.asPtrOrNull<IChannel>();

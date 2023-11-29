@@ -56,7 +56,7 @@ public:
         RegisteredFolder folder{};
 
         folder.serverFolder = testFolder;
-        folder.serverObject = std::make_shared<TmsServerFolder>(folder.serverFolder, this->getServer(), NullContext());
+        folder.serverObject = std::make_shared<TmsServerFolder>(folder.serverFolder, this->getServer(), ctx, serverContext);
         auto nodeId = folder.serverObject->registerOpcUaNode();
         if (testFolder.asPtrOrNull<IIoFolderConfig>().assigned())
             folder.clientFolder = TmsClientIoFolder(NullContext(), nullptr, "test", clientContext, nodeId);
@@ -70,7 +70,7 @@ public:
 TEST_F(TmsFolderTest, Create)
 {
     auto folder = createTestFolder();
-    auto serverFolder = TmsServerFolder(folder, this->getServer(), NullContext());
+    auto serverFolder = TmsServerFolder(folder, this->getServer(), ctx, serverContext);
 }
 
 TEST_F(TmsFolderTest, Register)

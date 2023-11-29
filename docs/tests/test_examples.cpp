@@ -92,7 +92,7 @@ TEST_F(ExamplesTest, Client)
     DeviceInfoPtr info = device.getInfo();
     ASSERT_EQ(info.getName(), "Device 1");
 
-    StreamReaderPtr reader = StreamReader<double, uint64_t>(device.getSignalsRecursive()[0]);
+    StreamReaderPtr reader = StreamReader<double, uint64_t>(device.getSignals(search::Recursive(search::Any()))[0]);
 
     double samples[5000];
     for (int i = 0; i < 10; ++i)

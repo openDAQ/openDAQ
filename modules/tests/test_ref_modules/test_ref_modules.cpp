@@ -5,6 +5,7 @@
 #include <opendaq/range_factory.h>
 #include <opendaq/reader_factory.h>
 #include <testutils/testutils.h>
+#include <opendaq/search_filter_factory.h>
 #include <thread>
 #include "classifier_test_helper.h"
 #include "testutils/memcheck_listener.h"
@@ -29,7 +30,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererSimple)
     const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
 
     const auto deviceChannel0 = device.getChannels()[0];
-    const auto deviceSignal0 = deviceChannel0.getSignalsRecursive()[0];
+    const auto deviceSignal0 = deviceChannel0.getSignals(search::Recursive(search::Visible()))[0];
 
     const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
 
@@ -46,7 +47,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererNameChange)
     const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
 
     const auto deviceChannel0 = device.getChannels()[0];
-    const auto deviceSignal0 = deviceChannel0.getSignalsRecursive()[0];
+    const auto deviceSignal0 = deviceChannel0.getSignals(search::Recursive(search::Visible()))[0];
 
     const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
 

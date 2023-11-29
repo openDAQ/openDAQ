@@ -37,6 +37,8 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
 {
     cls.doc() = "A signal with an unique ID that sends event/data packets through connections to input ports the signal is connected to.";
 
+    m.def("SignalFromBuilder", &daq::SignalFromBuilder_Create);
+
     cls.def_property("public",
         [](daq::ISignal *object)
         {

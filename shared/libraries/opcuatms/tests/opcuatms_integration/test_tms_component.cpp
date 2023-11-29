@@ -21,7 +21,7 @@ class TmsComponentTest : public TmsObjectIntegrationTest
 public:
     ComponentPtr createTestComponent()
     {
-        auto component = Component(NullContext(), nullptr, "test");
+        auto component = Component(ctx, nullptr, "test");
 
         component.addProperty(StringProperty("foo", "bar"));
         auto obj = PropertyObject();
@@ -30,6 +30,7 @@ public:
 
         component.getTags().add("tag1");
         component.getTags().add("tag2");
+        
 
         return component;
     }
@@ -42,7 +43,9 @@ public:
             component.serverComponent = createTestComponent();
         else
             component.serverComponent = customComponent;
-        component.serverObject = std::make_shared<TmsServerComponent<>>(component.serverComponent, this->getServer(), NullContext());
+
+        component.serverComponent.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+        component.serverObject = std::make_shared<TmsServerComponent<>>(component.serverComponent, this->getServer(), ctx, serverContext);
         auto nodeId = component.serverObject->registerOpcUaNode();
         component.clientComponent = TmsClientComponent(NullContext(), nullptr, "test", clientContext, nodeId);
         return component;
@@ -52,7 +55,7 @@ public:
 TEST_F(TmsComponentTest, Create)
 {
     auto component = createTestComponent();
-    auto serverComponent = TmsServerComponent(component, this->getServer(), NullContext());
+    auto serverComponent = TmsServerComponent(component, this->getServer(), ctx, serverContext);
 }
 
 TEST_F(TmsComponentTest, Register)
@@ -109,14 +112,16 @@ TEST_F(TmsComponentTest, NameAndDescription)
     component.clientComponent.setName("newer_name");
     component.clientComponent.setDescription("newer_description");
 
-    ASSERT_EQ(component.serverComponent.getName(), component.clientComponent.getName());
-    ASSERT_EQ(component.serverComponent.getDescription(), component.clientComponent.getDescription());
+    ASSERT_EQ(component.serverComponent.getName(), "newer_name");
+    ASSERT_EQ(component.clientComponent.getName(), "newer_name");
+    ASSERT_EQ(component.serverComponent.getDescription(), "newer_description");
+    ASSERT_EQ(component.clientComponent.getDescription(), "newer_description");
 }
 
 TEST_F(TmsComponentTest, NameAndDescriptionReadOnly)
 {
     const auto name = "read_only";
-    const auto customComponent = Component(NullContext(), nullptr, name, ComponentStandardProps::AddReadOnly);
+    const auto customComponent = Component(NullContext(), nullptr, name);
     const auto component = registerTestComponent(customComponent);
 
     ASSERT_NO_THROW(component.clientComponent.setName("new_name"));
@@ -128,7 +133,7 @@ TEST_F(TmsComponentTest, NameAndDescriptionReadOnly)
 TEST_F(TmsComponentTest, NameAndDescriptionSkip)
 {
     const auto name = "read_only";
-    const auto customComponent = Component(NullContext(), nullptr, name, ComponentStandardProps::Skip);
+    const auto customComponent = Component(NullContext(), nullptr, name);
     const auto component = registerTestComponent(customComponent);
 
     ASSERT_NO_THROW(component.clientComponent.setName("new_name"));

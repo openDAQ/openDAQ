@@ -7,7 +7,7 @@
 #include "opendaq/mock/mock_channel_factory.h"
 #include "opcuaclient/opcuaclient.h"
 #include "opcuatms_server/objects/tms_server_channel.h"
-#include "tms_object_test.h"
+#include "tms_server_test.h"
 #include "open62541/daqbsp_nodeids.h"
 
 using namespace daq;
@@ -15,26 +15,25 @@ using namespace opcua::tms;
 using namespace opcua;
 using namespace daq::opcua::utils;
 
-class TmsChannelTest : public TmsObjectTest
+class TmsChannelTest : public TmsServerObjectTest
 {
 public:
     ChannelPtr createChannel()
     {
-        const auto context = NullContext();
-        return MockChannel(context, nullptr, "mockch");
+        return MockChannel(ctx, nullptr, "mockch");
     }
 };
 
 TEST_F(TmsChannelTest, Create)
 {
     ChannelPtr channel = createChannel();
-    auto tmsChannel = TmsServerChannel(channel, this->getServer(), NullContext());
+    auto tmsChannel = TmsServerChannel(channel, this->getServer(), ctx, tmsCtx);
 }
 
 TEST_F(TmsChannelTest, Register)
 {
     ChannelPtr channel = createChannel();
-    auto serverChannel = TmsServerChannel(channel, this->getServer(), NullContext());
+    auto serverChannel = TmsServerChannel(channel, this->getServer(), ctx, tmsCtx);
     auto nodeId = serverChannel.registerOpcUaNode();
 
     ASSERT_TRUE(this->getClient()->nodeExists(nodeId));
@@ -43,7 +42,7 @@ TEST_F(TmsChannelTest, Register)
 TEST_F(TmsChannelTest, AttrFunctionBlockType)
 {
     ChannelPtr channel = createChannel();
-    auto serverChannel = TmsServerChannel(channel, this->getServer(), NullContext());
+    auto serverChannel = TmsServerChannel(channel, this->getServer(), ctx, tmsCtx);
 
     auto nodeId = serverChannel.registerOpcUaNode();
 
@@ -60,7 +59,7 @@ TEST_F(TmsChannelTest, AttrFunctionBlockType)
 TEST_F(TmsChannelTest, BrowseSignals)
 {
     ChannelPtr channel = createChannel();
-    auto serverChannel = TmsServerChannel(channel, this->getServer(), NullContext());
+    auto serverChannel = TmsServerChannel(channel, this->getServer(), ctx, tmsCtx);
     auto nodeId = serverChannel.registerOpcUaNode();
 
     OpcUaServerNode serverNodeFB(*this->getServer(), nodeId);
@@ -79,7 +78,7 @@ TEST_F(TmsChannelTest, Property)
 
     serverChannel.addProperty(sampleRateProp);
 
-    auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), NullContext());
+    auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsServerChannel.registerOpcUaNode();
 
     auto sampleRateNodeId = this->getChildNodeId(nodeId, "SampleRate");

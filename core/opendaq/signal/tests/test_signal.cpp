@@ -8,6 +8,8 @@
 #include <coreobjects/property_object_class_factory.h>
 #include <gtest/gtest.h>
 
+#include "opendaq/tags_factory.h"
+
 using SignalTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ

@@ -7,8 +7,8 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 using namespace daq::opcua;
 
 template <class CoreType>
-TmsServerVariable<CoreType>::TmsServerVariable(const CoreType& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context)
-    : Super(object, server, context)
+TmsServerVariable<CoreType>::TmsServerVariable(const CoreType& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext)
+    : Super(object, server, context, tmsContext)
 {
 }
 

@@ -28,17 +28,36 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setActive(Bool active)
 }
 
 template <class Impl>
-ErrCode TmsClientComponentBaseImpl<Impl>::getTags(ITagsConfig** tags)
+void TmsClientComponentBaseImpl<Impl>::initComponent()
 {
-    return daqTry([&]() {
+    try
+    {
         ListPtr<IString> tagValues = this->template readList<IString>("Tags");
         auto tagsObj = Tags();
         for (auto tag : tagValues)
             tagsObj.add(tag);
         tagsObj.freeze();
-        *tags = tagsObj.detach();
-        return OPENDAQ_SUCCESS;
-    });
+        this->tags = tagsObj.detach();
+    }
+    catch(...)
+    {
+        const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
+        StringPtr localId;
+        this->getLocalId(&localId);
+        LOG_D("OPC UA Component {} failed to fetch tags.", localId);
+    }
+
+	try
+    {
+        this->visible = this->template readValue<IBoolean>("Visible");
+    }
+    catch(...)
+    {
+        const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
+        StringPtr localId;
+        this->getLocalId(&localId);
+        LOG_D("OPC UA Component {} failed to fetch \"Visible\" state.", localId);
+    }
 }
 
 template <class Impl>

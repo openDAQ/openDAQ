@@ -6,6 +6,7 @@
 #include <opendaq/device_private.h>
 #include <opendaq/streaming_info_factory.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/search_filter_factory.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_ids.h>
 
@@ -78,7 +79,7 @@ void NativeStreamingServerImpl::prepareServerHandler()
     };
     serverHandler = std::make_shared<NativeStreamingServerHandler>(context,
                                                                    ioContextPtr,
-                                                                   rootDevice.getSignalsRecursive(),
+                                                                   rootDevice.getSignals(search::Recursive(search::Any())),
                                                                    signalSubscribedHandler,
                                                                    signalUnsubscribedHandler);
 }
@@ -170,7 +171,7 @@ void NativeStreamingServerImpl::startReadThread()
 void NativeStreamingServerImpl::createReaders()
 {
     signalReaders.clear();
-    auto signals = rootDevice.getSignalsRecursive();
+    auto signals = rootDevice.getSignals(search::Recursive(search::Any()));
 
     for (const auto& signal : signals)
     {

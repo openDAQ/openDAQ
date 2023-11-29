@@ -119,6 +119,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, EventPacket, IString*, id, IDict*,
 
 using DataDescriptorChangedEventPacketImpl = EventPacketImpl;
 using PropertyChangedEventPacketImpl = EventPacketImpl;
+using AttributeChangedEventPacketImpl = EventPacketImpl;
 
 #if !defined(BUILDING_STATIC_LIBRARY)
 
@@ -143,6 +144,15 @@ extern "C" daq::ErrCode PUBLIC_EXPORT createPropertyChangedEventPacket(IEventPac
     return daq::createObject<IEventPacket, PropertyChangedEventPacketImpl>(objTmp, event_packet_id::PROPERTY_CHANGED, parameters);
 }
 
+extern "C" daq::ErrCode PUBLIC_EXPORT createAttributeChangedEventPacket(IEventPacket** objTmp,
+                                                                       IString* name,
+                                                                       IBaseObject* value)
+{
+    const auto parameters = Dict<IString, IBaseObject>(
+        {{event_packet_param::NAME, name}, {event_packet_param::VALUE, value }});
+
+    return daq::createObject<IEventPacket, AttributeChangedEventPacketImpl>(objTmp, event_packet_id::ATTRIBUTE_CHANGED, parameters);
+}
 #endif
 
 END_NAMESPACE_OPENDAQ

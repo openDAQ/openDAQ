@@ -10,6 +10,8 @@ set(SRC_Cpp
     generated/component/py_removable.cpp
     generated/component/py_folder.cpp
     generated/component/py_folder_config.cpp
+    generated/component/py_search_params.cpp
+    generated/component/py_search_params_builder.cpp
     generated/context/py_context.cpp
     generated/device/py_device.cpp
     generated/device/py_device_domain.cpp
@@ -63,6 +65,7 @@ set(SRC_Cpp
     generated/signal/py_signal_config.cpp
     generated/signal/py_signal_events.cpp
     generated/signal/py_packet_destruct_callback.cpp
+    generated/signal/py_signal_builder.cpp
     generated/streaming/py_streaming.cpp
     generated/streaming/py_streaming_info.cpp
     generated/streaming/py_streaming_info_config.cpp

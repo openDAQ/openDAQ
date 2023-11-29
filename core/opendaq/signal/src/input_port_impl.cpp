@@ -12,9 +12,8 @@ BEGIN_NAMESPACE_OPENDAQ
 InputPortImpl::InputPortImpl(const ContextPtr& context,
                              const ComponentPtr& parent,
                              const StringPtr& localId,
-                             const StringPtr& className,
-                             const ComponentStandardProps propsMode)
-    : Super(context, parent, localId, className, propsMode)
+                             const StringPtr& className)
+    : Super(context, parent, localId, className)
     , requiresSignal(true)
     , notifyMethod(PacketReadyNotification::None)
     , listenerRef(nullptr)

@@ -51,6 +51,97 @@ Description:
 + [factory] SubscriptionEventArgsPtr SubscriptionEventArgs(const StringPtr& streamingConnectionString, SubscriptionEventType eventType)
 
 5.12.2023
+Component tree traversal improvements + visible flag
+  - Add SearchParams object to customize component getter behaviour
+  - Add visible flag to Component
+  - Add SignalBuilder
+  - Default getters without SearchParams were modified to return only components with visible==true
+  
++ [function] IComponent::getVisible(Bool* visible)
+ 
+-m [function] IFolder::getItems(IList** items)
++m [function] IFolder::getItems(IList** items, ISearchParams* searchParams = nullptr)
+
++ [interface] ISearchParams
++ [function] ISearchParams::getRecursive(Bool* recursive)
++ [function] ISearchParams::getVisibleOnly(Bool* visibleOnly)
++ [function] ISearchParams::getRequiredTags(IList** tags)
++ [function] ISearchParams::getExcludedTags(IList** tags)
++ [function] ISearchParams::getSearchId(IntfID* id)
++ [factory] SearchParamsPtr SearchParams(const SearchParamsBuilderPtr& builder)
++ [factory] SearchParamsPtr SearchParams(Bool visibleOnly = true, Bool recursive = false)
+	
++ [interface] ISearchParamsBuilder
++ [function] ISearchParamsBuilder::build(ISearchParams** searchParams)
++ [function] ISearchParamsBuilder::setRecursive(Bool recursive)
++ [function] ISearchParamsBuilder::getRecursive(Bool* recursive)
++ [function] ISearchParamsBuilder::setVisibleOnly(Bool visibleOnly)
++ [function] ISearchParamsBuilder::getVisibleOnly(Bool* visibleOnly)
++ [function] ISearchParamsBuilder::setRequiredTags(IList* tags)
++ [function] ISearchParamsBuilder::getRequiredTags(IList** tags)
++ [function] ISearchParamsBuilder::setExcludedTags(IList* tags)
++ [function] ISearchParamsBuilder::getExcludedTags(IList** tags)
++ [function] ISearchParamsBuilder::setSearchId(IntfID id)
++ [function] ISearchParamsBuilder::getSearchId(IntfID* id)
++ [factory] SearchParamsBuilderPtr SearchParamsBuilder()
++ [factory] SearchParamsBuilderPtr SearchParamsBuilderCopy(const SearchParamsPtr& searchParams)
+ 
+-m [function] IFunctionBlock::getFunctionBlocks(IList** functionBlocks)
++m [function] IFunctionBlock::getFunctionBlocks(IList** functionBlocks, ISearchParams* searchParams = nullptr)
+-m [function] IFunctionBlock::getInputPorts(IList** ports)
++m [function] IFunctionBlock::getInputPorts(IList** ports, ISearchParams* searchParams = nullptr)
+-m [function] IFunctionBlock::getSignals(IList** signals)
++m [function] IFunctionBlock::getSignals(IList** signals, ISearchParams* searchParams = nullptr)
+
+-m [function] IDevice::getFunctionBlocks(IList** functionBlocks)
++m [function] IDevice::getFunctionBlocks(IList** functionBlocks, ISearchParams* searchParams = nullptr)
+-m [function] IDevice::getChannels(IList** channels)
++m [function] IDevice::getChannels(IList** channels, ISearchParams* searchParams = nullptr)
+-m [function] IDevice::getSignals(IList** signals)
++m [function] IDevice::getSignals(IList** signals, ISearchParams* searchParams = nullptr)
+-m [function] IDevice::getDevices(IList** devices)
++m [function] IDevice::getDevices(IList** devices, ISearchParams* searchParams = nullptr)
+
++ [factory] SignalPtr Signal(const SignalBuilderPtr& signalBuilder)
++ [factory] SignalBuilderPtr SignalBuilder()
++ [factory] SignalBuilderPtr SignalBuilder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+-m [factory] SignalConfigPtr SignalWithDescriptor(const ContextPtr& context, const DataDescriptorPtr& descriptor, const ComponentPtr& parent, const StringPtr& localId) 
++m [factory] SignalConfigPtr SignalWithDescriptor(const ContextPtr& context, const DataDescriptorPtr& descriptor, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className = nullptr) 
+-m [factory] SignalConfigPtr Signal(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId) 
++m [factory] SignalConfigPtr Signal(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className = nullptr) 
+
++ [interface] ISignalBuilder
++ [function] ISignalBuilder::build(ISignal** signal)
++ [function] ISignalBuilder::getLocalId(IString** localId)
++ [function] ISignalBuilder::setLocalId(IString* localId)
++ [function] ISignalBuilder::getParent(IComponent** parent)
++ [function] ISignalBuilder::setParent(IComponent* parent)
++ [function] ISignalBuilder::getContext(IContext** context)
++ [function] ISignalBuilder::setContext(IContext* context)
++ [function] ISignalBuilder::getDescriptor(IDataDescriptor** descriptor)
++ [function] ISignalBuilder::setDescriptor(IDataDescriptor* descriptor)
++ [function] ISignalBuilder::getDomainSignal(ISignal** signal)
++ [function] ISignalBuilder::setDomainSignal(ISignal* signal)
++ [function] ISignalBuilder::getComponentStandardPropsMode(ComponentStandardProps* standardProps)
++ [function] ISignalBuilder::setComponentStandardPropsMode(ComponentStandardProps standardProps)
++ [function] ISignalBuilder::getName(IString** name)
++ [function] ISignalBuilder::setName(IString* name)
++ [function] ISignalBuilder::getDescription(IString** description)
++ [function] ISignalBuilder::setDescription(IString* description)
++ [function] ISignalBuilder::getTags(ITagsConfig** tags)
++ [function] ISignalBuilder::setTags(ITagsConfig* tags)
++ [function] ISignalBuilder::getVisible(Bool* visible)
++ [function] ISignalBuilder::setVisible(Bool visible)
++ [function] ISignalBuilder::getActive(Bool* active)
++ [function] ISignalBuilder::setActive(Bool active)
++ [function] ISignalBuilder::getPublic(Bool* isPublic)
++ [function] ISignalBuilder::setPublic(Bool isPublic)
++ [function] ISignalBuilder::getRelatedSignals(IList** signals)
++ [function] ISignalBuilder::setRelatedSignals(IList* signals)
++ [function] ISignalBuilder::getClassName(IString** className)
++ [function] ISignalBuilder::setClassName(IString* className)
+
+5.12.2023
 Description:
   - Expose Origin Epoch and StartOffset the MultiReader aligned all the read signals to
   - Rework how interface inheritance and queryInterface work to hopefully prevent ICEs and out-of-heap-space errors

@@ -544,16 +544,13 @@ TEST_F(RefModulesTest, ClassifierGeneralDescriptor)
 {
     ClassifierTestHelper helper;
     helper.setUp();
-    auto instance = helper.getInstance();
-    auto inputSignal = helper.getSignal();
 
-    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    const auto inputSignal = helper.getInputSignal();
+    const auto inputDomainDescriptor = helper.getInputDomainSignal().getDescriptor();
 
-    const auto classifierInputPort = classifierFb.getInputPorts()[0];
-    classifierInputPort.connect(inputSignal);
-
-    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierSignal = helper.getOutputSignal();
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
+    const auto classifierDomainSignalDescription = classifierSignal.getDomainSignal().getDescriptor();
 
     // Classifier returning values with float float
     ASSERT_EQ(classifierSignalDescription.getSampleType(), SampleType::Float64);
@@ -567,9 +564,6 @@ TEST_F(RefModulesTest, ClassifierGeneralDescriptor)
     // Classifier returns values are %
     ASSERT_EQ(classifierSignalDescription.getUnit().getSymbol(), "%");
 
-    const auto classifierDomainSignalDescription = classifierSignal.getDomainSignal().getDescriptor();
-    const auto inputDomainDescriptor = inputSignal.getDomainSignal().getDescriptor();
-
     // Check tick resolution
     ASSERT_EQ(classifierDomainSignalDescription.getTickResolution(), inputDomainDescriptor.getTickResolution());
 }
@@ -578,49 +572,36 @@ TEST_F(RefModulesTest, ClassifierRuleForSync)
 {
     ClassifierTestHelper helper;
     helper.setUp();
-    auto instance = helper.getInstance();
-    auto inputSignal = helper.getSignal();
 
-    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    const auto inputSignal = helper.getInputSignal();
+    const auto inputDomainDescriptor = helper.getInputDomainSignal().getDescriptor();
 
-    const auto classifierInputPort = classifierFb.getInputPorts()[0];
-    classifierInputPort.connect(inputSignal);
-
-    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierSignal = helper.getOutputSignal();
+    const auto classifierSignalDescription = classifierSignal.getDescriptor();
     const auto classifierDomainSignalDescription = classifierSignal.getDomainSignal().getDescriptor();
-    const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
 
-    const auto inputDomainDescriptor = inputSignal.getDomainSignal().getDescriptor();
-    const auto inputDomainRule = inputDomainDescriptor.getRule();
+    const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
 
     // Check Linear Rule
     ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Linear);
 
     // Check deltas
-        auto classifierDelta = classifierDomainRule.getParameters().get("delta");
+    auto classifierDelta = classifierDomainRule.getParameters().get("delta");
     auto inputResolution = inputDomainDescriptor.getTickResolution() * Int(1000);
     auto expectedClassifierDelata = 1.0 / static_cast<Float>(inputResolution);
-        ASSERT_EQ(classifierDelta, expectedClassifierDelata);
-    }
+    ASSERT_EQ(classifierDelta, expectedClassifierDelata);
+}
 
 TEST_F(RefModulesTest, ClassifierRuleForAsync)
 {
     ClassifierTestHelper helper;
     helper.setUp(daq::SampleType::UInt64, Range(-10, 10), false);
-    auto instance = helper.getInstance();
-    auto inputSignal = helper.getSignal();
 
-    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
-
-    const auto classifierInputPort = classifierFb.getInputPorts()[0];
-    classifierInputPort.connect(inputSignal);
-
-    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierSignal = helper.getOutputSignal();
+    const auto classifierSignalDescription = classifierSignal.getDescriptor();
     const auto classifierDomainSignalDescription = classifierSignal.getDomainSignal().getDescriptor();
-    const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
 
-    const auto inputDomainDescriptor = inputSignal.getDomainSignal().getDescriptor();
-    const auto inputDomainRule = inputDomainDescriptor.getRule();
+    const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
 
     // Check Explicit Rule
     ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
@@ -630,15 +611,8 @@ TEST_F(RefModulesTest, ClassifierRangeSize)
 {
     ClassifierTestHelper helper;
     helper.setUp(daq::SampleType::UInt64, Range(-3, 3));
-    auto instance = helper.getInstance();
-    auto inputSignal = helper.getSignal();
 
-    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
-
-    const auto classifierInputPort = classifierFb.getInputPorts()[0];
-    classifierInputPort.connect(inputSignal);
-
-    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierSignal = helper.getOutputSignal();
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
 
     auto signalDimension = classifierSignalDescription.getDimensions()[0];
@@ -650,19 +624,14 @@ TEST_F(RefModulesTest, ClassifierRangeSizeCustomClassCount)
 {
     ClassifierTestHelper helper;
     helper.setUp(daq::SampleType::UInt64, Range(-5, 5));
-    auto instance = helper.getInstance();
-    auto inputSignal = helper.getSignal();
 
-    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    const auto classifierFb = helper.getClassifier();
     classifierFb.setPropertyValue("ClassCount", 4);
 
-    const auto classifierInputPort = classifierFb.getInputPorts()[0];
-    classifierInputPort.connect(inputSignal);
-
-    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierSignal = helper.getOutputSignal();
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
 
-    auto signalDimension = classifierSignalDescription.getDimensions()[0];
+    const auto signalDimension = classifierSignalDescription.getDimensions()[0];
 
     ASSERT_EQ(signalDimension.getLabels(), List<NumberPtr>(-5, -1, 3, 7));
 }
@@ -671,20 +640,15 @@ TEST_F(RefModulesTest, ClassifierRangeSizeCustomClasses)
 {
     ClassifierTestHelper helper;
     helper.setUp(daq::SampleType::UInt64, Range(-10, 10));
-    auto instance = helper.getInstance();
-    auto inputSignal = helper.getSignal();
 
-    const auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    const auto classifierFb = helper.getClassifier();
     classifierFb.setPropertyValue("UseCustomClasses", true);
     classifierFb.setPropertyValue("CustomClassList", List<Float>(0, 1, 10, 100));
 
-    const auto classifierInputPort = classifierFb.getInputPorts()[0];
-    classifierInputPort.connect(inputSignal);
-
-    const auto classifierSignal = classifierFb.getSignals()[0];
+    const auto classifierSignal = helper.getOutputSignal();
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
 
-    auto signalDimension = classifierSignalDescription.getDimensions()[0];
+    const auto signalDimension = classifierSignalDescription.getDimensions()[0];
 
     ASSERT_EQ(signalDimension.getLabels(), List<Float>(0, 1, 10, 100));
 }
@@ -700,19 +664,12 @@ TEST_F(RefModulesTest, ClassifierCheckSyncData)
 
     ClassifierTestHelper helper;
     helper.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
-    auto instance = helper.getInstance();
-    auto inputSignal = helper.getSignal();
 
-    auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
-    classifierFb.setPropertyValue("UseCustomClasses", false);
+    const auto classifierFb = helper.getClassifier();
     classifierFb.setPropertyValue("BlockSize", 5);
     classifierFb.setPropertyValue("ClassCount", 1);
 
-    const auto classifierPort = classifierFb.getInputPorts()[0];
-    classifierPort.connect(inputSignal);
-    const auto classifierSignal = classifierFb.getSignals()[0];
-
-    auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
+    auto reader = BlockReader<outputSignalType>(helper.getOutputSignal(), 1);
 
     auto dataPacket = helper.createDataPacket(5);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
@@ -723,7 +680,7 @@ TEST_F(RefModulesTest, ClassifierCheckSyncData)
     dataPtr[4] = 20;
     helper.sendPacket(dataPacket);
 
-    SizeT blockCnt = 1;
+    size_t blockCnt = 1;
     auto outputData = std::make_unique<outputSignalType[]>(21);
     reader.read(outputData.get(), &blockCnt, 500);
     // check that was read output packet
@@ -754,19 +711,12 @@ TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
 
     ClassifierTestHelper helper;
     helper.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
-    auto instance = helper.getInstance();
-    auto inputSignal = helper.getSignal();
 
-    auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
-    classifierFb.setPropertyValue("UseCustomClasses", false);
+    const auto classifierFb = helper.getClassifier();
     classifierFb.setPropertyValue("BlockSize", 5);
     classifierFb.setPropertyValue("ClassCount", 1);
 
-    const auto classifierPort = classifierFb.getInputPorts()[0];
-    classifierPort.connect(inputSignal);
-    const auto classifierSignal = classifierFb.getSignals()[0];
-
-    auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
+    auto reader = BlockReader<outputSignalType>(helper.getOutputSignal(), 1);
 
     auto dataPacket = helper.createDataPacket(10);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
@@ -786,13 +736,13 @@ TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
 
     // reading first output block
     auto firstOutputData = std::make_unique<outputSignalType[]>(5);
-    SizeT firstBlockCnt = 1;
+    size_t firstBlockCnt = 1;
     reader.read(firstOutputData.get(), &firstBlockCnt, 500);
     ASSERT_EQ(firstBlockCnt, 1);
 
     // reading second output block
     auto secondOutputData = std::make_unique<outputSignalType[]>(5);
-    SizeT secondBlockCnt = 1;
+    size_t secondBlockCnt = 1;
     reader.read(secondOutputData.get(), &secondBlockCnt, 500);
     ASSERT_EQ(secondBlockCnt, 1);
 
@@ -822,19 +772,12 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClass)
 
     ClassifierTestHelper helper;
     helper.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
-    auto instance = helper.getInstance();
-    auto inputSignal = helper.getSignal();
 
-    auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
-    classifierFb.setPropertyValue("UseCustomClasses", false);
+    const auto classifierFb = helper.getClassifier();
     classifierFb.setPropertyValue("BlockSize", 5);
     classifierFb.setPropertyValue("ClassCount", 2);
 
-    const auto classifierPort = classifierFb.getInputPorts()[0];
-    classifierPort.connect(inputSignal);
-    const auto classifierSignal = classifierFb.getSignals()[0];
-
-    auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
+    auto reader = BlockReader<outputSignalType>(helper.getOutputSignal(), 1);
 
     auto dataPacket = helper.createDataPacket(5);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
@@ -845,7 +788,7 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClass)
     dataPtr[4] = 20;
     helper.sendPacket(dataPacket);
 
-    SizeT blockCnt = 1;
+    size_t blockCnt = 1;
     auto outputData = std::make_unique<outputSignalType[]>(11);
     reader.read(outputData.get(), &blockCnt, 500);
 
@@ -877,19 +820,13 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
 
     ClassifierTestHelper helper;
     helper.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
-    auto instance = helper.getInstance();
-    auto inputSignal = helper.getSignal();
 
-    auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    const auto classifierFb = helper.getClassifier();
     classifierFb.setPropertyValue("UseCustomClasses", true);
     classifierFb.setPropertyValue("BlockSize", 5);
     classifierFb.setPropertyValue("CustomClassList", List<Float>(0, 25, 50, 100));
 
-    const auto classifierPort = classifierFb.getInputPorts()[0];
-    classifierPort.connect(inputSignal);
-    const auto classifierSignal = classifierFb.getSignals()[0];
-
-    auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
+    auto reader = BlockReader<outputSignalType>(helper.getOutputSignal(), 1);
 
     auto dataPacket = helper.createDataPacket(5);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
@@ -900,7 +837,7 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
     dataPtr[4] = 20;
     helper.sendPacket(dataPacket);
 
-    SizeT blockCnt = 1;
+    size_t blockCnt = 1;
     auto outputData = std::make_unique<outputSignalType[]>(4);
     reader.read(outputData.get(), &blockCnt, 500);
     // check that was read output packet
@@ -927,21 +864,13 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
 
     ClassifierTestHelper helper;
     helper.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
-    auto instance = helper.getInstance();
-    auto inputSignal = helper.getSignal();
-
-    auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+    const auto classifierFb = helper.getClassifier();
     classifierFb.setPropertyValue("UseCustomClasses", true);
     classifierFb.setPropertyValue("BlockSize", 5);
     classifierFb.setPropertyValue("CustomClassList", List<Float>(0, 25, 50, 100));
 
-    const auto classifierPort = classifierFb.getInputPorts()[0];
-    classifierPort.connect(inputSignal);
-    const auto classifierSignal = classifierFb.getSignals()[0];
+    auto reader = BlockReader<outputSignalType>(helper.getOutputSignal(), 1);
 
-    auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
-
-    // + 1 to add a markup of next block
     auto dataPacket = helper.createDataPacket(6);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
     dataPtr[0] = 0;
@@ -949,10 +878,10 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     dataPtr[2] = 10;
     dataPtr[3] = 15;
     dataPtr[4] = 20;
-    dataPtr[5] = 25;
+    dataPtr[5] = 25; // + 1 to add a markup of next block
     helper.sendPacket(dataPacket);
 
-    SizeT blockCnt = 1;
+    size_t blockCnt = 1;
     auto outputData = std::make_unique<outputSignalType[]>(4);
     reader.read(outputData.get(), &blockCnt, 500);
     // check that was read output packet
@@ -979,19 +908,12 @@ TEST_F(RefModulesTest, ClassifierCheckAsyncMultiData)
 
     ClassifierTestHelper helper;
     helper.setUp(inputSignalSampleType, inputSignalRange, inputSignalSync);
-    auto instance = helper.getInstance();
-    auto inputSignal = helper.getSignal();
 
-    auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
-    classifierFb.setPropertyValue("UseCustomClasses", false);
+    const auto classifierFb = helper.getClassifier();
     classifierFb.setPropertyValue("BlockSize", 5);
     classifierFb.setPropertyValue("ClassCount", 1);
 
-    const auto classifierPort = classifierFb.getInputPorts()[0];
-    classifierPort.connect(inputSignal);
-    const auto classifierSignal = classifierFb.getSignals()[0];
-
-    auto reader = BlockReader<outputSignalType>(classifierSignal, 1);
+    auto reader = BlockReader<outputSignalType>(helper.getOutputSignal(), 1);
 
     auto dataPacket = helper.createDataPacket(11);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
@@ -1013,13 +935,13 @@ TEST_F(RefModulesTest, ClassifierCheckAsyncMultiData)
 
     // reading first output block
     auto firstOutputData = std::make_unique<outputSignalType[]>(5);
-    SizeT firstBlockCnt = 1;
+    size_t firstBlockCnt = 1;
     reader.read(firstOutputData.get(), &firstBlockCnt, 200);
     ASSERT_EQ(firstBlockCnt, 1);
 
     // reading second output block
     auto secondOutputData = std::make_unique<outputSignalType[]>(5);
-    SizeT secondBlockCnt = 1;
+    size_t secondBlockCnt = 1;
     reader.read(secondOutputData.get(), &secondBlockCnt, 200);
     ASSERT_EQ(secondBlockCnt, 1);
 

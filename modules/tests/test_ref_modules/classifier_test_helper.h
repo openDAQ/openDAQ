@@ -38,24 +38,40 @@ struct ClassifierTestHelper
         this->instance = Instance();
         this->context = this->instance.getContext();
         this->scheduler = this->context.getScheduler();
-        this->signal = createSignal(this->context, signalType, signalRange);
-        this->domainSignal = createDomainSignal(this->context, domainSync);
+        this->signal = CreateSignal(this->context, signalType, signalRange);
+        this->domainSignal = CreateDomainSignal(this->context, domainSync);
         this->signal.setDomainSignal(this->domainSignal);
+        this->classifierFb = RegisterClassifier(getInstance(), getInputSignal());
     }
 
-    InstancePtr getInstance()
+    InstancePtr getInstance() const
     {
-        return instance;
+        return this->instance;
     }
 
-    SignalConfigPtr getSignal()
+    FunctionBlockPtr getClassifier() const
     {
-        return signal;
+        return this->classifierFb;
+    }
+
+    SignalConfigPtr getInputSignal() const
+    {
+        return this->signal;
+    }
+
+    SignalConfigPtr getInputDomainSignal() const
+    {
+        return this->domainSignal;
+    }
+
+    SignalConfigPtr getOutputSignal() const
+    {
+        return this->classifierFb.getSignals()[0];
     }
 
     void sendPacket(const PacketPtr& packet, bool wait = true) const
     {
-        signal.sendPacket(packet);
+        getInputSignal().sendPacket(packet);
 
         if (wait)
             scheduler.waitAll();
@@ -63,7 +79,7 @@ struct ClassifierTestHelper
 
     DataPacketPtr createDataPacket(SizeT numSamples, Int offset = 0)
     {
-        auto domainPacket = DataPacket(domainSignal.getDescriptor(), numSamples, offset);
+        auto domainPacket = DataPacket(getInputDomainSignal().getDescriptor(), numSamples, offset);
 
         if (!domainSync)
         {
@@ -78,10 +94,10 @@ struct ClassifierTestHelper
             sentSamples += numSamples;
         }
 
-        return DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), numSamples);
+        return DataPacketWithDomain(domainPacket, getInputSignal().getDescriptor(), numSamples);
     }
 
-    static SignalConfigPtr createSignal(ContextPtr context, SampleType type = SampleType::UInt64, RangePtr range = Range(-10, 10))
+    static SignalConfigPtr CreateSignal(ContextPtr context, SampleType type = SampleType::UInt64, RangePtr range = Range(-10, 10))
     {
         auto descriptor = DataDescriptorBuilder().setName("stub").setSampleType(type).setValueRange(range).build();
 
@@ -91,7 +107,7 @@ struct ClassifierTestHelper
         return signal;
     }
 
-    static SignalConfigPtr createDomainSignal(ContextPtr context, bool domainSync, std::string epoch = "2023-11-24T00:02:03+00:00")
+    static SignalConfigPtr CreateDomainSignal(ContextPtr context, bool domainSync, std::string epoch = "2023-11-24T00:02:03+00:00")
     {
         auto descriptor = DataDescriptorBuilder()
                               .setName("domain stub")
@@ -108,13 +124,22 @@ struct ClassifierTestHelper
         return domain;
     }
 
+    static FunctionBlockPtr RegisterClassifier(InstancePtr instance, SignalConfigPtr inputSignal)
+    {
+        auto classifierFb = instance.addFunctionBlock("ref_fb_module_classifier");
+        const auto classifierInputPort = classifierFb.getInputPorts()[0];
+        classifierInputPort.connect(inputSignal);
+        return classifierFb;
+    }
+
 protected:
-    bool domainSync{true};
+    bool domainSync;
     InstancePtr instance;
     ContextPtr context;
     SchedulerPtr scheduler;
     SignalConfigPtr signal;
     SignalConfigPtr domainSignal;
+    FunctionBlockPtr classifierFb;
 
     size_t sentSamples;
     std::random_device random;

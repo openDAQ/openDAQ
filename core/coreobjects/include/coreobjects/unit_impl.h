@@ -42,7 +42,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj);
 
 private:
-    static DictPtr<IString, IBaseObject> packBuilder(IUnitBuilder* unitBuilder);
+    static DictPtr<IString, IBaseObject> PackBuilder(IUnitBuilder* unitBuilder);
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(UnitImpl)

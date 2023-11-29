@@ -11,7 +11,7 @@ namespace detail
     static const StructTypePtr unitStructType = UnitStructType();
 }
 
-DictPtr<IString, IBaseObject> UnitImpl::packBuilder(IUnitBuilder* unitBuilder)
+DictPtr<IString, IBaseObject> UnitImpl::PackBuilder(IUnitBuilder* unitBuilder)
 {
     const auto builderPtr = UnitBuilderPtr::Borrow(unitBuilder);
     auto params = Dict<IString, IBaseObject>();
@@ -33,7 +33,7 @@ UnitImpl::UnitImpl(Int id, StringPtr symbol, StringPtr name, StringPtr quantity)
 
 UnitImpl::UnitImpl(IUnitBuilder* unitBuilder)
     : GenericStructImpl<IUnit, IStruct>(
-            detail::unitStructType, packBuilder(unitBuilder))
+            detail::unitStructType, PackBuilder(unitBuilder))
 {
 }
 

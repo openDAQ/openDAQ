@@ -58,7 +58,7 @@ public:
 
 private:
     ErrCode verifyParametersInternal() const;
-    static DictPtr<IString, IBaseObject> packBuilder(IScalingBuilder* scalingBuilder);
+    static DictPtr<IString, IBaseObject> PackBuilder(IScalingBuilder* scalingBuilder);
 
     ScaledSampleType outputDataType;
     SampleType inputDataType;

@@ -51,7 +51,7 @@ private:
     ListPtr<IBaseObject> getLinearLabels() const;
     ListPtr<IBaseObject> getLogLabels() const;
     ListPtr<IBaseObject> getListLabels() const;
-    static DictPtr<IString, IBaseObject> packBuilder(IDimensionBuilder* dimensionBuilder);
+    static DictPtr<IString, IBaseObject> PackBuilder(IDimensionBuilder* dimensionBuilder);
 
     StringPtr name;
     UnitPtr unit;

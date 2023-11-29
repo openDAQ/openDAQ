@@ -10,7 +10,7 @@ namespace detail
     static const StructTypePtr scalingStructType = ScalingStructType();
 }
 
-DictPtr<IString, IBaseObject> ScalingImpl::packBuilder(IScalingBuilder* scalingBuilder)
+DictPtr<IString, IBaseObject> ScalingImpl::PackBuilder(IScalingBuilder* scalingBuilder)
 {
     const auto builderPtr = ScalingBuilderPtr::Borrow(scalingBuilder);
     auto params = Dict<IString, IBaseObject>();
@@ -46,7 +46,7 @@ ScalingImpl::ScalingImpl(NumberPtr scale, NumberPtr offset, SampleType inputType
 }
 
 ScalingImpl::ScalingImpl(IScalingBuilder* scalingBuilder)
-    : GenericStructImpl<IScaling, IStruct, IRulePrivate>(detail::scalingStructType, packBuilder(scalingBuilder))
+    : GenericStructImpl<IScaling, IStruct, IRulePrivate>(detail::scalingStructType, PackBuilder(scalingBuilder))
 
 {
     const auto builderPtr = ScalingBuilderPtr::Borrow(scalingBuilder);

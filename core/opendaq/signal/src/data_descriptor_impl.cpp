@@ -17,7 +17,7 @@ namespace detail
     static const StructTypePtr dataDescriptorStructType = DataDescriptorStructType();
 }
 
-DictPtr<IString, IBaseObject> DataDescriptorImpl::packBuilder(IDataDescriptorBuilder* dataDescriptorBuilder)
+DictPtr<IString, IBaseObject> DataDescriptorImpl::PackBuilder(IDataDescriptorBuilder* dataDescriptorBuilder)
 {
     const auto builderPtr = DataDescriptorBuilderPtr::Borrow(dataDescriptorBuilder);
     auto params = Dict<IString, IBaseObject>();
@@ -37,7 +37,7 @@ DictPtr<IString, IBaseObject> DataDescriptorImpl::packBuilder(IDataDescriptorBui
 }
 
 DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBuilder)
-    : GenericStructImpl<IDataDescriptor, IStruct, IScalingCalcPrivate, IDataRuleCalcPrivate>(detail::dataDescriptorStructType, packBuilder(dataDescriptorBuilder))
+    : GenericStructImpl<IDataDescriptor, IStruct, IScalingCalcPrivate, IDataRuleCalcPrivate>(detail::dataDescriptorStructType, PackBuilder(dataDescriptorBuilder))
 {
     const auto dataDescriptorBuilderPtr = DataDescriptorBuilderPtr(dataDescriptorBuilder);
     this->dimensions = dataDescriptorBuilderPtr.getDimensions();

@@ -17,7 +17,7 @@ namespace detail
     static const StructTypePtr dimensionStructType = DimensionStructType();
 }
 
-DictPtr<IString, IBaseObject> DimensionImpl::packBuilder(IDimensionBuilder* dimensionBuilder)
+DictPtr<IString, IBaseObject> DimensionImpl::PackBuilder(IDimensionBuilder* dimensionBuilder)
 {
     const auto builderPtr = DimensionBuilderPtr::Borrow(dimensionBuilder);
     auto params = Dict<IString, IBaseObject>();
@@ -44,7 +44,7 @@ DimensionImpl::DimensionImpl(const DimensionRulePtr& rule, const UnitPtr& unit, 
 }
 
 DimensionImpl::DimensionImpl(IDimensionBuilder* dimensionBuilder)
-    : GenericStructImpl<IDimension, IStruct>(detail::dimensionStructType, packBuilder(dimensionBuilder))
+    : GenericStructImpl<IDimension, IStruct>(detail::dimensionStructType, PackBuilder(dimensionBuilder))
 {
     const auto builderPtr = DimensionBuilderPtr::Borrow(dimensionBuilder);
     this->name = builderPtr.getName();

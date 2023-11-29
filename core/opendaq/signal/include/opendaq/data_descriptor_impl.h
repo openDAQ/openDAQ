@@ -86,7 +86,7 @@ private:
     std::unique_ptr<ScalingCalc> scalingCalc;
     std::unique_ptr<DataRuleCalc> dataRuleCalc;
 
-    static DictPtr<IString, IBaseObject> packBuilder(IDataDescriptorBuilder* dataDescriptorBuilder);
+    static DictPtr<IString, IBaseObject> PackBuilder(IDataDescriptorBuilder* dataDescriptorBuilder);
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DataDescriptorImpl)

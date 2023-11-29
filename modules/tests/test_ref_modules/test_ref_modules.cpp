@@ -770,11 +770,13 @@ TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
 
     auto dataPacket = helper.createDataPacket(10);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
+    // first input packet
     dataPtr[0] = 0;
     dataPtr[1] = 1;
     dataPtr[2] = 2;
     dataPtr[3] = 3;
     dataPtr[4] = 4;
+    // second input packet
     dataPtr[5] = 0;
     dataPtr[6] = 1;
     dataPtr[7] = 2;
@@ -993,19 +995,20 @@ TEST_F(RefModulesTest, ClassifierCheckAsyncMultiData)
 
     auto dataPacket = helper.createDataPacket(11);
     auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
+    // first input packet
     dataPtr[0] = 0;
     dataPtr[1] = 1;
     dataPtr[2] = 2;
     dataPtr[3] = 3;
     dataPtr[4] = 4;
-
+    // second input packet
     dataPtr[5] = 0;
     dataPtr[6] = 1;
     dataPtr[7] = 2;
     dataPtr[8] = 3;
     dataPtr[9] = 4;
-    
-    dataPtr[10] = 5; // second packet finish markup
+    // second packet finish markup
+    dataPtr[10] = 5;
     helper.sendPacket(dataPacket);
 
     // reading first output block

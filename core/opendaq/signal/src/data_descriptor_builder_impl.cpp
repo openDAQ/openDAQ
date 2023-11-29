@@ -23,48 +23,8 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl()
 {
 }
 
-static ListPtr<IDimension> copyDimensions(const ListPtr<IDimension>& toCopy)
-{
-    auto newDimensions = List<IDimension>();
-    if (toCopy.assigned())
-    {
-        for (auto dim : toCopy)
-        {
-            newDimensions.pushBack(dim);
-        }
-    }
-    return newDimensions;
-}
-
-static ListPtr<IDataDescriptor> copyStructFields(const ListPtr<IDataDescriptor>& toCopy)
-{
-    auto newStructFields = List<IDataDescriptor>();
-    if (toCopy.assigned())
-    {
-        for (auto desc : toCopy)
-        {
-            newStructFields.pushBack(desc);
-        }
-    }
-    return newStructFields;
-}
-
-static DictPtr<IString, IString> copyMetadata(const DictPtr<IString, IString>& toCopy)
-{
-    auto newMetaData = Dict<IString, IString>();
-
-    if (toCopy.assigned())
-    {
-        for (const auto& [k, v] : toCopy)
-        {
-            newMetaData.set(k, v);
-        }
-    }
-    return newMetaData;
-}
-
 DataDescriptorBuilderImpl::DataDescriptorBuilderImpl(const DataDescriptorPtr& descriptorCopy)
-    : dimensions(copyDimensions(descriptorCopy.getDimensions()))
+    : dimensions(descriptorCopy.getDimensions())
     , name(descriptorCopy.getName())
     , sampleType(descriptorCopy.getSampleType())
     , unit(descriptorCopy.getUnit())
@@ -73,8 +33,8 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl(const DataDescriptorPtr& de
     , scaling(descriptorCopy.getPostScaling())
     , origin(descriptorCopy.getOrigin())
     , resolution(descriptorCopy.getTickResolution())
-    , structFields(copyStructFields(descriptorCopy.getStructFields()))
-    , metadata(copyMetadata(descriptorCopy.getMetadata()))
+    , structFields(descriptorCopy.getStructFields())
+    , metadata(descriptorCopy.getMetadata())
 {
 }
 
@@ -106,7 +66,10 @@ ErrCode DataDescriptorBuilderImpl::getName(IString** name)
 
 ErrCode DataDescriptorBuilderImpl::setDimensions(IList* dimensions)
 {
-    this->dimensions = dimensions;
+    if (dimensions == nullptr)
+        this->dimensions = List<IDimension>();
+    else
+        this->dimensions = dimensions;
     return OPENDAQ_SUCCESS;
 }
 
@@ -210,7 +173,10 @@ ErrCode DataDescriptorBuilderImpl::getPostScaling(IScaling** scaling)
 
 ErrCode DataDescriptorBuilderImpl::setMetadata(IDict* metadata)
 {
-    this->metadata = metadata;
+    if (metadata == nullptr)
+        this->metadata = Dict<IString, IString>();
+    else
+        this->metadata = metadata;
     return OPENDAQ_SUCCESS;
 }
 
@@ -223,7 +189,10 @@ ErrCode DataDescriptorBuilderImpl::getMetadata(IDict** metadata)
 
 ErrCode DataDescriptorBuilderImpl::setStructFields(IList* structFields)
 {
-    this->structFields = structFields;
+    if (structFields == nullptr)
+        this->structFields = List<IDataDescriptor>();
+    else
+        this->structFields = structFields;
     return OPENDAQ_SUCCESS;
 }
 

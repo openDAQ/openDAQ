@@ -191,12 +191,12 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRenderer)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 
-    /*    statisticsFb.setPropertyValue("DomainSignalType", 1);
-        statisticsFb.setPropertyValue("BlockSize", 50);
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+/*    statisticsFb.setPropertyValue("DomainSignalType", 1);
+    statisticsFb.setPropertyValue("BlockSize", 50);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
-        statisticsFb.setPropertyValue("DomainSignalType", 2);
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));*/
+    statisticsFb.setPropertyValue("DomainSignalType", 2);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));*/
 }
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRendererDeviceRemove)
@@ -492,12 +492,12 @@ TEST_F(RefModulesTest, UpdateDevicePower)
     powerFb.getInputPorts()[0].connect(device0Signal);
     powerFb.getInputPorts()[1].connect(device1Signal);
 
-    /*    auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
-        rendererFb.getInputPorts()[0].connect(powerFb.getSignals()[0]);
-        rendererFb.getInputPorts()[1].connect(device0Signal);
-        rendererFb.getInputPorts()[2].connect(device1Signal);
+/*    auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+    rendererFb.getInputPorts()[0].connect(powerFb.getSignals()[0]);
+    rendererFb.getInputPorts()[1].connect(device0Signal);
+    rendererFb.getInputPorts()[2].connect(device1Signal);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));*/
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));*/
 
     const auto configuration = instance.saveConfiguration();
 
@@ -508,7 +508,7 @@ TEST_F(RefModulesTest, UpdateDevicePower)
     device1Channel.release();
     device0Signal.release();
     device1Signal.release();
-    //    rendererFb.release();
+//    rendererFb.release();
 
     std::cout << configuration << std::endl;
 
@@ -526,7 +526,7 @@ TEST_F(RefModulesTest, UpdateDevicePower)
     ASSERT_EQ(device0Channel.getPropertyValue("CustomRange"), Range(-20.0, 20.0));
 
     powerFb = instance.getFunctionBlocks()[0];
-    //    powerFb = instance.getFunctionBlocks()[1];
+//    powerFb = instance.getFunctionBlocks()[1];
 
     ASSERT_EQ(powerFb.getPropertyValue("VoltageScale"), 2.0);
     ASSERT_EQ(powerFb.getPropertyValue("VoltageOffset"), 1.0);
@@ -537,7 +537,7 @@ TEST_F(RefModulesTest, UpdateDevicePower)
     ASSERT_EQ(powerFb.getPropertyValue("CustomHighValue"), 75.0);
     ASSERT_EQ(powerFb.getPropertyValue("CustomLowValue"), -75.0);
 
-    //    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+//    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
 
 TEST_F(RefModulesTest, ClassifierGeneralDescriptor)

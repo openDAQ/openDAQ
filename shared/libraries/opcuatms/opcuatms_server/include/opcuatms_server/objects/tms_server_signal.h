@@ -28,7 +28,7 @@ class TmsServerSignal : public TmsServerComponent<SignalPtr>
 public:
     using Super = TmsServerComponent<SignalPtr>;
 
-    TmsServerSignal(const SignalPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context);
+    TmsServerSignal(const SignalPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
 
     opcua::OpcUaNodeId getReferenceType() override;
     void bindCallbacks() override;

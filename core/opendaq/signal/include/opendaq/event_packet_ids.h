@@ -25,11 +25,4 @@ namespace event_packet_id
      *  - "DomainDataDescriptor" : IDataDescriptor
      */
     const std::string DATA_DESCRIPTOR_CHANGED = "DATA_DESCRIPTOR_CHANGED";
-
-    /*!
-     * Parameter dictionary elements:
-     *  - "Name" : IString
-     *  - "Value" : IBaseObject
-     */
-    const std::string PROPERTY_CHANGED = "PROPERTY_CHANGED";
 }

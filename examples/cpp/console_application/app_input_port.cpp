@@ -2,6 +2,7 @@
 #include <csignal>
 #include <iomanip>
 #include <iostream>
+#include <opendaq/search_filter_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

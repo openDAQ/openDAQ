@@ -2,15 +2,14 @@
 #include <ref_device_module/module_dll.h>
 #include <ref_device_module/version.h>
 #include <gmock/gmock.h>
-
 #include <opendaq/module_ptr.h>
 #include <opendaq/device_ptr.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/removable_ptr.h>
 #include <opendaq/range_factory.h>
 #include <coretypes/common.h>
-
 #include <opendaq/context_factory.h>
+#include <opendaq/search_filter_factory.h>
 
 using RefDeviceModuleTest = testing::Test;
 using namespace daq;
@@ -415,7 +414,7 @@ TEST_F(RefDeviceModuleTest, Ids)
     auto channels = device.getChannels();
     auto channel = channels[0];
     auto valueSignal = channel.getSignals()[0];
-    auto domainSignal = channel.getSignals()[1];
+    auto domainSignal = channel.getSignals(search::Any())[1];
 
     ASSERT_EQ(channel.getLocalId(), "refch0");
     ASSERT_EQ(channel.getGlobalId(), "ref_dev1/IO/ai/refch0");
@@ -464,7 +463,7 @@ TEST_F(RefDeviceModuleTest, SignalCheck)
     auto device = module.createDevice("daqref://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
-    auto signals = channel.getSignals();
+    auto signals = channel.getSignals(search::Any());
     ASSERT_EQ(signals.getCount(), 2u);
 }
 

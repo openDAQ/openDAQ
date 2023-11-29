@@ -10,6 +10,7 @@
 #include "opcuatms/exceptions.h"
 #include <opcuatms_server/objects/tms_server_device.h>
 #include <opcuatms_client/objects/tms_client_device_factory.h>
+#include <opendaq/search_filter_factory.h>
 #include "tms_object_integration_test.h"
 
 using namespace daq;
@@ -43,7 +44,7 @@ TEST_F(TmsDeviceTest, CreateClientDevice)
 {
     DevicePtr serverDevice = createDevice();
 
-    auto tmsPropertyObject = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto tmsPropertyObject = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
     auto ctx = NullContext();
     ASSERT_NO_THROW(TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr));
@@ -53,7 +54,7 @@ TEST_F(TmsDeviceTest, SubDevices)
 {
     DevicePtr serverDevice = createDevice();
 
-    auto tmsPropertyObject = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto tmsPropertyObject = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
 
     auto ctx = NullContext();
@@ -66,7 +67,7 @@ TEST_F(TmsDeviceTest, FunctionBlocks)
     auto ctx = NullContext();
     DevicePtr serverDevice = createDevice();
 
-    auto tmsPropertyObject = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto tmsPropertyObject = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
 
     auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
@@ -82,7 +83,7 @@ TEST_F(TmsDeviceTest, GetSignals)
 {
     DevicePtr serverDevice = createDevice();
 
-    auto tmsPropertyObject = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto tmsPropertyObject = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
 
     auto ctx = NullContext();
@@ -103,15 +104,15 @@ TEST_F(TmsDeviceTest, GetSignals)
             ASSERT_EQ(signals.getCount(), 0u);
     }
 
-    ASSERT_NO_THROW(signals = clientDevice.getSignalsRecursive());
-    ASSERT_EQ(signals.getCount(), serverDevice.getSignalsRecursive().getCount());
+    ASSERT_NO_THROW(signals = clientDevice.getSignals(search::Recursive(search::Visible())));
+    ASSERT_EQ(signals.getCount(), serverDevice.getSignals(search::Recursive(search::Visible())).getCount());
 }
 
 TEST_F(TmsDeviceTest, GetChannels)
 {
     DevicePtr serverDevice = createDevice();
 
-    auto tmsPropertyObject = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto tmsPropertyObject = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
 
     auto ctx = NullContext();
@@ -120,8 +121,8 @@ TEST_F(TmsDeviceTest, GetChannels)
     ASSERT_NO_THROW(channels = clientDevice.getChannels());
     ASSERT_EQ(channels.getCount(), serverDevice.getChannels().getCount());
 
-    ASSERT_NO_THROW(channels = clientDevice.getChannelsRecursive());
-    ASSERT_EQ(channels.getCount(), serverDevice.getChannelsRecursive().getCount());
+    ASSERT_NO_THROW(channels = clientDevice.getChannels(search::Recursive(search::Visible())));
+    ASSERT_EQ(channels.getCount(), serverDevice.getChannels(search::Recursive(search::Visible())).getCount());
 }
 
 // TODO: Enable once name and description are no longer props
@@ -133,7 +134,7 @@ TEST_F(TmsDeviceTest, DISABLED_Property)
 
     serverDevice.addProperty(sampleRateProp);
 
-    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = serverTmsDevice.registerOpcUaNode();
 
     auto ctx = NullContext();
@@ -164,7 +165,7 @@ TEST_F(TmsDeviceTest, DeviceInfo)
     auto ctx = NullContext();
     DevicePtr serverDevice = createDevice();
 
-    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = serverTmsDevice.registerOpcUaNode();
     
     auto serverSubDevices = serverDevice.getDevices();
@@ -222,7 +223,7 @@ TEST_F(TmsDeviceTest, DeviceDomain)
     auto ctx = NullContext();
     DevicePtr serverDevice = createDevice();
 
-    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = serverTmsDevice.registerOpcUaNode();
 
     auto serverSubDevices = serverDevice.getDevices();
@@ -261,7 +262,7 @@ TEST_F(TmsDeviceTest, CustomComponents)
     auto ctx = NullContext();
     DevicePtr serverDevice = createDevice();
 
-    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = serverTmsDevice.registerOpcUaNode();
 
     auto serverSubDevice = serverDevice.getDevices()[1];
@@ -283,7 +284,7 @@ TEST_F(TmsDeviceTest, CustomComponentsProperties)
     auto ctx = NullContext();
     DevicePtr serverDevice = createDevice();
 
-    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = serverTmsDevice.registerOpcUaNode();
 
     auto serverSubDevice = serverDevice.getDevices()[1];
@@ -306,7 +307,7 @@ TEST_F(TmsDeviceTest, ComponentMethods)
     auto ctx = NullContext();
     DevicePtr serverDevice = createDevice();
 
-    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = serverTmsDevice.registerOpcUaNode();
 
     auto serverSubDevice = serverDevice.getDevices()[1];
@@ -333,7 +334,7 @@ TEST_F(TmsDeviceTest, DeviceProcedureProperty)
     auto ctx = NullContext();
     DevicePtr serverDevice = createDevice();
 
-    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = serverTmsDevice.registerOpcUaNode();
     auto clientDevice = TmsClientRootDevice(ctx, nullptr, "Dev", clientContext, nodeId, nullptr);
     auto clientSubDevice = clientDevice.getDevices()[1];
@@ -352,7 +353,7 @@ TEST_F(TmsDeviceTest, SignalOrder)
     for (int i = 0; i < 100; ++i)
         folder.addItem(Signal(NullContext(), folder, "sig_" + std::to_string(i)));
     
-    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerDevice.registerOpcUaNode();
     DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
 
@@ -370,7 +371,7 @@ TEST_F(TmsDeviceTest, DeviceOrder)
     for (int i = 0; i < 100; ++i)
         folder.addItem(DefaultDevice(NullContext(), folder, "dev_" + std::to_string(i)));
     
-    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerDevice.registerOpcUaNode();
     DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
 
@@ -388,7 +389,7 @@ TEST_F(TmsDeviceTest, FunctionBlockOrder)
     for (int i = 0; i < 100; ++i)
         folder.addItem(DefaultFunctionBlock(NullContext(), folder, "fb_" + std::to_string(i)));
     
-    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerDevice.registerOpcUaNode();
     DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
 
@@ -409,7 +410,7 @@ TEST_F(TmsDeviceTest, IOFolderOrder)
         folder.addItem(DefaultChannel(NullContext(), folder, "ch_" + std::to_string(i)));
     }
     
-    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerDevice.registerOpcUaNode();
     DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
 
@@ -427,7 +428,7 @@ TEST_F(TmsDeviceTest, CustomComponentOrder)
     for (int i = 0; i < 100; ++i)
         folder->addCustomComponent(Component(NullContext(), folder, "cmp_" + std::to_string(i)));
     
-    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), NullContext());
+    auto tmsServerDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerDevice.registerOpcUaNode();
     DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
 

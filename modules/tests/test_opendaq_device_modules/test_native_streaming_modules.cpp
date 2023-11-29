@@ -44,7 +44,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
     auto client = CreateClientInstance();
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
-    auto clientSignals = client.getSignalsRecursive();
+    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(clientSignals.getCount(), 4u);
 
     ASSERT_EQ(clientSignals[0].getDomainSignal(), clientSignals[1]);
@@ -52,7 +52,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(clientSignals[2].getDomainSignal(), clientSignals[3]);
     ASSERT_TRUE(!clientSignals[3].getDomainSignal().assigned());
 
-    auto serverSignals = server.getSignalsRecursive();
+    auto serverSignals = server.getSignals(search::Recursive(search::Any()));
 
     for (size_t i = 0; i < serverSignals.getCount(); ++i)
     {
@@ -136,7 +136,7 @@ TEST_F(NativeStreamingModulesTest, DISABLED_RenderSignal)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    auto signals = client.getSignalsRecursive();
+    auto signals = client.getSignals(search::Recursive(search::Visible()));
     const auto renderer = client.addFunctionBlock("ref_fb_module_renderer");
     renderer.getInputPorts()[0].connect(signals[0]);
 

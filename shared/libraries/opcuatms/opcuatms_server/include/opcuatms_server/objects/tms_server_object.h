@@ -22,8 +22,6 @@
 #include "opcuaserver/opcuaserver.h"
 #include "opcuatms/opcuatms.h"
 
-#include <opendaq/channel_ptr.h>
-
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 template <class CoreType, typename Enable = void>
@@ -47,13 +45,16 @@ struct RequestedNodeId<CoreType, std::enable_if_t<IsDerivedFromTemplate<CoreType
 class TmsServerObject;
 using TmsServerObjectPtr = std::shared_ptr<TmsServerObject>;
 
+class TmsServerContext;
+using TmsServerContextPtr = std::shared_ptr<TmsServerContext>;
+
 class TmsServerObject : public std::enable_shared_from_this<TmsServerObject>
 {
 public:
     using ReadVariantCallback = std::function<opcua::OpcUaVariant()>;
     using WriteVariantCallback = std::function<UA_StatusCode(const opcua::OpcUaVariant& variant)>;
 
-    TmsServerObject(const opcua::OpcUaServerPtr& server, const ContextPtr& context);
+    TmsServerObject(const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
     virtual ~TmsServerObject();
 
     virtual std::string getBrowseName();
@@ -69,6 +70,7 @@ public:
 
     void addHierarchicalReference(const opcua::OpcUaNodeId& parent);
     virtual void createNonhierarchicalReferences();
+    virtual void onCoreEvent(const CoreEventArgsPtr& eventArgs);
 
 protected:
     virtual void validate();
@@ -79,6 +81,7 @@ protected:
     virtual opcua::OpcUaNodeId createNode(const opcua::OpcUaNodeId& parentNodeId);
     virtual void addChildNodes();
     virtual void bindCallbacks();
+    virtual void registerToTmsServerContext();
     virtual int64_t getCurrentClock();
     std::string readTypeBrowseName();
     virtual bool createOptionalNode(const opcua::OpcUaNodeId& nodeId);
@@ -127,7 +130,7 @@ protected:
         }
         else
         {
-            auto tmsObject = std::make_shared<TMS_T>(daqObject, this->server, daqContext, std::forward<Params>(params)...);
+            auto tmsObject = std::make_shared<TMS_T>(daqObject, this->server, daqContext, tmsContext, std::forward<Params>(params)...);
             tmsObject->registerOpcUaNode(parentNodeId);
             if(numberInList != std::numeric_limits<uint32_t>::max())
                 tmsObject->setNumberInList(numberInList);
@@ -141,6 +144,7 @@ protected:
     opcua::OpcUaNodeId nodeId;
     ContextPtr daqContext;
     uint32_t numberInList;
+    TmsServerContextPtr tmsContext;
 
 private:
     void bindCallbacksInternal();
@@ -155,8 +159,8 @@ template <class CoreType>
 class TmsServerObjectBaseImpl : public TmsServerObject
 {
 public:
-    TmsServerObjectBaseImpl(const BaseObjectPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context)
-        : TmsServerObject(server, context)
+    TmsServerObjectBaseImpl(const BaseObjectPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext)
+        : TmsServerObject(server, context, tmsContext)
         , object(object)
     {
     }

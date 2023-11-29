@@ -86,8 +86,9 @@ void WebsocketClientDeviceImpl::onSignalInit(const StringPtr& signalId, const Su
     if (auto signalIt = deviceSignals.find(signalId); signalIt != deviceSignals.end())
     {
         // sets signal name as it appeared in metadata "name"
-        auto protectedObject = signalIt->second.asPtr<IPropertyObjectProtected>();
-        protectedObject.setProtectedPropertyValue("Name", sInfo.signalName);
+        signalIt->second.asPtr<IComponentPrivate>().unlockAllAttributes();
+        signalIt->second.setName(sInfo.signalName);
+        signalIt->second.asPtr<IComponentPrivate>().lockAllAttributes();
 
         signalIt->second.asPtr<IWebsocketStreamingSignalPrivate>()->assignDescriptor(sInfo.dataDescriptor);
         updateSignalProperties(signalIt->second, sInfo);
@@ -129,11 +130,14 @@ void WebsocketClientDeviceImpl::createDeviceSignals(const std::vector<std::strin
 
 void WebsocketClientDeviceImpl::updateSignalProperties(const SignalPtr& signal, const SubscribedSignalInfo& sInfo)
 {
-    auto protectedObject = signal.asPtr<IPropertyObjectProtected>();
+    signal.asPtr<IComponentPrivate>().unlockAllAttributes();
+
     if (sInfo.signalProps.name.has_value())
-        protectedObject.setProtectedPropertyValue("Name", sInfo.signalProps.name.value());
+        signal.setName(sInfo.signalProps.name.value());
     if (sInfo.signalProps.description.has_value())
-        protectedObject.setProtectedPropertyValue("Description", sInfo.signalProps.description.value());
+        signal.setDescription(sInfo.signalProps.description.value());
+
+    signal.asPtr<IComponentPrivate>().lockAllAttributes();
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

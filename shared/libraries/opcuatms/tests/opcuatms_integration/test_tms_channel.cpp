@@ -28,16 +28,15 @@ public:
 
 TEST_F(TmsChannelTest, Create)
 {
-    auto ctx = NullContext();
     ChannelPtr channel = createChannel(ctx);
-    auto tmsChannel = TmsServerChannel(channel, this->getServer(), NullContext());
+    auto tmsChannel = TmsServerChannel(channel, this->getServer(), ctx, serverContext);
 }
 
 TEST_F(TmsChannelTest, Register)
 {
     auto ctx = NullContext();
     ChannelPtr channel = createChannel(ctx);
-    auto serverChannel = TmsServerChannel(channel, this->getServer(), NullContext());  // Not possible either
+    auto serverChannel = TmsServerChannel(channel, this->getServer(), ctx, serverContext);  // Not possible either
     auto nodeId = serverChannel.registerOpcUaNode();
 
     ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "ch", clientContext, nodeId);
@@ -49,7 +48,7 @@ TEST_F(TmsChannelTest, BrowseName)
     auto ctx = NullContext();
     ChannelPtr serverChannel = createChannel(ctx);
     
-    auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), NullContext());
+    auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerChannel.registerOpcUaNode();
 
     ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "ch", clientContext, nodeId);
@@ -66,7 +65,7 @@ TEST_F(TmsChannelTest, AttrFunctionBlockType)
     auto ctx = NullContext();
     ChannelPtr serverChannel = createChannel(ctx);
 
-    auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), NullContext());
+    auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerChannel.registerOpcUaNode();
 
     ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "ch", clientContext, nodeId);
@@ -82,7 +81,7 @@ TEST_F(TmsChannelTest, MethodGetInputPorts)
     auto ctx = NullContext();
     ChannelPtr serverChannel = createChannel(ctx);
 
-    auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), NullContext());
+    auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), ctx, serverContext);
     auto channelNodeId = tmsServerChannel.registerOpcUaNode();
 
     ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "ch", clientContext, channelNodeId);
@@ -101,7 +100,7 @@ TEST_F(TmsChannelTest, MethodGetSignals)
     auto ctx = NullContext();
     ChannelPtr serverChannel = createChannel(ctx);
 
-    auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), NullContext());
+    auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), ctx, serverContext);
     auto channelNodeId = tmsServerChannel.registerOpcUaNode();
 
     auto clientChannel = TmsClientChannel(ctx, nullptr, "ch", clientContext, channelNodeId);
@@ -128,11 +127,11 @@ TEST_F(TmsChannelTest, MethodGetStatusSignal)
     auto ctx = NullContext();
     ChannelPtr serverChannel = createChannel(ctx);
 
-    auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), NullContext());
+    auto tmsServerChannel = TmsServerChannel(serverChannel, this->getServer(), ctx, serverContext);
     auto channelNodeId = tmsServerChannel.registerOpcUaNode();
 
     SignalPtr serverSignal = Signal(ctx, nullptr, "sig");
-    auto tmsServerSignal = TmsServerSignal(serverSignal, this->getServer(), NullContext());
+    auto tmsServerSignal = TmsServerSignal(serverSignal, this->getServer(), ctx, serverContext);
     auto signalNodeId = tmsServerSignal.registerOpcUaNode();
 
     OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASSTATUSSIGNAL);

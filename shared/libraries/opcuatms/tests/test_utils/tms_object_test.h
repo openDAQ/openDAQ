@@ -24,8 +24,8 @@ class TmsObjectTest : public testing::Test
 public:
     TmsObjectTest();
 
-    void SetUp() override;
-    void TearDown() override;
+    virtual void SetUp() override;
+    virtual void TearDown() override;
 
     daq::opcua::OpcUaServerPtr getServer();
     daq::opcua::OpcUaClientPtr getClient();

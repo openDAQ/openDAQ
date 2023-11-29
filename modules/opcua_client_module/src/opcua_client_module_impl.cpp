@@ -7,6 +7,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
+#include <opendaq/search_filter_factory.h>
 #include <regex>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
@@ -212,7 +213,7 @@ void OpcUaClientModule::configureStreamingSources(const PropertyObjectPtr& devic
     const StringPtr primaryStreamingProtocol = deviceConfig.getPropertyValue("PrimaryStreamingProtocol");
     const ListPtr<IString> allowedStreamingProtocols = deviceConfig.getPropertyValue("AllowedStreamingProtocols");
 
-    for (const auto& signal : device.getSignalsRecursive())
+    for (const auto& signal : device.getSignals(search::Recursive(search::Any())))
     {
         MirroredSignalConfigPtr mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
 

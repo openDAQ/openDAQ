@@ -15,7 +15,7 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& pa
 
     avgSignal = createAndAddSignal("avg");
     rmsSignal = createAndAddSignal("rms");
-    domainSignal = createAndAddSignal("domain");
+    domainSignal = createAndAddSignal("domain", nullptr, false);
     avgSignal.setDomainSignal(domainSignal);
     rmsSignal.setDomainSignal(domainSignal);
 

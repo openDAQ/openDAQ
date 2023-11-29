@@ -155,7 +155,7 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * The ID of the event is 90, and the event name is "ComponentUpdateEnd".
  *
- * @subsubsection opendaq_core_event_types_component_modified Component modified
+ * @subsubsection opendaq_core_event_types_component_modified Attribute changed
  *
  * Event triggered when an internal attribute of a component has been changed. Eg. when the "active" state of the
  * component is modified.
@@ -163,12 +163,18 @@ BEGIN_NAMESPACE_OPENDAQ
  * The event has no preset parameters, but instead contains dictionary key-value pairs where the key corresponds to
  * the name of the modified attribute, and the value to its new value.
  *
- * Currently the following parameter keys can be present in the Component modified event payload:
+ * The Attribute changed event payload always has a "AttributeName" key entry in the dictionary, containing the
+ * name of the changed attribute.
  *
- *  - Signal: "DomainSignal", "RelatedSignals"
- *  - Component: "Active"
+ * The payload then contains another entry using the "AttributeName" value as the key. That entry contains
+ * the new value of the attribute.
  *
- * The ID of the event is 100, and the event name is "ComponentModified".
+ * Currently the following attribute names can be present in the Attribute changed event payload:
+ *
+ *  - Signal: "DomainSignal", "RelatedSignals", "Public"
+ *  - Component: "Active", "Name", "Description", "Visible"
+ *
+ * The ID of the event is 100, and the event name is "AttributeChanged".
  *
  * @subsection opendaq_core_event_muting Muting core events
  *

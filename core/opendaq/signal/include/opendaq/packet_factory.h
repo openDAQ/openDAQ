@@ -120,20 +120,6 @@ inline EventPacketPtr DataDescriptorChangedEventPacket(const DataDescriptorPtr& 
     return obj;
 }
 
-/*!
- * @brief Creates a PropertyChanged Event packet.
- * @param name The name of the property.
- * @param value New value of the property.
- *
- * The ID of the packet is "PROPERTY_CHANGED". Its parameters dictionary contains the keys "Name"
- * and "Value". The value provided is coerced and validated.
- */
-inline EventPacketPtr PropertyChangedEventPacket(const StringPtr& name, const BaseObjectPtr& value)
-{
-    EventPacketPtr obj(PropertyChangedEventPacket_Create(name, value));
-    return obj;
-}
-
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

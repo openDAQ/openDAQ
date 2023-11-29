@@ -26,21 +26,21 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-// TODO: reintroduce className parameter when duck-typing is limited.
-
 /*!
  * @brief Creates a new Signal with a given Context and Descriptor, as well as an optional uniqueId.
  * @param context The Context. Most often the creating function-block/device passes its own Context to the Signal.
  * @param descriptor The Signal-descriptor.
  * @param parent <description-missing>
  * @param localId <description-missing>
+ * @param className <description-missing>
  */
 inline SignalConfigPtr SignalWithDescriptor(const ContextPtr& context,
                                             const DataDescriptorPtr& descriptor,
                                             const ComponentPtr& parent,
-                                            const StringPtr& localId)
+                                            const StringPtr& localId,
+                                            const StringPtr& className = nullptr)
 {
-    SignalConfigPtr obj(SignalWithDescriptor_Create(context, descriptor, parent, localId, nullptr));
+    SignalConfigPtr obj(SignalWithDescriptor_Create(context, descriptor, parent, localId, className));
     return obj;
 }
 
@@ -49,12 +49,14 @@ inline SignalConfigPtr SignalWithDescriptor(const ContextPtr& context,
  * @param context The Context. Most often the creating function-block/device passes its own Context to the Signal.
  * @param parent <description-missing>
  * @param localId <description-missing>
+ * @param className <description-missing>
  */
 inline SignalConfigPtr Signal(const ContextPtr& context,
                               const ComponentPtr& parent,
-                              const StringPtr& localId)
+                              const StringPtr& localId,
+                              const StringPtr& className = nullptr)
 {
-    SignalConfigPtr obj(Signal_Create(context, parent, localId, nullptr));
+    SignalConfigPtr obj(Signal_Create(context, parent, localId, className));
     return obj;
 }
 

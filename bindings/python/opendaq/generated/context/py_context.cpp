@@ -71,4 +71,14 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
         },
         py::return_value_policy::take_ownership,
         "Gets the Type Manager.");
+    /*
+    cls.def_property_readonly("on_core_event",
+        [](daq::IContext *object)
+        {
+            const auto objectPtr = daq::ContextPtr::Borrow(object);
+            return objectPtr.getOnCoreEvent().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the Core Event object that triggers whenever a change happens within the SDK core structure.");
+    */
 }

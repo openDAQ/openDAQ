@@ -9,15 +9,15 @@ using namespace opcua;
 
 // TmsServerEvalValue
 
-TmsServerEvalValue::TmsServerEvalValue(const EvalValuePtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context)
-    : Super(nullptr, server, context)
+TmsServerEvalValue::TmsServerEvalValue(const EvalValuePtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext)
+    : Super(nullptr, server, context, tmsContext)
 {
     this->readCallback = [this, object]() { return object; };
     this->writeCallback = [](const BaseObjectPtr& object) { return UA_STATUSCODE_BADNOTWRITABLE; };
 }
 
-TmsServerEvalValue::TmsServerEvalValue(const opcua::OpcUaServerPtr& server, const ContextPtr& context)
-    : TmsServerEvalValue(nullptr, server, context)
+TmsServerEvalValue::TmsServerEvalValue(const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext)
+    : TmsServerEvalValue(nullptr, server, context, tmsContext)
 {
 }
 

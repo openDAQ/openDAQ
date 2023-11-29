@@ -101,6 +101,25 @@ public:
         eventPtr.removeHandler(handler);
     }
 
+    void operator-=(Subscription&& sub)
+    {
+        if (!sub)
+        {
+            throw InvalidParameterException("Must bind to a valid callable.");
+        }
+
+        if (!eventPtr.assigned())
+        {
+            throw InvalidParameterException("Invalid or uninitialized control.");
+        }
+
+        HandlerPtr handler;
+        ErrCode err = createObjectForwarding<IEventHandler, EventHandlerImplType>(&handler, sub);
+        checkErrorInfo(err);
+
+        eventPtr.removeHandler(handler);
+    }
+
     SizeT getListenerCount()
     {
         if (!eventPtr.assigned())

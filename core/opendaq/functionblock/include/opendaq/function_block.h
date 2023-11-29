@@ -60,25 +60,32 @@ DECLARE_OPENDAQ_INTERFACE(IFunctionBlock, IFolder)
     // [elementType(ports, IInputPort)]
     /*!
      * @brief Gets a list of the function block's input ports.
+     * @param searchFilter Provides an optional filter that filters out unwanted components and allows for recursion.
      * @param[out] ports The list of input ports.
+     *
+     * If searchFilter is not provided, the returned list contains only visible input ports and does not include those of
+     * child function blocks.
      */
-    virtual ErrCode INTERFACE_FUNC getInputPorts(IList** ports) = 0;
+    virtual ErrCode INTERFACE_FUNC getInputPorts(IList** ports, ISearchFilter* searchFilter = nullptr) = 0;
 
     // [elementType(signals, ISignal)]
     /*!
      * @brief Gets the list of the function block's output signals.
+     * @param searchFilter Provides an optional filter that filters out unwanted components and allows for recursion.
      * @param[out] signals The list of output signals.
      *
-     * The list does not include signals from child function blocks
+     * If searchFilter is not provided, the returned list contains only visible signals and does not include those of
+     * child function blocks.
      */
-    virtual ErrCode INTERFACE_FUNC getSignals(IList** signals) = 0;
+    virtual ErrCode INTERFACE_FUNC getSignals(IList** signals, ISearchFilter* searchFilter = nullptr) = 0;
 
     // [elementType(signals, ISignal)]
     /*!
-     * @brief Gets the list of the function block's output signals including signals from child function blocks.
+     * @brief Gets the list of the function block's visible output signals including signals from visible child function blocks.
+     * @param searchFilter Provides an optional filter that filters out unwanted components and allows for recursion.
      * @param[out] signals The list of output signals.
      */
-    virtual ErrCode INTERFACE_FUNC getSignalsRecursive(IList** signals) = 0;
+    virtual ErrCode INTERFACE_FUNC getSignalsRecursive(IList** signals, ISearchFilter* searchFilter = nullptr) = 0;
 
     /*!
      * @brief Gets the function block's status signal.
@@ -92,9 +99,13 @@ DECLARE_OPENDAQ_INTERFACE(IFunctionBlock, IFolder)
     // [elementType(functionBlocks, IFunctionBlock)]
     /*!
      * @brief Gets a list of sub-function blocks.
+     * @param searchFilter Provides optional parameters such as "recursive" and "visibleOnly" to modify the search pattern.
      * @param[out] functionBlocks The list of sub-function blocks.
+     *
+     * If searchFilter is not provided, the returned list contains only visible function blocks and does not include those of
+     * child function blocks.
      */
-    virtual ErrCode INTERFACE_FUNC getFunctionBlocks(IList** functionBlocks) = 0;
+    virtual ErrCode INTERFACE_FUNC getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr) = 0;
 };
 /*!@}*/
 

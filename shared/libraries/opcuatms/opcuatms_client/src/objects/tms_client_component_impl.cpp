@@ -28,17 +28,27 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setActive(Bool active)
 }
 
 template <class Impl>
-ErrCode TmsClientComponentBaseImpl<Impl>::getTags(ITagsConfig** tags)
+void TmsClientComponentBaseImpl<Impl>::initComponent()
 {
-    return daqTry([&]() {
+    try
+    {
         ListPtr<IString> tagValues = this->template readList<IString>("Tags");
         auto tagsObj = Tags();
         for (auto tag : tagValues)
             tagsObj.add(tag);
         tagsObj.freeze();
-        *tags = tagsObj.detach();
-        return OPENDAQ_SUCCESS;
-    });
+        this->tags = tagsObj.detach();
+    }
+    catch([[maybe_unused]] const std::exception& e)
+    {
+        const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
+        LOG_D("OPC UA Component {} failed to fetch tags: {}", this->localId, e.what());
+    }
+    catch(...)
+    {
+        const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
+        LOG_D("OPC UA Component {} failed to fetch tags.", this->localId);
+    }
 }
 
 template <class Impl>
@@ -68,9 +78,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setName(IString* name)
     catch(...)
     {
         auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientComponent");
-        StringPtr nameObj;
-        this->getName(&nameObj);
-        LOG_W("Failed to set name of component \"{}\"", nameObj);
+        LOG_W("Failed to set name of component \"{}\"", this->localId);
     }
 
     return OPENDAQ_IGNORED;
@@ -103,9 +111,41 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setDescription(IString* description)
     catch(...)
     {
         auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientComponent");
-        StringPtr descObj;
-        this->getName(&descObj);
-        LOG_W("Failed to set description of component \"{}\"", descObj);
+        LOG_W("Failed to set description of component \"{}\"", this->localId);
+    }
+
+    return OPENDAQ_IGNORED;
+}
+
+template <class Impl>
+ErrCode TmsClientComponentBaseImpl<Impl>::getVisible(Bool* visible)
+{
+    try
+    {
+        *visible = this->template readValue<IBoolean>("Visible");
+    }
+    catch(...)
+    {
+        *visible = true;
+        const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
+        LOG_D("OPC UA Component {} failed to fetch \"Visible\" state.", this->localId);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
+ErrCode TmsClientComponentBaseImpl<Impl>::setVisible(Bool visible)
+{
+    try
+    {
+        this->template writeValue<IBoolean>("Visible", visible);
+        return OPENDAQ_SUCCESS;
+    }
+    catch (...)
+    {
+        const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
+        LOG_D("OPC UA Component {} failed to set \"Active\" state.", this->localId);
     }
 
     return OPENDAQ_IGNORED;

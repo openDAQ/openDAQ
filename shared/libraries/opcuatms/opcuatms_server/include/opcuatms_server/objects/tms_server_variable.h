@@ -25,7 +25,7 @@ class TmsServerVariable : public TmsServerObjectBaseImpl<CoreType>
 public:
     using Super = TmsServerObjectBaseImpl<CoreType>;
 
-    TmsServerVariable(const CoreType& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context);
+    TmsServerVariable(const CoreType& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
 
     opcua::OpcUaNodeId createNode(const opcua::OpcUaNodeId& parentNodeId) override;
 

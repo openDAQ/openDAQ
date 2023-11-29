@@ -101,18 +101,18 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 )
 
 /*!
- * @brief Creates Core event args that are passed as argument when a component's internal fields/parameters
- * are modified.
- * @param modifiedAttributes Dictionary of modified attributes where the string key represents the attribute, and the
- * base object value the new value.
+ * @brief Creates Core event args that are passed as argument when a component's internal attribute
+ * is modified.
+ * @param attributeName The name of the changed attribute.
+ * @param attributeValue The new value of the attribute.
  *
- * An example of such attribute is the "active" state of a component.
+ * An example of such attribute are the "active" and "visible" states of a component.
  *
- * The ID of the event is 100, and the event name is "ComponentModified".
+ * The ID of the event is 100, and the event name is "AttributeChanged".
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, CoreEventArgsComponentModified, ICoreEventArgs,
-    IDict*, modifiedAttributes
+    LIBRARY_FACTORY, CoreEventArgsAttributeChanged, ICoreEventArgs,
+    IString*, attributeName, IBaseObject*, attributeValue
 )
 
 /*!@}*/

@@ -37,7 +37,8 @@ public:
 
 private:
     static StringPtr tryCreateWebsocketConnectionString(const StreamingInfoPtr& config);
-    static DeviceTypePtr createDeviceType();
+    static DeviceTypePtr createWebsocketDeviceType();
+    static DeviceTypePtr createTcpsocketDeviceType();
 
     std::mutex sync;
     size_t deviceIndex;

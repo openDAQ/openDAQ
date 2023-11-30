@@ -13,17 +13,21 @@ target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
 
 add_dependencies(${TEST_APP} daq::ws_stream_cl_module
                              siggen2websocket
+                             siggen2socket
 )
 
 find_program(BASH_PROGRAM bash)
 if(BASH_PROGRAM)
     message(STATUS "Bash found - add siggen test")
     set(TEST_SCRIPT "\
-        $<TARGET_FILE:siggen2websocket> 7413 ${CMAKE_CURRENT_SOURCE_DIR}/siggen_config.json 1>/tmp/siggen_output 2>/tmp/siggen_output 0</dev/null & \
+        $<TARGET_FILE:siggen2websocket> 7413 ${CMAKE_CURRENT_SOURCE_DIR}/siggen_config.json 1>/tmp/siggen2websocket_output 2>/tmp/siggen2websocket_output 0</dev/null & \
+        $<TARGET_FILE:siggen2socket> 7411 ${CMAKE_CURRENT_SOURCE_DIR}/siggen_config.json 1>/tmp/siggen2socket_output 2>/tmp/siggen2socket_output 0</dev/null & \
         $<TARGET_FILE:${TEST_APP}>; \
         EXIT_CODE=$?; \
         killall siggen2websocket; \
-        echo \"\nsiggen2websocket output:\n\n$(</tmp/siggen_output)\"; \
+        killall siggen2socket; \
+        echo \"\nsiggen2websocket output:\n\n$(</tmp/siggen2websocket_output)\"; \
+        echo \"\nsiggen2socket output:\n\n$(</tmp/siggen2socket_output)\"; \
         exit $EXIT_CODE"
     )
     add_test(NAME ${TEST_APP}

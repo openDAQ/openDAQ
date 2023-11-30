@@ -50,8 +50,8 @@ public:
         std::function<void(const StringPtr& signalId, const DataDescriptorPtr& domainDescriptor)>;
     using OnAvailableSignalsCallback = std::function<void(const std::vector<std::string>& signalIds)>;
 
-    StreamingClient(const ContextPtr& context, const std::string& connectionString);
-    StreamingClient(const ContextPtr& context, const std::string& host, uint16_t port, const std::string& target = "/");
+    StreamingClient(const ContextPtr& context, const std::string& connectionString, bool useRawTcpConnection = false);
+    StreamingClient(const ContextPtr& context, const std::string& host, uint16_t port, const std::string& target, bool useRawTcpConnection = false);
     ~StreamingClient();
 
     bool connect();
@@ -112,6 +112,7 @@ protected:
     std::chrono::milliseconds connectTimeout{1000};
     std::unordered_map<std::string, std::pair<std::promise<void>, std::future<void>>> signalInitializedStatus;
     std::unordered_map<std::string, DataDescriptorPtr> cachedDomainDescriptors;
+    bool useRawTcpConnection;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

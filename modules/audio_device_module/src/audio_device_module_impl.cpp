@@ -6,6 +6,11 @@
 #include <miniaudio/miniaudio.h>
 #include <opendaq/custom_log.h>
 
+#ifdef _WIN32
+#include <combaseapi.h>
+#endif
+
+
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
 AudioDeviceModule::AudioDeviceModule(const ContextPtr& context)
@@ -23,6 +28,10 @@ ListPtr<IDeviceInfo> AudioDeviceModule::onGetAvailableDevices()
     ma_device_info* pCaptureDeviceInfos;
     ma_uint32 captureDeviceCount;
 
+#ifdef MA_WIN32
+    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+#endif
+
     std::scoped_lock lock(sync);
 
     result = ma_context_get_devices(maContext->getPtr(), nullptr, nullptr, &pCaptureDeviceInfos, &captureDeviceCount);
@@ -38,6 +47,11 @@ ListPtr<IDeviceInfo> AudioDeviceModule::onGetAvailableDevices()
         auto info = AudioDeviceImpl::CreateDeviceInfo(maContext, pCaptureDeviceInfos[i]);
         availableDevices.pushBack(info);
     }
+
+#ifdef MA_WIN32
+    CoUninitialize();
+#endif
+
     return availableDevices;
 }
 

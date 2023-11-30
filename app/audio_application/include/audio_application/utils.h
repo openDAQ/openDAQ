@@ -18,9 +18,8 @@
 #include <opendaq/opendaq.h>
 
 using DeviceInfoList = daq::ListPtr<daq::IDeviceInfo>;
-using DeviceInfoDict = daq::DictPtr<daq::IString, daq::IDeviceInfo>;
 
-DeviceInfoList filterDevicesInfos(const DeviceInfoDict& deviceInfoDict, const std::string& prefix);
+DeviceInfoList filterDevicesInfos(const DeviceInfoList& deviceInfoList, const std::string& prefix);
 void printDevices(std::ostream& stream, const DeviceInfoList& deviceInfoList);
 bool getLastValue(const daq::PacketReaderPtr& packetReader, float& lastValue);
 float getNormalizedLogValue(float value);

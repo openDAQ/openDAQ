@@ -1,13 +1,13 @@
 #include <audio_application/utils.h>
 
-DeviceInfoList filterDevicesInfos(const DeviceInfoDict& deviceInfoDict, const std::string& prefix)
+DeviceInfoList filterDevicesInfos(const DeviceInfoList& deviceInfoList, const std::string& prefix)
 {
     auto filteredDeviceInfoList = daq::List<daq::IDeviceInfo>();
-    for (const auto& deviceInfoItem : deviceInfoDict)
+    for (const auto& deviceInfoItem : deviceInfoList)
     {
-        std::string connectionString = deviceInfoItem.first;
+        std::string connectionString = deviceInfoItem.getConnectionString();
         if (connectionString.rfind(prefix, 0) == 0)
-            filteredDeviceInfoList.pushBack(deviceInfoItem.second);
+            filteredDeviceInfoList.pushBack(deviceInfoItem);
     }
 
     return filteredDeviceInfoList;

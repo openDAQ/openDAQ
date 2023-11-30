@@ -8,11 +8,11 @@
 #include <opendaq/range_factory.h>
 #include <opendaq/scaling_factory.h>
 
-using ValueDescriptorTest = testing::Test;
+using DataDescriptorTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ
 
-TEST_F(ValueDescriptorTest, ValueDescriptorSetGet)
+TEST_F(DataDescriptorTest, ValueDescriptorSetGet)
 {
     auto dimensions = List<IDimension>();
     dimensions.pushBack(Dimension(LinearDimensionRule(10, 10, 10)));
@@ -45,7 +45,7 @@ TEST_F(ValueDescriptorTest, ValueDescriptorSetGet)
     ASSERT_EQ(descriptor.getMetadata().get("key"), "value");
 }
 
-TEST_F(ValueDescriptorTest, ValueDescriptorCopyFactory)
+TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
 {
     auto dimensions = List<IDimension>();
     dimensions.pushBack(Dimension(LinearDimensionRule(10, 10, 10)));
@@ -81,7 +81,7 @@ TEST_F(ValueDescriptorTest, ValueDescriptorCopyFactory)
     ASSERT_EQ(copy.getMetadata().get("key"), "value");
 }
 
-TEST_F(ValueDescriptorTest, RuleScalingInteraction)
+TEST_F(DataDescriptorTest, RuleScalingInteraction)
 {
     auto explicitRule = ExplicitDataRule();
     auto linearRule = LinearDataRule(10, 10);
@@ -96,7 +96,7 @@ TEST_F(ValueDescriptorTest, RuleScalingInteraction)
     ASSERT_NO_THROW(descBuilder.build());
 }
 
-TEST_F(ValueDescriptorTest, InvalidRuleSampleType)
+TEST_F(DataDescriptorTest, InvalidRuleSampleType)
 {
     auto linearDataRule = LinearDataRule(10, 10);
     auto explicitRule = ExplicitDataRule();
@@ -112,7 +112,7 @@ TEST_F(ValueDescriptorTest, InvalidRuleSampleType)
     ASSERT_NO_THROW(desc.build());
 }
 
-TEST_F(ValueDescriptorTest, ScalingTypeMismatch)
+TEST_F(DataDescriptorTest, ScalingTypeMismatch)
 {
     auto linearScaling = LinearScaling(10, 10);
     auto explicitRule = ExplicitDataRule();
@@ -124,7 +124,7 @@ TEST_F(ValueDescriptorTest, ScalingTypeMismatch)
     ASSERT_NO_THROW(desc.build());
 }
 
-TEST_F(ValueDescriptorTest, SerializeDeserialize)
+TEST_F(DataDescriptorTest, SerializeDeserialize)
 {
     auto dimensions = List<IDimension>();
     dimensions.pushBack(Dimension(LinearDimensionRule(10, 10, 10)));
@@ -157,14 +157,14 @@ TEST_F(ValueDescriptorTest, SerializeDeserialize)
     ASSERT_EQ(descriptor, descriptor1);
 }
 
-TEST_F(ValueDescriptorTest, StructType)
+TEST_F(DataDescriptorTest, StructType)
 {
     const auto structType = DataDescriptorStructType();
     const daq::StructPtr structPtr = DataDescriptorBuilder().build();
     ASSERT_EQ(structType, structPtr.getStructType());
 }
 
-TEST_F(ValueDescriptorTest, StructFields)
+TEST_F(DataDescriptorTest, StructFields)
 {
     auto dimensions = List<IDimension>();
     dimensions.pushBack(Dimension(LinearDimensionRule(10, 10, 10)));
@@ -198,11 +198,71 @@ TEST_F(ValueDescriptorTest, StructFields)
     ASSERT_EQ(descriptor.get("dataRule"), LinearDataRule(10, 10));
 }
 
-TEST_F(ValueDescriptorTest, StructNames)
+TEST_F(DataDescriptorTest, StructNames)
 {
     const auto structType = DataDescriptorStructType();
     const daq::StructPtr structPtr = DataDescriptorBuilder().build();
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
+
+TEST_F(DataDescriptorTest, DataDescriptorBuilderSetGet)
+{
+    auto dimensions = List<IDimension>(Dimension(LinearDimensionRule(10, 10, 10)));
+    auto linearScaling = LinearScaling(10, 10);
+    auto metaData = Dict<IString, IString>();
+    metaData["key"] = "value";
+    const auto dataDescriptorBuilder = DataDescriptorBuilder()
+                                        .setSampleType(SampleType::Float64)
+                                        .setValueRange(Range(10, 1000))
+                                        .setDimensions(dimensions)
+                                        .setOrigin("testRef")
+                                        .setTickResolution(Ratio(1, 1000))
+                                        .setUnit(Unit("s", 10))
+                                        .setRule(LinearDataRule(10, 10))
+                                        .setName("testName")
+                                        .setPostScaling(linearScaling)
+                                        .setMetadata(metaData);
+    
+    ASSERT_EQ(dataDescriptorBuilder.getSampleType(), SampleType::Float64);
+    ASSERT_EQ(dataDescriptorBuilder.getValueRange(), Range(10, 1000));
+    ASSERT_EQ(dataDescriptorBuilder.getDimensions(), dimensions);
+    ASSERT_EQ(dataDescriptorBuilder.getOrigin(), "testRef");
+    ASSERT_EQ(dataDescriptorBuilder.getTickResolution(), Ratio(1, 1000));
+    ASSERT_EQ(dataDescriptorBuilder.getUnit(), Unit("s", 10));
+    ASSERT_EQ(dataDescriptorBuilder.getRule(), LinearDataRule(10, 10));
+    ASSERT_EQ(dataDescriptorBuilder.getName(), "testName");
+    ASSERT_EQ(dataDescriptorBuilder.getPostScaling(), linearScaling);
+    ASSERT_EQ(dataDescriptorBuilder.getMetadata(), metaData);
+}
+
+TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
+{
+    auto dimensions = List<IDimension>(Dimension(LinearDimensionRule(10, 10, 10)));
+    auto linearScaling = LinearScaling(10, 10);
+    auto metaData = Dict<IString, IString>();
+    metaData["key"] = "value";
+    const auto dataDescriptorBuilder = DataDescriptorBuilder()
+                                        .setSampleType(SampleType::Float64)
+                                        .setValueRange(Range(10, 1000))
+                                        .setDimensions(dimensions)
+                                        .setOrigin("testRef")
+                                        .setTickResolution(Ratio(1, 1000))
+                                        .setUnit(Unit("s", 10))
+                                        .setRule(LinearDataRule(10, 10))
+                                        .setName("testName")
+                                        .setMetadata(metaData);
+    const auto dataDescriptor = DataDescriptorFromBuilder(dataDescriptorBuilder);
+
+    ASSERT_EQ(dataDescriptor.getSampleType(), SampleType::Float64);
+    ASSERT_EQ(dataDescriptor.getValueRange(), Range(10, 1000));
+    ASSERT_EQ(dataDescriptor.getDimensions(), dimensions);
+    ASSERT_EQ(dataDescriptor.getOrigin(), "testRef");
+    ASSERT_EQ(dataDescriptor.getTickResolution(), Ratio(1, 1000));
+    ASSERT_EQ(dataDescriptor.getUnit(), Unit("s", 10));
+    ASSERT_EQ(dataDescriptor.getRule(), LinearDataRule(10, 10));
+    ASSERT_EQ(dataDescriptor.getName(), "testName");
+    ASSERT_EQ(dataDescriptor.getMetadata(), metaData);
+}
+
 
 END_NAMESPACE_OPENDAQ

@@ -159,4 +159,34 @@ TEST_F(DataRulesTest, ExplicitDomainDataRule)
     ASSERT_EQ(rule2.getParameters().get("maxExpectedDelta"), 0);
 }
 
+TEST_F(DataRulesTest, DataRuleBuilderSetGet)
+{
+    const auto params = Dict<IString, IBaseObject>({
+            {"delta", 10},
+            {"start", 10}
+        });
+    const auto dataRuleBuilder = DataRuleBuilder()
+                                .setType(DataRuleType::Linear)
+                                .setParameters(params);
+    
+    ASSERT_EQ(dataRuleBuilder.getType(), DataRuleType::Linear);
+    ASSERT_EQ(dataRuleBuilder.getParameters(), params);
+}
+
+TEST_F(DataRulesTest, DataRuleCreateFactory)
+{
+    const auto params = Dict<IString, IBaseObject>({
+            {"delta", 10},
+            {"start", 10}
+        });
+    const auto dataRuleBuilder = DataRuleBuilder()
+                                .setType(DataRuleType::Linear)
+                                .setParameters(params);
+    const auto dataRule = DataRuleFromBuilder(dataRuleBuilder);
+
+    ASSERT_EQ(dataRuleBuilder.getType(), DataRuleType::Linear);
+    ASSERT_EQ(dataRuleBuilder.getParameters(), params);
+}
+
+
 END_NAMESPACE_OPENDAQ

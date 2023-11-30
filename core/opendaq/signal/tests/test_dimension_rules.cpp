@@ -188,4 +188,37 @@ TEST_F(DimensionRulesTest, StructNames)
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
 
+TEST_F(DimensionRulesTest, DimensionRuleBuilderSetGet)
+{
+    const auto ruleType = DimensionRuleType::Linear;
+    const auto params = Dict<IString, IBaseObject>({
+            {"delta", 10},
+            {"start", 10},
+            {"size", 10}
+        });
+    const auto dimensionRuleBuilder = DimensionRuleBuilder()
+                                        .setType(ruleType)
+                                        .setParameters(params);
+    
+    ASSERT_EQ(dimensionRuleBuilder.getType(), ruleType);
+    ASSERT_EQ(dimensionRuleBuilder.getParameters(), params);
+}
+
+TEST_F(DimensionRulesTest, DimensionRuleCreateFactory)
+{
+    const auto ruleType = DimensionRuleType::Linear;
+    const auto params = Dict<IString, IBaseObject>({
+            {"delta", 10},
+            {"start", 10},
+            {"size", 10}
+        });
+    const auto dimensionRuleBuilder = DimensionRuleBuilder()
+                                        .setType(ruleType)
+                                        .setParameters(params);
+    const auto dimensionRule = DimensionRuleFromBuilder(dimensionRuleBuilder);
+
+    ASSERT_EQ(dimensionRule.getType(), ruleType);
+    ASSERT_EQ(dimensionRule.getParameters(), params);
+}
+
 END_NAMESPACE_OPENDAQ

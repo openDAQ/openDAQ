@@ -200,7 +200,7 @@ namespace Detail
     {
         std::uint32_t inLength = HasTrailingZero ? N - 1 : N;
 
-        const unsigned char* ptr = &in[0];
+        const unsigned char* ptr = in;
 
         if (md.currentLength > sizeof(md.buffer))
         {

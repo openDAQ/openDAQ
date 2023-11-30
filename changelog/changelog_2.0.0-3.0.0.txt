@@ -1,3 +1,20 @@
+7.12.2023
+
+Description:
+  - Add subscribe/unsubscribe completion acknowledgement Events
+
++ [function] IMirroredSignalConfig::getOnSubscribeComplete(IEvent** event)
++ [function] IMirroredSignalConfig::getOnUnsubscribeComplete(IEvent** event)
+
++ [function] IMirroredSignalPrivate::subscribeCompleted(const StringPtr& streamingConnectionString)
++ [function] IMirroredSignalPrivate::unsubscribeCompleted(const StringPtr& streamingConnectionString)
+
++ [interface] ISubscriptionEventArgs : IEventArgs
++ [function] ISubscriptionEventArgs::getStreamingConnectionString(IString** streamingConnectionString)
++ [function] ISubscriptionEventArgs::getSubscriptionEventType(SubscriptionEventType* type)
+
++ [factory] SubscriptionEventArgsPtr SubscriptionEventArgs(const StringPtr& streamingConnectionString, SubscriptionEventType eventType)
+
 5.12.2023
 Description:
   - Expose Origin Epoch and StartOffset the MultiReader aligned all the read signals to

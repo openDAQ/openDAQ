@@ -20,6 +20,7 @@
 #include <opendaq/event_packet.h>
 #include <opendaq/streaming.h>
 #include <opendaq/signal_config.h>
+#include <coretypes/event.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -69,6 +70,36 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredSignalConfig, ISignalConfig)
      * @brief Stops the streaming and clears the active streaming source of the signal.
      */
     virtual ErrCode INTERFACE_FUNC deactivateStreaming() = 0;
+
+    // [templateType(event, IMirroredSignalConfig, ISubscriptionEventArgs)]
+    /*!
+     * @brief Gets the Event that is triggered whenever the acknowledgment for signal subscription
+     * completion is received from the streaming server.
+     * @param[out] event The Event representing the acknowledgment of signal subscription completion.
+     *
+     * A handler can be added to the event containing a callback function which is invoked whenever
+     * the event is triggered. The callback function requires two parameters - a MirroredSignalConfig
+     * object, as well as a "Subscription event args" object.
+     * The callback will be invoked with the MirroredSignalConfig object as the first argument,
+     * the second argument holds an event args object that contains the connection string of streaming,
+     * the global ID of the signal as it appears on the remote device, and the event type (Subscribed).
+     */
+    virtual ErrCode INTERFACE_FUNC getOnSubscribeComplete(IEvent** event) = 0;
+
+    // [templateType(event, IMirroredSignalConfig, ISubscriptionEventArgs)]
+    /*!
+     * @brief Gets the Event that is triggered whenever the acknowledgment for signal unsubscription
+     * completion is received from the streaming server.
+     * @param[out] event The Event representing the acknowledgment of signal unsubscription completion.
+     *
+     * A handler can be added to the event containing a callback function which is invoked whenever
+     * the event is triggered. The callback function requires two parameters - a MirroredSignalConfig
+     * object, as well as a "Subscription event args" object.
+     * The callback will be invoked with the MirroredSignalConfig object as the first argument,
+     * the second argument holds an event args object that contains the connection string of streaming,
+     * the global ID of the signal as it appears on the remote device, and the event type (Unsubscribed).
+     */
+    virtual ErrCode INTERFACE_FUNC getOnUnsubscribeComplete(IEvent** event) = 0;
 };
 /*!@}*/
 

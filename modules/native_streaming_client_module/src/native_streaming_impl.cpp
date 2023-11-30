@@ -62,12 +62,10 @@ void NativeStreamingImpl::signalAvailableHandler(const StringPtr& signalStringId
 
 void NativeStreamingImpl::addToAvailableSignals(const StringPtr& signalStringId)
 {
-    std::string idToAdd = signalStringId.toStdString();
-
     std::scoped_lock lock(availableSignalsSync);
-    if (const auto it = availableSignals.find(idToAdd); it == availableSignals.end())
+    if (const auto it = availableSignals.find(signalStringId); it == availableSignals.end())
     {
-        availableSignals.insert({idToAdd, 0});
+        availableSignals.insert({signalStringId, 0});
     }
     else
     {
@@ -87,10 +85,8 @@ void NativeStreamingImpl::signalUnavailableHandler(const StringPtr& signalString
 
 void NativeStreamingImpl::removeFromAvailableSignals(const StringPtr& signalStringId)
 {
-    std::string idToRemove = signalStringId.toStdString();
-
     std::scoped_lock lock(availableSignalsSync);
-    if (const auto it = availableSignals.find(idToRemove); it != availableSignals.end())
+    if (const auto it = availableSignals.find(signalStringId); it != availableSignals.end())
     {
         availableSignals.erase(it);
     }
@@ -220,23 +216,18 @@ void NativeStreamingImpl::handleEventPacket(const MirroredSignalConfigPtr& signa
 
 StringPtr NativeStreamingImpl::getSignalStreamingId(const MirroredSignalConfigPtr& signal)
 {
-    std::string signalFullId = signal.getRemoteId().toStdString();
-
     std::scoped_lock lock(availableSignalsSync);
     const auto it = std::find_if(
         availableSignals.begin(),
         availableSignals.end(),
-        [signalFullId](std::pair<std::string, SizeT> element)
+        [&signal](std::pair<StringPtr, SizeT> element)
         {
-            std::string idEnding = element.first;
-            if (idEnding.size() > signalFullId.size())
-                return false;
-            return std::equal(idEnding.rbegin(), idEnding.rend(), signalFullId.rbegin());
+            return signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId(element.first);
         }
     );
 
     if (it != availableSignals.end())
-        return String(it->first);
+        return it->first;
     else
         throw NotFoundException("Signal with id {} is not available in Native streaming", signal.getRemoteId());
 }

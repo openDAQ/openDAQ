@@ -68,7 +68,7 @@ protected:
     std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingClientHandler> clientHandler;
     ProcedurePtr onDeviceSignalAvailableCallback;
     ProcedurePtr onDeviceSignalUnavailableCallback;
-    std::map<std::string, SizeT> availableSignals;
+    std::map<StringPtr, SizeT> availableSignals;
 
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> workGuard;

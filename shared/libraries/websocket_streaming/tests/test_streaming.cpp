@@ -14,6 +14,7 @@ class StreamingTest : public testing::Test
 {
 public:
     const uint16_t StreamingPort = daq::streaming_protocol::WEBSOCKET_LISTENING_PORT;
+    const std::string StreamingTarget = "/";
     SignalPtr testDoubleSignal;
     ContextPtr context;
 
@@ -42,7 +43,7 @@ TEST_F(StreamingTest, Connect)
     auto server = std::make_shared<StreamingServer>(context);
     server->start(StreamingPort);
 
-    auto client = StreamingClient(context, "127.0.0.1", StreamingPort);
+    auto client = StreamingClient(context, "127.0.0.1", StreamingPort, StreamingTarget);
 
     ASSERT_FALSE(client.isConnected());
     client.connect();
@@ -58,7 +59,7 @@ TEST_F(StreamingTest, ConnectTimeout)
     auto server = std::make_shared<StreamingServer>(context);
     server->start(StreamingPort);
 
-    auto client = StreamingClient(context, "127.0.0.1", 7000);
+    auto client = StreamingClient(context, "127.0.0.1", 7000, StreamingTarget);
 
     client.connect();
     ASSERT_FALSE(client.isConnected());
@@ -69,7 +70,7 @@ TEST_F(StreamingTest, ConnectTwice)
     auto server = std::make_shared<StreamingServer>(context);
     server->start(StreamingPort);
 
-    auto client = StreamingClient(context, "127.0.0.1", StreamingPort);
+    auto client = StreamingClient(context, "127.0.0.1", StreamingPort, StreamingTarget);
 
     ASSERT_TRUE(client.connect());
     client.disconnect();
@@ -113,7 +114,7 @@ TEST_F(StreamingTest, SimpePacket)
     server->start(StreamingPort);
 
     std::vector<PacketPtr> receivedPackets;
-    auto client = StreamingClient(context, "127.0.0.1", StreamingPort);
+    auto client = StreamingClient(context, "127.0.0.1", StreamingPort, StreamingTarget);
 
     auto onPacket = [&receivedPackets](const StringPtr& signalId, const PacketPtr& packet)
     {

@@ -4,6 +4,7 @@
 #include <streaming_protocol/Logging.hpp>
 #include <streaming_protocol/ProtocolHandler.hpp>
 #include "stream/WebsocketClientStream.hpp"
+#include "stream/TcpClientStream.hpp"
 #include "streaming_protocol/SignalContainer.hpp"
 #include "opendaq/custom_log.h"
 #include <opendaq/packet_factory.h>
@@ -13,18 +14,19 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 using namespace daq::stream;
 using namespace daq::streaming_protocol;
 
-StreamingClient::StreamingClient(const ContextPtr& context, const std::string& connectionString)
+StreamingClient::StreamingClient(const ContextPtr& context, const std::string& connectionString, bool useRawTcpConnection)
     : logger(context.getLogger())
     , loggerComponent( logger.assigned() ? logger.getOrAddComponent("StreamingClient") : throw ArgumentNullException("Logger must not be null") )
     , logCallback( [this](spdlog::source_loc location, spdlog::level::level_enum level, const char* msg) {
         this->loggerComponent.logMessage(SourceLocation{location.filename, location.line, location.funcname}, msg, static_cast<LogLevel>(level));
     })
     , signalContainer(logCallback)
+    , useRawTcpConnection(useRawTcpConnection)
 {
     parseConnectionString(connectionString);
 }
 
-StreamingClient::StreamingClient(const ContextPtr& context, const std::string& host, uint16_t port, const std::string& target)
+StreamingClient::StreamingClient(const ContextPtr& context, const std::string& host, uint16_t port, const std::string& target, bool useRawTcpConnection)
     : logger(context.getLogger())
     , loggerComponent( logger.assigned() ? logger.getOrAddComponent("StreamingClient") : throw ArgumentNullException("Logger must not be null") )
     , logCallback( [this](spdlog::source_loc location, spdlog::level::level_enum level, const char* msg) {
@@ -34,6 +36,7 @@ StreamingClient::StreamingClient(const ContextPtr& context, const std::string& h
     , port(port)
     , target(target)
     , signalContainer(logCallback)
+    , useRawTcpConnection(useRawTcpConnection)
 {
 }
 
@@ -63,7 +66,12 @@ bool StreamingClient::connect()
     signalContainer.setSignalMetaCb(signalMetaCallback);
     signalContainer.setDataAsRawCb(messageCallback);
 
-    auto clientStream = std::make_unique<WebsocketClientStream>(ioContext, host, std::to_string(port), target);
+    std::unique_ptr<Stream> clientStream;
+    if (useRawTcpConnection)
+        clientStream = std::make_unique<TcpClientStream>(ioContext, host, std::to_string(port));
+    else
+        clientStream = std::make_unique<WebsocketClientStream>(ioContext, host, std::to_string(port), target);
+
     protocolHandler = std::make_shared<ProtocolHandler>(ioContext, signalContainer, protocolMetaCallback, logCallback);
     std::unique_lock<std::mutex> lock(clientMutex);
     protocolHandler->startWithSyncInit(std::move(clientStream));

@@ -3,36 +3,36 @@
 #include "testutils/memcheck_listener.h"
 #include <thread>
 
-using WebsocketSiggenTest = testing::Test;
+using SiggenTest = testing::TestWithParam<std::string>;
 
 using namespace daq;
 
-static InstancePtr CreateClientInstance()
+static InstancePtr CreateClientInstance(std::string connectionString)
 {
     auto instance = Instance();
-    auto refDevice = instance.addDevice("daq.ws://127.0.0.1:7413/");
+    auto refDevice = instance.addDevice(connectionString);
     return instance;
 }
 
 // signals configuration is set by "siggen_config.json"
 
-TEST_F(WebsocketSiggenTest, ConnectAndDisconnect)
+TEST_P(SiggenTest, ConnectAndDisconnect)
 {
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
 }
 
-TEST_F(WebsocketSiggenTest, GetRemoteDeviceObjects)
+TEST_P(SiggenTest, GetRemoteDeviceObjects)
 {
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
     auto signals = client.getSignalsRecursive();
     ASSERT_EQ(signals.getCount(), 2u);
 }
 
-TEST_F(WebsocketSiggenTest, SyncSignalDescriptors)
+TEST_P(SiggenTest, SyncSignalDescriptors)
 {
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
 
     auto signal  = client.getSignalsRecursive()[0];
 
@@ -59,9 +59,9 @@ TEST_F(WebsocketSiggenTest, SyncSignalDescriptors)
     EXPECT_NE(domainDescriptor.getTickResolution().getDenominator(), 0);
 }
 
-TEST_F(WebsocketSiggenTest, AsyncSignalDescriptors)
+TEST_P(SiggenTest, AsyncSignalDescriptors)
 {
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
 
     auto signal  = client.getSignalsRecursive()[1];
 
@@ -88,9 +88,9 @@ TEST_F(WebsocketSiggenTest, AsyncSignalDescriptors)
     EXPECT_NE(domainDescriptor.getTickResolution().getDenominator(), 0);
 }
 
-TEST_F(WebsocketSiggenTest, DISABLED_RenderSignals)
+TEST_P(SiggenTest, DISABLED_RenderSignals)
 {
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
 
     const auto rendererFb = client.addFunctionBlock("ref_fb_module_renderer");
 
@@ -99,3 +99,12 @@ TEST_F(WebsocketSiggenTest, DISABLED_RenderSignals)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    SiggenTestGroup,
+    SiggenTest,
+    testing::Values(
+        "daq.tcp://127.0.0.1:7411/",
+        "daq.ws://127.0.0.1:7413/"
+        )
+    );

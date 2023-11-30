@@ -9,7 +9,9 @@
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 
 static const char* WebsocketDeviceTypeId = "daq.ws";
+static const char* TcpsocketDeviceTypeId = "daq.tcp";
 static const char* WebsocketDevicePrefix = "daq.ws://";
+static const char* TcpsocketDevicePrefix = "daq.tcp://";
 static const char* WebsocketStreamingPrefix = "daq.wss://";
 static const char* WebsocketStreamingID = "daq.wss";
 
@@ -38,7 +40,7 @@ ListPtr<IDeviceInfo> WebsocketStreamingClientModule::onGetAvailableDevices()
     auto availableDevices = discoveryClient.discoverDevices();
     for (auto device : availableDevices)
     {
-        device.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
+        device.asPtr<IDeviceInfoConfig>().setDeviceType(createWebsocketDeviceType());
     }
     return availableDevices;
 }
@@ -47,8 +49,11 @@ DictPtr<IString, IDeviceType> WebsocketStreamingClientModule::onGetAvailableDevi
 {
     auto result = Dict<IString, IDeviceType>();
 
-    auto deviceType = createDeviceType();
-    result.set(deviceType.getId(), deviceType);
+    auto websocketDeviceType = createWebsocketDeviceType();
+    auto tcpsocketDeviceType = createTcpsocketDeviceType();
+
+    result.set(websocketDeviceType.getId(), websocketDeviceType);
+    result.set(tcpsocketDeviceType.getId(), tcpsocketDeviceType);
 
     return result;
 }
@@ -79,6 +84,8 @@ bool WebsocketStreamingClientModule::onAcceptsConnectionParameters(const StringP
 {
     std::string connStr = connectionString;
     auto found = connStr.find(WebsocketDevicePrefix);
+    if (found != 0)
+        found = connStr.find(TcpsocketDevicePrefix);
     return (found == 0);
 }
 
@@ -138,10 +145,17 @@ StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(con
     return connectionString;
 }
 
-DeviceTypePtr WebsocketStreamingClientModule::createDeviceType()
+DeviceTypePtr WebsocketStreamingClientModule::createWebsocketDeviceType()
 {
     return DeviceType(WebsocketDeviceTypeId,
                       "Websocket enabled device",
+                      "Pseudo device, provides only signals of the remote device as flat list");
+}
+
+DeviceTypePtr WebsocketStreamingClientModule::createTcpsocketDeviceType()
+{
+    return DeviceType(TcpsocketDeviceTypeId,
+                      "Tcpsocket enabled device",
                       "Pseudo device, provides only signals of the remote device as flat list");
 }
 

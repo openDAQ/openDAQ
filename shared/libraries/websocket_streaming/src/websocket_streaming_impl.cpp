@@ -22,7 +22,7 @@ WebsocketStreamingImpl::WebsocketStreamingImpl(StreamingClientPtr streamingClien
 {
     prepareStreamingClient();
     if (!this->streamingClient->connect())
-        throw NotFoundException("Failed to connect to websocket server url: {}", connectionString);
+        throw NotFoundException("Failed to connect to streaming server url: {}", connectionString);
 }
 
 void WebsocketStreamingImpl::onSetActive(bool active)

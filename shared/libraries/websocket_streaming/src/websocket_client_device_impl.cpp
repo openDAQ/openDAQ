@@ -48,7 +48,8 @@ void WebsocketClientDeviceImpl::activateStreaming()
 /// connects to streaming server and waits till the list of available signals received
 void WebsocketClientDeviceImpl::createWebsocketStreaming()
 {
-    auto streamingClient = std::make_shared<StreamingClient>(context, connectionString);
+    bool useRawTcpConnection = connectionString.toStdString().find("daq.tcp://") == 0;
+    auto streamingClient = std::make_shared<StreamingClient>(context, connectionString, useRawTcpConnection);
 
     auto signalInitCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
     {

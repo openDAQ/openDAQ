@@ -2299,6 +2299,7 @@ INCLUDE_FILE_PATTERNS  = *.h
 # This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
 PREDEFINED             = "DECLARE_OPENDAQ_INTERFACE(interfaceName, baseInterface)=struct interfaceName : public baseInterface" \
+                         "DECLARE_OPENDAQ_INTERFACE_EX(interfaceName, baseInterface)=struct interfaceName : public baseInterface" \
                          "DECLARE_TEMPLATED_OPENDAQ_INTERFACE_T(interfaceName, baseInterface)=template <typename T> \
                                                                                          struct interfaceName : public baseInterface" \
                          "DECLARE_TEMPLATED_OPENDAQ_INTERFACE_T_U(interfaceName, baseInterface)=template <typename T, typename U> \
@@ -2308,6 +2309,7 @@ PREDEFINED             = "DECLARE_OPENDAQ_INTERFACE(interfaceName, baseInterface
                          "END_NAMESPACE_BB=}" \
                          "BEGIN_NAMESPACE_OPENDAQ_MODULE(name)=namespace daq::modules::name {" \
                          "END_NAMESPACE_OPENDAQ_MODULE=}" \
+                         "DEFINE_EXTERNAL_INTFID(id)=" \
                          "OPENDAQ_ERROR_CODE(TYPE_ID, ERROR_CODE)="
                          
 

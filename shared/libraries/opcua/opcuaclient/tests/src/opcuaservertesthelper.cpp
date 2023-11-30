@@ -29,14 +29,24 @@ void OpcUaServerTestHelper::runServer()
     UA_Server_delete(server);
 }
 
+void OpcUaServerTestHelper::onConfigure(const OnConfigureCallback& callback)
+{
+    onConfigureCallback = callback;
+}
+
 void OpcUaServerTestHelper::startServer()
 {
     serverRunning = true;
 
-    server = UA_Server_new();
-    UA_ServerConfig* config = UA_Server_getConfig(server);
+    UA_ServerConfig initConfig;
+    std::memset(&initConfig, 0, sizeof(UA_ServerConfig));
 
-    UA_ServerConfig_setMinimal(config, port, nullptr);
+    if (onConfigureCallback)
+        onConfigureCallback(&initConfig);
+
+    UA_ServerConfig_setMinimal(&initConfig, port, nullptr);
+    server = UA_Server_newWithConfig(&initConfig);
+    UA_ServerConfig* config = UA_Server_getConfig(server);
 
     if (sessionTimeoutMs > 0)
         config->maxSessionTimeout = sessionTimeoutMs;

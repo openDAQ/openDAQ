@@ -19,15 +19,26 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
+ * @ingroup opendaq_component
+ * @addtogroup opendaq_component_factories Factories
+ * @{
+ */
+
+/*!
  * @brief Creates a component.
  * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
  * @param parent The parent component.
  * @param localId The local ID of the component.
+ * @param propertyMode Enum defining whether standard properties such as "Name" and "Description" are created.
+ *                     "Add" to create the default properties; "AddReadOnly" to create the properties, but configure them as "read-only";
+ *                     "Skip" to skip creation.
  */
-inline ComponentPtr Component(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+inline ComponentPtr Component(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, ComponentStandardProps propertyMode = ComponentStandardProps::Add)
 {
-    ComponentPtr obj(Component_Create(context, parent, localId, nullptr));
+    ComponentPtr obj(ComponentWithDefaultPropertyMode_Create(context, parent, localId, nullptr, static_cast<Int>(propertyMode)));
     return obj;
 }
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

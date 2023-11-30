@@ -30,7 +30,7 @@ class TmsClientComponentBaseImpl : public TmsClientPropertyObjectBaseImpl<Impl>
 {
 public:
     
-    template<class T = Impl, detail::enable_if_none<T, FunctionBlock, Channel> = 0>
+    template<class T = Impl, template_utils::enable_if_none<T, FunctionBlock, Channel> = 0>
     TmsClientComponentBaseImpl(const ContextPtr& ctx,
                                const ComponentPtr& parent,
                                const StringPtr& localId,
@@ -40,7 +40,7 @@ public:
     {
     }
     
-    template<class T = Impl, detail::enable_if_any<T, FunctionBlock, Channel> = 0>
+    template<class T = Impl, template_utils::enable_if_any<T, FunctionBlock, Channel> = 0>
     TmsClientComponentBaseImpl(const ContextPtr& ctx,
                                const ComponentPtr& parent,
                                const StringPtr& localId,
@@ -55,6 +55,10 @@ public:
     ErrCode INTERFACE_FUNC getActive(Bool* active) override;
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
     ErrCode INTERFACE_FUNC getTags(ITagsConfig** tags) override;
+    ErrCode INTERFACE_FUNC getName(IString** name) override;
+    ErrCode INTERFACE_FUNC setName(IString* name) override;
+    ErrCode INTERFACE_FUNC getDescription(IString** description) override;
+    ErrCode INTERFACE_FUNC setDescription(IString* description) override;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

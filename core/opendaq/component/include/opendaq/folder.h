@@ -22,7 +22,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_components
- * @addtogroup opendaq_component Folder
+ * @addtogroup opendaq_folder Folder
  * @{
  */
 

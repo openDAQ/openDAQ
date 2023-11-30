@@ -52,6 +52,7 @@ public:
     void onDataSourceWrite(DataSourceWriteCallback callback);
     void onMethodCall(MethodCallback callback);
     void onDisplayNameChanged(DisplayNameChangedCallback callback);
+    void onDescriptionChanged(DescriptionChangedCallback callback);
 
 protected:
     OpcUaNodeId nodeId;

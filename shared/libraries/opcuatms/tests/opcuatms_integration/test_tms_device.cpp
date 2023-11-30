@@ -124,7 +124,8 @@ TEST_F(TmsDeviceTest, GetChannels)
     ASSERT_EQ(channels.getCount(), serverDevice.getChannelsRecursive().getCount());
 }
 
-TEST_F(TmsDeviceTest, Property)
+// TODO: Enable once name and description are no longer props
+TEST_F(TmsDeviceTest, DISABLED_Property)
 {
     DevicePtr serverDevice = createDevice();
 

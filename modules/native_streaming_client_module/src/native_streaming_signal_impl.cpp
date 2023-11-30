@@ -14,7 +14,7 @@ NativeStreamingSignalImpl::NativeStreamingSignalImpl(const ContextPtr& ctx,
                                                      const ComponentPtr& parent,
                                                      const DataDescriptorPtr& descriptor,
                                                      const StringPtr& streamingId)
-    : MirroredSignalBase(ctx, parent, createLocalId(streamingId))
+    : MirroredSignalBase(ctx, parent, createLocalId(streamingId), nullptr, ComponentStandardProps::AddReadOnly)
     , streamingId(streamingId)
     , mirroredDataDescriptor(descriptor)
 {

@@ -25,7 +25,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-namespace detail
+namespace template_utils
 {
     template <class T, class... Ts>
     using enable_if_any = std::enable_if_t<(std::is_same_v<T, Ts> || ...), int>;
@@ -44,7 +44,7 @@ class TmsClientPropertyObjectBaseImpl : public TmsClientObjectImpl, public Impl
 {
 public:
     
-    template<class T = Impl, detail::enable_if_any<T, PropertyObjectImpl> = 0>
+    template <class T = Impl, template_utils::enable_if_any<T, PropertyObjectImpl> = 0>
     TmsClientPropertyObjectBaseImpl(const ContextPtr& daqContext, const TmsClientContextPtr& clientContext, const opcua::OpcUaNodeId& nodeId)
         : TmsClientObjectImpl(daqContext, clientContext, nodeId)
         , Impl()
@@ -53,7 +53,7 @@ public:
         browseRawProperties();
     }
 
-    template<class T = Impl, detail::enable_if_any<T, StreamingInfoConfigImpl> = 0>
+    template<class T = Impl, template_utils::enable_if_any<T, StreamingInfoConfigImpl> = 0>
     TmsClientPropertyObjectBaseImpl(const ContextPtr& daqContext,
                                     const StringPtr& protocolId,
                                     const TmsClientContextPtr& clientContext,
@@ -65,20 +65,20 @@ public:
         browseRawProperties();
     }
 
-    template<class T = Impl, detail::enable_if_none<T, FunctionBlock, Channel, PropertyObjectImpl, StreamingInfoConfigImpl> = 0>
+    template<class T = Impl, template_utils::enable_if_none<T, FunctionBlock, Channel, PropertyObjectImpl, StreamingInfoConfigImpl> = 0>
     TmsClientPropertyObjectBaseImpl(const ContextPtr& ctx,
                                     const ComponentPtr& parent,
                                     const StringPtr& localId,
                                     const TmsClientContextPtr& clientContext,
                                     const opcua::OpcUaNodeId& nodeId)
         : TmsClientObjectImpl(ctx, clientContext, nodeId)
-        , Impl(ctx, parent, localId)
+        , Impl(ctx, parent, localId, nullptr, ComponentStandardProps::Skip)
         , referenceUtils(client)
     {
         browseRawProperties();
     }
     
-    template<class T = Impl, detail::enable_if_any<T, FunctionBlock, Channel> = 0>
+    template<class T = Impl, template_utils::enable_if_any<T, FunctionBlock, Channel> = 0>
     TmsClientPropertyObjectBaseImpl(const ContextPtr& ctx,
                                     const ComponentPtr& parent,
                                     const StringPtr& localId,
@@ -86,7 +86,7 @@ public:
                                     const opcua::OpcUaNodeId& nodeId,
                                     const FunctionBlockTypePtr& type)
         : TmsClientObjectImpl(ctx, clientContext, nodeId)
-        , Impl(type, ctx, parent, localId)
+        , Impl(type, ctx, parent, localId, nullptr, ComponentStandardProps::Skip)
         , referenceUtils(client)
     {
         browseRawProperties();

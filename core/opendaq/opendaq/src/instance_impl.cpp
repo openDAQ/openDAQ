@@ -367,6 +367,21 @@ ErrCode InstanceImpl::getName(IString** name)
     return rootDevice->getName(name);
 }
 
+ErrCode InstanceImpl::setName(IString* name)
+{
+    return rootDevice->setName(name);
+}
+
+ErrCode InstanceImpl::getDescription(IString** description)
+{
+    return rootDevice->getDescription(description);
+}
+
+ErrCode InstanceImpl::setDescription(IString* description)
+{
+    return rootDevice->setDescription(description);
+}
+
 ErrCode InstanceImpl::getTags(ITagsConfig** tags)
 {
     return rootDevice->getTags(tags);

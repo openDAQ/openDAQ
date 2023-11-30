@@ -4,6 +4,7 @@
 #include <opendaq/gmock/context.h>
 #include <opendaq/gmock/component.h>
 #include <opendaq/folder_factory.h>
+#include <opendaq/io_folder_factory.h>
 
 using namespace testing;
 
@@ -152,4 +153,30 @@ TEST_F(FolderTest, HasItem)
 
     ASSERT_FALSE(folder.hasItem("comp2"));
     ASSERT_TRUE(folder.hasItem("comp1"));
+}
+
+TEST_F(FolderTest, StandardProperties)
+{
+    const auto name = "foo";
+    const auto desc = "bar";
+    const auto component = daq::Folder(context, nullptr, "foo");
+
+    component.setName(name);
+    component.setDescription(desc);
+
+    ASSERT_EQ(component.getName(), name);
+    ASSERT_EQ(component.getDescription(), desc);
+}
+
+TEST_F(FolderTest, IOStandardProperties)
+{
+    const auto name = "foo";
+    const auto desc = "bar";
+    const auto component = daq::IoFolder(context, nullptr, "foo");
+
+    component.setName(name);
+    component.setDescription(desc);
+
+    ASSERT_EQ(component.getName(), name);
+    ASSERT_EQ(component.getDescription(), desc);
 }

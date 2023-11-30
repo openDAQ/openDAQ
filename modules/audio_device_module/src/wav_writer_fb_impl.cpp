@@ -71,7 +71,7 @@ void WAVWriterFbImpl::startStore()
         return;
     }
 
-    if (!inputValueDataDescriptor.isStructDescriptor())
+    if (inputValueDataDescriptor.isStructDescriptor())
     {
         LOG_W("Incompatible input value data descriptor")
         return;
@@ -83,7 +83,7 @@ void WAVWriterFbImpl::startStore()
         return;
     }
 
-    if (!inputTimeDataDescriptor.isStructDescriptor())
+    if (inputTimeDataDescriptor.isStructDescriptor())
     {
         LOG_W("Incompatible input domain data descriptor")
         return;

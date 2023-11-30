@@ -42,10 +42,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * ErrCode createComplexNumber(IComplexNumber** obj, ComplexFloat64 value)
  * @endcode
  */
-DECLARE_OPENDAQ_INTERFACE_EX(IComplexNumber, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IComplexNumber, IBaseObject)
 {
-    DEFINE_INTFID("IComplexNumber")
-
     /*!
      * @brief Gets the number as ComplexFloat64 type.
      * @param[out] value Complex value.

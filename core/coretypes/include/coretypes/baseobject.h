@@ -20,8 +20,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-static constexpr IntfID UnknownGuid = { 0x00000000, 0x0000, 0x0000, { { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } } };
-
 // ReSharper disable CppPolymorphicClassWithNonVirtualPublicDestructor
 
 /*!
@@ -39,11 +37,11 @@ static constexpr IntfID UnknownGuid = { 0x00000000, 0x0000, 0x0000, { { 0xC0, 0x
 struct IUnknown
 {
     /// @privatesection
-    DEFINE_EXTERNAL_INTFID(UnknownGuid)
+    DEFINE_INTFID("IUnknown")
 
     using Actual = IUnknown;
     /// @publicsection
-
+    
     /*!
      * @brief Returns another interface which is supported by the object and increments the reference count.
      * @param intfID Interface ID of requested interface.

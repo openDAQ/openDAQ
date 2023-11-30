@@ -31,10 +31,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-DECLARE_OPENDAQ_INTERFACE_EX(IEventArgs, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IEventArgs, IBaseObject)
 {
-    DEFINE_INTFID("IEventArgs")
-
     virtual ErrCode INTERFACE_FUNC getEventId(Int* id) = 0;
     virtual ErrCode INTERFACE_FUNC getEventName(IString** name) = 0;
 };

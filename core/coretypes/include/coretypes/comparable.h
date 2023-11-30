@@ -34,10 +34,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * after, or the same as a second object of the same type.
  */
 
-DECLARE_OPENDAQ_INTERFACE_EX(IComparable, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IComparable, IBaseObject)
 {
-    DEFINE_INTFID("IComparable")
-
     /*!
      * @brief Compares the object to another object.
      * @param obj Object for comparison.

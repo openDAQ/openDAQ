@@ -44,10 +44,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * }
   @endcode
  */
-DECLARE_OPENDAQ_INTERFACE_EX(IIterator, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IIterator, IBaseObject)
 {
-    DEFINE_INTFID("IIterator")
-
     /*!
      * @brief Moves iterator to next position.
      */

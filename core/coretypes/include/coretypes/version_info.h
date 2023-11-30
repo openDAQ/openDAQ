@@ -33,10 +33,8 @@ BEGIN_NAMESPACE_OPENDAQ
  *  - minor version representing new features
  *  - patch version representing only bug fixes.
  */
-DECLARE_OPENDAQ_INTERFACE_EX(IVersionInfo, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IVersionInfo, IBaseObject)
 {
-    DEFINE_INTFID("IVersionInfo")
-
     /*!
      * @brief The major version incremented at breaking changes.
      * @param[out] major The major version component.

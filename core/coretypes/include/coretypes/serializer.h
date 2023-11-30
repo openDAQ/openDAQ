@@ -28,12 +28,8 @@ struct ISerializable;
  * @{
  */
 
-static constexpr IntfID SerializerGuid = {0x2A74B851, 0xD3DC, 0x5C19, {{0x8D, 0x36, 0x71, 0x65, 0x35, 0xB8, 0x1B, 0xC7}}};
-
-DECLARE_OPENDAQ_INTERFACE_EX(ISerializer, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(ISerializer, IBaseObject)
 {
-    DEFINE_EXTERNAL_INTFID(SerializerGuid)
-
     /**
     * Starts an object with the class / type identifier
     * @return A non-zero error code if an error occurred

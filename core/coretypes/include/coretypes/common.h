@@ -105,20 +105,6 @@ END_NAMESPACE_OPENDAQ
 // Have to implement "baseInterface" through indirection otherwise "using Base" becomes ambiguous
 // as it might exist in both "baseInterface" and "interfaceName##Impl"
 
-#define DECLARE_OPENDAQ_INTERFACE_EX(interfaceName, baseInterface) \
-    struct interfaceName;                                     \
-                                                              \
-    namespace InterfaceBase                                   \
-    {                                                         \
-        struct interfaceName##Impl : public baseInterface     \
-        {                                                     \
-            using Base = baseInterface;                       \
-            using Actual = interfaceName;                     \
-        };                                                    \
-    }                                                         \
-                                                              \
-    struct interfaceName : public InterfaceBase::interfaceName##Impl
-
 #define DECLARE_OPENDAQ_INTERFACE(interfaceName, baseInterface) \
     struct interfaceName;                                  \
                                                            \
@@ -269,10 +255,6 @@ daq::ErrCode PUBLIC_EXPORT daqDuplicateCharPtr(daq::ConstCharPtr source,
             );                                                                                          \
         OPENDAQ_TYPE_TOSTRING
 #endif
-
-#define DEFINE_EXTERNAL_INTFID(id)       \
-    static constexpr daq::IntfID Id = id; \
-    OPENDAQ_TYPE_TOSTRING
 
 BEGIN_NAMESPACE_OPENDAQ
 

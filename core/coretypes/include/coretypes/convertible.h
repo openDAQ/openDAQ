@@ -48,10 +48,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * @endcode 
  */
 
-DECLARE_OPENDAQ_INTERFACE_EX(IConvertible, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IConvertible, IBaseObject)
 {
-    DEFINE_INTFID("IConvertible")
-
     /*!
      * @brief Converts the object to Float type.
      * @param[out] val Float value.

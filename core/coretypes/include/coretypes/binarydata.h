@@ -20,8 +20,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-static constexpr IntfID BinaryDataGuid = { 0x88645351, 0x2B4A, 0x5C4E, { { 0x9F, 0xBB, 0x7D, 0x80, 0x4B, 0x49, 0xC9, 0xE3 } } };
-
 /*!
  * @ingroup types_containers
  * @defgroup types_binary_data BinaryData
@@ -34,10 +32,8 @@ static constexpr IntfID BinaryDataGuid = { 0x88645351, 0x2B4A, 0x5C4E, { { 0x9F,
  * Binary data is just a continuously allocated memory of a specific size. A client can get a pointer to
  * internal buffer and size it.
  */
-DECLARE_OPENDAQ_INTERFACE_EX(IBinaryData, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IBinaryData, IBaseObject)
 {
-    DEFINE_EXTERNAL_INTFID(BinaryDataGuid)
-
     /*!
      * @brief Gets the address of the buffer.
      * @param[out] data The buffer's starting address.

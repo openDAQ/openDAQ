@@ -41,10 +41,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * ErrCode createFloat(IFloat** obj, Float value)
  * @endcode
  */
-DECLARE_OPENDAQ_INTERFACE_EX(IFloat, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IFloat, IBaseObject)
 {
-    DEFINE_INTFID("IFloatObject")
-
     /*!
      * @brief Gets a float value stored in the object.
      * @param[out] value Stored float value.

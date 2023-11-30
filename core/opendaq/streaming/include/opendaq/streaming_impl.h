@@ -90,6 +90,11 @@ protected:
      */
     virtual void onUnsubscribeSignal(const MirroredSignalConfigPtr& signal) = 0;
 
+    /*!
+     * @brief onCreateDataDescriptorChangedEventPacket
+     * @param signal
+     * @return
+     */
     virtual EventPacketPtr onCreateDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal) = 0;
 
     void removeAllSignalsInternal();

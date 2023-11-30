@@ -100,25 +100,23 @@ void WebsocketStreamingImpl::onPacket(const StringPtr& signalId, const PacketPtr
 
 void WebsocketStreamingImpl::onAvailableSignals(const std::vector<std::string>& signalIds)
 {
-    availableSignalIds = signalIds;
+    for (const auto& signalId : signalIds)
+        availableSignalIds.push_back(String(signalId));
 }
 
-StringPtr WebsocketStreamingImpl::getSignalStreamingId(const MirroredSignalConfigPtr &signal)
+StringPtr WebsocketStreamingImpl::getSignalStreamingId(const MirroredSignalConfigPtr& signal)
 {
-    std::string signalFullId = signal.getRemoteId().toStdString();
     const auto it = std::find_if(
         availableSignalIds.begin(),
         availableSignalIds.end(),
-        [signalFullId](std::string idEnding)
+        [&signal](const StringPtr& signalStreamingId)
         {
-            if (idEnding.size() > signalFullId.size())
-                return false;
-            return std::equal(idEnding.rbegin(), idEnding.rend(), signalFullId.rbegin());
+            return signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId(signalStreamingId);
         }
     );
 
     if (it != availableSignalIds.end())
-        return String(*it);
+        return *it;
     else
         throw NotFoundException("Signal with id {} is not available in Websocket streaming", signal.getRemoteId());
 }

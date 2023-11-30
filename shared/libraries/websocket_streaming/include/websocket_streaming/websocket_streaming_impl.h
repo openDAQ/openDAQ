@@ -47,7 +47,7 @@ protected:
     StringPtr getSignalStreamingId(const MirroredSignalConfigPtr& signal);
 
     daq::websocket_streaming::StreamingClientPtr streamingClient;
-    std::vector<std::string> availableSignalIds;
+    std::vector<StringPtr> availableSignalIds;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

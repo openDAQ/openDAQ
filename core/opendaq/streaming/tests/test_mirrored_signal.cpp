@@ -29,6 +29,19 @@ TEST_F(MirroredSignalTest, RemotelId)
     ASSERT_EQ(signal.getRemoteId(), "signal");
 }
 
+TEST_F(MirroredSignalTest, MatchingId)
+{
+    auto signal = createMirroredSignal("321");
+
+    ASSERT_TRUE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("1"));
+    ASSERT_TRUE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("21"));
+    ASSERT_TRUE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("321"));
+
+    ASSERT_FALSE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("4321"));
+    ASSERT_FALSE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("123"));
+    ASSERT_FALSE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("12"));
+}
+
 TEST_F(MirroredSignalTest, GetActiveSourceNotAssigned)
 {
     auto signal = createMirroredSignal("signal");
@@ -173,6 +186,27 @@ TEST_F(MirroredSignalTest, Streamed)
     ASSERT_EQ(signal->setStreamed(false), OPENDAQ_IGNORED);
 
     ASSERT_FALSE(signal.getStreamed());
+}
+
+TEST_F(MirroredSignalTest, SubscriptionEvents)
+{
+    auto signal = createMirroredSignal("signal");
+
+    SubscriptionEventArgsPtr subscribeEventArgs;
+    signal.getOnSubscribeComplete() +=
+        [&](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args) { subscribeEventArgs = args; };
+
+    SubscriptionEventArgsPtr unsubscribeEventArgs;
+    signal.getOnUnsubscribeComplete() +=
+        [&](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args) { unsubscribeEventArgs = args; };
+
+    signal.template asPtr<IMirroredSignalPrivate>()->subscribeCompleted("TestStreaming");
+    ASSERT_EQ(subscribeEventArgs.getStreamingConnectionString(), "TestStreaming");
+    ASSERT_EQ(subscribeEventArgs.getSubscriptionEventType(), SubscriptionEventType::Subscribed);
+
+    signal.template asPtr<IMirroredSignalPrivate>()->unsubscribeCompleted("TestStreaming");
+    ASSERT_EQ(unsubscribeEventArgs.getStreamingConnectionString(), "TestStreaming");
+    ASSERT_EQ(unsubscribeEventArgs.getSubscriptionEventType(), SubscriptionEventType::Unsubscribed);
 }
 
 END_NAMESPACE_OPENDAQ

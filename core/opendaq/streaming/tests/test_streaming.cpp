@@ -220,8 +220,15 @@ TEST_F(SubscriptionTest, DirectSubscribe)
 
     auto signal = createMirroredSignal("Signal");
 
+    SubscriptionEventArgsPtr eventArgs;
+    signal.getOnSubscribeComplete() +=
+        [&](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args) { eventArgs = args; };
+
     EXPECT_CALL(streaming.mock(), onSubscribeSignal(signal)).Times(Exactly(1));
     ASSERT_NO_THROW(streaming.ptr.template asPtr<IStreamingPrivate>()->subscribeSignal(signal));
+
+    ASSERT_EQ(eventArgs.getStreamingConnectionString(), "MockStreaming");
+    ASSERT_EQ(eventArgs.getSubscriptionEventType(), SubscriptionEventType::Subscribed);
 
     ASSERT_TRUE(Mock::VerifyAndClearExpectations(&streaming.mock()));
 }
@@ -232,8 +239,15 @@ TEST_F(SubscriptionTest, DirectUnsubscribe)
 
     auto signal = createMirroredSignal("Signal");
 
+    SubscriptionEventArgsPtr eventArgs;
+    signal.getOnUnsubscribeComplete() +=
+        [&](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args) { eventArgs = args; };
+
     EXPECT_CALL(streaming.mock(), onUnsubscribeSignal(signal)).Times(Exactly(1));
     ASSERT_NO_THROW(streaming.ptr.template asPtr<IStreamingPrivate>()->unsubscribeSignal(signal));
+
+    ASSERT_EQ(eventArgs.getStreamingConnectionString(), "MockStreaming");
+    ASSERT_EQ(eventArgs.getSubscriptionEventType(), SubscriptionEventType::Unsubscribed);
 
     ASSERT_TRUE(Mock::VerifyAndClearExpectations(&streaming.mock()));
 }
@@ -250,12 +264,26 @@ TEST_F(SubscriptionTest, TriggeredBySingleConnection)
 
     auto inputPort = InputPort(NullContext(), nullptr, "TestPort");
 
+    SubscriptionEventArgsPtr subscribeEventArgs;
+    signal.getOnSubscribeComplete() +=
+        [&](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args) { subscribeEventArgs = args; };
+
+    SubscriptionEventArgsPtr unsubscribeEventArgs;
+    signal.getOnUnsubscribeComplete() +=
+        [&](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args) { unsubscribeEventArgs = args; };
+
     EXPECT_CALL(streaming.mock(), onCreateDataDescriptorChangedEventPacket(signal)).Times(Exactly(1));
     EXPECT_CALL(streaming.mock(), onSubscribeSignal(signal)).Times(Exactly(1));
     inputPort.connect(signal);
 
     EXPECT_CALL(streaming.mock(), onUnsubscribeSignal(signal)).Times(Exactly(1));
     inputPort.disconnect();
+
+    ASSERT_EQ(subscribeEventArgs.getStreamingConnectionString(), "MockStreaming");
+    ASSERT_EQ(subscribeEventArgs.getSubscriptionEventType(), SubscriptionEventType::Subscribed);
+
+    ASSERT_EQ(unsubscribeEventArgs.getStreamingConnectionString(), "MockStreaming");
+    ASSERT_EQ(unsubscribeEventArgs.getSubscriptionEventType(), SubscriptionEventType::Unsubscribed);
 
     ASSERT_TRUE(Mock::VerifyAndClearExpectations(&streaming.mock()));
 }

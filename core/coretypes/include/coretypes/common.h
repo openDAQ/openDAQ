@@ -104,6 +104,7 @@ END_NAMESPACE_OPENDAQ
 
 // Have to implement "baseInterface" through indirection otherwise "using Base" becomes ambiguous
 // as it might exist in both "baseInterface" and "interfaceName##Impl"
+
 #define DECLARE_OPENDAQ_INTERFACE_EX(interfaceName, baseInterface) \
     struct interfaceName;                                     \
                                                               \

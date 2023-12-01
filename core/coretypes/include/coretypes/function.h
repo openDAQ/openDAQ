@@ -29,8 +29,6 @@ BEGIN_NAMESPACE_OPENDAQ
 /// Function pointer to callback.
 typedef ErrCode (*FuncCall)(IBaseObject*, IBaseObject**);
 
-static constexpr IntfID FuncGuid = { 0xCD7DE87D, 0xC267, 0x5736, { { 0xA6, 0xD0, 0x03, 0xC5, 0x6A, 0x9E, 0x20, 0x8A } } };
-
 /*!
  * @brief Holds a callback function.
  *
@@ -50,10 +48,8 @@ static constexpr IntfID FuncGuid = { 0xCD7DE87D, 0xC267, 0x5736, { { 0xA6, 0xD0,
  * ErrCode createFunction(IFuncObject** obj, FuncCall value)
  * @endcode
  */
-DECLARE_OPENDAQ_INTERFACE_EX(IFunction, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IFunction, IBaseObject)
 {
-    DEFINE_EXTERNAL_INTFID(FuncGuid)
-
     /*!
      * @brief Calls the stored callback.
      * @param params Parameters passed to the callback.

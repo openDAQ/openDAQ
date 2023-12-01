@@ -32,10 +32,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * Once the object is frozen, it should not allow to change any of its properties or internal state.
  */
 
-DECLARE_OPENDAQ_INTERFACE_EX(IFreezable, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IFreezable, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IFreezable")
-
     /*!
      * @brief Makes the object frozen/immutable.
      * It should return OPENDAQ_IGNORED value if the object is already frozen.

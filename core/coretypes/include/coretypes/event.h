@@ -29,10 +29,8 @@ BEGIN_NAMESPACE_OPENDAQ
 
 typedef std::size_t HandlerId;
 
-DECLARE_OPENDAQ_INTERFACE_EX(IEvent, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IEvent, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IEvent")
-
     virtual ErrCode INTERFACE_FUNC addHandler(IEventHandler* eventHandler) = 0;
     virtual ErrCode INTERFACE_FUNC removeHandler(IEventHandler* eventHandler) = 0;
 

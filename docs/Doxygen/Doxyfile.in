@@ -2309,7 +2309,6 @@ PREDEFINED             = "DECLARE_OPENDAQ_INTERFACE(interfaceName, baseInterface
                          "END_NAMESPACE_BB=}" \
                          "BEGIN_NAMESPACE_OPENDAQ_MODULE(name)=namespace daq::modules::name {" \
                          "END_NAMESPACE_OPENDAQ_MODULE=}" \
-                         "DEFINE_LEGACY_INTFID(interfaceName, ...)=" \
                          "DEFINE_EXTERNAL_INTFID(id)=" \
                          "OPENDAQ_ERROR_CODE(TYPE_ID, ERROR_CODE)="
                          

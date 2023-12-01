@@ -39,12 +39,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * ErrCode createBoolean(IBoolean** obj, Bool value)
  * @endcode
  */
-DECLARE_OPENDAQ_INTERFACE_EX(IBoolean, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IBoolean, IBaseObject)
 {
-    /// @privatesection
-    DEFINE_LEGACY_INTFID("IBoolObject")
-    /// @publicsection
-
     /*!
      * @brief Gets a boolean value stored in the object.
      * @param[out] value Stored boolean value.

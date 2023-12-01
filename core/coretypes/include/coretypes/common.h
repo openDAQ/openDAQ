@@ -240,16 +240,11 @@ daq::ErrCode PUBLIC_EXPORT daqDuplicateCharPtr(daq::ConstCharPtr source,
 #define CUSTOM_INTFID(interfaceName, namespaceName, ...) \
     daq::FromTemplatedTypeName<sizeof(interfaceName), sizeof(namespaceName), ##__VA_ARGS__>(interfaceName, namespaceName);
 
-#define LEGACY_INTFID(interfaceName, ...)  CUSTOM_INTFID(interfaceName, "Core.RT.Dewesoft", ##__VA_ARGS__)
 #define OPENDAQ_INTFID(interfaceName, ...) CUSTOM_INTFID(interfaceName, "daq", ##__VA_ARGS__)
 
 #if defined(NDEBUG) || defined(DS_CI_RUNNER)
     #define DEFINE_INTFID(interfaceName, ...)                                                           \
         static constexpr daq::IntfID Id = OPENDAQ_INTFID(interfaceName, ##__VA_ARGS__)                  \
-        OPENDAQ_TYPE_TOSTRING
-
-    #define DEFINE_LEGACY_INTFID(interfaceName, ...)                                                    \
-        static constexpr daq::IntfID Id = LEGACY_INTFID(interfaceName, ##__VA_ARGS__)                   \
         OPENDAQ_TYPE_TOSTRING
 
     #define DEFINE_CUSTOM_INTFID(interfaceName, namespaceName, ...)                                     \
@@ -262,15 +257,6 @@ daq::ErrCode PUBLIC_EXPORT daqDuplicateCharPtr(daq::ConstCharPtr source,
             daq::interfaceGuidSource<sizeof(interfaceName), sizeof("daq"), ##__VA_ARGS__>(              \
                 interfaceName,                                                                          \
                 "daq"                                                                                   \
-            );                                                                                          \
-        OPENDAQ_TYPE_TOSTRING
-
-    #define DEFINE_LEGACY_INTFID(interfaceName, ...)                                                    \
-        static constexpr daq::IntfID Id = LEGACY_INTFID(interfaceName, ##__VA_ARGS__)                   \
-        static constexpr auto GuidSource =                                                              \
-            daq::interfaceGuidSource<sizeof(interfaceName), sizeof("Core.RT.Dewesoft"), ##__VA_ARGS__>( \
-                interfaceName,                                                                          \
-                "Core.RT.Dewesoft"                                                                      \
             );                                                                                          \
         OPENDAQ_TYPE_TOSTRING
 

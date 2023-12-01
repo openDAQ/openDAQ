@@ -46,10 +46,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * ErrCode createStringN(IString** obj, ConstCharPtr data, SizeT length)
  * @endcode
  */
-DECLARE_OPENDAQ_INTERFACE_EX(IString, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IString, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IString")
-
     /*!
      * @brief Gets a string value stored in the object.
      * @param[out] value Stored string value.

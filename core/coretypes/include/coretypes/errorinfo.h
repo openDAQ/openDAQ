@@ -53,10 +53,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * @endcode
  */
 
-DECLARE_OPENDAQ_INTERFACE_EX(IErrorInfo, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IErrorInfo, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IErrorInfo")
-
     /*!
      * @brief Sets the message of the error.
      * @param message Error description.

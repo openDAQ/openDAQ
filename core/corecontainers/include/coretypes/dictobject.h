@@ -28,16 +28,12 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-static constexpr IntfID DictGuid = { 0x90EAAC02, 0xF875, 0x510A, { { 0xA7, 0x30, 0x8B, 0x79, 0x2F, 0xCD, 0x49, 0x63 } } };
-
 /*!
  * @brief Represents a collection of key/value pairs.
  */
 
-DECLARE_OPENDAQ_INTERFACE_EX(IDict, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IDict, IBaseObject)
 {
-    DEFINE_EXTERNAL_INTFID(DictGuid);
-
     /*!
      * @brief Gets the element with the specified key.
      * @param key The key of the element to get.

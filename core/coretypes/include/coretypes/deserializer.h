@@ -31,10 +31,8 @@ typedef ErrCode (*daqDeserializerFactory)(ISerializedObject* serialized, IBaseOb
  * @{
  */
 
-DECLARE_OPENDAQ_INTERFACE_EX(IDeserializer, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IDeserializer, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IDeserializer")
-
     virtual ErrCode INTERFACE_FUNC deserialize(IString* serialized, IBaseObject* context, IBaseObject** object) = 0;
     virtual ErrCode INTERFACE_FUNC update(IUpdatable* updatable, IString* serialized) = 0;
 };

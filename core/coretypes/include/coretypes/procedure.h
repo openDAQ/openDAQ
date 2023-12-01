@@ -29,9 +29,6 @@ BEGIN_NAMESPACE_OPENDAQ
 /// Function pointer to callback without return value.
 typedef ErrCode (*ProcCall)(IBaseObject*);
 
-// Interface name changed, but GUID has to stay the same for backwards compatibility (Generated from IFuncObject.Core.RT.Dewesoft)
-static constexpr IntfID ProcGuid = { 0xEB405ABE, 0x0DF0, 0x5808, { { 0x86, 0x42, 0xC0, 0x20, 0x69, 0x56, 0x7A, 0xDF } } };
-
 /*!
  * @brief Holds a callback function without return value.
  *
@@ -51,10 +48,8 @@ static constexpr IntfID ProcGuid = { 0xEB405ABE, 0x0DF0, 0x5808, { { 0x86, 0x42,
  * ErrCode createProcedure(IFuncObject** obj, ProcCall value)
  * @endcode
  */
-DECLARE_OPENDAQ_INTERFACE_EX(IProcedure, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IProcedure, IBaseObject)
 {
-    DEFINE_EXTERNAL_INTFID(ProcGuid)
-
     /*!
      * @brief Calls the stored callback.
      * @param params Parameters passed to the callback.

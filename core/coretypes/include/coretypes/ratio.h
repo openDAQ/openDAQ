@@ -42,10 +42,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * ErrCode createRatio(IRatio** obj, Int numerator, Int denominator)
  * @endcode
  */
-DECLARE_OPENDAQ_INTERFACE_EX(IRatio, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IRatio, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IRatio")
-
     /*!
      * @brief Gets numerator part.
      * @param[out] numerator Numerator value.

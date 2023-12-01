@@ -39,10 +39,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * ErrCode createInteger(IInteger** obj, Int value)
  * @endcode
  */
-DECLARE_OPENDAQ_INTERFACE_EX(IInteger, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IInteger, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IIntObject")
-
     /*!
      * @brief Gets an int value stored in the object.
      * @param[out] value Stored int value.

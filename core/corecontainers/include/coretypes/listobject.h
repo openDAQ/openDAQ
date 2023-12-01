@@ -31,10 +31,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * @brief Represents a heterogeneous collection of objects that can be individually accessed by index.
  */
 
-DECLARE_OPENDAQ_INTERFACE_EX(IList, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IList, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IList")
-
     /*!
      * @brief Gets the element at a specific position.
      * @param index The zero-based index of the element to get. 

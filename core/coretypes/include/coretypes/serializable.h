@@ -25,12 +25,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-static constexpr IntfID SerializableGuid = { 0xF2A26E1A, 0x0735, 0x5758, { { 0x88, 0xE7, 0xF4, 0x1B, 0xCB, 0x9E, 0x2E, 0xDC } } };
-
-DECLARE_OPENDAQ_INTERFACE_EX(ISerializable, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(ISerializable, IBaseObject)
 {
-    DEFINE_EXTERNAL_INTFID(SerializableGuid)
-
     virtual ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) = 0;
     virtual ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const = 0;
 };

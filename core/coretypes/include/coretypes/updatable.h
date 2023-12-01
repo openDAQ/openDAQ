@@ -26,10 +26,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-DECLARE_OPENDAQ_INTERFACE_EX(IUpdatable, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IUpdatable, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IUpdatable")
-
     virtual ErrCode INTERFACE_FUNC update(ISerializedObject* update) = 0;
 };
 

@@ -61,10 +61,8 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * @endcode
  */
-DECLARE_OPENDAQ_INTERFACE_EX(IWeakRef, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IWeakRef, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("IWeakRef")
-
     /*!
      * @brief Gets a true reference to the object as IBaseObject interface.
      * @param[out] object A true reference to the object.
@@ -101,9 +99,9 @@ DECLARE_OPENDAQ_INTERFACE_EX(IWeakRef, IBaseObject)
  *    \\ ...
  * @endcode
  */
-DECLARE_OPENDAQ_INTERFACE_EX(ISupportsWeakRef, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(ISupportsWeakRef, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("ISupportsWeakRef")
+    DEFINE_INTFID("ISupportsWeakRef")
 
     /*!
      * @brief Gets a weak reference to the object.

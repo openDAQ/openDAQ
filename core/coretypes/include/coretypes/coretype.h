@@ -55,10 +55,8 @@ enum CoreType : int
  * specific type. For example, if the `CoreType` reported is ctInt, the object is expected to
  * implement the IIntObject interface.
  */
-DECLARE_OPENDAQ_INTERFACE_EX(ICoreType, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(ICoreType, IBaseObject)
 {
-    DEFINE_LEGACY_INTFID("ICoreType")
-
     /*!
      * @brief Gets the object's CoreType.
      * @param[out] coreType The object's CoreType.

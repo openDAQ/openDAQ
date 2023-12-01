@@ -117,7 +117,7 @@ struct IUnknown
 struct IBaseObject : public IUnknown
 {
     /// @privatesection
-    DEFINE_LEGACY_INTFID("IBaseObject")
+    DEFINE_INTFID("IBaseObject")
 
     using Actual = IBaseObject;
     /// @publicsection

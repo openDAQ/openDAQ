@@ -15,13 +15,13 @@
  */
 
 #pragma once
-#include <opendaq/dimension_builder.h>
-#include <opendaq/dimension_ptr.h>
 #include <coreobjects/unit_ptr.h>
-#include <opendaq/dimension_rule_ptr.h>
+#include <coretypes/freezable.h>
 #include <coretypes/impl.h>
 #include <coretypes/intfs.h>
-#include <coretypes/freezable.h>
+#include <opendaq/dimension_builder.h>
+#include <opendaq/dimension_ptr.h>
+#include <opendaq/dimension_rule_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,10 +31,16 @@ public:
     explicit DimensionBuilderImpl();
     explicit DimensionBuilderImpl(const DimensionPtr& copy);
 
-    ErrCode INTERFACE_FUNC setName(IString* name) override;
-    ErrCode INTERFACE_FUNC setUnit(IUnit* unit) override;
-    ErrCode INTERFACE_FUNC setRule(IDimensionRule* rule) override;
     ErrCode INTERFACE_FUNC build(IDimension** dimension) override;
+
+    ErrCode INTERFACE_FUNC setName(IString* name) override;
+    ErrCode INTERFACE_FUNC getName(IString** name) override;
+
+    ErrCode INTERFACE_FUNC setUnit(IUnit* unit) override;
+    ErrCode INTERFACE_FUNC getUnit(IUnit** unit) override;
+
+    ErrCode INTERFACE_FUNC setRule(IDimensionRule* rule) override;
+    ErrCode INTERFACE_FUNC getRule(IDimensionRule** rule) override;
 
 private:
     StringPtr name;

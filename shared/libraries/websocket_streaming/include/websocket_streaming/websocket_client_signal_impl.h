@@ -27,7 +27,7 @@ DECLARE_OPENDAQ_INTERFACE(IWebsocketStreamingSignalPrivate, IBaseObject)
     virtual void assignDescriptor(const DataDescriptorPtr& descriptor) = 0;
 };
 
-class WebsocketClientSignalImpl final : public MirroredSignalBase<SignalStandardProps::AddReadOnly, IWebsocketStreamingSignalPrivate>
+class WebsocketClientSignalImpl final : public MirroredSignalBase<IWebsocketStreamingSignalPrivate>
 {
 public:
     explicit WebsocketClientSignalImpl(const ContextPtr& ctx,

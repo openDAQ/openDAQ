@@ -48,7 +48,13 @@ struct IEvalValue;
  * The Property can be built by calling the `build` method.
  */
 DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
-{
+{    
+    /*!
+     * @brief Builds and returns a Property using the currently set values of the Builder.
+     * @param[out] property The built property.
+     */
+    virtual ErrCode INTERFACE_FUNC build(IProperty** property) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the Value type of the Property. Values written to the corresponding Property value
@@ -57,6 +63,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setValueType(CoreType type) = 0;
 
+    /*!
+     * @brief Gets the Value type of the Property.
+     * @param[out] type The value type.
+     */
+    virtual ErrCode INTERFACE_FUNC getValueType(CoreType* type) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the Name of the Property. The names of Properties in a Property object must be unique.
@@ -64,6 +76,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * @param name The Name of the Property.
      */
     virtual ErrCode INTERFACE_FUNC setName(IString* name) = 0;
+
+    /*!
+     * @brief Gets the Name of the Property.
+     * @param[out] name The Name of the Property.
+     */
+    virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
     
     // [returnSelf]
     /*!
@@ -71,6 +89,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * @param description The Description of the Property.
      */
     virtual ErrCode INTERFACE_FUNC setDescription(IString* description) = 0;
+
+    /*!
+     * @brief Gets the short string Description of the Property.
+     * @param[out] description The Description of the Property.
+     */
+    virtual ErrCode INTERFACE_FUNC getDescription(IString** description) = 0;
     
     // [returnSelf]
     /*!
@@ -78,6 +102,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * @param unit The Unit of the Property.
      */
     virtual ErrCode INTERFACE_FUNC setUnit(IUnit* unit) = 0;
+
+    /*!
+     * @brief Gets the Unit of the Property.
+     * @param[out] unit The Unit of the Property.
+     */
+    virtual ErrCode INTERFACE_FUNC getUnit(IUnit** unit) = 0;
     
     // [returnSelf]
     /*!
@@ -85,6 +115,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * @param min The Minimum value of the Property.
      */
     virtual ErrCode INTERFACE_FUNC setMinValue(INumber* min) = 0;
+
+    /*!
+     * @brief Gets the Minimum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`.
+     * @param[out] min The Minimum value of the Property.
+     */
+    virtual ErrCode INTERFACE_FUNC getMinValue(INumber** min) = 0;
     
     // [returnSelf]
     /*!
@@ -92,6 +128,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * @param max The Maximum value of the Property.
      */
     virtual ErrCode INTERFACE_FUNC setMaxValue(INumber* max) = 0;
+
+    /*!
+     * @brief Gets the Maximum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`.
+     * @param[out] max The Maximum value of the Property.
+     */
+    virtual ErrCode INTERFACE_FUNC getMaxValue(INumber** max) = 0;
     
     // [returnSelf]
     /*!
@@ -102,6 +144,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setDefaultValue(IBaseObject* value) = 0;
 
+    /*!
+     * @brief Gets the Default value of the Property.
+     * @param[out] value The Default value of the Property.
+     */
+    virtual ErrCode INTERFACE_FUNC getDefaultValue(IBaseObject** value) = 0;
+
     // [templateType(values, IBaseObject), returnSelf]
     /*!
      * @brief Sets the list of Suggested values. Contains values that are the optimal settings for the corresponding
@@ -109,6 +157,14 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * @param values The Suggested values of the Property.
      */
     virtual ErrCode INTERFACE_FUNC setSuggestedValues(IList* values) = 0;
+
+    // [templateType(values, IBaseObject)]
+    /*!
+     * @brief Gets the list of Suggested values. Contains values that are the optimal gettings for the corresponding
+     * Property value. These values, however, are not enforced when getting a new Property value.
+     * @param[out] values The Suggested values of the Property.
+     */
+    virtual ErrCode INTERFACE_FUNC getSuggestedValues(IList** values) = 0;
     
     // [returnSelf]
     /*!
@@ -116,6 +172,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * @param visible True if the Property is visible; false otherwise.
      */
     virtual ErrCode INTERFACE_FUNC setVisible(IBoolean* visible) = 0;
+
+    /*!
+     * @brief Used to determine whether the property is visible or not.
+     * @param[out] visible True if the Property is visible; false otherwise.
+     */
+    virtual ErrCode INTERFACE_FUNC getVisible(IBoolean** visible) = 0;
     
     // [returnSelf]
     /*!
@@ -125,6 +187,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * Read-only Property values can still be modified by using the `PropertyObjectProtected` interface methods.
      */
     virtual ErrCode INTERFACE_FUNC setReadOnly(IBoolean* readOnly) = 0;
+
+    /*!
+     * @brief Used to determine whether the Property is a read-only property or not.
+     * @param[out] readOnly True if the Property is a read-only property; false otherwise.
+     */
+    virtual ErrCode INTERFACE_FUNC getReadOnly(IBoolean** readOnly) = 0;
     
     // [returnSelf]
     /*!
@@ -133,6 +201,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * @param values The list/dictionary of possible selection values.
      */
     virtual ErrCode INTERFACE_FUNC setSelectionValues(IBaseObject* values) = 0;
+
+    /*!
+     * @brief Gets the list or dictionary of selection values.
+     * @param[out] values The list/dictionary of possible selection values.
+     */
+    virtual ErrCode INTERFACE_FUNC getSelectionValues(IBaseObject** values) = 0;
 
     // [templateType(property, IProperty), returnSelf]
     /*!
@@ -144,6 +218,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setReferencedProperty(IEvalValue* propertyEval) = 0;
     
+    // [templateType(property, IProperty)]
+    /*!
+     * @brief Gets the referenced property.
+     * @param[out] propertyEval The referenced property.
+     */
+    virtual ErrCode INTERFACE_FUNC getReferencedProperty(IEvalValue** propertyEval) = 0;
     // [returnSelf]
     /*!
      * @brief Sets the validator of the Property.
@@ -152,6 +232,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * Used to validate whether a value written to the corresponding Property value is valid or not.
      */
     virtual ErrCode INTERFACE_FUNC setValidator(IValidator* validator) = 0;
+
+    /*!
+     * @brief Gets the validator of the Property.
+     * @param[out] validator The validator.
+     */
+    virtual ErrCode INTERFACE_FUNC getValidator(IValidator** validator) = 0;
     
     // [returnSelf]
     /*!
@@ -161,6 +247,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * Used to coerce a value written to the corresponding Property value to the constraints specified by the coercer.
      */
     virtual ErrCode INTERFACE_FUNC setCoercer(ICoercer* coercer) = 0;
+
+    /*!
+     * @brief Gets the coercer of the Property.
+     * @param[out] coercer The coercer.
+     */
+    virtual ErrCode INTERFACE_FUNC getCoercer(ICoercer** coercer) = 0;
     
     // [returnSelf]
     /*!
@@ -169,6 +261,13 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * @param callable The Callable info object.
      */
     virtual ErrCode INTERFACE_FUNC setCallableInfo(ICallableInfo* callable) = 0;
+    
+    /*!
+     * @brief Gets the Callable information objects of the Property that specifies the argument and return types
+     * of the callable object stored as the Property value.
+     * @param[out] callable The Callable info object.
+     */
+    virtual ErrCode INTERFACE_FUNC getCallableInfo(ICallableInfo** callable) = 0;
 
     // [templateType(event, "PropertyObjectPtr, PropertyValueEventArgsPtr"), returnSelf]
     /*!
@@ -177,18 +276,26 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setOnPropertyValueWrite(IEvent* event) = 0;
 
+    // [templateType(event, IPropertyObject, IPropertyValueEventArgs)]
+    /*!
+     * @brief Gets a custom on-write event. Used mostly when cloning properties.
+     * @param[out] event The on-write event.
+     */
+    virtual ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IEvent** event) = 0;
+
     // [templateType(event, "PropertyObjectPtr, PropertyValueEventArgsPtr"), returnSelf]
     /*!
      * @brief Sets a custom on-read event. Used mostly when cloning properties.
      * @param event The on-read event.
      */
-    virtual ErrCode INTERFACE_FUNC setOnPropertyValueRead(IEvent* event) = 0;
+    virtual ErrCode INTERFACE_FUNC setOnPropertyValueRead(IEvent * event) = 0;
 
+    // [templateType(event, IPropertyObject, IPropertyValueEventArgs)]
     /*!
-     * @brief Builds and returns a Property using the currently set values of the Builder.
-     * @param[out] property The built property.
+     * @brief Gets a custom on-read event. Used mostly when cloning properties.
+     * @param[out] event The on-read event.
      */
-    virtual ErrCode INTERFACE_FUNC build(IProperty** property) = 0;
+    virtual ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event) = 0;
 };
 
 /*!@}*/

@@ -111,32 +111,6 @@ DECLARE_OPENDAQ_INTERFACE(ISignal, IComponent)
     virtual ErrCode INTERFACE_FUNC getConnections(IList** connections) = 0;
 
     /*!
-     * @brief Sets the name of the signal.
-     * @param name The name of the signal.
-     *
-     * The name property of the signal is user configurable.
-     */
-    virtual ErrCode INTERFACE_FUNC setName(IString* name) = 0;
-
-    /*!
-     * @brief Sets the description of the signal.
-     * @param description The description of the signal.
-     *
-     * The description property of the signal is user configurable. openDAQ SDK does not use nor
-     * interpret the description in any way.
-     */
-    virtual ErrCode INTERFACE_FUNC setDescription(IString* description) = 0;
-
-    /*!
-     * @brief Gets the description of the signal.
-     * @param[out] description The description of the signal.
-     *
-     * The description property of the signal is user configurable. openDAQ SDK does not use nor
-     * interpret the description in any way.
-     */
-    virtual ErrCode INTERFACE_FUNC getDescription(IString** description) = 0;
-
-    /*!
      * @brief Returns true if the signal is streamed; false otherwise.
      * @param[out] streamed True if the signal is streamed; false otherwise.
      *

@@ -62,6 +62,12 @@ void NodeEventManager::onDisplayNameChanged(DisplayNameChangedCallback callback)
     server->getEventManager()->onDisplayNameChanged(nodeId, callback);
 }
 
+void NodeEventManager::onDescriptionChanged(DescriptionChangedCallback callback)
+{
+    server->getEventManager()->onDescriptionChanged(nodeId, callback);
+}
+
+
 // c-style callback, required by open62541 interface
 
 void NodeEventManager::OnWrite(UA_Server* server,

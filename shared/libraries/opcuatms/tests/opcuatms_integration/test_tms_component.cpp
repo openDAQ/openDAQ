@@ -34,11 +34,14 @@ public:
         return component;
     }
 
-    RegisteredComponent registerTestComponent()
+    RegisteredComponent registerTestComponent(const ComponentPtr& customComponent = nullptr)
     {
         RegisteredComponent component{};
-    
-        component.serverComponent = createTestComponent();
+
+        if (customComponent == nullptr)
+            component.serverComponent = createTestComponent();
+        else
+            component.serverComponent = customComponent;
         component.serverObject = std::make_shared<TmsServerComponent<>>(component.serverComponent, this->getServer(), NullContext());
         auto nodeId = component.serverObject->registerOpcUaNode();
         component.clientComponent = TmsClientComponent(NullContext(), nullptr, "test", clientContext, nodeId);
@@ -89,4 +92,47 @@ TEST_F(TmsComponentTest, Properties)
 
     component.clientComponent.setPropertyValue("foo", "notbar");
     ASSERT_EQ(component.serverComponent.getPropertyValue("foo"), component.clientComponent.getPropertyValue("foo"));
+}
+
+TEST_F(TmsComponentTest, NameAndDescription)
+{
+    const auto component = registerTestComponent();
+    ASSERT_EQ(component.serverComponent.getName(), component.clientComponent.getName());
+    ASSERT_EQ(component.serverComponent.getDescription(), component.clientComponent.getDescription());
+
+    component.serverComponent.setName("new_name");
+    component.serverComponent.setDescription("new_description");
+
+    ASSERT_EQ(component.serverComponent.getName(), component.clientComponent.getName());
+    ASSERT_EQ(component.serverComponent.getDescription(), component.clientComponent.getDescription());
+
+    component.clientComponent.setName("newer_name");
+    component.clientComponent.setDescription("newer_description");
+
+    ASSERT_EQ(component.serverComponent.getName(), component.clientComponent.getName());
+    ASSERT_EQ(component.serverComponent.getDescription(), component.clientComponent.getDescription());
+}
+
+TEST_F(TmsComponentTest, NameAndDescriptionReadOnly)
+{
+    const auto name = "read_only";
+    const auto customComponent = Component(NullContext(), nullptr, name, ComponentStandardProps::AddReadOnly);
+    const auto component = registerTestComponent(customComponent);
+
+    ASSERT_NO_THROW(component.clientComponent.setName("new_name"));
+    ASSERT_NO_THROW(component.clientComponent.setDescription("new_description"));
+
+    ASSERT_EQ(component.clientComponent.getName(), name);
+}
+
+TEST_F(TmsComponentTest, NameAndDescriptionSkip)
+{
+    const auto name = "read_only";
+    const auto customComponent = Component(NullContext(), nullptr, name, ComponentStandardProps::Skip);
+    const auto component = registerTestComponent(customComponent);
+
+    ASSERT_NO_THROW(component.clientComponent.setName("new_name"));
+    ASSERT_NO_THROW(component.clientComponent.setDescription("new_description"));
+
+    ASSERT_EQ(component.clientComponent.getName(), name);
 }

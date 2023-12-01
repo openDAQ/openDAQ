@@ -37,6 +37,16 @@ inline DataRulePtr DataRule(DataRuleType type, const DictPtr<IString, IBaseObjec
 }
 
 /*!
+ * @brief Creates a DataRulePtr from Builder.
+ * @param builder DataRule Builder
+ */
+inline DataRulePtr DataRuleFromBuilder(const DataRuleBuilderPtr& builder)
+{
+    DataRulePtr obj(DataRuleFromBuilder_Create(builder));
+    return obj;
+}
+
+/*!
  * @brief Creates a DataRule with a Linear rule type configuration.
  *
  * @param delta Coefficient by which the input data is to be multiplied.

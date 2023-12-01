@@ -20,6 +20,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IDataRuleBuilder;
+
 /*!
  * @ingroup opendaq_data_descriptor
  * @addtogroup opendaq_data_rule Data rule
@@ -150,6 +152,15 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, DataRule, IDataRule,
     DataRuleType, ruleType,
     IDict*, parameters
+)
+
+/*!
+ * @brief Creates a DataRulePtr from Builder.
+ * @param builder DataRule Builder
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, DataRuleFromBuilder, IDataRule,
+    IDataRuleBuilder*, builder
 )
 
 /*!@}*/

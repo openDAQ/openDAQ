@@ -17,6 +17,8 @@
 #pragma once
 #include <opendaq/data_rule_ptr.h>
 #include <opendaq/signal_exceptions.h>
+#include <opendaq/range_type.h>
+#include <opendaq/sample_type_traits.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

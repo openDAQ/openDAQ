@@ -11,7 +11,7 @@ static constexpr char delimeter = '#';
 WebsocketClientSignalImpl::WebsocketClientSignalImpl(const ContextPtr& ctx,
                                                      const ComponentPtr& parent,
                                                      const StringPtr& streamingId)
-    : MirroredSignalBase(ctx, parent, CreateLocalId(streamingId))
+    : MirroredSignalBase(ctx, parent, CreateLocalId(streamingId), nullptr, ComponentStandardProps::AddReadOnly)
     , streamingId(streamingId)
 {
 }

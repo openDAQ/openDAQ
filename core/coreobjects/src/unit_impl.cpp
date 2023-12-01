@@ -11,6 +11,18 @@ namespace detail
     static const StructTypePtr unitStructType = UnitStructType();
 }
 
+DictPtr<IString, IBaseObject> UnitImpl::PackBuilder(IUnitBuilder* unitBuilder)
+{
+    const auto builderPtr = UnitBuilderPtr::Borrow(unitBuilder);
+    auto params = Dict<IString, IBaseObject>();
+    params.set("id", builderPtr.getId());
+    params.set("symbol", builderPtr.getSymbol());
+    params.set("name", builderPtr.getName());
+    params.set("quantity", builderPtr.getQuantity());
+
+    return params;
+}
+
 UnitImpl::UnitImpl(Int id, StringPtr symbol, StringPtr name, StringPtr quantity)
     : GenericStructImpl<IUnit, IStruct>(
         detail::unitStructType,
@@ -19,10 +31,12 @@ UnitImpl::UnitImpl(Int id, StringPtr symbol, StringPtr name, StringPtr quantity)
 {
 }
 
-UnitImpl::UnitImpl(DictPtr<IString, IBaseObject> buildParams)
-    : GenericStructImpl<IUnit, IStruct>(detail::unitStructType, std::move(buildParams))
+UnitImpl::UnitImpl(IUnitBuilder* unitBuilder)
+    : GenericStructImpl<IUnit, IStruct>(
+            detail::unitStructType, PackBuilder(unitBuilder))
 {
 }
+
 
 ErrCode UnitImpl::getId(Int* id)
 {
@@ -153,9 +167,10 @@ daq::ErrCode PUBLIC_EXPORT createUnit(IUnit** objTmp,
 }
 
 extern "C"
-daq::ErrCode PUBLIC_EXPORT createUnitFromBuildParams(IUnit** objTmp, IDict* structParams)
+daq::ErrCode PUBLIC_EXPORT createUnitFromBuilder(IUnit** objTmp, IUnitBuilder* unitBuilder)
 {
-    return daq::createObject<IUnit, UnitImpl>(objTmp, structParams);
+    return daq::createObject<IUnit, UnitImpl>(objTmp, unitBuilder);
 }
+
 
 END_NAMESPACE_OPENDAQ

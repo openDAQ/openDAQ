@@ -15,11 +15,11 @@
  */
 
 #pragma once
-#include <opendaq/data_rule_builder.h>
-#include <opendaq/rule_private.h>
-#include <coretypes/intfs.h>
 #include <coretypes/dictobject_factory.h>
+#include <coretypes/intfs.h>
+#include <opendaq/data_rule_builder.h>
 #include <opendaq/data_rule_ptr.h>
+#include <opendaq/rule_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -29,12 +29,15 @@ public:
     explicit DataRuleBuilderImpl();
     explicit DataRuleBuilderImpl(const DataRulePtr& ruleToCopy);
 
-    ErrCode INTERFACE_FUNC setType(DataRuleType type) override;
-    ErrCode INTERFACE_FUNC setParameters(IDict* parameters) override;
+    ErrCode INTERFACE_FUNC build(IDataRule** scaling) override;
 
+    ErrCode INTERFACE_FUNC setType(DataRuleType type) override;
+    ErrCode INTERFACE_FUNC getType(DataRuleType* type) override;
+
+    ErrCode INTERFACE_FUNC setParameters(IDict* parameters) override;
+    ErrCode INTERFACE_FUNC getParameters(IDict** parameters) override;
     ErrCode INTERFACE_FUNC addParameter(IString* name, IBaseObject* parameter) override;
     ErrCode INTERFACE_FUNC removeParameter(IString* name) override;
-    ErrCode INTERFACE_FUNC build(IDataRule** scaling) override;
 
 private:
     DataRuleType ruleType;

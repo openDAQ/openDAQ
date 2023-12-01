@@ -15,8 +15,8 @@
  */
 
 #pragma once
-#include <opendaq/data_rule.h>
 #include <coretypes/stringobject.h>
+#include <opendaq/data_rule.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,6 +32,12 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IDataRuleBuilder, IBaseObject)
 {
+    /*!
+     * @brief Builds and returns a Data rule object using the currently set values of the Builder.
+     * @param[out] dataRule The built Data rule.
+     */
+    virtual ErrCode INTERFACE_FUNC build(IDataRule** dataRule) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the type of the data rule.
@@ -39,12 +45,25 @@ DECLARE_OPENDAQ_INTERFACE(IDataRuleBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setType(DataRuleType type) = 0;
 
+    /*!
+     * @brief Gets the type of the data rule.
+     * @param[out] type The type of the data rule.
+     */
+    virtual ErrCode INTERFACE_FUNC getType(DataRuleType* type) = 0;
+
     // [templateType(parameters, IString, IBaseObject), returnSelf]
     /*!
      * @brief Sets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.
      * @param parameters The dictionary containing the rule parameter members.
      */
     virtual ErrCode INTERFACE_FUNC setParameters(IDict* parameters) = 0;
+
+    // [templateType(parameters, IString, IBaseObject)]
+    /*!
+     * @brief Gets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.
+     * @param[out] parameters The dictionary containing the rule parameter members.
+     */
+    virtual ErrCode INTERFACE_FUNC getParameters(IDict** parameters) = 0;
 
     // [returnSelf]
     /*!
@@ -59,12 +78,6 @@ DECLARE_OPENDAQ_INTERFACE(IDataRuleBuilder, IBaseObject)
      * @brief Removes the parameter with the given name from the Dictionary of Data rule parameters.
      */
     virtual ErrCode INTERFACE_FUNC removeParameter(IString* name) = 0;
-
-    /*!
-     * @brief Builds and returns a Data rule object using the currently set values of the Builder.
-     * @param[out] dataRule The built Data rule.
-     */
-    virtual ErrCode INTERFACE_FUNC build(IDataRule** dataRule) = 0;
 };
 /*!@}*/
 

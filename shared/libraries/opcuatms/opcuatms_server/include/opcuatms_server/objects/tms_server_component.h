@@ -40,14 +40,18 @@ public:
 
     std::string getBrowseName() override;
     std::string getDisplayName() override;
+    std::string getDescription() override;
     opcua::OpcUaNodeId getReferenceType() override;
     void bindCallbacks() override;
     void addChildNodes() override;
 
 protected:
     opcua::OpcUaNodeId getTmsTypeId() override;
+    void configureNodeAttributes(opcua::OpcUaObject<UA_ObjectAttributes>& attr) override;
 
     std::unique_ptr<TmsServerPropertyObject> tmsPropertyObject;
+private:
+    bool selfChange;
 };
 
 using namespace opcua;
@@ -55,8 +59,9 @@ using namespace opcua;
 template <typename Ptr>
 TmsServerComponent<Ptr>::TmsServerComponent(const ComponentPtr& object, const OpcUaServerPtr& server, const ContextPtr& context)
     : Super(object, server, context)
+    , selfChange(false)
 {
-    tmsPropertyObject = std::make_unique<TmsServerPropertyObject>(this->object, this->server, this->daqContext);
+    tmsPropertyObject = std::make_unique<TmsServerPropertyObject>(this->object, this->server, this->daqContext, std::unordered_set<std::string>{"Name", "Description"});
 }
 
 template <typename Ptr>
@@ -72,6 +77,12 @@ std::string TmsServerComponent<Ptr>::getDisplayName()
 }
 
 template <typename Ptr>
+std::string TmsServerComponent<Ptr>::getDescription()
+{
+    return this->object.getDescription();
+}
+
+template <typename Ptr>
 OpcUaNodeId TmsServerComponent<Ptr>::getReferenceType()
 {
     return OpcUaNodeId(0, UA_NS0ID_HASCOMPONENT);
@@ -81,6 +92,16 @@ template <typename Ptr>
 OpcUaNodeId TmsServerComponent<Ptr>::getTmsTypeId()
 {
     return OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQCOMPONENTTYPE);
+}
+
+template <typename Ptr>
+void TmsServerComponent<Ptr>::configureNodeAttributes(opcua::OpcUaObject<UA_ObjectAttributes>& attr)
+{
+    TmsServerObject::configureNodeAttributes(attr);
+    if (this->object.hasProperty("Name") && !this->object.getProperty("Name").getReadOnly())
+        attr->writeMask |= UA_WRITEMASK_DISPLAYNAME;
+    if (this->object.hasProperty("Description") && !this->object.getProperty("Description").getReadOnly())
+        attr->writeMask |= UA_WRITEMASK_DESCRIPTION;
 }
 
 template <typename Ptr>
@@ -108,6 +129,64 @@ void TmsServerComponent<Ptr>::bindCallbacks()
             return UA_STATUSCODE_GOOD;
         });
     }
+
+    if (this->object.hasProperty("Name"))
+    {
+        this->object.getOnPropertyValueWrite("Name") +=
+            [&](const PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+            {
+                if (selfChange)
+                    return;
+
+                std::string name = args.getValue();
+                this->server->setDisplayName(this->nodeId, name);
+            };
+    }
+
+    if (this->object.hasProperty("Description"))
+    {
+        this->object.getOnPropertyValueWrite("Description") +=
+            [&](const PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+            {
+                if (selfChange)
+                    return;
+
+                std::string description = args.getValue();
+                this->server->setDescription(this->nodeId, description);
+            };
+    }
+
+    DisplayNameChangedCallback nameChangedCallback =
+        [this](const OpcUaNodeId& /*nodeId*/, const OpcUaObject<UA_LocalizedText>& name, void* /*context*/)
+        {
+            try
+            {
+                selfChange = true;
+                this->object.setName(utils::ToStdString(name->text));
+            }
+            catch(...)
+            {
+            }
+
+            selfChange = false;
+        };
+    this->server->getEventManager()->onDisplayNameChanged(this->nodeId, nameChangedCallback);
+
+    DisplayNameChangedCallback descriptionChangedCallback =
+        [this](const OpcUaNodeId& /*nodeId*/, const OpcUaObject<UA_LocalizedText>& description, void* /*context*/)
+        {
+            try
+            {
+                selfChange = true;
+                this->object.setDescription(utils::ToStdString(description->text));
+            }
+            catch(...)
+            {
+            }
+
+            selfChange = false;
+        };
+    this->server->getEventManager()->onDescriptionChanged(this->nodeId, descriptionChangedCallback);
 }
 
 template <typename Ptr>

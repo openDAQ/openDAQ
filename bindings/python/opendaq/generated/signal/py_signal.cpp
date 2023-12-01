@@ -81,26 +81,6 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
         },
         py::return_value_policy::take_ownership,
         "Gets the list of connections to input ports formed by the signal.");
-    cls.def_property("name",
-        nullptr,
-        [](daq::ISignal *object, const std::string& name)
-        {
-            const auto objectPtr = daq::SignalPtr::Borrow(object);
-            objectPtr.setName(name);
-        },
-        "Sets the name of the signal.");
-    cls.def_property("description",
-        [](daq::ISignal *object)
-        {
-            const auto objectPtr = daq::SignalPtr::Borrow(object);
-            return objectPtr.getDescription().toStdString();
-        },
-        [](daq::ISignal *object, const std::string& description)
-        {
-            const auto objectPtr = daq::SignalPtr::Borrow(object);
-            objectPtr.setDescription(description);
-        },
-        "Gets the description of the signal. / Sets the description of the signal.");
     cls.def_property("streamed",
         [](daq::ISignal *object)
         {

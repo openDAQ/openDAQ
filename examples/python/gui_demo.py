@@ -371,8 +371,7 @@ class App(tk.Tk):
             for input_port in input_ports:
                 signal = input_port.signal
                 if signal != None:
-                    comp = daq.IComponent.cast_from(signal)
-                    name = comp.name
+                    name = signal.name
                 else:
                     name = '(None)'
                 self.input_ports_widget.insert('', tk.END, iid=input_port.local_id, text=input_port.name, values=(name))
@@ -382,11 +381,10 @@ class App(tk.Tk):
                 if output_signal.domain_signal == None:
                     continue
                 unique_id = output_signal.global_id                
-                comp = daq.IComponent.cast_from(output_signal)
                 description = output_signal.description
                 is_active = output_signal.active
                 self.output_signal_nodes[unique_id] = output_signal
-                self.output_signals_widget.insert('', tk.END, iid=output_signal.local_id, text=comp.name, values=(description, yes_no[is_active]))
+                self.output_signals_widget.insert('', tk.END, iid=output_signal.local_id, text=output_signal.name, values=(description, yes_no[is_active]))
 
     def update_properties(self):
         self.clear_property_tree()
@@ -742,9 +740,8 @@ class App(tk.Tk):
 
         signals = self.instance.signals_recursive        
         for signal in signals:
-            comp = daq.IComponent.cast_from(signal)
             if signal.domain_signal is not None:
-                tree.insert('', tk.END, iid=signal.global_id, values=(comp.name, signal.global_id))
+                tree.insert('', tk.END, iid=signal.global_id, values=(signal.name, signal.global_id))
 
         show_modal(window)
             
@@ -781,8 +778,7 @@ class App(tk.Tk):
                 self.signals_popup.grab_release()
 
     def rename_signal(self, signal):
-        comp = daq.IComponent.cast_from(signal)
-        old_signal_name = comp.name
+        old_signal_name = signal.name
         signal_name = simpledialog.askstring("Rename signal", prompt="Enter new name", initialvalue=old_signal_name)
         signal.name = signal_name
         self.update_properties()

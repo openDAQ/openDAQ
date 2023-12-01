@@ -103,3 +103,16 @@ TEST_F(InputPortTest, SwitchToSameThreadNotification)
     inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
     ASSERT_NO_THROW(inputPort.notifyPacketEnqueued());
 }
+
+TEST_F(InputPortTest, StandardProperties)
+{
+    const auto name = "foo";
+    const auto desc = "bar";
+    const auto signal = InputPort(NullContext(), nullptr, "sig");
+
+    signal.setName(name);
+    signal.setDescription(desc);
+
+    ASSERT_EQ(signal.getName(), name);
+    ASSERT_EQ(signal.getDescription(), desc);
+}

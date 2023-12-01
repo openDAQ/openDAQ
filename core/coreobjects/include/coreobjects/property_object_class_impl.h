@@ -18,6 +18,7 @@
 #include <coretypes/coretypes.h>
 #include <coreobjects/property_object_class.h>
 #include <coreobjects/property_object_class_builder.h>
+#include <coreobjects/property_object_class_builder_ptr.h>
 #include <coreobjects/property_ptr.h>
 #include <coretypes/type_manager_ptr.h>
 #include <coreobjects/object_keys.h>
@@ -33,7 +34,7 @@ using PropertyOrderedMap = tsl::ordered_map<StringPtr, PropertyPtr, StringHash, 
 class PropertyObjectClassImpl : public ImplementationOf<IPropertyObjectClass, ISerializable>
 {
 public:
-    explicit PropertyObjectClassImpl(const DictPtr<IString, IBaseObject>& buildParams);
+    explicit PropertyObjectClassImpl(IPropertyObjectClassBuilder* builder);
 
     // IPropertyObjectClass
 

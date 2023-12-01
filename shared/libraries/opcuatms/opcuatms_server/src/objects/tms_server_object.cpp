@@ -37,6 +37,11 @@ std::string TmsServerObject::getDisplayName()
     return "";
 }
 
+std::string TmsServerObject::getDescription()
+{
+    return "";
+}
+
 OpcUaNodeId TmsServerObject::getReferenceType()
 {
     return OpcUaNodeId(UA_NS0ID_HASCOMPONENT);
@@ -233,6 +238,9 @@ void TmsServerObject::configureNodeAttributes(OpcUaObject<UA_ObjectAttributes>& 
     auto displayName = getDisplayName();
     if (!displayName.empty())
         attr->displayName = UA_LOCALIZEDTEXT_ALLOC("", displayName.c_str());
+    auto description = getDescription();
+    if (!description.empty())
+        attr->description = UA_LOCALIZEDTEXT_ALLOC("", description.c_str());
 }
 
 void TmsServerObject::addReadCallback(const std::string& nodeName, ReadVariantCallback readFunc)

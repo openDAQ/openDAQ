@@ -8,21 +8,22 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-PropertyObjectClassImpl::PropertyObjectClassImpl(const DictPtr<IString, IBaseObject>& buildParams)
+PropertyObjectClassImpl::PropertyObjectClassImpl(IPropertyObjectClassBuilder* builder)
 {
+    const auto builderPtr = PropertyObjectClassBuilderPtr::Borrow(builder);
+    this->name = builderPtr.getName();
+    this->parent = builderPtr.getParentName();
+    this->manager = builderPtr.getManager();
 
-    this->name = buildParams.get("name");
-    this->parent = buildParams.get("parent");
-    this->manager = buildParams.get("manager");
-
-    const DictPtr<IString, IProperty> props = buildParams.get("props");
+    const DictPtr<IString, IProperty> props = builderPtr.getProperties();
     for (const auto& [name, prop] : props)
-        this->props.insert(std::make_pair(name, prop));
+        this->props.emplace(name, prop);
 
-    const ListPtr<IString> customOrder = buildParams.get("customOrder");
+    const ListPtr<IString> customOrder = builderPtr.getPropertyOrder();
     for (const auto& name : customOrder)
         this->customOrder.push_back(name);
 }
+
 
 ErrCode PropertyObjectClassImpl::getName(IString** typeName)
 {
@@ -459,8 +460,8 @@ ErrCode PropertyObjectClassImpl::toString(CharPtr* str)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, PropertyObjectClass,
-    IPropertyObjectClass, createPropertyObjectClassFromBuildParams,
-    IDict*, buildParams
+    IPropertyObjectClass, createPropertyObjectClassFromBuilder,
+    IPropertyObjectClassBuilder*, builder
 )
 
 END_NAMESPACE_OPENDAQ

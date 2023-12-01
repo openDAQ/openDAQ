@@ -26,6 +26,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
+/*#
+ * [interfaceLibrary(ITypeManager, CoreTypes)]
+ * [interfaceSmartPtr(IWeakRef, WeakRefPtr, "<coretypes/weakrefptr.h>")]
+ */
 /*!
  * @brief The builder interface of Property object classes. Allows for their modification and building of
  * Property object classes.
@@ -35,12 +39,24 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
 {
+    /*!
+     * @brief Builds and returns a Property object class using the currently set values of the Builder.
+     * @param[out] property The built Property object class.
+     */
+    virtual ErrCode INTERFACE_FUNC build(IPropertyObjectClass** propertyObjectClass) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the name of the property class.
      * @param className The name of the class.
      */
     virtual ErrCode INTERFACE_FUNC setName(IString* className) = 0;
+
+    /*!
+     * @brief Gets the name of the property class.
+     * @param[out] className The name of the class.
+     */
+    virtual ErrCode INTERFACE_FUNC getName(IString** className) = 0;
     
     // [returnSelf]
     /*!
@@ -48,6 +64,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
      * @param parentName The parent class's name.
      */
     virtual ErrCode INTERFACE_FUNC setParentName(IString* parentName) = 0;
+
+    /*!
+     * @brief Gets the name of the parent of the property class.
+     * @param[out] parentName The parent class's name.
+     */
+    virtual ErrCode INTERFACE_FUNC getParentName(IString** parentName) = 0;
     
     // [returnSelf]
     /*!
@@ -59,6 +81,13 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
      * The default value of object-type properties that are added to a class are frozen once added.
      */
     virtual ErrCode INTERFACE_FUNC addProperty(IProperty* property) = 0;
+
+    // [templateType(properties, IString, IProperty)]
+    /*!
+     * @brief Gets the dictonary of properties
+     * @param[out] properties dictonary of properties
+     */
+    virtual ErrCode INTERFACE_FUNC getProperties(IDict** properties) = 0;
     
     // [returnSelf]
     /*!
@@ -79,11 +108,19 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) = 0;
 
+    // [elementType(orderedPropertyNames, IString)]
     /*!
-     * @brief Builds and returns a Property object class using the currently set values of the Builder.
-     * @param[out] property The built Property object class.
+     * @brief Gets a custom order of properties as defined in the list of property names.
+     * @param[out] orderedPropertyNames A list of names of properties. The order of the list is applied to the class's properties.
      */
-    virtual ErrCode INTERFACE_FUNC build(IPropertyObjectClass** propertyObjectClass) = 0;
+    virtual ErrCode INTERFACE_FUNC getPropertyOrder(IList** orderedPropertyNames) = 0;
+
+    // [templateType(manager, ITypeManager)]
+    /*!
+     * @brief Gets a weak reference of type manager
+     * @param[out] manager weak reference of type manager
+     */
+    virtual ErrCode INTERFACE_FUNC getManager(IWeakRef** manager) = 0;
 };
 
 /*!@}*/

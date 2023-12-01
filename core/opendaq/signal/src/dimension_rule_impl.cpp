@@ -55,6 +55,13 @@ DimensionRuleImpl::DimensionRuleImpl(const NumberPtr& delta, const NumberPtr& st
 {
 }
 
+DimensionRuleImpl::DimensionRuleImpl(IDimensionRuleBuilder* dimensionRuleBuilder)
+    :DimensionRuleImpl(
+        DimensionRuleBuilderPtr::Borrow(dimensionRuleBuilder).getType(),
+        DimensionRuleBuilderPtr::Borrow(dimensionRuleBuilder).getParameters())
+{
+}
+
 ErrCode DimensionRuleImpl::getType(DimensionRuleType* type)
 {
     if (!type)
@@ -280,6 +287,11 @@ daq::ErrCode PUBLIC_EXPORT createLogarithmicDimensionRule(IDimensionRule** objTm
 extern "C" daq::ErrCode PUBLIC_EXPORT createDimensionRule(IDimensionRule** objTmp, DimensionRuleType type, IDict* parameters)
 {
     return daq::createObject<IDimensionRule, DimensionRuleImpl>(objTmp, type, parameters);
+}
+
+extern "C" daq::ErrCode PUBLIC_EXPORT createDimensionRuleFromBuilder(IDimensionRule** objTmp, IDimensionRuleBuilder* builder)
+{
+    return daq::createObject<IDimensionRule, DimensionRuleImpl>(objTmp, builder);
 }
 
 #endif

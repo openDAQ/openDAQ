@@ -1,3 +1,100 @@
+28.11.2023
+
+Description:
+Builder pattern improvement
+  - Expand builder classes with getters
+  - Support creating objects from builder
+
++ [function] IPropertyBuilder::getValueType(CoreType* type)
++ [function] IPropertyBuilder::getName(IString** name)
++ [function] IPropertyBuilder::getDescription(IString** description)
++ [function] IPropertyBuilder::getUnit(IUnit** unit)
++ [function] IPropertyBuilder::getMinValue(INumber** min)
++ [function] IPropertyBuilder::getMaxValue(INumber** max)
++ [function] IPropertyBuilder::getDefaultValue(IBaseObject** value)
++ [function] IPropertyBuilder::getSuggestedValues(IList** values)
++ [function] IPropertyBuilder::getVisible(IBoolean** visible)
++ [function] IPropertyBuilder::getReadOnly(IBoolean** readOnly)
++ [function] IPropertyBuilder::getSelectionValues(IBaseObject** values)
++ [function] IPropertyBuilder::getReferencedProperty(IEvalValue** propertyEval)
++ [function] IPropertyBuilder::getValidator(IValidator** validator)
++ [function] IPropertyBuilder::getCoercer(ICoercer** coercer)
++ [function] IPropertyBuilder::getCallableInfo(ICallableInfo** callable)
++ [function] IPropertyBuilder::getOnPropertyValueWrite(IEvent** event)
++ [function] IPropertyBuilder::getOnPropertyValueRead(IEvent** event)
+- [factory] PropertyPtr PropertyFromBuildParams(const DictPtr<IString, IBaseObject>& buildParams)
++ [factory] PropertyPtr PropertyFromBuilder(const PropertyBuilderPtr& builder)
+
++ [function] IPropertyObjectClassBuilder::getName(IString** className)
++ [function] IPropertyObjectClassBuilder::getParentName(IString** parentName)
++ [function] IPropertyObjectClassBuilder::getProperties(IDict** properties)
++ [function] IPropertyObjectClassBuilder::getPropertyOrder(IList** orderedPropertyNames)
++ [function] IPropertyObjectClassBuilder::getManager(IWeakRef** manager)
+- [factory] PropertyObjectClassPtr PropertyObjectClassFromBuildParams(const DictPtr<IString, IBaseObject>& buildParams);
++ [factory] PropertyObjectClassPtr PropertyObjectClassFromBuilder(const PropertyObjectClassBuilderPtr& builder)
+
++ [function] IUnitBuilder::getId(Int* id)
++ [function] IUnitBuilder::getSymbol(IString** symbol)
++ [function] IUnitBuilder::getName(IString** name)
++ [function] IUnitBuilder::getQuantity(IString** quantity)
++ [factory] UnitPtr UnitFromBuilder(const UnitBuilderPtr& builder)
+
++ [function] IDataDescriptorBuilder::getName(IString** name)
++ [function] IDataDescriptorBuilder::getDimensions(IList** dimensions)
++ [function] IDataDescriptorBuilder::getSampleType(SampleType* sampleType)
++ [function] IDataDescriptorBuilder::getUnit(IUnit** unit)
++ [function] IDataDescriptorBuilder::getValueRange(IRange** range)
++ [function] IDataDescriptorBuilder::getRule(IDataRule** rule)
++ [function] IDataDescriptorBuilder::getOrigin(IString** origin)
++ [function] IDataDescriptorBuilder::getTickResolution(IRatio** tickResolution)
++ [function] IDataDescriptorBuilder::getPostScaling(IScaling** scaling)
++ [function] IDataDescriptorBuilder::getMetadata(IDict** metadata)
++ [function] IDataDescriptorBuilder::getStructFields(IList** structFields)
+- [factory] DataDescriptorPtr DataDescriptor(const DictPtr<IString, IBaseObject>& descriptorParams)
++ [factory] DataDescriptorPtr DataDescriptorFromBuilder(const DataDescriptorBuilderPtr& builder)
+
++ [function] IDataRuleBuilder::getType(DataRuleType* type)
++ [function] IDataRuleBuilder::getParameters(IDict** parameters)
++ [factory] DataRulePtr DataRuleFromBuilder(const DataRuleBuilderPtr& builder)
+
++ [function] IDimensionBuilder::getName(IString** name)
++ [function] IDimensionBuilder::getUnit(IUnit** unit)
++ [function] IDimensionBuilder::getRule(IDimensionRule** rule)
++ [factory] DimensionPtr DimensionFromBuilder(const DimensionBuilderPtr& builder)
+
++ [function] IDimensionRuleBuilder::getType(DimensionRuleType* type)
++ [function] IDimensionRuleBuilder::getParameters(IDict** parameters)
++ [factory] DimensionRulePtr DimensionRuleFromBuilder(const DimensionRuleBuilderPtr& builder)
+
++ [function] IScalingBuilder::getInputDataType(SampleType* type)
++ [function] IScalingBuilder::getOutputDataType(ScaledSampleType* type)
++ [function] IScalingBuilder::getScalingType(ScalingType* type)
++ [function] IScalingBuilder::getParameters(IDict** parameters)
++ [factory] ScalingPtr ScalingFromBuilder(const ScalingBuilderPtr& builder)
+
+23.11.2023
+
+Description:
+ - setDescription, getDescription, and setName were moved to IComponent.
+ - OPC UA now uses DisplayName to set/get component names, and node Description to get/set component descriptions
+ 
++ [function] IComponent::setName(IString* name)
++ [function] IComponent::getDescription(IString** description)
++ [function] IComponent::setDescription(IString* description)
+
+- [function] ISignal::setName(IString* name)
+- [function] ISignal::getDescription(IString** description)
+- [function] ISignal::setDescription(IString* description)
+
+- [function] IFolderConfig::setName(IString* name)
+
+-m [factory] ComponentPtr Component(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
++m [factory] ComponentPtr Component(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, ComponentStandardProps propertyMode = ComponentStandardProps::Add)
+-m [factory] FolderConfigPtr Folder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
++m [factory] FolderConfigPtr Folder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const ComponentStandardProps propertyMode = ComponentStandardProps::Add)
+-m [factory] inline IoFolderConfigPtr IoFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
++m [factory] inline IoFolderConfigPtr IoFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const ComponentStandardProps propertyMode = ComponentStandardProps::Add)
+
 17.11.2023
 
 Description:

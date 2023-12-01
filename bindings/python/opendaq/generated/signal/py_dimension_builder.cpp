@@ -40,30 +40,6 @@ void defineIDimensionBuilder(pybind11::module_ m, PyDaqIntf<daq::IDimensionBuild
     m.def("DimensionBuilder", &daq::DimensionBuilder_Create);
     m.def("DimensionBuilderFromExisting", &daq::DimensionBuilderFromExisting_Create);
 
-    cls.def_property("name",
-        nullptr,
-        [](daq::IDimensionBuilder *object, const std::string& name)
-        {
-            const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
-            objectPtr.setName(name);
-        },
-        "Sets the name of the dimension.");
-    cls.def_property("unit",
-        nullptr,
-        [](daq::IDimensionBuilder *object, daq::IUnit* unit)
-        {
-            const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
-            objectPtr.setUnit(unit);
-        },
-        "Sets the unit of the dimension's labels.");
-    cls.def_property("rule",
-        nullptr,
-        [](daq::IDimensionBuilder *object, daq::IDimensionRule* rule)
-        {
-            const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
-            objectPtr.setRule(rule);
-        },
-        "Sets the rule that defines the labels and size of the dimension.");
     cls.def("build",
         [](daq::IDimensionBuilder *object)
         {
@@ -71,4 +47,42 @@ void defineIDimensionBuilder(pybind11::module_ m, PyDaqIntf<daq::IDimensionBuild
             return objectPtr.build().detach();
         },
         "Builds and returns a Dimension object using the currently set values of the Builder.");
+    cls.def_property("name",
+        [](daq::IDimensionBuilder *object)
+        {
+            const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
+            return objectPtr.getName().toStdString();
+        },
+        [](daq::IDimensionBuilder *object, const std::string& name)
+        {
+            const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
+            objectPtr.setName(name);
+        },
+        "Gets the name of the dimension. / Sets the name of the dimension.");
+    cls.def_property("unit",
+        [](daq::IDimensionBuilder *object)
+        {
+            const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
+            return objectPtr.getUnit().detach();
+        },
+        [](daq::IDimensionBuilder *object, daq::IUnit* unit)
+        {
+            const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
+            objectPtr.setUnit(unit);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the unit of the dimension's labels. / Sets the unit of the dimension's labels.");
+    cls.def_property("rule",
+        [](daq::IDimensionBuilder *object)
+        {
+            const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
+            return objectPtr.getRule().detach();
+        },
+        [](daq::IDimensionBuilder *object, daq::IDimensionRule* rule)
+        {
+            const auto objectPtr = daq::DimensionBuilderPtr::Borrow(object);
+            objectPtr.setRule(rule);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the rule that defines the labels and size of the dimension. / Sets the rule that defines the labels and size of the dimension.");
 }

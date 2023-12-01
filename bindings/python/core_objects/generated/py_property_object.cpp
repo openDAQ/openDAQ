@@ -155,4 +155,28 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
             objectPtr.setPropertyOrder(orderedPropertyNames);
         },
         "Sets a custom order of properties as defined in the list of property names.");
+    cls.def("begin_update",
+        [](daq::IPropertyObject *object)
+        {
+            const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
+            objectPtr.beginUpdate();
+        },
+        "Begins batch configuration of the object.");
+    cls.def("end_update",
+        [](daq::IPropertyObject *object)
+        {
+            const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
+            objectPtr.endUpdate();
+        },
+        "Ends batch configuration of the object.");
+    /*
+    cls.def_property_readonly("on_end_update",
+        [](daq::IPropertyObject *object)
+        {
+            const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
+            return objectPtr.getOnEndUpdate().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the Event that is triggered whenever the batch configuration is applied.");
+    */
 }

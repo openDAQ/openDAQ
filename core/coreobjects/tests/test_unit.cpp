@@ -103,4 +103,34 @@ TEST_F(UnitTest, StructNames)
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
 
+TEST_F(UnitTest, UnitBuilderSetGet)
+{
+    const auto unitBuilder = UnitBuilder()
+                                .setName("unit")
+                                .setId(100)
+                                .setQuantity("quantity")
+                                .setSymbol("symbol");
+    
+    ASSERT_EQ(unitBuilder.getName(), "unit");
+    ASSERT_EQ(unitBuilder.getId(), 100);
+    ASSERT_EQ(unitBuilder.getQuantity(), "quantity");
+    ASSERT_EQ(unitBuilder.getSymbol(), "symbol");
+}
+
+TEST_F(UnitTest, UnitCreateFactory)
+{
+    const auto unitBuilder = UnitBuilder()
+                                .setName("unit")
+                                .setId(100)
+                                .setQuantity("quantity")
+                                .setSymbol("symbol");
+    const auto unit = UnitFromBuilder(unitBuilder);
+
+    ASSERT_EQ(unit.getName(), "unit");
+    ASSERT_EQ(unit.getId(), 100);
+    ASSERT_EQ(unit.getQuantity(), "quantity");
+    ASSERT_EQ(unit.getSymbol(), "symbol");
+}
+
+
 END_NAMESPACE_OPENDAQ

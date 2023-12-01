@@ -15,7 +15,7 @@ set(TEST_SOURCES
     test_scaling.cpp
     test_signal.cpp
 	test_struct_descriptor.cpp
-    test_value_descriptor.cpp
+    test_data_descriptor.cpp
     test_data_packet.cpp
 	test_event_packet.cpp
     test_signal_container.cpp

@@ -40,7 +40,7 @@ void MockFunctionBlockImpl::createSignals()
         return DataDescriptorBuilder()
             .setSampleType(SampleType::Float32)
             .setName(name)
-            .setDimensions(daq::ListPtr<daq::IDimension>())
+            .setDimensions(daq::List<daq::IDimension>())
             .setRule(ConstantDataRule(1.0))
             .build();
     };

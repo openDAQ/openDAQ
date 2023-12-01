@@ -175,4 +175,32 @@ TEST_F(DimensionTest, StructNames)
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
 
+TEST_F(DimensionTest, DimensionBuilderSetGet)
+{
+    const auto rule = LinearDimensionRule(10, 20, 10);
+    const auto dimensionBuilder = DimensionBuilder()
+                                    .setName("Dimension")
+                                    .setUnit(Unit("s"))
+                                    .setRule(rule);
+    
+    ASSERT_EQ(dimensionBuilder.getName(), "Dimension");
+    ASSERT_EQ(dimensionBuilder.getUnit(), Unit("s"));
+    ASSERT_EQ(dimensionBuilder.getRule(), rule);
+}
+
+TEST_F(DimensionTest, DimensionCreateFactory)
+{
+    const auto rule = LinearDimensionRule(10, 20, 10);
+    const auto dimensionBuilder = DimensionBuilder()
+                                    .setName("Dimension")
+                                    .setUnit(Unit("s"))
+                                    .setRule(rule);
+    const auto dimension = DimensionFromBuilder(dimensionBuilder);
+
+    ASSERT_EQ(dimension.getName(), "Dimension");
+    ASSERT_EQ(dimension.getUnit(), Unit("s"));
+    ASSERT_EQ(dimension.getRule(), rule);
+}
+
+
 END_NAMESPACE_OPENDAQ

@@ -43,6 +43,7 @@ void defineIScaling(pybind11::module_ m, PyDaqIntf<daq::IScaling, daq::IBaseObje
 
     m.def("LinearScaling", &daq::LinearScaling_Create);
     m.def("Scaling", &daq::Scaling_Create);
+    m.def("ScalingFromBuilder", &daq::ScalingFromBuilder_Create);
 
     cls.def_property_readonly("input_sample_type",
         [](daq::IScaling *object)

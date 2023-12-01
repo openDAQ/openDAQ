@@ -25,7 +25,8 @@ class ServerEventManager;
 using ServerEventManagerPtr = std::shared_ptr<ServerEventManager>;
 
 using CreatOptionalNodeCallback = std::function<bool(const OpcUaNodeId& nodeId)>;
-using DisplayNameChangedCallback = std::function<void(const OpcUaNodeId& nodeId, const OpcUaObject<UA_LocalizedText>& name)>;
+using DisplayNameChangedCallback = std::function<void(const OpcUaNodeId& nodeId, const OpcUaObject<UA_LocalizedText>& name, void* context)>;
+using DescriptionChangedCallback = std::function<void(const OpcUaNodeId& nodeId, const OpcUaObject<UA_LocalizedText>& description, void* context)>;
 
 class ServerEventManager
 {
@@ -39,14 +40,18 @@ public:
 
     void onDisplayNameChanged(const OpcUaNodeId& nodeId, const DisplayNameChangedCallback& callback);
     void removeOnDisplayNameChanged(const OpcUaNodeId& nodeId);
+    void onDescriptionChanged(const OpcUaNodeId& nodeId, const DescriptionChangedCallback& callback);
+    void removeOnDescriptionChanged(const OpcUaNodeId& nodeId);
 
 private:
     OpcUaServer* server;
     CreatOptionalNodeCallback createOptionalNodeCallback;
     std::unordered_map<OpcUaNodeId, DisplayNameChangedCallback> displayNameCallbacks;
+    std::unordered_map<OpcUaNodeId, DescriptionChangedCallback> descriptionCallbacks;
 
     UA_Boolean triggerCreateOptionalNode(const UA_NodeId* nodeId);
-    void triggerDisplayNameChanged(const UA_NodeId* nodeId, UA_LocalizedText* name);
+    void triggerDisplayNameChanged(const UA_NodeId* nodeId, UA_LocalizedText* name, void* context);
+    void triggerDescriptionChanged(const UA_NodeId* nodeId, UA_LocalizedText* description, void* context);
 
     static UA_Boolean CreateOptionalNode(UA_Server* server,
                                          const UA_NodeId* sessionId,
@@ -55,7 +60,8 @@ private:
                                          const UA_NodeId* targetParentNodeId,
                                          const UA_NodeId* referenceTypeId);
 
-    static void DisplayNameChanged(UA_Server* server, UA_NodeId* nodeId, UA_LocalizedText* newDisplayName);
+    static void DisplayNameChanged(UA_Server* server, UA_NodeId* nodeId, UA_LocalizedText* newDisplayName, void* context);
+    static void DescriptionChanged(UA_Server* server, UA_NodeId* nodeId, UA_LocalizedText* newDescription, void* context);
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA

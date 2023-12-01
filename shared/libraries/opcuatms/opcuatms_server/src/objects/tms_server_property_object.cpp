@@ -15,9 +15,11 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
     using namespace opcua;
 
 TmsServerPropertyObject::TmsServerPropertyObject(const PropertyObjectPtr& object,
-                                                     const OpcUaServerPtr& server,
-                                                     const ContextPtr& context)
+                                                 const OpcUaServerPtr& server,
+                                                 const ContextPtr& context,
+                                                 const std::unordered_set<std::string>& ignoredProps)
     : Super(object, server, context)
+    , ignoredProps(ignoredProps)
 {
 }
 
@@ -74,12 +76,18 @@ void TmsServerPropertyObject::addChildNodes()
     std::unordered_map<std::string, uint32_t> propOrder;
     for (const auto& prop : object.getAllProperties())
     {
+        if (ignoredProps.count(prop.getName()))
+            continue;
+
         propOrder.insert(std::pair<std::string, uint32_t>(prop.getName(), propNumber));
         propNumber++;
     }
 
     for (const auto& prop : object.getAllProperties())
     {
+        if (ignoredProps.count(prop.getName()))
+            continue;
+
         // NOTE: ctObject types cannot be placed below ReferenceVariableType properties
         if (prop.getValueType() != ctObject || prop.getReferencedProperty().assigned())
         {

@@ -40,94 +40,6 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
     m.def("DataDescriptorBuilder", &daq::DataDescriptorBuilder_Create);
     m.def("DataDescriptorBuilderFromExisting", &daq::DataDescriptorBuilderFromExisting_Create);
 
-    cls.def_property("name",
-        nullptr,
-        [](daq::IDataDescriptorBuilder *object, const std::string& name)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setName(name);
-        },
-        "Sets a descriptive name for the signal's value.");
-    cls.def_property("dimensions",
-        nullptr,
-        [](daq::IDataDescriptorBuilder *object, daq::IList* dimensions)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setDimensions(dimensions);
-        },
-        "Sets the list of the descriptor's dimension's.");
-    cls.def_property("sample_type",
-        nullptr,
-        [](daq::IDataDescriptorBuilder *object, daq::SampleType sampleType)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setSampleType(sampleType);
-        },
-        "Sets the descriptor's sample type.");
-    cls.def_property("unit",
-        nullptr,
-        [](daq::IDataDescriptorBuilder *object, daq::IUnit* unit)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setUnit(unit);
-        },
-        "Sets the unit of the data in a signal's packets.");
-    cls.def_property("value_range",
-        nullptr,
-        [](daq::IDataDescriptorBuilder *object, daq::IRange* range)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setValueRange(range);
-        },
-        "Sets the value range of the data in a signal's packets defining the lowest and highest expected values.");
-    cls.def_property("rule",
-        nullptr,
-        [](daq::IDataDescriptorBuilder *object, daq::IDataRule* rule)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setRule(rule);
-        },
-        "Sets the value Data rule.");
-    cls.def_property("origin",
-        nullptr,
-        [](daq::IDataDescriptorBuilder *object, const std::string& origin)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setOrigin(origin);
-        },
-        "Sets the absolute origin of a signal value component.");
-    cls.def_property("tick_resolution",
-        nullptr,
-        [](daq::IDataDescriptorBuilder *object, daq::IRatio* tickResolution)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setTickResolution(tickResolution);
-        },
-        "Sets the Resolution which scales the an explicit or implicit value to the physical unit defined in `unit`.");
-    cls.def_property("post_scaling",
-        nullptr,
-        [](daq::IDataDescriptorBuilder *object, daq::IScaling* scaling)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setPostScaling(scaling);
-        },
-        "Sets the scaling rule that needs to be applied to explicit/implicit data by readers.");
-    cls.def_property("struct_fields",
-        nullptr,
-        [](daq::IDataDescriptorBuilder *object, daq::IList* structFields)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setStructFields(structFields);
-        },
-        "Sets the fields of the struct, forming a recursive value descriptor definition.");
-    cls.def_property("metadata",
-        nullptr,
-        [](daq::IDataDescriptorBuilder *object, daq::IDict* metadata)
-        {
-            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
-            objectPtr.setMetadata(metadata);
-        },
-        "Sets any extra metadata defined by the data descriptor.");
     cls.def("build",
         [](daq::IDataDescriptorBuilder *object)
         {
@@ -135,4 +47,144 @@ void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescr
             return objectPtr.build().detach();
         },
         "Builds and returns a Data descriptor object using the currently set values of the Builder.");
+    cls.def_property("name",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getName().toStdString();
+        },
+        [](daq::IDataDescriptorBuilder *object, const std::string& name)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setName(name);
+        },
+        "Gets a descriptive name for the signal's value. / Sets a descriptive name for the signal's value.");
+    cls.def_property("dimensions",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getDimensions().detach();
+        },
+        [](daq::IDataDescriptorBuilder *object, daq::IList* dimensions)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setDimensions(dimensions);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the list of the descriptor's dimension's. / Sets the list of the descriptor's dimension's.");
+    cls.def_property("sample_type",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getSampleType();
+        },
+        [](daq::IDataDescriptorBuilder *object, daq::SampleType sampleType)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setSampleType(sampleType);
+        },
+        "Gets the descriptor's sample type. / Sets the descriptor's sample type.");
+    cls.def_property("unit",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getUnit().detach();
+        },
+        [](daq::IDataDescriptorBuilder *object, daq::IUnit* unit)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setUnit(unit);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the unit of the data in a signal's packets. / Sets the unit of the data in a signal's packets.");
+    cls.def_property("value_range",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getValueRange().detach();
+        },
+        [](daq::IDataDescriptorBuilder *object, daq::IRange* range)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setValueRange(range);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the value range of the data in a signal's packets defining the lowest and highest expected values. / Sets the value range of the data in a signal's packets defining the lowest and highest expected values.");
+    cls.def_property("rule",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getRule().detach();
+        },
+        [](daq::IDataDescriptorBuilder *object, daq::IDataRule* rule)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setRule(rule);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the value Data rule. / Sets the value Data rule.");
+    cls.def_property("origin",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getOrigin().toStdString();
+        },
+        [](daq::IDataDescriptorBuilder *object, const std::string& origin)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setOrigin(origin);
+        },
+        "Gets the absolute origin of a signal value component. / Sets the absolute origin of a signal value component.");
+    cls.def_property("tick_resolution",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getTickResolution().detach();
+        },
+        [](daq::IDataDescriptorBuilder *object, daq::IRatio* tickResolution)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setTickResolution(tickResolution);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the Resolution which scales the an explicit or implicit value to the physical unit defined in `unit`. / Sets the Resolution which scales the an explicit or implicit value to the physical unit defined in `unit`.");
+    cls.def_property("post_scaling",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getPostScaling().detach();
+        },
+        [](daq::IDataDescriptorBuilder *object, daq::IScaling* scaling)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setPostScaling(scaling);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the scaling rule that needs to be applied to explicit/implicit data by readers. / Sets the scaling rule that needs to be applied to explicit/implicit data by readers.");
+    cls.def_property("struct_fields",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getStructFields().detach();
+        },
+        [](daq::IDataDescriptorBuilder *object, daq::IList* structFields)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setStructFields(structFields);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the fields of the struct, forming a recursive value descriptor definition. / Sets the fields of the struct, forming a recursive value descriptor definition.");
+    cls.def_property("metadata",
+        [](daq::IDataDescriptorBuilder *object)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            return objectPtr.getMetadata().detach();
+        },
+        [](daq::IDataDescriptorBuilder *object, daq::IDict* metadata)
+        {
+            const auto objectPtr = daq::DataDescriptorBuilderPtr::Borrow(object);
+            objectPtr.setMetadata(metadata);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets any extra metadata defined by the data descriptor. / Sets any extra metadata defined by the data descriptor.");
 }

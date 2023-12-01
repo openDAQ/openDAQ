@@ -29,7 +29,10 @@ class TmsServerPropertyObject : public TmsServerObjectBaseImpl<PropertyObjectPtr
 public:
     using Super = TmsServerObjectBaseImpl<PropertyObjectPtr>;
 
-    TmsServerPropertyObject(const PropertyObjectPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context);
+    TmsServerPropertyObject(const PropertyObjectPtr& object,
+                            const opcua::OpcUaServerPtr& server,
+                            const ContextPtr& context,
+                            const std::unordered_set<std::string>& ignoredProps = {});
     TmsServerPropertyObject(const PropertyObjectPtr& object,
                             const opcua::OpcUaServerPtr& server,
                             const ContextPtr& context,
@@ -67,6 +70,7 @@ private:
     StringPtr name;
     PropertyInternalPtr objProp;
     opcua::OpcUaNodeId methodParentNodeId;
+    std::unordered_set<std::string> ignoredProps;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

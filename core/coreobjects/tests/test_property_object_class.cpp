@@ -141,3 +141,37 @@ TEST_F(PropertyObjectClassTest, DuplicateReferenceCheck)
     auto obj = PropertyObjectClassBuilder("Test").addProperty(ReferenceProperty("ref1", EvalValue("%ReferencedVariable")));
     ASSERT_THROW(obj.addProperty(ReferenceProperty("ref2", EvalValue("%ReferencedVariable"))), InvalidValueException);
 }
+
+TEST_F(PropertyObjectClassTest, PropertyObjectClassBuilderSetGet)
+{
+    auto properties = Dict<IString, IProperty>();
+    properties["Test"] = FloatProperty("Test", 0.0);
+    const auto propertyOrder = List<IString>("Test");
+
+    const auto propertyObjectClassBuilder = PropertyObjectClassBuilder("Test")
+                                            .setName("PropertyObjectClass")
+                                            .setParentName("PropertyObjectClassParent")
+                                            .addProperty(properties["Test"])
+                                            .setPropertyOrder(propertyOrder);
+    
+    ASSERT_EQ(propertyObjectClassBuilder.getName(), "PropertyObjectClass");
+    ASSERT_EQ(propertyObjectClassBuilder.getParentName(), "PropertyObjectClassParent");
+    ASSERT_EQ(propertyObjectClassBuilder.getProperties(), properties);
+    ASSERT_EQ(propertyObjectClassBuilder.getPropertyOrder(), propertyOrder);
+}
+
+TEST_F(PropertyObjectClassTest, PropertyObjectClassCreateFactory)
+{
+    auto properties = Dict<IString, IProperty>();
+    properties["Test"] = FloatProperty("Test", 0.0);
+
+    const auto propertyObjectClassBuilder = PropertyObjectClassBuilder("Test")
+                                            .setName("PropertyObjectClass")
+                                            .setParentName("PropertyObjectClassParent")
+                                            .addProperty(properties["Test"]);
+    const auto propertyObjectClass = PropertyObjectClassFromBuilder(propertyObjectClassBuilder);
+
+    ASSERT_EQ(propertyObjectClass.getName(), "PropertyObjectClass");
+    ASSERT_EQ(propertyObjectClass.getParentName(), "PropertyObjectClassParent");
+    ASSERT_EQ(propertyObjectClass.getProperties(false), List<IProperty>(properties["Test"]));
+}

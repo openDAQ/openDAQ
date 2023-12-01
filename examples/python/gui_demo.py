@@ -23,9 +23,9 @@ yes_no = {
 }
 
 class DeviceInfoLocal:
-    def __init__(self, ip):
-        self.name = ip
-        self.connection_string = 'daq.opcua://{}'.format(ip)
+    def __init__(self, connString):
+        self.name = connString
+        self.connection_string = connString
         self.serial_number = 'no-serial-number'
 
 def show_modal(window):
@@ -83,10 +83,9 @@ class App(tk.Tk):
         self.ui_scaling_factor = int(args.scale)
         self.include_reference_devices = bool(args.demo)
         try:
-            ipaddress.ip_address(args.ip)
-            self.ip = args.ip
+            self.connection_string = args.connection_string
         except ValueError:
-            self.ip = None
+            self.connection_string = None
 
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(1400*self.ui_scaling_factor, 1000*self.ui_scaling_factor))
@@ -150,7 +149,7 @@ class App(tk.Tk):
 
         self.all_devices = {}
 #        self.scan_devices()
-        if self.ip != None:
+        if self.connection_string != None:
             self.add_first_available_device() # also calls self.update_tree_widget()
         self.update_tree_widget()
 
@@ -164,8 +163,8 @@ class App(tk.Tk):
             if not conn in self.all_devices:
                 self.all_devices[conn] = {'device_info': device_info, 'enabled': False, 'device': None}
 
-        if self.ip != None:
-            add_device(DeviceInfoLocal(self.ip))
+        if self.connection_string != None:
+            add_device(DeviceInfoLocal(self.connection_string))
         for device_info in self.instance.available_devices:
             add_device(device_info)
 
@@ -836,7 +835,7 @@ class App(tk.Tk):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Display openDAQ device configuration and plot values')
     parser.add_argument('--scale', help='UI scaling factor', type=int, default=1.0)
-    parser.add_argument('--ip', help='IP address', type=str, default='')
+    parser.add_argument('--connection_string', help='Connection string', type=str, default='')
     parser.add_argument('--demo', help='Include internal demo/reference devices', action='store_true')
 
     app = App(parser.parse_args())

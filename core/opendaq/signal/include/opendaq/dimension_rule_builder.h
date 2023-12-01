@@ -31,6 +31,12 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IDimensionRuleBuilder, IBaseObject)
 {
+    /*!
+     * @brief Builds and returns a Dimension rule object using the currently set values of the Builder.
+     * @param[out] dataRule The built Dimension rule.
+     */
+    virtual ErrCode INTERFACE_FUNC build(IDimensionRule** dimensionRule) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the type of the dimension rule. Rule parameters must be configured to match the requirements of the rule type.
@@ -43,12 +49,25 @@ DECLARE_OPENDAQ_INTERFACE(IDimensionRuleBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setType(DimensionRuleType type) = 0;
 
+    /*!
+     * @brief Gets the type of the dimension rule.
+     * @param[out] type The type of the dimension rule.
+     */
+    virtual ErrCode INTERFACE_FUNC getType(DimensionRuleType* type) = 0;
+
     // [templateType(parameters, IString, IBaseObject), returnSelf]
     /*!
      * @brief Sets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.
      * @param parameters The dictionary containing the rule parameter members.
      */
     virtual ErrCode INTERFACE_FUNC setParameters(IDict* parameters) = 0;
+
+    // [templateType(parameters, IString, IBaseObject)]
+    /*!
+     * @brief Gets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.
+     * @param[out] parameters The dictionary containing the rule parameter members.
+     */
+    virtual ErrCode INTERFACE_FUNC getParameters(IDict** parameters) = 0;
 
     // [returnSelf]
     /*!
@@ -63,12 +82,6 @@ DECLARE_OPENDAQ_INTERFACE(IDimensionRuleBuilder, IBaseObject)
      * @brief Removes the parameter with the given name from the Dictionary of Dimension rule parameters.
      */
     virtual ErrCode INTERFACE_FUNC removeParameter(IString* name) = 0;
-
-    /*!
-     * @brief Builds and returns a Dimension rule object using the currently set values of the Builder.
-     * @param[out] dataRule The built Dimension rule.
-     */
-    virtual ErrCode INTERFACE_FUNC build(IDimensionRule** dimensionRule) = 0;
 };
 /*!@}*/
 

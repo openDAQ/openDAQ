@@ -40,22 +40,37 @@ void defineIPropertyObjectClassBuilder(pybind11::module_ m, PyDaqIntf<daq::IProp
     m.def("PropertyObjectClassBuilder", &daq::PropertyObjectClassBuilder_Create);
     m.def("PropertyObjectClassBuilderWithManager", &daq::PropertyObjectClassBuilderWithManager_Create);
 
+    cls.def("build",
+        [](daq::IPropertyObjectClassBuilder *object)
+        {
+            const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
+            return objectPtr.build().detach();
+        },
+        "Builds and returns a Property object class using the currently set values of the Builder.");
     cls.def_property("name",
-        nullptr,
+        [](daq::IPropertyObjectClassBuilder *object)
+        {
+            const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
+            return objectPtr.getName().toStdString();
+        },
         [](daq::IPropertyObjectClassBuilder *object, const std::string& className)
         {
             const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
             objectPtr.setName(className);
         },
-        "Sets the name of the property class.");
+        "Gets the name of the property class. / Sets the name of the property class.");
     cls.def_property("parent_name",
-        nullptr,
+        [](daq::IPropertyObjectClassBuilder *object)
+        {
+            const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
+            return objectPtr.getParentName().toStdString();
+        },
         [](daq::IPropertyObjectClassBuilder *object, const std::string& parentName)
         {
             const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
             objectPtr.setParentName(parentName);
         },
-        "Gets the name of the parent of the property class.");
+        "Gets the name of the parent of the property class. / Gets the name of the parent of the property class.");
     cls.def("add_property",
         [](daq::IPropertyObjectClassBuilder *object, daq::IProperty* property)
         {
@@ -64,6 +79,14 @@ void defineIPropertyObjectClassBuilder(pybind11::module_ m, PyDaqIntf<daq::IProp
         },
         py::arg("property"),
         "Adds a property to the class.");
+    cls.def_property_readonly("properties",
+        [](daq::IPropertyObjectClassBuilder *object)
+        {
+            const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
+            return objectPtr.getProperties().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the dictonary of properties");
     cls.def("remove_property",
         [](daq::IPropertyObjectClassBuilder *object, const std::string& propertyName)
         {
@@ -73,18 +96,24 @@ void defineIPropertyObjectClassBuilder(pybind11::module_ m, PyDaqIntf<daq::IProp
         py::arg("property_name"),
         "Removes a property with the given name from the class.");
     cls.def_property("property_order",
-        nullptr,
+        [](daq::IPropertyObjectClassBuilder *object)
+        {
+            const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
+            return objectPtr.getPropertyOrder().detach();
+        },
         [](daq::IPropertyObjectClassBuilder *object, daq::IList* orderedPropertyNames)
         {
             const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
             objectPtr.setPropertyOrder(orderedPropertyNames);
         },
-        "Sets a custom order of properties as defined in the list of property names.");
-    cls.def("build",
+        py::return_value_policy::take_ownership,
+        "Gets a custom order of properties as defined in the list of property names. / Sets a custom order of properties as defined in the list of property names.");
+    cls.def_property_readonly("manager",
         [](daq::IPropertyObjectClassBuilder *object)
         {
             const auto objectPtr = daq::PropertyObjectClassBuilderPtr::Borrow(object);
-            return objectPtr.build().detach();
+            return objectPtr.getManager().detach();
         },
-        "Builds and returns a Property object class using the currently set values of the Builder.");
+        py::return_value_policy::take_ownership,
+        "Gets a weak reference of type manager");
 }

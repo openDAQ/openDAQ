@@ -1,10 +1,10 @@
-#include <opendaq/data_descriptor_builder_impl.h>
 #include <coretypes/coretype_utils.h>
 #include <coretypes/validation.h>
+#include <opendaq/data_descriptor_builder_impl.h>
+#include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/dimension_factory.h>
 #include <opendaq/scaling_factory.h>
-#include <opendaq/data_descriptor_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -23,48 +23,8 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl()
 {
 }
 
-static ListPtr<IDimension> copyDimensions(const ListPtr<IDimension>& toCopy)
-{
-    auto newDimensions = List<IDimension>();
-    if (toCopy.assigned())
-    {
-        for (auto dim : toCopy)
-        {
-            newDimensions.pushBack(dim);
-        }
-    }
-    return newDimensions;
-}
-
-static ListPtr<IDataDescriptor> copyStructFields(const ListPtr<IDataDescriptor>& toCopy)
-{
-    auto newStructFields = List<IDataDescriptor>();
-    if (toCopy.assigned())
-    {
-        for (auto desc : toCopy)
-        {
-            newStructFields.pushBack(desc);
-        }
-    }
-    return newStructFields;
-}
-
-static DictPtr<IString, IString> copyMetadata(const DictPtr<IString, IString>& toCopy)
-{
-    auto newMetaData = Dict<IString, IString>();
-
-    if (toCopy.assigned())
-    {
-        for (const auto& [k, v] : toCopy)
-        {
-            newMetaData.set(k, v);
-        }
-    }
-    return newMetaData;
-}
-
 DataDescriptorBuilderImpl::DataDescriptorBuilderImpl(const DataDescriptorPtr& descriptorCopy)
-    : dimensions(copyDimensions(descriptorCopy.getDimensions()))
+    : dimensions(descriptorCopy.getDimensions())
     , name(descriptorCopy.getName())
     , sampleType(descriptorCopy.getSampleType())
     , unit(descriptorCopy.getUnit())
@@ -73,9 +33,22 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl(const DataDescriptorPtr& de
     , scaling(descriptorCopy.getPostScaling())
     , origin(descriptorCopy.getOrigin())
     , resolution(descriptorCopy.getTickResolution())
-    , structFields(copyStructFields(descriptorCopy.getStructFields()))
-    , metadata(copyMetadata(descriptorCopy.getMetadata()))
+    , structFields(descriptorCopy.getStructFields())
+    , metadata(descriptorCopy.getMetadata())
 {
+}
+
+ErrCode DataDescriptorBuilderImpl::build(IDataDescriptor** dataDescriptor)
+{
+    OPENDAQ_PARAM_NOT_NULL(dataDescriptor);
+
+    const auto builder = this->borrowPtr<DataDescriptorBuilderPtr>();
+
+    return daqTry([&]()
+    {
+        *dataDescriptor = DataDescriptorFromBuilder(builder).detach();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode DataDescriptorBuilderImpl::setName(IString* name)
@@ -83,9 +56,27 @@ ErrCode DataDescriptorBuilderImpl::setName(IString* name)
     this->name = name;
     return OPENDAQ_SUCCESS;
 }
+
+ErrCode DataDescriptorBuilderImpl::getName(IString** name)
+{
+    OPENDAQ_PARAM_NOT_NULL(name);
+    *name = this->name.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode DataDescriptorBuilderImpl::setDimensions(IList* dimensions)
 {
-    this->dimensions = dimensions;
+    if (dimensions == nullptr)
+        this->dimensions = List<IDimension>();
+    else
+        this->dimensions = dimensions;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getDimensions(IList** dimensions)
+{
+    OPENDAQ_PARAM_NOT_NULL(dimensions);
+    *dimensions = this->dimensions.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -95,9 +86,23 @@ ErrCode DataDescriptorBuilderImpl::setSampleType(SampleType sampleType)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode DataDescriptorBuilderImpl::getSampleType(SampleType* sampleType)
+{
+    OPENDAQ_PARAM_NOT_NULL(sampleType);
+    *sampleType = this->sampleType;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode DataDescriptorBuilderImpl::setUnit(IUnit* unit)
 {
     this->unit = unit;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getUnit(IUnit** unit)
+{
+    OPENDAQ_PARAM_NOT_NULL(unit);
+    *unit = this->unit.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -107,9 +112,23 @@ ErrCode DataDescriptorBuilderImpl::setValueRange(IRange* valueRange)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode DataDescriptorBuilderImpl::getValueRange(IRange** valueRange)
+{
+    OPENDAQ_PARAM_NOT_NULL(valueRange);
+    *valueRange = this->valueRange.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode DataDescriptorBuilderImpl::setRule(IDataRule* rule)
 {
     this->dataRule = rule;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getRule(IDataRule** rule)
+{
+    OPENDAQ_PARAM_NOT_NULL(rule);
+    *rule = this->dataRule.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -119,9 +138,23 @@ ErrCode DataDescriptorBuilderImpl::setOrigin(IString* origin)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode DataDescriptorBuilderImpl::getOrigin(IString** origin)
+{
+    OPENDAQ_PARAM_NOT_NULL(origin);
+    *origin = this->origin.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode DataDescriptorBuilderImpl::setTickResolution(IRatio* tickResolution)
 {
     this->resolution = tickResolution;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getTickResolution(IRatio** tickResolution)
+{
+    OPENDAQ_PARAM_NOT_NULL(tickResolution);
+    *tickResolution = this->resolution.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -131,46 +164,43 @@ ErrCode DataDescriptorBuilderImpl::setPostScaling(IScaling* scaling)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode DataDescriptorBuilderImpl::getPostScaling(IScaling** scaling)
+{
+    OPENDAQ_PARAM_NOT_NULL(scaling);
+    *scaling = this->scaling.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode DataDescriptorBuilderImpl::setMetadata(IDict* metadata)
 {
-    this->metadata = metadata;
+    if (metadata == nullptr)
+        this->metadata = Dict<IString, IString>();
+    else
+        this->metadata = metadata;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getMetadata(IDict** metadata)
+{
+    OPENDAQ_PARAM_NOT_NULL(metadata);
+    *metadata = this->metadata.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode DataDescriptorBuilderImpl::setStructFields(IList* structFields)
 {
-    this->structFields = structFields;
+    if (structFields == nullptr)
+        this->structFields = List<IDataDescriptor>();
+    else
+        this->structFields = structFields;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DataDescriptorBuilderImpl::build(IDataDescriptor** dataDescriptor)
+ErrCode DataDescriptorBuilderImpl::getStructFields(IList** structFields)
 {
-    OPENDAQ_PARAM_NOT_NULL(dataDescriptor);
-
-    return daqTry([&]()
-    {
-        auto descriptor = DataDescriptor(packBuildParams());
-        *dataDescriptor = descriptor.detach();
-        return OPENDAQ_SUCCESS;
-    });
-}
-
-DictPtr<IString, IBaseObject> DataDescriptorBuilderImpl::packBuildParams()
-{
-    auto params = Dict<IString, IBaseObject>();
-    params.set("dimensions", copyDimensions(dimensions));
-    params.set("name", name);
-    params.set("sampleType", static_cast<Int>(sampleType));
-    params.set("unit", unit);
-    params.set("valueRange", valueRange);
-    params.set("dataRule", dataRule);
-    params.set("scaling", scaling);
-    params.set("origin", origin);
-    params.set("tickResolution", resolution);
-    params.set("structFields", copyStructFields(structFields));
-    params.set("metadata", copyMetadata(metadata));
-
-    return params;
+    OPENDAQ_PARAM_NOT_NULL(structFields);
+    *structFields = this->structFields.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

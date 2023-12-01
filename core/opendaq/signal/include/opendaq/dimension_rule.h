@@ -20,6 +20,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IDimensionRuleBuilder;
+
 /*!
  * @ingroup opendaq_dimension
  * @addtogroup opendaq_dimension_rule Dimension rule
@@ -145,6 +147,15 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, DimensionRule, IDimensionRule,
     DimensionRuleType, type,
     IDict*, parameters
+)
+
+/*!
+ * @brief Creates a DimensionRule using Builder
+ * @param builder DimensionRule Builder
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, DimensionRuleFromBuilder, IDimensionRule,
+    IDimensionRuleBuilder*, builder
 )
 
 /*!@}*/

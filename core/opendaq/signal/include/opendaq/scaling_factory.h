@@ -60,6 +60,17 @@ inline ScalingPtr Scaling(SampleType inputDataType, ScaledSampleType outputDataT
 }
 
 /*!
+ * @brief Creates a Scaling object from Builder
+ *
+ * @param builder Scaling Builder
+ */
+inline ScalingPtr ScalingFromBuilder(const ScalingBuilderPtr& builder)
+{
+    ScalingPtr obj(ScalingFromBuilder_Create(builder));
+    return obj;
+}
+
+/*!
  * @brief Creates a Scaling builder object with no parameters configured.
  */
 inline ScalingBuilderPtr ScalingBuilder()

@@ -15,8 +15,8 @@
  */
 
 #pragma once
-#include <opendaq/scaling.h>
 #include <coretypes/stringobject.h>
+#include <opendaq/scaling.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -37,6 +37,12 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IScalingBuilder, IBaseObject)
 {
+    /*!
+     * @brief Builds and returns a Scaling object using the currently set values of the Builder.
+     * @param[out] scaling The built Scaling object.
+     */
+    virtual ErrCode INTERFACE_FUNC build(IScaling** scaling) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the scaling's input data type.
@@ -46,6 +52,12 @@ DECLARE_OPENDAQ_INTERFACE(IScalingBuilder, IBaseObject)
      * data packets.
      */
     virtual ErrCode INTERFACE_FUNC setInputDataType(SampleType type) = 0;
+
+    /*!
+     * @brief Gets the scaling's input data type.
+     * @param[out] type The input data type.
+     */
+    virtual ErrCode INTERFACE_FUNC getInputDataType(SampleType* type) = 0;
 
     // [returnSelf]
     /*!
@@ -58,6 +70,12 @@ DECLARE_OPENDAQ_INTERFACE(IScalingBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setOutputDataType(ScaledSampleType type) = 0;
 
+    /*!
+     * @brief Gets the scaling's output data type.
+     * @param[out] type The output data type
+     */
+    virtual ErrCode INTERFACE_FUNC getOutputDataType(ScaledSampleType* type) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the type of the scaling that determines how the scaling parameters should be interpreted
@@ -65,6 +83,13 @@ DECLARE_OPENDAQ_INTERFACE(IScalingBuilder, IBaseObject)
      * @param type The type of the scaling.
      */
     virtual ErrCode INTERFACE_FUNC setScalingType(ScalingType type) = 0;
+
+    /*!
+     * @brief Gets the type of the scaling that determines how the scaling parameters should be interpreted
+     * and how the scaling should be calculated.
+     * @param[out] type The type of the scaling.
+     */
+    virtual ErrCode INTERFACE_FUNC getScalingType(ScalingType* type) = 0;
 
     // [templateType(parameters, IString, IBaseObject), returnSelf]
     /*!
@@ -74,6 +99,14 @@ DECLARE_OPENDAQ_INTERFACE(IScalingBuilder, IBaseObject)
      * @retval OPENDAQ_ERR_FROZEN if the object is frozen.
      */
     virtual ErrCode INTERFACE_FUNC setParameters(IDict* parameters) = 0;
+
+    // [templateType(parameters, IString, IBaseObject)]
+    /*!
+     * @brief Gets the list of parameters that are used to calculate the scaling in conjunction with the
+     * input data.
+     * @param[out] parameters The list of parameters. All elements are Number types.
+     */
+    virtual ErrCode INTERFACE_FUNC getParameters(IDict** parameters) = 0;
 
     // [returnSelf]
     /*!
@@ -88,12 +121,6 @@ DECLARE_OPENDAQ_INTERFACE(IScalingBuilder, IBaseObject)
      * @brief Removes the parameter with the given name from the Dictionary of Scaling parameters.
      */
     virtual ErrCode INTERFACE_FUNC removeParameter(IString* name) = 0;
-
-    /*!
-     * @brief Builds and returns a Scaling object using the currently set values of the Builder.
-     * @param[out] scaling The built Scaling object.
-     */
-    virtual ErrCode INTERFACE_FUNC build(IScaling** scaling) = 0;
 };
 /*!@}*/
 

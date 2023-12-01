@@ -18,13 +18,13 @@
 #include <coreobjects/callable_info_ptr.h>
 #include <coreobjects/eval_value_ptr.h>
 #include <coreobjects/property_builder.h>
+#include <coreobjects/property_builder_ptr.h>
 #include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_ptr.h>
 #include <coreobjects/unit_ptr.h>
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
-#include <coreobjects/property_object_factory.h>
-#include <coreobjects/property_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -43,7 +43,6 @@ protected:
     }
 
 public:
-
     // Property(name)
     explicit PropertyBuilderImpl(const StringPtr& name)
         : PropertyBuilderImpl()
@@ -165,9 +164,32 @@ public:
         this->valueType = ctStruct;
     }
 
+    ErrCode INTERFACE_FUNC build(IProperty** property) override
+    {
+        if (property == nullptr)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        const auto propertyBuilderPtr = this->borrowPtr<PropertyBuilderPtr>();
+
+        return daqTry([&]()
+        {
+            *property = PropertyFromBuilder(propertyBuilderPtr).detach(); 
+            return OPENDAQ_SUCCESS;
+        });
+    }
+
     ErrCode INTERFACE_FUNC setValueType(CoreType type) override
     {
         this->valueType = type;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getValueType(CoreType* type) override
+    {
+        if (!type)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *type = this->valueType;
         return OPENDAQ_SUCCESS;
     }
 
@@ -176,10 +198,28 @@ public:
         this->name = name;
         return OPENDAQ_SUCCESS;
     }
+
+    ErrCode INTERFACE_FUNC getName(IString** name) override
+    {
+        if (!name)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *name = this->name.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
     
     ErrCode INTERFACE_FUNC setDescription(IString* description) override
     {
         this->description = description;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getDescription(IString** description) override
+    {
+        if (!description)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *description = this->description.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
     
@@ -189,15 +229,42 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC getUnit(IUnit** unit) override
+    {
+        if (!unit)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *unit = this->unit.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
     ErrCode INTERFACE_FUNC setMinValue(INumber* min) override
     {
         this->minValue = min;
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC getMinValue(INumber** min) override
+    {
+        if (!min)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *min = this->minValue.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
     ErrCode INTERFACE_FUNC setMaxValue(INumber* max) override
     {
         this->maxValue = max;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getMaxValue(INumber** max) override
+    {
+        if (!max)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *max = this->maxValue.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -216,6 +283,15 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC getDefaultValue(IBaseObject** value) override
+    {
+        if (!value)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *value = this->defaultValue.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
     ErrCode INTERFACE_FUNC setSuggestedValues(IList* values) override
     {
         if (values != nullptr)
@@ -230,16 +306,43 @@ public:
         this->suggestedValues = values;
         return OPENDAQ_SUCCESS;
     }
+
+    ErrCode INTERFACE_FUNC getSuggestedValues(IList** values) override
+    {
+        if (!values)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *values = this->suggestedValues.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
     
     ErrCode INTERFACE_FUNC setVisible(IBoolean* visible) override
     {
         this->visible = visible;
         return OPENDAQ_SUCCESS;
     }
+
+    ErrCode INTERFACE_FUNC getVisible(IBoolean** visible) override
+    {
+        if (!visible)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *visible = this->visible.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
     
     ErrCode INTERFACE_FUNC setReadOnly(IBoolean* readOnly) override
     {
         this->readOnly = readOnly;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getReadOnly(IBoolean** readOnly) override
+    {
+        if (!readOnly)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *readOnly = this->readOnly.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -258,9 +361,27 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC getSelectionValues(IBaseObject** values) override
+    {
+        if (!values)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+        
+        *values = this->selectionValues.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
     ErrCode INTERFACE_FUNC setReferencedProperty(IEvalValue* propertyEval) override
     {
         this->refProp = propertyEval;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getReferencedProperty(IEvalValue** propertyEval) override
+    {
+        if (!propertyEval)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *propertyEval = this->refProp.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -269,10 +390,28 @@ public:
         this->validator = validator;
         return OPENDAQ_SUCCESS;
     }
-    
+
+    ErrCode INTERFACE_FUNC getValidator(IValidator** validator) override
+    {
+        if (!validator)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *validator = this->validator.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
     ErrCode INTERFACE_FUNC setCoercer(ICoercer* coercer) override
     {
         this->coercer = coercer;
+        return OPENDAQ_SUCCESS;
+    }
+    
+    ErrCode INTERFACE_FUNC getCoercer(ICoercer** coercer) override
+    {
+        if (!coercer)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *coercer = this->coercer.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -282,9 +421,27 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC getCallableInfo(ICallableInfo** callable) override
+    {
+        if (!callable)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *callable = this->callableInfo.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
     ErrCode INTERFACE_FUNC setOnPropertyValueWrite(IEvent* event) override
     {
         this->onValueWrite = event;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IEvent** event) override
+    {
+        if (!event)
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+
+        *event = this->onValueWrite.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -294,45 +451,16 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode INTERFACE_FUNC build(IProperty** property) override
+    ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event) override
     {
-        if (property == nullptr)
+        if (!event)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        return daqTry([&]()
-        {
-            *property = PropertyFromBuildParams(packBuildParams()).detach(); 
-            return OPENDAQ_SUCCESS;
-        });
+        *event = this->onValueRead.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
     }
 
 private:
-
-    DictPtr<IString, IBaseObject> packBuildParams()
-    {
-        auto buildParams = Dict<IString, IBaseObject>({
-            {"valueType", Integer(valueType)},
-            {"name", name},
-            {"description", description},
-            {"unit", unit},
-            {"minValue", minValue},
-            {"maxValue", maxValue},
-            {"defaultValue", defaultValue},
-            {"visible", visible},
-            {"readOnly", readOnly},
-            {"selectionValues", selectionValues},
-            {"suggestedValues", suggestedValues},
-            {"refProp", refProp},
-            {"coercer", coercer},
-            {"validator", validator},
-            {"callableInfo", callableInfo},
-            {"onValueWrite", onValueWrite},
-            {"onValueRead", onValueRead},
-        });
-
-        return buildParams;
-    }
-
     CoreType valueType;
 
     StringPtr name;

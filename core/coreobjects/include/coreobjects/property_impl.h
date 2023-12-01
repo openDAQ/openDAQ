@@ -20,6 +20,7 @@
 #include <coreobjects/ownable.h>
 #include <coreobjects/ownable_ptr.h>
 #include <coreobjects/property.h>
+#include <coreobjects/property_builder_ptr.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_internal_ptr.h>
 #include <coreobjects/property_object_factory.h>
@@ -80,34 +81,33 @@ protected:
     }
 
 public:
-    
     explicit PropertyImpl(const StringPtr& name)
         : PropertyImpl()
     {
         this->name = name;
     }
-    
-    PropertyImpl(IDict* buildParams)
+
+    PropertyImpl(IPropertyBuilder* propertyBuilder)
     {
-        const auto buildParamsPtr = DictPtr<IString, IBaseObject>(buildParams);
-        this->valueType = buildParamsPtr.get("valueType");
-        this->name = buildParamsPtr.get("name");
-        this->description = buildParamsPtr.get("description");
-        this->unit = buildParamsPtr.get("unit");
-        this->minValue = buildParamsPtr.get("minValue");
-        this->maxValue = buildParamsPtr.get("maxValue");
-        this->defaultValue = buildParamsPtr.get("defaultValue");
-        this->visible = buildParamsPtr.get("visible");
-        this->readOnly = buildParamsPtr.get("readOnly");
-        this->selectionValues = buildParamsPtr.get("selectionValues");
-        this->suggestedValues = buildParamsPtr.get("suggestedValues");
-        this->refProp = buildParamsPtr.get("refProp");
-        this->coercer = buildParamsPtr.get("coercer");
-        this->validator = buildParamsPtr.get("validator");
-        this->callableInfo = buildParamsPtr.get("callableInfo");
-        this->onValueWrite = buildParamsPtr.get("onValueWrite");
-        this->onValueRead = buildParamsPtr.get("onValueRead");
-        
+        const auto propertyBuilderPtr = PropertyBuilderPtr::Borrow(propertyBuilder);
+        this->valueType = propertyBuilderPtr.getValueType();
+        this->name = propertyBuilderPtr.getName();
+        this->description = propertyBuilderPtr.getDescription();
+        this->unit = propertyBuilderPtr.getUnit();
+        this->minValue = propertyBuilderPtr.getMinValue();
+        this->maxValue = propertyBuilderPtr.getMaxValue();
+        this->defaultValue = propertyBuilderPtr.getDefaultValue();
+        this->visible = propertyBuilderPtr.getVisible();
+        this->readOnly = propertyBuilderPtr.getReadOnly();
+        this->selectionValues = propertyBuilderPtr.getSelectionValues();
+        this->suggestedValues = propertyBuilderPtr.getSuggestedValues();
+        this->refProp = propertyBuilderPtr.getReferencedProperty();
+        this->coercer = propertyBuilderPtr.getCoercer();
+        this->validator = propertyBuilderPtr.getValidator();
+        this->callableInfo = propertyBuilderPtr.getCallableInfo();
+        this->onValueWrite = (IEvent*) propertyBuilderPtr.getOnPropertyValueWrite();
+        this->onValueRead = (IEvent*) propertyBuilderPtr.getOnPropertyValueRead();
+
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
 

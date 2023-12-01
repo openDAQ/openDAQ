@@ -47,6 +47,11 @@ DataRuleImpl::DataRuleImpl()
 {
 }
 
+DataRuleImpl::DataRuleImpl(IDataRuleBuilder * dataRuleBuilder)
+    : DataRuleImpl(DataRuleBuilderPtr(dataRuleBuilder).getType(), DataRuleBuilderPtr(dataRuleBuilder).getParameters())
+{
+}
+
 ErrCode DataRuleImpl::getType(DataRuleType* type)
 {
     if (!type)
@@ -226,6 +231,11 @@ daq::ErrCode PUBLIC_EXPORT createExplicitDomainDataRule(IDataRule** objTmp, INum
 extern "C" daq::ErrCode PUBLIC_EXPORT createDataRule(IDataRule** objTmp, DataRuleType ruleType, IDict* parameters)
 {
     return daq::createObject<IDataRule, DataRuleImpl>(objTmp, ruleType, parameters);
+}
+
+extern "C" daq::ErrCode PUBLIC_EXPORT createDataRuleFromBuilder(IDataRule** objTmp, IDataRuleBuilder* builder)
+{
+    return daq::createObject<IDataRule, DataRuleImpl>(objTmp, builder);
 }
 
 #endif

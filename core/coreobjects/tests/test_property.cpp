@@ -9,6 +9,7 @@
 #include <coreobjects/validator_factory.h>
 #include <coretypes/type_manager_factory.h>
 #include <coreobjects/property_object_class_factory.h>
+#include <coreobjects/unit_factory.h>
 
 #include "coreobjects/property_object_factory.h"
 
@@ -166,4 +167,82 @@ TEST_F(PropertyTest, ObjectPropertyMetadata)
                 .setVisible(false)
                 .setReadOnly(true);
     ASSERT_NO_THROW(prop.build());
+}
+
+TEST_F(PropertyTest, propertyBuilderSetGet)
+{
+    auto validator = Validator("value == True");
+    auto coercer = Coercer("if(value == True, True, False)");
+    auto propertyBuilder = PropertyBuilder("propertyBuilder")
+                                .setValueType(ctInt)
+                                .setName("testProperty")
+                                .setDescription("test purpose")
+                                .setUnit(Unit("s"))
+                                .setMinValue(0)
+                                .setMaxValue(1)
+                                .setDefaultValue(False)
+                                .setSuggestedValues(List<INumber>(0,1))
+                                .setVisible(true)
+                                .setReadOnly(false)
+                                .setSelectionValues(nullptr)
+                                .setReferencedProperty(nullptr)
+                                .setValidator(validator)
+                                .setCoercer(coercer)
+                                .setCallableInfo(nullptr);
+                                
+            
+    ASSERT_EQ(propertyBuilder.getValueType(), ctInt);
+    ASSERT_EQ(propertyBuilder.getName(), "testProperty");
+    ASSERT_EQ(propertyBuilder.getDescription(), "test purpose");
+    ASSERT_EQ(propertyBuilder.getUnit(), Unit("s"));
+    ASSERT_EQ(propertyBuilder.getMinValue(), 0);
+    ASSERT_EQ(propertyBuilder.getMaxValue(), 1);
+    ASSERT_EQ(propertyBuilder.getDefaultValue(), False);
+    ASSERT_EQ(propertyBuilder.getSuggestedValues(), List<INumber>(0,1));
+    ASSERT_EQ(propertyBuilder.getVisible(), true);
+    ASSERT_EQ(propertyBuilder.getReadOnly(), false);
+    ASSERT_EQ(propertyBuilder.getSelectionValues(), nullptr);
+    ASSERT_EQ(propertyBuilder.getReferencedProperty(), nullptr);
+    ASSERT_EQ(propertyBuilder.getValidator(), validator);
+    ASSERT_EQ(propertyBuilder.getCoercer(), coercer);
+    ASSERT_EQ(propertyBuilder.getCallableInfo(), nullptr);
+}
+
+TEST_F(PropertyTest, propertyCreateFactory)
+{
+    auto validator = Validator("value == True");
+    auto coercer = Coercer("if(value == True, True, False)");
+    auto propertyBuilder = PropertyBuilder("propertyBuilder")
+                                .setValueType(ctInt)
+                                .setName("testProperty")
+                                .setDescription("test purpose")
+                                .setUnit(Unit("s"))
+                                .setMinValue(0)
+                                .setMaxValue(1)
+                                .setDefaultValue(False)
+                                .setSuggestedValues(List<INumber>(0,1))
+                                .setVisible(true)
+                                .setReadOnly(false)
+                                .setSelectionValues(nullptr)
+                                .setReferencedProperty(nullptr)
+                                .setValidator(validator)
+                                .setCoercer(coercer)
+                                .setCallableInfo(nullptr);
+    const auto property = PropertyFromBuilder(propertyBuilder);
+
+    ASSERT_EQ(property.getValueType(), ctInt);
+    ASSERT_EQ(property.getName(), "testProperty");
+    ASSERT_EQ(property.getDescription(), "test purpose");
+    ASSERT_EQ(property.getUnit(), Unit("s"));
+    ASSERT_EQ(property.getMinValue(), 0);
+    ASSERT_EQ(property.getMaxValue(), 1);
+    ASSERT_EQ(property.getDefaultValue(), False);
+    ASSERT_EQ(property.getSuggestedValues(), List<INumber>(0,1));
+    ASSERT_EQ(property.getVisible(), true);
+    ASSERT_EQ(property.getReadOnly(), false);
+    ASSERT_EQ(property.getSelectionValues(), nullptr);
+    ASSERT_EQ(property.getReferencedProperty(), nullptr);
+    ASSERT_EQ(property.getValidator(), validator);
+    ASSERT_EQ(property.getCoercer(), coercer);
+    ASSERT_EQ(property.getCallableInfo(), nullptr);
 }

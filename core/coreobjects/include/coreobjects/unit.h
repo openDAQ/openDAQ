@@ -19,6 +19,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IUnitBuilder;
+
 /*!
  * @ingroup opendaq_data_descriptor
  * @addtogroup coreobjects_unit Unit
@@ -83,6 +85,15 @@ OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, Unit,
     IString*, symbol,
     IString*, name,
     IString*, quantity
+)
+
+/*!
+ * @brief Creates a Unit with Builder
+ * @param builder Unit Builder
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, UnitFromBuilder, IUnit,
+    IUnitBuilder*, builder
 )
 
 END_NAMESPACE_OPENDAQ

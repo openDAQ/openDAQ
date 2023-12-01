@@ -17,6 +17,17 @@ namespace detail
     static const StructTypePtr dimensionStructType = DimensionStructType();
 }
 
+DictPtr<IString, IBaseObject> DimensionImpl::PackBuilder(IDimensionBuilder* dimensionBuilder)
+{
+    const auto builderPtr = DimensionBuilderPtr::Borrow(dimensionBuilder);
+    auto params = Dict<IString, IBaseObject>();
+    params.set("name", builderPtr.getName());
+    params.set("unit", builderPtr.getUnit());
+    params.set("rule", builderPtr.getRule());
+
+    return params;
+}
+
 DimensionImpl::DimensionImpl(const DimensionRulePtr& rule, const UnitPtr& unit, const StringPtr& name)
     : GenericStructImpl<IDimension, IStruct>(detail::dimensionStructType,
           Dict<IString, IBaseObject>({
@@ -28,6 +39,18 @@ DimensionImpl::DimensionImpl(const DimensionRulePtr& rule, const UnitPtr& unit, 
     , unit(unit)
     , rule(rule)
 {
+    if (!rule.assigned())
+        throw ConfigurationIncompleteException{"Dimension rule is not assigned."};
+}
+
+DimensionImpl::DimensionImpl(IDimensionBuilder* dimensionBuilder)
+    : GenericStructImpl<IDimension, IStruct>(detail::dimensionStructType, PackBuilder(dimensionBuilder))
+{
+    const auto builderPtr = DimensionBuilderPtr::Borrow(dimensionBuilder);
+    this->name = builderPtr.getName();
+    this->unit = builderPtr.getUnit();
+    this->rule = builderPtr.getRule();
+
     if (!rule.assigned())
         throw ConfigurationIncompleteException{"Dimension rule is not assigned."};
 }
@@ -235,6 +258,11 @@ extern "C"
 daq::ErrCode PUBLIC_EXPORT createDimension(IDimension** objTmp, IDimensionRule* rule, IUnit* unit, IString* name)
 {
     return daq::createObject<IDimension, DimensionImpl>(objTmp, rule, unit, name);
+}
+extern "C"
+daq::ErrCode PUBLIC_EXPORT createDimensionFromBuilder(IDimension** objTmp, IDimensionBuilder* builder)
+{
+    return daq::createObject<IDimension, DimensionImpl>(objTmp, builder);
 }
 
 #endif

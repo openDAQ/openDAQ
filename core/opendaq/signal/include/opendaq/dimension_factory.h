@@ -51,6 +51,16 @@ inline DimensionPtr Dimension(const DimensionRulePtr& rule,
 }
 
 /*!
+ * @brief Creates a Dimension using Builder
+ * @param builder Dimension Builder
+ */
+inline DimensionPtr DimensionFromBuilder(const DimensionBuilderPtr& builder)
+{
+    DimensionPtr obj(DimensionFromBuilder_Create(builder));
+    return obj;
+}
+
+/*!
  * @brief Creates a builder copy of the dimension object passed as parameter.
  * @param dimension The dimension object to be copied.
  */

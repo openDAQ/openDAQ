@@ -104,4 +104,41 @@ TEST_F(ScalingTest, StructNames)
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
 
+TEST_F(ScalingTest, ScalingBuilderSetGet)
+{
+    const auto params = Dict<IString, IBaseObject>({
+            {"scale", 10},
+            {"offset", 10}
+        });
+    const auto scalingBuilder = ScalingBuilder()
+                                .setInputDataType(SampleType::Int16)
+                                .setOutputDataType(ScaledSampleType::Float32)
+                                .setScalingType(ScalingType::Linear)
+                                .setParameters(params);
+    
+    ASSERT_EQ(scalingBuilder.getInputDataType(), SampleType::Int16);
+    ASSERT_EQ(scalingBuilder.getOutputDataType(), ScaledSampleType::Float32);
+    ASSERT_EQ(scalingBuilder.getScalingType(), ScalingType::Linear);
+    ASSERT_EQ(scalingBuilder.getParameters(), params);
+}
+
+TEST_F(ScalingTest, ScalingCreateFactory)
+{
+    const auto params = Dict<IString, IBaseObject>({
+            {"scale", 10},
+            {"offset", 10}
+        });
+    const auto scalingBuilder = ScalingBuilder()
+                                .setInputDataType(SampleType::Int16)
+                                .setOutputDataType(ScaledSampleType::Float32)
+                                .setScalingType(ScalingType::Linear)
+                                .setParameters(params);
+    const auto scaling = ScalingFromBuilder(scalingBuilder);
+
+    ASSERT_EQ(scaling.getInputSampleType(), SampleType::Int16);
+    ASSERT_EQ(scaling.getOutputSampleType(), ScaledSampleType::Float32);
+    ASSERT_EQ(scaling.getType(), ScalingType::Linear);
+    ASSERT_EQ(scaling.getParameters(), params);
+}
+
 END_NAMESPACE_OPENDAQ

@@ -40,22 +40,38 @@ void defineIDataRuleBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataRuleBuilder
     m.def("DataRuleBuilder", &daq::DataRuleBuilder_Create);
     m.def("DataRuleBuilderFromExisting", &daq::DataRuleBuilderFromExisting_Create);
 
+    cls.def("build",
+        [](daq::IDataRuleBuilder *object)
+        {
+            const auto objectPtr = daq::DataRuleBuilderPtr::Borrow(object);
+            return objectPtr.build().detach();
+        },
+        "Builds and returns a Data rule object using the currently set values of the Builder.");
     cls.def_property("type",
-        nullptr,
+        [](daq::IDataRuleBuilder *object)
+        {
+            const auto objectPtr = daq::DataRuleBuilderPtr::Borrow(object);
+            return objectPtr.getType();
+        },
         [](daq::IDataRuleBuilder *object, daq::DataRuleType type)
         {
             const auto objectPtr = daq::DataRuleBuilderPtr::Borrow(object);
             objectPtr.setType(type);
         },
-        "Sets the type of the data rule.");
+        "Gets the type of the data rule. / Sets the type of the data rule.");
     cls.def_property("parameters",
-        nullptr,
+        [](daq::IDataRuleBuilder *object)
+        {
+            const auto objectPtr = daq::DataRuleBuilderPtr::Borrow(object);
+            return objectPtr.getParameters().detach();
+        },
         [](daq::IDataRuleBuilder *object, daq::IDict* parameters)
         {
             const auto objectPtr = daq::DataRuleBuilderPtr::Borrow(object);
             objectPtr.setParameters(parameters);
         },
-        "Sets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.");
+        py::return_value_policy::take_ownership,
+        "Gets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule. / Sets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.");
     cls.def("add_parameter",
         [](daq::IDataRuleBuilder *object, const std::string& name, const py::object& parameter)
         {
@@ -72,11 +88,4 @@ void defineIDataRuleBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataRuleBuilder
         },
         py::arg("name"),
         "Removes the parameter with the given name from the Dictionary of Data rule parameters.");
-    cls.def("build",
-        [](daq::IDataRuleBuilder *object)
-        {
-            const auto objectPtr = daq::DataRuleBuilderPtr::Borrow(object);
-            return objectPtr.build().detach();
-        },
-        "Builds and returns a Data rule object using the currently set values of the Builder.");
 }

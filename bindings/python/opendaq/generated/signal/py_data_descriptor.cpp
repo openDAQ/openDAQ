@@ -37,7 +37,7 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
 {
     cls.doc() = "Describes the data sent by a signal, defining how they are to be interpreted by anyone receiving the signal's packets.";
 
-    m.def("DataDescriptor", &daq::DataDescriptor_Create);
+    m.def("DataDescriptorFromBuilder", &daq::DataDescriptorFromBuilder_Create);
 
     cls.def_property_readonly("name",
         [](daq::IDataDescriptor *object)

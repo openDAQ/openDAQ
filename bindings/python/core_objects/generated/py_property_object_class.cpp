@@ -37,7 +37,7 @@ void defineIPropertyObjectClass(pybind11::module_ m, PyDaqIntf<daq::IPropertyObj
 {
     cls.doc() = "Container of properties that can be used as a base class when instantiating a Property object.";
 
-    m.def("PropertyObjectClassFromBuildParams", &daq::PropertyObjectClassFromBuildParams_Create);
+    m.def("PropertyObjectClassFromBuilder", &daq::PropertyObjectClassFromBuilder_Create);
 
     cls.def_property_readonly("parent_name",
         [](daq::IPropertyObjectClass *object)

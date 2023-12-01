@@ -19,6 +19,7 @@
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/struct_impl.h>
+#include <coreobjects/unit_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -26,7 +27,7 @@ class UnitImpl : public GenericStructImpl<IUnit, IStruct>
 {
 public:
     explicit UnitImpl(Int id, StringPtr symbol, StringPtr name, StringPtr quantity);
-    explicit UnitImpl(DictPtr<IString, IBaseObject> buildParams);
+    explicit UnitImpl(IUnitBuilder* unitBuilder);
 
     ErrCode INTERFACE_FUNC getId(Int* id) override;
     ErrCode INTERFACE_FUNC getSymbol(IString** symbol) override;
@@ -39,6 +40,9 @@ public:
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj);
+
+private:
+    static DictPtr<IString, IBaseObject> PackBuilder(IUnitBuilder* unitBuilder);
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(UnitImpl)

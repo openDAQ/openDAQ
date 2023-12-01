@@ -16,21 +16,22 @@
  */
 
 #pragma once
-#include <opendaq/data_descriptor_ptr.h>
-#include <opendaq/dimension_ptr.h>
-#include <coretypes/struct_impl.h>
 #include <coretypes/listobject_factory.h>
-#include <opendaq/scaling_calc_private.h>
-#include <opendaq/data_rule_calc_private.h>
-#include <opendaq/scaling_calc.h>
+#include <coretypes/struct_impl.h>
+#include <opendaq/data_descriptor_builder_ptr.h>
+#include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/data_rule_calc.h>
+#include <opendaq/data_rule_calc_private.h>
+#include <opendaq/dimension_ptr.h>
+#include <opendaq/scaling_calc.h>
+#include <opendaq/scaling_calc_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 class DataDescriptorImpl : public GenericStructImpl<IDataDescriptor, IStruct, IScalingCalcPrivate, IDataRuleCalcPrivate>
 {
 public:
-    explicit DataDescriptorImpl(const DictPtr<IString, IBaseObject>& descriptorParameters);
+    explicit DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBuilder);
 
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getDimensions(IList** dimensions) override;
@@ -84,6 +85,8 @@ private:
     void initCalcs();
     std::unique_ptr<ScalingCalc> scalingCalc;
     std::unique_ptr<DataRuleCalc> dataRuleCalc;
+
+    static DictPtr<IString, IBaseObject> PackBuilder(IDataDescriptorBuilder* dataDescriptorBuilder);
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DataDescriptorImpl)

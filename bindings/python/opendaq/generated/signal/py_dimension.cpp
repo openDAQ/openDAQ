@@ -38,6 +38,7 @@ void defineIDimension(pybind11::module_ m, PyDaqIntf<daq::IDimension, daq::IBase
     cls.doc() = "Describes a dimension of the signal's data. Eg. a column/row in a matrix.";
 
     m.def("Dimension", &daq::Dimension_Create);
+    m.def("DimensionFromBuilder", &daq::DimensionFromBuilder_Create);
 
     cls.def_property_readonly("name",
         [](daq::IDimension *object)

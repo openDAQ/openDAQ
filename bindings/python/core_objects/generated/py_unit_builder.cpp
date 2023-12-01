@@ -40,38 +40,6 @@ void defineIUnitBuilder(pybind11::module_ m, PyDaqIntf<daq::IUnitBuilder, daq::I
     m.def("UnitBuilder", &daq::UnitBuilder_Create);
     m.def("UnitBuilderFromExisting", &daq::UnitBuilderFromExisting_Create);
 
-    cls.def_property("id",
-        nullptr,
-        [](daq::IUnitBuilder *object, daq::Int id)
-        {
-            const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
-            objectPtr.setId(id);
-        },
-        "Sets the unit ID as defined in <a href=\"https://unece.org/trade/cefact/UNLOCODE-Download\">Codes for Units of Measurement used in International Trade</a>.");
-    cls.def_property("symbol",
-        nullptr,
-        [](daq::IUnitBuilder *object, const std::string& symbol)
-        {
-            const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
-            objectPtr.setSymbol(symbol);
-        },
-        "Sets the symbol of the unit, i.e. \"m/s\".");
-    cls.def_property("name",
-        nullptr,
-        [](daq::IUnitBuilder *object, const std::string& name)
-        {
-            const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
-            objectPtr.setName(name);
-        },
-        "Sets the full name of the unit, i.e. \"meters per second\".");
-    cls.def_property("quantity",
-        nullptr,
-        [](daq::IUnitBuilder *object, const std::string& quantity)
-        {
-            const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
-            objectPtr.setQuantity(quantity);
-        },
-        "Sets the quantity represented by the unit, i.e. \"Velocity\"");
     cls.def("build",
         [](daq::IUnitBuilder *object)
         {
@@ -79,4 +47,52 @@ void defineIUnitBuilder(pybind11::module_ m, PyDaqIntf<daq::IUnitBuilder, daq::I
             return objectPtr.build().detach();
         },
         "Builds and returns a Unit object using the currently set values of the Builder.");
+    cls.def_property("id",
+        [](daq::IUnitBuilder *object)
+        {
+            const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
+            return objectPtr.getId();
+        },
+        [](daq::IUnitBuilder *object, daq::Int id)
+        {
+            const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
+            objectPtr.setId(id);
+        },
+        "Gets the unit ID as defined in <a href=\"https://unece.org/trade/cefact/UNLOCODE-Download\">Codes for Units of Measurement used in International Trade</a>. / Sets the unit ID as defined in <a href=\"https://unece.org/trade/cefact/UNLOCODE-Download\">Codes for Units of Measurement used in International Trade</a>.");
+    cls.def_property("symbol",
+        [](daq::IUnitBuilder *object)
+        {
+            const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
+            return objectPtr.getSymbol().toStdString();
+        },
+        [](daq::IUnitBuilder *object, const std::string& symbol)
+        {
+            const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
+            objectPtr.setSymbol(symbol);
+        },
+        "Gets the symbol of the unit, i.e. \"m/s\". / Sets the symbol of the unit, i.e. \"m/s\".");
+    cls.def_property("name",
+        [](daq::IUnitBuilder *object)
+        {
+            const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
+            return objectPtr.getName().toStdString();
+        },
+        [](daq::IUnitBuilder *object, const std::string& name)
+        {
+            const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
+            objectPtr.setName(name);
+        },
+        "Gets the full name of the unit, i.e. \"meters per second\". / Sets the full name of the unit, i.e. \"meters per second\".");
+    cls.def_property("quantity",
+        [](daq::IUnitBuilder *object)
+        {
+            const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
+            return objectPtr.getQuantity().toStdString();
+        },
+        [](daq::IUnitBuilder *object, const std::string& quantity)
+        {
+            const auto objectPtr = daq::UnitBuilderPtr::Borrow(object);
+            objectPtr.setQuantity(quantity);
+        },
+        "Gets the quantity represented by the unit, i.e. \"Velocity\" / Sets the quantity represented by the unit, i.e. \"Velocity\"");
 }

@@ -43,7 +43,6 @@ protected:
     void createReaders();
     void addReader(SignalPtr signalToRead);
     void removeReader(SignalPtr signalToRead);
-    void updateReaders();
 
     DevicePtr device;
     ContextPtr context;
@@ -52,9 +51,6 @@ protected:
     bool readThreadStarted = false;
     std::chrono::milliseconds sleepTime;
     std::vector<std::pair<SignalPtr, PacketReaderPtr>> signalReaders;
-
-    // second element of pair is true for adding signal reader request, false for removing
-    std::queue<std::pair<SignalPtr, bool>> readerControlQueue;
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;

@@ -56,14 +56,16 @@ void AsyncPacketReader::startReadThread()
 {
     while (readThreadStarted)
     {
-        updateReaders();
-        for (const auto& [signal, reader] : signalReaders)
         {
-            if (reader.getAvailableCount() == 0)
-                continue;
+            std::scoped_lock lock(readersSync);
+            for (const auto& [signal, reader] : signalReaders)
+            {
+                if (reader.getAvailableCount() == 0)
+                    continue;
 
-            const auto& packets = reader.readAll();
-            onPacketCallback(signal, packets);
+                const auto& packets = reader.readAll();
+                onPacketCallback(signal, packets);
+            }
         }
 
         std::this_thread::sleep_for(sleepTime);
@@ -84,27 +86,13 @@ void AsyncPacketReader::createReaders()
 void AsyncPacketReader::startReadSignal(const SignalPtr& signal)
 {
     std::scoped_lock lock(readersSync);
-    readerControlQueue.push({signal, true});
+    addReader(signal);
 }
 
 void AsyncPacketReader::stopReadSignal(const SignalPtr& signal)
 {
     std::scoped_lock lock(readersSync);
-    readerControlQueue.push({signal, false});
-}
-
-void AsyncPacketReader::updateReaders()
-{
-    std::scoped_lock lock(readersSync);
-    while (!readerControlQueue.empty())
-    {
-        auto [signal, doRead] = readerControlQueue.front();
-        if (doRead)
-            addReader(signal);
-        else
-            removeReader(signal);
-        readerControlQueue.pop();
-    }
+    removeReader(signal);
 }
 
 void AsyncPacketReader::addReader(SignalPtr signalToRead)

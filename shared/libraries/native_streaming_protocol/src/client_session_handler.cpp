@@ -14,11 +14,13 @@ ClientSessionHandler::ClientSessionHandler(const ContextPtr& context,
                                            OnSignalCallback signalReceivedHandler,
                                            OnPacketReceivedCallback packetReceivedHandler,
                                            OnProtocolInitDoneCallback protocolInitDoneHandler,
+                                           OnSubscriptionAckCallback subscriptionAckHandler,
                                            OnErrorCallback errorHandler)
     : BaseSessionHandler(session, errorHandler)
     , signalReceivedHandler(signalReceivedHandler)
     , packetReceivedHandler(packetReceivedHandler)
     , protocolInitDoneHandler(protocolInitDoneHandler)
+    , subscriptionAckHandler(subscriptionAckHandler)
     , logger(context.getLogger())
     , jsonDeserializer(JsonDeserializer())
 {
@@ -265,6 +267,48 @@ ReadTask ClientSessionHandler::readSignalUnavailable(const void *data, size_t si
     return createReadHeaderTask();
 }
 
+ReadTask ClientSessionHandler::readSignalSubscribedAck(const void *data, size_t size)
+{
+    SignalNumericIdType signalNumericId;
+
+    try
+    {
+        // Get signal numeric ID from received buffer
+        copyData(&signalNumericId, data, sizeof(signalNumericId), 0, size);
+        LOG_T("Received signal numeric ID: {}", signalNumericId);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("Protocol error: {}", e.what());
+        errorHandler(e.what(), session);
+        return createReadStopTask();
+    }
+
+    subscriptionAckHandler(signalNumericId, true);
+    return createReadHeaderTask();
+}
+
+ReadTask ClientSessionHandler::readSignalUnsubscribedAck(const void *data, size_t size)
+{
+    SignalNumericIdType signalNumericId;
+
+    try
+    {
+        // Get signal numeric ID from received buffer
+        copyData(&signalNumericId, data, sizeof(signalNumericId), 0, size);
+        LOG_T("Received signal numeric ID: {}", signalNumericId);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("Protocol error: {}", e.what());
+        errorHandler(e.what(), session);
+        return createReadStopTask();
+    }
+
+    subscriptionAckHandler(signalNumericId, false);
+    return createReadHeaderTask();
+}
+
 ReadTask ClientSessionHandler::readHeader(const void* data, size_t size)
 {
     TransportHeader header(static_cast<const PackedHeaderType*>(data));
@@ -307,6 +351,26 @@ ReadTask ClientSessionHandler::readHeader(const void* data, size_t size)
     {
         protocolInitDoneHandler();
         return createReadHeaderTask();
+    }
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_ACK)
+    {
+        return ReadTask(
+            [this](const void* data, size_t size)
+            {
+                return readSignalSubscribedAck(data, size);
+            },
+            payloadSize
+        );
+    }
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK)
+    {
+        return ReadTask(
+            [this](const void* data, size_t size)
+            {
+                return readSignalUnsubscribedAck(data, size);
+            },
+            payloadSize
+        );
     }
     else
     {

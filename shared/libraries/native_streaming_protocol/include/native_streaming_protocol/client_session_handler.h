@@ -35,6 +35,7 @@ public:
                          OnSignalCallback signalReceivedHandler,
                          OnPacketReceivedCallback packetReceivedHandler,
                          OnProtocolInitDoneCallback protocolInitDoneHandler,
+                         OnSubscriptionAckCallback subscriptionAckHandler,
                          OnErrorCallback errorHandler);
 
     ~ClientSessionHandler();
@@ -50,12 +51,15 @@ private:
     daq::native_streaming::ReadTask readPacket(const void* data, size_t size);
     daq::native_streaming::ReadTask readSignalAvailable(const void* data, size_t size);
     daq::native_streaming::ReadTask readSignalUnavailable(const void* data, size_t size);
+    daq::native_streaming::ReadTask readSignalSubscribedAck(const void* data, size_t size);
+    daq::native_streaming::ReadTask readSignalUnsubscribedAck(const void* data, size_t size);
 
     void processReceivedPackets();
 
     OnSignalCallback signalReceivedHandler;
     OnPacketReceivedCallback packetReceivedHandler;
     OnProtocolInitDoneCallback protocolInitDoneHandler;
+    OnSubscriptionAckCallback subscriptionAckHandler;
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;

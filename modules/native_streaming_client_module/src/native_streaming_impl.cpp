@@ -4,6 +4,7 @@
 #include <opendaq/custom_log.h>
 
 #include <opendaq/mirrored_signal_private.h>
+#include <opendaq/subscription_event_args_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -117,10 +118,27 @@ void NativeStreamingImpl::prepareClientHandler()
     {
         onPacket(signalStringId, packet);
     };
+    OnSignalSubscriptionAckCallback onSignalSubscriptionAckCallback =
+        [this](const StringPtr& signalStringId, bool subscribed)
+    {
+        if (auto it = streamingSignalsRefs.find(signalStringId); it != streamingSignalsRefs.end())
+        {
+            auto signalRef = it->second;
+            MirroredSignalConfigPtr signal = signalRef.assigned() ? signalRef.getRef() : nullptr;
+            if (signal.assigned())
+            {
+                if (subscribed)
+                    signal.template asPtr<daq::IMirroredSignalPrivate>()->subscribeCompleted(connectionString);
+                else
+                    signal.template asPtr<daq::IMirroredSignalPrivate>()->unsubscribeCompleted(connectionString);
+            }
+        }
+    };
     clientHandler = std::make_shared<NativeStreamingClientHandler>(context,
                                                                    signalAvailableCb,
                                                                    signalUnavailableCb,
-                                                                   onPacketCallback);
+                                                                   onPacketCallback,
+                                                                   onSignalSubscriptionAckCallback);
 }
 
 void NativeStreamingImpl::onPacket(const StringPtr& signalStringId, const PacketPtr& packet)

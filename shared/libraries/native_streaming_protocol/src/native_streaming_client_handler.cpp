@@ -11,12 +11,15 @@ NativeStreamingClientHandler::NativeStreamingClientHandler(
     const ContextPtr& context,
     OnSignalAvailableCallback signalAvailableHandler,
     OnSignalUnavailableCallback signalUnavailableHandler,
-    OnPacketCallback packetHandler)
+    OnPacketCallback packetHandler,
+    OnSignalSubscriptionAckCallback signalSubscriptionAckCallback
+)
     : context(context)
     , logger(context.getLogger())
     , signalAvailableHandler(signalAvailableHandler)
     , signalUnavailableHandler(signalUnavailableHandler)
     , packetHandler(packetHandler)
+    , signalSubscriptionAckCallback(signalSubscriptionAckCallback)
 {
     if (!this->logger.assigned())
         throw ArgumentNullException("Logger must not be null");
@@ -127,11 +130,18 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
         connectedPromise.set_value(true);
     };
 
+    OnSubscriptionAckCallback subscriptionAckCallback =
+        [this](const SignalNumericIdType& signalNumericId, bool subscribed)
+    {
+        signalSubscriptionAckCallback(signalIds.at(signalNumericId), subscribed);
+    };
+
     sessionHandler = std::make_shared<ClientSessionHandler>(context,
                                                             session,
                                                             signalReceivedHandler,
                                                             packetReceivedHandler,
                                                             protocolInitDoneHandler,
+                                                            subscriptionAckCallback,
                                                             errorHandler);
     sessionHandler->initErrorHandlers();
     sessionHandler->startReading();

@@ -138,12 +138,15 @@ ErrCode PropertyObjectClassBuilderImpl::getPropertyOrder(IList** orderedProperty
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyObjectClassBuilderImpl::getManager(IWeakRef** manager)
+ErrCode PropertyObjectClassBuilderImpl::getManager(ITypeManager** manager)
 {
     if (!manager)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-    
-    *manager = this->manager.addRefAndReturn();
+
+    if (this->manager.assigned())
+        *manager = this->manager.getRef().addRefAndReturn();
+    else
+        *manager = nullptr;
     return OPENDAQ_SUCCESS;
 }
 

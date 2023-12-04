@@ -29,7 +29,7 @@ Builder pattern improvement
 + [function] IPropertyObjectClassBuilder::getParentName(IString** parentName)
 + [function] IPropertyObjectClassBuilder::getProperties(IDict** properties)
 + [function] IPropertyObjectClassBuilder::getPropertyOrder(IList** orderedPropertyNames)
-+ [function] IPropertyObjectClassBuilder::getManager(IWeakRef** manager)
++ [function] IPropertyObjectClassBuilder::getManager(ITypeManager** manager)
 - [factory] PropertyObjectClassPtr PropertyObjectClassFromBuildParams(const DictPtr<IString, IBaseObject>& buildParams);
 + [factory] PropertyObjectClassPtr PropertyObjectClassFromBuilder(const PropertyObjectClassBuilderPtr& builder)
 

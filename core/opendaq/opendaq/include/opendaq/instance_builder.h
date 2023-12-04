@@ -72,13 +72,6 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setComponentLogLevel(IString* component, LogLevel logLevel) = 0;
 
-    /*!
-     * @brief Gets the Logger level of Instance component
-     * @param[out] component The name of Instance component
-     * @param[out] logLevel The log level of Instance component
-     */
-    virtual ErrCode INTERFACE_FUNC getComponenstLogLevel(IDictPtr** componentsLogLevel) = 0;
-
     // [returnSelf]
     /*!
      * @brief Sets the sink logger level of Instance
@@ -136,14 +129,14 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the device of Instance
-     * @param connectionString The connection string of device of Instance
+     * @brief Sets the root device of Instance
+     * @param rootDevice The root device of Instance
      */
-    virtual ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC setRootDevice(IDevice* rootDevice) = 0;
 
     /*!
-     * @brief Gets the device of Instance
-     * @param[out] rootDevice The device of Instance
+     * @brief Gets the root device of Instance
+     * @param[out] rootDevice The root device of Instance
      */
     virtual ErrCode INTERFACE_FUNC getRootDevice(IDevice** rootDevice) = 0;
 
@@ -156,10 +149,10 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Gets the default device of Instance
-     * @param defaultDevice The default device of Instance
+     * @brief Gets the default device info of Instance
+     * @param defaultDevice The default device info of Instance
      */
-    virtual ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDevice** defaultDevice) = 0;
+    virtual ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo) = 0;
 };
 /*!@}*/
 

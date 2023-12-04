@@ -17,6 +17,7 @@
 #pragma once
 #include <coreobjects/instance_builder.h>
 #include <coreobjects/instance_factory.h>
+#include <set>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,7 +33,6 @@ public:
     ErrCode INTERFACE_FUNC setGlobalLogLevel(LogLevel logLevel);
     ErrCode INTERFACE_FUNC getGlobalLogLevel(LogLevel* logLevel);
     ErrCode INTERFACE_FUNC setComponentLogLevel(IString* component, LogLevel logLevel);
-    ErrCode INTERFACE_FUNC getComponenstLogLevel(IDictPtr** componentsLogLevel);
 
     ErrCode INTERFACE_FUNC setSinkLogLevel(ILoggerSink* sink, LogLevel logLevel);
 
@@ -46,19 +46,27 @@ public:
     ErrCode INTERFACE_FUNC setOption(IString* option, IBaseObject* value);
     ErrCode INTERFACE_FUNC getOptions(IDict** options);
 
-    ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString);
+    ErrCode INTERFACE_FUNC setRootDevice(IDevice* rootDevice);
     ErrCode INTERFACE_FUNC getRootDevice(IDevice** rootDevice);
 
     ErrCode INTERFACE_FUNC setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo);
-    ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDevice** defaultDevice);
+    ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo);
 
 private:
+    // stub. will be replaced by IContext.getOptions()
+    static DictPtr<IString, IBaseObject> GetOptions();
+
+    DictPtr<IString, IBaseObject>& getModuleManagerOptions();
+    DictPtr<IString, IBaseObject>& getSchedulerOptions();
+    DictPtr<IString, IBaseObject>& getLoggingOptions();
+    DictPtr<IString, IBaseObject>& getModuleOptions(IString* module);
+
     DevicePtr rootDevice;
-    DevicePtr defaultRootDevice;
+    DeviceInfoPtr defaultRootDeviceInfo;
     LoggerPtr logger;
     SchedulerPtr scheduler;
     DictPtr<IString, LogLevel> componentsLogLevel;
-    DictPtr<ILoggerSink, LogLevel> sinks;
+    std::set<LoggerSinkPtr> sinks;
 
     StringPtr modulePath;
     ModuleManagerPtr moduleManager;

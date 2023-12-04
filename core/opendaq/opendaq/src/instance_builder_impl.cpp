@@ -6,11 +6,46 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-InstanceBuilderImpl::InstanceBuilderImpl()
-    : options(Dict<IString, IBaseObject>())
-    , sinks(Dict<ILoggerSink, LogLevel>)
-    , logger(Logger())
+DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetOptions()
 {
+    return Dict<IString, IBaseObject>({
+        {"ModuleManager", Dict<IString, IBaseObject>({
+                {"ModulesPath", ""}
+            })},
+        {"Scheduler", Dict<IString, IBaseObject>()},
+        {"Logging", Dict<IString, IBaseObject>()},
+        {"Modules", Dict<IString, IBaseObject>()}
+    });
+}
+
+InstanceBuilderImpl::InstanceBuilderImpl()
+    : options(DefaultOptions())
+    , sinks(Dict<ILoggerSink, LogLevel>)
+{
+}
+
+DictPtr<IString, IBaseObject>& InstanceBuilderImpl::getModuleManagerOptions()
+{
+    return options["ModuleManager"];
+}
+DictPtr<IString, IBaseObject>& InstanceBuilderImpl::getSchedulerOptions()
+{
+    return options["Scheduler"];
+}
+DictPtr<IString, IBaseObject>& InstanceBuilderImpl::getLoggingOptions()
+{
+    return options["Logging"];
+}
+DictPtr<IString, IBaseObject>& InstanceBuilderImpl::getModuleOptions(IString* module)
+{
+    const auto & modules = options["Modules"]
+    if (!modules.hasKey(module)) 
+    {   
+        auto moduleOptions = Dict<IString, IBaseObject>();
+        modules[module] = moduleOptions;
+        return moduleOptions;
+    }
+    return modules[module];
 }
 
 ErrCode InstanceBuilderImpl::build(IInstance** instance)
@@ -32,13 +67,36 @@ ErrCode InstanceBuilderImpl::getLogger(ILogger** logger)
     if (logger == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
+    if (!this->logger.assigned()) 
+    {
+        if (sinks.empty())
+            this->logger = Logger();
+        else
+        {
+            auto sinksList = List<ILoggerSink>();
+            for (const auto& sink : sinks)
+                sinksList.push_back(sink);
+            
+            this->logger = LoggerWithSinks(sinksList);
+        }
+    }
+    
+    if (getLoggingOptions().hasKey("GlobalLogLevel"))
+        this->logger.setLevel(LogLevel(getLoggingOptions()["GlobalLogLevel"]));
+
+    for (const auto& [component, logLevel] : componentsLogLevel)
+    {
+        auto createdComponent = this->logger->getOrAddComponent(component);
+        createdComponent.setLevel(logLevel);
+    }
+
     *logger = this->logger.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode InstanceBuilderImpl::setGlobalLogLevel(LogLevel logLevel)
 {
-    this->logger.setLevel(level);
+    getLoggingOptions()["GlobalLogLevel"] = Uint(logLevel);
     return OPENDAQ_SUCCESS;
 }
 
@@ -47,7 +105,7 @@ ErrCode InstanceBuilderImpl::getGlobalLogLevel(LogLevel* logLevel)
     if (logLevel == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *logLevel = this->logger.getLevel();
+    *logLevel = LogLevel(getLoggingOptions()["GlobalLogLevel"]);
     return OPENDAQ_SUCCESS;
 }
 
@@ -60,21 +118,13 @@ ErrCode InstanceBuilderImpl::setComponentLogLevel(IString* component, LogLevel l
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode InstanceBuilderImpl::getComponenstLogLevel(IDictPtr** componentsLogLevel)
-{
-    if (componentsLogLevel == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    
-    *componentsLogLevel = this->componentsLogLevel.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode InstanceBuilderImpl::setSinkLogLevel(ILoggerSink* sink, LogLevel logLevel)
 {
     if (sink == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    sinks[sink] = logLevel;
+    sink->setLevel(logLevel);
+    sinks.insert(sink);
     return OPENDAQ_SUCCESS;
 }
 
@@ -83,7 +133,7 @@ ErrCode InstanceBuilderImpl::setModulePath(IString* path)
     if (path == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    this->modulePath = path;
+    getModulesOptions()["ModulesPath"] = path;
     return OPENDAQ_SUCCESS;
 }
 
@@ -100,6 +150,9 @@ ErrCode InstanceBuilderImpl::getModuleManager(IModuleManager** moduleManager)
 {
     if (moduleManager == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    if (!this->moduleManager.assigned())
+        this->moduleManager = ModuleManager(getModulesOptions()["ModulesPath"]);
     
     *moduleManager = this->moduleManager.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -118,6 +171,9 @@ ErrCode InstanceBuilderImpl::getScheduler(IScheduler** scheduler)
 {
     if (scheduler == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    if (!this->scheduler.assigned())
+        this->scheduler = Sheduler();
     
     *scheduler = this->scheduler.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -143,21 +199,24 @@ ErrCode InstanceBuilderImpl::getOptions(IDict** options)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode InstanceBuilderImpl::setRootDevice(IString* connectionString)
-{
-    if (connectionString == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    
-    // this->rootDevice = 
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode InstanceBuilderImpl::getRootDevice(IDevice** rootDevice)
+ErrCode InstanceBuilderImpl::setRootDevice(IDevice* rootDevice)
 {
     if (rootDevice == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    *rootDevice = this->rootDevice.addRefAndReturn();
+    this->rootDevice = rootDevice;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getRootDevice(IDevice** rootDevice);
+{
+    if (connectionString == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    if (!this->rootDeviceConnectionString.assigned())
+        this->rootDeviceConnectionString = "";
+    
+    *connectionString = this->rootDeviceConnectionString.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -165,16 +224,21 @@ ErrCode InstanceBuilderImpl::setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo)
 {
     if (deviceInfo == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-    
+
+    this->defaultRootDeviceInfo = deviceInfo;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode InstanceBuilderImpl::getDefaultRootDeviceInfo(IDevice** defaultDevice)
+ErrCode InstanceBuilderImpl::getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo)
 {
-    if (defaultDevice == nullptr)
+    if (deviceInfo == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    *defaultDevice = this->defaultDevice.addRefAndReturn();
+    if (!this->defaultRootDeviceInfo.assigned())
+        *deviceInfo = nullptr; 
+    else
+        *deviceInfo = this->defaultRootDeviceInfo.addRefAndReturn();
+
     return OPENDAQ_SUCCESS;
 }
 

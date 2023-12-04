@@ -26,6 +26,36 @@ InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
     loggerComponent = this->context.getLogger().addComponent("Instance");
 }
 
+static ContextPtr ContextFromInstanceBuilder (IInstanceBuilder* instanceBuilder)
+{
+    const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
+
+    const auto logger = builderPtr.getLogger();
+    const auto scheduler = builderPtr.getScheduler();
+    const auto moduleManager = builderPtr.getModuleManager();
+    const auto typeManager = TypeManager();
+
+    return Context(scheduler, logger, typeManager, moduleManager);
+}
+
+InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
+    : context(ContextFromInstanceBuilder(instanceBuilder))
+    , moduleManager(this->context.assigned() ? this->context.asPtr<IContextInternal>().moveModuleManager() : nullptr)
+    , rootDeviceSet(false)
+{
+    const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
+    
+    auto instanceId = defineLocalId(std::string());
+    defaultRootDevice = Client(this->context, instanceId);
+    
+    rootDevice = builderPtr.getRootDevice();
+    rootDeviceSet = rootDevice.assigned();
+    if (!rootDeviceSet)
+        rootDevice = defaultRootDevice;
+
+    loggerComponent = this->context.getLogger().addComponent("Instance");
+}
+
 std::string InstanceImpl::defineLocalId(const std::string& localId)
 {
     if (!localId.empty())
@@ -826,5 +856,11 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     Instance,
     IContext*, context,
     IString*, localId)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, Instance,
+    IInstance, createInstanceFromBuilder,
+    IInstanceBuilder*, builder
+)
 
 END_NAMESPACE_OPENDAQ

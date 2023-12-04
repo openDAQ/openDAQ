@@ -22,6 +22,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IInstanceBuilder;
+
 /*!
  * @ingroup opendaq_devices
  * @addtogroup opendaq_instance Instance
@@ -140,6 +142,15 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, Instance,
     IContext*, context,
     IString*, localId
+)
+
+/*!
+ * @brief Creates a Instance with Builder
+ * @param builder Instance Builder
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, InstanceFromBuilder, IInstance,
+    IInstanceBuilder*, builder
 )
 
  /*!

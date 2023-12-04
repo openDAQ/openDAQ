@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #pragma once
+#include <opendaq/instance_builder_ptr.h>
 #include <opendaq/instance_ptr.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/logger_factory.h>
@@ -63,6 +64,16 @@ inline InstancePtr Instance(const std::string& modulePath = "", const std::strin
         localIdStr = localId;
 
     InstancePtr obj(Instance_Create(context, localIdStr));
+    return obj;
+}
+/*!
+ * @brief Creates a Instance with Builder
+ * @param builder Instance Builder
+ */
+
+inline InstancePtr InstanceFromBuilder(const InstanceBuilderPtr& builder)
+{
+    InstancePtr obj(InstanceFromBuilder_Create(builder));
     return obj;
 }
 

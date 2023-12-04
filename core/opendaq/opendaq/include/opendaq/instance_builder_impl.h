@@ -15,8 +15,8 @@
  */
 
 #pragma once
-#include <coreobjects/instance_builder.h>
-#include <coreobjects/instance_factory.h>
+#include <opendaq/instance_builder.h>
+#include <opendaq/instance_factory.h>
 #include <set>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -56,10 +56,10 @@ private:
     // stub. will be replaced by IContext.getOptions()
     static DictPtr<IString, IBaseObject> GetOptions();
 
-    DictPtr<IString, IBaseObject>& getModuleManagerOptions();
-    DictPtr<IString, IBaseObject>& getSchedulerOptions();
-    DictPtr<IString, IBaseObject>& getLoggingOptions();
-    DictPtr<IString, IBaseObject>& getModuleOptions(IString* module);
+    DictPtr<IString, IBaseObject> getModuleManagerOptions();
+    DictPtr<IString, IBaseObject> getSchedulerOptions();
+    DictPtr<IString, IBaseObject> getLoggingOptions();
+    DictPtr<IString, IBaseObject> getModuleOptions(IString* module);
 
     DevicePtr rootDevice;
     DeviceInfoPtr defaultRootDeviceInfo;

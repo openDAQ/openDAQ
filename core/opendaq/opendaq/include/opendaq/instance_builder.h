@@ -16,12 +16,12 @@
 
 #pragma once
 #include <coretypes/stringobject.h>
-#include <coreobjects/instance.h>
+#include <opendaq/instance.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @ingroup opendaq_instance
+ * @ingroup opendaq_devices
  * @addtogroup opendaq_instance InstanceBuilder
  * @{
  */
@@ -121,6 +121,7 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setOption(IString* option, IBaseObject* value) = 0;
 
+    // [templateType(options, IString, IBaseObject)]
     /*!
      * @brief Gets dictionary of options of Instance
      * @param[out] option The dictionary of options of Instance
@@ -147,7 +148,6 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo) = 0;
 
-    // [returnSelf]
     /*!
      * @brief Gets the default device info of Instance
      * @param defaultDevice The default device info of Instance

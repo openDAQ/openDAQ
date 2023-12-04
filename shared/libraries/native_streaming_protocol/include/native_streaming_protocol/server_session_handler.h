@@ -41,6 +41,8 @@ public:
     void sendSignalUnavailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
     void sendInitializationDone();
     void sendPacket(const SignalNumericIdType signalId, const PacketPtr& packet);
+    void sendSubscribingDone(const SignalNumericIdType signalNumericId);
+    void sendUnsubscribingDone(const SignalNumericIdType signalNumericId);
 
 private:
     daq::native_streaming::ReadTask readHeader(const void* data, size_t size) override;

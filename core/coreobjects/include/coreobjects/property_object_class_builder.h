@@ -115,12 +115,11 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getPropertyOrder(IList** orderedPropertyNames) = 0;
 
-    // [templateType(manager, ITypeManager)]
     /*!
-     * @brief Gets a weak reference of type manager
-     * @param[out] manager weak reference of type manager
+     * @brief Gets a type manager
+     * @param[out] manager a type manager
      */
-    virtual ErrCode INTERFACE_FUNC getManager(IWeakRef** manager) = 0;
+    virtual ErrCode INTERFACE_FUNC getManager(ITypeManager** manager) = 0;
 };
 
 /*!@}*/

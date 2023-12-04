@@ -115,5 +115,5 @@ void defineIPropertyObjectClassBuilder(pybind11::module_ m, PyDaqIntf<daq::IProp
             return objectPtr.getManager().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets a weak reference of type manager");
+        "Gets a type manager");
 }

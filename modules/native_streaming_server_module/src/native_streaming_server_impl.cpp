@@ -69,12 +69,12 @@ void NativeStreamingServerImpl::prepareServerHandler()
     auto signalSubscribedHandler = [this](const SignalPtr& signal)
     {
         std::scoped_lock lock(readersSync);
-        readerControlQueue.push({signal, true});
+        addReader(signal);
     };
     auto signalUnsubscribedHandler = [this](const SignalPtr& signal)
     {
         std::scoped_lock lock(readersSync);
-        readerControlQueue.push({signal, false});
+        removeReader(signal);
     };
     serverHandler = std::make_shared<NativeStreamingServerHandler>(context,
                                                                    ioContextPtr,
@@ -150,14 +150,16 @@ void NativeStreamingServerImpl::startReadThread()
 {
     while (readThreadActive)
     {
-        updateReaders();
-        for (const auto& [signal, reader] : signalReaders)
         {
-            PacketPtr packet = reader.read();
-            while (packet.assigned())
+            std::scoped_lock lock(readersSync);
+            for (const auto& [signal, reader] : signalReaders)
             {
-                serverHandler->sendPacket(signal, packet);
-                packet = reader.read();
+                PacketPtr packet = reader.read();
+                while (packet.assigned())
+                {
+                    serverHandler->sendPacket(signal, packet);
+                    packet = reader.read();
+                }
             }
         }
 
@@ -173,20 +175,6 @@ void NativeStreamingServerImpl::createReaders()
     for (const auto& signal : signals)
     {
         addReader(signal);
-    }
-}
-
-void NativeStreamingServerImpl::updateReaders()
-{
-    std::scoped_lock lock(readersSync);
-    while (!readerControlQueue.empty())
-    {
-        auto [signal, doRead] = readerControlQueue.front();
-        if (doRead)
-            addReader(signal);
-        else
-            removeReader(signal);
-        readerControlQueue.pop();
     }
 }
 

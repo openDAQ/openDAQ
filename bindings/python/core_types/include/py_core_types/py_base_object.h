@@ -72,6 +72,6 @@ inline daq::ErrCode PyObjectImpl<PyT, Interfaces...>::toString(daq::CharPtr* str
 template <class T>
 daq::ObjectPtr<daq::IBaseObject> wrapPyObject(T&& pyObj)
 {
-    IPyObject* obj = new PyObjectImpl<pybind11::object, IPyObject>(std::forward<T>(pyObj));
+    IPyObject* obj = new PyObjectImpl<pybind11::object>(std::forward<T>(pyObj));
     return {obj};
 }

@@ -188,9 +188,8 @@ public:
     {
     }
 
-    void getValue(void* start) const noexcept override
+    void getValue(void* /*start*/) const noexcept override
     {
-        start = nullptr;
     }
 
     [[nodiscard]]
@@ -229,7 +228,6 @@ public:
 
     void getValue(void* start) const noexcept override
     {
-        start = nullptr;
     }
 
     [[nodiscard]]

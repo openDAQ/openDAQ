@@ -1,4 +1,4 @@
-set(MODULE_NAME ${SDK_TARGET_NAME}_native_streaming_protocol)
+set(MODULE_NAME native_streaming_protocol)
 set(TEST_APP test_${MODULE_NAME})
 
 set(TEST_SOURCES test_protocol.cpp

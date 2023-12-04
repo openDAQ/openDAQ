@@ -8,9 +8,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-
 RatioImpl::RatioImpl(Int numerator, Int denominator)
-    : GenericStructImpl<daq::IRatio, daq::IStruct, daq::IConvertible, daq::ISerializable, daq::ICoreType, daq::IComparable>(
+    : GenericStructImpl<daq::IRatio, daq::IStruct, daq::IConvertible, daq::IComparable>(
           RatioStructType(), Dict<IString, IInteger>({{"numerator", numerator}, {"denominator", denominator}}))
 {
     this->numerator = this->fields.get("numerator");

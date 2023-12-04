@@ -51,12 +51,14 @@ WeakRefPtr<TInterface> IntfObjectWithWeakRefImpl<MainInterface, Intfs...>::getWe
 {
     std::atomic_fetch_add_explicit(&this->refCount->weak, 1, std::memory_order_relaxed);
 
-    IBaseObject* thisBaseObject = static_cast<MainInterface*>(this);
-    IWeakRef* weakRef = new WeakRefImpl(thisBaseObject, this->refCount.get());
+    IWeakRef* weakRef = new WeakRefImpl(this->template borrowInterface<MainInterface>(), this->refCount.get());
     return WeakRefPtr<TInterface>(weakRef);
 }
 
-template <typename... Intfs>
-using ImplementationOfWeak = typename Meta::FoldType<typename ActualInterfaces<Intfs...>::Interfaces, IntfObjectWithWeakRefImpl>::Folded;
+template <typename... Interfaces>
+using ImplementationOfWeak = IntfObjectWithWeakRefImpl<Interfaces..., IInspectable>;
+
+//template <typename... Intfs>
+//using ImplementationOfWeak = typename Meta::FoldType<typename ActualInterfaces<Intfs...>::Interfaces, IntfObjectWithWeakRefImpl>::Folded;
 
 END_NAMESPACE_OPENDAQ

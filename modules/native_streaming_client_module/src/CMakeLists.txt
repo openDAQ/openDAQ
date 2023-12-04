@@ -54,7 +54,7 @@ add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
 target_link_libraries(${LIB_NAME} PUBLIC  daq::opendaq
                                   PRIVATE daq::discovery
-                                          daq::opendaq_native_streaming_protocol
+                                          daq::native_streaming_protocol
 )
 
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

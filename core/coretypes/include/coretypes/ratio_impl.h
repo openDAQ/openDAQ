@@ -26,7 +26,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class RatioImpl : public GenericStructImpl<IRatio, IStruct, IConvertible, ISerializable, ICoreType, IComparable>
+class RatioImpl : public GenericStructImpl<IRatio, IStruct, IConvertible, IComparable>
 {
 public:
     RatioImpl(Int numerator, Int denominator);

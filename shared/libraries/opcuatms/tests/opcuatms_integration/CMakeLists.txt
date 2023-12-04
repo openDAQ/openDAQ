@@ -41,7 +41,7 @@ endif()
 set(StreamingLibraries )
 
 if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    list(APPEND StreamingLibraries PRIVATE daq::opendaq_websocket_streaming)
+    list(APPEND StreamingLibraries PRIVATE daq::websocket_streaming)
 endif()
 
 target_link_libraries(${TEST_APP} PRIVATE daq::opcuatms_test_utils

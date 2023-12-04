@@ -21,7 +21,8 @@
 #include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-    struct TestObjectPropertyClass
+
+struct TestObjectPropertyClass
 {
     static constexpr char ClassName[] = "TestObject";
     static constexpr char ClassParent[] = "\0";

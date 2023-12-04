@@ -25,6 +25,7 @@
  */
 #pragma once
 #include <cstddef>
+#include <utility>
 #include <type_traits>
 
 namespace daq
@@ -124,8 +125,8 @@ namespace daq
         template <typename TArgs, typename T, int IndexOf>
         struct IndexOfFirst
         {
-            static constexpr int Index = !std::is_same_v<typename TArgs::Head, T> 
-                ? IndexOfFirst<typename TArgs::Tail, T, IndexOf + 1>::Index 
+            static constexpr int Index = !std::is_same_v<typename TArgs::Head, T>
+                ? IndexOfFirst<typename TArgs::Tail, T, IndexOf + 1>::Index
                 : IndexOf;
         };
 
@@ -133,7 +134,7 @@ namespace daq
         //      RemoveAllOf
         /////////////////////////
 
-        template <typename ... TArgs>
+        template <typename... TArgs>
         struct ArgumentExpander
         {
             using Result = daq::Args<TArgs...>;
@@ -606,20 +607,21 @@ namespace daq
             using Forward = T<TArgs...>;
 
             template <typename TReturn, typename... TFunctorArgs>
-            static constexpr decltype(auto) Call(TReturn (* fun)(TFunctorArgs&& ...), TFunctorArgs&& ... args)
+            static constexpr decltype(auto) Call(TReturn (*fun)(TFunctorArgs&&...), TFunctorArgs&&... args)
             {
                 return fun(std::forward<TFunctorArgs>(args)...);
             }
 
             template <typename TReturn, typename TType, typename... TFunctorArgs>
-            static constexpr decltype(auto)
-            CallMember(TReturn (std::remove_reference_t<TType>::*fun)(TFunctorArgs&& ...), TType&& obj, TFunctorArgs&& ... args)
+            static constexpr decltype(auto) CallMember(TReturn (std::remove_reference_t<TType>::*fun)(TFunctorArgs&&...),
+                                                       TType&& obj,
+                                                       TFunctorArgs&&... args)
             {
                 return (obj.*fun)(std::forward<TFunctorArgs>(args)...);
             }
 
             template <typename TFunctor, typename... TFunctorArgs>
-            static constexpr decltype(auto) Call(TFunctor&& fun, TFunctorArgs&& ... args)
+            static constexpr decltype(auto) Call(TFunctor&& fun, TFunctorArgs&&... args)
             {
                 return fun.template operator()<TArgs...>(std::forward<TFunctorArgs>(args)...);
             }
@@ -716,33 +718,6 @@ namespace daq
         using Head = std::remove_reference_t<std::remove_cv_t<THead>>;
         using Tail = Args<TTail...>;
 
-    #ifdef RT_TYPELIST_HELPERS
-        using Self = Args<THead, TTail...>;
-
-        template <std::size_t Index>
-        using At = typename Detail::TypeAt<Self, Index>::Result;
-
-        template <typename T>
-        using EqualTo = Detail::AreArgumentsEqual<Self, T>;
-
-        template <typename T>
-        using HasType = Detail::HasArgumentWithType<Self, T>;
-
-        template <typename T>
-        using RemoveAll = typename Detail::RemoveAllOf<T, Self>::Folded;
-
-        template <typename T>
-        using RemoveOne = typename Detail::RemoveOneOf<T, Self>::Folded;
-
-        template <typename... T>
-        using Add = Detail::AddTypes<Self, T...>;
-
-        template <typename... T>
-        using Prepend = Detail::PrependTypes<Self, T...>;
-    #endif
-
-        // using Unique = typename Detail::UniqueTypes<Self>::Args;
-
         static constexpr std::size_t Arity()
         {
             return 1 + sizeof...(TTail);
@@ -754,33 +729,6 @@ namespace daq
     {
         using Head = std::remove_reference_t<std::remove_cv_t<THead>>;
         using Tail = Details::EndTag;
-
-    #ifdef RT_TYPELIST_HELPERS
-        using Self = Args<THead>;
-
-        template <std::size_t Index>
-        using At = typename Detail::TypeAt<Self, Index>::Result;
-
-        template <typename T>
-        using EqualTo = Detail::AreArgumentsEqual<Self, T>;
-
-        template <typename T>
-        using HasType = Detail::HasArgumentWithType<Self, T>;
-
-        template <typename T>
-        using RemoveAll = typename Detail::RemoveAllOf<T, Self>::Folded;
-
-        template <typename T>
-        using RemoveOne = typename Detail::RemoveOneOf<T, Self>::Folded;
-
-        using Unique = THead;
-
-        template <typename... T>
-        using Add = Detail::AddTypes<Self, T...>;
-
-        template <typename... T>
-        using Prepend = Detail::PrependTypes<Self, T...>;
-    #endif
 
         static constexpr std::size_t Arity()
         {

@@ -741,10 +741,10 @@ ErrCode MultiReaderImpl::getOffset(void* domainStart)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     }
 
-    commonStart
-        ? commonStart->getValue(domainStart)
-        : domainStart = nullptr;
-
+    if (commonStart)
+    {
+        commonStart->getValue(domainStart);
+    }
     return OPENDAQ_SUCCESS;
 }
 

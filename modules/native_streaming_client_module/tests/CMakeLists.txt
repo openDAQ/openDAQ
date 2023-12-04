@@ -9,7 +9,7 @@ add_executable(${TEST_APP} ${TEST_SOURCES}
 )
 
 target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
-                                          daq::opendaq_native_streaming_protocol
+                                          daq::native_streaming_protocol
                                           ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
 )
 

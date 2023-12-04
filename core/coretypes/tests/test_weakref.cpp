@@ -17,7 +17,7 @@ DECLARE_OPENDAQ_INTERFACE(ITestObject1, IBaseObject)
 
 END_NAMESPACE_OPENDAQ
 
-class TestObject1Impl : public IntfObjectWithWeakRefImpl<ITestObject1, IInspectable>
+class TestObject1Impl : public ImplementationOfWeak<ITestObject1>
 {
 public:
     TestObject1Impl()

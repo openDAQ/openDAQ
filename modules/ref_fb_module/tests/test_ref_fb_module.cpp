@@ -101,7 +101,7 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IFunctionBlockType> functionBlockTypes;
     ASSERT_NO_THROW(functionBlockTypes = module.getAvailableFunctionBlockTypes());
     ASSERT_TRUE(functionBlockTypes.assigned());
-    ASSERT_EQ(functionBlockTypes.getCount(), 4u);
+    ASSERT_EQ(functionBlockTypes.getCount(), 5u);
 
     ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_renderer"));
     ASSERT_EQ("ref_fb_module_renderer", functionBlockTypes.get("ref_fb_module_renderer").getId());
@@ -114,6 +114,9 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
 
     ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_scaling"));
     ASSERT_EQ("ref_fb_module_scaling", functionBlockTypes.get("ref_fb_module_scaling").getId());
+
+    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_classifier"));
+    ASSERT_EQ("ref_fb_module_classifier", functionBlockTypes.get("ref_fb_module_classifier").getId());
 }
 
 TEST_F(RefFbModuleTest, CreateFunctionBlockNotFound)
@@ -149,4 +152,12 @@ TEST_F(RefFbModuleTest, StatisticsNumOfSignals)
 
     auto fb = module.createFunctionBlock("ref_fb_module_statistics", nullptr, "id");
     ASSERT_EQ(fb.getSignalsRecursive().getCount(), 3u);
+}
+
+TEST_F(RefFbModuleTest, CreateFunctionBlockClassifier)
+{
+    const auto module = CreateModule();
+
+    auto fb = module.createFunctionBlock("ref_fb_module_classifier", nullptr, "id");
+    ASSERT_TRUE(fb.assigned());
 }

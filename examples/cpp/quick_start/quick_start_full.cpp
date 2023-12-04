@@ -100,6 +100,7 @@ int quickStartFull(int /*argc*/, const char* /*argv*/ [])
 
     // Connect the first output signal of the device to the statistics
     statistics.getInputPorts()[0].connect(signal);
+
     // Connect the first output signal of the statistics to the renderer
     renderer.getInputPorts()[1].connect(statistics.getSignals()[0]);
 

@@ -1,3 +1,12 @@
+5.12.2023
+Description:
+  - Expose Origin Epoch and StartOffset the MultiReader aligned all the read signals to
+  - Rework how interface inheritance and queryInterface work to hopefully prevent ICEs and out-of-heap-space errors
+
++ [function] IMultiReader::getTickResolution(IRatio** resolution)
++ [function] IMultiReader::getOrigin(IString** origin)
++ [function] IMultiReader::getOffset(void* domainStart)
+
 28.11.2023
 
 Description:

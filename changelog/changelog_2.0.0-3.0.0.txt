@@ -27,6 +27,9 @@ Implementing builder pattern for IInstance
 + [function] IInstanceBuilder::getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo)
 + [factory] InstanceBuilderPtr InstanceBuilder()
 
+-m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId)
+-m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo)
+
 28.11.2023
 
 Description:

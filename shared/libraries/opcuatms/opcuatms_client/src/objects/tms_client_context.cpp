@@ -6,6 +6,7 @@ using namespace opcua;
 
 TmsClientContext::TmsClientContext(const OpcUaClientPtr& client)
     : client(client)
+    , referenceBrowser(std::make_shared<CachedReferenceBrowser>(client))
 {
 }
 
@@ -46,6 +47,11 @@ opcua::OpcUaNodeId TmsClientContext::getNodeId(const BaseObjectPtr object) const
             return pair.first;
     }
     return opcua::OpcUaNodeId();
+}
+
+CachedReferenceBrowserPtr TmsClientContext::getReferenceBrowser()
+{
+    return referenceBrowser;
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

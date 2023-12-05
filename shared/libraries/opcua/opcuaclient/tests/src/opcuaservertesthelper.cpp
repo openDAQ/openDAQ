@@ -2,6 +2,7 @@
 #include <open62541/server_config_default.h>
 #include <open62541/server.h>
 #include <opcuashared/opcuanodeid.h>
+#include <cstring>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 

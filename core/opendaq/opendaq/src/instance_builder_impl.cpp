@@ -278,14 +278,9 @@ ErrCode InstanceBuilderImpl::getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo)
 ////
 ////////////////////
 
-// extern "C" ErrCode PUBLIC_EXPORT createInstanceBuilder(IInstanceBuilder** objTmp)
-// {
-//     return daq::createObject<IInstanceBuilder, InstanceBuilderImpl>(objTmp);
-// }
-
-// extern "C" ErrCode PUBLIC_EXPORT createInstanceBuilderFromExisting(IInstanceBuilder** objTmp, IInstance* instanceToCopy)
-// {
-//     return daq::createObject<IInstanceBuilder, InstanceBuilderImpl>(objTmp, instanceToCopy);
-// }
+extern "C" ErrCode PUBLIC_EXPORT createInstanceBuilder(IInstanceBuilder** objTmp)
+{
+    return daq::createObject<IInstanceBuilder, InstanceBuilderImpl>(objTmp);
+}
 
 END_NAMESPACE_OPENDAQ

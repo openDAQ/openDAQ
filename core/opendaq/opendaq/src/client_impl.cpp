@@ -14,8 +14,8 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
     , loggerComponent( this->logger.assigned()
                           ? this->logger.getOrAddComponent("Client")
                           : throw ArgumentNullException("Logger must not be null"))
-    , rootDeviceSet(false)
     , defaultDeviceInfo(defaultDeviceInfo)
+    , rootDeviceSet(false)
 {
     this->deviceInfo = DeviceInfo("", "daq_client");
 }

@@ -170,25 +170,8 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 /*!@}*/
 
 /*!
- * @ingroup opendaq_instance
- * @addtogroup opendaq_instance_factories Factories
- * @{
+ * @brief Creates a InstanceBuilder with no parameters configured.
  */
-
-// /*!
-//  * @brief Creates a InstanceConfig with no parameters configured.
-//  */
-// OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, InstanceBuilder, IInstanceBuilder)
-
-// /*!
-//  * @brief InstanceConfig copy factory that creates a configurable Instance object from a possibly non-configurable Instance.
-//  * @param instanceToCopy The Instance of which configuration should be copied.
-//  */
-// OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-//     LIBRARY_FACTORY, InstanceBuilderFromExisting, IInstanceBuilder,
-//     IInstance*, instanceToCopy
-// )
-
-/*!@}*/
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, InstanceBuilder, IInstanceBuilder)
 
 END_NAMESPACE_OPENDAQ

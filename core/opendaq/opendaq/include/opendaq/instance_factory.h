@@ -66,6 +66,16 @@ inline InstancePtr Instance(const std::string& modulePath = "", const std::strin
     InstancePtr obj(Instance_Create(context, localIdStr));
     return obj;
 }
+
+/*!
+ * @brief Creates a InstanceBuilder with no parameters configured.
+ */
+inline InstanceBuilderPtr InstanceBuilder()
+{
+    InstanceBuilderPtr obj(InstanceBuilder_Create());
+    return obj;
+}
+
 /*!
  * @brief Creates a Instance with Builder
  * @param builder Instance Builder

@@ -357,7 +357,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     ASSERT_EQ(options.get("option1"), 1);
     ASSERT_EQ(options.get("option2"), "option2");
     ASSERT_EQ(options.get("ModuleManager").asPtr<IDict>().get("ModulesPath"), "./modulePath2");
-    ASSERT_EQ(options.get("Scheduler").asPtr<IDict>().getCount(), 0);
+    ASSERT_EQ(options.get("Scheduler").asPtr<IDict>().get("ForceSingleThread"), 0);
     ASSERT_EQ(LogLevel(options.get("Logging").asPtr<IDict>().get("GlobalLogLevel")), LogLevel::Debug);
     ASSERT_EQ(options.get("Modules").asPtr<IDict>().getCount(), 0);
 
@@ -405,6 +405,7 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
                                 .setGlobalLogLevel(LogLevel::Debug)
                                 .setComponentLogLevel("Instance", LogLevel::Error)
                                 .setSinkLogLevel(StdOutLoggerSink(), LogLevel::Warn)
+                                .setSchedulerWorkerNum(1)
                                 .setDefaultRootDeviceName("DefaultRootDeviceName")
                                 .setDefaultRootDeviceInfo(defaultRootDeviceInfo);
     const auto instance = instanceBuilder.build();
@@ -421,6 +422,7 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
 
     // check sheduler
     ASSERT_EQ(scheduler.assigned(), true);
+    ASSERT_EQ(scheduler.isMultiThreaded(), false);
 
     // check moduleManager
     ASSERT_EQ(moduleManager.assigned(), true);

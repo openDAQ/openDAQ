@@ -12,7 +12,9 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetOptions()
         {"ModuleManager", Dict<IString, IBaseObject>({
                 {"ModulesPath", ""}
             })},
-        {"Scheduler", Dict<IString, IBaseObject>()},
+        {"Scheduler", Dict<IString, IBaseObject>({
+                {"ForceSingleThread", 0}
+            })},
         {"Logging", Dict<IString, IBaseObject>()},
         {"Modules", Dict<IString, IBaseObject>()}
     });
@@ -79,7 +81,7 @@ ErrCode InstanceBuilderImpl::build(IInstance** instance)
 
     // Configure scheduler
     if (!this->scheduler.assigned())
-        this->scheduler = Scheduler(this->logger);
+        this->scheduler = Scheduler(this->logger, getSchedulerOptions()["ForceSingleThread"]);
 
     // Configure moduleManager
     if (!this->moduleManager.assigned())
@@ -173,6 +175,12 @@ ErrCode InstanceBuilderImpl::getModuleManager(IModuleManager** moduleManager)
     else
         *moduleManager = nullptr;    
     
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::setSchedulerWorkerNum(SizeT numWorkers)
+{
+    getSchedulerOptions()["ForceSingleThread"] = numWorkers;
     return OPENDAQ_SUCCESS;
 }
 

@@ -40,6 +40,7 @@ public:
     ErrCode INTERFACE_FUNC setModuleManager(IModuleManager* moduleManager);
     ErrCode INTERFACE_FUNC getModuleManager(IModuleManager** moduleManager);
 
+    ErrCode INTERFACE_FUNC setSchedulerWorkerNum(SizeT numWorkers);
     ErrCode INTERFACE_FUNC setScheduler(IScheduler* scheduler);
     ErrCode INTERFACE_FUNC getScheduler(IScheduler** scheduler);
 

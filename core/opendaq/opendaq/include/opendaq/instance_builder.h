@@ -74,15 +74,15 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the sink logger level of Instance
-     * @param sink The sink logger of Instance
-     * @param logLevel The sink logger level of Instancee
+     * @brief Sets the sink logger level of default Instance logger. Ignored if was set custom logger
+     * @param sink The sink logger of default Instance logger
+     * @param logLevel The sink logger level of default Instance logger
      */
     virtual ErrCode INTERFACE_FUNC setSinkLogLevel(ILoggerSink* sink, LogLevel logLevel) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Sets the path for default ModuleManager of Instance. This method would be ignored if was called setModuleManager method
+     * @brief Sets the path for default ModuleManager of Instance. Ignored if was set custom Module Manager
      * @param path The path for default ModuleManager of Instance
      */
     virtual ErrCode INTERFACE_FUNC setModulePath(IString* path) = 0;
@@ -99,6 +99,13 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * @param[out] moduleManager The ModuleManager of Instance
      */
     virtual ErrCode INTERFACE_FUNC getModuleManager(IModuleManager** moduleManager) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the amount of worker threads in scheduler of Instance. Ignored if custom sheduler was set
+     * @param numWorkers The amount of worker threads in scheduler of Instance. If @c 0 then maximum number of concurrent threads supported by the implementation is used.
+     */
+    virtual ErrCode INTERFACE_FUNC setSchedulerWorkerNum(SizeT numWorkers) = 0;
 
     // [returnSelf]
     /*!

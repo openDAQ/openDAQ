@@ -86,7 +86,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.setSinkLogLevel(sink, logLevel);
         },
         py::arg("sink"), py::arg("log_level"),
-        "Sets the sink logger level of Instance");
+        "Sets the sink logger level of default Instance logger. Ignored if was set custom logger");
     cls.def_property("module_path",
         nullptr,
         [](daq::IInstanceBuilder *object, const std::string& path)
@@ -94,7 +94,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setModulePath(path);
         },
-        "Sets the path for default ModuleManager of Instance. This method would be ignored if was called setModuleManager method");
+        "Sets the path for default ModuleManager of Instance. Ignored if was set custom Module Manager");
     cls.def_property("module_manager",
         [](daq::IInstanceBuilder *object)
         {
@@ -108,6 +108,14 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
         },
         py::return_value_policy::take_ownership,
         "Gets the ModuleManager of Instance. / Sets the ModuleManager of Instance.");
+    cls.def_property("scheduler_worker_num",
+        nullptr,
+        [](daq::IInstanceBuilder *object, const size_t numWorkers)
+        {
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            objectPtr.setSchedulerWorkerNum(numWorkers);
+        },
+        "Sets the amount of worker threads in scheduler of Instance. Ignored if custom sheduler was set");
     cls.def_property("scheduler",
         [](daq::IInstanceBuilder *object)
         {

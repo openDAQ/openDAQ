@@ -14,6 +14,7 @@ set(SOURCE_CPPS opcuaclient.cpp
                 reference_utils.cpp
                 request_handler.cpp
                 attribute_reader.cpp
+                cached_reference_browser.cpp
 )
 
 set(SOURCE_BROWSER_CPPS browser/opcuanodevisitor.cpp

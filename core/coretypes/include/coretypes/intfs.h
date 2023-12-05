@@ -102,183 +102,15 @@ struct BaseInterface
 
 // clang-format on
 
-// template <typename TMainInterface, typename... TInterfaces>
-// struct ActualInterfaces
-//{
-//    using BaseInterfaces = typename Meta::Flatten<Args<typename BaseInterface<TMainInterface>::Interfaces,
-//                                                       typename BaseInterface<TInterfaces>::Interfaces...>
-//                                                  >::Args;
-//    // using OnlyDiscover = typename Meta::RemoveAllOf<IBaseObject, typename Meta::UniqueTypes<BaseInterfaces>::Args>::Folded;
-//    //
-//    // using Wrapped = typename Meta::ReverseTypes<
-//    //                     typename Meta::WrapTypesWith<
-//    //                         DiscoverOnly,
-//    //                         OnlyDiscover
-//    //                     >::Wrapped
-//    //                 >::Args;
-//
-//    /*
-//     * QueryInterface order:
-//     *  - TMainInterface,
-//     *  - DiscoverOnly<T>'s, where T's are any base interfaces
-//     *  - TInterfaces (trait interfaces)
-//     */
-//
-//    using Interfaces = //typename Meta::UniqueTypes<
-//                            typename Meta::PrependType<
-//                                TMainInterface,
-//                                typename Meta::RemoveAllOf<IBaseObject,
-//                                    typename Meta::AddTypes<
-//                                        BaseInterfaces,
-//                                        TInterfaces...
-//                                        , IInspectable
-//                                    >::Args
-//                                >::Folded
-//                            >::Args
-//                        //>::Args
-//                        ;
-//};
-//
-// template <>
-// struct ActualInterfaces<IBaseObject>
-//{
-//    using Interfaces = Args<IInspectable>;
-//};
-//
-// Adapted from:
-// Interface discovery variadic templates (Implementing COM Interfaces with C++0x Variadic Templates)
-// https://www.codeproject.com/Articles/249257/Implementing-COM-Interfaces-with-Cplusplus-x-Varia
-//
-// template <typename Intf>
-// class IntfDiscovery
-// {
-// public:
-//     using Interface = Intf;
-// protected:
-//     template <typename Obj>
-//     static ErrCode internalQueryInterface(const IntfID& intfID, Obj* object, void** outObj)
-//     {
-//         auto thisId = Intf::Id;
-//         if (intfID == thisId)
-//         {
-//             *outObj = const_cast<Intf*>(static_cast<const Intf*>(object));
-//             return OPENDAQ_SUCCESS;
-//         }
-//
-//         return OPENDAQ_ERR_NOINTERFACE;
-//     }
-// };
-//
-// template <typename Intf>
-// class IntfEntry;
-//
-// template <typename Intf>
-// class DAQ_EMPTY_BASES IntfEntry : public Intf, public IntfDiscovery<Intf>
-// {
-// };
-//
-// template <typename T>
-// class DAQ_EMPTY_BASES IntfEntry<DiscoverOnly<T>> : public IntfDiscovery<T>
-// {
-// };
-//
-// template <typename Intf1, typename Intf2, typename Intermediate>
-// class Intf3StepDiscovery
-// {
-// public:
-//     using BaseInterface = Intermediate;
-//
-// protected:
-//     template <typename Obj>
-//     static ErrCode internalQueryInterface(const IntfID& intfID, Obj* object, void** outObj)
-//     {
-//         auto oneId = Intf1::Id;
-//         if (intfID == oneId)
-//         {
-//             *outObj = const_cast<Intf1*>(static_cast<const Intf1*>(static_cast<const Intermediate*>(object)));
-//             return OPENDAQ_SUCCESS;
-//         }
-//
-//         auto twoId = Intf2::Id;
-//         if (intfID == twoId)
-//         {
-//             *outObj = const_cast<Intf2*>(static_cast<const Intf2*>(static_cast<const Intermediate*>(object)));
-//             return OPENDAQ_SUCCESS;
-//         }
-//
-//         return OPENDAQ_ERR_NOINTERFACE;
-//     }
-// };
-//
-// template <typename Intermediate>
-// class DAQ_EMPTY_BASES IntfTerminator : public Intf3StepDiscovery<IUnknown, IBaseObject, Intermediate>
-// {
-// };
-//
-// template <typename IntfEntry1, typename IntfEntry2 = IntfTerminator<typename IntfEntry1::Interface>>
-// class DAQ_EMPTY_BASES IntfCompound : public IntfEntry1
-//                                    , public IntfEntry2
-// {
-// protected:
-//     template <typename Obj>
-//     static ErrCode internalQueryInterface(const IntfID& intfID, Obj* object, void** outObj)
-//     {
-//         ErrCode res = IntfEntry1::internalQueryInterface(intfID, object, outObj);
-//         if (OPENDAQ_FAILED(res))
-//             res = IntfEntry2::internalQueryInterface(intfID, object, outObj);
-//         return res;
-//     }
-// };
-//
-// template <typename Intf>
-// class DAQ_EMPTY_BASES IntfEntrySingle : public IntfCompound<IntfEntry<Intf>>
-// {
-// };
-//
-// template <typename ... Interfaces>
-// class IntfEntries;
-//
-// template <typename Intf, typename... OtherIntfs>
-// class DAQ_EMPTY_BASES IntfEntries<Intf, OtherIntfs...> : public IntfCompound<IntfEntry<Intf>,
-//                                                                              IntfEntries<OtherIntfs...>
-//                                                                             >
-// {
-// public:
-//     using Interface = Intf;
-//
-//     static constexpr SizeT GetInterfaceCount()
-//     {
-//         return sizeof...(OtherIntfs) + 1u;
-//     }
-//
-//     static std::array<IntfID, sizeof...(OtherIntfs) + 1u> InterfaceIds()
-//     {
-//         return { IntfEntry<Intf>::Interface::Id, IntfEntry<OtherIntfs>::Interface::Id...};
-//     }
-// };
-//
-// template <typename Intf>
-// class DAQ_EMPTY_BASES IntfEntries<Intf> : public IntfEntrySingle<Intf>
-// {
-// public:
-//     static constexpr SizeT GetInterfaceCount()
-//     {
-//         return 1u;
-//     }
-//
-//     static std::array<IntfID, 1> InterfaceIds()
-//     {
-//         return {Intf::Id};
-//     }
-// };
-
 template <typename TMainInterface, typename... TInterfaces>
-struct ActualIntfs
+struct ActualInterfaces
 {
     using BaseInterfaces =
         typename Meta::UniqueTypes<typename Meta::Flatten<Args<Args<TMainInterface, TInterfaces...>,
                                                                typename BaseInterface<TMainInterface>::Interfaces,
-                                                               typename BaseInterface<TInterfaces>::Interfaces...>>::Args>::Args;
+                                                               typename BaseInterface<TInterfaces>::Interfaces...>
+                                                          >::Args
+                                   >::Args;
 };
 
 template <typename T>
@@ -287,7 +119,7 @@ struct SupportsInterface;
 template <>
 struct SupportsInterface<Details::EndTag>
 {
-    static bool Found(const IntfID& id, void** intf, void* object, bool addRef)
+    static bool Check(const IntfID& id, void** intf, void* object, bool addRef)
     {
         if (IUnknown::Id == id)
         {
@@ -307,6 +139,11 @@ struct SupportsInterface<Details::EndTag>
     static void AddInterfaceIds(IntfID* /*ids*/)
     {
     }
+
+    static constexpr std::size_t Count()
+    {
+        return 0;
+    }
 };
 
 template <typename TArgs>
@@ -314,7 +151,7 @@ struct SupportsInterface
 {
     using Interface = typename TArgs::Head;
 
-    static bool Found(const IntfID& id, void** intf, void* object, bool addRef)
+    static bool Check(const IntfID& id, void** intf, void* object, bool addRef)
     {
         [[maybe_unused]] Interface* ptr = nullptr;
 
@@ -330,7 +167,7 @@ struct SupportsInterface
             *intf = obj;
             return true;
         }
-        return SupportsInterface<typename TArgs::Tail>::Found(id, intf, object, addRef);
+        return SupportsInterface<typename TArgs::Tail>::Check(id, intf, object, addRef);
     }
 
     static void AddInterfaceIds(IntfID* ids)
@@ -340,20 +177,23 @@ struct SupportsInterface
 
         SupportsInterface<typename TArgs::Tail>::AddInterfaceIds(ids);
     }
+
+    static constexpr std::size_t Count()
+    {
+        return TArgs::Arity();
+    }
 };
 
 template <typename MainInterface, typename... Interfaces>
 class DAQ_EMPTY_BASES GenericObjInstance : public MainInterface, public Interfaces...
 {
 public:
-    using InterfaceIds = typename ActualIntfs<MainInterface, Interfaces...>::BaseInterfaces;
+    using InterfaceIds = SupportsInterface<typename ActualInterfaces<MainInterface, Interfaces...>::BaseInterfaces>;
 
     GenericObjInstance()
         : refAdded(false)
         , disposeCalled(false)
     {
-        [[maybe_unused]] InterfaceIds* ptr = nullptr;
-
 #ifndef NDEBUG
         const auto thisBaseObject = getThisAsBaseObject();
         daqTrackObject(thisBaseObject);
@@ -399,7 +239,7 @@ public:
         if (!intf)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        if (SupportsInterface<InterfaceIds>::Found(id, intf, (void*) this, true))
+        if (InterfaceIds::Check(id, intf, (void*) this, true))
         {
             return OPENDAQ_SUCCESS;
         }
@@ -412,7 +252,7 @@ public:
         if (!intf)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        if (SupportsInterface<InterfaceIds>::Found(id, intf, (void*) this, false))
+        if (InterfaceIds::Check(id, intf, (void*) this, false))
         {
             return OPENDAQ_SUCCESS;
         }
@@ -468,14 +308,13 @@ public:
         if (idCount == nullptr)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        *idCount = InterfaceIds::Arity();
+        *idCount = InterfaceIds::Count();
         if (ids == nullptr)
         {
             return OPENDAQ_SUCCESS;
         }
 
-        SupportsInterface<InterfaceIds>::AddInterfaceIds(*ids);
-
+        InterfaceIds::AddInterfaceIds(*ids);
         return OPENDAQ_SUCCESS;
     }
 
@@ -514,9 +353,6 @@ protected:
     IBaseObject* getThisAsBaseObject()
     {
         return static_cast<IBaseObject*>(static_cast<MainInterface*>(this));
-
-        // IBaseObject* thisBaseObject = static_cast<IBaseObject*>(static_cast<typename Intfs::BaseInterface*>(this));
-        // return thisBaseObject;
     }
 
     void checkAndCallDispose()
@@ -761,9 +597,6 @@ class IntfObjectSupportsWeakRefImpl : public ObjInstanceSupportsWeakRef<Interfac
 
 template <typename... Interfaces>
 using ImplementationOf = IntfObjectImpl<Interfaces..., IInspectable>;
-
-// template <typename... Intfs>
-// using ImplementationOf = typename Meta::FoldType<typename ActualInterfaces<Intfs...>::Interfaces, IntfObjectImpl>::Folded;
 
 template <typename TInstance, typename TReturn, typename... TArgs>
 auto event(TInstance* const obj, TReturn (TInstance::*func)(TArgs...) const)

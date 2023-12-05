@@ -1,3 +1,31 @@
+05.12.2023
+Description:
+Implementing builder pattern for IInstance
+
++ [interface] IInstanceBuilder : public IBaseObject
++ [function] IInstanceBuilder::build(IInstance** instance);
++ [function] IInstanceBuilder::setLogger(ILogger* logger);
++ [function] IInstanceBuilder::setLogger(ILogger* logger);
++ [function] IInstanceBuilder::getLogger(ILogger** logger);
++ [function] IInstanceBuilder::setGlobalLogLevel(LogLevel logLevel);
++ [function] IInstanceBuilder::getGlobalLogLevel(LogLevel* logLevel);
++ [function] IInstanceBuilder::setComponentLogLevel(IString* component, LogLevel logLevel);
++ [function] IInstanceBuilder::setSinkLogLevel(ILoggerSink* sink, LogLevel logLevel);
++ [function] IInstanceBuilder::setModulePath(IString* path);
++ [function] IInstanceBuilder::setModuleManager(IModuleManager* moduleManager);
++ [function] IInstanceBuilder::getModuleManager(IModuleManager** moduleManager);
++ [function] IInstanceBuilder::setScheduler(IScheduler* scheduler);
++ [function] IInstanceBuilder::getScheduler(IScheduler** scheduler);
++ [function] IInstanceBuilder::setOption(IString* option, IBaseObject* value);
++ [function] IInstanceBuilder::getOptions(IDict** options);
++ [function] IInstanceBuilder::setInstanceLocalId(IString* localId);
++ [function] IInstanceBuilder::getInstanceLocalId(IString** localId);
++ [function] IInstanceBuilder::setRootDevice(IDevice* rootDevice);
++ [function] IInstanceBuilder::getRootDevice(IDevice** rootDevice);
++ [function] IInstanceBuilder::setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo);
++ [function] IInstanceBuilder::getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo);
++ [factory] InstanceBuilderPtr InstanceBuilder()
+
 28.11.2023
 
 Description:

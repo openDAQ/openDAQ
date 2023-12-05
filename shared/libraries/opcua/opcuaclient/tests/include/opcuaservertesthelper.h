@@ -21,7 +21,7 @@
 #include "opcuaclient/opcuaclient.h"
 #include "opcuashared/opcua.h"
 #include "opcuashared/opcuacommon.h"
-
+#include <open62541/server_config_default.h>
 #include <thread>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
@@ -31,11 +31,14 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA
 class OpcUaServerTestHelper final
 {
 public:
+    using OnConfigureCallback = std::function<void(UA_ServerConfig* config)>;
+
     OpcUaServerTestHelper();
     ~OpcUaServerTestHelper();
 
     void setSessionTimeout(double sessionTimeoutMs);
 
+    void onConfigure(const OnConfigureCallback& callback);
     void startServer();
     void stop();
 
@@ -71,6 +74,7 @@ private:
     std::atomic<UA_Boolean> serverRunning = false;
 
     UA_UInt16 port = 4842u;
+    OnConfigureCallback onConfigureCallback;
 };
 
 class BaseClientTest : public testing::Test

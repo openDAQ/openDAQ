@@ -16,32 +16,21 @@
 
 #pragma once
 
-#include "opcuacommon.h"
-#include "opcuavariant.h"
+#include <opcuashared/opcuacommon.h>
+#include <opcuashared/opcuanodeid.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
-class OpcUaDataValue;
-using OpcUaDataValuePtr = std::shared_ptr<OpcUaDataValue>;
-
-class OpcUaDataValue
+struct OpcUaAttribute
 {
-public:
-    OpcUaDataValue(const UA_DataValue* dataValue);
-    virtual ~OpcUaDataValue();
+    OpcUaNodeId nodeId;
+    UA_AttributeId attributeId;
 
-    bool hasValue() const;
-    const OpcUaVariant& getValue() const;
-    const UA_StatusCode& getStatusCode() const;
-
-    bool isStatusOK() const;
-
-    const UA_DataValue* getDataValue() const;
-    operator const UA_DataValue*() const;
-
-protected:
-    const UA_DataValue* dataValue;
-    const OpcUaVariant variant;
+    OpcUaAttribute(const OpcUaNodeId& nodeId, UA_AttributeId attributeId)
+        : nodeId(nodeId)
+        , attributeId(attributeId)
+    {
+    }
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA

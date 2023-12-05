@@ -51,6 +51,7 @@ set(SOURCE_HEADERS opcuavariant.h
                    opcuadatatypearraylist.h
                    opcuavector.h
                    opcuanodeid.h
+                   opcua_attribute.h
                    bcrypt.h
                    bcrypt/crypt_blowfish.h
 )

@@ -22,9 +22,9 @@ TEST_F(PropertyTest, Guid)
     static constexpr IntfID PropertyGuid = {0X4DA1E04E, 0X06CE, 0x5411, {{0x84, 0x7a, 0x57, 0x58, 0xd6, 0xdf, 0xc3, 0xf1}}};
     ASSERT_EQ(IProperty::Id, PropertyGuid);
 
-// #if !defined(NDEBUG) && !defined(DS_CI_RUNNER)
-//     ASSERT_EQ(IProperty::GuidSource, "IProperty.daq");
-// #endif // !_DEBUG
+#if !defined(NDEBUG) && !defined(DS_CI_RUNNER)
+    ASSERT_EQ(IProperty::GuidSource, "IProperty.daq");
+#endif // !_DEBUG
 }
 
 TEST_F(PropertyTest, Create)

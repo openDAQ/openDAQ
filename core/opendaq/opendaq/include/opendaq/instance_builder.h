@@ -130,19 +130,6 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the local ID of Instance
-     * @param rootDevice The local ID of Instance
-     */
-    virtual ErrCode INTERFACE_FUNC setInstanceLocalId(IString* localId) = 0;
-
-    /*!
-     * @brief Gets the local ID of Instance
-     * @param[out] rootDevice The local ID of Instance
-     */
-    virtual ErrCode INTERFACE_FUNC getInstanceLocalId(IString** localId) = 0;
-
-    // [returnSelf]
-    /*!
      * @brief Sets the root device of Instance
      * @param rootDevice The root device of Instance
      */
@@ -153,6 +140,19 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * @param[out] rootDevice The root device of Instance
      */
     virtual ErrCode INTERFACE_FUNC getRootDevice(IDevice** rootDevice) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the default root device name
+     * @param rootDevice The default root device name
+     */
+    virtual ErrCode INTERFACE_FUNC setDefaultRootDeviceName(IString* localId) = 0;
+
+    /*!
+     * @brief Gets the default root device name
+     * @param[out] rootDevice The default root device name
+     */
+    virtual ErrCode INTERFACE_FUNC getDefaultRootDeviceName(IString** localId) = 0;
 
     // [returnSelf]
     /*!

@@ -26,7 +26,7 @@ InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
     loggerComponent = this->context.getLogger().addComponent("Instance");
 }
 
-static ContextPtr ContextFromInstanceBuilder (IInstanceBuilder* instanceBuilder)
+static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 {
     const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
 
@@ -45,7 +45,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
 {
     const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
     
-    auto localId = builderPtr.getInstanceLocalId();
+    auto localId = builderPtr.getDefaultRootDeviceName();
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
     defaultRootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
     
@@ -54,7 +54,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     if (!rootDeviceSet)
         rootDevice = defaultRootDevice;
 
-    loggerComponent = this->context.getLogger().addComponent("Instance");
+    loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
 }
 
 std::string InstanceImpl::defineLocalId(const std::string& localId)

@@ -46,11 +46,11 @@ public:
     ErrCode INTERFACE_FUNC setOption(IString* option, IBaseObject* value);
     ErrCode INTERFACE_FUNC getOptions(IDict** options);
 
-    ErrCode INTERFACE_FUNC setInstanceLocalId(IString* localId);
-    ErrCode INTERFACE_FUNC getInstanceLocalId(IString** localId);
-
     ErrCode INTERFACE_FUNC setRootDevice(IDevice* rootDevice);
     ErrCode INTERFACE_FUNC getRootDevice(IDevice** rootDevice);
+
+    ErrCode INTERFACE_FUNC setDefaultRootDeviceName(IString* localId);
+    ErrCode INTERFACE_FUNC getDefaultRootDeviceName(IString** localId);
 
     ErrCode INTERFACE_FUNC setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo);
     ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo);
@@ -73,8 +73,6 @@ private:
     LoggerPtr logger;
 
     SchedulerPtr scheduler;
-
-    StringPtr modulePath;
     ModuleManagerPtr moduleManager;
 
     DictPtr<IString, IBaseObject> options;

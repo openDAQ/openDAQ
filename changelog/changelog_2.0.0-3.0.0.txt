@@ -18,10 +18,10 @@ Implementing builder pattern for IInstance
 + [function] IInstanceBuilder::getScheduler(IScheduler** scheduler);
 + [function] IInstanceBuilder::setOption(IString* option, IBaseObject* value);
 + [function] IInstanceBuilder::getOptions(IDict** options);
-+ [function] IInstanceBuilder::setInstanceLocalId(IString* localId);
-+ [function] IInstanceBuilder::getInstanceLocalId(IString** localId);
 + [function] IInstanceBuilder::setRootDevice(IDevice* rootDevice);
 + [function] IInstanceBuilder::getRootDevice(IDevice** rootDevice);
++ [function] IInstanceBuilder::setDefaultRootDeviceName(IString* localId);
++ [function] IInstanceBuilder::getDefaultRootDeviceName(IString** localId);
 + [function] IInstanceBuilder::setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo);
 + [function] IInstanceBuilder::getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo);
 + [factory] InstanceBuilderPtr InstanceBuilder()

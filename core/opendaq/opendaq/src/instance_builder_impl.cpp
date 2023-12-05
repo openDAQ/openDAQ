@@ -19,21 +19,22 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetOptions()
 }
 
 InstanceBuilderImpl::InstanceBuilderImpl()
-    : options(GetOptions())
+    : componentsLogLevel(Dict<IString, LogLevel>())
+    , options(GetOptions())
 {
 }
 
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getModuleManagerOptions()
 {
-    return options.get("ModuleManager").asPtr<IDict>();
+    return options.get("ModuleManager");
 }
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getSchedulerOptions()
 {
-    return options.get("Scheduler").asPtr<IDict>();
+    return options.get("Scheduler");
 }
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getLoggingOptions()
 {
-    return options.get("Logging").asPtr<IDict>();
+    return options.get("Logging");
 }
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getModuleOptions(IString* module)
 {
@@ -79,6 +80,10 @@ ErrCode InstanceBuilderImpl::build(IInstance** instance)
     // Configure scheduler
     if (!this->scheduler.assigned())
         this->scheduler = Scheduler(this->logger);
+
+    // Configure moduleManager
+    if (!this->moduleManager.assigned())
+        this->moduleManager = ModuleManager(getModuleManagerOptions()["ModulesPath"]);
 
     const auto builderPtr = this->borrowPtr<InstanceBuilderPtr>();
     return daqTry([&]()
@@ -163,10 +168,11 @@ ErrCode InstanceBuilderImpl::getModuleManager(IModuleManager** moduleManager)
     if (moduleManager == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    if (!this->moduleManager.assigned())
-        this->moduleManager = ModuleManager(getModuleManagerOptions()["ModulesPath"]);
+    if (this->moduleManager.assigned())
+        *moduleManager = this->moduleManager.addRefAndReturn();
+    else
+        *moduleManager = nullptr;    
     
-    *moduleManager = this->moduleManager.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -197,6 +203,16 @@ ErrCode InstanceBuilderImpl::setOption(IString* option, IBaseObject* value)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     if (value == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    auto optionPtr = StringPtr::Borrow(option);
+    if (optionPtr == "ModuleManager")
+        return OPENDAQ_ERR_INVALIDPROPERTY;
+    if (optionPtr == "Scheduler")
+        return OPENDAQ_ERR_INVALIDPROPERTY;
+    if (optionPtr == "Logging")
+        return OPENDAQ_ERR_INVALIDPROPERTY;
+    if (optionPtr == "Modules")
+        return OPENDAQ_ERR_INVALIDPROPERTY;
 
     this->options[option] = value;
     return OPENDAQ_SUCCESS;
@@ -208,23 +224,6 @@ ErrCode InstanceBuilderImpl::getOptions(IDict** options)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
     *options = this->options.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode InstanceBuilderImpl::setInstanceLocalId(IString* localId)
-{
-    if (localId == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    this->localId = localId;
-    return OPENDAQ_SUCCESS;
-}
-ErrCode InstanceBuilderImpl::getInstanceLocalId(IString** localId)
-{
-    if (localId == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    
-    *localId = this->localId.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -248,6 +247,24 @@ ErrCode InstanceBuilderImpl::getRootDevice(IDevice** rootDevice)
         *rootDevice = nullptr;
     return OPENDAQ_SUCCESS;
 }
+
+ErrCode InstanceBuilderImpl::setDefaultRootDeviceName(IString* localId)
+{
+    if (localId == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    this->localId = localId;
+    return OPENDAQ_SUCCESS;
+}
+ErrCode InstanceBuilderImpl::getDefaultRootDeviceName(IString** localId)
+{
+    if (localId == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    *localId = this->localId.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 
 ErrCode InstanceBuilderImpl::setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo)
 {

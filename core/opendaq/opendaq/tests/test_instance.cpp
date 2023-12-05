@@ -307,5 +307,139 @@ TEST_F(InstanceTest, Serialize)
     std::cout << str << std::endl;
 }
 
+InstancePtr createDevice()
+{
+    const auto logger = Logger();
+    const auto moduleManager = ModuleManager("[[none]]");
+    auto context = Context(Scheduler(logger, 1), logger, TypeManager(), moduleManager);
+
+    const ModulePtr deviceModule(MockDeviceModule_Create(context));
+    moduleManager.addModule(deviceModule);
+
+    auto instance = InstanceCustom(context, "localInstance");
+
+    instance.addDevice("mock_phys_device");
+
+    return instance;
+}
+
+TEST_F(InstanceTest, InstanceBuilderSetGet)
+{
+    const auto logger = Logger();
+    const auto scheduler = Scheduler(logger);
+    const auto moduleManager = ModuleManager("./modulePath1");
+    DevicePtr rootDevice = createDevice();
+    const auto defaultRootDeviceInfo = DeviceInfo("connectionString");
+
+    const auto params = Dict<IString, IBaseObject>({
+            {"option1", 1},
+            {"option2", "option2"}
+        });
+    const auto instanceBuilder = InstanceBuilder()
+                                .setLogger(logger)
+                                .setGlobalLogLevel(LogLevel::Debug)
+                                .setSinkLogLevel(StdOutLoggerSink(), LogLevel::Warn)
+                                .setModulePath("./modulePath2")
+                                .setModuleManager(moduleManager)
+                                .setScheduler(scheduler)
+                                .setOption("option1", 1)
+                                .setOption("option2", "option2")
+                                .setDefaultRootDeviceName("DefaultRootDeviceName")
+                                .setRootDevice(rootDevice)
+                                .setDefaultRootDeviceInfo(defaultRootDeviceInfo);
+    
+    ASSERT_EQ(instanceBuilder.getLogger(), logger);
+    ASSERT_EQ(instanceBuilder.getGlobalLogLevel(), LogLevel::Debug);
+    ASSERT_EQ(instanceBuilder.getModuleManager(), moduleManager);
+    ASSERT_EQ(instanceBuilder.getScheduler(), scheduler);
+    
+    const auto options = instanceBuilder.getOptions();
+    ASSERT_EQ(options.get("option1"), 1);
+    ASSERT_EQ(options.get("option2"), "option2");
+    ASSERT_EQ(options.get("ModuleManager").asPtr<IDict>().get("ModulesPath"), "./modulePath2");
+    ASSERT_EQ(options.get("Scheduler").asPtr<IDict>().getCount(), 0);
+    ASSERT_EQ(LogLevel(options.get("Logging").asPtr<IDict>().get("GlobalLogLevel")), LogLevel::Debug);
+    ASSERT_EQ(options.get("Modules").asPtr<IDict>().getCount(), 0);
+
+    ASSERT_EQ(instanceBuilder.getDefaultRootDeviceName(), "DefaultRootDeviceName");
+    ASSERT_EQ(instanceBuilder.getRootDevice(), rootDevice);
+    ASSERT_EQ(instanceBuilder.getDefaultRootDeviceInfo(), defaultRootDeviceInfo);
+}
+
+TEST_F(InstanceTest, InstanceCreateFactory)
+{
+    const auto logger = Logger();
+    const auto scheduler = Scheduler(logger);
+    const auto moduleManager = ModuleManager("");
+    DevicePtr rootDevice = createDevice();
+    const auto defaultRootDeviceInfo = DeviceInfo("connectionString");
+
+    auto instance = InstanceBuilder()
+                                .setLogger(logger)
+                                .setGlobalLogLevel(LogLevel::Debug)
+                                .setModuleManager(moduleManager)
+                                .setScheduler(scheduler)
+                                .setDefaultRootDeviceName("DefaultRootDeviceName")
+                                .setRootDevice(rootDevice)
+                                .build();
+
+    ASSERT_EQ(instance.getContext().getLogger(), logger);
+    ASSERT_EQ(instance.getContext().getScheduler(), scheduler);
+    ASSERT_EQ(instance.getContext().getModuleManager(), moduleManager);
+    ASSERT_EQ(instance.getRootDevice(), rootDevice);
+}
+
+TEST_F(InstanceTest, InstanceCreateFactoryDefaultDeviceName)
+{
+    auto instance = InstanceBuilder()
+                            .setDefaultRootDeviceName("DefaultRootDeviceName")
+                            .build();
+
+    ASSERT_EQ(instance.getRootDevice().getName(), "DefaultRootDeviceName");    
+}
+
+TEST_F(InstanceTest, InstanceBuilderGetDefault)
+{
+    const auto defaultRootDeviceInfo = DeviceInfo("connectionString");
+    const auto instanceBuilder = InstanceBuilder()
+                                .setGlobalLogLevel(LogLevel::Debug)
+                                .setComponentLogLevel("Instance", LogLevel::Error)
+                                .setSinkLogLevel(StdOutLoggerSink(), LogLevel::Warn)
+                                .setDefaultRootDeviceName("DefaultRootDeviceName")
+                                .setDefaultRootDeviceInfo(defaultRootDeviceInfo);
+    const auto instance = instanceBuilder.build();
+
+    const auto logger = instanceBuilder.getLogger();
+    const auto scheduler = instanceBuilder.getScheduler();
+    const auto moduleManager = instanceBuilder.getModuleManager();
+    
+    // check logger
+    ASSERT_EQ(logger.assigned(), true);
+    ASSERT_EQ(logger.getLevel(), LogLevel::Debug);
+    const auto loggerComponent = logger.getComponent("Instance");
+    ASSERT_EQ(loggerComponent.getLevel(), LogLevel::Error);
+
+    // check sheduler
+    ASSERT_EQ(scheduler.assigned(), true);
+
+    // check moduleManager
+    ASSERT_EQ(moduleManager.assigned(), true);
+}
+
+TEST_F(InstanceTest, InstanceBuilderReservedOptions)
+{
+    const auto instanceBuilder = InstanceBuilder();
+    ASSERT_THROW(instanceBuilder.setOption("ModuleManager", "test"), InvalidPropertyException);
+    ASSERT_THROW(instanceBuilder.setOption("Scheduler", "test"), InvalidPropertyException);
+    ASSERT_THROW(instanceBuilder.setOption("Logging", "test"), InvalidPropertyException);
+    ASSERT_THROW(instanceBuilder.setOption("Modules", "test"), InvalidPropertyException);
+
+    auto options = instanceBuilder.getOptions();
+    ASSERT_EQ(options.getCount(), 4);
+    ASSERT_NO_THROW(options.get("ModuleManager").asPtr<IDict>());
+    ASSERT_NO_THROW(options.get("Scheduler").asPtr<IDict>());
+    ASSERT_NO_THROW(options.get("Logging").asPtr<IDict>());
+    ASSERT_NO_THROW(options.get("Modules").asPtr<IDict>());
+}
 
 END_NAMESPACE_OPENDAQ

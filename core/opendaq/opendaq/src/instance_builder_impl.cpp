@@ -78,11 +78,7 @@ ErrCode InstanceBuilderImpl::build(IInstance** instance)
 
     // Configure scheduler
     if (!this->scheduler.assigned())
-    {
-        LoggerPtr logger;
-        this->getLogger(&logger);
-        this->scheduler = Scheduler(logger);
-    }
+        this->scheduler = Scheduler(this->logger);
 
     const auto builderPtr = this->borrowPtr<InstanceBuilderPtr>();
     return daqTry([&]()
@@ -212,6 +208,23 @@ ErrCode InstanceBuilderImpl::getOptions(IDict** options)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
     *options = this->options.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::setInstanceLocalId(IString* localId)
+{
+    if (localId == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    this->localId = localId;
+    return OPENDAQ_SUCCESS;
+}
+ErrCode InstanceBuilderImpl::getInstanceLocalId(IString** localId)
+{
+    if (localId == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    *localId = this->localId.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

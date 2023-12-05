@@ -130,6 +130,19 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
+     * @brief Sets the local ID of Instance
+     * @param rootDevice The local ID of Instance
+     */
+    virtual ErrCode INTERFACE_FUNC setInstanceLocalId(IString* localId) = 0;
+
+    /*!
+     * @brief Gets the local ID of Instance
+     * @param[out] rootDevice The local ID of Instance
+     */
+    virtual ErrCode INTERFACE_FUNC getInstanceLocalId(IString** localId) = 0;
+
+    // [returnSelf]
+    /*!
      * @brief Sets the root device of Instance
      * @param rootDevice The root device of Instance
      */

@@ -86,9 +86,9 @@ inline InstancePtr InstanceFromBuilder(const InstanceBuilderPtr& builder)
  * The Client supports adding function blocks and connecting to devices. The array of function blocks
  * and supported devices depends on the modules loaded by the Module manager.
  */
-inline DevicePtr Client(const ContextPtr& context, const StringPtr& localId)
+inline DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = DeviceInfoPtr())
 {
-    DevicePtr obj(Client_Create(context, localId));
+    DevicePtr obj(Client_Create(context, localId, defaultDeviceInfo));
     return obj;
 }
 

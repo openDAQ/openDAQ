@@ -27,7 +27,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class ClientImpl : public DeviceBase<IClientPrivate>
 {
 public:
-    ClientImpl(ContextPtr ctx, const StringPtr& localId);
+    ClientImpl(ContextPtr ctx, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo);
 
     // Device
 
@@ -53,6 +53,7 @@ private:
     ModuleManagerPtr manager;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+    DeviceInfoPtr defaultDeviceInfo; 
 
     std::unordered_map<std::string, size_t> functionBlockCountMap;
 

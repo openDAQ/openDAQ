@@ -46,6 +46,9 @@ public:
     ErrCode INTERFACE_FUNC setOption(IString* option, IBaseObject* value);
     ErrCode INTERFACE_FUNC getOptions(IDict** options);
 
+    ErrCode INTERFACE_FUNC setInstanceLocalId(IString* localId);
+    ErrCode INTERFACE_FUNC getInstanceLocalId(IString** localId);
+
     ErrCode INTERFACE_FUNC setRootDevice(IDevice* rootDevice);
     ErrCode INTERFACE_FUNC getRootDevice(IDevice** rootDevice);
 
@@ -61,15 +64,19 @@ private:
     DictPtr<IString, IBaseObject> getLoggingOptions();
     DictPtr<IString, IBaseObject> getModuleOptions(IString* module);
 
+    StringPtr localId;
     DevicePtr rootDevice;
     DeviceInfoPtr defaultRootDeviceInfo;
-    LoggerPtr logger;
-    SchedulerPtr scheduler;
+
     DictPtr<IString, LogLevel> componentsLogLevel;
     std::set<LoggerSinkPtr> sinks;
+    LoggerPtr logger;
+
+    SchedulerPtr scheduler;
 
     StringPtr modulePath;
     ModuleManagerPtr moduleManager;
+
     DictPtr<IString, IBaseObject> options;
 };
 

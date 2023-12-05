@@ -45,8 +45,9 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
 {
     const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
     
-    auto instanceId = defineLocalId(std::string());
-    defaultRootDevice = Client(this->context, instanceId);
+    auto localId = builderPtr.getInstanceLocalId();
+    auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
+    defaultRootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
     
     rootDevice = builderPtr.getRootDevice();
     rootDeviceSet = rootDevice.assigned();

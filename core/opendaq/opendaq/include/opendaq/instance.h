@@ -164,7 +164,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, Client, IDevice, createClient,
     IContext*, ctx,
-    IString*, localId
+    IString*, localId,
+    IDeviceInfo*, defaultDeviceInfo
 )
 
 END_NAMESPACE_OPENDAQ

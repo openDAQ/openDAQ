@@ -7,7 +7,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId)
+ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo)
     : DeviceBase<IClientPrivate>(ctx, nullptr, localId)
     , manager(this->context.assigned() ? this->context.getModuleManager() : nullptr)
     , logger(ctx.getLogger())
@@ -15,6 +15,7 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId)
                           ? this->logger.getOrAddComponent("Client")
                           : throw ArgumentNullException("Logger must not be null"))
     , rootDeviceSet(false)
+    , defaultDeviceInfo(defaultDeviceInfo)
 {
     this->deviceInfo = DeviceInfo("", "daq_client");
 }
@@ -197,6 +198,9 @@ ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
             availableDevices.pushBack(deviceInfo);
     }
 
+    if (availableDevices.empty() && defaultDeviceInfo.assigned())
+        availableDevices.pushBack(defaultDeviceInfo);
+
     return availableDevices.detach();
 }
 
@@ -261,7 +265,8 @@ ErrCode ClientImpl::setRootDevice(IComponent* rootDevice)
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, Client, IDevice, createClient,
     IContext*, ctx,
-    IString*, localId
+    IString*, localId,
+    IDeviceInfo*, defaultDeviceInfo
 )
 
 END_NAMESPACE_OPENDAQ

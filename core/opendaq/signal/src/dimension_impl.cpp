@@ -178,7 +178,7 @@ ListPtr<IBaseObject> DimensionImpl::getLinearLabels() const
 
     auto list = List<IBaseObject>();
     for (SizeT i = 0; i < size; ++i)
-        list.pushBack(start + i * delta);
+        list.pushBack(start + static_cast<int>(i) * delta);
 
     return list;
 }

@@ -451,3 +451,15 @@ TEST_F(JsonDeserializerTest, ImplementationName)
     StringPtr className = deserializer.asPtr<IInspectable>(true).getRuntimeClassName();
     ASSERT_EQ(className, "daq::JsonDeserializerImpl");
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IDeserializer", "daq");
+
+TEST_F(JsonDeserializerTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IDeserializer::Id);
+}
+
+TEST_F(JsonDeserializerTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IDeserializer>(), "{66DEEEF9-2B0D-5A49-A050-2820C4738AE7}");
+}

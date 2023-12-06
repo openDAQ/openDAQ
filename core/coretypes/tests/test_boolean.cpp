@@ -153,3 +153,15 @@ TEST_F(BooleanTest, ImplementationName)
     auto prefix = className.find("daq::OrdinalObjectImpl<unsigned char,");
     ASSERT_EQ(prefix, 0u);
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IBoolean", "daq");
+
+TEST_F(BooleanTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IBoolean::Id);
+}
+
+TEST_F(BooleanTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IBoolean>(), "{9F20E31A-D0FB-5679-A188-4942B3FED6E2}");
+}

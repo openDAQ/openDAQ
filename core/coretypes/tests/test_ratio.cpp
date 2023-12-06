@@ -336,3 +336,15 @@ TEST_F(RatioTest, StructFields)
 TEST_F(RatioTest, StructNames)
 {
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IRatio", "daq");
+
+TEST_F(RatioTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IRatio::Id);
+}
+
+TEST_F(RatioTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IRatio>(), "{08D28C13-55A6-5FE5-A0F0-19A3F8707C15}");
+}

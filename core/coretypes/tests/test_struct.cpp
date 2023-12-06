@@ -232,3 +232,27 @@ TEST_F(StructObjectTest, ComplexStructSerializationEmptyManager)
 
     ASSERT_EQ(nestedStruct, nestedStructDeserialized);
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IStruct", "daq");
+
+TEST_F(StructObjectTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IStruct::Id);
+}
+
+TEST_F(StructObjectTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IStruct>(), "{2B9F7790-512A-591E-86AC-886E9DE68A52}");
+}
+
+static constexpr auto STRUCT_TYPE_ID = FromTemplatedTypeName("IStructType", "daq");
+
+TEST_F(StructObjectTest, StructTypeId)
+{
+    ASSERT_EQ(STRUCT_TYPE_ID, IStructType::Id);
+}
+
+TEST_F(StructObjectTest, StructTypeString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IStructType>(), "{2AC3D9FA-7059-5BEF-8439-351258DDBE72}");
+}

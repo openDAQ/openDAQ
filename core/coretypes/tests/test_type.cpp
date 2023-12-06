@@ -181,3 +181,26 @@ TEST_F(TypeTest, StructTypeSerializationNestedDefaultStructType)
     ASSERT_EQ(structType, structTypeDeserialized);
 }
 
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IType", "daq");
+
+TEST_F(TypeTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IType::Id);
+}
+
+TEST_F(TypeTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IType>(), "{C7383ABD-1285-5E81-9E8B-059ED35F91C5}");
+}
+
+static constexpr auto SIMPLE_TYPE_ID = FromTemplatedTypeName("ISimpleType", "daq");
+
+TEST_F(TypeTest, SimpleTypeId)
+{
+    ASSERT_EQ(SIMPLE_TYPE_ID, ISimpleType::Id);
+}
+
+TEST_F(TypeTest, SimpleTypeString)
+{
+    ASSERT_EQ(daqInterfaceIdString<ISimpleType>(), "{0C4C5701-5051-549A-957C-21391854F6F4}");
+}

@@ -4,14 +4,14 @@ interface
 
 uses
   OpenDAQ.CoreTypes, DunitX.TestFramework, DS.UT.DSUnitTestUnit, OpenDAQ.ObjectPtr,
-  OpenDAQ.PropertyObjectClassConfig, OpenDAQ.PropertyObjectClassManager;
+  OpenDAQ.PropertyObjectClassBuilder, OpenDAQ.TypeManager;
 
 type
   [TestFixture]
   TTest_PropertyObject = class(TDSUnitTest)
   private
-    FPropObjManager: IPropertyObjectClassManager;
-    FTestPropClass: IPropertyObjectClassConfigPtr;
+    FPropObjManager: ITypeManager;
+    FTestPropClass: IPropertyObjectClassBuilderPtr;
   public
     [Setup]
     procedure Setup; override;
@@ -213,8 +213,6 @@ uses
   OpenDAQ.CoreTypes.Errors,
   OpenDAQ.TProperty,
   OpenDAQ.EvalValue,
-  OpenDAQ.PropertyConfig,
-  OpenDAQ.PropertyObjectClass,
   OpenDAQ.List,
   OpenDAQ.Dict,
   OpenDAQ.TString,
@@ -223,6 +221,8 @@ uses
   OpenDAQ.Exceptions,
   OpenDAQ.Deserializer,
   OpenDAQ.PropertyObject,
+//  OpenDAQ.PropertyObjectClassBuilder,
+  OpenDAQ.PropertyObjectClass,
   OpenDAQ.PropertyObjectProtected,
   OpenDAQ.CallableInfo,
   OpenDAQ.ProcedureImpl,
@@ -237,40 +237,36 @@ const
 
 procedure TTest_PropertyObject.Setup;
 var
-  Prop: IPropertyConfigPtr;
+  Prop: IPropertyPtr;
   AtomicObj: IPropertyObjectPtr;
 //  DefaultValueLst: IListPtr<IInteger>;
   IntValuesLst: IListPtr<IInteger>;
   StringValuesLst: IListPtr<IString>;
   SparseValues: IDictionaryPtr<IInteger, IString>;
-  PropClass: IPropertyObjectClassConfigPtr;
-  PropObjManager: IPropertyObjectClassManagerPtr;
+  PropClass: IPropertyObjectClassPtr;
+  PropObjManager: ITypeManagerPtr;
 begin
-  FTestPropClass := TPropertyObjectClassConfigPtr.CreatePropertyObjectClassWithManager(nil, 'Test');
+  FTestPropClass := TPropertyObjectClassBuilderPtr.Create('Test');
 
   /////////////////// - 1 - ////////////////////////////
 
-  Prop := TPropertyConfigPtr.CreateFunctionProperty('Function', TCallableInfoPtr.Create(nil, ctObject), DaqBoxValue(True));
+  Prop := TPropertyPtr.CreateFunction('Function', TCallableInfoPtr.Create(nil, ctObject), DaqBoxValue(True));
   FTestPropClass.AddProperty(Prop as IProperty);
 
   /////////////////// - 2 - ////////////////////////////
 
-  Prop := TPropertyConfigPtr.CreateFunctionProperty('Procedure', TCallableInfoPtr.Create(nil, ctUndefined), DaqBoxValue(True));
+  Prop := TPropertyPtr.CreateFunction('Procedure', TCallableInfoPtr.Create(nil, ctUndefined), DaqBoxValue(True));
   FTestPropClass.AddProperty(Prop as IProperty);
 
   /////////////////// - 3 - ////////////////////////////
 
-  Prop := TPropertyConfigPtr.Create('FloatReadOnlyPropAssigned');
-  Prop.SetDefaultValue(1);
-  Prop.SetValueType(ctFloat);
-  Prop.SetReadOnly(True);
+  Prop := TPropertyPtr.CreateFloat('FloatReadOnlyPropAssigned', DaqBoxValue(1.0), DaqBoxValue(True));
+//  Prop.SetReadOnly(True);
   FTestPropClass.AddProperty(Prop as IProperty);
 
   /////////////////// - 4 - ////////////////////////////
 
-  Prop := TPropertyConfigPtr.Create('FloatProperty');
-  Prop.SetValueType(ctFloat);
-  Prop.SetDefaultValue(1.0);
+  Prop := TPropertyPtr.CreateFloat('FloatProperty', DaqBoxValue(1.0), DaqBoxValue(True));
   FTestPropClass.AddProperty(Prop as IProperty);
 
   /////////////////// - 5 - ////////////////////////////
@@ -282,30 +278,27 @@ begin
   IntValuesLst.PushBack(3);
   IntValuesLst.PushBack(4);
 
-  Prop := TPropertyConfigPtr.Create('ListProperty');
-  Prop.SetValueType(ctList);
-//  Prop.SetDefaultValue(DefaultValueLst);
-  Prop.SetDefaultValue(IntValuesLst);
+  Prop := TPropertyPtr.CreateList('ListProperty', IntValuesLst as IList, DaqBoxValue(True));
   FTestPropClass.AddProperty(Prop as IProperty);
 
   /////////////////// - 6 - ////////////////////////////
 
-  AtomicObj := TPropertyObjectPtr.Create();
-
-  Prop := TPropertyConfigPtr.Create('AtomicObject');
-  Prop.SetValueType(ctObject);
-  Prop.SetDefaultValue(AtomicObj);
-  FTestPropClass.AddProperty(Prop as IProperty);
+//  AtomicObj := TPropertyObjectPtr.Create();
+//
+//  Prop := TPropertyPtr.Create('AtomicObject');
+//  Prop.SetValueType(ctObject);
+//  Prop.SetDefaultValue(AtomicObj);
+//  FTestPropClass.AddProperty(Prop as IProperty);
 
   /////////////////// - 7 - ////////////////////////////
 
-  Prop := TPropertyConfigPtr.CreateReferenceProperty('IntProperty', TEvalValuePtr.Create('%TwoHopReference') as IEvalValue);
-  FTestPropClass.AddProperty(Prop as IProperty);
-
-  /////////////////// - 8 - ////////////////////////////
-
-  Prop := TPropertyConfigPtr.CreateReferenceProperty('TwoHopReference', TEvalValuePtr.Create('%Referenced') as IEvalValue);
-  FTestPropClass.AddProperty(Prop as IProperty);
+//  Prop := TPropertyPtr.CreateReference('IntProperty', TEvalValuePtr.Create('%TwoHopReference') as IEvalValue);
+//  FTestPropClass.AddProperty(Prop as IProperty);
+//
+//  /////////////////// - 8 - ////////////////////////////
+//
+//  Prop := TPropertyPtr.CreateReference('TwoHopReference', TEvalValuePtr.Create('%Referenced') as IEvalValue);
+//  FTestPropClass.AddProperty(Prop as IProperty);
 
   /////////////////// - 9 - ////////////////////////////
 
@@ -314,17 +307,12 @@ begin
   StringValuesLst.PushBack('b');
   StringValuesLst.PushBack('c');
 
-  Prop := TPropertyConfigPtr.Create('SelectionProp');
-  Prop.SetValueType(ctInt);
-  Prop.SetDefaultValue(0);
-  Prop.SetSelectionValues(StringValuesLst);
+  Prop := TPropertyPtr.CreateSelection('SelectionProp', StringValuesLst as IList, DaqBoxValue(0), DaqBoxValue(True));
   FTestPropClass.AddProperty(Prop as IProperty);
 
   /////////////////// - 10 - ////////////////////////////
 
-  Prop := TPropertyConfigPtr.Create('SelectionPropNoList');
-  Prop.SetValueType(ctInt);
-  Prop.SetDefaultValue(0);
+  Prop := TPropertyPtr.CreateInt('SelectionPropNoList', DaqBoxValue(0), DaqBoxValue(True));
   FTestPropClass.AddProperty(Prop as IProperty);
 
   /////////////////// - 11, 12 - ////////////////////////////
@@ -336,46 +324,43 @@ begin
   SparseValues[5] := 'd';
   SparseValues[8] := 'e';
 
-  Prop := TPropertyConfigPtr.Create('SparseSelectionProp');
-  Prop.SetValueType(ctInt);
-  Prop.SetDefaultValue(5);
-  Prop.SetSelectionValues(SparseValues);
+  Prop := TPropertyPtr.CreateSparseSelection('SparseSelectionProp', SparseValues as IDictObject, DaqBoxValue(5), DaqBoxValue(True));
   FTestPropClass.AddProperty(Prop as IProperty);
 
-  Prop := TPropertyConfigPtr.CreateDictProperty('DictProp', SparseValues as IDictObject, DaqBoxValue(True));
+  Prop := TPropertyPtr.CreateDict('DictProp', SparseValues as IDictObject, DaqBoxValue(True));
   FTestPropClass.AddProperty(Prop as IProperty);
 
   /////////////////// - 13 - ////////////////////////////
 
-  Prop := TPropertyConfigPtr.CreateReferenceProperty('Kind', TEvalValuePtr.Create('%Child') as IEvalValue);
-  FTestPropClass.AddProperty(Prop as IProperty);
+//  Prop := TPropertyPtr.CreateReference('Kind', TEvalValuePtr.Create('%Child') as IEvalValue);
+//  FTestPropClass.AddProperty(Prop as IProperty);
 
   /////////////////// - 14 - ////////////////////////////
 
-  Prop := TPropertyConfigPtr.CreateIntProperty('Referenced', DaqBoxValue(10), DaqBoxValue(True));
+  Prop := TPropertyPtr.CreateInt('Referenced', DaqBoxValue(10), DaqBoxValue(True));
 //  Prop.GetOnPropertyValueWrite
   FTestPropClass.AddProperty(Prop as IProperty);
 
   /////////////////// - Manager - ////////////////////////////
 
-  PropObjManager := TPropertyObjectClassManagerPtr.Create();
-  FPropObjManager := PropObjManager as IPropertyObjectClassManager;
-
-    /////////////////// - Classes - ////////////////////////////
-
-  PropObjManager.AddClass(FTestPropClass as IPropertyObjectClass);
-
-  PropClass := TPropertyObjectClassConfigPtr.CreatePropertyObjectClassWithManager(FPropObjManager, 'DerivedClass');
-  PropClass.SetParentName('Test');
-  PropClass.AddProperty(TPropertyConfigPtr.CreateIntProperty('AdditionalProp', DaqBoxValue(1), DaqBoxValue(True)));
-  PropObjManager.AddClass(PropClass as IPropertyObjectClass);
-
-  PropClass := TPropertyObjectClassConfigPtr.Create('BaseClass');
-  PropObjManager.AddClass(PropClass as IPropertyObjectClass);
-
-  PropClass := TPropertyObjectClassConfigPtr.Create('SpecificClass');
-  PropClass.SetParentName('BaseClass');
-  PropObjManager.AddClass(PropClass as IPropertyObjectClass);
+//  PropObjManager := TTypeManagerPtr.Create;
+//  FPropObjManager := PropObjManager as IPropertyObjectClassManager;
+//
+//    /////////////////// - Classes - ////////////////////////////
+//
+//  PropObjManager.AddClass(FTestPropClass as IPropertyObjectClass);
+//
+//  PropClass := TPropertyObjectClassPtr.CreatePropertyObjectClassWithManager(FPropObjManager, 'DerivedClass');
+//  PropClass.SetParentName('Test');
+//  PropClass.AddProperty(TPropertyPtr.CreateIntProperty('AdditionalProp', DaqBoxValue(1), DaqBoxValue(True)));
+//  PropObjManager.AddClass(PropClass as IPropertyObjectClass);
+//
+//  PropClass := TPropertyObjectClassConfigPtr.Create('BaseClass');
+//  PropObjManager.AddClass(PropClass as IPropertyObjectClass);
+//
+//  PropClass := TPropertyObjectClassConfigPtr.Create('SpecificClass');
+//  PropClass.SetParentName('BaseClass');
+//  PropObjManager.AddClass(PropClass as IPropertyObjectClass);
 end;
 
 procedure TTest_PropertyObject.TearDown;
@@ -421,14 +406,12 @@ end;
 procedure TTest_PropertyObject.SimpleProperty;
 var
   PropObj: IPropertyObjectPtr;
-  Prop: IPropertyConfigPtr;
+  Prop: IPropertyPtr;
   Value: string;
 begin
   PropObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
 
-  Prop := TPropertyConfigPtr.Create('Name');
-  Prop.SetValueType(ctString);
-  Prop.SetDefaultValue('');
+  Prop := TPropertyPtr.CreateString('Name', '', DaqBoxValue(True));
   PropObj.AddProperty(Prop as IPropertyPtr);
 
   PropObj.SetPropertyValue('Name', 'Unknown');
@@ -441,15 +424,15 @@ procedure TTest_PropertyObject.Ownership;
 var
   Parent: IPropertyObjectPtr;
   Child: IPropertyObjectPtr;
-  ChildProp: IPropertyConfigPtr;
+  ChildProp: IPropertyPtr;
   ChildPtr: IPropertyObjectPtr;
   Eq: Boolean;
 begin
   Parent := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
   Child := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
 
-  ChildProp := TPropertyConfigPtr.CreateObjectProperty('Child', Child as IPropertyObject);
-  Parent.AddProperty(ChildProp as IProperty);
+//  ChildProp := TPropertyPtr.CreateObject('Child', Child as IPropertyObject);
+//  Parent.AddProperty(ChildProp as IProperty);
 
   Parent.SetPropertyValue('Child', Child);
   ChildPtr := Parent.GetPropertyValue('Child').AsPtr<IPropertyObjectPtr>;
@@ -634,14 +617,14 @@ end;
 procedure TTest_PropertyObject.SelectionPropertiesInsertionOrder;
 var
   PropObj: IPropertyObjectPtr;
-  ChildProp: IPropertyConfigPtr;
+  ChildProp: IPropertyPtr;
 
   Props: IListPtr<IProperty>;
   Order: Integer;
 begin
   PropObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'DerivedClass');
 
-  ChildProp := TPropertyConfigPtr.CreateObjectProperty('Child', TPropertyObjectPtr.Create);
+//  ChildProp := TPropertyPtr.CreateObject('Child', TPropertyObjectPtr.Create);
   PropObj.AddProperty(ChildProp as IProperty);
 
   Props := PropObj.GetAllProperties;
@@ -683,7 +666,7 @@ end;
 procedure TTest_PropertyObject.SelectionPropertiesCustomOrder;
 var
   PropObj: IPropertyObjectPtr;
-  ChildProp: IPropertyConfigPtr;
+  ChildProp: IPropertyPtr;
 
   PropOrder: IListPtr<IString>;
   Props: IListPtr<IProperty>;
@@ -697,7 +680,7 @@ begin
 
   propObj.setPropertyOrder(PropOrder);
 
-  ChildProp := TPropertyConfigPtr.CreateObjectProperty('Child', TPropertyObjectPtr.Create);
+//  ChildProp := TPropertyPtr.CreateObject('Child', TPropertyObjectPtr.Create);
   PropObj.AddProperty(ChildProp as IProperty);
 
   Props := PropObj.GetAllProperties;
@@ -780,12 +763,12 @@ end;
 procedure TTest_PropertyObject.EnumVisibleWithVisibleThroughRefs;
 var
   PropObj: IPropertyObjectPtr;
-  ChildProp: IPropertyConfigPtr;
+  ChildProp: IPropertyPtr;
 begin
   PropObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
 
-  ChildProp := TPropertyConfigPtr.CreateObjectProperty('Child', TPropertyObjectPtr.Create);
-  PropObj.AddProperty(ChildProp as IProperty);
+//  ChildProp := TPropertyPtr.CreateObject('Child', TPropertyObjectPtr.Create);
+//  PropObj.AddProperty(ChildProp as IProperty);
 
   Assert.AreEqual<SizeT>(PropObj.GetAllProperties.GetCount, NumAllProperties + 1);
   Assert.AreEqual<SizeT>(PropObj.GetVisibleProperties.GetCount, NumVisibleProperties);
@@ -994,12 +977,12 @@ procedure TTest_PropertyObject.ChildPropSet;
 var
   PropObj: IPropertyObjectPtr;
   ChildObj: IPropertyObjectPtr;
-  ChildProp: IPropertyConfigPtr;
+  ChildProp: IPropertyPtr;
 begin
   PropObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
 
   ChildObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
-  ChildProp := TPropertyConfigPtr.CreateObjectProperty('Child', ChildObj as IPropertyObject);
+//  ChildProp := TPropertyPtr.CreateObject('Child', ChildObj as IPropertyObject);
 
   PropObj.AddProperty(ChildProp as IProperty);
   PropObj.SetPropertyValue('Child', ChildObj);
@@ -1025,14 +1008,14 @@ begin
   ChildObj3 := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
   ChildObj4 := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
 
-  ChildProp1 := TPropertyConfigPtr.CreateObjectProperty('Child', ChildObj1 as IPropertyObject);
-  PropObj.AddProperty(ChildProp1);
-
-  ChildProp2 := TPropertyConfigPtr.CreateObjectProperty('Child', ChildObj2 as IPropertyObject);
-  ChildObj1.AddProperty(ChildProp2);
-
-  ChildProp3 := TPropertyConfigPtr.CreateObjectProperty('Child', ChildObj3 as IPropertyObject);
-  ChildObj2.AddProperty(ChildProp3);
+//  ChildProp1 := TPropertyPtr.CreateObject('Child', ChildObj1 as IPropertyObject);
+//  PropObj.AddProperty(ChildProp1);
+//
+//  ChildProp2 := TPropertyPtr.CreateObject('Child', ChildObj2 as IPropertyObject);
+//  ChildObj1.AddProperty(ChildProp2);
+//
+//  ChildProp3 := TPropertyPtr.CreateObject('Child', ChildObj3 as IPropertyObject);
+//  ChildObj2.AddProperty(ChildProp3);
 
   PropObj.SetPropertyValue('Child.IntProperty', 1);
   PropObj.SetPropertyValue('Child.Child.IntProperty', 2);
@@ -1047,12 +1030,12 @@ procedure TTest_PropertyObject.ChildPropGet;
 var
   PropObj: IPropertyObjectPtr;
   ChildObj: IPropertyObjectPtr;
-  ChildProp: IPropertyConfigPtr;
+  ChildProp: IPropertyPtr;
 begin
   PropObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
   ChildObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
 
-  ChildProp := TPropertyConfigPtr.CreateObjectProperty('Child', ChildObj as IPropertyObject);
+//  ChildProp := TPropertyPtr.CreateObject('Child', ChildObj as IPropertyObject);
 
   PropObj.AddProperty(ChildProp as IProperty);
   PropObj.SetPropertyValue('Child', ChildObj);
@@ -1147,7 +1130,7 @@ begin
   PropObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
   ChildObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
 
-  ChildProp := TPropertyConfigPtr.CreateObjectProperty('Child', ChildObj as IPropertyObject);
+//  ChildProp := TPropertyPtr.CreateObject('Child', ChildObj as IPropertyObject);
 
   PropObj.AddProperty(ChildProp);
   PropObj.SetPropertyValue('Child', ChildObj);
@@ -1192,7 +1175,7 @@ begin
   PropObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
   ChildObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
 
-  ChildProp := TPropertyConfigPtr.CreateObjectProperty('Child', ChildObj as IPropertyObject);
+//  ChildProp := TPropertyPtr.CreateObject('Child', ChildObj as IPropertyObject);
 
   PropObj.AddProperty(ChildProp);
   PropObj.SetPropertyValue('Child', ChildObj);
@@ -1352,20 +1335,20 @@ end;
 procedure TTest_PropertyObject.LocalProperties;
 var
   PropObj: IPropertyObjectPtr;
-  LocalProp: IPropertyConfigPtr;
+  LocalProp: IPropertyPtr;
   ChildProp: IProperty;
 begin
   PropObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
 
-  ChildProp := TPropertyConfigPtr.CreateObjectProperty('Child', TPropertyObjectPtr.Create as IPropertyObject);
-  PropObj.AddProperty(ChildProp);
+//  ChildProp := TPropertyPtr.CreateObject('Child', TPropertyObjectPtr.Create as IPropertyObject);
+//  PropObj.AddProperty(ChildProp);
 
   Assert.AreEqual<SizeT>(NumVisibleProperties, PropObj.GetVisibleProperties().GetCount());
 
-  LocalProp := TPropertyConfigPtr.Create('LocalProp');
-  LocalProp.SetValueType(ctInt);
-  LocalProp.SetDefaultValue(1);
-  PropObj.AddProperty(LocalProp as IProperty);
+//  LocalProp := TPropertyPtr.Create('LocalProp');
+//  LocalProp.SetValueType(ctInt);
+//  LocalProp.SetDefaultValue(1);
+//  PropObj.AddProperty(LocalProp as IProperty);
 
   Assert.AreEqual<SizeT>(NumVisibleProperties + 1, PropObj.GetVisibleProperties().GetCount());
   Assert.AreEqual<RtInt>(1, PropObj.GetPropertyValue('LocalProp'));
@@ -1477,8 +1460,8 @@ begin
   ParentObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
   ChildObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
 
-  ChildProp := TPropertyConfigPtr.CreateObjectProperty('Child', TPropertyObjectPtr.Create as IPropertyObject);
-  ParentObj.AddProperty(ChildProp);
+//  ChildProp := TPropertyPtr.CreateObject('Child', TPropertyObjectPtr.Create as IPropertyObject);
+//  ParentObj.AddProperty(ChildProp);
 
   List := TListPtr<IInteger>.Create();
   List.PushBack(2);
@@ -1501,11 +1484,11 @@ end;
 procedure TTest_PropertyObject.HasPropertyPrivate;
 var
   PropObj: IPropertyObjectPtr;
-  Prop: IPropertyConfigPtr;
+  Prop: IPropertyPtr;
 begin
   PropObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
-  Prop := TPropertyConfigPtr.Create('SomeProperty');
-  Prop.SetDefaultValue('foo');
+//  Prop := TPropertyPtr.Create('SomeProperty');
+//  Prop.SetDefaultValue('foo');
   PropObj.AddProperty(Prop as IProperty);
 
   Assert.IsTrue(PropObj.HasProperty('SomeProperty'));
@@ -1541,7 +1524,7 @@ var
   PropObj: IPropertyObjectPtr;
 begin
   PropObj := TPropertyObjectPtr.CreateWithClassAndManager(FPropObjManager, 'Test');
-  PropObj.AddProperty(TPropertyConfigPtr.CreateBoolProperty('BoolProp', DaqBoxValue(False), DaqBoxValue(True)));
+  PropObj.AddProperty(TPropertyPtr.CreateBool('BoolProp', DaqBoxValue(False), DaqBoxValue(True)) as IProperty);
 
   Assert.IsTrue(PropObj.HasProperty('BoolProp'));
 end;

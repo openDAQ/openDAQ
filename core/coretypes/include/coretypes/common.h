@@ -227,12 +227,15 @@ END_NAMESPACE_OPENDAQ
 
 extern "C"
 daq::ErrCode PUBLIC_EXPORT daqDuplicateCharPtrN(daq::ConstCharPtr source,
-                                              daq::SizeT length,
-                                              daq::CharPtr* dest);
+                                                daq::SizeT length,
+                                                daq::CharPtr* dest);
 
 extern "C"
 daq::ErrCode PUBLIC_EXPORT daqDuplicateCharPtr(daq::ConstCharPtr source,
-                                             daq::CharPtr* dest);
+                                               daq::CharPtr* dest);
+
+extern "C"
+daq::ErrCode PUBLIC_EXPORT daqInterfaceIdToString(const daq::IntfID& iid, daq::CharPtr dest);
 
 #define OPENDAQ_TYPE_TOSTRING                                             \
     static daq::ErrCode OpenDaqType(daq::CharPtr* str)                    \

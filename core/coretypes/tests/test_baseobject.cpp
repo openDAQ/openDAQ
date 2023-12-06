@@ -34,6 +34,18 @@ TEST_F(BaseObjectTest, CreateNullParam)
     ASSERT_EQ(res, OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IBaseObject", "daq");
+
+TEST_F(BaseObjectTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IBaseObject::Id);
+}
+
+TEST_F(BaseObjectTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IBaseObject>(), "{9C911F6D-1664-5AA2-97BD-90FE3143E881}");
+}
+
 TEST_F(BaseObjectTest, AddReleaseRef)
 {
     IBaseObject* baseObject;

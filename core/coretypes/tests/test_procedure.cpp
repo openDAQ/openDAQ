@@ -557,3 +557,15 @@ TEST_F(ProcedureTest, ImplementationName)
     auto prefix = className.find("daq::ProcedureImpl<");
     ASSERT_EQ(prefix, 0u);
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IProcedure", "daq");
+
+TEST_F(ProcedureTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IProcedure::Id);
+}
+
+TEST_F(ProcedureTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IProcedure>(), "{36247E6D-6BDD-5964-857D-0FD296EEB5C3}");
+}

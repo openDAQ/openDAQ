@@ -197,3 +197,15 @@ TEST_F(IntegerTest, ImplementationName)
     auto prefix = className.find("daq::NumberImpl<");
     ASSERT_EQ(prefix, 0u);
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IInteger", "daq");
+
+TEST_F(IntegerTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IInteger::Id);
+}
+
+TEST_F(IntegerTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IInteger>(), "{B5C52F78-45F9-5C54-9BC1-CA65A46472CB}");
+}

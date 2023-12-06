@@ -56,6 +56,30 @@ public:
         domainReader = createReaderForType(domainReadType, nullptr);
     }
 
+    explicit ReaderImpl(InputPortConfigPtr port,
+                        ReadMode mode,
+                        SampleType valueReadType,
+                        SampleType domainReadType)
+        : readMode(mode)
+        , timeoutType(ReadTimeoutType::All)
+    {
+        if (!port.assigned())
+            throw ArgumentNullException("Signal must not be null.");
+
+        if (!port.getConnection().assigned())
+            throw ArgumentNullException("Input port not connected to signal");
+
+        this->internalAddRef();
+
+        this->port = port;
+        this->port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+
+        connection = this->port.getConnection();
+
+        valueReader = createReaderForType(valueReadType, nullptr);
+        domainReader = createReaderForType(domainReadType, nullptr);
+    }
+
     ~ReaderImpl() override
     {
         if (port.assigned())

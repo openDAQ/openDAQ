@@ -20,6 +20,18 @@ BlockReaderImpl::BlockReaderImpl(const SignalPtr& signal,
     BlockReaderImpl::handleDescriptorChanged(connection.dequeue());
 }
 
+BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
+                                 SizeT blockSize,
+                                 SampleType valueReadType,
+                                 SampleType domainReadType,
+                                 ReadMode mode)
+    : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
+    , blockSize(blockSize)
+{
+    this->port.setNotificationMethod(PacketReadyNotification::SameThread);
+    BlockReaderImpl::handleDescriptorChanged(connection.dequeue());
+}
+
 BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
@@ -321,5 +333,16 @@ OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     SampleType, valueReadType,
     SampleType, domainReadType
 )
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, BlockReader,
+    IBlockReader, createBlockReaderFromPort,
+    IInputPortConfig*, port,
+    SizeT, blockSize,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode
+)
+
 
 END_NAMESPACE_OPENDAQ

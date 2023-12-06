@@ -16,6 +16,7 @@
 #pragma once
 #include <opendaq/sample_reader.h>
 #include <opendaq/signal.h>
+#include <opendaq/input_port_config.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -90,6 +91,15 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IBlockReader*, invalidatedReader,
     SampleType, valueReadType,
     SampleType, domainReadType
+)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, BlockReaderFromPort, IBlockReader,
+    IInputPortConfig*, port,
+    SizeT, blockSize,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode
 )
 
 END_NAMESPACE_OPENDAQ

@@ -91,6 +91,12 @@ public:
                              SampleType domainReadType,
                              ReadMode readMode);
 
+    explicit BlockReaderImpl(IInputPortConfig* port,
+                             SizeT blockSize,
+                             SampleType valueReadType,
+                             SampleType domainReadType,
+                             ReadMode readMode);
+
     BlockReaderImpl(const ReaderConfigPtr& readerConfig,
                     SampleType valueReadType,
                     SampleType domainReadType,

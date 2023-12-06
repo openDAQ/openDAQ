@@ -23,6 +23,7 @@
 #include <opendaq/multi_reader_ptr.h>
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/signal_ptr.h>
+#include <opendaq/input_port_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -237,6 +238,15 @@ inline BlockReaderPtr BlockReader(SignalPtr signal,
                                   ReadMode mode = ReadMode::Scaled)
 {
     return BlockReader_Create(signal, blockSize, valueReadType, domainReadType, mode);
+}
+
+inline BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port,
+                                  SizeT blockSize,
+                                  SampleType valueReadType,
+                                  SampleType domainReadType,
+                                  ReadMode mode = ReadMode::Scaled)
+{
+    return BlockReaderFromPort_Create(port, blockSize, valueReadType, domainReadType, mode);
 }
 
 inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader,

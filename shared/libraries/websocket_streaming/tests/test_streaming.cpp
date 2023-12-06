@@ -101,6 +101,46 @@ TEST_F(StreamingTest, ParseConnectString)
     ASSERT_EQ(client->getTarget(), "/path/other");
 }
 
+TEST_F(StreamingTest, Subscription)
+{
+    auto server = std::make_shared<StreamingServer>(context);
+    server->onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) {
+        auto signals = List<ISignal>();
+        signals.pushBack(testDoubleSignal);
+        return signals;
+    });
+    server->start(StreamingPort, ControlPort);
+
+    auto client = StreamingClient(context, "127.0.0.1", StreamingPort, StreamingTarget);
+
+    std::promise<std::string> subscribeAckPromise;
+    std::future<std::string> subscribeAckFuture = subscribeAckPromise.get_future();
+
+    std::promise<std::string> unsubscribeAckPromise;
+    std::future<std::string> unsubscribeAckFuture = unsubscribeAckPromise.get_future();
+
+    auto onSubscriptionAck =
+        [&subscribeAckPromise, &unsubscribeAckPromise](const std::string& signalId, bool subscribed)
+    {
+        if (subscribed)
+            subscribeAckPromise.set_value(signalId);
+        else
+            unsubscribeAckPromise.set_value(signalId);
+    };
+
+    client.onSubscriptionAck(onSubscriptionAck);
+    client.connect();
+    ASSERT_TRUE(client.isConnected());
+
+    client.subscribeSignals({testDoubleSignal.getGlobalId()});
+    ASSERT_EQ(subscribeAckFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
+    ASSERT_EQ(subscribeAckFuture.get(), testDoubleSignal.getGlobalId());
+
+    client.unsubscribeSignals({testDoubleSignal.getGlobalId()});
+    ASSERT_EQ(unsubscribeAckFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
+    ASSERT_EQ(unsubscribeAckFuture.get(), testDoubleSignal.getGlobalId());
+}
+
 TEST_F(StreamingTest, SimpePacket)
 {
     std::vector<double> data = {-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5};
@@ -117,6 +157,16 @@ TEST_F(StreamingTest, SimpePacket)
     std::vector<PacketPtr> receivedPackets;
     auto client = StreamingClient(context, "127.0.0.1", StreamingPort, StreamingTarget);
 
+    std::promise<std::string> subscribeAckPromise;
+    std::future<std::string> subscribeAckFuture = subscribeAckPromise.get_future();
+
+    auto onSubscriptionAck =
+        [&subscribeAckPromise](const std::string& signalId, bool subscribed)
+    {
+        if (subscribed)
+            subscribeAckPromise.set_value(signalId);
+    };
+
     auto onPacket = [&receivedPackets](const StringPtr& signalId, const PacketPtr& packet)
     {
         receivedPackets.push_back(packet);
@@ -126,11 +176,12 @@ TEST_F(StreamingTest, SimpePacket)
 
     client.onPacket(onPacket);
     client.onFindSignal(findSignal);
+    client.onSubscriptionAck(onSubscriptionAck);
     client.connect();
     ASSERT_TRUE(client.isConnected());
 
     client.subscribeSignals({testDoubleSignal.getGlobalId()});
-    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    ASSERT_EQ(subscribeAckFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
 
     std::string signalId = testDoubleSignal.getGlobalId();
     server->sendPacketToSubscribers(signalId, packet);

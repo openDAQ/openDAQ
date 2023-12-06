@@ -89,7 +89,15 @@ bool StreamingClient::connect()
             signalIds.push_back(signalId);
             std::promise<void> signalInitPromise;
             std::future<void> signalInitFuture = signalInitPromise.get_future();
-            signalInitializedStatus.insert_or_assign(signalId, std::make_pair(std::move(signalInitPromise), std::move(signalInitFuture)));
+            signalInitializedStatus.insert_or_assign(
+                signalId,
+                std::make_tuple(
+                    std::move(signalInitPromise),
+                    std::move(signalInitFuture),
+                    false,
+                    false
+                )
+            );
         }
 
         // signal meta-information (signal description, tableId, related signals, etc.)
@@ -101,9 +109,9 @@ bool StreamingClient::connect()
         const auto timeout = std::chrono::seconds(1);
         auto timeoutExpired = std::chrono::system_clock::now() + timeout;
 
-        for (const auto& [id, promiseFuturePair] : signalInitializedStatus)
+        for (const auto& [id, params] : signalInitializedStatus)
         {
-            auto status = promiseFuturePair.second.wait_until(timeoutExpired);
+            auto status = std::get<1>(params).wait_until(timeoutExpired);
             if (status != std::future_status::ready)
             {
                 LOG_W("signal {} has incomplete descriptors", id);
@@ -119,12 +127,10 @@ bool StreamingClient::connect()
 
 void StreamingClient::disconnect()
 {
+    ioContext.stop();
     if (clientThread.joinable())
-    {
-        ioContext.stop();
         clientThread.join();
-        connected = false;
-    }
+    connected = false;
 }
 
 void StreamingClient::onPacket(const OnPacketCallback& callack)
@@ -160,6 +166,11 @@ void StreamingClient::onAvailableDeviceSignals(const OnAvailableSignalsCallback&
 void StreamingClient::onFindSignal(const OnFindSignalCallback& callback)
 {
     onFindSignalCallback = callback;
+}
+
+void StreamingClient::onSubscriptionAck(const OnSubsciptionAckCallback& callback)
+{
+    onSubscriptionAckCallback = callback;
 }
 
 std::string StreamingClient::getHost()
@@ -231,6 +242,27 @@ void StreamingClient::onSignalMeta(const SubscribedSignal& subscribedSignal, con
 {
     if (method == daq::streaming_protocol::META_METHOD_SIGNAL)
         onSignal(subscribedSignal, params);
+
+    std::string signalId = subscribedSignal.signalId();
+    if (auto it = signalInitializedStatus.find(signalId); it != signalInitializedStatus.end())
+    {
+        if (method == daq::streaming_protocol::META_METHOD_SUBSCRIBE)
+        {
+            // skips the first subscribe ack from server
+            if (std::get<2>(it->second))
+                onSubscriptionAckCallback(subscribedSignal.signalId(), true);
+            else
+                std::get<2>(it->second) = true;
+        }
+        else if (method == daq::streaming_protocol::META_METHOD_UNSUBSCRIBE)
+        {
+            // skips the first unsubscribe ack from server
+            if (std::get<3>(it->second))
+                onSubscriptionAckCallback(subscribedSignal.signalId(), false);
+            else
+                std::get<3>(it->second) = true;
+        }
+    }
 }
 
 void StreamingClient::onProtocolMeta(daq::streaming_protocol::ProtocolHandler& protocolHandler,
@@ -413,7 +445,7 @@ void StreamingClient::setSignalInitSatisfied(const std::string& signalId)
     {
         try
         {
-            iterator->second.first.set_value();
+            std::get<0>(iterator->second).set_value();
         }
         catch (std::future_error& e)
         {

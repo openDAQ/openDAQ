@@ -61,6 +61,7 @@ protected:
     SignalStreamPtr stream;
     size_t sampleSize;
     bool subscribed;
+    std::mutex subscribedSync;
     daq::streaming_protocol::LogCallback logCallback;
 };
 

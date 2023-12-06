@@ -234,25 +234,31 @@ SignalPtr OutputSignal::getCoreSignal()
     return signal;
 }
 
+// bool subscribed; / void setSubscribed(bool); / bool isSubscribed() :
+// To prevent client side streaming protocol error the server should not send data before
+// the subscribe acknowledgment is sent neither after the unsubscribe acknowledgment is sent.
+// The `subscribed` member variable functions as a flag that enables/disables data streaming
+// within the OutputSignal.
+// Mutex locking ensures that data is sent only when the specified conditions are satisfied.
+
 void OutputSignal::setSubscribed(bool subscribed)
 {
-    if (subscribed)
+    if (this->subscribed != subscribed)
     {
-        // first provide signal meta information to client and only then
-        // toggle the member variable which will enable streaming signal data
-        stream->subscribe();
+        std::scoped_lock lock(subscribedSync);
+
         this->subscribed = subscribed;
-    }
-    else
-    {
-        // first toggle the member variable to disable streaming signal data
-        this->subscribed = subscribed;
-        stream->unsubscribe();
+        if (subscribed)
+            stream->subscribe();
+        else
+            stream->unsubscribe();
     }
 }
 
 bool OutputSignal::isSubscribed()
 {
+    std::scoped_lock lock(subscribedSync);
+
     return subscribed;
 }
 

@@ -222,3 +222,15 @@ TEST_F(StringObjectTest, ImplementationName)
     StringPtr className = obj.asPtr<IInspectable>(true).getRuntimeClassName();
     ASSERT_EQ(className, "daq::StringImpl");
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IString", "daq");
+
+TEST_F(StringObjectTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IString::Id);
+}
+
+TEST_F(StringObjectTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IString>(), "{D2ED1120-F7FF-556F-A98D-3F3EDF1A3874}");
+}

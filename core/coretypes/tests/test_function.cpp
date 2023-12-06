@@ -623,3 +623,15 @@ TEST_F(FunctionTest, ImplementationName)
     auto prefix = className.find("daq::FunctionImpl<");
     ASSERT_EQ(prefix, 0u);
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IFunction", "daq");
+
+TEST_F(FunctionTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IFunction::Id);
+}
+
+TEST_F(FunctionTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IFunction>(), "{2EEACD91-0883-5FC8-8EB8-4F4C80CD8131}");
+}

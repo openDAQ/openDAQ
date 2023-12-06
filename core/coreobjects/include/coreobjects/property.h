@@ -38,9 +38,9 @@ struct IPropertyBuilder;
  * [interfaceSmartPtr(IProperty, GenericPropertyPtr)]
  * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_ptr.fwd_declare.h>")]
  * [interfaceSmartPtr(IPropertyValueEventArgs, PropertyValueEventArgsPtr, "<coretypes/event_wrapper.h>")]
- * [interfaceSmartPtr(IBoolean, BooleanPtr, "<coretypes/boolean_factory.h>")]
- * [interfaceSmartPtr(IStruct, StructPtr, "<coretypes/struct_ptr.h>")]
- * [interfaceSmartPtr(IStructType, StructTypePtr, "<coretypes/struct_type_ptr.h>")]
+ * [interfaceLibrary(IBoolean, CoreTypes)]
+ * [interfaceLibrary(IStruct, CoreTypes)]
+ * [interfaceLibrary(IStructType, CoreTypes)]
  * [interfaceLibrary(INumber, CoreTypes)]
  */
 
@@ -498,6 +498,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IRatio*, defaultValue,
     IBoolean*, visible
 )
+
+//[factory(Hide)]
 /*!
  * @brief Creates an object-type Property object with a default value and optional Visible state.
  * @param name The name of the Property.
@@ -595,6 +597,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IBoolean*, visible
 )
 
+//[factory(Hide)]
 /*!
  * @brief Creates a Property using Builder
  * @param builder Property Builder

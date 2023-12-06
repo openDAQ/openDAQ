@@ -165,3 +165,15 @@ TEST_F(FloatTest, ImplementationName)
     auto prefix = className.find("daq::NumberImpl<double,");
     ASSERT_EQ(prefix, 0u);
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IFloat", "daq");
+
+TEST_F(FloatTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IFloat::Id);
+}
+
+TEST_F(FloatTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IFloat>(), "{D1E14646-B7B0-5D3D-9553-BE6F1CD4F0D8}");
+}

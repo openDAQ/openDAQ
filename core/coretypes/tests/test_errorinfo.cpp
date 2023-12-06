@@ -42,6 +42,18 @@ static ObjectPtr<IErrorTest> CreateTestObject()
 
 using ErrorInfoTest = testing::Test;
 
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IErrorInfo", "daq");
+
+TEST_F(ErrorInfoTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IErrorInfo::Id);
+}
+
+TEST_F(ErrorInfoTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IErrorInfo>(), "{483B3446-8F45-53CE-B4EE-EC2B03CF6A4C}");
+}
+
 TEST_F(ErrorInfoTest, CheckObject)
 {
     auto obj = CreateTestObject();

@@ -87,6 +87,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, Unit,
     IString*, quantity
 )
 
+//[factory(Hide)]
 /*!
  * @brief Creates a Unit with Builder
  * @param builder Unit Builder

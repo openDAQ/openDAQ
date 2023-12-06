@@ -41,11 +41,13 @@ type
       ctObject = Dewesoft_TLB.ctObject;
       ctBinaryData = Dewesoft_TLB.ctBinaryData;
       ctFunc = Dewesoft_TLB.ctFunc;
+      ctComplexNumber = ctFunc + 1;  ///< Complex number (real, imaginary)
+      ctStruct = ctFunc + 2;         ///< Constant structure with dictionary of fields and types
       ctUndefined = Dewesoft_TLB.ctUndefined;
 
     type
   {$ELSE}
-    TCoreType = (ctBool = 0, ctInt, ctFloat, ctString, ctList, ctDict, ctRatio, ctProc, ctObject, ctBinaryData, ctFunc, ctUndefined = $FFFF);
+    TCoreType = (ctBool = 0, ctInt, ctFloat, ctString, ctList, ctDict, ctRatio, ctProc, ctObject, ctBinaryData, ctFunc, ctComplexNumber, ctStruct, ctUndefined = $FFFF);
   {$ENDIF}
 
   TConfigurationMode = (cmNone=$0, cmStatic=$1, cmDynamic=$2, cmBoth);
@@ -58,7 +60,7 @@ type
   TDSRTDeserializerFactory = function(SerializedObject: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): Errcode; cdecl;
 
   IBaseObject = interface(IUnknown)
-  ['{E8F364F8-E940-572D-BB89-8A7D2AE1DDE7}']
+  ['{9C911F6D-1664-5AA2-97BD-90FE3143E881}']
     function BorrowInterface(const IID: TGUID; out Obj): HResult; stdcall;
     procedure Dispose; stdcall;
 
@@ -68,43 +70,49 @@ type
   end;
 
   IIterator = interface(IBaseObject)
-  ['{1B66CB09-960D-52DC-8282-A1E24319D68E}']
+  ['{F3B87158-F4CD-5890-9476-3C0E315C56D9}']
     function MoveNext: ErrCode stdcall;
     function GetCurrent(out BaseObject: IBaseObject): ErrCode stdcall;
   end;
 
   IIterable = interface(IBaseObject)
-  ['{2B517416-7E97-560F-B545-4F2D61F5ABAA}']
+  ['{EC09F2E5-614D-5780-81CB-ECE8ECB2655B}']
     function CreateStartIterator(out Value: IIterator): ErrCode stdcall;
     function CreateEndIterator(out Value: IIterator): ErrCode stdcall;
   end;
 
   IBoolean = interface(IBaseObject)
-  ['{F41A7890-D353-5F5D-87D9-B8DCB8CD53C1}']
+  ['{9F20E31A-D0FB-5679-A188-4942B3FED6E2}']
     function GetValue(out Value: Boolean): ErrCode; stdcall;
     function EqualsValue(const Value: Boolean; out Equal: Boolean): ErrCode stdcall;
   end;
 
   IFloat = interface(IBaseObject)
-  ['{454D3070-99EE-5167-A603-228B7EC6701C}']
+  ['{D1E14646-B7B0-5D3D-9553-BE6F1CD4F0D8}']
     function GetValue(out Value: RtFloat): ErrCode; stdcall;
     function EqualsValue(const Value: RtFloat; out Equal: Boolean): ErrCode stdcall;
   end;
 
   IInteger = interface(IBaseObject)
-  ['{4DF6D212-BA6C-506B-AFDD-71CA884B399D}']
+  ['{B5C52F78-45F9-5C54-9BC1-CA65A46472CB}']
     function GetValue(out Value: RtInt): ErrCode; stdcall;
     function EqualsValue(const Value: RtInt; out Equal: Boolean): ErrCode stdcall;
   end;
 
   IString = interface(IBaseObject)
-  ['{3D7F9D7D-8A70-5339-9038-B53F5FBF2442}']
+  ['{D2ED1120-F7FF-556F-A98D-3F3EDF1A3874}']
     function GetCharPtr(Value: PPAnsiChar): ErrCode stdcall;
     function GetLength(out Size: SizeT): ErrCode stdcall;
   end;
 
+  IInspectable = interface(IBaseObject)
+  ['{9869DF21-C7B3-5E0E-8E4B-66DB6A7265A8}']
+    function getInterfaceIds(var Count: SizeT; IIDs: PGUID): ErrCode; stdcall;
+    function getRuntimeClassName(out ImplementationName: IString): ErrCode; stdcall;
+  end;
+
   IListObject = interface(IBaseObject)
-  ['{D43F916D-9902-562D-AB87-E69A61326368}']
+  ['{E7866BCC-0563-5504-B61B-A8116B614D8F}']
     function GetItemAt(Index: SizeT; out BaseObject: IBaseObject): ErrCode stdcall;
     function GetCount(out Size: SizeT): ErrCode stdcall;
     function SetItemAt(Index: SizeT; BaseObject: IBaseObject): ErrCode stdcall;
@@ -126,7 +134,7 @@ type
   IList = IListObject;
 
   IDictObject = interface(IBaseObject)
-  ['{90EAAC02-F875-510A-A730-8B792FCD4963}']
+  ['{E3DE60DA-0366-5DA5-8334-F9DCADFF5AD0}']
     function GetItem(Key: IBaseObject; out Value: IBaseObject): ErrCode stdcall;
     function SetItem(Key: IBaseObject; Value: IBaseObject): ErrCode stdcall;
     function RemoveItem(Key: IBaseObject; out Value: IBaseObject): ErrCode stdcall;
@@ -141,31 +149,31 @@ type
   end;
 
   IConvertible = interface(IBaseObject)
-  ['{A52D39FE-9118-509F-8923-DB4A163F7BA1}']
+  ['{D984FD0F-7980-5E7B-8EC1-75C507F302FE}']
     function ToFloat(out Val: RtFloat): ErrCode stdcall;
     function ToInt(out Val: RtInt): ErrCode stdcall;
     function ToBool(out Val: Boolean): ErrCode stdcall;
   end;
 
   ICoreType = interface(IBaseObject)
-  ['{72E0D318-84DD-589F-AA58-D570B81CD77D}']
+  ['{0562D045-C94E-5E6D-8360-2CFC9DB76A04}']
     function GetCoreType(out CoreType: TCoreType): ErrCode stdcall;
   end;
 
   IFreezable = interface(IBaseObject)
-  ['{991DD442-EE18-5815-89E0-B0AF020A16E0}']
+  ['{06F0D04D-3CA7-5E0F-A6CB-2459608C6519}']
     function Freeze(): ErrCode stdcall;
     function IsFrozen(out IsFrozen: Boolean): ErrCode stdcall;
   end;
 
   ISerializable = interface(IBaseObject)
-  ['{F2A26E1A-0735-5758-88E7-F41BCB9E2EDC}']
+  ['{831915F2-C42F-5520-A420-56524D2AC552}']
     function Serialize(Serializer: ISerializer): ErrCode stdcall;
     function GetSerializeId(const Id: PPAnsiChar): ErrCode stdcall;
   end;
 
   ISerializer = interface(IBaseObject)
-  ['{2A74B851-D3DC-5C19-8D36-716535B81BC7}']
+  ['{4230318E-85D5-5BB6-80C8-10CC47B7A3D2}']
     function StartTaggedObject(Obj: ISerializable): ErrCode stdcall;
 
     function StartObject(): ErrCode stdcall;
@@ -189,7 +197,7 @@ type
   end;
 
   ISerializedList = interface(IBaseObject)
-  ['{0FAA7F66-1FE8-55E7-AAED-F348AA1AE8D3}']
+  ['{A9E1FD59-8AD5-5F3C-B4F8-2A9CDE66E598}']
     function ReadSerializedObject(out PlainObj: ISerializedObject): ErrCode stdcall;
     function ReadSerializedList(out List: ISerializedList): ErrCode stdcall;
     function ReadList(Context: IBaseObject; out List: IListObject): ErrCode stdcall;
@@ -203,7 +211,7 @@ type
   end;
 
   ISerializedObject = interface(IBaseObject)
-  ['{500448A1-F784-5542-9170-202E2F002A19}']
+  ['{EC052FCE-7ADC-5335-9929-66731EA35698}']
     function ReadSerializedObject(Key: IString; out PlainObj: ISerializedObject): ErrCode stdcall;
     function ReadSerializedList(Key: IString; out List: ISerializedList): ErrCode stdcall;
     function ReadList(Key: IString; Context: IBaseObject; out List: IListObject): ErrCode stdcall;
@@ -217,36 +225,44 @@ type
   end;
 
   IUpdatable = interface(IBaseObject)
-  ['{66e0ff3c-088a-565a-9321-a5f565e2821a}']
+  ['{94BF8B0E-2868-51A2-8773-CBB98A4DD1BE}']
     function Update(Mode: TConfigurationMode; Update: ISerializedObject): ErrCode; stdcall;
   end;
 
   IDeserializer = interface(IBaseObject)
-  ['{F2E68289-2134-53E5-9840-28D25D5FBDAA}']
+  ['{66DEEEF9-2B0D-5A49-A050-2820C4738AE7}']
     function Deserialize(Serialized: IString; Context: IBaseObject; out Obj: IBaseObject): ErrCode stdcall;
     function Update(Updatable: IUpdatable; Mode: TConfigurationMode; Serialized: IString): ErrCode stdcall;
   end;
 
   IFunction = interface(IBaseObject)
-  ['{CD7DE87D-C267-5736-A6D0-03C56A9E208A}']
+  ['{2EEACD91-0883-5FC8-8EB8-4F4C80CD8131}']
     function Call(Params : IBaseObject; out Result : IBaseObject) : ErrCode; stdcall;
   end;
   
   IProcedure = interface(IBaseObject)
-  ['{EB405ABE-0DF0-5808-8642-C02069567ADF}']
+  ['{36247E6D-6BDD-5964-857D-0FD296EEB5C3}']
     function Execute(Params : IBaseObject) : ErrCode; stdcall;
   end;
 
   IBinaryData = interface(IBaseObject)
-  ['{88645351-2B4A-5C4E-9FBB-7D804B49C9E3}']
+  ['{778DCE96-1ECD-59C0-B066-FD47BAF07789}']
     function GetAddress(var Address: Pointer): ErrCode stdcall;
     function GetSize(var Size: SizeT): ErrCode stdcall;
   end;
 
   IRatio = interface(IBaseObject)
-  ['{5B4CE8CC-4486-5F76-B398-7455E51B1C1D}']
+  ['{08D28C13-55A6-5FE5-A0F0-19A3F8707C15}']
     function GetNumerator(out Numerator : RtInt) : ErrCode; stdcall;
     function GetDenominator(out Denominator : RtInt) : ErrCode; stdcall;
+  end;
+
+  IErrorInfo = interface(IBaseObject)
+  ['{483B3446-8F45-53CE-B4EE-EC2B03CF6A4C}']
+    function SetMessage(Msg: IString): ErrCode; stdcall;
+    function GetMessage(out Msg: IString): ErrCode; stdcall;
+    function SetSource(Source: IString): ErrCode; stdcall;
+    function GetSource(out Source: IString): ErrCode; stdcall;
   end;
 
   ISmartPtr = interface
@@ -327,6 +343,10 @@ function CreateList(out Obj: IListObject): ErrCode; cdecl;
 function CreateJsonSerializer(out Obj: ISerializer; Pretty: Boolean = False): ErrCode; cdecl;
 function CreateJsonDeserializer(out Obj: IDeserializer): ErrCode; cdecl;
 
+procedure DaqSetErrorInfo(ErrorInfo: IErrorInfo); cdecl;
+procedure DaqGetErrorInfo(out ErrorInfo: IErrorInfo); cdecl;
+procedure DaqClearErrorInfo(); cdecl;
+
 function BaseObjectToFloat(Obj: IBaseObject): RtFloat; overload;
 function BaseObjectToFloat(Obj: ISmartPtr): RtFloat; overload;
 
@@ -379,6 +399,10 @@ function CreateDict; external DSCoreTypesDLL name 'createDict';
 function CreateList; external DSCoreTypesDLL name 'createList';
 function CreateJsonSerializer; external DSCoreTypesDLL name 'createJsonSerializer';
 function CreateJsonDeserializer; external DSCoreTypesDLL name 'createJsonDeserializer';
+
+procedure DaqSetErrorInfo; external DSCoreTypesDLL name 'daqSetErrorInfo';
+procedure DaqGetErrorInfo; external DSCoreTypesDLL name 'daqGetErrorInfo';
+procedure DaqClearErrorInfo; external DSCoreTypesDLL name 'daqClearErrorInfo';
 
 function DaqRegisterSerializerFactory(Id: string; Factory: TDSRTDeserializerFactory) : Boolean;
 var

@@ -34,7 +34,7 @@ public:
         , property(property)
         , newValue(value)
         , type(type)
-        , isUpdating(isUpdating)
+        , updating(isUpdating)
     {
     }
 
@@ -42,13 +42,13 @@ public:
     ErrCode INTERFACE_FUNC getValue(IBaseObject** value) override;
     ErrCode INTERFACE_FUNC setValue(IBaseObject* value) override;
     ErrCode INTERFACE_FUNC getPropertyEventType(PropertyEventType* changeType) override;
-    ErrCode INTERFACE_FUNC getIsUpdating(bool* isUpdating) override;
+    ErrCode INTERFACE_FUNC getIsUpdating(Bool* isUpdating) override;
 
 private:
     PropertyPtr property;
     BaseObjectPtr newValue;
     PropertyEventType type;
-    Bool isUpdating;
+    Bool updating;
 };
 
 END_NAMESPACE_OPENDAQ

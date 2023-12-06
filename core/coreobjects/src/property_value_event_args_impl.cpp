@@ -42,11 +42,11 @@ ErrCode PropertyValueEventArgsImpl::getPropertyEventType(PropertyEventType* chan
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyValueEventArgsImpl::getIsUpdating(bool* isUpdating)
+ErrCode PropertyValueEventArgsImpl::getIsUpdating(Bool* isUpdating)
 {
     OPENDAQ_PARAM_NOT_NULL(isUpdating);
 
-    *isUpdating = this->isUpdating;
+    *isUpdating = updating;
     return OPENDAQ_SUCCESS;
 }
 

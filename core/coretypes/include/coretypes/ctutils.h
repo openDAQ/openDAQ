@@ -399,6 +399,15 @@ inline ErrCode daqTry(const IBaseObject* context, const DaqTryFunc& func)
     }
 }
 
+template <typename Interface>
+inline std::string daqInterfaceIdString()
+{
+    char iid[39];
+    daqInterfaceIdToString(Interface::Id, iid);
+
+    return iid;
+}
+
 inline ErrCode daqTry(const DaqTryFunc& func)
 {
     return daqTry(nullptr, func);

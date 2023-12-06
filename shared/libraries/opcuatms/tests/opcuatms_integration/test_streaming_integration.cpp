@@ -74,6 +74,22 @@ public:
         }
     }
 
+    SignalPtr getSignal(const DevicePtr& device, const std::string& signalName)
+    {
+        auto signals = device.getSignalsRecursive();
+
+        for (const auto& signal : signals)
+        {
+            const auto descriptor = signal.getDescriptor();
+            if (descriptor.assigned() && descriptor.getName() == signalName)
+            {
+                return signal;
+            }
+        }
+
+        throw NotFoundException();
+    }
+
     PacketReaderPtr createReader(const DevicePtr& device, const std::string& signalName)
     {
         auto signals = device.getSignalsRecursive();
@@ -260,7 +276,19 @@ TEST_F(StreamingIntegrationTest, ByteStep)
     auto clientDevice = client.connect();
     setActiveStreamingSource(clientDevice);
 
+    auto mirroredSignalPtr = getSignal(clientDevice, "ByteStep").template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture = subscribeCompletePromise.get_future();
+    mirroredSignalPtr.getOnSubscribeComplete() +=
+        [&subscribeCompletePromise](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
+    {
+        subscribeCompletePromise.set_value(args.getStreamingConnectionString());
+    };
+
     auto clientStepReader = createReader(clientDevice, "ByteStep");
+
+    ASSERT_EQ(subscribeCompleteFuture.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+    ASSERT_EQ(subscribeCompleteFuture.get(), mirroredSignalPtr.getActiveStreamingSource());
 
     generatePackets(packetsToRead);
 
@@ -293,7 +321,19 @@ TEST_F(StreamingIntegrationTest, ChangingSignal)
     auto clientDevice = client.connect();
     setActiveStreamingSource(clientDevice);
 
+    auto mirroredSignalPtr = getSignal(clientDevice, "ChangingSignal").template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture = subscribeCompletePromise.get_future();
+    mirroredSignalPtr.getOnSubscribeComplete() +=
+        [&subscribeCompletePromise](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
+    {
+        subscribeCompletePromise.set_value(args.getStreamingConnectionString());
+    };
+
     auto clientStepReader = createReader(clientDevice, "ChangingSignal");
+
+    ASSERT_EQ(subscribeCompleteFuture.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+    ASSERT_EQ(subscribeCompleteFuture.get(), mirroredSignalPtr.getActiveStreamingSource());
 
     generatePackets(packetsToGenerate);
 
@@ -333,7 +373,21 @@ TEST_F(StreamingIntegrationTest, AllSignalsAsync)
     setActiveStreamingSource(clientDevice);
 
     for (const auto& signal : signals)
+    {
+        auto mirroredSignalPtr = getSignal(clientDevice, signal).template asPtr<IMirroredSignalConfig>();
+        std::promise<StringPtr> subscribeCompletePromise;
+        std::future<StringPtr> subscribeCompleteFuture = subscribeCompletePromise.get_future();
+        mirroredSignalPtr.getOnSubscribeComplete() +=
+            [&subscribeCompletePromise](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
+        {
+            subscribeCompletePromise.set_value(args.getStreamingConnectionString());
+        };
+
         clientReaders.insert({signal, createReader(clientDevice, signal)});
+
+        ASSERT_EQ(subscribeCompleteFuture.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+        ASSERT_EQ(subscribeCompleteFuture.get(), mirroredSignalPtr.getActiveStreamingSource());
+    }
 
     generatePackets(packetsToRead);
 

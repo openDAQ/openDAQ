@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 #include <thread>
+#include <future>
 
 #include <opendaq/opendaq.h>
 #include <opendaq/event_packet_params.h>
@@ -189,8 +190,20 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     auto serverSignal = getSignal(serverInstance, "ChangingSignal");
     auto clientSignal = getSignal(clientInstance, "ChangingSignal");
 
+    auto mirroredSignalPtr = clientSignal.template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture = subscribeCompletePromise.get_future();
+    mirroredSignalPtr.getOnSubscribeComplete() +=
+        [&subscribeCompletePromise](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
+    {
+        subscribeCompletePromise.set_value(args.getStreamingConnectionString());
+    };
+
     auto serverReader = createServerReader("ChangingSignal");
     auto clientReader = createClientReader("ChangingSignal");
+
+    ASSERT_EQ(subscribeCompleteFuture.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+    ASSERT_EQ(subscribeCompleteFuture.get(), mirroredSignalPtr.getActiveStreamingSource());
 
     generatePackets(packetsToGenerate); 
 
@@ -236,8 +249,20 @@ TEST_P(StreamingTest, DataPackets)
     // +1 signal initial descriptor changed event packet
     const size_t packetsToRead = packetsToGenerate + 1;
 
+    auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture = subscribeCompletePromise.get_future();
+    mirroredSignalPtr.getOnSubscribeComplete() +=
+        [&subscribeCompletePromise](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
+    {
+        subscribeCompletePromise.set_value(args.getStreamingConnectionString());
+    };
+
     auto serverReader = createServerReader("ByteStep");
     auto clientReader = createClientReader("ByteStep");
+
+    ASSERT_EQ(subscribeCompleteFuture.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+    ASSERT_EQ(subscribeCompleteFuture.get(), mirroredSignalPtr.getActiveStreamingSource());
 
     generatePackets(packetsToGenerate);
 
@@ -265,16 +290,23 @@ TEST_P(StreamingTest, SignalPropertyEvents)
     SignalPtr serverSignal = getSignal(serverInstance, "ByteStep");
     SignalPtr clientSignal = getSignal(clientInstance, "ByteStep");
 
+    auto mirroredSignalPtr = clientSignal.template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture = subscribeCompletePromise.get_future();
+    mirroredSignalPtr.getOnSubscribeComplete() +=
+        [&subscribeCompletePromise](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
+    {
+        subscribeCompletePromise.set_value(args.getStreamingConnectionString());
+    };
+
     ASSERT_EQ(clientSignal.getName(), serverSignal.getName());
     ASSERT_EQ(clientSignal.getDescription(), serverSignal.getDescription());
 
     auto serverReader = createServerReader("ByteStep");
     auto clientReader = createClientReader("ByteStep");
 
-    // signal subscribing triggers creating Reader on server-side for a server signal
-    // wait before changing server signal properties to make sure that server-side reader
-    // catches signal property changed event packets
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    ASSERT_EQ(subscribeCompleteFuture.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+    ASSERT_EQ(subscribeCompleteFuture.get(), mirroredSignalPtr.getActiveStreamingSource());
 
     serverSignal.setName("ByteStepChanged");
     serverSignal.setDescription("DescriptionChanged");
@@ -364,8 +396,20 @@ TEST_P(StreamingAsyncSignalTest, SigWithExplicitDomain)
 {
     const size_t packetsToRead = 10;
 
+    auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep/Avg").template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture = subscribeCompletePromise.get_future();
+    mirroredSignalPtr.getOnSubscribeComplete() +=
+        [&subscribeCompletePromise](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
+    {
+        subscribeCompletePromise.set_value(args.getStreamingConnectionString());
+    };
+
     auto serverReader = createServerReader("ByteStep/Avg");
     auto clientReader = createClientReader("ByteStep/Avg");
+
+    ASSERT_EQ(subscribeCompleteFuture.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+    ASSERT_EQ(subscribeCompleteFuture.get(), mirroredSignalPtr.getActiveStreamingSource());
 
     generatePackets(packetsToRead);
 

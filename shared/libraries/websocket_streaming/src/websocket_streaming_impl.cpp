@@ -3,6 +3,7 @@
 #include <opendaq/mirrored_signal_config.h>
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/mirrored_signal_private.h>
+#include <opendaq/subscription_event_args_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -67,6 +68,24 @@ void WebsocketStreamingImpl::prepareStreamingClient()
         this->onAvailableSignals(signalIds);
     };
     streamingClient->onAvailableStreamingSignals(availableSignalsCallback);
+
+    auto signalSubscriptionAckCallback = [this](const std::string& signalStringId, bool subscribed)
+    {
+        auto signalKey = String(signalStringId);
+        if (auto it = streamingSignalsRefs.find(signalKey); it != streamingSignalsRefs.end())
+        {
+            auto signalRef = it->second;
+            MirroredSignalConfigPtr signal = signalRef.assigned() ? signalRef.getRef() : nullptr;
+            if (signal.assigned())
+            {
+                if (subscribed)
+                    signal.template asPtr<daq::IMirroredSignalPrivate>()->subscribeCompleted(connectionString);
+                else
+                    signal.template asPtr<daq::IMirroredSignalPrivate>()->unsubscribeCompleted(connectionString);
+            }
+        }
+    };
+    streamingClient->onSubscriptionAck(signalSubscriptionAckCallback);
 }
 
 void WebsocketStreamingImpl::handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket)

@@ -13,10 +13,7 @@ if (OPENDAQ_ENABLE_NATIVE_STREAMING)
 endif()
 
 if (OPENDAQ_ENABLE_NATIVE_STREAMING OR OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    list(APPEND TEST_SOURCES test_subdevices.cpp)
-    if (NOT APPLE)
-        list(APPEND TEST_SOURCES test_streaming.cpp)
-    endif()
+    list(APPEND TEST_SOURCES test_subdevices.cpp test_streaming.cpp)
 endif()
 
 add_executable(${TEST_APP} ${TEST_SOURCES}

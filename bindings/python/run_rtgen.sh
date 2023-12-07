@@ -32,7 +32,7 @@ function run_rtgen {
 #
 # core types
 #
-core_type_files=("event_args" "simple_type" "struct" "struct_type" "type" "type_manager")
+core_type_files=("event_args" "simple_type" "struct" "struct_type" "type" "type_manager" "struct_builder")
 for file in "${core_type_files[@]}" 
 do
     run_rtgen CoreTypes coretypes coretypes core_types/generated ${file}

@@ -38,7 +38,6 @@ void defineIUnit(pybind11::module_ m, PyDaqIntf<daq::IUnit, daq::IBaseObject> cl
     cls.doc() = "Describes a measurement unit with IDs as defined in <a href=\"https://unece.org/trade/cefact/UNLOCODE-Download\">Codes for Units of Measurement used in International Trade</a>.";
 
     m.def("Unit", &daq::Unit_Create);
-    m.def("UnitFromBuilder", &daq::UnitFromBuilder_Create);
 
     cls.def_property_readonly("id",
         [](daq::IUnit *object)

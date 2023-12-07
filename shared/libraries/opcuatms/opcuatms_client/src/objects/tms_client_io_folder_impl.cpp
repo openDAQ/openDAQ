@@ -30,10 +30,11 @@ TmsClientIoFolderImpl::TmsClientIoFolderImpl(const ContextPtr& ctx,
 
 void TmsClientIoFolderImpl::findAndCreateChannels(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents)
 {
-    auto channelNodeIds = getChildNodes(this->client, this->nodeId, OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_CHANNELTYPE));
-    for (const auto& channelNodeId : channelNodeIds)
+    const auto& references = getChildReferencesOfType(this->nodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_CHANNELTYPE));
+
+    for (const auto& [browseName, ref] : references.byBrowseName)
     {
-        auto browseName = this->client->readBrowseName(channelNodeId);
+        const auto channelNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         auto thisPtr = this->borrowPtr<FolderConfigPtr>();
         auto tmsClientChannel = TmsClientChannel(this->context, thisPtr, browseName, this->clientContext, channelNodeId);
             
@@ -47,10 +48,11 @@ void TmsClientIoFolderImpl::findAndCreateChannels(std::map<uint32_t, ComponentPt
 
 void TmsClientIoFolderImpl::findAndCreateIoFolders(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents)
 {
-    auto folderNodeIds = getChildNodes(this->client, this->nodeId, OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_IOCOMPONENTTYPE));
-    for (const auto& folderNodeId : folderNodeIds)
+    const auto& folderReferences = getChildReferencesOfType(this->nodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_IOCOMPONENTTYPE));
+
+    for (const auto& [browseName, ref] : folderReferences.byBrowseName)
     {
-        auto browseName = this->client->readBrowseName(folderNodeId);
+        const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
         auto tmsClientFolder = TmsClientIoFolder(this->context, thisPtr, browseName, this->clientContext, folderNodeId);
 

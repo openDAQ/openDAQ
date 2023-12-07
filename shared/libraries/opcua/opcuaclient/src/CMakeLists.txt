@@ -11,7 +11,6 @@ set(SOURCE_CPPS opcuaclient.cpp
                 monitored_item_create_request.cpp
                 event_filter.cpp
                 browse_request.cpp
-                reference_utils.cpp
                 request_handler.cpp
                 attribute_reader.cpp
                 cached_reference_browser.cpp
@@ -34,7 +33,6 @@ set(SOURCE_HEADERS opcuaclient.h
                    monitored_item_create_request.h
                    event_filter.h
                    browse_request.h
-                   reference_utils.h
                    request_handler.h
                    attribute_reader.h
 )

@@ -63,23 +63,26 @@ OpcUaNodeId CachedReferenceBrowser::getChildNodeId(const OpcUaNodeId& nodeId, co
     return node->nodeId.nodeId;
 }
 
-std::vector<OpcUaNodeId> CachedReferenceBrowser::getFilteredChildren(const OpcUaNodeId& nodeId,
-                                                                     const OpcUaNodeId& referenceTypeId,
-                                                                     bool isForward,
-                                                                     const OpcUaNodeId& typeDefinition)
+CachedReferences CachedReferenceBrowser::browseFiltered(const OpcUaNodeId& nodeId, const BrowseFilter& filter)
 {
     const auto& references = browse(nodeId);
-    std::vector<OpcUaNodeId> filtered;
+    CachedReferences filtered;
 
-    for (const auto& [refNodeId, ref] : references.byNodeId)
+    for (const auto& [browseName, ref] : references.byBrowseName)
     {
         auto typeId = OpcUaNodeId(ref->referenceTypeId);
 
-        if (ref->isForward == isForward && typeId == referenceTypeId &&
-            (typeDefinition.isNull() || isSubtypeOf(ref->typeDefinition.nodeId, typeDefinition)))
-        {
-            filtered.push_back(refNodeId);
-        }
+        if (!filter.referenceTypeId.isNull() && filter.referenceTypeId != typeId)
+            continue;
+        if (!filter.typeDefinition.isNull() && !isSubtypeOf(ref->typeDefinition.nodeId, filter.typeDefinition))
+            continue;
+        if (filter.direction == UA_BROWSEDIRECTION_FORWARD && !ref->isForward)
+            continue;
+        if (filter.direction == UA_BROWSEDIRECTION_INVERSE && ref->isForward)
+            continue;
+
+        filtered.byNodeId.insert({ref->nodeId.nodeId, ref});
+        filtered.byBrowseName.insert({browseName, ref});
     }
 
     return filtered;

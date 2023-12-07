@@ -42,9 +42,9 @@ protected:
     void findAndCreateSignals();
     void findAndCreateInputPorts();
     void readFbType();
-    tsl::ordered_set<daq::opcua::OpcUaNodeId> getFunctionBlockNodeIds();
-    tsl::ordered_set<daq::opcua::OpcUaNodeId> getOutputSignalNodeIds();
-    tsl::ordered_set<daq::opcua::OpcUaNodeId> getInputPortNodeIds();
+    CachedReferences getFunctionBlockReferences();
+    CachedReferences getOutputSignalReferences();
+    CachedReferences getInputPortBlockReferences();
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

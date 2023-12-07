@@ -36,6 +36,13 @@ struct CachedReferences
     tsl::ordered_map<std::string, OpcUaObject<UA_ReferenceDescription>> byBrowseName;
 };
 
+struct BrowseFilter
+{
+    OpcUaNodeId referenceTypeId = OpcUaNodeId();
+    OpcUaNodeId typeDefinition = OpcUaNodeId();
+    UA_BrowseDirection direction = UA_BROWSEDIRECTION_BOTH;
+};
+
 class CachedReferenceBrowser
 {
 public:
@@ -47,10 +54,7 @@ public:
     bool isSubtypeOf(const OpcUaNodeId& typeId, const OpcUaNodeId& baseType);
     bool hasReference(const OpcUaNodeId& nodeId, const std::string& browseName);
     OpcUaNodeId getChildNodeId(const OpcUaNodeId& nodeId, const std::string& browseName);
-    std::vector<OpcUaNodeId> getFilteredChildren(const OpcUaNodeId& nodeId,
-                                                 const OpcUaNodeId& referenceTypeId,
-                                                 bool isForward = true,
-                                                 const OpcUaNodeId& typeDefinition = OpcUaNodeId());
+    CachedReferences browseFiltered(const OpcUaNodeId& nodeId, const BrowseFilter& filter);
 
 private:
     bool isCached(const OpcUaNodeId& nodeId);

@@ -104,13 +104,16 @@ ErrCode TmsClientInputPortImpl::getSignal(ISignal** signal)
 
 SignalPtr TmsClientInputPortImpl::onGetSignal()
 {
-    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_CONNECTEDTOSIGNAL);
-    auto nodeIds = referenceUtils.getReferencedNodes(nodeId, referenceTypeId, true);
-    assert(nodeIds.size() <= 1);
+    auto filter = BrowseFilter();
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_CONNECTEDTOSIGNAL);
+    filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
-    if (!nodeIds.empty())
+    const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);
+    assert(references.byNodeId.size() <= 1);
+
+    if (!references.byNodeId.empty())
     {
-        auto connectedSignalNodeId = *nodeIds.begin();
+        auto connectedSignalNodeId = references.byNodeId.begin().key();
         return findSignal(connectedSignalNodeId);
     }
 

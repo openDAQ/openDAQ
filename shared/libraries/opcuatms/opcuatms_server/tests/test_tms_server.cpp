@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <opcuatms_server/tms_server.h>
 #include <open62541/di_nodeids.h>
-#include <open62541/daqdevice_nodeids.h>
-#include <opcuaclient/reference_utils.h>
+#include <open62541/tmsdevice_nodeids.h>
 #include <tms_object_test.h>
 #include "test_helpers.h"
+#include <opcuaclient/cached_reference_browser.h>
 
 using TmsServerTest = testing::Test;
 
@@ -60,6 +60,7 @@ TEST_F(TmsServerTest, Channels)
     server.start();
 
     auto client = TmsObjectTest::CreateAndConnectTestClient();
+    auto referenceBrowser = CachedReferenceBrowser(client);
     auto mockPhysicalDevice = GetMockPhysicalDevice(client);
 
     auto inputsOutputsFolder = BrowseForChild(client, mockPhysicalDevice, "IO");
@@ -77,10 +78,11 @@ TEST_F(TmsServerTest, Channels)
     auto byteStepSignal = BrowseForChild(client, signalsNode, "ByteStep");
     auto timeSignal = BrowseForChild(client, signalsNode, "Time");
 
-    ReferenceUtils referenceUtils(client);
-    referenceUtils.updateReferences(byteStepSignal);
+    auto filter = BrowseFilter();
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASDOMAINSIGNAL);
+    filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
-    auto references = referenceUtils.getReferencedNodes(byteStepSignal, OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASDOMAINSIGNAL), true);
-    ASSERT_EQ(references.size(), 1u);
-    ASSERT_EQ(*references.begin(), timeSignal);
+    auto references = referenceBrowser.browseFiltered(byteStepSignal, filter);
+    ASSERT_EQ(references.byNodeId.size(), 1u);
+    ASSERT_EQ(references.byNodeId.begin().key(), timeSignal);
 }

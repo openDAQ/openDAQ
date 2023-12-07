@@ -118,6 +118,13 @@ HexadecimalConstant
 
 AlphaNumeric : (Digit | Nondigit);
 
+
+fragment
+AnyIdentifier
+    : Identifier
+    | MacroIdentifier
+    ;
+
 String: '"' .*? '"';
 
 fragment
@@ -217,8 +224,6 @@ Whitespace
         -> channel(WHITESPACE_CHANNEL)
     ;
 
-// CommentRT: '//' '[';
-
 Comment: '//' ~[[\r\n]* '\r'? '\n' -> channel(COMMENTS_CHANNEL);
 
 BlockComment : '/*' ~[#!]*? '*/' -> channel(COMMENTS_CHANNEL);
@@ -229,6 +234,14 @@ Newline
         )
         -> channel(WHITESPACE_CHANNEL)
     ;
+
+IncludePath: Whitespace LessThan IncludeHPath GreaterThan;
+
+fragment
+IncludeHPath: (Dot* PathHSeparator)? AnyIdentifier (PathHSeparator AnyIdentifier)* (Dot AnyIdentifier)?;
+
+fragment
+PathHSeparator: Slash | BackSlash;
 
 mode jsDoc;
 

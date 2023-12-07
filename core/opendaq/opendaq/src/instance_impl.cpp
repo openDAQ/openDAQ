@@ -30,10 +30,35 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 {
     const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
 
-    const auto logger = builderPtr.getLogger();
-    const auto scheduler = builderPtr.getScheduler();
-    const auto moduleManager = builderPtr.getModuleManager();
-    const auto typeManager = TypeManager();
+    auto logger = builderPtr.getLogger();
+    auto scheduler = builderPtr.getScheduler();
+    auto moduleManager = builderPtr.getModuleManager();
+    auto typeManager = TypeManager();
+
+    // Configure logger
+    if (!logger.assigned()) 
+    {
+        auto sinks = builderPtr.getLoggerSinks();
+        if (sinks.empty())
+            logger = Logger();
+        else
+            logger = LoggerWithSinks(sinks);
+        logger.setLevel(builderPtr.getGlobalLogLevel());
+    }
+
+    for (const auto& [component, logLevel] : builderPtr.getComponentsLogLevel())
+    {
+        auto createdComponent = logger.getOrAddComponent(component);
+        createdComponent.setLevel(LogLevel(logLevel));
+    }
+
+    // Configure scheduler
+    if (!scheduler.assigned())
+        scheduler = Scheduler(logger, builderPtr.getSchedulerWorkerNum());
+
+    // Configure moduleManager
+    if (!moduleManager.assigned())
+        moduleManager = ModuleManager(builderPtr.getModulePath());
 
     return Context(scheduler, logger, typeManager, moduleManager);
 }
@@ -48,11 +73,11 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     auto localId = builderPtr.getDefaultRootDeviceName();
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
     defaultRootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
-    
-    rootDevice = builderPtr.getRootDevice();
-    rootDeviceSet = rootDevice.assigned();
-    if (!rootDeviceSet)
-        rootDevice = defaultRootDevice;
+    rootDevice = defaultRootDevice;
+
+    auto connectionString = builderPtr.getRootDevice();
+    if (connectionString.assigned())
+        rootDevice.addDevice(connectionString);
 
     loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
 }

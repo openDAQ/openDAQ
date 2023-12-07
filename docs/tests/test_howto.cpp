@@ -128,5 +128,18 @@ TEST_F(HowToTest, SaveLoadConfiguration)
     }
 }
 
+TEST_F(HowToTest, InstanceConfiguration)
+{
+    InstanceBuilderPtr builder = InstanceBuilder()
+        .setGlobalLogLevel(LogLevel::Info)
+        .setModulePath("")
+        .setSchedulerWorkerNum(1)
+        .setSinkLogLevel()
+        .setRootDevice("daqref://device0");
+
+    InstancePtr instance = builder.build();
+    daq::DevicePtr device = instance.getDevices()[0];
+}
+
 
 END_NAMESPACE_OPENDAQ

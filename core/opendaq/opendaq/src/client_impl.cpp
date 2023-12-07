@@ -149,6 +149,9 @@ void ClientImpl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 
 ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
 {
+    if (defaultDeviceInfo.assigned())
+        return List<IDeviceInfo>(defaultDeviceInfo).detach();
+
     auto availableDevices = List<IDeviceInfo>();
 
     using AsyncEnumerationResult = std::future<ListPtr<IDeviceInfo>>;
@@ -197,9 +200,6 @@ ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
         for (const auto& deviceInfo : moduleAvailableDevices)
             availableDevices.pushBack(deviceInfo);
     }
-
-    if (availableDevices.empty() && defaultDeviceInfo.assigned())
-        availableDevices.pushBack(defaultDeviceInfo);
 
     return availableDevices.detach();
 }

@@ -30,28 +30,34 @@ public:
 
     ErrCode INTERFACE_FUNC setLogger(ILogger* logger);
     ErrCode INTERFACE_FUNC getLogger(ILogger** logger);
+    
     ErrCode INTERFACE_FUNC setGlobalLogLevel(LogLevel logLevel);
     ErrCode INTERFACE_FUNC getGlobalLogLevel(LogLevel* logLevel);
-    ErrCode INTERFACE_FUNC setComponentLogLevel(IString* component, LogLevel logLevel);
 
+    ErrCode INTERFACE_FUNC setComponentLogLevel(IString* component, LogLevel logLevel);
+    ErrCode INTERFACE_FUNC getComponentsLogLevel(IDict** components);
+
+    ErrCode INTERFACE_FUNC addLoggerSink(ILoggerSink* sink);
     ErrCode INTERFACE_FUNC setSinkLogLevel(ILoggerSink* sink, LogLevel logLevel);
+    ErrCode INTERFACE_FUNC getLoggerSinks(IList** sinks);
 
     ErrCode INTERFACE_FUNC setModulePath(IString* path);
+    ErrCode INTERFACE_FUNC getModulePath(IString** path);
+
     ErrCode INTERFACE_FUNC setModuleManager(IModuleManager* moduleManager);
     ErrCode INTERFACE_FUNC getModuleManager(IModuleManager** moduleManager);
 
     ErrCode INTERFACE_FUNC setSchedulerWorkerNum(SizeT numWorkers);
+    ErrCode INTERFACE_FUNC getSchedulerWorkerNum(SizeT* numWorkers);
+
     ErrCode INTERFACE_FUNC setScheduler(IScheduler* scheduler);
     ErrCode INTERFACE_FUNC getScheduler(IScheduler** scheduler);
 
-    ErrCode INTERFACE_FUNC setOption(IString* option, IBaseObject* value);
-    ErrCode INTERFACE_FUNC getOptions(IDict** options);
-
-    ErrCode INTERFACE_FUNC setRootDevice(IDevice* rootDevice);
-    ErrCode INTERFACE_FUNC getRootDevice(IDevice** rootDevice);
-
     ErrCode INTERFACE_FUNC setDefaultRootDeviceName(IString* localId);
     ErrCode INTERFACE_FUNC getDefaultRootDeviceName(IString** localId);
+
+    ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString);
+    ErrCode INTERFACE_FUNC getRootDevice(IString** connectionString);
 
     ErrCode INTERFACE_FUNC setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo);
     ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo);
@@ -66,7 +72,7 @@ private:
     DictPtr<IString, IBaseObject> getModuleOptions(IString* module);
 
     StringPtr localId;
-    DevicePtr rootDevice;
+    StringPtr connectionString;
     DeviceInfoPtr defaultRootDeviceInfo;
 
     DictPtr<IString, LogLevel> componentsLogLevel;

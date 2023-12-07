@@ -6,6 +6,7 @@ set(SRC_Headers
 set(SRC_Cpp
     py_opendaq.cpp
     generated/opendaq/py_instance.cpp
+    generated/opendaq/py_instance_builder.cpp
     generated/component/py_component.cpp
     generated/component/py_removable.cpp
     generated/component/py_folder.cpp

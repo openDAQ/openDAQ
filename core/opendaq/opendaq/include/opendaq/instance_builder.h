@@ -27,8 +27,8 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Builder component of Instance objects. Contains setter methods to configure the Instance parameters, and a
- * `build` method that builds the Instance object.
+ * @brief Builder component of Instance objects. Contains setter methods to configure the Instance parameters such a Context (Logger, Scheduler, ModuleManager) and RootDevice.
+ * Contains a  `build` method that builds the Instance object.
  */
 DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 {
@@ -53,7 +53,7 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the Logger global level of Instance
+     * @brief Sets the Logger global level of Instance. Ignored if a custom logger has already been set
      * @param logLevel The Logger global level of Instance
      */
     virtual ErrCode INTERFACE_FUNC setGlobalLogLevel(LogLevel logLevel) = 0;
@@ -71,21 +71,48 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * @param logLevel The log level of Instance component
      */
     virtual ErrCode INTERFACE_FUNC setComponentLogLevel(IString* component, LogLevel logLevel) = 0;
+    
+    // [templateType(components, IString, INumber)]
+    /*!
+     * @brief Get the dictionary of component names and log level which will be added to logger components
+     * @param[out] components The dictionary of component names and log level
+     */
+    virtual ErrCode INTERFACE_FUNC getComponentsLogLevel(IDict** components) = 0;
+    
+    // [returnSelf]
+    /*!
+     * @brief Adds the logger sink of default Instance logger. Ignored if a custom logger has already been set
+     * @param sink The logger sink of default Instance logger
+     */
+    virtual ErrCode INTERFACE_FUNC addLoggerSink(ILoggerSink* sink) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Sets the sink logger level of default Instance logger. Ignored if was set custom logger
+     * @brief Sets the sink logger level of default Instance logger. Ignored if a custom logger has already been set
      * @param sink The sink logger of default Instance logger
      * @param logLevel The sink logger level of default Instance logger
      */
     virtual ErrCode INTERFACE_FUNC setSinkLogLevel(ILoggerSink* sink, LogLevel logLevel) = 0;
 
+    // [elementType(sinks, ILoggerSink)]
+    /*!
+     * @brief Gets the list of logger sink of  default Instance logger.
+     * @param[out] sinks The list of logger sink of  default Instance logger
+     */
+    virtual ErrCode INTERFACE_FUNC getLoggerSinks(IList** sinks) = 0;
+
     // [returnSelf]
     /*!
-     * @brief Sets the path for default ModuleManager of Instance. Ignored if was set custom Module Manager
+     * @brief Sets the path for default ModuleManager of Instance. Ignored if a custom module manager has already been set
      * @param path The path for default ModuleManager of Instance
      */
     virtual ErrCode INTERFACE_FUNC setModulePath(IString* path) = 0;
+
+    /*!
+     * @brief Gets the path for default ModuleManager of Instance.
+     * @param[out] path The path for default ModuleManager of Instance
+     */
+    virtual ErrCode INTERFACE_FUNC getModulePath(IString** path) = 0;
 
     // [returnSelf]
     /*!
@@ -102,10 +129,16 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the amount of worker threads in scheduler of Instance. Ignored if custom sheduler was set
+     * @brief Sets the amount of worker threads in scheduler of Instance. Ignored if a scheduler has already been set
      * @param numWorkers The amount of worker threads in scheduler of Instance. If @c 0 then maximum number of concurrent threads supported by the implementation is used.
      */
     virtual ErrCode INTERFACE_FUNC setSchedulerWorkerNum(SizeT numWorkers) = 0;
+
+    /*!
+     * @brief Gets the amount of worker threads in scheduler of Instance.
+     * @param[out] numWorkers The amount of worker threads in scheduler of Instance.
+     */
+    virtual ErrCode INTERFACE_FUNC getSchedulerWorkerNum(SizeT* numWorkers) = 0;
 
     // [returnSelf]
     /*!
@@ -122,34 +155,6 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the option of Instance
-     * @param option The name of option of Instance
-     * @param option The value of option of Instance
-     */
-    virtual ErrCode INTERFACE_FUNC setOption(IString* option, IBaseObject* value) = 0;
-
-    // [templateType(options, IString, IBaseObject)]
-    /*!
-     * @brief Gets dictionary of options of Instance
-     * @param[out] option The dictionary of options of Instance
-     */
-    virtual ErrCode INTERFACE_FUNC getOptions(IDict** options) = 0;
-
-    // [returnSelf]
-    /*!
-     * @brief Sets the root device of Instance
-     * @param rootDevice The root device of Instance
-     */
-    virtual ErrCode INTERFACE_FUNC setRootDevice(IDevice* rootDevice) = 0;
-
-    /*!
-     * @brief Gets the root device of Instance
-     * @param[out] rootDevice The root device of Instance
-     */
-    virtual ErrCode INTERFACE_FUNC getRootDevice(IDevice** rootDevice) = 0;
-
-    // [returnSelf]
-    /*!
      * @brief Sets the default root device name
      * @param rootDevice The default root device name
      */
@@ -163,7 +168,20 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the default device of Instance
+     * @brief Sets the connection string for the default root device of Instance.
+     * @param connectionString The connection string for the default root device of Instance
+     */
+    virtual ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString) = 0;
+
+    /*!
+     * @brief Gets the connection string for the default root device of Instance.
+     * @param[out] rootDevice The connection string for the default root device of Instance
+     */
+    virtual ErrCode INTERFACE_FUNC getRootDevice(IString** connectionString) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the default device info of Instance. if device info has been set method GetAvailableDevices of Instance will return set device info
      * @param deviceInfo The device info of default device of Instance
      */
     virtual ErrCode INTERFACE_FUNC setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo) = 0;

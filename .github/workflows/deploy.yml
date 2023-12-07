@@ -81,6 +81,15 @@ jobs:
             Remove-Item venv -Recurse
           }
 
+      - name: Configure and build without Wheels
+        if: ${{ matrix.cmake_generator_platform }} == 'Win32'
+        run: |
+          mkdir build
+          cd build
+          Write-Output "Building for Win32"
+          cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+          cmake --build . --config ${{ matrix.cmake_build_type }}
+
       - name: Package
         working-directory: build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
@@ -110,7 +119,7 @@ jobs:
            Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
 
       - name: Rename wheels (main)
-        if: ${{ github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32' }}
+        if: ${{ github.ref }} == 'refs/heads/main' && ${{ matrix.cmake_generator_platform }} != 'Win32'
         shell: pwsh
         working-directory: ${{ env.wheels_path }}
         run: |
@@ -128,7 +137,7 @@ jobs:
           aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3path }}/" --recursive
 
       - name: Upload Wheels to S3
-        if: ${{ github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32' }}
+        if: ${{ github.ref }} == 'refs/heads/main' && ${{ matrix.cmake_generator_platform }} != 'Win32'
         working-directory: ${{ env.wheels_path }}
         run: |
           aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_win_amd64_path }}" --recursive --exclude '*' --include '*.whl'
@@ -142,7 +151,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Wheels
-        if: ${{ matrix.cmake_generator_platform != 'Win32' }}
+        if: ${{ matrix.cmake_generator_platform }} != 'Win32'
         uses: actions/upload-artifact@v3
         with:
           name: Wheels (${{ matrix.name }})

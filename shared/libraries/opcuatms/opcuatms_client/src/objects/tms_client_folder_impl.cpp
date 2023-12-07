@@ -32,16 +32,18 @@ TmsClientFolderImpl<Impl>::TmsClientFolderImpl(const ContextPtr& ctx,
 template <class Impl>
 void TmsClientFolderImpl<Impl>::findAndCreateFolders(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents)
 {
-    auto componentId = OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQCOMPONENTTYPE);
-    auto folderNodeIds = this->getChildNodes(this->client, this->nodeId, componentId);
-    for (const auto& folderNodeId : folderNodeIds)
+    auto componentId = OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQCOMPONENTTYPE);
+    const auto& folderReferences = this->getChildReferencesOfType(this->nodeId, componentId);
+
+    for (const auto& [browseName, ref] : folderReferences.byBrowseName)
     {
-        auto browseName = this->client->readBrowseName(folderNodeId);
+        const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
 
-        auto childComponents = this->getChildNodes(this->client, folderNodeId, componentId);
+        const auto& childComponentsReferences = getChildReferencesOfType(folderNodeId, componentId);
+
         ComponentPtr child;
-        if (childComponents.size())
+        if (!childComponentsReferences.byNodeId.empty())
             child = TmsClientFolder(this->context, thisPtr, browseName, this->clientContext, folderNodeId);
         else
             child = TmsClientComponent(this->context, thisPtr, browseName, this->clientContext, folderNodeId);

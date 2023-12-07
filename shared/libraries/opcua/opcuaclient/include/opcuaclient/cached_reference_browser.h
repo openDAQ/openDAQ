@@ -46,7 +46,7 @@ struct BrowseFilter
 class CachedReferenceBrowser
 {
 public:
-    CachedReferenceBrowser(const OpcUaClientPtr& client);
+    CachedReferenceBrowser(const OpcUaClientPtr& client, size_t maxNodesPerBrowse = 0);
 
     const CachedReferences& browse(const OpcUaNodeId& nodeId, bool forceInvalidate = false);
     void invalidate(const OpcUaNodeId& nodeId);
@@ -60,10 +60,17 @@ private:
     bool isCached(const OpcUaNodeId& nodeId);
     void markAsCached(const OpcUaNodeId& nodeId);
     void browseMultiple(const std::vector<OpcUaNodeId>& nodes);
-    void processBrowseResults(const std::vector<OpcUaNodeId>& nodes, UA_BrowseResult* results, size_t size, std::vector<OpcUaNodeId>& browseNextOut);
+    size_t browseBatch(const std::vector<OpcUaNodeId>& nodes, size_t startIndex, size_t size);
+    void processBrowseResults(const std::vector<OpcUaNodeId>& nodes,
+                              size_t startIndex,
+                              size_t requestedSize,
+                              UA_BrowseResult* results,
+                              size_t resultSize,
+                              std::vector<OpcUaNodeId>& browseNextOut);
     bool getContinuationPoint(UA_BrowseResult* results, UA_ByteString* continuationPointOut);
 
     OpcUaClientPtr client;
+    size_t maxNodesPerBrowse;
     std::unordered_map<OpcUaNodeId, CachedReferences> references;
 };
 

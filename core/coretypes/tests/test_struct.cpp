@@ -256,3 +256,131 @@ TEST_F(StructObjectTest, StructTypeString)
 {
     ASSERT_EQ(daqInterfaceIdString<IStructType>(), "{2AC3D9FA-7059-5BEF-8439-351258DDBE72}");
 }
+
+TEST_F(StructObjectTest, BuilderTest)
+{
+    const auto manager = TypeManager();
+    const auto type = StructType("foo",
+                                 List<IString>("string", "int", "float"),
+                                 List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctFloat)));
+    manager.addType(type);
+
+    const auto builder = StructBuilder("foo", manager).set("string", "foo").set("int", 10).set("float", 1.123);
+    const auto registeredStruct1 = Struct("foo", Dict<IString, IBaseObject>({{"string", "foo"}, {"int", 10}, {"float", 1.123}}), manager);
+    const auto built = builder.build();
+    ASSERT_EQ(built, registeredStruct1);
+}
+
+TEST_F(StructObjectTest, BuilderFromStructTest1)
+{
+    const auto manager = TypeManager();
+    const auto type = StructType("foo",
+                                 List<IString>("string", "int", "float"),
+                                 List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctFloat)));
+    manager.addType(type);
+    
+    const auto registeredStruct1 = Struct("foo", Dict<IString, IBaseObject>({{"string", "foo"}, {"int", 10}, {"float", 1.123}}), manager);
+    const auto builder = StructBuilder(registeredStruct1);
+
+    ASSERT_EQ(builder.build(), registeredStruct1);
+}
+
+TEST_F(StructObjectTest, BuilderFromStructTest2)
+{
+    const auto manager = TypeManager();
+    const auto type = StructType("foo",
+                                 List<IString>("string", "int", "float"),
+                                 List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctFloat)));
+    manager.addType(type);
+    
+    const auto registeredStruct1 = Struct("foo", Dict<IString, IBaseObject>({{"string", "foo"}, {"int", 10}, {"float", 1.123}}), manager);
+    const auto builder = StructBuilder(registeredStruct1).set("string", "foo1").set("int", 15);
+    const auto built = builder.build();
+
+    ASSERT_NE(built, registeredStruct1);
+    ASSERT_EQ(built.get("string"), "foo1");
+    ASSERT_EQ(built.get("int"), 15);
+}
+
+TEST_F(StructObjectTest, BuilderTestNull)
+{
+    const auto manager = TypeManager();
+    const auto type = StructType("foo",
+                                 List<IString>("string", "int", "float"),
+                                 List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctFloat)));
+    manager.addType(type);
+    
+    const auto builder1 = StructBuilder("foo", manager).set("string", "foo").set("int", 10).set("float", nullptr);
+    ASSERT_EQ(builder1.build().get("float"), nullptr);
+    const auto builder2 = StructBuilder("foo", manager).set("string", "foo").set("int", 10);
+    ASSERT_EQ(builder2.build().get("float"), nullptr);
+}
+
+TEST_F(StructObjectTest, BuilderTestInvalidTypes)
+{
+    const auto manager = TypeManager();
+    const auto type = StructType("foo",
+                                 List<IString>("string", "int", "float"),
+                                 List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctFloat)));
+    manager.addType(type);
+    
+    ASSERT_THROW(StructBuilder("foo", manager).set("string", 10), InvalidParameterException);
+}
+
+TEST_F(StructObjectTest, BuilderTestDefaults)
+{
+    const auto manager = TypeManager();
+    const auto type = StructType("foo",
+                                 List<IString>("string", "int", "float"),
+                                 List<IBaseObject>("foo", nullptr, 5.123),
+                                 List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctFloat)));
+    manager.addType(type);
+
+    const auto builder = StructBuilder("foo", manager);
+    ASSERT_EQ(builder.get("string"), "foo");
+    ASSERT_EQ(builder.get("int"), nullptr);
+
+    const auto struct_ = builder.build();
+
+    ASSERT_EQ(struct_.get("string"), "foo");
+    ASSERT_EQ(struct_.get("int"), nullptr);
+}
+
+TEST_F(StructObjectTest, BuilderGetters)
+{
+    const auto manager = TypeManager();
+    const auto type = StructType("foo",
+                                 List<IString>("string", "int", "float"),
+                                 List<IBaseObject>("foo", nullptr, 5.123),
+                                 List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctFloat)));
+    manager.addType(type);
+
+    const auto builder = StructBuilder("foo", manager);
+    ASSERT_EQ(builder.get("string"), "foo");
+    ASSERT_EQ(builder.getFieldNames(), List<IString>("string", "int", "float"));
+    const auto dict = Dict<IString, IBaseObject>({{"string", "foo"}, {"int", nullptr}, {"float", 5.123}} );
+    ASSERT_EQ(builder.getAsDictionary().getKeyList(), dict.getKeyList());
+    ASSERT_EQ(builder.getAsDictionary().getValueList(), dict.getValueList());
+    ASSERT_EQ(builder.getFieldValues(), List<IBaseObject>("foo", nullptr, 5.123));
+    ASSERT_EQ(builder.getStructType(), type);
+}
+
+TEST_F(StructObjectTest, NestedStructBuilder)
+{
+    const auto manager = TypeManager();
+    const auto nestedType = StructType("foo",
+                                 List<IString>("string", "int", "float"),
+                                 List<IBaseObject>("foo", 10, 1.123),
+                                 List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctFloat)));
+    const auto type = StructType("bar", List<IString>("ratio", "custom"), List<IType>(RatioStructType(), nestedType));
+
+    manager.addType(nestedType);
+    manager.addType(type);
+
+    const auto nestedStruct = Struct("bar",
+                                     Dict<IString, IBaseObject>({{"ratio", Ratio(1, 2)}, {"custom", Struct("foo", nullptr, manager)}}),
+                                     manager);
+    const auto builtStruct = StructBuilder(nestedStruct).build();
+
+    ASSERT_EQ(nestedStruct, builtStruct);
+}

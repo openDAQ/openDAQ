@@ -1,7 +1,26 @@
 7.12.2023
 
 Description:
-  - Add subscribe/unsubscribe completion acknowledgement Events
+  - Add Struct Builder for generic struct creation
+  
++ [interface] IStructBuilder
++ [function] IStructBuilder::build(IStruct** struct_)
++ [function] IStructBuilder::getStructType(IStructType** type)
++ [function] IStructBuilder::getFieldNames(IList** names)
++ [function] IStructBuilder::setFieldValues(IList* values)
++ [function] IStructBuilder::getFieldValues(IList** values)
++ [function] IStructBuilder::set(IString* name, IBaseObject* field)
++ [function] IStructBuilder::get(IString* name, IBaseObject** field)
++ [function] IStructBuilder::hasField(IString* name, Bool* contains)
++ [function] IStructBuilder::getAsDictionary(IDict** dictionary)
++ [factory] StructPtr StructFromBuilder(const StructBuilderPtr& builder)
++ [factory] StructBuilderPtr StructBuilder(const StringPtr& name, const TypeManagerPtr& typeManager)
++ [factory] StructBuilderPtr StructBuilder(const StructPtr& struct_)
+
+7.12.2023
+
+Description:
+- Add subscribe/unsubscribe completion acknowledgement Events
 
 + [function] IMirroredSignalConfig::getOnSubscribeComplete(IEvent** event)
 + [function] IMirroredSignalConfig::getOnUnsubscribeComplete(IEvent** event)

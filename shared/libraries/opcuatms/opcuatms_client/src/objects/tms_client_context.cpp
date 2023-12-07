@@ -1,4 +1,5 @@
 #include "opcuatms_client/objects/tms_client_context.h"
+#include <opcuashared/opcualog.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -6,8 +7,8 @@ using namespace opcua;
 
 TmsClientContext::TmsClientContext(const OpcUaClientPtr& client)
     : client(client)
-    , referenceBrowser(std::make_shared<CachedReferenceBrowser>(client))
 {
+    initReferenceBrowser();
 }
 
 const opcua::OpcUaClientPtr& TmsClientContext::getClient() const
@@ -52,6 +53,23 @@ opcua::OpcUaNodeId TmsClientContext::getNodeId(const BaseObjectPtr object) const
 CachedReferenceBrowserPtr TmsClientContext::getReferenceBrowser()
 {
     return referenceBrowser;
+}
+
+void TmsClientContext::initReferenceBrowser()
+{
+    size_t maxNodesPerBrowse = 0;
+
+    try
+    {
+        const auto maxNodesPerBrowseId = OpcUaNodeId(UA_NS0ID_SERVER_SERVERCAPABILITIES_OPERATIONLIMITS_MAXNODESPERBROWSE);
+        maxNodesPerBrowse = client->readValue(maxNodesPerBrowseId).toInteger();
+    }
+    catch (const std::exception& e)
+    {
+        LOGW << "Failed to read maxNodesPerBrowse variable: " << e.what(); 
+    }
+    
+    referenceBrowser = std::make_shared<CachedReferenceBrowser>(client, maxNodesPerBrowse);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

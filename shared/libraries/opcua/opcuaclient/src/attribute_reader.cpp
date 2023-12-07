@@ -59,8 +59,10 @@ const std::vector<OpcUaObject<UA_ReadResponse>>& AttributeReader::getResponses()
 
 size_t AttributeReader::readBatch(size_t startIndex, size_t size)
 {
-    if (startIndex + size > attributes.size())
+    if ((startIndex + size) > attributes.size())
         size = attributes.size() - startIndex;
+
+    assert(size > 0);
 
     OpcUaObject<UA_ReadRequest> request;
     request->nodesToReadSize = size;

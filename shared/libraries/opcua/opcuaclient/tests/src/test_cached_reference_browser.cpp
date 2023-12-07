@@ -150,5 +150,27 @@ TEST_F(CachedReferenceBrowserTest, BrowseFiltered)
     ASSERT_EQ(children.byNodeId.size(), 4u);
 }
 
+TEST_F(CachedReferenceBrowserTest, MaxNodesPerBrowse)
+{
+    testHelper.stop();
+    testHelper.onConfigure([&](UA_ServerConfig* config) { config->maxNodesPerBrowse = 5; });
+    testHelper.startServer();
+
+    auto client = std::make_shared<OpcUaClient>(getServerUrl());
+    client->connect();
+
+    const auto nodeId = OpcUaNodeId(UA_NS0ID_OBJECTSFOLDER);
+    const auto maxNodesPerBrowseId = OpcUaNodeId(UA_NS0ID_SERVER_SERVERCAPABILITIES_OPERATIONLIMITS_MAXNODESPERBROWSE);
+    const auto maxNodesPerBrowse = client->readValue(maxNodesPerBrowseId).toInteger();
+    ASSERT_GT(maxNodesPerBrowse, 0);
+
+    auto browser = CachedReferenceBrowser(client, maxNodesPerBrowse);
+    const auto& references = browser.browse(nodeId);
+    ASSERT_FALSE(references.byNodeId.empty());
+
+    auto missconfiguredBrowser = CachedReferenceBrowser(client);
+    ASSERT_THROW(missconfiguredBrowser.browse(nodeId), OpcUaException);
+}
+
 
 END_NAMESPACE_OPENDAQ_OPCUA

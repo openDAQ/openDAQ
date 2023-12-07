@@ -57,9 +57,10 @@ protected:
     opcua::OpcUaClientPtr client;
     CachedReferenceBrowserPtr referenceBrowser;
     mutable std::mutex mutex;
-
     // Context should not hold objects because of cycling reference
     std::unordered_map<opcua::OpcUaNodeId, IBaseObject*> objects;
+
+    void initReferenceBrowser();
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

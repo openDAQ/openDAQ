@@ -41,6 +41,7 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
     auto classITypeManager = declareITypeManager(m);
     auto classIStructType = declareIStructType(m);
     auto classIStruct = declareIStruct(m);
+    auto classIStructBuilder = declareIStructBuilder(m);
 
     defineIInteger(m, classIInteger);
     defineIFloat(m, classIFloat);
@@ -63,4 +64,5 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
     defineITypeManager(m, classITypeManager);
     defineIStructType(m, classIStructType);
     defineIStruct(m, classIStruct);
+    defineIStructBuilder(m, classIStructBuilder);
 }

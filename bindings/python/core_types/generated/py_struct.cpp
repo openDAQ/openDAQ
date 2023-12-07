@@ -38,6 +38,7 @@ void defineIStruct(pybind11::module_ m, PyDaqIntf<daq::IStruct, daq::IBaseObject
     cls.doc() = "Structs are immutable objects that contain a set of key-value pairs. The key, as well as the types of each associated value for each struct are defined in advance within a Struct type that has the same name as the Struct.";
 
     m.def("Struct", &daq::Struct_Create);
+    m.def("StructFromBuilder", &daq::StructFromBuilder_Create);
 
     cls.def_property_readonly("struct_type",
         [](daq::IStruct *object)

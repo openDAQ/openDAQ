@@ -360,12 +360,17 @@ TEST_F(InstanceTest, InstanceCreateFactory)
                                 .setModuleManager(moduleManager)
                                 .setScheduler(scheduler)
                                 .setDefaultRootDeviceName("DefaultRootDeviceName")
+                                .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
                                 .build();
 
     ASSERT_EQ(instance.getContext().getLogger(), logger);
     ASSERT_EQ(instance.getContext().getScheduler(), scheduler);
     ASSERT_EQ(instance.getContext().getModuleManager(), moduleManager);
     ASSERT_EQ(instance.getRootDevice().getName(), "DefaultRootDeviceName"); 
+
+    auto availableDevices = instance.getAvailableDevices();
+    ASSERT_EQ(availableDevices.getCount(), 1);
+    ASSERT_EQ(availableDevices[0], defaultRootDeviceInfo);
 }
 
 TEST_F(InstanceTest, InstanceBuilderGetDefault)
@@ -403,11 +408,10 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
 
     // check devices
     auto availableDevices = instance.getAvailableDevices();
-    ASSERT_EQ(availableDevices.getCount(), 1);
-    ASSERT_EQ(availableDevices[0], defaultRootDeviceInfo);
+    ASSERT_EQ(availableDevices.getCount(), 0);
 
-    auto devices = instance.getDevices();
-    ASSERT_EQ(devices.getCount(), 1);        
+    ASSERT_TRUE(instance.getRootDevice().assigned());
+    ASSERT_FALSE(instance.getRootDevice().getName() == "DefaultRootDeviceName");   
 }
 
 END_NAMESPACE_OPENDAQ

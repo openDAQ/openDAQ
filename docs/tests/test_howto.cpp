@@ -134,11 +134,11 @@ TEST_F(HowToTest, InstanceConfiguration)
         .setGlobalLogLevel(LogLevel::Info)
         .setModulePath("")
         .setSchedulerWorkerNum(1)
-        .setSinkLogLevel()
         .setRootDevice("daqref://device0");
 
     InstancePtr instance = builder.build();
-    daq::DevicePtr device = instance.getDevices()[0];
+    daq::DevicePtr device = instance.getRootDevice();
+    ASSERT_TRUE(device.assigned());
 }
 
 

@@ -11,7 +11,6 @@ TmsClientObjectImpl::TmsClientObjectImpl(const ContextPtr& daqContext, const Tms
     : clientContext(clientContext)
     , client(clientContext->getClient())
     , nodeId(nodeId)
-    , referenceUtils(client)
     , daqContext(daqContext)
 {
 }
@@ -33,12 +32,12 @@ SignalPtr TmsClientObjectImpl::findSignal(const opcua::OpcUaNodeId& nodeId) cons
 
 bool TmsClientObjectImpl::hasReference(const std::string& name)
 {
-    return referenceUtils.hasReference(nodeId, name);
+    return clientContext->getReferenceBrowser()->hasReference(nodeId, name);
 }
 
 OpcUaNodeId TmsClientObjectImpl::getNodeId(const std::string& nodeName)
 {
-    return referenceUtils.getChildNodeId(nodeId, nodeName);
+    return clientContext->getReferenceBrowser()->getChildNodeId(nodeId, nodeName);
 }
 
 void TmsClientObjectImpl::writeValue(const std::string& nodeName, const OpcUaVariant& value)
@@ -96,14 +95,8 @@ uint32_t TmsClientObjectImpl::tryReadChildNumberInList(const opcua::OpcUaNodeId&
 {
     try
     {
-        const auto& childReferences = referenceUtils.getReferences(nodeId);
-        for (auto& [addedPropChildId, addedPropChildRef] : childReferences)
-        {
-            if (client->readBrowseName(addedPropChildId) == "NumberInList")
-            {
-                return VariantConverter<IInteger>::ToDaqObject(client->readValue(addedPropChildId));
-            }
-        }
+        const auto numberInListId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "NumberInList");
+        return VariantConverter<IInteger>::ToDaqObject(client->readValue(numberInListId));
     }
     catch(...)
     {
@@ -112,33 +105,11 @@ uint32_t TmsClientObjectImpl::tryReadChildNumberInList(const opcua::OpcUaNodeId&
     return std::numeric_limits<uint32_t>::max();
 }
 
-std::vector<daq::opcua::OpcUaNodeId> TmsClientObjectImpl::getChildNodes(const opcua::OpcUaClientPtr& client,
-                                                                        const opcua::OpcUaNodeId& nodeId,
-                                                                        const opcua::OpcUaNodeId& typeId,
-                                                                        const bool subTypeEnabled)
+CachedReferences TmsClientObjectImpl::getChildReferencesOfType(const opcua::OpcUaNodeId& nodeId, const opcua::OpcUaNodeId& typeId)
 {
-    using namespace daq::opcua;
-    ReferenceUtils referenceUtilities(client);
-    std::vector<OpcUaNodeId> results;
-    BrowseRequest request(nodeId, OpcUaNodeClass::Object);
-    OpcUaBrowser browser(request, client);
-    auto browseResult = browser.browse();
-
-    for (const UA_ReferenceDescription& reference : browseResult)
-    {
-        if (OpcUaNodeId(reference.typeDefinition.nodeId) == typeId)
-            results.push_back(OpcUaNodeId(reference.nodeId.nodeId));
-        else
-        {
-            if (subTypeEnabled)
-            {
-                if (referenceUtilities.isInstanceOf(reference.typeDefinition.nodeId, typeId))
-                    results.push_back(OpcUaNodeId(reference.nodeId.nodeId));
-            }
-        }
-    }
-
-    return results;
+    BrowseFilter filter;
+    filter.typeDefinition = typeId;
+    return clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

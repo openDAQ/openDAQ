@@ -23,8 +23,12 @@ TmsClientSignalImpl::TmsClientSignalImpl(
 {
     deviceSignalId = nodeId.getIdentifier();
 
-    if (referenceUtils.hasReference(nodeId, "Value"))
-        descriptorNodeId = std::make_unique<OpcUaNodeId>(referenceUtils.getChildNodeId(referenceUtils.getChildNodeId(nodeId, "Value"), "DataDescriptor"));
+    if (hasReference("Value"))
+    {
+        const auto valueNodeId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "Value");
+        const auto dataDescriptorNodeId = clientContext->getReferenceBrowser()->getChildNodeId(valueNodeId, "DataDescriptor");
+        descriptorNodeId = std::make_unique<OpcUaNodeId>(dataDescriptorNodeId);
+    }
 
     registerObject(this->borrowPtr<BaseObjectPtr>());
 }
@@ -77,13 +81,16 @@ ErrCode TmsClientSignalImpl::getDomainSignal(ISignal** signal)
 
 SignalPtr TmsClientSignalImpl::onGetDomainSignal()
 {
-    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASDOMAINSIGNAL);
-    auto nodeIds = referenceUtils.getReferencedNodes(nodeId, referenceTypeId, true);
-    assert(nodeIds.size() <= 1);
+    auto filter = BrowseFilter();
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASDOMAINSIGNAL);
+    filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
-    if (!nodeIds.empty())
+    const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);
+    assert(references.byNodeId.size() <= 1);
+
+    if (!references.byNodeId.empty())
     {
-        auto domainSignalNodeId = *nodeIds.begin();
+        auto domainSignalNodeId = references.byNodeId.begin().key();
         return findSignal(domainSignalNodeId);
     }
 
@@ -106,14 +113,20 @@ ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
 
 ListPtr<ISignal> TmsClientSignalImpl::onGetRelatedSignals()
 {
-    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_RELATESTOSIGNAL);
-    auto nodeIds = referenceUtils.getReferencedNodes(nodeId, referenceTypeId, true);
+    auto filter = BrowseFilter();
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_RELATESTOSIGNAL);
+    filter.direction = UA_BROWSEDIRECTION_FORWARD;
+
+    const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);
+
     ListPtr<ISignal> resultList = List<ISignal>();
-    for (auto signalNodeId : nodeIds)
+
+    for (const auto& [signalNodeId, ref] : references.byNodeId)
     {
         auto signal = findSignal(signalNodeId);
         resultList.pushBack(signal);
     }
+
     return resultList.detach();
 }
 

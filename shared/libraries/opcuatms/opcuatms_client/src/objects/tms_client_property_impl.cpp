@@ -59,22 +59,25 @@ void TmsClientPropertyImpl::readBasicInfo()
 
 void TmsClientPropertyImpl::configurePropertyFields()
 {
-    const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_EVALUATIONVARIABLETYPE);
+    const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_EVALUATIONVARIABLETYPE);
+    const auto& references = clientContext->getReferenceBrowser()->browse(nodeId);
 
-    for (auto [childNodeId, ref] : referenceUtils.getReferences(nodeId))
+    for (auto [browseName, ref] : references.byBrowseName)
     {
-        if (referenceUtils.getBrowseName(ref) == "CoercionExpression")
+        const auto childNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+
+        if (browseName == "CoercionExpression")
         {
             this->coercer = Coercer(VariantConverter<IString>::ToDaqObject(client->readValue(childNodeId)));
         }
-        else if (referenceUtils.getBrowseName(ref) == "ValidationExpression")
+        else if (browseName == "ValidationExpression")
         {
             this->validator = Validator(VariantConverter<IString>::ToDaqObject(client->readValue(childNodeId)));
         }
-        else if (referenceUtils.isInstanceOf(ref->typeDefinition.nodeId, evaluationVariableTypeId))
+        else if (clientContext->getReferenceBrowser()->isSubtypeOf(ref->typeDefinition.nodeId, evaluationVariableTypeId))
         {
-            auto evalId = referenceUtils.getChildNodeId(childNodeId, "EvaluationExpression");
-            const auto browseName = referenceUtils.getBrowseName(ref);
+            auto evalId = clientContext->getReferenceBrowser()->getChildNodeId(childNodeId, "EvaluationExpression");
+
             StringPtr evalStr = VariantConverter<IString>::ToDaqObject(client->readValue(evalId));
             if (details::stringToPropertyFieldEnum.count(browseName))
             {

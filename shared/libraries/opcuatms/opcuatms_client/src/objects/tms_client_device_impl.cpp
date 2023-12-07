@@ -82,10 +82,11 @@ void TmsClientDeviceImpl::findAndCreateSubdevices()
     std::map<uint32_t, DevicePtr> orderedDevices;
     std::vector<DevicePtr> unorderedDevices;
 
-    auto subdeviceNodeIds = this->getChildNodes(client, nodeId, OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQDEVICETYPE));
-    for (const auto& subdeviceNodeId : subdeviceNodeIds)
+    const auto& references = getChildReferencesOfType(nodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQDEVICETYPE));
+
+    for (const auto& [browseName, ref] : references.byBrowseName)
     {
-        auto browseName = client->readBrowseName(subdeviceNodeId);
+        auto subdeviceNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         auto clientSubdevice = TmsClientDevice(context, devices, browseName, clientContext, subdeviceNodeId, createStreamingCallback);
                     
         auto numberInList = this->tryReadChildNumberInList(subdeviceNodeId);
@@ -226,11 +227,12 @@ void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
     std::vector<FunctionBlockPtr> unorderedFunctionBlocks;
 
     auto functionBlocksNodeId = getNodeId("FB");
-    auto functionBlockNodeIds =
-        this->getChildNodes(client, functionBlocksNodeId, OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_FUNCTIONBLOCKTYPE));
-    for (const auto& functionBlockNodeId : functionBlockNodeIds)
+    const auto& references = getChildReferencesOfType(functionBlocksNodeId, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_FUNCTIONBLOCKTYPE));
+
+    for (const auto& [browseName, ref] : references.byBrowseName)
     {
-        auto browseName = this->client->readBrowseName(functionBlockNodeId);
+        const auto functionBlockNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+
         try
         {
             auto clientFunctionBlock = TmsClientFunctionBlock(context, this->functionBlocks, browseName, clientContext, functionBlockNodeId);
@@ -258,8 +260,9 @@ void TmsClientDeviceImpl::findAndCreateSignals()
     std::vector<SignalPtr> unorderedSignals;
     
     const auto signalsNodeId = getNodeId("Sig");
-    const auto signalNodeIds = this->getChildNodes(client, signalsNodeId, OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_SIGNALTYPE));
-    for (const auto& signalNodeId : signalNodeIds)
+    const auto& references = getChildReferencesOfType(signalsNodeId, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_SIGNALTYPE));
+
+    for (const auto& [signalNodeId, ref] : references.byNodeId)
     {
         auto clientSignal = FindOrCreateTmsClientSignal(context, signals, clientContext, signalNodeId);
         const auto numberInList = this->tryReadChildNumberInList(signalNodeId);
@@ -282,11 +285,11 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
 
     this->ioFolder.clear();
     auto inputsOutputsNodeId = getNodeId("IO");
+    const auto& channelreferences = getChildReferencesOfType(inputsOutputsNodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_CHANNELTYPE));
 
-    auto channelNodeIds = this->getChildNodes(client, inputsOutputsNodeId, OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_CHANNELTYPE));
-    for (const auto& channelNodeId : channelNodeIds)
+    for (const auto& [browseName, ref] : channelreferences.byBrowseName)
     {
-        auto browseName = client->readBrowseName(channelNodeId);
+        const auto channelNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         auto tmsClientChannel = TmsClientChannel(context, this->ioFolder, browseName, clientContext, channelNodeId);
 
         auto numberInList = this->tryReadChildNumberInList(channelNodeId);
@@ -296,10 +299,11 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
             unorderedComponents.emplace_back(tmsClientChannel);
     }
 
-    auto folderNodeIds = this->getChildNodes(client, inputsOutputsNodeId, OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_IOCOMPONENTTYPE));
-    for (const auto& folderNodeId : folderNodeIds)
+    const auto& folderReferences = getChildReferencesOfType(inputsOutputsNodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_IOCOMPONENTTYPE));
+
+    for (const auto& [browseName, ref] : folderReferences.byBrowseName)
     {
-        auto browseName = client->readBrowseName(folderNodeId);
+        const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         auto tmsClientFolder = TmsClientIoFolder(context, this->ioFolder, browseName, clientContext, folderNodeId);
 
         auto numberInList = this->tryReadChildNumberInList(folderNodeId);
@@ -322,16 +326,18 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
 
     this->streamingOptions.clear();
     auto streamingOptionsNodeId = getNodeId("StreamingOptions");
+
     try
     {
-        auto streamingOptionNodeIds =
-            this->getChildNodes(client, streamingOptionsNodeId, OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_VARIABLEBLOCKTYPE));
-        for (const auto& streamingOptionNodeId : streamingOptionNodeIds)
-        {
-            auto browseName = client->readBrowseName(streamingOptionNodeId);
-            auto clientStreamingInfo = TmsClientStreamingInfo(daqContext, browseName, clientContext, streamingOptionNodeId);
+        const auto& streamingOptionsReferences =
+            getChildReferencesOfType(streamingOptionsNodeId, OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_VARIABLEBLOCKTYPE));
 
-            auto numberInList = this->tryReadChildNumberInList(streamingOptionNodeId);
+        for (const auto& [browseName, ref] : streamingOptionsReferences.byBrowseName)
+        {
+            const auto optionNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+            auto clientStreamingInfo = TmsClientStreamingInfo(daqContext, browseName, clientContext, optionNodeId);
+
+            auto numberInList = this->tryReadChildNumberInList(optionNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max())
                 orderedStreamings.insert(std::pair<uint32_t, PropertyObjectPtr>(numberInList, clientStreamingInfo));
             else
@@ -354,17 +360,20 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
     std::map<uint32_t, ComponentPtr> orderedComponents;
     std::vector<ComponentPtr> unorderedComponents;
 
-    auto componentId = OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQCOMPONENTTYPE);
-    auto folderNodeIds = this->getChildNodes(client, nodeId, componentId);
-    for (const auto& folderNodeId : folderNodeIds)
+    auto componentId = OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQCOMPONENTTYPE);
+    const auto& folderReferences = getChildReferencesOfType(nodeId, componentId);
+
+    for (const auto& [browseName, ref] : folderReferences.byBrowseName)
     {
-        auto browseName = client->readBrowseName(folderNodeId);
+        const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+
         if (detail::defaultComponents.count(browseName))
             continue;
 
-        auto childComponents = this->getChildNodes(client, folderNodeId, componentId);
+        const auto& componentReferences = getChildReferencesOfType(folderNodeId, componentId);
+
         ComponentPtr child;
-        if (childComponents.size())
+        if (!componentReferences.byNodeId.empty())
             child = TmsClientFolder(context, this->thisPtr<ComponentPtr>(), browseName, clientContext, folderNodeId);
         else
             child = TmsClientComponent(context, this->thisPtr<ComponentPtr>(), browseName, clientContext, folderNodeId);

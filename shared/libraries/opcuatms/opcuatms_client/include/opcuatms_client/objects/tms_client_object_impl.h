@@ -19,7 +19,6 @@
 #include "opcuaclient/opcuaclient.h"
 #include "opcuatms/converters/variant_converter.h"
 #include "opcuatms/opcuatms.h"
-#include "opcuaclient/reference_utils.h"
 #include <opendaq/signal_ptr.h>
 #include <opcuatms_client/objects/tms_client_context.h>
 
@@ -43,19 +42,7 @@ protected:
     virtual void subscriptionStatusChangeCallback(UA_StatusChangeNotification* notification);
     uint32_t tryReadChildNumberInList(const std::string& nodeName);
     uint32_t tryReadChildNumberInList(const opcua::OpcUaNodeId& nodeId);
-    
-    /*!
-    * @brief Returns child nodes of a specific type. By default it returns also the nodes which are a
-    *        a subtype of the specific type. It can be disabled.
-    * @param client The opc-ua client
-    * @param nodeId The root nodeId
-    * @param typeId The type of child nodes to return
-    * @param subTypeEnabled Allows also that nodes of the sub types of the request type are returned.  
-    */
-    std::vector<daq::opcua::OpcUaNodeId> getChildNodes(const opcua::OpcUaClientPtr& client,
-                                                       const opcua::OpcUaNodeId& nodeId,
-                                                       const opcua::OpcUaNodeId& typeId,
-                                                       const bool subTypeEnabled = true);
+    CachedReferences getChildReferencesOfType(const opcua::OpcUaNodeId& nodeId, const opcua::OpcUaNodeId& typeId);
 
     opcua::MonitoredItem* monitoredItemsCreateEvent(
         const opcua::EventMonitoredItemCreateRequest& item,
@@ -89,7 +76,6 @@ protected:
 
     opcua::OpcUaClientPtr client;
     opcua::OpcUaNodeId nodeId;
-    opcua::ReferenceUtils referenceUtils;
     ContextPtr daqContext;
 
 private:

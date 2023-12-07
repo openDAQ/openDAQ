@@ -19,7 +19,6 @@
 #include "opcuaclient/opcuaclient.h"
 #include "opcuatms/opcuatms.h"
 #include "opcuatms_client/objects/tms_client_object_impl.h"
-#include "opcuaclient/reference_utils.h"
 #include "opendaq/channel_impl.h"
 #include "opendaq/streaming_info_impl.h"
 
@@ -48,7 +47,6 @@ public:
     TmsClientPropertyObjectBaseImpl(const ContextPtr& daqContext, const TmsClientContextPtr& clientContext, const opcua::OpcUaNodeId& nodeId)
         : TmsClientObjectImpl(daqContext, clientContext, nodeId)
         , Impl()
-        , referenceUtils(client)
     {
         browseRawProperties();
     }
@@ -60,7 +58,6 @@ public:
                                     const opcua::OpcUaNodeId& nodeId)
         : TmsClientObjectImpl(daqContext, clientContext, nodeId)
         , Impl(protocolId)
-        , referenceUtils(client)
     {
         browseRawProperties();
     }
@@ -73,7 +70,6 @@ public:
                                     const opcua::OpcUaNodeId& nodeId)
         : TmsClientObjectImpl(ctx, clientContext, nodeId)
         , Impl(ctx, parent, localId, nullptr, ComponentStandardProps::Skip)
-        , referenceUtils(client)
     {
         browseRawProperties();
     }
@@ -87,7 +83,6 @@ public:
                                     const FunctionBlockTypePtr& type)
         : TmsClientObjectImpl(ctx, clientContext, nodeId)
         , Impl(type, ctx, parent, localId, nullptr, ComponentStandardProps::Skip)
-        , referenceUtils(client)
     {
         browseRawProperties();
     }
@@ -108,17 +103,15 @@ public:
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
 
 protected:
-    opcua::ReferenceUtils referenceUtils;
     std::unordered_map<std::string, opcua::OpcUaNodeId> introspectionVariableIdMap;
     std::unordered_map<std::string, opcua::OpcUaNodeId> referenceVariableIdMap;
     std::unordered_map<std::string, opcua::OpcUaNodeId> objectTypeIdMap;
     opcua::OpcUaNodeId methodParentNodeId;
 
-    void addProperties(const tsl::ordered_map<opcua::OpcUaNodeId, opcua::OpcUaObject<UA_ReferenceDescription>>& references,
+    void addProperties(const OpcUaNodeId& parentId,
                        std::map<uint32_t, PropertyPtr>& orderedProperties,
                        std::vector<PropertyPtr>& unorderedProperties);
-    void addMethodProperties(const tsl::ordered_map<opcua::OpcUaNodeId, opcua::OpcUaObject<UA_ReferenceDescription>>& references,
-                             const opcua::OpcUaNodeId& parentNodeId,
+    void addMethodProperties(const opcua::OpcUaNodeId& parentNodeId,
                              std::map<uint32_t, PropertyPtr>& orderedProperties,
                              std::vector<PropertyPtr>& unorderedProperties,
                              std::unordered_map<std::string, BaseObjectPtr>& functionPropValues);

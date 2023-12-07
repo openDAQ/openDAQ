@@ -133,19 +133,21 @@ TEST_F(CachedReferenceBrowserTest, GetChildNodeId)
     ASSERT_EQ(browser.getChildNodeId(nodeObjectsFolder, "Server"), OpcUaNodeId(UA_NS0ID_SERVER));
 }
 
-TEST_F(CachedReferenceBrowserTest, FilterChildren)
+TEST_F(CachedReferenceBrowserTest, BrowseFiltered)
 {
     auto client = std::make_shared<OpcUaClient>(getServerUrl());
     client->connect();
 
-    const auto nodeObjectsFolder = OpcUaNodeId(UA_NS0ID_SERVER);
     auto browser = CachedReferenceBrowser(client);
 
     const auto nodeId = OpcUaNodeId(UA_NS0ID_SERVER);
-    const auto refTypeId = OpcUaNodeId(UA_NS0ID_HASPROPERTY);
 
-    auto children = browser.getFilteredChildren(nodeId, refTypeId);
-    ASSERT_EQ(children.size(), 4u);
+    BrowseFilter filter;
+    filter.referenceTypeId = OpcUaNodeId(UA_NS0ID_HASPROPERTY);
+    filter.direction = UA_BROWSEDIRECTION_FORWARD;
+
+    const auto& children = browser.browseFiltered(nodeId, filter);
+    ASSERT_EQ(children.byNodeId.size(), 4u);
 }
 
 

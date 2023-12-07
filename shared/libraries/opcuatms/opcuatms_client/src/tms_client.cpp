@@ -82,28 +82,17 @@ daq::DevicePtr TmsClient::connect()
 OpcUaNodeId TmsClient::getRootDeviceNodeId()
 {
     const OpcUaNodeId rootNodeId(NAMESPACE_DI, UA_DIID_DEVICESET);
-    BrowseRequest br(rootNodeId, OpcUaNodeClass::Object, UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
 
-    OpcUaBrowser browser(br, client);
-    auto results = browser.browse();
+    auto filter = BrowseFilter();
+    filter.referenceTypeId = OpcUaNodeId(0, UA_NS0ID_HASCOMPONENT);
+    filter.typeDefinition = OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQDEVICETYPE);
 
-    const OpcUaNodeId daqDeviceTypeNodeId(  NAMESPACE_DAQDEVICE,            // TODO NAMESPACE_DAQDEVICE is server namespace id. You need
-                                            UA_DAQDEVICEID_DAQDEVICETYPE);  // to map it to client. Or use namespace URI.
-    
-    
-    for (const auto& result : results)
-    {   
-        ReferenceUtils referenceUtilities(client);
-        if (daqDeviceTypeNodeId == result.typeDefinition.nodeId)
-            return result.nodeId.nodeId;
-        else
-        {
-            // Else check if this is a subtype of the openDAQ device.
-            if (referenceUtilities.isInstanceOf(result.typeDefinition.nodeId, daqDeviceTypeNodeId))
-                return result.nodeId.nodeId;
-        }
-    }
-    throw NotFoundException();
+    const auto& references = tmsClientContext->getReferenceBrowser()->browseFiltered(rootNodeId, filter);
+
+    if (references.byNodeId.empty())
+        throw NotFoundException();
+
+    return references.byNodeId.begin().key();
 }
 
 StringPtr TmsClient::getUniqueLocalId(const StringPtr& localId, int iteration)

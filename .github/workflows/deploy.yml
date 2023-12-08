@@ -413,7 +413,7 @@ jobs:
     needs: [deploy_linux]
 
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     timeout-minutes: 120
     env:

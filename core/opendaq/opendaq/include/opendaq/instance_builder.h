@@ -29,6 +29,81 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief Builder component of Instance objects. Contains setter methods to configure the Instance parameters such a Context (Logger, Scheduler, ModuleManager) and RootDevice.
  * Contains a  `build` method that builds the Instance object.
+ *
+ * The InstanceBuilder provides a fluent interface for setting various configuration options for an Instance
+ * object before its creation. It allows customization of the logger, module manager, scheduler and root device. 
+ * Once configured, calling the `build` method returns a fully initialized Instance object with the specified settings.
+ * 
+ * @subsection Configuration Methods:
+ * The InstanceBuilder provides the following configuration methods:
+ *
+ * - **setLogger:** Sets the custom Logger for the Instance. This logger will be used for logging messages related to
+ *   the Instance and its components.
+ *
+ * - **setGlobalLogLevel:** Sets the default Logger global log level for the Instance. All log messages with a severity
+ *   level equal to or higher than the specified level will be processed.
+ *
+ * - **setComponentLogLevel:** Sets the Logger level for a specific component of the Instance. Log messages related to
+ *   that component will be processed according to the specified log level.
+ *
+ * - **addLoggerSink:** Adds a logger sink to the default Instance logger. This sink will be responsible for processing
+ *   log messages, such as writing them to a file or sending them to a remote server.
+ *
+ * - **setModulePath:** Sets the path for the default ModuleManager of the Instance. If a custom module manager has not
+ *   been set, this path will be used to load modules.
+ *
+ * - **setModuleManager:** Sets the custom ModuleManager for the Instance. If set, the default module manager path
+ *   will be ignored.
+ *
+ * - **setSchedulerWorkerNum:** Sets the number of worker threads in the scheduler of the Instance. If a scheduler has
+ *   not already been set, this defines the number of threads available for parallel processing.
+ *
+ * - **setScheduler:** Sets a custom scheduler for the Instance. If set, the number of worker threads will be ignored.
+ *
+ * - **setDefaultRootDeviceName:** Sets the virtual Client as the default root device with the specified name. If the
+ *   RootDevice has not been set, the Instance Root Device will also be set as the virtual Client.
+ *
+ * - **setDefaultRootDeviceInfo:** Sets the default device information for the Instance. If the device information has
+ *   not been set, the `GetAvailableDevices` method of the Instance will return this set device information.
+ *
+ * - **setRootDevice:** Sets the connection string for the root device of the Instance. This defines the device that
+ *   serves as the entry point for the Instance.
+ *
+ * - **setSinkLogLevel:** Sets the sink logger level of the default Instance logger. This level is ignored if a custom
+ *   logger has already been set.
+ *
+ * Note:
+ * Some configuration options, such as the custom logger, module manager, and scheduler, are optional. If not set, the
+ * Instance will use default implementations. Users can choose to configure only the specific aspects they need,
+ * allowing for a tailored setup.
+ * 
+ * @subsection InstanceBuilder Configuration Methods Relationship Diagram
+ * This diagram provides a visual representation of the dependencies between various configuration methods in the InstanceBuilder class. 
+ * Notably, invoking certain methods, such as setLogger, as well as other methods, disables or turns off the impact of subsequent calls to related methods 
+ * like setGlobalLogLevel, setSinkLogLevel, addLoggerSink, and analogous behaviors exist for other methods.
+ * 
+ * InstanceBuilder
+ * │
+ * ├── setLogger
+ * │   ├── setGlobalLogLevel
+ * │   ├── setSinkLogLevel
+ * │   └── addLoggerSink
+ * │
+ * ├── setComponentLogLevel
+ * │
+ * ├── setModulePath
+ * │   └── setModuleManager
+ * │
+ * ├── setSchedulerWorkerNum
+ * │   └── setScheduler
+ * │
+ * └── setRootDevice
+ *     ├── setDefaultRootDeviceName
+ *     └── setDefaultRootDeviceInfo
+ * 
+ * Note:
+ * The `setRootDevice` method overrides the root device configuration, providing a specific device. 
+ * However, it's important to note that the default root device remains configured through the use of `setDefaultRootDeviceName` and `setDefaultRootDeviceInfo`.
  */
 DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 {
@@ -46,7 +121,7 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setLogger(ILogger* logger) = 0;
 
     /*!
-     * @brief Gets the Logger of Instance. Returns nullptr is custom logger has not been set
+     * @brief Gets the Logger of Instance. Returns nullptr if custom logger has not been set
      * @param[out] logger The Logger of Instance
      */
     virtual ErrCode INTERFACE_FUNC getLogger(ILogger** logger) = 0;

@@ -138,7 +138,7 @@ size_t CachedReferenceBrowser::browseBatch(const std::vector<OpcUaNodeId>& nodes
 
     processBrowseResults(nodes, startIndex, size, response->results, response->resultsSize, browseNext);
 
-    while (getContinuationPoint(response->results, continuationPoint))
+    while (getContinuationPoint(response->results, &continuationPoint))
     {
         OpcUaObject<UA_BrowseNextRequest> nextRequest;
         nextRequest->releaseContinuationPoints = UA_FALSE;
@@ -192,9 +192,9 @@ void CachedReferenceBrowser::processBrowseResults(const std::vector<OpcUaNodeId>
     }
 }
 
-bool CachedReferenceBrowser::getContinuationPoint(UA_BrowseResult* results, UA_ByteString* continuationPointOut)
+bool CachedReferenceBrowser::getContinuationPoint(UA_BrowseResult* results, UA_ByteString** continuationPointOut)
 {
-    continuationPointOut = &results->continuationPoint;
+    *continuationPointOut = &results->continuationPoint;
     return results->continuationPoint.length > 0;
 }
 

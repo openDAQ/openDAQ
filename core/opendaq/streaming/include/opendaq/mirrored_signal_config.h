@@ -81,8 +81,8 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredSignalConfig, ISignalConfig)
      * the event is triggered. The callback function requires two parameters - a MirroredSignalConfig
      * object, as well as a "Subscription event args" object.
      * The callback will be invoked with the MirroredSignalConfig object as the first argument,
-     * the second argument holds an event args object that contains the connection string of streaming,
-     * the global ID of the signal as it appears on the remote device, and the event type (Subscribed).
+     * the second argument holds an event args object that contains the connection string of streaming
+     * and the event type (Subscribed).
      */
     virtual ErrCode INTERFACE_FUNC getOnSubscribeComplete(IEvent** event) = 0;
 
@@ -96,8 +96,8 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredSignalConfig, ISignalConfig)
      * the event is triggered. The callback function requires two parameters - a MirroredSignalConfig
      * object, as well as a "Subscription event args" object.
      * The callback will be invoked with the MirroredSignalConfig object as the first argument,
-     * the second argument holds an event args object that contains the connection string of streaming,
-     * the global ID of the signal as it appears on the remote device, and the event type (Unsubscribed).
+     * the second argument holds an event args object that contains the connection string of streaming
+     * and the event type (Unsubscribed).
      */
     virtual ErrCode INTERFACE_FUNC getOnUnsubscribeComplete(IEvent** event) = 0;
 };

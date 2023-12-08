@@ -67,7 +67,7 @@ private:
                               UA_BrowseResult* results,
                               size_t resultSize,
                               std::vector<OpcUaNodeId>& browseNextOut);
-    bool getContinuationPoint(UA_BrowseResult* results, UA_ByteString* continuationPointOut);
+    bool getContinuationPoint(UA_BrowseResult* results, UA_ByteString** continuationPointOut);
 
     OpcUaClientPtr client;
     size_t maxNodesPerBrowse;

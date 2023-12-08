@@ -19,6 +19,7 @@
 #include "websocket_streaming/websocket_streaming.h"
 #include <opendaq/device_ptr.h>
 #include <opendaq/reader_factory.h>
+#include <queue>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -27,17 +28,21 @@ class AsyncPacketReader
 public:
     using OnPacketCallback = std::function<void(const SignalPtr& signal, const ListPtr<IPacket>& packets)>;
 
-    AsyncPacketReader();
+    AsyncPacketReader(const DevicePtr& device, const ContextPtr& context);
     ~AsyncPacketReader();
 
-    void startReading(const DevicePtr& device, const ContextPtr& context);
-    void stopReading();
+    void start();
+    void stop();
     void onPacket(const OnPacketCallback& callback);
     void setLoopFrequency(uint32_t freqency);
+    void startReadSignal(const SignalPtr& signal);
+    void stopReadSignal(const SignalPtr& signal);
 
 protected:
     void startReadThread();
     void createReaders();
+    void addReader(SignalPtr signalToRead);
+    void removeReader(SignalPtr signalToRead);
 
     DevicePtr device;
     ContextPtr context;
@@ -46,6 +51,10 @@ protected:
     bool readThreadStarted = false;
     std::chrono::milliseconds sleepTime;
     std::vector<std::pair<SignalPtr, PacketReaderPtr>> signalReaders;
+
+    LoggerPtr logger;
+    LoggerComponentPtr loggerComponent;
+    std::mutex readersSync;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

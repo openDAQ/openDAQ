@@ -181,26 +181,10 @@ int StreamingServer::onControlCommand(const std::string& streamId,
         {
             if (auto signalIter = clientIter->second.find(signalId); signalIter != clientIter->second.end())
             {
-                // wasn't subscribed by requester client
-                if (command == "subscribe" && !signalIter->second->isSubscribed())
-                {
-                    // wasn't subscribed by any client
-                    if (!isSignalSubscribed(signalId) && onSubscribeCallback)
-                    {
-                        onSubscribeCallback(signalId);
-                    }
-                    signalIter->second->setSubscribed(true);
-                }
-                // was subscribed by requester client
-                if (command == "unsubscribe" && signalIter->second->isSubscribed())
-                {
-                    signalIter->second->setSubscribed(false);
-                    // became not subscribed by any client
-                    if (!isSignalSubscribed(signalId) && onUnsubscribeCallback)
-                    {
-                        onUnsubscribeCallback(signalId);
-                    }
-                }
+                if (command == "subscribe")
+                    subscribeHandler(signalId, signalIter->second);
+                else if (command == "unsubscribe")
+                    unsubscribeHandler(signalId, signalIter->second);
             }
             else
             {
@@ -275,6 +259,24 @@ bool StreamingServer::isSignalSubscribed(const std::string& signalId) const
             result = result || iter->second->isSubscribed();
     }
     return result;
+}
+
+void StreamingServer::subscribeHandler(const std::string& signalId, OutputSignalPtr signal)
+{
+    // wasn't subscribed by any client
+    if (!isSignalSubscribed(signalId) && onSubscribeCallback)
+        onSubscribeCallback(signal->getCoreSignal());
+
+    signal->setSubscribed(true);
+}
+
+void StreamingServer::unsubscribeHandler(const std::string& signalId, OutputSignalPtr signal)
+{
+    signal->setSubscribed(false);
+
+    // became not subscribed by any client
+    if (!isSignalSubscribed(signalId) && onUnsubscribeCallback)
+        onUnsubscribeCallback(signal->getCoreSignal());
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

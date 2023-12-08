@@ -59,12 +59,18 @@ struct MockStreaming : daq::Streaming
 
         ON_CALL(*this, onSubscribeSignal)
             .WillByDefault(DoAll(
-                Invoke([&](const daq::MirroredSignalConfigPtr& signal) {})
+                Invoke([&](const daq::MirroredSignalConfigPtr& signal)
+                       {
+                           signal.template asPtr<daq::IMirroredSignalPrivate>()->subscribeCompleted(this->connectionString);
+                       })
             ));
 
         ON_CALL(*this, onUnsubscribeSignal)
             .WillByDefault(DoAll(
-                Invoke([&](const daq::MirroredSignalConfigPtr& signal) {})
+                Invoke([&](const daq::MirroredSignalConfigPtr& signal)
+                       {
+                           signal.template asPtr<daq::IMirroredSignalPrivate>()->unsubscribeCompleted(this->connectionString);
+                       })
             ));
 
         ON_CALL(*this, onCreateDataDescriptorChangedEventPacket)

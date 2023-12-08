@@ -20,6 +20,7 @@
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/streaming_private.h>
 #include <opendaq/mirrored_signal_private.h>
+#include <opendaq/subscription_event_args_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -50,11 +51,16 @@ public:
     ErrCode INTERFACE_FUNC setActiveStreamingSource(IString* streamingConnectionString) override;
     ErrCode INTERFACE_FUNC getActiveStreamingSource(IString** streamingConnectionString) override;
     ErrCode INTERFACE_FUNC deactivateStreaming() override;
+    ErrCode INTERFACE_FUNC getOnSubscribeComplete(IEvent** event) override;
+    ErrCode INTERFACE_FUNC getOnUnsubscribeComplete(IEvent** event) override;
 
     // IMirroredSignalPrivate
     Bool INTERFACE_FUNC triggerEvent(const EventPacketPtr& eventPacket) override;
     ErrCode INTERFACE_FUNC addStreamingSource(const StreamingPtr& streaming) override;
     ErrCode INTERFACE_FUNC removeStreamingSource(const StringPtr& streamingConnectionString) override;
+    Bool INTERFACE_FUNC hasMatchingId(const StringPtr& signalId) override;
+    void INTERFACE_FUNC subscribeCompleted(const StringPtr& streamingConnectionString) override;
+    void INTERFACE_FUNC unsubscribeCompleted(const StringPtr& streamingConnectionString) override;
 
     // ISignalConfig
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
@@ -75,10 +81,13 @@ protected:
 private:
     ErrCode subscribeInternal();
     ErrCode unsubscribeInternal();
+
     std::vector<WeakRefPtr<IStreaming>> streamingSourcesRefs;
     WeakRefPtr<IStreaming> activeStreamingSourceRef;
     bool listened;
     bool streamed;
+    EventEmitter<MirroredSignalConfigPtr, SubscriptionEventArgsPtr> onSubscribeCompleteEvent;
+    EventEmitter<MirroredSignalConfigPtr, SubscriptionEventArgsPtr> onUnsubscribeCompleteEvent;
 
     std::mutex mirroredSignalSync;
 };
@@ -119,6 +128,7 @@ Bool MirroredSignalBase<Interfaces...>::triggerEvent(const EventPacketPtr& event
     return forwardEvent;
 }
 
+
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::addStreamingSource(const StreamingPtr& streaming)
 {
@@ -141,6 +151,7 @@ ErrCode MirroredSignalBase<Interfaces...>::addStreamingSource(const StreamingPtr
         return OPENDAQ_ERR_DUPLICATEITEM;
 
     streamingSourcesRefs.push_back(WeakRefPtr<IStreaming>(streaming));
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -166,7 +177,6 @@ ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(const StringPtr
         streamingSourcesRefs.erase(it);
     else
         return OPENDAQ_ERR_NOTFOUND;
-
 
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned() &&
@@ -344,6 +354,24 @@ ErrCode MirroredSignalBase<Interfaces...>::deactivateStreaming()
 }
 
 template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::getOnSubscribeComplete(IEvent** event)
+{
+    OPENDAQ_PARAM_NOT_NULL(event);
+
+    *event = onSubscribeCompleteEvent.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::getOnUnsubscribeComplete(IEvent** event)
+{
+    OPENDAQ_PARAM_NOT_NULL(event);
+
+    *event = onUnsubscribeCompleteEvent.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
 EventPacketPtr MirroredSignalBase<Interfaces...>::createDataDescriptorChangedEventPacket()
 {
     std::scoped_lock lock(mirroredSignalSync);
@@ -423,6 +451,47 @@ ErrCode MirroredSignalBase<Interfaces...>::setStreamed(Bool streamed)
         return errCode;
 
     return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+Bool MirroredSignalBase<Interfaces...>::hasMatchingId(const StringPtr& signalId)
+{
+    StringPtr signalRemoteId;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
+    checkErrorInfo(errCode);
+
+    if (signalId.getLength() > signalRemoteId.getLength())
+        return False;
+
+    std::string idEnding = signalId.toStdString();
+    std::string fullId = signalRemoteId.toStdString();
+    return std::equal(idEnding.rbegin(), idEnding.rend(), fullId.rbegin());
+}
+
+template <typename... Interfaces>
+void MirroredSignalBase<Interfaces...>::subscribeCompleted(const StringPtr& streamingConnectionString)
+{
+    auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
+    if (onSubscribeCompleteEvent.hasListeners())
+    {
+        onSubscribeCompleteEvent(
+            thisPtr,
+            SubscriptionEventArgs(streamingConnectionString, SubscriptionEventType::Subscribed)
+        );
+    }
+}
+
+template <typename... Interfaces>
+void MirroredSignalBase<Interfaces...>::unsubscribeCompleted(const StringPtr& streamingConnectionString)
+{
+    auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
+    if (onUnsubscribeCompleteEvent.hasListeners())
+    {
+        onUnsubscribeCompleteEvent(
+            thisPtr,
+            SubscriptionEventArgs(streamingConnectionString, SubscriptionEventType::Unsubscribed)
+        );
+    }
 }
 
 END_NAMESPACE_OPENDAQ

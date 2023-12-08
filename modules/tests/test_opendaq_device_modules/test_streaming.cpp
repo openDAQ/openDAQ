@@ -3,10 +3,13 @@
 
 #include <gtest/gtest.h>
 #include <thread>
+#include <future>
 
 #include <opendaq/opendaq.h>
 #include <opendaq/event_packet_params.h>
 #include <opendaq/mock/mock_device_module.h>
+
+#include <opendaq/custom_log.h>
 
 using namespace daq;
 using namespace std::chrono_literals;
@@ -21,6 +24,9 @@ public:
     {
         serverInstance = CreateServerInstance();
         clientInstance = CreateClientInstance();
+
+        logger = Logger();
+        loggerComponent = logger.getOrAddComponent("StreamingTest");
     }
 
     void TearDown() override
@@ -66,19 +72,25 @@ public:
         return reader;
     }
 
-    ListPtr<IPacket> tryReadPackets(const PacketReaderPtr& reader, size_t packetCount, uint64_t timeoutMs = 500)
+    ListPtr<IPacket> tryReadPackets(const PacketReaderPtr& reader,
+                                    size_t packetCount,
+                                    std::chrono::seconds timeout = std::chrono::seconds(60))
     {
         auto allPackets = List<IPacket>();
-        auto lastPacketReceived = std::chrono::system_clock::now();
+        auto startPoint = std::chrono::system_clock::now();
 
         while (allPackets.getCount() < packetCount)
         {
             if (reader.getAvailableCount() == 0)
             {
                 auto now = std::chrono::system_clock::now();
-                uint64_t diffMs = (uint64_t) std::chrono::duration_cast<std::chrono::milliseconds>(now - lastPacketReceived).count();
-                if (diffMs > timeoutMs)
+                auto timeElapsed = now - startPoint;
+                if (timeElapsed > timeout)
+                {
+                    LOG_E("Timeout expired: packets count expected {}, packets count ready {}",
+                          packetCount, allPackets.getCount());
                     break;
+                }
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(20));
                 continue;
@@ -88,8 +100,6 @@ public:
 
             for (const auto& packet : packets)
                 allPackets.pushBack(packet);
-
-            lastPacketReceived = std::chrono::system_clock::now();
         }
 
         return allPackets;
@@ -97,20 +107,30 @@ public:
 
     bool packetsEqual(const ListPtr<IPacket>& listA, const ListPtr<IPacket>& listB, bool skipEventPackets = false)
     {
+        bool result = true;
         if (listA.getCount() != listB.getCount())
-            return false;
+        {
+            LOG_E("Compared packets count differs: A {}, B {}", listA.getCount(), listB.getCount());
+            result = false;
+        }
 
-        for (SizeT i = 0; i < listA.getCount(); i++)
+        auto count = std::min(listA.getCount(), listB.getCount());
+
+        for (SizeT i = 0; i < count; i++)
         {
             if (skipEventPackets &&
                 listA.getItemAt(i).getType() == PacketType::Event &&
                 listB.getItemAt(i).getType() == PacketType::Event)
                 continue;
             if (!BaseObjectPtr::Equals(listA.getItemAt(i), listB.getItemAt(i)))
-                return false;
+            {
+                LOG_E("Packets at index {} differs: A - \"{}\", B - \"{}\"",
+                          i, listA.getItemAt(i).toString(), listB.getItemAt(i).toString());
+                result = false;
+            }
         }
 
-        return true;
+        return result;
     }
 
 protected:
@@ -156,6 +176,8 @@ protected:
 
     InstancePtr serverInstance;
     InstancePtr clientInstance;
+    LoggerPtr logger;
+    LoggerComponentPtr loggerComponent;
 };
 
 TEST_P(StreamingTest, SignalDescriptorEvents)
@@ -168,8 +190,20 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     auto serverSignal = getSignal(serverInstance, "ChangingSignal");
     auto clientSignal = getSignal(clientInstance, "ChangingSignal");
 
+    auto mirroredSignalPtr = clientSignal.template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture = subscribeCompletePromise.get_future();
+    mirroredSignalPtr.getOnSubscribeComplete() +=
+        [&subscribeCompletePromise](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
+    {
+        subscribeCompletePromise.set_value(args.getStreamingConnectionString());
+    };
+
     auto serverReader = createServerReader("ChangingSignal");
     auto clientReader = createClientReader("ChangingSignal");
+
+    ASSERT_EQ(subscribeCompleteFuture.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+    ASSERT_EQ(subscribeCompleteFuture.get(), mirroredSignalPtr.getActiveStreamingSource());
 
     generatePackets(packetsToGenerate); 
 
@@ -177,28 +211,17 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     // websocket streaming does not recreate half assigned data descriptor changed event packet on client side
     // both: value and domain descriptors are always assigned in event packet
     // while on server side one descriptor can be assigned only
-    // client side always generates 2 event packets for each server side event packet:
-    // one for value descriptor changed and another for domain descriptor changed
-    if (std::get<0>(GetParam()) != "openDAQ WebsocketTcp Streaming")
-    {
-        auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
-        auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead);
-        ASSERT_EQ(serverReceivedPackets.getCount(), packetsToRead);
-        ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead);
-        ASSERT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
-    }
-    else
-    {
-        auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
-        const size_t clientPacketsToRead = initialEventPackets + packetsToGenerate + (packetsToGenerate - 1) * 4;
-        auto clientReceivedPackets = tryReadPackets(clientReader, clientPacketsToRead);
-        ASSERT_EQ(serverReceivedPackets.getCount(), packetsToRead);
-        ASSERT_EQ(clientReceivedPackets.getCount(), clientPacketsToRead);
-    }
+    auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
+    auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead);
+    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
+    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
+    EXPECT_TRUE(packetsEqual(serverReceivedPackets,
+                             clientReceivedPackets,
+                             std::get<0>(GetParam()) == "openDAQ WebsocketTcp Streaming"));
 
     // recreate client reader and test initial event packet
     clientReader = createClientReader(clientSignal.getDescriptor().getName());
-    auto clientReceivedPackets = tryReadPackets(clientReader, 1);
+    clientReceivedPackets = tryReadPackets(clientReader, 1);
 
     ASSERT_EQ(clientReceivedPackets.getCount(), 1);
 
@@ -226,17 +249,29 @@ TEST_P(StreamingTest, DataPackets)
     // +1 signal initial descriptor changed event packet
     const size_t packetsToRead = packetsToGenerate + 1;
 
+    auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture = subscribeCompletePromise.get_future();
+    mirroredSignalPtr.getOnSubscribeComplete() +=
+        [&subscribeCompletePromise](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
+    {
+        subscribeCompletePromise.set_value(args.getStreamingConnectionString());
+    };
+
     auto serverReader = createServerReader("ByteStep");
     auto clientReader = createClientReader("ByteStep");
+
+    ASSERT_EQ(subscribeCompleteFuture.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+    ASSERT_EQ(subscribeCompleteFuture.get(), mirroredSignalPtr.getActiveStreamingSource());
 
     generatePackets(packetsToGenerate);
 
     auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
     auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead);
 
-    ASSERT_EQ(serverReceivedPackets.getCount(), packetsToRead);
-    ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead);
-    ASSERT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
+    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
+    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 
 TEST_P(StreamingTest, SignalPropertyEvents)
@@ -246,10 +281,23 @@ TEST_P(StreamingTest, SignalPropertyEvents)
     // Expect to receive all data packets,
     // +1 signal initial descriptor changed event packet
     // +2 signal property changed event packet
+    // TODO web-socket streaming does not recreate "PROPERTY_CHANGED" event packet
+    // when property changed on server side
     const size_t packetsToReceive = packetsToRead + 1 + 2;
+    const size_t clientPacketsToReceive =
+        (std::get<0>(GetParam()) == "openDAQ WebsocketTcp Streaming") ? (packetsToRead + 1) : packetsToReceive;
 
     SignalPtr serverSignal = getSignal(serverInstance, "ByteStep");
     SignalPtr clientSignal = getSignal(clientInstance, "ByteStep");
+
+    auto mirroredSignalPtr = clientSignal.template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture = subscribeCompletePromise.get_future();
+    mirroredSignalPtr.getOnSubscribeComplete() +=
+        [&subscribeCompletePromise](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
+    {
+        subscribeCompletePromise.set_value(args.getStreamingConnectionString());
+    };
 
     ASSERT_EQ(clientSignal.getName(), serverSignal.getName());
     ASSERT_EQ(clientSignal.getDescription(), serverSignal.getDescription());
@@ -257,10 +305,8 @@ TEST_P(StreamingTest, SignalPropertyEvents)
     auto serverReader = createServerReader("ByteStep");
     auto clientReader = createClientReader("ByteStep");
 
-    // signal subscribing triggers creating Reader on server-side for a server signal
-    // wait before changing server signal properties to make sure that server-side reader
-    // catches signal property changed event packets
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    ASSERT_EQ(subscribeCompleteFuture.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+    ASSERT_EQ(subscribeCompleteFuture.get(), mirroredSignalPtr.getActiveStreamingSource());
 
     serverSignal.setName("ByteStepChanged");
     serverSignal.setDescription("DescriptionChanged");
@@ -268,21 +314,20 @@ TEST_P(StreamingTest, SignalPropertyEvents)
     generatePackets(packetsToRead);
 
     auto serverReceivedPackets = tryReadPackets(serverReader, packetsToReceive);
-    auto clientReceivedPackets = tryReadPackets(clientReader, packetsToReceive);
+    auto clientReceivedPackets = tryReadPackets(clientReader, clientPacketsToReceive);
 
     EXPECT_EQ(clientSignal.getName(), serverSignal.getName());
     EXPECT_EQ(clientSignal.getDescription(), serverSignal.getDescription());
 
     // TODO
     // packet comparing for web-socket streaming is skipped since it does not recreate "PROPERTY_CHANGED"
-    // event packet but create "DATA_DESCRIPTOR_CHANGED" event packet instead on client side
-    // when property changed on server side
+    // event packet when property changed on server side
     if (std::get<0>(GetParam()) == "openDAQ WebsocketTcp Streaming")
         return;
 
-    ASSERT_EQ(serverReceivedPackets.getCount(), packetsToReceive);
-    ASSERT_EQ(clientReceivedPackets.getCount(), packetsToReceive);
-    ASSERT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToReceive);
+    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToReceive);
+    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -351,17 +396,29 @@ TEST_P(StreamingAsyncSignalTest, SigWithExplicitDomain)
 {
     const size_t packetsToRead = 10;
 
+    auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep/Avg").template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture = subscribeCompletePromise.get_future();
+    mirroredSignalPtr.getOnSubscribeComplete() +=
+        [&subscribeCompletePromise](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
+    {
+        subscribeCompletePromise.set_value(args.getStreamingConnectionString());
+    };
+
     auto serverReader = createServerReader("ByteStep/Avg");
     auto clientReader = createClientReader("ByteStep/Avg");
+
+    ASSERT_EQ(subscribeCompleteFuture.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+    ASSERT_EQ(subscribeCompleteFuture.get(), mirroredSignalPtr.getActiveStreamingSource());
 
     generatePackets(packetsToRead);
 
     auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead + 1);
     auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 1);
 
-    ASSERT_EQ(serverReceivedPackets.getCount(), packetsToRead + 1);
-    ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
-    ASSERT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead + 1);
+    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
+    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 
 INSTANTIATE_TEST_SUITE_P(

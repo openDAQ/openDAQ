@@ -37,6 +37,7 @@ using OnSignalAvailableCallback = std::function<void(const StringPtr& signalStri
                                                      const StringPtr& description)>;
 using OnSignalUnavailableCallback = std::function<void(const StringPtr& signalStringId)>;
 using OnPacketCallback = std::function<void(const StringPtr& signalStringId, const PacketPtr& packet)>;
+using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
 
 class NativeStreamingClientHandler
 {
@@ -44,7 +45,8 @@ public:
     explicit NativeStreamingClientHandler(const ContextPtr& context,
                                           OnSignalAvailableCallback signalAvailableHandler,
                                           OnSignalUnavailableCallback signalUnavailableHandler,
-                                          OnPacketCallback packetHandler);
+                                          OnPacketCallback packetHandler,
+                                          OnSignalSubscriptionAckCallback signalSubscriptionAckCallback);
     bool connect(std::shared_ptr<boost::asio::io_context> ioContextPtr,
                  std::string host,
                  std::string port,
@@ -76,6 +78,7 @@ protected:
     OnSignalAvailableCallback signalAvailableHandler;
     OnSignalUnavailableCallback signalUnavailableHandler;
     OnPacketCallback packetHandler;
+    OnSignalSubscriptionAckCallback signalSubscriptionAckCallback;
 
     std::shared_ptr<daq::native_streaming::Client> client;
     std::shared_ptr<ClientSessionHandler> sessionHandler;

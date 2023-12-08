@@ -23,6 +23,7 @@ WebsocketStreamingServer::WebsocketStreamingServer(const DevicePtr& device, cons
     : device(device)
     , context(context)
     , streamingServer(context)
+    , packetReader(device, context)
 {
 }
 
@@ -46,9 +47,8 @@ void WebsocketStreamingServer::start()
         return;
 
     streamingServer.onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) { return device.getSignalsRecursive(); });
-    // TODO implement subscribe/unsubscribe callbacks
-    streamingServer.onSubscribe([](const std::string& signalId) {} );
-    streamingServer.onUnsubscribe([](const std::string& signalId) {} );
+    streamingServer.onSubscribe([this](const daq::SignalPtr& signal) { packetReader.startReadSignal(signal); } );
+    streamingServer.onUnsubscribe([this](const daq::SignalPtr& signal) { packetReader.stopReadSignal(signal); } );
     streamingServer.start(streamingPort, controlPort);
 
     packetReader.setLoopFrequency(50);
@@ -57,7 +57,7 @@ void WebsocketStreamingServer::start()
         for (const auto& packet : packets)
             streamingServer.sendPacketToSubscribers(signalId, packet);
     });
-    packetReader.startReading(device, context);
+    packetReader.start();
 
     // The control port is published thru the streaming protocol itself
     // so here the streaming port only is added to the StreamingInfo object
@@ -77,7 +77,7 @@ void WebsocketStreamingServer::stop()
 
 void WebsocketStreamingServer::stopInternal()
 {
-    packetReader.stopReading();
+    packetReader.stop();
     streamingServer.stop();
 }
 

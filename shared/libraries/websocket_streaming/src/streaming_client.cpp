@@ -81,16 +81,45 @@ bool StreamingClient::connect()
 
     conditionVariable.wait_for(lock, connectTimeout, [this]() { return connected; });
 
-    const auto timeout = std::chrono::seconds(1);
-    auto timeoutExpired = std::chrono::system_clock::now() + timeout;
-
-    for (const auto& [id, promiseFuturePair] : signalInitializedStatus)
+    if (connected)
     {
-        auto status = promiseFuturePair.second.wait_until(timeoutExpired);
-        if (status != std::future_status::ready)
+        std::vector<std::string> signalIds;
+        for (const auto& [signalId,_] : signals)
         {
-            LOG_W("signal {} has incomplete descriptors", id);
+            signalIds.push_back(signalId);
+            std::promise<void> signalInitPromise;
+            std::future<void> signalInitFuture = signalInitPromise.get_future();
+            signalInitializedStatus.insert_or_assign(
+                signalId,
+                std::make_tuple(
+                    std::move(signalInitPromise),
+                    std::move(signalInitFuture),
+                    false,
+                    false
+                )
+            );
         }
+
+        // signal meta-information (signal description, tableId, related signals, etc.)
+        // is published only for subscribed signals.
+        // as workaround we temporarily subscribe all signals to receive signal meta-info
+        // and initialize signal descriptors
+        protocolHandler->subscribe(signalIds);
+
+        const auto timeout = std::chrono::seconds(1);
+        auto timeoutExpired = std::chrono::system_clock::now() + timeout;
+
+        for (const auto& [id, params] : signalInitializedStatus)
+        {
+            auto status = std::get<1>(params).wait_until(timeoutExpired);
+            if (status != std::future_status::ready)
+            {
+                LOG_W("signal {} has incomplete descriptors", id);
+            }
+        }
+
+        // unsubscribe previously subscribed signals
+        protocolHandler->unsubscribe(signalIds);
     }
 
     return connected;
@@ -98,12 +127,10 @@ bool StreamingClient::connect()
 
 void StreamingClient::disconnect()
 {
+    ioContext.stop();
     if (clientThread.joinable())
-    {
-        ioContext.stop();
         clientThread.join();
-        connected = false;
-    }
+    connected = false;
 }
 
 void StreamingClient::onPacket(const OnPacketCallback& callack)
@@ -139,6 +166,11 @@ void StreamingClient::onAvailableDeviceSignals(const OnAvailableSignalsCallback&
 void StreamingClient::onFindSignal(const OnFindSignalCallback& callback)
 {
     onFindSignalCallback = callback;
+}
+
+void StreamingClient::onSubscriptionAck(const OnSubsciptionAckCallback& callback)
+{
+    onSubscriptionAckCallback = callback;
 }
 
 std::string StreamingClient::getHost()
@@ -210,6 +242,27 @@ void StreamingClient::onSignalMeta(const SubscribedSignal& subscribedSignal, con
 {
     if (method == daq::streaming_protocol::META_METHOD_SIGNAL)
         onSignal(subscribedSignal, params);
+
+    std::string signalId = subscribedSignal.signalId();
+    if (auto it = signalInitializedStatus.find(signalId); it != signalInitializedStatus.end())
+    {
+        if (method == daq::streaming_protocol::META_METHOD_SUBSCRIBE)
+        {
+            // skips the first subscribe ack from server
+            if (std::get<2>(it->second))
+                onSubscriptionAckCallback(subscribedSignal.signalId(), true);
+            else
+                std::get<2>(it->second) = true;
+        }
+        else if (method == daq::streaming_protocol::META_METHOD_UNSUBSCRIBE)
+        {
+            // skips the first unsubscribe ack from server
+            if (std::get<3>(it->second))
+                onSubscriptionAckCallback(subscribedSignal.signalId(), false);
+            else
+                std::get<3>(it->second) = true;
+        }
+    }
 }
 
 void StreamingClient::onProtocolMeta(daq::streaming_protocol::ProtocolHandler& protocolHandler,
@@ -228,10 +281,6 @@ void StreamingClient::onProtocolMeta(daq::streaming_protocol::ProtocolHandler& p
                 std::string signalId = arrayItem;
                 signalIds.push_back(signalId);
 
-                std::promise<void> signalInitPromise;
-                std::future<void> signalInitFuture = signalInitPromise.get_future();
-                signalInitializedStatus.insert_or_assign(signalId, std::make_pair(std::move(signalInitPromise), std::move(signalInitFuture)));
-
                 if (auto signalIt = signals.find(signalId); signalIt == signals.end())
                 {
                     auto inputSignal = std::make_shared<InputSignal>();
@@ -243,8 +292,6 @@ void StreamingClient::onProtocolMeta(daq::streaming_protocol::ProtocolHandler& p
                 }
             }
 
-            protocolHandler.subscribe(signalIds);
-
             onAvailableDeviceSignalsCb(signalIds);
             onAvailableStreamingSignalsCb(signalIds);
         }
@@ -253,6 +300,16 @@ void StreamingClient::onProtocolMeta(daq::streaming_protocol::ProtocolHandler& p
         connected = true;
         conditionVariable.notify_all();
     }
+}
+
+void StreamingClient::subscribeSignals(const std::vector<std::string>& signalIds)
+{
+    protocolHandler->subscribe(signalIds);
+}
+
+void StreamingClient::unsubscribeSignals(const std::vector<std::string>& signalIds)
+{
+    protocolHandler->unsubscribe(signalIds);
 }
 
 void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal& subscribedSignal,
@@ -288,8 +345,8 @@ void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSig
         signalIt->second->setTableId(tableId);
         if (auto domainDescIt = cachedDomainDescriptors.find(tableId); domainDescIt != cachedDomainDescriptors.end())
         {
-            if (!signalIt->second->getDomainSignalDescriptor().assigned())
-                setDomainDescriptor(signalIt->first, signalIt->second, domainDescIt->second);
+            setDomainDescriptor(signalIt->first, signalIt->second, domainDescIt->second);
+            cachedDomainDescriptors.erase(domainDescIt);
         }
     }
 }
@@ -297,20 +354,13 @@ void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSig
 void StreamingClient::setTimeSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal)
 {
     std::string tableId = subscribedSignal.tableId();
-
-    // check if the value signal with tableId is known
-    // and the descriptors for it are already received
     auto sInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
-    auto signalIt = std::find_if(signals.begin(),
-                                 signals.end(),
-                                 [tableId](const std::pair<std::string, InputSignalPtr>& pair)
-                                 {
-                                     return tableId == pair.second->getTableId();
-                                 });
-    if (signalIt != signals.end())
+
+    // check if the input value signal with tableId is known
+    if (auto [id, inputSignal] = findSignalByTableId(tableId); inputSignal != nullptr)
     {
-        // value signal with tableId is known, set domain descriptor for it
-        setDomainDescriptor(signalIt->first, signalIt->second, sInfo.dataDescriptor);
+        // value input signal with tableId is known, set domain descriptor for it
+        setDomainDescriptor(id, inputSignal, sInfo.dataDescriptor);
     }
     else
     {
@@ -319,30 +369,31 @@ void StreamingClient::setTimeSignal(const daq::streaming_protocol::SubscribedSig
     }
 }
 
-void StreamingClient::publishSignal(const SubscribedSignal& subscribedSignal)
+void StreamingClient::publishSignalChanges(const std::string& signalId, const InputSignalPtr& signal)
 {
-    std::string tableId = subscribedSignal.tableId();
+    // signal meta information is always received by pairs of META_METHOD_SIGNAL:
+    // one is meta for data signal, another is meta for time signal.
+    // we generate event packet only after both meta are received
+    // and all signal descriptors are assigned.
+    if (!signal->hasDescriptors())
+        return;
+
+    auto eventPacket = signal->createDecriptorChangedPacket();
+    onPacketCallback(signalId, eventPacket);
+}
+
+std::pair<std::string, InputSignalPtr> StreamingClient::findSignalByTableId(const std::string& tableId)
+{
     auto signalIt = std::find_if(signals.begin(),
                                  signals.end(),
-                                 [tableId](const std::pair<std::string, InputSignalPtr>& pair)
+                                 [&tableId](const std::pair<std::string, InputSignalPtr>& pair)
                                  {
                                      return tableId == pair.second->getTableId();
                                  });
     if (signalIt != signals.end())
-    {
-        auto inputSignal = signalIt->second;
-        auto signalId = signalIt->first;
-
-        // signal meta information is always received by pairs of META_METHOD_SIGNAL:
-        // one is meta for data signal, another is meta for time signal.
-        // we generate event packet only after both meta are received
-        // and all signal descriptors are assigned.
-        if (!inputSignal->hasDescriptors())
-            return;
-
-        auto eventPacket = inputSignal->createDecriptorChangedPacket();
-        onPacketCallback(signalId, eventPacket);
-    }
+        return {signalIt->first, signalIt->second};
+    else
+        return {std::string(), nullptr};
 }
 
 void StreamingClient::onSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, const nlohmann::json& params)
@@ -359,12 +410,28 @@ void StreamingClient::onSignal(const daq::streaming_protocol::SubscribedSignal& 
                   params.dump());
         }
 
+        DataDescriptorPtr dataDescriptor, domainDescriptor;
+        std::string tableId = subscribedSignal.tableId();
+        if (auto [_,signal] = findSignalByTableId(tableId); signal != nullptr)
+        {
+            dataDescriptor = signal->getSignalDescriptor();
+            domainDescriptor = signal->getDomainSignalDescriptor();
+        }
+
         if (subscribedSignal.isTimeSignal())
             setTimeSignal(subscribedSignal);
         else
             setDataSignal(subscribedSignal);
 
-        publishSignal(subscribedSignal);
+        if (auto [id, signal] = findSignalByTableId(tableId); signal != nullptr)
+        {
+            if (dataDescriptor != signal->getSignalDescriptor() ||
+                domainDescriptor != signal->getDomainSignalDescriptor())
+            {
+                // descriptors changed - generate event packet and send it to signal listeners
+                publishSignalChanges(id, signal);
+            }
+        }
     }
     catch (const DaqException& e)
     {
@@ -378,7 +445,7 @@ void StreamingClient::setSignalInitSatisfied(const std::string& signalId)
     {
         try
         {
-            iterator->second.first.set_value();
+            std::get<0>(iterator->second).set_value();
         }
         catch (std::future_error& e)
         {

@@ -44,7 +44,6 @@ protected:
     void stopReading();
     void startReadThread();
     void createReaders();
-    void updateReaders();
     void addReader(SignalPtr signalToRead);
     void removeReader(SignalPtr signalToRead);
 
@@ -55,9 +54,6 @@ protected:
     bool readThreadActive;
     std::chrono::milliseconds readThreadSleepTime;
     std::vector<std::pair<SignalPtr, PacketReaderPtr>> signalReaders;
-
-    std::queue<SignalPtr> signalsToStartRead;
-    std::queue<SignalPtr> signalsToStopRead;
 
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> workGuard;

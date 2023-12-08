@@ -90,6 +90,11 @@ protected:
      */
     virtual void onUnsubscribeSignal(const MirroredSignalConfigPtr& signal) = 0;
 
+    /*!
+     * @brief A function is invoked on creation of an initial DataDescriptor Changed Event Packet.
+     * @param signal The signal for which the event packet is created.
+     * @return The created DataDescriptor Changed Event Packet
+     */
     virtual EventPacketPtr onCreateDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal) = 0;
 
     void removeAllSignalsInternal();

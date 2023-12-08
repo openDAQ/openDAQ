@@ -803,3 +803,15 @@ TEST_F(ListObjectTest, IteratorEndType)
     ASSERT_TRUE(OPENDAQ_SUCCEEDED(errCode));
     ASSERT_EQ(id, IInteger::Id);
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IList", "daq");
+
+TEST_F(ListObjectTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IList::Id);
+}
+
+TEST_F(ListObjectTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IList>(), "{E7866BCC-0563-5504-B61B-A8116B614D8F}");
+}

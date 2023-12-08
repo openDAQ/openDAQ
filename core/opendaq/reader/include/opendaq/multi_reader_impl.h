@@ -65,6 +65,10 @@ public:
     ErrCode INTERFACE_FUNC getReadTimeoutType(ReadTimeoutType* timeoutType) override;
     ErrCode INTERFACE_FUNC markAsInvalid() override;
 
+    ErrCode INTERFACE_FUNC getTickResolution(IRatio** resolution) override;
+    ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
+    ErrCode INTERFACE_FUNC getOffset(void* domainStart) override;
+
 private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
@@ -104,7 +108,10 @@ private:
     Clock::duration timeout{};
     Clock::time_point startTime;
 
+    StringPtr readOrigin;
+    RatioPtr readResolution;
     std::unique_ptr<Comparable> commonStart;
+
     std::vector<SignalReader> signals;
 
     LoggerComponentPtr loggerComponent;

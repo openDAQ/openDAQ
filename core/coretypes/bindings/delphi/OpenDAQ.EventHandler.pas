@@ -11,7 +11,7 @@ type
   
 
   IEventHandler = interface(IBaseObject)
-  ['{c3811206-b703-51c4-a6be-39757e1ca44e}']
+  ['{8173CD51-2DE8-5DF3-A729-8A2728637DAD}']
     function HandleEvent(Sender : IBaseObject; EventArgs : IEventArgs) : ErrCode; stdcall;
   end;
 

@@ -1,4 +1,5 @@
-set(LIB_NAME ${SDK_TARGET_NAME}_websocket_streaming)
+set(BASE_NAME websocket_streaming)
+set(LIB_NAME ${SDK_TARGET_NAME}_${BASE_NAME})
 
 set(LIB_MAJOR_VERSION 0)
 set(LIB_MINOR_VERSION 4)
@@ -49,7 +50,7 @@ add_library(${LIB_NAME} STATIC ${SRC_Cpp}
                                ${SRC_PrivateHeaders}
 )
 
-add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
+add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${LIB_NAME})
 
 if(BUILD_64Bit OR BUILD_ARM)
     set_target_properties(${LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)

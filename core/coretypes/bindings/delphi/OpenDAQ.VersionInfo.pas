@@ -20,7 +20,7 @@ type
   {$MINENUMSIZE 4}
 
   IVersionInfo = interface(IBaseObject)
-  ['{be4cad93-0470-571e-8153-5e29e0c6765c}']
+  ['{5951D4D2-35EB-513C-B67D-89DABC6BE3BF}']
     function GetMajor(out Major: SizeT): ErrCode; stdcall;
     function GetMinor(out Minor: SizeT): ErrCode; stdcall;
     function GetPatch(out Patch: SizeT): ErrCode; stdcall;

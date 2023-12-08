@@ -199,6 +199,18 @@ private:
         std::unique_ptr<Polyline>& line,
         bool& end);
 
+    template <SampleType DST>
+    void renderArrayPacketImplicitAndExplicit(
+        SignalContext& signalContext,
+        DataRuleType domainRuleType,
+        sf::RenderTarget& renderTarget,
+        const  sf::Font& font,
+        const DataPacketPtr& packet,
+        bool& havePrevPacket,
+        typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type& nextExpectedDomainPacketValue,
+        std::unique_ptr<Polyline>& line,
+        bool& end);
+
     void renderLoop();
     void processSignalContexts();
 
@@ -242,6 +254,8 @@ private:
     template <typename Iter, typename Cont>
     bool isLastIter(Iter iter, const Cont& cont);
     void stopRendering();
+
+    void updateSingleXAxis();
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

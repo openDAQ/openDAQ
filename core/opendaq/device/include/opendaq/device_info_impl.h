@@ -31,10 +31,10 @@ class DeviceInfoConfigImpl;
 using DeviceInfoConfigBase = DeviceInfoConfigImpl<>;
 
 template <typename TInterface, typename... Interfaces>
-class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, IDeviceInfoConfig, IFreezable, Interfaces...>
+class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, Interfaces...>
 {
 public:
-    using Super = GenericPropertyObjectImpl<TInterface, IDeviceInfoConfig, IFreezable, Interfaces...>;
+    using Super = GenericPropertyObjectImpl<TInterface, Interfaces...>;
 
     explicit DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString);
 

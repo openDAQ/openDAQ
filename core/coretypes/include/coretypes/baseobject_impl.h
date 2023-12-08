@@ -20,7 +20,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class BaseObjectImpl : public ImplementationOf<IBaseObject>
+class BaseObjectImpl : public ImplementationOf<>
 {
 };
 

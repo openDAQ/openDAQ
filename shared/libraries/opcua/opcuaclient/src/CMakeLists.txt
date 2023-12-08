@@ -13,6 +13,7 @@ set(SOURCE_CPPS opcuaclient.cpp
                 browse_request.cpp
                 reference_utils.cpp
                 request_handler.cpp
+                attribute_reader.cpp
 )
 
 set(SOURCE_BROWSER_CPPS browser/opcuanodevisitor.cpp
@@ -34,6 +35,7 @@ set(SOURCE_HEADERS opcuaclient.h
                    browse_request.h
                    reference_utils.h
                    request_handler.h
+                   attribute_reader.h
 )
 
 set(SOURCE_BROWSER_HEADERS

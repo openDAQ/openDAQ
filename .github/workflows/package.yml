@@ -38,12 +38,20 @@ jobs:
             cmake_build_type: Release
             cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
             cpack: NSIS
+          - name: Windows VS 2022 Win32 Release
+            runner: windows-latest
+            cmake_generator: "Visual Studio 17 2022"
+            cmake_generator_platform: Win32
+            cmake_build_type: Release
+            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            cpack: NSIS
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Configure and build Wheels
+        if: ${{ matrix.cmake_generator_platform != 'Win32' }}
         run: |
           mkdir build
           cd build
@@ -85,6 +93,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Wheels
+        if: ${{ matrix.cmake_generator_platform != 'Win32' }}
         uses: actions/upload-artifact@v3
         with:
           name: Wheels (${{ matrix.name }})

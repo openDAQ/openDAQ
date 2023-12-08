@@ -17,7 +17,7 @@ DECLARE_OPENDAQ_INTERFACE(ITestObject1, IBaseObject)
 
 END_NAMESPACE_OPENDAQ
 
-class TestObject1Impl : public IntfObjectWithWeakRefImpl<ITestObject1, IInspectable>
+class TestObject1Impl : public ImplementationOfWeak<ITestObject1>
 {
 public:
     TestObject1Impl()
@@ -213,4 +213,16 @@ TEST_F(WeakRefTest, ImplementationName)
 
     StringPtr className = obj.asPtr<IInspectable>(true).getRuntimeClassName();
     ASSERT_EQ(className, "daq::WeakRefImpl");
+}
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IWeakRef", "daq");
+
+TEST_F(WeakRefTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IWeakRef::Id);
+}
+
+TEST_F(WeakRefTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IWeakRef>(), "{45BBEB38-A535-5CBC-BFB3-3B4FE34300E6}");
 }

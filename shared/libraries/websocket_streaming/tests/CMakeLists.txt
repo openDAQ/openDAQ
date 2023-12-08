@@ -1,4 +1,4 @@
-set(MODULE_NAME ${SDK_TARGET_NAME}_websocket_streaming)
+set(MODULE_NAME websocket_streaming)
 set(TEST_APP test_${MODULE_NAME})
 
 add_executable(${TEST_APP}

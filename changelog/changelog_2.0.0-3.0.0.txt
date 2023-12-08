@@ -1,6 +1,6 @@
 05.12.2023
 Description:
-Implementing builder pattern for IInstance
+Builder pattern implementation for IInstance
 
 + [interface] IInstanceBuilder : public IBaseObject
 + [function] IInstanceBuilder::build(IInstance** instance)
@@ -29,6 +29,15 @@ Implementing builder pattern for IInstance
 
 -m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId)
 -m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo)
+
+5.12.2023
+Description:
+  - Expose Origin Epoch and StartOffset the MultiReader aligned all the read signals to
+  - Rework how interface inheritance and queryInterface work to hopefully prevent ICEs and out-of-heap-space errors
+
++ [function] IMultiReader::getTickResolution(IRatio** resolution)
++ [function] IMultiReader::getOrigin(IString** origin)
++ [function] IMultiReader::getOffset(void* domainStart)
 
 28.11.2023
 
@@ -61,7 +70,7 @@ Builder pattern improvement
 + [function] IPropertyObjectClassBuilder::getParentName(IString** parentName)
 + [function] IPropertyObjectClassBuilder::getProperties(IDict** properties)
 + [function] IPropertyObjectClassBuilder::getPropertyOrder(IList** orderedPropertyNames)
-+ [function] IPropertyObjectClassBuilder::getManager(IWeakRef** manager)
++ [function] IPropertyObjectClassBuilder::getManager(ITypeManager** manager)
 - [factory] PropertyObjectClassPtr PropertyObjectClassFromBuildParams(const DictPtr<IString, IBaseObject>& buildParams);
 + [factory] PropertyObjectClassPtr PropertyObjectClassFromBuilder(const PropertyObjectClassBuilderPtr& builder)
 

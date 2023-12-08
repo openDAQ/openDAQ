@@ -36,6 +36,7 @@ set(SRC_Cpp version.cpp
             struct_type_impl.cpp
             type_manager_impl.cpp
             simple_type_impl.cpp
+            util.cpp
 )
 
 set(SRC_PublicHeaders
@@ -196,22 +197,22 @@ set(SRC_PublicHeaders
     validation.h
     list_element_type.h
     dict_element_type.h
-    
+
     struct.h
     struct_ptr.h
     struct_factory.h
-    
+
     type.h
     type_ptr.h
-    
+
     struct_type.h
     struct_type_ptr.h
     struct_type_factory.h
-    
+
     type_manager.h
     type_manager_ptr.h
     type_manager_factory.h
-    
+
     simple_type.h
     simple_type_factory.h
 )

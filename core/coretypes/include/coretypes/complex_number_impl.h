@@ -26,7 +26,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ComplexNumberImpl : public GenericStructImpl<IComplexNumber, IStruct, ISerializable, IComparable, ICoreType, IConvertible>
+class ComplexNumberImpl : public GenericStructImpl<IComplexNumber, IStruct, IComparable, IConvertible>
 {
 public:
     explicit ComplexNumberImpl(const Float real, const Float imaginary);

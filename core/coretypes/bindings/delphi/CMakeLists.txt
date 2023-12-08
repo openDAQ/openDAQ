@@ -36,6 +36,11 @@ set(DELPHI_BINDINGS_SRC
     OpenDAQ.BaseObjectImpl.pas
     OpenDAQ.ProcedureImpl.pas
     OpenDAQ.FunctionImpl.pas
+    OpenDAQ.SimpleType.pas
+    OpenDAQ.Struct.pas
+    OpenDAQ.StructType.pas
+    OpenDAQ.TType.pas
+    OpenDAQ.TypeManager.pas
     OpenDAQ.CoreTypes.Errors.pas
     OpenDAQ.CoreTypes.pas
     OpenDAQ.Exceptions.pas

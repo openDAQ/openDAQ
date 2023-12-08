@@ -12,6 +12,18 @@ TEST_F(BinaryDataTest, Create)
     ASSERT_NO_THROW(BinaryData(5));
 }
 
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IBinaryData", "daq");
+
+TEST_F(BinaryDataTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IBinaryData::Id);
+}
+
+TEST_F(BinaryDataTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IBinaryData>(), "{778DCE96-1ECD-59C0-B066-FD47BAF07789}");
+}
+
 TEST_F(BinaryDataTest, CreateInvalid)
 {
     ASSERT_THROW(BinaryData(0), InvalidParameterException);

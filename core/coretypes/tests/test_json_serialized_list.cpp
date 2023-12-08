@@ -479,3 +479,15 @@ TEST_F(JsonSerializedListTest, ImplementationName)
     StringPtr className = obj.asPtr<IInspectable>(true).getRuntimeClassName();
     ASSERT_EQ(className, "daq::JsonSerializedList");
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("ISerializedList", "daq");
+
+TEST_F(JsonSerializedListTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, ISerializedList::Id);
+}
+
+TEST_F(JsonSerializedListTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<ISerializedList>(), "{A9E1FD59-8AD5-5F3C-B4F8-2A9CDE66E598}");
+}

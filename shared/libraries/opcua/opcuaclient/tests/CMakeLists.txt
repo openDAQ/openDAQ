@@ -9,6 +9,7 @@ set(SRC_Cpp main.cpp
             test_opcuataskprocessor.cpp
             test_opcuatimertaskhelper.cpp
             test_opcuaclient.cpp
+            test_attribute_reader.cpp
 )
 
 set(SRC_Include opcuaservertesthelper.h

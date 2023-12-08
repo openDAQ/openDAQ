@@ -314,10 +314,12 @@ void RendererFbImpl::renderPacket(
 
     auto domainDataDescriptor = domainPacket.getDataDescriptor();
     auto domainRule = domainDataDescriptor.getRule();
-    if (domainRule.getType() == DataRuleType::Linear || domainRule.getType() == DataRuleType::Explicit)
-    {
+    size_t signalDimension = signalContext.inputDataSignalDescriptor.getDimensions().getCount();
+    
+    if (signalDimension == 1)
+        renderArrayPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, font, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
+    else
         renderPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, font, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
-    }
 }
 
 template <SampleType DST>
@@ -470,6 +472,94 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
 }
 
 template <SampleType DST>
+void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
+    SignalContext& signalContext,
+    DataRuleType domainRuleType,
+    sf::RenderTarget& renderTarget,
+    const sf::Font& font,
+    const DataPacketPtr& packet,
+    bool& havePrevPacket,
+    typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type& nextExpectedDomainPacketValue,
+    std::unique_ptr<Polyline>& line,
+    bool& end)
+{
+    const float xSize = signalContext.bottomRight.x - signalContext.topLeft.x;
+    const float xOffset = signalContext.topLeft.x;
+    const float ySize = signalContext.bottomRight.y - signalContext.topLeft.y;
+    const float yOffset = signalContext.bottomRight.y;
+
+    auto domainPacket = packet.getDomainPacket();
+    auto domainDataDescriptor = domainPacket.getDataDescriptor();
+    const auto samplesInPacket = packet.getSampleCount();
+    
+    size_t count = signalContext.inputDataSignalDescriptor.getDimensions()[0].getSize();
+    
+    double domainFactor = static_cast<double>(count-1) / static_cast<double>(xSize);
+
+    double yMax, yMin;
+    getYMinMax(signalContext, yMax, yMin);
+
+    auto valueFactor = (yMax - yMin) / static_cast<double>(ySize);
+
+    end = true;
+    havePrevPacket = false;
+    auto data = reinterpret_cast<uint8_t*>(packet.getData());
+
+    if (samplesInPacket == 0)
+        return;
+
+    double value;
+    for (size_t idx = 0; idx < count; idx++) 
+    {
+        switch (signalContext.sampleType)
+        {
+            case (SampleType::Float32):
+                value = reinterpret_cast<float*>(data)[idx];
+                break;
+            case (SampleType::Float64):
+                value = reinterpret_cast<double*>(data)[idx];
+                break;
+            case (SampleType::UInt8):
+                value = reinterpret_cast<uint8_t*>(data)[idx];
+                break;
+            case (SampleType::Int8):
+                value = reinterpret_cast<int8_t*>(data)[idx];
+                break;
+            case (SampleType::UInt16):
+                value = reinterpret_cast<uint16_t*>(data)[idx];
+                break;
+            case (SampleType::Int16):
+                value = reinterpret_cast<int16_t*>(data)[idx];
+                break;
+            case (SampleType::UInt32):
+                value = reinterpret_cast<uint32_t*>(data)[idx];
+                break;
+            case (SampleType::Int32):
+                value = reinterpret_cast<int32_t*>(data)[idx];
+                break;
+            case (SampleType::UInt64):
+                value = reinterpret_cast<uint64_t*>(data)[idx];
+                break;
+            case (SampleType::Int64):
+                value = reinterpret_cast<int64_t*>(data)[idx];
+                break;
+            default:
+                value = 0.0;
+        }
+
+        float xPos = xOffset + static_cast<float>(1.0 * idx / domainFactor);
+        float yPos = yOffset - static_cast<float>((value - yMin) / valueFactor);
+
+        if (yPos < signalContext.topLeft.y)
+            yPos = signalContext.topLeft.y;
+        else if (yPos > signalContext.bottomRight.y)
+            yPos = signalContext.bottomRight.y;
+
+        line->addPoint(xPos, yPos);
+    }
+}
+
+template <SampleType DST>
 void RendererFbImpl::renderSignal(SignalContext& signalContext, sf::RenderTarget& renderTarget, const sf::Font& font)
 {
     signalContext.lastValueSet = false;
@@ -493,6 +583,12 @@ void RendererFbImpl::renderSignal(SignalContext& signalContext, sf::RenderTarget
         if (end)
             break;
     }
+
+    // save last packet for vector signal to escape blinking
+    // in case if there is no new packets - renderer will you this
+    size_t signalDimension = signalContext.inputDataSignalDescriptor.getDimensions().getCount();
+    if (signalDimension == 1 && packetIt != signalContext.dataPackets.end())
+        packetIt++;
 
     signalContext.dataPackets.erase(packetIt, signalContext.dataPackets.end());
 
@@ -561,6 +657,24 @@ void RendererFbImpl::getWidthAndHeight(unsigned int& width, unsigned int& height
     }
 }
 
+void RendererFbImpl::updateSingleXAxis() {
+    // we can use singleXAxis only on the same dimension signals
+    if (singleXAxis && signalContexts.size() > 2) 
+    {
+        auto firstSignalDimension = signalContexts.front().inputDataSignalDescriptor.getDimensions().getCount();
+        for (auto sigCtx = signalContexts.begin() + 1; sigCtx != signalContexts.end() - 1; sigCtx++) 
+        {
+            auto curSignalDimension = sigCtx->inputDataSignalDescriptor.getDimensions().getCount();
+            if (firstSignalDimension != curSignalDimension) 
+            {
+                singleXAxis = false;
+                LOG_W("Renderer has multiple input signals with different dimension. Property singleXAxis has turned off");
+                break;
+            }
+        }
+    }
+}
+
 void RendererFbImpl::renderLoop()
 {
     unsigned int width;
@@ -599,6 +713,8 @@ void RendererFbImpl::renderLoop()
             processSignalContexts();
 
             window.clear();
+
+            updateSingleXAxis();
 
             if (singleXAxis)
                 prepareSingleXAxis();
@@ -823,6 +939,21 @@ void RendererFbImpl::getYMinMax(const SignalContext& signalContext, double& yMax
 
 void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& signalContext, const sf::Font& font, bool drawXAxisLabels, bool drawTitle)
 {
+    size_t xTickCount = 5;
+    size_t yTickCount = 5;
+
+    daq::ListPtr<daq::IBaseObject> labels{};
+
+    size_t signalDimension = signalContext.inputDataSignalDescriptor.getDimensions().getCount();
+
+    if (signalDimension == 1) 
+    {
+        auto domainDataDimension = signalContext.inputDataSignalDescriptor.getDimensions()[0];
+        labels = domainDataDimension.getLabels();
+        xTickCount = labels.getCount();
+    }
+
+    // create left border line
     Polyline leftLine(lineThickness, LineStyle::solid);
     leftLine.setColor(axisColor);
     leftLine.addPoint(signalContext.topLeft);
@@ -830,6 +961,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
 
     renderTarget.draw(leftLine);
 
+    // create bottom border line
     Polyline bottomLine(lineThickness, LineStyle::solid);
     bottomLine.setColor(axisColor);
     bottomLine.addPoint(signalContext.topLeft.x, signalContext.bottomRight.y);
@@ -837,19 +969,26 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
 
     renderTarget.draw(bottomLine);
 
+    // create grid
     const float xSize = signalContext.bottomRight.x - signalContext.topLeft.x;
     const float ySize = signalContext.bottomRight.y - signalContext.topLeft.y;
 
-    for (size_t i = 1; i < 5; i++)
+    // create horizontal grid
+    for (size_t i = 1; i < yTickCount; i++)
     {
-        const float yPos = signalContext.bottomRight.y - (1.0f * i * ySize / 4.0f);
-        const float xPos = signalContext.topLeft.x + (1.0f * i * xSize / 4.0f);
+        const float yPos = signalContext.bottomRight.y - (1.0f * i * ySize / static_cast<float>(yTickCount - 1));
 
         Polyline imLineHorz(lineThickness, LineStyle::dash);
         imLineHorz.setColor(axisColor);
         imLineHorz.addPoint(signalContext.topLeft.x, yPos);
         imLineHorz.addPoint(signalContext.bottomRight.x, yPos);
         renderTarget.draw(imLineHorz);
+    }
+
+    // create vertical grid
+    for (size_t i = 1; i < xTickCount; i++)
+    {
+        const float xPos = signalContext.topLeft.x + (1.0f * i * xSize / static_cast<float>(xTickCount - 1));
 
         Polyline imLineVert(lineThickness, LineStyle::dash);
         imLineVert.setColor(axisColor);
@@ -858,12 +997,10 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         renderTarget.draw(imLineVert);
     }
 
-    size_t xTickCount = 5;
-    assert(xTickCount % 2 == 1);
-    for (size_t i = 0; i < xTickCount; i++)
+    // create labeles for vertical axi
+    for (size_t i = 0; i < yTickCount; i++) 
     {
-        const float yPos = signalContext.bottomRight.y - (1.0f * static_cast<float>(i) * ySize / 4.0f);
-        const float xPos = signalContext.topLeft.x + (1.0f * static_cast<float>(i) * xSize / 4.0f);
+        const float yPos = signalContext.bottomRight.y - (1.0f * static_cast<float>(i) * ySize / static_cast<float>(yTickCount - 1));
 
         sf::Text valueText;
         valueText.setFont(font);
@@ -875,16 +1012,22 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         getYMinMax(signalContext, yMax, yMin);
 
         valueStr << std::fixed << std::showpoint << std::setprecision(2)
-                 << yMin + (yMax - yMin) * (static_cast<double>(i) / 4.0);
+                 << yMin + (yMax - yMin) * (static_cast<double>(i) / static_cast<double>(yTickCount - 1));
         valueText.setString(valueStr.str());
         const auto valueBounds = valueText.getGlobalBounds();
         const auto d = valueText.getCharacterSize() / 2.0f;
         valueText.setPosition({signalContext.topLeft.x - valueBounds.width - d, yPos - valueBounds.height / 2.0f - 5.0f});
 
         renderTarget.draw(valueText);
+    }
+    
+    // create labeles for horizontal axi
+    for (size_t i = 0; i < xTickCount; i++)
+    {
+        if (!drawXAxisLabels) 
+            break;
 
-        if (!drawXAxisLabels)
-            continue;
+        const float xPos = signalContext.topLeft.x + (1.0f * static_cast<float>(i) * xSize / static_cast<float>(xTickCount - 1));
 
         // for absolute time show only 3 domain values, otherwise 5
         if (i % 2 == 0 || !signalContext.hasTimeOrigin)
@@ -894,24 +1037,28 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
             domainText.setFillColor(axisColor);
             domainText.setCharacterSize(16);
             std::ostringstream domainStr;
-            if (signalContext.hasTimeOrigin)
+            if (signalDimension == 1) 
             {
-                const auto tp = signalContext.lastTimeValue - timeValueToDuration(signalContext, duration * (static_cast<double>(xTickCount - 1 - i) / 4.0));
+                domainStr << std::fixed << std::showpoint << std::setprecision(2) << labels[i];
+            }
+            else if (signalContext.hasTimeOrigin)
+            {
+                const auto tp = signalContext.lastTimeValue - timeValueToDuration(signalContext, duration * (static_cast<double>(xTickCount - 1 - i) / static_cast<double>(xTickCount - 1)));
                 const auto tpms = date::floor<std::chrono::milliseconds>(tp);
                 domainStr << date::format("%F %T", tpms);
             }
             else
-                domainStr << std::fixed << std::showpoint << std::setprecision(2) << duration * (static_cast<double>(i) / 4.0);
+                domainStr << std::fixed << std::showpoint << std::setprecision(2) << duration * (static_cast<double>(i) / static_cast<double>(xTickCount - 1));
 
             domainText.setString(domainStr.str());
             const auto domainBounds = domainText.getGlobalBounds();
             float xOffset;
             if (i == 0)
-               xOffset = 0;
+                xOffset = 0;
             else if (i == xTickCount - 1)
-               xOffset = domainBounds.width;
+                xOffset = domainBounds.width;
             else
-               xOffset = domainBounds.width / 2.0f;
+                xOffset = domainBounds.width / 2.0f;
 
             domainText.setPosition({xPos - xOffset, signalContext.bottomRight.y + domainBounds.height - 5.0f});
 
@@ -1113,9 +1260,9 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
         }
 
         const auto dataDescriptor = signalContext.inputDataSignalDescriptor;
-        if (dataDescriptor.getDimensions().getCount() > 0)  // arrays not supported on the input
+        if (dataDescriptor.getDimensions().getCount() > 1)  // matrix not supported on the input
         {
-            LOG_W("Array signals not supported")
+            LOG_W("Matrix signals not supported")
             return;
         }
         signalContext.sampleType = dataDescriptor.getSampleType();

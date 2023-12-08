@@ -1,4 +1,5 @@
-set(LIB_NAME ${SDK_TARGET_NAME}_native_streaming_protocol)
+set(BASE_NAME native_streaming_protocol)
+set(LIB_NAME ${SDK_TARGET_NAME}_${BASE_NAME})
 
 set(LIB_MAJOR_VERSION 1)
 set(LIB_MINOR_VERSION 0)
@@ -35,7 +36,7 @@ add_library(${LIB_NAME} STATIC ${SRC_Cpp}
                                ${SRC_PrivateHeaders}
 )
 
-add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
+add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${LIB_NAME})
 
 if(BUILD_64Bit OR BUILD_ARM)
     set_target_properties(${LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -50,7 +51,7 @@ target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_
 )
 
 target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq
-                                         opendaq_packet_streaming
+                                         daq::packet_streaming
                                          daq::native_streaming
 )
 

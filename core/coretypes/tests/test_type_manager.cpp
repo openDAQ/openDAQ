@@ -81,3 +81,15 @@ TEST_F(TypeManagerTest, Serialization)
 
     ASSERT_EQ(manager.getTypes(), typeManagerDeserialized.getTypes());
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("ITypeManager", "daq");
+
+TEST_F(TypeManagerTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, ITypeManager::Id);
+}
+
+TEST_F(TypeManagerTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<ITypeManager>(), "{EBD840C6-7E32-51F4-B063-63D0B09F4240}");
+}

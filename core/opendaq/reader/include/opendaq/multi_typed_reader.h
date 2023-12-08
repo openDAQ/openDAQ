@@ -64,6 +64,8 @@ public:
         return !(lhs == rhs);
     }
 
+    virtual void getValue(void* start) const noexcept = 0;
+
 #if !defined(NDEBUG)
     virtual void print(std::ostream& os) const = 0;
     virtual std::string asTime() const = 0;
@@ -124,6 +126,14 @@ public:
         return value;
     }
 
+    void getValue(void* start) const noexcept override
+    {
+        if (start != nullptr)
+        {
+            *static_cast<ReadType*>(start) = value;
+        }
+    }
+
 #if !defined(NDEBUG)
     void print(std::ostream& os) const override
     {
@@ -178,6 +188,10 @@ public:
     {
     }
 
+    void getValue(void* /*start*/) const noexcept override
+    {
+    }
+
     [[nodiscard]]
     const ComplexFloat32& getValue() const
     {
@@ -209,6 +223,10 @@ class ComparableValue<ComplexFloat64> final : public Comparable
 public:
     explicit ComparableValue(ComplexFloat64 startingValue, const ReaderDomainInfo& domainInfo, bool log = true)
         : Comparable(domainInfo)
+    {
+    }
+
+    void getValue(void* start) const noexcept override
     {
     }
 
@@ -252,6 +270,14 @@ public:
                 : static_cast<RangeValue>((value.end * info.multiplier) + info.offset)
         ))
     {
+    }
+
+    void getValue(void* start) const noexcept override
+    {
+        if (start != nullptr)
+        {
+            *static_cast<RangeType64*>(start) = value;
+        }
     }
 
     [[nodiscard]]

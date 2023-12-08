@@ -21,6 +21,9 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
+class OpcUaDataValue;
+using OpcUaDataValuePtr = std::shared_ptr<OpcUaDataValue>;
+
 class OpcUaDataValue
 {
 public:

@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Configure and build Wheels
-        if: ${{ matrix.cmake_generator_platform }} != 'Win32'
+        if: ${{ matrix.cmake_generator_platform != 'Win32' }}
         run: |
           mkdir build
           cd build
@@ -76,7 +76,7 @@ jobs:
           }
 
       - name: Configure and build without Wheels
-        if: ${{ matrix.cmake_generator_platform }} == 'Win32'
+        if: ${{ matrix.cmake_generator_platform == 'Win32' }}
         run: |
           mkdir build
           cd build

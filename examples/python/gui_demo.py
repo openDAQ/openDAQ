@@ -83,7 +83,10 @@ class App(tk.Tk):
         self.ui_scaling_factor = int(args.scale)
         self.include_reference_devices = bool(args.demo)
         try:
-            self.connection_string = args.connection_string
+            if args.connection_string != '':
+                self.connection_string = args.connection_string
+            else:
+                self.connection_string = None
         except ValueError:
             self.connection_string = None
 

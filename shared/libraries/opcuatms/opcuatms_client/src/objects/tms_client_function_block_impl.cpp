@@ -107,7 +107,7 @@ CachedReferences TmsClientFunctionBlockBaseImpl<Impl>::getOutputSignalReferences
 
     auto signalsNodeId = this->getNodeId("Sig");
 
-    return clientContext->getReferenceBrowser()->browseFiltered(signalsNodeId, filter);
+    return this->clientContext->getReferenceBrowser()->browseFiltered(signalsNodeId, filter);
 }
 
 template <typename Impl>
@@ -119,7 +119,7 @@ CachedReferences TmsClientFunctionBlockBaseImpl<Impl>::getInputPortBlockReferenc
 
     auto inputPortsNodeId = this->getNodeId("IP");
 
-    return clientContext->getReferenceBrowser()->browseFiltered(inputPortsNodeId, filter);
+    return this->clientContext->getReferenceBrowser()->browseFiltered(inputPortsNodeId, filter);
 }
 
 template <typename Impl> 
@@ -163,7 +163,7 @@ SignalPtr TmsClientFunctionBlockBaseImpl<Impl>::onGetStatusSignal()
     filter.referenceTypeId = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASSTATUSSIGNAL);
     filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
-    const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);
+    const auto& references = this->clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);
     assert(references.byNodeId.size() <= 1);
 
     if (!references.byNodeId.empty())

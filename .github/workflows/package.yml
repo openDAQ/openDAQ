@@ -59,20 +59,20 @@ jobs:
           $versions = "${{ env.python_versions }}".split(" ")
           foreach ($version in $versions) {
             Write-Output "Building for Python $version"
-            cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
-            cmake --build . --config ${{ matrix.cmake_build_type }}
-            Write-Output "Creating virtual environment for Python $version"
-            Invoke-Expression "py -$version -m venv venv"
-            ./venv/Scripts/activate
-            pip install numpy pybind11-stubgen
-            $remove_python_module_flag = "-r"
-            if ($version -eq $versions[-1]) {
-              $remove_python_module_flag = $null
-            }
-            Invoke-Expression "py -${{env.python_version_build}} ../bindings/python/package/build_pip.py -l bin/${{ matrix.cmake_build_type }} $remove_python_module_flag"
-            Copy-Item pip/packages/*.whl wheels
-            deactivate
-            Remove-Item venv -Recurse
+            # cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
+            # cmake --build . --config ${{ matrix.cmake_build_type }}
+            # Write-Output "Creating virtual environment for Python $version"
+            # Invoke-Expression "py -$version -m venv venv"
+            # ./venv/Scripts/activate
+            # pip install numpy pybind11-stubgen
+            # $remove_python_module_flag = "-r"
+            # if ($version -eq $versions[-1]) {
+            #   $remove_python_module_flag = $null
+            # }
+            # Invoke-Expression "py -${{env.python_version_build}} ../bindings/python/package/build_pip.py -l bin/${{ matrix.cmake_build_type }} $remove_python_module_flag"
+            # Copy-Item pip/packages/*.whl wheels
+            # deactivate
+            # Remove-Item venv -Recurse
           }
 
       - name: Configure and build without Wheels
@@ -81,304 +81,304 @@ jobs:
           mkdir build
           cd build
           Write-Output "Building for Win32"
-          cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
-          cmake --build . --config ${{ matrix.cmake_build_type }}
+          # cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+          # cmake --build . --config ${{ matrix.cmake_build_type }}
 
-      - name: Package
-        working-directory: build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+      # - name: Package
+      #   working-directory: build
+      #   run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
-      - name: Rename package
-        shell: pwsh
-        working-directory: ${{ env.package_path }}
-        run: |
-           Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.FullName.ToLower()}
+      # - name: Rename package
+      #   shell: pwsh
+      #   working-directory: ${{ env.package_path }}
+      #   run: |
+      #      Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.FullName.ToLower()}
 
-      - name: Upload package
-        uses: actions/upload-artifact@v3
-        with:
-          name: Package (${{ matrix.name }})
-          path: ${{ env.package_path }}
-          retention-days: 7
+      # - name: Upload package
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: Package (${{ matrix.name }})
+      #     path: ${{ env.package_path }}
+      #     retention-days: 7
 
-      - name: Upload Wheels
-        if: ${{ matrix.cmake_generator_platform }} != 'Win32'
-        uses: actions/upload-artifact@v3
-        with:
-          name: Wheels (${{ matrix.name }})
-          path: ${{ env.wheels_path }}
-          retention-days: 7
+      # - name: Upload Wheels
+      #   if: ${{ matrix.cmake_generator_platform }} != 'Win32'
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: Wheels (${{ matrix.name }})
+      #     path: ${{ env.wheels_path }}
+      #     retention-days: 7
 
-  package_linux:
-    runs-on: ubuntu-latest
-    name: ${{ matrix.name }}
+  # package_linux:
+  #   runs-on: ubuntu-latest
+  #   name: ${{ matrix.name }}
 
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
-      cancel-in-progress: true
-    timeout-minutes: 180
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Ubuntu 20.04 gcc-10 Release
-            image: ubuntu:20.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_BUILD_DOCUMENTATION=ON -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=ON
-            build_documentation: true
-            cpack: DEB
-            apt_packages: g++-10
-            cc: gcc-10
-            cxx: g++-10
+  #   concurrency:
+  #     group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
+  #     cancel-in-progress: true
+  #   timeout-minutes: 180
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - name: Ubuntu 20.04 gcc-10 Release
+  #           image: ubuntu:20.04
+  #           cmake_generator: Ninja
+  #           cmake_build_type: Release
+  #           cmake_defines: -DOPENDAQ_BUILD_DOCUMENTATION=ON -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=ON
+  #           build_documentation: true
+  #           cpack: DEB
+  #           apt_packages: g++-10
+  #           cc: gcc-10
+  #           cxx: g++-10
 
-    container:
-      image: ${{ matrix.image }}
-      env:
-        TZ: Europe/Berlin
-        DEBIAN_FRONTEND: noninteractive
-        CC: ${{ matrix.cc }}
-        CXX: ${{ matrix.cxx }}
+  #   container:
+  #     image: ${{ matrix.image }}
+  #     env:
+  #       TZ: Europe/Berlin
+  #       DEBIAN_FRONTEND: noninteractive
+  #       CC: ${{ matrix.cc }}
+  #       CXX: ${{ matrix.cxx }}
 
-    steps:
-      - name: Install basic dependencies
-        run: |
-          apt-get update
-          apt-get install -y git openssh-client rename
+  #   steps:
+  #     - name: Install basic dependencies
+  #       run: |
+  #         apt-get update
+  #         apt-get install -y git openssh-client rename
 
-      - name: Checkout
-        uses: actions/checkout@v3
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
 
-      - name: Install build dependencies
-        run: |
-          apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
-            lld ninja-build curl \
-            python3-pip python3-dev \
-            mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-            libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+  #     - name: Install build dependencies
+  #       run: |
+  #         apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
+  #           lld ninja-build curl \
+  #           python3-pip python3-dev \
+  #           mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
+  #           libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
 
-      - name: Install documentation dependencies
-        if: matrix.build_documentation
-        run: apt-get install -y --no-install-recommends doxygen graphviz wget zip
+  #     - name: Install documentation dependencies
+  #       if: matrix.build_documentation
+  #       run: apt-get install -y --no-install-recommends doxygen graphviz wget zip
 
-      - name: Install latest CMake
-        run: pip install cmake
+  #     - name: Install latest CMake
+  #       run: pip install cmake
 
-      - name: Configure
-        run: |
-          mkdir build
-          cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+  #     - name: Configure
+  #       run: |
+  #         mkdir build
+  #         cd build
+  #         cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
-      - name: Build
-        working-directory: build
-        run: cmake --build .
+  #     - name: Build
+  #       working-directory: build
+  #       run: cmake --build .
 
-      - name: Package
-        working-directory: build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+  #     - name: Package
+  #       working-directory: build
+  #       run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
-      - name: Rename
-        working-directory: ${{ env.package_path_rel }}
-        run: |
-          rename 's/_amd64/-ubuntu20.04-x86_64/' *.deb
-          rename 's/opendaq_/opendaq-/' *.deb
+  #     - name: Rename
+  #       working-directory: ${{ env.package_path_rel }}
+  #       run: |
+  #         rename 's/_amd64/-ubuntu20.04-x86_64/' *.deb
+  #         rename 's/opendaq_/opendaq-/' *.deb
 
-      - name: Read openDAQ version
-        id: daq_version
-        working-directory: .
-        run: |
-            DAQ_VER=$(cat opendaq_version)
-            echo Head openDAQ version: $DAQ_VER
-            echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
+  #     - name: Read openDAQ version
+  #       id: daq_version
+  #       working-directory: .
+  #       run: |
+  #           DAQ_VER=$(cat opendaq_version)
+  #           echo Head openDAQ version: $DAQ_VER
+  #           echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
 
-      - name: Compress documentation
-        if: matrix.build_documentation
-        working-directory: build/doc_doxygen/html
-        run: zip -r "../../opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_cpp_api_reference.zip" .
+  #     - name: Compress documentation
+  #       if: matrix.build_documentation
+  #       working-directory: build/doc_doxygen/html
+  #       run: zip -r "../../opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_cpp_api_reference.zip" .
 
-      - name: Upload package
-        uses: actions/upload-artifact@v3
-        with:
-          name: Package (${{ matrix.name }})
-          path: ${{ env.package_path_rel }}
-          retention-days: 7
+  #     - name: Upload package
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: Package (${{ matrix.name }})
+  #         path: ${{ env.package_path_rel }}
+  #         retention-days: 7
 
-      - name: Upload API reference
-        uses: actions/upload-artifact@v3
-        with:
-          name: API Reference
-          path: "build/opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_cpp_api_reference.zip"
-          retention-days: 7
+  #     - name: Upload API reference
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: API Reference
+  #         path: "build/opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_cpp_api_reference.zip"
+  #         retention-days: 7
 
-      - name: Upload temporary package for simulator
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.simulator_package_artifact }}
-          path: ${{ env.package_path_rel }}
+  #     - name: Upload temporary package for simulator
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: ${{ env.simulator_package_artifact }}
+  #         path: ${{ env.package_path_rel }}
 
-      - name: Upload simulator app
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.simulator_app_artifact }}
-          path: build/bin/application_simulator
+  #     - name: Upload simulator app
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: ${{ env.simulator_app_artifact }}
+  #         path: build/bin/application_simulator
 
-  package_linux_wheels:
-    runs-on: ubuntu-latest
-    name: ${{ matrix.name }}
+  # package_linux_wheels:
+  #   runs-on: ubuntu-latest
+  #   name: ${{ matrix.name }}
 
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
-      cancel-in-progress: true
-    timeout-minutes: 180
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: manylinux2014 gcc Release
-            image: quay.io/pypa/manylinux2014_x86_64
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            additional_packages:
-            cc: gcc
-            cxx: g++
-            cpack: ZIP
+  #   concurrency:
+  #     group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
+  #     cancel-in-progress: true
+  #   timeout-minutes: 180
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - name: manylinux2014 gcc Release
+  #           image: quay.io/pypa/manylinux2014_x86_64
+  #           cmake_generator: Ninja
+  #           cmake_build_type: Release
+  #           additional_packages:
+  #           cc: gcc
+  #           cxx: g++
+  #           cpack: ZIP
 
-    container:
-      image: ${{ matrix.image }}
-      env:
-        TZ: Europe/Berlin
-        CC: ${{ matrix.cc }}
-        CXX: ${{ matrix.cxx }}
+  #   container:
+  #     image: ${{ matrix.image }}
+  #     env:
+  #       TZ: Europe/Berlin
+  #       CC: ${{ matrix.cc }}
+  #       CXX: ${{ matrix.cxx }}
 
-    steps:
-      - name: Install basic dependencies
-        run: |
-          yum update -y
-          yum install -y git
+  #   steps:
+  #     - name: Install basic dependencies
+  #       run: |
+  #         yum update -y
+  #         yum install -y git
 
-      - name: Checkout
-        uses: actions/checkout@v3
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
 
-      - name: Install build dependencies
-        run: |
-          yum install -y ${{ matrix.additional_packages }} \
-              ninja-build \
-              mono-core \
-              freetype-devel libudev-devel libX11-devel libXcursor-devel libXrandr-devel
+  #     - name: Install build dependencies
+  #       run: |
+  #         yum install -y ${{ matrix.additional_packages }} \
+  #             ninja-build \
+  #             mono-core \
+  #             freetype-devel libudev-devel libX11-devel libXcursor-devel libXrandr-devel
 
-      - name: Create build dir
-        run: mkdir build
+  #     - name: Create build dir
+  #       run: mkdir build
 
-      - name: Configure and build Python Wheels
-        working-directory: build
-        run: |
-          mkdir wheels
-          for version in ${{ env.python_versions }}; do
-              echo "Building for Python $version"
-              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCI_GIT_BRANCH=${{ github.ref }} -DOPENDAQ_PYTHON_VERSION=$version ..
-              cmake --build .
-              python$version -m venv venv
-              . venv/bin/activate
-              pip install numpy pybind11-stubgen
-              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r
-              cp -f pip/packages/opendaq*.whl wheels
-              deactivate
-              rm -rf venv
-          done
+  #     - name: Configure and build Python Wheels
+  #       working-directory: build
+  #       run: |
+  #         mkdir wheels
+  #         for version in ${{ env.python_versions }}; do
+  #             echo "Building for Python $version"
+  #             cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCI_GIT_BRANCH=${{ github.ref }} -DOPENDAQ_PYTHON_VERSION=$version ..
+  #             cmake --build .
+  #             python$version -m venv venv
+  #             . venv/bin/activate
+  #             pip install numpy pybind11-stubgen
+  #             python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r
+  #             cp -f pip/packages/opendaq*.whl wheels
+  #             deactivate
+  #             rm -rf venv
+  #         done
 
-      - name: Upload Wheels
-        uses: actions/upload-artifact@v3
-        with:
-          name: Wheels (${{ matrix.name }})
-          path: ${{ env.wheels_path }}
-          retention-days: 7
+  #     - name: Upload Wheels
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: Wheels (${{ matrix.name }})
+  #         path: ${{ env.wheels_path }}
+  #         retention-days: 7
 
-  simulator-build:
-    runs-on: ubuntu-latest-4-cores
-    name: Simulator build
-    needs: [package_linux]
+  # simulator-build:
+  #   runs-on: ubuntu-latest-4-cores
+  #   name: Simulator build
+  #   needs: [package_linux]
 
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
-      cancel-in-progress: true
-    timeout-minutes: 120
-    env:
-      simulator_directory: simulator
+  #   concurrency:
+  #     group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
+  #     cancel-in-progress: true
+  #   timeout-minutes: 120
+  #   env:
+  #     simulator_directory: simulator
 
-    defaults:
-      run:
-        working-directory: ${{ env.simulator_directory }}
+  #   defaults:
+  #     run:
+  #       working-directory: ${{ env.simulator_directory }}
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
 
-      - name: Install tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y virtualbox vagrant
+  #     - name: Install tools
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install -y virtualbox vagrant
 
-      - name: Download package
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ env.simulator_package_artifact }}
-          path: ${{ env.simulator_directory }}
+  #     - name: Download package
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: ${{ env.simulator_package_artifact }}
+  #         path: ${{ env.simulator_directory }}
 
-      - name: Download simulator app
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ env.simulator_app_artifact }}
-          path: ${{ env.simulator_directory }}
+  #     - name: Download simulator app
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: ${{ env.simulator_app_artifact }}
+  #         path: ${{ env.simulator_directory }}
 
-      - name: Display files in working directory
-        run: ls -Rhl
+  #     - name: Display files in working directory
+  #       run: ls -Rhl
 
-      - name: Read openDAQ version
-        id: daq_version
-        working-directory: .
-        run: |
-            DAQ_VER=$(cat opendaq_version)
-            echo Head openDAQ version: $DAQ_VER
-            echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
+  #     - name: Read openDAQ version
+  #       id: daq_version
+  #       working-directory: .
+  #       run: |
+  #           DAQ_VER=$(cat opendaq_version)
+  #           echo Head openDAQ version: $DAQ_VER
+  #           echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
 
-      - name: Define simulator name
-        id: simulator_name
-        run: echo "SIMULATOR_NAME=opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_${{ env.vm_name }}" >> "$GITHUB_OUTPUT"
+  #     - name: Define simulator name
+  #       id: simulator_name
+  #       run: echo "SIMULATOR_NAME=opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_${{ env.vm_name }}" >> "$GITHUB_OUTPUT"
 
-      - name: Find binaries and run vagrant
-        run: |
-          debfiles=( *.deb )
-          vagrant --version
-          VM_NAME=${{ steps.simulator_name.outputs.SIMULATOR_NAME }} HOME_PATH=$HOME PACKAGE_NAME=${debfiles[0]} vagrant up
-          VM_NAME=${{ steps.simulator_name.outputs.SIMULATOR_NAME }} HOME_PATH=$HOME PACKAGE_NAME=${debfiles[0]} vagrant halt
+  #     - name: Find binaries and run vagrant
+  #       run: |
+  #         debfiles=( *.deb )
+  #         vagrant --version
+  #         VM_NAME=${{ steps.simulator_name.outputs.SIMULATOR_NAME }} HOME_PATH=$HOME PACKAGE_NAME=${debfiles[0]} vagrant up
+  #         VM_NAME=${{ steps.simulator_name.outputs.SIMULATOR_NAME }} HOME_PATH=$HOME PACKAGE_NAME=${debfiles[0]} vagrant halt
 
-      - name: vboxmanage modify and compact
-        run: |
-          vboxmanage modifyvm ${{ steps.simulator_name.outputs.SIMULATOR_NAME }} --audio none --uart1 off --nic1 hostonly --hostonlyadapter1 "VirtualBox Host-Only Ethernet Adapter"
-          vboxmanage modifymedium disk "${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.vdi" --compact
+  #     - name: vboxmanage modify and compact
+  #       run: |
+  #         vboxmanage modifyvm ${{ steps.simulator_name.outputs.SIMULATOR_NAME }} --audio none --uart1 off --nic1 hostonly --hostonlyadapter1 "VirtualBox Host-Only Ethernet Adapter"
+  #         vboxmanage modifymedium disk "${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.vdi" --compact
 
-      - name: vboxmanage check
-        run: |
-          vboxmanage list vms
-          vboxmanage list hostonlyifs
-          vboxmanage list hdds
+  #     - name: vboxmanage check
+  #       run: |
+  #         vboxmanage list vms
+  #         vboxmanage list hostonlyifs
+  #         vboxmanage list hdds
 
-      - name: export VM to .ova appliance
-        run: |
-          vboxmanage export ${{ steps.simulator_name.outputs.SIMULATOR_NAME }} -o ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova --options manifest,nomacs
-          ls -hl ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova
+  #     - name: export VM to .ova appliance
+  #       run: |
+  #         vboxmanage export ${{ steps.simulator_name.outputs.SIMULATOR_NAME }} -o ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova --options manifest,nomacs
+  #         ls -hl ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova
 
-      - name: Upload OVA image
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}-ova-image
-          path: simulator/${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova
-          retention-days: 7
+  #     - name: Upload OVA image
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}-ova-image
+  #         path: simulator/${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova
+  #         retention-days: 7
 
-      - name: Delete unused artifacts
-        uses: geekyeggo/delete-artifact@v2
-        with:
-          name: |
-            ${{ env.simulator_app_artifact }}
-            ${{ env.simulator_package_artifact }}
+  #     - name: Delete unused artifacts
+  #       uses: geekyeggo/delete-artifact@v2
+  #       with:
+  #         name: |
+  #           ${{ env.simulator_app_artifact }}
+  #           ${{ env.simulator_package_artifact }}

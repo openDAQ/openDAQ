@@ -1,4 +1,4 @@
-05.12.2023
+08.12.2023
 Description:
 Builder pattern implementation for IInstance
 
@@ -28,7 +28,7 @@ Builder pattern implementation for IInstance
 + [factory] InstanceBuilderPtr InstanceBuilder()
 
 -m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId)
--m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo)
++m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo)
 
 5.12.2023
 Description:

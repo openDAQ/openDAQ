@@ -1,0 +1,234 @@
+= Instance configuration
+
+Instance is the top-level openDAQ(TM) object. It acts as container for the openDAQ context and the base module manager.
+
+**Related articles:**
+
+  * xref:background_info:opendaq_architecture.adoc#instance[Architecture - Instance]
+
+== Creating the default openDAQ(TM) Instance
+On creation, it creates a Client device - a default device implementation that can load any function blocks present in the module manager search path. If the native openDAQ client-module is loaded, the Client device can connect to any TMS enabled device by using the `addDevice` function. The Client is set as the root device when the instance is created.
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+int main(int argc, const char* argv[])
+{
+    daq::InstancePtr instance = daq::Instance();
+    daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1/");
+
+    return 0;
+}
+----
+====
+
+== Creating openDAQ(TM) Instance with Instance Builder
+
+OpenDAQ(TM) provides advanced way to configure Instance using Instance Builder. With Instance Builder developer can congigure Logger, Scheduler, Module Manager and Root Device by setting custom Module or modifing default object. 
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+int main(int argc, const char* argv[])
+{
+    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder()
+    daq::InstancePtr instance = instanceBuilder.build();
+    daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1/");
+
+    return 0;
+}
+----
+====
+
+== Configure openDAQ(TM) Instance Logger
+
+By default Instance Logger level set to info log level if was build release version of project or debug if project was built it debug. There are two ways to override default level. First one is to set global default logger level.
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+int main(int argc, const char* argv[])
+{
+    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder();
+    instanceBuilder.setGlobalLogLevel(daq::LogLevel::Warn);
+    daq::InstancePtr instance = instanceBuilder.build();
+
+    return 0;
+}
+----
+====
+
+In addition to changing the logging level, the developer can also set the logging level for individual components and sink. In example below develop set two logger sinks `StdOutLoggerSink` with default log level and `BasicFileLoggerSink` with error log level. In addition he sets custom log level for components `Instance` and `Some Module`.
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+int main(int argc, const char* argv[])
+{
+    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder();
+                        .addLoggerSink(StdOutLoggerSink())
+                        .setSinkLogLevel(BasicFileLoggerSink("logfile.log"),  daq::LogLevel::Error);
+                        .setComponentLogLevel("Instance", daq::LogLevel::Warn);
+                        .setComponentLogLevel("Some Module", daq::LogLevel::Off);
+
+    daq::InstancePtr instance = instanceBuilder.build();
+
+    return 0;
+}
+----
+====
+
+Advanced way of configuring Instance logger is to configure logger object and set with `setLogger` method.
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+
+int main(int argc, const char* argv[])
+{
+    daq::ListPtr<ILoggerSink> sinks = daq::List<ILoggerSink>(StdOutLoggerSink());
+    daq::LoggerPtr logger = daq::LoggerWithSinks(sinks, daq::LogLevel::Warn);
+    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setLogger(logger);
+
+    daq::InstancePtr instance = instanceBuilder.build();
+
+    return 0;
+}
+----
+====
+
+[NOTE]
+====
+Alternatively developer can create own implementation of logger which has to inherit ILogger interface 
+====
+
+== Configure openDAQ(TM) Instance Module Manager
+By default Instance Module Manager uses current path for loading modules. In Interface Builder developer can set custom module path or replace default Module Manager with custom implementation inherited from IModuleManager
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+
+int main(int argc, const char* argv[])
+{
+    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setModulePath("/path/to/modules");
+    daq::InstancePtr instance = instanceBuilder.build();
+
+    return 0;
+}
+----
+Overriding module path
+====
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+class CustomMuduleManagerImpl : public ImplementationOfWeak<IModuleManager>
+{
+    CustomMuduleManagerImpl() = default;
+    // implementation
+} 
+
+int main(int argc, const char* argv[])
+{
+    daq::ModuleManagerPtr moduleManager = daq::ModuleManagerPtr(CustomMuduleManagerImpl());
+    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setModuleManager(moduleManager);
+    daq::InstancePtr instance = instanceBuilder.build();
+
+    return 0;
+}
+----
+Setting custom module manager
+====
+
+== Configure openDAQ(TM) Instance Scheduler
+By default Instance creates Scheduler with number of workers which is equaled to the maximum physical threads. To manualy change this amount developer can use Instance Builder method `setSchedulerWorkerNum`.
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+class CustomMuduleManagerImpl : public ImplementationOfWeak<IModuleManager>
+{
+    CustomMuduleManagerImpl() = default;
+    // implementation
+} 
+
+int main(int argc, const char* argv[])
+{
+    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setSchedulerWorkerNum(2);
+    daq::InstancePtr instance = instanceBuilder.build();
+
+    return 0;
+}
+----
+====
+As in preivios examples developer can implement own solution of scheduler and use it in Instance Builder.
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+class CustomSchedulerImpl : public ImplementationOfWeak<IScheduler>
+{
+    CustomSchedulerImpl(size_t workers)
+    {
+        // initializing
+    }
+    // implementation
+} 
+
+int main(int argc, const char* argv[])
+{
+    daq::SchedulerPtr scheduler = daq::SchedulerPtr(CustomSchedulerImpl(2));
+    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setScheduler(scheduler);
+    daq::InstancePtr instance = instanceBuilder.build();
+
+    return 0;
+}
+----
+====

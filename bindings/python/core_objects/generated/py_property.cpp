@@ -44,13 +44,11 @@ void defineIProperty(pybind11::module_ m, PyDaqIntf<daq::IProperty, daq::IBaseOb
     m.def("ListProperty", &daq::ListProperty_Create);
     m.def("DictProperty", &daq::DictProperty_Create);
     m.def("RatioProperty", &daq::RatioProperty_Create);
-    m.def("ObjectProperty", &daq::ObjectProperty_Create);
     m.def("ReferenceProperty", &daq::ReferenceProperty_Create);
     m.def("FunctionProperty", &daq::FunctionProperty_Create);
     m.def("SelectionProperty", &daq::SelectionProperty_Create);
     m.def("SparseSelectionProperty", &daq::SparseSelectionProperty_Create);
     m.def("StructProperty", &daq::StructProperty_Create);
-    m.def("PropertyFromBuilder", &daq::PropertyFromBuilder_Create);
 
     cls.def_property_readonly("value_type",
         [](daq::IProperty *object)

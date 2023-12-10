@@ -8,6 +8,8 @@
 #include <open62541/types_daqbsp_generated.h>
 #include <open62541/types_daqdevice_generated.h>
 #include <open62541/types_daqesp_generated.h>
+#include <open62541/types_daqhbk_generated.h>
+
 
 #include <iostream>
 
@@ -35,7 +37,10 @@ daq::DevicePtr TmsClient::connect()
     endpoint.registerCustomTypes(UA_TYPES_DAQBSP_COUNT, UA_TYPES_DAQBSP);
     endpoint.registerCustomTypes(UA_TYPES_DAQDEVICE_COUNT, UA_TYPES_DAQDEVICE);
     endpoint.registerCustomTypes(UA_TYPES_DAQESP_COUNT, UA_TYPES_DAQESP);
-    //TODO Nils R.
+    // TODO: Now, every new added vendor spec needs to be inserted here as well.
+    // It would be better that a method would be called which add all genereted nodesets from CMake.
+    // This also applies then to the openDAQ Types...
+    endpoint.registerCustomTypes(UA_TYPES_DAQHBK_COUNT, UA_TYPES_DAQHBK);
 
 
     client = std::make_shared<OpcUaClient>(endpoint);

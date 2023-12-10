@@ -1,7 +1,7 @@
 #include <opendaq/mock/mock_device_module.h>
 #include <opendaq/mock/mock_fb_module.h>
 #include <opendaq/mock/mock_physical_device.h>
-#include <open62541/tmsdevice_nodeids.h>
+#include <open62541/daqdevice_nodeids.h>
 #include <opendaq/instance_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/unit_factory.h>

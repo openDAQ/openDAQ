@@ -19,7 +19,7 @@
 #include <opendaq/tags_ptr.h>
 #include "opcuatms_server/objects/tms_server_property_object.h"
 #include "opcuatms/converters/variant_converter.h"
-#include "open62541/tmsdevice_nodeids.h"
+#include "open62541/daqdevice_nodeids.h"
 
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -91,7 +91,7 @@ OpcUaNodeId TmsServerComponent<Ptr>::getReferenceType()
 template <typename Ptr>
 OpcUaNodeId TmsServerComponent<Ptr>::getTmsTypeId()
 {
-    return OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQCOMPONENTTYPE);
+    return OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQCOMPONENTTYPE);
 }
 
 template <typename Ptr>

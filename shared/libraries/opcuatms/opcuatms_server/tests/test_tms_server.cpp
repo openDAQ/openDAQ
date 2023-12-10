@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <opcuatms_server/tms_server.h>
 #include <open62541/di_nodeids.h>
-#include <open62541/tmsdevice_nodeids.h>
+#include <open62541/daqdevice_nodeids.h>
 #include <opcuaclient/reference_utils.h>
 #include <tms_object_test.h>
 #include "test_helpers.h"
@@ -80,7 +80,7 @@ TEST_F(TmsServerTest, Channels)
     ReferenceUtils referenceUtils(client);
     referenceUtils.updateReferences(byteStepSignal);
 
-    auto references = referenceUtils.getReferencedNodes(byteStepSignal, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASDOMAINSIGNAL), true);
+    auto references = referenceUtils.getReferencedNodes(byteStepSignal, OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASDOMAINSIGNAL), true);
     ASSERT_EQ(references.size(), 1u);
     ASSERT_EQ(*references.begin(), timeSignal);
 }

@@ -74,7 +74,7 @@ OpcUaVariant VariantConverter<IDimension>::ToVariant(const DimensionPtr& object,
                                                      const ContextPtr& /*context*/)
 {
     auto variant = OpcUaVariant();
-    if (targetType == nullptr || targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_DIMENSIONDESCRIPTORSTRUCTURE])
+    if (targetType == nullptr || targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_DIMENSIONDESCRIPTORSTRUCTURE])
         variant.setScalar(*StructConverter<IDimension, UA_DimensionDescriptorStructure>::ToTmsType(object));
     else
         throw ConversionFailedException{};
@@ -96,7 +96,7 @@ OpcUaVariant VariantConverter<IDimension>::ToArrayVariant(const ListPtr<IDimensi
                                                           const UA_DataType* targetType,
                                                           const ContextPtr& /*context*/)
 {
-    if (targetType == nullptr || targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_DIMENSIONDESCRIPTORSTRUCTURE])
+    if (targetType == nullptr || targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_DIMENSIONDESCRIPTORSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDimension, UA_DimensionDescriptorStructure>(list);
 
     throw ConversionFailedException{};

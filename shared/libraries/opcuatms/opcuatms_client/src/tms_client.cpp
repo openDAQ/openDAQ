@@ -3,11 +3,11 @@
 #include <opcuaclient/browser/opcuabrowser.h>
 #include <opcuatms_client/tms_client.h>
 #include <open62541/di_nodeids.h>
-#include <open62541/tmsdevice_nodeids.h>
+#include <open62541/daqdevice_nodeids.h>
 #include <open62541/types_di_generated.h>
-#include <open62541/types_tmsbsp_generated.h>
-#include <open62541/types_tmsdevice_generated.h>
-#include <open62541/types_tmsesp_generated.h>
+#include <open62541/types_daqbsp_generated.h>
+#include <open62541/types_daqdevice_generated.h>
+#include <open62541/types_daqesp_generated.h>
 
 #include <iostream>
 
@@ -31,10 +31,12 @@ daq::DevicePtr TmsClient::connect()
 {
     OpcUaEndpoint endpoint("TmsClient", opcUaUrl);
     endpoint.registerCustomTypes(UA_TYPES_DI_COUNT, UA_TYPES_DI);
-    endpoint.registerCustomTypes(UA_TYPES_TMSBT_COUNT, UA_TYPES_TMSBT);
-    endpoint.registerCustomTypes(UA_TYPES_TMSBSP_COUNT, UA_TYPES_TMSBSP);
-    endpoint.registerCustomTypes(UA_TYPES_TMSDEVICE_COUNT, UA_TYPES_TMSDEVICE);
-    endpoint.registerCustomTypes(UA_TYPES_TMSESP_COUNT, UA_TYPES_TMSESP);
+    endpoint.registerCustomTypes(UA_TYPES_DAQBT_COUNT, UA_TYPES_DAQBT);
+    endpoint.registerCustomTypes(UA_TYPES_DAQBSP_COUNT, UA_TYPES_DAQBSP);
+    endpoint.registerCustomTypes(UA_TYPES_DAQDEVICE_COUNT, UA_TYPES_DAQDEVICE);
+    endpoint.registerCustomTypes(UA_TYPES_DAQESP_COUNT, UA_TYPES_DAQESP);
+    //TODO Nils R.
+
 
     client = std::make_shared<OpcUaClient>(endpoint);
     if (!client->connect())
@@ -76,8 +78,8 @@ OpcUaNodeId TmsClient::getRootDeviceNodeId()
     OpcUaBrowser browser(br, client);
     auto results = browser.browse();
 
-    const OpcUaNodeId daqDeviceTypeNodeId(  NAMESPACE_TMSDEVICE,            // TODO NAMESPACE_TMSDEVICE is server namespace id. You need
-                                            UA_TMSDEVICEID_DAQDEVICETYPE);  // to map it to client. Or use namespace URI.
+    const OpcUaNodeId daqDeviceTypeNodeId(  NAMESPACE_DAQDEVICE,            // TODO NAMESPACE_DAQDEVICE is server namespace id. You need
+                                            UA_DAQDEVICEID_DAQDEVICETYPE);  // to map it to client. Or use namespace URI.
     
     
     for (const auto& result : results)

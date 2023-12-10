@@ -2,9 +2,9 @@
 #include "opcuatms_server/objects/tms_server_input_port.h"
 #include "opcuatms/converters/variant_converter.h"
 #include "open62541/statuscodes.h"
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 #include "open62541/di_nodeids.h"
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -17,12 +17,12 @@ TmsServerInputPort::TmsServerInputPort(const InputPortPtr& object, const OpcUaSe
 
 OpcUaNodeId TmsServerInputPort::getReferenceType()
 {
-    return OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASINPUTPORT);
+    return OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASINPUTPORT);
 }
 
 OpcUaNodeId TmsServerInputPort::getTmsTypeId()
 {
-    return OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_INPUTPORTTYPE);
+    return OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_INPUTPORTTYPE);
 }
 
 void TmsServerInputPort::bindCallbacks()
@@ -94,7 +94,7 @@ void TmsServerInputPort::createNonhierarchicalReferences()
     {
         auto connectedSignalNodeId = findSignalNodeId(connectedSignal);
         if (!connectedSignalNodeId.isNull())
-            addReference(connectedSignalNodeId, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_CONNECTEDTOSIGNAL));
+            addReference(connectedSignalNodeId, OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_CONNECTEDTOSIGNAL));
     }
 }
 

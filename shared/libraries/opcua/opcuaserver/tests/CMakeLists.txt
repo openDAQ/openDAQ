@@ -16,7 +16,7 @@ target_link_libraries(${TEST_APP} PRIVATE ${SDK_TARGET_NAMESPACE}::${MODULE_NAME
                                           daq::opendaq_utils
                                           daq::test_utils
                                           daq::opcuaclient
-                                          daq::opcua_tms_types
+                                          daq::opcua_daq_types
 )
 
 add_test(NAME ${TEST_APP}

@@ -1,22 +1,28 @@
 set_cmake_folder_context(TARGET_FOLDER_NAME)
-project(opcua_tms_types VERSION 1.0.0 DESCRIPTION "TMS types" LANGUAGES C)
+project(opcua_daq_types VERSION 1.0.0 DESCRIPTION "DAQ types" LANGUAGES C)
 
-option(OPC_UA_TMS_BT_NODESET_SUPPORT     "Use the TMS Base Types (BT) Nodeset."               ON)
-option(OPC_UA_TMS_BSP_NODESET_SUPPORT    "Use the TMS Basic Signal Processing (BSP) Nodeset." ON)
-option(OPC_UA_TMS_DEVICE_NODESET_SUPPORT "Use the TMS Device Nodeset."                        ON)
-option(OPC_UA_TMS_ESP_NODESET_SUPPORT    "Use the TMS ESP Nodeset."                           ON)
+option(OPC_UA_DAQ_BT_NODESET_SUPPORT        "Use the DAQ Base Types (BT) Nodeset."               ON)
+option(OPC_UA_DAQ_BSP_NODESET_SUPPORT       "Use the DAQ Basic Signal Processing (BSP) Nodeset." ON)
+option(OPC_UA_DAQ_DEVICE_NODESET_SUPPORT    "Use the DAQ Device Nodeset."                        ON)
+option(OPC_UA_DAQ_ESP_NODESET_SUPPORT       "Use the DAQ ESP Nodeset."                           ON)
+option(OPC_UA_DAQ_VENDOR_NODESET_SUPPORT    "Use additional OPC-UA Vendor Specifications"       OFF)
+
 
 # Handle dependencies between nodesets:
-if (OPC_UA_TMS_ESP_NODESET_SUPPORT)
-    set(OPC_UA_TMS_DEVICE_NODESET_SUPPORT ON)
+if (OPC_UA_DAQ_VENDOR_NODESET_SUPPORT)
+    set(OPC_UA_DAQ_ESP_NODESET_SUPPORT ON)
 endif()
 
-if (OPC_UA_TMS_DEVICE_NODESET_SUPPORT)
-    set(OPC_UA_TMS_BSP_NODESET_SUPPORT ON)
+if (OPC_UA_DAQ_ESP_NODESET_SUPPORT)
+    set(OPC_UA_DAQ_DEVICE_NODESET_SUPPORT ON)
 endif()
 
-if (OPC_UA_TMS_BSP_NODESET_SUPPORT)
-    set(OPC_UA_TMS_BT_NODESET_SUPPORT ON)
+if (OPC_UA_DAQ_DEVICE_NODESET_SUPPORT)
+    set(OPC_UA_DAQ_BSP_NODESET_SUPPORT ON)
+endif()
+
+if (OPC_UA_DAQ_BSP_NODESET_SUPPORT)
+    set(OPC_UA_DAQ_BT_NODESET_SUPPORT ON)
 endif()
 
 # Define empty list of nodeset dependencies
@@ -25,24 +31,24 @@ set(OPC_UA_NODESET_DEPENDENCIES)
 #
 # Fetch the Test and Measurement NodeSet
 #
-if (OPC_UA_TMS_BT_NODESET_SUPPORT OR
-    OPC_UA_TMS_BSP_NODESET_SUPPORT  OR
-    OPC_UA_TMS_DEVICE_NODESET_SUPPORT OR
-    OPC_UA_TMS_ESP_NODESET_SUPPORT)
+if (OPC_UA_DAQ_BT_NODESET_SUPPORT OR
+    OPC_UA_DAQ_BSP_NODESET_SUPPORT  OR
+    OPC_UA_DAQ_DEVICE_NODESET_SUPPORT OR
+    OPC_UA_DAQ_ESP_NODESET_SUPPORT)
 
-  set(tms_spec_REQUIREDVERSION "3.0.2")
-  get_custom_fetch_content_params(tmsspec FC_PARAMS)
+  set(daq_spec_REQUIREDVERSION "3.0.2")
+  get_custom_fetch_content_params(daqspec FC_PARAMS)
 
-  FetchContent_Declare(tmsspec
+  FetchContent_Declare(daqspec
     GIT_REPOSITORY https://github.com/openDAQ/opc-ua-companion-spec.git
-    GIT_TAG        v${tms_spec_REQUIREDVERSION}
+    GIT_TAG        v${daq_spec_REQUIREDVERSION}
     ${FC_PARAMS}
   )
-  FetchContent_GetProperties(tmsspec)
-  if(NOT tmsspec_POPULATED)
-      message(STATUS "Fetching tms specification ${tms_spec_REQUIREDVERSION}...")
-      FetchContent_Populate(tmsspec)
-      set(COMPANION_SPECIFICATIONS_DIRPREFIX "${tmsspec_SOURCE_DIR}/opendaq")
+  FetchContent_GetProperties(daqspec)
+  if(NOT daqspec_POPULATED)
+      message(STATUS "Fetching daq specification ${daq_spec_REQUIREDVERSION}...")
+      FetchContent_Populate(daqspec)
+      set(COMPANION_SPECIFICATIONS_DIRPREFIX "${daqspec_SOURCE_DIR}/opendaq")
   endif()
 endif()
 
@@ -76,12 +82,12 @@ MATH(EXPR NAME_SPACE_INDEX "${NAME_SPACE_INDEX}+1")
 
 
 #
-# Generate TMS Base Types (BT) nodeset if needed
+# Generate DAQ Base Types (BT) nodeset if needed
 #
-if (OPC_UA_TMS_BT_NODESET_SUPPORT)
-  message(STATUS "Generating TMS BT nodeset...")
+if (OPC_UA_DAQ_BT_NODESET_SUPPORT)
+  message(STATUS "Generating DAQ BT nodeset...")
   ua_generate_nodeset_and_datatypes(
-    NAME          "tmsbt"
+    NAME          "daqbt"
     TARGET_PREFIX "${PROJECT_NAME}"
     IMPORT_BSD    "UA_TYPES#${open62541_NODESET_DIR}/Schema/Opc.Ua.Types.bsd"
     FILE_CSV      "${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bt.NodeIds.csv"
@@ -92,80 +98,80 @@ if (OPC_UA_TMS_BT_NODESET_SUPPORT)
     DEPENDS       "di"
     INTERNAL
   )
-  list(APPEND OPC_UA_NODESET_DEPENDENCIES ${PROJECT_NAME}-ns-tmsbt)
-  list(APPEND NODEID_HEADERS ${GENERATE_OUTPUT_DIR}/tmsbt_nodeids.h)
+  list(APPEND OPC_UA_NODESET_DEPENDENCIES ${PROJECT_NAME}-ns-daqbt)
+  list(APPEND NODEID_HEADERS ${GENERATE_OUTPUT_DIR}/daqbt_nodeids.h)
   MATH(EXPR NAME_SPACE_INDEX "${NAME_SPACE_INDEX}+1")
 endif()
 
 #
-# Generate TMS Basic Signal Processing (BSP) nodeset if needed
+# Generate DAQ Basic Signal Processing (BSP) nodeset if needed
 #
-if (OPC_UA_TMS_BSP_NODESET_SUPPORT)
-	message(STATUS "Generating TMS BSP nodeset...")
+if (OPC_UA_DAQ_BSP_NODESET_SUPPORT)
+	message(STATUS "Generating DAQ BSP nodeset...")
   ua_generate_nodeset_and_datatypes(
-    NAME          "tmsbsp"
+    NAME          "daqbsp"
     TARGET_PREFIX "${PROJECT_NAME}"
     IMPORT_BSD    "UA_TYPES#${open62541_NODESET_DIR}/Schema/Opc.Ua.Types.bsd"
-    IMPORT_BSD    "UA_TYPES_TMSBT#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bt.Types.bsd"
+    IMPORT_BSD    "UA_TYPES_DAQBT#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bt.Types.bsd"
     FILE_CSV      "${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bsp.NodeIds.csv"
     FILE_BSD      "${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bsp.Types.bsd"
     OUTPUT_DIR    "${GENERATE_OUTPUT_DIR}"
     NAMESPACE_MAP "${NAME_SPACE_INDEX}:https://docs.opendaq.io/specifications/opc-ua/daq/bsp"
     FILE_NS       "${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bsp.NodeSet2.xml"
-    DEPENDS       "tmsbt"
+    DEPENDS       "daqbt"
     INTERNAL
   )
-  list(APPEND OPC_UA_NODESET_DEPENDENCIES ${PROJECT_NAME}-ns-tmsbsp)
-  list(APPEND NODEID_HEADERS ${GENERATE_OUTPUT_DIR}/tmsbsp_nodeids.h)
+  list(APPEND OPC_UA_NODESET_DEPENDENCIES ${PROJECT_NAME}-ns-daqbsp)
+  list(APPEND NODEID_HEADERS ${GENERATE_OUTPUT_DIR}/daqbsp_nodeids.h)
   MATH(EXPR NAME_SPACE_INDEX "${NAME_SPACE_INDEX}+1")
 endif()
 
 #
-# Generate TMS Device nodeset if needed
+# Generate DAQ Device nodeset if needed
 #
-if (OPC_UA_TMS_DEVICE_NODESET_SUPPORT)
-  message(STATUS "Generating TMS Device nodeset...")
+if (OPC_UA_DAQ_DEVICE_NODESET_SUPPORT)
+  message(STATUS "Generating DAQ Device nodeset...")
   ua_generate_nodeset_and_datatypes(
-    NAME          "tmsdevice"
+    NAME          "daqdevice"
     TARGET_PREFIX "${PROJECT_NAME}"
     IMPORT_BSD    "UA_TYPES#${open62541_NODESET_DIR}/Schema/Opc.Ua.Types.bsd"
-    IMPORT_BSD    "UA_TYPES_TMSBT#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bt.Types.bsd"
-    IMPORT_BSD    "UA_TYPES_TMSBSP#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bsp.Types.bsd"
+    IMPORT_BSD    "UA_TYPES_DAQBT#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bt.Types.bsd"
+    IMPORT_BSD    "UA_TYPES_DAQBSP#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bsp.Types.bsd"
     FILE_CSV      "${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Device.NodeIds.csv"
     FILE_BSD      "${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Device.Types.bsd"
     OUTPUT_DIR    "${GENERATE_OUTPUT_DIR}"
     NAMESPACE_MAP "${NAME_SPACE_INDEX}:https://docs.opendaq.io/specifications/opc-ua/daq/device"
     FILE_NS       "${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Device.NodeSet2.xml"
-    DEPENDS       "tmsbsp"
+    DEPENDS       "daqbsp"
     INTERNAL
   )
-  list(APPEND OPC_UA_NODESET_DEPENDENCIES ${PROJECT_NAME}-ns-tmsdevice)
-  list(APPEND NODEID_HEADERS ${GENERATE_OUTPUT_DIR}/tmsdevice_nodeids.h)
+  list(APPEND OPC_UA_NODESET_DEPENDENCIES ${PROJECT_NAME}-ns-daqdevice)
+  list(APPEND NODEID_HEADERS ${GENERATE_OUTPUT_DIR}/daqdevice_nodeids.h)
   MATH(EXPR NAME_SPACE_INDEX "${NAME_SPACE_INDEX}+1")
 endif()
 
 #
-# Generate TMS ESP nodeset if needed
+# Generate DAQ ESP nodeset if needed
 #
-if (OPC_UA_TMS_ESP_NODESET_SUPPORT)
-  message(STATUS "Generating TMS ESP nodeset...")
+if (OPC_UA_DAQ_ESP_NODESET_SUPPORT)
+  message(STATUS "Generating DAQ ESP nodeset...")
   ua_generate_nodeset_and_datatypes(
-    NAME          "tmsesp"
+    NAME          "daqesp"
     TARGET_PREFIX "${PROJECT_NAME}"
     IMPORT_BSD    "UA_TYPES#${open62541_NODESET_DIR}/Schema/Opc.Ua.Types.bsd"
-    IMPORT_BSD    "UA_TYPES_TMSBT#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bt.Types.bsd"
-    IMPORT_BSD    "UA_TYPES_TMSBSP#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bsp.Types.bsd"
-    IMPORT_BSD    "UA_TYPES_TMSDEVICE#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Device.Types.bsd"
+    IMPORT_BSD    "UA_TYPES_DAQBT#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bt.Types.bsd"
+    IMPORT_BSD    "UA_TYPES_DAQBSP#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bsp.Types.bsd"
+    IMPORT_BSD    "UA_TYPES_DAQDEVICE#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Device.Types.bsd"
     FILE_CSV      "${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Esp.NodeIds.csv"
     FILE_BSD      "${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Esp.Types.bsd"
     OUTPUT_DIR    "${GENERATE_OUTPUT_DIR}"
     NAMESPACE_MAP "${NAME_SPACE_INDEX}:https://docs.opendaq.io/specifications/opc-ua/daq/esp"
     FILE_NS       "${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Esp.NodeSet2.xml"
-    DEPENDS       "tmsdevice"
+    DEPENDS       "daqdevice"
     INTERNAL
   )
-  list(APPEND OPC_UA_NODESET_DEPENDENCIES ${PROJECT_NAME}-ns-tmsesp)
-  list(APPEND NODEID_HEADERS ${GENERATE_OUTPUT_DIR}/tmsesp_nodeids.h)
+  list(APPEND OPC_UA_NODESET_DEPENDENCIES ${PROJECT_NAME}-ns-daqesp)
+  list(APPEND NODEID_HEADERS ${GENERATE_OUTPUT_DIR}/daqesp_nodeids.h)
   MATH(EXPR NAME_SPACE_INDEX "${NAME_SPACE_INDEX}+1")
 endif()
 
@@ -177,27 +183,27 @@ list(LENGTH OPC_UA_NODESET_DEPENDENCIES OPC_UA_NODESET_DEPENDENCY_LENGTH)
 set (OPC_UA_NODESET_SOURCES
     ${UA_NODESET_DI_SOURCES}
     ${UA_TYPES_DI_SOURCES}
-    ${UA_NODESET_TMSBT_SOURCES}
-    ${UA_TYPES_TMSBT_SOURCES}
-    ${UA_NODESET_TMSBSP_SOURCES}
-    ${UA_TYPES_TMSBSP_SOURCES}
-    ${UA_NODESET_TMSDEVICE_SOURCES}
-    ${UA_TYPES_TMSDEVICE_SOURCES}
-    ${UA_NODESET_TMSESP_SOURCES}
-    ${UA_TYPES_TMSESP_SOURCES}
+    ${UA_NODESET_DAQBT_SOURCES}
+    ${UA_TYPES_DAQBT_SOURCES}
+    ${UA_NODESET_DAQBSP_SOURCES}
+    ${UA_TYPES_DAQBSP_SOURCES}
+    ${UA_NODESET_DAQDEVICE_SOURCES}
+    ${UA_TYPES_DAQDEVICE_SOURCES}
+    ${UA_NODESET_DAQESP_SOURCES}
+    ${UA_TYPES_DAQESP_SOURCES}
 )
 
 set (OPC_UA_NODESET_HEADERS
     ${UA_NODESET_DI_HEADERS}
     ${UA_TYPES_DI_HEADERS}
-    ${UA_NODESET_TMSBT_HEADERS}
-    ${UA_TYPES_TMSBT_HEADERS}
-    ${UA_NODESET_TMSBSP_HEADERS}
-    ${UA_TYPES_TMSBSP_HEADERS}
-    ${UA_NODESET_TMSDEVICE_HEADERS}
-    ${UA_TYPES_TMSDEVICE_HEADERS}
-    ${UA_NODESET_TMSESP_HEADERS}
-    ${UA_TYPES_TMSESP_HEADERS}
+    ${UA_NODESET_DAQBT_HEADERS}
+    ${UA_TYPES_DAQBT_HEADERS}
+    ${UA_NODESET_DAQBSP_HEADERS}
+    ${UA_TYPES_DAQBSP_HEADERS}
+    ${UA_NODESET_DAQDEVICE_HEADERS}
+    ${UA_TYPES_DAQDEVICE_HEADERS}
+    ${UA_NODESET_DAQESP_HEADERS}
+    ${UA_TYPES_DAQESP_HEADERS}
     ${NODEID_HEADERS}
 )
 
@@ -222,23 +228,23 @@ set(NAME_SPACE_INDEX ${DI_NAME_SPACE_INDEX})
 list(APPEND OPC_UA_NODESET_COMPILE_FLAGS NAMESPACE_DI=${NAME_SPACE_INDEX})
 MATH(EXPR NAME_SPACE_INDEX "${NAME_SPACE_INDEX}+1")
 
-if (OPC_UA_TMS_BT_NODESET_SUPPORT)
-    list(APPEND OPC_UA_NODESET_COMPILE_FLAGS NAMESPACE_TMSBT=${NAME_SPACE_INDEX})
+if (OPC_UA_DAQ_BT_NODESET_SUPPORT)
+    list(APPEND OPC_UA_NODESET_COMPILE_FLAGS NAMESPACE_DAQBT=${NAME_SPACE_INDEX})
     MATH(EXPR NAME_SPACE_INDEX "${NAME_SPACE_INDEX}+1")
 endif()
 
-if (OPC_UA_TMS_BSP_NODESET_SUPPORT)
-    list(APPEND OPC_UA_NODESET_COMPILE_FLAGS NAMESPACE_TMSBSP=${NAME_SPACE_INDEX})
+if (OPC_UA_DAQ_BSP_NODESET_SUPPORT)
+    list(APPEND OPC_UA_NODESET_COMPILE_FLAGS NAMESPACE_DAQBSP=${NAME_SPACE_INDEX})
     MATH(EXPR NAME_SPACE_INDEX "${NAME_SPACE_INDEX}+1")
 endif()
 
-if (OPC_UA_TMS_DEVICE_NODESET_SUPPORT)
-    list(APPEND OPC_UA_NODESET_COMPILE_FLAGS NAMESPACE_TMSDEVICE=${NAME_SPACE_INDEX})
+if (OPC_UA_DAQ_DEVICE_NODESET_SUPPORT)
+    list(APPEND OPC_UA_NODESET_COMPILE_FLAGS NAMESPACE_DAQDEVICE=${NAME_SPACE_INDEX})
     MATH(EXPR NAME_SPACE_INDEX "${NAME_SPACE_INDEX}+1")
 endif()
 
-if (OPC_UA_TMS_ESP_NODESET_SUPPORT)
-    list(APPEND OPC_UA_NODESET_COMPILE_FLAGS NAMESPACE_TMSESP=${NAME_SPACE_INDEX})
+if (OPC_UA_DAQ_ESP_NODESET_SUPPORT)
+    list(APPEND OPC_UA_NODESET_COMPILE_FLAGS NAMESPACE_DAQESP=${NAME_SPACE_INDEX})
     MATH(EXPR NAME_SPACE_INDEX "${NAME_SPACE_INDEX}+1")
 endif()
 

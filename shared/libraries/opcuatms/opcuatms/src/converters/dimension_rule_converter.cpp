@@ -3,7 +3,7 @@
 #include "opcuatms/converters/list_conversion_utils.h"
 #include "opcuatms/converters/struct_converter.h"
 #include "opcuatms/converters/variant_converter.h"
-#include "open62541/types_tmsbsp_generated_handling.h"
+#include "open62541/types_daqbsp_generated_handling.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -245,13 +245,13 @@ OpcUaVariant VariantConverter<IDimensionRule>::ToVariant(const DimensionRulePtr&
             }
         }
     }
-    else if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_LINEARRULEDESCRIPTIONSTRUCTURE])
+    else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LINEARRULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDimensionRule, UA_LinearRuleDescriptionStructure>::ToTmsType(object));
-    else if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_LOGRULEDESCRIPTIONSTRUCTURE])
+    else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LOGRULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDimensionRule, UA_LogRuleDescriptionStructure>::ToTmsType(object));
-    else if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_LISTRULEDESCRIPTIONSTRUCTURE])
+    else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LISTRULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDimensionRule, UA_ListRuleDescriptionStructure>::ToTmsType(object));
-    else if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
+    else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDimensionRule, UA_CustomRuleDescriptionStructure>::ToTmsType(object));
     else
         throw ConversionFailedException{};
@@ -283,13 +283,13 @@ OpcUaVariant VariantConverter<IDimensionRule>::ToArrayVariant(const ListPtr<IDim
 {
     if (targetType == nullptr)
         return ListConversionUtils::ToExtensionObjectArrayVariant<IDimensionRule>(list);
-    if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_LINEARRULEDESCRIPTIONSTRUCTURE])
+    if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LINEARRULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDimensionRule, UA_LinearRuleDescriptionStructure>(list);
-    if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_LOGRULEDESCRIPTIONSTRUCTURE])
+    if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LOGRULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDimensionRule, UA_LogRuleDescriptionStructure>(list);
-    if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_LISTRULEDESCRIPTIONSTRUCTURE])
+    if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LISTRULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDimensionRule, UA_ListRuleDescriptionStructure>(list);
-    if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
+    if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDimensionRule, UA_CustomRuleDescriptionStructure>(list);
 
     throw ConversionFailedException{};

@@ -5,7 +5,7 @@
 #include "opcuatms_server/objects/tms_server_device.h"
 #include "opcuatms/core_types_utils.h"
 #include "opcuatms/type_mappings.h"
-#include <open62541/tmsdevice_nodeids.h>
+#include <open62541/daqdevice_nodeids.h>
 #include "opcuatms/converters/struct_converter.h"
 #include <opendaq/component_ptr.h>
 #include <opendaq/device_private.h>
@@ -56,7 +56,7 @@ TmsServerDevice::TmsServerDevice(const DevicePtr& object, const OpcUaServerPtr& 
 
 OpcUaNodeId TmsServerDevice::getTmsTypeId()
 {
-    return OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQDEVICETYPE);
+    return OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQDEVICETYPE);
 }
 
 bool TmsServerDevice::createOptionalNode(const OpcUaNodeId& nodeId)

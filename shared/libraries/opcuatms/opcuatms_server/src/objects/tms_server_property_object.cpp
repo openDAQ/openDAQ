@@ -7,8 +7,8 @@
 #include "opcuatms_server/objects/tms_server_property.h"
 #include "open62541/nodeids.h"
 #include "open62541/statuscodes.h"
-#include "open62541/tmsbsp_nodeids.h"
-#include "open62541/tmsbt_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
+#include "open62541/daqbt_nodeids.h"
 #include "open62541/types_generated.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -59,7 +59,7 @@ std::string TmsServerPropertyObject::getBrowseName()
 
 OpcUaNodeId TmsServerPropertyObject::getTmsTypeId()
 {
-    return OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_VARIABLEBLOCKTYPE);
+    return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_VARIABLEBLOCKTYPE);
 }
 
 void TmsServerPropertyObject::addChildNodes()

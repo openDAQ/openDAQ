@@ -1,7 +1,7 @@
 #include "opcuatms_server/objects/tms_server_function_block.h"
 #include "opcuatms_server/objects/tms_server_channel.h"
 #include "opcuatms/converters/variant_converter.h"
-#include "open62541/tmsdevice_nodeids.h"
+#include "open62541/daqdevice_nodeids.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -14,7 +14,7 @@ TmsServerChannel::TmsServerChannel(const ChannelPtr& object, const OpcUaServerPt
 
 OpcUaNodeId TmsServerChannel::getTmsTypeId()
 {
-    return OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_CHANNELTYPE);
+    return OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_CHANNELTYPE);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

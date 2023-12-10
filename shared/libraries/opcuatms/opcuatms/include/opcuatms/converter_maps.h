@@ -19,12 +19,12 @@
 #include "opcuatms/converters/variant_converter.h"
 #include "opcuatms/converters/selection_converter.h"
 #include "opendaq/data_descriptor_ptr.h"
-#include "open62541/tmsbt_nodeids.h"
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbt_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 #include "open62541/nodeids.h"
 #include "opendaq/function_block_type_ptr.h"
 
-namespace daq::opcua::tms {
+BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 namespace converters
 {
@@ -176,26 +176,26 @@ namespace converters
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IString>::ToDaqObject(var, context); }},
         {OpcUaNodeId(0, UA_NS0ID_QUALIFIEDNAME),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IString>::ToDaqObject(var, context); }},
-        {OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_EUINFORMATIONWITHQUANTITY),
+        {OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_EUINFORMATIONWITHQUANTITY),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IUnit>::ToDaqObject(var, context); }},
         {OpcUaNodeId(0, UA_NS0ID_EUINFORMATION),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IUnit>::ToDaqObject(var, context); }},
         {OpcUaNodeId(0, UA_NS0ID_RATIONALNUMBER),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IRatio>::ToDaqObject(var, context); }},
-        {OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_RATIONALNUMBER64),
+        {OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_RATIONALNUMBER64),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IRatio>::ToDaqObject(var, context); }},
-        {OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_DATADESCRIPTORSTRUCTURE),
+        {OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_DATADESCRIPTORSTRUCTURE),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IDataDescriptor>::ToDaqObject(var, context); }},
-        {OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_STRUCTDESCRIPTORSTRUCTURE),
+        {OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_STRUCTDESCRIPTORSTRUCTURE),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IDataDescriptor>::ToDaqObject(var, context); }},
-        {OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_DIMENSIONDESCRIPTORSTRUCTURE),
+        {OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_DIMENSIONDESCRIPTORSTRUCTURE),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IDimension>::ToDaqObject(var, context); }},
-        {OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_FUNCTIONBLOCKINFOSTRUCTURE),
+        {OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_FUNCTIONBLOCKINFOSTRUCTURE),
          [](const OpcUaVariant& var, const ContextPtr& context)
          { return VariantConverter<IFunctionBlockType>::ToDaqObject(var, context); }},
-        {OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_POSTSCALINGSTRUCTURE),
+        {OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_POSTSCALINGSTRUCTURE),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IScaling>::ToDaqObject(var, context); }},
-        {OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_LINEARSCALINGDESCRIPTIONSTRUCTURE),
+        {OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_LINEARSCALINGDESCRIPTIONSTRUCTURE),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IScaling>::ToDaqObject(var, context); }},
         {OpcUaNodeId(0, UA_NS0ID_ARGUMENT),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IArgumentInfo>::ToDaqObject(var, context); }},
@@ -232,25 +232,25 @@ namespace converters
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IString>::ToDaqList(var, context); }},
             {OpcUaNodeId(0, UA_NS0ID_QUALIFIEDNAME),
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IString>::ToDaqList(var, context); }},
-            {OpcUaNodeId(NAMESPACE_TMSBT, UA_TYPES_TMSBT_EUINFORMATIONWITHQUANTITY),
+            {OpcUaNodeId(NAMESPACE_DAQBT, UA_TYPES_DAQBT_EUINFORMATIONWITHQUANTITY),
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IUnit>::ToDaqList(var, context); }},
             {OpcUaNodeId(0, UA_TYPES_EUINFORMATION),
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IUnit>::ToDaqList(var, context); }},
             {OpcUaNodeId(0, UA_NS0ID_RATIONALNUMBER),
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IRatio>::ToDaqList(var, context); }},
-            {OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_RATIONALNUMBER64),
+            {OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_RATIONALNUMBER64),
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IRatio>::ToDaqList(var, context); }},
-            {OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_DATADESCRIPTORSTRUCTURE),
+            {OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_DATADESCRIPTORSTRUCTURE),
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IDataDescriptor>::ToDaqList(var, context); }},
-            {OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_STRUCTDESCRIPTORSTRUCTURE),
+            {OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_STRUCTDESCRIPTORSTRUCTURE),
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IDataDescriptor>::ToDaqList(var, context); }},
-            {OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_DIMENSIONDESCRIPTORSTRUCTURE),
+            {OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_DIMENSIONDESCRIPTORSTRUCTURE),
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IDimension>::ToDaqList(var, context); }},
-            {OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_FUNCTIONBLOCKINFOSTRUCTURE),
+            {OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_FUNCTIONBLOCKINFOSTRUCTURE),
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IFunctionBlockType>::ToDaqList(var, context); }},
-            {OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_POSTSCALINGSTRUCTURE),
+            {OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_POSTSCALINGSTRUCTURE),
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IScaling>::ToDaqList(var, context); }},
-            {OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_LINEARSCALINGDESCRIPTIONSTRUCTURE),
+            {OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_LINEARSCALINGDESCRIPTIONSTRUCTURE),
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IScaling>::ToDaqList(var, context); }},
             {OpcUaNodeId(0, UA_NS0ID_ARGUMENT),
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IArgumentInfo>::ToDaqList(var, context); }},

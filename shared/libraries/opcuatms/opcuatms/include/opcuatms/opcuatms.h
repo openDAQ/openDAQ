@@ -18,8 +18,8 @@
 
 #include <coretypes/coretypes.h>
 #include <opcuashared/opcuaobject.h>
-#include <open62541/types_tmsbsp_generated.h>
-#include <open62541/types_tmsdevice_generated.h>
+#include <open62541/types_daqbsp_generated.h>
+#include <open62541/types_daqdevice_generated.h>
 #include <opcuashared/opcua.h>
 
 #define BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS \

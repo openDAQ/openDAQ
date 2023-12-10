@@ -1,5 +1,5 @@
 #include <list>
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 #include "opcuashared/opcuacommon.h"
 #include "opcuatms/exceptions.h"
 #include "opcuatms_client/objects/tms_client_signal_impl.h"
@@ -77,7 +77,7 @@ ErrCode TmsClientSignalImpl::getDomainSignal(ISignal** signal)
 
 SignalPtr TmsClientSignalImpl::onGetDomainSignal()
 {
-    OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASDOMAINSIGNAL);
+    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASDOMAINSIGNAL);
     auto nodeIds = referenceUtils.getReferencedNodes(nodeId, referenceTypeId, true);
     assert(nodeIds.size() <= 1);
 
@@ -106,7 +106,7 @@ ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
 
 ListPtr<ISignal> TmsClientSignalImpl::onGetRelatedSignals()
 {
-    OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_RELATESTOSIGNAL);
+    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_RELATESTOSIGNAL);
     auto nodeIds = referenceUtils.getReferencedNodes(nodeId, referenceTypeId, true);
     ListPtr<ISignal> resultList = List<ISignal>();
     for (auto signalNodeId : nodeIds)

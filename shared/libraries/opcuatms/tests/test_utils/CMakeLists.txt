@@ -17,5 +17,5 @@ target_link_libraries(${MODULE_NAME} PUBLIC daq::test_utils
                                             daq::opcuaclient
                                             daq::opcuaserver
                                             daq::opendaq
-                                            daq::opcua_tms_types
+                                            daq::opcua_daq_types
 )

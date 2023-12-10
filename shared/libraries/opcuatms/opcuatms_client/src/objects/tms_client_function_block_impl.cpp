@@ -4,7 +4,7 @@
 #include "opcuatms_client/objects/tms_client_signal_factory.h"
 #include "opcuatms_client/objects/tms_client_function_block_factory.h"
 #include "opcuatms_client/objects/tms_client_input_port_factory.h"
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -31,7 +31,7 @@ template <typename Impl>
 tsl::ordered_set<daq::opcua::OpcUaNodeId> TmsClientFunctionBlockBaseImpl<Impl>::getFunctionBlockNodeIds()
 {
     const OpcUaNodeId referenceTypeId(UA_NS0ID_HASCOMPONENT);
-    const OpcUaNodeId functionBlockType(NAMESPACE_TMSBSP, UA_TMSBSPID_FUNCTIONBLOCKTYPE); // TODO subtypes
+    const OpcUaNodeId functionBlockType(NAMESPACE_DAQBSP, UA_DAQBSPID_FUNCTIONBLOCKTYPE); // TODO subtypes
     return this->referenceUtils.getReferencedNodes(this->nodeId, referenceTypeId, true, functionBlockType);
 }
 
@@ -39,7 +39,7 @@ template <typename Impl>
 tsl::ordered_set<daq::opcua::OpcUaNodeId> TmsClientFunctionBlockBaseImpl<Impl>::getOutputSignalNodeIds()
 {
     auto signalsNodeId = this->getNodeId("Sig");
-    OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASVALUESIGNAL);
+    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASVALUESIGNAL);
 
     return this->referenceUtils.getReferencedNodes(signalsNodeId, referenceTypeId, true);
 }
@@ -107,7 +107,7 @@ template <typename Impl>
 tsl::ordered_set<daq::opcua::OpcUaNodeId> TmsClientFunctionBlockBaseImpl<Impl>::getInputPortNodeIds()
 {
     auto inputPortsNodeId = this->getNodeId("IP");
-    OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASINPUTPORT);
+    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASINPUTPORT);
 
     return this->referenceUtils.getReferencedNodes(inputPortsNodeId, referenceTypeId, true);
 }
@@ -147,7 +147,7 @@ void TmsClientFunctionBlockBaseImpl<Impl>::readFbType()
 template <typename Impl> 
 SignalPtr TmsClientFunctionBlockBaseImpl<Impl>::onGetStatusSignal()
 {
-    OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASSTATUSSIGNAL);
+    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASSTATUSSIGNAL);
 
     auto nodeIds = this->referenceUtils.getReferencedNodes(this->nodeId, referenceTypeId, true);
 

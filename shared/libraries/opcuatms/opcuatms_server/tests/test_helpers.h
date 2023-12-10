@@ -20,11 +20,11 @@
 #include <opcuaclient/browse_request.h>
 #include <opcuaclient/browser/opcuabrowser.h>
 #include <open62541/di_nodeids.h>
-#include <open62541/tmsdevice_nodeids.h>
+#include <open62541/daqdevice_nodeids.h>
 #include "opendaq/mock/mock_device_module.h"
 #include "opendaq/mock/mock_fb_module.h"
 #include "opendaq/mock/mock_physical_device.h"
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 
 namespace test_helpers
 {
@@ -93,28 +93,28 @@ namespace test_helpers
                                                                            const daq::opcua::OpcUaNodeId& nodeId)
     {
         using namespace daq::opcua;
-        return BrowseForChildWithTypeId(client, nodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQDEVICETYPE));
+        return BrowseForChildWithTypeId(client, nodeId, OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQDEVICETYPE));
     }
 
     inline std::vector<daq::opcua::OpcUaNodeId> BrowseFunctionBlocks(const daq::opcua::OpcUaClientPtr& client,
                                                                                const daq::opcua::OpcUaNodeId& nodeId)
     {
         using namespace daq::opcua;
-        return BrowseForChildWithTypeId(client, nodeId, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_FUNCTIONBLOCKTYPE));
+        return BrowseForChildWithTypeId(client, nodeId, OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_FUNCTIONBLOCKTYPE));
     }
 
     inline std::vector<daq::opcua::OpcUaNodeId> BrowseChannels(const daq::opcua::OpcUaClientPtr& client,
                                                                          const daq::opcua::OpcUaNodeId& nodeId)
     {
         using namespace daq::opcua;
-        return BrowseForChildWithTypeId(client, nodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_CHANNELTYPE));
+        return BrowseForChildWithTypeId(client, nodeId, OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_CHANNELTYPE));
     }
 
     inline std::vector<daq::opcua::OpcUaNodeId> BrowseSignals(const daq::opcua::OpcUaClientPtr& client,
                                                                         const daq::opcua::OpcUaNodeId& nodeId)
     {
         using namespace daq::opcua;
-        return BrowseForChildWithTypeId(client, nodeId, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_SIGNALTYPE));
+        return BrowseForChildWithTypeId(client, nodeId, OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_SIGNALTYPE));
     }
 
     inline daq::opcua::OpcUaNodeId GetMockPhysicalDevice(const daq::opcua::OpcUaClientPtr& client)

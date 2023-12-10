@@ -259,7 +259,7 @@ Cpp::
 
 int main(int argc, const char* argv[])
 {
-    daq::DeviceInfoPtr defaultRootDeviceInfo = daq::DeviceInfo("connectionString");
+    daq::DeviceInfoPtr defaultRootDeviceInfo = daq::DeviceInfo("daqref://device0");
     daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setDefaultRootDeviceInfo(defaultRootDeviceInfo);
     daq::InstancePtr instance = instanceBuilder.build();
 

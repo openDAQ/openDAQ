@@ -76,7 +76,11 @@ struct BaseInterface;
 template <typename T>
 struct BaseType
 {
-    using Args = typename Meta::PrependType<typename T::Base, typename BaseInterface<typename T::Base>::Interfaces>::Args;
+    using Args = typename std::conditional_t<
+        std::is_same_v<typename T::Base, IBaseObject>,
+        daq::Args<>,
+        typename Meta::PrependType<typename T::Base, typename BaseInterface<typename T::Base>::Interfaces>::Args
+    >;
 };
 
 template <>
@@ -106,11 +110,11 @@ template <typename TMainInterface, typename... TInterfaces>
 struct ActualInterfaces
 {
     using BaseInterfaces =
-        typename Meta::UniqueTypes<typename Meta::Flatten<Args<Args<TMainInterface, TInterfaces...>,
-                                                               typename BaseInterface<TMainInterface>::Interfaces,
-                                                               typename BaseInterface<TInterfaces>::Interfaces...>
-                                                          >::Args
-                                   >::Args;
+        typename Meta::Flatten<Args<
+            Args<TMainInterface, TInterfaces..., IBaseObject>,
+            typename BaseInterface<TMainInterface>::Interfaces,
+            typename BaseInterface<TInterfaces>::Interfaces...>
+        >::Args;
 };
 
 template <typename T>

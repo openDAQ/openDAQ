@@ -498,6 +498,12 @@ namespace daq
             using Args = TArgs2;
         };
 
+        template <>
+        struct ConcatTwoArgs<Args<>, Args<>>
+        {
+            using Args = daq::Args<>;
+        };
+
         template <typename TArgs1, typename TArgs2>
         struct ConcatTwoArgs
         {

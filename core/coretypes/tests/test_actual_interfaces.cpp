@@ -52,7 +52,7 @@ TEST_F(ActualInterfacesTest, HasDeclaredBase)
 TEST_F(ActualInterfacesTest, BaseInterface)
 {
     using Base = BaseInterface<ITestObjectDerived>::Interfaces;
-    using Expected = Args<ITestObject, IBaseObject, IBaseObject>;
+    using Expected = Args<ITestObject>;
 
     ASSERT_TRUE((std::is_same_v<Base, Expected>));
 }
@@ -74,8 +74,8 @@ TEST_F(ActualInterfacesTest, ImplementationInterfaces)
                           IUpdatable,
                           ISerializable,
                           ICoreType,
-                          ITestObject,
-                          IBaseObject
+                          IBaseObject,
+                          ITestObject
                          >;
 
     ASSERT_TRUE((std::is_same_v<Expected, Interfaces>));
@@ -109,8 +109,8 @@ TEST_F(ActualInterfacesTest, Implementation)
                                     ISerializable,
                                     ICoreType,
                                     IInspectable,
-                                    ITestObject,
-                                    IBaseObject>;
+                                    IBaseObject,
+                                    ITestObject>;
 
     ASSERT_TRUE((std::is_same_v<Expected, Implementation>));
     ASSERT_TRUE((std::is_same_v<Interfaces, ExpectedInterfaces>));
@@ -137,9 +137,9 @@ TEST_F(ActualInterfacesTest, ImplementationNested)
                                     ISerializable,
                                     ICoreType,
                                     IInspectable,
+                                    IBaseObject,
                                     ITestObjectDerived,
-                                    ITestObject,
-                                    IBaseObject>;
+                                    ITestObject>;
 
     ASSERT_TRUE((std::is_same_v<Expected, Implementation>));
     ASSERT_TRUE((std::is_same_v<Interfaces, ExpectedInterfaces>));

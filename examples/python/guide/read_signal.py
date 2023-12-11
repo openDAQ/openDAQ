@@ -21,6 +21,6 @@ for overriden_type_value in reader.read(10):
     print(overriden_type_value)
 
 # Output 10 timestamped samples with forced type
-values, timestamps = opendaq.TimeReader(reader).read_with_timestamps(10)
+values, timestamps = opendaq.TimeStreamReader(reader).read_with_timestamps(10)
 for value, timestamp in zip(values, timestamps):
     print(timestamp, value)

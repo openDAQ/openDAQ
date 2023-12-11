@@ -2,6 +2,7 @@
 #include <opcuaclient/browse_request.h>
 #include <opcuaclient/browser/opcuabrowser.h>
 #include <opcuatms_client/tms_client.h>
+#include <open62541/daq_opcua_nodesets.h>
 #include <open62541/di_nodeids.h>
 #include <open62541/daqdevice_nodeids.h>
 #include <open62541/types_di_generated.h>
@@ -32,11 +33,7 @@ TmsClient::TmsClient(const ContextPtr& context,
 daq::DevicePtr TmsClient::connect()
 {
     OpcUaEndpoint endpoint("TmsClient", opcUaUrl);
-    endpoint.registerCustomTypes(UA_TYPES_DI_COUNT, UA_TYPES_DI);
-    endpoint.registerCustomTypes(UA_TYPES_DAQBT_COUNT, UA_TYPES_DAQBT);
-    endpoint.registerCustomTypes(UA_TYPES_DAQBSP_COUNT, UA_TYPES_DAQBSP);
-    endpoint.registerCustomTypes(UA_TYPES_DAQDEVICE_COUNT, UA_TYPES_DAQDEVICE);
-    endpoint.registerCustomTypes(UA_TYPES_DAQESP_COUNT, UA_TYPES_DAQESP);
+    registerDaqTypes(endpoint);
     // TODO: Now, every new added vendor spec needs to be inserted here as well.
     // It would be better that a method would be called which add all genereted nodesets from CMake.
     // This also applies then to the openDAQ Types...

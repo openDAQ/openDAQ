@@ -28,6 +28,15 @@ auto reader = TailReader(signal, 5);
 auto reader = TailReader<double, Int>(signal, 5);
 auto reader = TailReader(signal, 5, SampleType::Float64, SampleType::Int64);
 ----
+Python::
++
+[source,python]
+----
+# These calls all create the same reader
+reader = opendaq.TailReader(signal, 5)
+reader = opendaq.TailReader(signal, 5, value_type=opendaq.SampleType.Float64, domain_type=opendaq.SampleType.Int64)
+reader = opendaq.TailReader(signal, 5, value_type=opendaq.SampleType.Float64)
+----
 ====
 
 [NOTE]
@@ -56,6 +65,16 @@ double values[5]{};
 Int domain[5]{};
 
 reader.readWithDomain(values, domain, &count); // count = 3, values = { 1, 2, 3, 0, 0 }
+----
+Python::
++
+[source,python]
+----
+reader = opendaq.TailReader(signal, 5)
+
+# Signal produces 3 samples
+
+reader.read(5) # [1, 2, 3]
 ----
 ====
 
@@ -111,6 +130,27 @@ reader.read(values, &count);
 // and we still need to keep the [Packet 1] around to satisfy the minimum of 5 samples
 count = 8;
 reader.read(values, &count);
+----
+Python::
++
+[source,python]
+----
+reader = opendaq.TailReader(signal, 5)
+
+#  The signal produces 3 packets
+#  [Packet 1]: 4 Samples
+#  [Packet 2]: 3 Samples
+#  [Packet 3]: 1 Sample
+#  -------------------------------
+#       Total: 8 Samples
+
+# Will throw
+values = reader.read(10)
+
+# Will succeed as [Packet 3] and [Packet 2] together are less than 5 samples
+# and we still need to keep the [Packet 1] around to satisfy the minimum of 5 samples
+
+values = reader.read(8)
 ----
 ====
 

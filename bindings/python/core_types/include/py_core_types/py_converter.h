@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 #pragma once
 
 // <string> is needed by many other files that include this header
@@ -26,12 +26,23 @@
 // https://pybind11-numpy-example.readthedocs.io/en/latest/index.html
 // source: https://github.com/pybind/pybind11/issues/1042#issuecomment-642215028
 template <typename Sequence>
-inline py::array_t<typename Sequence::value_type> toPyArray(Sequence&& seq)
+inline py::array_t<typename Sequence::value_type> toPyArray(Sequence&& seq, const py::array::ShapeContainer& shape = {}, const std::string& dtype = {})
 {
-    auto size = seq.size();
-    auto data = seq.data();
+    const auto size = seq.size();
+    const auto data = seq.data();
     std::unique_ptr<Sequence> seq_ptr = std::make_unique<Sequence>(std::move(seq));
     auto capsule = py::capsule(seq_ptr.get(), [](void* p) { std::unique_ptr<Sequence>(reinterpret_cast<Sequence*>(p)); });
     seq_ptr.release();
-    return py::array(size, data, capsule);
+
+    py::dtype dt = py::dtype::of<typename Sequence::value_type>();
+    if(!dtype.empty()) {
+        //it looks like datetime64 is ignored by pybind11 now, so we need to use WA
+        //this is for future use
+        dt = py::dtype(dtype);
+    }
+
+    py::array::ShapeContainer arrayShape = {size};
+    if(!shape->empty()) arrayShape = std::move(shape);
+
+    return py::array(dt, arrayShape, data, capsule);
 }

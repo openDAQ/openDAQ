@@ -10,7 +10,7 @@ class Recorder:
         self.domain_signal_descriptor = signal.domain_signal.descriptor
         self.buffer_size = buffer_size
         self.read = 0
-        self.reader = opendaq.StreamReader(signal)
+        self.reader = opendaq.TimeStreamReader(opendaq.StreamReader(signal))
         self.values_buffer = []
         self.domain_buffer = []
 

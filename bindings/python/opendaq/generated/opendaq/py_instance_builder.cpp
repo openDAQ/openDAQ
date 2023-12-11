@@ -58,7 +58,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.setLogger(logger);
         },
         py::return_value_policy::take_ownership,
-        "Gets the Logger of Instance. Returns nullptr is custom logger has not been set / Sets the custom Logger of Instance");
+        "Gets the Logger of Instance. Returns nullptr if custom logger has not been set / Sets the custom Logger of Instance");
     cls.def_property("global_log_level",
         [](daq::IInstanceBuilder *object)
         {

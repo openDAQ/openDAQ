@@ -332,6 +332,15 @@ inline MultiReaderPtr MultiReader(const ListPtr<ISignal>& signals,
     return MultiReader_Create(signals, valueReadType, domainReadType, mode, timeoutType);
 }
 
+inline MultiReaderPtr MultiReaderFromPort(ListPtr<IInputPortConfig> ports,
+                                  SampleType valueReadType,
+                                  SampleType domainReadType,
+                                  ReadMode mode = ReadMode::Scaled,  
+                                  ReadTimeoutType timeoutType = ReadTimeoutType::All)
+{
+    return MultiReaderFromPort_Create(ports, valueReadType, domainReadType, mode, timeoutType);
+}
+
 inline MultiReaderPtr MultiReaderFromExisting(const MultiReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)
 {
     return MultiReaderFromExisting_Create(invalidatedReader, valueReadType, domainReadType);

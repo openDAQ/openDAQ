@@ -110,4 +110,13 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     SampleType, domainReadType
 )
 
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, MultiReaderFromPort, IMultiReader,
+    IList*, ports,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode,
+    ReadTimeoutType, timeoutType
+)
+
 END_NAMESPACE_OPENDAQ

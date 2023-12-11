@@ -34,6 +34,29 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<ISignal>& signals,
     checkErrorInfo(errCode);
 }
 
+MultiReaderImpl::MultiReaderImpl(IList* ports,
+                    SampleType valueReadType,
+                    SampleType domainReadType,
+                    ReadMode mode,
+                    ReadTimeoutType timeoutType)
+{
+    if (ports == nullptr)
+        throw ArgumentNullException();
+
+    auto portsPtr = ListPtr<IInputPortConfig>::Borrow(ports);
+    CheckPreconditions(portsPtr);
+    auto context = InputPortConfigPtr(portsPtr[0]).getSignal().getContext();
+    loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
+
+    connectPorts(portsPtr, valueReadType, domainReadType, mode);
+
+    SizeT min{};
+    SyncStatus syncStatus{};
+    ErrCode errCode = synchronize(min, syncStatus);
+
+    checkErrorInfo(errCode);
+}
+
 MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
                                  SampleType valueReadType,
                                  SampleType domainReadType)
@@ -194,6 +217,19 @@ void MultiReaderImpl::CheckPreconditions(const ListPtr<ISignal>& list)
     checkSameSampleRate(list);
 }
 
+void MultiReaderImpl::CheckPreconditions(const ListPtr<IInputPortConfig>& list)
+{
+    if (list.getCount() == 0)
+        throw InvalidParameterException("Need at least one signal.");
+
+    auto signals = List<IInputPortConfig>();
+    for (const auto & port : list)
+        signals.pushBack(InputPortConfigPtr(port).getSignal());
+
+    checkSameDomain(signals);
+    checkSameSampleRate(signals);
+}
+
 void MultiReaderImpl::setStartInfo()
 {
     LOG_T("<----")
@@ -246,6 +282,26 @@ void MultiReaderImpl::connectSignals(const ListPtr<ISignal>& inputSignals,
         port.connect(signal);
 
         auto& sigInfo = signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
+        sigInfo.handleDescriptorChanged(sigInfo.connection.dequeue());
+    }
+}
+
+void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts,
+                                     SampleType valueRead,
+                                     SampleType domainRead,
+                                     ReadMode mode)
+{
+    this->internalAddRef();
+    auto listener = this->thisPtr<InputPortNotificationsPtr>();
+
+    int counter = 0u;
+    for (const auto& port : inputPorts)
+    {
+        auto portPtr = InputPortConfigPtr(port);
+        portPtr.setNotificationMethod(PacketReadyNotification::SameThread);
+        portPtr.setListener(listener);
+
+        auto& sigInfo = signals.emplace_back(portPtr, valueRead, domainRead, mode, loggerComponent);
         sigInfo.handleDescriptorChanged(sigInfo.connection.dequeue());
     }
 }
@@ -814,4 +870,13 @@ OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     SampleType, domainReadType
 )
 
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, MultiReader,
+    IMultiReader, createMultiReaderFromPort,
+    IList*, ports,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode,
+    ReadTimeoutType, timeoutType
+)
 END_NAMESPACE_OPENDAQ

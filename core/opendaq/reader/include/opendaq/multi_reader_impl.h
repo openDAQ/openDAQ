@@ -30,6 +30,12 @@ public:
                     ReadMode mode,
                     ReadTimeoutType timeoutType);
 
+    MultiReaderImpl(IList* ports,
+                    SampleType valueReadType,
+                    SampleType domainReadType,
+                    ReadMode mode,
+                    ReadTimeoutType timeoutType);
+
     MultiReaderImpl(MultiReaderImpl* old,
                     SampleType valueReadType,
                     SampleType domainReadType);
@@ -70,10 +76,12 @@ private:
     using Duration = Clock::duration;
 
     static void CheckPreconditions(const ListPtr<ISignal>& list);
+    static void CheckPreconditions(const ListPtr<IInputPortConfig>& list);
     ListPtr<ISignal> getSignals() const;
 
     void setStartInfo();
     void connectSignals(const ListPtr<ISignal>& inputSignals, SampleType valueRead, SampleType domainRead, ReadMode mode);
+    void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
     ErrCode readUntilFirstDataPacket();
     ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);

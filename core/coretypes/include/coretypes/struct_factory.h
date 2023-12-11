@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <coretypes/struct_ptr.h>
+#include <coretypes/struct_builder_ptr.h>
 #include <coretypes/dict_ptr.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/type_manager_ptr.h>
@@ -45,6 +46,24 @@ BEGIN_NAMESPACE_OPENDAQ
 inline StructPtr Struct(const StringPtr& name, const DictPtr<IString, IBaseObject>& fields, const TypeManagerPtr& typeManager)
 {
     StructPtr obj(Struct_Create(name, fields, typeManager));
+    return obj;
+}
+
+inline StructPtr StructFromBuilder(const StructBuilderPtr& builder)
+{
+    StructPtr obj(StructFromBuilder_Create(builder));
+    return obj;
+}
+
+inline StructBuilderPtr StructBuilder(const StringPtr& name, const TypeManagerPtr& typeManager)
+{
+    StructBuilderPtr obj(StructBuilder_Create(name, typeManager));
+    return obj;
+}
+
+inline StructBuilderPtr StructBuilder(const StructPtr& struct_)
+{
+    StructBuilderPtr obj(StructBuilderFromStruct_Create(struct_));
     return obj;
 }
 

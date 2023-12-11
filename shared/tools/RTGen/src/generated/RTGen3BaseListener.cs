@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from F:/Dewesoft/C++/git/Blueberry4/shared/tools/RTGen/src\RTGen3.g4 by ANTLR 4.12.0
+// Generated from F:/Dewesoft/C++/git/openDAQ2/shared/tools/RTGen/src\RTGen3.g4 by ANTLR 4.12.0
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -707,30 +707,6 @@ public partial class RTGen3BaseListener : IRTGen3Listener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitIncludeName([NotNull] RTGen3.IncludeNameContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="RTGen3.includePath"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterIncludePath([NotNull] RTGen3.IncludePathContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="RTGen3.includePath"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitIncludePath([NotNull] RTGen3.IncludePathContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="RTGen3.pathSeparator"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterPathSeparator([NotNull] RTGen3.PathSeparatorContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="RTGen3.pathSeparator"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitPathSeparator([NotNull] RTGen3.PathSeparatorContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="RTGen3.macro"/>.
 	/// <para>The default implementation does nothing.</para>

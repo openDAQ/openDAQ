@@ -199,12 +199,7 @@ expressions: expression (Comma expression)*;
 
 include: Include includeName;
 
-includeName: String
-           | LessThan includePath GreaterThan;
-
-includePath: (Dot* pathSeparator)? anyIdentifier (pathSeparator anyIdentifier)* (Dot anyIdentifier)?;
-
-pathSeparator: Slash | BackSlash;
+includeName: String | IncludePath;
 
 macro : MacroIdentifier ((LParen BackSlash? macroArguments? BackSlash? RParen) | cast? macroArgValue )? macroEnd;
 

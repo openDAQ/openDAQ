@@ -37,6 +37,7 @@ set(SRC_Cpp version.cpp
             type_manager_impl.cpp
             simple_type_impl.cpp
             util.cpp
+            struct_builder_impl.cpp
 )
 
 set(SRC_PublicHeaders
@@ -201,6 +202,10 @@ set(SRC_PublicHeaders
     struct.h
     struct_ptr.h
     struct_factory.h
+	
+    struct_builder.h
+    struct_builder_impl.h
+    struct_builder_ptr.h
 
     type.h
     type_ptr.h

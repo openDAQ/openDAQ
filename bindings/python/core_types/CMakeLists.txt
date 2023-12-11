@@ -39,6 +39,7 @@ set(SRC_Cpp
     generated/py_struct_type.cpp
     generated/py_type_manager.cpp
     generated/py_struct.cpp
+    generated/py_struct_builder.cpp
 )
 
 add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})

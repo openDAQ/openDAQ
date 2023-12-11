@@ -163,7 +163,7 @@ SignalPtr TmsClientFunctionBlockBaseImpl<Impl>::onGetStatusSignal()
     filter.referenceTypeId = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASSTATUSSIGNAL);
     filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
-    const auto& references = this->clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);
+    const auto& references = this->clientContext->getReferenceBrowser()->browseFiltered(this->nodeId, filter);
     assert(references.byNodeId.size() <= 1);
 
     if (!references.byNodeId.empty())

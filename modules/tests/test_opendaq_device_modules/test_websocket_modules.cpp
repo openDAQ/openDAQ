@@ -1,18 +1,6 @@
-#include <testutils/testutils.h>
-#include <opendaq/opendaq.h>
-#include "testutils/memcheck_listener.h"
-#include <thread>
+#include "test_helpers.h"
 
 using WebsocketModulesTest = testing::Test;
-
-// MAC CI issue
-#if !defined(SKIP_TEST_MAC_CI)
-    #if defined(__clang__)
-        #define SKIP_TEST_MAC_CI return
-    #else
-        #define SKIP_TEST_MAC_CI
-    #endif
-#endif
 using namespace daq;
 
 static InstancePtr CreateServerInstance()
@@ -42,20 +30,17 @@ static InstancePtr CreateClientInstance()
 
 TEST_F(WebsocketModulesTest, ConnectFail)
 {
-    SKIP_TEST_MAC_CI;
     ASSERT_THROW(CreateClientInstance(), NotFoundException);
 }
 
 TEST_F(WebsocketModulesTest, ConnectAndDisconnect)
 {
-    SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 }
 
 TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 {
-    SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
@@ -66,7 +51,6 @@ TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 
 TEST_F(WebsocketModulesTest, SignalConfig_Server)
 {
-    SKIP_TEST_MAC_CI;
     const std::string newSignalName{"some new name"};
 
     auto server = CreateServerInstance();
@@ -88,7 +72,6 @@ TEST_F(WebsocketModulesTest, SignalConfig_Server)
 
 TEST_F(WebsocketModulesTest, DataDescriptor)
 {
-    SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
@@ -111,6 +94,45 @@ TEST_F(WebsocketModulesTest, DataDescriptor)
     ASSERT_EQ(domainDataDescriptor.getRule().getParameters(), serverDomainDataDescriptor.getRule().getParameters());
     ASSERT_EQ(domainDataDescriptor.getOrigin(), serverDomainDataDescriptor.getOrigin());
     ASSERT_EQ(domainDataDescriptor.getTickResolution(), serverDomainDataDescriptor.getTickResolution());
+}
+
+TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto signal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+
+    StringPtr streamingSource = signal.getActiveStreamingSource();
+
+    std::promise<StringPtr> signalSubscribePromise;
+    std::future<StringPtr> signalSubscribeFuture;
+    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+
+    std::promise<StringPtr> signalUnsubscribePromise;
+    std::future<StringPtr> signalUnsubscribeFuture;
+    test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
+
+    using namespace std::chrono_literals;
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
+    ASSERT_EQ(signalSubscribeFuture.get(), streamingSource);
+
+    double samples[100];
+    for (int i = 0; i < 10; ++i)
+    {
+        std::this_thread::sleep_for(100ms);
+        daq::SizeT count = 100;
+        reader.read(samples, &count);
+        EXPECT_GT(count, 0) << "iteration " << i;
+    }
+
+    reader.release();
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalUnsubscribeFuture));
+    ASSERT_EQ(signalUnsubscribeFuture.get(), streamingSource);
 }
 
 TEST_F(WebsocketModulesTest, DISABLED_RenderSignal)

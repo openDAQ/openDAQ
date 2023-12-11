@@ -2,6 +2,7 @@ set(TEST_APP test_device_modules)
 
 set(TEST_SOURCES test_device_modules.cpp
                  test_app.cpp
+                 test_helpers.h
 )
 
 if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)

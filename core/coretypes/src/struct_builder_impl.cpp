@@ -3,7 +3,8 @@
 #include <coretypes/struct_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-    StructBuilderImpl::StructBuilderImpl(const StringPtr& name, const TypeManagerPtr& typeManager)
+
+StructBuilderImpl::StructBuilderImpl(const StringPtr& name, const TypeManagerPtr& typeManager)
     : fields(Dict<IString, IBaseObject>())
 {
     structType = typeManager.getType(name);
@@ -45,7 +46,7 @@ ErrCode StructBuilderImpl::setFieldValues(IList* values)
 {
     OPENDAQ_PARAM_NOT_NULL(values);
 
-    const auto& valuesPtr = ListPtr<IString>::Borrow(values);
+    const auto valuesPtr = ListPtr<IString>::Borrow(values);
     if (valuesPtr.getCount() != fields.getCount())
         return OPENDAQ_ERR_INVALIDPARAMETER;
 
@@ -102,8 +103,7 @@ ErrCode StructBuilderImpl::set(IString* name, IBaseObject* field)
 
 ErrCode StructBuilderImpl::getStructType(IStructType** type)
 {
-    if (!type)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(type);
 
     *type = this->structType.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -111,8 +111,7 @@ ErrCode StructBuilderImpl::getStructType(IStructType** type)
 
 ErrCode StructBuilderImpl::getFieldNames(IList** names)
 {
-    if (!names)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(names);
 
     *names = this->fields.getKeyList().addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -120,8 +119,7 @@ ErrCode StructBuilderImpl::getFieldNames(IList** names)
 
 ErrCode StructBuilderImpl::getFieldValues(IList** values)
 {
-    if (!values)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(values);
 
     *values = this->fields.getValueList().addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -129,14 +127,13 @@ ErrCode StructBuilderImpl::getFieldValues(IList** values)
 
 ErrCode StructBuilderImpl::get(IString* name, IBaseObject** field)
 {
+    OPENDAQ_PARAM_NOT_NULL(field);
+
     if (!name)
     {
         *field = nullptr;
         return OPENDAQ_SUCCESS;
     }
-
-    if (!field)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
 
     const auto nameObj = StringPtr::Borrow(name);
     if (this->fields.hasKey(name))
@@ -149,8 +146,7 @@ ErrCode StructBuilderImpl::get(IString* name, IBaseObject** field)
 
 ErrCode StructBuilderImpl::getAsDictionary(IDict** dictionary)
 {
-    if (!dictionary)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(dictionary);
 
     *dictionary = this->fields.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -158,8 +154,7 @@ ErrCode StructBuilderImpl::getAsDictionary(IDict** dictionary)
 
 ErrCode StructBuilderImpl::hasField(IString* name, Bool* contains)
 {
-    if (!contains)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(contains);
     
     *contains = false;
     if (!name)

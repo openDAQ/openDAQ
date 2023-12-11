@@ -40,7 +40,7 @@ void TmsClientFolderImpl<Impl>::findAndCreateFolders(std::map<uint32_t, Componen
         const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
 
-        const auto& childComponentsReferences = getChildReferencesOfType(folderNodeId, componentId);
+        const auto& childComponentsReferences = this->getChildReferencesOfType(folderNodeId, componentId);
 
         ComponentPtr child;
         if (!childComponentsReferences.byNodeId.empty())

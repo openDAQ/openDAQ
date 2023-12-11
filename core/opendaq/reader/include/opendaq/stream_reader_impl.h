@@ -38,6 +38,12 @@ public:
                               SampleType domainReadType,
                               ReadMode mode,
                               ReadTimeoutType timeoutType);
+    
+    explicit StreamReaderImpl(IInputPortConfig* port,
+                              SampleType valueReadType,
+                              SampleType domainReadType,
+                              ReadMode mode,
+                              ReadTimeoutType timeoutType);
 
     explicit StreamReaderImpl(const ReaderConfigPtr& readerConfig,
                               SampleType valueReadType,

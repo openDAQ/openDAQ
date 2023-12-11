@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/sample_reader.h>
 #include <opendaq/signal.h>
+#include <opendaq/input_port_config.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -73,6 +74,15 @@ DECLARE_OPENDAQ_INTERFACE(ITailReader, ISampleReader)
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, TailReader,
     ISignal*, signal,
+    SizeT, historySize,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode
+)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, TailReaderFromPort, ITailReader,
+    IInputPortConfig*, port,
     SizeT, historySize,
     SampleType, valueReadType,
     SampleType, domainReadType,

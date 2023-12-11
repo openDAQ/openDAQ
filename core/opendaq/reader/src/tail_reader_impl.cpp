@@ -16,6 +16,19 @@ TailReaderImpl::TailReaderImpl(ISignal* signal,
     TailReaderImpl::handleDescriptorChanged(connection.dequeue());
 }
 
+TailReaderImpl::TailReaderImpl(IInputPortConfig* port,
+                               SizeT historySize,
+                               SampleType valueReadType,
+                               SampleType domainReadType,
+                               ReadMode mode)
+    : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
+    , historySize(historySize)
+    , cachedSamples(0)
+{
+    this->port.setNotificationMethod(PacketReadyNotification::SameThread);
+    TailReaderImpl::handleDescriptorChanged(connection.dequeue());
+}
+
 TailReaderImpl::TailReaderImpl(const ReaderConfigPtr& readerConfig,
                                SampleType valueReadType,
                                SampleType domainReadType,
@@ -280,6 +293,16 @@ OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     ITailReader*, invalidatedReader,
     SampleType, valueReadType,
     SampleType, domainReadType
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, TailReader,
+    ITailReader, createTailReaderFromPort,
+    IInputPortConfig*, port,
+    SizeT, historySize,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode
 )
 
 END_NAMESPACE_OPENDAQ

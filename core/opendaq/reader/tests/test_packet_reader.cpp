@@ -12,6 +12,7 @@
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/data_descriptor_builder_ptr.h>
 #include <opendaq/logger_factory.h>
+#include <opendaq/input_port_factory.h>
 
 #include <chrono>
 #include <thread>
@@ -103,6 +104,27 @@ TEST_F(PacketReaderTest, DataPacket)
     signal.setDescriptor(createDataDescriptor());
 
     auto reader = PacketReader(signal);
+    sendPacket(DataPacket(signal.getDescriptor(), 1, 1));
+
+    scheduler.waitAll();
+
+    auto packets = reader.readAll();
+    ASSERT_EQ(packets.getCount(), 2u);
+
+    auto secondPacket = packets[1];
+    ASSERT_EQ(secondPacket.getType(), PacketType::Data);
+
+    auto dataPacket = secondPacket.asPtrOrNull<IDataPacket>(true);
+    ASSERT_TRUE(dataPacket.assigned());
+}
+
+TEST_F(PacketReaderTest, PacketReaderWithInputPort)
+{
+    signal.setDescriptor(createDataDescriptor());
+    auto port = InputPort(signal.getContext(), nullptr, "readsig");
+    port.connect(signal);
+
+    auto reader = PacketReaderFromPort(port);
     sendPacket(DataPacket(signal.getDescriptor(), 1, 1));
 
     scheduler.waitAll();

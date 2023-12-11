@@ -1,5 +1,7 @@
 #include <opendaq/packet_reader_impl.h>
 #include <coretypes/list_factory.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/ownable_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -12,6 +14,20 @@ PacketReaderImpl::PacketReaderImpl(const SignalPtr& signal)
 
     port.connect(signal);
     connection = port.getConnection();
+}
+
+PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
+{
+    if (!port)
+        throw ArgumentNullException("Input port must not be null.");
+    
+    this->port = InputPortConfigPtr(port);
+    this->port.asPtr<IOwnable>().setOwner(PropertyObject());
+
+    if (!this->port.getConnection().assigned())
+        throw ArgumentNullException("Input port not connected to signal");
+    
+    connection = this->port.getConnection();
 }
 
 PacketReaderImpl::~PacketReaderImpl()
@@ -67,5 +83,12 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     LIBRARY_FACTORY, PacketReader,
     ISignal*, signal
 )
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, PacketReader,
+    IPacketReader, createPacketReaderFromPort,
+    IInputPortConfig*, port
+)
+
 
 END_NAMESPACE_OPENDAQ

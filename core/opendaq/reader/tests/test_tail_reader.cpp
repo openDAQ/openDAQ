@@ -3,6 +3,7 @@
 #include <testutils/testutils.h>
 #include <date/date.h>
 #include "reader_common.h"
+#include <opendaq/input_port_factory.h>
 
 using namespace daq;
 
@@ -799,6 +800,39 @@ TEST_F(TailReaderTest, ReadUndefinedWithWithDomainFromPacket)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::TailReader(this->signal, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+
+    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), HISTORY_SIZE, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), HISTORY_SIZE);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 111.1;
+    dataPtr[1] = 222.2;
+
+    this->sendPacket(dataPacket);
+
+    SizeT count{HISTORY_SIZE};
+    double samples[HISTORY_SIZE]{};
+    RangeType64 domain[HISTORY_SIZE]{};
+    reader.readWithDomain(&samples, &domain, &count);
+
+    ASSERT_EQ(count, HISTORY_SIZE);
+    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
+
+    // domain was read and updated from packet info
+    ASSERT_EQ(reader.getDomainReadType(), SampleType::RangeInt64);
+}
+
+TEST_F(TailReaderTest, TailReaderWithInputPort)
+{
+    const SizeT HISTORY_SIZE = 2u;
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+    auto reader = daq::TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
     ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);

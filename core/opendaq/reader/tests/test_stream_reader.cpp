@@ -8,6 +8,7 @@
 #include <opendaq/reader_errors.h>
 #include <opendaq/reader_exceptions.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/input_port_factory.h>
 
 using namespace daq;
 
@@ -825,6 +826,36 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithWithDomainFromPacket)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined);
+
+    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 123.4;
+
+    this->sendPacket(dataPacket);
+
+    SizeT count{1};
+    double samples[1]{};
+    RangeType64 domain[1]{};
+    reader.readWithDomain(&samples, &domain, &count);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
+
+    // domain was read and updated from packet info
+    ASSERT_EQ(reader.getDomainReadType(), SampleType::RangeInt64);
+}
+
+TYPED_TEST(StreamReaderTest, StreamReaderWithInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+
+    auto reader = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
     ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);

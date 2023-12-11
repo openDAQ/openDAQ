@@ -4,6 +4,8 @@
 #include <opendaq/event_packet_params.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/ownable_ptr.h>
 
 #include <coretypes/validation.h>
 #include <coretypes/function.h>
@@ -29,6 +31,34 @@ StreamReaderImpl::StreamReaderImpl(const SignalPtr& signal,
 
     this->internalAddRef();
     connectSignal(signal);
+}
+
+StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
+                                   SampleType valueReadType,
+                                   SampleType domainReadType,
+                                   ReadMode mode,
+                                   ReadTimeoutType timeoutType)
+    : readMode(mode)
+    , timeoutType(timeoutType)
+{
+    if (!port)
+        throw ArgumentNullException("Input port must not be null.");
+    
+    inputPort = InputPortConfigPtr(port);
+    inputPort.asPtr<IOwnable>().setOwner(PropertyObject());
+
+    if (!inputPort.getConnection().assigned())
+        throw ArgumentNullException("Input port not connected to signal");
+
+    connection = inputPort.getConnection();
+
+    valueReader = createReaderForType(valueReadType, nullptr);
+    domainReader = createReaderForType(domainReadType, nullptr);
+
+    this->internalAddRef();
+
+    inputPort.setNotificationMethod(PacketReadyNotification::SameThread);
+    handleDescriptorChanged(connection.dequeue());
 }
 
 StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -590,6 +620,16 @@ struct ObjectCreator<IStreamReader>
 OPENDAQ_DEFINE_CLASS_FACTORY(
     LIBRARY_FACTORY, StreamReader,
     ISignal*, signal,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, readMode,
+    ReadTimeoutType, timeoutType
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, StreamReader,
+    IStreamReader, createStreamReaderFromPort,
+    IInputPortConfig*, port,
     SampleType, valueReadType,
     SampleType, domainReadType,
     ReadMode, readMode,

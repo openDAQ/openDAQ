@@ -37,6 +37,32 @@ inline PacketReaderPtr PacketReader(SignalPtr signal)
 }
 
 /*!
+ * @brief Creates a reader that eases reading packets from the port.
+ * @param input The input port to read the packets from.
+ */
+inline PacketReaderPtr PacketReaderFromPort(InputPortConfigPtr port)
+{
+    return PacketReaderFromPort_Create(port);
+}
+
+/*!
+ * @brief Creates a signal data reader that abstracts away reading of signal packets by keeping an
+ * internal read-position and automatically advances it on subsequent reads.
+ * @param port The port to read the data from.
+ * @param valueReadType The sample-type type to read signal values as. Implicitly convert from actual type to this one if conversion exists.
+ * @param domainReadType The sample-type type to read signal domain as. Implicitly convert from actual type to this one if conversion exists.
+ * @param timeoutType The type of time-out to use. See @see ReadTimeoutType.
+ */
+inline StreamReaderPtr StreamReaderFromPort(InputPortConfigPtr port,
+                                    SampleType valueReadType,
+                                    SampleType domainReadType,
+                                    ReadMode mode = ReadMode::Scaled,
+                                    ReadTimeoutType timeoutType = ReadTimeoutType::All)
+{
+    return StreamReaderFromPort_Create(port, valueReadType, domainReadType, mode, timeoutType);
+}
+
+/*!
  * @brief Creates a signal data reader that abstracts away reading of signal packets by keeping an
  * internal read-position and automatically advances it on subsequent reads.
  * @param signal The signal to read the data from.
@@ -162,6 +188,24 @@ inline TailReaderPtr TailReader(SignalPtr signal,
 {
     return TailReader_Create(signal, historySize, valueReadType, domainReadType, mode);
 }
+/*!
+ * @brief A reader that only ever reads the last N samples, subsequent calls may result in overlapping data.
+ * @param port The port to read the data from.
+ * @param historySize The maximum amount of samples in history to keep.
+ * @param valueReadType The sample-type type to read signal values as. Implicitly convert from actual type to
+ * this one if conversion exists.
+ * @param domainReadType The sample-type type to read signal domain as. Implicitly convert from actual type to
+ * this one if conversion exists.
+ */
+inline TailReaderPtr TailReaderFromPort(InputPortConfigPtr port,
+                                        SizeT historySize,
+                                        SampleType valueReadType,
+                                        SampleType domainReadType,
+                                        ReadMode mode = ReadMode::Scaled)
+{
+    return TailReaderFromPort_Create(port, historySize, valueReadType, domainReadType, mode);
+}
+
 
 /*!
  * @brief A reader that only ever reads the last N samples, subsequent calls may result in overlapping data.

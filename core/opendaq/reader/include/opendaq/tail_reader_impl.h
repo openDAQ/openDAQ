@@ -38,6 +38,12 @@ public:
                    SampleType domainReadType,
                    ReadMode mode);
 
+    TailReaderImpl(IInputPortConfig* port,
+                   SizeT historySize,
+                   SampleType valueReadType,
+                   SampleType domainReadType,
+                   ReadMode mode);
+
     TailReaderImpl(const ReaderConfigPtr& readerConfig,
                    SampleType valueReadType,
                    SampleType domainReadType,

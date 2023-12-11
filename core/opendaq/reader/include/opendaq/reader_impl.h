@@ -21,6 +21,8 @@
 #include <opendaq/typed_reader.h>
 #include <opendaq/event_packet_params.h>
 #include <coretypes/validation.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/ownable_ptr.h>
 
 #include <mutex>
 #include <utility>
@@ -68,6 +70,8 @@ public:
 
         if (!port.getConnection().assigned())
             throw ArgumentNullException("Input port not connected to signal");
+        
+        port.asPtr<IOwnable>().setOwner(PropertyObject());
 
         this->internalAddRef();
 

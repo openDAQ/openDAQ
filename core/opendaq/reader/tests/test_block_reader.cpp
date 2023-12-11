@@ -860,6 +860,16 @@ TYPED_TEST(BlockReaderTest, ToString)
     daqFreeMemory(str);
 }
 
+TYPED_TEST(BlockReaderTest, MultipleBlockReaderToInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+    auto reader1 = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    ASSERT_THROW(daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined), AlreadyExistsException);
+}
+
 TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
@@ -867,7 +877,6 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
     port.connect(this->signal);
     auto reader1 = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
-    auto reader2 = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
     
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
@@ -881,13 +890,4 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
     double samples1[BLOCK_SIZE]{};
     RangeType64 domain1[BLOCK_SIZE]{};
     reader1.readWithDomain(&samples1, &domain1, &count1);
-
-    SizeT count2{1};
-    double samples2[BLOCK_SIZE]{};
-    RangeType64 domain2[BLOCK_SIZE]{};
-    reader2.readWithDomain(&samples2, &domain2, &count2);
-
-    printf("finish\n");
-
-
 }

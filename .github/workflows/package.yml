@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Configure and build Wheels
-        if: ${{ matrix.cmake_generator_platform != 'Win32' }}
+        if: matrix.cmake_generator_platform != 'Win32'
         run: |
           mkdir build
           cd build
@@ -75,6 +75,15 @@ jobs:
             Remove-Item venv -Recurse
           }
 
+      - name: Configure and build without Wheels
+        if: matrix.cmake_generator_platform == 'Win32'
+        run: |
+          mkdir build
+          cd build
+          Write-Output "Building for Win32"
+          cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+          cmake --build . --config ${{ matrix.cmake_build_type }}
+
       - name: Package
         working-directory: build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
@@ -93,7 +102,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Wheels
-        if: ${{ matrix.cmake_generator_platform != 'Win32' }}
+        if: matrix.cmake_generator_platform != 'Win32'
         uses: actions/upload-artifact@v3
         with:
           name: Wheels (${{ matrix.name }})
@@ -291,7 +300,7 @@ jobs:
     needs: [package_linux]
 
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     timeout-minutes: 120
     env:

@@ -1,18 +1,8 @@
 #include <opcuatms/exceptions.h>
-#include <testutils/testutils.h>
-#include <opendaq/opendaq.h>
-#include "testutils/memcheck_listener.h"
+#include "test_helpers.h"
 
 using DeviceModulesTest = testing::Test;
 
-// MAC CI issue
-#if !defined(SKIP_TEST_MAC_CI)
-    #if defined(__clang__) && !defined(__RESHARPER__)
-        #define SKIP_TEST_MAC_CI return
-    #else
-        #define SKIP_TEST_MAC_CI
-    #endif   
-#endif
 using namespace daq;
 
 static InstancePtr CreateServerInstance()

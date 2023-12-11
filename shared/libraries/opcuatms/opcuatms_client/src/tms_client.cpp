@@ -34,11 +34,6 @@ daq::DevicePtr TmsClient::connect()
 {
     OpcUaEndpoint endpoint("TmsClient", opcUaUrl);
     registerDaqTypes(endpoint);
-    // TODO: Now, every new added vendor spec needs to be inserted here as well.
-    // It would be better that a method would be called which add all genereted nodesets from CMake.
-    // This also applies then to the openDAQ Types...
-    endpoint.registerCustomTypes(UA_TYPES_DAQHBK_COUNT, UA_TYPES_DAQHBK);
-
 
     client = std::make_shared<OpcUaClient>(endpoint);
     if (!client->connect())

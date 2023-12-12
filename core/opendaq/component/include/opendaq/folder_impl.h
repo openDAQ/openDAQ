@@ -64,7 +64,7 @@ protected:
     void removed() override;
 
     virtual bool addItemInternal(const ComponentPtr& component);
-    void serializeCustomObjectValues(const SerializerPtr& serializer) override;
+    void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
 private:
     bool removeItemWithLocalIdInternal(const std::string& str);
     void clearInternal();
@@ -270,9 +270,9 @@ bool FolderImpl<Intf, Intfs...>::addItemInternal(const ComponentPtr& component)
 }
 
 template <class Intf, class ... Intfs>
-void FolderImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer)
+void FolderImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
-    Super::serializeCustomObjectValues(serializer);
+    Super::serializeCustomObjectValues(serializer, forUpdate);
 
     if (!items.empty())
     {
@@ -281,7 +281,10 @@ void FolderImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr
         for (const auto& item : items)
         {
             serializer.key(item.first.c_str());
-            item.second.serialize(serializer);
+            if (forUpdate)
+                item.second.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+            else
+                item.second.serialize(serializer);
         }
         serializer.endObject();
     }

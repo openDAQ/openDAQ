@@ -27,7 +27,8 @@
 #include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-    static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
+
+static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
 
 template <class Intf = IComponent, class ... Intfs>
 class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, Intfs ...>
@@ -72,13 +73,13 @@ protected:
     TagsConfigPtr tags;
     StringPtr globalId;
 
-    ErrCode serializeCustomValues(ISerializer* serializer) override;
+    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
     virtual int getSerializeFlags();
 
     std::unordered_map<std::string, SerializedObjectPtr> getSerializedItems(const SerializedObjectPtr& object);
 
     virtual void updateObject(const SerializedObjectPtr& obj);
-    virtual void serializeCustomObjectValues(const SerializerPtr& serializer);
+    virtual void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate);
     static std::string getRelativeGlobalId(const std::string& globalId);
 
 private:
@@ -339,18 +340,18 @@ void ComponentImpl<Intf, Intfs...>::removed()
 }
 
 template <class Intf, class... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serializer)
+ErrCode ComponentImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
 {
     const auto serializerPtr = SerializerPtr::Borrow(serializer);
 
-    auto errCode = Super::serializeCustomValues(serializer);
+    auto errCode = Super::serializeCustomValues(serializer, forUpdate);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
     return daqTry(
-        [&serializerPtr, this]()
+        [&serializerPtr, forUpdate, this]()
         {
-            serializeCustomObjectValues(serializerPtr);
+            serializeCustomObjectValues(serializerPtr, forUpdate);
 
             return OPENDAQ_SUCCESS;
         });
@@ -386,7 +387,7 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& /* o
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer)
+void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool /*forUpdate*/)
 {
     auto flags = getSerializeFlags();
 

@@ -95,7 +95,7 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
 protected:
-    void serializeCustomObjectValues(const SerializerPtr& serializer) override;
+    void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void updateObject(const SerializedObjectPtr& obj) override;
     int getSerializeFlags() override;
 
@@ -535,7 +535,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::Deserialize(ISerializedObject* se
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer)
+void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
     if (domainSignal.assigned())
     {
@@ -544,7 +544,7 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
         serializer->writeString(domainSignalGlobalId.c_str(), domainSignalGlobalId.size());
     }
 
-    Super::serializeCustomObjectValues(serializer);
+    Super::serializeCustomObjectValues(serializer, forUpdate);
 }
 
 template <typename TInterface, typename... Interfaces>

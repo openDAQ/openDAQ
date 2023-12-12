@@ -69,7 +69,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
 
 protected:
-    void serializeCustomObjectValues(const SerializerPtr& serializer) override;
+    void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
 
     void updateObject(const SerializedObjectPtr& obj) override;
 

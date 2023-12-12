@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/baseobject.h>
 #include <coretypes/serialized_object.h>
+#include <coretypes/serializer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -29,6 +30,7 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IUpdatable, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC update(ISerializedObject* update) = 0;
+    virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) = 0;
 };
 
 /*!

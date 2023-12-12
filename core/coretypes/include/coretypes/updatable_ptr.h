@@ -91,6 +91,15 @@ public:
         auto errCode = this->object->update(update);
         daq::checkErrorInfo(errCode);
     }
+
+    void serializeForUpdate(const ObjectPtr<ISerializer>& serializer) const
+    {
+        if (this->object == nullptr)
+            throw daq::InvalidParameterException();
+
+        auto errCode = this->object->serializeForUpdate(serializer);
+        daq::checkErrorInfo(errCode);
+    }
 };
 
 /*!

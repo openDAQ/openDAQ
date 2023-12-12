@@ -4,6 +4,8 @@
 #include <opendaq/input_port_factory.h>
 #include <opendaq/reader_errors.h>
 #include <opendaq/reader_utils.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/ownable_ptr.h>
 
 #include <fmt/ostream.h>
 #include <thread>
@@ -301,6 +303,7 @@ void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts,
     for (const auto& port : inputPorts)
     {
         auto portPtr = InputPortConfigPtr(port);
+        portPtr.asPtr<IOwnable>().setOwner(PropertyObject());
         portPtr.setNotificationMethod(PacketReadyNotification::SameThread);
         portPtr.setListener(listener);
 

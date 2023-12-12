@@ -357,6 +357,14 @@ MultiReaderPtr MultiReader(ListPtr<ISignal> signals, ReadTimeoutType timeoutType
         timeoutType
     );
 }
+template <typename TValueType = double, typename TDomainType = ClockTick>
+inline MultiReaderPtr MultiReaderFromPort(ListPtr<IInputPortConfig> ports,
+                                  ReadMode mode = ReadMode::Scaled,  
+                                  ReadTimeoutType timeoutType = ReadTimeoutType::All)
+{
+    return MultiReader_Create(ports, SampleTypeFromType<TValueType>::SampleType,
+        SampleTypeFromType<TDomainType>::SampleType, mode, timeoutType);
+}
 
 template <typename TValueType = double, typename TDomainType = ClockTick>
 MultiReaderPtr MultiReader(ListPtr<ISignal> signals, ReadMode mode, ReadTimeoutType timeoutType = ReadTimeoutType::All)

@@ -297,7 +297,6 @@ void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts,
     this->internalAddRef();
     auto listener = this->thisPtr<InputPortNotificationsPtr>();
 
-    int counter = 0u;
     for (const auto& port : inputPorts)
     {
         auto portPtr = InputPortConfigPtr(port);

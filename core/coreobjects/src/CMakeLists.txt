@@ -36,6 +36,7 @@ rtgen(SRC_Validator validator.h)
 rtgen(SRC_Unit unit.h)
 rtgen(SRC_UnitBuilder unit_builder.h)
 rtgen(SRC_ComponentType component_type.h)
+rtgen(SRC_CoreEventArgs core_event_args.h)
 
 get_target_property(CORE_CONTAINERS_SRCS core_containers INTERFACE_SOURCES)
 
@@ -136,6 +137,13 @@ source_group("component_type" FILES ${SDK_HEADERS_DIR}/component_type.h
                                     ${SDK_HEADERS_DIR}/component_type_impl.h
 )
 
+source_group("core_event_args" FILES ${SDK_HEADERS_DIR}/core_event_args.h
+                                     ${SDK_HEADERS_DIR}/core_event_args_factory.h
+                                     ${SDK_HEADERS_DIR}/core_event_args_impl.h
+                                     ${SDK_HEADERS_DIR}/core_event_args_ids.h
+                                     core_event_args_impl.cpp
+)
+
 set(SRC_Cpp version.cpp
             eval_value_impl.cpp
             eval_value_lexer.cpp
@@ -157,6 +165,7 @@ set(SRC_Cpp version.cpp
             util.cpp
             unit_impl.cpp
             unit_builder_impl.cpp
+			core_event_args_impl.cpp
 )
 
 set(SRC_PublicHeaders coreobjects.h
@@ -188,6 +197,8 @@ set(SRC_PublicHeaders coreobjects.h
                       errors.h
                       unit_factory.h
                       component_type.h
+                      core_event_args_factory.h 
+                      core_event_args_ids.h 
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -209,6 +220,7 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        property_object_class_builder_impl.h
                        property_object_internal.h
                        component_type_impl.h
+					   core_event_args_impl.h
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)
@@ -235,6 +247,7 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_Unit}
                                ${SRC_UnitBuilder}
                                ${SRC_ComponentType}
+                               ${SRC_CoreEventArgs}
                                coreobjects.natvis
 )
 

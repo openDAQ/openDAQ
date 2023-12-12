@@ -34,12 +34,14 @@ struct MockContext : daq::ImplementationOf<daq::IContext, daq::IContextInternal>
     MOCK_METHOD(daq::ErrCode, getLogger, (daq::ILogger** logger), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getModuleManager, (daq::IBaseObject** manager), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getTypeManager, (daq::ITypeManager** manager), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getOnCoreEvent, (daq::IEvent** event), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, moveModuleManager, (daq::IModuleManager** manager), (override MOCK_CALL));
 
     daq::SchedulerPtr scheduler;
     daq::LoggerPtr logger;
     daq::TypeManagerPtr typeManager;
     daq::BaseObjectPtr moduleManager;
+    daq::EventEmitter<daq::ComponentPtr, daq::CoreEventArgsPtr> coreEvent;
 
     MockContext()
     {
@@ -64,6 +66,12 @@ struct MockContext : daq::ImplementationOf<daq::IContext, daq::IContextInternal>
         EXPECT_CALL(*this, getModuleManager)
             .Times(AnyNumber())
             .WillRepeatedly(DoAll(Invoke([&](daq::IBaseObject** moduleManagerOut) { *moduleManagerOut = moduleManager.addRefAndReturn(); }),
+                                  Return(OPENDAQ_SUCCESS)));
+
+        
+        EXPECT_CALL(*this, getOnCoreEvent)
+            .Times(AnyNumber())
+            .WillRepeatedly(DoAll(Invoke([&](daq::IEvent** event) { *event = coreEvent.addRefAndReturn(); }),
                                   Return(OPENDAQ_SUCCESS)));
     }
 };

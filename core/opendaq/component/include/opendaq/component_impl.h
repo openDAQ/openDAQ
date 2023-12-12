@@ -19,6 +19,7 @@
 #include <opendaq/component.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/removable.h>
+#include <coreobjects/core_event_args_factory.h>
 #include <coreobjects/property_object_impl.h>
 #include <opendaq/component_ptr.h>
 #include <coretypes/weakrefptr.h>
@@ -71,6 +72,7 @@ protected:
     StringPtr localId;
     TagsConfigPtr tags;
     StringPtr globalId;
+    EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
 
     ErrCode serializeCustomValues(ISerializer* serializer) override;
     virtual int getSerializeFlags();
@@ -92,8 +94,14 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     const StringPtr& localId,
     const StringPtr& className,
     const ComponentStandardProps propsMode)
-    : GenericPropertyObjectImpl<Intf, IRemovable, Intfs ...>(context.assigned() ? context.getTypeManager() : nullptr,
-                                                             className)
+    : GenericPropertyObjectImpl<Intf, IRemovable, Intfs ...>(
+        context.assigned() ? context.getTypeManager() : nullptr,
+        className,
+        [&](const CoreEventArgsPtr& args)
+         {
+             const ComponentPtr thisPtr = this->template borrowPtr<ComponentPtr>();
+             this->coreEvent(thisPtr, args);
+         })
       , context(context)
       , active(true)
       , isComponentRemoved(false)
@@ -109,6 +117,10 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     else
         globalId = localId;
 
+    if (!context.assigned())
+        throw InvalidParameterException{"Context must be assigned on component creation"};
+
+    context->getOnCoreEvent(&this->coreEvent);
     initComponentProperties(propsMode);
 }
 

@@ -1423,3 +1423,18 @@ TEST_F(MultiReaderTest, MultiReaderWithInputPort)
     ASSERT_THAT(time[1], ElementsAreArray(time[0]));
     ASSERT_THAT(time[2], ElementsAreArray(time[0]));
 }
+
+TEST_F(MultiReaderTest, MultiReaderWithDifferentInpurts)
+{
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(3);
+
+    addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", Ratio(1, 1000 * 10ll), LinearDataRule(10, 0)));
+    addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
+
+    auto portList = signalsToPortsList();
+    portList.pushBack(readSignals[0].signal);
+
+    ASSERT_THROW(MultiReader(portList), InvalidParameterException);
+}

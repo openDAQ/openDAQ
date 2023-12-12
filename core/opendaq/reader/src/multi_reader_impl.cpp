@@ -24,11 +24,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IBaseObject>& list,
 {    
     bool isSignal = CheckPreconditions(list);
 
-    daq::SignalPtr firstSignal;
-    if (isSignal)
-        firstSignal = list[0];
-    else
-        firstSignal = InputPortConfigPtr(list[0]).getSignal();
+    daq::SignalPtr firstSignal = isSignal ? list[0] : InputPortConfigPtr(list[0]).getSignal();
     loggerComponent = firstSignal.getContext().getLogger().getOrAddComponent("MultiReader");
 
     if (isSignal)
@@ -195,7 +191,7 @@ static void checkSameSampleRate(const ListPtr<ISignal>& list)
 }
 
 template <typename T>
-static bool ListElementsHaveSameType(const ListPtr<IBaseObject>& list)
+bool MultiReaderImpl::ListElementsHaveSameType(const ListPtr<IBaseObject>& list)
 {
     for (const auto & el : list)
         if (el.asPtrOrNull<T>() == nullptr)
@@ -216,21 +212,28 @@ bool MultiReaderImpl::CheckPreconditions(const ListPtr<IBaseObject>& list)
     {
         if (!ListElementsHaveSameType<ISignal>(list))
             throw InvalidParameterException("List of signals contains not signal object");
+
         signals = list;
     }
     else
     { 
         if (!ListElementsHaveSameType<IInputPortConfig>(list))
-            throw InvalidParameterException("List of ports contains not ports object");
+            throw InvalidParameterException("List of ports contains not port object");
+
         signals = List<IInputPortConfig>();
         for (const auto & port : list)
-            signals.pushBack(InputPortConfigPtr(port).getSignal());
+        {
+            auto portPtr = InputPortConfigPtr(port);
+            if (!portPtr.getConnection().assigned())
+                throw ArgumentNullException("Input port not connected to signal");
+
+            signals.pushBack(portPtr.getSignal());
+        }
     }
 
     checkSameDomain(signals);
     checkSameSampleRate(signals);
     return isSignal;
-    // return true;
 }
 
 void MultiReaderImpl::setStartInfo()

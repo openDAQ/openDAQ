@@ -73,8 +73,8 @@ private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
 
-    // template <typename T>
-    // static bool ListElementsHaveSameType(const ListPtr<IBaseObject>& list);
+    template <typename T>
+    static bool ListElementsHaveSameType(const ListPtr<IBaseObject>& list);
     static bool CheckPreconditions(const ListPtr<IBaseObject>& list);
     ListPtr<ISignal> getSignals() const;
 

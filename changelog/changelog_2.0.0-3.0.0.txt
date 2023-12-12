@@ -1,3 +1,13 @@
+12.12.2023
+Description:
+  - Support creating readers with IInputPort
+
++ [factory] PacketReaderPtr PacketReaderFromPort(InputPortConfigPtr port)
++ [factory] StreamReaderPtr StreamReaderFromPort(InputPortConfigPtr port, SampleType valueReadType, SampleType domainReadType, ReadMode mode, ReadTimeoutType timeoutType)
++ [factory] TailReaderFromPort(InputPortConfigPtr port, SizeT historySize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
++ [factory] BlockReaderFromPort(InputPortConfigPtr port, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
++ [factory] MultiReaderFromPort(ListPtr<IInputPortConfig> ports, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType)
+
 7.12.2023
 
 Description:

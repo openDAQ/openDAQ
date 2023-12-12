@@ -85,7 +85,7 @@ protected:
 
     void removed() override;
 
-    void serializeCustomObjectValues(const SerializerPtr& serializer) override;
+    void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void updateInputPort(const std::string& localId, const SerializedObjectPtr& obj);
     void deserializeFunctionBlock(const std::string& fbId, const SerializedObjectPtr& serializedFunctionBlock) override;
 
@@ -343,18 +343,21 @@ void FunctionBlockImpl<TInterface, Interfaces...>::removed()
 }
 
 template <typename TInterface, typename... Interfaces>
-void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer)
+void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
     serializer.key("typeId");
     auto typeId = type.getId();
     serializer.writeString(typeId.getCharPtr(), typeId.getLength());
 
-    Super::serializeCustomObjectValues(serializer);
+    Super::serializeCustomObjectValues(serializer, forUpdate);
 
     if (!inputPorts.isEmpty())
     {
         serializer.key("ip");
-        inputPorts.serialize(serializer);
+        if (forUpdate)
+            inputPorts.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+        else
+            inputPorts.serialize(serializer);
     }
 }
 

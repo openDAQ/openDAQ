@@ -67,7 +67,7 @@ protected:
 
     void removed() override;
 
-    ErrCode serializeCustomValues(ISerializer* serializer) override;
+    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
     virtual void deserializeFunctionBlock(const std::string& fbId,
                                           const SerializedObjectPtr& serializedFunctionBlock);
     virtual void updateSignal(const std::string& sigId,
@@ -354,25 +354,31 @@ void GenericSignalContainerImpl<Intf, Intfs...>::removed()
 }
 
 template <class Intf, class ... Intfs>
-ErrCode GenericSignalContainerImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serializer)
+ErrCode GenericSignalContainerImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
 {
-    auto errCode = Super::serializeCustomValues(serializer);
+    auto errCode = Super::serializeCustomValues(serializer, forUpdate);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
     return daqTry(
-        [&serializer, this]()
+        [&serializer, this, forUpdate]()
         {
             if (!signals.isEmpty())
             {
                 serializer->key("sig");
-                signals.serialize(serializer);
+                if (forUpdate)
+                    signals.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+                else
+                    signals.serialize(serializer);
             }
 
             if (!functionBlocks.isEmpty())
             {
                 serializer->key("fb");
-                functionBlocks.serialize(serializer);
+                if (forUpdate)
+                    functionBlocks.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+                else
+                    functionBlocks.serialize(serializer);
             }
 
             return OPENDAQ_SUCCESS;

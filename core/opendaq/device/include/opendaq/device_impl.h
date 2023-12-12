@@ -136,7 +136,7 @@ protected:
                                   const IoFolderConfigPtr& parent = nullptr,
                                   ComponentStandardProps standardPropsConfig = ComponentStandardProps::Add);
 
-    void serializeCustomObjectValues(const SerializerPtr& serializer) override;
+    void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void deserializeFunctionBlock(const std::string& fbId,
                                   const SerializedObjectPtr& serializedFunctionBlock) override;
     void updateDevice(const std::string& deviceId, const SerializedObjectPtr& serializedDevice);
@@ -706,20 +706,26 @@ inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(c
 }
 
 template <typename TInterface, typename ... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer)
+void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
-    Super::serializeCustomObjectValues(serializer);
+    Super::serializeCustomObjectValues(serializer, forUpdate);
 
     if (!ioFolder.isEmpty())
     {
         serializer->key("io");
-        ioFolder.serialize(serializer);
+        if (forUpdate)
+            ioFolder.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+        else
+            ioFolder.serialize(serializer);
     }
 
     if (!devices.isEmpty())
     {
         serializer->key("dev");
-        devices.serialize(serializer);
+        if (forUpdate)
+            devices.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+        else
+            devices.serialize(serializer);
     }
 
     for (const auto& component : this->components)
@@ -727,7 +733,10 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         if (!this->defaultComponents.count(component.getLocalId()))
         {
             serializer->key(component.getLocalId().getCharPtr());
-            component.serialize(serializer);
+            if (forUpdate)
+                component.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+            else
+                component.serialize(serializer);
         }
     }
 }

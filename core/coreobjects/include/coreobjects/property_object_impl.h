@@ -90,6 +90,7 @@ public:
 
     // IUpdatable
     virtual ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+    virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
 
     // ISerializable
     virtual ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
@@ -137,16 +138,16 @@ protected:
     // Serialization
 
     ErrCode serializePropertyValues(ISerializer* serializer);
+    ErrCode serializeLocalProperties(ISerializer* serializer);
 
-    virtual ErrCode serializeCustomValues(ISerializer* serializer);
+    virtual ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate);
     virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
 
     static ErrCode DeserializePropertyValues(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IPropertyObject* propObjPtr);
-    static ErrCode DeserializeProperties(ISerializedObject* serialized,
-                                         IBaseObject* context,
-                                         IFunction* factoryCallback,
-                                         IPropertyObject* propObjPtr);
-
+    static ErrCode DeserializeLocalProperties(ISerializedObject* serialized,
+                                              IBaseObject* context,
+                                              IFunction* factoryCallback,
+                                              IPropertyObject* propObjPtr);
 
     // Child property handling - Used when a property is queried in the "parent.child" format
     bool isChildProperty(const StringPtr& name, StringPtr& childName, StringPtr& subName) const;
@@ -1673,7 +1674,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefe
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeCustomValues(ISerializer* /*serializer*/)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeCustomValues(ISerializer* /*serializer*/, bool /*forUpdate*/)
 {
     return OPENDAQ_SUCCESS;
 }
@@ -1775,6 +1776,26 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
     return OPENDAQ_SUCCESS;
 }
 
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLocalProperties(ISerializer* serializer)
+{
+    return daqTry([&serializer, this]
+    {
+        if (localProperties.size() == 0)
+            return OPENDAQ_NOTFOUND;
+
+        checkErrorInfo(serializer->key("properties"));
+        checkErrorInfo(serializer->startList());
+        for (const auto& prop : localProperties)
+        {
+            prop.second.serialize(serializer);
+        }
+        checkErrorInfo(serializer->endList());
+
+        return OPENDAQ_SUCCESS;
+    });
+}
+
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(ISerializer* serializer)
 {
@@ -1788,13 +1809,19 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
         serializer->writeBool(frozen);
     }
 
-    ErrCode errCode = serializeCustomValues(serializer);
+    ErrCode errCode = serializeCustomValues(serializer, false);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
     }
 
     errCode = serializePropertyValues(serializer);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+
+    errCode = serializeLocalProperties(serializer);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -1831,7 +1858,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeP
         return errCode;
     }
 
-    errCode = DeserializeProperties(serialized, context, factoryCallback, propObjPtr);
+    errCode = DeserializeLocalProperties(serialized, context, factoryCallback, propObjPtr);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -1947,13 +1974,67 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeP
     return OPENDAQ_SUCCESS;
 }
 
-template <typename PropObjInterface, typename ... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeProperties(
-    ISerializedObject* /*serialized*/,
-    IBaseObject* /*context*/,
-    IFunction* /*factoryCallback*/,
-    IPropertyObject* /*propObjPtr*/)
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeLocalProperties(ISerializedObject* serialized,
+                                                                                               IBaseObject* context,
+                                                                                               IFunction* factoryCallback,
+                                                                                               IPropertyObject* propObjPtr)
 {
+    auto keyStr = String("properties");
+
+    Bool hasKey;
+    ErrCode errCode = serialized->hasKey(keyStr, &hasKey);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+
+    if (!IsTrue(hasKey))
+        return OPENDAQ_NOTFOUND;
+
+    SerializedListPtr propertyList;
+    errCode = serialized->readSerializedList(keyStr, &propertyList);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+
+    for (SizeT i = 0; i < propertyList.getCount(); i++)
+    {
+        IBaseObject* prop;
+        errCode = propertyList->readObject(context, factoryCallback, &prop);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
+        Finally releaseProp([prop] { prop->releaseRef(); });
+
+        IProperty* property;
+        errCode = prop->borrowInterface(IProperty::Id, reinterpret_cast<void**>(&property));
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
+        IString* propName;
+        errCode = property->getName(&propName);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
+        Finally releaseName([propName] { propName->releaseRef(); });
+
+        Bool hasProperty;
+        errCode = propObjPtr->hasProperty(propName, &hasProperty);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
+        if (!hasProperty)
+        {
+            errCode = propObjPtr->addProperty(property);
+            if (OPENDAQ_FAILED(errCode))
+            {
+                return errCode;
+            }
+        }
+    }
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -2194,6 +2275,35 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISeri
     {
         return OPENDAQ_ERR_GENERALERROR;
     }
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeForUpdate(ISerializer* serializer)
+{
+    serializer->startTaggedObject(this);
+
+    SERIALIZE_PROP_PTR(className)
+
+    if (frozen)
+    {
+        serializer->key("frozen");
+        serializer->writeBool(frozen);
+    }
+
+    ErrCode errCode = serializeCustomValues(serializer, true);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+
+    errCode = serializePropertyValues(serializer);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+
+    serializer->endObject();
+    return OPENDAQ_SUCCESS;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(PropertyObjectImpl)

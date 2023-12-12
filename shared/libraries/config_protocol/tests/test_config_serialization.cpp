@@ -30,7 +30,7 @@ TEST_F(ConfigProtocolSerializationTest, Test)
 
     auto clientComm = std::make_shared<ConfigProtocolClientComm>(nullptr);
 
-    const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(clientComm, nullptr, nullptr, "id", TypeManager());
+    const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(clientComm, nullptr, nullptr, "temp", TypeManager());
     bool configComponentInstantiated = false;
     const ComponentPtr newComponent = deserializer.deserialize(str1,
                                                                deserializeContext,

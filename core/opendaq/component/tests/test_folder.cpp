@@ -200,7 +200,7 @@ TEST_F(FolderTest, SerializeAndDeserialize)
 
     const auto deserializer = daq::JsonDeserializer();
 
-    const auto deserializeContext = daq::ComponentDeserializeContext(nullptr, nullptr, "id", daq::TypeManager());
+    const auto deserializeContext = daq::ComponentDeserializeContext(nullptr, nullptr, "temp", daq::TypeManager());
 
     const daq::ComponentPtr newComponent = deserializer.deserialize(str1, deserializeContext, nullptr);
 

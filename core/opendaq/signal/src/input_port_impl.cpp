@@ -434,9 +434,9 @@ ErrCode InputPortImpl::Deserialize(ISerializedObject* serialized, IBaseObject* c
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }
 
-void InputPortImpl::serializeCustomObjectValues(const SerializerPtr& serializer)
+void InputPortImpl::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
-    Super::serializeCustomObjectValues(serializer);
+    Super::serializeCustomObjectValues(serializer, forUpdate);
 
     auto signal = getSignalNoLock();
 

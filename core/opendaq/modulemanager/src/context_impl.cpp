@@ -74,6 +74,14 @@ ErrCode ContextImpl::getTypeManager(ITypeManager** manager)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ContextImpl::getOnCoreEvent(IEvent** event)
+{
+    OPENDAQ_PARAM_NOT_NULL(event);
+
+    *event = coreEvent.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode ContextImpl::moveModuleManager(IModuleManager** manager)
 {
     OPENDAQ_PARAM_NOT_NULL(manager);

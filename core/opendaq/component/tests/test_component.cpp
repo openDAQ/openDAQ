@@ -85,7 +85,7 @@ TEST_F(ComponentTest, StandardProperties)
 {
     const auto name = "foo";
     const auto desc = "bar";
-    const auto component = Component(nullptr, nullptr, "temp");
+    const auto component = Component(NullContext(), nullptr, "temp");
 
     component.setName(name);
     component.setDescription(desc);
@@ -98,7 +98,7 @@ TEST_F(ComponentTest, SerializeAndUpdate)
 {
     const auto name = "foo";
     const auto desc = "bar";
-    const auto component = Component(nullptr, nullptr, "temp");
+    const auto component = Component(NullContext(), nullptr, "temp");
 
     component.setName(name);
     component.setDescription(desc);
@@ -107,7 +107,7 @@ TEST_F(ComponentTest, SerializeAndUpdate)
     component.serialize(serializer);
     const auto str1 = serializer.getOutput();
 
-    const auto newComponent = Component(nullptr, nullptr, "temp");
+    const auto newComponent = Component(NullContext(), nullptr, "temp");
     const auto deserializer = JsonDeserializer();
     const auto updatable = newComponent.asPtr<IUpdatable>();
 

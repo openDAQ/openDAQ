@@ -1,18 +1,11 @@
 set_cmake_folder_context(TARGET_FOLDER_NAME)
 project(opcua_daq_types VERSION 1.0.0 DESCRIPTION "DAQ types" LANGUAGES C)
 
+option(HBK_NODESET "Adds an HBK Nodeset on top of the DAQ ESP spec" ON)
+
 # Define empty list of nodeset dependencies
 list(APPEND OPC_UA_NODESET_DEPENDENCIES)
 set(OPCUA_NODESET_NAMES)
-
-# Add supported Vendors by openDAQ. Please add the vendor name which is used in this file name pattern:
-# Opc.Ua.Daq.Vendor.xxx.NodeSet2.xml
-list(APPEND OPC_UA_VENDOR_LIST "Hbk")
-# Add repository to be fetched and the used tag. Important index needs to be match with vendor list!
-list(APPEND OPC_UA_VENDOR_REPOSITORY_LIST "https://github.com/hbkworld/opc-ua-specs.git v3.0.12")
-
-# Define empty list for spec directories 
-list(APPEND VENDOR_COMPANION_SPECIFICATIONS_DIRPREFIX)
 
 #
 # Fetch the openDAQ OPC-UA Companion Specification NodeSet
@@ -31,32 +24,6 @@ if(NOT daqspec_POPULATED)
     FetchContent_Populate(daqspec)
     set(COMPANION_SPECIFICATIONS_DIRPREFIX "${daqspec_SOURCE_DIR}/opendaq")
 endif()
-
-#
-# Fetch vendor specifications. Since the repository link could be every time different,
-#
-set(LOOP_RUN_INDEX 0)
-foreach(REP ${OPC_UA_VENDOR_REPOSITORY_LIST})
-  string(REPLACE " " ";" REP ${REP})
-  list(GET REP 0 REP_URL)
-  list(GET REP 1 REP_TAG)
-  list(GET OPC_UA_VENDOR_LIST 0 vendor)
-  string(TOLOWER ${vendor} vendor)
-
-  get_custom_fetch_content_params(daq${vendor}spec FC_PARAMS)
-
-  FetchContent_Declare(daq${vendor}spec
-    GIT_REPOSITORY ${REP_URL}
-    GIT_TAG        ${REP_TAG}
-    ${FC_PARAMS}
-  )
-  FetchContent_GetProperties(daq${vendor}spec)
-  if(NOT daq${vendor}spec_POPULATED)
-      message(STATUS "Fetching ${vendor} daq specification ${REP_TAG}...")
-      FetchContent_Populate(daq${vendor}spec)
-      list(APPEND VENDOR_COMPANION_SPECIFICATIONS_DIRPREFIX "${daq${vendor}spec_SOURCE_DIR}/opendaq/hbk")
-  endif()
-endforeach()
 
 # python interpreter is required for the code genaration process
 find_package(Python3 REQUIRED)
@@ -192,39 +159,10 @@ list(APPEND OPC_UA_NODESET_COMPILE_FLAGS NAMESPACE_DAQESP=${NAME_SPACE_INDEX})
 list(APPEND OPCUA_NODESET_NAMES "daqesp")
 MATH(EXPR NAME_SPACE_INDEX "${NAME_SPACE_INDEX}+1")
 
-
-set(LOOP_RUN_INDEX 0)
-foreach(VENDOR_SPEC ${OPC_UA_VENDOR_LIST})
-  message(STATUS "Generating DAQ ${VENDOR_SPEC} nodeset...")
-  string(TOLOWER ${VENDOR_SPEC} specName)
-  string(TOUPPER ${VENDOR_SPEC} specNameUpper)
-  list(GET VENDOR_COMPANION_SPECIFICATIONS_DIRPREFIX 0 VENDOR_COMPANION_SPECIFICATION_DIRPREFIX)
-
-  ua_generate_nodeset_and_datatypes(
-    NAME          "daq${specName}"
-    TARGET_PREFIX "${PROJECT_NAME}"
-    IMPORT_BSD    "UA_TYPES#${open62541_NODESET_DIR}/Schema/Opc.Ua.Types.bsd"
-    IMPORT_BSD    "UA_TYPES_DAQBT#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bt.Types.bsd"
-    IMPORT_BSD    "UA_TYPES_DAQBSP#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Bsp.Types.bsd"
-    IMPORT_BSD    "UA_TYPES_DAQDEVICE#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Device.Types.bsd"
-    IMPORT_BSD    "UA_TYPES_DAQESP#${COMPANION_SPECIFICATIONS_DIRPREFIX}/Opc.Ua.Daq.Esp.Types.bsd"
-    FILE_CSV      "${VENDOR_COMPANION_SPECIFICATION_DIRPREFIX}/Opc.Ua.Daq.Vendor.${VENDOR_SPEC}.NodeIds.csv"
-    FILE_BSD      "${VENDOR_COMPANION_SPECIFICATION_DIRPREFIX}/Opc.Ua.Daq.Vendor.${VENDOR_SPEC}.Types.bsd"
-    OUTPUT_DIR    "${GENERATE_OUTPUT_DIR}"
-    NAMESPACE_MAP "${NAME_SPACE_INDEX}:https://docs.opendaq.io/specifications/opc-ua/daq/vendor/${specName}"
-    FILE_NS       "${VENDOR_COMPANION_SPECIFICATION_DIRPREFIX}/Opc.Ua.Daq.Vendor.${VENDOR_SPEC}.NodeSet2.xml"
-    DEPENDS       "daqesp"
-    INTERNAL
-  )
-  list(APPEND OPC_UA_NODESET_DEPENDENCIES ${PROJECT_NAME}-ns-daq${specName})
-  list(APPEND OPC_UA_NODESET_SOURCES ${UA_NODESET_DAQ${specNameUpper}_SOURCES} ${UA_TYPES_DAQ${specNameUpper}_SOURCES})
-  list(APPEND OPC_UA_NODESET_HEADERS ${UA_NODESET_DAQ${specNameUpper}_HEADERS} ${UA_TYPES_DAQ${specNameUpper}_HEADERS} ${GENERATE_OUTPUT_DIR}/daq${specName}_nodeids.h)
-  list(APPEND OPC_UA_NODESET_COMPILE_FLAGS NAMESPACE_DAQ${specNameUpper}=${NAME_SPACE_INDEX})
-  list(APPEND OPCUA_NODESET_NAMES "daq${specName}")
-  MATH(EXPR NAME_SPACE_INDEX "${NAME_SPACE_INDEX}+1")
-  MATH(EXPR LOOP_RUN_INDEX "${LOOP_RUN_INDEX}+1")
-endforeach()
-
+# Add Vendor Specs if wanted
+if(HBK_NODESET)
+  include(hbk/CMakeLists.txt)
+endif()
 #
 # Create custom target that will also execute the node compilations (because of the ALL keyword below)
 #

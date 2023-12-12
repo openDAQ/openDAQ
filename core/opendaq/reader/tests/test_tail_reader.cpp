@@ -856,3 +856,26 @@ TEST_F(TailReaderTest, TailReaderWithInputPort)
     // domain was read and updated from packet info
     ASSERT_EQ(reader.getDomainReadType(), SampleType::RangeInt64);
 }
+
+TEST_F(TailReaderTest, MultipleTailReaderToInputPort)
+{
+    const SizeT HISTORY_SIZE = 2u;
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+
+    auto reader1 = TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+    ASSERT_THROW(TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined), AlreadyExistsException);
+}
+
+TEST_F(TailReaderTest, TailReaderWithNotConnectedInputPort)
+{
+    const SizeT HISTORY_SIZE = 2u;
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    ASSERT_THROW(TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined), ArgumentNullException);
+}

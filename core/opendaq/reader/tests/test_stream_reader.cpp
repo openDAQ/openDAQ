@@ -878,3 +878,21 @@ TYPED_TEST(StreamReaderTest, StreamReaderWithInputPort)
     // domain was read and updated from packet info
     ASSERT_EQ(reader.getDomainReadType(), SampleType::RangeInt64);
 }
+
+TYPED_TEST(StreamReaderTest, MultipleStreamReaderToInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+
+    auto reader1 = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
+    ASSERT_THROW(daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined), AlreadyExistsException);
+}
+
+TYPED_TEST(StreamReaderTest, StreamReaderWithNotConnectedInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+
+    ASSERT_THROW(daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined), ArgumentNullException);
+}

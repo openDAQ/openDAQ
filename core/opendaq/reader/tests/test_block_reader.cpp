@@ -860,16 +860,6 @@ TYPED_TEST(BlockReaderTest, ToString)
     daqFreeMemory(str);
 }
 
-TYPED_TEST(BlockReaderTest, MultipleBlockReaderToInputPort)
-{
-    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
-    
-    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
-    auto reader1 = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
-    ASSERT_THROW(daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined), AlreadyExistsException);
-}
-
 TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
@@ -890,4 +880,23 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
     double samples1[BLOCK_SIZE]{};
     RangeType64 domain1[BLOCK_SIZE]{};
     reader1.readWithDomain(&samples1, &domain1, &count1);
+}
+
+
+TYPED_TEST(BlockReaderTest, MultipleBlockReaderToInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+    auto reader1 = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    ASSERT_THROW(daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined), AlreadyExistsException);
+}
+
+TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    ASSERT_THROW(daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined), ArgumentNullException);
 }

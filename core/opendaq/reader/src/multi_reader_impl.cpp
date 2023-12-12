@@ -24,7 +24,11 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IBaseObject>& list,
 {    
     bool isSignal = CheckPreconditions(list);
 
-    daq::SignalPtr firstSignal = isSignal ? list[0] : InputPortConfigPtr(list[0]).getSignal();
+    daq::SignalPtr firstSignal;
+    if (isSignal)
+        firstSignal = list[0];
+    else 
+        firstSignal = InputPortConfigPtr(list[0]).getSignal();
     loggerComponent = firstSignal.getContext().getLogger().getOrAddComponent("MultiReader");
 
     if (isSignal)

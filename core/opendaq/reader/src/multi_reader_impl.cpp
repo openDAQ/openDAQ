@@ -14,41 +14,25 @@ using Milliseconds = duration<double, std::milli>;
 
 BEGIN_NAMESPACE_OPENDAQ
 
-MultiReaderImpl::MultiReaderImpl(const ListPtr<ISignal>& signals,
+MultiReaderImpl::MultiReaderImpl(const ListPtr<IBaseObject>& list,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
                                  ReadMode mode,
                                  ReadTimeoutType timeoutType)
-{
-    CheckPreconditions(signals);
+{    
+    bool isSignal = CheckPreconditions(list);
 
-    auto context = signals[0].getContext();
-    loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
+    daq::SignalPtr firstSignal;
+    if (isSignal)
+        firstSignal = list[0];
+    else
+        firstSignal = InputPortConfigPtr(list[0]).getSignal();
+    loggerComponent = firstSignal.getContext().getLogger().getOrAddComponent("MultiReader");
 
-    connectSignals(signals, valueReadType, domainReadType, mode);
-
-    SizeT min{};
-    SyncStatus syncStatus{};
-    ErrCode errCode = synchronize(min, syncStatus);
-
-    checkErrorInfo(errCode);
-}
-
-MultiReaderImpl::MultiReaderImpl(IList* ports,
-                    SampleType valueReadType,
-                    SampleType domainReadType,
-                    ReadMode mode,
-                    ReadTimeoutType timeoutType)
-{
-    if (ports == nullptr)
-        throw ArgumentNullException();
-
-    auto portsPtr = ListPtr<IInputPortConfig>::Borrow(ports);
-    CheckPreconditions(portsPtr);
-    auto context = InputPortConfigPtr(portsPtr[0]).getSignal().getContext();
-    loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
-
-    connectPorts(portsPtr, valueReadType, domainReadType, mode);
+    if (isSignal)
+        connectSignals(list, valueReadType, domainReadType, mode);
+    else
+        connectPorts(list, valueReadType, domainReadType, mode);
 
     SizeT min{};
     SyncStatus syncStatus{};
@@ -208,26 +192,43 @@ static void checkSameSampleRate(const ListPtr<ISignal>& list)
     }
 }
 
-void MultiReaderImpl::CheckPreconditions(const ListPtr<ISignal>& list)
+template <typename T>
+static bool ListElementsHaveSameType(const ListPtr<IBaseObject>& list)
 {
-    if (list.getCount() == 0)
-        throw InvalidParameterException("Need at least one signal.");
-
-    checkSameDomain(list);
-    checkSameSampleRate(list);
+    for (const auto & el : list)
+        if (el.asPtrOrNull<T>() == nullptr)
+            return false;
+    return true;
 }
 
-void MultiReaderImpl::CheckPreconditions(const ListPtr<IInputPortConfig>& list)
+bool MultiReaderImpl::CheckPreconditions(const ListPtr<IBaseObject>& list)
 {
+    if (!list.assigned())
+        throw NotAssignedException("List of inputs is not assigned");
     if (list.getCount() == 0)
         throw InvalidParameterException("Need at least one signal.");
 
-    auto signals = List<IInputPortConfig>();
-    for (const auto & port : list)
-        signals.pushBack(InputPortConfigPtr(port).getSignal());
+    bool isSignal = list[0].asPtrOrNull<ISignal>() != nullptr;
+    ListPtr<ISignal> signals;
+    if (isSignal)
+    {
+        if (!ListElementsHaveSameType<ISignal>(list))
+            throw InvalidParameterException("List of signals contains not signal object");
+        signals = list;
+    }
+    else
+    { 
+        if (!ListElementsHaveSameType<IInputPortConfig>(list))
+            throw InvalidParameterException("List of ports contains not ports object");
+        signals = List<IInputPortConfig>();
+        for (const auto & port : list)
+            signals.pushBack(InputPortConfigPtr(port).getSignal());
+    }
 
     checkSameDomain(signals);
     checkSameSampleRate(signals);
+    return isSignal;
+    // return true;
 }
 
 void MultiReaderImpl::setStartInfo()
@@ -908,13 +909,4 @@ OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     SampleType, domainReadType
 )
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY, MultiReader,
-    IMultiReader, createMultiReaderFromPort,
-    IList*, ports,
-    SampleType, valueReadType,
-    SampleType, domainReadType,
-    ReadMode, mode,
-    ReadTimeoutType, timeoutType
-)
 END_NAMESPACE_OPENDAQ

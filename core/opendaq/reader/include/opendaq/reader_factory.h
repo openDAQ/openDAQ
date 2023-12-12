@@ -338,7 +338,7 @@ inline MultiReaderPtr MultiReaderFromPort(ListPtr<IInputPortConfig> ports,
                                   ReadMode mode = ReadMode::Scaled,  
                                   ReadTimeoutType timeoutType = ReadTimeoutType::All)
 {
-    return MultiReaderFromPort_Create(ports, valueReadType, domainReadType, mode, timeoutType);
+    return MultiReader_Create(ports, valueReadType, domainReadType, mode, timeoutType);
 }
 
 inline MultiReaderPtr MultiReaderFromExisting(const MultiReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)

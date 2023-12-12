@@ -24,13 +24,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class MultiReaderImpl : public ImplementationOfWeak<IMultiReader, IReaderConfig, IInputPortNotifications>
 {
 public:
-    MultiReaderImpl(const ListPtr<ISignal>& signals,
-                    SampleType valueReadType,
-                    SampleType domainReadType,
-                    ReadMode mode,
-                    ReadTimeoutType timeoutType);
-
-    MultiReaderImpl(IList* ports,
+    MultiReaderImpl(const ListPtr<IBaseObject>& list,
                     SampleType valueReadType,
                     SampleType domainReadType,
                     ReadMode mode,
@@ -79,8 +73,9 @@ private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
 
-    static void CheckPreconditions(const ListPtr<ISignal>& list);
-    static void CheckPreconditions(const ListPtr<IInputPortConfig>& list);
+    // template <typename T>
+    // static bool ListElementsHaveSameType(const ListPtr<IBaseObject>& list);
+    static bool CheckPreconditions(const ListPtr<IBaseObject>& list);
     ListPtr<ISignal> getSignals() const;
 
     void setStartInfo();

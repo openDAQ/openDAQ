@@ -11,7 +11,7 @@ type
   {$MINENUMSIZE 4}
 
   IEvent = interface(IBaseObject)
-  ['{1c96e172-d48e-525a-9f1f-b31e6d08d20d}']
+  ['{82774C35-1638-5228-9A72-8DDDFDF10C10}']
     function AddHandler(EventHandler : IEventHandler) : ErrCode; stdcall;
     function RemoveHandler(EventHandler : IEventHandler) : ErrCode; stdcall;
     function Trigger(Sender : IBaseObject; Args : IEventArgs) : ErrCode; stdcall;

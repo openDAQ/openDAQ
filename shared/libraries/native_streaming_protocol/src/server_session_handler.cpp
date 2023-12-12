@@ -142,6 +142,36 @@ void ServerSessionHandler::sendPacket(const SignalNumericIdType signalId, const 
     }
 }
 
+void ServerSessionHandler::sendSubscribingDone(const SignalNumericIdType signalNumericId)
+{
+    std::vector<WriteTask> tasks;
+
+    // create write task for signal numeric ID
+    tasks.push_back(createWriteNumberTask<SignalNumericIdType>(signalNumericId));
+
+    // create write task for transport header
+    size_t payloadSize = calculatePayloadSize(tasks);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_ACK, payloadSize);
+    tasks.insert(tasks.begin(), writeHeaderTask);
+
+    session->scheduleWrite(tasks);
+}
+
+void ServerSessionHandler::sendUnsubscribingDone(const SignalNumericIdType signalNumericId)
+{
+    std::vector<WriteTask> tasks;
+
+    // create write task for signal numeric ID
+    tasks.push_back(createWriteNumberTask<SignalNumericIdType>(signalNumericId));
+
+    // create write task for transport header
+    size_t payloadSize = calculatePayloadSize(tasks);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK, payloadSize);
+    tasks.insert(tasks.begin(), writeHeaderTask);
+
+    session->scheduleWrite(tasks);
+}
+
 void ServerSessionHandler::sendPacketBuffer(const PacketBufferPtr& packetBuffer)
 {
     std::vector<WriteTask> tasks;
@@ -195,6 +225,7 @@ ReadTask ServerSessionHandler::readSignalSubscribe(const void *data, size_t size
     }
 
     signalSubscriptionHandler(signalNumericId, signalIdString, true, session);
+    sendSubscribingDone(signalNumericId);
     return createReadHeaderTask();
 }
 
@@ -224,6 +255,7 @@ ReadTask ServerSessionHandler::readSignalUnsubscribe(const void *data, size_t si
     }
 
     signalSubscriptionHandler(signalNumericId, signalIdString, false, session);
+    sendUnsubscribingDone(signalNumericId);
     return createReadHeaderTask();
 }
 

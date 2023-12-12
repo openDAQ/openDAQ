@@ -20,11 +20,11 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 inline SignalPtr NativeStreamingSignal(const ContextPtr& ctx,
-                                             const ComponentPtr& parent,
-                                             const DataDescriptorPtr& descriptor,
-                                             const StringPtr& streamingId)
+                                       const ComponentPtr& parent,
+                                       const DataDescriptorPtr& descriptor,
+                                       const StringPtr& streamingId)
 {
-    SignalPtr obj(createWithImplementation<ISignal,NativeStreamingSignalImpl>(ctx,
+    SignalPtr obj(createWithImplementation<ISignal, NativeStreamingSignalImpl>(ctx,
                                                                               parent,
                                                                               descriptor,
                                                                               streamingId));

@@ -42,8 +42,8 @@ class StreamingServer
 {
 public:
     using OnAcceptCallback = std::function<ListPtr<ISignal>(const daq::streaming_protocol::StreamWriterPtr& writer)>;
-    using OnSubscribeCallback = std::function<void(const std::string& signalId)>;
-    using OnUnsubscribeCallback = std::function<void(const std::string& signalId)>;
+    using OnSubscribeCallback = std::function<void(const daq::SignalPtr& signal)>;
+    using OnUnsubscribeCallback = std::function<void(const daq::SignalPtr& signal)>;
 
     StreamingServer(const ContextPtr& context);
     ~StreamingServer();
@@ -67,6 +67,8 @@ protected:
     void writeSignalsAvailable(const daq::streaming_protocol::StreamWriterPtr& writer, const ListPtr<ISignal>& signals);
     void writeInit(const daq::streaming_protocol::StreamWriterPtr& writer);
     bool isSignalSubscribed(const std::string& signalId) const;
+    void subscribeHandler(const std::string& signalId, OutputSignalPtr signal);
+    void unsubscribeHandler(const std::string& signalId, OutputSignalPtr signal);
     int onControlCommand(const std::string& streamId,
                          const std::string& command,
                          const daq::streaming_protocol::SignalIds& signalIds,

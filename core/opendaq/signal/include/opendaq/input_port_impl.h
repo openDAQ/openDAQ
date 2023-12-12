@@ -26,10 +26,10 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class InputPortImpl : public ComponentImpl<IInputPortConfig, IInputPortPrivate, IRemovable, IOwnable>
+class InputPortImpl : public ComponentImpl<IInputPortConfig, IInputPortPrivate, IOwnable>
 {
 public:
-    using Super = ComponentImpl<IInputPortConfig, IInputPortPrivate, IRemovable, IOwnable>;
+    using Super = ComponentImpl<IInputPortConfig, IInputPortPrivate, IOwnable>;
 
     explicit InputPortImpl(const ContextPtr& context,
                            const ComponentPtr& parent,

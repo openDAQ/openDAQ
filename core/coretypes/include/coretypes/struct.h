@@ -24,6 +24,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IStructBuilder;
+
 /*!
  * @ingroup types_structs
  * @defgroup types_structs_struct Struct
@@ -109,5 +111,6 @@ DECLARE_OPENDAQ_INTERFACE(IStruct, IBaseObject)
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, Struct, IString*, name, IDict*, fields, ITypeManager*, typeManager)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, StructFromBuilder, IStruct, IStructBuilder*, builder)
 
 END_NAMESPACE_OPENDAQ

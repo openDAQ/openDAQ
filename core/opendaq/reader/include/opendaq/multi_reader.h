@@ -90,6 +90,26 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of samples before returning.
      */
     virtual ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0) = 0;
+
+    /*!
+     * @brief Gets the resolution the reader aligned all the signals to.
+     * This is the highest resolution (lowest value) of all the signals to not loose the precision.
+     * @param resolution The aligned resolution used for all read signals.
+     */
+    virtual ErrCode INTERFACE_FUNC getTickResolution(IRatio** resolution) = 0;
+
+    /*!
+     * @brief Gets the origin the reader aligned all the signals to.
+     * This is usually the earliest (lowest value) from all the signals.
+     * @param origin The origin all signals are aligned to.
+     */
+    virtual ErrCode INTERFACE_FUNC getOrigin(IString** origin) = 0;
+
+    /*!
+     * @brief Gets the domain value (offset) from the aligned origin at the point the reader starts to provide synchronized samples.
+     * @param domainStart The domain point at which the reader managed to synchronize all the signals.
+     */
+    virtual ErrCode INTERFACE_FUNC getOffset(void* domainStart) = 0;
 };
 
 /*!@}*/

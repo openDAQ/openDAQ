@@ -16,7 +16,7 @@ static void hashCombine(size_t& seed, const T& value)
 }
 
 ComplexNumberImpl::ComplexNumberImpl(const Float real, const Float imaginary)
-    : GenericStructImpl<IComplexNumber, IStruct, ISerializable, IComparable, ICoreType, IConvertible>(
+    : GenericStructImpl<IComplexNumber, IStruct, IComparable, IConvertible>(
         ComplexNumberStructType(),
         Dict<IString, IFloat>({{"real", real}, {"imaginary", imaginary}}))
 {

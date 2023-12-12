@@ -32,7 +32,7 @@ function run_rtgen {
 #
 # core types
 #
-core_type_files=("event_args" "simple_type" "struct" "struct_type" "type" "type_manager")
+core_type_files=("event_args" "simple_type" "struct" "struct_type" "type" "type_manager" "struct_builder")
 for file in "${core_type_files[@]}" 
 do
     run_rtgen CoreTypes coretypes coretypes core_types/generated ${file}
@@ -121,5 +121,6 @@ run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     streaming_info
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     streaming_info_config
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     mirrored_signal_config
+run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     subscription_event_args
 run_rtgen opendaq opendaq/utility       opendaq opendaq/generated/utility       tags
 run_rtgen opendaq opendaq/utility       opendaq opendaq/generated/utility       tags_config

@@ -71,6 +71,12 @@ ErrCode StringImpl::equals(IBaseObject* other, Bool* equal) const
         return daq::makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
     }
 
+    if (other == nullptr)
+    {
+        *equal = false;
+        return OPENDAQ_SUCCESS;
+    }
+
     *equal = false;
     IString* otherString;
 

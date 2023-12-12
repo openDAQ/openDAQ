@@ -461,3 +461,15 @@ TEST_F(JsonSerializedObjectTest, readListInvalidType)
     std::string json = R"({"__type":")" + factoryId + R"(","list":false})";
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("ISerializedObject", "daq");
+
+TEST_F(JsonSerializedObjectTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, ISerializedObject::Id);
+}
+
+TEST_F(JsonSerializedObjectTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<ISerializedObject>(), "{EC052FCE-7ADC-5335-9929-66731EA35698}");
+}

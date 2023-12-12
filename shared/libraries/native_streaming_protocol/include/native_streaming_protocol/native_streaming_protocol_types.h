@@ -48,6 +48,9 @@ using OnSignalSubscriptionCallback = std::function<void(const SignalNumericIdTyp
 
 using OnProtocolInitDoneCallback = std::function<void()>;
 
+using OnSubscriptionAckCallback = std::function<void(const SignalNumericIdType& signalNumericId,
+                                                     bool subscribed)>;
+
 using OnPacketReceivedCallback = std::function<void(const SignalNumericIdType& signalNumericId,
                                                     const PacketPtr& packet)>;
 
@@ -61,6 +64,8 @@ enum class PayloadType
     PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_COMMAND = 4,
     PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_COMMAND = 5,
     PAYLOAD_TYPE_PROTOCOL_INIT_DONE = 6,
+    PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_ACK = 7,
+    PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK = 8
 };
 
 constexpr std::initializer_list<PayloadType> allPayloadTypes =
@@ -71,6 +76,8 @@ constexpr std::initializer_list<PayloadType> allPayloadTypes =
         PayloadType::PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_COMMAND,
         PayloadType::PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_COMMAND,
         PayloadType::PAYLOAD_TYPE_PROTOCOL_INIT_DONE,
+        PayloadType::PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_ACK,
+        PayloadType::PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK
     };
 
 inline std::string convertPayloadTypeToString(PayloadType type)
@@ -89,6 +96,10 @@ inline std::string convertPayloadTypeToString(PayloadType type)
             return "PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_COMMAND";
         case PayloadType::PAYLOAD_TYPE_PROTOCOL_INIT_DONE:
             return "PAYLOAD_TYPE_PROTOCOL_INIT_DONE";
+        case PayloadType::PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_ACK:
+            return "PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_ACK";
+        case PayloadType::PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK:
+            return "PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK";
     }
 
     return "PAYLOAD_TYPE_INVALID";

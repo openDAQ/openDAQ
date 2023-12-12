@@ -372,3 +372,27 @@ TEST_F(JsonSerializerTest, ImplementationName)
     auto prefix = className.find("daq::JsonSerializerImpl<");
     ASSERT_EQ(prefix, 0u);
 }
+
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("ISerializer", "daq");
+
+TEST_F(JsonSerializerTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, ISerializer::Id);
+}
+
+TEST_F(JsonSerializerTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<ISerializer>(), "{4230318E-85D5-5BB6-80C8-10CC47B7A3D2}");
+}
+
+static constexpr auto SERIALIZABLE_ID = FromTemplatedTypeName("ISerializable", "daq");
+
+TEST_F(JsonSerializerTest, SerializableId)
+{
+    ASSERT_EQ(SERIALIZABLE_ID, ISerializable::Id);
+}
+
+TEST_F(JsonSerializerTest, SerializableString)
+{
+    ASSERT_EQ(daqInterfaceIdString<ISerializable>(), "{831915F2-C42F-5520-A420-56524D2AC552}");
+}

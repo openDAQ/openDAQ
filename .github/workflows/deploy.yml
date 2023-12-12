@@ -44,12 +44,20 @@ jobs:
             cmake_build_type: Release
             cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
             cpack: NSIS
+          - name: Windows VS 2022 Win32 Release
+            runner: windows-latest
+            cmake_generator: "Visual Studio 17 2022"
+            cmake_generator_platform: Win32
+            cmake_build_type: Release
+            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            cpack: NSIS
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Configure and build Wheels
+        if: matrix.cmake_generator_platform != 'Win32'
         run: |
           mkdir build
           cd build
@@ -72,6 +80,15 @@ jobs:
             deactivate
             Remove-Item venv -Recurse
           }
+
+      - name: Configure and build without Wheels
+        if: matrix.cmake_generator_platform == 'Win32'
+        run: |
+          mkdir build
+          cd build
+          Write-Output "Building for Win32"
+          cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+          cmake --build . --config ${{ matrix.cmake_build_type }}
 
       - name: Package
         working-directory: build
@@ -102,7 +119,7 @@ jobs:
            Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
 
       - name: Rename wheels (main)
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'
         shell: pwsh
         working-directory: ${{ env.wheels_path }}
         run: |
@@ -120,7 +137,7 @@ jobs:
           aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3path }}/" --recursive
 
       - name: Upload Wheels to S3
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'
         working-directory: ${{ env.wheels_path }}
         run: |
           aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_win_amd64_path }}" --recursive --exclude '*' --include '*.whl'
@@ -134,6 +151,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Wheels
+        if: matrix.cmake_generator_platform != 'Win32'
         uses: actions/upload-artifact@v3
         with:
           name: Wheels (${{ matrix.name }})
@@ -395,7 +413,7 @@ jobs:
     needs: [deploy_linux]
 
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     timeout-minutes: 120
     env:

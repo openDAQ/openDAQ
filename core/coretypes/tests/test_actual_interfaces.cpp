@@ -52,7 +52,7 @@ TEST_F(ActualInterfacesTest, HasDeclaredBase)
 TEST_F(ActualInterfacesTest, BaseInterface)
 {
     using Base = BaseInterface<ITestObjectDerived>::Interfaces;
-    using Expected = Args<ITestObject, IBaseObject, IBaseObject>;
+    using Expected = Args<ITestObject>;
 
     ASSERT_TRUE((std::is_same_v<Base, Expected>));
 }
@@ -64,18 +64,18 @@ TEST_F(ActualInterfacesTest, BaseInterfaceNotDeclared)
 
     ASSERT_TRUE((std::is_same_v<Base, Expected>));
 }
-
+//
 TEST_F(ActualInterfacesTest, ImplementationInterfaces)
 {
     using ActualIntfs = ActualInterfaces<ITestObjectDerived, IUpdatable, ISerializable, ICoreType>;
 
-    using Interfaces = ActualIntfs::Interfaces;
+    using Interfaces = ActualIntfs::BaseInterfaces;
     using Expected = Args<ITestObjectDerived,
-                          DiscoverOnly<ITestObject>,
                           IUpdatable,
                           ISerializable,
                           ICoreType,
-                          IInspectable
+                          IBaseObject,
+                          ITestObject
                          >;
 
     ASSERT_TRUE((std::is_same_v<Expected, Interfaces>));
@@ -83,41 +83,65 @@ TEST_F(ActualInterfacesTest, ImplementationInterfaces)
 
 TEST_F(ActualInterfacesTest, ImplementationInterfacesNoDiscovery)
 {
-    using Interfaces = ActualInterfaces<ICoreType, ISerializable, IUpdatable>::Interfaces;
-    using Expected = Args<ICoreType, ISerializable, IUpdatable, IInspectable>;
+    using Interfaces = ActualInterfaces<ICoreType, ISerializable, IUpdatable>::BaseInterfaces;
+    using Expected = Args<ICoreType, ISerializable, IUpdatable, IBaseObject>;
 
     ASSERT_TRUE((std::is_same_v<Expected, Interfaces>));
 }
 
 TEST_F(ActualInterfacesTest, Implementation)
 {
-    using Interfaces = ActualInterfaces<ITestObjectDerived, IUpdatable, ISerializable, ICoreType>::Interfaces;
-    using Implementation = typename Meta::FoldType<Interfaces, IntfObjectImpl>::Folded;
+    using InterfaceList = Args<ITestObjectDerived, IUpdatable, ISerializable, ICoreType, IInspectable>;
+
+    using Interfaces = typename Meta::FoldType<InterfaceList, ActualInterfaces>::Folded::BaseInterfaces;
+    using Implementation = typename Meta::FoldType<InterfaceList, IntfObjectImpl>::Folded;
 
     using Expected = IntfObjectImpl<ITestObjectDerived,
-                                    DiscoverOnly<ITestObject>,
                                     IUpdatable,
                                     ISerializable,
                                     ICoreType,
                                     IInspectable
                                    >;
 
+    using ImplementationIds = Implementation::InterfaceIds;
+    using ExpectedInterfaces = Args<ITestObjectDerived,
+                                    IUpdatable,
+                                    ISerializable,
+                                    ICoreType,
+                                    IInspectable,
+                                    IBaseObject,
+                                    ITestObject>;
+
     ASSERT_TRUE((std::is_same_v<Expected, Implementation>));
+    ASSERT_TRUE((std::is_same_v<Interfaces, ExpectedInterfaces>));
+    ASSERT_TRUE((std::is_same_v<SupportsInterface<Interfaces>, ImplementationIds>));
 }
 
 TEST_F(ActualInterfacesTest, ImplementationNested)
 {
-    using Interfaces = ActualInterfaces<ITestObjectNested, IUpdatable, ISerializable, ICoreType>::Interfaces;
-    using Implementation = typename Meta::FoldType<Interfaces, IntfObjectImpl>::Folded;
+    using InterfaceList = Args<ITestObjectNested, IUpdatable, ISerializable, ICoreType, IInspectable>;
+
+    using Interfaces = typename Meta::FoldType<InterfaceList, ActualInterfaces>::Folded::BaseInterfaces;
+    using Implementation = typename Meta::FoldType<InterfaceList, IntfObjectImpl>::Folded;
 
     using Expected = IntfObjectImpl<ITestObjectNested,
-                                    DiscoverOnly<ITestObjectDerived>,
-                                    DiscoverOnly<ITestObject>,
                                     IUpdatable,
                                     ISerializable,
                                     ICoreType,
                                     IInspectable
                                    >;
 
+    using ImplementationIds = Implementation::InterfaceIds;
+    using ExpectedInterfaces = Args<ITestObjectNested,
+                                    IUpdatable,
+                                    ISerializable,
+                                    ICoreType,
+                                    IInspectable,
+                                    IBaseObject,
+                                    ITestObjectDerived,
+                                    ITestObject>;
+
     ASSERT_TRUE((std::is_same_v<Expected, Implementation>));
+    ASSERT_TRUE((std::is_same_v<Interfaces, ExpectedInterfaces>));
+    ASSERT_TRUE((std::is_same_v<SupportsInterface<Interfaces>, ImplementationIds>));
 }

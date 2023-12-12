@@ -46,6 +46,7 @@ PyDaqIntf<daq::ISimpleType, daq::IType> declareISimpleType(pybind11::module_ m);
 PyDaqIntf<daq::ITypeManager, daq::IBaseObject> declareITypeManager(pybind11::module_ m);
 PyDaqIntf<daq::IStructType, daq::IType> declareIStructType(pybind11::module_ m);
 PyDaqIntf<daq::IStruct, daq::IBaseObject> declareIStruct(pybind11::module_ m);
+PyDaqIntf<daq::IStructBuilder, daq::IBaseObject> declareIStructBuilder(pybind11::module_ m);
 
 void defineIInteger(pybind11::module_ m, PyDaqIntf<daq::IInteger> cls);
 void defineIFloat(pybind11::module_ m, PyDaqIntf<daq::IFloat> cls);
@@ -69,5 +70,6 @@ void defineISimpleType(pybind11::module_ m, PyDaqIntf<daq::ISimpleType, daq::ITy
 void defineITypeManager(pybind11::module_ m, PyDaqIntf<daq::ITypeManager, daq::IBaseObject> cls);
 void defineIStructType(pybind11::module_ m, PyDaqIntf<daq::IStructType, daq::IType> cls);
 void defineIStruct(pybind11::module_ m, PyDaqIntf<daq::IStruct, daq::IBaseObject> cls);
+void defineIStructBuilder(pybind11::module_ m, PyDaqIntf<daq::IStructBuilder, daq::IBaseObject> cls);
 
 void wrapDaqComponentCoreTypes(pybind11::module_ m);

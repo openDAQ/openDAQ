@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from F:/Dewesoft/C++/git/Blueberry4/shared/tools/RTGen/src\RTGen3.g4 by ANTLR 4.12.0
+// Generated from F:/Dewesoft/C++/git/openDAQ2/shared/tools/RTGen/src\RTGen3.g4 by ANTLR 4.12.0
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -590,26 +590,6 @@ public interface IRTGen3Listener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitIncludeName([NotNull] RTGen3.IncludeNameContext context);
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="RTGen3.includePath"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterIncludePath([NotNull] RTGen3.IncludePathContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="RTGen3.includePath"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitIncludePath([NotNull] RTGen3.IncludePathContext context);
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="RTGen3.pathSeparator"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterPathSeparator([NotNull] RTGen3.PathSeparatorContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="RTGen3.pathSeparator"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitPathSeparator([NotNull] RTGen3.PathSeparatorContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="RTGen3.macro"/>.
 	/// </summary>

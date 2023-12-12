@@ -46,7 +46,10 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingPrivate, IBaseObject)
     virtual ErrCode INTERFACE_FUNC unsubscribeSignal(const MirroredSignalConfigPtr& signal) = 0;
 
     /*!
-     * @brief Creates initial DataDescriptor Changed Event Packet using data received via the streaming
+     * @brief Creates an initial DataDescriptor Changed Event Packet for a signal using data received
+     * via the streaming.
+     * @param signal The signal for which the event packet should be created.
+     * @return The created DataDescriptor Changed Event Packet
      */
     virtual EventPacketPtr INTERFACE_FUNC createDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal) = 0;
 };

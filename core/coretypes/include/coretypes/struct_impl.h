@@ -26,6 +26,7 @@
 #include <coretypes/struct_type_factory.h>
 #include <coretypes/stringobject_factory.h>
 #include <coretypes/simple_type_factory.h>
+#include <coretypes/struct_builder_ptr.h>
 #include <coretypes/deserializer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -35,6 +36,7 @@ class GenericStructImpl : public ImplementationOf<StructInterface, ICoreType, IS
 {
 public:
     explicit GenericStructImpl(const StringPtr& name, DictPtr<IString, IBaseObject> fields, const TypeManagerPtr& typeManager);
+    explicit GenericStructImpl(const StructBuilderPtr& builder);
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 
@@ -132,7 +134,6 @@ GenericStructImpl<StructInterface, Interfaces...>::GenericStructImpl(const Strin
                 }
             }
         }
-
     }
     else
     {
@@ -163,6 +164,65 @@ GenericStructImpl<StructInterface, Interfaces...>::GenericStructImpl(const Strin
     this->fields = std::move(fields);
     this->fields.freeze();
 }
+
+template <class StructInterface, class... Interfaces>
+GenericStructImpl<StructInterface, Interfaces...>::GenericStructImpl (const StructBuilderPtr& builder)
+{
+    structType = builder.getStructType();
+
+    const auto types = structType.getFieldTypes();
+    const auto defaultValues = structType.getFieldDefaultValues();
+    const auto names = structType.getFieldNames();
+
+    std::unordered_set<std::string> namesSet;
+    for (const auto& fieldName : names)
+        namesSet.insert(fieldName);
+    
+    auto fields = builder.getAsDictionary();
+    if (!fields.assigned())
+        fields = Dict<IString, IBaseObject>();
+
+    for (const auto& [key, val] : fields)
+        if (!namesSet.count(key))
+            throw InvalidParameterException{fmt::format(R"(Struct field "{}" is not part of the Struct type)", key.toStdString())};
+
+    for (SizeT i = 0; i < types.getCount(); ++i)
+    {
+        auto fieldName = names[i];
+        if (!fields.hasKey(fieldName))
+        {
+            if (defaultValues.assigned())
+                fields.set(fieldName, defaultValues[i]);
+            else
+                fields.set(fieldName, nullptr);
+        }
+        else
+        {
+            auto fieldType = types[i];
+            const auto field = fields.get(fieldName);
+            if (!field.assigned())
+                continue;
+
+            if (fieldType.getCoreType() == ctStruct && fieldType.template asPtrOrNull<IStructType>().assigned())
+            {
+                StructPtr structObj = field;
+                if (structObj.getStructType() != fieldType)
+                    throw InvalidParameterException{fmt::format(R"(Struct field "{}" type mismatch.)", fieldName.toStdString())};
+            }
+            else
+            {
+                auto coreType = field.getCoreType();
+                auto fieldCoreType = fieldType.getCoreType();
+                if (fieldCoreType != ctUndefined && coreType != fieldCoreType)
+                    throw InvalidParameterException{fmt::format(R"(Struct field "{}" type mismatch.)", fieldName.toStdString())};
+            }
+        }
+    }
+    
+    this->fields = std::move(fields);
+    this->fields.freeze();
+}
+
 
 template <class StructInterface, class... Interfaces>
 ErrCode GenericStructImpl<StructInterface, Interfaces...>::equals(IBaseObject* other, Bool* equal) const

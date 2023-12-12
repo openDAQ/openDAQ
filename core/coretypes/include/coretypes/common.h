@@ -94,6 +94,14 @@ END_NAMESPACE_OPENDAQ
     #define INTERFACE_FUNC __stdcall
 #endif
 
+#if defined(_MSC_VER)
+    #define OPENDAQ_NO_VTABLE __declspec(novtable)
+    #define DAQ_EMPTY_BASES __declspec(empty_bases)
+#else
+    #define OPENDAQ_NO_VTABLE
+    #define DAQ_EMPTY_BASES
+#endif
+
 #define EXPORT comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
 
 #define INTERNAL_FACTORY
@@ -110,21 +118,21 @@ END_NAMESPACE_OPENDAQ
                                                               \
     namespace InterfaceBase                                   \
     {                                                         \
-        struct interfaceName##Impl : public baseInterface     \
+        struct OPENDAQ_NO_VTABLE DAQ_EMPTY_BASES interfaceName##Impl : public baseInterface     \
         {                                                     \
             using Base = baseInterface;                       \
             using Actual = interfaceName;                     \
         };                                                    \
     }                                                         \
                                                               \
-    struct interfaceName : public InterfaceBase::interfaceName##Impl
+    struct OPENDAQ_NO_VTABLE DAQ_EMPTY_BASES interfaceName : public InterfaceBase::interfaceName##Impl
 
 #define DECLARE_OPENDAQ_INTERFACE(interfaceName, baseInterface) \
     struct interfaceName;                                  \
                                                            \
     namespace InterfaceBase                                \
     {                                                      \
-        struct interfaceName##Impl : public baseInterface  \
+        struct OPENDAQ_NO_VTABLE DAQ_EMPTY_BASES interfaceName##Impl : public baseInterface  \
         {                                                  \
             using Base = baseInterface;                    \
             using Actual = interfaceName;                  \
@@ -133,7 +141,7 @@ END_NAMESPACE_OPENDAQ
         };                                                 \
     }                                                      \
                                                            \
-    struct interfaceName : public InterfaceBase::interfaceName##Impl
+    struct OPENDAQ_NO_VTABLE DAQ_EMPTY_BASES interfaceName : public InterfaceBase::interfaceName##Impl
 
 #define DECLARE_TEMPLATED_OPENDAQ_INTERFACE_T(interfaceName, baseInterface) \
     template <typename T>                                              \
@@ -178,7 +186,7 @@ END_NAMESPACE_OPENDAQ
                                                                                  \
     namespace InterfaceBase                                                      \
     {                                                                            \
-        struct interfaceName##Impl : public baseInterface                        \
+        struct OPENDAQ_NO_VTABLE DAQ_EMPTY_BASES interfaceName##Impl : public baseInterface      \
         {                                                                        \
             using Base = baseInterface;                                          \
             using Actual = interfaceName;                                        \
@@ -187,7 +195,7 @@ END_NAMESPACE_OPENDAQ
         };                                                                       \
     }                                                                            \
                                                                                  \
-    struct interfaceName : public InterfaceBase::interfaceName##Impl
+    struct OPENDAQ_NO_VTABLE DAQ_EMPTY_BASES interfaceName : public InterfaceBase::interfaceName##Impl
 
 /**************************/
 
@@ -219,12 +227,15 @@ END_NAMESPACE_OPENDAQ
 
 extern "C"
 daq::ErrCode PUBLIC_EXPORT daqDuplicateCharPtrN(daq::ConstCharPtr source,
-                                              daq::SizeT length,
-                                              daq::CharPtr* dest);
+                                                daq::SizeT length,
+                                                daq::CharPtr* dest);
 
 extern "C"
 daq::ErrCode PUBLIC_EXPORT daqDuplicateCharPtr(daq::ConstCharPtr source,
-                                             daq::CharPtr* dest);
+                                               daq::CharPtr* dest);
+
+extern "C"
+daq::ErrCode PUBLIC_EXPORT daqInterfaceIdToString(const daq::IntfID& iid, daq::CharPtr dest);
 
 #define OPENDAQ_TYPE_TOSTRING                                             \
     static daq::ErrCode OpenDaqType(daq::CharPtr* str)                    \

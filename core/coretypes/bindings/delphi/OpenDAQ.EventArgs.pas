@@ -10,7 +10,7 @@ type
   {$MINENUMSIZE 4}
 
   IEventArgs = interface(IBaseObject)
-  ['{b3a08f90-069f-5f84-8afd-0c2fa0bfa4a9}']
+  ['{81D0979C-1FA7-51F8-80FB-44216A6F8D33}']
     function GetEventId(out Id : RtInt) : ErrCode; stdcall;
     function GetEventName(out Name : IString) : ErrCode; stdcall;
   end;

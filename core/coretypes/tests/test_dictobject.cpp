@@ -56,6 +56,18 @@ static ObjectPtr<ITestObject> TestObj(size_t hash)
 
 using TestObjectPtr = ObjectPtr<ITestObject>;
 
+static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IDict", "daq");
+
+TEST_F(DictObjectTest, InterfaceId)
+{
+    ASSERT_EQ(INTERFACE_ID, IDict::Id);
+}
+
+TEST_F(DictObjectTest, InterfaceIdString)
+{
+    ASSERT_EQ(daqInterfaceIdString<IDict>(), "{E3DE60DA-0366-5DA5-8334-F9DCADFF5AD0}");
+}
+
 TEST_F(DictObjectTest, Setting)
 {
     auto dict = Dict<IBaseObject, IBaseObject>();

@@ -313,8 +313,102 @@ namespace RTGen.Python.Generators
             return false;
         }
 
+        private int GetGetterPrefixLength(String name)
+        {
+            int prefixLength = -1;
+            if (name != null)
+            {
+                if (name.StartsWith("get", StringComparison.OrdinalIgnoreCase))
+                {
+                    prefixLength = 3;
+                }
+                else if (name.StartsWith("is", StringComparison.OrdinalIgnoreCase))
+                {
+                    prefixLength = 2;
+                }
+            }
+            return prefixLength;
+        }
+
+        /*
+         * A method to generate readonly properties from getters with optional params
+         * 
+         * When we have a method satisfying the following conditions:
+         * 
+         * 1. It is a getter
+         * 2. It has the first and only one output parameter
+         * 3. Rest of the parameters are optional (have default value)
+         * 
+         * We can clone it, clean all of the optionals and make it read_only_property.
+         * 
+         */
+        private void AddExtraProperties()
+        {
+            foreach (IRTInterface rtClass in RtFile.Classes)
+            {
+                IDictionary<int, IMethod> extraProperties = new SortedDictionary<int, IMethod>();
+                //index is needed for correct insertion
+                for (int i = 0; i < rtClass.Methods.Count; i++)
+                {
+                    IMethod method = rtClass.Methods[i];
+
+                    //skip non-getters
+                    int getterPrefix = GetGetterPrefixLength(method.Name);
+                    if (getterPrefix < 0) continue;
+
+                    bool isMethodHasTheFirstAndOnlyOneOutputArgument = false;
+                    //if less than 2 args then no optional exists
+                    bool isMethodHasAllSecondaryArgumentsOptional = method.Arguments.Count > 1;
+                    for (int k = 0; k < method.Arguments.Count; k++)
+                    {
+                        IArgument argument = method.Arguments[k];
+                        if (k == 0)
+                        {
+                            //check the first Argument is the only one out param
+                            isMethodHasTheFirstAndOnlyOneOutputArgument = argument.IsOutParam;
+                        }
+                        else
+                        {
+                            isMethodHasTheFirstAndOnlyOneOutputArgument &= !argument.IsOutParam;
+                            isMethodHasAllSecondaryArgumentsOptional &= (argument.DefaultValue != null);
+                        }
+                    }
+                    if (isMethodHasTheFirstAndOnlyOneOutputArgument && isMethodHasAllSecondaryArgumentsOptional)
+                    {
+                        //clone method with both conditions satisfied
+                        extraProperties.Add(i, method.Clone());
+                    }
+                }
+                //remove optionals in the method to make it readonly property and
+                //insert the property into the human readable place in the class
+                int propsInserted = 0;
+                foreach (KeyValuePair<int, IMethod> indexedMethod in extraProperties)
+                {
+                    int methodIndex = indexedMethod.Key;
+                    IMethod method = indexedMethod.Value;
+                    int getterPrefixLen = GetGetterPrefixLength(method.Name);
+                    String propertyName = method.Name.Substring(getterPrefixLen);
+
+                    method.GetSetPair = new GetSet(propertyName);
+                    method.GetSetPair.Getter = method;
+
+                    for (int i = method.Arguments.Count - 1; i >= 0; i--)
+                    {
+                        if (!method.Arguments[i].IsOutParam || method.Arguments[i].DefaultValue != null) method.Arguments.RemoveAt(i);
+                    }
+
+                    //insert the propery into the place right before the getter
+                    rtClass.Methods.Insert(propsInserted + methodIndex, method);
+                    propsInserted++;
+                }
+
+            }
+
+        }
+
         private string GenerateMethodImplementations()
         {
+            AddExtraProperties();
             StringBuilder methodImpl = new StringBuilder();
 
             // start with an empty line (to get nicer spacing)

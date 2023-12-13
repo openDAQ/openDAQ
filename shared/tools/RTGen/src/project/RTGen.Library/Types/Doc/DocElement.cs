@@ -1,9 +1,11 @@
 ﻿using RTGen.Interfaces.Doc;
+using System;
 
 namespace RTGen.Types.Doc
 {
     /// <summary>Represents an element in the documentation comments.</summary>
     /// <remarks>Usually a tag or text.</remarks>
+    [Serializable]
     public class DocElement : IDocElement
     {
         /// <summary>Initializes a new instance of the <see cref="DocComment" /> class.</summary>

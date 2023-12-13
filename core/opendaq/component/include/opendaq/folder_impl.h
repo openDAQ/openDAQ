@@ -56,6 +56,10 @@ public:
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
+    // IPropertyObjectInternal
+    ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
+    ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
+
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
 protected:
@@ -163,16 +167,33 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
 {
     OPENDAQ_PARAM_NOT_NULL(item);
 
-    std::scoped_lock lock(this->sync);
+    {
+        std::scoped_lock lock(this->sync);
 
-    return daqTry(
-        [this, &item]
-        {
-            if (!addItemInternal(item))
-                return OPENDAQ_ERR_DUPLICATEITEM;
+        const ErrCode err = daqTry(
+            [this, &item]
+            {
+                if (!addItemInternal(item))
+                    return OPENDAQ_ERR_DUPLICATEITEM;
 
-            return OPENDAQ_SUCCESS;
-        });
+                return OPENDAQ_SUCCESS;
+            });
+
+        if (OPENDAQ_FAILED(err))
+            return err;
+    }
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const auto component = ComponentPtr::Borrow(item);
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                core_event_ids::ComponentAdded,
+                Dict<IString, IBaseObject>({{"Component", component}}));
+         this->triggerCoreEvent(args);
+         component.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>
@@ -180,18 +201,34 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItem(IComponent* item)
 {
     OPENDAQ_PARAM_NOT_NULL(item);
 
-    auto itemPtr = ComponentPtr::Borrow(item);
+    const auto str = ComponentPtr::Borrow(item).getLocalId().toStdString();
 
-    std::scoped_lock lock(this->sync);
+    {
+        std::scoped_lock lock(this->sync);
 
-    return daqTry(
-        [this, &itemPtr]
-        {
-            if (!removeItemWithLocalIdInternal(itemPtr.getLocalId().toStdString()))
-                return OPENDAQ_ERR_NOTFOUND;
+        const ErrCode err = daqTry(
+            [this, &str]
+            {
+                if (!removeItemWithLocalIdInternal(str))
+                    return OPENDAQ_ERR_NOTFOUND;
 
-            return OPENDAQ_SUCCESS;
-        });
+                return OPENDAQ_SUCCESS;
+            });
+
+        if (OPENDAQ_FAILED(err))
+            return err;
+    }
+    
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                core_event_ids::ComponentRemoved,
+                Dict<IString, IBaseObject>({{"Id", str}}));
+        
+        this->triggerCoreEvent(args);
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>
@@ -199,18 +236,34 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalId(IString* localId)
 {
     OPENDAQ_PARAM_NOT_NULL(localId);
 
-    auto localIdPtr = StringPtr::Borrow(localId);
+    const auto str = StringPtr::Borrow(localId).toStdString();
 
-    std::scoped_lock lock(this->sync);
+    {
+        std::scoped_lock lock(this->sync);
 
-    return daqTry(
-        [this, &localIdPtr]
-        {
-            if (!removeItemWithLocalIdInternal(localIdPtr.toStdString()))
-                return OPENDAQ_ERR_NOTFOUND;
+        const ErrCode err = daqTry(
+            [this, &str]
+            {
+                if (!removeItemWithLocalIdInternal(str))
+                    return OPENDAQ_ERR_NOTFOUND;
 
-            return OPENDAQ_SUCCESS;
-        });
+                return OPENDAQ_SUCCESS;
+            });
+
+        if (OPENDAQ_FAILED(err))
+             return err;
+    }
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                core_event_ids::ComponentRemoved,
+                Dict<IString, IBaseObject>({{"Id", str}}));
+        
+        this->triggerCoreEvent(args);
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>
@@ -232,6 +285,32 @@ ErrCode INTERFACE_FUNC FolderImpl<Intf, Intfs...>::getSerializeId(ConstCharPtr* 
     return OPENDAQ_SUCCESS;
 }
 
+template <class Intf, class ... Intfs>
+ErrCode FolderImpl<Intf, Intfs...>::enableCoreEventTrigger()
+{
+    for (const auto& child : items)
+    {
+        const ErrCode err = child.second.template asPtr<IPropertyObjectInternal>()->enableCoreEventTrigger();
+        if (OPENDAQ_FAILED(err))
+            return err;
+    }
+
+    return ComponentImpl<Intf, Intfs...>::enableCoreEventTrigger();
+}
+
+template <class Intf, class ... Intfs>
+ErrCode FolderImpl<Intf, Intfs...>::disableCoreEventTrigger()
+{
+    for (const auto& child : items)
+    {
+        const ErrCode err = child.second.template asPtr<IPropertyObjectInternal>()->disableCoreEventTrigger();
+        if (OPENDAQ_FAILED(err))
+            return err;
+    }
+
+    return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
+}
+
 template <class Intf, class... Intfs>
 ConstCharPtr FolderImpl<Intf, Intfs...>::SerializeId()
 {
@@ -248,7 +327,19 @@ template <class Intf, class... Intfs>
 void FolderImpl<Intf, Intfs...>::clearInternal()
 {
     for (auto& item : items)
+    {
+        item.second.template asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
         item.second.remove();
+
+        if (!this->coreEventMuted && this->coreEvent.assigned())
+        {
+            const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                core_event_ids::ComponentRemoved,
+                Dict<IString, IBaseObject>({{"Id", item.second.getLocalId()}}));
+            
+            this->triggerCoreEvent(args);
+        }
+    }
 
     items.clear();
 }
@@ -266,6 +357,7 @@ bool FolderImpl<Intf, Intfs...>::addItemInternal(const ComponentPtr& component)
         throw InvalidParameterException("Type of item not allowed in the folder");
 
     const auto res = items.insert({component.getLocalId(), component});
+    
     return res.second;
 }
 
@@ -294,6 +386,7 @@ bool FolderImpl<Intf, Intfs...>::removeItemWithLocalIdInternal(const std::string
     if (it == items.end())
         return false;
 
+    it->second.template asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
     it->second.remove();
     items.erase(it);
     return true;

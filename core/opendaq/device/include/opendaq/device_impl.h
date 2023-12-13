@@ -33,6 +33,7 @@
 #include <opendaq/streaming_info_factory.h>
 #include <tsl/ordered_set.h>
 #include <opendaq/component_keys.h>
+#include <opendaq/core_opendaq_event_args_factory.h>
 #include <coreobjects/property_object_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -114,7 +115,7 @@ public:
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
-
+    
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
 
@@ -162,11 +163,12 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
                                                            : throw ArgumentNullException("Logger must not be null"))
 
 {
-    devices = this->template addFolder<IDevice>("Dev", nullptr, ComponentStandardProps::Skip);
-    ioFolder = this->addIoFolder("IO", nullptr, ComponentStandardProps::Skip);
-
     this->defaultComponents.insert("Dev");
     this->defaultComponents.insert("IO");
+    this->allowNonDefaultComponents = true;
+
+    devices = this->template addFolder<IDevice>("Dev", nullptr, ComponentStandardProps::Skip);
+    ioFolder = this->addIoFolder("IO", nullptr, ComponentStandardProps::Skip);
 
     this->addProperty(StringProperty("UserName", ""));
     this->addProperty(StringProperty("Location", ""));
@@ -697,6 +699,13 @@ inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(c
 
         auto folder = IoFolder(this->context, this->template thisPtr<ComponentPtr>(), localId, standardPropsConfig);
         this->components.push_back(folder);
+
+        if (!this->coreEventMuted && this->coreEvent.assigned())
+        {
+             this->triggerCoreEvent(CoreEventArgsComponentAdded(folder));
+             folder.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+        }
+
         return folder;
     }
 

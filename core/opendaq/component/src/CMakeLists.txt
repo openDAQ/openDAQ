@@ -26,6 +26,7 @@ source_group("component" FILES ${SDK_HEADERS_DIR}/component.h
                                folder_impl.cpp
 )
 
+
 set(SRC_Cpp 
     component_impl.cpp
     folder_impl.cpp
@@ -41,7 +42,7 @@ set(SRC_PublicHeaders
     component_keys.h
 )
 
-set(SRC_PrivateHeaders 
+set(SRC_PrivateHeaders
 )
 
 prepend_include(${MAIN_TARGET} SRC_PublicHeaders)

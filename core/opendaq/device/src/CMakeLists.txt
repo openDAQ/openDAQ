@@ -37,9 +37,16 @@ source_group("io_folder" FILES ${SDK_HEADERS_DIR}/io_folder_config.h
                                io_folder_impl.cpp
 )
 
+source_group("core_events" FILES ${SDK_HEADERS_DIR}/core_opendaq_event_args.h
+                                 ${SDK_HEADERS_DIR}/core_opendaq_event_args_factory.h
+                                 ${SDK_HEADERS_DIR}/core_opendaq_event_args_impl.h
+                                 core_opendaq_event_args_impl.cpp
+)
+
 set(SRC_Cpp device_info_impl.cpp
             io_folder_impl.cpp
             device_type_impl.cpp
+            core_opendaq_event_args_impl.cpp
 )
 
 set(SRC_PublicHeaders device_info_factory.h
@@ -50,6 +57,8 @@ set(SRC_PublicHeaders device_info_factory.h
                       io_folder_impl.h
                       device_type_factory.h
                       device_private.h
+                      core_opendaq_event_args_factory.h
+                      core_opendaq_event_args.h
 )
 
 set(SRC_PrivateHeaders device_info_impl.h

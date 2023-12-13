@@ -18,6 +18,7 @@
 #include <coretypes/common.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 /*!
  * @ingroup opendaq_utility
  * @addtogroup opendaq_core_events Core Event IDs
@@ -27,9 +28,16 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace core_event_ids
 {
     constexpr Int PropertyValueChanged = 0;
-    constexpr Int UpdateEnd = 10;
+    constexpr Int PropertyObjectUpdateEnd = 10;
     constexpr Int PropertyAdded = 20;
     constexpr Int PropertyRemoved = 30;
+    constexpr Int ComponentAdded = 40;
+    constexpr Int ComponentRemoved = 50;
+    constexpr Int SignalConnected = 60;
+    constexpr Int SignalDisconnected = 70;
+    constexpr Int DataDescriptorChanged = 80;
+    constexpr Int ComponentUpdateEnd = 90;
+    constexpr Int ComponentModified = 100;
 }
 
 /*!@}*/

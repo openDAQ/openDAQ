@@ -43,6 +43,7 @@ public:
 
 private:
     daq::ContextPtr ctx;
+    size_t cnt = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockDeviceModule, daq::IModule, daq::IContext*, ctx)

@@ -116,6 +116,7 @@ private:
     void initSignalProperties(ComponentStandardProps propsMode);
     void propertyValueChanged(const PropertyPtr& prop, const BaseObjectPtr& value);
     bool sendPacketInternal(const PacketPtr& packet) const;
+    void triggerRelatedSignalsChanged();
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -193,9 +194,20 @@ ErrCode SignalBase<TInterface, Interfaces...>::getPublic(Bool* isPublic)
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
 {
-    std::scoped_lock lock(this->sync);
+    {
+        std::scoped_lock lock(this->sync);
 
-    this->isPublic = isPublic;
+        this->isPublic = isPublic;
+    }
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                core_event_ids::ComponentModified,
+                Dict<IString, IBaseObject>({{"Public", this->isPublic}}));
+        
+        this->triggerCoreEvent(args);
+    }
     return OPENDAQ_SUCCESS;
 }
 
@@ -263,6 +275,15 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
         }
     }
 
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                core_event_ids::DataDescriptorChanged,
+                Dict<IString, IBaseObject>({{"DataDescriptor", dataDescriptor}}));
+        
+        this->triggerCoreEvent(args);
+    }
+
     return success
         ? OPENDAQ_SUCCESS
         : OPENDAQ_IGNORED;
@@ -282,18 +303,29 @@ ErrCode SignalBase<TInterface, Interfaces...>::getDomainSignal(ISignal** signal)
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setDomainSignal(ISignal* signal)
 {
-    std::scoped_lock lock(this->sync);
+    {
+        std::scoped_lock lock(this->sync);
 
-    if (signal == domainSignal)
-        return  OPENDAQ_IGNORED;
+        if (signal == domainSignal)
+            return OPENDAQ_IGNORED;
 
-    if (domainSignal.assigned())
-        domainSignal.asPtr<ISignalEvents>().domainSignalReferenceRemoved(this->template borrowPtr<SignalPtr>());
+        if (domainSignal.assigned())
+            domainSignal.asPtr<ISignalEvents>().domainSignalReferenceRemoved(this->template borrowPtr<SignalPtr>());
 
-    domainSignal = signal;
+        domainSignal = signal;
 
-    if (domainSignal.assigned())
-        domainSignal.asPtr<ISignalEvents>().domainSignalReferenceSet(this->template borrowPtr<SignalPtr>());
+        if (domainSignal.assigned())
+            domainSignal.asPtr<ISignalEvents>().domainSignalReferenceSet(this->template borrowPtr<SignalPtr>());
+    }
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                core_event_ids::ComponentModified,
+                Dict<IString, IBaseObject>({{"DomainSignal", domainSignal}}));
+        
+        this->triggerCoreEvent(args);
+    }
 
     return OPENDAQ_SUCCESS;
 }
@@ -316,13 +348,16 @@ ErrCode SignalBase<TInterface, Interfaces...>::setRelatedSignals(IList* signals)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
 
-    std::scoped_lock lock(this->sync);
+    {
+        std::scoped_lock lock(this->sync);
 
-    const auto signalsPtr = ListPtr<ISignal>::Borrow(signals);
-    relatedSignals.clear();
-    for (const auto& sig : signalsPtr)
-        relatedSignals.push_back(sig);
+        const auto signalsPtr = ListPtr<ISignal>::Borrow(signals);
+        relatedSignals.clear();
+        for (const auto& sig : signalsPtr)
+            relatedSignals.push_back(sig);
+    }
 
+    triggerRelatedSignalsChanged();
     return OPENDAQ_SUCCESS;
 }
 
@@ -333,12 +368,16 @@ ErrCode SignalBase<TInterface, Interfaces...>::addRelatedSignal(ISignal* signal)
 
     auto signalPtr = ObjectPtr(signal);
 
-    std::scoped_lock lock(this->sync);
-    const auto it = std::find(relatedSignals.begin(), relatedSignals.end(), signalPtr);
-    if (it != relatedSignals.end())
-        return OPENDAQ_ERR_DUPLICATEITEM;
+    {
+        std::scoped_lock lock(this->sync);
+        const auto it = std::find(relatedSignals.begin(), relatedSignals.end(), signalPtr);
+        if (it != relatedSignals.end())
+            return OPENDAQ_ERR_DUPLICATEITEM;
 
-    relatedSignals.push_back(std::move(signalPtr));
+        relatedSignals.push_back(std::move(signalPtr));
+    }
+
+    triggerRelatedSignalsChanged();
     return OPENDAQ_SUCCESS;
 }
 
@@ -349,21 +388,28 @@ ErrCode SignalBase<TInterface, Interfaces...>::removeRelatedSignal(ISignal* sign
 
     const auto signalPtr = ObjectPtr<ISignal>::Borrow(signal);
 
-    std::scoped_lock lock(this->sync);
-    auto it = std::find(relatedSignals.begin(), relatedSignals.end(), signalPtr);
-    if (it == relatedSignals.end())
-        return OPENDAQ_ERR_NOTFOUND;
+    {
+        std::scoped_lock lock(this->sync);
+        auto it = std::find(relatedSignals.begin(), relatedSignals.end(), signalPtr);
+        if (it == relatedSignals.end())
+            return OPENDAQ_ERR_NOTFOUND;
 
-    relatedSignals.erase(it);
+        relatedSignals.erase(it);
+    }
+
+    triggerRelatedSignalsChanged();
     return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::clearRelatedSignals()
 {
-    std::scoped_lock lock(this->sync);
-    relatedSignals.clear();
-
+    {
+        std::scoped_lock lock(this->sync);
+        relatedSignals.clear();
+    }
+    
+    triggerRelatedSignalsChanged();
     return OPENDAQ_SUCCESS;
 }
 
@@ -405,6 +451,23 @@ bool SignalBase<TInterface, Interfaces...>::sendPacketInternal(const PacketPtr& 
         connection.enqueue(packet);
 
     return true;
+}
+
+template <typename TInterface, typename ... Interfaces>
+void SignalBase<TInterface, Interfaces...>::triggerRelatedSignalsChanged()
+{
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        ListPtr<ISignal> sigs = List<ISignal>();
+        for (const auto& sig : relatedSignals)
+            sigs.pushBack(sig);
+
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                core_event_ids::ComponentModified,
+                Dict<IString, IBaseObject>({{"RelatedSignals", sigs}}));
+        
+        this->triggerCoreEvent(args);
+    }
 }
 
 #include <opendaq/event_packet_params.h>

@@ -40,45 +40,49 @@ inline CoreEventArgsPtr CoreEventArgs(Int id, const DictPtr<IString, IBaseObject
 
 /*!
  * @brief Creates Core event args that are passed as argument when a property value of a component is changed.
+ * @param propOwner The property object that owns the changed property.
  * @param propName The name of the property of which value was changed.
  * @param value The new value of the property.
  */
-inline CoreEventArgsPtr CoreEventArgsPropertyValueChanged(const StringPtr& propName, const BaseObjectPtr& value)
+inline CoreEventArgsPtr CoreEventArgsPropertyValueChanged(const PropertyObjectPtr& propOwner, const StringPtr& propName, const BaseObjectPtr& value)
 {
-    CoreEventArgsPtr obj(CoreEventArgsPropertyValueChanged_Create(propName, value));
+    CoreEventArgsPtr obj(CoreEventArgsPropertyValueChanged_Create(propOwner, propName, value));
     return obj;
 }
 
 /*!
  * @brief Creates Core event args that are passed as argument when a component is finished updating.
+ * @param propOwner The property object that was updated.
  * @param updatedProperties The dictionary of updated properties. Contains the name (string) of a property
  * as key, and the new value (base object) as the dictionary value.
  *
  * A component finished updating when `endUpdate` is called, or at the end of the `update` call.
  */
-inline CoreEventArgsPtr CoreEventArgsUpdateEnd(const DictPtr<IString, IBaseObject>& updatedProperties)
+inline CoreEventArgsPtr CoreEventArgsPropertyObjectUpdateEnd(const PropertyObjectPtr& propOwner, const DictPtr<IString, IBaseObject>& updatedProperties)
 {
-    CoreEventArgsPtr obj(CoreEventArgsUpdateEnd_Create(updatedProperties));
+    CoreEventArgsPtr obj(CoreEventArgsPropertyObjectUpdateEnd_Create(propOwner, updatedProperties));
     return obj;
 }
 
 /*!
  * @brief Creates Core event args that are passed as argument when a property is added to a component.
+ * @param propOwner The property object that owns the added property.
  * @param prop The property that was added.
  */
-inline CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyPtr& prop)
+inline CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyObjectPtr& propOwner, const PropertyPtr& prop)
 {
-    CoreEventArgsPtr obj(CoreEventArgsPropertyAdded_Create(prop));
+    CoreEventArgsPtr obj(CoreEventArgsPropertyAdded_Create(propOwner, prop));
     return obj;
 }
 
 /*!
  * @brief Creates Core event args that are passed as argument when a property is removed from a component.
+ * @param propOwner The property object that owned the removed property.
  * @param propName The name of the property that was removed.
  */
-inline CoreEventArgsPtr CoreEventArgsPropertyRemoved(const StringPtr& propName)
+inline CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName)
 {
-    CoreEventArgsPtr obj(CoreEventArgsPropertyRemoved_Create(propName));
+    CoreEventArgsPtr obj(CoreEventArgsPropertyRemoved_Create(propOwner, propName));
     return obj;
 }
 

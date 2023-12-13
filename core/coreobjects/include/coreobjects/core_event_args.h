@@ -43,6 +43,11 @@ BEGIN_NAMESPACE_OPENDAQ
  * available in the `parameters` field of the arguments. These can be used by any openDAQ server, or other listener to
  * react to changes within the core structure.
  *
+ * Notably, core events trigger only on components that are reachable from the root of the openDAQ tree. Actions such as
+ * adding properties during the creation of a function block will not trigger the event - only attaching the function block
+ * to the tree will. Subsequent modification of the function block's properties, however, will trigger events, as the
+ * function block is then reachable from the root.
+ *
  * The Core Event object can be obtained from the Context object created by the Instance that is available to any component
  * within the openDAQ tree structure.
  *
@@ -57,34 +62,122 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * The Property value changed core event does not trigger when updating a component via `update`, and when `beginUpdate` has been called.
  *
+ * The "owner" parameter is used to determine whether the change was triggered from within a nested object-type property of the
+ * sender component.
+ *
  * The parameters dictionary contains:
+ *  - The Property object owner of the property under the key "Owner"
  *  - The name of the property as a string under the key "Name"
  *  - The new value of the property under the key "Value"
  *
  * The ID of the event is 0, and the event name is "PropertyValueChanged".
  *
- * @subsubsection opendaq_core_event_types_update_end Update end
+ * @subsubsection opendaq_core_event_types_update_end Property object update end
  *
- * Event triggered whenever a component finishes updating - at the end of the `update` call, or when `endUpdate` is called.
+ * Event triggered whenever a property object finishes updating - at the end of the `update` call, or when `endUpdate` is called.
+ *
+ * The "owner" parameter is used to determine whether the update end event was triggered from within a nested object-type property of the
+ * sender component.
  *
  * The parameters dictionary contains:
+ *  - The Property object owner of the property under the key "Owner"
  *  - The dictionary of updated properties under the key "UpdatedProperties". The dictionary has the string names
  *  of properties as key, and base object values as values.
  *
- * The ID of the event is 10, and the event name is "UpdateEnd".
+ * The ID of the event is 10, and the event name is "PropertyObjectUpdateEnd".
  *
  * @subsubsection opendaq_core_event_types_property_added_removed Property added/removed
  *
  * The Property added and Property removed events are triggered whenever a property is added/removed from a component.
  *
+ * The "owner" parameter is used to determine whether the addition/removal was triggered from within a nested object-type
+ * property of the sender component.
+ *
  * The "added" event contains the following parameters:
+ *  - The Property object owner of the property under the key "Owner"
  *  - The added property as a Property object under the key "Property"
  *
  * The "removed" event contains the following parameters:
+ *  - The Property object owner of the property under the key "Owner"
  *  - The name of the property as a string under the key "Name"
  *  
  * The ID of the Property added event is 20, and the event name is "PropertyAdded".
  * The ID of the Property removed event is 30, and the event name is "PropertyRemoved".
+ *
+ * @subsubsection opendaq_core_event_types_component_added_removed Component added/removed
+ *
+ * The Component added/removed events are triggered whenever a new component is attached or detached from
+ * the openDAQ component tree. The event is only triggered when the added/removed component can be
+ * reached from the root of the tree. Eg. when creating a new function block, no event will be triggered
+ * except for when the entire function block subtree is attached to the main tree.
+ *
+ * The sender of the event is always the parent component of the added/removed child.
+ *
+ * The "added" event contains the following parameters:
+ *  - The added component under the key "Component"
+ *
+ * The "removed" event contains the following parameters:
+ *  - The local ID of the property as a string under the key "Id"
+ *  
+ * The ID of the Property added event is 40, and the event name is "ComponentAdded".
+ * The ID of the Property removed event is 50, and the event name is "ComponentRemoved".
+ *
+ * @subsubsection opendaq_core_event_types_signal_conn_disc Signal connected/disconnected
+ *
+ * Triggered whenever a signal is connected to- or disconnected from an input port.
+ *
+ * The sender of the event is the input port.
+ *
+ * The "connected" event contains the following parameters:
+ *  - The connected signal under the key "Signal"
+ *
+ * The "disconnected" event has no parameters.
+ *  
+ * The ID of the connected event is 60, and the event name is "SignalConnected".
+ * The ID of the disconnected event is 70, and the event name is "SignalDisconnected".
+ *
+ * @subsubsection opendaq_core_event_types_data_desc Data descriptor changed
+ *
+ * Triggered whenever the data descriptor of a signal changes.
+ *
+ * The sender of the event is the signal.
+ *
+ * The event contains the following parameters:
+ *  - The new data descriptor under the key "DataDescriptor"
+ *
+ * The ID of the connected event is 80, and the event name is "DataDescriptorChanged".
+ * 
+ * @subsubsection opendaq_core_event_types_component_update_end Component updated end
+ *
+ * Event triggered whenever a component finishes updating - at the end of the `update` call.
+ *
+ * The event has no arguments. When called, the component should be checked for changes.
+ *
+ * The ID of the event is 90, and the event name is "ComponentUpdateEnd".
+ *
+ * @subsubsection opendaq_core_event_types_component_modified Component modified
+ *
+ * Event triggered when an internal attribute of a component has been changed. Eg. when the "active" state of the
+ * component is modified.
+ *
+ * The event has no preset parameters, but instead contains dictionary key-value pairs where the key corresponds to
+ * the name of the modified attribute, and the value to its new value.
+ *
+ * Currently the following parameter keys can be present in the Component modified event payload:
+ *
+ *  - Signal: "DomainSignal", "RelatedSignals"
+ *  - Component: "Active"
+ *
+ * The ID of the event is 100, and the event name is "ComponentModified".
+ *
+ * @subsection opendaq_core_event_muting Muting core events
+ *
+ * Components, as previously mentioned, do not trigger core events until they are connected to the root of the
+ * openDAQ tree. This is achieved through internal methods that enable/disable the triggers recursively. By default,
+ * each component will not trigger any events - the triggers must be manually enabled. The SDK does this whenever
+ * a component is added as a child of a parent, if the parent's core triggers are enabled. When done so, the triggers
+ * are enabled recursively for the entirety of the subtree. A converse function can be used to instead recursively
+ * mute the events.
  */
 DECLARE_OPENDAQ_INTERFACE(ICoreEventArgs, IEventArgs)
 {
@@ -117,42 +210,57 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
 
 /*!
  * @brief Creates Core event args that are passed as argument when a property value of a component is changed.
+ * @param propOwner The property object that owns the changed property.
  * @param propName The name of the property of which value was changed.
  * @param value The new value of the property.
+ *
+ * The ID of the event is 0, and the event name is "PropertyValueChanged".
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, CoreEventArgsPropertyValueChanged, ICoreEventArgs,
+    IPropertyObject*, propOwner,
     IString*, propName,
     IBaseObject*, value
 )
 
 /*!
- * @brief Creates Core event args that are passed as argument when a component is finished updating.
+ * @brief Creates Core event args that are passed as argument when a property object is finished updating.
+ * @param propOwner The property object that was updated.
  * @param updatedProperties The dictionary of updated properties. Contains the name (string) of a property
  * as key, and the new value (base object) as the dictionary value.
  *
- * A component finished updating when `endUpdate` is called, or at the end of the `update` call.
+ * A property object finished updating when `endUpdate` is called, or at the end of the `update` call.
+ * The ID of the event is 10, and the event name is "PropertyObjectUpdateEnd".
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, CoreEventArgsUpdateEnd, ICoreEventArgs,
+    LIBRARY_FACTORY, CoreEventArgsPropertyObjectUpdateEnd, ICoreEventArgs,
+    IPropertyObject*, propOwner,
     IDict*, updatedProperties
 )
 
 /*!
  * @brief Creates Core event args that are passed as argument when a property is added to a component.
+ * @param propOwner The property object that owns the added property.
  * @param prop The property that was added.
+ *
+ * The ID of the event is 20, and the event name is "PropertyAdded".
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, CoreEventArgsPropertyAdded, ICoreEventArgs,
+    IPropertyObject*, propOwner,
     IProperty*, prop
 )
 
 /*!
  * @brief Creates Core event args that are passed as argument when a property is removed from a component.
+ * @param propOwner The property object that owned the removed property.
  * @param propName The name of the property that was removed.
+ *
+ * The ID of the event is 30, and the event name is "PropertyRemoved".
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, CoreEventArgsPropertyRemoved, ICoreEventArgs,
+    IPropertyObject*, propOwner,
     IString*, propName
 )
 

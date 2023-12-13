@@ -313,6 +313,19 @@ BlockReaderPtr BlockReader(SignalPtr signal, SizeT blockSize, ReadMode mode = Re
 }
 
 template <typename TValueType = double, typename TDomainType = ClockTick>
+BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port, SizeT blockSize, ReadMode mode = ReadMode::Scaled)
+{
+    return BlockReaderFromPort(
+        port,
+        blockSize,
+        SampleTypeFromType<TValueType>::SampleType,
+        SampleTypeFromType<TDomainType>::SampleType,
+        mode
+    );
+}
+
+
+template <typename TValueType = double, typename TDomainType = ClockTick>
 BlockReaderPtr BlockReaderFromExisting(BlockReaderPtr invalidatedReader)
 {
     return BlockReaderFromExisting(

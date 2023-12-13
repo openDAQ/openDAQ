@@ -20,7 +20,7 @@
 #include <opendaq/function_block_type_factory.h>
 #include <opendaq/function_block_impl.h>
 #include <opendaq/signal_config_ptr.h>
-
+#include <opendaq/block_reader_ptr.h>
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/event_packet_ptr.h>
 #include <list>
@@ -54,6 +54,7 @@ private:
 
     bool domainLinear;
     size_t linearBlockCount;
+    BlockReaderPtr linearReader;
 
     size_t blockSize;
     size_t classCount;
@@ -79,12 +80,12 @@ private:
     template <SampleType InputSampleType>
     void processDataPacket(const DataPacketPtr& packet);
     template <SampleType InputSampleType>
-    void processLinearDataPacket(const DataPacketPtr& packet);
+    void processLinearDataPacket();
 
     void processEventPacket(const EventPacketPtr& packet);
     void onPacketReceived(const InputPortPtr& port) override;
 
-    void processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
+    bool processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
                                         const DataDescriptorPtr& inputDomainDataDescriptor);
 
     void configure();

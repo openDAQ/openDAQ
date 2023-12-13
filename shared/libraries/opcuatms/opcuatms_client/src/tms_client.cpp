@@ -33,8 +33,20 @@ TmsClient::TmsClient(const ContextPtr& context,
 daq::DevicePtr TmsClient::connect()
 {
     OpcUaEndpoint endpoint("TmsClient", opcUaUrl);
-    registerDaqTypes(endpoint);
 
+    client = std::make_shared<OpcUaClient>(endpoint);
+    if (!client->connect())
+        throw NotFoundException();
+    client->runIterate();
+
+    // A first connect is needed to read from the server the available namespaces out from the server
+    auto namespaces = VariantConverter<IString>::ToDaqList(client->readValue(OpcUaNodeId(0,UA_NS0ID_SERVER_NAMESPACEARRAY)));
+
+    client->stopIterate();
+    client->disconnect();
+
+    // After a disconnect, we need to register the data types, but only these which are available on server side.
+    registerDaqTypes(endpoint, namespaces);
     client = std::make_shared<OpcUaClient>(endpoint);
     if (!client->connect())
         throw NotFoundException();

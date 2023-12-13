@@ -310,7 +310,7 @@ void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts,
     for (const auto& port : inputPorts)
     {
         auto portPtr = InputPortConfigPtr(port);
-        portPtr.asPtr<IOwnable>().setOwner(PropertyObject());
+        portPtr.asPtr<IOwnable>().setOwner(portBinder);
         portPtr.setNotificationMethod(PacketReadyNotification::SameThread);
         portPtr.setListener(listener);
 

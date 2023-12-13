@@ -34,6 +34,7 @@ public:
 private:
     std::mutex mutex;
     InputPortConfigPtr port;
+    PropertyObjectPtr portBinder{PropertyObject()};
     ConnectionPtr connection;
 };
 

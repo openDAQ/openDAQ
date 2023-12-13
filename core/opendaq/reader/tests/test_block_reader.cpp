@@ -893,6 +893,18 @@ TYPED_TEST(BlockReaderTest, MultipleBlockReaderToInputPort)
     ASSERT_THROW(daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined), AlreadyExistsException);
 }
 
+TYPED_TEST(BlockReaderTest, BlockReaderReuseInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+    {
+        auto reader1 = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    }
+    ASSERT_NO_THROW(daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined));
+}
+
 TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPort)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));

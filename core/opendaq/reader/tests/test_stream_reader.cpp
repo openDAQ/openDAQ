@@ -889,6 +889,18 @@ TYPED_TEST(StreamReaderTest, MultipleStreamReaderToInputPort)
     ASSERT_THROW(daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined), AlreadyExistsException);
 }
 
+TYPED_TEST(StreamReaderTest, StreamReaderReuseInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+
+    {
+        auto reader1 = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
+    }
+    ASSERT_NO_THROW(daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined));
+}
+
 TYPED_TEST(StreamReaderTest, StreamReaderWithNotConnectedInputPort)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));

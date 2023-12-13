@@ -24,6 +24,7 @@
 #include <opendaq/typed_reader.h>
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/read_info.h>
+#include <coreobjects/property_object_factory.h>
 
 #include <condition_variable>
 
@@ -115,6 +116,7 @@ private:
     ReadMode readMode;
     ReadTimeoutType timeoutType;
     InputPortConfigPtr inputPort;
+    PropertyObjectPtr portBinder{PropertyObject()};
     ConnectionPtr connection;
 
     bool invalid{};

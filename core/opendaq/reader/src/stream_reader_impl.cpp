@@ -45,7 +45,7 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
         throw ArgumentNullException("Input port must not be null.");
     
     inputPort = InputPortConfigPtr(port);
-    inputPort.asPtr<IOwnable>().setOwner(PropertyObject());
+    inputPort.asPtr<IOwnable>().setOwner(portBinder);
 
     if (!inputPort.getConnection().assigned())
         throw ArgumentNullException("Input port not connected to signal");

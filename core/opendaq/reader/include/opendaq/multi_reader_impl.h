@@ -18,6 +18,7 @@
 #include <opendaq/read_info.h>
 #include <opendaq/reader_config_ptr.h>
 #include <opendaq/signal_reader.h>
+#include <coreobjects/property_object_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -116,6 +117,7 @@ private:
     std::unique_ptr<Comparable> commonStart;
 
     std::vector<SignalReader> signals;
+    PropertyObjectPtr portBinder{PropertyObject()};
 
     LoggerComponentPtr loggerComponent;
 };

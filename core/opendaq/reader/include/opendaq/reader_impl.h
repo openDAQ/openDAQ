@@ -71,7 +71,7 @@ public:
         if (!port.getConnection().assigned())
             throw ArgumentNullException("Input port not connected to signal");
         
-        port.asPtr<IOwnable>().setOwner(PropertyObject());
+        port.asPtr<IOwnable>().setOwner(portBinder);
 
         this->internalAddRef();
 
@@ -489,6 +489,7 @@ protected:
     std::mutex mutex;
     ReadMode readMode;
     InputPortConfigPtr port;
+    PropertyObjectPtr portBinder{PropertyObject()};
     ConnectionPtr connection;
     FunctionPtr changeCallback;
     ReadTimeoutType timeoutType;

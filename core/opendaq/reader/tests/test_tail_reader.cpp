@@ -870,6 +870,21 @@ TEST_F(TailReaderTest, MultipleTailReaderToInputPort)
     ASSERT_THROW(TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined), AlreadyExistsException);
 }
 
+TEST_F(TailReaderTest, TailReaderReuseInputPort)
+{
+    const SizeT HISTORY_SIZE = 2u;
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+
+    {
+        auto reader1 = TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+    }
+    ASSERT_NO_THROW(TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined));
+}
+
 TEST_F(TailReaderTest, TailReaderWithNotConnectedInputPort)
 {
     const SizeT HISTORY_SIZE = 2u;

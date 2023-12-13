@@ -1452,6 +1452,21 @@ TEST_F(MultiReaderTest, MultipleMultiReaderToInputPort)
     ASSERT_THROW(MultiReaderFromPort(portList), AlreadyExistsException);
 }
 
+TEST_F(MultiReaderTest, MultiReaderReuseInputPort)
+{
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(1);
+
+    addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    auto portList = signalsToPortsList();
+
+    {
+        auto reader1 = MultiReaderFromPort(portList);
+    }
+    ASSERT_NO_THROW(MultiReaderFromPort(portList));
+}
+
 TEST_F(MultiReaderTest, MultiReaderWithNotConnectedInputPort)
 {
     // prevent vector from re-allocating, so we have "stable" pointers

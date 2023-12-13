@@ -149,6 +149,18 @@ TEST_F(PacketReaderTest, MultiplePacketReaderToInputPort)
     ASSERT_THROW(PacketReaderFromPort(port), AlreadyExistsException);
 }
 
+TEST_F(PacketReaderTest, PacketReaderReuseInputPort)
+{
+    signal.setDescriptor(createDataDescriptor());
+    auto port = InputPort(signal.getContext(), nullptr, "readsig");
+    port.connect(signal);
+
+    {
+        auto reader1 = PacketReaderFromPort(port);
+    }
+    ASSERT_NO_THROW(PacketReaderFromPort(port));
+}
+
 TEST_F(PacketReaderTest, PacketReaderWithNotConnectedInputPort)
 {
     signal.setDescriptor(createDataDescriptor());

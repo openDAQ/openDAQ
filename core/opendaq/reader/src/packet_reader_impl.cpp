@@ -22,7 +22,7 @@ PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
         throw ArgumentNullException("Input port must not be null.");
     
     this->port = InputPortConfigPtr(port);
-    this->port.asPtr<IOwnable>().setOwner(PropertyObject());
+    this->port.asPtr<IOwnable>().setOwner(portBinder);
 
     if (!this->port.getConnection().assigned())
         throw ArgumentNullException("Input port not connected to signal");

@@ -78,7 +78,11 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
     }
     else if (connStr == "mock_phys_device")
     {
-        DevicePtr physicalDevice(MockPhysicalDevice_Create(ctx, parent, StringPtr("mockdev")));
+        std::string id = "mockdev";
+        if (cnt != 0)
+            id += std::to_string(cnt);
+        cnt++;
+        DevicePtr physicalDevice(MockPhysicalDevice_Create(ctx, parent, StringPtr(id)));
         *device = physicalDevice.detach();
     }
     else

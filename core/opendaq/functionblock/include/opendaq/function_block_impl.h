@@ -104,6 +104,7 @@ FunctionBlockImpl<TInterface, Interfaces...>::FunctionBlockImpl(const FunctionBl
     , loggerComponent(this->context.getLogger().assigned() ? this->context.getLogger().getOrAddComponent(this->globalId)
                                                            : throw ArgumentNullException("Logger must not be null"))
 {
+    this->defaultComponents.insert("IP");
     inputPorts = this->template addFolder<IInputPort>("IP", nullptr, ComponentStandardProps::Skip);
 }
 

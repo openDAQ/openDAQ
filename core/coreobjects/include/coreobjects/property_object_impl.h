@@ -36,6 +36,7 @@
 #include <coreobjects/property_internal_ptr.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/core_event_args_factory.h>
+#include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -89,6 +90,10 @@ public:
 
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC checkForReferences(IProperty* property, Bool* isReferenced) override;
+    virtual ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
+    virtual ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
+    ErrCode INTERFACE_FUNC getCoreEventTrigger(IProcedure** trigger) override;
+    ErrCode INTERFACE_FUNC setCoreEventTrigger(IProcedure* trigger)override;
 
     // IUpdatable
     virtual ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
@@ -131,6 +136,7 @@ protected:
     PropertyObjectPtr objPtr;
     int updateCount;
     UpdatingActions updatingPropsAndValues;
+    bool coreEventMuted;
 
     void internalDispose(bool) override;
     ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool isUpdating);
@@ -242,6 +248,7 @@ template <class PropObjInterface, class... Interfaces>
 GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl()
     : frozen(false)
     , updateCount(0)
+    , coreEventMuted(true)
     , className(nullptr)
     , objectClass(nullptr)
 {
@@ -770,8 +777,19 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
                 if (triggerEvent)
                 {
                     const auto newVal = callPropertyValueWrite(prop, valuePtr, PropertyEventType::Update, false);
-                    if (triggerCoreEvent.assigned())
-                        triggerCoreEvent(CoreEventArgsPropertyValueChanged(propName, newVal));
+                    if (!coreEventMuted && triggerCoreEvent.assigned())
+                        triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, newVal));
+                }
+            }
+
+            if (prop.getValueType() == ctObject)
+            {
+                const auto obj = valuePtr.asPtrOrNull<IPropertyObjectInternal>();
+                if (obj.assigned())
+                {
+                    obj.setCoreEventTrigger(triggerCoreEvent);
+                    if (!coreEventMuted)
+                        obj.enableCoreEventTrigger();
                 }
             }
         }
@@ -1285,8 +1303,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             {
                 propValues.erase(it);
                 const auto val = callPropertyValueWrite(prop, nullptr, PropertyEventType::Clear, false);
-                if (triggerCoreEvent.assigned())
-                    triggerCoreEvent(CoreEventArgsPropertyValueChanged(propName, val));
+                if (!coreEventMuted && triggerCoreEvent.assigned())
+                    triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, val));
             }
         }
     }
@@ -1343,8 +1361,20 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
         if (!res.second)
             return this->makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists.)", propName));
 
-        if (triggerCoreEvent.assigned())
-            triggerCoreEvent(CoreEventArgsPropertyAdded(propPtr));
+        if (!coreEventMuted && triggerCoreEvent.assigned())
+            triggerCoreEvent(CoreEventArgsPropertyAdded(objPtr, propPtr));
+
+        const auto propPtrInternal = propPtr.asPtr<IPropertyInternal>();
+        if (propPtrInternal.getValueTypeUnresolved() == ctObject && propPtr.getDefaultValue().assigned())
+        {
+            const auto defaultValueObjInternal = propPtr.getDefaultValue().asPtrOrNull<IPropertyObjectInternal>();
+            if (defaultValueObjInternal.assigned())
+            {
+                defaultValueObjInternal.setCoreEventTrigger(triggerCoreEvent);
+                if (!coreEventMuted)
+                    defaultValueObjInternal.enableCoreEventTrigger();
+            }
+        }
 
         return OPENDAQ_SUCCESS;
     });
@@ -1375,8 +1405,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
         propValues.erase(propertyName);
     }
 
-    if(triggerCoreEvent.assigned())
-        triggerCoreEvent(CoreEventArgsPropertyRemoved(propertyName));
+    if(!coreEventMuted && triggerCoreEvent.assigned())
+        triggerCoreEvent(CoreEventArgsPropertyRemoved(objPtr, propertyName));
 
     return OPENDAQ_SUCCESS;
 }
@@ -1693,6 +1723,94 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefe
 
 
     *isReferenced = false;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::enableCoreEventTrigger()
+{
+    coreEventMuted = false;
+
+    for (auto& item : propValues)
+    {
+        if (item.second.assigned())
+        {
+            const auto objInternal = item.second.template asPtrOrNull<IPropertyObjectInternal>();
+            if (objInternal.assigned())
+                objInternal.enableCoreEventTrigger();
+        }
+    }
+
+    for (const auto& item : localProperties)
+    {
+        if (item.second.assigned())
+        {
+            const auto  propInternal = item.second.template asPtrOrNull<IPropertyInternal>();
+            if (propInternal.getValueTypeUnresolved() == ctObject)
+            {
+                const auto defaultVal = item.second.getDefaultValue();
+                if (defaultVal.assigned())
+                {
+                    const auto objInternal = defaultVal.template asPtrOrNull<IPropertyObjectInternal>();
+                    if (objInternal.assigned())
+                        objInternal.enableCoreEventTrigger();
+                }
+            }
+        }
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::disableCoreEventTrigger()
+{
+    coreEventMuted = true;
+
+    for (auto& item : propValues)
+    {
+        if (item.second.assigned())
+        {
+            const auto objInternal = item.second.template asPtrOrNull<IPropertyObjectInternal>();
+            if (objInternal.assigned())
+                objInternal.disableCoreEventTrigger();
+        }
+    }
+
+    for (const auto& item : localProperties)
+    {
+        if (item.second.assigned())
+        {
+            const auto  propInternal = item.second.template asPtrOrNull<IPropertyInternal>();
+            if (propInternal.getValueTypeUnresolved() == ctObject)
+            {
+                const auto defaultVal = item.second.getDefaultValue();
+                if (defaultVal.assigned())
+                {
+                    const auto objInternal = defaultVal.template asPtrOrNull<IPropertyObjectInternal>();
+                    if (objInternal.assigned())
+                        objInternal.disableCoreEventTrigger();
+                }
+            }
+        }
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getCoreEventTrigger(IProcedure** trigger)
+{
+    OPENDAQ_PARAM_NOT_NULL(trigger);
+
+    *trigger = this->triggerCoreEvent.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setCoreEventTrigger(IProcedure* trigger)
+{
+    this->triggerCoreEvent = trigger;
     return OPENDAQ_SUCCESS;
 }
 
@@ -2106,8 +2224,8 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updatingValuesW
         endUpdateEvent(objPtr, args);
     }
 
-    if(triggerCoreEvent.assigned())
-        triggerCoreEvent(CoreEventArgsUpdateEnd(dict));
+    if(!coreEventMuted && triggerCoreEvent.assigned())
+        triggerCoreEvent(CoreEventArgsPropertyObjectUpdateEnd(objPtr, dict));
 }
 
 template <class PropObjInterface, class... Interfaces>

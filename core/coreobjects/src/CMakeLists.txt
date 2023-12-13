@@ -199,6 +199,7 @@ set(SRC_PublicHeaders coreobjects.h
                       component_type.h
                       core_event_args_factory.h 
                       core_event_args_ids.h 
+					  core_event_args_impl.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -220,7 +221,6 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        property_object_class_builder_impl.h
                        property_object_internal.h
                        component_type_impl.h
-					   core_event_args_impl.h
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)

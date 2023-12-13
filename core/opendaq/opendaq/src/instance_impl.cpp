@@ -22,6 +22,7 @@ InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
 {
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
     defaultRootDevice = Client(this->context, instanceId);
+    defaultRootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
     rootDevice = defaultRootDevice;
     loggerComponent = this->context.getLogger().addComponent("Instance");
 }
@@ -260,6 +261,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;
 
+    this->rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
     return OPENDAQ_SUCCESS;
 }
 

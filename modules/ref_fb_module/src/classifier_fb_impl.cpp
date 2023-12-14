@@ -199,7 +199,7 @@ void ClassifierFbImpl::configure()
             linearBlockCount = blockSize * linearBlockCount / 1000;
 
             linearReader = BlockReaderFromPort(inputPort, linearBlockCount);
-            linearReader.setOnDescriptorChanged(std::bind(&ClassifierFbImpl::processSignalDescriptorChanged, this));
+            linearReader.setOnDescriptorChanged(std::bind(&ClassifierFbImpl::processSignalDescriptorChanged, this, std::placeholders::_1, std::placeholders::_2));
         }
 
         auto outputDataDescriptorBuilder = DataDescriptorBuilder().setSampleType(SampleType::Float64);

@@ -881,6 +881,7 @@ TEST_F(TailReaderTest, TailReaderReuseInputPort)
 
     {
         auto reader1 = TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+        printf("check\n");
     }
     ASSERT_NO_THROW(TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined));
 }

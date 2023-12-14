@@ -30,12 +30,6 @@ PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
     connection = this->port.getConnection();
 }
 
-PacketReaderImpl::~PacketReaderImpl()
-{
-    if (port.assigned())
-        port.remove();
-}
-
 ErrCode PacketReaderImpl::getAvailableCount(SizeT* count)
 {
     std::scoped_lock lock(mutex);

@@ -40,8 +40,6 @@ public:
                     SampleType domainReadType,
                     ReadMode mode);
 
-    ~MultiReaderImpl() override;
-
     ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) override;
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC getDomainReadType(SampleType* sampleType) override;

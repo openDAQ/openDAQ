@@ -417,9 +417,12 @@ ErrCode InputPortImpl::isRemoved(Bool* removed)
 
 ErrCode INTERFACE_FUNC InputPortImpl::setOwner(IPropertyObject* owner)
 {
-    if (this->owner.assigned() && this->owner.getRef() != owner)
-        return makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
-
+    if (this->owner.assigned())
+    {
+        auto ref = this->owner.getRef();
+        if (ref != nullptr && ref != owner)
+            return makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
+    }
     this->owner = owner;
     return OPENDAQ_SUCCESS;
 }

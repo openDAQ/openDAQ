@@ -108,12 +108,6 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     readDescriptorFromPort();
 }
 
-StreamReaderImpl::~StreamReaderImpl()
-{
-    if (inputPort.assigned())
-        inputPort.remove();
-}
-
 void StreamReaderImpl::readDescriptorFromPort()
 {
     auto config = inputPort.asPtrOrNull<IInputPortConfig>();

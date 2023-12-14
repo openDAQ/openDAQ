@@ -84,12 +84,6 @@ public:
         domainReader = createReaderForType(domainReadType, nullptr);
     }
 
-    ~ReaderImpl() override
-    {
-        if (port.assigned())
-            port.remove();
-    }
-
     /*!
      * @brief Called when the Input port method `acceptsSignal` is called. Should return true if the signal is
      * accepted; false otherwise.

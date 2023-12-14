@@ -55,8 +55,6 @@ public:
                               SampleType valueReadType,
                               SampleType domainReadType);
 
-    ~StreamReaderImpl() override;
-
     // IReader
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) override;

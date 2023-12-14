@@ -92,15 +92,6 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
     }
 }
 
-MultiReaderImpl::~MultiReaderImpl()
-{
-    for (const auto& signal : signals)
-    {
-        if (signal.port.assigned())
-            signal.port.remove();
-    }
-}
-
 ListPtr<ISignal> MultiReaderImpl::getSignals() const
 {
     auto list = List<ISignal>();

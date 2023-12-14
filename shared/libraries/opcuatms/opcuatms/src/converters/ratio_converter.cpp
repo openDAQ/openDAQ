@@ -77,7 +77,7 @@ OpcUaVariant VariantConverter<IRatio>::ToVariant(const RatioPtr& object, const U
 {
     auto variant = OpcUaVariant();
 
-    if (targetType == nullptr || targetType == &UA_TYPES_TMSBT[UA_TYPES_TMSBT_RATIONALNUMBER64])
+    if (targetType == nullptr || targetType == &UA_TYPES_DAQBT[UA_TYPES_DAQBT_RATIONALNUMBER64])
         variant.setScalar(*StructConverter<IRatio, UA_RationalNumber64>::ToTmsType(object));
     else if (targetType == &UA_TYPES[UA_TYPES_RATIONALNUMBER])
         variant.setScalar(*StructConverter<IRatio, UA_RationalNumber>::ToTmsType(object));
@@ -105,7 +105,7 @@ OpcUaVariant VariantConverter<IRatio>::ToArrayVariant(const ListPtr<IRatio>& lis
                                                       const UA_DataType* targetType,
                                                       const ContextPtr& /*context*/)
 {
-    if (targetType == nullptr || targetType == &UA_TYPES_TMSBT[UA_TYPES_TMSBT_RATIONALNUMBER64])
+    if (targetType == nullptr || targetType == &UA_TYPES_DAQBT[UA_TYPES_DAQBT_RATIONALNUMBER64])
         return ListConversionUtils::ToArrayVariant<IRatio, UA_RationalNumber64>(list);
     if (targetType == &UA_TYPES[UA_TYPES_RATIONALNUMBER])
         return ListConversionUtils::ToArrayVariant<IRatio, UA_RationalNumber>(list);

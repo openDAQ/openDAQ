@@ -84,7 +84,7 @@ if (DAQMODULES_AUDIO_DEVICE_MODULE)
 endif()
 
 if(OPENDAQ_ENABLE_OPCUA)
-    add_subdirectory(opcua_tms_types EXCLUDE_FROM_ALL)
+    add_subdirectory(opcua_daq_types EXCLUDE_FROM_ALL)
 endif()
 
 if(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)

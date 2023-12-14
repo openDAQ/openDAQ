@@ -3,7 +3,7 @@
 #include "opcuatms/converters/list_conversion_utils.h"
 #include "opcuatms/converters/struct_converter.h"
 #include "opcuatms/converters/variant_converter.h"
-#include "open62541/types_tmsbsp_generated.h"
+#include "open62541/types_daqbsp_generated.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

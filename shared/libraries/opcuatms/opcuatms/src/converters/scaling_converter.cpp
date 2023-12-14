@@ -1,7 +1,7 @@
 #include <opendaq/scaling_factory.h>
 #include "opcuatms/converters/struct_converter.h"
 #include "opcuatms/converters/variant_converter.h"
-#include "open62541/types_tmsbsp_generated_handling.h"
+#include "open62541/types_daqbsp_generated_handling.h"
 #include "opcuatms/core_types_utils.h"
 #include "opcuatms/extension_object.h"
 #include "opcuatms/converters/list_conversion_utils.h"
@@ -95,7 +95,7 @@ OpcUaObject<UA_PostScalingStructure> StructConverter<IScaling, UA_PostScalingStr
     uaLinearScalingDescription->offset = VariantConverter<INumber>::ToVariant(offset).getDetachedValue();
 
     uaPostScaling->scalingDescription.encoding = UA_EXTENSIONOBJECT_DECODED;
-    uaPostScaling->scalingDescription.content.decoded.type = &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_LINEARSCALINGDESCRIPTIONSTRUCTURE];
+    uaPostScaling->scalingDescription.content.decoded.type = &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LINEARSCALINGDESCRIPTIONSTRUCTURE];
 
     const auto uaLinearScalingDescriptionPtr = UA_LinearScalingDescriptionStructure_new();
     *uaLinearScalingDescriptionPtr = uaLinearScalingDescription.getDetachedValue();
@@ -131,9 +131,9 @@ OpcUaVariant VariantConverter<IScaling>::ToVariant(const ScalingPtr& object, con
 {
     auto variant = OpcUaVariant();
 
-    if (targetType == nullptr || targetType ==&UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_POSTSCALINGSTRUCTURE])
+    if (targetType == nullptr || targetType ==&UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_POSTSCALINGSTRUCTURE])
         variant.setScalar(*StructConverter<IScaling, UA_PostScalingStructure>::ToTmsType(object));
-    else if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_LINEARSCALINGDESCRIPTIONSTRUCTURE])
+    else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LINEARSCALINGDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IScaling, UA_LinearScalingDescriptionStructure>::ToTmsType(object));
     else
         throw ConversionFailedException{};
@@ -159,9 +159,9 @@ OpcUaVariant VariantConverter<IScaling>::ToArrayVariant(const ListPtr<IScaling>&
                                                         const UA_DataType* targetType,
                                                         const ContextPtr& /*context*/)
 {
-    if (targetType == nullptr || targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_POSTSCALINGSTRUCTURE])
+    if (targetType == nullptr || targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_POSTSCALINGSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IScaling, UA_PostScalingStructure>(list);
-    if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_LINEARSCALINGDESCRIPTIONSTRUCTURE])
+    if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LINEARSCALINGDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IScaling, UA_LinearScalingDescriptionStructure>(list);
     
     throw ConversionFailedException{};

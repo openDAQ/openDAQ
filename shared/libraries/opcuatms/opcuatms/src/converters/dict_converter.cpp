@@ -90,7 +90,7 @@ OpcUaVariant VariantConverter<IDict>::ToVariant(const DictPtr<IBaseObject, IBase
                                                 const UA_DataType* targetType,
                                                 const ContextPtr& context)
 {
-    if (targetType != nullptr && targetType != &UA_TYPES_TMSBT[UA_TYPES_TMSBT_DAQKEYVALUEPAIR])
+    if (targetType != nullptr && targetType != &UA_TYPES_DAQBT[UA_TYPES_DAQBT_DAQKEYVALUEPAIR])
         throw ConversionFailedException{};
 
     auto variant = OpcUaVariant();

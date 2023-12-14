@@ -1,4 +1,4 @@
-#include <open62541/types_tmsbsp_generated_handling.h>
+#include <open62541/types_daqbsp_generated_handling.h>
 #include <opendaq/data_descriptor_factory.h>
 #include "opcuatms/converters/struct_converter.h"
 #include "opcuatms/converters/variant_converter.h"
@@ -271,16 +271,16 @@ OpcUaVariant VariantConverter<IDataDescriptor>::ToVariant(const DataDescriptorPt
 {
     auto variant = OpcUaVariant();
 
-    if (targetType ==nullptr || targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_BASEDATADESCRIPTORSTRUCTURE])
+    if (targetType ==nullptr || targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_BASEDATADESCRIPTORSTRUCTURE])
     {
         if (object.isStructDescriptor())
             variant.setScalar(*StructConverter<IDataDescriptor, UA_StructDescriptorStructure>::ToTmsType(object));
         else
             variant.setScalar(*StructConverter<IDataDescriptor, UA_DataDescriptorStructure>::ToTmsType(object));
     }
-    else if (targetType ==&UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_DATADESCRIPTORSTRUCTURE])
+    else if (targetType ==&UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_DATADESCRIPTORSTRUCTURE])
         variant.setScalar(*StructConverter<IDataDescriptor, UA_DataDescriptorStructure>::ToTmsType(object));
-    else if (targetType ==&UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_STRUCTDESCRIPTORSTRUCTURE])
+    else if (targetType ==&UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_STRUCTDESCRIPTORSTRUCTURE])
         variant.setScalar(*StructConverter<IDataDescriptor, UA_StructDescriptorStructure>::ToTmsType(object));
     else
         throw ConversionFailedException{};
@@ -306,11 +306,11 @@ OpcUaVariant VariantConverter<IDataDescriptor>::ToArrayVariant(const ListPtr<IDa
                                                                const UA_DataType* targetType,
                                                                const ContextPtr& /*context*/)
 {
-    if (targetType == nullptr || targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_BASEDATADESCRIPTORSTRUCTURE])
+    if (targetType == nullptr || targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_BASEDATADESCRIPTORSTRUCTURE])
         return ListConversionUtils::ToExtensionObjectArrayVariant<IDataDescriptor>(list);
-    if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_DATADESCRIPTORSTRUCTURE])
+    if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_DATADESCRIPTORSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDataDescriptor, UA_DataDescriptorStructure>(list);
-    if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_STRUCTDESCRIPTORSTRUCTURE])
+    if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_STRUCTDESCRIPTORSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDataDescriptor, UA_StructDescriptorStructure>(list);
 
     throw ConversionFailedException{};

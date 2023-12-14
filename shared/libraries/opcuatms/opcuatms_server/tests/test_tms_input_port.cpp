@@ -10,7 +10,7 @@
 #include <opendaq/logger_factory.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/signal_factory.h>
-#include <open62541/tmsbsp_nodeids.h>
+#include <open62541/daqbsp_nodeids.h>
 #include <test_input_port_notifications.h>
 
 using namespace daq;
@@ -69,7 +69,7 @@ TEST_F(TmsInputPortTest, ConnectedToReference)
     ASSERT_TRUE(this->getClient()->nodeExists(inputPortNodeId));
 
     OpcUaServerNode inputPortNode(*this->getServer(), inputPortNodeId);
-    auto connectedToNodes = inputPortNode.browse(OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_CONNECTEDTOSIGNAL));
+    auto connectedToNodes = inputPortNode.browse(OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_CONNECTEDTOSIGNAL));
     ASSERT_EQ(connectedToNodes.size(), 1u);
     ASSERT_EQ(connectedToNodes[0]->getNodeId(), signalNodeId);
 }

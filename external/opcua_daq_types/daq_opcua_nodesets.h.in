@@ -1,0 +1,15 @@
+#pragma once
+#include <opcuashared/opcuaendpoint.h>
+@OPCUA_NODESET_INCLUDES@
+
+BEGIN_NAMESPACE_OPENDAQ_OPCUA
+
+static void registerDaqTypes(OpcUaEndpoint& endpoint, ListPtr<IString> nameSpaces)
+{
+    for (auto nameSpace : nameSpaces)
+    {
+@OPCUA_ENDPOINT_REGISTRATIONS@
+    }
+}
+
+END_NAMESPACE_OPENDAQ_OPCUA

@@ -2,10 +2,10 @@
 #include <coreobjects/eval_value_factory.h>
 #include <opcuatms/converters/list_conversion_utils.h>
 #include <opcuatms_server/objects/tms_server_eval_value.h>
-#include <open62541/tmsbt_nodeids.h>
-#include <open62541/types_tmsbt_generated.h>
+#include <open62541/daqbt_nodeids.h>
+#include <open62541/types_daqbt_generated.h>
 #include "opcuatms/converters/variant_converter.h"
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 #include <coreobjects/unit_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -99,24 +99,24 @@ void TmsServerProperty::bindCallbacks()
 opcua::OpcUaNodeId TmsServerProperty::getTmsTypeId()
 {
     if (objectInternal.getSelectionValuesUnresolved().assigned())
-        return OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_SELECTIONVARIABLETYPE);
+        return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_SELECTIONVARIABLETYPE);
 
     if (objectInternal.getReferencedPropertyUnresolved().assigned())
-        return OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_REFERENCEVARIABLETYPE);
+        return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_REFERENCEVARIABLETYPE);
     
     const auto type = object.getValueType();
     switch (type)
     {
         case CoreType::ctInt:
         case CoreType::ctFloat:
-            return OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_NUMERICVARIABLETYPE);
+            return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_NUMERICVARIABLETYPE);
         case CoreType::ctStruct:
-            return OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_STRUCTUREVARIABLETYPE);
+            return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_STRUCTUREVARIABLETYPE);
         default:
             break;
     }
 
-    return OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_INTROSPECTIONVARIABLETYPE);
+    return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_INTROSPECTIONVARIABLETYPE);
 }
 
 bool TmsServerProperty::createOptionalNode(const opcua::OpcUaNodeId& nodeId)
@@ -169,27 +169,27 @@ void TmsServerProperty::registerEvalValueNode(const std::string& nodeName, TmsSe
 
 bool TmsServerProperty::isSelectionType()
 {
-    return getTmsTypeId() == OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_SELECTIONVARIABLETYPE);
+    return getTmsTypeId() == OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_SELECTIONVARIABLETYPE);
 }
 
 bool TmsServerProperty::isNumericType()
 {
-    return getTmsTypeId() == OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_NUMERICVARIABLETYPE);
+    return getTmsTypeId() == OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_NUMERICVARIABLETYPE);
 }
 
 bool TmsServerProperty::isIntrospectionType()
 {
-    return getTmsTypeId() == OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_INTROSPECTIONVARIABLETYPE);
+    return getTmsTypeId() == OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_INTROSPECTIONVARIABLETYPE);
 }
 
 bool TmsServerProperty::isReferenceType()
 {
-    return getTmsTypeId() == OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_REFERENCEVARIABLETYPE);
+    return getTmsTypeId() == OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_REFERENCEVARIABLETYPE);
 }
 
 bool TmsServerProperty::isStructureType()
 {
-    return getTmsTypeId() == OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_STRUCTUREVARIABLETYPE);
+    return getTmsTypeId() == OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_STRUCTUREVARIABLETYPE);
 }
 
 void TmsServerProperty::hideReferenceTypeChildren()

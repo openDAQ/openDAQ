@@ -321,6 +321,14 @@ ErrCode MultiReaderImpl::setOnDescriptorChanged(IFunction* callback)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode MultiReaderImpl::setOnAvailablePackets(IFunction* callback)
+{
+    std::scoped_lock lock(mutex);
+
+    readCallback = callback;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode MultiReaderImpl::getValueReadType(SampleType* sampleType)
 {
     OPENDAQ_PARAM_NOT_NULL(sampleType);
@@ -674,6 +682,9 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 
 ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 {
+    if (readCallback.assigned() && getMinSamplesAvailable() != 0)
+        readCallback();
+
     return OPENDAQ_SUCCESS;
 }
 

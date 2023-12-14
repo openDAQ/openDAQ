@@ -134,6 +134,14 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC setOnAvailablePackets(IFunction* callback) override
+    {
+        std::scoped_lock lock(mutex);
+
+        readCallback = callback;
+        return OPENDAQ_SUCCESS;
+    }
+
     /*!
      * @brief Notifies the listener of the newly received packet on the specified input-port.
      * @param port The port on which the new packet was received.
@@ -141,6 +149,8 @@ public:
     virtual ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override
     {
         OPENDAQ_PARAM_NOT_NULL(port);
+        if (readCallback.assigned())
+            readCallback();
 
         return OPENDAQ_SUCCESS;
     }
@@ -486,6 +496,7 @@ protected:
     PropertyObjectPtr portBinder{PropertyObject()};
     ConnectionPtr connection;
     FunctionPtr changeCallback;
+    FunctionPtr readCallback;
     ReadTimeoutType timeoutType;
 
     std::unique_ptr<Reader> valueReader;

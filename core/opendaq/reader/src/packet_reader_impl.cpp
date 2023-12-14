@@ -43,6 +43,14 @@ ErrCode PacketReaderImpl::setOnDescriptorChanged(IFunction* callback)
     return  OPENDAQ_IGNORED;
 }
 
+ErrCode PacketReaderImpl::setOnAvailablePackets(IFunction* callback)
+{
+    std::scoped_lock lock(mutex);
+
+    readCallback = callback;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode PacketReaderImpl::read(IPacket** packet)
 {
     std::scoped_lock lock(mutex);
@@ -69,6 +77,37 @@ ErrCode PacketReaderImpl::readAll(IList** allPackets)
     {
         readPackets.pushBack(connection.dequeue());
     }
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PacketReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept)
+{
+    OPENDAQ_PARAM_NOT_NULL(port);
+    OPENDAQ_PARAM_NOT_NULL(signal);
+    OPENDAQ_PARAM_NOT_NULL(accept);
+
+    *accept = true;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PacketReaderImpl::connected(IInputPort* port)
+{
+    OPENDAQ_PARAM_NOT_NULL(port);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PacketReaderImpl::disconnected(IInputPort* port)
+{
+    OPENDAQ_PARAM_NOT_NULL(port);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PacketReaderImpl::packetReceived(IInputPort* port)
+{
+    OPENDAQ_PARAM_NOT_NULL(port);
+    if (readCallback.assigned())
+        readCallback();
 
     return OPENDAQ_SUCCESS;
 }

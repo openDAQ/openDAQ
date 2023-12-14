@@ -188,6 +188,8 @@ ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
 void StreamReaderImpl::onPacketReady()
 {
     notify.condition.notify_one();
+    if (readCallback.assigned())
+        readCallback();
 }
 
 ErrCode StreamReaderImpl::getValueReadType(SampleType* sampleType)
@@ -540,6 +542,14 @@ ErrCode StreamReaderImpl::setOnDescriptorChanged(IFunction* callback)
     std::scoped_lock lock(mutex);
 
     changeCallback = callback;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode StreamReaderImpl::setOnAvailablePackets(IFunction* callback)
+{
+    std::scoped_lock lock(mutex);
+
+    readCallback = callback;
     return OPENDAQ_SUCCESS;
 }
 

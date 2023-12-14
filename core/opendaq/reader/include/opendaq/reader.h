@@ -63,6 +63,13 @@ DECLARE_OPENDAQ_INTERFACE(IReader, IBaseObject)
      * is still implicitly convertible to the read type and invalidate itself if that is not the case.
      */
     virtual ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) = 0;
+
+    /*!
+     * @brief et callback which will be triggered if reader recieves packets
+     * @param callback The callback to call when there are avaiable packets in reader or @c nullptr to unset it.
+     * The callback takes no arguments
+     */
+    virtual ErrCode INTERFACE_FUNC setOnAvailablePackets(IFunction* callback) = 0;
 };
 /*!@}*/
 

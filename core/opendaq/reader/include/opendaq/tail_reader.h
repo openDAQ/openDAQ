@@ -68,6 +68,13 @@ DECLARE_OPENDAQ_INTERFACE(ITailReader, ISampleReader)
      * @param[out] size The history size.
      */
     virtual ErrCode INTERFACE_FUNC getHistorySize(SizeT* size) = 0;
+
+    /*!
+     * @brief et callback which will be triggered if reader recieves packets
+     * @param callback The callback to call when there are avaiable packets in reader or @c nullptr to unset it.
+     * The callback takes no arguments
+     */
+    virtual ErrCode INTERFACE_FUNC setOnAvailablePackets(IFunction* callback) = 0;
 };
 /*!@}*/
 

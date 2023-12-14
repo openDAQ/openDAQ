@@ -245,6 +245,10 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
         packet = connection.dequeue();
     }
 
+    lock.unlock();
+    if (readCallback.assigned())
+        readCallback();
+
     return OPENDAQ_SUCCESS;
 }
 

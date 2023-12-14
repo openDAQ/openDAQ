@@ -108,6 +108,8 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
         }
     }
     notify.condition.notify_one();
+    if(readCallback.assigned())
+        readCallback();
     return OPENDAQ_SUCCESS;
 }
 

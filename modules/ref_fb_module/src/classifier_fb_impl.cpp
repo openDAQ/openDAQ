@@ -198,8 +198,13 @@ void ClassifierFbImpl::configure()
             // packets per BlockSize
             linearBlockCount = blockSize * linearBlockCount / 1000;
 
+            linearReader = nullptr;  // to remove port owner;
             linearReader = BlockReaderFromPort(inputPort, linearBlockCount);
             linearReader.setOnDescriptorChanged(std::bind(&ClassifierFbImpl::processSignalDescriptorChanged, this, std::placeholders::_1, std::placeholders::_2));
+            linearReader.setOnAvailablePackets([this] {
+                    SAMPLE_TYPE_DISPATCH(inputSampleType, processLinearDataPacket);
+                    return 0;
+                });
         }
 
         auto outputDataDescriptorBuilder = DataDescriptorBuilder().setSampleType(SampleType::Float64);
@@ -255,11 +260,6 @@ void ClassifierFbImpl::configure()
 void ClassifierFbImpl::onPacketReceived(const InputPortPtr& port)
 {
     std::scoped_lock lock(sync);
-    if (domainLinear)
-    {
-        SAMPLE_TYPE_DISPATCH(inputSampleType, processLinearDataPacket);
-        return;
-    }
 
     PacketPtr packet;
     const auto connection = inputPort.getConnection();

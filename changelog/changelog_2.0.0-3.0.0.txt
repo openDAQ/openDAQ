@@ -1,12 +1,19 @@
 12.12.2023
 Description:
   - Support creating readers with IInputPort
+  - Add callback on available packet for reader
 
 + [factory] PacketReaderPtr PacketReaderFromPort(InputPortConfigPtr port)
 + [factory] StreamReaderPtr StreamReaderFromPort(InputPortConfigPtr port, SampleType valueReadType, SampleType domainReadType, ReadMode mode, ReadTimeoutType timeoutType)
-+ [factory] TailReaderFromPort(InputPortConfigPtr port, SizeT historySize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
-+ [factory] BlockReaderFromPort(InputPortConfigPtr port, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
-+ [factory] MultiReaderFromPort(ListPtr<IInputPortConfig> ports, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType)
++ [factory] TailReaderPtr TailReaderFromPort(InputPortConfigPtr port, SizeT historySize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
++ [factory] BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
++ [factory] MultiReaderPtr MultiReaderFromPort(ListPtr<IInputPortConfig> ports, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType)
+
++ [function] IPacketReader::setOnAvailablePackets(IFunction* callback)
++ [function] IStreamReader::setOnAvailablePackets(IFunction* callback)
++ [function] ITailReader::setOnAvailablePackets(IFunction* callback)
++ [function] IBlockReader::setOnAvailablePackets(IFunction* callback)
++ [function] IMultiReader::setOnAvailablePackets(IFunction* callback)
 
 7.12.2023
 

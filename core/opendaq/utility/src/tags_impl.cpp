@@ -162,7 +162,7 @@ ConstCharPtr TagsImpl::SerializeId()
     return "Tags";
 }
 
-ErrCode TagsImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IBaseObject** obj)
+ErrCode TagsImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction*, IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(serialized);
     OPENDAQ_PARAM_NOT_NULL(obj);

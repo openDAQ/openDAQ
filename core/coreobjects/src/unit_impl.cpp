@@ -123,7 +123,7 @@ ConstCharPtr UnitImpl::SerializeId()
     return "Unit";
 }
 
-ErrCode UnitImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+ErrCode UnitImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
 

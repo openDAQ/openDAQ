@@ -36,7 +36,7 @@ ConstCharPtr SimpleTypeImpl::SerializeId()
     return "SimpleType";
 }
 
-ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*context*/, IBaseObject** obj)
+ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     Int coreTypeInt;
     ErrCode errCode = ser->readInt("coreType"_daq, &coreTypeInt);

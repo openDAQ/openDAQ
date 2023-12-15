@@ -89,7 +89,7 @@ ConstCharPtr RangeImpl::SerializeId()
     return "Range";
 }
 
-ErrCode RangeImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IBaseObject** obj)
+ErrCode RangeImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction*, IBaseObject** obj)
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
     NumberPtr low, high;

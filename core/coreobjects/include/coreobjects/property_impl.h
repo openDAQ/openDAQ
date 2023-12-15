@@ -966,7 +966,7 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    static ErrCode Deserialize(ISerializedObject* serializedObj, IBaseObject* context, IBaseObject** obj)
+    static ErrCode Deserialize(ISerializedObject* serializedObj, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
     {
         StringPtr name;
         ErrCode errCode = serializedObj->readString(String("name"), &name);
@@ -981,16 +981,16 @@ public:
             return errCode;
         }
 
-        errCode = deserializeMember<decltype(valueType)>(serializedObj, "valueType", propObj, context, &IPropertyBuilder::setValueType);
+        errCode = deserializeMember<decltype(valueType)>(serializedObj, "valueType", propObj, context, factoryCallback, &IPropertyBuilder::setValueType);
         if (OPENDAQ_FAILED(errCode))
         {
             return errCode;
         }
 
-        DESERIALIZE_MEMBER(context, description, setDescription)
+        DESERIALIZE_MEMBER(context, factoryCallback, description, setDescription)
 
         BaseObjectPtr unit;
-        errCode = serializedObj->readObject(String("unit"), context, &unit);
+        errCode = serializedObj->readObject(String("unit"), context, factoryCallback, &unit);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -1000,10 +1000,10 @@ public:
             propObj->setUnit(unit.asPtr<IUnit>());
         }
 
-        DESERIALIZE_MEMBER(context, defaultValue, setDefaultValue)
+        DESERIALIZE_MEMBER(context, factoryCallback, defaultValue, setDefaultValue)
 
         BaseObjectPtr refProp;
-        errCode = serializedObj->readObject(String("refProp"), context, &refProp);
+        errCode = serializedObj->readObject(String("refProp"), context, factoryCallback, &refProp);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -1013,10 +1013,10 @@ public:
             propObj->setReferencedProperty(refProp.asPtr<IEvalValue>());
         }
 
-        DESERIALIZE_MEMBER(context, selectionValues, setSelectionValues)
+        DESERIALIZE_MEMBER(context, factoryCallback, selectionValues, setSelectionValues)
 
         BaseObjectPtr suggestedValues;
-        errCode = serializedObj->readObject(String("suggestedValues"), context, &suggestedValues);
+        errCode = serializedObj->readObject(String("suggestedValues"), context, factoryCallback, &suggestedValues);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -1027,7 +1027,7 @@ public:
         }
 
         BaseObjectPtr visible;
-        errCode = serializedObj->readObject(String("visible"), context, &visible);
+        errCode = serializedObj->readObject(String("visible"), context, factoryCallback, &visible);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -1038,7 +1038,7 @@ public:
         }
 
         BaseObjectPtr readOnly;
-        errCode = serializedObj->readObject(String("readOnly"), context, &readOnly);
+        errCode = serializedObj->readObject(String("readOnly"), context, factoryCallback, &readOnly);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -1049,7 +1049,7 @@ public:
         }
 
         BaseObjectPtr minValue;
-        errCode = serializedObj->readObject(String("minValue"), context, &minValue);
+        errCode = serializedObj->readObject(String("minValue"), context, factoryCallback, &minValue);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -1060,7 +1060,7 @@ public:
         }
 
         BaseObjectPtr maxValue;
-        errCode = serializedObj->readObject(String("maxValue"), context, &maxValue);
+        errCode = serializedObj->readObject(String("maxValue"), context, factoryCallback, &maxValue);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -1071,7 +1071,7 @@ public:
         }
 
         BaseObjectPtr coercer;
-        errCode = serializedObj->readObject(String("coercer"), context, &coercer);
+        errCode = serializedObj->readObject(String("coercer"), context, factoryCallback, &coercer);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -1082,7 +1082,7 @@ public:
         }
 
         BaseObjectPtr validator;
-        errCode = serializedObj->readObject(String("validator"), context, &validator);
+        errCode = serializedObj->readObject(String("validator"), context, factoryCallback, &validator);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -1095,7 +1095,7 @@ public:
         // TODO: Make callableInfo serializable
 
         // BaseObjectPtr callableInfo;
-        // errCode = serializedObj->readObject(String("callableInfo"), context, &callableInfo);
+        // errCode = serializedObj->readObject(String("callableInfo"), context, factoryCallback, &callableInfo);
         // if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         //{
         //    return errCode;

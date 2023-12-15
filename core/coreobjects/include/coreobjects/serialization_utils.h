@@ -41,7 +41,12 @@ struct ValueType<T, std::enable_if_t<!IsDerivedFromTemplate<T, ObjectPtr>::Value
 };
 
 template <typename ParamType, typename PropSetter = ErrCode (INTERFACE_FUNC IPropertyBuilder::*)(ParamType*)>
-inline ErrCode deserializeMember(ISerializedObject* serialized, StringPtr memberName, IPropertyBuilder* info,  [[maybe_unused]] IBaseObject* context, PropSetter functor)
+inline ErrCode deserializeMember(ISerializedObject* serialized,
+                                 StringPtr memberName,
+                                 IPropertyBuilder* info,
+                                 [[maybe_unused]] IBaseObject* context,
+                                 IFunction* factoryCallback,
+                                 PropSetter functor)
 {
     using RawType = typename ValueType<ParamType>::Type;
     using MemberType = std::conditional_t<std::is_fundamental_v<RawType>, RawType, typename InterfaceOrTypeToSmartPtr<RawType>::SmartPtr>;
@@ -67,7 +72,7 @@ inline ErrCode deserializeMember(ISerializedObject* serialized, StringPtr member
     }
     else if constexpr (std::is_abstract_v<ParamType>)
     {
-        errCode = serialized->readObject(memberName, context, &memberValue);
+        errCode = serialized->readObject(memberName, context, factoryCallback, &memberValue);
     }
     else
     {
@@ -93,20 +98,21 @@ inline ErrCode deserializeMember<BaseObjectPtr, BaseObjectSetter>(ISerializedObj
                                                                   StringPtr memberName,
                                                                   IPropertyBuilder* info,
                                                                   IBaseObject* context,
+                                                                  IFunction* factoryCallback,
                                                                   BaseObjectSetter functor)
 {
-    return deserializeMember<IBaseObject, BaseObjectSetter>(serialized, std::move(memberName), info, context, functor);
+    return deserializeMember<IBaseObject, BaseObjectSetter>(serialized, std::move(memberName), info, context, factoryCallback, functor);
 }
 
-#define DESERIALIZE_MEMBER_WITH_NAME(context, name, key, setter)                                                    \
-    errCode = deserializeMember<decltype(name)>(serializedObj, key, propObj, context, &IPropertyBuilder::setter);    \
+#define DESERIALIZE_MEMBER_WITH_NAME(context, factoryCallback, name, key, setter)                                                    \
+    errCode = deserializeMember<decltype(name)>(serializedObj, key, propObj, context, factoryCallback, &IPropertyBuilder::setter);    \
     if (OPENDAQ_FAILED(errCode))                                                                                         \
     {                                                                                                               \
         return errCode;                                                                                             \
     }                                                                                                               \
 
 
-#define DESERIALIZE_MEMBER(context, name, setter) DESERIALIZE_MEMBER_WITH_NAME(context, name, #name, setter)
+#define DESERIALIZE_MEMBER(context, factoryCallback, name, setter) DESERIALIZE_MEMBER_WITH_NAME(context, factoryCallback, name, #name, setter)
 
 inline ErrCode serializeMember(ISerializer* serializer, const char* name, const BaseObjectPtr& value)
 {

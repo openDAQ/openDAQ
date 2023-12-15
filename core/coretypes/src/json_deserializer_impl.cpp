@@ -10,7 +10,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 // static
-ErrCode JsonDeserializerImpl::DeserializeTagged(JsonValue& document, IBaseObject* context, IBaseObject** object)
+ErrCode JsonDeserializerImpl::DeserializeTagged(JsonValue& document, IBaseObject* context, IFunction* factoryCallback, IBaseObject** object)
 {
     using namespace rapidjson;
 
@@ -22,22 +22,45 @@ ErrCode JsonDeserializerImpl::DeserializeTagged(JsonValue& document, IBaseObject
         {
             std::string typeId = jsonObject["__type"].GetString();
 
-            daqDeserializerFactory factory;
-            ErrCode errCode = daqGetSerializerFactory(typeId.data(), &factory);
-
-            if (OPENDAQ_FAILED(errCode))
-            {
-                return errCode;
-            }
-
             SerializedObjectPtr jsonSerObj;
-            errCode = createObject<ISerializedObject, JsonSerializedObject>(&jsonSerObj, jsonObject);
+            auto errCode = createObject<ISerializedObject, JsonSerializedObject>(&jsonSerObj, jsonObject);
             if (OPENDAQ_FAILED(errCode))
             {
                 return errCode;
             }
 
-            errCode = factory(jsonSerObj, context, object);
+            bool constructedFromCallbackFactory = false;
+
+            errCode = daqTry(
+                [&factoryCallback, &typeId, &object, &context, &jsonSerObj, &constructedFromCallbackFactory]
+                {
+                    const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
+                    if (factoryCallbackPtr.assigned())
+                    {
+                        *object = factoryCallbackPtr.call(String(typeId), jsonSerObj, context, factoryCallback).detach();
+                        constructedFromCallbackFactory = *object != nullptr;
+                    }
+
+                    return OPENDAQ_SUCCESS;
+                });
+
+            if (OPENDAQ_FAILED(errCode))
+            {
+                return errCode;
+            }
+
+            daqDeserializerFactory factory{};
+            if (!constructedFromCallbackFactory)
+            {
+                errCode = daqGetSerializerFactory(typeId.data(), &factory);
+
+                if (OPENDAQ_FAILED(errCode))
+                {
+                    return errCode;
+                }
+
+                errCode = factory(jsonSerObj, context, factoryCallback, object);
+            }
 
             if (OPENDAQ_FAILED(errCode))
             {
@@ -51,7 +74,7 @@ ErrCode JsonDeserializerImpl::DeserializeTagged(JsonValue& document, IBaseObject
     return OPENDAQ_ERR_DESERIALIZE_NO_TYPE;
 }
 
-ErrCode JsonDeserializerImpl::DeserializeList(const JsonList& array, IBaseObject* context, IBaseObject** object)
+ErrCode JsonDeserializerImpl::DeserializeList(const JsonList& array, IBaseObject* context, IFunction* factoryCallback, IBaseObject** object)
 {
     IList* list;
     ErrCode errCode = createList(&list);
@@ -63,7 +86,7 @@ ErrCode JsonDeserializerImpl::DeserializeList(const JsonList& array, IBaseObject
     for (auto& element : array)
     {
         IBaseObject* elementObj;
-        errCode = Deserialize(element, context, &elementObj);
+        errCode = Deserialize(element, context, factoryCallback, &elementObj);
 
         if (OPENDAQ_FAILED(errCode))
         {
@@ -82,7 +105,7 @@ ErrCode JsonDeserializerImpl::DeserializeList(const JsonList& array, IBaseObject
 }
 
 // static
-ErrCode JsonDeserializerImpl::Deserialize(JsonValue& document, IBaseObject* context, IBaseObject** object)
+ErrCode JsonDeserializerImpl::Deserialize(JsonValue& document, IBaseObject* context, IFunction* factoryCallback, IBaseObject** object)
 {
     ErrCode errCode = OPENDAQ_SUCCESS;
 
@@ -92,7 +115,7 @@ ErrCode JsonDeserializerImpl::Deserialize(JsonValue& document, IBaseObject* cont
             object = nullptr;
             break;
         case rapidjson::kObjectType:
-            errCode = DeserializeTagged(document, context, object);
+            errCode = DeserializeTagged(document, context, factoryCallback, object);
             break;
         case rapidjson::kStringType:
         {
@@ -122,7 +145,7 @@ ErrCode JsonDeserializerImpl::Deserialize(JsonValue& document, IBaseObject* cont
             }
             break;
         case rapidjson::kArrayType:
-            errCode = DeserializeList(document.GetArray(), context, object);
+            errCode = DeserializeList(document.GetArray(), context, factoryCallback, object);
             break;
         case rapidjson::kFalseType:
         {
@@ -145,7 +168,7 @@ ErrCode JsonDeserializerImpl::Deserialize(JsonValue& document, IBaseObject* cont
     return errCode;
 }
 
-ErrCode JsonDeserializerImpl::deserialize(IString* serialized, IBaseObject* context, IBaseObject** object)
+ErrCode JsonDeserializerImpl::deserialize(IString* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** object)
 {
     if (serialized == nullptr)
     {
@@ -180,7 +203,7 @@ ErrCode JsonDeserializerImpl::deserialize(IString* serialized, IBaseObject* cont
         return OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR;
     }
 
-    ErrCode errCode = Deserialize(document, context, object);
+    ErrCode errCode = Deserialize(document, context, factoryCallback, object);
     delete[] buffer;
 
     return errCode;

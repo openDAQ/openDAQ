@@ -19,6 +19,7 @@
 #include <coretypes/stringobject_factory.h>
 #include <coretypes/baseobject_factory.h>
 #include <coretypes/listobject_factory.h>
+#include <coretypes/function_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -72,13 +73,13 @@ public:
         return value;
     }
 
-    BaseObjectPtr readObject(const StringPtr& key, const BaseObjectPtr& context = nullptr) const
+    BaseObjectPtr readObject(const StringPtr& key, const BaseObjectPtr& context = nullptr, const FunctionPtr& factoryCallback = nullptr) const
     {
         if (!object)
             throw InvalidParameterException();
 
         IBaseObject* value;
-        checkErrorInfo(object->readObject(key, context, &value));
+        checkErrorInfo(object->readObject(key, context, factoryCallback, &value));
 
         return BaseObjectPtr(std::move(value));
     }
@@ -151,13 +152,13 @@ public:
     }
 
     template <typename T>
-    ListPtr<T> readList(const StringPtr& key, const BaseObjectPtr& context = nullptr) const
+    ListPtr<T> readList(const StringPtr& key, const BaseObjectPtr& context = nullptr, const FunctionPtr& factoryCallback = nullptr) const
     {
         if (!object)
             throw InvalidParameterException();
 
         IList* value;
-        checkErrorInfo(object->readList(key, context, &value));
+        checkErrorInfo(object->readList(key, context, factoryCallback, &value));
 
         return ListPtr<T>(std::move(value));
     }

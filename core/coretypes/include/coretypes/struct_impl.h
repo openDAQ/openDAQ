@@ -56,7 +56,7 @@ public:
     
     static ConstCharPtr SerializeId();
 
-    static ErrCode Deserialize(ISerializedObject* ser, IBaseObject* context, IBaseObject** obj);
+    static ErrCode Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
     explicit GenericStructImpl(StructTypePtr type, DictPtr<IString, IBaseObject> fields);
@@ -405,7 +405,8 @@ ConstCharPtr GenericStructImpl<StructInterface, Interfaces...>::SerializeId()
 }
 
 template <class StructInterface, class... Interfaces>
-ErrCode GenericStructImpl<StructInterface, Interfaces...>::Deserialize(ISerializedObject* ser, IBaseObject* context, IBaseObject** obj)
+ErrCode GenericStructImpl<StructInterface, Interfaces...>::Deserialize(
+    ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
     TypeManagerPtr typeManager;
     if (context == nullptr || OPENDAQ_FAILED(context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager))))
@@ -417,7 +418,7 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::Deserialize(ISerializ
         return errCode;
 
     BaseObjectPtr fields;
-    errCode = ser->readObject("fields"_daq, context, &fields);
+    errCode = ser->readObject("fields"_daq, context, factoryCallback, &fields);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 

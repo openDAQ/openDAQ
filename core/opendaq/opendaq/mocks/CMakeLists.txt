@@ -44,6 +44,7 @@ set(GMOCK_HEADERS context.h
                   signal.h
                   task_graph.h
                   component.h
+                  device.h
                   allocator.h
                   function_block.h
                   streaming.h

@@ -75,7 +75,7 @@ ConstCharPtr CoercerImpl::SerializeId()
     return "Coercer";
 }
 
-ErrCode CoercerImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+ErrCode CoercerImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     const SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
     const StringPtr str = serializedObj.readString("EvalStr");

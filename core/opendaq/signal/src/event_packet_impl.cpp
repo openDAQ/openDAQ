@@ -96,7 +96,7 @@ ConstCharPtr EventPacketImpl::SerializeId()
     return "EventPacket";
 }
 
-ErrCode EventPacketImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IBaseObject** obj)
+ErrCode EventPacketImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(serialized);
     OPENDAQ_PARAM_NOT_NULL(obj);

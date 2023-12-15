@@ -175,7 +175,10 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::serialize(ISerializer* serializer)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ComplexNumberImpl::Deserialize(ISerializedObject* serializedObj, IBaseObject* /*context*/, IBaseObject** obj)
+ErrCode ComplexNumberImpl::Deserialize(ISerializedObject* serializedObj,
+                                       IBaseObject* /*context*/,
+                                       IFunction* /*factoryCallback*/,
+                                       IBaseObject** obj)
 {
     if (obj == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;

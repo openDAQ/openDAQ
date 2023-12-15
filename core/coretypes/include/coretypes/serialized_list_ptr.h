@@ -65,24 +65,24 @@ public:
     }
 
     template <typename T>
-    ListPtr<T> readList(const BaseObjectPtr& context = nullptr) const
+    ListPtr<T> readList(const BaseObjectPtr& context = nullptr, const FunctionPtr& factoryCallback = nullptr) const
     {
         if (!object)
             throw InvalidParameterException();
 
         IList* value;
-        checkErrorInfo(object->readList(context, & value));
+        checkErrorInfo(object->readList(context, factoryCallback, &value));
 
         return ListPtr<T>(std::move(value));
     }
 
-    BaseObjectPtr readObject(const BaseObjectPtr& context = nullptr) const
+    BaseObjectPtr readObject(const BaseObjectPtr& context = nullptr, const FunctionPtr& factoryCallback = nullptr) const
     {
         if (!object)
             throw InvalidParameterException();
 
         IBaseObject* value;
-        checkErrorInfo(object->readObject(context, & value));
+        checkErrorInfo(object->readObject(context, factoryCallback, &value));
 
         return BaseObjectPtr(std::move(value));
     }

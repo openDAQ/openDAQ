@@ -165,7 +165,7 @@ ConstCharPtr ScalingImpl::SerializeId()
     return "Scaling";
 }
 
-ErrCode ScalingImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IBaseObject** obj)
+ErrCode ScalingImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
     auto outputDataType = static_cast<ScaledSampleType>(serializedObj.readInt("outputDataType"));

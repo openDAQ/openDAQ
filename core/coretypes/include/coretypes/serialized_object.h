@@ -18,6 +18,7 @@
 #include <coretypes/baseobject.h>
 #include <coretypes/coretype.h>
 #include <coretypes/stringobject.h>
+#include <coretypes/function.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -34,8 +35,8 @@ DECLARE_OPENDAQ_INTERFACE(ISerializedObject, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC readSerializedObject(IString* key, ISerializedObject** plainObj) = 0;
     virtual ErrCode INTERFACE_FUNC readSerializedList(IString* key, ISerializedList** list) = 0;
-    virtual ErrCode INTERFACE_FUNC readList(IString* key, IBaseObject* context, IList** list) = 0;
-    virtual ErrCode INTERFACE_FUNC readObject(IString* key, IBaseObject* context, IBaseObject** obj) = 0;
+    virtual ErrCode INTERFACE_FUNC readList(IString* key, IBaseObject* context, IFunction* factoryCallback, IList** list) = 0;
+    virtual ErrCode INTERFACE_FUNC readObject(IString* key, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj) = 0;
     virtual ErrCode INTERFACE_FUNC readString(IString* key, IString** string) = 0;
     virtual ErrCode INTERFACE_FUNC readBool(IString* key, Bool* boolean) = 0;
     virtual ErrCode INTERFACE_FUNC readFloat(IString* key, Float* real) = 0;

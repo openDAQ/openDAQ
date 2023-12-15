@@ -50,7 +50,7 @@ struct BaseObjectEqualTo
 
 using BaseObjectPair = std::pair<IBaseObject*, IBaseObject*>;
 
-ErrCode INTERFACE_FUNC deserializeDict(ISerializedObject* ser, IBaseObject* context, IBaseObject** obj);
+ErrCode INTERFACE_FUNC deserializeDict(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 class DictImpl : public ImplementationOf<IDict, IIterable, ISerializable, ICoreType, IDictElementType, IFreezable>
 {
@@ -98,9 +98,9 @@ public:
 
     static ConstCharPtr SerializeId();
 
-    static ErrCode Deserialize(ISerializedObject* ser, IBaseObject* context, IBaseObject** obj)
+    static ErrCode Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
     {
-        return deserializeDict(ser, context, obj);
+        return deserializeDict(ser, context, factoryCallback, obj);
     }
 
 protected:

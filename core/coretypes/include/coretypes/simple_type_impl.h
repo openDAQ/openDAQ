@@ -35,7 +35,8 @@ public:
 
     static ConstCharPtr SerializeId();
 
-    static ErrCode Deserialize(ISerializedObject* ser, IBaseObject* context, IBaseObject** obj);
+    static ErrCode Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
 private:
     static std::string coreTypeToString(CoreType coreType);
 };

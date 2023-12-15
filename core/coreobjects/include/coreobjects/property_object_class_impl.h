@@ -50,7 +50,7 @@ public:
     ErrCode INTERFACE_FUNC toString(CharPtr* str) override;
 
     static ConstCharPtr SerializeId();
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 private:
     StringPtr name;

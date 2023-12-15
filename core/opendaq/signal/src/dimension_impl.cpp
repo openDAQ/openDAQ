@@ -240,7 +240,7 @@ ConstCharPtr DimensionImpl::SerializeId()
     return "Dimension";
 }
 
-ErrCode DimensionImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IBaseObject** obj)
+ErrCode DimensionImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction*, IBaseObject** obj)
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
     auto rule = serializedObj.readObject("rule").asPtr<IDimensionRule>();

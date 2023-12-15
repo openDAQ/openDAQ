@@ -19,6 +19,7 @@
 #include <coretypes/baseobject_factory.h>
 #include <coretypes/deserializer.h>
 #include <coretypes/updatable_ptr.h>
+#include <coretypes/function_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,7 +33,7 @@ class DeserializerPtr : public ObjectPtr<IDeserializer>
 public:
     using ObjectPtr<IDeserializer>::ObjectPtr;
 
-    BaseObjectPtr deserialize(const StringPtr& serialized, const BaseObjectPtr& context = nullptr) const
+    BaseObjectPtr deserialize(const StringPtr& serialized, const BaseObjectPtr& context = nullptr, const FunctionPtr& factoryCallback = nullptr) const
     {
         if (!object)
         {
@@ -40,7 +41,7 @@ public:
         }
 
         BaseObjectPtr baseObj;
-        checkErrorInfo(object->deserialize(serialized, context, & baseObj));
+        checkErrorInfo(object->deserialize(serialized, context, factoryCallback, &baseObj));
 
         return baseObj;
     }

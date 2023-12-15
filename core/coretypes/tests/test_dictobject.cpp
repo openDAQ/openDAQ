@@ -301,7 +301,7 @@ TEST_F(DictObjectTest, SerializeJson)
     DeserializerPtr dser = JsonDeserializer();
 
     IBaseObject* deserialized = nullptr;
-    dser->deserialize(str, nullptr, &deserialized);
+    dser->deserialize(str, nullptr, nullptr, &deserialized);
 
     IDict* deserializedDict;
     ErrCode err = deserialized->borrowInterface(IDict::Id, (void**) &deserializedDict);
@@ -410,7 +410,7 @@ TEST_F(DictObjectTest, DeserializeJson)
         auto deserializer = JsonDeserializer();
 
         IDict* deserializedDict = nullptr;
-        ErrCode errCode = deserializer->deserialize(serializedDict, nullptr, reinterpret_cast<IBaseObject**>(&deserializedDict));
+        ErrCode errCode = deserializer->deserialize(serializedDict, nullptr, nullptr, reinterpret_cast<IBaseObject**>(&deserializedDict));
         ASSERT_FALSE((bool)errCode);
         {
             StringPtr value0;
@@ -439,7 +439,7 @@ TEST_F(DictObjectTest, DeserializeKeyErrorJson)
     auto deserializer = JsonDeserializer();
 
     IDict* deserializedDict = nullptr;
-    ErrCode errCode = deserializer->deserialize(serializedDict, nullptr, reinterpret_cast<IBaseObject**>(&deserializedDict));
+    ErrCode errCode = deserializer->deserialize(serializedDict, nullptr, nullptr, reinterpret_cast<IBaseObject**>(&deserializedDict));
     ASSERT_NE(errCode, OPENDAQ_SUCCESS);
 }
 
@@ -449,7 +449,7 @@ TEST_F(DictObjectTest, DeserializeValueErrorJson)
     auto deserializer = JsonDeserializer();
 
     IDict* deserializedDict = nullptr;
-    ErrCode errCode = deserializer->deserialize(serializedDict, nullptr, reinterpret_cast<IBaseObject**>(&deserializedDict));
+    ErrCode errCode = deserializer->deserialize(serializedDict, nullptr, nullptr, reinterpret_cast<IBaseObject**>(&deserializedDict));
     ASSERT_NE(errCode, OPENDAQ_SUCCESS);
 }
 

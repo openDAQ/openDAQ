@@ -57,7 +57,7 @@ ErrCode JsonSerializedObject::readSerializedList(IString* key, ISerializedList**
     return OPENDAQ_ERR_NOTFOUND;
 }
 
-ErrCode JsonSerializedObject::readList(IString* key, IBaseObject* context, IList** list)
+ErrCode JsonSerializedObject::readList(IString* key, IBaseObject* context, IFunction* factoryCallback, IList** list)
 {
     ConstCharPtr member;
     key->getCharPtr(&member);
@@ -66,7 +66,7 @@ ErrCode JsonSerializedObject::readList(IString* key, IBaseObject* context, IList
     {
         if (object[member].IsArray())
         {
-            return JsonDeserializerImpl::Deserialize(object[member], context, reinterpret_cast<IBaseObject**>(list));
+            return JsonDeserializerImpl::Deserialize(object[member], context, factoryCallback, reinterpret_cast<IBaseObject**>(list));
         }
         return OPENDAQ_ERR_INVALIDTYPE;
     }
@@ -74,14 +74,14 @@ ErrCode JsonSerializedObject::readList(IString* key, IBaseObject* context, IList
     return OPENDAQ_ERR_NOTFOUND;
 }
 
-ErrCode JsonSerializedObject::readObject(IString* key, IBaseObject* context, IBaseObject** obj)
+ErrCode JsonSerializedObject::readObject(IString* key, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
     ConstCharPtr member;
     key->getCharPtr(&member);
 
     if (object.HasMember(member))
     {
-        return JsonDeserializerImpl::Deserialize(object[member], context, obj);
+        return JsonDeserializerImpl::Deserialize(object[member], context, factoryCallback, obj);
     }
 
     return OPENDAQ_ERR_NOTFOUND;

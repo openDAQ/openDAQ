@@ -146,7 +146,7 @@ public:
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj);
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj);
     static ConstCharPtr SerializeId();
 
 private:

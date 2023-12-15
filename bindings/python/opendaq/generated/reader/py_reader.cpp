@@ -56,4 +56,12 @@ void defineIReader(pybind11::module_ m, PyDaqIntf<daq::IReader, daq::IBaseObject
             objectPtr.setOnDescriptorChanged(callback);
         },
         "Gets the user the option to invalidate the reader when the signal descriptor changes.");
+    cls.def_property("on_available_packets",
+        nullptr,
+        [](daq::IReader *object, daq::IFunction* callback)
+        {
+            const auto objectPtr = daq::ReaderPtr::Borrow(object);
+            objectPtr.setOnAvailablePackets(callback);
+        },
+        "Set callback which will be triggered if reader recieves packets");
 }

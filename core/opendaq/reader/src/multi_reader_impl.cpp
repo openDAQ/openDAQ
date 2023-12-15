@@ -682,8 +682,13 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 
 ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 {
-    if (readCallback.assigned() && getMinSamplesAvailable() != 0)
-        readCallback();
+    if (readCallback.assigned())
+    {
+        SizeT count;
+        getAvailableCount(&count);
+        if (count)
+            readCallback();
+    }    
 
     return OPENDAQ_SUCCESS;
 }

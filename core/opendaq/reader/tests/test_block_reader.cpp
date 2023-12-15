@@ -9,6 +9,7 @@
 #include <opendaq/reader_exceptions.h>
 #include <opendaq/reader_factory.h>
 #include <opendaq/input_port_factory.h>
+#include <future>
 
 using namespace daq;
 
@@ -866,7 +867,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
     
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
     port.connect(this->signal);
-    auto reader1 = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    auto reader = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
     
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
@@ -876,12 +877,15 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
 
     this->sendPacket(dataPacket);
 
-    SizeT count1{1};
-    double samples1[BLOCK_SIZE]{};
-    RangeType64 domain1[BLOCK_SIZE]{};
-    reader1.readWithDomain(&samples1, &domain1, &count1);
-}
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+    RangeType64 domain[BLOCK_SIZE]{};
+    reader.readWithDomain(&samples, &domain, &count);
 
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(samples[0], dataPtr[0]);
+    ASSERT_EQ(samples[1], dataPtr[1]);
+}
 
 TYPED_TEST(BlockReaderTest, MultipleBlockReaderToInputPort)
 {
@@ -911,4 +915,74 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPort)
     
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
     ASSERT_THROW(daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined), ArgumentNullException);
+}
+
+TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallback)
+{
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+    RangeType64 domain[BLOCK_SIZE]{};
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::BlockReader(this->signal, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+        reader.readWithDomain(&samples, &domain, &count);
+        promise.set_value();
+        return nullptr;
+    });
+
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 111.1;
+    dataPtr[1] = 222.2;
+
+    this->sendPacket(dataPacket);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(samples[0], dataPtr[0]);
+    ASSERT_EQ(samples[1], dataPtr[1]);
+}
+
+TYPED_TEST(BlockReaderTest, BlockReaderFromPortOnReadCallback)
+{
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+    RangeType64 domain[BLOCK_SIZE]{};
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(signal);
+
+    auto reader = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+        reader.readWithDomain(&samples, &domain, &count);
+        promise.set_value();
+        return nullptr;
+    });
+
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 111.1;
+    dataPtr[1] = 222.2;
+
+    this->sendPacket(dataPacket);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(samples[0], dataPtr[0]);
+    ASSERT_EQ(samples[1], dataPtr[1]);
 }

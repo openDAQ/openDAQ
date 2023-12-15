@@ -57,6 +57,7 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
 
     this->internalAddRef();
 
+    inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
     inputPort.setNotificationMethod(PacketReadyNotification::SameThread);
     handleDescriptorChanged(connection.dequeue());
 }

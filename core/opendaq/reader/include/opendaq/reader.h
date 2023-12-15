@@ -65,7 +65,7 @@ DECLARE_OPENDAQ_INTERFACE(IReader, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) = 0;
 
     /*!
-     * @brief et callback which will be triggered if reader recieves packets
+     * @brief Set callback which will be triggered if reader recieves packets
      * @param callback The callback to call when there are avaiable packets in reader or @c nullptr to unset it.
      * The callback takes no arguments
      */

@@ -11,8 +11,12 @@ PacketReaderImpl::PacketReaderImpl(const SignalPtr& signal)
         throw ArgumentNullException("Signal must not be null.");
 
     port = InputPort(signal.getContext(), nullptr, "readsignal");
+    this->internalAddRef();
 
+    port.setListener(this->thisPtr<InputPortNotificationsPtr>());
+    port.setNotificationMethod(PacketReadyNotification::SameThread);
     port.connect(signal);
+    
     connection = port.getConnection();
 }
 
@@ -20,12 +24,16 @@ PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
 {
     if (!port)
         throw ArgumentNullException("Input port must not be null.");
-    
+
     this->port = InputPortConfigPtr(port);
     this->port.asPtr<IOwnable>().setOwner(portBinder);
-
     if (!this->port.getConnection().assigned())
         throw ArgumentNullException("Input port not connected to signal");
+
+    this->internalAddRef();
+
+    this->port.setListener(this->thisPtr<InputPortNotificationsPtr>());
+    this->port.setNotificationMethod(PacketReadyNotification::SameThread);
     
     connection = this->port.getConnection();
 }
@@ -107,7 +115,12 @@ ErrCode PacketReaderImpl::packetReceived(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
     if (readCallback.assigned())
-        readCallback();
+    {
+        SizeT count{0};
+        connection->getPacketCount(&count);
+        if (count)
+            readCallback();
+    }
 
     return OPENDAQ_SUCCESS;
 }

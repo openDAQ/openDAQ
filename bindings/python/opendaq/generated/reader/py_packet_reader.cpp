@@ -38,6 +38,7 @@ void defineIPacketReader(pybind11::module_ m, PyDaqIntf<daq::IPacketReader, daq:
     cls.doc() = "A signal reader reads packets from a signal data stream.";
 
     m.def("PacketReader", &daq::PacketReader_Create);
+    m.def("PacketReaderFromPort", &daq::PacketReaderFromPort_Create);
 
     cls.def("read",
         [](daq::IPacketReader *object)

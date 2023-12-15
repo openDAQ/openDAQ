@@ -19,7 +19,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class PacketReaderImpl : public ImplementationOf<IPacketReader, IInputPortNotifications>
+class PacketReaderImpl : public ImplementationOfWeak<IPacketReader, IInputPortNotifications>
 {
 public:
     explicit PacketReaderImpl(const SignalPtr& signal);
@@ -32,10 +32,11 @@ public:
     ErrCode INTERFACE_FUNC read(IPacket** packet) override;
     ErrCode INTERFACE_FUNC readAll(IList** allPackets) override;
 
-    ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept);
-    ErrCode INTERFACE_FUNC connected(IInputPort* port);
-    ErrCode INTERFACE_FUNC disconnected(IInputPort* port);
-    ErrCode INTERFACE_FUNC packetReceived(IInputPort* port);
+    // IInputPortNotifications
+    ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
+    ErrCode INTERFACE_FUNC connected(IInputPort* port) override;
+    ErrCode INTERFACE_FUNC disconnected(IInputPort* port) override;
+    ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
 private:
     std::mutex mutex;
     InputPortConfigPtr port;

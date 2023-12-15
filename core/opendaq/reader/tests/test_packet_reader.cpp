@@ -14,6 +14,7 @@
 #include <opendaq/logger_factory.h>
 #include <opendaq/input_port_factory.h>
 
+#include <future>
 #include <chrono>
 #include <thread>
 
@@ -167,4 +168,68 @@ TEST_F(PacketReaderTest, PacketReaderWithNotConnectedInputPort)
     auto port = InputPort(signal.getContext(), nullptr, "readsig");
 
     ASSERT_THROW(PacketReaderFromPort(port), ArgumentNullException);
+}
+
+TEST_F(PacketReaderTest, PacketReaderOnReadCallback)
+{
+    ListPtr<daq::IPacket> packets;
+    
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    signal.setDescriptor(createDataDescriptor());
+
+    auto reader = PacketReader(signal);
+    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+        packets = reader.readAll();
+        promise.set_value();
+        return nullptr;
+    });
+    
+    sendPacket(DataPacket(signal.getDescriptor(), 1, 1));
+    scheduler.waitAll();
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(packets.getCount(), 2u);
+
+    auto secondPacket = packets[1];
+    ASSERT_EQ(secondPacket.getType(), PacketType::Data);
+
+    auto dataPacket = secondPacket.asPtrOrNull<IDataPacket>(true);
+    ASSERT_TRUE(dataPacket.assigned());
+}
+
+TEST_F(PacketReaderTest, PacketReaderFromPortOnReadCallback)
+{
+    ListPtr<daq::IPacket> packets;
+    
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    signal.setDescriptor(createDataDescriptor());
+    auto port = InputPort(signal.getContext(), nullptr, "readsig");
+    port.connect(signal);
+
+    auto reader = PacketReaderFromPort(port);
+    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+        packets = reader.readAll();
+        promise.set_value();
+        return nullptr;
+    });
+    
+    sendPacket(DataPacket(signal.getDescriptor(), 1, 1));
+    scheduler.waitAll();
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(packets.getCount(), 2u);
+
+    auto secondPacket = packets[1];
+    ASSERT_EQ(secondPacket.getType(), PacketType::Data);
+
+    auto dataPacket = secondPacket.asPtrOrNull<IDataPacket>(true);
+    ASSERT_TRUE(dataPacket.assigned());
 }

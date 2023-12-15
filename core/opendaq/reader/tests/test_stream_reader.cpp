@@ -9,6 +9,7 @@
 #include <opendaq/reader_exceptions.h>
 #include <opendaq/reader_factory.h>
 #include <opendaq/input_port_factory.h>
+#include <future>
 
 using namespace daq;
 
@@ -907,4 +908,85 @@ TYPED_TEST(StreamReaderTest, StreamReaderWithNotConnectedInputPort)
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
 
     ASSERT_THROW(daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined), ArgumentNullException);
+}
+
+TYPED_TEST(StreamReaderTest, StreamReaderOnReadCallback)
+{
+    SizeT count{1};
+    double samples[1]{};
+    RangeType64 domain[1]{};
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined);
+    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+        reader.readWithDomain(&samples, &domain, &count);
+        promise.set_value();
+        return nullptr;
+    });
+
+    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 123.4;
+
+    this->sendPacket(dataPacket);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
+
+    // domain was read and updated from packet info
+    ASSERT_EQ(reader.getDomainReadType(), SampleType::RangeInt64);
+}
+
+TYPED_TEST(StreamReaderTest, StreamReaderFromPortOnReadCallback)
+{
+    SizeT count{1};
+    double samples[1]{};
+    RangeType64 domain[1]{};
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto port = InputPort(signal.getContext(), nullptr, "readsig");
+    port.connect(signal);
+    size_t cnt = 0;
+
+    auto reader = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
+    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+        cnt++;
+        printf("StreamReaderFromPortOnReadCallback CNT %zu\n", cnt);
+        reader.readWithDomain(&samples, &domain, &count);
+        promise.set_value();
+        return nullptr;
+    });
+
+    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 123.4;
+
+    this->sendPacket(dataPacket);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
+
+    // domain was read and updated from packet info
+    ASSERT_EQ(reader.getDomainReadType(), SampleType::RangeInt64);
 }

@@ -8,6 +8,7 @@
 
 #include <thread>
 #include <utility>
+#include <future>
 
 using namespace daq;
 using namespace testing;
@@ -1477,4 +1478,124 @@ TEST_F(MultiReaderTest, MultiReaderWithNotConnectedInputPort)
     auto portList = List<IInputPortConfig>(InputPort(readSignals[0].signal.getContext(), nullptr, "readsig"));
 
     ASSERT_THROW(MultiReaderFromPort(portList), ArgumentNullException);
+}
+
+TEST_F(MultiReaderTest, MultiReaderOnReadCallback)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    constexpr const SizeT SAMPLES = 5u;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+    bool promiseUsed = false;
+
+
+    SizeT count{SAMPLES};
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(3);
+
+    auto& sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", Ratio(1, 1000 * 10ll), LinearDataRule(10, 0)));
+    auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
+
+    auto reader = MultiReader(signalsToList());
+    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+        reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+        if (!promiseUsed)
+            promise.set_value();
+        promiseUsed = true;
+        return nullptr;
+    });
+
+    auto available = reader.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    sig0.createAndSendPacket(1);
+    sig1.createAndSendPacket(1);
+    sig2.createAndSendPacket(1);
+
+    sig0.createAndSendPacket(2);
+    sig1.createAndSendPacket(2);
+    sig2.createAndSendPacket(2);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(count, SAMPLES);
+
+    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};
+    printData<std::chrono::microseconds>(SAMPLES, time, values, domain);
+
+    ASSERT_THAT(time[1], ElementsAreArray(time[0]));
+    ASSERT_THAT(time[2], ElementsAreArray(time[0]));
+}
+
+TEST_F(MultiReaderTest, MultiReaderFromPortOnReadCallback)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    constexpr const SizeT SAMPLES = 5u;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+    bool promiseUsed = false;
+
+
+    SizeT count{SAMPLES};
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(3);
+
+    auto& sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", Ratio(1, 1000 * 10ll), LinearDataRule(10, 0)));
+    auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
+
+    auto reader = MultiReaderFromPort(signalsToPortsList());
+    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+        reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+        if (!promiseUsed)
+            promise.set_value();
+        promiseUsed = true;
+        return nullptr;
+    });
+
+    auto available = reader.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    sig0.createAndSendPacket(1);
+    sig1.createAndSendPacket(1);
+    sig2.createAndSendPacket(1);
+
+    sig0.createAndSendPacket(2);
+    sig1.createAndSendPacket(2);
+    sig2.createAndSendPacket(2);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(count, SAMPLES);
+
+    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};
+    printData<std::chrono::microseconds>(SAMPLES, time, values, domain);
+
+    ASSERT_THAT(time[1], ElementsAreArray(time[0]));
+    ASSERT_THAT(time[2], ElementsAreArray(time[0]));
 }

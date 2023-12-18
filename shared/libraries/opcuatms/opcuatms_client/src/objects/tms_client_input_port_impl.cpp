@@ -1,4 +1,4 @@
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 #include "opcuatms/converters/variant_converter.h"
 #include "opcuatms_client/objects/tms_client_input_port_impl.h"
 #include "opcuatms/errors.h"
@@ -33,7 +33,7 @@ ErrCode TmsClientInputPortImpl::acceptsSignal(ISignal* signal, Bool* accepts)
     return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
 
     //return daqTry([&]() {
-    //    OpcUaNodeId methodId(NAMESPACE_TMSBSP, UA_TMSBSPID_INPUTPORTTYPE_ACCEPTSSIGNAL);
+    //    OpcUaNodeId methodId(NAMESPACE_DAQBSP, UA_DAQBSPID_INPUTPORTTYPE_ACCEPTSSIGNAL);
 
     //    auto signalNodeId = clientContext->getNodeId(signal);
     //    OpcUaVariant inputArg;
@@ -55,7 +55,7 @@ ErrCode TmsClientInputPortImpl::connect(ISignal* signal)
 {
     return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
     //return daqTry([&]() {
-    //    OpcUaNodeId methodId(NAMESPACE_TMSBSP, UA_TMSBSPID_INPUTPORTTYPE_CONNECTSIGNAL);
+    //    OpcUaNodeId methodId(NAMESPACE_DAQBSP, UA_DAQBSPID_INPUTPORTTYPE_CONNECTSIGNAL);
 
     //    auto signalNodeId = clientContext->getNodeId(signal);
     //    OpcUaVariant inputArg;
@@ -79,7 +79,7 @@ ErrCode TmsClientInputPortImpl::disconnect()
     return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
 
     //return daqTry([&]() {
-    //    OpcUaNodeId methodId(NAMESPACE_TMSBSP, UA_TMSBSPID_INPUTPORTTYPE_DISCONNECTSIGNAL);
+    //    OpcUaNodeId methodId(NAMESPACE_DAQBSP, UA_DAQBSPID_INPUTPORTTYPE_DISCONNECTSIGNAL);
 
     //    OpcUaCallMethodRequest callRequest(methodId, nodeId, 0, nullptr);
     //    OpcUaObject<UA_CallMethodResult> result = client->callMethod(callRequest);
@@ -104,7 +104,7 @@ ErrCode TmsClientInputPortImpl::getSignal(ISignal** signal)
 
 SignalPtr TmsClientInputPortImpl::onGetSignal()
 {
-    OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_CONNECTEDTOSIGNAL);
+    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_CONNECTEDTOSIGNAL);
     auto nodeIds = referenceUtils.getReferencedNodes(nodeId, referenceTypeId, true);
     assert(nodeIds.size() <= 1);
 

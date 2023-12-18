@@ -26,7 +26,7 @@
  */
 
 #include "py_opendaq/py_opendaq.h"
-#include "py_core_types/py_converter.h"
+#include "py_opendaq/py_typed_reader.h"
 
 PyDaqIntf<daq::IBlockReader, daq::ISampleReader> declareIBlockReader(pybind11::module_ m)
 {
@@ -35,8 +35,59 @@ PyDaqIntf<daq::IBlockReader, daq::ISampleReader> declareIBlockReader(pybind11::m
 
 void defineIBlockReader(pybind11::module_ m, PyDaqIntf<daq::IBlockReader, daq::ISampleReader> cls)
 {
-    cls.doc() = "A signal data reader that abstracts away reading of signal packets by keeping an internal read-position and automatically advances it on subsequent reads. The difference to a StreamReader is that instead of reading on per sample basis it always returns only a full block of samples. This means that even if more samples are available they will not be read until there is enough of them to fill at least one block.";
+    cls.doc() = "A signal data reader that abstracts away reading of signal packets by keeping an internal read-position and automatically "
+                "advances it on subsequent reads. The difference to a StreamReader is that instead of reading on per sample basis it "
+                "always returns only a full block of samples. This means that even if more samples are available they will not be read "
+                "until there is enough of them to fill at least one block.";
 
-    m.def("BlockReader", &daq::BlockReader_Create);
+    m.def(
+        "BlockReader",
+        [](daq::ISignal* signal, size_t blockSize, daq::SampleType valueType, daq::SampleType domainType)
+        {
+            const auto signalPtr = daq::SignalPtr::Borrow(signal);
+            if (blockSize < 1)
+                throw daq::InvalidParameterException("Block size must be greater than 0");
+            if (valueType != daq::SampleType::Invalid || domainType != daq::SampleType::Invalid)
+            {
+                PyTypedReader::checkTypes(valueType, domainType);
+                return daq::BlockReader(signalPtr, blockSize, valueType, domainType).detach();
+            }
+            else
+                return daq::BlockReader(signalPtr, blockSize).detach();
+        },
+        py::arg("signal"),
+        py::arg("block_size"),
+        py::arg("value_type") = daq::SampleType::Invalid,
+        py::arg("domain_type") = daq::SampleType::Invalid,
+        "");
     m.def("BlockReaderFromExisting", &daq::BlockReaderFromExisting_Create);
+
+    cls.def(
+        "read",
+        [](daq::IBlockReader* object, size_t count, const size_t timeoutMs)
+        { return PyTypedReader::readValues(daq::BlockReaderPtr::Borrow(object), count, timeoutMs); },
+        py::arg("count"),
+        py::arg("timeout_ms") = 0,
+        "Copies at maximum the next `count` blocks of unread samples to the values buffer."
+        "The amount actually read is returned through the `count` parameter");
+
+    cls.def(
+        "read_with_domain",
+        [](daq::IBlockReader* object, size_t count, const size_t timeoutMs)
+        { return PyTypedReader::readValuesWithDomain(daq::BlockReaderPtr::Borrow(object), count, timeoutMs); },
+        py::arg("count"),
+        py::arg("timeout_ms") = 0,
+        "Copies at maximum the next `count` blocks of unread samples and clock-stamps to the `dataBlocks` and `domainBlocks` buffers."
+        "The amount actually read is returned through the `count` parameter.");
+
+    cls.def_property_readonly(
+        "block_size",
+        [](daq::IBlockReader* object)
+        {
+            const auto objectPtr = daq::BlockReaderPtr::Borrow(object);
+            daq::SizeT blockSize = 0;
+            objectPtr->getBlockSize(&blockSize);
+            return blockSize;
+        },
+        "The amount of samples the reader considers as one block.");
 }

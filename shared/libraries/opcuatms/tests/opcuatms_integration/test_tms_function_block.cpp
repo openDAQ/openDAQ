@@ -14,7 +14,7 @@
 #include <opcuatms_client/objects/tms_client_function_block_factory.h>
 #include "opcuatms_client/objects/tms_client_input_port_factory.h"
 #include "opcuatms_client/objects/tms_client_signal_factory.h"
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 #include "tms_object_integration_test.h"
 #include "opendaq/folder_config_ptr.h"
 
@@ -160,7 +160,7 @@ TEST_F(TmsFunctionBlockTest, MethodGetStatusSignal)
     auto tmsServerSignal = TmsServerSignal(serverSignal, this->getServer(), NullContext());
     auto signalNodeId = tmsServerSignal.registerOpcUaNode();
 
-    OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASSTATUSSIGNAL);
+    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASSTATUSSIGNAL);
     getServer()->addReference(functionBlockNodeId, referenceTypeId, signalNodeId, true);
 
     FunctionBlockPtr clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, functionBlockNodeId);

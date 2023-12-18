@@ -7,7 +7,7 @@
 #include "opcuaclient/opcuaclient.h"
 #include "opcuatms_server/objects/tms_server_function_block.h"
 #include "tms_object_test.h"
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 #include <coreobjects/unit_factory.h>
 
 using namespace daq;
@@ -72,8 +72,8 @@ TEST_F(TmsFunctionBlockTest, BrowseSignals)
     auto nodeId = serverFunctionBlock.registerOpcUaNode();
 
     OpcUaServerNode serverNodeFB(*this->getServer(), nodeId);
-    auto signalServerNode = serverNodeFB.getChildNode(UA_QUALIFIEDNAME_ALLOC(NAMESPACE_TMSBSP, "Sig"));
-    auto signalReferences = signalServerNode->browse(OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASVALUESIGNAL));
+    auto signalServerNode = serverNodeFB.getChildNode(UA_QUALIFIEDNAME_ALLOC(NAMESPACE_DAQBSP, "Sig"));
+    auto signalReferences = signalServerNode->browse(OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASVALUESIGNAL));
     ASSERT_EQ(signalReferences.size(), 5u);
 }
 

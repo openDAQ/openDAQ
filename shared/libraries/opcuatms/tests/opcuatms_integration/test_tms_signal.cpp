@@ -7,7 +7,7 @@
 #include "opcuatms/exceptions.h"
 #include "opcuatms_client/objects/tms_client_signal_factory.h"
 #include "opcuatms_server/objects/tms_server_signal.h"
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 #include <opendaq/context_factory.h>
 #include <coreobjects/unit_factory.h>
 #include <opendaq/data_rule_factory.h>
@@ -226,7 +226,7 @@ TEST_F(TmsSignalTest, AttrDomainSignal)
     auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), NullContext());
     auto nodeId = serverSignal.registerOpcUaNode();
 
-    OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASDOMAINSIGNAL);
+    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASDOMAINSIGNAL);
     getServer()->addReference(nodeId, referenceTypeId, domainNodeId);
     SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
 
@@ -252,7 +252,7 @@ TEST_F(TmsSignalTest, AttrRelatedSignals)
     auto serverSignal3 = TmsServerSignal(daqServerSignal3, this->getServer(), NullContext());
     auto nodeId3 = serverSignal3.registerOpcUaNode();
 
-    OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_RELATESTOSIGNAL);
+    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_RELATESTOSIGNAL);
     getServer()->addReference(nodeId2, referenceTypeId, nodeId1);
     getServer()->addReference(nodeId3, referenceTypeId, nodeId1);
     getServer()->addReference(nodeId3, referenceTypeId, nodeId2);

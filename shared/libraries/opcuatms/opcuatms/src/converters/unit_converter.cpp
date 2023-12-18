@@ -3,7 +3,7 @@
 #include "opcuatms/converters/list_conversion_utils.h"
 #include "opcuatms/converters/struct_converter.h"
 #include "opcuatms/converters/variant_converter.h"
-#include "open62541/types_tmsbsp_generated.h"
+#include "open62541/types_daqbsp_generated.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -84,7 +84,7 @@ OpcUaVariant VariantConverter<IUnit>::ToVariant(const UnitPtr& object, const UA_
 {
     auto variant = OpcUaVariant();
 
-    if (targetType == nullptr || targetType == &UA_TYPES_TMSBT[UA_TYPES_TMSBT_EUINFORMATIONWITHQUANTITY])
+    if (targetType == nullptr || targetType == &UA_TYPES_DAQBT[UA_TYPES_DAQBT_EUINFORMATIONWITHQUANTITY])
         variant.setScalar(*StructConverter<IUnit, UA_EUInformationWithQuantity>::ToTmsType(object));
     else if (targetType == &UA_TYPES[UA_TYPES_EUINFORMATION])
         variant.setScalar(*StructConverter<IUnit, UA_EUInformation>::ToTmsType(object));
@@ -112,7 +112,7 @@ OpcUaVariant VariantConverter<IUnit>::ToArrayVariant(const ListPtr<IUnit>& list,
                                                      const UA_DataType* targetType,
                                                      const ContextPtr& /*context*/)
 {
-    if (targetType == nullptr || targetType == &UA_TYPES_TMSBT[UA_TYPES_TMSBT_EUINFORMATIONWITHQUANTITY])
+    if (targetType == nullptr || targetType == &UA_TYPES_DAQBT[UA_TYPES_DAQBT_EUINFORMATIONWITHQUANTITY])
         return ListConversionUtils::ToArrayVariant<IUnit, UA_EUInformationWithQuantity>(list);
     if (targetType == &UA_TYPES[UA_TYPES_EUINFORMATION])
         return ListConversionUtils::ToArrayVariant<IUnit, UA_EUInformation>(list);

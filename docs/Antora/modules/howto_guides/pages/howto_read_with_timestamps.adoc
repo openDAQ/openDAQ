@@ -25,6 +25,10 @@ You use it by wrapping any other reader that operates on samples and can read do
 Then you can issue the same `read` calls as you would to the base Reader only now the read domain data is in https://en.cppreference.com/w/cpp/chrono/time_point[`std::chrono::time_point`] values of the https://en.cppreference.com/w/cpp/chrono/system_clock[`std::chrono::system_clock`] instead of ticks.
 
 .Reading time with Time Reader
+[tabs]
+====
+Cpp::
++
 [source,cpp]
 ----
 auto reader = StreamReader(signal);
@@ -45,6 +49,25 @@ for (SizeT i = 0u; i < count; ++i)
     std::cout << timeStamps[i] << ": " << values[i] << std::endl;
 }
 ----
+Python::
++
+[source,python]
+----
+reader = opendaq.StreamReader(signal)
+
+# Signal produces 5 samples
+
+time_reader = opendaq.TimeStreamReader(reader)
+
+# read with Time Reader
+
+values, timestamps = time_reader.read_with_timestamps(5)
+
+print(list(zip(timestamps, values)))
+
+----
+====
+
 
 [WARNING]
 ====

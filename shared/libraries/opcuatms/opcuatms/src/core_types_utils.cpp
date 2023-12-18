@@ -3,9 +3,9 @@
 #include "opcuashared/opcuadatatypearraylist.h"
 #include "opcuatms/extension_object.h"
 #include "open62541/nodeids.h"
-#include "open62541/tmsbt_nodeids.h"
+#include "open62541/daqbt_nodeids.h"
 #include "open62541/types_di_generated.h"
-#include "open62541/types_tmsesp_generated.h"
+#include "open62541/types_daqesp_generated.h"
 
 using namespace daq::opcua;
 using namespace daq;
@@ -29,8 +29,8 @@ namespace details
         {OpcUaNodeId(0, UA_NS0ID_UINT64), ctInt},
         {OpcUaNodeId(0, UA_NS0ID_STRING), ctString},
         {OpcUaNodeId(0, UA_NS0ID_RATIONALNUMBER), ctRatio},
-        {OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_RATIONALNUMBER64), ctRatio},
-        {OpcUaNodeId(0, UA_TMSBTID_RATIONALNUMBER64), ctRatio}
+        {OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_RATIONALNUMBER64), ctRatio},
+        {OpcUaNodeId(0, UA_DAQBTID_RATIONALNUMBER64), ctRatio}
     };
 }
 
@@ -186,7 +186,7 @@ OpcUaNodeId CoreTypeToUANodeID(CoreType type)
         case ctString:
             return OpcUaNodeId(0, UA_NS0ID_STRING);
         case ctRatio:
-            return OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_RATIONALNUMBER64);
+            return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_RATIONALNUMBER64);
         case ctProc:
         case ctList:
         case ctDict:
@@ -239,10 +239,10 @@ const UA_DataType* GetUAStructureDataTypeByName(const std::string& structName)
     OpcUaDataTypeArrayList typeArr;
     typeArr.add(UA_TYPES_COUNT, UA_TYPES);
     typeArr.add(UA_TYPES_DI_COUNT, UA_TYPES_DI);
-    typeArr.add(UA_TYPES_TMSBT_COUNT, UA_TYPES_TMSBT);
-    typeArr.add(UA_TYPES_TMSBSP_COUNT, UA_TYPES_TMSBSP);
-    typeArr.add(UA_TYPES_TMSDEVICE_COUNT, UA_TYPES_TMSDEVICE);
-    typeArr.add(UA_TYPES_TMSESP_COUNT, UA_TYPES_TMSESP);
+    typeArr.add(UA_TYPES_DAQBT_COUNT, UA_TYPES_DAQBT);
+    typeArr.add(UA_TYPES_DAQBSP_COUNT, UA_TYPES_DAQBSP);
+    typeArr.add(UA_TYPES_DAQDEVICE_COUNT, UA_TYPES_DAQDEVICE);
+    typeArr.add(UA_TYPES_DAQESP_COUNT, UA_TYPES_DAQESP);
     
     const UA_DataTypeArray* dataType = typeArr.getCustomDataTypes();
     while(dataType)

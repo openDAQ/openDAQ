@@ -35,6 +35,7 @@
 #include <map>
 #include <coreobjects/property_internal_ptr.h>
 #include <coreobjects/property_object_internal_ptr.h>
+#include <coreobjects/core_event_args_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -59,6 +60,7 @@ class GenericPropertyObjectImpl : public ImplementationOfWeak<PropObjInterface,
 public:
     explicit GenericPropertyObjectImpl();
     explicit GenericPropertyObjectImpl(const TypeManagerPtr& manager, const StringPtr& className);
+    explicit GenericPropertyObjectImpl(const TypeManagerPtr& manager, const StringPtr& className, const ProcedurePtr& triggerCoreEvent);
 
     virtual ErrCode INTERFACE_FUNC getClassName(IString** className) override;
 
@@ -164,12 +166,13 @@ private:
     std::unordered_map<StringPtr, PropertyValueEventEmitter> valueWriteEvents;
     std::unordered_map<StringPtr, PropertyValueEventEmitter> valueReadEvents;
     EndUpdateEventEmitter endUpdateEvent;
+    ProcedurePtr triggerCoreEvent;
 
     PropertyOrderedMap localProperties;
     std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
 
     // Gets the property, as well as its value. Gets the referenced property, if the property is a refProp
-    ErrCode getPropertyAndValueInternal(const StringPtr& name, BaseObjectPtr& value, PropertyPtr& property);
+    ErrCode getPropertyAndValueInternal(const StringPtr& name, BaseObjectPtr& value, PropertyPtr& property, bool triggerEvent = true);
     ErrCode getPropertiesInternal(Bool includeInvisible, Bool bind, IList** list);
 
     // Gets the property value, if stored in local value dictionary (propValues)
@@ -190,7 +193,8 @@ private:
     ErrCode checkSelectionValues(const PropertyPtr& prop, const BaseObjectPtr& value);
 
     // Called when `setPropertyValue` successfully sets a new value
-    void callPropertyValueWrite(const PropertyPtr& prop, const BaseObjectPtr& newValue, PropertyEventType changeType, bool isUpdating);
+    [[maybe_unused]]
+    BaseObjectPtr callPropertyValueWrite(const PropertyPtr& prop, const BaseObjectPtr& newValue, PropertyEventType changeType, bool isUpdating);
 
     // Called at the end of `getPropertyValue`
     BaseObjectPtr callPropertyValueRead(const PropertyPtr& prop, const BaseObjectPtr& readValue);
@@ -268,6 +272,15 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
 
         objectClass = objClass;
     }
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl(const TypeManagerPtr& manager,
+                                                                                      const StringPtr& className,
+                                                                                      const ProcedurePtr& triggerCoreEvent)
+    : GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl(manager, className)
+{
+    this->triggerCoreEvent = triggerCoreEvent;
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -376,14 +389,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
 #endif
 
 template <class PropObjInterface, class... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPropertyValueWrite(const PropertyPtr& prop,
+BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPropertyValueWrite(const PropertyPtr& prop,
                                                                                         const BaseObjectPtr& newValue,
                                                                                         PropertyEventType changeType,
                                                                                         bool isUpdating)
 {
     if (!prop.assigned())
     {
-        return;
+        return newValue;
     }
 
     auto args = PropertyValueEventArgs(prop, newValue, changeType, isUpdating);
@@ -406,10 +419,18 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPropertyVal
         }
     }
 
-    if (args.getValue() != newValue)
+    const auto argsValue = args.getValue();
+    if (argsValue != newValue)
     {
-        setPropertyValueInternal(name, args.getValue(), false, true, false);
+        setPropertyValueInternal(name, argsValue, false, true, false);
+        BaseObjectPtr valuePtr;
+        PropertyPtr propPtr;
+        getPropertyAndValueInternal(name, valuePtr, propPtr, false);
+
+        return valuePtr;
     }
+
+    return newValue;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -748,7 +769,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
                 setOwnerToPropertyValue(valuePtr);
                 if (triggerEvent)
                 {
-                    callPropertyValueWrite(prop, valuePtr, PropertyEventType::Update, false);
+                    const auto newVal = callPropertyValueWrite(prop, valuePtr, PropertyEventType::Update, false);
+                    if (triggerCoreEvent.assigned())
+                        triggerCoreEvent(CoreEventArgsPropertyValueChanged(propName, newVal));
                 }
             }
         }
@@ -1006,7 +1029,8 @@ ConstCharPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getProp
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyAndValueInternal(const StringPtr& name,
                                                                                                 BaseObjectPtr& value,
-                                                                                                PropertyPtr& property)
+                                                                                                PropertyPtr& property,
+                                                                                                bool triggerEvent)
 {
     StringPtr propName;
     ConstCharPtr bracket = getPropNameWithoutIndex(name, propName);
@@ -1071,8 +1095,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
             value = list[std::size_t(index)];
         }
     }
-
-    value = callPropertyValueRead(property, value);
+    if (triggerEvent)
+        value = callPropertyValueRead(property, value);
     return OPENDAQ_SUCCESS;
 }
 
@@ -1260,7 +1284,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             else
             {
                 propValues.erase(it);
-                callPropertyValueWrite(prop, nullptr, PropertyEventType::Clear, false);
+                const auto val = callPropertyValueWrite(prop, nullptr, PropertyEventType::Clear, false);
+                if (triggerCoreEvent.assigned())
+                    triggerCoreEvent(CoreEventArgsPropertyValueChanged(propName, val));
             }
         }
     }
@@ -1317,6 +1343,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
         if (!res.second)
             return this->makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists.)", propName));
 
+        if (triggerCoreEvent.assigned())
+            triggerCoreEvent(CoreEventArgsPropertyAdded(propPtr));
+
         return OPENDAQ_SUCCESS;
     });
 }
@@ -1345,6 +1374,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
     {
         propValues.erase(propertyName);
     }
+
+    if(triggerCoreEvent.assigned())
+        triggerCoreEvent(CoreEventArgsPropertyRemoved(propertyName));
 
     return OPENDAQ_SUCCESS;
 }
@@ -2060,14 +2092,22 @@ template <typename PropObjInterface, typename ... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updatingValuesWrite(
     const UpdatingActions& propsAndValues)
 {
+    auto list = List<IString>();
+    auto dict = Dict<IString, IBaseObject>();
+    for (const auto& item: propsAndValues)
+    {
+        list.pushBack(item.first.getName());
+        dict.set(item.first.getName(), item.second.value);
+    }
+
     if (endUpdateEvent.hasListeners())
     {
-        auto list = List<IString>();
-        for (const auto& item: propsAndValues)
-            list.pushBack(item.first.getName());
         auto args = EndUpdateEventArgs(list);
         endUpdateEvent(objPtr, args);
     }
+
+    if(triggerCoreEvent.assigned())
+        triggerCoreEvent(CoreEventArgsUpdateEnd(dict));
 }
 
 template <class PropObjInterface, class... Interfaces>

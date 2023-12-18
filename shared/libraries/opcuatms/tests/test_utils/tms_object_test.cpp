@@ -1,7 +1,7 @@
 #include "tms_object_test.h"
 #include "opcuaclient/opcuaclient.h"
-#include <open62541/types_tmsdevice_generated.h>
-#include <open62541/types_tmsbsp_generated.h>
+#include <open62541/types_daqdevice_generated.h>
+#include <open62541/types_daqbsp_generated.h>
 #include <open62541/types_di_generated.h>
 
 using namespace daq::opcua;
@@ -92,9 +92,9 @@ daq::opcua::OpcUaClientPtr TmsObjectTest::CreateAndConnectTestClient()
 {
     OpcUaEndpoint endpoint("Test", "opc.tcp://127.0.0.1:4840");
     endpoint.registerCustomTypes(UA_TYPES_DI_COUNT, UA_TYPES_DI);
-    endpoint.registerCustomTypes(UA_TYPES_TMSBT_COUNT, UA_TYPES_TMSBT);
-    endpoint.registerCustomTypes(UA_TYPES_TMSBSP_COUNT, UA_TYPES_TMSBSP);
-    endpoint.registerCustomTypes(UA_TYPES_TMSDEVICE_COUNT, UA_TYPES_TMSDEVICE);
+    endpoint.registerCustomTypes(UA_TYPES_DAQBT_COUNT, UA_TYPES_DAQBT);
+    endpoint.registerCustomTypes(UA_TYPES_DAQBSP_COUNT, UA_TYPES_DAQBSP);
+    endpoint.registerCustomTypes(UA_TYPES_DAQDEVICE_COUNT, UA_TYPES_DAQDEVICE);
 
     auto client = std::make_shared<daq::opcua::OpcUaClient>(endpoint);
     client->connect();

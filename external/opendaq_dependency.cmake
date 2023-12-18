@@ -48,6 +48,7 @@ endmacro()
 #     [ EXPECT_TARGET     depname::depname ]  # if set, asserts that the specified target is provided
 #     [ EXPECT_COMMNAD    some_command ]      # if set, asserts that the specified command is provided
 #     [ PATCH_FILES       ... ]               # if set, specified patches are applied before building
+#     [ GIT_SHALLOW       OFF ]               # overrides the default GIT_SHALLOW mode (default is ON)
 # )
 #
 # SourceOptions are:
@@ -77,7 +78,7 @@ macro(opendaq_dependency)
 
     cmake_parse_arguments(OPENDAQ_DEP
         "OPTIONAL"
-        "NAME;REQUIRED_VERSION;EXPECT_TARGET;EXPECT_COMMAND;GIT_REPOSITORY;GIT_REF;URL;URL_HASH;FETCH_LOG_LEVEL;PKGCONFIG_NAME;FIND_PACKAGE_NAME;GIT_SUBMODULES"
+        "NAME;REQUIRED_VERSION;EXPECT_TARGET;EXPECT_COMMAND;GIT_REPOSITORY;GIT_REF;GIT_SHALLOW;URL;URL_HASH;FETCH_LOG_LEVEL;PKGCONFIG_NAME;FIND_PACKAGE_NAME;GIT_SUBMODULES"
         "PATCH_FILES"
         ${ARGN})
 
@@ -165,13 +166,18 @@ macro(opendaq_dependency)
             set(CMAKE_MESSAGE_LOG_LEVEL ${OPENDAQ_DEP_FETCH_LOG_LEVEL})
         endif()
 
+        set(PARAMS_GIT_SHALLOW ON)
+        if (DEFINED OPENDAQ_DEP_GIT_SHALLOW)
+            set(PARAMS_GIT_SHALLOW ${OPENDAQ_DEP_GIT_SHALLOW})
+        endif()
+
         set(SOURCE_PARAMS)
         if (OPENDAQ_DEP_GIT_REPOSITORY)
             set(SOURCE_PARAMS
                 GIT_REPOSITORY ${OPENDAQ_DEP_GIT_REPOSITORY}
                 GIT_TAG ${OPENDAQ_DEP_GIT_REF}
                 GIT_PROGRESS ON
-                GIT_SHALLOW ON
+                GIT_SHALLOW ${PARAMS_GIT_SHALLOW}
                 GIT_REMOTE_UPDATE_STRATEGY CHECKOUT
             )
         elseif (OPENDAQ_DEP_URL)

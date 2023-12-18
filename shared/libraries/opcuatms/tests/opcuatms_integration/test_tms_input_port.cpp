@@ -14,7 +14,7 @@
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/logger_factory.h>
 #include <opendaq/context_factory.h>
-#include <open62541/tmsbsp_nodeids.h>
+#include <open62541/daqbsp_nodeids.h>
 #include <test_input_port_notifications.h>
 
 using namespace daq;

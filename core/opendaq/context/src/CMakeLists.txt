@@ -11,15 +11,16 @@ set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 rtgen(SRC_Context context.h)
 
 source_group("context" FILES ${SDK_HEADERS_DIR}/context.h
+                             ${SDK_HEADERS_DIR}/context_ptr.fwd_declare.h
 )
 
 set(SRC_Cpp empty.cpp
 )
 
-set(SRC_PublicHeaders
+set(SRC_PublicHeaders context_ptr.fwd_declare.h 
 )
 
-set(SRC_PrivateHeaders
+set(SRC_PrivateHeaders 
 )
 
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)
@@ -35,8 +36,8 @@ list(APPEND SRC_PrivateHeaders ${SRC_Context_PrivateHeaders}
 )
 
 add_library(${LIB_NAME} ${OPENDAQ_COMPONENT_TYPE} ${SRC_Cpp}
-                                                    ${SRC_PrivateHeaders}
-                                                    ${SRC_PublicHeaders}
+                                                  ${SRC_PrivateHeaders}
+                                                  ${SRC_PublicHeaders}
 )
 
 add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${LIB_NAME})

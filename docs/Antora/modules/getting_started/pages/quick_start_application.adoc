@@ -28,7 +28,7 @@ as it allows for the simulator to be discovered automatically by openDAQ(TM).
 IMPORTANT: If building from source, all function calls used to get available Devices later in the guide will not
 find any Devices. They will instead return an empty list. As such, when not using the provided virtual machine, the
 code examples will need to be modified to specify the connection string `"daq.opcua://127.0.0.1/"` whenever attempting to add
-a openDAQ(TM) OPC UA-enabled Device; to add the Device without using openDAQ(TM) OPC UA protocol the connection string 
+a openDAQ(TM) OPC UA-enabled Device; to add the Device without using openDAQ(TM) OPC UA protocol the connection string
 `"daq.nsd://127.0.0.1/"` should be used for the Devices that utilize the openDAQ(TM) Native streaming protocol.
 
 === Using a virtual machine (recommended)
@@ -47,7 +47,7 @@ Password: opendaq
 
 Detailed instructions on setting up the simulator can be found xref:howto_guides:howto_vbox_simulator.adoc[here].
 
-NOTE: For a simulator that is a simulator or a physical openDAQ(TM) DAQ device, the openDAQ-reference-device-vm-version.ova image can be used instead. Note that the properties and configuration of the device does not fully match that of the one described in this guide, but the general principles still apply. 
+NOTE: For a simulator that is a simulator or a physical openDAQ(TM) DAQ device, the openDAQ-reference-device-vm-version.ova image can be used instead. Note that the properties and configuration of the device does not fully match that of the one described in this guide, but the general principles still apply.
 
 [#own_simulator]
 === Building a simulator from source (optional)
@@ -84,7 +84,7 @@ quick_start_simulator.exe
 ----
 
 If using this method of simulating a Device, use the "daq.opcua://127.0.0.1" connection string in all
-`addDevice(std::string connectionString)` calls in the later examples of this guide, except 
+`addDevice(std::string connectionString)` calls in the later examples of this guide, except
 xref:#websocket_example[Connecting to remote Device using Web-socket streaming protocol] and
 xref:#native_streaming_example[Connecting to remote Device using Native streaming protocol] examples.
 --
@@ -191,14 +191,14 @@ simulates two such Channels, both outputting sine wave Signals.
 
 We can obtain a list of Devices that we can add / connect to via by getting a list of available Devices.
 openDAQ(TM) can ask all loaded Modules to return information about any Device it discovers. In this guide, we use
-three Modules that can connect to / add Devices - the openDAQ(TM) `opcua_client_module`, `native_stream_cl_module` 
+three Modules that can connect to / add Devices - the openDAQ(TM) `opcua_client_module`, `native_stream_cl_module`
 (Native streaming client module), and a reference device module.
 
 The latter allows for the creation of simulated Devices that output sine waves. Those are used by the
 provided simulator to generate sample data. The OPC UA Client (opcua_client_module) allows us to
 connect to all openDAQ(TM) OPC UA-enabled Devices that are running an openDAQ(TM) OPC UA Server. The
 `native_stream_cl_module` is a Native data streaming client implementation that allows us to connect to Devices that are running
-a Native streaming Server and read their Signal data. The two client modules use mDNS discovery to find compatible 
+a Native streaming Server and read their Signal data. The two client modules use mDNS discovery to find compatible
 Devices on our local network.
 
 IMPORTANT: The description of using `native_stream_cl_module` can be found in xref:#native_streaming_example[this example].
@@ -627,13 +627,16 @@ Python::
 ----
 # ...
 # Output 4 samples using time reader wrapper over stream reader
+stream_reader = opendaq.StreamReader(signal)
+time_reader = opendaq.TimeStreamReader(stream_reader)
+
 cnt = 0
 while cnt < 4:
     time.sleep(0.025)
     # Read up to 100 samples and print the last one
-    samples, time_stamps = opendaq.TimeReader(reader).read_with_timestamps(100)
+    samples, time_stamps = time_reader.read_with_timestamps(100)
     if len(samples) > 0:
-        print('Value:', samples[-1], ', Domain:', time_stamps[-1])
+        print(f'Value: {samples[-1]}, Domain: {time_stamps[-1]}')
         cnt += 1
 ----
 ====

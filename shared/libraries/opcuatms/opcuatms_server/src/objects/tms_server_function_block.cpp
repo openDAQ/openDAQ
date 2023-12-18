@@ -2,7 +2,7 @@
 #include "opcuatms_server/objects/tms_server_function_block.h"
 #include "opcuatms/converters/variant_converter.h"
 #include "open62541/statuscodes.h"
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 #include "open62541/di_nodeids.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -18,7 +18,7 @@ TmsServerFunctionBlock<T>::TmsServerFunctionBlock(const FunctionBlockPtr& object
 template <typename T>
 OpcUaNodeId TmsServerFunctionBlock<T>::getTmsTypeId()
 {
-    return OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_FUNCTIONBLOCKTYPE);
+    return OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_FUNCTIONBLOCKTYPE);
 }
 
 template <typename T>

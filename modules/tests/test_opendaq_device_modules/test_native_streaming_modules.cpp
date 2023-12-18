@@ -1,9 +1,4 @@
-#include <testutils/testutils.h>
-#include <testutils/memcheck_listener.h>
-
-#include <opendaq/opendaq.h>
-
-#include <thread>
+#include "test_helpers.h"
 
 using NativeStreamingModulesTest = testing::Test;
 
@@ -79,6 +74,61 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
     ASSERT_TRUE(info.assigned());
     ASSERT_EQ(info.getConnectionString(), "daq.nsd://127.0.0.1/");
     ASSERT_EQ(info.getName(), "NativeStreamingClientPseudoDevice");
+}
+
+TEST_F(NativeStreamingModulesTest, SubscribeReadUnsubscribe)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto signal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+    auto domainSignal = signal.getDomainSignal().template asPtr<IMirroredSignalConfig>();
+
+    StringPtr streamingSource = signal.getActiveStreamingSource();
+    ASSERT_EQ(streamingSource, domainSignal.getActiveStreamingSource());
+
+    std::promise<StringPtr> signalSubscribePromise;
+    std::future<StringPtr> signalSubscribeFuture;
+    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+
+    std::promise<StringPtr> domainSubscribePromise;
+    std::future<StringPtr> domainSubscribeFuture;
+    test_helpers::setupSubscribeAckHandler(domainSubscribePromise, domainSubscribeFuture, domainSignal);
+
+    std::promise<StringPtr> signalUnsubscribePromise;
+    std::future<StringPtr> signalUnsubscribeFuture;
+    test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
+
+    std::promise<StringPtr> domainUnsubscribePromise;
+    std::future<StringPtr> domainUnsubscribeFuture;
+    test_helpers::setupUnsubscribeAckHandler(domainUnsubscribePromise, domainUnsubscribeFuture, domainSignal);
+
+    using namespace std::chrono_literals;
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
+    ASSERT_EQ(signalSubscribeFuture.get(), streamingSource);
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture));
+    ASSERT_EQ(domainSubscribeFuture.get(), streamingSource);
+
+    double samples[100];
+    for (int i = 0; i < 10; ++i)
+    {
+        std::this_thread::sleep_for(100ms);
+        daq::SizeT count = 100;
+        reader.read(samples, &count);
+        EXPECT_GT(count, 0) << "iteration " << i;
+    }
+
+    reader.release();
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalUnsubscribeFuture));
+    ASSERT_EQ(signalUnsubscribeFuture.get(), streamingSource);
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainUnsubscribeFuture));
+    ASSERT_EQ(domainUnsubscribeFuture.get(), streamingSource);
 }
 
 TEST_F(NativeStreamingModulesTest, DISABLED_RenderSignal)

@@ -40,7 +40,7 @@ struct RequestedNodeId<CoreType, std::enable_if_t<IsDerivedFromTemplate<CoreType
 {
     opcua::OpcUaNodeId operator()(const CoreType& object)
     {
-        return opcua::OpcUaNodeId(NAMESPACE_TMSBSP, object.getGlobalId().toStdString());
+        return opcua::OpcUaNodeId(NAMESPACE_DAQBSP, object.getGlobalId().toStdString());
     }
 };
 

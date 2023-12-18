@@ -3,7 +3,7 @@
 #include "opcuatms/converters/list_conversion_utils.h"
 #include "opcuatms/converters/struct_converter.h"
 #include "opcuatms/converters/variant_converter.h"
-#include "open62541/types_tmsbsp_generated.h"
+#include "open62541/types_daqbsp_generated.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -59,7 +59,7 @@ OpcUaVariant VariantConverter<IFunctionBlockType>::ToVariant(const FunctionBlock
 {
     auto variant = OpcUaVariant();
 
-    if (targetType == nullptr || targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_FUNCTIONBLOCKINFOSTRUCTURE])
+    if (targetType == nullptr || targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_FUNCTIONBLOCKINFOSTRUCTURE])
         variant.setScalar(*StructConverter<IFunctionBlockType, UA_FunctionBlockInfoStructure>::ToTmsType(object));
     else
         throw ConversionFailedException{};
@@ -81,7 +81,7 @@ OpcUaVariant VariantConverter<IFunctionBlockType>::ToArrayVariant(const ListPtr<
                                                                   const UA_DataType* targetType,
                                                                   const ContextPtr& /*context*/)
 {
-    if (targetType == nullptr || targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_FUNCTIONBLOCKINFOSTRUCTURE])
+    if (targetType == nullptr || targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_FUNCTIONBLOCKINFOSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IFunctionBlockType, UA_FunctionBlockInfoStructure>(list);
 
     throw ConversionFailedException{};

@@ -11,10 +11,10 @@
 #include "opcuatms_client/objects/tms_client_component_factory.h"
 #include "opcuatms_client/objects/tms_client_io_folder_factory.h"
 #include "opcuatms_client/objects/tms_client_streaming_info_factory.h"
-#include <open62541/tmsbsp_nodeids.h>
-#include "open62541/tmsbt_nodeids.h"
-#include <open62541/tmsdevice_nodeids.h>
-#include <open62541/types_tmsdevice_generated.h>
+#include <open62541/daqbsp_nodeids.h>
+#include "open62541/daqbt_nodeids.h"
+#include <open62541/daqdevice_nodeids.h>
+#include <open62541/types_daqdevice_generated.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/custom_log.h>
 #include "opcuatms/core_types_utils.h"
@@ -82,7 +82,7 @@ void TmsClientDeviceImpl::findAndCreateSubdevices()
     std::map<uint32_t, DevicePtr> orderedDevices;
     std::vector<DevicePtr> unorderedDevices;
 
-    auto subdeviceNodeIds = this->getChildNodes(client, nodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQDEVICETYPE));
+    auto subdeviceNodeIds = this->getChildNodes(client, nodeId, OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQDEVICETYPE));
     for (const auto& subdeviceNodeId : subdeviceNodeIds)
     {
         auto browseName = client->readBrowseName(subdeviceNodeId);
@@ -227,7 +227,7 @@ void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
 
     auto functionBlocksNodeId = getNodeId("FB");
     auto functionBlockNodeIds =
-        this->getChildNodes(client, functionBlocksNodeId, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_FUNCTIONBLOCKTYPE));
+        this->getChildNodes(client, functionBlocksNodeId, OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_FUNCTIONBLOCKTYPE));
     for (const auto& functionBlockNodeId : functionBlockNodeIds)
     {
         auto browseName = this->client->readBrowseName(functionBlockNodeId);
@@ -258,7 +258,7 @@ void TmsClientDeviceImpl::findAndCreateSignals()
     std::vector<SignalPtr> unorderedSignals;
     
     const auto signalsNodeId = getNodeId("Sig");
-    const auto signalNodeIds = this->getChildNodes(client, signalsNodeId, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_SIGNALTYPE));
+    const auto signalNodeIds = this->getChildNodes(client, signalsNodeId, OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_SIGNALTYPE));
     for (const auto& signalNodeId : signalNodeIds)
     {
         auto clientSignal = FindOrCreateTmsClientSignal(context, signals, clientContext, signalNodeId);
@@ -283,7 +283,7 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
     this->ioFolder.clear();
     auto inputsOutputsNodeId = getNodeId("IO");
 
-    auto channelNodeIds = this->getChildNodes(client, inputsOutputsNodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_CHANNELTYPE));
+    auto channelNodeIds = this->getChildNodes(client, inputsOutputsNodeId, OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_CHANNELTYPE));
     for (const auto& channelNodeId : channelNodeIds)
     {
         auto browseName = client->readBrowseName(channelNodeId);
@@ -296,7 +296,7 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
             unorderedComponents.emplace_back(tmsClientChannel);
     }
 
-    auto folderNodeIds = this->getChildNodes(client, inputsOutputsNodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_IOCOMPONENTTYPE));
+    auto folderNodeIds = this->getChildNodes(client, inputsOutputsNodeId, OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_IOCOMPONENTTYPE));
     for (const auto& folderNodeId : folderNodeIds)
     {
         auto browseName = client->readBrowseName(folderNodeId);
@@ -325,7 +325,7 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
     try
     {
         auto streamingOptionNodeIds =
-            this->getChildNodes(client, streamingOptionsNodeId, OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_VARIABLEBLOCKTYPE));
+            this->getChildNodes(client, streamingOptionsNodeId, OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_VARIABLEBLOCKTYPE));
         for (const auto& streamingOptionNodeId : streamingOptionNodeIds)
         {
             auto browseName = client->readBrowseName(streamingOptionNodeId);
@@ -354,7 +354,7 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
     std::map<uint32_t, ComponentPtr> orderedComponents;
     std::vector<ComponentPtr> unorderedComponents;
 
-    auto componentId = OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQCOMPONENTTYPE);
+    auto componentId = OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQCOMPONENTTYPE);
     auto folderNodeIds = this->getChildNodes(client, nodeId, componentId);
     for (const auto& folderNodeId : folderNodeIds)
     {

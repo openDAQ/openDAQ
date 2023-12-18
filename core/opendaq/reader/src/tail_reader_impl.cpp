@@ -246,8 +246,9 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
     }
 
     lock.unlock();
-    if (readCallback.assigned())
-        readCallback();
+    auto callback = readCallback;
+    if (callback.assigned())
+        callback();
 
     return OPENDAQ_SUCCESS;
 }

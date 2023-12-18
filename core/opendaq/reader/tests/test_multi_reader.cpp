@@ -1490,8 +1490,6 @@ TEST_F(MultiReaderTest, MultiReaderOnReadCallback)
 
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
-    bool promiseUsed = false;
-
 
     SizeT count{SAMPLES};
     void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
@@ -1507,9 +1505,8 @@ TEST_F(MultiReaderTest, MultiReaderOnReadCallback)
     auto reader = MultiReader(signalsToList());
     reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
         reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
-        if (!promiseUsed)
-            promise.set_value();
-        promiseUsed = true;
+        reader.setOnAvailablePackets(nullptr); // trigger callback only once
+        promise.set_value();
         return nullptr;
     });
 
@@ -1550,8 +1547,6 @@ TEST_F(MultiReaderTest, MultiReaderFromPortOnReadCallback)
 
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
-    bool promiseUsed = false;
-
 
     SizeT count{SAMPLES};
     void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
@@ -1567,9 +1562,8 @@ TEST_F(MultiReaderTest, MultiReaderFromPortOnReadCallback)
     auto reader = MultiReaderFromPort(signalsToPortsList());
     reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
         reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
-        if (!promiseUsed)
-            promise.set_value();
-        promiseUsed = true;
+        reader.setOnAvailablePackets(nullptr); // trigger callback only once
+        promise.set_value();
         return nullptr;
     });
 

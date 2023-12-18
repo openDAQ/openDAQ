@@ -189,8 +189,9 @@ ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
 void StreamReaderImpl::onPacketReady()
 {
     notify.condition.notify_one();
-    if (readCallback.assigned())
-        readCallback();
+    auto callback = readCallback;
+    if (callback.assigned())
+        callback();
 }
 
 ErrCode StreamReaderImpl::getValueReadType(SampleType* sampleType)

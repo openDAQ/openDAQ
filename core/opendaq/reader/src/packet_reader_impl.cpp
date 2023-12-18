@@ -114,15 +114,17 @@ ErrCode PacketReaderImpl::disconnected(IInputPort* port)
 ErrCode PacketReaderImpl::packetReceived(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-    if (readCallback.assigned())
+    if (!readCallback.assigned())
+        return OPENDAQ_SUCCESS;
+
+    SizeT count{0};
+    auto callback = readCallback;
+    connection->getPacketCount(&count);
+    while (callback.assigned() && count)
     {
-        SizeT count{0};
+        callback();
         connection->getPacketCount(&count);
-        while (count)
-        {
-            readCallback();
-            connection->getPacketCount(&count);
-        }            
+        callback = readCallback;
     }
 
     return OPENDAQ_SUCCESS;

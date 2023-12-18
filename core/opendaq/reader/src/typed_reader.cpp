@@ -136,12 +136,6 @@ static bool isSampleTypeConvertibleTo(SampleType sampleType)
 
     return false;
 }
-template <typename ReadType>
-TypedReader<ReadType>::TypedReader(FunctionPtr transform, SampleType readType) : 
-    Reader(transform)
-{
-    dataSampleType = readType;
-}
 
 template <typename ReadType>
 std::unique_ptr<Comparable> TypedReader<ReadType>::readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo)
@@ -453,31 +447,31 @@ std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionP
     switch (readType)
     {
         case SampleType::Float32:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Float32>::Type>>(transformFunction, readType);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Float32>::Type>>(transformFunction);
         case SampleType::Float64:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Float64>::Type>>(transformFunction, readType);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Float64>::Type>>(transformFunction);
         case SampleType::UInt8:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt8>::Type>>(transformFunction, readType);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt8>::Type>>(transformFunction);
         case SampleType::Int8:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int8>::Type>>(transformFunction, readType);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int8>::Type>>(transformFunction);
         case SampleType::UInt16:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt16>::Type>>(transformFunction, readType);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt16>::Type>>(transformFunction);
         case SampleType::Int16:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int16>::Type>>(transformFunction, readType);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int16>::Type>>(transformFunction);
         case SampleType::UInt32:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt32>::Type>>(transformFunction, readType);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt32>::Type>>(transformFunction);
         case SampleType::Int32:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int32>::Type>>(transformFunction, readType);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int32>::Type>>(transformFunction);
         case SampleType::UInt64:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt64>::Type>>(transformFunction, readType);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt64>::Type>>(transformFunction);
         case SampleType::Int64:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int64>::Type>>(transformFunction, readType);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int64>::Type>>(transformFunction);
         case SampleType::RangeInt64:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::RangeInt64>::Type>>(transformFunction, readType);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::RangeInt64>::Type>>(transformFunction);
         case SampleType::ComplexFloat32:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::ComplexFloat32>::Type>>(transformFunction, readType);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::ComplexFloat32>::Type>>(transformFunction);
         case SampleType::ComplexFloat64:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::ComplexFloat64>::Type>>(transformFunction, readType);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::ComplexFloat64>::Type>>(transformFunction);
         case SampleType::Undefined:
             return std::make_unique<UndefinedReader>(transformFunction);
         case SampleType::Binary:

@@ -149,8 +149,9 @@ public:
     virtual ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override
     {
         OPENDAQ_PARAM_NOT_NULL(port);
-        if (readCallback.assigned())
-            readCallback();
+        auto callback = readCallback;
+        if (callback.assigned())
+            callback();
 
         return OPENDAQ_SUCCESS;
     }

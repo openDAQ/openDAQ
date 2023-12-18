@@ -109,8 +109,12 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
     }
     notify.condition.notify_one();
 
-    while(readCallback.assigned() && getAvailable())
-        readCallback();
+    auto callback = readCallback;
+    while(callback.assigned() && getAvailable())
+    {
+        callback();
+        callback = readCallback;
+    }
 
     return OPENDAQ_SUCCESS;
 }

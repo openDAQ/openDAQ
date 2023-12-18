@@ -962,7 +962,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromPortOnReadCallback)
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(signal);
+    port.connect(this->signal);
 
     auto reader = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
     reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {

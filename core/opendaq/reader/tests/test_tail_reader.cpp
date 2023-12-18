@@ -948,8 +948,8 @@ TEST_F(TailReaderTest, TailReaderFromPortOnReadCallback)
     std::future<void> future = promise.get_future();
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
-    auto port = InputPort(signal.getContext(), nullptr, "readsig");
-    port.connect(signal);
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
 
     auto reader = daq::TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
     reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {

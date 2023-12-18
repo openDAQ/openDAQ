@@ -1,4 +1,4 @@
-08.12.2023
+18.12.2023
 Description:
 Builder pattern implementation for IInstance
 
@@ -29,6 +29,22 @@ Builder pattern implementation for IInstance
 
 -m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId)
 +m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo)
+
+13.12.2023
+Description:
+  - Add Core event to Context object that triggers on core changes
+  - Add automatic triggers for Property Object changes
+     - Add/Remove property, Value changed, Update ended
+	 
++ [interface] ICoreEventArgs : public IEventArgs
++ [function] ICoreEventArgs::getParameters(IDict** parameters)
++ [factory] CoreEventArgsPtr CoreEventArgs(Int id, const DictPtr<IString, IBaseObject>& parameters)
++ [factory] CoreEventArgsPtr CoreEventArgsPropertyValueChanged(const StringPtr& propName, const BaseObjectPtr& value)
++ [factory] CoreEventArgsPtr CoreEventArgsUpdateEnd(const DictPtr<IString, IBaseObject>& updatedProperties)
++ [factory] CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyPtr& prop)
++ [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const StringPtr& propName)
+
++ [function] IContext::getOnCoreEvent(IEvent** event)
 
 7.12.2023
 

@@ -1,7 +1,7 @@
 #include "opcuatms_server/objects/tms_server_signal.h"
 #include "opcuatms/converters/variant_converter.h"
 #include "open62541/statuscodes.h"
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -14,13 +14,13 @@ TmsServerSignal::TmsServerSignal(const SignalPtr& object, const OpcUaServerPtr& 
 
 OpcUaNodeId TmsServerSignal::getReferenceType()
 {
-    //TODO UA_TMSBSPID_HASSTATUSSIGNAL 
-    return OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASVALUESIGNAL);
+    //TODO UA_DAQBSPID_HASSTATUSSIGNAL 
+    return OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASVALUESIGNAL);
 }
 
 OpcUaNodeId TmsServerSignal::getTmsTypeId()
 {
-    return OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_SIGNALTYPE);
+    return OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_SIGNALTYPE);
 }
 
 void TmsServerSignal::bindCallbacks()
@@ -71,7 +71,7 @@ void TmsServerSignal::createNonhierarchicalReferences()
         {
             try
             {
-                addReference(domainSignalNodeId, OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASDOMAINSIGNAL));
+                addReference(domainSignalNodeId, OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASDOMAINSIGNAL));
             }
             catch (const OpcUaException& ex)
             {

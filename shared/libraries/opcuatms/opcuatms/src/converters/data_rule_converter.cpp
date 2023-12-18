@@ -1,7 +1,7 @@
 #include <opendaq/data_rule_factory.h>
 #include "opcuatms/converters/struct_converter.h"
 #include "opcuatms/converters/variant_converter.h"
-#include "open62541/types_tmsbsp_generated_handling.h"
+#include "open62541/types_daqbsp_generated_handling.h"
 #include "opcuatms/converters/list_conversion_utils.h"
 #include "opcuatms/core_types_utils.h"
 
@@ -251,15 +251,15 @@ OpcUaVariant VariantConverter<IDataRule>::ToVariant(const DataRulePtr& object, c
             }
         }
     }
-    else if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_LINEARRULEDESCRIPTIONSTRUCTURE])
+    else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LINEARRULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDataRule, UA_LinearRuleDescriptionStructure>::ToTmsType(object));
-    else if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_CONSTANTRULEDESCRIPTIONSTRUCTURE])
+    else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_CONSTANTRULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDataRule, UA_ConstantRuleDescriptionStructure>::ToTmsType(object));
-    else if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_BASERULEDESCRIPTIONSTRUCTURE])
+    else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_BASERULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDataRule, UA_BaseRuleDescriptionStructure>::ToTmsType(object));
-    else if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
+    else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDataRule, UA_CustomRuleDescriptionStructure>::ToTmsType(object));
-    else if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_EXPLICITDOMAINRULEDESCRIPTIONSTRUCTURE])
+    else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_EXPLICITDOMAINRULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDataRule, UA_ExplicitDomainRuleDescriptionStructure>::ToTmsType(object));
     else
         throw ConversionFailedException{};
@@ -293,15 +293,15 @@ OpcUaVariant VariantConverter<IDataRule>::ToArrayVariant(const ListPtr<IDataRule
 {
     if (targetType == nullptr)
         return ListConversionUtils::ToExtensionObjectArrayVariant<IDataRule>(list);
-    if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_LINEARRULEDESCRIPTIONSTRUCTURE])
+    if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LINEARRULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDataRule, UA_LinearRuleDescriptionStructure>(list);
-    if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_CONSTANTRULEDESCRIPTIONSTRUCTURE])
+    if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_CONSTANTRULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDataRule, UA_ConstantRuleDescriptionStructure>(list);
-    if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_EXPLICITDOMAINRULEDESCRIPTIONSTRUCTURE])
+    if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_EXPLICITDOMAINRULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDataRule, UA_ExplicitDomainRuleDescriptionStructure>(list);
-    if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_BASERULEDESCRIPTIONSTRUCTURE])
+    if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_BASERULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDataRule, UA_BaseRuleDescriptionStructure>(list);
-    if (targetType == &UA_TYPES_TMSBSP[UA_TYPES_TMSBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
+    if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDataRule, UA_CustomRuleDescriptionStructure>(list);
     throw ConversionFailedException{};
 }

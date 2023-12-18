@@ -9,7 +9,7 @@
 #include <opcuatms_client/objects/tms_client_channel_factory.h>
 #include "opcuatms_client/objects/tms_client_input_port_factory.h"
 #include "opcuatms_client/objects/tms_client_signal_factory.h"
-#include "open62541/tmsbsp_nodeids.h"
+#include "open62541/daqbsp_nodeids.h"
 #include "tms_object_integration_test.h"
 #include "opendaq/mock/mock_channel_factory.h"
 
@@ -135,7 +135,7 @@ TEST_F(TmsChannelTest, MethodGetStatusSignal)
     auto tmsServerSignal = TmsServerSignal(serverSignal, this->getServer(), NullContext());
     auto signalNodeId = tmsServerSignal.registerOpcUaNode();
 
-    OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASSTATUSSIGNAL);
+    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASSTATUSSIGNAL);
     getServer()->addReference(channelNodeId, referenceTypeId, signalNodeId, true);
 
     ChannelPtr clientChannel = TmsClientChannel(ctx, nullptr, "ch", clientContext, channelNodeId);

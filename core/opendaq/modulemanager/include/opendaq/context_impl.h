@@ -36,6 +36,7 @@ public:
     ErrCode INTERFACE_FUNC getLogger(ILogger** logger) override;
     ErrCode INTERFACE_FUNC getModuleManager(IBaseObject** manager) override;
     ErrCode INTERFACE_FUNC getTypeManager(ITypeManager** manager) override;
+    ErrCode INTERFACE_FUNC getOnCoreEvent(IEvent** event) override;
     ErrCode INTERFACE_FUNC moveModuleManager(IModuleManager** manager) override;
 
 private:
@@ -44,6 +45,7 @@ private:
     WeakRefPtr<IModuleManager> moduleManagerWeakRef;
     ModuleManagerPtr moduleManager;
     TypeManagerPtr typeManager;
+    EventEmitter<ComponentPtr, CoreEventArgsPtr> coreEvent;
 };
 
 END_NAMESPACE_OPENDAQ

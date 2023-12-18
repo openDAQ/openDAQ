@@ -4,7 +4,7 @@
 #include "coreobjects/validator_factory.h"
 #include "opcuatms/converters/variant_converter.h"
 #include "opcuatms/converters/selection_converter.h"
-#include "open62541/tmsbt_nodeids.h"
+#include "open62541/daqbt_nodeids.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -59,7 +59,7 @@ void TmsClientPropertyImpl::readBasicInfo()
 
 void TmsClientPropertyImpl::configurePropertyFields()
 {
-    const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_EVALUATIONVARIABLETYPE);
+    const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_EVALUATIONVARIABLETYPE);
 
     for (auto [childNodeId, ref] : referenceUtils.getReferences(nodeId))
     {

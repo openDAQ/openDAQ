@@ -4,6 +4,7 @@ set(MODULE_NAME component)
 set(TEST_SOURCES
     test_component.cpp
     test_folder.cpp
+    test_core_event.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

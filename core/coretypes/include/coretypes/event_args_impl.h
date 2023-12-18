@@ -41,7 +41,7 @@ public:
     virtual ErrCode INTERFACE_FUNC getEventId(Int* id) override;
     virtual ErrCode INTERFACE_FUNC getEventName(IString** name) override;
 
-private:
+protected:
     Int eventId;
     StringPtr eventName;
 };

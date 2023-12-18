@@ -4,7 +4,7 @@
 #include "coreobjects/property_object_factory.h"
 #include "opcuaclient/browser/opcuabrowser.h"
 #include "opcuatms_client/objects/tms_client_property_factory.h"
-#include "open62541/tmsbt_nodeids.h"
+#include "open62541/daqbt_nodeids.h"
 #include "opcuatms/converters/variant_converter.h"
 #include "opcuatms_client/objects/tms_client_property_object_factory.h"
 #include "opcuatms_client/objects/tms_client_function_factory.h"
@@ -167,10 +167,10 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(
     std::map<uint32_t, PropertyPtr>& orderedProperties,
     std::vector<PropertyPtr>& unorderedProperties)
 {
-    const auto introspectionVariableTypeId = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_INTROSPECTIONVARIABLETYPE);
-    const auto structureVariableTypeId = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_STRUCTUREVARIABLETYPE);
-    const auto referenceVariableTypeId = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_REFERENCEVARIABLETYPE);
-    const auto variableBlockTypeId = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_VARIABLEBLOCKTYPE);
+    const auto introspectionVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_INTROSPECTIONVARIABLETYPE);
+    const auto structureVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_STRUCTUREVARIABLETYPE);
+    const auto referenceVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_REFERENCEVARIABLETYPE);
+    const auto variableBlockTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_VARIABLEBLOCKTYPE);
 
     for (auto& [childNodeId, ref] : references)
     {
@@ -222,7 +222,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(
                 auto obj = TmsClientPropertyObject(daqContext, clientContext, childNodeId);
                 auto propBuilder = ObjectPropertyBuilder(propName, obj).setDescription(String(client->readDescription(childNodeId)));
 
-                const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_EVALUATIONVARIABLETYPE);
+                const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_EVALUATIONVARIABLETYPE);
                 const auto variableBlockRefs = referenceUtils.getReferences(childNodeId);
 
                 for (auto& [variableBlockNodeId, variableBlockRef] : variableBlockRefs)

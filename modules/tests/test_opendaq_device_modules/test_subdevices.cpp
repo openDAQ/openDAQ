@@ -1,17 +1,5 @@
-#include <testutils/testutils.h>
-#include <opendaq/opendaq.h>
-#include "testutils/memcheck_listener.h"
+#include "test_helpers.h"
 
-#include <thread>
-
-// MAC CI issue
-#if !defined(SKIP_TEST_MAC_CI)
-#if defined(__clang__) && !defined(__RESHARPER__)
-#define SKIP_TEST_MAC_CI return
-#else
-#define SKIP_TEST_MAC_CI
-#endif
-#endif
 using namespace daq;
 
 enum class StreamingType
@@ -140,7 +128,7 @@ public:
     }
 };
 
-TEST_P(SubDevicesTest, RootStreamingActive)
+TEST_P(SubDevicesTest, RootStreamingToClient)
 {
     SKIP_TEST_MAC_CI;
     auto subdevice1 = CreateSubdeviceInstance(1u);
@@ -161,10 +149,25 @@ TEST_P(SubDevicesTest, RootStreamingActive)
                   gatewaySignals[index].template asPtr<IMirroredSignalConfig>().getActiveStreamingSource());
     }
 
-    using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(client.getSignalsRecursive()[0]);
+    auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> clientSignalSubscribePromise;
+    std::future<StringPtr> clientSignalSubscribeFuture;
+    test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise,
+                                           clientSignalSubscribeFuture,
+                                           clientSignal);
 
-    std::this_thread::sleep_for(1000ms);
+    auto gatewaySignal = gateway.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> gatewaySignalSubscribePromise;
+    std::future<StringPtr> gatewaySignalSubscribeFuture;
+    test_helpers::setupSubscribeAckHandler(gatewaySignalSubscribePromise,
+                                           gatewaySignalSubscribeFuture,
+                                           gatewaySignal);
+
+    using namespace std::chrono_literals;
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal);
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
     double samples[100];
     for (int i = 0; i < 10; ++i)
     {
@@ -175,7 +178,7 @@ TEST_P(SubDevicesTest, RootStreamingActive)
     }
 }
 
-TEST_P(SubDevicesTest, LeafStreamingsActive)
+TEST_P(SubDevicesTest, LeafStreamingToClient)
 {
     SKIP_TEST_MAC_CI;
     auto subdevice1 = CreateSubdeviceInstance(1u);
@@ -197,10 +200,17 @@ TEST_P(SubDevicesTest, LeafStreamingsActive)
                   gatewaySignals[index].template asPtr<IMirroredSignalConfig>().getActiveStreamingSource());
     }
 
+    auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> clientSignalSubscribePromise;
+    std::future<StringPtr> clientSignalSubscribeFuture;
+    test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise,
+                                           clientSignalSubscribeFuture,
+                                           clientSignal);
+
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(client.getSignalsRecursive()[0]);
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal);
     
-    std::this_thread::sleep_for(1000ms);
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
     double samples[100];
     for (int i = 0; i < 10; ++i)
     {
@@ -208,6 +218,64 @@ TEST_P(SubDevicesTest, LeafStreamingsActive)
         daq::SizeT count = 100;
         reader.read(samples, &count);
         EXPECT_GT(count, 0) << "iteration " << i;
+    }
+}
+
+TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
+{
+    SKIP_TEST_MAC_CI;
+    auto subdevice1 = CreateSubdeviceInstance(1u);
+    auto subdevice2 = CreateSubdeviceInstance(2u);
+    auto gateway = CreateGatewayInstance();
+    auto client = CreateClientInstance(MIN_HOPS);
+
+    auto clientSignals = client.getSignalsRecursive();
+    auto gatewaySignals = gateway.getSignalsRecursive();
+    ASSERT_EQ(clientSignals.getCount(), gatewaySignals.getCount());
+
+    for (size_t index = 0; index < clientSignals.getCount(); ++index)
+    {
+        auto mirroredSignalConfigPtr = clientSignals[index].template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirroredSignalConfigPtr.getStreamingSources().getCount(), 2u);
+        ASSERT_TRUE(mirroredSignalConfigPtr.getActiveStreamingSource().assigned());
+
+        ASSERT_EQ(mirroredSignalConfigPtr.getActiveStreamingSource(),
+                  gatewaySignals[index].template asPtr<IMirroredSignalConfig>().getActiveStreamingSource());
+    }
+
+    auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> clientSignalSubscribePromise;
+    std::future<StringPtr> clientSignalSubscribeFuture;
+    test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise,
+                                           clientSignalSubscribeFuture,
+                                           clientSignal);
+
+    auto gatewaySignal = gateway.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> gatewaySignalSubscribePromise;
+    std::future<StringPtr> gatewaySignalSubscribeFuture;
+    test_helpers::setupSubscribeAckHandler(gatewaySignalSubscribePromise,
+                                           gatewaySignalSubscribeFuture,
+                                           gatewaySignal);
+
+    using namespace std::chrono_literals;
+    StreamReaderPtr clientReader = daq::StreamReader<double, uint64_t>(clientSignal);
+    StreamReaderPtr gatewayReader = daq::StreamReader<double, uint64_t>(gatewaySignal);
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
+    double clientSamples[100];
+    double gatewaySamples[100];
+    for (int i = 0; i < 10; ++i)
+    {
+        std::this_thread::sleep_for(100ms);
+
+        daq::SizeT clientSamplesCount = 100;
+        clientReader.read(clientSamples, &clientSamplesCount);
+        EXPECT_GT(clientSamplesCount, 0) << "iteration " << i;
+
+        daq::SizeT gatewaySamplesCount = 100;
+        gatewayReader.read(gatewaySamples, &gatewaySamplesCount);
+        EXPECT_GT(gatewaySamplesCount, 0) << "iteration " << i;
     }
 }
 

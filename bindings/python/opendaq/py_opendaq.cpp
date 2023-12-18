@@ -53,7 +53,9 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classISampleReader = declareISampleReader(m);
     auto classIBlockReader = declareIBlockReader(m);
     auto classIStreamReader = declareIStreamReader(m);
-    auto classTimedStreamReader = declareTimeStreamReader(m);
+    auto classTimeStreamReader = declareTimeStreamReader(m);
+    auto classTimeTailReader = declareTimeTailReader(m);
+    auto classTimeBlockReader = declareTimeBlockReader(m);
     auto classITailReader = declareITailReader(m);
     auto classIAwaitable = declareIAwaitable(m);
     auto classIGraphVisualization = declareIGraphVisualization(m);
@@ -91,6 +93,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIStreamingInfoConfig = declareIStreamingInfoConfig(m);
     auto classIMirroredSignalConfig = declareIMirroredSignalConfig(m);
     auto classISubscriptionEventArgs = declareISubscriptionEventArgs(m);
+    auto classMockSignal = declareMockSignal(m);
 
     defineIAllocator(m, classIAllocator);
     defineIRemovable(m, classIRemovable);
@@ -120,7 +123,9 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineISampleReader(m, classISampleReader);
     defineIBlockReader(m, classIBlockReader);
     defineIStreamReader(m, classIStreamReader);
-    defineTimeStreamReader(m, classTimedStreamReader);
+    defineTimeStreamReader(m, classTimeStreamReader);
+    defineTimeTailReader(m, classTimeTailReader);
+    defineTimeBlockReader(m, classTimeBlockReader);
     defineITailReader(m, classITailReader);
     defineIAwaitable(m, classIAwaitable);
     defineIGraphVisualization(m, classIGraphVisualization);
@@ -158,6 +163,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIStreamingInfoConfig(m, classIStreamingInfoConfig);
     defineIMirroredSignalConfig(m, classIMirroredSignalConfig);
     defineISubscriptionEventArgs(m, classISubscriptionEventArgs);
-    
+    defineMockSignal(m, classMockSignal);
+
     m.def("Instance", []() { return daq::Instance(".").detach(); });
 }

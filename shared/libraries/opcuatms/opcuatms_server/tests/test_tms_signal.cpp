@@ -1,6 +1,6 @@
 #include <opendaq/input_port_factory.h>
-#include <open62541/tmsbsp_nodeids.h>
-#include <open62541/tmsbt_nodeids.h>
+#include <open62541/daqbsp_nodeids.h>
+#include <open62541/daqbt_nodeids.h>
 #include <opendaq/range_factory.h>
 #include <opendaq/signal_factory.h>
 #include <opendaq/signal_ptr.h>
@@ -59,7 +59,7 @@ TEST_F(TmsSignalTest, DomainSignalReference)
     ASSERT_TRUE(this->getClient()->nodeExists(domainSignalNodeId));
 
     OpcUaServerNode signalNode(*this->getServer(), signalNodeId);
-    auto hasDomainNodes = signalNode.browse(OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASDOMAINSIGNAL));
+    auto hasDomainNodes = signalNode.browse(OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASDOMAINSIGNAL));
     ASSERT_EQ(hasDomainNodes.size(), 1u);
     ASSERT_EQ(hasDomainNodes[0]->getNodeId(), domainSignalNodeId);
 }

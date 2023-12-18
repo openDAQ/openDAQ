@@ -5,81 +5,206 @@ import opendaq_test
 import opendaq
 import numpy
 
-from datetime import datetime
-
 
 class TestReaderDateTime(opendaq_test.TestCase):
 
-    def test_start_simulator(self):
-        instance = opendaq.Instance()
-        instance.set_root_device('daqref://device0')
-        instance.add_server('openDAQ WebsocketTcp Streaming', None)
-        instance.add_standard_servers()
-
     def test_read(self):
-        import time
+        mock = opendaq.MockSignal()
+        reader = opendaq.StreamReader(mock.signal)
 
-        instance = opendaq.Instance()
-        device = instance.add_device('daqref://device0')
-        signal = device.signals_recursive[0]
-        reader = opendaq.StreamReader(signal)
+        mock.add_data(numpy.arange(10))
+        self.assertEqual(reader.available_count, 10)
 
-        time.sleep(0.1)
-        values = reader.read(100)
+        values = reader.read(10)
+        self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
+
         for v in values:
             self.assertIsInstance(v, numpy.float64)
 
     def test_read_override_value_type(self):
-        import time
+        mock = opendaq.MockSignal()
+        reader = opendaq.StreamReader(
+            mock.signal, value_type=opendaq.SampleType.Int64)
 
-        instance = opendaq.Instance()
-        device = instance.add_device('daqref://device0')
-        signal = device.signals_recursive[0]
-        reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Int64)
+        mock.add_data(numpy.arange(10))
+        self.assertEqual(reader.available_count, 10)
 
-        time.sleep(0.1)
-        values = reader.read(100)
+        values = reader.read(10)
+        self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
+
         for v in values:
             self.assertIsInstance(v, numpy.int64)
 
     def test_unsupported_value_type(self):
-        import time
-
-        instance = opendaq.Instance()
-        device = instance.add_device('daqref://device0')
-        signal = device.signals_recursive[0]
-        reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.RangeInt64)
-
-        time.sleep(0.1)
+        mock = opendaq.MockSignal()
         with self.assertRaises(RuntimeError):
-            values = reader.read(100)
+            opendaq.StreamReader(
+                mock.signal, value_type=opendaq.SampleType.RangeInt64)
 
     def test_read_with_domain(self):
-        import time
+        mock = opendaq.MockSignal()
+        reader = opendaq.StreamReader(mock.signal)
 
-        instance = opendaq.Instance()
-        device = instance.add_device('daqref://device0')
-        signal = device.signals_recursive[0]
-        reader = opendaq.StreamReader(signal)
+        mock.add_data(numpy.arange(10))
+        self.assertEqual(reader.available_count, 10)
 
-        time.sleep(0.1)
-        (values, domain) = reader.read_with_domain(100)
+        (values, domain) = reader.read_with_domain(10)
+        self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
+
         for t in domain:
             self.assertIsInstance(t, numpy.int64)
 
     def test_read_with_timestamps(self):
-        import time
+        mock = opendaq.MockSignal()
+        stream = opendaq.StreamReader(mock.signal)
+        reader = opendaq.TimeStreamReader(stream)
 
-        instance = opendaq.Instance()
-        device = instance.add_device('daqref://device0')
-        signal = device.signals_recursive[0]
-        stream = opendaq.StreamReader(signal)
-        reader = opendaq.TimeReader(stream)
+        mock.add_data(numpy.arange(10))
 
-        time.sleep(0.1)
-        (values, domain) = reader.read_with_timestamps(100)
+        (values, domain) = reader.read_with_timestamps(10)
+        self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
+
         for t in domain:
             self.assertIsInstance(t, numpy.datetime64)
+
+    def test_tail_read(self):
+        mock = opendaq.MockSignal()
+        reader = opendaq.TailReader(mock.signal, 10)
+
+        self.assertEqual(reader.history_size, 10)
+
+        mock.add_data(numpy.arange(10))
+        self.assertEqual(reader.available_count, 10)
+
+        values = reader.read(10)
+        self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
+
+        for v in values:
+            self.assertIsInstance(v, numpy.float64)
+
+    def test_tail_read_override_value_type(self):
+        mock = opendaq.MockSignal()
+        reader = opendaq.TailReader(
+            mock.signal, 10, value_type=opendaq.SampleType.Int64)
+
+        self.assertEqual(reader.history_size, 10)
+
+        mock.add_data(numpy.arange(10))
+        self.assertEqual(reader.available_count, 10)
+
+        values = reader.read(10)
+        self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
+
+        for v in values:
+            self.assertIsInstance(v, numpy.int64)
+
+    def test_tail_unsupported_value_type(self):
+        mock = opendaq.MockSignal()
+        with self.assertRaises(RuntimeError):
+            opendaq.TailReader(
+                mock.signal, 100, value_type=opendaq.SampleType.RangeInt64)
+
+    def test_tail_read_with_domain(self):
+        mock = opendaq.MockSignal()
+        reader = opendaq.TailReader(mock.signal, 10)
+
+        mock.add_data(numpy.arange(10))
+        self.assertEqual(reader.available_count, 10)
+
+        (values, domain) = reader.read_with_domain(10)
+        self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
+
+        for t in domain:
+            self.assertIsInstance(t, numpy.int64)
+
+    def test_tail_read_with_timestamps(self):
+        mock = opendaq.MockSignal()
+        tail = opendaq.TailReader(mock.signal, 10)
+        reader = opendaq.TimeTailReader(tail)
+
+        mock.add_data(numpy.arange(10))
+
+        (values, domain) = reader.read_with_timestamps(10)
+        self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
+
+        for t in domain:
+            self.assertIsInstance(t, numpy.datetime64)
+
+    def test_block_read(self):
+        mock = opendaq.MockSignal()
+        reader = opendaq.BlockReader(mock.signal, 2)
+
+        self.assertEqual(reader.block_size, 2)
+
+        mock.add_data(numpy.arange(10))
+        self.assertEqual(reader.available_count, 5)
+
+        values = reader.read(5)
+        self.assertTrue(numpy.array_equal(
+            values, numpy.arange(10).reshape(5, 2)))
+
+        for v in values:
+            self.assertIsInstance(v, numpy.ndarray)
+            for vv in v:
+                self.assertIsInstance(vv, numpy.float64)
+
+    def test_block_read_override_value_type(self):
+        mock = opendaq.MockSignal()
+        reader = opendaq.BlockReader(
+            mock.signal, 2, value_type=opendaq.SampleType.Int64)
+
+        self.assertEqual(reader.block_size, 2)
+
+        mock.add_data(numpy.arange(10))
+        self.assertEqual(reader.available_count, 5)
+
+        values = reader.read(5)
+        self.assertTrue(numpy.array_equal(
+            values, numpy.arange(10).reshape(5, 2)))
+
+        for v in values:
+            self.assertIsInstance(v, numpy.ndarray)
+            for vv in v:
+                self.assertIsInstance(vv, numpy.int64)
+
+    def test_block_unsupported_value_type(self):
+        mock = opendaq.MockSignal()
+        with self.assertRaises(RuntimeError):
+            opendaq.BlockReader(
+                mock.signal, 2, value_type=opendaq.SampleType.RangeInt64)
+
+    def test_block_read_with_domain(self):
+        mock = opendaq.MockSignal()
+        reader = opendaq.BlockReader(mock.signal, 2)
+
+        mock.add_data(numpy.arange(10))
+        self.assertEqual(reader.available_count, 5)
+
+        (values, domain) = reader.read_with_domain(5)
+        self.assertTrue(numpy.array_equal(
+            values, numpy.arange(10).reshape(5, 2)))
+
+        for t in domain:
+            self.assertIsInstance(t, numpy.ndarray)
+            for tt in t:
+                self.assertIsInstance(tt, numpy.int64)
+
+    def test_block_read_with_timestamps(self):
+        mock = opendaq.MockSignal()
+        block = opendaq.BlockReader(mock.signal, 2)
+        reader = opendaq.TimeBlockReader(block)
+
+        mock.add_data(numpy.arange(10))
+        self.assertEqual(block.available_count, 5)
+
+        (values, domain) = reader.read_with_timestamps(5)
+        self.assertTrue(numpy.array_equal(
+            values, numpy.arange(10).reshape(5, 2)))
+
+        for t in domain:
+            self.assertIsInstance(t, numpy.ndarray)
+            for tt in t:
+                self.assertIsInstance(tt, numpy.datetime64)
 
 
 if __name__ == '__main__':

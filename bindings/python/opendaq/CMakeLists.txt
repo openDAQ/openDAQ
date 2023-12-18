@@ -32,6 +32,7 @@ set(SRC_Cpp
     generated/reader/py_sample_reader.cpp
     generated/reader/py_stream_reader.cpp
     generated/reader/py_tail_reader.cpp
+    generated/reader/py_time_reader.cpp
     generated/scheduler/py_awaitable.cpp
     generated/scheduler/py_graph_visualization.cpp
     generated/scheduler/py_scheduler.cpp
@@ -54,6 +55,7 @@ set(SRC_Cpp
     generated/signal/py_input_port.cpp
     generated/signal/py_input_port_config.cpp
     generated/signal/py_input_port_notifications.cpp
+    generated/signal/py_mock_signal.cpp
     generated/signal/py_packet.cpp
     generated/signal/py_range.cpp
     generated/signal/py_scaling.cpp

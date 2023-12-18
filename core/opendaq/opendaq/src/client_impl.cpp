@@ -7,17 +7,17 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo)
+ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const DeviceInfoPtr& deviceInfo)
     : DeviceBase<IClientPrivate>(ctx, nullptr, localId)
     , manager(this->context.assigned() ? this->context.getModuleManager() : nullptr)
     , logger(ctx.getLogger())
     , loggerComponent( this->logger.assigned()
                           ? this->logger.getOrAddComponent("Client")
                           : throw ArgumentNullException("Logger must not be null"))
-    , defaultDeviceInfo(defaultDeviceInfo)
     , rootDeviceSet(false)
 {
-    this->deviceInfo = DeviceInfo("", "daq_client");
+    this->deviceInfo = deviceInfo.assigned() ? deviceInfo : DeviceInfo("", "daq_client");
+    this->deviceInfo.freeze();
 }
 
 DeviceInfoPtr ClientImpl::onGetInfo()
@@ -149,9 +149,6 @@ void ClientImpl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 
 ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
 {
-    if (defaultDeviceInfo.assigned())
-        return List<IDeviceInfo>(defaultDeviceInfo).detach();
-
     auto availableDevices = List<IDeviceInfo>();
 
     using AsyncEnumerationResult = std::future<ListPtr<IDeviceInfo>>;

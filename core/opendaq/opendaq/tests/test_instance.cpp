@@ -368,9 +368,7 @@ TEST_F(InstanceTest, InstanceCreateFactory)
     ASSERT_EQ(instance.getContext().getModuleManager(), moduleManager);
     ASSERT_EQ(instance.getRootDevice().getName(), "DefaultRootDeviceName"); 
 
-    auto availableDevices = instance.getAvailableDevices();
-    ASSERT_EQ(availableDevices.getCount(), 1);
-    ASSERT_EQ(availableDevices[0], defaultRootDeviceInfo);
+    ASSERT_EQ(instance.getInfo(), defaultRootDeviceInfo);
 }
 
 TEST_F(InstanceTest, InstanceBuilderGetDefault)

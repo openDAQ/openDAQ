@@ -197,5 +197,5 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.setDefaultRootDeviceInfo(deviceInfo);
         },
         py::return_value_policy::take_ownership,
-        "Gets the default device info of Instance / Sets the default device info of Instance. if device info has been set method GetAvailableDevices of Instance will return set device info if has not been set Root Device");
+        "Gets the default device info of Instance / Sets the default device info of Instance. if device info has been set method getInfo of Instance will return set device info if has not been set Root Device");
 }

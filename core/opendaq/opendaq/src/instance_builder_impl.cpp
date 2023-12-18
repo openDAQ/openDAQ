@@ -13,7 +13,7 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetOptions()
                 {"ModulesPath", ""}
             })},
         {"Scheduler", Dict<IString, IBaseObject>({
-                {"ForceSingleThread", 0}
+                {"WorkersNum", 0}
             })},
         {"Logging", Dict<IString, IBaseObject>({
                 {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
@@ -190,7 +190,7 @@ ErrCode InstanceBuilderImpl::getModuleManager(IModuleManager** moduleManager)
 
 ErrCode InstanceBuilderImpl::setSchedulerWorkerNum(SizeT numWorkers)
 {
-    getSchedulerOptions()["ForceSingleThread"] = numWorkers;
+    getSchedulerOptions()["WorkersNum"] = numWorkers;
     return OPENDAQ_SUCCESS;
 }
 
@@ -199,7 +199,7 @@ ErrCode InstanceBuilderImpl::getSchedulerWorkerNum(SizeT* numWorkers)
     if (numWorkers == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *numWorkers = getSchedulerOptions()["ForceSingleThread"];
+    *numWorkers = getSchedulerOptions()["WorkersNum"];
     return OPENDAQ_SUCCESS;
 }
 

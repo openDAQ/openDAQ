@@ -77,18 +77,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
 
     auto connectionString = builderPtr.getRootDevice();
     if (connectionString.assigned())
-    {
-        auto errorCode = daqTry([&]()
-        {
-            rootDevice = detail::createDevice(connectionString, nullptr, nullptr, moduleManager, nullptr);
-            return OPENDAQ_SUCCESS;
-        });
-        if (errorCode != OPENDAQ_SUCCESS)
-        {
-            rootDevice = defaultRootDevice;
-            LOG_W("Instance: Can not create device with connectrion string {}. Using default device", connectionString);
-        }
-    }    
+        rootDevice = detail::createDevice(connectionString, nullptr, nullptr, moduleManager, nullptr);    
 
     loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
 }

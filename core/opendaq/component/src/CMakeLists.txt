@@ -11,6 +11,7 @@ rtgen(SRC_Component component.h)
 rtgen(SRC_Folder folder.h)
 rtgen(SRC_FolderConfig folder_config.h)
 rtgen(SRC_Removable removable.h)
+rtgen(SRC_ComponentDeserializeContext component_deserialize_context.h)
 
 source_group("component" FILES ${SDK_HEADERS_DIR}/component.h
                                ${SDK_HEADERS_DIR}/component_impl.h
@@ -22,13 +23,18 @@ source_group("component" FILES ${SDK_HEADERS_DIR}/component.h
                                ${SDK_HEADERS_DIR}/folder_factory.h
                                ${SDK_HEADERS_DIR}/component_keys.h
                                ${SDK_HEADERS_DIR}/removable.h
+							   ${SDK_HEADERS_DIR}/component_deserialize_context.h
+							   ${SDK_HEADERS_DIR}/component_deserialize_context_impl.h
+							   ${SDK_HEADERS_DIR}/component_deserialize_context_factory.h
                                component_impl.cpp
                                folder_impl.cpp
+							   component_deserialize_context.cpp
 )
 
 set(SRC_Cpp 
     component_impl.cpp
     folder_impl.cpp
+	component_deserialize_context_impl.cpp
 )
 
 
@@ -39,9 +45,10 @@ set(SRC_PublicHeaders
     folder_impl.h
     component_factory.h
     component_keys.h
+	component_deserialize_context_factory.h
 )
 
-set(SRC_PrivateHeaders 
+set(SRC_PrivateHeaders component_deserialize_context_impl.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PublicHeaders)
@@ -50,6 +57,8 @@ prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)
 list(APPEND SRC_Cpp ${SRC_Component_Cpp}
                     ${SRC_Folder_Cpp}
                     ${SRC_FolderConfig_Cpp}
+                    ${SRC_FolderConfig_Cpp}
+					${SRC_ComponentDeserializeContext_Cpp}
 )
 
 list(APPEND SRC_PublicHeaders ${SRC_Component_PublicHeaders}
@@ -57,6 +66,7 @@ list(APPEND SRC_PublicHeaders ${SRC_Component_PublicHeaders}
                               ${SRC_FolderConfig_PublicHeaders}
                               ${SRC_IoFolder_PublicHeaders}
                               ${SRC_Removable_PublicHeaders}
+                              ${SRC_ComponentDeserializeContext_PublicHeaders}
 )
 
 opendaq_add_library(${BASE_NAME} STATIC

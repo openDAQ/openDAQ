@@ -155,6 +155,10 @@ protected:
 
     virtual void updatingValuesWrite(const UpdatingActions& propsAndValues);
     virtual void applyUpdate();
+
+    template <class F>
+    static ErrCode DeserializeInternal(
+        ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj, F&& f);
 private:
     using PropertyValueEventEmitter = EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr>;
     using EndUpdateEventEmitter = EventEmitter<PropertyObjectPtr, EndUpdateEventArgsPtr>;
@@ -1796,12 +1800,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
     return OPENDAQ_SUCCESS;
 }
 
-// static
-template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
-                                                                                IBaseObject* context,
-                                                                                IFunction* factoryCallback,
-                                                                                IBaseObject** obj)
+template <typename PropObjInterface, typename... Interfaces>
+template <class F>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeInternal(
+    ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj, F&& f)
 {
     StringPtr className;
     ErrCode errCode = serialized->readString("className"_daq, &className);
@@ -1819,17 +1821,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::Deserialize(
     daqClearErrorInfo();
 
     PropertyObjectPtr propObjPtr;
-    TypeManagerPtr objManager;
-
-    if (context != nullptr && OPENDAQ_SUCCEEDED(context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&objManager))))
-    {
-        errCode = createPropertyObjectWithClassAndManager(&propObjPtr, objManager, className);
-    }
-    else
-    {
-        errCode = createPropertyObject(&propObjPtr);
-    }
-
+    errCode = f(context, className, propObjPtr);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -1850,6 +1842,27 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::Deserialize(
 
     *obj = propObjPtr.addRefAndReturn();
     return errCode;
+}
+
+// static
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
+                                                                                IBaseObject* context,
+                                                                                IFunction* factoryCallback,
+                                                                                IBaseObject** obj)
+{
+    return DeserializeInternal(serialized,
+                               context,
+                               factoryCallback,
+                               obj,
+                               [](const BaseObjectPtr& context, const StringPtr& className, PropertyObjectPtr& propObjPtr)
+        {
+            const TypeManagerPtr objManager = context.assigned() ? context.asOrNull<ITypeManager>() : nullptr;
+
+            if (objManager.assigned())
+                return createPropertyObjectWithClassAndManager(&propObjPtr, objManager, className);
+            return  createPropertyObject(&propObjPtr);
+        });
 }
 
 template <class PropObjInterface, class... Interfaces>

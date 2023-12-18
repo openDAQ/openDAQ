@@ -118,8 +118,11 @@ ErrCode PacketReaderImpl::packetReceived(IInputPort* port)
     {
         SizeT count{0};
         connection->getPacketCount(&count);
-        if (count)
+        while (count)
+        {
             readCallback();
+            connection->getPacketCount(&count);
+        }            
     }
 
     return OPENDAQ_SUCCESS;

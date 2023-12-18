@@ -199,7 +199,7 @@ void ClassifierFbImpl::configure()
             linearBlockCount = blockSize * linearBlockCount / 1000;
 
             linearReader = nullptr;  // to remove port owner;
-            linearReader = BlockReaderFromPort(inputPort, linearBlockCount);
+            linearReader = BlockReaderFromPort(inputPort, linearBlockCount, inputDataDescriptor.getSampleType(), inputDomainDataDescriptor.getSampleType());
             linearReader.setOnDescriptorChanged(std::bind(&ClassifierFbImpl::processSignalDescriptorChanged, this, std::placeholders::_1, std::placeholders::_2));
             linearReader.setOnAvailablePackets([this] {
                     SAMPLE_TYPE_DISPATCH(inputSampleType, processLinearDataPacket);

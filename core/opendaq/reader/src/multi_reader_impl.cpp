@@ -686,8 +686,11 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
     {
         SizeT count;
         getAvailableCount(&count);
-        if (count)
+        while (count)
+        {
             readCallback();
+            getAvailableCount(&count);
+        }
     }    
 
     return OPENDAQ_SUCCESS;

@@ -94,6 +94,7 @@ class TypedReader : public Reader
 {
 public:
     using Reader::Reader;
+    explicit TypedReader(FunctionPtr transform, SampleType readType);
 
     virtual ErrCode readData(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT count) override;
     virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) override;

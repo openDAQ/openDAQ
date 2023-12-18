@@ -27,6 +27,7 @@ Function blocks that act as signal processing units. This allows for an arbitrar
 Device clusters, onboard processing, and distributed data processing on multiple clients. The
 image below illustrates a sample layout made possible by openDAQ(TM).
 
+[#nested_devices]
 .Device layout with 5 Physical DAQ Devices with Analog Inputs (AI), 2 loggers with AIs, distributed statistics calculations on two Calculation Devices, and a final Client Device performing FFT and Power Analysis
 image::device_advanced.svg[device_advanced,align="center"]
 

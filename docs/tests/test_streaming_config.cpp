@@ -7,7 +7,7 @@ using StreamingConfigTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// TODO add corresponding Antora document
+// Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
 TEST_F(StreamingConfigTest, ModifyConfiguration)
 {
     daq::InstancePtr instance = daq::Instance();
@@ -25,9 +25,12 @@ TEST_F(StreamingConfigTest, ModifyConfiguration)
 
     ASSERT_TRUE(deviceConfig.hasProperty("PrimaryStreamingProtocol"));
     ASSERT_NO_THROW(deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss"));
+
+    ASSERT_TRUE(deviceConfig.hasProperty("StreamingConnectionHeuristic"));
+    ASSERT_NO_THROW(deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0));
 }
 
-// TODO add corresponding Antora document
+// Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
 TEST_F(StreamingConfigTest, AddDeviceWithConfig)
 {
     SKIP_TEST_MAC_CI;
@@ -38,6 +41,7 @@ TEST_F(StreamingConfigTest, AddDeviceWithConfig)
     daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
     deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.wss"));
     deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+    deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
 
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
     ASSERT_TRUE(device.assigned());
@@ -45,7 +49,7 @@ TEST_F(StreamingConfigTest, AddDeviceWithConfig)
     ASSERT_EQ(device.getInfo().getName(), "Device 1");
 }
 
-// TODO add corresponding Antora document
+// Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
 TEST_F(StreamingConfigTest, StreamingSources)
 {
     SKIP_TEST_MAC_CI;
@@ -56,6 +60,7 @@ TEST_F(StreamingConfigTest, StreamingSources)
     daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
     deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.wss"));
     deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+    deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
 
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
     ASSERT_TRUE(device.assigned());
@@ -75,6 +80,7 @@ TEST_F(StreamingConfigTest, StreamingSources)
               streamingSources.end());
 }
 
+// Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
 TEST_F(StreamingConfigTest, WebsocketStreamingRead)
 {
     SKIP_TEST_MAC_CI;
@@ -85,6 +91,7 @@ TEST_F(StreamingConfigTest, WebsocketStreamingRead)
     daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
     deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.wss"));
     deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+    deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
 
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
     ASSERT_TRUE(device.assigned());
@@ -105,7 +112,7 @@ TEST_F(StreamingConfigTest, WebsocketStreamingRead)
     }
 }
 
-// TODO add corresponding Antora document
+// Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
 TEST_F(StreamingConfigTest, NativeStreamingRead)
 {
     SKIP_TEST_MAC_CI;
@@ -116,6 +123,7 @@ TEST_F(StreamingConfigTest, NativeStreamingRead)
     daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
     deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.wss"));
     deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+    deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
 
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
     ASSERT_TRUE(device.assigned());

@@ -1,8 +1,3 @@
-/**
- * Part of the openSDK stand-alone application quick start guide. Contains
- * the full example that user should obtain at the end of the guide.
- */
-
 #include <chrono>
 #include <iostream>
 #include <thread>
@@ -49,11 +44,15 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Get the default configuration Property object for OPC UA enabled device type
     daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
 
-    // Allow multiple streaming protocol by device configuration
+    // Allow multiple streaming protocols by device configuration
     deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.wss"));
 
     // Set websocket streaming protocol as primary by device configuration
     deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+
+    // Disregard direct streaming connections for nested devices,
+    // establish the minimum number of streaming connections possible.
+    deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
 
     // Find and connect to a device hosting an OPC UA TMS server
     const auto availableDevices = instance.getAvailableDevices();

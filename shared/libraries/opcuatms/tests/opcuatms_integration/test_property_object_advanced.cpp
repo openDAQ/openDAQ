@@ -850,3 +850,25 @@ TEST_F(TmsPropertyObjectAdvancedTest, BeginEndUpdate)
     ASSERT_TRUE(eventTriggered);
 }
 
+TEST_F(TmsPropertyObjectAdvancedTest, GainScalingStructure)
+{
+    const auto typeManager = TypeManager();
+    const auto type = StructType("GainScalingStructure", List<IString>("Factor", "Offset"), List<IType>(SimpleType(ctFloat), SimpleType(ctFloat)));
+    typeManager.addType(type);
+
+    const auto obj = PropertyObject();
+    const auto structBuilder = StructBuilder("GainScalingStructure", typeManager).set("Factor", 0.5).set("Offset", 2.5);
+    obj.addProperty(StructProperty("Gain", structBuilder.build()));
+    
+
+    const auto logger = Logger();
+    const auto serverProp =
+        std::make_shared<TmsServerPropertyObject>(obj, server, Context(nullptr, logger, manager, nullptr));
+    const auto nodeId = serverProp->registerOpcUaNode();
+
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+    
+    const auto structObj = obj.getPropertyValue("Gain");
+    const auto newBuilder = StructBuilder(structObj);
+    clientObj.setPropertyValue("Gain", newBuilder.set("Factor", 2.0).set("Offset", 10.0).build());
+}

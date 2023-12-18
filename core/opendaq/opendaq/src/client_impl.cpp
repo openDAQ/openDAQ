@@ -17,7 +17,7 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
     , rootDeviceSet(false)
 {
     if (deviceInfo.assigned())
-        this->deviceInfo = deviceInfo
+        this->deviceInfo = deviceInfo;
     else
         this->deviceInfo = DeviceInfo("", "daq_client");
     this->deviceInfo.freeze();

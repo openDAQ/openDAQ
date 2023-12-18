@@ -20,6 +20,7 @@
 #include "opcuashared/opcuaexception.h"
 #include "opcuashared/opcualog.h"
 #include "opcuaserver/opcuatmstypes.h"
+#include <open62541/namespace_daqhbk_generated.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
@@ -52,6 +53,10 @@ void addTmsTypes(UA_Server *server)
     CheckStatusCodeException(uaStatus, "Failed to add TMS ESP nodeset.");
     LOGD << "TMS ESP nodeset was added successfully.";
 #endif
+    
+    uaStatus = namespace_daqhbk_generated(server);
+    CheckStatusCodeException(uaStatus, "Failed to add TMS HBK nodeset.");
+    LOGD << "TMS HBK nodeset was added successfully.";
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA

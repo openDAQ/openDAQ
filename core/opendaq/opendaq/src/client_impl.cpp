@@ -16,7 +16,10 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
                           : throw ArgumentNullException("Logger must not be null"))
     , rootDeviceSet(false)
 {
-    this->deviceInfo = deviceInfo.assigned() ? deviceInfo : DeviceInfo("", "daq_client");
+    if (deviceInfo.assigned())
+        this->deviceInfo = deviceInfo
+    else
+        this->deviceInfo = DeviceInfo("", "daq_client");
     this->deviceInfo.freeze();
 }
 

@@ -958,8 +958,8 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromPortOnReadCallback)
     std::future<void> future = promise.get_future();
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
-    auto port = InputPort(signal.getContext(), nullptr, "readsig");
-    port.connect(signal);
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
     size_t cnt = 0;
 
     auto reader = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);

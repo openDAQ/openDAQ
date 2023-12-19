@@ -29,7 +29,8 @@ BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
     , blockSize(blockSize)
 {
     this->port.setNotificationMethod(PacketReadyNotification::SameThread);
-    BlockReaderImpl::handleDescriptorChanged(connection.dequeue());
+    if (connection.assigned())
+        BlockReaderImpl::handleDescriptorChanged(connection.dequeue());
 }
 
 BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,

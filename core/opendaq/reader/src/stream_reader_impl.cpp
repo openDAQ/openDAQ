@@ -47,11 +47,6 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
     inputPort = InputPortConfigPtr(port);
     inputPort.asPtr<IOwnable>().setOwner(portBinder);
 
-    if (!inputPort.getConnection().assigned())
-        throw ArgumentNullException("Input port not connected to signal");
-
-    connection = inputPort.getConnection();
-
     valueReader = createReaderForType(valueReadType, nullptr);
     domainReader = createReaderForType(domainReadType, nullptr);
 
@@ -59,7 +54,12 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
 
     inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
     inputPort.setNotificationMethod(PacketReadyNotification::SameThread);
-    handleDescriptorChanged(connection.dequeue());
+
+    if (inputPort.getConnection().assigned())
+    {
+        connection = inputPort.getConnection();
+        handleDescriptorChanged(connection.dequeue());
+    }
 }
 
 StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -168,6 +168,11 @@ ErrCode StreamReaderImpl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
+    std::scoped_lock lock(this->mutex);
+    connection = InputPortConfigPtr::Borrow(port).getConnection();
+    if (connection.assigned())
+        handleDescriptorChanged(connection.dequeue());
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -175,6 +180,8 @@ ErrCode StreamReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
+    std::scoped_lock lock(this->mutex);
+    connection = nullptr;
     return OPENDAQ_SUCCESS;
 }
 

@@ -27,15 +27,14 @@ PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
 
     this->port = InputPortConfigPtr(port);
     this->port.asPtr<IOwnable>().setOwner(portBinder);
-    if (!this->port.getConnection().assigned())
-        throw ArgumentNullException("Input port not connected to signal");
 
     this->internalAddRef();
 
     this->port.setListener(this->thisPtr<InputPortNotificationsPtr>());
     this->port.setNotificationMethod(PacketReadyNotification::SameThread);
-    
-    connection = this->port.getConnection();
+
+     if (this->port.getConnection().assigned())
+        connection = this->port.getConnection();
 }
 
 ErrCode PacketReaderImpl::getAvailableCount(SizeT* count)
@@ -102,12 +101,18 @@ ErrCode PacketReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool*
 ErrCode PacketReaderImpl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
+    
+    std::scoped_lock lock(mutex);
+    connection = InputPortConfigPtr::Borrow(port).getConnection();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode PacketReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
+
+    std::scoped_lock lock(mutex);
+    connection = nullptr;
     return OPENDAQ_SUCCESS;
 }
 

@@ -1425,6 +1425,68 @@ TEST_F(MultiReaderTest, MultiReaderWithInputPort)
     ASSERT_THAT(time[2], ElementsAreArray(time[0]));
 }
 
+TEST_F(MultiReaderTest, MultiReaderWithNotConnectedInputPort)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(3);
+
+    auto& sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", Ratio(1, 1000 * 10ll), LinearDataRule(10, 0)));
+    auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
+
+    auto portList = List<IInputPortConfig>();
+    for (size_t i = 0; i < NUM_SIGNALS; i++)
+        portList.pushBack(InputPort(readSignals[i].signal.getContext(), nullptr, "readsig" + std::to_string(i)));
+    
+    auto multi = MultiReaderFromPort(signalsToPortsList());
+
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    portList[0].connect(sig0.signal);
+    portList[1].connect(sig1.signal);
+    portList[2].connect(sig2.signal);
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    sig0.createAndSendPacket(1);
+    sig1.createAndSendPacket(1);
+    sig2.createAndSendPacket(1);
+
+    sig0.createAndSendPacket(2);
+    sig1.createAndSendPacket(2);
+    sig2.createAndSendPacket(2);
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 446u);
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 446);
+
+    constexpr const SizeT SAMPLES = 5u;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+
+    SizeT count{SAMPLES};
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    ASSERT_EQ(count, SAMPLES);
+
+    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};
+    printData<std::chrono::microseconds>(SAMPLES, time, values, domain);
+
+    ASSERT_THAT(time[1], ElementsAreArray(time[0]));
+    ASSERT_THAT(time[2], ElementsAreArray(time[0]));
+}
+
 TEST_F(MultiReaderTest, MultiReaderWithDifferentInports)
 {
     // prevent vector from re-allocating, so we have "stable" pointers
@@ -1466,18 +1528,6 @@ TEST_F(MultiReaderTest, MultiReaderReuseInputPort)
         auto reader1 = MultiReaderFromPort(portList);
     }
     ASSERT_NO_THROW(MultiReaderFromPort(portList));
-}
-
-TEST_F(MultiReaderTest, MultiReaderWithNotConnectedInputPort)
-{
-    // prevent vector from re-allocating, so we have "stable" pointers
-    readSignals.reserve(1);
-
-    addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
-
-    auto portList = List<IInputPortConfig>(InputPort(readSignals[0].signal.getContext(), nullptr, "readsig"));
-
-    ASSERT_THROW(MultiReaderFromPort(portList), ArgumentNullException);
 }
 
 TEST_F(MultiReaderTest, MultiReaderOnReadCallback)

@@ -880,6 +880,34 @@ TYPED_TEST(StreamReaderTest, StreamReaderWithInputPort)
     ASSERT_EQ(reader.getDomainReadType(), SampleType::RangeInt64);
 }
 
+TYPED_TEST(StreamReaderTest, StreamReaderWithNotConnectedInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+
+    auto reader = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
+
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 123.4;
+
+    port.connect(this->signal);
+
+    this->sendPacket(dataPacket);
+
+    SizeT count{1};
+    double samples[1]{};
+    RangeType64 domain[1]{};
+    reader.readWithDomain(&samples, &domain, &count);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
+
+    // domain was read and updated from packet info
+    ASSERT_EQ(reader.getDomainReadType(), SampleType::RangeInt64);
+}
+
 TYPED_TEST(StreamReaderTest, MultipleStreamReaderToInputPort)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
@@ -900,14 +928,6 @@ TYPED_TEST(StreamReaderTest, StreamReaderReuseInputPort)
         auto reader1 = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
     }
     ASSERT_NO_THROW(daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined));
-}
-
-TYPED_TEST(StreamReaderTest, StreamReaderWithNotConnectedInputPort)
-{
-    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
-    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-
-    ASSERT_THROW(daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined), ArgumentNullException);
 }
 
 TYPED_TEST(StreamReaderTest, StreamReaderOnReadCallback)

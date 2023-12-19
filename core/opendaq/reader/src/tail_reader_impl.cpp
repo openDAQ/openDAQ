@@ -26,7 +26,9 @@ TailReaderImpl::TailReaderImpl(IInputPortConfig* port,
     , cachedSamples(0)
 {
     this->port.setNotificationMethod(PacketReadyNotification::SameThread);
-    TailReaderImpl::handleDescriptorChanged(connection.dequeue());
+
+    if (connection.assigned())
+        TailReaderImpl::handleDescriptorChanged(connection.dequeue());
 }
 
 TailReaderImpl::TailReaderImpl(const ReaderConfigPtr& readerConfig,

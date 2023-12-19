@@ -887,6 +887,32 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
     ASSERT_EQ(samples[1], dataPtr[1]);
 }
 
+TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    auto reader = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 111.1;
+    dataPtr[1] = 222.2;
+
+    port.connect(this->signal);
+    this->sendPacket(dataPacket);
+
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+    RangeType64 domain[BLOCK_SIZE]{};
+    reader.readWithDomain(&samples, &domain, &count);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(samples[0], dataPtr[0]);
+    ASSERT_EQ(samples[1], dataPtr[1]);
+}
+
 TYPED_TEST(BlockReaderTest, MultipleBlockReaderToInputPort)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
@@ -907,14 +933,6 @@ TYPED_TEST(BlockReaderTest, BlockReaderReuseInputPort)
         auto reader1 = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
     }
     ASSERT_NO_THROW(daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined));
-}
-
-TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPort)
-{
-    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
-    
-    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    ASSERT_THROW(daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined), ArgumentNullException);
 }
 
 TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallback)

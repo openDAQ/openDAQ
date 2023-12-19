@@ -67,9 +67,6 @@ public:
     {
         if (!port.assigned())
             throw ArgumentNullException("Signal must not be null.");
-
-        if (!port.getConnection().assigned())
-            throw ArgumentNullException("Input port not connected to signal");
         
         port.asPtr<IOwnable>().setOwner(portBinder);
 
@@ -78,8 +75,8 @@ public:
         this->port = port;
         this->port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
 
-        connection = this->port.getConnection();
-
+        if (port.getConnection().assigned())
+            connection = this->port.getConnection();
         valueReader = createReaderForType(valueReadType, nullptr);
         domainReader = createReaderForType(domainReadType, nullptr);
     }
@@ -108,6 +105,10 @@ public:
     ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
+        
+        std::scoped_lock lock(mutex);
+        connection = InputPortConfigPtr::Borrow(inputPort).getConnection();
+        handleDescriptorChanged(connection.dequeue());
         return OPENDAQ_SUCCESS;
     }
 
@@ -118,6 +119,9 @@ public:
     ErrCode INTERFACE_FUNC disconnected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
+
+        std::scoped_lock lock(mutex);
+        connection = nullptr;
         return OPENDAQ_SUCCESS;
     }
 

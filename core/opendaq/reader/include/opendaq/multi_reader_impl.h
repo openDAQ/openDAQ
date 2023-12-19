@@ -25,7 +25,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class MultiReaderImpl : public ImplementationOfWeak<IMultiReader, IReaderConfig, IInputPortNotifications>
 {
 public:
-    MultiReaderImpl(const ListPtr<IBaseObject>& list,
+    MultiReaderImpl(const ListPtr<IComponent>& list,
                     SampleType valueReadType,
                     SampleType domainReadType,
                     ReadMode mode,

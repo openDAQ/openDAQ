@@ -140,6 +140,28 @@ TEST_F(PacketReaderTest, PacketReaderWithInputPort)
     ASSERT_TRUE(dataPacket.assigned());
 }
 
+TEST_F(PacketReaderTest, PacketReaderWithNotConnectedInputPort)
+{
+    signal.setDescriptor(createDataDescriptor());
+    auto port = InputPort(signal.getContext(), nullptr, "readsig");
+
+    auto reader = PacketReaderFromPort(port);
+    port.connect(signal);
+    sendPacket(DataPacket(signal.getDescriptor(), 1, 1));
+
+    scheduler.waitAll();
+
+    auto packets = reader.readAll();
+    ASSERT_EQ(packets.getCount(), 2u);
+
+    auto secondPacket = packets[1];
+    ASSERT_EQ(secondPacket.getType(), PacketType::Data);
+
+    auto dataPacket = secondPacket.asPtrOrNull<IDataPacket>(true);
+    ASSERT_TRUE(dataPacket.assigned());
+}
+
+
 TEST_F(PacketReaderTest, MultiplePacketReaderToInputPort)
 {
     signal.setDescriptor(createDataDescriptor());
@@ -160,14 +182,6 @@ TEST_F(PacketReaderTest, PacketReaderReuseInputPort)
         auto reader1 = PacketReaderFromPort(port);
     }
     ASSERT_NO_THROW(PacketReaderFromPort(port));
-}
-
-TEST_F(PacketReaderTest, PacketReaderWithNotConnectedInputPort)
-{
-    signal.setDescriptor(createDataDescriptor());
-    auto port = InputPort(signal.getContext(), nullptr, "readsig");
-
-    ASSERT_THROW(PacketReaderFromPort(port), ArgumentNullException);
 }
 
 TEST_F(PacketReaderTest, PacketReaderOnReadCallback)

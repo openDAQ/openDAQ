@@ -256,12 +256,15 @@ Cpp::
 ----
 #include <opendaq/opendaq.h>
 #include <iostream>
+
 int main(int argc, const char* argv[])
 {
     daq::DeviceInfoPtr defaultRootDeviceInfo = daq::DeviceInfo("daqref://device0");
     daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setDefaultRootDeviceInfo(defaultRootDeviceInfo);
     daq::InstancePtr instance = instanceBuilder.build();
+
     assert(instance.getAvailableDevices()[0] == defaultRootDeviceInfo);
+
     return 0;
 }
 ----
@@ -275,11 +278,14 @@ Cpp::
 ----
 #include <opendaq/opendaq.h>
 #include <iostream>
+
 int main(int argc, const char* argv[])
 {
     daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setRootDevice("daqref://device0");
     daq::InstancePtr instance = instanceBuilder.build();
+
     assert(instance.getAvailableDevices()[0] == instanceBuilder);
+
     return 0;
 }
 ----

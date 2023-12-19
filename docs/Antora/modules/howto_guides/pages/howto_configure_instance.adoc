@@ -7,7 +7,7 @@ The Instance is the top-level openDAQ(TM) object, serving as a container for the
   * xref:background_info:opendaq_architecture.adoc#instance[Architecture - Instance]
 
 == Creating the default openDAQ(TM) Instance
-Upon creation, it generates a Client device, which is a default device implementation capable of loading any function blocks present in the module manager's search path. If the native openDAQ client-module is loaded, the Client device can connect to any TMS-enabled device using the `addDevice` function. The Client is set as the root device when the instance is created.
+Upon creation, it generates a Client device, which is a default device implementation capable of loading any function blocks present in the module manager's search path. If the native openDAQ client module is loaded, the Client device can connect to any TMS-enabled device using the `addDevice` function. The Client is set as the root device when the instance is created.
 [tabs]
 ====
 Cpp::
@@ -247,7 +247,7 @@ int main(int argc, const char* argv[])
 }
 ----
 ====
-As in preivios examples developer can implement own solution of scheduler and use it in Instance Builder. In that mode developer can discover and connect to available device using method `getAvailableDevices`. In Instance Builder developer can forcely set available device.
+As in the previous examples, developers can implement their own scheduler solution and use it in Instance Builder. In that mode, developers can discover and connect to an available device using method `getAvailableDevices`. In Instance Builder, developers can force set available devices.
 [tabs]
 ====
 Cpp::
@@ -256,15 +256,12 @@ Cpp::
 ----
 #include <opendaq/opendaq.h>
 #include <iostream>
-
 int main(int argc, const char* argv[])
 {
     daq::DeviceInfoPtr defaultRootDeviceInfo = daq::DeviceInfo("daqref://device0");
     daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setDefaultRootDeviceInfo(defaultRootDeviceInfo);
     daq::InstancePtr instance = instanceBuilder.build();
-
     assert(instance.getAvailableDevices()[0] == defaultRootDeviceInfo);
-
     return 0;
 }
 ----
@@ -278,14 +275,11 @@ Cpp::
 ----
 #include <opendaq/opendaq.h>
 #include <iostream>
-
 int main(int argc, const char* argv[])
 {
     daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setRootDevice("daqref://device0");
     daq::InstancePtr instance = instanceBuilder.build();
-
     assert(instance.getAvailableDevices()[0] == instanceBuilder);
-
     return 0;
 }
 ----

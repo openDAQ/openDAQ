@@ -53,8 +53,8 @@ public:
     ErrCode INTERFACE_FUNC setScheduler(IScheduler* scheduler);
     ErrCode INTERFACE_FUNC getScheduler(IScheduler** scheduler);
 
-    ErrCode INTERFACE_FUNC setDefaultRootDeviceName(IString* localId);
-    ErrCode INTERFACE_FUNC getDefaultRootDeviceName(IString** localId);
+    ErrCode INTERFACE_FUNC setDefaultRootDeviceLocalId(IString* localId);
+    ErrCode INTERFACE_FUNC getDefaultRootDeviceLocalId(IString** localId);
 
     ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString);
     ErrCode INTERFACE_FUNC getRootDevice(IString** connectionString);

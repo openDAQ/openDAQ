@@ -323,7 +323,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
                                 .setModuleManager(moduleManager)
                                 .setSchedulerWorkerNum(1)
                                 .setScheduler(scheduler)
-                                .setDefaultRootDeviceName("DefaultRootDeviceName")
+                                .setDefaultRootDeviceLocalId("DefaultRootDeviceLocalId")
                                 .setRootDevice("daqref://device0")
                                 .setDefaultRootDeviceInfo(defaultRootDeviceInfo);
     
@@ -342,7 +342,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     ASSERT_EQ(instanceBuilder.getModuleManager(), moduleManager);
     ASSERT_EQ(instanceBuilder.getSchedulerWorkerNum(), 1);
     ASSERT_EQ(instanceBuilder.getScheduler(), scheduler);
-    ASSERT_EQ(instanceBuilder.getDefaultRootDeviceName(), "DefaultRootDeviceName");
+    ASSERT_EQ(instanceBuilder.getDefaultRootDeviceLocalId(), "DefaultRootDeviceLocalId");
     ASSERT_EQ(instanceBuilder.getRootDevice(), "daqref://device0");
     ASSERT_EQ(instanceBuilder.getDefaultRootDeviceInfo(), defaultRootDeviceInfo);
 }
@@ -359,14 +359,14 @@ TEST_F(InstanceTest, InstanceCreateFactory)
                                 .setGlobalLogLevel(LogLevel::Debug)
                                 .setModuleManager(moduleManager)
                                 .setScheduler(scheduler)
-                                .setDefaultRootDeviceName("DefaultRootDeviceName")
+                                .setDefaultRootDeviceLocalId("DefaultRootDeviceLocalId")
                                 .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
                                 .build();
 
     ASSERT_EQ(instance.getContext().getLogger(), logger);
     ASSERT_EQ(instance.getContext().getScheduler(), scheduler);
     ASSERT_EQ(instance.getContext().getModuleManager(), moduleManager);
-    ASSERT_EQ(instance.getRootDevice().getName(), "DefaultRootDeviceName"); 
+    ASSERT_EQ(instance.getRootDevice().getName(), "DefaultRootDeviceLocalId"); 
 
     ASSERT_EQ(instance.getInfo(), defaultRootDeviceInfo);
 }
@@ -409,7 +409,7 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
     ASSERT_EQ(availableDevices.getCount(), 0);
 
     ASSERT_TRUE(instance.getRootDevice().assigned());
-    ASSERT_FALSE(instance.getRootDevice().getName() == "DefaultRootDeviceName");   
+    ASSERT_FALSE(instance.getRootDevice().getName() == "DefaultRootDeviceLocalId");   
 }
 
 END_NAMESPACE_OPENDAQ

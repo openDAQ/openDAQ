@@ -27,7 +27,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Builder component of Instance objects. Contains setter methods to configure the Instance parameters such a Context (Logger, Scheduler, ModuleManager) and RootDevice.
+ * @brief Builder component of Instance objects. Contains setter methods to configure the Instance parameters, such as Context (Logger, Scheduler, ModuleManager) and RootDevice.
  * Contains a  `build` method that builds the Instance object.
  *
  * The InstanceBuilder provides a fluent interface for setting various configuration options for an Instance
@@ -38,7 +38,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * The InstanceBuilder provides the following configuration methods:
  *
  * - **Logger:** The custom Logger for the Instance. This logger will be used for logging messages related to
- *   the Instance and its components. When configured, the GlobalLogLevel, ComponentLogLevel and LoggerSink will ignored, as they are in use only with default Instance logger
+ *   the Instance and its components. When configured, the GlobalLogLevel, ComponentLogLevel and LoggerSink will be ignored, as they are in use only with the default Instance logger
  *
  * - **GlobalLogLevel:** The default Logger global log level for the Instance. All log messages with a severity
  *   level equal to or higher than the specified level will be processed.
@@ -66,7 +66,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * - **DefaultRootDeviceInfo:** The default device information for the Instance. If the device information has
  *   not been set, the `getInfo` method of the Instance will return this set device information.
  *
- * - **RootDevice:** The custom root device of the Instance from connection string. This defines the device that
+ * - **RootDevice:** The custom root device of the Instance from the connection string. This defines the device that
  *   serves as the entry point for the Instance.
  *
  * - **SinkLogLevel:** The sink logger level of the default Instance logger. This level is ignored if a custom
@@ -80,7 +80,7 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 {
     /*!
-     * @brief Builds and returns a Instance object using the currently set values of the Builder.
+     * @brief Builds and returns an Instance object using the currently set values of the Builder.
      * @param[out] instance The built Instance.
      */
     virtual ErrCode INTERFACE_FUNC build(IInstance** instance) = 0;
@@ -93,7 +93,7 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setLogger(ILogger* logger) = 0;
 
     /*!
-     * @brief Gets the Logger of Instance. Returns nullptr if custom logger has not been set
+     * @brief Gets the Logger of the Instance. Returns nullptr if custom logger has not been set
      * @param[out] logger The Logger of Instance
      */
     virtual ErrCode INTERFACE_FUNC getLogger(ILogger** logger) = 0;
@@ -128,36 +128,36 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
     
     // [returnSelf]
     /*!
-     * @brief Adds the logger sink of default Instance logger. Ignored if a custom logger has already been set
-     * @param sink The logger sink of default Instance logger
+     * @brief Adds the logger sink of the default Instance logger. Ignored if a custom logger has already been set
+     * @param sink The logger sink of the default Instance logger
      */
     virtual ErrCode INTERFACE_FUNC addLoggerSink(ILoggerSink* sink) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Sets the sink logger level of default Instance logger. Ignored if a custom logger has already been set
-     * @param sink The sink logger of default Instance logger
-     * @param logLevel The sink logger level of default Instance logger
+     * @brief Sets the sink logger level of the default Instance logger. Ignored if a custom logger has already been set
+     * @param sink The sink logger of the default Instance logger
+     * @param logLevel The sink logger level of the default Instance logger
      */
     virtual ErrCode INTERFACE_FUNC setSinkLogLevel(ILoggerSink* sink, LogLevel logLevel) = 0;
 
     // [elementType(sinks, ILoggerSink)]
     /*!
-     * @brief Gets the list of logger sink of default Instance logger.
-     * @param[out] sinks The list of logger sink of default Instance logger
+     * @brief Gets the list of logger sinks for the default Instance logger.
+     * @param[out] sinks The list of logger sinks of the default Instance logger
      */
     virtual ErrCode INTERFACE_FUNC getLoggerSinks(IList** sinks) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Sets the path for default ModuleManager of Instance. Ignored if a custom module manager has already been set
-     * @param path The path for default ModuleManager of Instance
+     * @brief Sets the path for the default ModuleManager of Instance. Ignored if a custom module manager has already been set
+     * @param path The path for the default ModuleManager of Instance
      */
     virtual ErrCode INTERFACE_FUNC setModulePath(IString* path) = 0;
 
     /*!
-     * @brief Gets the path for default ModuleManager of Instance.
-     * @param[out] path The path for default ModuleManager of Instance
+     * @brief Gets the path for the default ModuleManager of Instance.
+     * @param[out] path The path for the default ModuleManager of Instance
      */
     virtual ErrCode INTERFACE_FUNC getModulePath(IString** path) = 0;
 
@@ -169,21 +169,21 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setModuleManager(IModuleManager* moduleManager) = 0;
 
     /*!
-     * @brief Gets the custom ModuleManager of Instance. Returns nullptr is custom ModuleManager has not been set
+     * @brief Gets the custom ModuleManager of Instance. Returns nullptr if custom ModuleManager has not been set
      * @param[out] moduleManager The ModuleManager of Instance
      */
     virtual ErrCode INTERFACE_FUNC getModuleManager(IModuleManager** moduleManager) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Sets the amount of worker threads in scheduler of Instance. Ignored if a scheduler has already been set
-     * @param numWorkers The amount of worker threads in scheduler of Instance. If @c 0 then maximum number of concurrent threads supported by the implementation is used.
+     * @brief Sets the amount of worker threads in the scheduler of Instance. Ignored if a scheduler has already been set
+     * @param numWorkers The amount of worker threads in the scheduler of Instance. If @c is 0, then the maximum number of concurrent threads supported by the implementation is used.
      */
     virtual ErrCode INTERFACE_FUNC setSchedulerWorkerNum(SizeT numWorkers) = 0;
 
     /*!
-     * @brief Gets the amount of worker threads in scheduler of Instance.
-     * @param[out] numWorkers The amount of worker threads in scheduler of Instance.
+     * @brief Gets the amount of worker threads in the scheduler of Instance.
+     * @param[out] numWorkers The amount of worker threads in the scheduler of Instance.
      */
     virtual ErrCode INTERFACE_FUNC getSchedulerWorkerNum(SizeT* numWorkers) = 0;
 
@@ -202,16 +202,16 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the virtual Client as default root device with set name. if RootDevice has not been set, Instance Root Device as well will be set as virtual Client 
+     * @brief Sets the virtual Client as the default root device with a set name. If RootDevice has not been set, the Instance root device will be set as a virtual client.
      * @param rootDevice The default root device name
      */
-    virtual ErrCode INTERFACE_FUNC setDefaultRootDeviceName(IString* localId) = 0;
+    virtual ErrCode INTERFACE_FUNC setDefaultRootDeviceLocalId(IString* localId) = 0;
 
     /*!
      * @brief Gets the default root device name
      * @param[out] rootDevice The default root device name
      */
-    virtual ErrCode INTERFACE_FUNC getDefaultRootDeviceName(IString** localId) = 0;
+    virtual ErrCode INTERFACE_FUNC getDefaultRootDeviceLocalId(IString** localId) = 0;
 
     // [returnSelf]
     /*!
@@ -228,8 +228,8 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the default device info of Instance. if device info has been set method getInfo of Instance will return set device info if has not been set Root Device
-     * @param deviceInfo The device info of default device of Instance
+     * @brief Sets the default device info of Instance. If device info has been set, method getInfo of Instance will return set device info if Root Device has not been set
+     * @param deviceInfo The device info of the default device of Instance
      */
     virtual ErrCode INTERFACE_FUNC setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo) = 0;
 

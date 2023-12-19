@@ -180,11 +180,7 @@ ErrCode InstanceBuilderImpl::getModuleManager(IModuleManager** moduleManager)
     if (moduleManager == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    if (this->moduleManager.assigned())
-        *moduleManager = this->moduleManager.addRefAndReturn();
-    else
-        *moduleManager = nullptr;    
-    
+    *moduleManager = this->moduleManager.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -217,14 +213,11 @@ ErrCode InstanceBuilderImpl::getScheduler(IScheduler** scheduler)
     if (scheduler == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    if (this->scheduler.assigned())
-        *scheduler = this->scheduler.addRefAndReturn();
-    else
-        *scheduler = nullptr;
+    *scheduler = this->scheduler.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode InstanceBuilderImpl::setDefaultRootDeviceName(IString* localId)
+ErrCode InstanceBuilderImpl::setDefaultRootDeviceLocalId(IString* localId)
 {
     if (localId == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
@@ -233,15 +226,12 @@ ErrCode InstanceBuilderImpl::setDefaultRootDeviceName(IString* localId)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode InstanceBuilderImpl::getDefaultRootDeviceName(IString** localId)
+ErrCode InstanceBuilderImpl::getDefaultRootDeviceLocalId(IString** localId)
 {
     if (localId == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    if(this->localId.assigned())
-        *localId = this->localId.addRefAndReturn();
-    else
-        *localId = nullptr;
+    *localId = this->localId.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -259,10 +249,7 @@ ErrCode InstanceBuilderImpl::getRootDevice(IString** connectionString)
     if (connectionString == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    if (this->connectionString.assigned())
-        *connectionString = this->connectionString.addRefAndReturn();
-    else
-        *connectionString = nullptr;
+    *connectionString = this->connectionString.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -280,11 +267,7 @@ ErrCode InstanceBuilderImpl::getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo)
     if (deviceInfo == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    if (!this->defaultRootDeviceInfo.assigned())
-        *deviceInfo = nullptr; 
-    else
-        *deviceInfo = this->defaultRootDeviceInfo.addRefAndReturn();
-
+    *deviceInfo = this->defaultRootDeviceInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

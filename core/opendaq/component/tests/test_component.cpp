@@ -134,6 +134,9 @@ TEST_F(ComponentTest, SerializeAndDeserialize)
     component.setDescription(desc);
     component.getTags().add("tag");
 
+    component.addProperty(IntPropertyBuilder("prop", 2).build());
+    component.setPropertyValue("prop", 3);
+
     const auto serializer = JsonSerializer(True);
     component.serialize(serializer);
     const auto str1 = serializer.getOutput();
@@ -147,6 +150,7 @@ TEST_F(ComponentTest, SerializeAndDeserialize)
     ASSERT_EQ(newComponent.getName(), name);
     ASSERT_EQ(newComponent.getDescription(), desc);
     ASSERT_EQ(newComponent.getTags(), component.getTags());
+    ASSERT_EQ(newComponent.getPropertyValue("prop"), component.getPropertyValue("prop"));
 
     const auto serializer2 = JsonSerializer(True);
     newComponent.serialize(serializer2);

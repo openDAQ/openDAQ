@@ -31,7 +31,7 @@ class ConfigClientPropertyObjectBaseImpl : public ConfigClientObjectImpl, public
 {
 public:
     template <class ... Args>
-    explicit ConfigClientPropertyObjectBaseImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm, const SerializedObjectPtr& serializedObject, const Args& ... args);
+    explicit ConfigClientPropertyObjectBaseImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm, const Args& ... args);
 
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
@@ -48,19 +48,19 @@ public:
     ErrCode INTERFACE_FUNC getAllProperties(IList** properties) override;
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
 
+    ErrCode INTERFACE_FUNC complete() override;
 private:
-    void buildPropertyObject(const SerializedObjectPtr& serializedObject);
+    bool deserializationComplete;
 };
 
 template <class Impl>
 template <class ... Args>
 ConfigClientPropertyObjectBaseImpl<Impl>::ConfigClientPropertyObjectBaseImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                                                             const SerializedObjectPtr& serializedObject,
                                                                              const Args& ... args)
     : ConfigClientObjectImpl(configProtocolClientComm)
     , Impl(args ...)
+    , deserializationComplete(false)
 {
-    buildPropertyObject(serializedObject);
 }
 
 template <class Impl>
@@ -72,19 +72,22 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyValue(IString* prop
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
 {
+    if (!deserializationComplete)
+        return Impl::setProtectedPropertyValue(propertyName, value);
+
     return OPENDAQ_ERR_INVALID_OPERATION;
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return Impl::getPropertyValue(propertyName, value);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return Impl::getPropertySelectionValue(propertyName, value);
 }
 
 template <class Impl>
@@ -96,12 +99,15 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearPropertyValue(IString* pr
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getProperty(IString* propertyName, IProperty** value)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return Impl::getProperty(propertyName, value);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::addProperty(IProperty* property)
 {
+    if (!deserializationComplete)
+        return Impl::addProperty(property);
+
     return OPENDAQ_ERR_INVALID_OPERATION;
 }
 
@@ -114,31 +120,31 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::removeProperty(IString* proper
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* propertyName, IEvent** event)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return Impl::getOnPropertyValueWrite(propertyName, event);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* propertyName, IEvent** event)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return Impl::getOnPropertyValueRead(propertyName, event);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getVisibleProperties(IList** properties)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return Impl::getVisibleProperties(properties);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::hasProperty(IString* propertyName, Bool* hasProperty)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return Impl::hasProperty(propertyName, hasProperty);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getAllProperties(IList** properties)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return Impl::getAllProperties(properties);
 }
 
 template <class Impl>
@@ -148,9 +154,10 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(IList* ordere
 }
 
 template <class Impl>
-void ConfigClientPropertyObjectBaseImpl<Impl>::buildPropertyObject(const SerializedObjectPtr& serializedObject)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::complete()
 {
-    // TODO
+    deserializationComplete = true;
+    return OPENDAQ_SUCCESS;
 }
 
 }

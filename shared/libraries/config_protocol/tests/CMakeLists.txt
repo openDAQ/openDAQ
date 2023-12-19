@@ -5,6 +5,8 @@ set(TEST_APP test_${MODULE_NAME})
 add_executable(${TEST_APP}
     test_config_packet.cpp
     test_config_client_server.cpp
+    test_config_protocol_integration.cpp
+	test_config_serialization.cpp
     config_packet_transmission.h
     config_packet_transmission.cpp
     test_app.cpp

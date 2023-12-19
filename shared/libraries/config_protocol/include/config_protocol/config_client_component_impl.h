@@ -17,6 +17,7 @@
 #pragma once
 #include <config_protocol/config_client_property_object_impl.h>
 #include <opendaq/component_impl.h>
+#include <config_protocol/config_protocol_deserialize_context.h>
 
 namespace daq::config_protocol
 {
@@ -32,7 +33,6 @@ class ConfigClientComponentBaseImpl : public ConfigClientPropertyObjectBaseImpl<
 public:
     template <class ... Args>
     ConfigClientComponentBaseImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                  const SerializedObjectPtr& serializedObject,
                                   const ContextPtr& ctx,
                                   const ComponentPtr& parent,
                                   const StringPtr& localId,
@@ -47,27 +47,24 @@ public:
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
 
-private:
-    void buildComponent(const SerializedObjectPtr& serializedObject);
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 };
 
 template <class Impl>
 template <class ... Args>
 ConfigClientComponentBaseImpl<Impl>::ConfigClientComponentBaseImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-    const SerializedObjectPtr& serializedObject,
-    const ContextPtr& ctx,
-    const ComponentPtr& parent,
-    const StringPtr& localId,
-    const Args&... args)
-    : ConfigClientPropertyObjectBaseImpl<Impl>(configProtocolClientComm, serializedObject, ctx, parent, localId, args ...)
+                                                                   const ContextPtr& ctx,
+                                                                   const ComponentPtr& parent,
+                                                                   const StringPtr& localId,
+                                                                   const Args&... args)
+    : ConfigClientPropertyObjectBaseImpl<Impl>(configProtocolClientComm, ctx, parent, localId, args ...)
 {
-    buildComponent(serializedObject);
 }
 
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::getActive(Bool* active)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return Impl::getActive(active);
 }
 
 template <class Impl>
@@ -79,13 +76,13 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::getTags(ITagsConfig** tags)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return Impl::getTags(tags);
 }
 
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::getName(IString** name)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return Impl::getName(name);
 }
 
 template <class Impl>
@@ -97,7 +94,7 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setName(IString* name)
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::getDescription(IString** description)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return Impl::getDescription(description);
 }
 
 template <class Impl>
@@ -107,9 +104,18 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setDescription(IString* description
 }
 
 template <class Impl>
-void ConfigClientComponentBaseImpl<Impl>::buildComponent(const SerializedObjectPtr& serializedObject)
+ErrCode ConfigClientComponentBaseImpl<Impl>::Deserialize(ISerializedObject* serialized,
+    IBaseObject* context,
+    IFunction* factoryCallback,
+    IBaseObject** obj)
 {
-    // TODO
+    return Impl::template DeserializeComponent(serialized, context, factoryCallback, obj, [](const ComponentDeserializeContextPtr& context, const StringPtr& className)
+    {
+        const auto ctx = context.asPtr<IConfigProtocolDeserializeContext>();
+
+        return createWithImplementation<IComponent, ConfigClientComponentImpl>(
+                ctx->getClientComm(), context.getContext(), context.getParent(), context.getLocalId());
+    });
 }
 
 }

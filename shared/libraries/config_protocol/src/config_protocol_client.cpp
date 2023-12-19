@@ -69,9 +69,9 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcReplyPacketBuffer(const PacketBu
     {
         reply = deserializer.deserialize(jsonStr);
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
-        throw ConfigProtocolException("Invalid reply");
+        throw ConfigProtocolException(fmt::format("Invalid reply: {}", e.what()));
     }
 
     if (!reply.hasKey("ErrorCode"))

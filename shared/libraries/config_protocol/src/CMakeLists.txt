@@ -10,6 +10,8 @@ set(SRC_HEADERS config_protocol.h
                 config_client_component_impl.h
                 config_client_folder_impl.h
                 config_client_device_impl.h
+				config_protocol_deserialize_context_impl.h
+				config_protocol_deserialize_context.h
 )
 
 set(SRC_CPPS config_protocol.cpp
@@ -17,6 +19,7 @@ set(SRC_CPPS config_protocol.cpp
              config_protocol_client.cpp
              server_wrappers.cpp
              config_client_object_impl.cpp
+             config_protocol_deserialize_context_impl.cpp
 )
 
 prepend_include(config_protocol SRC_HEADERS)

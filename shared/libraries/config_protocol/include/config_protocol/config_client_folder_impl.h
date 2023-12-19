@@ -26,7 +26,6 @@ class ConfigClientFolderImpl : public ConfigClientComponentBaseImpl<FolderImpl<>
 public:
     template <class... Args>
     ConfigClientFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                           const SerializedObjectPtr& serializedObject,
                            const ContextPtr& ctx,
                            const ComponentPtr& parent,
                            const StringPtr& localId,
@@ -41,20 +40,17 @@ public:
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
 
-private:
-    void buildFolder(const SerializedObjectPtr& serializedObject);
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 };
 
 template <class... Args>
 inline ConfigClientFolderImpl::ConfigClientFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                               const SerializedObjectPtr& serializedObject,
-                                               const ContextPtr& ctx,
-                                               const ComponentPtr& parent,
-                                               const StringPtr& localId,
-                                               const Args&... args)
-    : ConfigClientComponentBaseImpl<FolderImpl<>>(configProtocolClientComm, serializedObject, ctx, parent, localId, args...)
+                                                      const ContextPtr& ctx,
+                                                      const ComponentPtr& parent,
+                                                      const StringPtr& localId,
+                                                      const Args&... args)
+    : ConfigClientComponentBaseImpl<FolderImpl<>>(configProtocolClientComm, ctx, parent, localId, args...)
 {
-    buildFolder(serializedObject);
 }
 
 inline ErrCode ConfigClientFolderImpl::getActive(Bool* active)
@@ -92,8 +88,23 @@ inline ErrCode ConfigClientFolderImpl::setDescription(IString* description)
     return OPENDAQ_ERR_INVALID_OPERATION;
 }
 
-inline void ConfigClientFolderImpl::buildFolder(const SerializedObjectPtr& serializedObject)
+inline ErrCode ConfigClientFolderImpl::Deserialize(ISerializedObject* serialized,
+    IBaseObject* context,
+    IFunction* factoryCallback,
+    IBaseObject** obj)
 {
+    return ComponentImpl::DeserializeComponent(
+        serialized,
+        context,
+        factoryCallback,
+        obj,
+        [](const ComponentDeserializeContextPtr& context, const StringPtr& className)
+        {
+            const auto ctx = context.asPtr<IConfigProtocolDeserializeContext>();
+
+            return createWithImplementation<IFolder, ConfigClientFolderImpl>(
+                ctx->getClientComm(), context.getContext(), context.getParent(), context.getLocalId());
+        });
 }
 
 }

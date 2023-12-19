@@ -136,12 +136,16 @@ protected:
 
     // Serialization
 
-    ErrCode serializeProperties(ISerializer* serializer);
+    ErrCode serializePropertyValues(ISerializer* serializer);
 
     virtual ErrCode serializeCustomValues(ISerializer* serializer);
-    virtual ErrCode serializeProperty(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
+    virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
 
-    static ErrCode DeserializeProperties(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IPropertyObject* propObjPtr);
+    static ErrCode DeserializePropertyValues(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IPropertyObject* propObjPtr);
+    static ErrCode DeserializeProperties(ISerializedObject* serialized,
+                                         IBaseObject* context,
+                                         IFunction* factoryCallback,
+                                         IPropertyObject* propObjPtr);
 
 
     // Child property handling - Used when a property is queried in the "parent.child" format
@@ -157,7 +161,7 @@ protected:
     virtual void applyUpdate();
 
     template <class F>
-    static ErrCode DeserializeInternal(
+    static ErrCode DeserializePropertyObject(
         ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj, F&& f);
 private:
     using PropertyValueEventEmitter = EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr>;
@@ -1675,7 +1679,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeCus
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeProperty(const StringPtr& name,
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValue(const StringPtr& name,
                                                                                       const ObjectPtr<IBaseObject>& value,
                                                                                       ISerializer* serializer)
 {
@@ -1725,7 +1729,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeProperties(ISerializer* serializer)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValues(ISerializer* serializer)
 {
     bool numOfSerializablePropertyValues = std::count_if(
         propValues.begin(),
@@ -1746,7 +1750,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
             auto propValue = sorted.find(propName);
             if (propValue != sorted.cend())
             {
-                ErrCode err = serializeProperty(propValue->first, propValue->second, serializer);
+                ErrCode err = serializePropertyValue(propValue->first, propValue->second, serializer);
                 if (OPENDAQ_FAILED(err))
                 {
                     return err;
@@ -1758,7 +1762,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
         // Serialize the rest of without set order
         for (auto&& propValue : sorted)
         {
-            ErrCode err = serializeProperty(propValue.first, propValue.second, serializer);
+            ErrCode err = serializePropertyValue(propValue.first, propValue.second, serializer);
             if (OPENDAQ_FAILED(err))
             {
                 return err;
@@ -1790,7 +1794,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
         return errCode;
     }
 
-    errCode = serializeProperties(serializer);
+    errCode = serializePropertyValues(serializer);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -1802,7 +1806,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
 
 template <typename PropObjInterface, typename... Interfaces>
 template <class F>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeInternal(
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializePropertyObject(
     ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj, F&& f)
 {
     StringPtr className;
@@ -1828,6 +1832,17 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeI
     }
 
     errCode = DeserializeProperties(serialized, context, factoryCallback, propObjPtr);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+
+    errCode = DeserializePropertyValues(serialized, context, factoryCallback, propObjPtr);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+
     if (isFrozen)
     {
         if (ObjectPtr<IFreezable> freezable = propObjPtr.asPtrOrNull<IFreezable>(true); freezable.assigned())
@@ -1851,7 +1866,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::Deserialize(
                                                                                 IFunction* factoryCallback,
                                                                                 IBaseObject** obj)
 {
-    return DeserializeInternal(serialized,
+    return DeserializePropertyObject(serialized,
                                context,
                                factoryCallback,
                                obj,
@@ -1866,10 +1881,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::Deserialize(
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeProperties(ISerializedObject* serialized,
-                                                                                          IBaseObject* context,
-                                                                                          IFunction* factoryCallback, 
-                                                                                          IPropertyObject* propObjPtr)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializePropertyValues(ISerializedObject* serialized,
+                                                                                              IBaseObject* context,
+                                                                                              IFunction* factoryCallback, 
+                                                                                              IPropertyObject* propObjPtr)
 {
     auto hasKeyStr = String("propValues");
 
@@ -1929,6 +1944,16 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeP
         }
     }
 
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeProperties(
+    ISerializedObject* /*serialized*/,
+    IBaseObject* /*context*/,
+    IFunction* /*factoryCallback*/,
+    IPropertyObject* /*propObjPtr*/)
+{
     return OPENDAQ_SUCCESS;
 }
 

@@ -12,6 +12,7 @@ rtgen(SRC_Folder folder.h)
 rtgen(SRC_FolderConfig folder_config.h)
 rtgen(SRC_Removable removable.h)
 rtgen(SRC_ComponentDeserializeContext component_deserialize_context.h)
+rtgen(SRC_DeserializeComponent deserialize_component.h)
 
 source_group("component" FILES ${SDK_HEADERS_DIR}/component.h
                                ${SDK_HEADERS_DIR}/component_impl.h
@@ -23,6 +24,7 @@ source_group("component" FILES ${SDK_HEADERS_DIR}/component.h
                                ${SDK_HEADERS_DIR}/folder_factory.h
                                ${SDK_HEADERS_DIR}/component_keys.h
                                ${SDK_HEADERS_DIR}/removable.h
+							   ${SDK_HEADERS_DIR}/deserialize_component.h
 							   ${SDK_HEADERS_DIR}/component_deserialize_context.h
 							   ${SDK_HEADERS_DIR}/component_deserialize_context_impl.h
 							   ${SDK_HEADERS_DIR}/component_deserialize_context_factory.h
@@ -43,13 +45,14 @@ set(SRC_PublicHeaders
     component_ptr.custom.h
     folder_factory.h
     folder_impl.h
+    deserialize_component.h
     component_factory.h
     component_keys.h
 	component_deserialize_context_factory.h
+    component_deserialize_context_impl.h	
 )
 
-set(SRC_PrivateHeaders component_deserialize_context_impl.h
-)
+set(SRC_PrivateHeaders)
 
 prepend_include(${MAIN_TARGET} SRC_PublicHeaders)
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)

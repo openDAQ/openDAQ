@@ -6,6 +6,9 @@
 #include <opendaq/folder_factory.h>
 #include <opendaq/io_folder_factory.h>
 
+#include "opendaq/component_deserialize_context_factory.h"
+#include "opendaq/component_factory.h"
+
 using namespace testing;
 
 class FolderTest : public Test
@@ -179,4 +182,35 @@ TEST_F(FolderTest, IOStandardProperties)
 
     ASSERT_EQ(component.getName(), name);
     ASSERT_EQ(component.getDescription(), desc);
+}
+
+TEST_F(FolderTest, SerializeAndDeserialize)
+{
+    const auto name = "foo";
+    const auto desc = "bar";
+    const auto component = daq::Component(nullptr, nullptr, "temp");
+
+    component.setName(name);
+    component.setDescription(desc);
+    component.getTags().add("tag");
+
+    const auto serializer = daq::JsonSerializer(daq::True);
+    component.serialize(serializer);
+    const auto str1 = serializer.getOutput();
+
+    const auto deserializer = daq::JsonDeserializer();
+
+    const auto deserializeContext = daq::ComponentDeserializeContext(nullptr, nullptr, "id", daq::TypeManager());
+
+    const daq::ComponentPtr newComponent = deserializer.deserialize(str1, deserializeContext, nullptr);
+
+    ASSERT_EQ(newComponent.getName(), name);
+    ASSERT_EQ(newComponent.getDescription(), desc);
+    ASSERT_EQ(newComponent.getTags(), component.getTags());
+
+    const auto serializer2 = daq::JsonSerializer(daq::True);
+    newComponent.serialize(serializer2);
+    const auto str2 = serializer2.getOutput();
+
+    ASSERT_EQ(str1, str2);
 }

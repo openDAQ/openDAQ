@@ -25,24 +25,16 @@ class ConfigClientDeviceImpl : public ConfigClientComponentBaseImpl<Device>
 {
 public:
     explicit ConfigClientDeviceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                    const SerializedObjectPtr& serializedObject,
                                     const ContextPtr& ctx,
                                     const ComponentPtr& parent,
                                     const StringPtr& localId);
-private:
-    void buildDevice(const SerializedObjectPtr& serializedObject);
 };
 
 inline ConfigClientDeviceImpl::ConfigClientDeviceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                                      const SerializedObjectPtr& serializedObject,
                                                       const ContextPtr& ctx,
                                                       const ComponentPtr& parent,
                                                       const StringPtr& localId)
-    : ConfigClientComponentBaseImpl<Device>(configProtocolClientComm, serializedObject, ctx, parent, localId)
-{
-}
-
-inline void ConfigClientDeviceImpl::buildDevice(const SerializedObjectPtr& serializedObject)
+    : ConfigClientComponentBaseImpl<Device>(configProtocolClientComm, ctx, parent, localId)
 {
 }
 

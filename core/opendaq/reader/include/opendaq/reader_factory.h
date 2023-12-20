@@ -294,10 +294,11 @@ inline BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port,
 }
 
 inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader,
+                                              SizeT blockSize,
                                               SampleType valueReadType,
                                               SampleType domainReadType)
 {
-    return BlockReaderFromExisting_Create(invalidatedReader, valueReadType, domainReadType);
+    return BlockReaderFromExisting_Create(invalidatedReader, valueReadType, domainReadType, blockSize);
 }
 
 template <typename TValueType = double, typename TDomainType = ClockTick>
@@ -326,10 +327,11 @@ BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port, SizeT blockSize, Rea
 
 
 template <typename TValueType = double, typename TDomainType = ClockTick>
-BlockReaderPtr BlockReaderFromExisting(BlockReaderPtr invalidatedReader)
+BlockReaderPtr BlockReaderFromExisting(BlockReaderPtr invalidatedReader, SizeT blockSize)
 {
     return BlockReaderFromExisting(
         invalidatedReader,
+        blockSize,
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType
     );

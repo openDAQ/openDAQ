@@ -334,9 +334,13 @@ protected:
 
         timeoutType = old->timeoutType;
 
+        portBinder = old->portBinder;
         port = old->port;
+        port.asPtr<IOwnable>().setOwner(portBinder);
+        
         connection = old->connection;
         changeCallback = old->changeCallback;
+        readCallback = old->readCallback;
     }
 
     explicit ReaderImpl(const ReaderConfigPtr& readerConfig,

@@ -90,7 +90,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, BlockReaderFromExisting, IBlockReader,
     IBlockReader*, invalidatedReader,
     SampleType, valueReadType,
-    SampleType, domainReadType
+    SampleType, domainReadType,
+    SizeT, blockSize
 )
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

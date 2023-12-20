@@ -15,6 +15,9 @@ Description:
 + [function] IBlockReader::setOnAvailablePackets(IFunction* callback)
 + [function] IMultiReader::setOnAvailablePackets(IFunction* callback)
 
+- [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)
++ [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SizeT blockSize, SampleType valueReadType, SampleType domainReadType)
+
 13.12.2023
 Description:
   - Add Core event to Context object that triggers on core changes

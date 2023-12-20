@@ -105,7 +105,8 @@ public:
 
     BlockReaderImpl(BlockReaderImpl* old,
                     SampleType valueReadType,
-                    SampleType domainReadType);
+                    SampleType domainReadType,
+                    SizeT blockSize);
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
 

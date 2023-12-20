@@ -46,9 +46,10 @@ BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
 
 BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
                                  SampleType valueReadType,
-                                 SampleType domainReadType)
+                                 SampleType domainReadType,
+                                 SizeT blockSize)
     : Super(old, valueReadType, domainReadType)
-    , blockSize(old->blockSize)
+    , blockSize(blockSize)
     , info(old->info)
 {
     this->internalAddRef();
@@ -311,7 +312,8 @@ struct ObjectCreator<IBlockReader>
     static ErrCode Create(IBlockReader** out,
                           IBlockReader* toCopy,
                           SampleType valueReadType,
-                          SampleType domainReadType
+                          SampleType domainReadType,
+                          SizeT blockSize
                          ) noexcept
     {
         OPENDAQ_PARAM_NOT_NULL(out);
@@ -327,11 +329,8 @@ struct ObjectCreator<IBlockReader>
         auto old = ReaderConfigPtr::Borrow(toCopy);
         auto impl = dynamic_cast<BlockReaderImpl*>(old.getObject());
 
-        SizeT blockSize;
-        checkErrorInfo(toCopy->getBlockSize(&blockSize));
-
         return impl != nullptr
-            ? createObject<IBlockReader, BlockReaderImpl>(out, impl, valueReadType, domainReadType)
+            ? createObject<IBlockReader, BlockReaderImpl>(out, impl, valueReadType, domainReadType, blockSize)
             : createObject<IBlockReader, BlockReaderImpl>(out, old, valueReadType, domainReadType, blockSize, mode);
     }
 };
@@ -340,7 +339,8 @@ OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     LIBRARY_FACTORY, IBlockReader, createBlockReaderFromExisting,
     IBlockReader*, invalidatedReader,
     SampleType, valueReadType,
-    SampleType, domainReadType
+    SampleType, domainReadType,
+    SizeT, blockSize
 )
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

@@ -1,8 +1,10 @@
 ﻿using RTGen.Interfaces.Doc;
+using System;
 
 namespace RTGen.Types.Doc
 {
     /// <summary>Represents a parameter information in the documented entity.</summary>
+    [Serializable]
     public class DocParam : DocAttribute, IDocParam
     {
         /// <summary>Initializes a new instance of the <see cref="DocParam" /> class.</summary>

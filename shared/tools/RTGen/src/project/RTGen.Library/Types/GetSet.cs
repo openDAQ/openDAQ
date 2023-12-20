@@ -1,10 +1,12 @@
-﻿using System.Runtime.Serialization;
+﻿using System;
+using System.Runtime.Serialization;
 using RTGen.Interfaces;
 
 namespace RTGen.Types
 {
     /// <summary>Represents the get/set property pair.</summary>
     /// <remarks>Nothing to do with PropertyObject.</remarks>
+    [Serializable]
     public class GetSet : IGetSet
     {
         /// <summary>Creates a new instance of GetSet pair with the specified <paramref name="name"/>.</summary>

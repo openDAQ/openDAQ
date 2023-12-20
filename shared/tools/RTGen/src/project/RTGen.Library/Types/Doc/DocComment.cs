@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using RTGen.Interfaces.Doc;
 
 namespace RTGen.Types.Doc
 {
     /// <summary>Represents the full model of a documentation comment.</summary>
+    [Serializable]
     public class DocComment : IDocComment
     {
         /// <summary>Initializes a new instance of the <see cref="DocComment" /> class.</summary>

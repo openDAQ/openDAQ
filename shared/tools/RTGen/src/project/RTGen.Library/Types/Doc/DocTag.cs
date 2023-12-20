@@ -1,8 +1,10 @@
 ﻿using RTGen.Interfaces.Doc;
+using System;
 
 namespace RTGen.Types.Doc
 {
     /// <summary>Represents the information about a generic documentation tag.</summary>
+    [Serializable]
     public class DocTag : DocElement, IDocTag
     {
         /// <summary>Initializes a new instance of the <see cref="DocTag" /> class.</summary>

@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
 using RTGen.Interfaces.Doc;
 using System.Linq;
+using System;
 
 namespace RTGen.Types.Doc
 {
     /// <summary>Represents a documentation comment attribute description line.</summary>
+    [Serializable]
     public class DocLine : IDocLine
     {
         /// <summary>Initializes a new instance of the <see cref="DocLine" /> class.</summary>

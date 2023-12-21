@@ -52,7 +52,6 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , blockSize(blockSize)
     , info(old->info)
 {
-    this->internalAddRef();
     // if on descreption change callback was set
     // readDescriptorFromPort method have to be called from this callback
     if (!changeCallback.assigned())

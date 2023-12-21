@@ -338,6 +338,10 @@ protected:
         port = old->port;
         port.asPtr<IOwnable>().setOwner(portBinder);
 
+        this->internalAddRef();
+        
+        port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+
         connection = old->connection;
         changeCallback = old->changeCallback;
         readCallback = old->readCallback;

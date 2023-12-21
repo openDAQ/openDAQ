@@ -198,13 +198,19 @@ void ClassifierFbImpl::configure()
             // packets per BlockSize
             linearBlockCount = blockSize * linearBlockCount / 1000;
 
-            linearReader = nullptr;  // to remove port owner;
-            linearReader = BlockReaderFromPort(inputPort, linearBlockCount, inputDataDescriptor.getSampleType(), inputDomainDataDescriptor.getSampleType());
-            linearReader.setOnDescriptorChanged(std::bind(&ClassifierFbImpl::processSignalDescriptorChanged, this, std::placeholders::_1, std::placeholders::_2));
-            linearReader.setOnAvailablePackets([this] {
-                    SAMPLE_TYPE_DISPATCH(inputSampleType, processLinearDataPacket);
-                    return 0;
-                });
+            if (!linearReader.assigned())
+            {
+                linearReader = BlockReaderFromPort(inputPort, linearBlockCount, inputDataDescriptor.getSampleType(), inputDomainDataDescriptor.getSampleType());
+                linearReader.setOnDescriptorChanged(std::bind(&ClassifierFbImpl::processSignalDescriptorChanged, this, std::placeholders::_1, std::placeholders::_2));
+                linearReader.setOnAvailablePackets([this] {
+                        SAMPLE_TYPE_DISPATCH(inputSampleType, processLinearDataPacket);
+                        return 0;
+                    });
+            }
+            else
+            {
+                linearReader = BlockReaderFromExisting(linearReader, linearBlockCount, inputDataDescriptor.getSampleType(), inputDomainDataDescriptor.getSampleType());
+            }
         }
 
         auto outputDataDescriptorBuilder = DataDescriptorBuilder().setSampleType(SampleType::Float64);
@@ -496,7 +502,7 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
 
 void ClassifierFbImpl::createInputPorts()
 {
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);    
+    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);   
 }
 
 void ClassifierFbImpl::createSignals()

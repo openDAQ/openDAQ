@@ -38,6 +38,7 @@ public:
                                const opcua::OpcUaNodeId& nodeId)
         : TmsClientPropertyObjectBaseImpl<Impl>(ctx, parent, localId, clientContext, nodeId)
     {
+        clientContext->readObjectAttributes(nodeId);
     }
     
     template<class T = Impl, template_utils::enable_if_any<T, FunctionBlock, Channel> = 0>
@@ -49,6 +50,7 @@ public:
                                const FunctionBlockTypePtr& type)
         : TmsClientPropertyObjectBaseImpl<Impl>(ctx, parent, localId, clientContext, nodeId, type)
     {
+        clientContext->readObjectAttributes(nodeId);
     }
 
     // Component overrides

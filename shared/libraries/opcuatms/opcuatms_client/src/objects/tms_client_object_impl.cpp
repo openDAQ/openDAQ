@@ -77,32 +77,17 @@ void TmsClientObjectImpl::subscriptionStatusChangeCallback(UA_StatusChangeNotifi
     //TODO report on disconnect
 }
 
-uint32_t TmsClientObjectImpl::tryReadChildNumberInList(const std::string& nodeName)
+uint32_t TmsClientObjectImpl::readChildNumberInList(const std::string& nodeName)
 {
-    try
-    {
-        const auto childId = this->getNodeId(nodeName);
-        return tryReadChildNumberInList(childId);
-    }
-    catch(...)
-    {
-    }
-
-    return std::numeric_limits<uint32_t>::max();
+    const auto childId = this->getNodeId(nodeName);
+    return readChildNumberInList(childId);
 }
 
-uint32_t TmsClientObjectImpl::tryReadChildNumberInList(const opcua::OpcUaNodeId& nodeId)
+uint32_t TmsClientObjectImpl::readChildNumberInList(const opcua::OpcUaNodeId& nodeId)
 {
-    try
-    {
-        const auto numberInListId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "NumberInList");
-        return VariantConverter<IInteger>::ToDaqObject(client->readValue(numberInListId));
-    }
-    catch(...)
-    {
-    }
-
-    return std::numeric_limits<uint32_t>::max();
+    const auto numberInListId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "NumberInList");
+    const auto variant = clientContext->getAttributeReader()->getValue(numberInListId, UA_ATTRIBUTEID_VALUE);
+    return VariantConverter<IInteger>::ToDaqObject(variant);
 }
 
 CachedReferences TmsClientObjectImpl::getChildReferencesOfType(const opcua::OpcUaNodeId& nodeId, const opcua::OpcUaNodeId& typeId)

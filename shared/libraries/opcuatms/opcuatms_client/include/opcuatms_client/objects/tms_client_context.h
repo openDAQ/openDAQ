@@ -19,6 +19,9 @@
 #include "opcuaclient/opcuaclient.h"
 #include <mutex>
 #include <opcuaclient/cached_reference_browser.h>
+#include <opcuaclient/attribute_reader.h>
+#include <opendaq/logger_component_ptr.h>
+#include <opendaq/context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -28,7 +31,7 @@ using TmsClientContextPtr = std::shared_ptr<TmsClientContext>;
 class TmsClientContext
 {
 public:
-    explicit TmsClientContext(const opcua::OpcUaClientPtr& client);
+    explicit TmsClientContext(const opcua::OpcUaClientPtr& client, const ContextPtr& context);
 
     const opcua::OpcUaClientPtr& getClient() const;
 
@@ -37,6 +40,10 @@ public:
     BaseObjectPtr getObject(const opcua::OpcUaNodeId& nodeId) const;
     opcua::OpcUaNodeId getNodeId(const BaseObjectPtr object) const;
     CachedReferenceBrowserPtr getReferenceBrowser();
+    AttributeReaderPtr getAttributeReader();
+    void readObjectAttributes(const OpcUaNodeId& nodeId, bool forceRead = false);
+    size_t getMaxNodesPerBrowse();
+    size_t getMaxNodesPerRead();
 
     template <class I, class Ptr = typename InterfaceToSmartPtr<I>::SmartPtr>
     Ptr getObject(const opcua::OpcUaNodeId& nodeId)
@@ -55,12 +62,18 @@ public:
 
 protected:
     opcua::OpcUaClientPtr client;
+    ContextPtr context;
+    LoggerComponentPtr loggerComponent;
     CachedReferenceBrowserPtr referenceBrowser;
+    AttributeReaderPtr attributeReader;
     mutable std::mutex mutex;
     // Context should not hold objects because of cycling reference
     std::unordered_map<opcua::OpcUaNodeId, IBaseObject*> objects;
+    size_t maxNodesPerBrowse = 0;
+    size_t maxNodesPerRead = 0;
 
     void initReferenceBrowser();
+    void initAttributeReader();
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

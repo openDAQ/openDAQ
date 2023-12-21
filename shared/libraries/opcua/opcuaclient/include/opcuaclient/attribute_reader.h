@@ -18,6 +18,7 @@
 #include <opcuashared/opcuacommon.h>
 #include <opcuaclient/opcuaclient.h>
 #include <opcuashared/opcua_attribute.h>
+#include <tsl/ordered_set.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
@@ -29,22 +30,23 @@ class AttributeReader
 public:
     AttributeReader(const OpcUaClientPtr& client, size_t maxBatchSize = 0);
 
+    void setAttibutes(const tsl::ordered_set<OpcUaAttribute>& attributes);
     void addAttribute(const OpcUaAttribute& attribute);
-    OpcUaDataValuePtr getValue(const OpcUaNodeId& nodeId, UA_AttributeId attributeId);
-    OpcUaDataValuePtr getValue(const OpcUaAttribute& attribute);
-    void reset();
+    OpcUaVariant getValue(const OpcUaNodeId& nodeId, UA_AttributeId attributeId);
+    OpcUaVariant getValue(const OpcUaAttribute& attribute);
+    bool hasAnyValue(const OpcUaNodeId& nodeId);
+    void clearResults();
+    void clearAttributes();
     void read();
-    const std::vector<OpcUaObject<UA_ReadResponse>>& getResponses();
 
 private:
-    using ResultMap = std::unordered_map<OpcUaNodeId, std::unordered_map<UA_UInt32, OpcUaDataValuePtr>>;
+    using ResultMap = std::unordered_map<OpcUaNodeId, std::unordered_map<UA_UInt32, OpcUaVariant>>;
 
-    size_t readBatch(size_t startIndex, size_t size);
-    void addBatchToResultMap(size_t startIndex, const OpcUaObject<UA_ReadResponse>& response);
+    void readBatch(tsl::ordered_set<OpcUaAttribute>::iterator& attrIterator, size_t size);
+    void addBatchToResultMap(tsl::ordered_set<OpcUaAttribute>::iterator attrIterator, const OpcUaObject<UA_ReadResponse>& response);
 
     OpcUaClientPtr client;
-    std::vector<OpcUaAttribute> attributes;
-    std::vector<OpcUaObject<UA_ReadResponse>> responses;
+    tsl::ordered_set<OpcUaAttribute> attributes;
     ResultMap resultMap;
     size_t maxBatchSize = 0;
 };

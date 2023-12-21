@@ -27,5 +27,6 @@ public:
     void TearDown() override;
 
 protected:
+    daq::ContextPtr context;
     daq::opcua::tms::TmsClientContextPtr clientContext;
 };

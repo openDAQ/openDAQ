@@ -1,12 +1,14 @@
 set(LIB_NAME opcuatms_client)
 
 set(SRC_Cpp tms_client.cpp
+            tms_attribute_collector.cpp
 )
 
 set(SRC_PublicHeaders
 )
 
 set(SRC_PrivateHeaders tms_client.h
+                       tms_attribute_collector.h
 )
 
 # objects

@@ -52,6 +52,7 @@ public:
     void invalidate(const OpcUaNodeId& nodeId);
 
     bool isSubtypeOf(const OpcUaNodeId& typeId, const OpcUaNodeId& baseType);
+    OpcUaNodeId getTypeDefinition(const OpcUaNodeId& nodeId);
     bool hasReference(const OpcUaNodeId& nodeId, const std::string& browseName);
     OpcUaNodeId getChildNodeId(const OpcUaNodeId& nodeId, const std::string& browseName);
     CachedReferences browseFiltered(const OpcUaNodeId& nodeId, const BrowseFilter& filter);

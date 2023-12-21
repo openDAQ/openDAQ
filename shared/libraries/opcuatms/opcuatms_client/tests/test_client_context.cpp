@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <opcuatms_client/objects/tms_client_context.h>
+#include <opendaq/context_factory.h>
 
 using namespace daq::opcua;
 using namespace daq::opcua::tms;
@@ -15,13 +16,15 @@ static OpcUaClientPtr CreateClient()
 TEST_F(ClientContextTest, Create)
 {
     auto client = CreateClient();
-    ASSERT_NO_THROW(TmsClientContext clientContext(client));
+    auto context = NullContext();
+    ASSERT_NO_THROW(TmsClientContext clientContext(client, context));
 }
 
 TEST_F(ClientContextTest, RegisterObject)
 {
     auto client = CreateClient();
-    TmsClientContext clientContext(client);
+    auto context = NullContext();
+    TmsClientContext clientContext(client, context);
 
     StringPtr str = "TestStrObject";
     ASSERT_NO_THROW(clientContext.registerObject(OpcUaNodeId(1, 1), str));
@@ -30,7 +33,8 @@ TEST_F(ClientContextTest, RegisterObject)
 TEST_F(ClientContextTest, ContextGetObject)
 {
     auto client = CreateClient();
-    TmsClientContext clientContext(client);
+    auto context = NullContext();
+    TmsClientContext clientContext(client, context);
 
     BaseObjectPtr baseObj;
     ASSERT_NO_THROW(baseObj = clientContext.getObject(OpcUaNodeId(1, 1)));
@@ -47,7 +51,8 @@ TEST_F(ClientContextTest, ContextGetObject)
 TEST_F(ClientContextTest, ContextGetObjectTemplate)
 {
     auto client = CreateClient();
-    TmsClientContext clientContext(client);
+    auto context = NullContext();
+    TmsClientContext clientContext(client, context);
 
     StringPtr strObj;
     ASSERT_NO_THROW(strObj = clientContext.getObject<IString>(OpcUaNodeId(1, 1)));
@@ -68,7 +73,8 @@ TEST_F(ClientContextTest, ContextGetObjectTemplate)
 TEST_F(ClientContextTest, UnregisterObject)
 {
     auto client = CreateClient();
-    TmsClientContext clientContext(client);
+    auto context = NullContext();
+    TmsClientContext clientContext(client, context);
 
     ASSERT_NO_THROW(clientContext.unregisterObject(OpcUaNodeId(1, 1)));
 
@@ -90,7 +96,8 @@ TEST_F(ClientContextTest, TestRefCount)
     };
 
     auto client = CreateClient();
-    TmsClientContext clientContext(client);
+    auto context = NullContext();
+    TmsClientContext clientContext(client, context);
 
     StringPtr str = "TestStrObject";
     ASSERT_EQ(getRefCount(str), 1);

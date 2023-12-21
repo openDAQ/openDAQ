@@ -50,7 +50,7 @@ inline SignalPtr FindOrCreateTmsClientSignal(const ContextPtr& ctx,
     SignalPtr clientSignal = clientContext->getObject(nodeId);
     if (!clientSignal.assigned())
     {
-        auto localId = clientContext->getClient()->readBrowseName(nodeId);
+        auto localId = clientContext->getAttributeReader()->getValue(nodeId, UA_ATTRIBUTEID_BROWSENAME).toString();
         clientSignal = TmsClientSignal(ctx, parent, localId, clientContext, nodeId);
 
         // TODO current client implementation limitation: The order of populating signals is important.

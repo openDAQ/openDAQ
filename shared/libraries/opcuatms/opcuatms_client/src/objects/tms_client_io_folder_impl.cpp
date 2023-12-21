@@ -38,7 +38,7 @@ void TmsClientIoFolderImpl::findAndCreateChannels(std::map<uint32_t, ComponentPt
         auto thisPtr = this->borrowPtr<FolderConfigPtr>();
         auto tmsClientChannel = TmsClientChannel(this->context, thisPtr, browseName, this->clientContext, channelNodeId);
             
-        auto numberInList = this->tryReadChildNumberInList(channelNodeId);
+        auto numberInList = this->readChildNumberInList(channelNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
             orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientChannel));
         else
@@ -56,7 +56,7 @@ void TmsClientIoFolderImpl::findAndCreateIoFolders(std::map<uint32_t, ComponentP
         auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
         auto tmsClientFolder = TmsClientIoFolder(this->context, thisPtr, browseName, this->clientContext, folderNodeId);
 
-        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
+        auto numberInList = this->readChildNumberInList(folderNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
             orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientFolder));
         else

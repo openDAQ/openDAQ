@@ -148,14 +148,31 @@ TEST_F(VariantListConverterTest, String)
     ASSERT_TRUE(eq);
 }
 
-TEST_F(VariantListConverterTest, BaseObject)
+TEST_F(VariantListConverterTest, DISABLED_MixedBaseObject)
 {
+    // disabled: only homogeneous lists are allowed for now
+
     auto list = List<IBaseObject>();
     list.pushBack(nullptr);
     list.pushBack(true);
     list.pushBack(3);
     list.pushBack(12.5);
     list.pushBack("hakuna matata");
+
+    const auto variant = VariantConverter<IBaseObject>::ToArrayVariant(list);
+    const auto listOut = VariantConverter<IBaseObject>::ToDaqList(variant);
+
+    Bool eq{false};
+    listOut->equals(list, &eq);
+    ASSERT_TRUE(eq);
+}
+
+TEST_F(VariantListConverterTest, BaseObject)
+{
+    auto list = List<IBaseObject>();
+    list.pushBack(1.5);
+    list.pushBack(2.5);
+    list.pushBack(3.5);
 
     const auto variant = VariantConverter<IBaseObject>::ToArrayVariant(list);
     const auto listOut = VariantConverter<IBaseObject>::ToDaqList(variant);
@@ -267,8 +284,10 @@ TEST_F(VariantListConverterTest, Scaling)
     ASSERT_TRUE(eq);
 }
 
-TEST_F(VariantListConverterTest, NonExtensionObjectTest)
+TEST_F(VariantListConverterTest, DISABLED_NonExtensionObjectTest)
 {
+    // disabled: only homogeneous lists are allowed for now
+
     constexpr size_t listSize = 3;
 
     auto list = List<IBaseObject>();

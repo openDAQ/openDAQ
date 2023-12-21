@@ -35,7 +35,7 @@ public:
     daq::DevicePtr connect();
 
 protected:
-    daq::opcua::OpcUaNodeId getRootDeviceNodeId();
+    void getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string& browseNameOut);
 
     tms::TmsClientContextPtr tmsClientContext;
     ContextPtr context;

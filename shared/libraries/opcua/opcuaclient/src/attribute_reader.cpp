@@ -1,6 +1,7 @@
 #include <opcuaclient/attribute_reader.h>
 #include <iostream>
 #include <cmath>
+#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
@@ -10,12 +11,17 @@ AttributeReader::AttributeReader(const OpcUaClientPtr& client, size_t maxBatchSi
 {
 }
 
-void AttributeReader::addAttribute(const OpcUaAttribute& attribute)
+void AttributeReader::setAttibutes(const tsl::ordered_set<OpcUaAttribute>& attributes)
 {
-    attributes.push_back(attribute);
+    this->attributes = attributes;
 }
 
-OpcUaDataValuePtr AttributeReader::getValue(const OpcUaNodeId& nodeId, UA_AttributeId attributeId)
+void AttributeReader::addAttribute(const OpcUaAttribute& attribute)
+{
+    attributes.insert(attribute);
+}
+
+OpcUaVariant AttributeReader::getValue(const OpcUaNodeId& nodeId, UA_AttributeId attributeId)
 {
     if (resultMap.count(nodeId) == 0 || resultMap[nodeId].count(attributeId) == 0)
         throw OpcUaException(UA_STATUSCODE_BADNOTFOUND, "Attribute read result not found");
@@ -23,46 +29,51 @@ OpcUaDataValuePtr AttributeReader::getValue(const OpcUaNodeId& nodeId, UA_Attrib
     return resultMap[nodeId][attributeId];
 }
 
-OpcUaDataValuePtr AttributeReader::getValue(const OpcUaAttribute& attribute)
+OpcUaVariant AttributeReader::getValue(const OpcUaAttribute& attribute)
 {
     return getValue(attribute.nodeId, attribute.attributeId);
 }
 
-void AttributeReader::reset()
+bool AttributeReader::hasAnyValue(const OpcUaNodeId& nodeId)
+{
+    return resultMap.count(nodeId) > 0;
+}
+
+void AttributeReader::clearResults()
+{
+    resultMap.clear();
+}
+
+void AttributeReader::clearAttributes()
 {
     attributes.clear();
-    resultMap.clear();
-    responses.clear();
 }
 
 void AttributeReader::read()
 {
-    resultMap.clear();
-    responses.clear();
-
     if (attributes.empty())
         return;
 
     const size_t batchSize = (maxBatchSize > 0) ? maxBatchSize : attributes.size();
-    const size_t numberOfBatches = std::ceil((double) attributes.size() / batchSize);
-    size_t i = 0;
-    responses.reserve(numberOfBatches);
+    size_t read = 0;
+    size_t toRead = batchSize;
+    auto attrIterator = attributes.begin();
 
-    while (i < attributes.size())
-        i += readBatch(i, batchSize);
+    while (read < attributes.size())
+    {
+        toRead = batchSize;
+        if (read + toRead > attributes.size())
+            toRead = attributes.size() - read;
+
+        readBatch(attrIterator, toRead);
+        read += toRead;
+    }
 }
 
-const std::vector<OpcUaObject<UA_ReadResponse>>& AttributeReader::getResponses()
+void AttributeReader::readBatch(tsl::ordered_set<OpcUaAttribute>::iterator& attrIterator, size_t size)
 {
-    return responses;
-}
-
-size_t AttributeReader::readBatch(size_t startIndex, size_t size)
-{
-    if ((startIndex + size) > attributes.size())
-        size = attributes.size() - startIndex;
-
     assert(size > 0);
+    auto batchStartIterator = attrIterator;
 
     OpcUaObject<UA_ReadRequest> request;
     request->nodesToReadSize = size;
@@ -70,36 +81,35 @@ size_t AttributeReader::readBatch(size_t startIndex, size_t size)
 
     for (size_t i = 0; i < size; i++)
     {
-        const auto& attribute = attributes[startIndex + i];
-
+        const auto& attribute = *attrIterator;
         request->nodesToRead[i].nodeId = attribute.nodeId.copyAndGetDetachedValue();
         request->nodesToRead[i].attributeId = attribute.attributeId;
+        attrIterator++;
     }
 
-    responses.emplace_back(UA_Client_Service_read(client->getLockedUaClient(), *request));
-
-    const auto& response = responses.back();
+    OpcUaObject<UA_ReadResponse> response = UA_Client_Service_read(client->getLockedUaClient(), *request);
     const auto status = response->responseHeader.serviceResult;
 
     if (status != UA_STATUSCODE_GOOD)
         throw OpcUaException(status, "Attribute read request failed");
+    if (response->resultsSize != size)
+        throw OpcUaException(UA_STATUSCODE_BADINVALIDSTATE, "Read request returned incorrect number of results");
 
-    addBatchToResultMap(startIndex, response);
-    return size;
+    addBatchToResultMap(batchStartIterator, response);
 }
 
-void AttributeReader::addBatchToResultMap(size_t startIndex, const OpcUaObject<UA_ReadResponse>& response)
+void AttributeReader::addBatchToResultMap(tsl::ordered_set<OpcUaAttribute>::iterator attrIterator,
+                                          const OpcUaObject<UA_ReadResponse>& response)
 {
     for (size_t i = 0; i < response->resultsSize; i++)
     {
-        const auto& attr = attributes[startIndex + i];
-
-        const auto value = std::make_shared<OpcUaDataValue>(response->results + i);
+        const auto& attr = *attrIterator;
 
         if (resultMap.count(attr.nodeId) == 0)
             resultMap[attr.nodeId] = {};
 
-        resultMap[attr.nodeId][attr.attributeId] = value;
+        resultMap[attr.nodeId][attr.attributeId] = OpcUaVariant(response->results[i].value);
+        attrIterator++;
     }
 }
 

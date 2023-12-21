@@ -1,5 +1,4 @@
 #include <opendaq/packet_factory.h>
-#include <opcuaclient/browse_request.h>
 #include <opcuaclient/browser/opcuabrowser.h>
 #include <opcuatms_client/tms_client.h>
 #include <open62541/daq_opcua_nodesets.h>
@@ -13,6 +12,7 @@
 
 
 #include <iostream>
+#include <opcuatms_client/tms_attribute_collector.h>
 
 using namespace daq::opcua;
 using namespace daq::opcua::tms;
@@ -52,13 +52,13 @@ daq::DevicePtr TmsClient::connect()
         throw NotFoundException();
     client->runIterate();
 
-    tmsClientContext = std::make_shared<TmsClientContext>(client);
+    tmsClientContext = std::make_shared<TmsClientContext>(client, context);
 
-    auto rootDeviceNodeId = getRootDeviceNodeId();
+    OpcUaNodeId rootDeviceNodeId;
+    std::string rootDeviceBrowseName;
+    getRootDeviceNodeAttributes(rootDeviceNodeId, rootDeviceBrowseName);
 
-    BrowseRequest request(rootDeviceNodeId, OpcUaNodeClass::Variable);
-    auto localId = getUniqueLocalId(client->readBrowseName(rootDeviceNodeId));
-
+    const auto localId = getUniqueLocalId(rootDeviceBrowseName);
     auto device = TmsClientRootDevice(context, parent, localId, tmsClientContext, rootDeviceNodeId, createStreamingCallback);
 
     const auto deviceInfo = device.getInfo();
@@ -79,7 +79,7 @@ daq::DevicePtr TmsClient::connect()
     return device;
 }
 
-OpcUaNodeId TmsClient::getRootDeviceNodeId()
+void TmsClient::getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string& browseNameOut)
 {
     const OpcUaNodeId rootNodeId(NAMESPACE_DI, UA_DIID_DEVICESET);
 
@@ -92,7 +92,8 @@ OpcUaNodeId TmsClient::getRootDeviceNodeId()
     if (references.byNodeId.empty())
         throw NotFoundException();
 
-    return references.byNodeId.begin().key();
+    nodeIdOut = OpcUaNodeId(references.byBrowseName.begin().value()->nodeId.nodeId);
+    browseNameOut = references.byBrowseName.begin().key();
 }
 
 StringPtr TmsClient::getUniqueLocalId(const StringPtr& localId, int iteration)

@@ -66,6 +66,8 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
                           ? this->logger.getOrAddComponent("TmsClientDevice")
                           : throw ArgumentNullException("Logger must not be null"))
 {
+    clientContext->readObjectAttributes(nodeId);
+
     findAndCreateSubdevices();
     findAndCreateFunctionBlocks();
     findAndCreateSignals();
@@ -89,7 +91,7 @@ void TmsClientDeviceImpl::findAndCreateSubdevices()
         auto subdeviceNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         auto clientSubdevice = TmsClientDevice(context, devices, browseName, clientContext, subdeviceNodeId, createStreamingCallback);
                     
-        auto numberInList = this->tryReadChildNumberInList(subdeviceNodeId);
+        auto numberInList = this->readChildNumberInList(subdeviceNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedDevices.count(numberInList))
             orderedDevices.insert(std::pair<uint32_t, ComponentPtr>(numberInList, clientSubdevice));
         else
@@ -119,36 +121,45 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 
     deviceInfo = DeviceInfo("");
 
-    BrowseRequest request(nodeId, OpcUaNodeClass::Variable);
-    OpcUaBrowser browser(request, client);
-    const auto& browseResult = browser.browse();
+    const auto& references = clientContext->getReferenceBrowser()->browse(nodeId);
+    auto reader = AttributeReader(client, clientContext->getMaxNodesPerRead());
 
-    for (const UA_ReferenceDescription& reference : browseResult)
+    for (const auto& [browseName, ref] : references.byBrowseName)
+        reader.addAttribute({ref->nodeId.nodeId, UA_ATTRIBUTEID_VALUE});
+
+    reader.read();
+
+    for (const auto& [browseName, ref] : references.byBrowseName)
     {
-        std::string browseName = daq::opcua::utils::ToStdString(reference.browseName.name);
+        const auto refNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+        const auto value = reader.getValue(refNodeId, UA_ATTRIBUTEID_VALUE);
+
         if (detail::deviceInfoSetterMap.count(browseName))
-            detail::deviceInfoSetterMap[browseName](deviceInfo, client->readValue(OpcUaNodeId(reference.nodeId.nodeId)));
-        else if (browseName != "NumberInList")
         {
-            // TODO: Group requests for data type and scalar/array checks and only read required values
-            try
+            detail::deviceInfoSetterMap[browseName](deviceInfo, value);
+            continue;
+        }
+
+        if (browseName == "NumberInList")
+            continue;
+
+        try
+        {
+            if (value.isScalar())
             {
-                auto value = client->readValue(OpcUaNodeId(reference.nodeId.nodeId));
-                if (value.isScalar())
-                {
-                    if (value.isString())
-                        deviceInfo.addProperty(StringProperty(browseName, value.toString()));
-                    else if(value.isBool())
-                        deviceInfo.addProperty(BoolProperty(browseName, value.toBool()));
-                    else if(value.isDouble())
-                        deviceInfo.addProperty(FloatProperty(browseName, value.toDouble()));
-                    else if(value.isInteger())
-                        deviceInfo.addProperty(IntProperty(browseName, value.toInteger()));
-                }
+                if (value.isString())
+                    deviceInfo.addProperty(StringProperty(browseName, value.toString()));
+                else if (value.isBool())
+                    deviceInfo.addProperty(BoolProperty(browseName, value.toBool()));
+                else if (value.isDouble())
+                    deviceInfo.addProperty(FloatProperty(browseName, value.toDouble()));
+                else if (value.isInteger())
+                    deviceInfo.addProperty(IntProperty(browseName, value.toInteger()));
             }
-            catch(...)
-            {
-            }
+        }
+        catch (const std::exception& e)
+        {
+            LOG_D("Failed to read device info attribute: {}", e.what());
         }
     }
 
@@ -236,7 +247,7 @@ void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
         try
         {
             auto clientFunctionBlock = TmsClientFunctionBlock(context, this->functionBlocks, browseName, clientContext, functionBlockNodeId);
-            const auto numberInList = this->tryReadChildNumberInList(functionBlockNodeId);
+            const auto numberInList = this->readChildNumberInList(functionBlockNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedFunctionBlocks.count(numberInList))
                 orderedFunctionBlocks.insert(std::pair<uint32_t, FunctionBlockPtr>(numberInList, clientFunctionBlock));
             else
@@ -265,7 +276,7 @@ void TmsClientDeviceImpl::findAndCreateSignals()
     for (const auto& [signalNodeId, ref] : references.byNodeId)
     {
         auto clientSignal = FindOrCreateTmsClientSignal(context, signals, clientContext, signalNodeId);
-        const auto numberInList = this->tryReadChildNumberInList(signalNodeId);
+        const auto numberInList = this->readChildNumberInList(signalNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedSignals.count(numberInList))
             orderedSignals.insert(std::pair<uint32_t, SignalPtr>(numberInList, clientSignal));
         else
@@ -292,7 +303,7 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
         const auto channelNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         auto tmsClientChannel = TmsClientChannel(context, this->ioFolder, browseName, clientContext, channelNodeId);
 
-        auto numberInList = this->tryReadChildNumberInList(channelNodeId);
+        auto numberInList = this->readChildNumberInList(channelNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
             orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientChannel));
         else
@@ -306,7 +317,7 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
         const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         auto tmsClientFolder = TmsClientIoFolder(context, this->ioFolder, browseName, clientContext, folderNodeId);
 
-        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
+        auto numberInList = this->readChildNumberInList(folderNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max())
             orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientFolder));
         else
@@ -337,7 +348,7 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
             const auto optionNodeId = OpcUaNodeId(ref->nodeId.nodeId);
             auto clientStreamingInfo = TmsClientStreamingInfo(daqContext, browseName, clientContext, optionNodeId);
 
-            auto numberInList = this->tryReadChildNumberInList(optionNodeId);
+            auto numberInList = this->readChildNumberInList(optionNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max())
                 orderedStreamings.insert(std::pair<uint32_t, PropertyObjectPtr>(numberInList, clientStreamingInfo));
             else
@@ -378,7 +389,7 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
         else
             child = TmsClientComponent(context, this->thisPtr<ComponentPtr>(), browseName, clientContext, folderNodeId);
     
-        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
+        auto numberInList = this->readChildNumberInList(folderNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
             orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, child));
         else

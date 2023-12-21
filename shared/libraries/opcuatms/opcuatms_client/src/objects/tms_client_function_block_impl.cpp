@@ -21,6 +21,8 @@ TmsClientFunctionBlockBaseImpl<Impl>::TmsClientFunctionBlockBaseImpl(
 )
     : TmsClientComponentBaseImpl<Impl>(context, parent, localId, clientContext, nodeId, nullptr)
 {
+    clientContext->readObjectAttributes(nodeId);
+
     readFbType();
     findAndCreateFunctionBlocks();
     findAndCreateSignals();
@@ -55,7 +57,7 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateFunctionBlocks()
             // just be ignored. It is not an error at all.
             auto clientFunctionBlock = TmsClientFunctionBlock(this->context, this->functionBlocks, browseName, this->clientContext, functionBlockNodeId);
 
-            const auto numberInList = this->tryReadChildNumberInList(functionBlockNodeId);
+            const auto numberInList = this->readChildNumberInList(functionBlockNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedFunctionBlocks.count(numberInList))
                 orderedFunctionBlocks.insert(std::pair<uint32_t, FunctionBlockPtr>(numberInList, clientFunctionBlock));
             else
@@ -85,7 +87,7 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateSignals()
     for (const auto& [signalNodeId, ref] : references.byNodeId)
     {
         auto clientSignal = FindOrCreateTmsClientSignal(this->context, this->signals, this->clientContext, signalNodeId);
-        const auto numberInList = this->tryReadChildNumberInList(signalNodeId);
+        const auto numberInList = this->readChildNumberInList(signalNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedSignals.count(numberInList))
             orderedSignals.insert(std::pair<uint32_t, SignalPtr>(numberInList, clientSignal));
         else
@@ -136,7 +138,7 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateInputPorts()
 
         auto clientInputPort = TmsClientInputPort(this->context, this->inputPorts, browseName,  this->clientContext, inputPortNodeId);
 
-        const auto numberInList = this->tryReadChildNumberInList(inputPortNodeId);
+        const auto numberInList = this->readChildNumberInList(inputPortNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedInputPorts.count(numberInList))
             orderedInputPorts.insert(std::pair<uint32_t, InputPortPtr>(numberInList, clientInputPort));
         else
@@ -152,7 +154,8 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateInputPorts()
 template <typename Impl>
 void TmsClientFunctionBlockBaseImpl<Impl>::readFbType()
 {
-    auto variant = this->readValue("FunctionBlockInfo");
+    auto infoNodeId = this->getNodeId("FunctionBlockInfo");
+    auto variant = this->clientContext->getAttributeReader()->getValue(infoNodeId, UA_ATTRIBUTEID_VALUE);
     this->type = VariantConverter<IFunctionBlockType>::ToDaqObject(variant).detach();
 }
 

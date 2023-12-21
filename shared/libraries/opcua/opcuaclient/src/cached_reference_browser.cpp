@@ -39,16 +39,31 @@ bool CachedReferenceBrowser::isSubtypeOf(const OpcUaNodeId& typeId, const OpcUaN
 {
     if (typeId == baseType)
         return true;
+    if (typeId.isNull())
+        return false;
 
-    browse(baseType);
+    const auto& references = browse(baseType);
 
-    for (const auto& [refNodeId, ref] : references[baseType].byNodeId)
+    for (const auto& [refNodeId, ref] : references.byNodeId)
     {
         if (OpcUaNodeId(ref->referenceTypeId) == OpcUaNodeId(UA_NS0ID_HASSUBTYPE) && isSubtypeOf(typeId, refNodeId))
             return true;
     }
 
     return false;
+}
+
+OpcUaNodeId CachedReferenceBrowser::getTypeDefinition(const OpcUaNodeId& nodeId)
+{
+    const auto& references = browse(nodeId);
+
+    for (const auto& [refNodeId, ref] : references.byNodeId)
+    {
+        if (OpcUaNodeId(ref->referenceTypeId) == OpcUaNodeId(UA_NS0ID_HASTYPEDEFINITION))
+            return ref->nodeId.nodeId;
+    }
+
+    return OpcUaNodeId();
 }
 
 bool CachedReferenceBrowser::hasReference(const OpcUaNodeId& nodeId, const std::string& browseName)

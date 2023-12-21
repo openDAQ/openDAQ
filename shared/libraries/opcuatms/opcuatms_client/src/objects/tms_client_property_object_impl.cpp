@@ -56,6 +56,17 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
         });
 }
 
+template <class Impl>
+void TmsClientPropertyObjectBaseImpl<Impl>::init()
+{
+    if (!this->daqContext.getLogger().assigned())
+        throw ArgumentNullException("Logger must not be null");
+
+    this->loggerComponent = this->daqContext.getLogger().getOrAddComponent("TmsClientPropertyObject");
+    clientContext->readObjectAttributes(nodeId);
+    browseRawProperties();
+}
+
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
@@ -187,7 +198,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             {
                 if (!hasProp)
                 {
-                    StringPtr refPropEval = VariantConverter<IString>::ToDaqObject(client->readValue(childNodeId));
+                    StringPtr refPropEval = VariantConverter<IString>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                     prop = ReferenceProperty(propName, EvalValue(refPropEval));
                 }
 
@@ -210,7 +221,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
 
                 introspectionVariableIdMap.insert(std::pair(propName, childNodeId));
             }                     
-            catch(...)
+            catch(const std::exception& e)
             {
                 // TODO: Log failure to add function/procedure.
                 continue;
@@ -221,7 +232,8 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             if (!hasProp)
             {
                 auto obj = TmsClientPropertyObject(daqContext, clientContext, childNodeId);
-                auto propBuilder = ObjectPropertyBuilder(propName, obj).setDescription(String(client->readDescription(childNodeId)));
+                const auto description = reader->getValue(childNodeId, UA_ATTRIBUTEID_DESCRIPTION).toString();
+                auto propBuilder = ObjectPropertyBuilder(propName, obj).setDescription(String(description));
 
                 const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_EVALUATIONVARIABLETYPE);
                 const auto variableBlockRefs = clientContext->getReferenceBrowser()->browse(childNodeId);
@@ -234,21 +246,21 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
                     {
                         auto evalId = clientContext->getReferenceBrowser()->getChildNodeId(variableBlockNodeId, "EvaluationExpression");
 
-                        StringPtr evalStr = VariantConverter<IString>::ToDaqObject(client->readValue(evalId));
+                        StringPtr evalStr = VariantConverter<IString>::ToDaqObject(reader->getValue(evalId, UA_ATTRIBUTEID_VALUE));
 
                         if (browseName == "IsReadOnly")
                         {
                             if (evalStr.assigned())
                                 propBuilder.setReadOnly(EvalValue(evalStr).asPtr<IBoolean>());
                             else
-                                propBuilder.setReadOnly(VariantConverter<IBoolean>::ToDaqObject(client->readValue(variableBlockNodeId)));
+                                propBuilder.setReadOnly(VariantConverter<IBoolean>::ToDaqObject(reader->getValue(variableBlockNodeId, UA_ATTRIBUTEID_VALUE)));
                         }
                         else if (browseName == "IsVisible")
                         {
                             if (evalStr.assigned())
                                 propBuilder.setVisible(EvalValue(evalStr).asPtr<IBoolean>());
                             else
-                                propBuilder.setVisible(VariantConverter<IBoolean>::ToDaqObject(client->readValue(variableBlockNodeId)));
+                                propBuilder.setVisible(VariantConverter<IBoolean>::ToDaqObject(reader->getValue(variableBlockNodeId, UA_ATTRIBUTEID_VALUE)));
                         }
                     }
                 }
@@ -261,7 +273,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
 
         if (prop.assigned())
         {
-            auto numberInList = tryReadChildNumberInList(childNodeId);
+            auto numberInList = readChildNumberInList(childNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedProperties.count(numberInList))
                 orderedProperties.insert(std::pair<uint32_t, PropertyPtr>(numberInList, prop));
             else
@@ -276,7 +288,10 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(const OpcUaNodeI
                                                                 std::vector<PropertyPtr>& unorderedProperties,
                                                                 std::unordered_map<std::string, BaseObjectPtr>& functionPropValues)
 {
-    const auto& references = clientContext->getReferenceBrowser()->browse(parentNodeId);
+    auto browser = clientContext->getReferenceBrowser();
+    auto reader = clientContext->getAttributeReader();
+
+    const auto& references = browser->browse(parentNodeId);
     const auto methodTypeId = OpcUaNodeId(0, UA_NS0ID_METHODNODE);
 
     for (auto& [childNodeId, ref] : references.byNodeId)
@@ -297,21 +312,27 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(const OpcUaNodeI
 
                 try
                 {
-                    if (clientContext->getReferenceBrowser()->hasReference(childNodeId, "InputArguments"))
-                        inputArgs = VariantConverter<IArgumentInfo>::ToDaqList(
-                            client->readValue(clientContext->getReferenceBrowser()->getChildNodeId(childNodeId, "InputArguments")));
+                    if (browser->hasReference(childNodeId, "InputArguments"))
+                    {
+                        const auto inputArgsId = browser->getChildNodeId(childNodeId, "InputArguments");
+                        inputArgs = VariantConverter<IArgumentInfo>::ToDaqList(reader->getValue(inputArgsId, UA_ATTRIBUTEID_VALUE));
+                    }
 
-                    if (clientContext->getReferenceBrowser()->hasReference(childNodeId, "OutputArguments"))
-                        outputArgs = VariantConverter<IArgumentInfo>::ToDaqList(
-                            client->readValue(clientContext->getReferenceBrowser()->getChildNodeId(childNodeId, "OutputArguments")));
+                    if (browser->hasReference(childNodeId, "OutputArguments"))
+                    {
+                        const auto outputArgsId = browser->getChildNodeId(childNodeId, "OutputArguments");
+                        outputArgs = VariantConverter<IArgumentInfo>::ToDaqList(reader->getValue(outputArgsId, UA_ATTRIBUTEID_VALUE));
+                    }
 
-                    if (clientContext->getReferenceBrowser()->hasReference(childNodeId, "NumberInList"))
-                        numberInList = VariantConverter<IInteger>::ToDaqObject(
-                            client->readValue(clientContext->getReferenceBrowser()->getChildNodeId(childNodeId, "NumberInList")));
+                    if (browser->hasReference(childNodeId, "NumberInList"))
+                    {
+                        const auto numberInListId = browser->getChildNodeId(childNodeId, "NumberInList");
+                        numberInList = VariantConverter<IInteger>::ToDaqObject(reader->getValue(numberInListId, UA_ATTRIBUTEID_VALUE));
+                    }
                 }
-                catch(...)
+                catch(const std::exception& e)
                 {
-                    // TODO: Log failure to add function/procedure.
+                    LOG_W("Failed to parse method properties {}", e.what());
                     continue;
                 }
 

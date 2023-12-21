@@ -28,7 +28,7 @@ NativeStreamingImpl::NativeStreamingImpl(const StringPtr& connectionString,
     prepareClientHandler();
     startAsyncOperations();
 
-    if (!this->clientHandler->connect(ioContextPtr, host.toStdString(), port.toStdString(), path.toStdString()))
+    if (!this->clientHandler->connect(host.toStdString(), port.toStdString(), path.toStdString()))
     {
         stopAsyncOperations();
         LOG_E("Failed to connect to native streaming server - host {} port {} path {}", host, port, path);
@@ -134,11 +134,15 @@ void NativeStreamingImpl::prepareClientHandler()
             }
         }
     };
+    OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb =
+        [](ClientReconnectionStatus status) {};
     clientHandler = std::make_shared<NativeStreamingClientHandler>(context,
+                                                                   ioContextPtr,
                                                                    signalAvailableCb,
                                                                    signalUnavailableCb,
                                                                    onPacketCallback,
-                                                                   onSignalSubscriptionAckCallback);
+                                                                   onSignalSubscriptionAckCallback,
+                                                                   onReconnectionStatusChangedCb);
 }
 
 void NativeStreamingImpl::onPacket(const StringPtr& signalStringId, const PacketPtr& packet)

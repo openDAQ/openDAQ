@@ -10,13 +10,14 @@ using namespace daq::native_streaming;
 using namespace packet_streaming;
 
 ClientSessionHandler::ClientSessionHandler(const ContextPtr& context,
+                                           boost::asio::io_context& ioContext,
                                            SessionPtr session,
                                            OnSignalCallback signalReceivedHandler,
                                            OnPacketReceivedCallback packetReceivedHandler,
                                            OnProtocolInitDoneCallback protocolInitDoneHandler,
                                            OnSubscriptionAckCallback subscriptionAckHandler,
-                                           OnErrorCallback errorHandler)
-    : BaseSessionHandler(session, errorHandler)
+                                           OnSessionErrorCallback errorHandler)
+    : BaseSessionHandler(session, ioContext, errorHandler)
     , signalReceivedHandler(signalReceivedHandler)
     , packetReceivedHandler(packetReceivedHandler)
     , protocolInitDoneHandler(protocolInitDoneHandler)
@@ -110,7 +111,7 @@ ReadTask ClientSessionHandler::readPacket(const void* data, size_t size)
     catch (const DaqException& e)
     {
         LOG_E("Protocol error: {}", e.what());
-        errorHandler(e.what(), session);
+        errorHandler(std::string("Protocol error - readPacket - ") + e.what(), session);
         return createReadStopTask();
     }
 
@@ -230,7 +231,7 @@ ReadTask ClientSessionHandler::readSignalAvailable(const void* data, size_t size
     catch (const DaqException& e)
     {
         LOG_E("Protocol error: {}", e.what());
-        errorHandler(e.what(), session);
+        errorHandler(std::string("Protocol error - readSignalAvailable - ") + e.what(), session);
         return createReadStopTask();
     }
 
@@ -259,7 +260,7 @@ ReadTask ClientSessionHandler::readSignalUnavailable(const void *data, size_t si
     catch (const DaqException& e)
     {
         LOG_E("Protocol error: {}", e.what());
-        errorHandler(e.what(), session);
+        errorHandler(std::string("Protocol error - readSignalUnavailable - ") + e.what(), session);
         return createReadStopTask();
     }
 
@@ -280,7 +281,7 @@ ReadTask ClientSessionHandler::readSignalSubscribedAck(const void *data, size_t 
     catch (const DaqException& e)
     {
         LOG_E("Protocol error: {}", e.what());
-        errorHandler(e.what(), session);
+        errorHandler(std::string("Protocol error - readSignalSubscribedAck - ") + e.what(), session);
         return createReadStopTask();
     }
 
@@ -301,7 +302,7 @@ ReadTask ClientSessionHandler::readSignalUnsubscribedAck(const void *data, size_
     catch (const DaqException& e)
     {
         LOG_E("Protocol error: {}", e.what());
-        errorHandler(e.what(), session);
+        errorHandler(std::string("Protocol error - readSignalUnsubscribedAck - ") + e.what(), session);
         return createReadStopTask();
     }
 

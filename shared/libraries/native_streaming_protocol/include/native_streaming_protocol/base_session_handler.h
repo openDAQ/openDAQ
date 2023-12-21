@@ -24,14 +24,16 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 class BaseSessionHandler
 {
 public:
-    BaseSessionHandler(SessionPtr session, OnErrorCallback errorHandler);
+    BaseSessionHandler(SessionPtr session,
+                       boost::asio::io_context& ioContext,
+                       native_streaming::OnSessionErrorCallback errorHandler);
     ~BaseSessionHandler();
 
     void startReading();
     const SessionPtr getSession() const;
-    void initErrorHandlers();
 
 protected:
+    void initHeartbeat();
     virtual daq::native_streaming::ReadTask readHeader(const void* data, size_t size);
 
     daq::native_streaming::ReadTask createReadHeaderTask();
@@ -55,6 +57,7 @@ protected:
     static std::string getStringFromData(const void *source, size_t stringSize, size_t sourceOffset, size_t sourceSize);
 
     SessionPtr session;
-    OnErrorCallback errorHandler;
+    native_streaming::OnSessionErrorCallback errorHandler;
+    std::shared_ptr<boost::asio::steady_timer> heartbeatTimer;
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

@@ -416,9 +416,10 @@ SampleType TypedReader<ReadType>::getReadType() const noexcept
 // Reader
 ////
 
-Reader::Reader(FunctionPtr transform)
+Reader::Reader(FunctionPtr transform, SampleType descriptorReadType)
     : ignoreTransform(false)
     , transformFunction(std::move(transform))
+    , dataSampleType(descriptorReadType)
 {
 }
 
@@ -442,36 +443,36 @@ void Reader::setTransformIgnore(bool ignore)
     ignoreTransform = ignore;
 }
 
-std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionPtr& transformFunction)
+std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionPtr& transformFunction, SampleType descriptorReadType)
 {
     switch (readType)
     {
         case SampleType::Float32:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Float32>::Type>>(transformFunction);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Float32>::Type>>(transformFunction, descriptorReadType);
         case SampleType::Float64:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Float64>::Type>>(transformFunction);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Float64>::Type>>(transformFunction, descriptorReadType);
         case SampleType::UInt8:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt8>::Type>>(transformFunction);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt8>::Type>>(transformFunction, descriptorReadType);
         case SampleType::Int8:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int8>::Type>>(transformFunction);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int8>::Type>>(transformFunction, descriptorReadType);
         case SampleType::UInt16:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt16>::Type>>(transformFunction);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt16>::Type>>(transformFunction, descriptorReadType);
         case SampleType::Int16:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int16>::Type>>(transformFunction);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int16>::Type>>(transformFunction, descriptorReadType);
         case SampleType::UInt32:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt32>::Type>>(transformFunction);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt32>::Type>>(transformFunction, descriptorReadType);
         case SampleType::Int32:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int32>::Type>>(transformFunction);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int32>::Type>>(transformFunction, descriptorReadType);
         case SampleType::UInt64:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt64>::Type>>(transformFunction);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::UInt64>::Type>>(transformFunction, descriptorReadType);
         case SampleType::Int64:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int64>::Type>>(transformFunction);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Int64>::Type>>(transformFunction, descriptorReadType);
         case SampleType::RangeInt64:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::RangeInt64>::Type>>(transformFunction);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::RangeInt64>::Type>>(transformFunction, descriptorReadType);
         case SampleType::ComplexFloat32:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::ComplexFloat32>::Type>>(transformFunction);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::ComplexFloat32>::Type>>(transformFunction, descriptorReadType);
         case SampleType::ComplexFloat64:
-            return std::make_unique<TypedReader<SampleTypeToType<SampleType::ComplexFloat64>::Type>>(transformFunction);
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::ComplexFloat64>::Type>>(transformFunction, descriptorReadType);
         case SampleType::Undefined:
             return std::make_unique<UndefinedReader>(transformFunction);
         case SampleType::Binary:

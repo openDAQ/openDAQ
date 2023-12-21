@@ -1014,19 +1014,21 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
 
-    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
-    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
-    port.connect(this->signal);
+    this->signal.setDescriptor(setupDescriptor(SampleType::Int64));
 
-    auto reader = daq::BlockReaderFromPort(port, 1, SampleType::Undefined, SampleType::Undefined);
+    BlockReaderPtr reader = daq::BlockReader(this->signal, 1, SampleType::Float64, SampleType::RangeInt64);
+    BlockReaderPtr newReader;
     reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
-        reader.readWithDomain(&samples, &domain, &count);
+        newReader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
         return nullptr;
     });
+    reader.setOnDescriptorChanged([&] {
+        newReader = daq::BlockReaderFromExisting(reader, BLOCK_SIZE, SampleType::Float64, SampleType::RangeInt64);
+        return false;
+    });
 
-    reader = daq::BlockReaderFromExisting(reader, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
-
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
     auto dataPtr = static_cast<double*>(dataPacket.getData());

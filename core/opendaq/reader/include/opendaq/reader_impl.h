@@ -326,8 +326,8 @@ protected:
                         SampleType valueReadType,
                         SampleType domainReadType)
         : readMode(old->readMode)
-        , valueReader(daq::createReaderForType(valueReadType, old->valueReader->getTransformFunction()))
-        , domainReader(daq::createReaderForType(domainReadType, old->domainReader->getTransformFunction()))
+        , valueReader(daq::createReaderForType(valueReadType, old->valueReader->getTransformFunction(), old->valueReader->getReadType()))
+        , domainReader(daq::createReaderForType(domainReadType, old->domainReader->getTransformFunction(), old->domainReader->getReadType()))
     {
         std::unique_lock lock(old->mutex);
         old->invalid = true;
@@ -337,7 +337,7 @@ protected:
         portBinder = old->portBinder;
         port = old->port;
         port.asPtr<IOwnable>().setOwner(portBinder);
-        
+
         connection = old->connection;
         changeCallback = old->changeCallback;
         readCallback = old->readCallback;

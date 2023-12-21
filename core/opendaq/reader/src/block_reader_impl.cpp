@@ -53,8 +53,10 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , info(old->info)
 {
     this->internalAddRef();
-
-    readDescriptorFromPort();
+    // if on descreption change callback was set
+    // readDescriptorFromPort method have to be called from this callback
+    if (!changeCallback.assigned())
+        readDescriptorFromPort();
     notify.dataReady = false;
 }
 
@@ -100,8 +102,16 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
     {
         std::unique_lock lock(notify.mutex);
 
-        if (getAvailable() != 0)
+        while (getAvailableSamples())
         {
+            auto packet = connection.peek();
+            if (packet.getType() == PacketType::Event)
+                handleDescriptorChanged(connection.dequeue());
+            else
+                break;
+        }
+        if (getAvailable() != 0)
+        {   
             notify.dataReady = true;
         }
         else

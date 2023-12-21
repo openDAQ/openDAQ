@@ -31,12 +31,13 @@ class ClientSessionHandler : public BaseSessionHandler
 {
 public:
     ClientSessionHandler(const ContextPtr& context,
+                         boost::asio::io_context& ioContext,
                          SessionPtr session,
                          OnSignalCallback signalReceivedHandler,
                          OnPacketReceivedCallback packetReceivedHandler,
                          OnProtocolInitDoneCallback protocolInitDoneHandler,
                          OnSubscriptionAckCallback subscriptionAckHandler,
-                         OnErrorCallback errorHandler);
+                         native_streaming::OnSessionErrorCallback errorHandler);
 
     ~ClientSessionHandler();
 

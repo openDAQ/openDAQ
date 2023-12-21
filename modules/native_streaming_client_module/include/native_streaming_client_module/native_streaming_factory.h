@@ -17,16 +17,19 @@
 #pragma once
 #include <native_streaming_client_module/native_streaming_impl.h>
 #include <opendaq/streaming_ptr.h>
+#include <native_streaming_protocol/native_streaming_client_handler.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
-inline StreamingPtr NativeStreaming(const StringPtr& connectionString,
-                                    const StringPtr& host,
-                                    const StringPtr& port,
-                                    const StringPtr& path,
-                                    const ContextPtr& context,
-                                    const ProcedurePtr& onSignalAvailableCallback = nullptr,
-                                    const ProcedurePtr& onSignalUnavailableCallback = nullptr)
+inline StreamingPtr NativeStreaming(
+    const StringPtr& connectionString,
+    const StringPtr& host,
+    const StringPtr& port,
+    const StringPtr& path,
+    const ContextPtr& context,
+    const ProcedurePtr& onSignalAvailableCallback = nullptr,
+    const ProcedurePtr& onSignalUnavailableCallback = nullptr,
+    opendaq_native_streaming_protocol::OnReconnectionStatusChangedCallback onReconnectionStatusChangedCallback = nullptr)
 {
     StreamingPtr obj(createWithImplementation<IStreaming, NativeStreamingImpl>(connectionString,
                                                                                host,
@@ -34,7 +37,8 @@ inline StreamingPtr NativeStreaming(const StringPtr& connectionString,
                                                                                path,
                                                                                context,
                                                                                onSignalAvailableCallback,
-                                                                               onSignalUnavailableCallback));
+                                                                               onSignalUnavailableCallback,
+                                                                               onReconnectionStatusChangedCallback));
     return obj;
 }
 

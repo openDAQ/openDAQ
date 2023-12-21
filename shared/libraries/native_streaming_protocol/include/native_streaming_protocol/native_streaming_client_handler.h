@@ -30,6 +30,14 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
+enum class ClientReconnectionStatus
+{
+    Connected = 0,
+    Reconnecting,
+    Restored,
+    Unrecoverable
+};
+
 using OnSignalAvailableCallback = std::function<void(const StringPtr& signalStringId,
                                                      const StringPtr& domainSignalStringId,
                                                      const DataDescriptorPtr& signalDescriptor,
@@ -38,17 +46,22 @@ using OnSignalAvailableCallback = std::function<void(const StringPtr& signalStri
 using OnSignalUnavailableCallback = std::function<void(const StringPtr& signalStringId)>;
 using OnPacketCallback = std::function<void(const StringPtr& signalStringId, const PacketPtr& packet)>;
 using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
+using OnReconnectionStatusChangedCallback = std::function<void(ClientReconnectionStatus status)>;
 
 class NativeStreamingClientHandler
 {
 public:
     explicit NativeStreamingClientHandler(const ContextPtr& context,
+                                          std::shared_ptr<boost::asio::io_context> ioContextPtr,
                                           OnSignalAvailableCallback signalAvailableHandler,
                                           OnSignalUnavailableCallback signalUnavailableHandler,
                                           OnPacketCallback packetHandler,
-                                          OnSignalSubscriptionAckCallback signalSubscriptionAckCallback);
-    bool connect(std::shared_ptr<boost::asio::io_context> ioContextPtr,
-                 std::string host,
+                                          OnSignalSubscriptionAckCallback signalSubscriptionAckCallback,
+                                          OnReconnectionStatusChangedCallback reconnectionStatusChangedCb);
+
+    ~NativeStreamingClientHandler();
+
+    bool connect(std::string host,
                  std::string port,
                  std::string path = "/");
 
@@ -58,8 +71,7 @@ public:
 
 protected:
     void initClientSessionHandler(SessionPtr session);
-    void initClient(std::shared_ptr<boost::asio::io_context> ioContextPtr,
-                    std::string host,
+    void initClient(std::string host,
                     std::string port,
                     std::string path);
 
@@ -72,17 +84,37 @@ protected:
                       const StringPtr& description,
                       bool available);
 
+    void checkReconnectionStatus(const boost::system::error_code& ec);
+    void checkProtocolInitializationStatus(const boost::system::error_code& ec);
+    void tryReconnect();
+    bool isProtocolInitialized(std::chrono::seconds timeout = std::chrono::seconds(0));
+
+    enum class ConnectionResult
+    {
+        Connected = 0,
+        ServerUnreachable,
+        ServerUnsupported
+    };
+
     ContextPtr context;
+    std::shared_ptr<boost::asio::io_context> ioContextPtr;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
     OnSignalAvailableCallback signalAvailableHandler;
     OnSignalUnavailableCallback signalUnavailableHandler;
     OnPacketCallback packetHandler;
     OnSignalSubscriptionAckCallback signalSubscriptionAckCallback;
+    OnReconnectionStatusChangedCallback reconnectionStatusChangedCb;
+
+    std::shared_ptr<boost::asio::steady_timer> reconnectionTimer;
+    std::shared_ptr<boost::asio::steady_timer> protocolInitTimer;
 
     std::shared_ptr<daq::native_streaming::Client> client;
     std::shared_ptr<ClientSessionHandler> sessionHandler;
-    std::promise<bool> connectedPromise;
+    std::promise<ConnectionResult> connectedPromise;
+    std::future<ConnectionResult> connectedFuture;
+    std::promise<void> protocolInitPromise;
+    std::future<void> protocolInitFuture;
 
     std::unordered_map<SignalNumericIdType, StringPtr> signalIds;
 };

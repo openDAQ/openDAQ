@@ -100,19 +100,25 @@ void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
     {
         signalUnsubscribedHandler(findRegisteredSignal(item));
     }
-    session->close();
+
+    if (session->isOpen())
+        session->close();
 }
 
 void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
 {
     LOG_I("New connection accepted by server");
 
-    OnErrorCallback errorHandler = [this](const std::string& errorMessage, SessionPtr session)
+    OnSessionErrorCallback errorHandler = [this](const std::string& errorMessage, SessionPtr session)
     {
-        LOG_D("Server lost connection with client: {}", errorMessage);
+        LOG_W("Closing connection caused by: {}", errorMessage);
         // call dispatch to run it in the ::io_context to omit concurrent access!
         ioContextPtr->dispatch([this, session]() { releaseSessionHandler(session); });
     };
+    // read/write failure indicates that connection is closed, and it should be handled properly
+    // server constantly and continuously perform read operation
+    // so connection closing is handled only on read failure and not handled on write failure
+    session->setErrorHandlers([](const std::string&, SessionPtr) {}, errorHandler);
 
     OnSignalSubscriptionCallback signalSubscriptionHandler =
         [this](const SignalNumericIdType& signalNumericId,
@@ -140,8 +146,11 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
         }
     };
 
-    auto sessionHandler = std::make_shared<ServerSessionHandler>(context, session, signalSubscriptionHandler, errorHandler);
-    sessionHandler->initErrorHandlers();
+    auto sessionHandler = std::make_shared<ServerSessionHandler>(context,
+                                                                 *ioContextPtr.get(),
+                                                                 session,
+                                                                 signalSubscriptionHandler,
+                                                                 errorHandler);
 
     // send sorted signals to newly connected client
     std::map<SignalNumericIdType, SignalPtr> sortedSignals;

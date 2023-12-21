@@ -31,9 +31,10 @@ class ServerSessionHandler : public BaseSessionHandler
 {
 public:
     ServerSessionHandler(const ContextPtr& context,
+                         boost::asio::io_context& ioContext,
                          SessionPtr session,
                          OnSignalSubscriptionCallback signalSubscriptionHandler,
-                         OnErrorCallback errorHandler);
+                         native_streaming::OnSessionErrorCallback errorHandler);
 
     ~ServerSessionHandler();
 

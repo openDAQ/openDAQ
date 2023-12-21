@@ -18,7 +18,7 @@
 #include <native_streaming_client_module/common.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/streaming_ptr.h>
-
+#include <native_streaming_protocol/native_streaming_client_handler.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -36,21 +36,33 @@ public:
 protected:
     DeviceInfoPtr onGetInfo() override;
 
-    void updateSignalProperties(const SignalPtr& signal,
-                                const StringPtr& name,
-                                const StringPtr& description);
+    void initSignalName(const SignalPtr& signal, const StringPtr& name);
+    void initSignalDescription(const SignalPtr& signal, const StringPtr& description);
     void signalAvailableHandler(const StringPtr& signalStringId,
-                                const StringPtr &domainSignalStringId,
+                                const StringPtr& domainSignalStringId,
                                 const DataDescriptorPtr& signalDescriptor,
                                 const StringPtr& name,
                                 const StringPtr& description);
     void signalUnavailableHandler(const StringPtr& signalStringId);
+    void reconnectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientReconnectionStatus status);
     void createNativeStreaming(const StringPtr& host, const StringPtr& port, const StringPtr& path);
     void activateStreaming();
+    void addToDeviceSignals(const StringPtr& signalStringId,
+                            const StringPtr& domainSignalStringId,
+                            const DataDescriptorPtr& signalDescriptor,
+                            const StringPtr& name,
+                            const StringPtr& description);
+    void addToDeviceSignalsOnReconnection(const StringPtr& signalStringId,
+                                          const StringPtr& domainSignalStringId,
+                                          const DataDescriptorPtr& signalDescriptor,
+                                          const StringPtr& name,
+                                          const StringPtr& description);
 
     StringPtr connectionString;
+    opendaq_native_streaming_protocol::ClientReconnectionStatus reconnectionStatus;
     StreamingPtr nativeStreaming;
     std::unordered_map<StringPtr, std::pair<SignalPtr, StringPtr>, StringHash, StringEqualTo> deviceSignals;
+    std::unordered_map<StringPtr, std::pair<SignalPtr, StringPtr>, StringHash, StringEqualTo> deviceSignalsReconnection;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

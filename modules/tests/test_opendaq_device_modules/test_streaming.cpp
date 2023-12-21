@@ -352,4 +352,95 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.opcua://127.0.0.1/")
     )
 );
+
+class StreamingReconnectionTest : public StreamingTest
+{
+protected:
+    InstancePtr CreateServerInstance() override
+    {
+        auto logger = Logger();
+        auto scheduler = Scheduler(logger);
+        auto moduleManager = ModuleManager("");
+        auto context = Context(scheduler, logger, nullptr, moduleManager);
+
+        const ModulePtr deviceModule(MockDeviceModule_Create(context));
+        moduleManager.addModule(deviceModule);
+
+        auto instance = InstanceCustom(context, "local");
+
+        const auto mockDevice = instance.addDevice("mock_phys_device");
+
+        auto streamingServerName = std::get<0>(GetParam());
+        streamingServer = instance.addServer(streamingServerName, nullptr);
+        // streaming server added first, so registered device streaming options is published over opcua
+        instance.addServer("openDAQ OpcUa", nullptr);
+
+        return instance;
+    }
+
+    void removeStreamingServer()
+    {
+        serverInstance.removeServer(streamingServer);
+    }
+
+    void restoreStreamingServer()
+    {
+        auto streamingServerName = std::get<0>(GetParam());
+        streamingServer = serverInstance.addServer(streamingServerName, nullptr);
+    }
+
+    ServerPtr streamingServer;
+};
+
+TEST_P(StreamingReconnectionTest, Reconnection)
+{
+    auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise[2];
+    std::future<StringPtr> subscribeCompleteFuture[2];
+
+    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise[0], subscribeCompleteFuture[0], mirroredSignalPtr);
+
+    auto serverReader = createServerReader("ByteStep");
+    auto clientReader = createClientReader("ByteStep");
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture[0]));
+
+    // read client initial event packet
+    auto clientReceivedPackets = tryReadPackets(clientReader, 1);
+    EXPECT_EQ(clientReceivedPackets.getCount(), 1);
+
+    // remove streaming server to emulate disconnection
+    removeStreamingServer();
+    // TODO test disconnected status
+    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise[1], subscribeCompleteFuture[1], mirroredSignalPtr);
+    // add streaming server back to enable reconnection
+    restoreStreamingServer();
+    // TODO test reconnected status
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture[1], 5s));
+
+    const size_t packetsToGenerate = 10;
+    // Expect to receive all data packets,
+    // +1 signal initial descriptor changed event packet
+    const size_t packetsToRead = packetsToGenerate + 1;
+
+    generatePackets(packetsToGenerate);
+
+    auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
+    clientReceivedPackets = tryReadPackets(clientReader, packetsToRead);
+
+    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
+    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
+    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    StreamingReconnectionTestGroup,
+    StreamingReconnectionTest,
+    testing::Values(
+        std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.nsd://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.opcua://127.0.0.1/")
+    )
+);
+
 #endif

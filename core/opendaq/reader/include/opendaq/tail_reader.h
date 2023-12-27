@@ -92,6 +92,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, TailReaderFromExisting, ITailReader,
     ITailReader*, invalidatedReader,
+    SizeT, historySize,
     SampleType, valueReadType,
     SampleType, domainReadType
 )

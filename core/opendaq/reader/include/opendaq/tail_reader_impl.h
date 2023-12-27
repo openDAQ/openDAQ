@@ -52,7 +52,8 @@ public:
 
     TailReaderImpl(TailReaderImpl* old,
                    SampleType valueReadType,
-                   SampleType domainReadType);
+                   SampleType domainReadType,
+                   SizeT historySize);
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC getHistorySize(SizeT* size) override;
@@ -63,6 +64,7 @@ public:
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
 
 private:
+    void pushPacket(const PacketPtr& packet);
     ErrCode readPacket(TailReaderInfo& info, const DataPacketPtr& packet);
     ErrCode readData(TailReaderInfo& info);
 

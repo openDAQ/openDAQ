@@ -99,7 +99,7 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
     OPENDAQ_PARAM_NOT_NULL(inputPort);
 
     {
-        std::unique_lock lock(notify.mutex);
+        std::scoped_lock lock(notify.mutex);
 
         while (getAvailableSamples())
         {

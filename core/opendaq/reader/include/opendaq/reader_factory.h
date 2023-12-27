@@ -244,14 +244,15 @@ inline TailReaderPtr TailReader(SignalPtr signal, SizeT historySize, ReadMode mo
  * This will reuse all of the read and connection info so no data is lost when changing to the new reader type.
  * @param invalidatedReader The reader from which to steal the read and connection info. If the passed-in
  * reader is not invalidated it will be invalidated after the call.
+ * @param historySize The maximum amount of samples in history to keep.
  * @param valueReadType The sample-type type to read signal values as. Implicitly convert from actual type to
  * this one if conversion exists.
  * @param domainReadType The sample-type type to read signal domain as. Implicitly convert from actual type to
  * this one if conversion exists.
  */
-inline TailReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, SampleType valueReadType, SampleType domainReadType)
+inline TailReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, SizeT historySize, SampleType valueReadType, SampleType domainReadType)
 {
-    return TailReaderFromExisting_Create(invalidatedReader, valueReadType, domainReadType);
+    return TailReaderFromExisting_Create(invalidatedReader, historySize, valueReadType, domainReadType);
 }
 
 /*!
@@ -260,16 +261,18 @@ inline TailReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, Sam
  * This will reuse all of the read and connection info so no data is lost when changing to the new reader type.
  * @param invalidatedReader The reader from which to steal the read and connection info. If the passed-in
  * reader is not invalidated it will be invalidated after the call.
+ * @param historySize The maximum amount of samples in history to keep.
  * @tparam TValueType The sample-type type to read signal values as. Implicitly convert from actual type to
  * this one if conversion exists.
  * @tparam TDomainType The sample-type type to read signal domain as. Implicitly convert from actual type to
  * this one if conversion exists.
  */
 template <typename TValueType = double, typename TDomainType = ClockTick>
-StreamReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader)
+StreamReaderPtr TailReaderFromExisting(TailReaderPtr invalidatedReader, SizeT historySize)
 {
-    return StreamReaderFromExisting(
+    return TailReaderFromExisting(
         invalidatedReader,
+        historySize,
         SampleTypeFromType<TValueType>::SampleType,
         SampleTypeFromType<TDomainType>::SampleType
     );

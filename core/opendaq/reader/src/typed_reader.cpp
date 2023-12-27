@@ -445,6 +445,8 @@ void Reader::setTransformIgnore(bool ignore)
 
 std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionPtr& transformFunction, SampleType descriptorReadType)
 {
+    if (readType == SampleType::Undefined)
+        readType = descriptorReadType;
     switch (readType)
     {
         case SampleType::Float32:

@@ -392,6 +392,7 @@ protected:
         DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
         DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
 
+        std::unique_lock lock(mutex);
         // Check if value is stil convertible
         if (newValueDescriptor.assigned())
         {
@@ -427,7 +428,9 @@ protected:
         if (!invalid && changeCallback.assigned())
         {
             bool descriptorOk = false;
+            lock.unlock();
             ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor);
+            lock.lock();
             invalid = !descriptorOk || OPENDAQ_FAILED(errCode);
 
             if (OPENDAQ_FAILED(errCode))
@@ -500,6 +503,12 @@ protected:
         }
 
         throw InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
+    }
+
+    PacketPtr readFromConnection()
+    {
+        std::scoped_lock lock(mutex);
+        return connection.dequeue();
     }
 
     bool invalid{};

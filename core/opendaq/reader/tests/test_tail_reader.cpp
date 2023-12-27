@@ -1002,3 +1002,41 @@ TEST_F(TailReaderTest, TailReaderFromPortOnReadCallback)
     // domain was read and updated from packet info
     ASSERT_EQ(reader.getDomainReadType(), SampleType::RangeInt64);
 }
+
+TEST_F(TailReaderTest, TailReaderFromExistingOnReadCallback)
+{
+    const SizeT HISTORY_SIZE = 2u;
+    SizeT count{HISTORY_SIZE};
+    double samples[HISTORY_SIZE]{};
+    RangeType64 domain[HISTORY_SIZE]{};
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Int64));
+
+    TailReaderPtr reader = daq::TailReader(this->signal, 1, SampleType::Undefined, SampleType::Undefined);
+    TailReaderPtr newReader;
+    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+        newReader.readWithDomain(&samples, &domain, &count);
+        promise.set_value();
+        return nullptr;
+    });
+    reader.setOnDescriptorChanged([&] {
+        newReader = TailReaderFromExisting(reader, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+        return false;
+    });
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), HISTORY_SIZE, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), HISTORY_SIZE);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 111.1;
+    dataPtr[1] = 222.2;
+    this->sendPacket(dataPacket);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(count, HISTORY_SIZE);
+}

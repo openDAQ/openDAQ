@@ -98,15 +98,18 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     info = old->info;
     timeoutType = old->timeoutType;
 
-    valueReader = createReaderForType(valueReadType, old->valueReader->getTransformFunction());
-    domainReader = createReaderForType(domainReadType, old->domainReader->getTransformFunction());
+    valueReader = createReaderForType(valueReadType, old->valueReader->getTransformFunction(), old->valueReader->getReadType());
+    domainReader = createReaderForType(domainReadType, old->domainReader->getTransformFunction(), old->domainReader->getReadType());
 
+    portBinder = old->portBinder;
     inputPort = old->inputPort;
     connection = inputPort.getConnection();
     changeCallback = old->changeCallback;
+    inputPort.asPtr<IOwnable>().setOwner(portBinder);
 
     this->internalAddRef();
-    readDescriptorFromPort();
+    if (!changeCallback.assigned())
+        readDescriptorFromPort();
 }
 
 void StreamReaderImpl::readDescriptorFromPort()
@@ -196,9 +199,18 @@ ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
 void StreamReaderImpl::onPacketReady()
 {
     notify.condition.notify_one();
-    auto callback = readCallback;
-    if (callback.assigned())
-        callback();
+
+    while ((changeCallback.assigned() || readCallback.assigned()) && connection.getPacketCount())
+    {
+        auto packet = connection.peek();
+        auto callback = readCallback;
+        if (packet.getType() == PacketType::Data && callback.assigned())
+            callback();
+        if (packet.getType() == PacketType::Event)
+            handleDescriptorChanged(connection.dequeue());
+        else
+            break;
+    }
 }
 
 ErrCode StreamReaderImpl::getValueReadType(SampleType* sampleType)

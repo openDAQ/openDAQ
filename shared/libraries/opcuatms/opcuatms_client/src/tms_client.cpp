@@ -85,7 +85,7 @@ OpcUaNodeId TmsClient::getRootDeviceNodeId()
 
     auto filter = BrowseFilter();
     filter.referenceTypeId = OpcUaNodeId(0, UA_NS0ID_HASCOMPONENT);
-    filter.typeDefinition = OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQDEVICETYPE);
+    filter.typeDefinition = OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQDEVICETYPE);
 
     const auto& references = tmsClientContext->getReferenceBrowser()->browseFiltered(rootNodeId, filter);
 

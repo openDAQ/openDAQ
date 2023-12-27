@@ -82,7 +82,7 @@ ErrCode TmsClientSignalImpl::getDomainSignal(ISignal** signal)
 SignalPtr TmsClientSignalImpl::onGetDomainSignal()
 {
     auto filter = BrowseFilter();
-    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASDOMAINSIGNAL);
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASDOMAINSIGNAL);
     filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
     const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);
@@ -114,7 +114,7 @@ ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
 ListPtr<ISignal> TmsClientSignalImpl::onGetRelatedSignals()
 {
     auto filter = BrowseFilter();
-    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_RELATESTOSIGNAL);
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_RELATESTOSIGNAL);
     filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
     const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);

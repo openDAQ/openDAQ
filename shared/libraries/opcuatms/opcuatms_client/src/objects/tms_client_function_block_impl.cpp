@@ -32,7 +32,7 @@ CachedReferences TmsClientFunctionBlockBaseImpl<Impl>::getFunctionBlockReference
 {
     auto filter = BrowseFilter();
     filter.referenceTypeId = OpcUaNodeId(UA_NS0ID_HASCOMPONENT);
-    filter.typeDefinition = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_FUNCTIONBLOCKTYPE);
+    filter.typeDefinition = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_FUNCTIONBLOCKTYPE);
     filter.direction = UA_BROWSEDIRECTION_FORWARD;
     return this->clientContext->getReferenceBrowser()->browseFiltered(this->nodeId, filter);
 }
@@ -102,7 +102,7 @@ template <typename Impl>
 CachedReferences TmsClientFunctionBlockBaseImpl<Impl>::getOutputSignalReferences()
 {
     auto filter = BrowseFilter();
-    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASVALUESIGNAL);
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASVALUESIGNAL);
     filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
     auto signalsNodeId = this->getNodeId("Sig");
@@ -114,7 +114,7 @@ template <typename Impl>
 CachedReferences TmsClientFunctionBlockBaseImpl<Impl>::getInputPortBlockReferences()
 {
     auto filter = BrowseFilter();
-    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASINPUTPORT);
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASINPUTPORT);
     filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
     auto inputPortsNodeId = this->getNodeId("IP");
@@ -160,7 +160,7 @@ template <typename Impl>
 SignalPtr TmsClientFunctionBlockBaseImpl<Impl>::onGetStatusSignal()
 {
     auto filter = BrowseFilter();
-    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASSTATUSSIGNAL);
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASSTATUSSIGNAL);
     filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
     const auto& references = this->clientContext->getReferenceBrowser()->browseFiltered(this->nodeId, filter);

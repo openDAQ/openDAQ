@@ -30,7 +30,7 @@ TmsClientIoFolderImpl::TmsClientIoFolderImpl(const ContextPtr& ctx,
 
 void TmsClientIoFolderImpl::findAndCreateChannels(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents)
 {
-    const auto& references = getChildReferencesOfType(this->nodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_CHANNELTYPE));
+    const auto& references = getChildReferencesOfType(this->nodeId, OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_CHANNELTYPE));
 
     for (const auto& [browseName, ref] : references.byBrowseName)
     {
@@ -48,7 +48,7 @@ void TmsClientIoFolderImpl::findAndCreateChannels(std::map<uint32_t, ComponentPt
 
 void TmsClientIoFolderImpl::findAndCreateIoFolders(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents)
 {
-    const auto& folderReferences = getChildReferencesOfType(this->nodeId, OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_IOCOMPONENTTYPE));
+    const auto& folderReferences = getChildReferencesOfType(this->nodeId, OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_IOCOMPONENTTYPE));
 
     for (const auto& [browseName, ref] : folderReferences.byBrowseName)
     {

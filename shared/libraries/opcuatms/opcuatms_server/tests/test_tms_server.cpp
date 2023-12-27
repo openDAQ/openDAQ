@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <opcuatms_server/tms_server.h>
 #include <open62541/di_nodeids.h>
-#include <open62541/tmsdevice_nodeids.h>
+#include <open62541/daqdevice_nodeids.h>
 #include <tms_object_test.h>
 #include "test_helpers.h"
 #include <opcuaclient/cached_reference_browser.h>
@@ -79,7 +79,7 @@ TEST_F(TmsServerTest, Channels)
     auto timeSignal = BrowseForChild(client, signalsNode, "Time");
 
     auto filter = BrowseFilter();
-    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_HASDOMAINSIGNAL);
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASDOMAINSIGNAL);
     filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
     auto references = referenceBrowser.browseFiltered(byteStepSignal, filter);

@@ -105,7 +105,7 @@ ErrCode TmsClientInputPortImpl::getSignal(ISignal** signal)
 SignalPtr TmsClientInputPortImpl::onGetSignal()
 {
     auto filter = BrowseFilter();
-    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_CONNECTEDTOSIGNAL);
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_CONNECTEDTOSIGNAL);
     filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
     const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);

@@ -32,7 +32,7 @@ TmsClientFolderImpl<Impl>::TmsClientFolderImpl(const ContextPtr& ctx,
 template <class Impl>
 void TmsClientFolderImpl<Impl>::findAndCreateFolders(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents)
 {
-    auto componentId = OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQCOMPONENTTYPE);
+    auto componentId = OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQCOMPONENTTYPE);
     const auto& folderReferences = this->getChildReferencesOfType(this->nodeId, componentId);
 
     for (const auto& [browseName, ref] : folderReferences.byBrowseName)

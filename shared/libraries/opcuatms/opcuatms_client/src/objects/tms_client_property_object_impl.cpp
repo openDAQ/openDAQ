@@ -206,9 +206,9 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
                 referenceVariableIdMap.insert(std::pair(propName, childNodeId));
                 addProperties(childNodeId, orderedProperties, unorderedProperties);
             }
-            catch(...)
+            catch(const std::exception& e)
             {
-                // TODO: Log failure to add function/procedure.
+                LOG_W("Failed to add reference property {}", e.what());
                 continue;
             }
         }
@@ -224,7 +224,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             }                     
             catch(const std::exception& e)
             {
-                // TODO: Log failure to add function/procedure.
+                LOG_W("Failed to add property {}", e.what());
                 continue;
             }
         }

@@ -1,20 +1,20 @@
 #include <opcuatms_client/tms_attribute_collector.h>
-#include <open62541/tmsbt_nodeids.h>
-#include <open62541/tmsdevice_nodeids.h>
-#include <open62541/tmsbsp_nodeids.h>
+#include <open62541/daqbt_nodeids.h>
+#include <open62541/daqdevice_nodeids.h>
+#include <open62541/daqbsp_nodeids.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 // Node ids
 
-const OpcUaNodeId TmsAttributeCollector::NodeIdBaseObjectType = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_DAQBASEOBJECTTYPE);
-const OpcUaNodeId TmsAttributeCollector::NodeIdBaseVariableType = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_DAQBASEVARIABLETYPE);
-const OpcUaNodeId TmsAttributeCollector::NodeIdDeviceType = OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQDEVICETYPE);
-const OpcUaNodeId TmsAttributeCollector::NodeIdFunctionBlockType = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_BASEFUNCTIONBLOCKTYPE);
-const OpcUaNodeId TmsAttributeCollector::NodeIdComponentType = OpcUaNodeId(NAMESPACE_TMSDEVICE, UA_TMSDEVICEID_DAQCOMPONENTTYPE);
-const OpcUaNodeId TmsAttributeCollector::NodeIdSignalType = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_SIGNALTYPE);
-const OpcUaNodeId TmsAttributeCollector::NodeIdInputPortType = OpcUaNodeId(NAMESPACE_TMSBSP, UA_TMSBSPID_INPUTPORTTYPE);
-const OpcUaNodeId TmsAttributeCollector::NodeIdEvaluationVariableType = OpcUaNodeId(NAMESPACE_TMSBT, UA_TMSBTID_EVALUATIONVARIABLETYPE);
+const OpcUaNodeId TmsAttributeCollector::NodeIdBaseObjectType = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_DAQBASEOBJECTTYPE);
+const OpcUaNodeId TmsAttributeCollector::NodeIdBaseVariableType = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_DAQBASEVARIABLETYPE);
+const OpcUaNodeId TmsAttributeCollector::NodeIdDeviceType = OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQDEVICETYPE);
+const OpcUaNodeId TmsAttributeCollector::NodeIdFunctionBlockType = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_BASEFUNCTIONBLOCKTYPE);
+const OpcUaNodeId TmsAttributeCollector::NodeIdComponentType = OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQCOMPONENTTYPE);
+const OpcUaNodeId TmsAttributeCollector::NodeIdSignalType = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_SIGNALTYPE);
+const OpcUaNodeId TmsAttributeCollector::NodeIdInputPortType = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_INPUTPORTTYPE);
+const OpcUaNodeId TmsAttributeCollector::NodeIdEvaluationVariableType = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_EVALUATIONVARIABLETYPE);
 
 // TmsAttributeCollector
 

@@ -18,6 +18,7 @@
 #include "opcuatms/opcuatms.h"
 #include "opcuaclient/opcuaclient.h"
 #include <mutex>
+#include <opcuaclient/cached_reference_browser.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -35,6 +36,7 @@ public:
     void unregisterObject(const opcua::OpcUaNodeId& nodeId);
     BaseObjectPtr getObject(const opcua::OpcUaNodeId& nodeId) const;
     opcua::OpcUaNodeId getNodeId(const BaseObjectPtr object) const;
+    CachedReferenceBrowserPtr getReferenceBrowser();
 
     template <class I, class Ptr = typename InterfaceToSmartPtr<I>::SmartPtr>
     Ptr getObject(const opcua::OpcUaNodeId& nodeId)
@@ -53,10 +55,12 @@ public:
 
 protected:
     opcua::OpcUaClientPtr client;
+    CachedReferenceBrowserPtr referenceBrowser;
     mutable std::mutex mutex;
-
     // Context should not hold objects because of cycling reference
     std::unordered_map<opcua::OpcUaNodeId, IBaseObject*> objects;
+
+    void initReferenceBrowser();
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

@@ -159,7 +159,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         }
         catch (const std::exception& e)
         {
-            LOG_D("Failed to read device info attribute: {}", e.what());
+            LOG_W("Failed to read device info attribute: {}", e.what());
         }
     }
 

@@ -61,7 +61,7 @@ private:
     bool isCached(const OpcUaNodeId& nodeId);
     void markAsCached(const OpcUaNodeId& nodeId);
     void browseMultiple(const std::vector<OpcUaNodeId>& nodes);
-    size_t browseBatch(const std::vector<OpcUaNodeId>& nodes, size_t startIndex, size_t size);
+    size_t browseBatch(const std::vector<OpcUaNodeId>& nodes, size_t startIndex, size_t size, std::vector<OpcUaNodeId>& browseNext);
     void processBrowseResults(const std::vector<OpcUaNodeId>& nodes,
                               size_t startIndex,
                               size_t requestedSize,

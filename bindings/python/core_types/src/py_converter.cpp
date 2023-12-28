@@ -78,8 +78,16 @@ py::object baseObjectToPyObject(const daq::ObjectPtr<daq::IBaseObject>& baseObje
             py::str p(static_cast<std::string>(baseObject));
             return p;
         }
-        // case daq::ctList:
-        // case daq::ctDict:
+        case daq::ctList:
+        {
+            InterfaceWrapper<daq::IList> wrappedInterface(baseObject.asPtr<daq::IList>().addRefAndReturn());
+            return py::cast(wrappedInterface);
+        }
+        case daq::ctDict:
+        {
+            InterfaceWrapper<daq::IDict> wrappedInterface(baseObject.asPtr<daq::IDict>().addRefAndReturn());
+            return py::cast(wrappedInterface);
+        }
         case daq::ctRatio:
         {
             const auto ratio = baseObject.asPtr<daq::IRatio>();

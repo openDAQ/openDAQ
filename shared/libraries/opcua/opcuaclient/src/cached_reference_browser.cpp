@@ -118,13 +118,20 @@ void CachedReferenceBrowser::markAsCached(const OpcUaNodeId& nodeId)
 void CachedReferenceBrowser::browseMultiple(const std::vector<OpcUaNodeId>& nodes)
 {
     const size_t batchSize = (maxNodesPerBrowse > 0) ? maxNodesPerBrowse : nodes.size();
+    std::vector<OpcUaNodeId> browseNext;
     size_t i = 0;
 
     while (i < nodes.size())
-        i += browseBatch(nodes, i, batchSize);
+        i += browseBatch(nodes, i, batchSize, browseNext);
+
+    if (!browseNext.empty())
+        browseMultiple(browseNext);
 }
 
-size_t CachedReferenceBrowser::browseBatch(const std::vector<OpcUaNodeId>& nodes, size_t startIndex, size_t size)
+size_t CachedReferenceBrowser::browseBatch(const std::vector<OpcUaNodeId>& nodes,
+                                           size_t startIndex,
+                                           size_t size,
+                                           std::vector<OpcUaNodeId>& browseNext)
 {
     if ((startIndex + size) > nodes.size())
         size = nodes.size() - startIndex;
@@ -146,7 +153,6 @@ size_t CachedReferenceBrowser::browseBatch(const std::vector<OpcUaNodeId>& nodes
         request->nodesToBrowse[i].browseDirection = UA_BROWSEDIRECTION_FORWARD;
     }
 
-    std::vector<OpcUaNodeId> browseNext;
     UA_ByteString* continuationPoint = nullptr;
     OpcUaObject<UA_BrowseResponse> response = UA_Client_Service_browse(client->getLockedUaClient(), *request);
     CheckStatusCodeException(response->responseHeader.serviceResult, "Browse result error");
@@ -165,7 +171,6 @@ size_t CachedReferenceBrowser::browseBatch(const std::vector<OpcUaNodeId>& nodes
         processBrowseResults(nodes, startIndex, size, nextResponse->results, nextResponse->resultsSize, browseNext);
     }
 
-    browseMultiple(browseNext);
     return size;
 }
 

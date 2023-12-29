@@ -210,7 +210,7 @@ void StreamReaderImpl::onPacketReady()
             handleDescriptorChanged(connection.dequeue());
         else
             break;
-        auto callback = readCallback;
+        callback = readCallback;
     }
 }
 

@@ -200,16 +200,17 @@ void StreamReaderImpl::onPacketReady()
 {
     notify.condition.notify_one();
 
-    while ((changeCallback.assigned() || readCallback.assigned()) && connection.getPacketCount())
+    FunctionPtr callback = readCallback;
+    while (callback.assigned() && connection.getPacketCount())
     {
         auto packet = connection.peek();
-        auto callback = readCallback;
-        if (packet.getType() == PacketType::Data && callback.assigned())
+        if (packet.getType() == PacketType::Data)
             callback();
-        if (packet.getType() == PacketType::Event)
+        else if (packet.getType() == PacketType::Event)
             handleDescriptorChanged(connection.dequeue());
         else
             break;
+        auto callback = readCallback;
     }
 }
 

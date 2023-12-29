@@ -54,6 +54,8 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
 {
     // if on descreption change callback was set
     // readDescriptorFromPort method have to be called from this callback
+    packets = old->packets;
+    availableSamples = old->availableSamples;
     if (!changeCallback.assigned())
         readDescriptorFromPort();
     notify.dataReady = false;
@@ -90,7 +92,7 @@ SizeT BlockReaderImpl::getAvailableSamples() const
         count = info.dataPacket.getSampleCount() - info.prevSampleIndex;
     }
 
-    count += connection.getAvailableSamples();
+    count += availableSamples;
     return count;
 }
 
@@ -101,14 +103,17 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
     {
         std::scoped_lock lock(notify.mutex);
 
-        while (getAvailableSamples())
+        auto packet = connection.dequeue();
+        while (packet.assigned())
         {
-            auto packet = connection.peek();
-            if (packet.getType() == PacketType::Event)
-                handleDescriptorChanged(connection.dequeue());
+            if (readCallback.assigned() && packet.getType() == PacketType::Event)
+                handleDescriptorChanged(packet);
             else
-                break;
+                pushPacket(packet);
+
+            packet = connection.dequeue();
         }
+
         if (getAvailable() != 0)
         {   
             notify.dataReady = true;
@@ -198,7 +203,7 @@ ErrCode BlockReaderImpl::readPackets()
         {
             std::unique_lock lock(notify.mutex);
 
-            packet = connection.dequeue();
+            packet = popPacket();
             notify.dataReady = false;
         }
         else if (!packet.assigned())
@@ -211,7 +216,7 @@ ErrCode BlockReaderImpl::readPackets()
                 return notify.dataReady && getAvailable() != 0;
             }))
             {
-                packet = connection.dequeue();
+                packet = popPacket();
                 notify.dataReady = false;
             }
             else

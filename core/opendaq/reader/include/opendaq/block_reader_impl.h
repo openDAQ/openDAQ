@@ -20,6 +20,7 @@
 #include <opendaq/data_packet_ptr.h>
 
 #include <condition_variable>
+#include <deque>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -127,6 +128,30 @@ private:
     SizeT blockSize;
     BlockReadInfo info{};
     BlockNotifyInfo notify{};
+
+    SizeT availableSamples {0};
+    std::deque<PacketPtr> packets;
+
+    void pushPacket(const PacketPtr & packet) 
+    {
+        packets.push_back(packet);
+        auto dataPacket = packet.asPtrOrNull<IDataPacket>();
+        if (dataPacket.assigned())
+            availableSamples += dataPacket.getSampleCount();
+    }
+
+    PacketPtr popPacket()
+    {
+        if (packets.size() == 0)
+            return PacketPtr();
+
+        auto packet = packets.front();
+        packets.pop_front();
+        auto dataPacket = packet.asPtrOrNull<IDataPacket>();
+        if (dataPacket.assigned())
+            availableSamples -= dataPacket.getSampleCount();
+        return packet;
+    }
 };
 
 END_NAMESPACE_OPENDAQ

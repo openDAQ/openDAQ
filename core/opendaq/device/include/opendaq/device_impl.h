@@ -58,7 +58,7 @@ public:
                   const StringPtr& className = nullptr,
                   ComponentStandardProps propsMode = ComponentStandardProps::Add);
 
-    virtual DeviceInfoPtr onGetInfo() = 0;
+    virtual DeviceInfoPtr onGetInfo();
 
     virtual RatioPtr onGetResolution();
     virtual uint64_t onGetTicksSinceOrigin();
@@ -116,7 +116,7 @@ public:
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
     static ConstCharPtr SerializeId();
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
     DeviceInfoPtr deviceInfo;
@@ -137,12 +137,16 @@ protected:
                                   ComponentStandardProps standardPropsConfig = ComponentStandardProps::Add);
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
-    void deserializeFunctionBlock(const std::string& fbId,
+    void updateFunctionBlock(const std::string& fbId,
                                   const SerializedObjectPtr& serializedFunctionBlock) override;
     void updateDevice(const std::string& deviceId, const SerializedObjectPtr& serializedDevice);
     void updateIoFolderItem(const FolderPtr& ioFolder,
                             const std::string& localId,
                             const SerializedObjectPtr& item);
+
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
 
     void updateObject(const SerializedObjectPtr& obj) override;
     bool clearFunctionBlocksOnUpdate() override;
@@ -170,6 +174,12 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 
     this->addProperty(StringProperty("UserName", ""));
     this->addProperty(StringProperty("Location", ""));
+}
+
+template <typename TInterface, typename... Interfaces>
+DeviceInfoPtr GenericDevice<TInterface, Interfaces...>::onGetInfo()
+{
+    return nullptr;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -329,8 +339,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSignalsRecursive(IList** si
 template <typename TInterface, typename... Interfaces>
 template <class ChannelImpl, class... Params>
 ChannelPtr GenericDevice<TInterface, Interfaces...>::createAndAddChannel(const FolderConfigPtr& parentFolder,
-                                                                const StringPtr& localId,
-                                                                Params&&... params)
+                                                                         const StringPtr& localId,
+                                                                         Params&&... params)
 {
     auto ch = createWithImplementation<IChannel, ChannelImpl>(
         this->context, parentFolder, localId, std::forward<Params>(params)...);
@@ -435,9 +445,30 @@ ConstCharPtr GenericDevice<TInterface, Interfaces...>::SerializeId()
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
+ErrCode GenericDevice<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
+                                                              IBaseObject* context,
+                                                              IFunction* factoryCallback,
+                                                              IBaseObject** obj)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    return daqTry([&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = Super::DeserializeComponent(
+                serialized,
+                context,
+                factoryCallback,
+                [](const SerializedObjectPtr&,
+                   const ComponentDeserializeContextPtr& deserializeContext,
+                   const StringPtr& className) -> BaseObjectPtr
+                {
+                   return createWithImplementation<IDevice, Device>(
+                       deserializeContext.getContext(),
+                       deserializeContext.getParent(),
+                       deserializeContext.getLocalId(),
+                       className);
+                }).detach();
+        });
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -719,14 +750,8 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             ioFolder.serialize(serializer);
     }
 
-    if (!devices.isEmpty())
-    {
-        serializer->key("dev");
-        if (forUpdate)
-            devices.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
-        else
-            devices.serialize(serializer);
-    }
+    serializeFolder(serializer, ioFolder, "io", forUpdate);
+    serializeFolder(serializer, devices, "dev", forUpdate);
 
     for (const auto& component : this->components)
     {
@@ -742,8 +767,8 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::deserializeFunctionBlock(const std::string& fbId,
-                                                                        const SerializedObjectPtr& serializedFunctionBlock)
+void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::string& fbId,
+                                                                   const SerializedObjectPtr& serializedFunctionBlock)
 {
     auto typeId = serializedFunctionBlock.readString("typeId");
 
@@ -812,6 +837,17 @@ void GenericDevice<TInterface, Interfaces...>::updateIoFolderItem(const FolderPt
 }
 
 template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                                             const BaseObjectPtr& context,
+                                                                             const FunctionPtr& factoryCallback)
+{
+    Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+
+    deserializeFolder(serializedObject, context, factoryCallback, ioFolder, "io");
+    deserializeFolder(serializedObject, context, factoryCallback, devices, "dev");
+}
+
+template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
 {
     Super::updateObject(obj);
@@ -862,5 +898,6 @@ bool GenericDevice<TInterface, Interfaces...>::clearFunctionBlocksOnUpdate()
     return true;
 }
 
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(Device)
 
 END_NAMESPACE_OPENDAQ

@@ -26,9 +26,14 @@ ConstCharPtr IoFolderImpl::SerializeId()
     return "IoFolder";
 }
 
-ErrCode IoFolderImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
+ErrCode IoFolderImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    OPENDAQ_PARAM_NOT_NULL(context);
+
+    return daqTry([&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = DeserializeFolder<IIoFolderConfig, IoFolderImpl>(serialized, context, factoryCallback).detach();
+        });
 }
 
 bool IoFolderImpl::addItemInternal(const ComponentPtr& component)
@@ -38,6 +43,8 @@ bool IoFolderImpl::addItemInternal(const ComponentPtr& component)
 
     return Super::addItemInternal(component);
 }
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(IoFolderImpl)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, IoFolder, IFolderConfig,

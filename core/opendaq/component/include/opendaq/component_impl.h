@@ -31,6 +31,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
+static constexpr int ComponentSerializeFlag_SerializePropsMode = 2;
 
 template <class Intf = IComponent, class ... Intfs>
 class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, IDeserializeComponent, Intfs ...>
@@ -65,6 +66,7 @@ public:
     // IDeserializeComponent
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory);
     ErrCode INTERFACE_FUNC complete() override;
+    ErrCode INTERFACE_FUNC getDeserializedParameter(IString* parameter, IBaseObject** value) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -84,6 +86,7 @@ protected:
     StringPtr localId;
     TagsConfigPtr tags;
     StringPtr globalId;
+    ComponentStandardProps componentStandardProps;
 
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
     virtual int getSerializeFlags();
@@ -94,16 +97,17 @@ protected:
     virtual void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate);
     static std::string getRelativeGlobalId(const std::string& globalId);
 
-    virtual void deserializeCustomValues(const SerializedObjectPtr& serializedObject,
-                                         const BaseObjectPtr& context,
-                                         const FunctionPtr& factoryCallback);
+    virtual void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                               const BaseObjectPtr& context,
+                                               const FunctionPtr& factoryCallback);
 
     template <class CreateComponentCallback>
-    static ErrCode DeserializeComponent(ISerializedObject* serialized,
-                                        IBaseObject* context,
-                                        IFunction* factoryCallback,
-                                        IBaseObject** obj,
-                                        CreateComponentCallback&& createComponentCallback);
+    static BaseObjectPtr DeserializeComponent(const SerializedObjectPtr& serialized,
+                                              const BaseObjectPtr& context,
+                                              const FunctionPtr& factoryCallback,
+                                              CreateComponentCallback&& createComponentCallback);
+
+    virtual BaseObjectPtr getDeserializedParameter(const StringPtr& parameter);
 
 private:
     void initComponentProperties(ComponentStandardProps propsMode);
@@ -124,6 +128,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
       , parent(parent)
       , localId(localId)
       , tags(Tags())
+      , componentStandardProps(propsMode)
 {
     if (!localId.assigned() || localId.toStdString().empty())
         throw GeneralErrorException("Local id not assigned");
@@ -362,7 +367,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::deserializeValues(ISerializedObject* seri
     return daqTry(
         [&serializedObjectPtr, &contextPtr, &callbackFactoryPtr, this]()
         {
-            deserializeCustomValues(serializedObjectPtr, contextPtr, callbackFactoryPtr);
+            deserializeCustomObjectValues(serializedObjectPtr, contextPtr, callbackFactoryPtr);
             return OPENDAQ_SUCCESS;
         });
 }
@@ -371,6 +376,19 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::complete()
 {
     return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class... Intfs>
+ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::getDeserializedParameter(IString* parameter, IBaseObject** value)
+{
+    OPENDAQ_PARAM_NOT_NULL(parameter);
+    OPENDAQ_PARAM_NOT_NULL(value);
+
+    return daqTry([this, &parameter, &value]
+        {
+            const auto parameterPtr = StringPtr::Borrow(parameter);
+            *value = getDeserializedParameter(parameterPtr).detach();
+        });
 }
 
 template <class Intf, class ... Intfs>
@@ -383,7 +401,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getSerializeId(ConstCharPtr* id) const
 template <class Intf, class ... Intfs>
 ConstCharPtr ComponentImpl<Intf, Intfs...>::SerializeId()
 {
-    return "daq_Component";
+    return "Component";
 }
 
 template <class Intf, class ... Intfs>
@@ -392,52 +410,59 @@ ErrCode ComponentImpl<Intf, Intfs...>::Deserialize(ISerializedObject* serialized
     IFunction* factoryCallback,
     IBaseObject** obj)
 {
-    return DeserializeComponent(serialized, context, factoryCallback, obj, [](const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className) -> BaseObjectPtr
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
         {
-            return createWithImplementation<IComponent, ComponentImpl>(
-                deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className);
-    });
+            *obj = DeserializeComponent(
+                serialized,
+                context,
+                factoryCallback, 
+                [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
+                {
+                    return createWithImplementation<IComponent, ComponentImpl>(
+                        deserializeContext.getContext(),
+                        deserializeContext.getParent(),
+                        deserializeContext.getLocalId(),
+                        className);
+                }).detach();
+        });
 }
 
 template <class Intf, class... Intfs>
 template <class CreateComponentCallback>
-ErrCode ComponentImpl<Intf, Intfs...>::DeserializeComponent(ISerializedObject* serialized,
-                                                            IBaseObject* context,
-                                                            IFunction* factoryCallback,
-                                                            IBaseObject** obj,
-                                                            CreateComponentCallback&& createComponentCallback)
+BaseObjectPtr ComponentImpl<Intf, Intfs...>::DeserializeComponent(const SerializedObjectPtr& serialized,
+                                                                  const BaseObjectPtr& context,
+                                                                  const FunctionPtr& factoryCallback,
+                                                                  CreateComponentCallback&& createComponentCallback)
 {
-    const auto contextPtr = BaseObjectPtr::Borrow(context);
-    if (!contextPtr.assigned())
-        return daq::makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Deserialization context not assigned", nullptr);
+    if (!serialized.assigned())
+        throw ArgumentNullException("Serialized object not assigned");
 
-    const auto componentDeserializeContextPtr = contextPtr.asPtrOrNull<IComponentDeserializeContext>(true);
-    if (!componentDeserializeContextPtr.assigned())
-        return daq::makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Invalid deserialization context", nullptr);
+    if (!context.assigned())
+        throw ArgumentNullException("Deserialization context not assigned");
 
-    auto errCode = Super::DeserializePropertyObject(
+    const auto componentDeserializeContext = context.asPtrOrNull<IComponentDeserializeContext>(true);
+    if (!componentDeserializeContext.assigned())
+        throw InvalidParameterException("Invalid deserialization context");
+
+    ComponentPtr component = Super::DeserializePropertyObject(
         serialized,
         context,
         factoryCallback,
-        obj,
-        [&componentDeserializeContextPtr, &createComponentCallback, &serialized, &factoryCallback](
-            const BaseObjectPtr& context, const StringPtr& className, PropertyObjectPtr& propObjPtr)
+        [&componentDeserializeContext, &createComponentCallback, &factoryCallback](
+            const SerializedObjectPtr& serialized, const BaseObjectPtr& context, const StringPtr& className)
         {
-            propObjPtr = createComponentCallback(componentDeserializeContextPtr, className);
-            return propObjPtr.asPtr<IDeserializeComponent>(true)->deserializeValues(serialized, context, factoryCallback);
+            ComponentPtr component = createComponentCallback(serialized, componentDeserializeContext, className);
+            component.asPtr<IDeserializeComponent>(true).deserializeValues(serialized, context, factoryCallback);
+            return component;
         });
 
-    if (OPENDAQ_SUCCEEDED(errCode))
-    {
-        return daqTry(
-            [&obj]() {
-                const auto deserializeComponent = DeserializeComponentPtr::Borrow(*obj);
-                deserializeComponent.complete();
-                return OPENDAQ_SUCCESS;
-            });
-    }
+    const auto deserializeComponent = component.asPtr<IDeserializeComponent>(true);
+    deserializeComponent.complete();
 
-    return errCode;
+    return component;
 }
 
 template <class Intf, class... Intfs>
@@ -498,9 +523,15 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& /* o
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool /*forUpdate*/)
+void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
-    auto flags = getSerializeFlags();
+    const auto flags = getSerializeFlags();
+
+    if (flags & ComponentSerializeFlag_SerializePropsMode && !forUpdate)
+    {
+        serializer.key("propsMode");
+        serializer.writeInt(static_cast<Int>(componentStandardProps));
+    }
 
     if (flags & ComponentSerializeFlag_SerializeActiveProp && !active)
     {
@@ -515,7 +546,13 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
     }
 }
 
-template <class Intf, class ... Intfs>
+template <class Intf, class... Intfs>
+BaseObjectPtr ComponentImpl<Intf, Intfs...>::getDeserializedParameter(const StringPtr&)
+{
+    return {};
+}
+
+template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::initComponentProperties(const ComponentStandardProps propsMode)
 {
     if (propsMode == ComponentStandardProps::Skip)
@@ -540,7 +577,7 @@ std::string ComponentImpl<Intf, Intfs...>::getRelativeGlobalId(const std::string
 }
 
 template <class Intf, class ... Intfs>
-void ComponentImpl<Intf, Intfs...>::deserializeCustomValues(const SerializedObjectPtr& serializedObject,
+void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                                             const BaseObjectPtr& context,
                                                             const FunctionPtr& factoryCallback)
 {

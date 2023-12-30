@@ -93,7 +93,7 @@ public:
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
     static ConstCharPtr SerializeId();
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void updateObject(const SerializedObjectPtr& obj) override;
@@ -103,6 +103,10 @@ protected:
     virtual void onListenedStatusChanged(bool connected);
 
     void removed() override;
+    BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
 
 private:
     StringPtr name;
@@ -112,6 +116,7 @@ private:
     SignalPtr domainSignal;
     std::vector<ConnectionPtr> connections;
     std::vector<WeakRefPtr<ISignalConfig>> domainSignalReferences;
+    StringPtr deserializedDomainSignalId;
 
     void initSignalProperties(ComponentStandardProps propsMode);
     void propertyValueChanged(const PropertyPtr& prop, const BaseObjectPtr& value);
@@ -529,9 +534,24 @@ ConstCharPtr SignalBase<TInterface, Interfaces...>::SerializeId()
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode SignalBase<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
+ErrCode SignalBase<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = Super::DeserializeComponent(
+                       serialized,
+                       context,
+                       factoryCallback,
+                       [](const SerializedObjectPtr& serialized,
+                          const ComponentDeserializeContextPtr& deserializeContext,
+                          const StringPtr& className)
+                       {
+                           return createWithImplementation<ISignalConfig, SignalImpl>(
+                               deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className);
+                       }).detach();
+        });
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -593,6 +613,25 @@ void SignalBase<TInterface, Interfaces...>::removed()
 }
 
 template <typename TInterface, typename... Interfaces>
+BaseObjectPtr SignalBase<TInterface, Interfaces...>::getDeserializedParameter(const StringPtr& parameter)
+{
+    if (parameter == "domainSignalId")
+        return deserializedDomainSignalId;
+
+    throw NotFoundException();
+}
+
+template <typename TInterface, typename... Interfaces>
+void SignalBase<TInterface, Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                                    const BaseObjectPtr& context,
+                                                                    const FunctionPtr& factoryCallback)
+{
+    Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+    if (serializedObject.hasKey("domainSignalId"))
+        deserializedDomainSignalId = serializedObject.readString("domainSignalId");
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::getStreamed(Bool* streamed)
 {
     OPENDAQ_PARAM_NOT_NULL(streamed);
@@ -606,5 +645,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setStreamed(Bool streamed)
 {
     return OPENDAQ_IGNORED;
 }
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SignalImpl)
 
 END_NAMESPACE_OPENDAQ

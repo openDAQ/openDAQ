@@ -20,6 +20,7 @@
 #include <coretypes/baseobject_factory.h>
 #include <coretypes/listobject_factory.h>
 #include <coretypes/function_ptr.h>
+#include <coretypes/serialized_list_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -163,12 +164,12 @@ public:
         return ListPtr<T>(std::move(value));
     }
 
-    ObjectPtr<IBaseObject> readSerializedList(const StringPtr& key) const
+    SerializedListPtr readSerializedList(const StringPtr& key) const
     {
         if (!object)
             throw InvalidParameterException();
 
-        ObjectPtr<ISerializedList> value;
+        SerializedListPtr value;
         checkErrorInfo(object->readSerializedList(key, &value));
 
         return value;

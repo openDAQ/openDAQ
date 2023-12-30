@@ -374,13 +374,24 @@ ErrCode wrapHandlerReturn(Object* object, Handler handler, TReturn& output, Para
     }
 }
 
-using DaqTryFunc = std::function<ErrCode()>;
+template <typename T>
+class ShowType;
 
-inline ErrCode daqTry(const IBaseObject* context, const DaqTryFunc& func)
+template <class F>
+ErrCode daqTry(const IBaseObject* context, const F& func)
 {
     try
     {
-        return func();
+        if constexpr (std::is_same_v<std::invoke_result_t<F>, void>)
+        {
+            func();
+            return OPENDAQ_SUCCESS;
+        }
+        else
+        {
+            return func();            
+        }
+
     }
     catch (const DaqException& e)
     {
@@ -408,7 +419,8 @@ inline std::string daqInterfaceIdString()
     return iid;
 }
 
-inline ErrCode daqTry(const DaqTryFunc& func)
+template <class F>
+ErrCode daqTry(const F& func)
 {
     return daqTry(nullptr, func);
 }

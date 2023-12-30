@@ -29,21 +29,19 @@ public:
     GenericComponentDeserializeContextImpl(const ContextPtr& context,
                                            const ComponentPtr& parent,
                                            const StringPtr& localId,
-                                           const TypeManagerPtr& typeManager)
-        : context(context)
-        , parent(parent)
-        , localId(localId)
-        , typeManager(typeManager)
-    {
-    }
+                                           const TypeManagerPtr& typeManager);
 
 
-    ErrCode getParent(IComponent** parent) override;
-    ErrCode getLocalId(IString** localId) override;
-    ErrCode getContext(IContext** context) override;
-    ErrCode getTypeManager(ITypeManager** typeManager) override;
+    ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
+    ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
+    ErrCode INTERFACE_FUNC getContext(IContext** context) override;
+    ErrCode INTERFACE_FUNC getTypeManager(ITypeManager** typeManager) override;
 
-private:
+    ErrCode INTERFACE_FUNC clone(IComponent* newParent,
+                                 IString* newLocalId,
+                                 IComponentDeserializeContext** newComponentDeserializeContext) override;
+
+protected:
     ContextPtr context;
     ComponentPtr parent;
     StringPtr localId;
@@ -51,6 +49,17 @@ private:
 };
 
 using ComponentDeserializeContextImpl = GenericComponentDeserializeContextImpl<IComponentDeserializeContext>;
+
+template <class MainInterface, class ... Interfaces>
+GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::GenericComponentDeserializeContextImpl(const ContextPtr& context,
+    const ComponentPtr& parent,
+    const StringPtr& localId,
+    const TypeManagerPtr& typeManager): context(context)
+                                      , parent(parent)
+                                      , localId(localId)
+                                      , typeManager(typeManager)
+{
+}
 
 template <class MainInterface, class... Interfaces>
 ErrCode GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::getParent(IComponent** parent)
@@ -92,5 +101,16 @@ ErrCode GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::ge
     return OPENDAQ_SUCCESS;
 }
 
+template <class MainInterface, class ... Interfaces>
+ErrCode GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::clone(
+    IComponent* newParent,
+    IString* newLocalId,
+    IComponentDeserializeContext** newComponentDeserializeContext)
+{
+    OPENDAQ_PARAM_NOT_NULL(newLocalId);
+    OPENDAQ_PARAM_NOT_NULL(newComponentDeserializeContext);
+
+    return createComponentDeserializeContext(newComponentDeserializeContext, context, newParent, newLocalId, typeManager);
+}
 
 }

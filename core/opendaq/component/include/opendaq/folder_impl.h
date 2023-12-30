@@ -19,6 +19,7 @@
 #include <opendaq/component_ptr.h>
 #include <opendaq/component_impl.h>
 #include <tsl/ordered_map.h>
+#include <opendaq/component_deserialize_context_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -57,7 +58,8 @@ public:
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
     static ConstCharPtr SerializeId();
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
 protected:
     tsl::ordered_map<std::string, ComponentPtr> items;
 
@@ -65,6 +67,18 @@ protected:
 
     virtual bool addItemInternal(const ComponentPtr& component);
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
+
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
+
+    int getSerializeFlags() override;
+
+    template <class Interface, class Implementation>
+    static BaseObjectPtr DeserializeFolder(const SerializedObjectPtr& serialized,
+                                           const BaseObjectPtr& context,
+                                           const FunctionPtr& factoryCallback);
+
 private:
     bool removeItemWithLocalIdInternal(const std::string& str);
     void clearInternal();
@@ -239,10 +253,41 @@ ConstCharPtr FolderImpl<Intf, Intfs...>::SerializeId()
 }
 
 template <class Intf, class... Intfs>
-ErrCode FolderImpl<Intf, Intfs...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
+ErrCode FolderImpl<Intf, Intfs...>::Deserialize(ISerializedObject* serialized,
+                                                IBaseObject* context,
+                                                IFunction* factoryCallback,
+                                                IBaseObject** obj)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    OPENDAQ_PARAM_NOT_NULL(context);
+
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = DeserializeFolder<IFolderConfig, FolderImpl>(serialized, context, factoryCallback).detach();
+        });
 }
+
+template <class Intf, class... Intfs>
+template <class Interface, class Implementation>
+BaseObjectPtr FolderImpl<Intf, Intfs...>::DeserializeFolder(const SerializedObjectPtr& serialized,
+                                                            const BaseObjectPtr& context,
+                                                            const FunctionPtr& factoryCallback)
+{
+    return Super::DeserializeComponent(
+        serialized,
+        context,
+        factoryCallback,
+        [](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
+        {
+            ComponentStandardProps standardProps{};
+            if (serialized.hasKey("propsMode"))
+                standardProps = static_cast<ComponentStandardProps>(serialized.readInt("propsMode"));
+
+            return createWithImplementation<Interface, Implementation>(
+                deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className, standardProps);
+        });
+}
+
 
 template <class Intf, class... Intfs>
 void FolderImpl<Intf, Intfs...>::clearInternal()
@@ -290,6 +335,37 @@ void FolderImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr
     }
 }
 
+template <class Intf, class ... Intfs>
+void FolderImpl<Intf, Intfs...>::deserializeCustomObjectValues(
+    const SerializedObjectPtr& serializedObject,
+    const BaseObjectPtr& context,
+    const FunctionPtr& factoryCallback)
+{
+    Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+
+    const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
+
+    if (serializedObject.hasKey("items"))
+    {
+        const auto items = serializedObject.readSerializedObject("items");
+        const auto keys = items.getKeys();
+        for (const auto& key: keys)
+        {
+            const auto newDeserializeContext = deserializeContext.clone(this->template borrowPtr<ComponentPtr>(), key);
+            const auto item = items.readObject(key, newDeserializeContext, factoryCallback);
+
+            const auto comp = item.template asPtr<IComponent>(true);
+            addItemInternal(comp);
+        }
+    }
+}
+
+template <class Intf, class ... Intfs>
+int FolderImpl<Intf, Intfs...>::getSerializeFlags()
+{
+    return ComponentSerializeFlag_SerializePropsMode;
+}
+
 template <class Intf, class... Intfs>
 bool FolderImpl<Intf, Intfs...>::removeItemWithLocalIdInternal(const std::string& str)
 {
@@ -301,5 +377,9 @@ bool FolderImpl<Intf, Intfs...>::removeItemWithLocalIdInternal(const std::string
     items.erase(it);
     return true;
 }
+
+using StandardFolder = FolderImpl<>;
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(StandardFolder)
 
 END_NAMESPACE_OPENDAQ

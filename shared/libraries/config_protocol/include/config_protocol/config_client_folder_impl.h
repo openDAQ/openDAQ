@@ -31,20 +31,11 @@ public:
                            const StringPtr& localId,
                            const Args&... args);
 
-    // Component overrides
-    ErrCode INTERFACE_FUNC getActive(Bool* active) override;
-    ErrCode INTERFACE_FUNC setActive(Bool active) override;
-    ErrCode INTERFACE_FUNC getTags(ITagsConfig** tags) override;
-    ErrCode INTERFACE_FUNC getName(IString** name) override;
-    ErrCode INTERFACE_FUNC setName(IString* name) override;
-    ErrCode INTERFACE_FUNC getDescription(IString** description) override;
-    ErrCode INTERFACE_FUNC setDescription(IString* description) override;
-
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 };
 
 template <class... Args>
-inline ConfigClientFolderImpl::ConfigClientFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+ConfigClientFolderImpl::ConfigClientFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                                       const ContextPtr& ctx,
                                                       const ComponentPtr& parent,
                                                       const StringPtr& localId,
@@ -53,57 +44,33 @@ inline ConfigClientFolderImpl::ConfigClientFolderImpl(const ConfigProtocolClient
 {
 }
 
-inline ErrCode ConfigClientFolderImpl::getActive(Bool* active)
-{
-    return OPENDAQ_ERR_INVALID_OPERATION;
-}
-
-inline ErrCode ConfigClientFolderImpl::setActive(Bool active)
-{
-    return OPENDAQ_ERR_INVALID_OPERATION;
-}
-
-inline ErrCode ConfigClientFolderImpl::getTags(ITagsConfig** tags)
-{
-    return OPENDAQ_ERR_INVALID_OPERATION;
-}
-
-inline ErrCode ConfigClientFolderImpl::getName(IString** name)
-{
-    return OPENDAQ_ERR_INVALID_OPERATION;
-}
-
-inline ErrCode ConfigClientFolderImpl::setName(IString* name)
-{
-    return OPENDAQ_ERR_INVALID_OPERATION;
-}
-
-inline ErrCode ConfigClientFolderImpl::getDescription(IString** description)
-{
-    return OPENDAQ_ERR_INVALID_OPERATION;
-}
-
-inline ErrCode ConfigClientFolderImpl::setDescription(IString* description)
-{
-    return OPENDAQ_ERR_INVALID_OPERATION;
-}
-
 inline ErrCode ConfigClientFolderImpl::Deserialize(ISerializedObject* serialized,
     IBaseObject* context,
     IFunction* factoryCallback,
     IBaseObject** obj)
 {
-    return ComponentImpl::DeserializeComponent(
-        serialized,
-        context,
-        factoryCallback,
-        obj,
-        [](const ComponentDeserializeContextPtr& context, const StringPtr& className)
-        {
-            const auto ctx = context.asPtr<IConfigProtocolDeserializeContext>();
+    OPENDAQ_PARAM_NOT_NULL(context);
 
-            return createWithImplementation<IFolder, ConfigClientFolderImpl>(
-                ctx->getClientComm(), context.getContext(), context.getParent(), context.getLocalId());
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = Super::DeserializeComponent(
+                       serialized,
+                       context,
+                       factoryCallback,
+                       [](const SerializedObjectPtr& serialized,
+                          const ComponentDeserializeContextPtr& deserializeContext,
+                          const StringPtr& className)
+                       {
+                            const auto configDeserializeContext = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
+
+                            return createWithImplementation<IFolder, ConfigClientFolderImpl>(
+                                configDeserializeContext->getClientComm(),
+                                deserializeContext.getContext(),
+                                deserializeContext.getParent(),
+                                deserializeContext.getLocalId());
+                       })
+                       .detach();
         });
 }
 

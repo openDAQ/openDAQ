@@ -109,13 +109,28 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::Deserialize(ISerializedObject* seri
     IFunction* factoryCallback,
     IBaseObject** obj)
 {
-    return Impl::template DeserializeComponent(serialized, context, factoryCallback, obj, [](const ComponentDeserializeContextPtr& context, const StringPtr& className)
-    {
-        const auto ctx = context.asPtr<IConfigProtocolDeserializeContext>();
+    OPENDAQ_PARAM_NOT_NULL(context);
 
-        return createWithImplementation<IComponent, ConfigClientComponentImpl>(
-                ctx->getClientComm(), context.getContext(), context.getParent(), context.getLocalId());
-    });
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = DeserializeComponent(
+                       serialized,
+                       context,
+                       factoryCallback,
+                       [](const SerializedObjectPtr& serialized,
+                          const ComponentDeserializeContextPtr& deserializeContext,
+                          const StringPtr& className)
+                       {
+                            const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
+
+                            return createWithImplementation<IComponent, ConfigClientComponentImpl>(
+                                ctx->getClientComm(),
+                                deserializeContext.getContext(),
+                                deserializeContext.getParent(),
+                                deserializeContext.getLocalId());
+                        }).detach();
+        });
 }
 
 }

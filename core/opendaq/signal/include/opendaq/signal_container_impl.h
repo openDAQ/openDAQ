@@ -67,8 +67,8 @@ protected:
 
     void removed() override;
 
-    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
-    virtual void deserializeFunctionBlock(const std::string& fbId,
+    void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
+    virtual void updateFunctionBlock(const std::string& fbId,
                                           const SerializedObjectPtr& serializedFunctionBlock);
     virtual void updateSignal(const std::string& sigId,
                               const SerializedObjectPtr& serializedSignal);
@@ -77,6 +77,19 @@ protected:
     void updateFolder(const SerializedObjectPtr& obj, const std::string& folderType, const std::string& itemType, F&& f);
 
     void updateObject(const SerializedObjectPtr& obj) override;
+
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
+
+    void serializeFolder(const SerializerPtr& serializer, const FolderConfigPtr& folder, const std::string& id, bool forUpdate);
+
+    template <class FolderPtr>
+    void deserializeFolder(const SerializedObjectPtr& serializedObject,
+                           const BaseObjectPtr& context,
+                           const FunctionPtr& factoryCallback,
+                           FolderPtr& folder,
+                           const std::string& id);
 
     virtual bool clearFunctionBlocksOnUpdate();
 };
@@ -353,36 +366,44 @@ void GenericSignalContainerImpl<Intf, Intfs...>::removed()
         component.remove();
 }
 
-template <class Intf, class ... Intfs>
-ErrCode GenericSignalContainerImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
+template <class Intf, class... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::serializeFolder(const SerializerPtr& serializer,
+                                                                 const FolderConfigPtr& folder,
+                                                                 const std::string& id,
+                                                                 bool forUpdate)
 {
-    auto errCode = Super::serializeCustomValues(serializer, forUpdate);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    if (!folder.isEmpty())
+    {
+        serializer.key(id);
+        if (forUpdate)
+            folder.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+        else
+            folder.serialize(serializer);
+    }
+}
 
-    return daqTry(
-        [&serializer, this, forUpdate]()
-        {
-            if (!signals.isEmpty())
-            {
-                serializer->key("sig");
-                if (forUpdate)
-                    signals.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
-                else
-                    signals.serialize(serializer);
-            }
+template <class Intf, class... Intfs>
+template <class FolderPtr>
+void GenericSignalContainerImpl<Intf, Intfs...>::deserializeFolder(const SerializedObjectPtr& serializedObject,
+                                                                   const BaseObjectPtr& context,
+                                                                   const FunctionPtr& factoryCallback,
+                                                                   FolderPtr& folder,
+                                                                   const std::string& id)
+{
+    if (serializedObject.hasKey(id))
+    {
+        const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
+        const auto newDeserializeContext = deserializeContext.clone(this->template borrowPtr<ComponentPtr>(), id);
+        folder = serializedObject.readObject(id, newDeserializeContext, factoryCallback);
+    }
+}
 
-            if (!functionBlocks.isEmpty())
-            {
-                serializer->key("fb");
-                if (forUpdate)
-                    functionBlocks.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
-                else
-                    functionBlocks.serialize(serializer);
-            }
-
-            return OPENDAQ_SUCCESS;
-        });
+template <class Intf, class ... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
+{
+    Super::serializeCustomObjectValues(serializer, forUpdate);
+    serializeFolder(serializer, signals, "sig", forUpdate);
+    serializeFolder(serializer, functionBlocks, "fb", forUpdate);
 }
 
 template <class Intf, class... Intfs>
@@ -403,7 +424,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
                      "FunctionBlock",
                      [this](const std::string& localId, const SerializedObjectPtr& obj)
                      {
-                         deserializeFunctionBlock(localId, obj);
+                         updateFunctionBlock(localId, obj);
                      });
     }
 
@@ -418,6 +439,18 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
                      [this](const std::string& localId, const SerializedObjectPtr& obj)
                      { updateSignal(localId, obj); });
     }
+}
+
+template <class Intf, class ... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::deserializeCustomObjectValues(
+    const SerializedObjectPtr& serializedObject,
+    const BaseObjectPtr& context,
+    const FunctionPtr& factoryCallback)
+{
+    Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+
+    deserializeFolder(serializedObject, context, factoryCallback, this->signals, "sig");
+    deserializeFolder(serializedObject, context, factoryCallback, this->functionBlocks, "fb");
 }
 
 template <class Intf, class ... Intfs>
@@ -444,7 +477,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFolder(const SerializedOb
 }
 
 template <class Intf, class... Intfs>
-void GenericSignalContainerImpl<Intf, Intfs...>::deserializeFunctionBlock(const std::string& /*fbId*/,
+void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::string& /*fbId*/,
                                                                           const SerializedObjectPtr& /* serializedFunctionBlock */)
 {
 

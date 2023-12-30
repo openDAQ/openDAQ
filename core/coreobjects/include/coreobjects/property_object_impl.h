@@ -35,6 +35,9 @@
 #include <map>
 #include <coreobjects/property_internal_ptr.h>
 #include <coreobjects/property_object_internal_ptr.h>
+#include <coreobjects/property_object_protected_ptr.h>
+#include <coreobjects/property_object_factory.h>
+#include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -143,11 +146,15 @@ protected:
     virtual ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate);
     virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
 
-    static ErrCode DeserializePropertyValues(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IPropertyObject* propObjPtr);
-    static ErrCode DeserializeLocalProperties(ISerializedObject* serialized,
-                                              IBaseObject* context,
-                                              IFunction* factoryCallback,
-                                              IPropertyObject* propObjPtr);
+    static void DeserializePropertyValues(const SerializedObjectPtr& serialized,
+                                             const BaseObjectPtr& context,
+                                             const FunctionPtr& factoryCallback,
+                                             PropertyObjectPtr& propObjPtr);
+
+    static void DeserializeLocalProperties(const SerializedObjectPtr& serialized,
+                                           const BaseObjectPtr& context,
+                                           const FunctionPtr& factoryCallback,
+                                           PropertyObjectPtr& propObjPtr);
 
     // Child property handling - Used when a property is queried in the "parent.child" format
     bool isChildProperty(const StringPtr& name, StringPtr& childName, StringPtr& subName) const;
@@ -162,8 +169,11 @@ protected:
     virtual void applyUpdate();
 
     template <class F>
-    static ErrCode DeserializePropertyObject(
-        ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj, F&& f);
+    static PropertyObjectPtr DeserializePropertyObject(
+        const SerializedObjectPtr& serialized,
+        const BaseObjectPtr& context,
+        const FunctionPtr& factoryCallback,
+        F&& f);
 private:
     using PropertyValueEventEmitter = EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr>;
     using EndUpdateEventEmitter = EventEmitter<PropertyObjectPtr, EndUpdateEventArgsPtr>;
@@ -1833,57 +1843,31 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
 
 template <typename PropObjInterface, typename... Interfaces>
 template <class F>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializePropertyObject(
-    ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj, F&& f)
+PropertyObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializePropertyObject(
+    const SerializedObjectPtr& serialized, const BaseObjectPtr& context, const FunctionPtr& factoryCallback, F&& f)
 {
     StringPtr className;
-    ErrCode errCode = serialized->readString("className"_daq, &className);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        className.release();
-    }
+    if (serialized.hasKey("className"))
+        className = serialized.readString("className");
 
     Bool isFrozen{};
-    errCode = serialized->readBool("frozen"_daq, &isFrozen);
-    if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
-    daqClearErrorInfo();
+    if (serialized.hasKey("frozen"))
+        isFrozen = serialized.readBool("frozen");
 
-    PropertyObjectPtr propObjPtr;
-    errCode = f(context, className, propObjPtr);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    PropertyObjectPtr propObjPtr = f(serialized, context, className);
 
-    errCode = DeserializeLocalProperties(serialized, context, factoryCallback, propObjPtr);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    DeserializeLocalProperties(serialized, context, factoryCallback, propObjPtr);
 
-    errCode = DeserializePropertyValues(serialized, context, factoryCallback, propObjPtr);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    DeserializePropertyValues(serialized, context, factoryCallback, propObjPtr);
 
     if (isFrozen)
     {
-        if (ObjectPtr<IFreezable> freezable = propObjPtr.asPtrOrNull<IFreezable>(true); freezable.assigned())
-        {
-            errCode = freezable->freeze();
-            if (OPENDAQ_FAILED(errCode))
-            {
-                return errCode;
-            }
-        }
+        const auto freezable = propObjPtr.asPtrOrNull<IFreezable>(true);
+        if (freezable.assigned())
+            freezable.freeze();
     }
 
-    *obj = propObjPtr.addRefAndReturn();
-    return errCode;
+    return propObjPtr;
 }
 
 // static
@@ -1893,149 +1877,74 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::Deserialize(
                                                                                 IFunction* factoryCallback,
                                                                                 IBaseObject** obj)
 {
-    return DeserializePropertyObject(serialized,
-                               context,
-                               factoryCallback,
-                               obj,
-                               [](const BaseObjectPtr& context, const StringPtr& className, PropertyObjectPtr& propObjPtr)
-        {
-            const TypeManagerPtr objManager = context.assigned() ? context.asOrNull<ITypeManager>() : nullptr;
+    OPENDAQ_PARAM_NOT_NULL(serialized);
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
-            if (objManager.assigned())
-                return createPropertyObjectWithClassAndManager(&propObjPtr, objManager, className);
-            return  createPropertyObject(&propObjPtr);
+    return daqTry(
+        [&serialized, &context, &factoryCallback, &obj]()
+        {
+            *obj = DeserializePropertyObject(serialized,
+                                             context,
+                                             factoryCallback,
+                                             [](const SerializedObjectPtr&, const BaseObjectPtr& context, const StringPtr& className)
+                                             {
+                                                 const TypeManagerPtr objManager = context.assigned() ? context.asOrNull<ITypeManager>() : nullptr;
+                                                 if (objManager.assigned())
+                                                     return PropertyObject(objManager, className);
+                                                 return PropertyObject();
+                                             }).detach();
         });
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializePropertyValues(ISerializedObject* serialized,
-                                                                                              IBaseObject* context,
-                                                                                              IFunction* factoryCallback, 
-                                                                                              IPropertyObject* propObjPtr)
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializePropertyValues(const SerializedObjectPtr& serialized,
+                                                                                           const BaseObjectPtr& context,
+                                                                                           const FunctionPtr& factoryCallback,
+                                                                                           PropertyObjectPtr& propObjPtr)
 {
-    auto hasKeyStr = String("propValues");
+    const auto hasKeyStr = String("propValues");
 
-    Bool hasKey;
-    ErrCode errCode = serialized->hasKey(hasKeyStr, &hasKey);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    if (!serialized.hasKey(hasKeyStr))
+        return;
 
-    if (!IsTrue(hasKey))
-        return OPENDAQ_SUCCESS;
+    const auto propValues = serialized.readSerializedObject("propValues");
 
-    SerializedObjectPtr propValues;
-    errCode = serialized->readSerializedObject(String("propValues"), &propValues);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    const auto keys = propValues.getKeys();
 
-    ListPtr<IString> keys;
-    errCode = propValues->getKeys(&keys);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
-
-    IPropertyObjectProtected* protectedPropObjPtr{};
-    errCode = propObjPtr->borrowInterface(IPropertyObjectProtected::Id, reinterpret_cast<void**>(&protectedPropObjPtr));
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    const auto protectedPropObjPtr = propObjPtr.asPtr<IPropertyObjectProtected>();
 
     for (const auto& key : keys)
     {
-        IString* keyStr;
-        errCode = key->borrowInterface(IString::Id, reinterpret_cast<void**>(&keyStr));
-
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
-
-        BaseObjectPtr propValue;
-        errCode = propValues->readObject(keyStr, context, factoryCallback, &propValue);
-
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
-
-        errCode = protectedPropObjPtr->setProtectedPropertyValue(keyStr, propValue);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        const auto propValue = propValues.readObject(key, context, factoryCallback);
+        protectedPropObjPtr.setProtectedPropertyValue(key, propValue);
     }
-
-    return OPENDAQ_SUCCESS;
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeLocalProperties(ISerializedObject* serialized,
-                                                                                               IBaseObject* context,
-                                                                                               IFunction* factoryCallback,
-                                                                                               IPropertyObject* propObjPtr)
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeLocalProperties(const SerializedObjectPtr& serialized,
+                                                                                            const BaseObjectPtr& context,
+                                                                                            const FunctionPtr& factoryCallback,
+                                                                                            PropertyObjectPtr& propObjPtr)
 {
-    auto keyStr = String("properties");
+    const auto keyStr = String("properties");
 
-    Bool hasKey;
-    ErrCode errCode = serialized->hasKey(keyStr, &hasKey);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    const auto hasKey = serialized.hasKey(keyStr);
 
     if (!IsTrue(hasKey))
-        return OPENDAQ_NOTFOUND;
+        return;
 
-    SerializedListPtr propertyList;
-    errCode = serialized->readSerializedList(keyStr, &propertyList);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    const auto propertyList = serialized.readSerializedList(keyStr);
 
     for (SizeT i = 0; i < propertyList.getCount(); i++)
     {
-        IBaseObject* prop;
-        errCode = propertyList->readObject(context, factoryCallback, &prop);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        const PropertyPtr prop = propertyList.readObject(context, factoryCallback);
+        const auto propName = prop.getName();
 
-        Finally releaseProp([prop] { prop->releaseRef(); });
-
-        IProperty* property;
-        errCode = prop->borrowInterface(IProperty::Id, reinterpret_cast<void**>(&property));
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
-
-        IString* propName;
-        errCode = property->getName(&propName);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
-
-        Finally releaseName([propName] { propName->releaseRef(); });
-
-        Bool hasProperty;
-        errCode = propObjPtr->hasProperty(propName, &hasProperty);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
-
-        if (!hasProperty)
+        if (!propObjPtr.hasProperty(propName))
         {
-            errCode = propObjPtr->addProperty(property);
-            if (OPENDAQ_FAILED(errCode))
-            {
-                return errCode;
-            }
+            propObjPtr.addProperty(prop);
         }
     }
-
-    return OPENDAQ_SUCCESS;
 }
 
 template <class PropObjInterface, class... Interfaces>

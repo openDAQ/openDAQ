@@ -32,6 +32,9 @@ DECLARE_OPENDAQ_INTERFACE(IComponentDeserializeContext, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getLocalId(IString** localId) = 0;
     virtual ErrCode INTERFACE_FUNC getContext(IContext** context) = 0;
     virtual ErrCode INTERFACE_FUNC getTypeManager(ITypeManager** typeManager) = 0;
+    virtual ErrCode INTERFACE_FUNC clone(IComponent* newParent,
+                                         IString* newLocalId,
+                                         IComponentDeserializeContext** newComponentDeserializeContext) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY(

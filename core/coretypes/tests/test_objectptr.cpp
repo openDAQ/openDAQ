@@ -484,6 +484,14 @@ TEST_F(ObjectPtrTest, CreateWithImplementation)
     TestObjectPtr testObject = createWithImplementation<ITestObject, TestObjectImpl>();
 }
 
+TEST_F(ObjectPtrTest, CreateInterfaceWithImplementation)
+{
+    ITestObject* testObject;
+    checkErrorInfo(createInterfaceWithImplementation<ITestObject, TestObjectImpl>(&testObject));
+    testObject->releaseRef();
+}
+
+
 TEST_F(ObjectPtrTest, SupportsInterface)
 {
     auto baseObject = BaseObject();

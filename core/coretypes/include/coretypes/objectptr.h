@@ -2454,21 +2454,18 @@ typename InterfaceToSmartPtr<Intf>::SmartPtr createWithImplementation(Params&&..
 }
 
 template <class Intf, class Impl, typename... Params>
-std::tuple<typename InterfaceToSmartPtr<Intf>::SmartPtr, Impl*> createWithImplementationEx(Params&&... params)
+ErrCode createInterfaceWithImplementation(Intf** intf, Params&&... params)
 {
     static_assert(std::is_base_of_v<Intf, Impl>, "Implementation does not implement the specified interface.");
+    if (intf == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    using SmartPtr = typename InterfaceToSmartPtr<Intf>::SmartPtr;
-
-    Impl* impl = new Impl(std::forward<Params>(params)...);
-    Intf* intf = impl;
+    const auto impl = new Impl(std::forward<Params>(params)...);
     if (impl->getRefAdded())
-    {
-        return {SmartPtr::Adopt(intf), impl};
-    }
-    return {SmartPtr(intf), impl};
-}
+        return impl->borrowInterface(Intf::Id, reinterpret_cast<void**>(intf));
 
+    return impl->queryInterface(Intf::Id, reinterpret_cast<void**>(intf));
+}
 
 END_NAMESPACE_OPENDAQ
 

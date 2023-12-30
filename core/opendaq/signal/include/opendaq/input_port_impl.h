@@ -66,12 +66,18 @@ public:
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
     static ConstCharPtr SerializeId();
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
 
     void updateObject(const SerializedObjectPtr& obj) override;
+
+    BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
+
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
 
 private:
     Bool requiresSignal;
@@ -96,5 +102,7 @@ private:
 
     SignalPtr getSignalNoLock();
 };
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(InputPortImpl)
 
 END_NAMESPACE_OPENDAQ

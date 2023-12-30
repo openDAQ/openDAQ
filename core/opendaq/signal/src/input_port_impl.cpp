@@ -120,6 +120,8 @@ ErrCode InputPortImpl::connect(ISignal* signal)
                     throw;
             }
         }
+
+        dummySignal.release();
     }
     catch (const DaqException& e)
     {
@@ -429,9 +431,26 @@ ConstCharPtr InputPortImpl::SerializeId()
     return "InputPort";
 }
 
-ErrCode InputPortImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
+ErrCode InputPortImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = Super::DeserializeComponent(
+                       serialized,
+                       context,
+                       factoryCallback,
+                       [](const SerializedObjectPtr& serialized,
+                          const ComponentDeserializeContextPtr& deserializeContext,
+                          const StringPtr& className)
+                       {
+                           return createWithImplementation<IInputPort, InputPortImpl>(
+                               deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className);
+                       })
+                       .detach();
+        });
 }
 
 void InputPortImpl::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
@@ -458,6 +477,26 @@ void InputPortImpl::updateObject(const SerializedObjectPtr& obj)
     }
     else
         serializedSignalId.release();
+}
+
+BaseObjectPtr InputPortImpl::getDeserializedParameter(const StringPtr& parameter)
+{
+    if (parameter == "signalId")
+        return serializedSignalId;
+
+    throw NotFoundException();
+}
+
+void InputPortImpl::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                  const BaseObjectPtr& context,
+                                                  const FunctionPtr& factoryCallback)
+{
+    if (serializedObject.hasKey("signalId"))
+    {
+        serializedSignalId = serializedObject.readString("signalId");
+        dummySignal = Signal(this->context, nullptr, "dummy");
+        checkErrorInfo(connect(dummySignal));
+    }
 }
 
 ErrCode InputPortImpl::getRequiresSignal(Bool* requiresSignal)

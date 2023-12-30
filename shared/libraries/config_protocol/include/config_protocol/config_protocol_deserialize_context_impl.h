@@ -29,14 +29,14 @@ public:
                                          const ComponentPtr& parent,
                                          const StringPtr& localId,
                                          const TypeManagerPtr& typeManager
-                                         )
-        : GenericComponentDeserializeContextImpl(context, parent, localId, typeManager)
-        , clientComm(clientComm)
-    {
-    }
+                                         );
 
 
     ConfigProtocolClientCommPtr getClientComm() override;
+
+    ErrCode INTERFACE_FUNC clone(IComponent* newParent,
+                                 IString* newLocalId,
+                                 IComponentDeserializeContext** newComponentDeserializeContext) override;
 
 private:
     ConfigProtocolClientCommPtr clientComm;

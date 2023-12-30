@@ -22,9 +22,9 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-enum class ComponentStandardProps
+enum ComponentStandardProps: int
 {
-    Add,
+    Add = 0,
     AddReadOnly,
     Skip
 };

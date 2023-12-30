@@ -5,9 +5,8 @@
 #include <opendaq/gmock/component.h>
 #include <opendaq/folder_factory.h>
 #include <opendaq/io_folder_factory.h>
-
-#include "opendaq/component_deserialize_context_factory.h"
-#include "opendaq/component_factory.h"
+#include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/component_factory.h>
 
 using namespace testing;
 
@@ -186,30 +185,39 @@ TEST_F(FolderTest, IOStandardProperties)
 
 TEST_F(FolderTest, SerializeAndDeserialize)
 {
-    const auto name = "foo";
-    const auto desc = "bar";
-    const auto component = daq::Component(nullptr, nullptr, "temp");
+    const auto folder = daq::Folder(nullptr, nullptr, "folder");
+    folder.setName("fld_name");
+    folder.setDescription("fld_desc");
+    folder.getTags().add("fld_tag");
 
-    component.setName(name);
-    component.setDescription(desc);
-    component.getTags().add("tag");
+    const auto component = daq::Component(nullptr, nullptr, "component");
+
+    component.setName("comp_name");
+    component.setDescription("comp_desc");
+    component.getTags().add("comp_tag");
+
+    folder.addItem(component);
 
     const auto serializer = daq::JsonSerializer(daq::True);
-    component.serialize(serializer);
+    folder.serialize(serializer);
     const auto str1 = serializer.getOutput();
 
     const auto deserializer = daq::JsonDeserializer();
 
-    const auto deserializeContext = daq::ComponentDeserializeContext(nullptr, nullptr, "temp", daq::TypeManager());
+    const auto deserializeContext = daq::ComponentDeserializeContext(nullptr, nullptr, "folder", daq::TypeManager());
 
-    const daq::ComponentPtr newComponent = deserializer.deserialize(str1, deserializeContext, nullptr);
+    const daq::FolderPtr newFolder = deserializer.deserialize(str1, deserializeContext, nullptr);
 
-    ASSERT_EQ(newComponent.getName(), name);
-    ASSERT_EQ(newComponent.getDescription(), desc);
-    ASSERT_EQ(newComponent.getTags(), component.getTags());
+    ASSERT_EQ(newFolder.getName(), folder.getName());
+    ASSERT_EQ(newFolder.getDescription(), folder.getDescription());
+    ASSERT_EQ(newFolder.getTags(), folder.getTags());
+
+    ASSERT_EQ(newFolder.getItems()[0].getName(), component.getName());
+    ASSERT_EQ(newFolder.getItems()[0].getDescription(), component.getDescription());
+    ASSERT_EQ(newFolder.getItems()[0].getTags(), component.getTags());
 
     const auto serializer2 = daq::JsonSerializer(daq::True);
-    newComponent.serialize(serializer2);
+    newFolder.serialize(serializer2);
     const auto str2 = serializer2.getOutput();
 
     ASSERT_EQ(str1, str2);

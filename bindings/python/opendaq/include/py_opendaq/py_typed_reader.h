@@ -177,7 +177,7 @@ private:
     }
 
     template <typename ValueType, typename ReaderType>
-    static inline py::array_t<ValueType> read(const ReaderType& reader, size_t count, size_t timeoutMs)
+    static inline py::array_t<ValueType> read(const ReaderType& reader, size_t count, [[maybe_unused]] size_t timeoutMs)
     {
         size_t blockSize = 1;
         if constexpr (std::is_same_v<ReaderType, daq::BlockReaderPtr>)
@@ -206,7 +206,7 @@ private:
     }
 
     template <typename ValueType, typename DomainType, typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, DomainTypeVariant> read(const ReaderType& reader, size_t count, size_t timeoutMs)
+    static inline std::tuple<SampleTypeVariant, DomainTypeVariant> read(const ReaderType& reader, size_t count, [[maybe_unused]] size_t timeoutMs)
     {
         using DomainVectorType = typename std::conditional<std::is_same<DomainType, std::chrono::system_clock::time_point>::value,
                                                            std::vector<int64_t>,

@@ -211,20 +211,6 @@ if (UNIX AND (CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUXX))
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
 endif()
 
-if (MSVC AND NOT (${CMAKE_GENERATOR} MATCHES "Visual Studio"))
-    find_package(WindowsSDK)
-
-    if (WINDOWSSDK_FOUND)
-        get_windowssdk_include_dirs(${WINDOWSSDK_LATEST_DIR} WIN_SDK_INCLUDE)
-        get_windowssdk_library_dirs(${WINDOWSSDK_LATEST_DIR} WIN_SDK_LIBRARIES)
-
-        include_directories(${WIN_SDK_INCLUDE})
-        link_directories(${WIN_SDK_LIBRARIES})
-    else()
-        message(WARNING "Windows SDK not found. Some projects might not build or link correctly.")
-    endif()
-endif()
-
 string(TIMESTAMP CONFIGURE_DATE)
 string(TIMESTAMP CURRENT_YEAR "%Y")
 

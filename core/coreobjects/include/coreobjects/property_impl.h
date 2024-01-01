@@ -87,7 +87,7 @@ public:
         this->name = name;
     }
 
-    PropertyImpl(IPropertyBuilder* propertyBuilder)
+    explicit PropertyImpl(IPropertyBuilder* propertyBuilder)
     {
         const auto propertyBuilderPtr = PropertyBuilderPtr::Borrow(propertyBuilder);
         this->valueType = propertyBuilderPtr.getValueType();
@@ -578,9 +578,9 @@ public:
         });
     }
     
-    ErrCode INTERFACE_FUNC getReadOnly(Bool* readOnly) override
+    ErrCode INTERFACE_FUNC getReadOnly(Bool* isReadOnly) override
     {
-        if (readOnly == nullptr)
+        if (isReadOnly == nullptr)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
         return daqTry([&]() {
@@ -588,11 +588,11 @@ public:
             const auto prop = bindAndGetRefProp(bound);
             if (bound)
             {
-                *readOnly = prop.getReadOnly();
+                *isReadOnly = prop.getReadOnly();
             }
             else
             {
-                *readOnly = bindAndGet(this->readOnly);
+                *isReadOnly = bindAndGet(readOnly);
             }
             return OPENDAQ_SUCCESS;
         });

@@ -165,12 +165,48 @@ std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComp
             }
             catch (...)
             {
-                LOG_E("Unknown error occured wile loading a module", ".")
+                LOG_E("Unknown error occurred wile loading a module", ".")
             }
         }
     }
 
     return moduleDrivers;
+}
+
+template <typename Functor>
+static void printComponentTypes(Functor func, const std::string& kind, const LoggerComponentPtr& loggerComponent)
+{
+    try
+    {
+        DictPtr<IString, IComponentType> componentTypes = func();
+        if (componentTypes.getCount() > 0)
+        {
+            for (auto [id, type] : componentTypes)
+            {
+                LOG_I("\t{0:<3} [{1}] {2}: \"{3}\"",
+                      kind,
+                      id,
+                      type.getName(),
+                      type.getDescription()
+                );
+            }
+        }
+    }
+    catch (const std::exception& e)
+    {
+        LOG_E("Failed to enumerate module's supported {} types: {}", kind, e.what());
+    }
+    catch (...)
+    {
+        LOG_E("Failed to enumerate module's supported {} types because of unknown exception", kind);
+    }
+}
+
+static void printAvailableTypes(const ModulePtr& module, const LoggerComponentPtr& loggerComponent)
+{
+    printComponentTypes([&module](){return module.getAvailableDeviceTypes(); }, "DEV", loggerComponent);
+    printComponentTypes([&module](){return module.getAvailableFunctionBlockTypes(); }, "FB", loggerComponent);
+    printComponentTypes([&module](){return module.getAvailableServerTypes(); }, "SRV", loggerComponent);
 }
 
 ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context)
@@ -239,7 +275,10 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
         throw ModuleEntryPointFailedException("Library \"{}\" failed to create a Module.", relativePath);
     }
 
-    LOG_T("Creating module from \"{}\" succeeded.", relativePath);
+    auto version = module.getVersionInfo();
+
+    LOG_I("Loaded module [v{}.{}.{} {}] from \"{}\".", version.getMajor(), version.getMinor(), version.getPatch(), module.getName(), relativePath);
+    printAvailableTypes(module, loggerComponent);
 
     return { std::move(moduleLibrary), module };
 }

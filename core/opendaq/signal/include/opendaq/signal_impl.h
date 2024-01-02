@@ -70,6 +70,7 @@ public:
     ErrCode INTERFACE_FUNC getConnections(IList** connections) override;
     ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) override;
     ErrCode INTERFACE_FUNC setStreamed(Bool streamed) override;
+    ErrCode INTERFACE_FUNC getValue(IDataPacket** packet) override;
 
     // ISignalConfig
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
@@ -112,6 +113,7 @@ private:
     SignalPtr domainSignal;
     std::vector<ConnectionPtr> connections;
     std::vector<WeakRefPtr<ISignalConfig>> domainSignalReferences;
+    DataPacketPtr lastDataPacket;
 
     void initSignalProperties(ComponentStandardProps propsMode);
     void propertyValueChanged(const PropertyPtr& prop, const BaseObjectPtr& value);
@@ -390,7 +392,12 @@ ErrCode SignalBase<TInterface, Interfaces...>::sendPacket(IPacket* packet)
     std::scoped_lock lock(this->sync);
 
     if (sendPacketInternal(packetPtr))
+    {
+        const auto dataPacket = packetPtr.asPtrOrNull<IDataPacket>();
+        if (dataPacket.assigned() && dataPacket.getSampleCount())
+            lastDataPacket = dataPacket;
         return OPENDAQ_SUCCESS;
+    }
 
     return  OPENDAQ_IGNORED;
 }
@@ -605,6 +612,29 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setStreamed(Bool streamed)
 {
     return OPENDAQ_IGNORED;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::getValue(IDataPacket** packet)
+{
+    OPENDAQ_PARAM_NOT_NULL(packet);
+    std::scoped_lock lock(this->sync);
+
+    if (lastDataPacket.assigned() && lastDataPacket.getSampleCount() > 1)
+    {
+        auto dataPacket = DataPacket(lastDataPacket.getDataDescriptor(), 1);
+
+        auto memSize = lastDataPacket.getSampleMemSize();
+        auto idx = lastDataPacket.getSampleCount() - 1;
+        int8_t* src = static_cast<int8_t*>(lastDataPacket.getData()) + memSize * idx;
+        int8_t* dst = static_cast<int8_t*>(dataPacket.getData());
+        memcpy(dst, src, memSize);
+
+        lastDataPacket = dataPacket;
+    }
+
+    *packet = lastDataPacket.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ

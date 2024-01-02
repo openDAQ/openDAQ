@@ -5,6 +5,7 @@
 #include <opendaq/signal_private_ptr.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/removable_ptr.h>
+#include <opendaq/packet_factory.h>
 #include <coreobjects/property_object_class_factory.h>
 #include <gtest/gtest.h>
 
@@ -439,6 +440,90 @@ TEST_F(SignalTest, SerializeAndUpdate)
     const auto str2 = serializer2.getOutput();
 
     ASSERT_EQ(str1, str2);
+}
+
+TEST_F(SignalTest, NoLastValue)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    ASSERT_FALSE(signal.getValue().assigned());
+}
+
+TEST_F(SignalTest, GetLastValue)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    
+    auto dataPacket = DataPacket(descriptor, 5);
+    int64_t* data = static_cast<int64_t*>(dataPacket.getData());
+    data[0] = 0;
+    data[1] = 1;
+    data[2] = 2;
+    data[3] = 3;
+    data[4] = 4;
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValuePacket = signal.getValue();
+    ASSERT_TRUE(lastValuePacket.assigned());
+    ASSERT_EQ(lastValuePacket.getDataDescriptor(), descriptor);
+    ASSERT_EQ(lastValuePacket.getSampleCount(), 1);
+
+    int64_t* lastValue = static_cast<int64_t*>(lastValuePacket.getData());
+    ASSERT_EQ(*lastValue, 4);
+}
+
+TEST_F(SignalTest, GetLastValueAfterMultipleSend)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    
+    {
+        auto dataPacket = DataPacket(descriptor, 1);
+        int64_t* data = static_cast<int64_t*>(dataPacket.getData());
+        data[0] = 0;
+        signal.sendPacket(dataPacket);
+    }
+
+    {
+        auto dataPacket = DataPacket(descriptor, 1);
+        int64_t* data = static_cast<int64_t*>(dataPacket.getData());
+        data[0] = 1;
+        signal.sendPacket(dataPacket);
+    }
+
+    auto lastValuePacket = signal.getValue();
+    ASSERT_TRUE(lastValuePacket.assigned());
+    ASSERT_EQ(lastValuePacket.getDataDescriptor(), descriptor);
+    ASSERT_EQ(lastValuePacket.getSampleCount(), 1);
+
+    int64_t* lastValue = static_cast<int64_t*>(lastValuePacket.getData());
+    ASSERT_EQ(*lastValue, 1);
+}
+
+TEST_F(SignalTest, GetLastValueAfterEmptyPacket)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    
+    {
+        auto dataPacket = DataPacket(descriptor, 1);
+        int64_t* data = static_cast<int64_t*>(dataPacket.getData());
+        data[0] = 0;
+        signal.sendPacket(dataPacket);
+    }
+
+    {
+        auto dataPacket = DataPacket(descriptor, 0);
+        signal.sendPacket(dataPacket);
+    }
+
+    auto lastValuePacket = signal.getValue();
+    ASSERT_TRUE(lastValuePacket.assigned());
+    ASSERT_EQ(lastValuePacket.getDataDescriptor(), descriptor);
+    ASSERT_EQ(lastValuePacket.getSampleCount(), 1);
+
+    int64_t* lastValue = static_cast<int64_t*>(lastValuePacket.getData());
+    ASSERT_EQ(*lastValue, 0);
 }
 
 END_NAMESPACE_OPENDAQ

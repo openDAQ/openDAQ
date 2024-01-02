@@ -32,7 +32,8 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 enum class ClientReconnectionStatus
 {
-    Reconnecting = 0,
+    Connected = 0,
+    Reconnecting,
     Restored,
     Unrecoverable
 };

@@ -131,10 +131,11 @@ DECLARE_OPENDAQ_INTERFACE(ISignal, IComponent)
     virtual ErrCode INTERFACE_FUNC setStreamed(Bool streamed) = 0;
 
     /*!
-     * @brief Gets the data packet with last signal value;
-     * @param[out] packet Thes data packet with last signal value;
+     * @brief Gets the signal last value
+     * @param[out] value The signal last value
      */
-    virtual ErrCode INTERFACE_FUNC getValue(IDataPacket** packet) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getValue(IBaseObject ** value) = 0;
 };
 /*!@}*/
 

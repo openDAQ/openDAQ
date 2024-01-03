@@ -464,12 +464,9 @@ TEST_F(SignalTest, GetLastValue)
     signal.sendPacket(dataPacket);
 
     auto lastValuePacket = signal.getValue();
-    ASSERT_TRUE(lastValuePacket.assigned());
-    ASSERT_EQ(lastValuePacket.getDataDescriptor(), descriptor);
-    ASSERT_EQ(lastValuePacket.getSampleCount(), 1);
-
-    int64_t* lastValue = static_cast<int64_t*>(lastValuePacket.getData());
-    ASSERT_EQ(*lastValue, 4);
+    IntegerPtr integerPtr;
+    ASSERT_NO_THROW(integerPtr = lastValuePacket.asPtr<IInteger>());
+    ASSERT_EQ(integerPtr, 4);
 }
 
 TEST_F(SignalTest, GetLastValueAfterMultipleSend)
@@ -492,12 +489,9 @@ TEST_F(SignalTest, GetLastValueAfterMultipleSend)
     }
 
     auto lastValuePacket = signal.getValue();
-    ASSERT_TRUE(lastValuePacket.assigned());
-    ASSERT_EQ(lastValuePacket.getDataDescriptor(), descriptor);
-    ASSERT_EQ(lastValuePacket.getSampleCount(), 1);
-
-    int64_t* lastValue = static_cast<int64_t*>(lastValuePacket.getData());
-    ASSERT_EQ(*lastValue, 1);
+    IntegerPtr integerPtr;
+    ASSERT_NO_THROW(integerPtr = lastValuePacket.asPtr<IInteger>());
+    ASSERT_EQ(integerPtr, 1);
 }
 
 TEST_F(SignalTest, GetLastValueAfterEmptyPacket)
@@ -518,12 +512,9 @@ TEST_F(SignalTest, GetLastValueAfterEmptyPacket)
     }
 
     auto lastValuePacket = signal.getValue();
-    ASSERT_TRUE(lastValuePacket.assigned());
-    ASSERT_EQ(lastValuePacket.getDataDescriptor(), descriptor);
-    ASSERT_EQ(lastValuePacket.getSampleCount(), 1);
-
-    int64_t* lastValue = static_cast<int64_t*>(lastValuePacket.getData());
-    ASSERT_EQ(*lastValue, 0);
+    IntegerPtr integerPtr;
+    ASSERT_NO_THROW(integerPtr = lastValuePacket.asPtr<IInteger>());
+    ASSERT_EQ(integerPtr, 0);
 }
 
 END_NAMESPACE_OPENDAQ

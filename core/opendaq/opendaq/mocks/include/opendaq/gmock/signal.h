@@ -64,7 +64,7 @@ struct MockSignal : daq::GenericPropertyObjectImpl<daq::ISignal, daq::ISignalEve
     MOCK_METHOD(daq::ErrCode, setStreamed, (daq::Bool streamed), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getStreamed, (daq::Bool* streamed), (override MOCK_CALL));
 
-    MOCK_METHOD(daq::ErrCode, getValue, (daq::IDataPacket** packet), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getValue, (IBaseObject ** value), (override MOCK_CALL));
 
     std::vector<daq::ConnectionPtr> connections;
 

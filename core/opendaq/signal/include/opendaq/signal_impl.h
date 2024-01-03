@@ -70,7 +70,7 @@ public:
     ErrCode INTERFACE_FUNC getConnections(IList** connections) override;
     ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) override;
     ErrCode INTERFACE_FUNC setStreamed(Bool streamed) override;
-    ErrCode INTERFACE_FUNC getValue(IDataPacket** packet) override;
+    ErrCode INTERFACE_FUNC getValue(IBaseObject ** value) override;
 
     // ISignalConfig
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
@@ -615,25 +615,64 @@ ErrCode SignalBase<TInterface, Interfaces...>::setStreamed(Bool streamed)
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode SignalBase<TInterface, Interfaces...>::getValue(IDataPacket** packet)
+ErrCode SignalBase<TInterface, Interfaces...>::getValue(IBaseObject ** value)
 {
-    OPENDAQ_PARAM_NOT_NULL(packet);
+    OPENDAQ_PARAM_NOT_NULL(value);
     std::scoped_lock lock(this->sync);
 
-    if (lastDataPacket.assigned() && lastDataPacket.getSampleCount() > 1)
+    if (lastDataPacket.assigned() && lastDataPacket.getSampleCount())
     {
-        auto dataPacket = DataPacket(lastDataPacket.getDataDescriptor(), 1);
+        const auto & descriptor = lastDataPacket.getDataDescriptor();
 
-        auto memSize = lastDataPacket.getSampleMemSize();
+        if (descriptor.getDimensions().getCount() != 0)
+            return OPENDAQ_IGNORED;
+
         auto idx = lastDataPacket.getSampleCount() - 1;
-        int8_t* src = static_cast<int8_t*>(lastDataPacket.getData()) + memSize * idx;
-        int8_t* dst = static_cast<int8_t*>(dataPacket.getData());
-        memcpy(dst, src, memSize);
 
-        lastDataPacket = dataPacket;
+        switch (descriptor.getSampleType())
+        {
+            case SampleType::Float32:
+            {
+                auto data = static_cast<float*>(lastDataPacket.getData());
+                *value = Floating(data[idx]).detach();
+                break;
+            }
+            case SampleType::Float64:
+            {
+                auto data = static_cast<double*>(lastDataPacket.getData());
+                *value = Floating(data[idx]).detach();
+                break;
+            }
+            case SampleType::Int8:
+            {
+                auto data = static_cast<int8_t*>(lastDataPacket.getData());
+                *value = Integer(data[idx]).detach();
+                break;
+            }
+            case SampleType::Int16:
+            {
+                auto data = static_cast<int16_t*>(lastDataPacket.getData());
+                *value = Integer(data[idx]).detach();
+                break;
+            }
+            case SampleType::Int32:
+            {
+                auto data = static_cast<int32_t*>(lastDataPacket.getData());
+                *value = Integer(data[idx]).detach();
+                break;
+            }
+            case SampleType::Int64:
+            {
+                auto data = static_cast<int64_t*>(lastDataPacket.getData());
+                *value = Integer(data[idx]).detach();
+                break;
+            }
+            default:
+            {
+                return OPENDAQ_IGNORED;
+            }
+        };
     }
-
-    *packet = lastDataPacket.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

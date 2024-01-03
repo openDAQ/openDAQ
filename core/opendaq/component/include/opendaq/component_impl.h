@@ -19,16 +19,18 @@
 #include <opendaq/component.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/removable.h>
-#include <coreobjects/core_event_args_factory.h>
+#include <coreobjects/core_event_args_ptr.h>
 #include <coreobjects/property_object_impl.h>
 #include <opendaq/component_ptr.h>
 #include <coretypes/weakrefptr.h>
 #include <opendaq/tags_factory.h>
 #include <mutex>
 #include <opendaq/custom_log.h>
+#include <coreobjects/core_event_args_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-    static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
+
+static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
 
 template <class Intf = IComponent, class ... Intfs>
 class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, Intfs ...>
@@ -59,6 +61,7 @@ public:
 
     // IUpdatable
     ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+
 protected:
     virtual void activeChanged();
     virtual void removed();
@@ -82,6 +85,7 @@ protected:
     virtual void updateObject(const SerializedObjectPtr& obj);
     virtual void serializeCustomObjectValues(const SerializerPtr& serializer);
     static std::string getRelativeGlobalId(const std::string& globalId);
+    void triggerCoreEvent(const CoreEventArgsPtr& args);
 
 private:
     void initComponentProperties(ComponentStandardProps propsMode);
@@ -97,11 +101,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     : GenericPropertyObjectImpl<Intf, IRemovable, Intfs ...>(
         context.assigned() ? context.getTypeManager() : nullptr,
         className,
-        [&](const CoreEventArgsPtr& args)
-         {
-             const ComponentPtr thisPtr = this->template borrowPtr<ComponentPtr>();
-             this->coreEvent(thisPtr, args);
-         })
+        [&](const CoreEventArgsPtr& args){ triggerCoreEvent(args); })
       , context(context)
       , active(true)
       , isComponentRemoved(false)
@@ -154,18 +154,26 @@ ErrCode ComponentImpl<Intf, Intfs ...>::getActive(Bool* active)
 }
 
 template <class Intf, class ... Intfs>
-ErrCode ComponentImpl<Intf, Intfs ...>::setActive(Bool active)
+ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 {
     std::scoped_lock lock(sync);
 
-    if (static_cast<bool>(active) == this->active)
-        return  OPENDAQ_IGNORED;
+    {
+        if (static_cast<bool>(active) == this->active)
+            return OPENDAQ_IGNORED;
 
-    if (active && isComponentRemoved)
-        return OPENDAQ_ERR_INVALIDSTATE;
+        if (active && isComponentRemoved)
+            return OPENDAQ_ERR_INVALIDSTATE;
 
-    this->active = active;
-    activeChanged();
+        this->active = active;
+        activeChanged();
+    }
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(core_event_ids::ComponentModified, Dict<IString, IBaseObject>({{"Active", this->active}}));
+        triggerCoreEvent(args);
+    }
 
     return OPENDAQ_SUCCESS;
 }
@@ -309,6 +317,7 @@ ErrCode ComponentImpl<Intf, Intfs ...>::remove()
         activeChanged();
     }
 
+    this->disableCoreEventTrigger();
     removed();
 
     return OPENDAQ_SUCCESS;
@@ -332,10 +341,22 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     return daqTry(
         [&objPtr, this]()
         {
+            const bool muted = this->coreEventMuted;
+            const auto thisPtr = this->template borrowPtr<ComponentPtr>();
+            const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
+            if (!muted)
+                propInternalPtr.disableCoreEventTrigger();
+
             const auto err = Super::update(objPtr);
 
             updateObject(objPtr);
 
+            if (!muted && this->coreEvent.assigned())
+            {
+                const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(core_event_ids::ComponentUpdateEnd, Dict<IString, IBaseObject>());
+                triggerCoreEvent(args);
+                propInternalPtr.enableCoreEventTrigger();
+            }
             return err;
         });
 }
@@ -437,6 +458,26 @@ std::string ComponentImpl<Intf, Intfs...>::getRelativeGlobalId(const std::string
         return globalId.substr(equalsIdx + 1);
 
     return globalId;
+}
+
+template <class Intf, class ... Intfs>
+void ComponentImpl<Intf, Intfs...>::triggerCoreEvent(const CoreEventArgsPtr& args)
+{
+    try
+    {
+        const ComponentPtr thisPtr = this->template borrowPtr<ComponentPtr>();
+        this->coreEvent(thisPtr, args);
+    }
+    catch (const std::exception& e)
+    {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+        LOG_W("Component {} failed while triggering core event {} with: {}", this->localId, args.getEventName(), e.what())
+    }
+    catch (...)
+    {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+        LOG_W("Component {} failed while triggering core event {}", this->localId, args.getEventName())
+    }
 }
 
 END_NAMESPACE_OPENDAQ

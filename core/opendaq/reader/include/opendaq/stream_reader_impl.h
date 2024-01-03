@@ -54,6 +54,8 @@ public:
     explicit StreamReaderImpl(StreamReaderImpl* old,
                               SampleType valueReadType,
                               SampleType domainReadType);
+    
+    ~StreamReaderImpl() override;
 
     // IReader
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
@@ -115,7 +117,7 @@ private:
     ReadMode readMode;
     ReadTimeoutType timeoutType;
     InputPortConfigPtr inputPort;
-    PropertyObjectPtr portBinder{PropertyObject()};
+    PropertyObjectPtr portBinder;
     ConnectionPtr connection;
 
     bool invalid{};

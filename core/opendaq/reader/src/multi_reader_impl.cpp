@@ -32,8 +32,10 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
     if (isSignal)
         connectSignals(list, valueReadType, domainReadType, mode);
     else
+    {
+        portBinder = PropertyObject();
         connectPorts(list, valueReadType, domainReadType, mode);
-
+    }
     SizeT min{};
     SyncStatus syncStatus{};
     ErrCode errCode = synchronize(min, syncStatus);
@@ -48,6 +50,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
 {
     std::scoped_lock lock(old->mutex);
     old->invalid = true;
+    portBinder = old->portBinder;
 
     CheckPreconditions(old->getSignals());
 
@@ -88,6 +91,13 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
         sigInfo.port = port;
         signals.emplace_back(sigInfo, listener, valueReadType, domainReadType);
     }
+}
+
+MultiReaderImpl::~MultiReaderImpl()
+{
+    if (!portBinder.assigned())
+        for (const auto& signal : signals)
+            signal.port.remove();
 }
 
 ListPtr<ISignal> MultiReaderImpl::getSignals() const

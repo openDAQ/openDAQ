@@ -63,6 +63,7 @@ public:
                         SampleType valueReadType,
                         SampleType domainReadType)
         : readMode(mode)
+        , portBinder(PropertyObject())
         , timeoutType(ReadTimeoutType::All)
     {
         if (!port.assigned())
@@ -79,6 +80,12 @@ public:
             connection = this->port.getConnection();
         valueReader = createReaderForType(valueReadType, nullptr);
         domainReader = createReaderForType(domainReadType, nullptr);
+    }
+
+    ~ReaderImpl() override
+    {
+        if (port.assigned() && !portBinder.assigned())
+            port.remove();
     }
 
     /*!
@@ -512,7 +519,7 @@ protected:
     std::mutex mutex;
     ReadMode readMode;
     InputPortConfigPtr port;
-    PropertyObjectPtr portBinder{PropertyObject()};
+    PropertyObjectPtr portBinder;
     ConnectionPtr connection;
     FunctionPtr changeCallback;
     FunctionPtr readCallback;

@@ -40,6 +40,7 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
                                    ReadTimeoutType timeoutType)
     : readMode(mode)
     , timeoutType(timeoutType)
+    , portBinder(PropertyObject())
 {
     if (!port)
         throw ArgumentNullException("Input port must not be null.");
@@ -101,7 +102,7 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     valueReader = createReaderForType(valueReadType, old->valueReader->getTransformFunction(), old->valueReader->getReadType());
     domainReader = createReaderForType(domainReadType, old->domainReader->getTransformFunction(), old->domainReader->getReadType());
 
-    portBinder = old->portBinder;
+    old->portBinder = PropertyObject();
     inputPort = old->inputPort;
     connection = inputPort.getConnection();
     changeCallback = old->changeCallback;
@@ -110,6 +111,12 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     this->internalAddRef();
     if (!changeCallback.assigned())
         readDescriptorFromPort();
+}
+
+StreamReaderImpl::~StreamReaderImpl()
+{
+    if (inputPort.assigned() && !portBinder.assigned())
+        inputPort.remove();
 }
 
 void StreamReaderImpl::readDescriptorFromPort()

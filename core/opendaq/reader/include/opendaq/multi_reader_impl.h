@@ -40,6 +40,8 @@ public:
                     SampleType domainReadType,
                     ReadMode mode);
 
+    ~MultiReaderImpl() override;
+
     ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) override;
     ErrCode INTERFACE_FUNC setOnAvailablePackets(IFunction* callback) override;
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
@@ -116,7 +118,7 @@ private:
     std::unique_ptr<Comparable> commonStart;
 
     std::vector<SignalReader> signals;
-    PropertyObjectPtr portBinder{PropertyObject()};
+    PropertyObjectPtr portBinder;
     FunctionPtr readCallback;
 
     LoggerComponentPtr loggerComponent;

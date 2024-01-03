@@ -25,6 +25,7 @@ PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
     if (!port)
         throw ArgumentNullException("Input port must not be null.");
 
+    portBinder = PropertyObject();
     this->port = InputPortConfigPtr(port);
     this->port.asPtr<IOwnable>().setOwner(portBinder);
 
@@ -35,6 +36,12 @@ PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
 
      if (this->port.getConnection().assigned())
         connection = this->port.getConnection();
+}
+
+PacketReaderImpl::~PacketReaderImpl()
+{
+    if (port.assigned() && !portBinder.assigned())
+        port.remove();
 }
 
 ErrCode PacketReaderImpl::getAvailableCount(SizeT* count)

@@ -97,8 +97,8 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
         [](daq::ISignal *object)
         {
             const auto objectPtr = daq::SignalPtr::Borrow(object);
-            return objectPtr.getValue().detach();
+            return baseObjectToPyObject(objectPtr.getValue());
         },
         py::return_value_policy::take_ownership,
-        "Gets the data packet with last signal value;");
+        "Gets the signal last value");
 }

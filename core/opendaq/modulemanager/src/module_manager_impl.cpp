@@ -275,9 +275,21 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
         throw ModuleEntryPointFailedException("Library \"{}\" failed to create a Module.", relativePath);
     }
 
-    auto version = module.getVersionInfo();
+    if (auto version = module.getVersionInfo(); version.assigned())
+    {
+        LOG_I("Loaded module [v{}.{}.{} {}] from \"{}\".",
+              version.getMajor(),
+              version.getMinor(),
+              version.getPatch(),
+              module.getName(),
+              relativePath);
+    }
+    else
+    {
+        LOG_I("Loaded module UNKNOWN VERSION of {} from \"{}\".", module.getName(), relativePath);
+    }
 
-    LOG_I("Loaded module [v{}.{}.{} {}] from \"{}\".", version.getMajor(), version.getMinor(), version.getPatch(), module.getName(), relativePath);
+
     printAvailableTypes(module, loggerComponent);
 
     return { std::move(moduleLibrary), module };

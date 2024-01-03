@@ -40,6 +40,7 @@ private:
     void collectEvaluationPropertyAttributes(const OpcUaNodeId& nodeId);
     void collectBaseObjectAttributes(const OpcUaNodeId& nodeId);
     void collectMethodAttributes(const OpcUaNodeId& nodeId);
+    void collectVariableBlockAttributes(const OpcUaNodeId& nodeId);
 
     void collectIoNode(const OpcUaNodeId& nodeId);
     void collectInputPortNode(const OpcUaNodeId& nodeId);
@@ -62,6 +63,7 @@ private:
     static const OpcUaNodeId NodeIdSignalType;
     static const OpcUaNodeId NodeIdInputPortType;
     static const OpcUaNodeId NodeIdEvaluationVariableType;
+    static const OpcUaNodeId NodeIdVariableBlockType;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

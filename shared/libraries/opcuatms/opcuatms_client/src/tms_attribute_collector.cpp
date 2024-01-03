@@ -15,6 +15,7 @@ const OpcUaNodeId TmsAttributeCollector::NodeIdComponentType = OpcUaNodeId(NAMES
 const OpcUaNodeId TmsAttributeCollector::NodeIdSignalType = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_SIGNALTYPE);
 const OpcUaNodeId TmsAttributeCollector::NodeIdInputPortType = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_INPUTPORTTYPE);
 const OpcUaNodeId TmsAttributeCollector::NodeIdEvaluationVariableType = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_EVALUATIONVARIABLETYPE);
+const OpcUaNodeId TmsAttributeCollector::NodeIdVariableBlockType = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_VARIABLEBLOCKTYPE);
 
 // TmsAttributeCollector
 
@@ -203,6 +204,11 @@ void TmsAttributeCollector::collectMethodAttributes(const OpcUaNodeId& nodeId)
         attributes.insert({browser->getChildNodeId(nodeId, "NumberInList"), UA_ATTRIBUTEID_VALUE});
 }
 
+void TmsAttributeCollector::collectVariableBlockAttributes(const OpcUaNodeId& nodeId)
+{
+    collectPropertyObjectAttributes(nodeId);
+}
+
 void TmsAttributeCollector::collectIoNode(const OpcUaNodeId& nodeId)
 {
     const auto& references = browser->browse(nodeId);
@@ -255,8 +261,8 @@ void TmsAttributeCollector::collectStreamingOptionsNode(const OpcUaNodeId& nodeI
 
     for (const auto& [refNodeId, ref] : references.byNodeId)
     {
-        if (isSubtypeOf(ref->typeDefinition.nodeId, NodeIdBaseVariableType))
-            collectPropertyAttributes(refNodeId);
+        if (typeEquals(ref->typeDefinition.nodeId, NodeIdVariableBlockType))
+            collectVariableBlockAttributes(refNodeId);
     }
 }
 

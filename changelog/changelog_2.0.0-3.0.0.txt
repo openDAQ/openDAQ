@@ -1,3 +1,9 @@
+03.01.2024
+Description:
+  - Add method getValue in ISignal
+
++ [function] ISignal::getValue(IDataPacket** packet)
+
 13.12.2023
 Description:
   - Add Core event to Context object that triggers on core changes

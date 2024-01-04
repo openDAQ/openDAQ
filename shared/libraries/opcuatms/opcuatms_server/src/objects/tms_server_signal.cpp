@@ -48,6 +48,23 @@ void TmsServerSignal::bindCallbacks()
         }
     }
 
+    addReadCallback(valueId, [this]() {
+        ObjectPtr lastValue = object.getValue();
+        if (lastValue != nullptr)
+            return VariantConverter<IBaseObject>::ToVariant(lastValue, nullptr, daqContext);
+        else
+            return OpcUaVariant();
+    });
+
+    auto analogValueId = getChildNodeId("AnalogValue");
+    addReadCallback(analogValueId, [this]() {
+        ObjectPtr lastValue = object.getValue();
+        if (lastValue != nullptr)
+            return VariantConverter<IBaseObject>::ToVariant(lastValue, nullptr, daqContext);
+        else
+            return OpcUaVariant();
+    });
+
     // TODO: Value, AnalogValue, Status
     Super::bindCallbacks();
 }
@@ -57,6 +74,11 @@ bool TmsServerSignal::createOptionalNode(const opcua::OpcUaNodeId& nodeId)
     const auto name = server->readBrowseNameString(nodeId);
     if (name == "Value")
         return true;
+    if (name == "AnalogValue")
+    {
+        SampleType type = object.getDescriptor().getSampleType();
+        return type == SampleType::Float64 || type == SampleType::Int64;
+    }
 
     return Super::createOptionalNode(nodeId);
 }

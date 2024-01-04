@@ -434,6 +434,7 @@ to an xref:glossary.adoc#opendaq_native_streaming_client_module[openDAQ(TM) Nati
 [#streaming]
 == Streaming
 
-The generalized client side mechanism for continuous and real-time receiving of data from a <<device>>.
+The generalized transport layer mechanism for continuous and real-time receiving of data from a data
+acquisition <<device>>.
 
 // TODO: openDAQ(TM) component, tags, Folder, Global ID, Local ID

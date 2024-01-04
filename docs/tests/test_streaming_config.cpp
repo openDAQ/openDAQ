@@ -31,6 +31,20 @@ TEST_F(StreamingConfigTest, ModifyConfiguration)
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
+TEST_F(StreamingConfigTest, AddPseudoDevice)
+{
+    SKIP_TEST_MAC_CI;
+
+    InstancePtr server = docs_test_helpers::setupSimulatorServers();
+    daq::InstancePtr instance = daq::Instance();
+
+    daq::DevicePtr device = instance.addDevice("daq.nsd://127.0.0.1");
+    ASSERT_TRUE(device.assigned());
+
+    ASSERT_EQ(device.getInfo().getName(), "NativeStreamingClientPseudoDevice");
+}
+
+// Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
 TEST_F(StreamingConfigTest, AddDeviceWithConfig)
 {
     SKIP_TEST_MAC_CI;
@@ -78,6 +92,8 @@ TEST_F(StreamingConfigTest, StreamingSources)
               streamingSources.end());
     ASSERT_NE(std::find(streamingSources.begin(), streamingSources.end(), "daq.ns://127.0.0.1:7420"),
               streamingSources.end());
+
+    ASSERT_TRUE(signal.getStreamed());
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc

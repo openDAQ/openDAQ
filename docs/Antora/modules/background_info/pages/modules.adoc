@@ -1,9 +1,9 @@
 = Modules
 
-An openDAQ(TM) module is usually a dynamic library that contains implementations of xref:device.adoc[Device] drivers,
+An openDAQ(TM) module is usually a dynamic library that contains implementations of xref:device.adoc[Device] drivers, xref:streaming.adoc[Streaming] drivers,
 xref:glossary:glossary.adoc#opendaq_opcua_server_module[Servers], xref:glossary:glossary.adoc#opendaq_opcua_client_module[Clients],
 or xref:function_blocks.adoc[Function Blocks]. Once loaded, they provide openDAQ(TM) applications with the capability of
-connecting to/adding Devices, adding new Function Blocks, and hosting available types of Servers.
+connecting to/adding Devices, establishing Streaming connections, adding new Function Blocks, and hosting available types of Servers.
 
 The modules bundled with openDAQ(TM) are, for example, the openDAQ(TM) OpcUa Client, OpcUa Server,
 Native Streaming Server, Native Streaming Client, Websocket Streaming Server and Websocket Streaming Client.

@@ -1,27 +1,80 @@
 = Configure Streaming
 
-Typically, in addition to publishing its own structure (xref:glossary:glossary.adoc#signal[Signal]s,
-xref:glossary:glossary.adoc#channel[Channel]s, xref:glossary:glossary.adoc#function_block[Function Block]s, etc.),
-an openDAQ(TM) xref:glossary:glossary.adoc#device[Device] also publishes information about
-xref:glossary:glossary.adoc#streaming[Streaming] protocols it supports. This information includes the
-streaming protocol ID (e.g. 'daq.wss' or 'daq.ns'), which doubles as a prefix in the connection string,
-enabling the routing of streaming instantiation to the appropriate openDAQ(TM)
-xref:glossary:glossary.adoc#module[Module]. Additionally, it includes the device's IP address (used if the
-streaming protocol requires a network connection) and a range of optional parameters (e.g. port number).
-When a streaming server starting on the device, this automatically generates and prepares mentioned
-information to be published along with the device's structural details.
+[#server_config]
+== Server side configuration
 
-As a result, when connecting an openDAQ(TM) device, a streaming connection can be established automatically
-using the published streaming connection details.
+Typically, in addition to publishing its own structure (xref:background_info:signals.adoc[Signals],
+xref:background_info:function_blocks.adoc#channel[Channel]s,
+xref:background_info:function_blocks.adoc[Function Blocks], etc.), an openDAQ(TM)
+xref:background_info:device.adoc[Device] also publishes information about Streaming protocols it supports.
+This information includes the streaming protocol ID (e.g. `"daq.wss"` or `"daq.ns"`) and a range of optional
+parameters (e.g. port number). Upon initiating a streaming server on the device, it automatically generates
+and prepares the mentioned piece of information, also known as a Streaming option, for publication alongside
+the device's structural details. To enable the publication of this information, the server responsible for
+the transfer of structural information should be added last to the openDAQ(TM) instance, following the
+addition of all streaming servers.
+
+The example below demonstrates the correct sequence for adding various servers to the openDAQ(TM) instance.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <chrono>
+#include <thread>
+#include <opendaq/opendaq.h>
+
+using namespace daq;
+
+int main()
+{
+    using namespace std::chrono_literals;
+
+    const InstancePtr instance = Instance(MODULE_PATH);
+
+    instance.setRootDevice("daqref://device1");
+
+    // Creates and registers a Streaming option with the ID `daq.wss` and the default port number 7414
+    instance.addServer("openDAQ WebsocketTcp Streaming", nullptr);
+
+    // Creates and registers a Streaming option with the ID `daq.ns` and the default port number 7420
+    instance.addServer("openDAQ Native Streaming", nullptr);
+
+    // As the Streaming servers were added first, the registered Streaming options are published over OPC UA
+    instance.addServer("openDAQ OpcUa", nullptr);
+
+    while(true)
+        std::this_thread::sleep_for(100ms);
+
+    return 0;
+}
+----
+====
 
 [#streaming_config_per_device]
-== Configure Streaming per Device
+== Configure Streaming for structure-enabled Device
 
-The xref:glossary:glossary.adoc#device[Device] configuration xref:glossary:glossary.adoc#property_object[Property
-object] provides a mechanism for customizing the filtering of available Streaming protocols by enabling or
+Most openDAQ(TM) devices support structural information transferring. An example of such a device is an
+openDAQ(TM) OPC UA-compatible device that is running a compatible OPC UA server. Clients establish
+connections to these devices using a connection string prefixed with `"daq.opcua://"` recognized by the
+openDAQ(TM) `opcua_client_module`. This module not only manages the Device's structural details but also
+handles the received set of Streaming options associated with the Device.
+
+Each Streaming option is identified by the Streaming protocol ID, which also serves as a prefix in the
+xref:background_info:streaming.adoc#streaming_connection_string[connection string] formed by considering
+all parameters in the Streaming option along with the known device's IP address.
+This connection string enables the delegation of Streaming instantiation to the appropriate
+xref:background_info:streaming.adoc#streaming_and_structure_modules[data Streaming Module]. As a result,
+when connecting an openDAQ(TM) device, a streaming connection can be established automatically using the
+published streaming connection details.
+
+The xref:background_info:device.adoc[Device] configuration xref:background_info:property_system.adoc[Property]
+object provides a mechanism for customizing the filtering of available Streaming protocols by enabling or
 disabling specific ones. Additionally, it allows to set the "primary" protocol type of the Streaming
 connection to be initially used as an active Streaming source for all of the
-xref:glossary:glossary.adoc#device[Signal]s.
+xref:background_info:streaming.adoc#mirrored_signals[Signals].
 
 Furthermore, there's an option to specify a Streaming path heuristic, particularly useful for multiple
 nested devices connected in a tree-structured manner (as illustrated in the xref:background_info:device.adoc#nested_devices[diagram]).
@@ -87,11 +140,68 @@ int main()
 ----
 ====
 
+[#connecting_pseudo_devices]
+== Connecting to Streaming protocol based pseudo-devices
+
+Pseudo-devices belong to a category of openDAQ(TM) Devices whose implementation solely relies on the
+Streaming protocol. Such Devices offer a flat list of Signals without detailed structural information.
+These devices are created using the Module responsible for establishing the corresponding Streaming
+connection. The Device connection string serves to route and delegate Device object instantiation to the
+relevant Module. This connection string is identical to the
+xref:background_info:streaming.adoc#streaming_connection_string[Streaming connection string] used for
+Streaming connection instantiation, except that the prefix representing the Streaming protocol type ID
+is replaced with the prefix representing the appropriate Device type ID. Following this prefix, the same
+set of parameters unique to each Streaming protocol type is appended.
+
+For example, the Device connection string prefix `"daq.nsd"` aligns with the Native Streaming protocol,
+identified by the Streaming connection string prefix `"daq.ns"`. Similarly, the Device connection string
+prefix `"daq.ws"` corresponds to the Websocket Streaming protocol, recognized by the Streaming connection
+string prefix `"daq.wss"`.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+
+using namespace daq;
+
+int main()
+{
+    // Create a new Instance that we will use for all the interactions with the SDK
+    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+
+    // Find and connect to a device hosting an Native Streaming server
+    const auto availableDevices = instance.getAvailableDevices();
+    daq::DevicePtr device;
+    for (const auto& deviceInfo : availableDevices)
+    {
+        if (deviceInfo.getConnectionString().toView().find("daq.nsd://") != std::string::npos)
+        {
+            // Add device using modified configuration Property object
+            device = instance.addDevice(deviceInfo.getConnectionString(), deviceConfig);
+            break;
+        }
+    }
+
+    if (!device.assigned())
+        std::cerr << "No relevant device found!" << std::endl;
+    else
+        // Output the name of the added device
+        std::cout << device.getInfo().getName() << std::endl;
+
+    return 0;
+}
+----
+====
+
 [#streaming_config_per_signal]
 == Configure Streaming per Signal
 
-Once the xref:glossary:glossary.adoc#device[Device] is connected, the Streaming sources of its
-xref:glossary:glossary.adoc#signal[Signal]s can be examined and modified for each signal individually
+Once the xref:background_info:device.adoc[Device] is connected, the Streaming sources of its
+xref:background_info:streaming.adoc#mirrored_signals[Signals] can be examined and modified for each Signal individually
 at any given time.
 
 The Streaming sources are identified by a connection string that includes the protocol prefix, indicating
@@ -99,9 +209,11 @@ the protocol type ID, and parameters based on the protocol type (IP address, por
 To manipulate the Streaming sources of particular Signal the `MirroredSignalConfig` object is used,
 it provides ability to:
 
-* retrieve a list of streaming sources available for signal,
-* get the currently active streaming source,
-* modify the active source or unset it to disable data streaming for a signal.
+* retrieve a list of streaming sources available for signal by using __getStreamingSources__ call,
+* get the currently active streaming source by using __getActiveStreamingSource__ call,
+* change the active streaming source for a signal by using __setActiveStreamingSource__ call,
+* enable or disable data streaming for signal by using __setStreamed__ call,
+* check if streaming is enabled or disabled for signal by using __getStreamed__ call.
 
 [tabs]
 ====
@@ -138,6 +250,9 @@ int main()
 
     // Output the active streaming source of signal
     std::cout << "Active streaming source of signal: " << signal.getActiveStreamingSource();
+
+    // Output the streaming status for the signal to verify that streaming is enabled.
+    std::cout << "Streaming enabled status for signal is: " << signal.getStreamed();
 
     // Change the active streaming source of signal
     signal.setActiveStreamingSource(nativeStreamingSource);

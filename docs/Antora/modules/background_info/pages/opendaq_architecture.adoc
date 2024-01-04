@@ -131,6 +131,7 @@ As is the case with all openDAQ components, devices expose a set of user-configu
   * xref:device.adoc[Devices]
   * xref:howto_guides:howto_connect_to_device.adoc[How to connect to a Device]
 
+[#module]
 == Module
 
 openDAQ(TM) xref:function_blocks.adoc[Function Block]s and xref:device.adoc[Device] drivers are bundled within Modules, usually dynamically loaded libraries.

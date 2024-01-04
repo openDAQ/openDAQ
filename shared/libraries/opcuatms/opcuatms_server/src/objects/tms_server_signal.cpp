@@ -58,6 +58,10 @@ void TmsServerSignal::bindCallbacks()
 
     auto analogValueId = getChildNodeId("AnalogValue");
     addReadCallback(analogValueId, [this]() {
+        SampleType type = object.getDescriptor().getSampleType();
+        if (type != SampleType::Float64 && type != SampleType::Int64)
+            return OpcUaVariant();
+
         ObjectPtr lastValue = object.getValue();
         if (lastValue != nullptr)
             return VariantConverter<IBaseObject>::ToVariant(lastValue, nullptr, daqContext);
@@ -75,10 +79,7 @@ bool TmsServerSignal::createOptionalNode(const opcua::OpcUaNodeId& nodeId)
     if (name == "Value")
         return true;
     if (name == "AnalogValue")
-    {
-        SampleType type = object.getDescriptor().getSampleType();
-        return type == SampleType::Float64 || type == SampleType::Int64;
-    }
+        return true;
 
     return Super::createOptionalNode(nodeId);
 }

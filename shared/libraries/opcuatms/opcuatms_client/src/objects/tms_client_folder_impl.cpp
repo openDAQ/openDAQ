@@ -48,7 +48,7 @@ void TmsClientFolderImpl<Impl>::findAndCreateFolders(std::map<uint32_t, Componen
         else
             child = TmsClientComponent(this->context, thisPtr, browseName, this->clientContext, folderNodeId);
     
-        auto numberInList = this->readChildNumberInList(folderNodeId);
+        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
             orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, child));
         else

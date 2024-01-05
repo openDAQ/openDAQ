@@ -274,7 +274,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
 
         if (prop.assigned())
         {
-            auto numberInList = readChildNumberInList(childNodeId);
+            auto numberInList = tryReadChildNumberInList(childNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedProperties.count(numberInList))
                 orderedProperties.insert(std::pair<uint32_t, PropertyPtr>(numberInList, prop));
             else

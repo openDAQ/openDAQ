@@ -91,7 +91,7 @@ void TmsClientDeviceImpl::findAndCreateSubdevices()
         auto subdeviceNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         auto clientSubdevice = TmsClientDevice(context, devices, browseName, clientContext, subdeviceNodeId, createStreamingCallback);
                     
-        auto numberInList = this->readChildNumberInList(subdeviceNodeId);
+        auto numberInList = this->tryReadChildNumberInList(subdeviceNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedDevices.count(numberInList))
             orderedDevices.insert(std::pair<uint32_t, ComponentPtr>(numberInList, clientSubdevice));
         else
@@ -247,7 +247,7 @@ void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
         try
         {
             auto clientFunctionBlock = TmsClientFunctionBlock(context, this->functionBlocks, browseName, clientContext, functionBlockNodeId);
-            const auto numberInList = this->readChildNumberInList(functionBlockNodeId);
+            const auto numberInList = this->tryReadChildNumberInList(functionBlockNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedFunctionBlocks.count(numberInList))
                 orderedFunctionBlocks.insert(std::pair<uint32_t, FunctionBlockPtr>(numberInList, clientFunctionBlock));
             else
@@ -276,7 +276,7 @@ void TmsClientDeviceImpl::findAndCreateSignals()
     for (const auto& [signalNodeId, ref] : references.byNodeId)
     {
         auto clientSignal = FindOrCreateTmsClientSignal(context, signals, clientContext, signalNodeId);
-        const auto numberInList = this->readChildNumberInList(signalNodeId);
+        const auto numberInList = this->tryReadChildNumberInList(signalNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedSignals.count(numberInList))
             orderedSignals.insert(std::pair<uint32_t, SignalPtr>(numberInList, clientSignal));
         else
@@ -303,7 +303,7 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
         const auto channelNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         auto tmsClientChannel = TmsClientChannel(context, this->ioFolder, browseName, clientContext, channelNodeId);
 
-        auto numberInList = this->readChildNumberInList(channelNodeId);
+        auto numberInList = this->tryReadChildNumberInList(channelNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
             orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientChannel));
         else
@@ -317,7 +317,7 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
         const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         auto tmsClientFolder = TmsClientIoFolder(context, this->ioFolder, browseName, clientContext, folderNodeId);
 
-        auto numberInList = this->readChildNumberInList(folderNodeId);
+        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max())
             orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientFolder));
         else
@@ -348,7 +348,7 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
             const auto optionNodeId = OpcUaNodeId(ref->nodeId.nodeId);
             auto clientStreamingInfo = TmsClientStreamingInfo(daqContext, browseName, clientContext, optionNodeId);
 
-            auto numberInList = this->readChildNumberInList(optionNodeId);
+            auto numberInList = this->tryReadChildNumberInList(optionNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max())
                 orderedStreamings.insert(std::pair<uint32_t, PropertyObjectPtr>(numberInList, clientStreamingInfo));
             else
@@ -389,7 +389,7 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
         else
             child = TmsClientComponent(context, this->thisPtr<ComponentPtr>(), browseName, clientContext, folderNodeId);
     
-        auto numberInList = this->readChildNumberInList(folderNodeId);
+        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
         if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
             orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, child));
         else

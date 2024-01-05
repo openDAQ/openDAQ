@@ -5,6 +5,7 @@
 #include <ref_fb_module/power_fb_impl.h>
 #include <ref_fb_module/scaling_fb_impl.h>
 #include <ref_fb_module/classifier_fb_impl.h>
+#include <ref_fb_module/writter_fb_impl.h>
 #include <coretypes/version_info_factory.h>
 #include <opendaq/custom_log.h>
 
@@ -36,6 +37,9 @@ DictPtr<IString, IFunctionBlockType> RefFbModule::onGetAvailableFunctionBlockTyp
     auto typeClassifier = Classifier::ClassifierFbImpl::CreateType();
     types.set(typeClassifier.getId(), typeClassifier);
 
+    auto typeWritter = WritterFb::WritterFbImpl::CreateType();
+    types.set(typeClassifier.getId(), typeClassifier);
+
     return types;
 }
 
@@ -64,6 +68,11 @@ FunctionBlockPtr RefFbModule::onCreateFunctionBlock(const StringPtr& id, const C
     if (id == Classifier::ClassifierFbImpl::CreateType().getId())
     {
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Classifier::ClassifierFbImpl>(context, parent, localId);
+        return fb;
+    }
+    if (id == WritterFb::WritterFbImpl::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, WritterFb::WritterFbImpl>(context, parent, localId);
         return fb;
     }
 

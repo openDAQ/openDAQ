@@ -25,13 +25,15 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 class NativeStreamingImpl : public Streaming
 {
 public:
-    explicit NativeStreamingImpl(const StringPtr& connectionString,
-                                 const StringPtr& host,
-                                 const StringPtr& port,
-                                 const StringPtr& path,
-                                 const ContextPtr& context,
-                                 const ProcedurePtr& onDeviceSignalAvailableCallback,
-                                 const ProcedurePtr& onDeviceSignalUnavailableCallback);
+    explicit NativeStreamingImpl(
+        const StringPtr& connectionString,
+        const StringPtr& host,
+        const StringPtr& port,
+        const StringPtr& path,
+        const ContextPtr& context,
+        const ProcedurePtr& onDeviceSignalAvailableCallback,
+        const ProcedurePtr& onDeviceSignalUnavailableCallback,
+        opendaq_native_streaming_protocol::OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb);
 
     ~NativeStreamingImpl();
 
@@ -52,9 +54,12 @@ protected:
                                 const StringPtr& name,
                                 const StringPtr& description);
     void addToAvailableSignals(const StringPtr& signalStringId);
+    void addToAvailableSignalsOnReconnection(const StringPtr& signalStringId);
 
     void signalUnavailableHandler(const StringPtr& signalStringId);
     void removeFromAvailableSignals(const StringPtr& signalStringId);
+
+    void reconnectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientReconnectionStatus status);
 
     void prepareClientHandler();
 
@@ -68,7 +73,10 @@ protected:
     std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingClientHandler> clientHandler;
     ProcedurePtr onDeviceSignalAvailableCallback;
     ProcedurePtr onDeviceSignalUnavailableCallback;
+    opendaq_native_streaming_protocol::OnReconnectionStatusChangedCallback onDeviceReconnectionStatusChangedCb;
     std::map<StringPtr, SizeT> availableSignals;
+    std::map<StringPtr, SizeT> availableSignalsReconnection;
+    opendaq_native_streaming_protocol::ClientReconnectionStatus reconnectionStatus;
 
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> workGuard;

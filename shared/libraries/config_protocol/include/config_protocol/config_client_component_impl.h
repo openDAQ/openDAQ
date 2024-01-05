@@ -33,9 +33,6 @@ class ConfigClientComponentBaseImpl : public ConfigClientPropertyObjectBaseImpl<
 public:
     template <class ... Args>
     ConfigClientComponentBaseImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                  const ContextPtr& ctx,
-                                  const ComponentPtr& parent,
-                                  const StringPtr& localId,
                                   const Args& ... args);
 
     // Component overrides
@@ -48,16 +45,18 @@ public:
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+protected:
+    template <class Interface, class Implementation>
+    static BaseObjectPtr DeserializeConfigComponent(const SerializedObjectPtr& serialized,
+                                                    const BaseObjectPtr& context,
+                                                    const FunctionPtr& factoryCallback);
 };
 
 template <class Impl>
 template <class ... Args>
 ConfigClientComponentBaseImpl<Impl>::ConfigClientComponentBaseImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                                                   const ContextPtr& ctx,
-                                                                   const ComponentPtr& parent,
-                                                                   const StringPtr& localId,
                                                                    const Args&... args)
-    : ConfigClientPropertyObjectBaseImpl<Impl>(configProtocolClientComm, ctx, parent, localId, args ...)
+    : ConfigClientPropertyObjectBaseImpl<Impl>(configProtocolClientComm, args ...)
 {
 }
 
@@ -114,22 +113,26 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::Deserialize(ISerializedObject* seri
     return daqTry(
         [&obj, &serialized, &context, &factoryCallback]()
         {
-            *obj = DeserializeComponent(
-                       serialized,
-                       context,
-                       factoryCallback,
-                       [](const SerializedObjectPtr& serialized,
-                          const ComponentDeserializeContextPtr& deserializeContext,
-                          const StringPtr& className)
-                       {
-                            const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
+            *obj = DeserializeConfigComponent<IComponent, ConfigClientComponentImpl>(serialized, context, factoryCallback).detach();
+        });
+}
 
-                            return createWithImplementation<IComponent, ConfigClientComponentImpl>(
-                                ctx->getClientComm(),
-                                deserializeContext.getContext(),
-                                deserializeContext.getParent(),
-                                deserializeContext.getLocalId());
-                        }).detach();
+template <class Impl>
+template <class Interface, class Implementation>
+BaseObjectPtr ConfigClientComponentBaseImpl<Impl>::DeserializeConfigComponent(const SerializedObjectPtr& serialized,
+    const BaseObjectPtr& context,
+    const FunctionPtr& factoryCallback)
+{
+    return Impl::DeserializeComponent(
+        serialized,
+        context,
+        factoryCallback,
+        [](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
+        {
+            const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
+
+            return createWithImplementation<Interface, Implementation>(
+                ctx->getClientComm(), deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId());
         });
 }
 

@@ -21,30 +21,45 @@
 namespace daq::config_protocol
 {
 
-class ConfigClientFolderImpl : public ConfigClientComponentBaseImpl<FolderImpl<>>
+template <class Impl>
+class ConfigClientBaseFolderImpl;
+
+using ConfigClientFolderImpl = ConfigClientBaseFolderImpl<FolderImpl<>>;
+
+template <class Impl>
+class ConfigClientBaseFolderImpl : public ConfigClientComponentBaseImpl<Impl>
 {
 public:
-    template <class... Args>
-    ConfigClientFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+    ConfigClientBaseFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                            const ContextPtr& ctx,
                            const ComponentPtr& parent,
                            const StringPtr& localId,
-                           const Args&... args);
+                           const StringPtr& className = nullptr,
+                           ComponentStandardProps componentStandardProps = ComponentStandardProps::Add);
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+protected:
+    template <class Interface, class Implementation>
+    static BaseObjectPtr DeserializeConfigFolder(const SerializedObjectPtr& serialized,
+                                                 const BaseObjectPtr& context,
+                                                 const FunctionPtr& factoryCallback);
 };
 
-template <class... Args>
-ConfigClientFolderImpl::ConfigClientFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+template <class Impl>
+ConfigClientBaseFolderImpl<Impl>::ConfigClientBaseFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                                       const ContextPtr& ctx,
                                                       const ComponentPtr& parent,
                                                       const StringPtr& localId,
-                                                      const Args&... args)
-    : ConfigClientComponentBaseImpl<FolderImpl<>>(configProtocolClientComm, ctx, parent, localId, args...)
+                                                      const StringPtr& className,
+                                                      ComponentStandardProps componentStandardProps)
+
+    : ConfigClientComponentBaseImpl<Impl>(configProtocolClientComm, ctx, parent, localId, className, componentStandardProps)
 {
 }
 
-inline ErrCode ConfigClientFolderImpl::Deserialize(ISerializedObject* serialized,
+template <class Impl>
+ErrCode ConfigClientBaseFolderImpl<Impl>::Deserialize(ISerializedObject* serialized,
     IBaseObject* context,
     IFunction* factoryCallback,
     IBaseObject** obj)
@@ -54,23 +69,30 @@ inline ErrCode ConfigClientFolderImpl::Deserialize(ISerializedObject* serialized
     return daqTry(
         [&obj, &serialized, &context, &factoryCallback]()
         {
-            *obj = Super::DeserializeComponent(
-                       serialized,
-                       context,
-                       factoryCallback,
-                       [](const SerializedObjectPtr& serialized,
-                          const ComponentDeserializeContextPtr& deserializeContext,
-                          const StringPtr& className)
-                       {
-                            const auto configDeserializeContext = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
+            *obj = DeserializeConfigFolder<IFolder, ConfigClientFolderImpl>(serialized, context, factoryCallback).detach();
+        });
+}
 
-                            return createWithImplementation<IFolder, ConfigClientFolderImpl>(
-                                configDeserializeContext->getClientComm(),
-                                deserializeContext.getContext(),
-                                deserializeContext.getParent(),
-                                deserializeContext.getLocalId());
-                       })
-                       .detach();
+template <class Impl>
+template <class Interface, class Implementation>
+BaseObjectPtr ConfigClientBaseFolderImpl<Impl>::DeserializeConfigFolder(
+    const SerializedObjectPtr& serialized,
+    const BaseObjectPtr& context,
+    const FunctionPtr& factoryCallback)
+{
+    return Impl::DeserializeComponent(
+        serialized,
+        context,
+        factoryCallback,
+        [](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
+        {
+            ComponentStandardProps standardProps{};
+            if (serialized.hasKey("propsMode"))
+                standardProps = static_cast<ComponentStandardProps>(serialized.readInt("propsMode"));
+
+            const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
+            return createWithImplementation<Interface, Implementation>(
+                ctx->getClientComm(), deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className, standardProps);
         });
 }
 

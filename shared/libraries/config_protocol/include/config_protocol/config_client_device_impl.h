@@ -28,6 +28,8 @@ public:
                                     const ContextPtr& ctx,
                                     const ComponentPtr& parent,
                                     const StringPtr& localId);
+
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 };
 
 inline ConfigClientDeviceImpl::ConfigClientDeviceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
@@ -37,5 +39,19 @@ inline ConfigClientDeviceImpl::ConfigClientDeviceImpl(const ConfigProtocolClient
     : ConfigClientComponentBaseImpl<Device>(configProtocolClientComm, ctx, parent, localId)
 {
 }
+
+inline ErrCode ConfigClientDeviceImpl::Deserialize(ISerializedObject* serialized,
+                                                   IBaseObject* context,
+                                                   IFunction* factoryCallback,
+                                                   IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(context);
+
+    return daqTry([&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = DeserializeConfigComponent<IDevice, ConfigClientDeviceImpl>(serialized, context, factoryCallback).detach();
+        });
+}
+
 
 }

@@ -1,48 +1,6 @@
 #include <opendaq/io_folder_impl.h>
-#include <opendaq/channel.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
-IoFolderImpl::IoFolderImpl(const ContextPtr& context,
-                           const ComponentPtr& parent,
-                           const StringPtr& localId,
-                           const StringPtr& className,
-                           const ComponentStandardProps propsMode)
-    : Super(context, parent, localId, className, propsMode)
-{
-}
-
-ErrCode INTERFACE_FUNC IoFolderImpl::getSerializeId(ConstCharPtr* id) const
-{
-    OPENDAQ_PARAM_NOT_NULL(id);
-
-    *id = SerializeId();
-
-    return OPENDAQ_SUCCESS;
-}
-
-ConstCharPtr IoFolderImpl::SerializeId()
-{
-    return "IoFolder";
-}
-
-ErrCode IoFolderImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
-{
-    OPENDAQ_PARAM_NOT_NULL(context);
-
-    return daqTry([&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = DeserializeFolder<IIoFolderConfig, IoFolderImpl>(serialized, context, factoryCallback).detach();
-        });
-}
-
-bool IoFolderImpl::addItemInternal(const ComponentPtr& component)
-{
-    if (!component.supportsInterface<IIoFolderConfig>() && !component.supportsInterface<IChannel>())
-        throw InvalidParameterException("Type of item not allowed in the folder");
-
-    return Super::addItemInternal(component);
-}
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(IoFolderImpl)
 

@@ -40,8 +40,8 @@ protected:
     void writeValue(const std::string& nodeName, const opcua::OpcUaVariant& value);
     opcua::OpcUaVariant readValue(const std::string& nodeName);
     virtual void subscriptionStatusChangeCallback(UA_StatusChangeNotification* notification);
-    uint32_t readChildNumberInList(const std::string& nodeName);
-    uint32_t readChildNumberInList(const opcua::OpcUaNodeId& nodeId);
+    uint32_t tryReadChildNumberInList(const std::string& nodeName);
+    uint32_t tryReadChildNumberInList(const opcua::OpcUaNodeId& nodeId);
     CachedReferences getChildReferencesOfType(const opcua::OpcUaNodeId& nodeId, const opcua::OpcUaNodeId& typeId);
 
     opcua::MonitoredItem* monitoredItemsCreateEvent(

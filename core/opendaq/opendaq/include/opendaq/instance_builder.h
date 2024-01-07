@@ -40,36 +40,36 @@ BEGIN_NAMESPACE_OPENDAQ
  * - **Logger:** The custom Logger for the Instance. This logger will be used for logging messages related to
  *   the Instance and its components. When configured, the GlobalLogLevel, ComponentLogLevel and LoggerSink will be ignored, as they are in use only with the default Instance logger
  *
- * - **GlobalLogLevel:** The default Logger global log level for the Instance. All log messages with a severity
+ * - **Global log level:** The default Logger global log level for the Instance. All log messages with a severity
  *   level equal to or higher than the specified level will be processed.
  *
- * - **ComponentLogLevel:** The Logger level for a specific component of the Instance. Log messages related to
+ * - **Component log level:** The Logger level for a specific component of the Instance. Log messages related to
  *   that component will be processed according to the specified log level.
  *
- * - **LoggerSink:** The logger sink to the default Instance logger. This sink will be responsible for processing
+ * - **Logger sink:** The logger sink to the default Instance logger. This sink will be responsible for processing
  *   log messages, such as writing them to a file or sending them to a remote server.
  *
- * - **ModuleManager:** The custom ModuleManager for the Instance. When configured, the default module manager path
+ * - **Module manager:** The custom ModuleManager for the Instance. When configured, the default module manager path
  *   will be ignored.
  *
- * - **ModulePath:** The path for the default ModuleManager of the Instance. If a custom module manager has not
+ * - **Module path:** The path for the default ModuleManager of the Instance. If a custom module manager has not
  *   been set, this path will be used to load modules.
  *
  * - **Scheduler:** The custom scheduler for the Instance. If set, the number of worker threads will be ignored.
  *
- * - **SchedulerWorkerNum:** The number of worker threads in the scheduler of the Instance. If a scheduler has
+ * - **Scheduler worker num:** The number of worker threads in the scheduler of the Instance. If a scheduler has
  *   not already been set, this defines the number of threads available for parallel processing.
  *
- * - **DefaultRootDeviceName:** The virtual Client as the default root device with the specified name. If the
+ * - **Default root device local ID:** The virtual Client as the default root device with the specified name. If the
  *   RootDevice has not been set, the Instance Root Device will also be set as the virtual Client.
  *
- * - **DefaultRootDeviceInfo:** The default device information for the Instance. If the device information has
+ * - **Default root device info:** The device information for default root device of the Instance. If the device information has
  *   not been set, the `getInfo` method of the Instance will return this set device information.
  *
- * - **RootDevice:** The custom root device of the Instance from the connection string. This defines the device that
+ * - **Root device:** The custom root device of the Instance from the connection string. This defines the device that
  *   serves as the entry point for the Instance.
  *
- * - **SinkLogLevel:** The sink logger level of the default Instance logger. This level is ignored if a custom
+ * - **Sink log level:** The sink logger level of the default Instance logger. This level is ignored if a custom
  *   logger has already been set.
  *
  * Note:
@@ -202,14 +202,14 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the virtual Client as the default root device with a set name. If RootDevice has not been set, the Instance root device will be set as a virtual client.
-     * @param rootDevice The default root device name
+     * @brief Sets the local id for default device
+     * @param localId The default root device local id
      */
     virtual ErrCode INTERFACE_FUNC setDefaultRootDeviceLocalId(IString* localId) = 0;
 
     /*!
-     * @brief Gets the default root device name
-     * @param[out] rootDevice The default root device name
+     * @brief Gets the default root device local id
+     * @param[out] localId The default root device local id
      */
     virtual ErrCode INTERFACE_FUNC getDefaultRootDeviceLocalId(IString** localId) = 0;
 

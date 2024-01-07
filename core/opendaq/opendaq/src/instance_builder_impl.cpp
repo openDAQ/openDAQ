@@ -76,10 +76,7 @@ ErrCode InstanceBuilderImpl::getLogger(ILogger** logger)
     if (logger == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    if (this->logger.assigned()) 
-        *logger = this->logger.addRefAndReturn();
-    else
-        *logger = nullptr;
+    *logger = this->logger.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

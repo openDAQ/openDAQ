@@ -9,11 +9,7 @@ Description:
 + [factory] BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
 + [factory] MultiReaderPtr MultiReaderFromPort(ListPtr<IInputPortConfig> ports, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType)
 
-+ [function] IPacketReader::setOnAvailablePackets(IFunction* callback)
-+ [function] IStreamReader::setOnAvailablePackets(IFunction* callback)
-+ [function] ITailReader::setOnAvailablePackets(IFunction* callback)
-+ [function] IBlockReader::setOnAvailablePackets(IFunction* callback)
-+ [function] IMultiReader::setOnAvailablePackets(IFunction* callback)
++ [function] IReader::setOnDataAvailable(IFunction* callback)
 
 - [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)
 + [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SizeT blockSize, SampleType valueReadType, SampleType domainReadType)

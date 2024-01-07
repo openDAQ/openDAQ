@@ -54,7 +54,7 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
     this->internalAddRef();
 
     inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
-    inputPort.setNotificationMethod(PacketReadyNotification::SameThread);
+    inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
 
     if (inputPort.getConnection().assigned())
     {
@@ -574,7 +574,7 @@ ErrCode StreamReaderImpl::setOnDescriptorChanged(IFunction* callback)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode StreamReaderImpl::setOnAvailablePackets(IFunction* callback)
+ErrCode StreamReaderImpl::setOnDataAvailable(IFunction* callback)
 {
     std::scoped_lock lock(mutex);
 

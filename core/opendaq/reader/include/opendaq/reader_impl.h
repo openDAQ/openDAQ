@@ -145,7 +145,7 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode INTERFACE_FUNC setOnAvailablePackets(IFunction* callback) override
+    ErrCode INTERFACE_FUNC setOnDataAvailable(IFunction* callback) override
     {
         std::scoped_lock lock(mutex);
 

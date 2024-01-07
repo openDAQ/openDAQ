@@ -947,7 +947,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallback)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::BlockReader(this->signal, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
         return nullptr;
@@ -983,7 +983,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromPortOnReadCallback)
     port.connect(this->signal);
 
     auto reader = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
         return nullptr;
@@ -1018,7 +1018,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
 
     BlockReaderPtr reader = daq::BlockReader(this->signal, 1, SampleType::Float64, SampleType::RangeInt64);
     BlockReaderPtr newReader;
-    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
         newReader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
         return nullptr;

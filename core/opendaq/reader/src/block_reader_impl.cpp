@@ -28,7 +28,7 @@ BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
     : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
     , blockSize(blockSize)
 {
-    this->port.setNotificationMethod(PacketReadyNotification::SameThread);
+    this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
     if (connection.assigned())
         BlockReaderImpl::handleDescriptorChanged(connection.dequeue());
 }
@@ -125,12 +125,8 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
     }
     notify.condition.notify_one();
 
-    auto callback = readCallback;
-    while(callback.assigned() && getAvailable())
-    {
-        callback();
-        callback = readCallback;
-    }
+    if (readCallback.assigned() && getAvailable())
+        readCallback();
 
     return OPENDAQ_SUCCESS;
 }
@@ -309,6 +305,27 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
     SizeT samplesRead = samplesToRead - info.remainingSamplesToRead;
     *count = samplesRead / blockSize;
     return errCode;
+}
+
+void BlockReaderImpl::pushPacket(const PacketPtr & packet) 
+{
+    packets.push_back(packet);
+    auto dataPacket = packet.asPtrOrNull<IDataPacket>();
+    if (dataPacket.assigned())
+        availableSamples += dataPacket.getSampleCount();
+}
+
+PacketPtr BlockReaderImpl::popPacket()
+{
+    if (packets.size() == 0)
+        return PacketPtr();
+
+    auto packet = packets.front();
+    packets.pop_front();
+    auto dataPacket = packet.asPtrOrNull<IDataPacket>();
+    if (dataPacket.assigned())
+        availableSamples -= dataPacket.getSampleCount();
+    return packet;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

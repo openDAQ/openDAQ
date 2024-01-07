@@ -202,7 +202,7 @@ void ClassifierFbImpl::configure()
             {
                 linearReader = BlockReaderFromPort(inputPort, linearBlockCount, inputDataDescriptor.getSampleType(), inputDomainDataDescriptor.getSampleType());
                 linearReader.setOnDescriptorChanged(std::bind(&ClassifierFbImpl::processSignalDescriptorChanged, this, std::placeholders::_1, std::placeholders::_2));
-                linearReader.setOnAvailablePackets([this] {
+                linearReader.setOnDataAvailable([this] {
                         SAMPLE_TYPE_DISPATCH(inputSampleType, processLinearDataPacket);
                         return 0;
                     });

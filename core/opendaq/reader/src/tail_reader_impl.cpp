@@ -25,7 +25,7 @@ TailReaderImpl::TailReaderImpl(IInputPortConfig* port,
     , historySize(historySize)
     , cachedSamples(0)
 {
-    this->port.setNotificationMethod(PacketReadyNotification::SameThread);
+    this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
 
     if (connection.assigned())
         TailReaderImpl::handleDescriptorChanged(connection.dequeue());
@@ -252,9 +252,8 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
         packet = readFromConnection();
     }
 
-    auto callback = readCallback;
-    if (callback.assigned())
-        callback();
+    if (readCallback.assigned() && cachedSamples >= historySize)
+        readCallback();
 
     return OPENDAQ_SUCCESS;
 }

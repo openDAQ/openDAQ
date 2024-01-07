@@ -43,7 +43,7 @@ public:
     ~MultiReaderImpl() override;
 
     ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) override;
-    ErrCode INTERFACE_FUNC setOnAvailablePackets(IFunction* callback) override;
+    ErrCode INTERFACE_FUNC setOnDataAvailable(IFunction* callback) override;
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC getDomainReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC setValueTransformFunction(IFunction* transform) override;

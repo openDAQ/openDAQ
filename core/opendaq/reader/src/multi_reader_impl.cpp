@@ -305,7 +305,7 @@ void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts,
     for (const auto& port : inputPorts)
     {
         port.asPtr<IOwnable>().setOwner(portBinder);
-        port.setNotificationMethod(PacketReadyNotification::SameThread);
+        port.setNotificationMethod(PacketReadyNotification::Scheduler);
         port.setListener(listener);
 
         auto& sigInfo = signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
@@ -325,7 +325,7 @@ ErrCode MultiReaderImpl::setOnDescriptorChanged(IFunction* callback)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::setOnAvailablePackets(IFunction* callback)
+ErrCode MultiReaderImpl::setOnDataAvailable(IFunction* callback)
 {
     std::scoped_lock lock(mutex);
 
@@ -732,15 +732,10 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
     if (!readCallback.assigned())
         return OPENDAQ_SUCCESS;
 
-    auto callback = readCallback;
     SizeT count;
     getAvailableCount(&count);
-    while (callback.assigned() && count)
-    {
-        callback();
-        getAvailableCount(&count);
-        callback = readCallback;
-    }
+    if (readCallback.assigned() && count)
+        readCallback();
 
     return OPENDAQ_SUCCESS;
 }

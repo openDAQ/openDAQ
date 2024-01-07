@@ -32,7 +32,7 @@ PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
     this->internalAddRef();
 
     this->port.setListener(this->thisPtr<InputPortNotificationsPtr>());
-    this->port.setNotificationMethod(PacketReadyNotification::SameThread);
+    this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
 
      if (this->port.getConnection().assigned())
         connection = this->port.getConnection();
@@ -57,7 +57,7 @@ ErrCode PacketReaderImpl::setOnDescriptorChanged(IFunction* callback)
     return  OPENDAQ_IGNORED;
 }
 
-ErrCode PacketReaderImpl::setOnAvailablePackets(IFunction* callback)
+ErrCode PacketReaderImpl::setOnDataAvailable(IFunction* callback)
 {
     std::scoped_lock lock(mutex);
 
@@ -97,8 +97,6 @@ ErrCode PacketReaderImpl::readAll(IList** allPackets)
 
 ErrCode PacketReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept)
 {
-    OPENDAQ_PARAM_NOT_NULL(port);
-    OPENDAQ_PARAM_NOT_NULL(signal);
     OPENDAQ_PARAM_NOT_NULL(accept);
 
     *accept = true;
@@ -130,14 +128,9 @@ ErrCode PacketReaderImpl::packetReceived(IInputPort* port)
         return OPENDAQ_SUCCESS;
 
     SizeT count{0};
-    auto callback = readCallback;
     connection->getPacketCount(&count);
-    while (callback.assigned() && count)
-    {
-        callback();
-        connection->getPacketCount(&count);
-        callback = readCallback;
-    }
+    if (readCallback.assigned() && count)
+        readCallback();
 
     return OPENDAQ_SUCCESS;
 }

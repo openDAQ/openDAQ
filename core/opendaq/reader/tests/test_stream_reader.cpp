@@ -942,7 +942,7 @@ TYPED_TEST(StreamReaderTest, StreamReaderOnReadCallback)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
         return nullptr;
@@ -982,7 +982,7 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromPortOnReadCallback)
     port.connect(this->signal);
 
     auto reader = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
         return nullptr;
@@ -1022,7 +1022,7 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromExistingOnReadCallback)
 
     StreamReaderPtr reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined);
     StreamReaderPtr newReader;
-    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
         cnt++;
         newReader.readWithDomain(&samples, &domain, &count);
         promise.set_value();

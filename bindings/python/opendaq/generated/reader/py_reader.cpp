@@ -61,7 +61,7 @@ void defineIReader(pybind11::module_ m, PyDaqIntf<daq::IReader, daq::IBaseObject
         [](daq::IReader *object, daq::IFunction* callback)
         {
             const auto objectPtr = daq::ReaderPtr::Borrow(object);
-            objectPtr.setOnAvailablePackets(callback);
+            objectPtr.setOnDataAvailable(callback);
         },
         "Set callback which will be triggered if reader recieves packets");
 }

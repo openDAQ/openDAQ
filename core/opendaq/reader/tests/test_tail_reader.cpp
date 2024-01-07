@@ -934,7 +934,7 @@ TEST_F(TailReaderTest, TailReaderOnReadCallback)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::TailReader(this->signal, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
         return nullptr;
@@ -976,7 +976,7 @@ TEST_F(TailReaderTest, TailReaderFromPortOnReadCallback)
     port.connect(this->signal);
 
     auto reader = daq::TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
         return nullptr;
@@ -1017,7 +1017,7 @@ TEST_F(TailReaderTest, TailReaderFromExistingOnReadCallback)
 
     TailReaderPtr reader = daq::TailReader(this->signal, 1, SampleType::Undefined, SampleType::Undefined);
     TailReaderPtr newReader;
-    reader.setOnAvailablePackets([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
         newReader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
         return nullptr;

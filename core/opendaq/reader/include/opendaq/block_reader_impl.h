@@ -132,26 +132,8 @@ private:
     SizeT availableSamples {0};
     std::deque<PacketPtr> packets;
 
-    void pushPacket(const PacketPtr & packet) 
-    {
-        packets.push_back(packet);
-        auto dataPacket = packet.asPtrOrNull<IDataPacket>();
-        if (dataPacket.assigned())
-            availableSamples += dataPacket.getSampleCount();
-    }
-
-    PacketPtr popPacket()
-    {
-        if (packets.size() == 0)
-            return PacketPtr();
-
-        auto packet = packets.front();
-        packets.pop_front();
-        auto dataPacket = packet.asPtrOrNull<IDataPacket>();
-        if (dataPacket.assigned())
-            availableSamples -= dataPacket.getSampleCount();
-        return packet;
-    }
+    void pushPacket(const PacketPtr & packet);
+    PacketPtr popPacket();
 };
 
 END_NAMESPACE_OPENDAQ

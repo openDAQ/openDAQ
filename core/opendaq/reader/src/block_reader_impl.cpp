@@ -125,7 +125,7 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
     }
     notify.condition.notify_one();
 
-    if (readCallback.assigned() && getAvailable())
+    while(readCallback.assigned() && getAvailable())
         readCallback();
 
     return OPENDAQ_SUCCESS;

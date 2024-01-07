@@ -28,24 +28,25 @@
 
 BEGIN_NAMESPACE_REF_FB_MODULE
     
-namespace WritterFb
+namespace WriterFb
 {
 
 template <typename T>
 class SafeQueue
 {
+public:
     void pushBack(const T& value)
     {
         std::scoped_lock lock(mx);
         deque.push_back(value);
     }
 
-    T&& popFront()
+    T popFront()
     {
         std::scoped_lock lock(mx);
         auto result = deque.front();
         deque.pop_front();
-        return std::move(result);
+        return result;
     }
 
     bool empty() const
@@ -68,6 +69,7 @@ public:
     static FunctionBlockTypePtr CreateType();
 
 private:
+    InputPortPtr inputPort;
 
     DataDescriptorPtr outputDataDescriptor;
     DataDescriptorPtr outputDomainDataDescriptor;
@@ -78,7 +80,6 @@ private:
     void createInputPorts();
     void createSignals();
 
-    void processEventPacket(const EventPacketPtr& packet);
     void onPacketReceived(const InputPortPtr& port) override;
     void configure();
 

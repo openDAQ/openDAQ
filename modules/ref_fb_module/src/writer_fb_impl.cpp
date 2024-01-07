@@ -1,24 +1,15 @@
 #include <ref_fb_module/writer_fb_impl.h>
 #include <ref_fb_module/dispatch.h>
 #include <opendaq/input_port_factory.h>
-// #include <opendaq/data_descriptor_ptr.h>
-// #include <opendaq/event_packet_ptr.h>
 #include <opendaq/signal_factory.h>
 #include <opendaq/custom_log.h>
-// #include <opendaq/event_packet_params.h>
-// #include <coreobjects/unit_factory.h>
 #include <opendaq/data_packet.h>
 #include <opendaq/data_packet_ptr.h>
-// #include <opendaq/event_packet_ids.h>
 #include <opendaq/packet_factory.h>
-// #include <opendaq/range_factory.h>
-// #include <opendaq/sample_type_traits.h>
-// #include <coreobjects/eval_value_factory.h>
-// #include <opendaq/dimension_factory.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
-namespace WritterFb
+namespace WriterFb
 {
 
 WriterFbImpl::WriterFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
@@ -52,12 +43,7 @@ void WriterFbImpl::readProperties()
 
 FunctionBlockTypePtr WriterFbImpl::CreateType()
 {
-    return FunctionBlockType("ref_fb_module_writter", "Wriiter", "Signal writter");
-}
-
-void WriterFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
-                                                   const DataDescriptorPtr& inputDomainDataDescriptor)
-{
+    return FunctionBlockType("ref_fb_module_writer", "Writer", "Signal writer");
 }
 
 void WriterFbImpl::configure()
@@ -67,12 +53,14 @@ void WriterFbImpl::configure()
 void WriterFbImpl::onPacketReceived(const InputPortPtr& port)
 {
     std::scoped_lock lock(sync);
-    while (connection.dequeue().assigned());
+    const auto connection = inputPort.getConnection();
+    if (connection.assigned())
+        while (connection.dequeue().assigned());
 
     while (!queue.empty())
     {
-        auto domainPacket = DataPacket(getInputDomainSignal().getDescriptor(), 1);
-        auto dataPacket = DataPacketWithDomain(domainPacket, getInputSignal().getDescriptor(), 1);
+        auto domainPacket = DataPacket(outputDomainDataDescriptor, 1);
+        auto dataPacket = DataPacketWithDomain(domainPacket, outputDataDescriptor, 1);
 
         double * val = static_cast<double*>(dataPacket.getData());
         *val = queue.popFront();
@@ -80,11 +68,6 @@ void WriterFbImpl::onPacketReceived(const InputPortPtr& port)
         outputSignal.sendPacket(dataPacket);
     }
 }
-
-void WriterFbImpl::processEventPacket(const EventPacketPtr& packet)
-{
-}
-
 
 void WriterFbImpl::createInputPorts()
 {
@@ -106,15 +89,19 @@ static DataDescriptorPtr CreateDomainDescripton(std::string epoch = "2023-11-24T
         .setRule(LinearDataRule(1000, 0))
         .setUnit(Unit("s", -1, "seconds", "time"))
         .build();
-
 }
 
 void WriterFbImpl::createSignals()
 {
     outputSignal = createAndAddSignal(String("output"));
-    outputSignal.setDescription(CreateDescripton());
     outputDomainSignal = createAndAddSignal(String("output_domain"));
-    outputDomainSignal.setDescription(CreateDomainDescripton());
+
+    outputDataDescriptor = CreateDescripton();
+    outputDomainDataDescriptor = CreateDomainDescripton();
+
+    outputSignal.setDescription(outputDataDescriptor);
+    outputDomainSignal.setDescription(outputDomainDataDescriptor);
+
     outputSignal.setDomainSignal(outputDomainSignal);
 }
 

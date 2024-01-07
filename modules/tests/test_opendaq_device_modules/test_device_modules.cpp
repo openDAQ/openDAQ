@@ -437,8 +437,8 @@ TEST_F(DeviceModulesTest, testtesttest)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto writter = server.addFunctionBlock("ref_fb_module_writter");
-    writter.setPropertyValue("value", 100);
+    auto writer = server.addFunctionBlock("ref_fb_module_writer");
+    writer.setPropertyValue("value", 100);
     auto client = CreateClientInstance();
 
     auto clientSignals = client.getDevices()[0].getDevices()[0].getSignalsRecursive();

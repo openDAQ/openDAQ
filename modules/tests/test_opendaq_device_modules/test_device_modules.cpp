@@ -433,20 +433,6 @@ TEST_F(DeviceModulesTest, FunctionBlocksOnClient)
     ASSERT_GT(client.getDevices()[0].getFunctionBlocks().getCount(), (SizeT) 0);
 }
 
-TEST_F(DeviceModulesTest, testtesttest)  
-{
-    SKIP_TEST_MAC_CI;
-    auto server = CreateServerInstance();
-    auto writer = server.addFunctionBlock("ref_fb_module_writer");
-    writer.setPropertyValue("value", 100);
-    auto client = CreateClientInstance();
-
-    auto clientSignals = client.getDevices()[0].getDevices()[0].getSignalsRecursive();
-    auto clientSignal = clientSignals[0].asPtr<ISignalConfig>();
-    auto num = clientSignal.getValue();
-    std::cout << "num = " << num << std::endl;
-}
-
 // TODO: Add all examples of dynamic changes
 // TODO: Add examples of all possible property object changes once rework is done
 // TODO: Add examples of device topology, as well as signal/channel node trees in devices/fbs

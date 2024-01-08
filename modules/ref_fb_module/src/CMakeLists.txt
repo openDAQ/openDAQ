@@ -17,7 +17,6 @@ set(SRC_Include common.h
                 statistics_fb_impl.h
                 scaling_fb_impl.h
                 classifier_fb_impl.h
-                writer_fb_impl.h
                 dispatch.h
 )
 
@@ -31,7 +30,6 @@ set(SRC_Srcs module_dll.cpp
              power_fb_impl.cpp
              statistics_fb_impl.cpp
              classifier_fb_impl.cpp
-             writer_fb_impl.cpp
              scaling_fb_impl.cpp
 )
 
@@ -53,7 +51,6 @@ source_group("module" FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
                             statistics_fb_impl.cpp
                             scaling_fb_impl.cpp
                             classifier_fb_impl.cpp
-                            writer_fb_impl.cpp
 )
 
 source_group("polyline" FILES ${MODULE_HEADERS_DIR}/polyline.h

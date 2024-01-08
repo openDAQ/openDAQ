@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/data_descriptor.h>
 #include <opendaq/component.h>
+#include <opendaq/data_packet.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -128,6 +129,13 @@ DECLARE_OPENDAQ_INTERFACE(ISignal, IComponent)
      * Method returns OPENDAQ_IGNORED if that is the case.
      */
     virtual ErrCode INTERFACE_FUNC setStreamed(Bool streamed) = 0;
+
+    /*!
+     * @brief Gets the signal last value
+     * @param[out] value The signal last value
+     */
+
+    virtual ErrCode INTERFACE_FUNC getValue(IBaseObject ** value) = 0;
 };
 /*!@}*/
 

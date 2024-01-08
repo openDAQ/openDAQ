@@ -161,4 +161,23 @@ StringPtr TmsClientSignalImpl::onGetRemoteId() const
     return String(deviceSignalId);
 }
 
+ErrCode TmsClientSignalImpl::getValue(IBaseObject** value)
+{
+    *value = nullptr;
+
+    // if descriptorNode exists, value node also exists
+    if (descriptorNodeId)
+    {
+        const auto valueNodeId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "Value");
+        OpcUaVariant opcUaVariant = client->readValue(*valueNodeId);
+        if (!opcUaVariant.isNull())
+        {
+            BaseObjectPtr valuePtr = VariantConverter<IBaseObject, BaseObjectPtr>::ToDaqObject(opcUaVariant);
+            *value = valuePtr.addRefAndReturn();
+        }
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

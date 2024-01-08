@@ -3,6 +3,7 @@
 ** xref:howto_connect_to_device.adoc[]
 ** xref:howto_add_function_block.adoc[Add function block]
 ** xref:howto_configure_function_block.adoc[Configure function block]
+** xref:howto_configure_instance.adoc[Configure Instance]
 ** xref:howto_configure_streaming.adoc[Configure streaming]
 // ** xref:howto_configure_a_device.adoc[Configure a Device]
 // ** Configure a Signal

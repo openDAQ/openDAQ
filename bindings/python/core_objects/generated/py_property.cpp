@@ -50,7 +50,6 @@ void defineIProperty(pybind11::module_ m, PyDaqIntf<daq::IProperty, daq::IBaseOb
     m.def("SelectionProperty", &daq::SelectionProperty_Create);
     m.def("SparseSelectionProperty", &daq::SparseSelectionProperty_Create);
     m.def("StructProperty", &daq::StructProperty_Create);
-    m.def("PropertyFromBuilder", &daq::PropertyFromBuilder_Create);
 
     cls.def_property_readonly("value_type",
         [](daq::IProperty *object)

@@ -18,7 +18,7 @@ SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers)
     : stopped(false)
     , logger(std::move(logger))
     , loggerComponent( this->logger.assigned()
-                          ? this->logger.addComponent("Scheduler")
+                          ? this->logger.getOrAddComponent("Scheduler")
                           : throw ArgumentNullException("Logger must not be null"))
     , executor(std::make_unique<tf::Executor>(numWorkers < 1 ? std::thread::hardware_concurrency() : numWorkers))
 {

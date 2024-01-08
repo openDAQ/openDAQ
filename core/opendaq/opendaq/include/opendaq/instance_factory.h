@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #pragma once
+#include <opendaq/instance_builder_ptr.h>
 #include <opendaq/instance_ptr.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/logger_factory.h>
@@ -67,6 +68,26 @@ inline InstancePtr Instance(const std::string& modulePath = "", const std::strin
 }
 
 /*!
+ * @brief Creates a InstanceBuilder with no parameters configured.
+ */
+inline InstanceBuilderPtr InstanceBuilder()
+{
+    InstanceBuilderPtr obj(InstanceBuilder_Create());
+    return obj;
+}
+
+/*!
+ * @brief Creates a Instance with Builder
+ * @param builder Instance Builder
+ */
+
+inline InstancePtr InstanceFromBuilder(const InstanceBuilderPtr& builder)
+{
+    InstancePtr obj(InstanceFromBuilder_Create(builder));
+    return obj;
+}
+
+/*!
  * @brief Creates a Client implementation of a device.
  * @param context The Context to be used by the client.
  * @param localId The local id of the instance.
@@ -75,9 +96,9 @@ inline InstancePtr Instance(const std::string& modulePath = "", const std::strin
  * The Client supports adding function blocks and connecting to devices. The array of function blocks
  * and supported devices depends on the modules loaded by the Module manager.
  */
-inline DevicePtr Client(const ContextPtr& context, const StringPtr& localId)
+inline DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr)
 {
-    DevicePtr obj(Client_Create(context, localId));
+    DevicePtr obj(Client_Create(context, localId, defaultDeviceInfo));
     return obj;
 }
 

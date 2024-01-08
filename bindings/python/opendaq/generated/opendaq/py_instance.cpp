@@ -38,6 +38,7 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
     cls.doc() = "The top-level openDAQ object. It acts as container for the openDAQ context and the base module manager.";
 
     m.def("Instance", &daq::Instance_Create);
+    m.def("InstanceFromBuilder", &daq::InstanceFromBuilder_Create);
     m.def("Client", &daq::Client_Create);
 
     cls.def_property_readonly("module_manager",

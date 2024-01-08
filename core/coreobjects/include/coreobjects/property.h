@@ -499,7 +499,6 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IBoolean*, visible
 )
 
-//[factory(Hide)]
 /*!
  * @brief Creates an object-type Property object with a default value and optional Visible state.
  * @param name The name of the Property.

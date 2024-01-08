@@ -712,15 +712,33 @@ ErrCode SignalBase<TInterface, Interfaces...>::getValue(IBaseObject ** value)
                 *value = Integer(data[idx]).detach();
                 break;
             }
+            case SampleType::UInt8:
+            {
+                auto data = static_cast<uint8_t*>(lastDataPacket.getData());
+                *value = Integer(data[idx]).detach();
+                break;
+            }
             case SampleType::Int16:
             {
                 auto data = static_cast<int16_t*>(lastDataPacket.getData());
                 *value = Integer(data[idx]).detach();
                 break;
             }
+            case SampleType::UInt16:
+            {
+                auto data = static_cast<uint16_t*>(lastDataPacket.getData());
+                *value = Integer(data[idx]).detach();
+                break;
+            }
             case SampleType::Int32:
             {
                 auto data = static_cast<int32_t*>(lastDataPacket.getData());
+                *value = Integer(data[idx]).detach();
+                break;
+            }
+            case SampleType::UInt32:
+            {
+                auto data = static_cast<uint32_t*>(lastDataPacket.getData());
                 *value = Integer(data[idx]).detach();
                 break;
             }

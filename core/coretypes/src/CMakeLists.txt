@@ -38,6 +38,8 @@ set(SRC_Cpp version.cpp
             simple_type_impl.cpp
             util.cpp
             struct_builder_impl.cpp
+            enumeration_impl.cpp
+            enumeration_type_impl.cpp
 )
 
 set(SRC_PublicHeaders
@@ -220,6 +222,14 @@ set(SRC_PublicHeaders
 
     simple_type.h
     simple_type_factory.h
+
+    enumeration.h
+    enumeration_ptr.h
+    enumeration_factory.h
+
+    enumeration_type.h
+    enumeration_type_ptr.h
+    enumeration_type_factory.h
 )
 
 set(SRC_PrivateHeaders baseobject_impl.h
@@ -245,6 +255,8 @@ set(SRC_PrivateHeaders baseobject_impl.h
                        struct_type_impl.h
                        type_manager_impl.h
                        simple_type_impl.h
+                       enumeration_impl.h
+                       enumeration_type_impl.h
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)

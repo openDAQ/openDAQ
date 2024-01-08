@@ -1,5 +1,4 @@
 #include <opendaq/packet_factory.h>
-#include <opcuaclient/browse_request.h>
 #include <opcuaclient/browser/opcuabrowser.h>
 #include <opcuatms_client/tms_client.h>
 #include <open62541/daq_opcua_nodesets.h>
@@ -13,6 +12,7 @@
 
 
 #include <iostream>
+#include <opcuatms_client/tms_attribute_collector.h>
 
 using namespace daq::opcua;
 using namespace daq::opcua::tms;
@@ -52,13 +52,13 @@ daq::DevicePtr TmsClient::connect()
         throw NotFoundException();
     client->runIterate();
 
-    tmsClientContext = std::make_shared<TmsClientContext>(client);
+    tmsClientContext = std::make_shared<TmsClientContext>(client, context);
 
-    auto rootDeviceNodeId = getRootDeviceNodeId();
+    OpcUaNodeId rootDeviceNodeId;
+    std::string rootDeviceBrowseName;
+    getRootDeviceNodeAttributes(rootDeviceNodeId, rootDeviceBrowseName);
 
-    BrowseRequest request(rootDeviceNodeId, OpcUaNodeClass::Variable);
-    auto localId = getUniqueLocalId(client->readBrowseName(rootDeviceNodeId));
-
+    const auto localId = getUniqueLocalId(rootDeviceBrowseName);
     auto device = TmsClientRootDevice(context, parent, localId, tmsClientContext, rootDeviceNodeId, createStreamingCallback);
 
     const auto deviceInfo = device.getInfo();
@@ -79,31 +79,21 @@ daq::DevicePtr TmsClient::connect()
     return device;
 }
 
-OpcUaNodeId TmsClient::getRootDeviceNodeId()
+void TmsClient::getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string& browseNameOut)
 {
     const OpcUaNodeId rootNodeId(NAMESPACE_DI, UA_DIID_DEVICESET);
-    BrowseRequest br(rootNodeId, OpcUaNodeClass::Object, UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
 
-    OpcUaBrowser browser(br, client);
-    auto results = browser.browse();
+    auto filter = BrowseFilter();
+    filter.referenceTypeId = OpcUaNodeId(0, UA_NS0ID_HASCOMPONENT);
+    filter.typeDefinition = OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQDEVICETYPE);
 
-    const OpcUaNodeId daqDeviceTypeNodeId(  NAMESPACE_DAQDEVICE,            // TODO NAMESPACE_DAQDEVICE is server namespace id. You need
-                                            UA_DAQDEVICEID_DAQDEVICETYPE);  // to map it to client. Or use namespace URI.
-    
-    
-    for (const auto& result : results)
-    {   
-        ReferenceUtils referenceUtilities(client);
-        if (daqDeviceTypeNodeId == result.typeDefinition.nodeId)
-            return result.nodeId.nodeId;
-        else
-        {
-            // Else check if this is a subtype of the openDAQ device.
-            if (referenceUtilities.isInstanceOf(result.typeDefinition.nodeId, daqDeviceTypeNodeId))
-                return result.nodeId.nodeId;
-        }
-    }
-    throw NotFoundException();
+    const auto& references = tmsClientContext->getReferenceBrowser()->browseFiltered(rootNodeId, filter);
+
+    if (references.byNodeId.empty())
+        throw NotFoundException();
+
+    nodeIdOut = OpcUaNodeId(references.byBrowseName.begin().value()->nodeId.nodeId);
+    browseNameOut = references.byBrowseName.begin().key();
 }
 
 StringPtr TmsClient::getUniqueLocalId(const StringPtr& localId, int iteration)

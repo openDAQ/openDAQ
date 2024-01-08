@@ -106,9 +106,6 @@ class TestPropertySystem(opendaq_test.TestCase):
             'child.child.property1'), 10)
 
     def test_container_props(self):
-        # TODO: remove when fixed
-        self.expect_memory_leak = True
-
         property_object = opendaq.PropertyObject()
 
         list = opendaq.List()
@@ -124,13 +121,10 @@ class TestPropertySystem(opendaq_test.TestCase):
         property_object.add_property(opendaq.DictProperty(
             opendaq.String('dict'), dict, opendaq.Boolean(True)))
 
-        l = opendaq.IList.convert_from(
-            property_object.get_property_value('list'))
-        d = opendaq.IDict.convert_from(
-            property_object.get_property_value('dict'))
-
-        self.assertEqual(l[0], 'Banana')
-        self.assertEqual(d['Apple'], 2)
+        self.assertEqual(
+            property_object.get_property_value('list')[0], 'Banana')
+        self.assertEqual(
+            property_object.get_property_value('dict')['Apple'], 2)
 
     def test_reference_props(self):
         property_object = opendaq.PropertyObject()
@@ -176,7 +170,7 @@ class TestPropertySystem(opendaq_test.TestCase):
 
         float_property_builder = opendaq.FloatPropertyBuilder(opendaq.String(
             'property1'), opendaq.Float(10.0))
-        float_property_builder.visible =  opendaq.Boolean(True)
+        float_property_builder.visible = opendaq.Boolean(True)
 
         # FIXME: not accepting types
         # float_property_builder.min_value = opendaq.Float(0.0)
@@ -361,7 +355,8 @@ class TestPropertySystem(opendaq_test.TestCase):
     # TODO: events not supported yet
 
     def test_class(self):
-        property_class_builder = opendaq.PropertyObjectClassBuilder(opendaq.String('Class'))
+        property_class_builder = opendaq.PropertyObjectClassBuilder(
+            opendaq.String('Class'))
         property_class_builder.add_property(opendaq.IntProperty(opendaq.String(
             'property1'), opendaq.Integer(1), opendaq.Boolean(True)))
 
@@ -377,7 +372,8 @@ class TestPropertySystem(opendaq_test.TestCase):
     def test_class_manager(self):
         type_manager = opendaq.TypeManager()
 
-        property_class_builder = opendaq.PropertyObjectClassBuilder(opendaq.String('Class'))
+        property_class_builder = opendaq.PropertyObjectClassBuilder(
+            opendaq.String('Class'))
         property_class_builder.add_property(opendaq.IntProperty(opendaq.String(
             'property1'), opendaq.Integer(1), opendaq.Boolean(True)))
         list = opendaq.List()

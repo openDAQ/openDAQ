@@ -56,6 +56,17 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
         });
 }
 
+template <class Impl>
+void TmsClientPropertyObjectBaseImpl<Impl>::init()
+{
+    if (!this->daqContext.getLogger().assigned())
+        throw ArgumentNullException("Logger must not be null");
+
+    this->loggerComponent = this->daqContext.getLogger().getOrAddComponent("TmsClientPropertyObject");
+    clientContext->readObjectAttributes(nodeId);
+    browseRawProperties();
+}
+
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
@@ -161,46 +172,48 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(I
     return OPENDAQ_ERR_INVALID_OPERATION;
 }
 
-template <typename Impl>
-void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(
-    const tsl::ordered_map<OpcUaNodeId, OpcUaObject<UA_ReferenceDescription>>& references,
-    std::map<uint32_t, PropertyPtr>& orderedProperties,
-    std::vector<PropertyPtr>& unorderedProperties)
+template <class Impl>
+void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& parentId,
+                                                          std::map<uint32_t, PropertyPtr>& orderedProperties,
+                                                          std::vector<PropertyPtr>& unorderedProperties)
 {
     const auto introspectionVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_INTROSPECTIONVARIABLETYPE);
     const auto structureVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_STRUCTUREVARIABLETYPE);
     const auto referenceVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_REFERENCEVARIABLETYPE);
     const auto variableBlockTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_VARIABLEBLOCKTYPE);
 
-    for (auto& [childNodeId, ref] : references)
+    auto reader = clientContext->getAttributeReader();
+    const auto& references = clientContext->getReferenceBrowser()->browse(parentId);
+
+    for (auto& [childNodeId, ref] : references.byNodeId)
     {
         const auto typeId = OpcUaNodeId(ref->typeDefinition.nodeId);
-        auto propName = String(client->readBrowseName(childNodeId));
+        const auto propName = String(utils::ToStdString(ref->browseName.name));
+
         Bool hasProp;
         daq::checkErrorInfo(Impl::hasProperty(propName, &hasProp));
         PropertyPtr prop;
-        if (referenceUtils.isInstanceOf(typeId, referenceVariableTypeId))
+        if (clientContext->getReferenceBrowser()->isSubtypeOf(typeId, referenceVariableTypeId))
         {
             try
             {
                 if (!hasProp)
                 {
-                    StringPtr refPropEval = VariantConverter<IString>::ToDaqObject(client->readValue(childNodeId));
+                    StringPtr refPropEval = VariantConverter<IString>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                     prop = ReferenceProperty(propName, EvalValue(refPropEval));
                 }
 
                 referenceVariableIdMap.insert(std::pair(propName, childNodeId));
-                const auto& refPropReferences = referenceUtils.getReferences(childNodeId);
-                addProperties(refPropReferences, orderedProperties, unorderedProperties);
+                addProperties(childNodeId, orderedProperties, unorderedProperties);
             }
-            catch(...)
+            catch(const std::exception& e)
             {
-                // TODO: Log failure to add function/procedure.
+                LOG_W("Failed to add reference property {}", e.what());
                 continue;
             }
         }
-        else if (referenceUtils.isInstanceOf(typeId, introspectionVariableTypeId) ||
-                 referenceUtils.isInstanceOf(typeId, structureVariableTypeId))
+        else if (clientContext->getReferenceBrowser()->isSubtypeOf(typeId, introspectionVariableTypeId) ||
+                 clientContext->getReferenceBrowser()->isSubtypeOf(typeId, structureVariableTypeId))
         {
             try
             {
@@ -209,44 +222,46 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(
 
                 introspectionVariableIdMap.insert(std::pair(propName, childNodeId));
             }                     
-            catch(...)
+            catch(const std::exception& e)
             {
-                // TODO: Log failure to add function/procedure.
+                LOG_W("Failed to add property {}", e.what());
                 continue;
             }
         }
-        else if (referenceUtils.isInstanceOf(typeId, variableBlockTypeId))
+        else if (clientContext->getReferenceBrowser()->isSubtypeOf(typeId, variableBlockTypeId))
         {
             if (!hasProp)
             {
                 auto obj = TmsClientPropertyObject(daqContext, clientContext, childNodeId);
-                auto propBuilder = ObjectPropertyBuilder(propName, obj).setDescription(String(client->readDescription(childNodeId)));
+                const auto description = reader->getValue(childNodeId, UA_ATTRIBUTEID_DESCRIPTION).toString();
+                auto propBuilder = ObjectPropertyBuilder(propName, obj).setDescription(String(description));
 
                 const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_EVALUATIONVARIABLETYPE);
-                const auto variableBlockRefs = referenceUtils.getReferences(childNodeId);
+                const auto variableBlockRefs = clientContext->getReferenceBrowser()->browse(childNodeId);
 
-                for (auto& [variableBlockNodeId, variableBlockRef] : variableBlockRefs)
+                for (auto& [browseName, variableBlockRef] : variableBlockRefs.byBrowseName)
                 {
-                    const auto browseName = referenceUtils.getBrowseName(variableBlockRef);
-                    if (referenceUtils.isInstanceOf(variableBlockRef->typeDefinition.nodeId, evaluationVariableTypeId))
-                    {
-                        auto evalId = referenceUtils.getChildNodeId(variableBlockNodeId, "EvaluationExpression");
+                    const auto variableBlockNodeId = OpcUaNodeId(variableBlockRef->nodeId.nodeId);
 
-                        StringPtr evalStr = VariantConverter<IString>::ToDaqObject(client->readValue(evalId));
+                    if (clientContext->getReferenceBrowser()->isSubtypeOf(variableBlockRef->typeDefinition.nodeId, evaluationVariableTypeId))
+                    {
+                        auto evalId = clientContext->getReferenceBrowser()->getChildNodeId(variableBlockNodeId, "EvaluationExpression");
+
+                        StringPtr evalStr = VariantConverter<IString>::ToDaqObject(reader->getValue(evalId, UA_ATTRIBUTEID_VALUE));
 
                         if (browseName == "IsReadOnly")
                         {
                             if (evalStr.assigned())
                                 propBuilder.setReadOnly(EvalValue(evalStr).asPtr<IBoolean>());
                             else
-                                propBuilder.setReadOnly(VariantConverter<IBoolean>::ToDaqObject(client->readValue(variableBlockNodeId)));
+                                propBuilder.setReadOnly(VariantConverter<IBoolean>::ToDaqObject(reader->getValue(variableBlockNodeId, UA_ATTRIBUTEID_VALUE)));
                         }
                         else if (browseName == "IsVisible")
                         {
                             if (evalStr.assigned())
                                 propBuilder.setVisible(EvalValue(evalStr).asPtr<IBoolean>());
                             else
-                                propBuilder.setVisible(VariantConverter<IBoolean>::ToDaqObject(client->readValue(variableBlockNodeId)));
+                                propBuilder.setVisible(VariantConverter<IBoolean>::ToDaqObject(reader->getValue(variableBlockNodeId, UA_ATTRIBUTEID_VALUE)));
                         }
                     }
                 }
@@ -269,19 +284,22 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(
 }
 
 template <class Impl>
-void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(
-    const tsl::ordered_map<opcua::OpcUaNodeId, opcua::OpcUaObject<UA_ReferenceDescription>>& references,
-    const OpcUaNodeId& parentNodeId,
-    std::map<uint32_t, PropertyPtr>& orderedProperties,
-    std::vector<PropertyPtr>& unorderedProperties,
-    std::unordered_map<std::string, BaseObjectPtr>& functionPropValues)
+void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(const OpcUaNodeId& parentNodeId,
+                                                                std::map<uint32_t, PropertyPtr>& orderedProperties,
+                                                                std::vector<PropertyPtr>& unorderedProperties,
+                                                                std::unordered_map<std::string, BaseObjectPtr>& functionPropValues)
 {
+    auto browser = clientContext->getReferenceBrowser();
+    auto reader = clientContext->getAttributeReader();
+
+    const auto& references = browser->browse(parentNodeId);
     const auto methodTypeId = OpcUaNodeId(0, UA_NS0ID_METHODNODE);
 
-    for (auto& [childNodeId, ref] : references)
+    for (auto& [childNodeId, ref] : references.byNodeId)
     {
         const auto typeId = OpcUaNodeId(ref->typeDefinition.nodeId);
-        auto propName = String(client->readBrowseName(childNodeId));
+        const auto propName = String(utils::ToStdString(ref->browseName.name));
+
         Bool hasProp;
         daq::checkErrorInfo(Impl::hasProperty(propName, &hasProp));
 
@@ -295,18 +313,27 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(
 
                 try
                 {
-                    if (referenceUtils.hasReference(childNodeId, "InputArguments"))
-                        inputArgs = VariantConverter<IArgumentInfo>::ToDaqList(client->readValue(referenceUtils.getChildNodeId(childNodeId, "InputArguments")));
+                    if (browser->hasReference(childNodeId, "InputArguments"))
+                    {
+                        const auto inputArgsId = browser->getChildNodeId(childNodeId, "InputArguments");
+                        inputArgs = VariantConverter<IArgumentInfo>::ToDaqList(reader->getValue(inputArgsId, UA_ATTRIBUTEID_VALUE));
+                    }
 
-                    if (referenceUtils.hasReference(childNodeId, "OutputArguments"))
-                        outputArgs = VariantConverter<IArgumentInfo>::ToDaqList(client->readValue(referenceUtils.getChildNodeId(childNodeId, "OutputArguments")));
+                    if (browser->hasReference(childNodeId, "OutputArguments"))
+                    {
+                        const auto outputArgsId = browser->getChildNodeId(childNodeId, "OutputArguments");
+                        outputArgs = VariantConverter<IArgumentInfo>::ToDaqList(reader->getValue(outputArgsId, UA_ATTRIBUTEID_VALUE));
+                    }
 
-                    if (referenceUtils.hasReference(childNodeId, "NumberInList"))
-                        numberInList = VariantConverter<IInteger>::ToDaqObject(client->readValue(referenceUtils.getChildNodeId(childNodeId, "NumberInList")));
+                    if (browser->hasReference(childNodeId, "NumberInList"))
+                    {
+                        const auto numberInListId = browser->getChildNodeId(childNodeId, "NumberInList");
+                        numberInList = VariantConverter<IInteger>::ToDaqObject(reader->getValue(numberInListId, UA_ATTRIBUTEID_VALUE));
+                    }
                 }
-                catch(...)
+                catch(const std::exception& e)
                 {
-                    // TODO: Log failure to add function/procedure.
+                    LOG_W("Failed to parse method properties {}", e.what());
                     continue;
                 }
 
@@ -338,24 +365,21 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(
 template <typename Impl>
 void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
 {
-    const auto& references = referenceUtils.getReferences(nodeId);
-
     std::map<uint32_t, PropertyPtr> orderedProperties;
     std::vector<PropertyPtr> unorderedProperties;
     std::unordered_map<std::string, BaseObjectPtr> functionPropValues;
 
-    addProperties(references, orderedProperties, unorderedProperties);
+    addProperties(nodeId, orderedProperties, unorderedProperties);
     
     // TODO: Make sure that this is a DeviceType node
     if (hasReference("MethodSet"))
     {
-        const auto methodNodeId = referenceUtils.getChildNodeId(nodeId, "MethodSet");
-        const auto& methodReferences = referenceUtils.getReferences(methodNodeId);
-        addMethodProperties(methodReferences, methodNodeId, orderedProperties, unorderedProperties, functionPropValues);
+        const auto methodNodeId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "MethodSet");
+        addMethodProperties(methodNodeId, orderedProperties, unorderedProperties, functionPropValues);
     }
     else
     {
-        addMethodProperties(references, nodeId, orderedProperties, unorderedProperties, functionPropValues);
+        addMethodProperties(nodeId, orderedProperties, unorderedProperties, functionPropValues);
     }
 
     for (const auto& val : orderedProperties)

@@ -1,8 +1,10 @@
 ﻿using RTGen.Interfaces.Doc;
+using System;
 
 namespace RTGen.Types.Doc
 {
     /// <summary>Represents a longer and more detailed description than <see cref="DocBrief"/>.</summary>
+    [Serializable]
     public class DocDescription : DocAttribute, IDocDescription
     {
         /// <summary>Initializes a new instance of the <see cref="DocDescription" /> class.</summary>

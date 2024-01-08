@@ -44,9 +44,6 @@ public:
 
     std::string getServerUrl() const;
 
-private:
-    void runServer();
-    void createModel();
     void publishVariable(std::string identifier,
                          const void* value,
                          const UA_DataType* type,
@@ -54,6 +51,10 @@ private:
                          const char* locale = "en_US",
                          int nodeIndex = 1,
                          size_t dimension = 1);
+
+private:
+    void runServer();
+    void createModel();
     void publishFolder(const char* identifier, UA_NodeId* parentNodeId, const char* locale = "en_US", int nodeIndex = 1);
     void publishMethod(std::string identifier, UA_NodeId* parentNodeId, const char* locale = "en_US", int nodeIndex = 1);
     static UA_StatusCode helloMethodCallback(UA_Server* server,

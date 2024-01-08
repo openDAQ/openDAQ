@@ -85,13 +85,13 @@ function(create_version_header LIB_NAME)
     string(STRIP "${HEADER_NAME_PREFIX}" HEADER_NAME_PREFIX)
 
     set(GENERATE_HEADER ON)
-	
-    if (WIN32 AND NOT CMAKE_GENERATOR MATCHES "Visual Studio")
+
+    if (NOT MSVC)
         set(GENERATE_RC OFF)
     else()
-	    set(GENERATE_RC ON)
-	endif()
-	
+        set(GENERATE_RC ON)
+    endif()
+
     if (GENERATE_VERSION_NO_RC)
         set(GENERATE_RC OFF)
     endif()

@@ -21,6 +21,8 @@ TmsClientFunctionBlockBaseImpl<Impl>::TmsClientFunctionBlockBaseImpl(
 )
     : TmsClientComponentBaseImpl<Impl>(context, parent, localId, clientContext, nodeId, nullptr)
 {
+    clientContext->readObjectAttributes(nodeId);
+
     readFbType();
     findAndCreateFunctionBlocks();
     findAndCreateSignals();
@@ -28,20 +30,13 @@ TmsClientFunctionBlockBaseImpl<Impl>::TmsClientFunctionBlockBaseImpl(
 }
 
 template <typename Impl>
-tsl::ordered_set<daq::opcua::OpcUaNodeId> TmsClientFunctionBlockBaseImpl<Impl>::getFunctionBlockNodeIds()
+CachedReferences TmsClientFunctionBlockBaseImpl<Impl>::getFunctionBlockReferences()
 {
-    const OpcUaNodeId referenceTypeId(UA_NS0ID_HASCOMPONENT);
-    const OpcUaNodeId functionBlockType(NAMESPACE_DAQBSP, UA_DAQBSPID_FUNCTIONBLOCKTYPE); // TODO subtypes
-    return this->referenceUtils.getReferencedNodes(this->nodeId, referenceTypeId, true, functionBlockType);
-}
-
-template <typename Impl> 
-tsl::ordered_set<daq::opcua::OpcUaNodeId> TmsClientFunctionBlockBaseImpl<Impl>::getOutputSignalNodeIds()
-{
-    auto signalsNodeId = this->getNodeId("Sig");
-    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASVALUESIGNAL);
-
-    return this->referenceUtils.getReferencedNodes(signalsNodeId, referenceTypeId, true);
+    auto filter = BrowseFilter();
+    filter.referenceTypeId = OpcUaNodeId(UA_NS0ID_HASCOMPONENT);
+    filter.typeDefinition = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_FUNCTIONBLOCKTYPE);
+    filter.direction = UA_BROWSEDIRECTION_FORWARD;
+    return this->clientContext->getReferenceBrowser()->browseFiltered(this->nodeId, filter);
 }
 
 template <typename Impl>
@@ -50,10 +45,11 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateFunctionBlocks()
     std::map<uint32_t, FunctionBlockPtr> orderedFunctionBlocks;
     std::vector<FunctionBlockPtr> unorderedFunctionBlocks;
 
-    auto functionBlockNodeIds = getFunctionBlockNodeIds();
-    for (const auto& functionBlockNodeId : functionBlockNodeIds)
+    const auto& references = getFunctionBlockReferences();
+    for (const auto& [browseName, ref] : references.byBrowseName)
     {
-        auto browseName = this->client->readBrowseName(functionBlockNodeId);
+        const auto functionBlockNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+
         try
         {
             // TODO: If there is no access to the nodes within a function blocks an exeption 
@@ -86,8 +82,9 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateSignals()
     std::map<uint32_t, SignalPtr> orderedSignals;
     std::vector<SignalPtr> unorderedSignals;
 
-    auto signalNodeIds = getOutputSignalNodeIds();
-    for (const auto& signalNodeId : signalNodeIds)
+    const auto& references = getOutputSignalReferences();
+
+    for (const auto& [signalNodeId, ref] : references.byNodeId)
     {
         auto clientSignal = FindOrCreateTmsClientSignal(this->context, this->signals, this->clientContext, signalNodeId);
         const auto numberInList = this->tryReadChildNumberInList(signalNodeId);
@@ -103,13 +100,28 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateSignals()
         this->addSignal(val);
 }
 
-template <typename Impl> 
-tsl::ordered_set<daq::opcua::OpcUaNodeId> TmsClientFunctionBlockBaseImpl<Impl>::getInputPortNodeIds()
+template <typename Impl>
+CachedReferences TmsClientFunctionBlockBaseImpl<Impl>::getOutputSignalReferences()
 {
-    auto inputPortsNodeId = this->getNodeId("IP");
-    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASINPUTPORT);
+    auto filter = BrowseFilter();
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASVALUESIGNAL);
+    filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
-    return this->referenceUtils.getReferencedNodes(inputPortsNodeId, referenceTypeId, true);
+    auto signalsNodeId = this->getNodeId("Sig");
+
+    return this->clientContext->getReferenceBrowser()->browseFiltered(signalsNodeId, filter);
+}
+
+template <typename Impl>
+CachedReferences TmsClientFunctionBlockBaseImpl<Impl>::getInputPortBlockReferences()
+{
+    auto filter = BrowseFilter();
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASINPUTPORT);
+    filter.direction = UA_BROWSEDIRECTION_FORWARD;
+
+    auto inputPortsNodeId = this->getNodeId("IP");
+
+    return this->clientContext->getReferenceBrowser()->browseFiltered(inputPortsNodeId, filter);
 }
 
 template <typename Impl> 
@@ -118,10 +130,12 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateInputPorts()
     std::map<uint32_t, InputPortPtr> orderedInputPorts;
     std::vector<InputPortPtr> unorderedInputPorts;
 
-    auto inputPortNodeIds = getInputPortNodeIds();
-    for (const auto& inputPortNodeId : inputPortNodeIds)
+    const auto& references = getInputPortBlockReferences();
+
+    for (const auto& [browseName, ref] : references.byBrowseName)
     {
-        auto browseName = this->client->readBrowseName(inputPortNodeId);
+        const auto inputPortNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+
         auto clientInputPort = TmsClientInputPort(this->context, this->inputPorts, browseName,  this->clientContext, inputPortNodeId);
 
         const auto numberInList = this->tryReadChildNumberInList(inputPortNodeId);
@@ -140,25 +154,27 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateInputPorts()
 template <typename Impl>
 void TmsClientFunctionBlockBaseImpl<Impl>::readFbType()
 {
-    auto variant = this->readValue("FunctionBlockInfo");
+    auto infoNodeId = this->getNodeId("FunctionBlockInfo");
+    auto variant = this->clientContext->getAttributeReader()->getValue(infoNodeId, UA_ATTRIBUTEID_VALUE);
     this->type = VariantConverter<IFunctionBlockType>::ToDaqObject(variant).detach();
 }
 
 template <typename Impl> 
 SignalPtr TmsClientFunctionBlockBaseImpl<Impl>::onGetStatusSignal()
 {
-    OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASSTATUSSIGNAL);
+    auto filter = BrowseFilter();
+    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASSTATUSSIGNAL);
+    filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
-    auto nodeIds = this->referenceUtils.getReferencedNodes(this->nodeId, referenceTypeId, true);
+    const auto& references = this->clientContext->getReferenceBrowser()->browseFiltered(this->nodeId, filter);
+    assert(references.byNodeId.size() <= 1);
 
-    assert(nodeIds.size() <= 1);
-    if (!nodeIds.empty())
+    if (!references.byNodeId.empty())
     {
-        auto signalNodeId = *nodeIds.begin();
+        auto signalNodeId = references.byNodeId.begin().key();
         return this->findSignal(signalNodeId);
     }
 
-    // Not Found
     return nullptr;
 }
 

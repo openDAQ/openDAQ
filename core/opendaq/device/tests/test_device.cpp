@@ -4,6 +4,7 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/folder_factory.h>
 #include <opendaq/io_folder_factory.h>
+#include <opendaq/io_folder_impl.h>
 #include <opendaq/gmock/function_block.h>
 #include <gtest/gtest.h>
 #include <opendaq/device_private.h>
@@ -42,6 +43,11 @@ TEST_F(DeviceTest, IOFolder)
 {
     auto ioFolder = daq::IoFolder(daq::NullContext(), nullptr, "fld");
     ASSERT_TRUE(ioFolder.supportsInterface<daq::IIoFolderConfig>());
+}
+
+TEST_F(DeviceTest, IOFolderCreateCustom)
+{
+    ASSERT_NO_THROW((daq::createWithImplementation<daq::IIoFolderConfig, daq::IoFolderImpl>(daq::NullContext(), nullptr, "fld")));
 }
 
 TEST_F(DeviceTest, IOFolderSubItems)

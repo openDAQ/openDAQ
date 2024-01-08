@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/folder_impl.h>
 #include <opendaq/io_folder_config.h>
+#include <opendaq/channel.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -29,17 +30,39 @@ public:
                  const ComponentPtr& parent,
                  const StringPtr& localId,
                  const StringPtr& className = nullptr,
-                 ComponentStandardProps propsMode = ComponentStandardProps::Add);
+                 ComponentStandardProps propsMode = ComponentStandardProps::Add)
+        : Super(context, parent, localId, className, propsMode)
+    {
+    }
 
     // ISerializable
-    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override
+    {
+        OPENDAQ_PARAM_NOT_NULL(id);
 
-    static ConstCharPtr SerializeId();
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
+        *id = SerializeId();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    static ConstCharPtr SerializeId()
+    {
+        return "IoFolder";
+    }
+
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
+    {
+        return OPENDAQ_ERR_NOTIMPLEMENTED;
+    }
+
 protected:
-    bool addItemInternal(const ComponentPtr& component) override;
+    bool addItemInternal(const ComponentPtr& component) override
+    {
+        if (!component.supportsInterface<IIoFolderConfig>() && !component.supportsInterface<IChannel>())
+            throw InvalidParameterException("Type of item not allowed in the folder");
 
+        return Super::addItemInternal(component);
+    }
 };
-
 
 END_NAMESPACE_OPENDAQ

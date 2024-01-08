@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using RTGen.Interfaces.Doc;
 
 namespace RTGen.Types.Doc
 {
     /// <summary>Represents the information about a documentation tag with description.</summary>
+    [Serializable]
     public class DocAttribute : DocTag, IDocAttribute
     {
         /// <summary>Initializes a new instance of the <see cref="DocAttribute" /> class.</summary>

@@ -20,6 +20,7 @@
 #include <opendaq/data_packet_ptr.h>
 
 #include <condition_variable>
+#include <deque>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -91,6 +92,12 @@ public:
                              SampleType domainReadType,
                              ReadMode readMode);
 
+    explicit BlockReaderImpl(IInputPortConfig* port,
+                             SizeT blockSize,
+                             SampleType valueReadType,
+                             SampleType domainReadType,
+                             ReadMode readMode);
+
     BlockReaderImpl(const ReaderConfigPtr& readerConfig,
                     SampleType valueReadType,
                     SampleType domainReadType,
@@ -99,7 +106,8 @@ public:
 
     BlockReaderImpl(BlockReaderImpl* old,
                     SampleType valueReadType,
-                    SampleType domainReadType);
+                    SampleType domainReadType,
+                    SizeT blockSize);
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
 
@@ -120,6 +128,12 @@ private:
     SizeT blockSize;
     BlockReadInfo info{};
     BlockNotifyInfo notify{};
+
+    SizeT availableSamples {0};
+    std::deque<PacketPtr> packets;
+
+    void pushPacket(const PacketPtr & packet);
+    PacketPtr popPacket();
 };
 
 END_NAMESPACE_OPENDAQ

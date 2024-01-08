@@ -24,6 +24,7 @@
 #include <opendaq/typed_reader.h>
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/read_info.h>
+#include <coreobjects/property_object_factory.h>
 
 #include <condition_variable>
 
@@ -38,6 +39,12 @@ public:
                               SampleType domainReadType,
                               ReadMode mode,
                               ReadTimeoutType timeoutType);
+    
+    explicit StreamReaderImpl(IInputPortConfig* port,
+                              SampleType valueReadType,
+                              SampleType domainReadType,
+                              ReadMode mode,
+                              ReadTimeoutType timeoutType);
 
     explicit StreamReaderImpl(const ReaderConfigPtr& readerConfig,
                               SampleType valueReadType,
@@ -47,12 +54,13 @@ public:
     explicit StreamReaderImpl(StreamReaderImpl* old,
                               SampleType valueReadType,
                               SampleType domainReadType);
-
+    
     ~StreamReaderImpl() override;
 
     // IReader
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) override;
+    ErrCode INTERFACE_FUNC setOnDataAvailable(IFunction* callback) override;
 
     // ISampleReader
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
@@ -109,12 +117,14 @@ private:
     ReadMode readMode;
     ReadTimeoutType timeoutType;
     InputPortConfigPtr inputPort;
+    PropertyObjectPtr portBinder;
     ConnectionPtr connection;
 
     bool invalid{};
 
     std::mutex mutex;
     FunctionPtr changeCallback;
+    FunctionPtr readCallback;
 };
 
 END_NAMESPACE_OPENDAQ

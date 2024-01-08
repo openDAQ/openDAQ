@@ -20,6 +20,19 @@ BlockReaderImpl::BlockReaderImpl(const SignalPtr& signal,
     BlockReaderImpl::handleDescriptorChanged(connection.dequeue());
 }
 
+BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
+                                 SizeT blockSize,
+                                 SampleType valueReadType,
+                                 SampleType domainReadType,
+                                 ReadMode mode)
+    : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
+    , blockSize(blockSize)
+{
+    this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+    if (connection.assigned())
+        BlockReaderImpl::handleDescriptorChanged(connection.dequeue());
+}
+
 BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
@@ -33,14 +46,18 @@ BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
 
 BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
                                  SampleType valueReadType,
-                                 SampleType domainReadType)
+                                 SampleType domainReadType,
+                                 SizeT blockSize)
     : Super(old, valueReadType, domainReadType)
-    , blockSize(old->blockSize)
+    , blockSize(blockSize)
     , info(old->info)
 {
-    this->internalAddRef();
-
-    readDescriptorFromPort();
+    // if on descreption change callback was set
+    // readDescriptorFromPort method have to be called from this callback
+    packets = old->packets;
+    availableSamples = old->availableSamples;
+    if (!changeCallback.assigned())
+        readDescriptorFromPort();
     notify.dataReady = false;
 }
 
@@ -75,7 +92,7 @@ SizeT BlockReaderImpl::getAvailableSamples() const
         count = info.dataPacket.getSampleCount() - info.prevSampleIndex;
     }
 
-    count += connection.getAvailableSamples();
+    count += availableSamples;
     return count;
 }
 
@@ -84,10 +101,21 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
     OPENDAQ_PARAM_NOT_NULL(inputPort);
 
     {
-        std::unique_lock lock(notify.mutex);
+        std::scoped_lock lock(notify.mutex);
+
+        auto packet = connection.dequeue();
+        while (packet.assigned())
+        {
+            if (readCallback.assigned() && packet.getType() == PacketType::Event)
+                handleDescriptorChanged(packet);
+            else
+                pushPacket(packet);
+
+            packet = connection.dequeue();
+        }
 
         if (getAvailable() != 0)
-        {
+        {   
             notify.dataReady = true;
         }
         else
@@ -96,6 +124,10 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
         }
     }
     notify.condition.notify_one();
+
+    while(readCallback.assigned() && getAvailable())
+        readCallback();
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -167,7 +199,7 @@ ErrCode BlockReaderImpl::readPackets()
         {
             std::unique_lock lock(notify.mutex);
 
-            packet = connection.dequeue();
+            packet = popPacket();
             notify.dataReady = false;
         }
         else if (!packet.assigned())
@@ -180,7 +212,7 @@ ErrCode BlockReaderImpl::readPackets()
                 return notify.dataReady && getAvailable() != 0;
             }))
             {
-                packet = connection.dequeue();
+                packet = popPacket();
                 notify.dataReady = false;
             }
             else
@@ -275,6 +307,27 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
     return errCode;
 }
 
+void BlockReaderImpl::pushPacket(const PacketPtr & packet) 
+{
+    packets.push_back(packet);
+    auto dataPacket = packet.asPtrOrNull<IDataPacket>();
+    if (dataPacket.assigned())
+        availableSamples += dataPacket.getSampleCount();
+}
+
+PacketPtr BlockReaderImpl::popPacket()
+{
+    if (packets.size() == 0)
+        return PacketPtr();
+
+    auto packet = packets.front();
+    packets.pop_front();
+    auto dataPacket = packet.asPtrOrNull<IDataPacket>();
+    if (dataPacket.assigned())
+        availableSamples -= dataPacket.getSampleCount();
+    return packet;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY(
     LIBRARY_FACTORY, BlockReader,
     ISignal*, signal,
@@ -290,7 +343,8 @@ struct ObjectCreator<IBlockReader>
     static ErrCode Create(IBlockReader** out,
                           IBlockReader* toCopy,
                           SampleType valueReadType,
-                          SampleType domainReadType
+                          SampleType domainReadType,
+                          SizeT blockSize
                          ) noexcept
     {
         OPENDAQ_PARAM_NOT_NULL(out);
@@ -306,11 +360,8 @@ struct ObjectCreator<IBlockReader>
         auto old = ReaderConfigPtr::Borrow(toCopy);
         auto impl = dynamic_cast<BlockReaderImpl*>(old.getObject());
 
-        SizeT blockSize;
-        checkErrorInfo(toCopy->getBlockSize(&blockSize));
-
         return impl != nullptr
-            ? createObject<IBlockReader, BlockReaderImpl>(out, impl, valueReadType, domainReadType)
+            ? createObject<IBlockReader, BlockReaderImpl>(out, impl, valueReadType, domainReadType, blockSize)
             : createObject<IBlockReader, BlockReaderImpl>(out, old, valueReadType, domainReadType, blockSize, mode);
     }
 };
@@ -319,7 +370,19 @@ OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     LIBRARY_FACTORY, IBlockReader, createBlockReaderFromExisting,
     IBlockReader*, invalidatedReader,
     SampleType, valueReadType,
-    SampleType, domainReadType
+    SampleType, domainReadType,
+    SizeT, blockSize
 )
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, BlockReader,
+    IBlockReader, createBlockReaderFromPort,
+    IInputPortConfig*, port,
+    SizeT, blockSize,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode
+)
+
 
 END_NAMESPACE_OPENDAQ

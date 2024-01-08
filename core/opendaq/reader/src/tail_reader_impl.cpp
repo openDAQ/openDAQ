@@ -16,6 +16,21 @@ TailReaderImpl::TailReaderImpl(ISignal* signal,
     TailReaderImpl::handleDescriptorChanged(connection.dequeue());
 }
 
+TailReaderImpl::TailReaderImpl(IInputPortConfig* port,
+                               SizeT historySize,
+                               SampleType valueReadType,
+                               SampleType domainReadType,
+                               ReadMode mode)
+    : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
+    , historySize(historySize)
+    , cachedSamples(0)
+{
+    this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+
+    if (connection.assigned())
+        TailReaderImpl::handleDescriptorChanged(connection.dequeue());
+}
+
 TailReaderImpl::TailReaderImpl(const ReaderConfigPtr& readerConfig,
                                SampleType valueReadType,
                                SampleType domainReadType,
@@ -30,12 +45,14 @@ TailReaderImpl::TailReaderImpl(const ReaderConfigPtr& readerConfig,
 
 TailReaderImpl::TailReaderImpl(TailReaderImpl* old,
                                SampleType valueReadType,
-                               SampleType domainReadType)
+                               SampleType domainReadType,
+                               SizeT historySize)
     : Super(old, valueReadType, domainReadType)
-    , historySize(old->historySize)
+    , historySize(historySize)
     , cachedSamples(0)
 {
-    readDescriptorFromPort();
+    if (!changeCallback.assigned())
+        readDescriptorFromPort();
 }
 
 ErrCode TailReaderImpl::getAvailableCount(SizeT* count)
@@ -168,52 +185,55 @@ ErrCode TailReaderImpl::readWithDomain(void* values, void* domain, SizeT* count)
     return errCode;
 }
 
-ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
+void TailReaderImpl::pushPacket(const PacketPtr& packet)
 {
     std::unique_lock lock(mutex);
+    auto newPacket = packet.asPtrOrNull<IDataPacket>(true);
+    SizeT newPacketSampleCount = newPacket.getSampleCount();
+    if (cachedSamples < historySize)
+    {
+        packets.push_back(newPacket);
+        cachedSamples += newPacketSampleCount;
+    }
+    else
+    {
+        auto availableSamples = cachedSamples + newPacketSampleCount;
+        for (auto it = packets.begin(); it != packets.end();)
+        {
+            SizeT sampleCount = it->getSampleCount();
+            if (availableSamples - sampleCount >= historySize)
+            {
+                it = packets.erase(it);
+                availableSamples -= sampleCount;
+                continue;
+            }
+            else
+            {
+                break;
+            }
+            ++it;
+        }
 
-    PacketPtr packet = connection.dequeue();
+        packets.push_back(newPacket);
+        cachedSamples = availableSamples;
+    }
+}
+
+ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
+{
+    PacketPtr packet = readFromConnection();
     while (packet.assigned())
     {
         switch (packet.getType())
         {
             case PacketType::Data:
             {
-                auto newPacket = packet.asPtrOrNull<IDataPacket>(true);
-                SizeT newPacketSampleCount = newPacket.getSampleCount();
-                if (cachedSamples < historySize)
-                {
-                    packets.push_back(newPacket);
-                    cachedSamples += newPacketSampleCount;
-                }
-                else
-                {
-                    auto availableSamples = cachedSamples + newPacketSampleCount;
-                    for (auto it = packets.begin(); it != packets.end();)
-                    {
-                        SizeT sampleCount = it->getSampleCount();
-                        if (availableSamples - sampleCount >= historySize)
-                        {
-                            it = packets.erase(it);
-                            availableSamples -= sampleCount;
-                            continue;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                        ++it;
-                    }
-
-                    packets.push_back(newPacket);
-                    cachedSamples = availableSamples;
-                }
+                pushPacket(packet);
                 break;
             }
             case PacketType::Event:
             {
                 // Handle events
-
                 auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
@@ -229,8 +249,11 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
                 break;
         }
 
-        packet = connection.dequeue();
+        packet = readFromConnection();
     }
+
+    if (readCallback.assigned() && cachedSamples >= historySize)
+        readCallback();
 
     return OPENDAQ_SUCCESS;
 }
@@ -249,6 +272,7 @@ struct ObjectCreator<ITailReader>
 {
     static ErrCode Create(ITailReader** out,
                           ITailReader* toCopy,
+                          SizeT historySize,
                           SampleType valueReadType,
                           SampleType domainReadType
                          ) noexcept
@@ -266,11 +290,8 @@ struct ObjectCreator<ITailReader>
         auto old = ReaderConfigPtr::Borrow(toCopy);
         auto impl = dynamic_cast<TailReaderImpl*>(old.getObject());
 
-        SizeT historySize;
-        checkErrorInfo(toCopy->getHistorySize(&historySize));
-
         return impl != nullptr
-            ? createObject<ITailReader, TailReaderImpl>(out, impl, valueReadType, domainReadType)
+            ? createObject<ITailReader, TailReaderImpl>(out, impl, valueReadType, domainReadType, historySize)
             : createObject<ITailReader, TailReaderImpl>(out, old, valueReadType, domainReadType, historySize, mode);
     }
 };
@@ -278,8 +299,19 @@ struct ObjectCreator<ITailReader>
 OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     LIBRARY_FACTORY, ITailReader, createTailReaderFromExisting,
     ITailReader*, invalidatedReader,
+    SizeT, historySize,
     SampleType, valueReadType,
     SampleType, domainReadType
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, TailReader,
+    ITailReader, createTailReaderFromPort,
+    IInputPortConfig*, port,
+    SizeT, historySize,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode
 )
 
 END_NAMESPACE_OPENDAQ

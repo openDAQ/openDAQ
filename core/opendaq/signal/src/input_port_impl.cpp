@@ -433,6 +433,18 @@ ErrCode InputPortImpl::isRemoved(Bool* removed)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode INTERFACE_FUNC InputPortImpl::setOwner(IPropertyObject* owner)
+{
+    if (this->owner.assigned())
+    {
+        auto ref = this->owner.getRef();
+        if (ref != nullptr && ref != owner)
+            return makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
+    }
+    this->owner = owner;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode INTERFACE_FUNC InputPortImpl::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);

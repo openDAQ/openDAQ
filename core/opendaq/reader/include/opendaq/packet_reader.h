@@ -19,6 +19,7 @@
 #include <opendaq/reader.h>
 #include <coretypes/listobject.h>
 #include <opendaq/signal.h>
+#include <opendaq/input_port_config.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -56,6 +57,11 @@ DECLARE_OPENDAQ_INTERFACE(IPacketReader, IReader)
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, PacketReader,
     ISignal*, signal
+)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, PacketReaderFromPort, IPacketReader,
+    IInputPortConfig*, port
 )
 
 END_NAMESPACE_OPENDAQ

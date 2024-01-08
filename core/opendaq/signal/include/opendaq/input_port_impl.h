@@ -62,6 +62,9 @@ public:
     ErrCode INTERFACE_FUNC remove() override;
     ErrCode INTERFACE_FUNC isRemoved(Bool* removed) override;
 
+    // IOwnable
+    ErrCode INTERFACE_FUNC setOwner(IPropertyObject* owner) override;
+
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
@@ -88,6 +91,8 @@ private:
 
     StringPtr serializedSignalId;
     SignalPtr dummySignal;
+
+    WeakRefPtr<IPropertyObject> owner;
 
     ErrCode canConnectSignal(ISignal* signal) const;
     void disconnectSignalInternal(bool notifyListener, bool notifySignal);

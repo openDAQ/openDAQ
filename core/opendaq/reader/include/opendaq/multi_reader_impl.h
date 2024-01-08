@@ -18,13 +18,14 @@
 #include <opendaq/read_info.h>
 #include <opendaq/reader_config_ptr.h>
 #include <opendaq/signal_reader.h>
+#include <coreobjects/property_object_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 class MultiReaderImpl : public ImplementationOfWeak<IMultiReader, IReaderConfig, IInputPortNotifications>
 {
 public:
-    MultiReaderImpl(const ListPtr<ISignal>& signals,
+    MultiReaderImpl(const ListPtr<IComponent>& list,
                     SampleType valueReadType,
                     SampleType domainReadType,
                     ReadMode mode,
@@ -42,6 +43,7 @@ public:
     ~MultiReaderImpl() override;
 
     ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) override;
+    ErrCode INTERFACE_FUNC setOnDataAvailable(IFunction* callback) override;
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC getDomainReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC setValueTransformFunction(IFunction* transform) override;
@@ -73,11 +75,14 @@ private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
 
-    static void CheckPreconditions(const ListPtr<ISignal>& list);
+    template <typename T>
+    static bool ListElementsHaveSameType(const ListPtr<IBaseObject>& list);
+    static bool CheckPreconditions(const ListPtr<IBaseObject>& list);
     ListPtr<ISignal> getSignals() const;
 
     void setStartInfo();
     void connectSignals(const ListPtr<ISignal>& inputSignals, SampleType valueRead, SampleType domainRead, ReadMode mode);
+    void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
     ErrCode readUntilFirstDataPacket();
     ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);
@@ -113,6 +118,8 @@ private:
     std::unique_ptr<Comparable> commonStart;
 
     std::vector<SignalReader> signals;
+    PropertyObjectPtr portBinder;
+    FunctionPtr readCallback;
 
     LoggerComponentPtr loggerComponent;
 };

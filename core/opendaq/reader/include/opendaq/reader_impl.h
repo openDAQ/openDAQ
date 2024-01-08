@@ -21,6 +21,8 @@
 #include <opendaq/typed_reader.h>
 #include <opendaq/event_packet_params.h>
 #include <coretypes/validation.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/ownable_ptr.h>
 
 #include <mutex>
 #include <utility>
@@ -56,9 +58,33 @@ public:
         domainReader = createReaderForType(domainReadType, nullptr);
     }
 
+    explicit ReaderImpl(InputPortConfigPtr port,
+                        ReadMode mode,
+                        SampleType valueReadType,
+                        SampleType domainReadType)
+        : readMode(mode)
+        , portBinder(PropertyObject())
+        , timeoutType(ReadTimeoutType::All)
+    {
+        if (!port.assigned())
+            throw ArgumentNullException("Signal must not be null.");
+        
+        port.asPtr<IOwnable>().setOwner(portBinder);
+
+        this->internalAddRef();
+
+        this->port = port;
+        this->port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+
+        if (port.getConnection().assigned())
+            connection = this->port.getConnection();
+        valueReader = createReaderForType(valueReadType, nullptr);
+        domainReader = createReaderForType(domainReadType, nullptr);
+    }
+
     ~ReaderImpl() override
     {
-        if (port.assigned())
+        if (port.assigned() && !portBinder.assigned())
             port.remove();
     }
 
@@ -86,6 +112,10 @@ public:
     ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
+        
+        std::scoped_lock lock(mutex);
+        connection = InputPortConfigPtr::Borrow(inputPort).getConnection();
+        handleDescriptorChanged(connection.dequeue());
         return OPENDAQ_SUCCESS;
     }
 
@@ -96,6 +126,9 @@ public:
     ErrCode INTERFACE_FUNC disconnected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
+
+        std::scoped_lock lock(mutex);
+        connection = nullptr;
         return OPENDAQ_SUCCESS;
     }
 
@@ -112,6 +145,14 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC setOnDataAvailable(IFunction* callback) override
+    {
+        std::scoped_lock lock(mutex);
+
+        readCallback = callback;
+        return OPENDAQ_SUCCESS;
+    }
+
     /*!
      * @brief Notifies the listener of the newly received packet on the specified input-port.
      * @param port The port on which the new packet was received.
@@ -119,6 +160,9 @@ public:
     virtual ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override
     {
         OPENDAQ_PARAM_NOT_NULL(port);
+        auto callback = readCallback;
+        if (callback.assigned())
+            callback();
 
         return OPENDAQ_SUCCESS;
     }
@@ -289,17 +333,25 @@ protected:
                         SampleType valueReadType,
                         SampleType domainReadType)
         : readMode(old->readMode)
-        , valueReader(daq::createReaderForType(valueReadType, old->valueReader->getTransformFunction()))
-        , domainReader(daq::createReaderForType(domainReadType, old->domainReader->getTransformFunction()))
+        , valueReader(daq::createReaderForType(valueReadType, old->valueReader->getTransformFunction(), old->valueReader->getReadType()))
+        , domainReader(daq::createReaderForType(domainReadType, old->domainReader->getTransformFunction(), old->domainReader->getReadType()))
     {
         std::unique_lock lock(old->mutex);
         old->invalid = true;
 
         timeoutType = old->timeoutType;
 
+        portBinder = old->portBinder;
         port = old->port;
+        port.asPtr<IOwnable>().setOwner(portBinder);
+
+        this->internalAddRef();
+        
+        port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+
         connection = old->connection;
         changeCallback = old->changeCallback;
+        readCallback = old->readCallback;
     }
 
     explicit ReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -457,12 +509,20 @@ protected:
         throw InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
     }
 
+    PacketPtr readFromConnection()
+    {
+        std::scoped_lock lock(mutex);
+        return connection.dequeue();
+    }
+
     bool invalid{};
     std::mutex mutex;
     ReadMode readMode;
     InputPortConfigPtr port;
+    PropertyObjectPtr portBinder;
     ConnectionPtr connection;
     FunctionPtr changeCallback;
+    FunctionPtr readCallback;
     ReadTimeoutType timeoutType;
 
     std::unique_ptr<Reader> valueReader;

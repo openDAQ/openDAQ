@@ -50,7 +50,7 @@ struct InterfaceToSmartPtr<IStructType>
  * Struct type should be added to the field types.
  *
  * A Struct can only have fields of Core type: `ctBool`, `ctInt`, `ctFloat`, `ctString`, `ctList`, `ctDict`, `ctRatio`, `ctComplexNumber`,
- * `ctStruct`, or `ctUndefined`. Additionally, all Container types (`ctList`, `ctDict`) should only have values of the aforementioned
+ * `ctStruct`, `ctEnumeration`, or `ctUndefined`. Additionally, all Container types (`ctList`, `ctDict`) should only have values of the aforementioned
  * types.
  */
 class StructTypePtr : public GenericTypePtr<IStructType>

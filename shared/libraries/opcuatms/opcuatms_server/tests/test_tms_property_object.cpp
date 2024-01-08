@@ -46,7 +46,7 @@ TEST_F(TmsPropertyObjectTest, BaseObjectList)
     list.pushBack(3.0);
     object.addProperty(ListProperty("ListProp", list));
 
-    auto tmsPropertyObject = TmsServerPropertyObject(object, this->getServer(), NullContext());
+    auto tmsPropertyObject = TmsServerPropertyObject(object, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
 
     OpcUaObject<UA_ReadRequest> request;

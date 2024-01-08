@@ -118,22 +118,11 @@ TEST_F(TmsComponentTest, NameAndDescription)
     ASSERT_EQ(component.clientComponent.getDescription(), "newer_description");
 }
 
-TEST_F(TmsComponentTest, NameAndDescriptionReadOnly)
+TEST_F(TmsComponentTest, NameAndDescriptionLocked)
 {
-    const auto name = "read_only";
+    const auto name = "locked";
     const auto customComponent = Component(NullContext(), nullptr, name);
-    const auto component = registerTestComponent(customComponent);
-
-    ASSERT_NO_THROW(component.clientComponent.setName("new_name"));
-    ASSERT_NO_THROW(component.clientComponent.setDescription("new_description"));
-
-    ASSERT_EQ(component.clientComponent.getName(), name);
-}
-
-TEST_F(TmsComponentTest, NameAndDescriptionSkip)
-{
-    const auto name = "read_only";
-    const auto customComponent = Component(NullContext(), nullptr, name);
+    customComponent.asPtr<IComponentPrivate>().lockAttributes(List<IString>("name", "description"));
     const auto component = registerTestComponent(customComponent);
 
     ASSERT_NO_THROW(component.clientComponent.setName("new_name"));

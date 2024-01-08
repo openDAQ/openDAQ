@@ -64,7 +64,11 @@ public:
     ErrCode INTERFACE_FUNC getConnections(IList** connections) override;
     ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) override;
     ErrCode INTERFACE_FUNC setStreamed(Bool streamed) override;
+
+    // IPropertyObject
     
+    ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
+
     // IComponent
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
     ErrCode INTERFACE_FUNC setName(IString* name) override;
@@ -98,12 +102,15 @@ protected:
     void serializeCustomObjectValues(const SerializerPtr& serializer) override;
     void updateObject(const SerializedObjectPtr& obj) override;
     int getSerializeFlags() override;
+    void addPropertyChangedCallbacks();
 
     virtual EventPacketPtr createDataDescriptorChangedEventPacket();
     virtual void onListenedStatusChanged(bool connected);
 
     void removed() override;
-
+    ErrCode lockAllAttributesInternal() override;
+    
+    inline static std::unordered_set<std::string> signalAvailableAttributes = {"public"};
 private:
     StringPtr name;
     bool isPublic{};
@@ -115,7 +122,7 @@ private:
 
     void propertyValueChanged(const PropertyPtr& prop, const BaseObjectPtr& value);
     void sendAattributeChangedPacket(const StringPtr& attributeName, const BaseObjectPtr& value);
-    bool sendPacketInternal(const PacketPtr& packet) const;
+    bool sendPacketInternal(const PacketPtr& packet, bool ignoreActive = false) const;
     void triggerRelatedSignalsChanged();
 };
 
@@ -129,6 +136,7 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     , isPublic(true)
     , dataDescriptor(std::move(descriptor))
 {
+    addPropertyChangedCallbacks();
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -144,14 +152,14 @@ void SignalBase<TInterface, Interfaces...>::propertyValueChanged(const PropertyP
     const auto packet = PropertyChangedEventPacket(prop.getName(), value);
     std::scoped_lock lock(this->sync);
 
-    static_cast<void>(sendPacketInternal(packet));
+    static_cast<void>(sendPacketInternal(packet, true));
 }
 
 template <typename TInterface, typename ... Interfaces>
 void SignalBase<TInterface, Interfaces...>::sendAattributeChangedPacket(const StringPtr& attributeName, const BaseObjectPtr& value)
 {
     const auto packet = AttributeChangedEventPacket(attributeName, value);
-    static_cast<void>(sendPacketInternal(packet));
+    static_cast<void>(sendPacketInternal(packet, true));
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -227,7 +235,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
         const auto packet = DataDescriptorChangedEventPacket(descriptor, nullptr);
 
         // Should this return a failure error code or execute all sendPacket calls and return one of the errors?
-        success = sendPacketInternal(packet);
+        success = sendPacketInternal(packet, true);
         if (success)
         {
             for (const auto& signal : domainSignalReferences)
@@ -432,9 +440,9 @@ ErrCode SignalBase<TInterface, Interfaces...>::sendPacket(IPacket* packet)
 }
 
 template <typename TInterface, typename... Interfaces>
-bool SignalBase<TInterface, Interfaces...>::sendPacketInternal(const PacketPtr& packet) const
+bool SignalBase<TInterface, Interfaces...>::sendPacketInternal(const PacketPtr& packet, bool ignoreActive) const
 {
-    if (!this->active)
+    if (!ignoreActive && !this->active)
         return false;
 
     for (auto& connection : connections)
@@ -613,6 +621,17 @@ int SignalBase<TInterface, Interfaces...>::getSerializeFlags()
     return ComponentSerializeFlag_SerializeActiveProp;
 }
 
+template <typename TInterface, typename ... Interfaces>
+void SignalBase<TInterface, Interfaces...>::addPropertyChangedCallbacks()
+{
+    const auto objPtr = this->template borrowPtr<PropertyObjectPtr>();
+    for (const auto& prop : objPtr.getAllProperties())
+    {
+        prop.getOnPropertyValueWrite() +=
+            [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args) { propertyValueChanged(args.getProperty(), args.getValue()); };
+    }
+}
+
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::removed()
 {
@@ -661,6 +680,20 @@ ErrCode SignalBase<TInterface, Interfaces...>::setStreamed(Bool streamed)
 }
 
 template <typename TInterface, typename ... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::addProperty(IProperty* property)
+{
+    ErrCode err =  Super::addProperty(property);
+    if (OPENDAQ_FAILED(err))
+        return err;
+    
+    auto propPtr = PropertyPtr::Borrow(property);
+    propPtr.getOnPropertyValueWrite() +=
+        [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args) { propertyValueChanged(args.getProperty(), args.getValue()); };
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setActive(Bool active)
 {
     const ErrCode err = Super::setActive(active);
@@ -706,6 +739,15 @@ ErrCode SignalBase<TInterface, Interfaces...>::setVisible(Bool visible)
     std::scoped_lock lock(this->sync);
     sendAattributeChangedPacket("Visible", visible);
     return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::lockAllAttributesInternal()
+{
+    for (const auto& str : this->signalAvailableAttributes)
+        this->lockedAttributes.insert(str);
+
+    return Super::lockAllAttributesInternal();
 }
 
 END_NAMESPACE_OPENDAQ

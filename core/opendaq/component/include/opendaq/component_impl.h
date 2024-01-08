@@ -63,7 +63,7 @@ public:
     ErrCode INTERFACE_FUNC getVisible(Bool* visible) override;
     virtual ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
-    ErrCode INTERFACE_FUNC lockAllAttributes() override;
+    virtual ErrCode INTERFACE_FUNC lockAllAttributes() override;
     ErrCode INTERFACE_FUNC unlockAttributes(IList* attributes) override;
     ErrCode INTERFACE_FUNC unlockAllAttributes() override;
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
@@ -74,11 +74,11 @@ public:
     // IUpdatable
     ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
 
-    inline static std::unordered_set<std::string> availableAttributes = {"name", "description", "visible", "active", "public"};
 
 protected:
     virtual void activeChanged();
     virtual void removed();
+    virtual ErrCode lockAllAttributesInternal();
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
 
     std::mutex sync;
@@ -90,12 +90,14 @@ protected:
     TagsConfigPtr tags;
     StringPtr globalId;
     EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
-
+    
+    inline static std::unordered_set<std::string> componentAvailableAttributes = {"name", "description", "visible", "active"};
     std::unordered_set<std::string> lockedAttributes;
     bool visible;
     bool active;
     StringPtr name;
     StringPtr description;
+
 
     ErrCode serializeCustomValues(ISerializer* serializer) override;
     virtual int getSerializeFlags();
@@ -400,9 +402,7 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::lockAllAttributes()
 {
     std::scoped_lock lock(sync);
-    for (const auto& str : availableAttributes)
-        lockedAttributes.insert(str);
-    return OPENDAQ_SUCCESS;
+    return lockAllAttributesInternal();
 }
 
 template <class Intf, class ... Intfs>
@@ -515,6 +515,14 @@ void ComponentImpl<Intf, Intfs...>::activeChanged()
 template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::removed()
 {
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::lockAllAttributesInternal()
+{
+    for (const auto& str : componentAvailableAttributes)
+        lockedAttributes.insert(str);
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class ... Intfs>

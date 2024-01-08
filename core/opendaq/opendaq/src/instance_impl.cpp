@@ -44,8 +44,8 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
             logger = Logger();
         else
             logger = LoggerWithSinks(sinks);
-        logger.setLevel(builderPtr.getGlobalLogLevel());
     }
+    logger.setLevel(builderPtr.getGlobalLogLevel());
 
     for (const auto& [component, logLevel] : builderPtr.getComponentsLogLevel())
     {

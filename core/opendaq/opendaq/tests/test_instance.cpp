@@ -373,13 +373,11 @@ TEST_F(InstanceTest, InstanceCreateFactory)
 
 TEST_F(InstanceTest, InstanceBuilderGetDefault)
 {
-    const auto defaultRootDeviceInfo = DeviceInfo("connectionString");
     const auto instanceBuilder = InstanceBuilder()
                                 .setGlobalLogLevel(LogLevel::Debug)
                                 .setComponentLogLevel("Instance", LogLevel::Error)
                                 .addLoggerSink(StdOutLoggerSink())
                                 .setSchedulerWorkerNum(1)
-                                .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
                                 .setRootDevice("daqref://device0");
 
     ASSERT_EQ(instanceBuilder.getLogger().assigned(), false);
@@ -403,10 +401,6 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
     // check moduleManager
     auto moduleManager = instance.getContext().getModuleManager();
     ASSERT_EQ(moduleManager.assigned(), true);
-
-    // check devices
-    auto availableDevices = instance.getAvailableDevices();
-    ASSERT_EQ(availableDevices.getCount(), 0);
 
     ASSERT_TRUE(instance.getRootDevice().assigned());
     ASSERT_FALSE(instance.getRootDevice().getName() == "DefaultRootDeviceLocalId");   

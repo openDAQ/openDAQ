@@ -43,7 +43,6 @@ int main(int argc, const char* argv[])
 {
     daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder()
     daq::InstancePtr instance = instanceBuilder.build();
-    daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1/");
 
     return 0;
 }
@@ -228,7 +227,8 @@ int main(int argc, const char* argv[])
 ====
 
 == Configure openDAQ(TM) Root Device
-If, after creating the Instance object, the developer has not set the root device, the Instance will use the Client device as the root. Using the Instance Builder, developers can discover and connect to available devices using the method `getAvailableDevices`. In the Instance Builder, developers can forcibly set the available device.
+The Instance has client device as default root device. Developer can modify default device by setting default root device info and local id in instance builder.
+Another posible way is to replace default root device with device with giver connection string.
 [tabs]
 ====
 Cpp::
@@ -260,10 +260,11 @@ Cpp::
 int main(int argc, const char* argv[])
 {
     daq::DeviceInfoPtr defaultRootDeviceInfo = daq::DeviceInfo("daqref://device0");
+    defaultRootDeviceInfo.setSerialNumber("ABCD-0000-0000-0000");
     daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setDefaultRootDeviceInfo(defaultRootDeviceInfo);
     daq::InstancePtr instance = instanceBuilder.build();
 
-    assert(instance.getAvailableDevices()[0] == defaultRootDeviceInfo);
+    assert(instance.getInfo() == defaultRootDeviceInfo);
 
     return 0;
 }

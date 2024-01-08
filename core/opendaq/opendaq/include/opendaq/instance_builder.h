@@ -38,13 +38,15 @@ BEGIN_NAMESPACE_OPENDAQ
  * The InstanceBuilder provides the following configuration methods:
  *
  * - **Logger:** The custom Logger for the Instance. This logger will be used for logging messages related to
- *   the Instance and its components. When configured, the GlobalLogLevel, ComponentLogLevel and LoggerSink will be ignored, as they are in use only with the default Instance logger
+ *   the Instance and its components. When configured, the `Global log level`, `Component log level` and `Logger sink` will be ignored, as they are in use only with the default Instance logger.
+ *   If custom logger was not set, builder will generate Instance with 'Global log level'.
  *
  * - **Global log level:** The default Logger global log level for the Instance. All log messages with a severity
- *   level equal to or higher than the specified level will be processed.
+ *   level equal to or higher than the specified level will be processed. Default log level is LogLevel::Default
  *
  * - **Component log level:** The Logger level for a specific component of the Instance. Log messages related to
- *   that component will be processed according to the specified log level.
+ *   that component will be processed according to the specified log level. If `Logger` has been set, configuring of 'Component log level' has no effect.
+ *   By default each component using global log level.  
  *
  * - **Logger sink:** The logger sink to the default Instance logger. This sink will be responsible for processing
  *   log messages, such as writing them to a file or sending them to a remote server.
@@ -58,22 +60,22 @@ BEGIN_NAMESPACE_OPENDAQ
  * - **Scheduler:** The custom scheduler for the Instance. If set, the number of worker threads will be ignored.
  *
  * - **Scheduler worker num:** The number of worker threads in the scheduler of the Instance. If a scheduler has
- *   not already been set, this defines the number of threads available for parallel processing.
+ *   not already been set, this defines the number of threads available for parallel processing. if a scheduler has not been set and worker num is not set or set as 0,
+ *   then Scheduler will use maximum number of concurrent threads.
  *
- * - **Default root device local ID:** The virtual Client as the default root device with the specified name. If the
- *   RootDevice has not been set, the Instance Root Device will also be set as the virtual Client.
+ * - **Default root device local ID:** The local id of the default client root device. Has no effect if `Root device` has been congigured.
  *
- * - **Default root device info:** The device information for default root device of the Instance. If the device information has
- *   not been set, the `getInfo` method of the Instance will return this set device information.
+ * - **Default root device info:** The device information for default root device of the Instance. Has no effect if `Root device` has been congigured.
  *
- * - **Root device:** The custom root device of the Instance from the connection string. This defines the device that
- *   serves as the entry point for the Instance.
+ * - **Root device:** The connection string of a device that replaces the default openDAQ root device (virtual client). 
+ *   When the instance is created a connection to the device with the given connection string will be established, and the device will be placed at the root of the component tree structure.
+ *   When configured, the `Default root device local ID` and `Default root device info` will be ignored.
  *
  * - **Sink log level:** The sink logger level of the default Instance logger. This level is ignored if a custom
  *   logger has already been set.
  *
  * Note:
- * Some configuration options, such as the custom logger, module manager, and scheduler, are optional. If not set, the
+ * All configuration options are optional. If not set, the
  * Instance will use default implementations. Users can choose to configure only the specific aspects they need,
  * allowing for a tailored setup.
  */
@@ -242,8 +244,15 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 /*!@}*/
 
 /*!
+ * @ingroup opendaq_instance
+ * @addtogroup opendaq_instance_factories Factories
+ * @{
+ */
+
+/*!
  * @brief Creates a InstanceBuilder with no parameters configured.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, InstanceBuilder, IInstanceBuilder)
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

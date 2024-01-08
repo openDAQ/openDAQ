@@ -23,6 +23,7 @@ AudioDeviceImpl::AudioDeviceImpl(const std::shared_ptr<MiniaudioContext>& maCont
 {
     // time signal is owned by device, because in case of multiple channels they should share the same time signal
     timeSignal = createAndAddSignal("time");
+    addSignal(timeSignal);
 
     initProperties();
     createAudioChannel();

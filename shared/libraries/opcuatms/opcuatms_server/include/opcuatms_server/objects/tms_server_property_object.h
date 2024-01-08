@@ -32,14 +32,17 @@ public:
     TmsServerPropertyObject(const PropertyObjectPtr& object,
                             const opcua::OpcUaServerPtr& server,
                             const ContextPtr& context,
+                            const TmsServerContextPtr& tmsContext,
                             const std::unordered_set<std::string>& ignoredProps = {});
     TmsServerPropertyObject(const PropertyObjectPtr& object,
                             const opcua::OpcUaServerPtr& server,
                             const ContextPtr& context,
+                            const TmsServerContextPtr& tmsContext,
                             const StringPtr& name);
     TmsServerPropertyObject(const PropertyObjectPtr& object,
                             const opcua::OpcUaServerPtr& server,
                             const ContextPtr& context,
+                            const TmsServerContextPtr& tmsContext,
                             const StringPtr& name,
                             const PropertyPtr& objProp);
     ~TmsServerPropertyObject();

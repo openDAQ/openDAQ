@@ -83,22 +83,6 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IString*, localId)
 
 /*!
- * @brief Creates a folder with a specific property mode for default properties.
- * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
- * @param parent The parent component.
- * @param localId The local ID of the component.
- * @param propertyMode Integer property defining whether standard properties such as "Name" and "Description" are created.
- *                     0 to create the default properties; 1 to create the properties, but configure them as "read-only"; 2 to skip creation.
- */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY,
-    FolderWithDefaultPropertyMode, IFolderConfig,
-    IContext*, context,
-    IComponent*, parent,
-    IString*, localId,
-    Int, propertyMode)
-
-/*!
  * @brief Creates a folder with an interface ID that must be implemented by its children.
  * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
  * @param itemType The ID of interface that child objects of the folder must implement.
@@ -113,24 +97,6 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IString*, localId)
 
 /*!
- * @brief Creates a folder with a specific property mode for default properties, and an interface ID that must be implemented by its children.
- * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
- * @param itemType The ID of interface that child objects of the folder must implement.
- * @param parent The parent component.
- * @param localId The local ID of the component.
- * @param propertyMode Integer property defining whether standard properties such as "Name" and "Description" are created.
- *                     0 to create the default properties; 1 to create the properties, but configure them as "read-only"; 2 to skip creation.
- */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY,
-    FolderWithItemTypeAndDefaultPropertyMode, IFolderConfig,
-    IntfID, itemType,
-    IContext*, context,
-    IComponent*, parent,
-    IString*, localId,
-    Int, propertyMode)
-
-/*!
  * @brief Creates an IO folder.
  * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
  * @param parent The parent component.
@@ -143,23 +109,6 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IContext*, context,
     IComponent*, parent,
     IString*, localId)
-
-/*!
- * @brief Creates an IO folder.
- * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
- * @param parent The parent component.
- * @param localId The local ID of the parent.
- * @param propertyMode Integer property defining whether standard properties such as "Name" and "Description" are created.
- *                     0 to create the default properties; 1 to create the properties, but configure them as "read-only"; 2 to skip creation.
- *
- * IO folders are folder created by device and may contain only channels and other IO folders.
- */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, IoFolderWithDefaultPropertyMode, IFolderConfig,
-    IContext*, context,
-    IComponent*, parent,
-    IString*, localId,
-    Int, propertyMode)
 
 /*!@}*/
 

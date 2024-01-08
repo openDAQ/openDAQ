@@ -29,9 +29,8 @@ public:
     IoFolderImpl(const ContextPtr& context,
                  const ComponentPtr& parent,
                  const StringPtr& localId,
-                 const StringPtr& className = nullptr,
-                 ComponentStandardProps propsMode = ComponentStandardProps::Add)
-        : Super(context, parent, localId, className, propsMode)
+                 const StringPtr& className = nullptr)
+        : Super(context, parent, localId, className)
     {
     }
 

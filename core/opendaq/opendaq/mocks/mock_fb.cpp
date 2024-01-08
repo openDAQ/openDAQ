@@ -2,6 +2,7 @@
 #include <opendaq/signal_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include "opendaq/mock/mock_nested_fb_factory.h"
+#include "opendaq/data_descriptor_factory.h"
 
 using namespace daq;
 

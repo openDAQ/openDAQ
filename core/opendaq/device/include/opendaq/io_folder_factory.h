@@ -31,11 +31,9 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 inline IoFolderConfigPtr IoFolder(const ContextPtr& context,
                                   const ComponentPtr& parent,
-                                  const StringPtr& localId,
-                                  const ComponentStandardProps propertyMode = ComponentStandardProps::Add)
+                                  const StringPtr& localId)
 {
-    FolderConfigPtr obj(IoFolderWithDefaultPropertyMode_Create(context, parent, localId, static_cast<Int>(propertyMode)));
-    // FolderConfigPtr obj(IoFolder_Create(context, parent, localId));
+    FolderConfigPtr obj(IoFolder_Create(context, parent, localId));
     return obj;
 }
 

@@ -4,7 +4,7 @@ import unittest
 import opendaq_test
 import opendaq
 
-class TestDocumentationQuickStartGuide(opendaq_test.TestCase):
+class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
 
     def test_start_simulator(self):
         # Create openDAQ instance

@@ -12,7 +12,7 @@
 #include "stream/WebsocketClientStream.hpp"
 #include <spdlog/spdlog.h>
 #include <websocket_streaming/websocket_streaming_factory.h>
-
+#include <opendaq/search_filter_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <signal_generator/signal_generator.h>
 #include <chrono>
@@ -92,7 +92,7 @@ public:
 
     PacketReaderPtr createReader(const DevicePtr& device, const std::string& signalName)
     {
-        auto signals = device.getSignalsRecursive();
+        auto signals = device.getSignals(search::Recursive(search::Visible()));
 
         for (const auto& signal : signals)
         {
@@ -190,7 +190,7 @@ protected:
 
     void setActiveStreamingSource(const DevicePtr& device)
     {
-        for (const auto& signal : device.getSignalsRecursive())
+        for (const auto& signal : device.getSignals(search::Recursive(search::Visible())))
         {
             auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
             mirroredSignalConfigPtr.setActiveStreamingSource(STREAMING_URL);

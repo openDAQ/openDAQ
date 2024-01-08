@@ -90,7 +90,7 @@ TEST_F(ArchitectureTest, DataRule)
 
     DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
 
-    DataRulePtr rule = device.getSignalsRecursive()[1].getDescriptor().getRule();
+    DataRulePtr rule = device.getSignals(search::Recursive(search::Any()))[1].getDescriptor().getRule();
     ASSERT_NO_THROW(rule.getParameters().get("start"));
     ASSERT_NO_THROW(rule.getParameters().get("delta"));
     ASSERT_EQ(rule.getType(), DataRuleType::Linear);
@@ -108,8 +108,8 @@ TEST_F(ArchitectureTest, Readers)
     FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
     statistics.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
 
-    PacketReaderPtr packetReader = PacketReader(statistics.getSignalsRecursive()[0]);
-    StreamReaderPtr streamReader = StreamReader<double, uint64_t>(statistics.getSignalsRecursive()[0]);
+    PacketReaderPtr packetReader = PacketReader(statistics.getSignals(search::Recursive(search::Any()))[0]);
+    StreamReaderPtr streamReader = StreamReader<double, uint64_t>(statistics.getSignals(search::Recursive(search::Any()))[0]);
 
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(1000ms);

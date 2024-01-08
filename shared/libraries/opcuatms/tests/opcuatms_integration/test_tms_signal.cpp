@@ -61,13 +61,14 @@ public:
 TEST_F(TmsSignalTest, Create)
 {
     SignalPtr signal = Signal(NullContext(), nullptr, "sig");
-    auto tmsSignal = TmsServerSignal(signal, this->getServer(), NullContext());
+    auto tmsSignal = TmsServerSignal(signal, this->getServer(), ctx, serverContext);
+
 }
 
 TEST_F(TmsSignalTest, Register)
 {
     SignalPtr signal = createSignal("id");
-    auto serverSignal = TmsServerSignal(signal, this->getServer(), NullContext());
+    auto serverSignal = TmsServerSignal(signal, this->getServer(), ctx, serverContext);
     auto nodeId = serverSignal.registerOpcUaNode();
 
     SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
@@ -79,7 +80,7 @@ TEST_F(TmsSignalTest, AttrUniqueId)
     SignalPtr daqServerSignal = createSignal("id");
     daqServerSignal.setActive(true);
 
-    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), NullContext());
+    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
     auto nodeId = serverSignal.registerOpcUaNode();
 
     SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "id", clientContext, nodeId);
@@ -93,7 +94,7 @@ TEST_F(TmsSignalTest, AttrActive)
     SignalPtr daqServerSignal = createSignal("id");
     daqServerSignal.setActive(true);
 
-    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), NullContext());
+    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
     auto nodeId = serverSignal.registerOpcUaNode();
 
     SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
@@ -116,7 +117,7 @@ TEST_F(TmsSignalTest, AttrPublic)
 {
     SignalPtr daqServerSignal = createSignal("id");
 
-    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), NullContext());
+    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
     auto nodeId = serverSignal.registerOpcUaNode();
 
     SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
@@ -159,7 +160,7 @@ TEST_F(TmsSignalTest, AttrDescriptor)
     serverSignal.setDescriptor(serverDataDescriptor);
     ASSERT_EQ(serverSignal.getDescriptor(), serverDataDescriptor);
 
-    auto tmsServerSignal = TmsServerSignal(serverSignal, this->getServer(), NullContext());
+    auto tmsServerSignal = TmsServerSignal(serverSignal, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerSignal.registerOpcUaNode();
 
     SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
@@ -219,11 +220,11 @@ TEST_F(TmsSignalTest, AttrDescriptor)
 TEST_F(TmsSignalTest, AttrDomainSignal)
 {
     SignalPtr daqServerDomainSignal = createSignal("sig1");
-    auto serverDomainSignal = TmsServerSignal(daqServerDomainSignal, this->getServer(), NullContext());
+    auto serverDomainSignal = TmsServerSignal(daqServerDomainSignal, this->getServer(), ctx, serverContext);
     auto domainNodeId = serverDomainSignal.registerOpcUaNode();
 
     SignalPtr daqServerSignal = createSignal("sig2");
-    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), NullContext());
+    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
     auto nodeId = serverSignal.registerOpcUaNode();
 
     OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASDOMAINSIGNAL);
@@ -241,15 +242,15 @@ TEST_F(TmsSignalTest, AttrDomainSignal)
 TEST_F(TmsSignalTest, AttrRelatedSignals)
 {
     SignalPtr daqServerSignal1 = createSignal("id1");
-    auto serverSignal1 = TmsServerSignal(daqServerSignal1, this->getServer(), NullContext());
+    auto serverSignal1 = TmsServerSignal(daqServerSignal1, this->getServer(), ctx, serverContext);
     auto nodeId1 = serverSignal1.registerOpcUaNode();
 
     SignalPtr daqServerSignal2 = createSignal("id2");
-    auto serverSignal2 = TmsServerSignal(daqServerSignal2, this->getServer(), NullContext());
+    auto serverSignal2 = TmsServerSignal(daqServerSignal2, this->getServer(), ctx, serverContext);
     auto nodeId2 = serverSignal2.registerOpcUaNode();
 
     SignalPtr daqServerSignal3 = createSignal("id3");
-    auto serverSignal3 = TmsServerSignal(daqServerSignal3, this->getServer(), NullContext());
+    auto serverSignal3 = TmsServerSignal(daqServerSignal3, this->getServer(), ctx, serverContext);
     auto nodeId3 = serverSignal3.registerOpcUaNode();
 
     OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_RELATESTOSIGNAL);
@@ -284,7 +285,7 @@ TEST_F(TmsSignalTest, AttrRelatedSignals)
 TEST_F(TmsSignalTest, MethodGetConnections)
 {
     SignalPtr daqServerSignal1 = createSignal("id");
-    auto serverSignal1 = TmsServerSignal(daqServerSignal1, this->getServer(), NullContext());
+    auto serverSignal1 = TmsServerSignal(daqServerSignal1, this->getServer(), ctx, serverContext);
     auto nodeId1 = serverSignal1.registerOpcUaNode();
 
     SignalPtr clientSignal1 = TmsClientSignal(NullContext(), nullptr, "sig",     clientContext, nodeId1);
@@ -299,7 +300,7 @@ TEST_F(TmsSignalTest, MethodGetConnections)
 TEST_F(TmsSignalTest, ComponentMethods)
 {
     auto signal = createFullSignal("sig");
-    auto serverSignal = TmsServerSignal(signal, this->getServer(), NullContext());
+    auto serverSignal = TmsServerSignal(signal, this->getServer(), ctx, serverContext);
     auto nodeId = serverSignal.registerOpcUaNode();
 
     SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
@@ -322,10 +323,22 @@ TEST_F(TmsSignalTest, ExplicitDomainRuleDescriptor)
 {
     const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Int64).setRule(ExplicitDomainDataRule(5.1, 20)).build();
     const auto signal = SignalWithDescriptor(NullContext(), descriptor, nullptr, "sig");
-    auto serverSignal = TmsServerSignal(signal, this->getServer(), NullContext());
+    auto serverSignal = TmsServerSignal(signal, this->getServer(), ctx, serverContext);
     auto nodeId = serverSignal.registerOpcUaNode();
 
     SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
 
     ASSERT_EQ(signal.getDescriptor().getRule(), clientSignal.getDescriptor().getRule());
 }
+
+//TEST_F(TmsSignalTest, Visible)
+//{
+//    const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Int64).setRule(ExplicitDomainDataRule()).build();
+//    const auto signal = SignalBuilder(NullContext(), nullptr, "sig").setDescriptor(descriptor).setVisible(false).build();
+//    auto serverSignal = TmsServerSignal(signal, this->getServer(), ctx, serverContext);
+//    auto nodeId = serverSignal.registerOpcUaNode();
+//
+//    SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
+//
+//    ASSERT_EQ(signal.getVisible(), clientSignal.getVisible());
+//}

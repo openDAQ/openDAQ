@@ -36,14 +36,14 @@ public:
 TEST_F(TmsInputPortTest, Create)
 {
     InputPortPtr inputPort = createInputPort("The Name", false);
-    auto tmsInputPort = TmsServerInputPort(inputPort, this->getServer(), NullContext());
+    auto tmsInputPort = TmsServerInputPort(inputPort, this->getServer(), ctx, serverContext);
 }
 
 TEST_F(TmsInputPortTest, Register)
 {
     const std::string name{"Some Name"};
     InputPortPtr daqServerInputPort = createInputPort(name, false);
-    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), NullContext());
+    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), ctx, serverContext);
     auto nodeId = serverInputPort.registerOpcUaNode();
 
     InputPortPtr clientInputPort = TmsClientInputPort(NullContext(), nullptr, "inputPort", clientContext, nodeId);
@@ -54,7 +54,7 @@ TEST_F(TmsInputPortTest, BrowseName)
 {
     const std::string name{"Some Name"};
     InputPortPtr daqServerInputPort = createInputPort(name, false);
-    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), NullContext());
+    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), ctx, serverContext);
     auto nodeId = serverInputPort.registerOpcUaNode();
 
     auto browseName = client->readBrowseName(nodeId);
@@ -68,7 +68,7 @@ TEST_F(TmsInputPortTest, AttrName)
     ASSERT_FALSE(daqServerInputPort.getRequiresSignal());
     ASSERT_EQ(daqServerInputPort.getLocalId(), name);
 
-    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), NullContext());
+    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), ctx, serverContext);
     auto nodeId = serverInputPort.registerOpcUaNode();
 
     auto browseName = clientContext->getClient()->readBrowseName(nodeId);
@@ -81,7 +81,7 @@ TEST_F(TmsInputPortTest, AttrName)
 TEST_F(TmsInputPortTest, AttrRequiresSignalFalse)
 {
     InputPortPtr daqServerInputPort = createInputPort("The Name", false);
-    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), NullContext());
+    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), ctx, serverContext);
     auto nodeId = serverInputPort.registerOpcUaNode();
 
     InputPortPtr clientInputPort = TmsClientInputPort(NullContext(), nullptr, "inputPort", clientContext, nodeId);
@@ -93,7 +93,7 @@ TEST_F(TmsInputPortTest, AttrRequiresSignalFalse)
 TEST_F(TmsInputPortTest, AttrRequiresSignalTrue)
 {
     InputPortPtr daqServerInputPort = createInputPort("The Name", true);
-    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), NullContext());
+    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), ctx, serverContext);
     auto nodeId = serverInputPort.registerOpcUaNode();
 
     InputPortPtr clientInputPort = TmsClientInputPort(NullContext(), nullptr, "inputPort", clientContext, nodeId);
@@ -106,7 +106,7 @@ TEST_F(TmsInputPortTest, MethodAcceptsSignal)
 {
     SignalPtr signal = Signal(NullContext(), nullptr, "sig");
     InputPortPtr daqServerInputPort = createInputPort("The Name", true);
-    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), NullContext());
+    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), ctx, serverContext);
     auto nodeId = serverInputPort.registerOpcUaNode();
 
     InputPortPtr clientInputPort = TmsClientInputPort(NullContext(), nullptr, "inputPort", clientContext, nodeId);
@@ -120,7 +120,7 @@ TEST_F(TmsInputPortTest, MethodConnectSignal)
     SignalPtr signal = Signal(NullContext(), nullptr, "sig");
 
     InputPortPtr daqServerInputPort = createInputPort("The Name", true);
-    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), NullContext());
+    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), ctx, serverContext);
     auto nodeId = serverInputPort.registerOpcUaNode();
 
     InputPortPtr clientInputPort = TmsClientInputPort(NullContext(), nullptr, "inputPort", clientContext, nodeId);
@@ -132,7 +132,7 @@ TEST_F(TmsInputPortTest, MethodConnectSignal)
 TEST_F(TmsInputPortTest, MethodDisconnectSignal)
 {
     InputPortPtr daqServerInputPort = createInputPort("The Name", true);
-    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), NullContext());
+    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), ctx, serverContext);
     auto nodeId = serverInputPort.registerOpcUaNode();
 
     InputPortPtr clientInputPort = TmsClientInputPort(NullContext(), nullptr, "inputPort", clientContext, nodeId);
@@ -161,7 +161,7 @@ TEST_F(TmsInputPortTest, ConnectedToReference)
 
     SignalPtr signal = Signal(context, nullptr, "sig");
 
-    auto serverSignal = TmsServerSignal(signal, this->getServer(), NullContext());
+    auto serverSignal = TmsServerSignal(signal, this->getServer(), ctx, serverContext);
     auto signalNodeId = serverSignal.registerOpcUaNode();
 
     InputPortNotificationsPtr inputPortNotification = TestInputPortNotifications();
@@ -170,7 +170,7 @@ TEST_F(TmsInputPortTest, ConnectedToReference)
     inputPort.setListener(inputPortNotification);
     inputPort.connect(signal);
 
-    auto serverInputPort = TmsServerInputPort(inputPort, this->getServer(), NullContext());
+    auto serverInputPort = TmsServerInputPort(inputPort, this->getServer(), ctx, serverContext);
     auto inputPortNodeId = serverInputPort.registerOpcUaNode();
 
     ASSERT_NO_THROW(serverInputPort.createNonhierarchicalReferences());
@@ -187,7 +187,7 @@ TEST_F(TmsInputPortTest, ComponentMethods)
 {
     const std::string name{"inputPort"};
     InputPortPtr daqServerInputPort = createInputPort(name, false);
-    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), NullContext());
+    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), ctx, serverContext);
     auto nodeId = serverInputPort.registerOpcUaNode();
 
     InputPortPtr clientInputPort = TmsClientInputPort(NullContext(), nullptr, "inputPort", clientContext, nodeId);

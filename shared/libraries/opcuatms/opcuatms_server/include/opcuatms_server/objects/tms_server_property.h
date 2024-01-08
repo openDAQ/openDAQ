@@ -33,14 +33,17 @@ public:
     
     TmsServerProperty(const PropertyPtr& object,
                       const opcua::OpcUaServerPtr& server,
-                      const ContextPtr& context);
+                      const ContextPtr& context,
+                      const TmsServerContextPtr& tmsContext);
     TmsServerProperty(const PropertyPtr& object,
                       const opcua::OpcUaServerPtr& server,
                       const ContextPtr& context,
+                      const TmsServerContextPtr& tmsContext,
                       const std::unordered_map<std::string, uint32_t>& propOrder);
     TmsServerProperty(const PropertyPtr& object,
                       const opcua::OpcUaServerPtr& server,
                       const ContextPtr& context,
+                      const TmsServerContextPtr& tmsContext,
                       const PropertyObjectPtr& parent,
                       const std::unordered_map<std::string, uint32_t>& propOrder);
 

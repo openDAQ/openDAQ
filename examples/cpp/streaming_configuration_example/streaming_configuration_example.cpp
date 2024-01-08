@@ -78,7 +78,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     std::cout << device.getInfo().getName() << std::endl;
 
     // Find the AI signal
-    auto signals = device.getSignalsRecursive();
+    auto signals = device.getSignals(daq::search::Recursive(daq::search::Visible()));
 
     daq::ChannelPtr channel;
     daq::MirroredSignalConfigPtr signal;

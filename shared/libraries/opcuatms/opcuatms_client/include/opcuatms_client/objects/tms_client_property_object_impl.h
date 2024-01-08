@@ -69,7 +69,7 @@ public:
                                     const TmsClientContextPtr& clientContext,
                                     const opcua::OpcUaNodeId& nodeId)
         : TmsClientObjectImpl(ctx, clientContext, nodeId)
-        , Impl(ctx, parent, localId, nullptr, ComponentStandardProps::Skip)
+        , Impl(ctx, parent, localId, nullptr)
     {
         init();
     }
@@ -82,7 +82,7 @@ public:
                                     const opcua::OpcUaNodeId& nodeId,
                                     const FunctionBlockTypePtr& type)
         : TmsClientObjectImpl(ctx, clientContext, nodeId)
-        , Impl(type, ctx, parent, localId, nullptr, ComponentStandardProps::Skip)
+        , Impl(type, ctx, parent, localId, nullptr)
     {
         init();
     }

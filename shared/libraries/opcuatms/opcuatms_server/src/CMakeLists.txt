@@ -1,12 +1,14 @@
 set(LIB_NAME opcuatms_server)
 
 set(SRC_Cpp tms_server.cpp
+            tms_server_context.cpp
 )
 
 set(SRC_PublicHeaders
 )
 
 set(SRC_PrivateHeaders tms_server.h
+                       tms_server_context.h
 )
 
 # objects

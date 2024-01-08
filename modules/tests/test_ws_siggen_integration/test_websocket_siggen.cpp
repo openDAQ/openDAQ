@@ -26,7 +26,7 @@ TEST_P(SiggenTest, GetRemoteDeviceObjects)
     auto client = CreateClientInstance(GetParam());
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
-    auto signals = client.getSignalsRecursive();
+    auto signals = client.getSignals(SearchParams(false, true));
     ASSERT_EQ(signals.getCount(), 2u);
 }
 
@@ -34,7 +34,7 @@ TEST_P(SiggenTest, SyncSignalDescriptors)
 {
     auto client = CreateClientInstance(GetParam());
 
-    auto signal  = client.getSignalsRecursive()[0];
+    auto signal  = client.getSignals(SearchParams(false, true))[0];
 
     EXPECT_EQ(signal.getLocalId(), "Signal1_Sync");
 
@@ -63,7 +63,7 @@ TEST_P(SiggenTest, AsyncSignalDescriptors)
 {
     auto client = CreateClientInstance(GetParam());
 
-    auto signal  = client.getSignalsRecursive()[1];
+    auto signal  = client.getSignals(SearchParams(false, true))[1];
 
     EXPECT_EQ(signal.getLocalId(), "Signal2_Async");
 
@@ -94,8 +94,8 @@ TEST_P(SiggenTest, DISABLED_RenderSignals)
 
     const auto rendererFb = client.addFunctionBlock("ref_fb_module_renderer");
 
-    rendererFb.getInputPorts()[0].connect(client.getSignalsRecursive()[0]);
-    rendererFb.getInputPorts()[1].connect(client.getSignalsRecursive()[1]);
+    rendererFb.getInputPorts()[0].connect(client.getSignals(SearchParams(false, true))[0]);
+    rendererFb.getInputPorts()[1].connect(client.getSignals(SearchParams(false, true))[1]);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }

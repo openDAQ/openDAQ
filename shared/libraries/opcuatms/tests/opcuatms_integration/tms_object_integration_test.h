@@ -17,16 +17,17 @@
 #pragma once
 #include "tms_object_test.h"
 #include <opcuatms_client/objects/tms_client_context.h>
+#include "opcuatms_server/tms_server_context.h"
 
 class TmsObjectIntegrationTest : public TmsObjectTest
 {
 public:
-    TmsObjectIntegrationTest();
-
     void SetUp() override;
     void TearDown() override;
 
 protected:
     daq::ContextPtr context;
     daq::opcua::tms::TmsClientContextPtr clientContext;
+    daq::opcua::tms::TmsServerContextPtr serverContext;
+    daq::ContextPtr ctx;
 };

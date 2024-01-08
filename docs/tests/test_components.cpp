@@ -7,25 +7,14 @@
 using ComponentsTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ
-namespace docs_test_helpers
-{
-    static void traverseFolder(const FolderPtr& folder)
-    {
-        for (auto childComponent : folder.getItems())
-        {
-            if (auto childFolder = childComponent.asPtrOrNull<IFolder>(); childFolder.assigned())
-                traverseFolder(childFolder);
-        }
-    }
-
-}
-
 
 // Corresponding document: Antora/modules/explanation/pages/components.adoc
 TEST_F(ComponentsTest, FolderTraversal)
 {
     auto instance = docs_test_helpers::setupInstance();
-    ASSERT_NO_THROW(docs_test_helpers::traverseFolder(instance.getRootDevice()));
+
+    const auto searchFilter = search::Recursive(search::Any());
+    ASSERT_NO_THROW(instance.getSignals(searchFilter));
 }
 
 // Corresponding document: Antora/modules/explanation/pages/components.adoc

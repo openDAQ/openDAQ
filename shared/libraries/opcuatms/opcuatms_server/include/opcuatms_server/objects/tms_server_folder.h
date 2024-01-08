@@ -28,7 +28,7 @@ class TmsServerFolder : public TmsServerComponent<FolderPtr>
 public:
     using Super = TmsServerComponent<FolderPtr>;
 
-    TmsServerFolder(const FolderPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context);
+    TmsServerFolder(const FolderPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
     
     void createNonhierarchicalReferences() override;
     void addChildNodes() override;

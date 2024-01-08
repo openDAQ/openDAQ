@@ -28,11 +28,11 @@ template <class Class, class TInterface>
 struct MockGenericFunctionBlock : MockGenericSignalContainer<Class, TInterface>
 {
     MOCK_METHOD(daq::ErrCode, getFunctionBlockType, (daq::IFunctionBlockType** type), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, getInputPorts, (daq::IList** port), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, getSignals, (daq::IList** signal), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, getSignalsRecursive, (daq::IList** signal), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, getStatusSignal, (daq::ISignal * *signal), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, getFunctionBlocks, (daq::IList** functionBlocks), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getInputPorts, (daq::IList** port, daq::ISearchFilter* searchFilter), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getSignals, (daq::IList** signals, daq::ISearchFilter* searchFilter), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getSignalsRecursive, (daq::IList** signal, daq::ISearchFilter* searchFilter), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getStatusSignal, (daq::ISignal** signal), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getFunctionBlocks, (daq::IList** functionBlocks, daq::ISearchFilter* searchFilter), (override MOCK_CALL));
 
     MockGenericFunctionBlock()
         : MockGenericSignalContainer<Class, TInterface>()

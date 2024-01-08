@@ -7,6 +7,8 @@
 #include <opendaq/removable_ptr.h>
 #include <coreobjects/property_object_class_factory.h>
 #include <gtest/gtest.h>
+#include <opendaq/component_private_ptr.h>
+#include <opendaq/tags_factory.h>
 
 using SignalTest = testing::Test;
 
@@ -439,6 +441,20 @@ TEST_F(SignalTest, SerializeAndUpdate)
     const auto str2 = serializer2.getOutput();
 
     ASSERT_EQ(str1, str2);
+}
+
+TEST_F(SignalTest, LockedAttributes)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    ASSERT_EQ(signal.getPublic(), true);
+
+    ASSERT_NO_THROW(signal.setPublic(false), false);
+    ASSERT_EQ(signal.getPublic(), false);
+
+    signal.asPtr<IComponentPrivate>().lockAllAttributes();
+    
+    ASSERT_NO_THROW(signal.setPublic(false), true);
+    ASSERT_EQ(signal.getPublic(), false);
 }
 
 END_NAMESPACE_OPENDAQ

@@ -37,7 +37,7 @@ namespace core_event_ids
     constexpr Int SignalDisconnected = 70;
     constexpr Int DataDescriptorChanged = 80;
     constexpr Int ComponentUpdateEnd = 90;
-    constexpr Int ComponentModified = 100;
+    constexpr Int AttributeChanged = 100;
 }
 
 /*!@}*/

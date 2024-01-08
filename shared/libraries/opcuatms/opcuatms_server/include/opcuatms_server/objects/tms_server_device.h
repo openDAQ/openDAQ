@@ -33,7 +33,7 @@ class TmsServerDevice : public TmsServerComponent<DevicePtr>
 public:
     using Super = TmsServerComponent<DevicePtr>;
 
-    TmsServerDevice(const DevicePtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context);
+    TmsServerDevice(const DevicePtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
 
     bool createOptionalNode(const opcua::OpcUaNodeId& nodeId) override;
     

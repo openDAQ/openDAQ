@@ -38,6 +38,7 @@ public:
                                const opcua::OpcUaNodeId& nodeId)
         : TmsClientPropertyObjectBaseImpl<Impl>(ctx, parent, localId, clientContext, nodeId)
     {
+        initComponent();
         clientContext->readObjectAttributes(nodeId);
     }
     
@@ -50,17 +51,22 @@ public:
                                const FunctionBlockTypePtr& type)
         : TmsClientPropertyObjectBaseImpl<Impl>(ctx, parent, localId, clientContext, nodeId, type)
     {
+        initComponent();
         clientContext->readObjectAttributes(nodeId);
     }
 
     // Component overrides
     ErrCode INTERFACE_FUNC getActive(Bool* active) override;
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
-    ErrCode INTERFACE_FUNC getTags(ITagsConfig** tags) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
+    ErrCode INTERFACE_FUNC getVisible(Bool* visible) override;
+    ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
+
+private:
+    void initComponent();
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

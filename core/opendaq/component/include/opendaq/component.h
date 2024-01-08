@@ -22,12 +22,11 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-enum class ComponentStandardProps
-{
-    Add,
-    AddReadOnly,
-    Skip
-};
+/*!
+ * @ingroup opendaq_components
+ * @addtogroup opendaq_component Component
+ * @{
+ */
 
 /*#
  * [includeHeader("<opendaq/removable.h>")]
@@ -37,11 +36,6 @@ enum class ComponentStandardProps
  * [interfaceSmartPtr(IComponent, GenericComponentPtr)]
  */
 
-/*!
- * @ingroup opendaq_components
- * @addtogroup opendaq_component Component
- * @{
- */
 
 /*!
  * @brief Acts as a base interface for components, such as device, function block, channel and signal.
@@ -146,6 +140,18 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
      * Tags are user definable labels that can be attached to the component.
      */
     virtual ErrCode INTERFACE_FUNC getTags(ITagsConfig** tags) = 0;
+
+    /*!
+     * @brief Gets `visible` metadata state of the component
+     * @param[out] visible True if the component is visible; False otherwise.
+     *
+     * Visible determines whether search/getter methods return find the component by default.
+     */
+    virtual ErrCode INTERFACE_FUNC getVisible(Bool* visible) = 0;
+    virtual ErrCode INTERFACE_FUNC setVisible(Bool visible) = 0;
+
+    // [templateType(attributes, IString)]
+    virtual ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) = 0;
 };
 /*!@}*/
 
@@ -167,24 +173,6 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IComponent*, parent,
     IString*, localId,
     IString*, className
-)
-
-/*!
- * @brief Creates a component with a specific property mode for default properties.
- * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
- * @param parent The parent component.
- * @param localId The local ID of the component.
- * @param propertyMode Integer property defining whether standard properties such as "Name" and "Description" are created.
- *                     0 to create the default properties; 1 to create the properties, but configure them as "read-only"; 2 to skip creation.
- */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY,
-    ComponentWithDefaultPropertyMode, IComponent,
-    IContext*, context,
-    IComponent*, parent,
-    IString*, localId,
-    IString*, className,
-    Int, propertyMode
 )
 
 /*!@}*/

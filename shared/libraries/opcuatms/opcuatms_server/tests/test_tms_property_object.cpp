@@ -6,7 +6,7 @@
 #include <future>
 #include "coreobjects/property_object_class_ptr.h"
 #include "opcuatms_server/objects/tms_server_property_object.h"
-#include "tms_object_test.h"
+#include "tms_server_test.h"
 #include <opcuaclient/event_filter.h>
 #include <coreobjects/property_factory.h>
 #include "opendaq/context_factory.h"
@@ -16,7 +16,7 @@ using namespace opcua::tms;
 using namespace opcua;
 using namespace std::chrono_literals;
 
-class TmsPropertyObjectTest : public TmsObjectTest
+class TmsPropertyObjectTest : public TmsServerObjectTest
 {
 public:
     PropertyObjectPtr createPropertyObject()
@@ -33,7 +33,7 @@ public:
 TEST_F(TmsPropertyObjectTest, Create)
 {
     PropertyObjectPtr propertyObject = createPropertyObject();
-    auto tmsPropertyObject = TmsServerPropertyObject(propertyObject, this->getServer(), NullContext());
+    auto tmsPropertyObject = TmsServerPropertyObject(propertyObject, this->getServer(), ctx, tmsCtx);
 }
 
 TEST_F(TmsPropertyObjectTest, BaseObjectList)
@@ -46,7 +46,7 @@ TEST_F(TmsPropertyObjectTest, BaseObjectList)
     list.pushBack(3.0);
     object.addProperty(ListProperty("ListProp", list));
 
-    auto tmsPropertyObject = TmsServerPropertyObject(object, this->getServer(), NullContext());
+    auto tmsPropertyObject = TmsServerPropertyObject(object, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
 
     OpcUaObject<UA_ReadRequest> request;
@@ -64,7 +64,7 @@ TEST_F(TmsPropertyObjectTest, Register)
 {
     PropertyObjectPtr propertyObject = createPropertyObject();
 
-    auto tmsPropertyObject = TmsServerPropertyObject(propertyObject, this->getServer(), NullContext());
+    auto tmsPropertyObject = TmsServerPropertyObject(propertyObject, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
 
     ASSERT_TRUE(this->getClient()->nodeExists(nodeId));
@@ -74,7 +74,7 @@ TEST_F(TmsPropertyObjectTest, OnPropertyValueChangeEvent)
 {
     PropertyObjectPtr propertyObject = createPropertyObject();
 
-    auto tmsPropertyObject = TmsServerPropertyObject(propertyObject, this->getServer(), NullContext());
+    auto tmsPropertyObject = TmsServerPropertyObject(propertyObject, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsPropertyObject.registerOpcUaNode();
 
     OpcUaObject<UA_CreateSubscriptionRequest> request = UA_CreateSubscriptionRequest_default();

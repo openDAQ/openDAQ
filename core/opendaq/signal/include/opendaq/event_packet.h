@@ -77,12 +77,12 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
                                         domainDataDescriptor)
 
 /*!
- * @brief Creates a PropertyChanged Event packet.
+ * @brief Creates a PropertyChanged Event packet. Sent when a dynamic property of a signal is changed.
  * @param name The name of the property.
- * @param value The value of the property.
+ * @param value New value of the property.
  *
  * The ID of the packet is "PROPERTY_CHANGED". Its parameters dictionary contains the keys "Name"
- * and "Value".
+ * and "Value". The value provided is coerced and validated.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
                                              PropertyChangedEventPacket,
@@ -92,4 +92,21 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
                                              IBaseObject*,
                                              value)
 
+/*!
+ * @brief Creates a AttributeChanged Event packet. Sent when an attribute of a signal is changed. Attributes are signal
+ * fields that are not dynamic properties.
+ *
+ * @param name The name of the attribute.
+ * @param value New value of the attribute.
+ *
+ * The ID of the packet is "ATTRIBUTE_CHANGED". Its parameters dictionary contains the keys "Name"
+ * and "Value". The value provided is coerced and validated.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
+                                             AttributeChangedEventPacket,
+                                             IEventPacket,
+                                             IString*,
+                                             name,
+                                             IBaseObject*,
+                                             value)
 END_NAMESPACE_OPENDAQ

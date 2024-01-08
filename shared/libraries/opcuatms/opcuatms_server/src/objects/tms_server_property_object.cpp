@@ -12,22 +12,25 @@
 #include "open62541/types_generated.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
-    using namespace opcua;
+
+using namespace opcua;
 
 TmsServerPropertyObject::TmsServerPropertyObject(const PropertyObjectPtr& object,
                                                  const OpcUaServerPtr& server,
                                                  const ContextPtr& context,
+                                                 const TmsServerContextPtr& tmsContext,
                                                  const std::unordered_set<std::string>& ignoredProps)
-    : Super(object, server, context)
-    , ignoredProps(ignoredProps)
+    : Super(object, server, context, tmsContext)
+      , ignoredProps(ignoredProps)
 {
 }
 
 TmsServerPropertyObject::TmsServerPropertyObject(const PropertyObjectPtr& object,
                                                  const opcua::OpcUaServerPtr& server,
                                                  const ContextPtr& context,
+                                                 const TmsServerContextPtr& tmsContext,
                                                  const StringPtr& name)
-    : TmsServerPropertyObject(object, server, context)
+    : TmsServerPropertyObject(object, server, context, tmsContext)
 {
     this->name = name;
 }
@@ -35,9 +38,10 @@ TmsServerPropertyObject::TmsServerPropertyObject(const PropertyObjectPtr& object
 TmsServerPropertyObject::TmsServerPropertyObject(const PropertyObjectPtr& object,
                                                  const opcua::OpcUaServerPtr& server,
                                                  const ContextPtr& context,
+                                                 const TmsServerContextPtr& tmsContext,
                                                  const StringPtr& name,
                                                  const PropertyPtr& objProp)
-    : TmsServerPropertyObject(object, server, context, name)
+    : TmsServerPropertyObject(object, server, context, tmsContext, name)
 {
     this->objProp = objProp;
 }
@@ -104,7 +108,7 @@ void TmsServerPropertyObject::addChildNodes()
             const auto propName = prop.getName();
             if (hasChildNode(propName))
             {
-                serverInfo = std::make_shared<TmsServerProperty>(prop, server, daqContext, object, propOrder);
+                serverInfo = std::make_shared<TmsServerProperty>(prop, server, daqContext, tmsContext, object, propOrder);
                 childNodeId = serverInfo->registerToExistingOpcUaNode(nodeId);
             }
             else
@@ -186,7 +190,7 @@ void TmsServerPropertyObject::setMethodParentNodeId(const OpcUaNodeId& methodPar
 void TmsServerPropertyObject::registerEvalValueNode(const std::string& nodeName, TmsServerEvalValue::ReadCallback readCallback)
 {
     auto nodeId = getChildNodeId(nodeName);
-    auto serverObject = std::make_shared<TmsServerEvalValue>(server, daqContext);
+    auto serverObject = std::make_shared<TmsServerEvalValue>(server, daqContext, tmsContext);
     serverObject->setReadCallback(std::move(readCallback));
     auto childNodeId = serverObject->registerToExistingOpcUaNode(nodeId);
 

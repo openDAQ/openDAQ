@@ -32,4 +32,11 @@ namespace event_packet_id
      *  - "Value" : IBaseObject
      */
     const std::string PROPERTY_CHANGED = "PROPERTY_CHANGED";
+
+    /*!
+     * Parameter dictionary elements:
+     *  - "Name" : IString
+     *  - "Value" : IBaseObject
+     */
+    const std::string ATTRIBUTE_CHANGED = "ATTRIBUTE_CHANGED";
 }

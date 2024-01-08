@@ -144,7 +144,7 @@ TEST_F(StreamingConfigTest, NativeStreamingRead)
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
     ASSERT_TRUE(device.assigned());
 
-    daq::MirroredSignalConfigPtr signal = device.getSignalsRecursive()[0];
+    daq::MirroredSignalConfigPtr signal = device.getSignals(search::Recursive(search::Any()))[0];
     ASSERT_NO_THROW(signal.setActiveStreamingSource("daq.ns://127.0.0.1:7420"));
 
     using namespace std::chrono_literals;

@@ -129,6 +129,7 @@ DECLARE_OPENDAQ_INTERFACE(ISignal, IComponent)
      */
     virtual ErrCode INTERFACE_FUNC setStreamed(Bool streamed) = 0;
 };
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

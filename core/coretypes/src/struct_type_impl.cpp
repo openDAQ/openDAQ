@@ -6,7 +6,7 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace detail
 {
     static std::unordered_set<CoreType> structAcceptedCoreTypes = {
-        ctBool, ctInt, ctFloat, ctString, ctList, ctDict, ctRatio, ctComplexNumber, ctStruct, ctUndefined};
+        ctBool, ctInt, ctFloat, ctString, ctList, ctDict, ctRatio, ctComplexNumber, ctStruct, ctEnumeration, ctUndefined};
 }
 
 StructTypeImpl::StructTypeImpl(StringPtr name, ListPtr<IString> names, ListPtr<IBaseObject> defaultValues, ListPtr<IType> types)

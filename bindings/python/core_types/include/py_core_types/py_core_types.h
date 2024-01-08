@@ -47,6 +47,8 @@ PyDaqIntf<daq::ITypeManager, daq::IBaseObject> declareITypeManager(pybind11::mod
 PyDaqIntf<daq::IStructType, daq::IType> declareIStructType(pybind11::module_ m);
 PyDaqIntf<daq::IStruct, daq::IBaseObject> declareIStruct(pybind11::module_ m);
 PyDaqIntf<daq::IStructBuilder, daq::IBaseObject> declareIStructBuilder(pybind11::module_ m);
+PyDaqIntf<daq::IEnumerationType, daq::IType> declareIEnumerationType(pybind11::module_ m);
+PyDaqIntf<daq::IEnumeration, daq::IBaseObject> declareIEnumeration(pybind11::module_ m);
 
 void defineIInteger(pybind11::module_ m, PyDaqIntf<daq::IInteger> cls);
 void defineIFloat(pybind11::module_ m, PyDaqIntf<daq::IFloat> cls);
@@ -71,5 +73,7 @@ void defineITypeManager(pybind11::module_ m, PyDaqIntf<daq::ITypeManager, daq::I
 void defineIStructType(pybind11::module_ m, PyDaqIntf<daq::IStructType, daq::IType> cls);
 void defineIStruct(pybind11::module_ m, PyDaqIntf<daq::IStruct, daq::IBaseObject> cls);
 void defineIStructBuilder(pybind11::module_ m, PyDaqIntf<daq::IStructBuilder, daq::IBaseObject> cls);
+void defineIEnumerationType(pybind11::module_ m, PyDaqIntf<daq::IEnumerationType, daq::IType> cls);
+void defineIEnumeration(pybind11::module_ m, PyDaqIntf<daq::IEnumeration, daq::IBaseObject> cls);
 
 void wrapDaqComponentCoreTypes(pybind11::module_ m);

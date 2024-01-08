@@ -91,6 +91,8 @@ std::string SimpleTypeImpl::coreTypeToString(CoreType coreType)
             return "complexNumber";
         case ctStruct:
             return "struct";
+        case ctEnumeration:
+            return "enumeration";
         case ctUndefined:
             return "undefined";
     }

@@ -43,6 +43,7 @@ enum CoreType : int
     ctFunc,     ///< Callback with return value
     ctComplexNumber, ///< Complex number (real, imaginary)
     ctStruct, ///< Constant structure with dictionary of fields and types
+    ctEnumeration, ///< Enumeration representing a predefined set of named integral constants
     ctUndefined = 0xFFFF, ///< Undefined
 };
 

@@ -7,25 +7,7 @@ The Instance is the top-level openDAQ(TM) object, serving as a container for the
   * xref:background_info:opendaq_architecture.adoc#instance[Architecture - Instance]
 
 == Creating the default openDAQ(TM) Instance
-Upon creation, it generates a Client device, which is a default device implementation capable of loading any function blocks present in the module manager's search path. If the native openDAQ client module is loaded, the Client device can connect to any TMS-enabled device using the `addDevice` function. The Client is set as the root device when the instance is created.
-[tabs]
-====
-Cpp::
-+
-[source,cpp]
-----
-#include <opendaq/opendaq.h>
-#include <iostream>
-
-int main(int argc, const char* argv[])
-{
-    daq::InstancePtr instance = daq::Instance();
-    daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1/");
-
-    return 0;
-}
-----
-====
+Upon creation, it generates Client device as default root device. The client device is capable of using the module manager to add function blocks, and connect to any device supported by the loaded modules. The Client device can connect to any supported device. The Client is set as the root device when the instance is created if the root device has not been replaced by developer.
 
 == Creating openDAQ(TM) Instance with Instance Builder
 
@@ -41,7 +23,7 @@ Cpp::
 
 int main(int argc, const char* argv[])
 {
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder()
+    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder();
     daq::InstancePtr instance = instanceBuilder.build();
 
     return 0;
@@ -50,7 +32,6 @@ int main(int argc, const char* argv[])
 ====
 
 == Configure openDAQ(TM) Instance Logger
-
 By default, the Instance Logger level is set to the info log level if the release version of the project was built or debug if the project was built in debug mode. There are two ways to override the default level. The first one is to set the global default logger level.
 [tabs]
 ====
@@ -72,32 +53,24 @@ int main(int argc, const char* argv[])
 ----
 ====
 
-In addition to changing the logging level, the developer can also set the logging level for individual components and sinks. In the example below, the developer sets two logger sinks: `StdOutLoggerSink` with the default log level and `BasicFileLoggerSink` with the error log level. Additionally, custom log levels are set for the components `Instance`` and `Some Module`.
+In addition to changing the logging level, the developer can also set the logging level for individual components and sinks. In the example below, the developer sets two logger sinks: `StdOutLoggerSink` with the default log level and `BasicFileLoggerSink` with the error log level. Additionally, custom log levels are set for the components `Instance` and `Some Module`.
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-#include <opendaq/opendaq.h>
-#include <iostream>
+daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder()
+                    .addLoggerSink(StdOutLoggerSink())
+                    .setSinkLogLevel(BasicFileLoggerSink("logfile.log"),  daq::LogLevel::Error)
+                    .setComponentLogLevel("Instance", daq::LogLevel::Warn)
+                    .setComponentLogLevel("Some Module", daq::LogLevel::Off);
 
-int main(int argc, const char* argv[])
-{
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder();
-                        .addLoggerSink(StdOutLoggerSink())
-                        .setSinkLogLevel(BasicFileLoggerSink("logfile.log"),  daq::LogLevel::Error);
-                        .setComponentLogLevel("Instance", daq::LogLevel::Warn);
-                        .setComponentLogLevel("Some Module", daq::LogLevel::Off);
-
-    daq::InstancePtr instance = instanceBuilder.build();
-
-    return 0;
-}
+daq::InstancePtr instance = instanceBuilder.build();
 ----
 ====
 
-An advanced way of configuring the Instance logger is to configure the logger object and set it with the `setLogger` method.
+An advanced way of configuring the Instance logger is to configure the logger object and set it with the logger configuration method.
 [tabs]
 ====
 Cpp::
@@ -127,7 +100,7 @@ Alternatively, a developer can create their own implementation of the logger, wh
 ====
 
 == Configure openDAQ(TM) Instance Module Manager
-By default, the Instance Module Manager uses the current path for loading modules. In the Instance Builder, developers can set a custom module path or replace the default Module Manager with a custom implementation inherited from IModuleManager.
+By default, the Instance Module Manager uses the current path for loading modules. In the Instance Builder, developers can set a custom module path or replace the default Module Manager with a custom implementation that implements the IModuleManager interface.
 [tabs]
 ====
 Cpp::
@@ -158,22 +131,16 @@ Cpp::
 #include <opendaq/opendaq.h>
 #include <iostream>
 
-class CustomMuduleManagerImpl : public ImplementationOfWeak<IModuleManager>
-{
-    CustomMuduleManagerImpl() = default;
-    // implementation
-} 
-
 int main(int argc, const char* argv[])
 {
-    daq::ModuleManagerPtr moduleManager = daq::ModuleManagerPtr(CustomMuduleManagerImpl());
+    daq::ModuleManagerPtr moduleManager = daq::ModuleManager("/path/to/modules");
     daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setModuleManager(moduleManager);
     daq::InstancePtr instance = instanceBuilder.build();
 
     return 0;
 }
 ----
-Setting custom module manager
+Setting module manager
 ====
 
 == Configure openDAQ(TM) Instance Scheduler
@@ -206,18 +173,9 @@ Cpp::
 #include <opendaq/opendaq.h>
 #include <iostream>
 
-class CustomSchedulerImpl : public ImplementationOfWeak<IScheduler>
-{
-    CustomSchedulerImpl(size_t workers)
-    {
-        // initializing
-    }
-    // implementation
-} 
-
 int main(int argc, const char* argv[])
 {
-    daq::SchedulerPtr scheduler = daq::SchedulerPtr(CustomSchedulerImpl(2));
+    daq::SchedulerPtr scheduler = daq::Scheduler(4);
     daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setScheduler(scheduler);
     daq::InstancePtr instance = instanceBuilder.build();
 
@@ -226,9 +184,8 @@ int main(int argc, const char* argv[])
 ----
 ====
 
-== Configure openDAQ(TM) Root Device
+== Configure openDAQ(TM) Default Root Device
 The Instance has client device as default root device. Developer can modify default device by setting default root device info and local id in instance builder.
-Another posible way is to replace default root device with device with giver connection string.
 [tabs]
 ====
 Cpp::
@@ -240,28 +197,11 @@ Cpp::
 
 int main(int argc, const char* argv[])
 {
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setSchedulerWorkerNum(2);
-    daq::InstancePtr instance = instanceBuilder.build();
-
-    return 0;
-}
-----
-====
-As in the previous examples, developers can implement their own scheduler solution and use it in Instance Builder. In that mode, developers can discover and connect to an available device using method `getAvailableDevices`. In Instance Builder, developers can force set available devices.
-[tabs]
-====
-Cpp::
-+
-[source,cpp]
-----
-#include <opendaq/opendaq.h>
-#include <iostream>
-
-int main(int argc, const char* argv[])
-{
-    daq::DeviceInfoPtr defaultRootDeviceInfo = daq::DeviceInfo("daqref://device0");
+    daq::DeviceInfoPtr defaultRootDeviceInfo = daq::DeviceInfo("daqref://defaultRootDevice");
     defaultRootDeviceInfo.setSerialNumber("ABCD-0000-0000-0000");
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setDefaultRootDeviceInfo(defaultRootDeviceInfo);
+    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder()
+                                                    .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
+                                                    .setDefaultRootDeviceLocalId("defaultRootDeviceLocalId");
     daq::InstancePtr instance = instanceBuilder.build();
 
     assert(instance.getInfo() == defaultRootDeviceInfo);
@@ -270,7 +210,9 @@ int main(int argc, const char* argv[])
 }
 ----
 ====
-Developers can skip discovering available devices if they know the device address. For this purpose, the builder has the method `setRootDevice` with a connection string, which replaces the client device as the root device with a custom device.
+
+== Configure openDAQ(TM) Root Device
+Developer can replace default root device with device with giver connection string. When the instance is created a connection to the device with the given connection string will be established, and the device will be placed at the root of the component tree structure.
 [tabs]
 ====
 Cpp::

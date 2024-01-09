@@ -38,17 +38,17 @@ BEGIN_NAMESPACE_OPENDAQ
  * The InstanceBuilder provides the following configuration methods:
  *
  * - **Logger:** The custom Logger for the Instance. This logger will be used for logging messages related to the Instance and its components. 
- *   When configured, the `Logger sink` will be ignored, as it is in use only with the default Instance logger.
+ *   If a custom logger is set, the `Logger sink` will be ignored since it is only used with the default Instance logger.
  *   If custom logger was not set, builder will generate Instance with default logger.
  *
  * - **Global log level:** The Logger global log level for the Instance. All log messages with a severity
  *   level equal to or higher than the specified level will be processed. Default log level is LogLevel::Default
  *
  * - **Component log level:** The Logger level for a specific component of the Instance. Log messages related to
- *   that component will be processed according to the specified log level. By default each component using global log level.  
+ *   that component will be processed according to the specified log level. By default, each component uses the global log level.  
  *
  * - **Logger sink:** The logger sink to the default Instance logger. This sink will be responsible for processing log messages, 
- *   such as writing them to a file or sending them to a remote server. If `Logger` has been set, configuring of 'Logger sink' has no effect in building Instance.
+ *   such as writing them to a file or sending them to a remote server. If `Logger` has been set, configuring of the 'Logger sink' has no effect in building Instance.
  *   If logger sinks has not been configure, the Instance uses 'default sinks'.
  *
  * - **Module manager:** The custom ModuleManager for the Instance. When configured, the default module manager path will be ignored. 
@@ -127,14 +127,14 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
     
     // [returnSelf]
     /*!
-     * @brief Adds the logger sink of the default Instance logger. If Logger has been set, configuring of Logger sink has no effect in building Instance.
+     * @brief Adds the logger sink of the default Instance logger. If Logger has been set, configuring of the Logger sink has no effect in building Instance.
      * @param sink The logger sink of the default Instance logger
      */
     virtual ErrCode INTERFACE_FUNC addLoggerSink(ILoggerSink* sink) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Sets the sink logger level of the default Instance logger. If Logger has been set, configuring of Logger sink has no effect in building Instance.
+     * @brief Sets the sink logger level of the default Instance logger. If Logger has been set, configuring of the Logger sink has no effect in building Instance.
      * @param sink The sink logger of the default Instance logger
      * @param logLevel The sink logger level of the default Instance logger
      */
@@ -214,10 +214,11 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the connection string of a device that replaces the default openDAQ root device. 
-     * When the instance is created a connection to the device with the given connection string will be established, and the device will be placed at the root of the component tree structure.
-     * @param connectionString The connection string for the root device of Instance
-     */
+    * @brief Sets the connection string for a device that replaces the default openDAQ root device. 
+    * When the instance is created, a connection to the device with the given connection string will be established, 
+    * and the device will be placed at the root of the component tree structure.
+    * @param connectionString The connection string for the root device of the Instance.
+    */
     virtual ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString) = 0;
 
     /*!

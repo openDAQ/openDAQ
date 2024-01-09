@@ -23,7 +23,7 @@ system.
 == Loading modules
 
 The module shared libraries are loaded from a specified folder and its sub-folders by the Module Manager when the "load modules" function is executed.
-The folder path is specied as a contruction parameter of the Module Manager and can be relative to the current working directory, or absolute.
+The folder path is specified as a contruction parameter of the Module Manager and can be relative to the current working directory, or absolute.
 
 The following code snippet shows different methods of specifying the module path.
 

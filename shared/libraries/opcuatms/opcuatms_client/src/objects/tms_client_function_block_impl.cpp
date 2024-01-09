@@ -21,6 +21,8 @@ TmsClientFunctionBlockBaseImpl<Impl>::TmsClientFunctionBlockBaseImpl(
 )
     : TmsClientComponentBaseImpl<Impl>(context, parent, localId, clientContext, nodeId, nullptr)
 {
+    clientContext->readObjectAttributes(nodeId);
+
     readFbType();
     findAndCreateFunctionBlocks();
     findAndCreateSignals();
@@ -152,7 +154,8 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateInputPorts()
 template <typename Impl>
 void TmsClientFunctionBlockBaseImpl<Impl>::readFbType()
 {
-    auto variant = this->readValue("FunctionBlockInfo");
+    auto infoNodeId = this->getNodeId("FunctionBlockInfo");
+    auto variant = this->clientContext->getAttributeReader()->getValue(infoNodeId, UA_ATTRIBUTEID_VALUE);
     this->type = VariantConverter<IFunctionBlockType>::ToDaqObject(variant).detach();
 }
 

@@ -113,14 +113,15 @@ OpcUaVariant VariantConverter<IBaseObject>::ToArrayVariant(const ListPtr<IBaseOb
     IntfID elementId;
     elementType->getElementInterfaceId(&elementId);
 
-    if (IntfID::Compare(elementId, IUnknown::Id) && list.getCount() > 0)
+    bool idUnknown = IntfID::Compare(elementId, IUnknown::Id) || IntfID::Compare(elementId, IBaseObject::Id);
+    if (idUnknown && list.getCount() > 0)
         elementId = list[0].asPtr<IInspectable>().getInterfaceIds()[0];
 
     auto var = converters::convertToArrayVariant(elementId, list, targetType, context);
     if (!var.isNull())
         return var;
 
-    return ListConversionUtils::ToExtensionObjectArrayVariant<IBaseObject>(list, context);
+    return ListConversionUtils::ToVariantTypeArrayVariant(list, context);
 }
 
 template <>

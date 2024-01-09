@@ -22,10 +22,10 @@ TEST_F(AttributeReaderTest, TwoAttributes)
     reader.addAttribute(attr2);
     reader.read();
 
-    auto i64 = reader.getValue(attr1)->getValue().toInteger();
+    auto i64 = reader.getValue(attr1).toInteger();
     ASSERT_EQ(i64, 64);
 
-    auto i32 = reader.getValue(attr2)->getValue().toInteger();
+    auto i32 = reader.getValue(attr2).toInteger();
     ASSERT_EQ(i32, 41);
 }
 
@@ -82,7 +82,7 @@ TEST_F(AttributeReaderTest, Clear)
     reader.addAttribute({idI64, UA_ATTRIBUTEID_VALUE});
     reader.read();
 
-    auto i64 = reader.getValue(idI64, UA_ATTRIBUTEID_VALUE)->getValue().toInteger();
+    auto i64 = reader.getValue(idI64, UA_ATTRIBUTEID_VALUE).toInteger();
     ASSERT_EQ(i64, 64);
 }
 
@@ -110,7 +110,7 @@ TEST_F(AttributeReaderTest, SameAttribute)
     reader.addAttribute(attr);
     reader.read();
 
-    auto i64 = reader.getValue(attr)->getValue().toInteger();
+    auto i64 = reader.getValue(attr).toInteger();
     ASSERT_EQ(i64, 64);
 }
 
@@ -145,50 +145,87 @@ TEST_F(AttributeReaderTest, MaxNodesPerRead)
 
     OpcUaVariant variant;
 
-    variant = reader.getValue(idI64, UA_ATTRIBUTEID_VALUE)->getValue();
+    variant = reader.getValue(idI64, UA_ATTRIBUTEID_VALUE);
     ASSERT_EQ(64, variant.toInteger());
 
-    variant = reader.getValue(idI64, UA_ATTRIBUTEID_DISPLAYNAME)->getValue();
+    variant = reader.getValue(idI64, UA_ATTRIBUTEID_DISPLAYNAME);
     ASSERT_EQ(".i64", variant.toString());
 
-    variant = reader.getValue(idI32, UA_ATTRIBUTEID_VALUE)->getValue();
+    variant = reader.getValue(idI32, UA_ATTRIBUTEID_VALUE);
     ASSERT_EQ(41, variant.toInteger());
 
-    variant = reader.getValue(idI32, UA_ATTRIBUTEID_DISPLAYNAME)->getValue();
+    variant = reader.getValue(idI32, UA_ATTRIBUTEID_DISPLAYNAME);
     ASSERT_EQ(".i32", variant.toString());
 
-    variant = reader.getValue(idProductUri, UA_ATTRIBUTEID_VALUE)->getValue();
+    variant = reader.getValue(idProductUri, UA_ATTRIBUTEID_VALUE);
     ASSERT_EQ("http://open62541.org", variant.toString());
 
-    variant = reader.getValue(idProductUri, UA_ATTRIBUTEID_BROWSENAME)->getValue();
+    variant = reader.getValue(idProductUri, UA_ATTRIBUTEID_BROWSENAME);
     ASSERT_EQ("ProductUri", variant.toString());
 
-    variant = reader.getValue(idI16, UA_ATTRIBUTEID_VALUE)->getValue();
+    variant = reader.getValue(idI16, UA_ATTRIBUTEID_VALUE);
     ASSERT_EQ(16, variant.toInteger());
 }
 
-TEST_F(AttributeReaderTest, GetResponses)
+TEST_F(AttributeReaderTest, MultipleReads)
 {
     auto client = std::make_shared<OpcUaClient>(getServerUrl());
     client->connect();
 
-    const size_t maxBatchSize = 2;
     const auto idI64 = OpcUaNodeId(1, ".i64");
+    const auto idI32 = OpcUaNodeId(1, ".i32");
 
-    auto reader = AttributeReader(client, maxBatchSize);
+    auto reader = AttributeReader(client);
     reader.addAttribute({idI64, UA_ATTRIBUTEID_VALUE});
-    reader.addAttribute({idI64, UA_ATTRIBUTEID_DISPLAYNAME});
     reader.addAttribute({idI64, UA_ATTRIBUTEID_BROWSENAME});
-
-    ASSERT_EQ(reader.getResponses().size(), 0);
-
     reader.read();
 
-    const auto& responses = reader.getResponses();
+    reader.addAttribute({idI32, UA_ATTRIBUTEID_VALUE});
+    reader.addAttribute({idI32, UA_ATTRIBUTEID_BROWSENAME});
+    reader.read();
 
-    ASSERT_EQ(responses.size(), 2);
-    ASSERT_EQ(responses[0]->resultsSize, 2);
-    ASSERT_EQ(responses[1]->resultsSize, 1);
+    ASSERT_NO_THROW(reader.getValue({idI64, UA_ATTRIBUTEID_VALUE}));
+    ASSERT_NO_THROW(reader.getValue({idI64, UA_ATTRIBUTEID_BROWSENAME}));
+    ASSERT_NO_THROW(reader.getValue({idI32, UA_ATTRIBUTEID_VALUE}));
+    ASSERT_NO_THROW(reader.getValue({idI32, UA_ATTRIBUTEID_BROWSENAME}));
 }
+
+TEST_F(AttributeReaderTest, ClearAttributes)
+{
+    auto client = std::make_shared<OpcUaClient>(getServerUrl());
+    client->connect();
+
+    const auto idI64 = OpcUaNodeId(1, ".i64");
+    const auto idI32 = OpcUaNodeId(1, ".i32");
+
+    auto reader = AttributeReader(client);
+    reader.addAttribute({idI64, UA_ATTRIBUTEID_VALUE});
+    reader.clearAttributes();
+    reader.addAttribute({idI64, UA_ATTRIBUTEID_BROWSENAME});
+    reader.read();
+
+    ASSERT_NO_THROW(reader.getValue({idI64, UA_ATTRIBUTEID_BROWSENAME}));
+    ASSERT_THROW(reader.getValue({idI64, UA_ATTRIBUTEID_VALUE}), OpcUaException);
+}
+
+TEST_F(AttributeReaderTest, ClearResults)
+{
+    auto client = std::make_shared<OpcUaClient>(getServerUrl());
+    client->connect();
+
+    const auto idI64 = OpcUaNodeId(1, ".i64");
+    const auto idI32 = OpcUaNodeId(1, ".i32");
+
+    auto reader = AttributeReader(client);
+    reader.addAttribute({idI64, UA_ATTRIBUTEID_VALUE});
+    reader.clearAttributes();
+    reader.addAttribute({idI64, UA_ATTRIBUTEID_BROWSENAME});
+    reader.read();
+
+    ASSERT_NO_THROW(reader.getValue({idI64, UA_ATTRIBUTEID_BROWSENAME}));
+    ASSERT_THROW(reader.getValue({idI64, UA_ATTRIBUTEID_VALUE}), OpcUaException);
+}
+
+
 
 END_NAMESPACE_OPENDAQ_OPCUA

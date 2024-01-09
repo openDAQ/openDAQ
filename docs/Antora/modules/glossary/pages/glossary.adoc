@@ -431,4 +431,10 @@ The data transfer protocol used by openDAQ(TM) to publish <<device>> available <
 xref:glossary.adoc#opendaq_native_streaming_server_module[openDAQ(TM) Native Streaming Server]
 to an xref:glossary.adoc#opendaq_native_streaming_client_module[openDAQ(TM) Native Streaming Client].
 
+[#streaming]
+== Streaming
+
+The generalized transport layer mechanism for continuous and real-time receiving of data from a data
+acquisition <<device>>.
+
 // TODO: openDAQ(TM) component, tags, Folder, Global ID, Local ID

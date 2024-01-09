@@ -79,16 +79,8 @@ void TmsClientObjectImpl::subscriptionStatusChangeCallback(UA_StatusChangeNotifi
 
 uint32_t TmsClientObjectImpl::tryReadChildNumberInList(const std::string& nodeName)
 {
-    try
-    {
-        const auto childId = this->getNodeId(nodeName);
-        return tryReadChildNumberInList(childId);
-    }
-    catch(...)
-    {
-    }
-
-    return std::numeric_limits<uint32_t>::max();
+    const auto childId = this->getNodeId(nodeName);
+    return tryReadChildNumberInList(childId);
 }
 
 uint32_t TmsClientObjectImpl::tryReadChildNumberInList(const opcua::OpcUaNodeId& nodeId)
@@ -96,9 +88,10 @@ uint32_t TmsClientObjectImpl::tryReadChildNumberInList(const opcua::OpcUaNodeId&
     try
     {
         const auto numberInListId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "NumberInList");
-        return VariantConverter<IInteger>::ToDaqObject(client->readValue(numberInListId));
+        const auto variant = clientContext->getAttributeReader()->getValue(numberInListId, UA_ATTRIBUTEID_VALUE);
+        return VariantConverter<IInteger>::ToDaqObject(variant);
     }
-    catch(...)
+    catch (...)
     {
     }
 

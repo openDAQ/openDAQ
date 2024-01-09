@@ -48,7 +48,7 @@ public:
         : TmsClientObjectImpl(daqContext, clientContext, nodeId)
         , Impl()
     {
-        browseRawProperties();
+        init();
     }
 
     template<class T = Impl, template_utils::enable_if_any<T, StreamingInfoConfigImpl> = 0>
@@ -59,7 +59,7 @@ public:
         : TmsClientObjectImpl(daqContext, clientContext, nodeId)
         , Impl(protocolId)
     {
-        browseRawProperties();
+        init();
     }
 
     template<class T = Impl, template_utils::enable_if_none<T, FunctionBlock, Channel, PropertyObjectImpl, StreamingInfoConfigImpl> = 0>
@@ -71,7 +71,7 @@ public:
         : TmsClientObjectImpl(ctx, clientContext, nodeId)
         , Impl(ctx, parent, localId, nullptr, ComponentStandardProps::Skip)
     {
-        browseRawProperties();
+        init();
     }
     
     template<class T = Impl, template_utils::enable_if_any<T, FunctionBlock, Channel> = 0>
@@ -84,8 +84,10 @@ public:
         : TmsClientObjectImpl(ctx, clientContext, nodeId)
         , Impl(type, ctx, parent, localId, nullptr, ComponentStandardProps::Skip)
     {
-        browseRawProperties();
+        init();
     }
+
+    void init();
 
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
@@ -107,6 +109,7 @@ protected:
     std::unordered_map<std::string, opcua::OpcUaNodeId> referenceVariableIdMap;
     std::unordered_map<std::string, opcua::OpcUaNodeId> objectTypeIdMap;
     opcua::OpcUaNodeId methodParentNodeId;
+    LoggerComponentPtr loggerComponent;
 
     void addProperties(const OpcUaNodeId& parentId,
                        std::map<uint32_t, PropertyPtr>& orderedProperties,

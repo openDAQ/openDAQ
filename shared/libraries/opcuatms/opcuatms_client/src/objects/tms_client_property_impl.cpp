@@ -43,24 +43,28 @@ namespace details
 TmsClientPropertyImpl::TmsClientPropertyImpl(const ContextPtr& daqContext, const TmsClientContextPtr& ctx, const opcua::OpcUaNodeId& nodeId)
     : TmsClientObjectImpl(daqContext, ctx, nodeId)
 {
+    clientContext->readObjectAttributes(nodeId);
+
     readBasicInfo();
     configurePropertyFields();
 }
 
 void TmsClientPropertyImpl::readBasicInfo()
 {
-    const auto variant = client->readValue(nodeId);
+    auto reader = clientContext->getAttributeReader();
+    const auto variant = reader->getValue(nodeId, UA_ATTRIBUTEID_VALUE);
     const auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
     this->valueType = object.getCoreType();
 
-    this->name = String(client->readDisplayName(nodeId));
-    this->description = String(client->readDescription(nodeId));
+    this->name = String(reader->getValue(nodeId, UA_ATTRIBUTEID_DISPLAYNAME).toString());
+    this->description = String(reader->getValue(nodeId, UA_ATTRIBUTEID_DESCRIPTION).toString());
 }
 
 void TmsClientPropertyImpl::configurePropertyFields()
 {
     const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_EVALUATIONVARIABLETYPE);
     const auto& references = clientContext->getReferenceBrowser()->browse(nodeId);
+    const auto reader = clientContext->getAttributeReader();
 
     for (auto [browseName, ref] : references.byBrowseName)
     {
@@ -68,17 +72,17 @@ void TmsClientPropertyImpl::configurePropertyFields()
 
         if (browseName == "CoercionExpression")
         {
-            this->coercer = Coercer(VariantConverter<IString>::ToDaqObject(client->readValue(childNodeId)));
+            this->coercer = Coercer(VariantConverter<IString>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE)));
         }
         else if (browseName == "ValidationExpression")
         {
-            this->validator = Validator(VariantConverter<IString>::ToDaqObject(client->readValue(childNodeId)));
+            this->validator = Validator(VariantConverter<IString>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE)));
         }
         else if (clientContext->getReferenceBrowser()->isSubtypeOf(ref->typeDefinition.nodeId, evaluationVariableTypeId))
         {
             auto evalId = clientContext->getReferenceBrowser()->getChildNodeId(childNodeId, "EvaluationExpression");
 
-            StringPtr evalStr = VariantConverter<IString>::ToDaqObject(client->readValue(evalId));
+            StringPtr evalStr = VariantConverter<IString>::ToDaqObject(reader->getValue(evalId, UA_ATTRIBUTEID_VALUE));
             if (details::stringToPropertyFieldEnum.count(browseName))
             {
                 bool strHasValue = false;
@@ -134,39 +138,41 @@ void TmsClientPropertyImpl::configurePropertyFields()
                     switch (propertyField)
                     {
                         case details::PropertyField::DefaultValue:
-                            this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(client->readValue(childNodeId), daqContext);
+                            this->defaultValue =
+                                VariantConverter<IBaseObject>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE), daqContext);
                             if (this->defaultValue.assigned() && this->defaultValue.asPtrOrNull<IFreezable>().assigned())
                                 this->defaultValue.freeze();
                             break;
 
                         case details::PropertyField::IsReadOnly:
-                            this->readOnly = VariantConverter<IBoolean>::ToDaqObject(client->readValue(childNodeId));
+                            this->readOnly = VariantConverter<IBoolean>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                             break;
 
                         case details::PropertyField::IsVisible:
-                            this->visible = VariantConverter<IBoolean>::ToDaqObject(client->readValue(childNodeId));
+                            this->visible = VariantConverter<IBoolean>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                             break;
 
                         case details::PropertyField::Unit:
-                            this->unit = VariantConverter<IUnit>::ToDaqObject(client->readValue(childNodeId));
+                            this->unit = VariantConverter<IUnit>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                             break;
 
                         case details::PropertyField::MaxValue:
-                            this->maxValue = VariantConverter<INumber>::ToDaqObject(client->readValue(childNodeId));
+                            this->maxValue = VariantConverter<INumber>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                             break;
 
                         case details::PropertyField::MinValue:
-                            this->minValue = VariantConverter<INumber>::ToDaqObject(client->readValue(childNodeId));
+                            this->minValue = VariantConverter<INumber>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                             break;
 
                         case details::PropertyField::SuggestedValues:
-                            this->suggestedValues = VariantConverter<IBaseObject>::ToDaqList(client->readValue(childNodeId), daqContext);
+                            this->suggestedValues =
+                                VariantConverter<IBaseObject>::ToDaqList(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE), daqContext);
                             if (this->suggestedValues.assigned() && this->suggestedValues.asPtrOrNull<IFreezable>().assigned())
                                 this->suggestedValues.freeze();
                             break;
 
                         case details::PropertyField::SelectionValues:
-                            this->selectionValues = SelectionVariantConverter::ToDaqObject(client->readValue(childNodeId));
+                            this->selectionValues = SelectionVariantConverter::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                             if (this->selectionValues.assigned() && this->selectionValues.asPtrOrNull<IFreezable>().assigned())
                                 this->selectionValues.freeze();
                             break;

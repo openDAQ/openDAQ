@@ -350,7 +350,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
 TEST_F(InstanceTest, InstanceCreateFactory)
 {
     const auto logger = Logger();
-    const auto scheduler = Scheduler(logger);
+    const auto scheduler = Scheduler(logger, 2);
     const auto moduleManager = ModuleManager("");
     const auto defaultRootDeviceInfo = DeviceInfo("connectionString");
 
@@ -361,10 +361,13 @@ TEST_F(InstanceTest, InstanceCreateFactory)
                                 .setScheduler(scheduler)
                                 .setDefaultRootDeviceLocalId("DefaultRootDeviceLocalId")
                                 .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
+                                .setSchedulerWorkerNum(1)
                                 .build();
 
     ASSERT_EQ(instance.getContext().getLogger(), logger);
+    ASSERT_EQ(instance.getContext().getLogger().getLevel(), LogLevel::Debug);
     ASSERT_EQ(instance.getContext().getScheduler(), scheduler);
+    ASSERT_EQ(instance.getContext().getScheduler().isMultiThreaded(), true);
     ASSERT_EQ(instance.getContext().getModuleManager(), moduleManager);
     ASSERT_EQ(instance.getRootDevice().getName(), "DefaultRootDeviceLocalId"); 
 
@@ -393,7 +396,7 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
     const auto loggerComponent = logger.getComponent("Instance");
     ASSERT_EQ(loggerComponent.getLevel(), LogLevel::Error);
 
-    // check sheduler
+    // check scheduler
     auto scheduler = instance.getContext().getScheduler();
     ASSERT_EQ(scheduler.assigned(), true);
     ASSERT_EQ(scheduler.isMultiThreaded(), false);

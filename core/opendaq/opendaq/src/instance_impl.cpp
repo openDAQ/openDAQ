@@ -74,11 +74,12 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     auto localId = builderPtr.getDefaultRootDeviceLocalId();
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
     defaultRootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
-    rootDevice = defaultRootDevice;
 
     auto connectionString = builderPtr.getRootDevice();
-    if (connectionString.assigned())
+    if (connectionString.assigned() && connectionString.getLength())
         rootDevice = detail::createDevice(connectionString, nullptr, nullptr, moduleManager, nullptr);    
+    else
+        rootDevice = defaultRootDevice;
 
     loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
 }

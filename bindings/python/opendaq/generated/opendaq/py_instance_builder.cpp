@@ -58,7 +58,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.setLogger(logger);
         },
         py::return_value_policy::take_ownership,
-        "Gets the Logger of the Instance. Returns nullptr if custom logger has not been set / Sets the custom Logger of Instance");
+        "Gets the Logger of the Instance. Returns nullptr if custom logger has not been set / Sets the custom Logger for the Instance. This logger will be used for logging messages related to the Instance and its components. When configured, the `Logger sink` will be ignored, as it is in use only with the default Instance logger.");
     cls.def_property("global_log_level",
         [](daq::IInstanceBuilder *object)
         {
@@ -70,7 +70,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setGlobalLogLevel(logLevel);
         },
-        "Gets the default Logger global level of Instance / Sets the default Logger global level of Instance. Ignored if a custom logger has already been set");
+        "Gets the default Logger global level of Instance / Sets the Logger global log level for the Instance. All log messages with a severity level equal to or higher than the specified level will be processed.");
     cls.def("set_component_log_level",
         [](daq::IInstanceBuilder *object, const std::string& component, daq::LogLevel logLevel)
         {
@@ -78,7 +78,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.setComponentLogLevel(component, logLevel);
         },
         py::arg("component"), py::arg("log_level"),
-        "Sets the Logger level of Instance component");
+        "Sets The Logger level for a specific component of the Instance. Log messages related to that component will be processed according to the specified log level.");
     cls.def_property_readonly("components_log_level",
         [](daq::IInstanceBuilder *object)
         {
@@ -94,7 +94,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.addLoggerSink(sink);
         },
         py::arg("sink"),
-        "Adds the logger sink of the default Instance logger. Ignored if a custom logger has already been set");
+        "Adds the logger sink of the default Instance logger. If Logger has been set, configuring of the Logger sink has no effect in building Instance.");
     cls.def("set_sink_log_level",
         [](daq::IInstanceBuilder *object, daq::ILoggerSink* sink, daq::LogLevel logLevel)
         {
@@ -102,7 +102,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.setSinkLogLevel(sink, logLevel);
         },
         py::arg("sink"), py::arg("log_level"),
-        "Sets the sink logger level of the default Instance logger. Ignored if a custom logger has already been set");
+        "Sets the sink logger level of the default Instance logger. If Logger has been set, configuring of the Logger sink has no effect in building Instance.");
     cls.def_property_readonly("logger_sinks",
         [](daq::IInstanceBuilder *object)
         {
@@ -122,7 +122,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setModulePath(path);
         },
-        "Gets the path for the default ModuleManager of Instance. / Sets the path for the default ModuleManager of Instance. Ignored if a custom module manager has already been set");
+        "Gets the path for the default ModuleManager of Instance. / Sets the path for the default ModuleManager of the Instance. If Module manager has been set, configuring of Module path has no effect in building Instance.");
     cls.def_property("module_manager",
         [](daq::IInstanceBuilder *object)
         {
@@ -135,7 +135,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.setModuleManager(moduleManager);
         },
         py::return_value_policy::take_ownership,
-        "Gets the custom ModuleManager of Instance. Returns nullptr if custom ModuleManager has not been set / Sets the custom ModuleManager of Instance.");
+        "Gets the custom ModuleManager of Instance / Sets The custom ModuleManager for the Instance.");
     cls.def_property("scheduler_worker_num",
         [](daq::IInstanceBuilder *object)
         {
@@ -147,7 +147,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setSchedulerWorkerNum(numWorkers);
         },
-        "Gets the amount of worker threads in the scheduler of Instance. / Sets the amount of worker threads in the scheduler of Instance. Ignored if a scheduler has already been set");
+        "Gets the amount of worker threads in the scheduler of Instance. / Sets the number of worker threads in the scheduler of the Instance. If Scheduler has been set, configuring of Scheduler worker num has no effect in building Instance.");
     cls.def_property("scheduler",
         [](daq::IInstanceBuilder *object)
         {
@@ -160,7 +160,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.setScheduler(scheduler);
         },
         py::return_value_policy::take_ownership,
-        "Gets the scheduler of Instance / Sets the scheduler of Instance");
+        "Gets the custom scheduler of Instance / Sets the custom scheduler of Instance");
     cls.def_property("default_root_device_local_id",
         [](daq::IInstanceBuilder *object)
         {
@@ -172,7 +172,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setDefaultRootDeviceLocalId(localId);
         },
-        "Gets the default root device name / Sets the virtual Client as the default root device with a set name. If RootDevice has not been set, the Instance root device will be set as a virtual client.");
+        "Gets the default root device local id / Sets the local id for default device. Has no effect if `Root device` has been congigured.");
     cls.def_property("root_device",
         [](daq::IInstanceBuilder *object)
         {
@@ -184,7 +184,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setRootDevice(connectionString);
         },
-        "Gets the connection string for the default root device of Instance. / Sets the connection string for the root device of Instance.");
+        "Gets the connection string for the default root device of Instance. / Sets the connection string for a device that replaces the default openDAQ root device. When the instance is created, a connection to the device with the given connection string will be established, and the device will be placed at the root of the component tree structure.");
     cls.def_property("default_root_device_info",
         [](daq::IInstanceBuilder *object)
         {

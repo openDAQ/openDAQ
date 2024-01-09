@@ -31,26 +31,6 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Creates a InstanceBuilder with no parameters configured.
- */
-inline InstanceBuilderPtr InstanceBuilder()
-{
-    InstanceBuilderPtr obj(InstanceBuilder_Create());
-    return obj;
-}
-
-/*!
- * @brief Creates a Instance with Builder
- * @param builder Instance Builder
- */
-
-inline InstancePtr InstanceFromBuilder(const InstanceBuilderPtr& builder)
-{
-    InstancePtr obj(InstanceFromBuilder_Create(builder));
-    return obj;
-}
-
-/*!
  * @brief Creates a new Instance with the provided Context.
  * @param context The Context.
  * @param localId The instance local id.
@@ -73,12 +53,38 @@ inline InstancePtr InstanceCustom(const ContextPtr& context,
  */
 inline InstancePtr Instance(const std::string& modulePath = "", const std::string& localId = "")
 {
-    const auto builder = InstanceBuilder()
-        .setModulePath(modulePath)
-        .setDefaultRootDeviceLocalId(localId)
-        .build();
+    const auto logger = Logger();
+    const auto scheduler = Scheduler(logger);
+    const auto moduleManager = ModuleManager(modulePath);
+    const auto typeManager = TypeManager();
+    const auto context = Context(scheduler, logger, typeManager, moduleManager);
 
-    return InstanceFromBuilder(builder);
+    StringPtr localIdStr;
+    if (!localId.empty())
+        localIdStr = localId;
+
+    InstancePtr obj(Instance_Create(context, localIdStr));
+    return obj;
+}
+
+/*!
+ * @brief Creates a InstanceBuilder with no parameters configured.
+ */
+inline InstanceBuilderPtr InstanceBuilder()
+{
+    InstanceBuilderPtr obj(InstanceBuilder_Create());
+    return obj;
+}
+
+/*!
+ * @brief Creates a Instance with Builder
+ * @param builder Instance Builder
+ */
+
+inline InstancePtr InstanceFromBuilder(const InstanceBuilderPtr& builder)
+{
+    InstancePtr obj(InstanceFromBuilder_Create(builder));
+    return obj;
 }
 
 /*!

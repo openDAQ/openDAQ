@@ -175,31 +175,55 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(I
 template <class Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::beginUpdate()
 {
+<<<<<<< HEAD
     if (!hasReference("BeginUpdate"))
         return OPENDAQ_SUCCESS;
 
     const auto beginUpdateId = getNodeId("BeginUpdate");
+=======
+    const auto beginUpdateId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "BeginUpdate");
+
+>>>>>>> 55ddc72 (<TBBAS-1215> Add BeginUpdate and EndUpdate function nodes to client property object)
     OpcUaCallMethodRequest request;
     request->inputArgumentsSize = 0;
     request->objectId = nodeId.getValue();
     request->methodId = beginUpdateId.getValue();
+<<<<<<< HEAD
     client->callMethod(request);
     return OPENDAQ_SUCCESS;
+=======
+    const auto response = client->callMethod(request);
+    const auto success = response->statusCode == UA_STATUSCODE_GOOD;
+    
+    return (success) ? OPENDAQ_SUCCESS : OPENDAQ_ERR_GENERALERROR;
+>>>>>>> 55ddc72 (<TBBAS-1215> Add BeginUpdate and EndUpdate function nodes to client property object)
 }
 
 template <class Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::endUpdate()
 {
+<<<<<<< HEAD
     if (!hasReference("EndUpdate"))
         return OPENDAQ_SUCCESS;
 
     const auto endUpdateId = getNodeId("EndUpdate");
+=======
+    const auto endUpdateId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "EndUpdate");
+
+>>>>>>> 55ddc72 (<TBBAS-1215> Add BeginUpdate and EndUpdate function nodes to client property object)
     OpcUaCallMethodRequest request;
     request->inputArgumentsSize = 0;
     request->objectId = nodeId.getValue();
     request->methodId = endUpdateId.getValue();
+<<<<<<< HEAD
     client->callMethod(request);
     return OPENDAQ_SUCCESS;
+=======
+    const auto response = client->callMethod(request);
+    const auto success = response->statusCode == UA_STATUSCODE_GOOD;
+
+    return (success) ? OPENDAQ_SUCCESS : OPENDAQ_ERR_GENERALERROR;
+>>>>>>> 55ddc72 (<TBBAS-1215> Add BeginUpdate and EndUpdate function nodes to client property object)
 }
 
 template <class Impl>

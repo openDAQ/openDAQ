@@ -7,11 +7,11 @@ The Instance is the top-level openDAQ(TM) object, serving as a container for the
   * xref:background_info:opendaq_architecture.adoc#instance[Architecture - Instance]
 
 == Creating the default openDAQ(TM) Instance
-Upon creation, it generates Client device as default root device. The client device is capable of using the module manager to add function blocks, and connect to any device supported by the loaded modules. The Client device can connect to any supported device. The Client is set as the root device when the instance is created if the root device has not been replaced by developer.
+Upon creation, it generates a Client device as the default root device. The client device is capable of using the module manager to add function blocks and connect to any device supported by the loaded modules. The client is set as the root device when the instance is created if the developer has not set their own device.
 
 == Creating openDAQ(TM) Instance with Instance Builder
 
-openDAQ(TM) provides an advanced way to configure an Instance using the Instance Builder. With the Instance Builder, developers can configure the Logger, Scheduler, Module Manager, and Root Device by setting custom modules or modifying default objects.
+openDAQ(TM) offers an advanced method for configuring an Instance through the Instance Builder. With this, developers can customize the Logger, Scheduler, Module Manager, and Root Device by either defining custom modules or modifying default objects.
 [tabs]
 ====
 Cpp::
@@ -41,7 +41,7 @@ instance = instance_builder.build()
 ====
 
 == Configure openDAQ(TM) Instance Logger
-By default, the Instance Logger level is set to the info log level if the release version of the project was built or debug if the project was built in debug mode. There are two ways to override the default level. The first one is to set the global default logger level.
+By default, the Instance Logger level is set to the info log level if the project was built in release mode or debug log level if built in debug mode. There are two ways to override this default level. The first method is to set the global default logger level.
 [tabs]
 ====
 Cpp::
@@ -72,7 +72,7 @@ instance = instance_builder.build()
 ----
 ====
 
-In addition to changing the logging level, the developer can also set the logging level for individual components and sinks. In the example below, the developer sets two logger sinks: `StdOutLoggerSink` with the default log level and `BasicFileLoggerSink` with the error log level. Additionally, custom log levels are set for the components `Instance` and `Some Module`.
+In addition to adjusting the logging level globally, developers can customize the logging level for individual components and sinks. In the example below, the developer configures two logger sinks: `StdOutLoggerSink` with the default log level and `BasicFileLoggerSink with the error log level. Furthermore, custom log levels are specified for the `Instance` and `Some Module` components.
 [tabs]
 ====
 Cpp::
@@ -95,7 +95,7 @@ import opendaq
 
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.add_logger_sink(opendaq.StdOutLoggerSink())
-instance_builder.set_sink_log_level(opendaq.BasicFileLoggerSink("logfile.log"), opendaq.LogLevel.Error)
+instance_builder.set_sink_log_level(opendaq.BasicFileLoggerSink(opendaq.String("logfile.log")), opendaq.LogLevel.Error)
 instance_builder.set_component_log_level("Instance", opendaq.LogLevel.Warn)
 instance_builder.set_component_log_level("Some Module", opendaq.LogLevel.Off)
 
@@ -103,7 +103,7 @@ instance = instance_builder.build()
 ----
 ====
 
-An advanced way of configuring the Instance logger is to configure the logger object and set it with the logger configuration method.
+An advanced method for configuring the Instance logger involves setting up the logger object and applying the desired configurations using the logger configuration method.
 [tabs]
 ====
 Cpp::
@@ -129,11 +129,11 @@ int main(int argc, const char* argv[])
 
 [NOTE]
 ====
-Alternatively, a developer can create their own implementation of the logger, which implements the ILogger interface.
+Alternatively, a developer can create their own implementation of the logger, which implements the `ILogger` interface.
 ====
 
 == Configure openDAQ(TM) Instance Module Manager
-By default, the Instance Module Manager uses the current path for loading modules. In the Instance Builder, developers can set a custom module path or replace the default Module Manager with a custom implementation that implements the IModuleManager interface.
+By default, the Instance Module Manager uses the current path for loading modules. Developers using the Instance Builder have the flexibility to either set a custom module path or replace the default Module Manager with a custom implementation that implements the `IModuleManager` interface.
 [tabs]
 ====
 Cpp::
@@ -189,7 +189,7 @@ Python::
 ----
 import opendaq
 
-module_manager = opendaq.ModuleManager("/path/to/modules")
+module_manager = opendaq.ModuleManager(opendaq.String("/path/to/modules"))
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.module_manager = module_manager
 instance = instance_builder.build()
@@ -198,7 +198,7 @@ Setting module manager
 ====
 
 == Configure openDAQ(TM) Instance Scheduler
-By default, the Instance creates a Scheduler with a number of workers equal to the maximum physical threads. To manually change this amount, developers can use the Instance Builder method `setSchedulerWorkerNum`.
+By default, the Instance creates a Scheduler with a number of workers equal to the maximum physical threads available. For developers who want to manually adjust this number, the Instance Builder provides the method `setSchedulerWorkerNum`.
 [tabs]
 ====
 Cpp::
@@ -227,7 +227,7 @@ instance_builder.scheduler_worker_num = 2
 instance = instance_builder.build()
 ----
 ====
-As in previous examples, developers can implement their own solution for the scheduler and use it in the Instance Builder.
+Similarly, developers can implement their own version of the `IScheduler` interface and integrate it into the Instance Builder.
 [tabs]
 ====
 Cpp::
@@ -239,7 +239,8 @@ Cpp::
 
 int main(int argc, const char* argv[])
 {
-    daq::SchedulerPtr scheduler = daq::Scheduler(4);
+    daq::LoggerPtr logger = Logger();
+    daq::SchedulerPtr scheduler = daq::Scheduler(logger, 4);
     daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setScheduler(scheduler);
     daq::InstancePtr instance = instanceBuilder.build();
 
@@ -252,7 +253,8 @@ Python::
 ----
 import opendaq
 
-scheduler = opendaq.Scheduler(4)
+logger = opendaq.Logger(opendaq.List(), opendaq.LogLevel.Warn)
+scheduler = opendaq.Scheduler(logger, 4)
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.scheduler = scheduler
 instance = instance_builder.build()
@@ -260,7 +262,7 @@ instance = instance_builder.build()
 ====
 
 == Configure openDAQ(TM) Default Root Device
-The Instance has client device as default root device. Developer can modify default device by setting default root device info and local id in instance builder.
+The Instance has the client device as the default root device. A developer can modify the default device by setting the default root device info and local id in the instance builder.
 [tabs]
 ====
 Cpp::
@@ -290,7 +292,7 @@ Python::
 ----
 import opendaq
 
-default_root_device_info = opendaq.DeviceInfo("daqref://defaultRootDevice")
+default_root_device_info = opendaq.DeviceInfoConfig(opendaq.String("daqref://defaultRootDevice"), opendaq.String(""))
 default_root_device_info.serial_number = "ABCD-0000-0000-0000"
 
 instance_builder = opendaq.InstanceBuilder()
@@ -301,7 +303,7 @@ instance = instance_builder.build()
 ====
 
 == Configure openDAQ(TM) Root Device
-Developer can replace default root device with device with giver connection string. When the instance is created a connection to the device with the given connection string will be established, and the device will be placed at the root of the component tree structure.
+Developers can replace the default root device with a device using the given connection string. When the instance is created, a connection to the device with the provided connection string will be established, and the device will be placed at the root of the component tree structure.
 [tabs]
 ====
 Cpp::
@@ -326,7 +328,7 @@ import opendaq
 
 # Create an openDAQ(TM) instance with a custom root device
 instance_builder = opendaq.InstanceBuilder()
-instance_builder.root_device ="daqref://device0"
+instance_builder.root_device = "daqref://device0"
 instance = instance_builder.build()
 ----
 ====

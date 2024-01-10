@@ -872,3 +872,4 @@ TEST_F(TmsPropertyObjectAdvancedTest, GainScalingStructure)
     const auto newBuilder = StructBuilder(structObj);
     clientObj.setPropertyValue("Gain", newBuilder.set("Factor", 2.0).set("Offset", 10.0).build());
 }
+

@@ -15,6 +15,7 @@
 #include "coretypes/struct_factory.h"
 #include "coretypes/type_manager_factory.h"
 #include <coreobjects/property_object_protected_ptr.h>
+#include <gmock/gmock.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -764,3 +765,34 @@ TEST_F(TmsPropertyObjectAdvancedTest, PropertyOrder)
     for (SizeT i = 0; i < serverProps.getCount(); ++i)
         ASSERT_EQ(serverProps[i].getName(), clientProps[i].getName());
 }
+
+TEST_F(TmsPropertyObjectAdvancedTest, BeginEndUpdate)
+{
+    bool eventTriggered = false;
+
+    const auto obj = PropertyObject(manager, "TestClass");
+    obj.addProperty(IntProperty("Prop1", 1, true));
+    obj.addProperty(IntProperty("Prop2", 2, true));
+    obj.addProperty(IntProperty("Prop3", 3, true));
+
+    obj.getOnEndUpdate() += [&eventTriggered](PropertyObjectPtr&, EndUpdateEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventName(), "EndUpdateEvent");
+
+        auto properties = args.getProperties();
+        testing::ElementsAre("Prop1", "Prop2", "Prop3");
+
+        eventTriggered = true;
+    };
+
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+
+    clientObj.beginUpdate();
+    clientObj.setPropertyValue("Prop1", 10);
+    clientObj.setPropertyValue("Prop2", 20);
+    clientObj.setPropertyValue("Prop3", 30);
+    clientObj.endUpdate();
+
+    ASSERT_TRUE(eventTriggered);
+}
+

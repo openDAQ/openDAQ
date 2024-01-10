@@ -69,6 +69,8 @@ private:
     void registerEvalValueNode(const std::string& nodeName, TmsServerEvalValue::ReadCallback readCallback);
     void addMethodPropertyNode(const PropertyPtr& prop, uint32_t numberInList);
     void bindMethodCallbacks();
+    void addBeginUpdateNode();
+    void addEndUpdateNode();
 
     StringPtr name;
     PropertyInternalPtr objProp;

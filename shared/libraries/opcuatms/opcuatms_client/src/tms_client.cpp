@@ -27,13 +27,16 @@ TmsClient::TmsClient(const ContextPtr& context,
     , opcUaUrl(opcUaUrl)
     , createStreamingCallback(createStreamingCallback)
     , parent(parent)
+    , loggerComponent(context.getLogger().assigned() ? context.getLogger().getOrAddComponent("OpcUaClient")
+                                                     : throw ArgumentNullException("Logger must not be null"))
 {
 }
 
 daq::DevicePtr TmsClient::connect()
 {
-    OpcUaEndpoint endpoint("TmsClient", opcUaUrl);
+    const auto startTime = std::chrono::steady_clock::now();
 
+    OpcUaEndpoint endpoint("TmsClient", opcUaUrl);
     client = std::make_shared<OpcUaClient>(endpoint);
     if (!client->connect())
         throw NotFoundException();
@@ -65,17 +68,18 @@ daq::DevicePtr TmsClient::connect()
     if (deviceInfo.hasProperty("OpenDaqPackageVersion"))
     {
         const std::string packageVersion = deviceInfo.getPropertyValue("OpenDaqPackageVersion");
+
         if (packageVersion != OPENDAQ_PACKAGE_VERSION)
         {
-            const auto logger = context.getLogger();
-            if (logger.assigned())
-            {
-                const auto loggerComponent = logger.getOrAddComponent("OpcUaClient");
-                LOG_I("Connected to openDAQ OPC UA server with different version. Client version: {}, server version: {}", OPENDAQ_PACKAGE_VERSION, packageVersion)
-            }
+            LOG_I("Connected to openDAQ OPC UA server with different version. Client version: {}, server version: {}",
+                  OPENDAQ_PACKAGE_VERSION,
+                  packageVersion);
         }
     }
 
+    const auto endTime = std::chrono::steady_clock::now();
+    const auto connectTime = std::chrono::duration<double>(endTime - startTime);
+    LOG_I("Connected to penDAQ OPC UA server {}. Connect took {:.2f} s.", opcUaUrl, connectTime.count());
     return device;
 }
 

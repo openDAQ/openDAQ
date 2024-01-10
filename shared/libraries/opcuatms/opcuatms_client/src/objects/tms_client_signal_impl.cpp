@@ -161,23 +161,30 @@ StringPtr TmsClientSignalImpl::onGetRemoteId() const
     return String(deviceSignalId);
 }
 
-ErrCode TmsClientSignalImpl::getValue(IBaseObject** value)
+ErrCode TmsClientSignalImpl::getLastValue(IBaseObject** value)
 {
     *value = nullptr;
 
-    // if descriptorNode exists, value node also exists
-    if (descriptorNodeId)
-    {
-        const auto valueNodeId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "Value");
-        OpcUaVariant opcUaVariant = client->readValue(*valueNodeId);
-        if (!opcUaVariant.isNull())
+    auto readValueFunction = [this](IBaseObject** value, const std::string& nodeName)
         {
-            BaseObjectPtr valuePtr = VariantConverter<IBaseObject, BaseObjectPtr>::ToDaqObject(opcUaVariant);
-            *value = valuePtr.addRefAndReturn();
-        }
-    }
+            const auto valueNodeId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, nodeName);
+            OpcUaVariant opcUaVariant = client->readValue(*valueNodeId);
+            if (!opcUaVariant.isNull())
+            {
+                BaseObjectPtr valuePtr = VariantConverter<IBaseObject, BaseObjectPtr>::ToDaqObject(opcUaVariant);
+                *value = valuePtr.addRefAndReturn();
+                return OPENDAQ_SUCCESS;
+            }
+            return OPENDAQ_IGNORED;
+        };
 
-    return OPENDAQ_SUCCESS;
+    if (descriptorNodeId && readValueFunction(value, "Value") == OPENDAQ_SUCCESS)
+        return OPENDAQ_SUCCESS;
+    
+    if (hasReference("AnalogValue"))
+        return readValueFunction(value, "AnalogValue");
+
+    return OPENDAQ_IGNORED;
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

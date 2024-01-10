@@ -445,7 +445,7 @@ TEST_F(SignalTest, SerializeAndUpdate)
 TEST_F(SignalTest, NoLastValue)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
-    ASSERT_FALSE(signal.getValue().assigned());
+    ASSERT_FALSE(signal.getLastValue().assigned());
 }
 
 TEST_F(SignalTest, GetLastValue)
@@ -463,7 +463,7 @@ TEST_F(SignalTest, GetLastValue)
 
     signal.sendPacket(dataPacket);
 
-    auto lastValuePacket = signal.getValue();
+    auto lastValuePacket = signal.getLastValue();
     IntegerPtr integerPtr;
     ASSERT_NO_THROW(integerPtr = lastValuePacket.asPtr<IInteger>());
     ASSERT_EQ(integerPtr, 4);
@@ -488,7 +488,7 @@ TEST_F(SignalTest, GetLastValueAfterMultipleSend)
         signal.sendPacket(dataPacket);
     }
 
-    auto lastValuePacket = signal.getValue();
+    auto lastValuePacket = signal.getLastValue();
     IntegerPtr integerPtr;
     ASSERT_NO_THROW(integerPtr = lastValuePacket.asPtr<IInteger>());
     ASSERT_EQ(integerPtr, 1);
@@ -511,7 +511,7 @@ TEST_F(SignalTest, GetLastValueAfterEmptyPacket)
         signal.sendPacket(dataPacket);
     }
 
-    auto lastValuePacket = signal.getValue();
+    auto lastValuePacket = signal.getLastValue();
     IntegerPtr integerPtr;
     ASSERT_NO_THROW(integerPtr = lastValuePacket.asPtr<IInteger>());
     ASSERT_EQ(integerPtr, 0);

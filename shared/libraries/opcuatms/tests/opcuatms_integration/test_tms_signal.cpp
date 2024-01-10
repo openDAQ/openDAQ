@@ -351,7 +351,7 @@ TEST_F(TmsSignalTest, GetNoValue)
 
     SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
     ASSERT_TRUE(clientSignal.assigned());
-    ASSERT_FALSE(clientSignal.getValue().assigned());
+    ASSERT_FALSE(clientSignal.getLastValue().assigned());
 }
 
 template <typename T>
@@ -401,5 +401,5 @@ TEST_F(TmsSignalTest, GetValue)
     sendValueToSignal<double>(signal, 1.0);
     sendValueToSignal<double>(signal, 10.0);
 
-    ASSERT_EQ(clientSignal.getValue(), 10.0);
+    ASSERT_EQ(clientSignal.getLastValue(), 10.0);
 }

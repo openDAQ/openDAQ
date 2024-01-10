@@ -2,7 +2,7 @@
 Description:
   - Add method getValue in ISignal
 
-+ [function] ISignal::getValue(IBaseObject ** value)
++ [function] ISignal::getLastValue(IBaseObject** value)
 
 13.12.2023
 Description:

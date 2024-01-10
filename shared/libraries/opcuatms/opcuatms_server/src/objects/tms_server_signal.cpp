@@ -49,11 +49,11 @@ void TmsServerSignal::bindCallbacks()
     }
 
     addReadCallback(valueId, [this]() {
-        ObjectPtr lastValue = object.getValue();
+        ObjectPtr lastValue = object.getLastValue();
         if (lastValue != nullptr)
             return VariantConverter<IBaseObject>::ToVariant(lastValue, nullptr, daqContext);
-        else
-            return OpcUaVariant();
+
+        return OpcUaVariant();
     });
 
     auto analogValueId = getChildNodeId("AnalogValue");
@@ -62,11 +62,11 @@ void TmsServerSignal::bindCallbacks()
         if (type != SampleType::Float64 && type != SampleType::Int64)
             return OpcUaVariant();
 
-        ObjectPtr lastValue = object.getValue();
+        ObjectPtr lastValue = object.getLastValue();
         if (lastValue != nullptr)
             return VariantConverter<IBaseObject>::ToVariant(lastValue, nullptr, daqContext);
-        else
-            return OpcUaVariant();
+
+        return OpcUaVariant();
     });
 
     // TODO: Value, AnalogValue, Status

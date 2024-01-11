@@ -55,13 +55,6 @@ DECLARE_OPENDAQ_INTERFACE(IEnumerationType, IType)
      */
     virtual ErrCode INTERFACE_FUNC getEnumeratorNames(IList** names) = 0;
 
-    // [elementType(values, IInteger)]
-    /*!
-     * @brief Gets the list of enumerator values.
-     * @param[out] values The list of enumerator values (Integer objects)
-     */
-    virtual ErrCode INTERFACE_FUNC getEnumeratorIntValues(IList** values) = 0;
-
     // [elementType(dictionary, IString, IInteger)]
     /*!
      * @brief Gets the enumerator names and values as a Dictionary.
@@ -90,14 +83,13 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, EnumerationType,
     IString*, typeName,
     IList*, enumeratorNames,
-    Int, firstEnumeratorValue
+    Int, firstEnumeratorIntValue
 )
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, EnumerationTypeWithValues, IEnumerationType,
     IString*, typeName,
-    IList*, enumeratorNames,
-    IList*, enumeratorValues
+    IDict*, enumerators
 )
 
 END_NAMESPACE_OPENDAQ

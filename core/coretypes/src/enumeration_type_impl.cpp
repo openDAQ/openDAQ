@@ -6,38 +6,24 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-EnumerationTypeImpl::EnumerationTypeImpl(StringPtr typeName, ListPtr<IString> enumeratorNames, ListPtr<IInteger> enumeratorValues)
+EnumerationTypeImpl::EnumerationTypeImpl(StringPtr typeName, DictPtr<IString, IInteger> enumerators)
     : GenericTypeImpl(std::move(typeName), ctEnumeration)
-    , enumerators(Dict<IString, IInteger>())
+    , enumerators(enumerators)
 {
-    if (!enumeratorNames.assigned() || !enumeratorValues.assigned() || enumeratorNames.getCount() == 0)
+    if (enumerators.getCount() == 0)
         throw InvalidParameterException("Invalid EnumerationType parameters.");
-    if (enumeratorNames.getCount() != enumeratorValues.getCount())
-        throw InvalidParameterException("EnumerationType parameters are of different sizes.");
 
-    auto valuesIter = enumeratorValues.begin();
-    for (const auto& name : enumeratorNames)
-    {
-        if (enumerators.hasKey(name))
-            throw InvalidParameterException(
-                fmt::format(R"(EnumerationType duplicated enumerator name {}.)", name.toStdString())
-            );
-
-        enumerators.set(name, *valuesIter);
-        ++valuesIter;
-    }
-
-    enumerators.freeze();
+    this->enumerators.freeze();
 }
 
-EnumerationTypeImpl::EnumerationTypeImpl(StringPtr typeName, ListPtr<IString> enumeratorNames, Int firstEnumeratorValue)
+EnumerationTypeImpl::EnumerationTypeImpl(StringPtr typeName, ListPtr<IString> enumeratorNames, Int firstEnumeratorIntValue)
     : GenericTypeImpl(std::move(typeName), ctEnumeration)
     , enumerators(Dict<IString, IInteger>())
 {
     if (!enumeratorNames.assigned() || enumeratorNames.getCount() == 0)
         throw InvalidParameterException("Invalid EnumerationType parameters.");
 
-    Int enumeratorValue = firstEnumeratorValue;
+    Int enumeratorValue = firstEnumeratorIntValue;
     for (const auto& name : enumeratorNames)
     {
         if (enumerators.hasKey(name))
@@ -57,14 +43,6 @@ ErrCode EnumerationTypeImpl::getEnumeratorNames(IList** names)
     OPENDAQ_PARAM_NOT_NULL(names);
 
     *names = enumerators.getKeyList().detach();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode EnumerationTypeImpl::getEnumeratorIntValues(IList** values)
-{
-    OPENDAQ_PARAM_NOT_NULL(values);
-
-    *values = enumerators.getValueList().detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -176,8 +154,7 @@ ErrCode EnumerationTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* co
         EnumerationTypePtr enumerationType;
         createEnumerationTypeWithValues(&enumerationType,
                                         typeName,
-                                        enumerators.asPtr<IDict>().getKeyList(),
-                                        enumerators.asPtr<IDict>().getValueList());
+                                        enumerators.asPtr<IDict>());
         *obj = enumerationType.detach();
     }
     catch (const DaqException& e)
@@ -196,15 +173,14 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     LIBRARY_FACTORY, EnumerationType,
     IString*, typeName,
     IList*, enumeratorNames,
-    Int, firstEnumeratorValue
+    Int, firstEnumeratorIntValue
 )
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, EnumerationType,
     IEnumerationType, createEnumerationTypeWithValues,
     IString*, typeName,
-    IList*, enumeratorNames,
-    IList*, enumeratorValues
+    IDict*, enumerators
 )
 
 END_NAMESPACE_OPENDAQ

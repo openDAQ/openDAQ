@@ -48,14 +48,6 @@ void defineIEnumerationType(pybind11::module_ m, PyDaqIntf<daq::IEnumerationType
         },
         py::return_value_policy::take_ownership,
         "Gets the list of enumerator names.");
-    cls.def_property_readonly("enumerator_int_values",
-        [](daq::IEnumerationType *object)
-        {
-            const auto objectPtr = daq::EnumerationTypePtr::Borrow(object);
-            return objectPtr.getEnumeratorIntValues().detach();
-        },
-        py::return_value_policy::take_ownership,
-        "Gets the list of enumerator values.");
     cls.def_property_readonly("as_dictionary",
         [](daq::IEnumerationType *object)
         {

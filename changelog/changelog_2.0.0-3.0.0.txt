@@ -1,6 +1,13 @@
+03.01.2024
+Description:
+  - Add method getLastValue in ISignal
+
++ [function] ISignal::getLastValue(IBaseObject** value)
++ [function] ISignalPrivate::enableKeepLastValue(Bool enabled)
+
 18.12.2023
 Description:
-Builder pattern implementation for IInstance
+  - Builder pattern implementation for IInstance
 
 + [interface] IInstanceBuilder : public IBaseObject
 + [function] IInstanceBuilder::build(IInstance** instance)

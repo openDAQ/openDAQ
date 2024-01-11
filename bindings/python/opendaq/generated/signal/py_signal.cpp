@@ -93,4 +93,12 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
             objectPtr.setStreamed(streamed);
         },
         "Returns true if the signal is streamed; false otherwise. / Sets the signal to be either streamed or not.");
+    cls.def_property_readonly("last_value",
+        [](daq::ISignal *object)
+        {
+            const auto objectPtr = daq::SignalPtr::Borrow(object);
+            return baseObjectToPyObject(objectPtr.getLastValue());
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the signal last value");
 }

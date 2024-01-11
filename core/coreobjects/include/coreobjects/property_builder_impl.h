@@ -180,6 +180,11 @@ public:
 
     ErrCode INTERFACE_FUNC setValueType(CoreType type) override
     {
+        if (type == ctEnumeration)
+        {
+            return makeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "Enumeration type Properties are not supported");
+        }
+
         this->valueType = type;
         return OPENDAQ_SUCCESS;
     }

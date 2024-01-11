@@ -2199,6 +2199,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
         case ctBinaryData:
         case ctFunc:
         case ctComplexNumber:
+        case ctEnumeration:
         case ctUndefined:
             return OPENDAQ_SUCCESS;
     }

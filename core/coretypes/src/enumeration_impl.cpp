@@ -28,6 +28,20 @@ EnumerationImpl::EnumerationImpl(const StringPtr& name,
     this->value = value;
 }
 
+EnumerationImpl::EnumerationImpl(const EnumerationTypePtr& type, const StringPtr& value)
+    : enumerationType(type)
+{
+    if (!this->enumerationType.getAsDictionary().hasKey(value))
+        throw InvalidParameterException(
+            fmt::format(R"(Enumeration value "{}" is not part of the Enumeration type "{}")",
+                        value.toStdString(),
+                        enumerationType.getName().toStdString()
+            )
+        );
+
+    this->value = value;
+}
+
 ErrCode EnumerationImpl::getHashCode(SizeT* hashCode)
 {
     OPENDAQ_PARAM_NOT_NULL(hashCode);
@@ -183,6 +197,13 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     IString*, name,
     IString*, value,
     ITypeManager*, typeManager
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, Enumeration,
+    IEnumeration, createEnumerationWithType,
+    IEnumerationType*, type,
+    IString*, value
 )
 
 END_NAMESPACE_OPENDAQ

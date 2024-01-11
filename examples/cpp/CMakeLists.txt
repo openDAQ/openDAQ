@@ -18,7 +18,7 @@ option(OPENDAQ_FUNCTION_BLOCK "Function block example using an averager and rend
 option(OPENDAQ_CSV_WRITER "Example that connects to availble devices, writing their data to a .csv file" ON)
 option(OPENDAQ_STREAMING_CONFIG "Streaming configuration example that modifies the configuration of OpcUa enabled device" ON)
 
-if (OPENDAQ_EMPTY_EXAMPLE)
+if (OPENDAQ_CONSOLE_APP)
   add_subdirectory(console_application)
 endif()
 

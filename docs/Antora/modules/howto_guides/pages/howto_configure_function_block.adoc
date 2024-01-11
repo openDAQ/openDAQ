@@ -161,7 +161,7 @@ int main()
     // get the output signal of the function block
     SignalPtr outputSignal = functionBlock.getSignals()[0];
 
-    std::cout << signal.getDescriptor().getName() << std::endl;
+    std::cout << outputSignal.getDescriptor().getName() << std::endl;
     
     return 0;
 }

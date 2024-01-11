@@ -26,7 +26,7 @@ PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
         throw ArgumentNullException("Input port must not be null.");
 
     portBinder = PropertyObject();
-    this->port = InputPortConfigPtr(port);
+    this->port = port;
     this->port.asPtr<IOwnable>().setOwner(portBinder);
 
     this->internalAddRef();

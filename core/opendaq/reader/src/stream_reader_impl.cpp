@@ -45,7 +45,7 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
     if (!port)
         throw ArgumentNullException("Input port must not be null.");
     
-    inputPort = InputPortConfigPtr(port);
+    inputPort = port;
     inputPort.asPtr<IOwnable>().setOwner(portBinder);
 
     valueReader = createReaderForType(valueReadType, nullptr);

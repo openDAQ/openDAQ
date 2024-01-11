@@ -1,6 +1,6 @@
 = Signals
 
-Signals form the crux of data transfer in the openDAT(TM) SDK. They, alongside
+Signals form the crux of data transfer in the openDAQ(TM) SDK. They, alongside
 xref:function_blocks.adoc#input_port[Input Ports] and xref:data_path.adoc#connection[Connections],
 form data paths through which data is transferred in the form of xref:packets.adoc[Packets].
 Signals are part of xref:device.adoc[Devices], xref:function_blocks.adoc[Function blocks], and

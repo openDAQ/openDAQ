@@ -62,6 +62,7 @@ run_rtgen CoreObjects coreobjects coreobjects core_objects/generated component_t
 # opendaq
 #
 run_rtgen opendaq opendaq/opendaq       opendaq opendaq/generated/opendaq       instance
+run_rtgen opendaq opendaq/opendaq       opendaq opendaq/generated/opendaq       instance_builder
 run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     component
 run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     removable
 run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     folder

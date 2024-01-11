@@ -51,10 +51,7 @@ TailReaderImpl::TailReaderImpl(TailReaderImpl* old,
     , historySize(historySize)
     , cachedSamples(0)
 {
-    // ignore reading description if readers was created from signal (so it has notification from the same thread)
-    // and set changecallback because in case when we are creating new reader from callback, we will have deadlock on getting signal description
-    // from readDescriptorFromPort
-    if (!changeCallback.assigned() || portBinder.assigned())
+    if (!changeCallback.assigned())
         readDescriptorFromPort();
 }
 

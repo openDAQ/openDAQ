@@ -34,7 +34,7 @@ public:
     virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) = 0;
     
     virtual SizeT getOffsetTo(const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size) = 0;
-    virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor) = 0;
+    virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor, ReadMode mode) = 0;
 
     [[nodiscard]] virtual bool isUndefined() const noexcept;
     [[nodiscard]] virtual SampleType getReadType() const noexcept = 0;
@@ -71,7 +71,7 @@ public:
         throw InvalidStateException();
     }
 
-    virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor) override
+    virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor, ReadMode mode) override
     {
         return false;
     }
@@ -100,7 +100,7 @@ public:
 
     virtual SizeT getOffsetTo(const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size) override;
 
-    virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor) override;
+    virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor, ReadMode mode) override;
 
     virtual SampleType getReadType() const noexcept override;
 private:

@@ -57,6 +57,7 @@ struct MockSignal : daq::GenericPropertyObjectImpl<daq::ISignal, daq::ISignalEve
     MOCK_METHOD(daq::ErrCode, domainSignalReferenceRemoved, (daq::ISignal* signal), (override MOCK_CALL));
 
     MOCK_METHOD(daq::ErrCode, clearDomainSignalWithoutNotification, (), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, enableKeepLastValue, (daq::Bool enabled), (override MOCK_CALL));
 
     MOCK_METHOD(daq::ErrCode, remove, (), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, isRemoved, (daq::Bool* removed), (override MOCK_CALL));
@@ -64,7 +65,7 @@ struct MockSignal : daq::GenericPropertyObjectImpl<daq::ISignal, daq::ISignalEve
     MOCK_METHOD(daq::ErrCode, setStreamed, (daq::Bool streamed), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getStreamed, (daq::Bool* streamed), (override MOCK_CALL));
 
-    MOCK_METHOD(daq::ErrCode, getLastValue, (IBaseObject ** value), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getLastValue, (IBaseObject** value), (override MOCK_CALL));
 
     std::vector<daq::ConnectionPtr> connections;
 

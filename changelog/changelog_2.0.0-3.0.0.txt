@@ -1,8 +1,9 @@
 03.01.2024
 Description:
-  - Add method getValue in ISignal
+  - Add method getLastValue in ISignal
 
 + [function] ISignal::getLastValue(IBaseObject** value)
++ [function] ISignalPrivate::enableKeepLastValue(Bool enabled)
 
 18.12.2023
 Description:

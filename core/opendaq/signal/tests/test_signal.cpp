@@ -517,4 +517,23 @@ TEST_F(SignalTest, GetLastValueAfterEmptyPacket)
     ASSERT_EQ(integerPtr, 0);
 }
 
+TEST_F(SignalTest, GetLastValueDisabled)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    const auto privateSignal = signal.asPtrOrNull<ISignalPrivate>();
+    ASSERT_TRUE(privateSignal.assigned());
+    privateSignal.enableKeepLastValue(false);
+
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    
+    {
+        auto dataPacket = DataPacket(descriptor, 1);
+        int64_t* data = static_cast<int64_t*>(dataPacket.getData());
+        data[0] = 1;
+        signal.sendPacket(dataPacket);
+    }
+
+    ASSERT_FALSE(signal.getLastValue().assigned());
+}
+
 END_NAMESPACE_OPENDAQ

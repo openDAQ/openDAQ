@@ -89,6 +89,7 @@ public:
 
     // ISignalPrivate
     ErrCode INTERFACE_FUNC clearDomainSignalWithoutNotification() override;
+    ErrCode INTERFACE_FUNC enableKeepLastValue(Bool enabled) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -679,6 +680,17 @@ ErrCode SignalBase<TInterface, Interfaces...>::setStreamed(Bool streamed)
 }
 
 template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::enableKeepLastValue(Bool enabled)
+{
+    std::scoped_lock lock(this->sync);
+    keepLastPacket = enabled;
+    
+    if (!keepLastPacket)
+        lastDataPacket = nullptr;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject ** value)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
@@ -691,6 +703,12 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject ** value
 
     if (descriptor.getDimensions().getCount() != 0)
         return OPENDAQ_IGNORED;
+    
+    {
+        auto descriptorStructFields = descriptor.getStructFields();
+        if (descriptorStructFields.assigned() && !descriptorStructFields.empty())
+            return OPENDAQ_IGNORED;
+    }
 
     auto idx = lastDataPacket.getSampleCount() - 1;
 

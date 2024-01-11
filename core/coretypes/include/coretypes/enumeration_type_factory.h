@@ -30,32 +30,28 @@ BEGIN_NAMESPACE_OPENDAQ
  * Enumerator values are automatically assigned in ascending order, starting from the specified first value.
  * @param typeName The name of the Enumeration type
  * @param enumeratorNames The list of enumerator names (String objects)
- * @param firstEnumeratorValue The value of first enumerator (Integer)
+ * @param firstEnumeratorIntValue The Int value of first enumerator (Integer)
  */
 inline EnumerationTypePtr EnumerationType(
     const StringPtr& typeName,
     const ListPtr<IString>& enumeratorNames,
-    const Int firstEnumeratorValue = 0)
+    const Int firstEnumeratorIntValue = 0)
 {
-    EnumerationTypePtr obj(EnumerationType_Create(typeName, enumeratorNames, firstEnumeratorValue));
+    EnumerationTypePtr obj(EnumerationType_Create(typeName, enumeratorNames, firstEnumeratorIntValue));
     return obj;
 }
 
 /*!
- * @brief Creates an Enumeration type for enum with a given type name, enumerator names and
- * specified enumerator values.
+ * @brief Creates an Enumeration type for enum with a given type name, and dictionary of enumerator names and
+ * values.
  * @param typeName The name of the Enumeration type
- * @param enumeratorNames The list of enumerator names (String objects)
- * @param enumeratorValues The list of enumerator values (Integer objects)
- *
- * The lists of enumerator names and values must be of equal size.
+ * @param enumerators The dictionary of enumerators (String objects as keys, Integer objects as values)
  */
-inline EnumerationTypePtr EnumerationType(
+inline EnumerationTypePtr EnumerationTypeWithValues(
     const StringPtr& typeName,
-    const ListPtr<IString>& enumeratorNames,
-    const ListPtr<IInteger>& enumeratorValues)
+    const DictPtr<IString, IInteger>& enumerators)
 {
-    EnumerationTypePtr obj(EnumerationTypeWithValues_Create(typeName, enumeratorNames, enumeratorValues));
+    EnumerationTypePtr obj(EnumerationTypeWithValues_Create(typeName, enumerators));
     return obj;
 }
 

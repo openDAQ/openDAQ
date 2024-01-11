@@ -7,19 +7,16 @@ using EnumerationTypeTest = testing::Test;
 
 TEST_F(EnumerationTypeTest, InvalidParameters)
 {
-    ASSERT_THROW(EnumerationType("enumType", List<IString>(), List<IInteger>()), InvalidParameterException);
+    ASSERT_THROW(EnumerationTypeWithValues("enumType", Dict<IString, IInteger>()), InvalidParameterException);
     ASSERT_THROW(EnumerationType("enumType", List<IString>()), InvalidParameterException);
 
-    ASSERT_THROW(EnumerationType("enumType", List<IString>("zero", "zero"), List<IInteger>(0, 1)), InvalidParameterException);
     ASSERT_THROW(EnumerationType("enumType", List<IString>("zero", "zero")), InvalidParameterException);
-
-    ASSERT_THROW(EnumerationType("enumType", List<IString>("zero", "one"), List<IInteger>(0, 1, 2)), InvalidParameterException);
 }
 
 TEST_F(EnumerationTypeTest, Basic)
 {
     auto enumerationType1 = EnumerationType("enumType", List<IString>("zero", "one", "two"));
-    auto enumerationType2 = EnumerationType("enumType", List<IString>("zero", "one"), List<IInteger>(0, 1));
+    auto enumerationType2 = EnumerationTypeWithValues("enumType", Dict<IString, IInteger>({{"zero", 0}, {"one", 1}}));
 
     ASSERT_EQ(enumerationType1.getCoreType(), ctEnumeration);
     ASSERT_EQ(enumerationType2.getCoreType(), ctEnumeration);
@@ -27,8 +24,8 @@ TEST_F(EnumerationTypeTest, Basic)
     ASSERT_EQ(enumerationType1.getCount(), 3u);
     ASSERT_EQ(enumerationType2.getCount(), 2u);
 
-    ASSERT_EQ(enumerationType1.getEnumeratorIntValues(), List<IInteger>(0, 1, 2));
-    ASSERT_EQ(enumerationType2.getEnumeratorIntValues(), List<IInteger>(0, 1));
+    ASSERT_EQ(enumerationType1.getAsDictionary().getValueList(), List<IInteger>(0, 1, 2));
+    ASSERT_EQ(enumerationType2.getAsDictionary().getValueList(), List<IInteger>(0, 1));
 
     ASSERT_EQ(enumerationType1.getEnumeratorNames(), List<IString>("zero", "one", "two"));
     ASSERT_EQ(enumerationType2.getEnumeratorNames(), List<IString>("zero", "one"));
@@ -43,7 +40,7 @@ TEST_F(EnumerationTypeTest, Basic)
 TEST_F(EnumerationTypeTest, Equality)
 {
     auto enumerationType1 = EnumerationType("enumType", List<IString>("zero", "one"));
-    auto enumerationType2 = EnumerationType("enumType", List<IString>("zero", "one"), List<IInteger>(0, 1));
+    auto enumerationType2 = EnumerationTypeWithValues("enumType", Dict<IString, IInteger>({{"zero", 0}, {"one", 1}}));
     auto enumerationType3 = EnumerationType("enumTypeOther", List<IString>("zero", "one"));
     auto enumerationType4 = EnumerationType("enumType", List<IString>("zero", "one", "two"));
 
@@ -92,7 +89,7 @@ TEST_F(EnumerationObjectTest, Basic)
     auto manager = TypeManager();
 
     auto enumerationType1 = EnumerationType("enumType1", List<IString>("zero", "one"));
-    auto enumerationType2 = EnumerationType("enumType2", List<IString>("zero", "one"), List<IInteger>(0, 1));
+    auto enumerationType2 = EnumerationTypeWithValues("enumType2", Dict<IString, IInteger>({{"zero", 0}, {"one", 1}}));
 
     manager.addType(enumerationType1);
     manager.addType(enumerationType2);
@@ -112,7 +109,7 @@ TEST_F(EnumerationObjectTest, Equality)
     auto manager = TypeManager();
 
     auto enumerationType1 = EnumerationType("enumType1", List<IString>("zero", "one"));
-    auto enumerationType2 = EnumerationType("enumType2", List<IString>("zero", "one"), List<IInteger>(0, 1));
+    auto enumerationType2 = EnumerationTypeWithValues("enumType2", Dict<IString, IInteger>({{"zero", 0}, {"one", 1}}));
 
     manager.addType(enumerationType1);
     manager.addType(enumerationType2);
@@ -151,7 +148,7 @@ TEST_F(EnumerationObjectTest, Hashing)
     auto manager = TypeManager();
 
     auto enumerationType1 = EnumerationType("enumType1", List<IString>("zero", "one"));
-    auto enumerationType2 = EnumerationType("enumType2", List<IString>("zero", "one"), List<IInteger>(0, 1));
+    auto enumerationType2 = EnumerationTypeWithValues("enumType2", Dict<IString, IInteger>({{"zero", 0}, {"one", 1}}));
 
     manager.addType(enumerationType1);
     manager.addType(enumerationType2);

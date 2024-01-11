@@ -27,12 +27,11 @@ BEGIN_NAMESPACE_OPENDAQ
 class EnumerationTypeImpl : public GenericTypeImpl<IEnumerationType>
 {
 public:
-    explicit EnumerationTypeImpl(StringPtr typeName, ListPtr<IString> enumeratorNames, ListPtr<IInteger> enumeratorValues);
-    explicit EnumerationTypeImpl(StringPtr typeName, ListPtr<IString> enumeratorNames, Int firstEnumeratorValue);
+    explicit EnumerationTypeImpl(StringPtr typeName, DictPtr<IString, IInteger> enumerators);
+    explicit EnumerationTypeImpl(StringPtr typeName, ListPtr<IString> enumeratorNames, Int firstEnumeratorIntValue);
 
     // IEnumerationType
     ErrCode INTERFACE_FUNC getEnumeratorNames(IList** names) override;
-    ErrCode INTERFACE_FUNC getEnumeratorIntValues(IList** values) override;
     ErrCode INTERFACE_FUNC getAsDictionary(IDict** dictionary) override;
     ErrCode INTERFACE_FUNC getEnumeratorIntValue(IString* name, Int* value) override;
     ErrCode INTERFACE_FUNC getCount(SizeT* count) override;

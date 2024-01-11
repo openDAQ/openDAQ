@@ -127,22 +127,6 @@ public:
     }
 
     /*!
-     * @brief Gets the list of enumerator values.
-     * @returns The list of enumerator values (Integer objects)
-     */
-    ListPtr<IInteger> getEnumeratorIntValues() const
-    {
-        if (this->object == nullptr)
-            throw InvalidParameterException();
-
-        ListPtr<IInteger> values;
-        auto errCode = this->object->getEnumeratorIntValues(&values);
-        checkErrorInfo(errCode);
-
-        return values;
-    }
-
-    /*!
      * @brief Gets the enumerator names and values as a Dictionary.
      * @returns The Dictionary object with enumerator names as keys, and enumerator values     * as its values.
      */

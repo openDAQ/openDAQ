@@ -334,7 +334,18 @@ protected:
         }
         else
         {
-            reader = createReaderForType(newDescriptor.getSampleType(), reader->getTransformFunction());
+            SampleType readType;
+            auto postScaling = newDescriptor.getPostScaling();
+            if (!postScaling.assigned() || readMode == ReadMode::Scaled)
+            {
+                readType = newDescriptor.getSampleType();
+            }
+            else
+            {
+                readType = postScaling.getInputSampleType();
+            }
+
+            reader = createReaderForType(readType, reader->getTransformFunction());
         }
     }
 
@@ -355,7 +366,7 @@ protected:
                 inferReaderReadType(newValueDescriptor, valueReader);
             }
 
-            auto valid = valueReader->handleDescriptorChanged(newValueDescriptor);
+            auto valid = valueReader->handleDescriptorChanged(newValueDescriptor, readMode);
             if (!invalid)
             {
                 invalid = !valid;
@@ -370,7 +381,7 @@ protected:
                 inferReaderReadType(newDomainDescriptor, domainReader);
             }
 
-            auto valid = domainReader->handleDescriptorChanged(newDomainDescriptor);
+            auto valid = domainReader->handleDescriptorChanged(newDomainDescriptor, readMode);
             if (!invalid)
             {
                 invalid = !valid;
@@ -435,7 +446,7 @@ protected:
             inferReaderReadType(dataDescriptor, domainReader);
         }
 
-        if (!domainReader->handleDescriptorChanged(dataDescriptor))
+        if (!domainReader->handleDescriptorChanged(dataDescriptor, readMode))
         {
             daqSetErrorInfo(errInfo);
             return false;

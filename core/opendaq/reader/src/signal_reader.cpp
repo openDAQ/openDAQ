@@ -138,11 +138,22 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
 
     if (newValueDescriptor.assigned() && valueReader->getReadType() == SampleType::Undefined)
     {
-        valueReader = createReaderForType(newValueDescriptor.getSampleType(), valueReader->getTransformFunction());
+        SampleType valueType;
+        auto postScaling = newValueDescriptor.getPostScaling();
+        if (!postScaling.assigned() || readMode == ReadMode::Scaled)
+        {
+            valueType = newValueDescriptor.getSampleType();
+        }
+        else
+        {
+            valueType = postScaling.getInputSampleType();
+        }
+
+        valueReader = createReaderForType(valueType, valueReader->getTransformFunction());
     }
     
-    invalid = !valueReader->handleDescriptorChanged(newValueDescriptor);
-    auto validDomain = domainReader->handleDescriptorChanged(newDomainDescriptor);
+    invalid = !valueReader->handleDescriptorChanged(newValueDescriptor, readMode);
+    auto validDomain = domainReader->handleDescriptorChanged(newDomainDescriptor, readMode);
     if (validDomain && newDomainDescriptor.assigned())
     {
         auto newResolution = newDomainDescriptor.getTickResolution();
@@ -451,7 +462,7 @@ bool SignalReader::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket
     daqClearErrorInfo();
 
     auto dataDescriptor = domainPacket.getDataDescriptor();
-    if (!domainReader->handleDescriptorChanged(dataDescriptor))
+    if (!domainReader->handleDescriptorChanged(dataDescriptor, readMode))
     {
         daqSetErrorInfo(errInfo);
         return false;

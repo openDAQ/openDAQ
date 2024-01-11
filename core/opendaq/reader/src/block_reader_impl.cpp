@@ -53,11 +53,12 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , info(old->info)
 {
     this->internalAddRef();
-    // if on descriptor change callback was set
-    // readDescriptorFromPort method have to be called from this callback
     packets = old->packets;
     availableSamples = old->availableSamples;
-    if (!changeCallback.assigned())
+    // ignore reading description if readers was created from signal (so it has notification from the same thread)
+    // and set changecallback because in case when we are creating new reader from callback, we will have deadlock on getting signal description
+    // from readDescriptorFromPort
+    if (!changeCallback.assigned() || portBinder.assigned())
         readDescriptorFromPort();
     notify.dataReady = false;
 }

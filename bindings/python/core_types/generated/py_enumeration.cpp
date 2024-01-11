@@ -35,9 +35,10 @@ PyDaqIntf<daq::IEnumeration, daq::IBaseObject> declareIEnumeration(pybind11::mod
 
 void defineIEnumeration(pybind11::module_ m, PyDaqIntf<daq::IEnumeration, daq::IBaseObject> cls)
 {
-    cls.doc() = "Enumerations are objects that encapsulate a value within a predefined set of named integral constants. These constants are predefined in an Enumeration type with the same name as the Enumeration.";
+    cls.doc() = "Enumerations are immutable objects that encapsulate a value within a predefined set of named integral constants. These constants are predefined in an Enumeration type with the same name as the Enumeration.";
 
     m.def("Enumeration", &daq::Enumeration_Create);
+    m.def("EnumerationWithType", &daq::EnumerationWithType_Create);
 
     cls.def_property_readonly("enumeration_type",
         [](daq::IEnumeration *object)

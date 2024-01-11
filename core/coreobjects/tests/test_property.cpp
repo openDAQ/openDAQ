@@ -246,3 +246,10 @@ TEST_F(PropertyTest, propertyCreateFactory)
     ASSERT_EQ(property.getCoercer(), coercer);
     ASSERT_EQ(property.getCallableInfo(), nullptr);
 }
+
+TEST_F(PropertyTest, InvalidValueTypes)
+{
+    auto propertyBuilder = PropertyBuilder("propertyBuilder");
+
+    ASSERT_THROW(propertyBuilder.setValueType(ctEnumeration), InvalidTypeException);
+}

@@ -24,13 +24,13 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @ingroup types_enumeration
+ * @ingroup types_enumerations
  * @defgroup types_enumerations_enumeration Enumeration
  * @{
  */
 
 /*!
- * @brief Enumerations are objects that encapsulate a value within a predefined set of named integral constants.
+ * @brief Enumerations are immutable objects that encapsulate a value within a predefined set of named integral constants.
  * These constants are predefined in an Enumeration type with the same name as the Enumeration.
  *
  * The Enumeration types are stored within a Type manager. In any given instance of openDAQ, a single Type manager should
@@ -40,6 +40,12 @@ BEGIN_NAMESPACE_OPENDAQ
  * Enumeration type stored within the manager. If no type with the given Enumeration name is currently stored,
  * construction of the Enumeration object will fail. Similarly, if the provided enumerator value name is not part of
  * the Enumeration type, the construction of the Enumeration object will also fail.
+ *
+ * Since the Enumerations objects are immutable the value of an existing Enumeration object cannot be modified.
+ * However, the Enumeration object encapsulated by a smart pointer of the corresponding type can be replaced
+ * with a newly created one. This replacement is accomplished using the assignment operator with the right
+ * operand being a constant string literal containing the enumerator value name valid for the Enumeration type
+ * of the original Enumeration object.
  */
 DECLARE_OPENDAQ_INTERFACE(IEnumeration, IBaseObject)
 {
@@ -63,6 +69,12 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IString*, name,
     IString*, value,
     ITypeManager*, typeManager
+)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, EnumerationWithType, IEnumeration,
+    IEnumerationType*, type,
+    IString*, value
 )
 
 END_NAMESPACE_OPENDAQ

@@ -26,13 +26,13 @@ BEGIN_NAMESPACE_OPENDAQ
 class EnumerationPtr;
 
 template <>
-struct InterfaceToSmartPtr<daq::IEnumeration>
+struct InterfaceToSmartPtr<IEnumeration>
 {
-    using SmartPtr = daq::EnumerationPtr;
+    using SmartPtr = EnumerationPtr;
 };
 
 /*!
- * @ingroup types_enumeration
+ * @ingroup types_enumerations
  * @defgroup types_enumerations_enumeration Enumeration
  * @{
  */
@@ -48,39 +48,45 @@ struct InterfaceToSmartPtr<daq::IEnumeration>
  * Enumeration type stored within the manager. If no type with the given Enumeration name is currently stored,
  * construction of the Enumeration object will fail. Similarly, if the provided enumerator value name is not part of
  * the Enumeration type, the construction of the Enumeration object will also fail.
+ *
+ * Since the Enumerations objects are immutable the value of an existing Enumeration object cannot be modified.
+ * However, the Enumeration object encapsulated by a smart pointer of the corresponding type can be replaced
+ * with a newly created one. This replacement is accomplished using the assignment operator with the right
+ * operand being a constant string literal containing the enumerator value name valid for the Enumeration type
+ * of the original Enumeration object.
  */
 
-class EnumerationPtr : public daq::ObjectPtr<IEnumeration>
+class EnumerationPtr : public ObjectPtr<IEnumeration>
 {
 public:
-    using daq::ObjectPtr<IEnumeration>::ObjectPtr;
+    using ObjectPtr<IEnumeration>::ObjectPtr;
 
     EnumerationPtr()
-        : daq::ObjectPtr<IEnumeration>()
+        : ObjectPtr<IEnumeration>()
 
     {
     }
 
-    EnumerationPtr(daq::ObjectPtr<IEnumeration>&& ptr)
-        : daq::ObjectPtr<IEnumeration>(std::move(ptr))
+    EnumerationPtr(ObjectPtr<IEnumeration>&& ptr)
+        : ObjectPtr<IEnumeration>(std::move(ptr))
 
     {
     }
 
-    EnumerationPtr(const daq::ObjectPtr<IEnumeration>& ptr)
-        : daq::ObjectPtr<IEnumeration>(ptr)
+    EnumerationPtr(const ObjectPtr<IEnumeration>& ptr)
+        : ObjectPtr<IEnumeration>(ptr)
 
     {
     }
 
     EnumerationPtr(const EnumerationPtr& other)
-        : daq::ObjectPtr<IEnumeration>(other)
+        : ObjectPtr<IEnumeration>(other)
 
     {
     }
 
     EnumerationPtr(EnumerationPtr&& other) noexcept
-        : daq::ObjectPtr<IEnumeration>(std::move(other))
+        : ObjectPtr<IEnumeration>(std::move(other))
 
     {
     }
@@ -90,7 +96,7 @@ public:
         if (this == &other)
             return *this;
 
-        daq::ObjectPtr<IEnumeration>::operator =(other);
+        ObjectPtr<IEnumeration>::operator =(other);
 
         return *this;
     }
@@ -102,23 +108,37 @@ public:
             return *this;
         }
 
-        daq::ObjectPtr<IEnumeration>::operator =(std::move(other));
+        ObjectPtr<IEnumeration>::operator =(std::move(other));
 
         return *this;
+    }
+
+    EnumerationPtr& operator=(const wchar_t* value)
+    {
+        StringPtr stringObj = value;
+
+        return fromStringObj(stringObj);
+    }
+
+    EnumerationPtr& operator=(const char* value)
+    {
+        StringPtr stringObj = value;
+
+        return fromStringObj(stringObj);
     }
 
     /*!
      * @brief Gets the Enumeration's type.
      * @returns The Enumeration type
      */
-    daq::EnumerationTypePtr getEnumerationType() const
+    EnumerationTypePtr getEnumerationType() const
     {
         if (this->object == nullptr)
-            throw daq::InvalidParameterException();
+            throw InvalidParameterException();
 
-        daq::EnumerationTypePtr type;
+        EnumerationTypePtr type;
         auto errCode = this->object->getEnumerationType(&type);
-        daq::checkErrorInfo(errCode);
+        checkErrorInfo(errCode);
 
         return type;
     }
@@ -127,16 +147,43 @@ public:
      * @brief Gets the Enumeration value as String containing the name of the enumerator constant.
      * @returns Emumeration value.
      */
-    daq::StringPtr getValue() const
+    StringPtr getValue() const
     {
         if (this->object == nullptr)
-            throw daq::InvalidParameterException();
+            throw InvalidParameterException();
 
-        daq::StringPtr value;
+        StringPtr value;
         auto errCode = this->object->getValue(&value);
-        daq::checkErrorInfo(errCode);
+        checkErrorInfo(errCode);
 
         return value;
+    }
+
+private:
+
+    EnumerationPtr& fromStringObj(const StringPtr& value)
+    {
+        if (this->object == nullptr)
+            throw InvalidParameterException();
+
+        StringPtr val;
+        auto errCode = this->object->getValue(&val);
+        checkErrorInfo(errCode);
+
+        if (val == value)
+        {
+            return *this;
+        }
+
+        EnumerationTypePtr type;
+        errCode = this->object->getEnumerationType(&type);
+        checkErrorInfo(errCode);
+
+        EnumerationPtr other = EnumerationWithType_Create(type, value);
+
+        ObjectPtr<IEnumeration>::operator =(other);
+
+        return *this;
     }
 };
 

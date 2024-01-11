@@ -1,3 +1,20 @@
+11.01.2024
+Description:
+  - Add Enumeration Core type implementations
+
++ [interface] IEnumerationType : public IType
++ [function] IEnumerationType::getEnumeratorNames(IList** names)
++ [function] IEnumerationType::getAsDictionary(IDict** dictionary)
++ [function] IEnumerationType::getEnumeratorIntValue(IString* name, Int* value)
++ [function] IEnumerationType::getCount(SizeT* count)
++ [factory] EnumerationTypePtr EnumerationType(const StringPtr& typeName, const ListPtr<IString>& enumeratorNames, const Int firstEnumeratorIntValue)
++ [factory] EnumerationTypePtr EnumerationTypeWithValues(const StringPtr& typeName, const DictPtr<IString, IInteger>& enumerators)
+
++ [interface] IEnumeration : public IBaseObject
++ [function] IEnumeration::getEnumerationType(IEnumerationType** type)
++ [function] IEnumeration::getValue(IString** value)
++ [factory] EnumerationPtr Enumeration(const StringPtr& typeName, const StringPtr& value, const TypeManagerPtr& typeManager)
+
 03.01.2024
 Description:
   - Add method getLastValue in ISignal

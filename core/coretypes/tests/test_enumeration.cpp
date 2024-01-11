@@ -165,6 +165,27 @@ TEST_F(EnumerationObjectTest, Hashing)
     ASSERT_NE(hashCode1, hashCode2);
 }
 
+TEST_F(EnumerationObjectTest, Assign)
+{
+    EnumerationPtr enumerationPtr;
+    ASSERT_THROW(enumerationPtr = "one", InvalidParameterException);
+
+    auto manager = TypeManager();
+    auto enumerationType = EnumerationType("enumType", List<IString>("zero", "one"));
+    manager.addType(enumerationType);
+
+    enumerationPtr = Enumeration("enumType", "one", manager);
+
+    ASSERT_THROW(enumerationPtr = "two", InvalidParameterException);
+    ASSERT_EQ(enumerationPtr.getValue(), "one");
+
+    ASSERT_NO_THROW(enumerationPtr = "one");
+    ASSERT_EQ(enumerationPtr.getValue(), "one");
+
+    ASSERT_NO_THROW(enumerationPtr = "zero");
+    ASSERT_EQ(enumerationPtr.getValue(), "zero");
+}
+
 TEST_F(EnumerationObjectTest, Conversion)
 {
     auto manager = TypeManager();

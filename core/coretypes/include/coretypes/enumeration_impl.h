@@ -34,6 +34,7 @@ class EnumerationImpl : public ImplementationOf<IEnumeration, IConvertible, ICor
 {
 public:
     explicit EnumerationImpl(const StringPtr& name, const StringPtr& value, const TypeManagerPtr& typeManager);
+    explicit EnumerationImpl(const EnumerationTypePtr& type, const StringPtr& value);
 
     // IBaseObject
     ErrCode INTERFACE_FUNC getHashCode(SizeT* hashCode) override;

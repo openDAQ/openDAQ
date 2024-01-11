@@ -20,8 +20,8 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @ingroup types_enumerations_enumeration
- * @defgroup types_enumerations_enumeration_factories Factories
+ * @ingroup types_enumerations_enumeration_type
+ * @defgroup types_enumerations_enumeration_type_factories Factories
  * @{
  */
 

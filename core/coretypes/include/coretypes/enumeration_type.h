@@ -23,7 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup types_enumerations
- * @defgroup types_enumerations_enumeration EnumerationType
+ * @defgroup types_enumerations_enumeration_type EnumerationType
  * @{
  */
 

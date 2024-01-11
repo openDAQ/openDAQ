@@ -12,6 +12,7 @@
 #include <coreobjects/unit_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include "tms_object_integration_test.h"
+#include <opendaq/reader_factory.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -328,4 +329,77 @@ TEST_F(TmsSignalTest, ExplicitDomainRuleDescriptor)
     SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
 
     ASSERT_EQ(signal.getDescriptor().getRule(), clientSignal.getDescriptor().getRule());
+}
+
+TEST_F(TmsSignalTest, GetNoValue)
+{
+    auto domainDescriptor = DataDescriptorBuilder()
+        .setName("domain stub")
+        .setSampleType(SampleType::UInt64)
+        .setOrigin("2024-01-08T00:02:03+00:00")
+        .setTickResolution(Ratio(1, 1000000))
+        .setRule(LinearDataRule(1000, 0))
+        .setUnit(Unit("s", -1, "seconds", "time"))
+        .build();
+    const auto domainSignal = SignalWithDescriptor(NullContext(), domainDescriptor, nullptr, "domainSig");
+
+    auto dataDescriptor = DataDescriptorBuilder().setName("stub").setSampleType(SampleType::Float64).build();
+    const auto signal = SignalWithDescriptor(NullContext(), dataDescriptor, nullptr, "sig");
+
+    auto serverSignal = TmsServerSignal(signal, this->getServer(), NullContext());
+    auto nodeId = serverSignal.registerOpcUaNode();
+
+    SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
+    ASSERT_TRUE(clientSignal.assigned());
+    ASSERT_FALSE(clientSignal.getLastValue().assigned());
+}
+
+template <typename T>
+static void sendValueToSignal(const SignalConfigPtr& signal, const T& value)
+{
+    if (!signal.assigned())
+        return;
+
+    DataPacketPtr packet;
+    
+    if (signal.getDomainSignal().assigned())
+    {
+        auto domainPacket = DataPacket(signal.getDomainSignal().getDescriptor(), 1);
+        packet = DataPacketWithDomain(domainPacket, signal.getDescriptor(), 1);
+    }
+    else
+    {
+        packet = DataPacket(signal.getDescriptor(), 1);
+    }
+
+    auto dst = static_cast<T*>(packet.getData());
+    *dst = value;
+    signal.sendPacket(packet);   
+} 
+
+TEST_F(TmsSignalTest, GetValue)
+{
+    auto domainDescriptor = DataDescriptorBuilder()
+        .setName("domain stub")
+        .setSampleType(SampleType::UInt64)
+        .setOrigin("2024-01-08T00:02:03+00:00")
+        .setTickResolution(Ratio(1, 1000000))
+        .setRule(LinearDataRule(1000, 0))
+        .setUnit(Unit("s", -1, "seconds", "time"))
+        .build();
+    const auto domainSignal = SignalWithDescriptor(NullContext(), domainDescriptor, nullptr, "domainSig");
+
+    auto dataDescriptor = DataDescriptorBuilder().setName("stub").setSampleType(SampleType::Float64).build();
+    const auto signal = SignalWithDescriptor(NullContext(), dataDescriptor, nullptr, "sig");
+
+    auto serverSignal = TmsServerSignal(signal, this->getServer(), NullContext());
+    auto nodeId = serverSignal.registerOpcUaNode();
+
+    SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
+    ASSERT_TRUE(clientSignal.assigned());
+
+    sendValueToSignal<double>(signal, 1.0);
+    sendValueToSignal<double>(signal, 10.0);
+
+    ASSERT_EQ(clientSignal.getLastValue(), 10.0);
 }

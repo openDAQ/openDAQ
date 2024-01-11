@@ -48,6 +48,7 @@ public:
     ErrCode INTERFACE_FUNC addRelatedSignal(ISignal* signal) override;
     ErrCode INTERFACE_FUNC removeRelatedSignal(ISignal* signal) override;
     ErrCode INTERFACE_FUNC clearRelatedSignals() override;
+    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
 
     StringPtr onGetRemoteId() const override;
     Bool onTriggerEvent(EventPacketPtr eventPacket) override;

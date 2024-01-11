@@ -70,6 +70,7 @@ public:
     ErrCode INTERFACE_FUNC getConnections(IList** connections) override;
     ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) override;
     ErrCode INTERFACE_FUNC setStreamed(Bool streamed) override;
+    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
 
     // ISignalConfig
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
@@ -88,6 +89,7 @@ public:
 
     // ISignalPrivate
     ErrCode INTERFACE_FUNC clearDomainSignalWithoutNotification() override;
+    ErrCode INTERFACE_FUNC enableKeepLastValue(Bool enabled) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -112,6 +114,8 @@ private:
     SignalPtr domainSignal;
     std::vector<ConnectionPtr> connections;
     std::vector<WeakRefPtr<ISignalConfig>> domainSignalReferences;
+    bool keepLastPacket = true;
+    DataPacketPtr lastDataPacket;
 
     void initSignalProperties(ComponentStandardProps propsMode);
     void propertyValueChanged(const PropertyPtr& prop, const BaseObjectPtr& value);
@@ -436,7 +440,12 @@ ErrCode SignalBase<TInterface, Interfaces...>::sendPacket(IPacket* packet)
     std::scoped_lock lock(this->sync);
 
     if (sendPacketInternal(packetPtr))
+    {
+        const auto dataPacket = packetPtr.asPtrOrNull<IDataPacket>();
+        if (keepLastPacket && dataPacket.assigned() && dataPacket.getSampleCount())
+            lastDataPacket = dataPacket;
         return OPENDAQ_SUCCESS;
+    }
 
     return  OPENDAQ_IGNORED;
 }
@@ -668,6 +677,103 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setStreamed(Bool streamed)
 {
     return OPENDAQ_IGNORED;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::enableKeepLastValue(Bool enabled)
+{
+    std::scoped_lock lock(this->sync);
+    keepLastPacket = enabled;
+    
+    if (!keepLastPacket)
+        lastDataPacket = nullptr;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject ** value)
+{
+    OPENDAQ_PARAM_NOT_NULL(value);
+    std::scoped_lock lock(this->sync);
+
+    if (!lastDataPacket.assigned() || lastDataPacket.getSampleCount() == 0)
+        return OPENDAQ_IGNORED;
+
+    const auto & descriptor = lastDataPacket.getDataDescriptor();
+
+    if (descriptor.getDimensions().getCount() != 0)
+        return OPENDAQ_IGNORED;
+    
+    {
+        auto descriptorStructFields = descriptor.getStructFields();
+        if (descriptorStructFields.assigned() && !descriptorStructFields.empty())
+            return OPENDAQ_IGNORED;
+    }
+
+    auto idx = lastDataPacket.getSampleCount() - 1;
+
+    switch (descriptor.getSampleType())
+    {
+        case SampleType::Float32:
+        {
+            auto data = static_cast<float*>(lastDataPacket.getData());
+            *value = Floating(data[idx]).detach();
+            break;
+        }
+        case SampleType::Float64:
+        {
+            auto data = static_cast<double*>(lastDataPacket.getData());
+            *value = Floating(data[idx]).detach();
+            break;
+        }
+        case SampleType::Int8:
+        {
+            auto data = static_cast<int8_t*>(lastDataPacket.getData());
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        case SampleType::UInt8:
+        {
+            auto data = static_cast<uint8_t*>(lastDataPacket.getData());
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        case SampleType::Int16:
+        {
+            auto data = static_cast<int16_t*>(lastDataPacket.getData());
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        case SampleType::UInt16:
+        {
+            auto data = static_cast<uint16_t*>(lastDataPacket.getData());
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        case SampleType::Int32:
+        {
+            auto data = static_cast<int32_t*>(lastDataPacket.getData());
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        case SampleType::UInt32:
+        {
+            auto data = static_cast<uint32_t*>(lastDataPacket.getData());
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        case SampleType::Int64:
+        {
+            auto data = static_cast<int64_t*>(lastDataPacket.getData());
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        default:
+        {
+            return OPENDAQ_IGNORED;
+        }
+    };
+    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ

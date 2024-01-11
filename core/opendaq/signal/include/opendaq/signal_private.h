@@ -35,6 +35,12 @@ DECLARE_OPENDAQ_INTERFACE(ISignalPrivate, IBaseObject)
      * @brief Sets the domain signal to null without notifying the domain signal
      */
     virtual ErrCode INTERFACE_FUNC clearDomainSignalWithoutNotification() = 0;
+
+    /*!
+     * @brief Enable or disable keeping last data packet which is using by Signal method `getLastValue` 
+     * @param enabled Option for enabling method getLastValue
+     */
+    virtual ErrCode INTERFACE_FUNC enableKeepLastValue(Bool enabled) = 0;
 };
 /*!@}*/
 

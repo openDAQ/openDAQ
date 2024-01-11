@@ -128,6 +128,14 @@ DECLARE_OPENDAQ_INTERFACE(ISignal, IComponent)
      * Method returns OPENDAQ_IGNORED if that is the case.
      */
     virtual ErrCode INTERFACE_FUNC setStreamed(Bool streamed) = 0;
+
+    /*!
+     * @brief Gets the signal last value
+     * @param[out] value The IBaseObject value can be a nullptr if there is no value, or if the data type is not supported by the function. 
+     * If a value is assigned, it can be cast based on the signal description to IFloat if the type is Float32 or Float64, 
+     * or to IInteger if the type is Int8 through Int64 or UInt8 through UInt32.
+     */
+    virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) = 0;
 };
 /*!@}*/
 

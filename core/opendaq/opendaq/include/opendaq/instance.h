@@ -22,6 +22,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IInstanceBuilder;
+
 /*!
  * @ingroup opendaq_devices
  * @addtogroup opendaq_instance Instance
@@ -142,6 +144,15 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IString*, localId
 )
 
+/*!
+ * @brief Creates a Instance with Builder
+ * @param builder Instance Builder
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, InstanceFromBuilder, IInstance,
+    IInstanceBuilder*, builder
+)
+
  /*!
  * @brief Creates an openDAQ client.
  * @param ctx The context object.
@@ -153,7 +164,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, Client, IDevice, createClient,
     IContext*, ctx,
-    IString*, localId
+    IString*, localId,
+    IDeviceInfo*, defaultDeviceInfo
 )
 
 END_NAMESPACE_OPENDAQ

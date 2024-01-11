@@ -39,6 +39,10 @@ public:
                                const StringPtr& localId,
                                const StringPtr& className = nullptr,
                                ComponentStandardProps propsMode = ComponentStandardProps::Add);
+    
+    // IPropertyObjectInternal
+    ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
+    ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
 
 protected:
     FolderConfigPtr signals;
@@ -46,6 +50,7 @@ protected:
 
     std::vector<ComponentPtr> components;
     std::unordered_set<std::string> defaultComponents;
+    bool allowNonDefaultComponents;
 
     LoggerComponentPtr signalContainerLoggerComponent;
 
@@ -59,6 +64,7 @@ protected:
                                                      const StringPtr& localId,
                                                      const PropertyObjectPtr& config = nullptr);
     void validateComponentNotExists(const std::string& localId);
+    void validateComponentIsDefault(const std::string& localId);
 
     template <class TItemInterface = IComponent>
     FolderConfigPtr addFolder(const std::string& localId, const FolderConfigPtr& parent = nullptr, ComponentStandardProps standardPropsConfig = ComponentStandardProps::Add);
@@ -107,15 +113,42 @@ GenericSignalContainerImpl<Intf, Intfs...>::GenericSignalContainerImpl(const Con
                                                                        const StringPtr& className,
                                                                        const ComponentStandardProps propsMode)
     : Super(context, parent, localId, className, propsMode)
+    , allowNonDefaultComponents(false)
     , signalContainerLoggerComponent(
         context.getLogger().assigned() ? context.getLogger().getOrAddComponent("GenericSignalContainerImpl")
-                                       : throw ArgumentNullException{"Logger not assigned!"})
+            : throw ArgumentNullException{"Logger not assigned!"})
 {
-    signals = addFolder<ISignal>("Sig", nullptr, ComponentStandardProps::Skip);
-    functionBlocks = addFolder<IFunctionBlock>("FB", nullptr, ComponentStandardProps::Skip);
-
     defaultComponents.insert("Sig");
     defaultComponents.insert("FB");
+
+    signals = addFolder<ISignal>("Sig", nullptr, ComponentStandardProps::Skip);
+    functionBlocks = addFolder<IFunctionBlock>("FB", nullptr, ComponentStandardProps::Skip);
+}
+
+template <class Intf, class ... Intfs>
+ErrCode GenericSignalContainerImpl<Intf, Intfs...>::enableCoreEventTrigger()
+{
+    for (const auto& component : this->components)
+    {
+        const ErrCode err = component.template asPtr<IPropertyObjectInternal>()->enableCoreEventTrigger();
+        if (OPENDAQ_FAILED(err))
+            return err;
+    }
+
+    return ComponentImpl<Intf, Intfs...>::enableCoreEventTrigger();
+}
+
+template <class Intf, class ... Intfs>
+ErrCode GenericSignalContainerImpl<Intf, Intfs...>::disableCoreEventTrigger()
+{
+    for (const auto& component : this->components)
+    {
+        const ErrCode err = component.template asPtr<IPropertyObjectInternal>()->disableCoreEventTrigger();
+        if (OPENDAQ_FAILED(err))
+            return err;
+    }
+
+    return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
 }
 
 template <class Intf, class ... Intfs>
@@ -312,15 +345,35 @@ void GenericSignalContainerImpl<Intf, Intfs...>::validateComponentNotExists(cons
 }
 
 template <class Intf, class ... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::validateComponentIsDefault(const std::string& localId)
+{
+    if (!this->defaultComponents.count(localId))
+        throw InvalidParameterException("Non-default component cannot be added as child!");
+}
+
+template <class Intf, class ... Intfs>
 template <class TItemInterface>
 FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std::string& localId, const FolderConfigPtr& parent, const ComponentStandardProps standardPropsConfig)
 {
     if (!parent.assigned())
     {
         validateComponentNotExists(localId);
+        if (!allowNonDefaultComponents)
+            validateComponentIsDefault(localId);
 
         auto folder = Folder<TItemInterface>(this->context, this->template thisPtr<ComponentPtr>(), localId, standardPropsConfig);
         this->components.push_back(folder);
+
+        if (!this->coreEventMuted && this->coreEvent.assigned())
+        {
+            const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                    core_event_ids::ComponentAdded,
+                    Dict<IString, IBaseObject>({{"Component", folder}}));
+            
+            this->triggerCoreEvent(args);
+            folder.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+        }
+
         return folder;
     }
 
@@ -335,9 +388,22 @@ ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addComponent(const std:
     if (!parent.assigned())
     {
         validateComponentNotExists(localId);
+        if (!allowNonDefaultComponents)
+            validateComponentIsDefault(localId);
 
         auto component = Component(this->context, this->template thisPtr<ComponentPtr>(), localId, standardPropsConfig);
         this->components.push_back(component);
+
+        if (!this->coreEventMuted && this->coreEvent.assigned())
+        {
+            const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                    core_event_ids::ComponentAdded,
+                    Dict<IString, IBaseObject>({{"Component", component}}));
+            
+            this->triggerCoreEvent(args);
+            component.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+        }
+
         return component;
     }
 

@@ -91,7 +91,7 @@ ErrCode TagsImpl::query(IString* query, Bool* value)
 ErrCode TagsImpl::freeze()
 {
     if (frozen)
-        return  OPENDAQ_IGNORED;
+        return OPENDAQ_IGNORED;
 
     frozen = true;
     return OPENDAQ_SUCCESS;

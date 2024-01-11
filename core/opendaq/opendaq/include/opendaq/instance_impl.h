@@ -28,6 +28,7 @@ class InstanceImpl final : public ImplementationOfWeak<IInstance, IDeviceDomain,
 {
 public:
     explicit InstanceImpl(ContextPtr context, const StringPtr& localId);
+    explicit InstanceImpl(IInstanceBuilder* instanceBuilder);
     ~InstanceImpl() override;
 
     // IInstance

@@ -31,6 +31,24 @@ struct OpcUaAttribute
         , attributeId(attributeId)
     {
     }
+
+    bool operator==(const OpcUaAttribute& other) const
+    {
+        return nodeId == other.nodeId && attributeId == other.attributeId;
+    }
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA
+
+namespace std
+{
+    template <>
+    struct hash<daq::opcua::OpcUaAttribute>
+    {
+        size_t operator()(const daq::opcua::OpcUaAttribute& attr) const noexcept
+        {
+            size_t hash = UA_NodeId_hash(attr.nodeId.get());
+            return UA_ByteString_hash(hash, (const UA_Byte*) &attr.attributeId, sizeof(UA_AttributeId));
+        }
+    };
+}

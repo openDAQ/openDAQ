@@ -134,6 +134,15 @@ ErrCode InputPortImpl::connect(ISignal* signal)
         return OPENDAQ_ERR_GENERALERROR;
     }
 
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                core_event_ids::SignalConnected,
+                Dict<IString, IBaseObject>({{"Signal", signal}}));
+        
+        this->triggerCoreEvent(args);
+    }
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -174,6 +183,15 @@ void InputPortImpl::disconnectSignalInternal(bool notifyListener, bool notifySig
             if (listener.assigned())
                 listener->disconnected(borrowInterface());
         }
+    }
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                core_event_ids::SignalDisconnected,
+                Dict<IString, IBaseObject>());
+        
+        this->triggerCoreEvent(args);
     }
 }
 

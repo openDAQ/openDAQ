@@ -66,6 +66,8 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
                           ? this->logger.getOrAddComponent("TmsClientDevice")
                           : throw ArgumentNullException("Logger must not be null"))
 {
+    clientContext->readObjectAttributes(nodeId);
+
     findAndCreateSubdevices();
     findAndCreateFunctionBlocks();
     findAndCreateSignals();
@@ -119,36 +121,45 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 
     deviceInfo = DeviceInfo("");
 
-    BrowseRequest request(nodeId, OpcUaNodeClass::Variable);
-    OpcUaBrowser browser(request, client);
-    const auto& browseResult = browser.browse();
+    const auto& references = clientContext->getReferenceBrowser()->browse(nodeId);
+    auto reader = AttributeReader(client, clientContext->getMaxNodesPerRead());
 
-    for (const UA_ReferenceDescription& reference : browseResult)
+    for (const auto& [browseName, ref] : references.byBrowseName)
+        reader.addAttribute({ref->nodeId.nodeId, UA_ATTRIBUTEID_VALUE});
+
+    reader.read();
+
+    for (const auto& [browseName, ref] : references.byBrowseName)
     {
-        std::string browseName = daq::opcua::utils::ToStdString(reference.browseName.name);
+        const auto refNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+        const auto value = reader.getValue(refNodeId, UA_ATTRIBUTEID_VALUE);
+
         if (detail::deviceInfoSetterMap.count(browseName))
-            detail::deviceInfoSetterMap[browseName](deviceInfo, client->readValue(OpcUaNodeId(reference.nodeId.nodeId)));
-        else if (browseName != "NumberInList")
         {
-            // TODO: Group requests for data type and scalar/array checks and only read required values
-            try
+            detail::deviceInfoSetterMap[browseName](deviceInfo, value);
+            continue;
+        }
+
+        if (browseName == "NumberInList")
+            continue;
+
+        try
+        {
+            if (value.isScalar())
             {
-                auto value = client->readValue(OpcUaNodeId(reference.nodeId.nodeId));
-                if (value.isScalar())
-                {
-                    if (value.isString())
-                        deviceInfo.addProperty(StringProperty(browseName, value.toString()));
-                    else if(value.isBool())
-                        deviceInfo.addProperty(BoolProperty(browseName, value.toBool()));
-                    else if(value.isDouble())
-                        deviceInfo.addProperty(FloatProperty(browseName, value.toDouble()));
-                    else if(value.isInteger())
-                        deviceInfo.addProperty(IntProperty(browseName, value.toInteger()));
-                }
+                if (value.isString())
+                    deviceInfo.addProperty(StringProperty(browseName, value.toString()));
+                else if (value.isBool())
+                    deviceInfo.addProperty(BoolProperty(browseName, value.toBool()));
+                else if (value.isDouble())
+                    deviceInfo.addProperty(FloatProperty(browseName, value.toDouble()));
+                else if (value.isInteger())
+                    deviceInfo.addProperty(IntProperty(browseName, value.toInteger()));
             }
-            catch(...)
-            {
-            }
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to read device info attribute: {}", e.what());
         }
     }
 

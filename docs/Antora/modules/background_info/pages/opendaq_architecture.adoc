@@ -131,6 +131,7 @@ As is the case with all openDAQ components, devices expose a set of user-configu
   * xref:device.adoc[Devices]
   * xref:howto_guides:howto_connect_to_device.adoc[How to connect to a Device]
 
+[#module]
 == Module
 
 openDAQ(TM) xref:function_blocks.adoc[Function Block]s and xref:device.adoc[Device] drivers are bundled within Modules, usually dynamically loaded libraries.
@@ -200,6 +201,7 @@ As such, the Server can react to the Root Device changing.
 The openDAQ(TM) Server does not yet react to changes to the openDAQ(TM) structure it is advertising.
 As such, currently, any change such as adding / removing a Function Block will not be visible on the Server without restarting it.
 ====
+For information about Instance configuration, see the xref:howto_configure_instance.adoc[Configure Instance] guide. 
 
 
 // TODO: Add a link to openDAQ(TM) instance how-tos and background info once written.

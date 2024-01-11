@@ -27,7 +27,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class ClientImpl : public DeviceBase<IClientPrivate>
 {
 public:
-    ClientImpl(ContextPtr ctx, const StringPtr& localId);
+    ClientImpl(ContextPtr ctx, const StringPtr& localId, const DeviceInfoPtr& deviceInfo);
 
     // Device
 

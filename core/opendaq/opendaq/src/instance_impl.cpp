@@ -22,8 +22,66 @@ InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
 {
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
     defaultRootDevice = Client(this->context, instanceId);
+    defaultRootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
     rootDevice = defaultRootDevice;
     loggerComponent = this->context.getLogger().addComponent("Instance");
+}
+
+static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
+{
+    const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
+
+    auto logger = builderPtr.getLogger();
+    auto scheduler = builderPtr.getScheduler();
+    auto moduleManager = builderPtr.getModuleManager();
+    auto typeManager = TypeManager();
+
+    // Configure logger
+    if (!logger.assigned()) 
+    {
+        auto sinks = builderPtr.getLoggerSinks();
+        if (sinks.empty())
+            logger = Logger();
+        else
+            logger = LoggerWithSinks(sinks);
+    }
+    logger.setLevel(builderPtr.getGlobalLogLevel());
+
+    for (const auto& [component, logLevel] : builderPtr.getComponentsLogLevel())
+    {
+        auto createdComponent = logger.getOrAddComponent(component);
+        createdComponent.setLevel(LogLevel(logLevel));
+    }
+
+    // Configure scheduler
+    if (!scheduler.assigned())
+        scheduler = Scheduler(logger, builderPtr.getSchedulerWorkerNum());
+
+    // Configure moduleManager
+    if (!moduleManager.assigned())
+        moduleManager = ModuleManager(builderPtr.getModulePath());
+
+    return Context(scheduler, logger, typeManager, moduleManager);
+}
+
+InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
+    : context(ContextFromInstanceBuilder(instanceBuilder))
+    , moduleManager(this->context.assigned() ? this->context.asPtr<IContextInternal>().moveModuleManager() : nullptr)
+    , rootDeviceSet(false)
+{
+    const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
+    
+    auto localId = builderPtr.getDefaultRootDeviceLocalId();
+    auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
+    defaultRootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
+
+    auto connectionString = builderPtr.getRootDevice();
+    if (connectionString.assigned() && connectionString.getLength())
+        rootDevice = detail::createDevice(connectionString, nullptr, nullptr, moduleManager, nullptr);    
+    else
+        rootDevice = defaultRootDevice;
+
+    loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
 }
 
 std::string InstanceImpl::defineLocalId(const std::string& localId)
@@ -260,6 +318,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;
 
+    this->rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
     return OPENDAQ_SUCCESS;
 }
 
@@ -826,5 +885,11 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     Instance,
     IContext*, context,
     IString*, localId)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, Instance,
+    IInstance, createInstanceFromBuilder,
+    IInstanceBuilder*, builder
+)
 
 END_NAMESPACE_OPENDAQ

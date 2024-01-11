@@ -5,6 +5,7 @@
 // * xref:howto_configure_a_device.adoc[]
 * xref:howto_add_function_block.adoc[]
 * xref:howto_configure_function_block.adoc[]
+* xref:howto_configure_instance.adoc[]
 
 // == Configure a Signal
 

@@ -407,7 +407,7 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
         }
         catch (const std::exception& e)
         {
-            LOG_W("Failed to add port \"{}\" to OpcUA client device. Error: {}", val.second.getName(), e.what());
+            LOG_W("Failed to add port to OpcUA client device. Error: {}", e.what());
         }
     for (const auto& val : unorderedStreamings)
         try
@@ -416,7 +416,7 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
         }
         catch (const std::exception& e)
         {
-            LOG_W("Failed to add port \"{}\" to OpcUA client device. Error: {}", val.getName(), e.what());
+            LOG_W("Failed to add port to OpcUA client device. Error: {}", e.what());
         }
 }
 

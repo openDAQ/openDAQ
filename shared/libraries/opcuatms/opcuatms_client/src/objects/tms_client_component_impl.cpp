@@ -37,7 +37,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setActive(Bool active)
     }
     catch(...)
     {
-       auto loggerComponent = getLogger();
+        auto loggerComponent = getLogger();
         StringPtr nameObj;
         this->getName(&nameObj);
         LOG_W("Failed to set active of component \"{}\"", nameObj);

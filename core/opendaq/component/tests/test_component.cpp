@@ -10,6 +10,7 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/component_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/component_status_container_private_ptr.h>
 
 using namespace daq;
 using namespace testing;
@@ -126,10 +127,17 @@ TEST_F(ComponentTest, SerializeAndUpdate)
 
 TEST_F(ComponentTest, SerializeAndDeserialize)
 {
+    const auto ctx = NullContext();
     const auto name = "foo";
     const auto desc = "bar";
-    const auto component = Component(NullContext(), nullptr, "temp");
+    const auto component = Component(ctx, nullptr, "temp");
 
+    const auto typeManager = component.getContext().getTypeManager();
+    const auto statusType = EnumerationType("StatusType", List<IString>("Off", "On"));
+    typeManager.addType(statusType);
+    const auto statusValue = Enumeration("StatusType", "On", typeManager);
+
+    component.getStatusContainer().asPtr<IComponentStatusContainerPrivate>().addStatus("status", statusValue);
     component.setName(name);
     component.setDescription(desc);
     component.getTags().asPtr<ITagsPrivate>().add("tag");
@@ -143,7 +151,7 @@ TEST_F(ComponentTest, SerializeAndDeserialize)
 
     const auto deserializer = JsonDeserializer();
 
-    const auto deserializeContext = ComponentDeserializeContext(NullContext(), nullptr, "temp");
+    const auto deserializeContext = ComponentDeserializeContext(ctx, nullptr, "temp");
 
     const ComponentPtr newComponent = deserializer.deserialize(str1, deserializeContext, nullptr);
 
@@ -151,6 +159,7 @@ TEST_F(ComponentTest, SerializeAndDeserialize)
     ASSERT_EQ(newComponent.getDescription(), desc);
     ASSERT_EQ(newComponent.getTags(), component.getTags());
     ASSERT_EQ(newComponent.getPropertyValue("prop"), component.getPropertyValue("prop"));
+    ASSERT_EQ(newComponent.getStatusContainer().getStatuses(), component.getStatusContainer().getStatuses());
 
     const auto serializer2 = JsonSerializer(True);
     newComponent.serialize(serializer2);
@@ -198,4 +207,13 @@ TEST_F(ComponentTest, LockedProperties)
     ASSERT_EQ(component.getDescription(), "not_ignored");
     ASSERT_EQ(component.getVisible(), false);
     ASSERT_EQ(component.getActive(), true);
+}
+
+TEST_F(ComponentTest, StatusContainer)
+{
+    const auto component = Component(NullContext(), nullptr, "temp");
+
+    const auto componentStatusContainer = component.getStatusContainer();
+
+    ASSERT_TRUE(componentStatusContainer.assigned());
 }

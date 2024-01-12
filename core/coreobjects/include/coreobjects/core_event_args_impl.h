@@ -51,6 +51,8 @@ namespace core_event_args_impl
                 return "AttributeChanged";
             case core_event_ids::TagsChanged:
                 return "TagsChanged";
+            case core_event_ids::StatusChanged:
+                return "StatusChanged";
             default:
                 break;
         }

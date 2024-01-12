@@ -83,6 +83,14 @@ ErrCode EnumerationImpl::getValue(IString** value)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode EnumerationImpl::getIntValue(Int* value)
+{
+    OPENDAQ_PARAM_NOT_NULL(value);
+
+    *value = this->enumerationType.getEnumeratorIntValue(this->value);
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode EnumerationImpl::getCoreType(CoreType* coreType)
 {
     OPENDAQ_PARAM_NOT_NULL(coreType);

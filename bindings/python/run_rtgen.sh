@@ -69,6 +69,8 @@ run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     
 run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     folder_config
 run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     search_filter
 run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     component_private
+run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     component_status_container
+run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     component_status_container_private
 run_rtgen opendaq opendaq/context       opendaq opendaq/generated/context       context
 run_rtgen opendaq opendaq/device        opendaq opendaq/generated/device        device
 run_rtgen opendaq opendaq/device        opendaq opendaq/generated/device        device_domain

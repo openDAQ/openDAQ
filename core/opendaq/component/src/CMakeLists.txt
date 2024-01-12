@@ -18,6 +18,8 @@ rtgen(SRC_RecursiveSearch recursive_search.h)
 rtgen(SRC_ComponentPrivate component_private.h)
 rtgen(SRC_Tags tags.h)
 rtgen(SRC_TagsPrivate tags_private.h)
+rtgen(SRC_ComponentStatusContainer component_status_container.h)
+rtgen(SRC_ComponentStatusContainerPrivate component_status_container_private.h)
 
 source_group("component" FILES ${SDK_HEADERS_DIR}/component.h
                                ${SDK_HEADERS_DIR}/component_impl.h
@@ -53,6 +55,12 @@ source_group("tag" FILES  ${SDK_HEADERS_DIR}/tags_impl.h
                           tags_impl.cpp
 )
 
+source_group("component_status_container" FILES ${SDK_HEADERS_DIR}/component_status_container.h
+                                                ${SDK_HEADERS_DIR}/component_status_container_private.h
+                                                ${SDK_HEADERS_DIR}/component_status_container_impl.h
+                                                ${SDK_HEADERS_DIR}/component_status_container_factory.h
+                                                component_status_container_impl.cpp
+)
 
 set(SRC_Cpp 
     component_impl.cpp
@@ -60,6 +68,7 @@ set(SRC_Cpp
 	component_deserialize_context_impl.cpp
     search_filter_impl.cpp
     tags_impl.cpp
+    component_status_container_impl.cpp
 )
 
 
@@ -76,11 +85,15 @@ set(SRC_PublicHeaders
     search_filter_factory.h
     tags_factory.h
     tags_impl.h
+    component_status_container.h
+    component_status_container_factory.h
+    component_status_container_impl.h
 )
 
 set(SRC_PrivateHeaders
     search_filter_impl.h
 	tags_impl.h      
+    component_status_container_private.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PublicHeaders)
@@ -94,6 +107,8 @@ list(APPEND SRC_Cpp ${SRC_Component_Cpp}
                     ${SRC_SearchFilter_Cpp}
 					${SRC_Tags_Cpp}
 					${SRC_TagsPrivate_Cpp}
+                    ${SRC_ComponentStatusContainer_Cpp}
+                    ${SRC_ComponentStatusContainerPrivate_Cpp}
 )
 
 list(APPEND SRC_PublicHeaders ${SRC_Component_PublicHeaders}
@@ -108,6 +123,8 @@ list(APPEND SRC_PublicHeaders ${SRC_Component_PublicHeaders}
                               ${SRC_ComponentPrivate_PublicHeaders}
 							  ${SRC_Tags_PublicHeaders}
 							  ${SRC_TagsPrivate_PublicHeaders}
+                              ${SRC_ComponentStatusContainer_PublicHeaders}
+                              ${SRC_ComponentStatusContainerPrivate_PublicHeaders}
 )
 
 opendaq_add_library(${BASE_NAME} STATIC

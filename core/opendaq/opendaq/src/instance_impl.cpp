@@ -469,6 +469,11 @@ ErrCode InstanceImpl::getOnComponentCoreEvent(IEvent** event)
     return rootDevice->getOnComponentCoreEvent(event);
 }
 
+ErrCode InstanceImpl::getStatusContainer(IComponentStatusContainer** statusContainer)
+{
+    return rootDevice->getStatusContainer(statusContainer);
+}
+
 ErrCode InstanceImpl::getItems(IList** items, ISearchFilter* searchFilter)
 {
     return rootDevice->getItems(items, searchFilter);

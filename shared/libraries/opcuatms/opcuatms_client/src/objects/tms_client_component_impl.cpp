@@ -11,26 +11,45 @@ using namespace daq::opcua;
 
 template <class Impl>
 ErrCode TmsClientComponentBaseImpl<Impl>::getActive(Bool* active)
-{
-    return daqTry([&]() {
+{   
+    try
+    {
         *active = this->template readValue<IBoolean>("Active");
         return OPENDAQ_SUCCESS;
-    });
+    }
+    catch(...)
+    {
+        auto loggerComponent = getLogger();
+        StringPtr nameObj;
+        this->getName(&nameObj);
+        LOG_W("Failed to get active of component \"{}\"", nameObj);
+    }
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>
 ErrCode TmsClientComponentBaseImpl<Impl>::setActive(Bool active)
 {
-    return daqTry([&]() {
+    try
+    {
         this->template writeValue<IBoolean>("Active", active);
         return OPENDAQ_SUCCESS;
-    });
+    }
+    catch(...)
+    {
+       auto loggerComponent = getLogger();
+        StringPtr nameObj;
+        this->getName(&nameObj);
+        LOG_W("Failed to set active of component \"{}\"", nameObj);
+    }
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>
 ErrCode TmsClientComponentBaseImpl<Impl>::getTags(ITagsConfig** tags)
 {
-    return daqTry([&]() {
+    try
+    {
         ListPtr<IString> tagValues = this->template readList<IString>("Tags");
         auto tagsObj = Tags();
         for (auto tag : tagValues)
@@ -38,7 +57,15 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getTags(ITagsConfig** tags)
         tagsObj.freeze();
         *tags = tagsObj.detach();
         return OPENDAQ_SUCCESS;
-    });
+    }
+    catch(...)
+    {
+        auto loggerComponent = getLogger();
+        StringPtr nameObj;
+        this->getName(&nameObj);
+        LOG_W("Failed to get tags of component \"{}\"", nameObj);
+    }
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>
@@ -46,12 +73,17 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
 
-    return daqTry([&]
+    StringPtr nameObj;
+    try
     {
-        StringPtr nameObj =this->client->readDisplayName(this->nodeId);
-        *name = nameObj.detach();
-        return OPENDAQ_SUCCESS;
-    });
+        nameObj = this->client->readDisplayName(this->nodeId);
+    }
+    catch(...)
+    {
+        nameObj = "unknown name";
+    }
+    *name = nameObj.detach();
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Impl>
@@ -67,7 +99,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setName(IString* name)
     }
     catch(...)
     {
-        auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientComponent");
+        auto loggerComponent = getLogger();
         StringPtr nameObj;
         this->getName(&nameObj);
         LOG_W("Failed to set name of component \"{}\"", nameObj);
@@ -81,12 +113,20 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getDescription(IString** description)
 {
     OPENDAQ_PARAM_NOT_NULL(description);
 
-    return daqTry([&]
+    try
     {
         StringPtr descObj = this->client->readDescription(this->nodeId);
         *description = descObj.detach();
         return OPENDAQ_SUCCESS;
-    });
+    }
+    catch(...)
+    {
+        auto loggerComponent = getLogger();
+        StringPtr nameObj;
+        this->getName(&nameObj);
+        LOG_W("Failed to get description of component \"{}\"", nameObj);
+    }
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>
@@ -102,13 +142,18 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setDescription(IString* description)
     }
     catch(...)
     {
-        auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientComponent");
+        auto loggerComponent = getLogger();
         StringPtr descObj;
         this->getName(&descObj);
         LOG_W("Failed to set description of component \"{}\"", descObj);
     }
 
     return OPENDAQ_IGNORED;
+}
+template <class Impl>
+LoggerComponentPtr TmsClientComponentBaseImpl<Impl>::getLogger()
+{
+    return this->daqContext.getLogger().getOrAddComponent("OpcUaClientComponent"); 
 }
 
 template class TmsClientComponentBaseImpl<ComponentImpl<>>;

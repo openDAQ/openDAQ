@@ -71,9 +71,23 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateFunctionBlocks()
     }
 
     for (const auto& val : orderedFunctionBlocks)
-        this->addNestedFunctionBlock(val.second);
+        try
+        {
+            this->addNestedFunctionBlock(val.second);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add function block to OpcUA client function block. Error: {}", e.what());
+        }
     for (const auto& val : unorderedFunctionBlocks)
-        this->addNestedFunctionBlock(val);
+        try
+        {
+           this->addNestedFunctionBlock(val);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add function block to OpcUA client function block. Error: {}", e.what());
+        }
 }
 
 template <typename Impl> 
@@ -95,9 +109,23 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateSignals()
     }
     
     for (const auto& val : orderedSignals)
-        this->addSignal(val.second);
+        try
+        {
+            this->addSignal(val.second);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add signal \"{}\" to OpcUA client device. Error: {}", val.second.getName(), e.what());
+        }
     for (const auto& val : unorderedSignals)
-        this->addSignal(val);
+        try
+        {
+           this->addSignal(val);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add signal \"{}\" to OpcUA client device. Error: {}", val.getName(), e.what());
+        }
 }
 
 template <typename Impl>

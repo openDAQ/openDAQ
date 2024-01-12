@@ -23,9 +23,23 @@ TmsClientFolderImpl<Impl>::TmsClientFolderImpl(const ContextPtr& ctx,
         findAndCreateFolders(orderedComponents, unorderedComponents);
         auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
         for (const auto& val : orderedComponents)
-            thisPtr.addItem(val.second);
+            try
+            {
+                thisPtr.addItem(val.second);
+            }
+            catch (const std::exception& e)
+            {
+                LOG_W("Failed to add port \"{}\" to OpcUA client folder. Error: {}", val.second.getName(), e.what());
+            }
         for (const auto& val : unorderedComponents)
-            thisPtr.addItem(val);
+            try
+            {
+                thisPtr.addItem(val);
+            }
+            catch (const std::exception& e)
+            {
+                LOG_W("Failed to add port \"{}\" to OpcUA client folder. Error: {}", val.getName(), e.what());
+            }
     }
 }
 

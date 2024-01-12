@@ -61,6 +61,8 @@ public:
     ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
+private:
+    LoggerComponentPtr getLogger();
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

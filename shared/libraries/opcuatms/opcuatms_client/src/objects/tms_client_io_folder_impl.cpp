@@ -23,9 +23,23 @@ TmsClientIoFolderImpl::TmsClientIoFolderImpl(const ContextPtr& ctx,
 
     auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
     for (const auto& val : orderedComponents)
-        thisPtr.addItem(val.second);
+        try
+        {
+            thisPtr.addItem(val.second);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add custom component \"{}\" to OpcUA client io folder. Error: {}", val.second.getName(), e.what());
+        }
     for (const auto& val : unorderedComponents)
-        thisPtr.addItem(val);
+        try
+        {
+           thisPtr.addItem(val);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add custom component \"{}\" to OpcUA client io folder. Error: {}", val.getName(), e.what());
+        }
 }
 
 void TmsClientIoFolderImpl::findAndCreateChannels(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents)

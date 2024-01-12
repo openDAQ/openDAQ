@@ -260,9 +260,23 @@ void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
     }
 
     for (const auto& val : orderedFunctionBlocks)
-        this->addNestedFunctionBlock(val.second);
+        try
+        {
+            this->addNestedFunctionBlock(val.second);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add function block to OpcUA client device. Error: {}", e.what());
+        }
     for (const auto& val : unorderedFunctionBlocks)
-        this->addNestedFunctionBlock(val);
+        try
+        {
+           this->addNestedFunctionBlock(val);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add function block to OpcUA client device. Error: {}", e.what());
+        }
 }
 
 void TmsClientDeviceImpl::findAndCreateSignals()
@@ -282,11 +296,24 @@ void TmsClientDeviceImpl::findAndCreateSignals()
         else
             unorderedSignals.emplace_back(clientSignal);
     }
-    
     for (const auto& val : orderedSignals)
-        this->addSignal(val.second);
+        try
+        {
+            this->addSignal(val.second);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add signal \"{}\" to OpcUA client device. Error: {}", val.second.getName(), e.what());
+        }
     for (const auto& val : unorderedSignals)
-        this->addSignal(val);
+        try
+        {
+           this->addSignal(val);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add signal \"{}\" to OpcUA client device. Error: {}", val.getName(), e.what());
+        }
 }
 
 void TmsClientDeviceImpl::findAndCreateInputsOutputs()
@@ -325,9 +352,23 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
     }
 
     for (const auto& val : orderedComponents)
-        this->ioFolder.addItem(val.second);
+        try
+        {
+            this->ioFolder.addItem(val.second);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add port \"{}\" to OpcUA client device. Error: {}", val.second.getName(), e.what());
+        }
     for (const auto& val : unorderedComponents)
-        this->ioFolder.addItem(val);
+        try
+        {
+           this->ioFolder.addItem(val);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add port \"{}\" to OpcUA client device. Error: {}", val.getName(), e.what());
+        }
 }
 
 void TmsClientDeviceImpl::findAndCreateStreamingOptions()
@@ -359,11 +400,24 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
     {
         LOG_E("Failed to find 'StreamingOptions' OpcUa node: {}", e.what());
     }
-
     for (const auto& val : orderedStreamings)
-        this->streamingOptions.push_back(val.second);
+        try
+        {
+            this->ioFolder.addItem(val.second);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add port \"{}\" to OpcUA client device. Error: {}", val.second.getName(), e.what());
+        }
     for (const auto& val : unorderedStreamings)
-        this->streamingOptions.push_back(val);
+        try
+        {
+           this->ioFolder.addItem(val);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add port \"{}\" to OpcUA client device. Error: {}", val.getName(), e.what());
+        }
 }
 
 void TmsClientDeviceImpl::findAndCreateCustomComponents()
@@ -397,9 +451,23 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
     }
 
     for (const auto& val : orderedComponents)
-        this->components.push_back(val.second);
+        try
+        {
+            this->components.push_back(val.second);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add custom component \"{}\" to OpcUA client device. Error: {}", val.second.getName(), e.what());
+        }
     for (const auto& val : unorderedComponents)
-        this->components.push_back(val);
+        try
+        {
+           this->components.push_back(val);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add custom component \"{}\" to OpcUA client device. Error: {}", val.getName(), e.what());
+        }
 }
 
 FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)

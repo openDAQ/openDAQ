@@ -11,6 +11,7 @@ using namespace daq;
 using namespace daq::streaming_protocol;
 
 InputSignal::InputSignal()
+    : isDomainSignal(false)
 {
 }
 
@@ -74,6 +75,16 @@ void InputSignal::setTableId(std::string id)
 std::string InputSignal::getTableId() const
 {
     return tableId;
+}
+
+void InputSignal::setIsDomainSignal(bool value)
+{
+    isDomainSignal = value;
+}
+
+bool InputSignal::getIsDomainSignal() const
+{
+    return isDomainSignal;
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

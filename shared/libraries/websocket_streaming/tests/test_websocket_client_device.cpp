@@ -6,6 +6,7 @@
 #include <websocket_streaming/websocket_streaming_server.h>
 #include <opendaq/search_filter_factory.h>
 #include "streaming_test_helpers.h"
+#include "mock_streaming_server.h"
 
 using namespace daq;
 using namespace std::chrono_literals;
@@ -169,4 +170,51 @@ TEST_F(WebsocketClientDeviceTest, DeviceWithMultipleSignals)
     ASSERT_EQ(signals.getCount(), expectedSignalCount);
     ASSERT_NO_THROW(signals = clientDevice.getSignals(search::Recursive(search::Visible())));
     ASSERT_EQ(signals.getCount(), expectedSignalCount);
+}
+
+TEST_F(WebsocketClientDeviceTest, SignalsWithSharedDomain)
+{
+    // Create server signals
+    auto timeSignal = streaming_test_helpers::createTimeSignal(context);
+    auto dataSignal1 = streaming_test_helpers::createTestSignalWithDomain(context, "Data1", timeSignal);
+    auto dataSignal2 = streaming_test_helpers::createTestSignalWithDomain(context, "Data2", timeSignal);
+
+    // Setup and start mock test server which will publish created signals
+    auto server = std::make_shared<streaming_test_helpers::MockStreamingServer>(context);
+    server->onAccept([&]() {
+        auto signals = List<ISignal>();
+        signals.pushBack(dataSignal1);
+        signals.pushBack(timeSignal);
+        signals.pushBack(dataSignal2);
+        return signals;
+    });
+    server->start(STREAMING_PORT, CONTROL_PORT);
+
+    // Create the client device
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+
+    ASSERT_EQ(clientDevice.getSignals().getCount(), 3u);
+
+    // Check the mirrored signals
+    ASSERT_TRUE(clientDevice.getSignals()[0].getDescriptor().assigned());
+    ASSERT_TRUE(clientDevice.getSignals()[0].getDomainSignal().assigned());
+    ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDescriptor(),
+                                      dataSignal1.getDescriptor()));
+    ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDomainSignal().getDescriptor(),
+                                      dataSignal1.getDomainSignal().getDescriptor()));
+    ASSERT_EQ(clientDevice.getSignals()[0].getName(), "Data1");
+
+    ASSERT_TRUE(clientDevice.getSignals()[1].getDescriptor().assigned());
+    ASSERT_TRUE(!clientDevice.getSignals()[1].getDomainSignal().assigned());
+    ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[1].getDescriptor(),
+                                      timeSignal.getDescriptor()));
+    ASSERT_EQ(clientDevice.getSignals()[1].getName(), "Time");
+
+    ASSERT_TRUE(clientDevice.getSignals()[2].getDescriptor().assigned());
+    ASSERT_TRUE(clientDevice.getSignals()[2].getDomainSignal().assigned());
+    ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[2].getDescriptor(),
+                                      dataSignal2.getDescriptor()));
+    ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[2].getDomainSignal().getDescriptor(),
+                                      dataSignal2.getDomainSignal().getDescriptor()));
+    ASSERT_EQ(clientDevice.getSignals()[2].getName(), "Data2");
 }

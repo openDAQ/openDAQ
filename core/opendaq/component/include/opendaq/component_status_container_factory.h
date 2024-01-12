@@ -13,33 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#include <coretypes/common.h>
+#include <opendaq/context_ptr.h>
+#include <opendaq/component_status_container_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @ingroup opendaq_utility
- * @addtogroup opendaq_core_events Core Event IDs
+ * @ingroup opendaq_component_status_container
+ * @addtogroup opendaq_component_status_container_factories Factories
  * @{
  */
 
-namespace core_event_ids
+/*!
+ * @brief Creates a Component status container
+ */
+inline ComponentStatusContainerPtr ComponentStatusContainer()
 {
-    constexpr Int PropertyValueChanged = 0;
-    constexpr Int PropertyObjectUpdateEnd = 10;
-    constexpr Int PropertyAdded = 20;
-    constexpr Int PropertyRemoved = 30;
-    constexpr Int ComponentAdded = 40;
-    constexpr Int ComponentRemoved = 50;
-    constexpr Int SignalConnected = 60;
-    constexpr Int SignalDisconnected = 70;
-    constexpr Int DataDescriptorChanged = 80;
-    constexpr Int ComponentUpdateEnd = 90;
-    constexpr Int AttributeChanged = 100;
-    constexpr Int TagsChanged = 110;
-    constexpr Int StatusChanged = 120;
+    ComponentStatusContainerPtr obj(ComponentStatusContainer_Create());
+    return obj;
 }
 
 /*!@}*/

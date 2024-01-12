@@ -204,6 +204,17 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * The ID of the connected event is 110, and the event name is "TagsChanged".
  *
+ * @subsubsection opendaq_core_event_types_component_status Component status changed
+ *
+ * Triggered whenever the status of a component changes.
+ *
+ * The sender of the event is the component.
+ *
+ * The event contains the following parameters:
+ *  - The new status value encapsulated within an Enumeration object as a value and the status name as a key
+ *
+ * The ID of the event is 120, and the event name is "StatusChanged".
+ *
  * @subsection opendaq_core_event_muting Muting core events
  *
  * Components, as previously mentioned, do not trigger core events until they are connected to the root of the

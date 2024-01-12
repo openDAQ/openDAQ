@@ -14,6 +14,7 @@
 #include <opendaq/tags_private_ptr.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <opendaq/component_status_container_private_ptr.h>
 
 using namespace daq;
 
@@ -1276,7 +1277,6 @@ TEST_F(CoreEventTest, TagsChanged)
     ASSERT_EQ(changeCount, 2);
 }
 
-
 TEST_F(CoreEventTest, TagsChangedMuted)
 {
     instance.getRootDevice().asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
@@ -1298,4 +1298,81 @@ TEST_F(CoreEventTest, TagsChangedMuted)
     tagsPrivate.add("Tag2");
 
     ASSERT_EQ(changeCount, 0);
+}
+
+TEST_F(CoreEventTest, StatusChanged)
+{
+    const auto typeManager = instance.getContext().getTypeManager();
+    const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
+    typeManager.addType(statusType);
+
+    const auto statusInitValue = Enumeration("StatusType", "Status0", typeManager);
+    const auto statusValue = Enumeration("StatusType", "Status1", typeManager);
+
+    const auto device = instance.getRootDevice();
+    const auto statusContainer = device.getStatusContainer().asPtr<IComponentStatusContainerPrivate>();
+    statusContainer.addStatus("TestStatus", statusInitValue);
+
+    int changeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), core_event_ids::StatusChanged);
+        ASSERT_EQ(args.getEventName(), "StatusChanged");
+        ASSERT_TRUE(args.getParameters().hasKey("TestStatus"));
+        ASSERT_EQ(comp, instance.getRootDevice());
+        if (changeCount % 2 == 0)
+        {
+            ASSERT_EQ(args.getParameters().get("TestStatus"), statusValue);
+            ASSERT_EQ(args.getParameters().get("TestStatus"), "Status1");
+        }
+        else
+        {
+            ASSERT_EQ(args.getParameters().get("TestStatus"), statusInitValue);
+            ASSERT_EQ(args.getParameters().get("TestStatus"), "Status0");
+        }
+        changeCount++;
+    };
+
+    statusContainer.setStatus("TestStatus", statusValue);
+    statusContainer.setStatus("TestStatus", statusValue);
+    statusContainer.setStatus("TestStatus", statusInitValue);
+    statusContainer.setStatus("TestStatus", statusValue);
+
+    ASSERT_EQ(changeCount, 3);
+}
+
+TEST_F(CoreEventTest, StatusChangedMuted)
+{
+    const auto typeManager = instance.getContext().getTypeManager();
+    const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
+    typeManager.addType(statusType);
+
+    const auto statusInitValue = Enumeration("StatusType", "Status0", typeManager);
+    const auto statusValue = Enumeration("StatusType", "Status1", typeManager);
+
+    const auto device = instance.getRootDevice();
+    const auto statusContainer = device.getStatusContainer().asPtr<IComponentStatusContainerPrivate>();
+    statusContainer.addStatus("TestStatus", statusInitValue);
+
+    int changeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& /*args*/)
+    {
+        changeCount++;
+    };
+
+    device.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    statusContainer.setStatus("TestStatus", statusValue);
+    statusContainer.setStatus("TestStatus", statusValue);
+
+    device.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    statusContainer.setStatus("TestStatus", statusValue);
+    statusContainer.setStatus("TestStatus", statusInitValue);
+
+    instance.getRootDevice().asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    statusContainer.setStatus("TestStatus", statusValue);
+    statusContainer.setStatus("TestStatus", statusInitValue);
+
+    ASSERT_EQ(changeCount, 1);
 }

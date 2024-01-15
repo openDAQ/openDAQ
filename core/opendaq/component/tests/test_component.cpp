@@ -25,7 +25,7 @@ TEST_F(ComponentTest, ID)
     auto parent = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("parent"), nullptr));
     auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), parent, StringPtr("child"), nullptr));
 
-    ASSERT_EQ(comp.getGlobalId(), "parent/child");
+    ASSERT_EQ(comp.getGlobalId(), "/parent/child");
     ASSERT_EQ(comp.getLocalId(), "child");
 }
 

@@ -115,7 +115,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     if (parent.assigned())
         globalId = parent.getGlobalId().toStdString() + "/" + static_cast<std::string>(localId);
     else
-        globalId = localId;
+        globalId = "/" + localId;
 
     if (!context.assigned())
         throw InvalidParameterException{"Context must be assigned on component creation"};

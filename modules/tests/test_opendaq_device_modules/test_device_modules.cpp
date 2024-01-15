@@ -61,6 +61,23 @@ TEST_F(DeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(channels.getCount(), 2u);
 }
 
+TEST_F(DeviceModulesTest, RemoteGlobalIds)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    const auto clientRootId = client.getGlobalId();
+    const auto serverDeviceId = server.getGlobalId(); 
+    const auto clientDeviceId = client.getDevices()[0].getGlobalId(); 
+
+    const auto serverSignalId = server.getSignalsRecursive()[0].getGlobalId();
+    const auto clientSignalId = client.getSignalsRecursive()[0].getGlobalId();
+
+    ASSERT_EQ(clientDeviceId, clientRootId + "/Dev" + serverDeviceId);
+    ASSERT_EQ(clientSignalId, clientRootId + "/Dev" + serverSignalId);
+}
+
 TEST_F(DeviceModulesTest, GetSetDeviceProperties)
 {
     SKIP_TEST_MAC_CI;

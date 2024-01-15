@@ -3,7 +3,6 @@
 #include <coretypes/coretype_traits.h>
 #include <coretypes/impl.h>
 #include <coretypes/ctutils.h>
-#include <coretypes/coretype_traits.h>
 #include <spdlog/sinks/msvc_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>

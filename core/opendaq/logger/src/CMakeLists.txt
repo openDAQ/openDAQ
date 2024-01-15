@@ -30,7 +30,9 @@ source_group("component" FILES ${SDK_HEADERS_DIR}/logger_component.h
 source_group("sink" FILES ${SDK_HEADERS_DIR}/logger_sink.h
                             ${SDK_HEADERS_DIR}/logger_sink_factory.h
                             ${SDK_HEADERS_DIR}/logger_sink_impl.h
+                            ${SDK_HEADERS_DIR}/logger_sink_last_message_impl.h
                             logger_sink_impl.cpp
+                            logger_sink_last_message_impl.cpp
 )
 
 source_group("threadpool" FILES ${SDK_HEADERS_DIR}/logger_thread_pool.h
@@ -44,6 +46,7 @@ set(SRC_Cpp log.cpp
             logger_impl.cpp
             logger_component_impl.cpp
             logger_sink_impl.cpp
+            logger_sink_last_message_impl.cpp
             logger_thread_pool_impl.cpp
 )
 
@@ -60,6 +63,7 @@ set(SRC_PublicHeaders log.h
 set(SRC_PrivateHeaders logger_impl.h
                        logger_component_impl.h
                        logger_sink_impl.h
+                       logger_sink_last_message_impl.h
                        logger_thread_pool_private.h
                        logger_thread_pool_impl.h
 )

@@ -21,7 +21,7 @@ class TestPropertySystem(opendaq_test.TestCase):
 
         property_object.set_property_value('property1', 'value')
         property_object.set_property_value('property2', 3)
-
+             
         self.assertEqual(
             property_object.get_property_value('property1'), 'value')
         self.assertEqual(property_object.get_property_value('property2'), 3)
@@ -94,14 +94,14 @@ class TestPropertySystem(opendaq_test.TestCase):
         property_object = opendaq.PropertyObject()
         child1 = opendaq.PropertyObject()
         child2 = opendaq.PropertyObject()
-
-        property_object.add_property(
-            opendaq.ObjectProperty(opendaq.String('child'), child1))
-        child1.add_property(opendaq.ObjectProperty(
-            opendaq.String('child'), child2))
+        
         child2.add_property(opendaq.IntProperty(opendaq.String(
             'property1'), opendaq.Integer(10), opendaq.Boolean(True)))
-
+        child1.add_property(opendaq.ObjectProperty(
+            opendaq.String('child'), child2))
+        property_object.add_property(
+            opendaq.ObjectProperty(opendaq.String('child'), child1))
+        
         self.assertEqual(property_object.get_property_value(
             'child.child.property1'), 10)
 
@@ -315,16 +315,15 @@ class TestPropertySystem(opendaq_test.TestCase):
 
     def test_nested_objects(self):
         property_object = opendaq.PropertyObject()
-
         child1 = opendaq.PropertyObject()
-        property_object.add_property(
-            opendaq.ObjectProperty(opendaq.String('child'), child1))
-
         child2 = opendaq.PropertyObject()
+        
         child2.add_property(opendaq.StringProperty(opendaq.String(
             'property'), opendaq.String('value'), opendaq.Boolean(True)))
         child1.add_property(opendaq.ObjectProperty(
             opendaq.String('child'), child2))
+        property_object.add_property(
+            opendaq.ObjectProperty(opendaq.String('child'), child1))
 
         property_object.set_property_value('child.child.property', 'val')
         self.assertEqual(property_object.get_property_value(

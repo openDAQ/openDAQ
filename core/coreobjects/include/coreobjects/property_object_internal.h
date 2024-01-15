@@ -16,6 +16,7 @@
 
 #pragma once
 #include <coreobjects/property.h>
+#include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -33,6 +34,8 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC disableCoreEventTrigger() = 0;
     virtual ErrCode INTERFACE_FUNC getCoreEventTrigger(IProcedure** trigger) = 0;
     virtual ErrCode INTERFACE_FUNC setCoreEventTrigger(IProcedure* trigger) = 0;
+    virtual ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) = 0;
+    virtual ErrCode INTERFACE_FUNC setPath(IString* path) = 0;
 };
 
 /*!@}*/

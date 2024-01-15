@@ -16,6 +16,24 @@ Description:
 +  [interface] IComponentDeserializeContext: public IBaseObject
 +  [interface] IDeserializeComponent: public IBaseObject
 
+16.01.2024
+Nested object-type property enhancement
+  - Object-type property default values are now frozen when added to Property objects 
+  - Said default values are cloned as local values that can be modified by users
+  - Property object core events now contain the path to the property if the property is contained within a nested property object
+
++ [function] IPropertyObjectInternal::clone(IPropertyObject** cloned)
++ [function] IPropertyObjectInternal::setPath(IString* path)
+-m [factory] CoreEventArgsPtr CoreEventArgsPropertyValueChanged(const PropertyObjectPtr& propOwner, const StringPtr& propName, const BaseObjectPtr& value)
++m [factory] CoreEventArgsPtr CoreEventArgsPropertyValueChanged(const PropertyObjectPtr& propOwner, const StringPtr& propName, const BaseObjectPtr& value, const StringPtr& path)
+-m [factory] CoreEventArgsPtr CoreEventArgsPropertyObjectUpdateEnd(const PropertyObjectPtr& propOwner, const DictPtr<IString, IBaseObject>& updatedProperties)
++m [factory] CoreEventArgsPtr CoreEventArgsPropertyObjectUpdateEnd(const PropertyObjectPtr& propOwner, const DictPtr<IString, IBaseObject>& updatedProperties, const StringPtr& path)
+-m [factory] CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyObjectPtr& propOwner, const PropertyPtr& prop)
++m [factory] CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyObjectPtr& propOwner, const PropertyPtr& prop, const StringPtr& path)
+-m [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName)
++m [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName, const StringPtr& path)
+
+
 12.01.2024
 Description:
 Search filters, visible flag, component attributes

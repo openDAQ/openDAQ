@@ -71,7 +71,7 @@ daq::DevicePtr TmsClient::connect()
 
         if (packageVersion != OPENDAQ_PACKAGE_VERSION)
         {
-            LOG_I("Connected to openDAQ OPC UA server with different version. Client version: {}, server version: {}",
+            LOG_D("Connected to openDAQ OPC UA server with different version. Client version: {}, server version: {}",
                   OPENDAQ_PACKAGE_VERSION,
                   packageVersion);
         }
@@ -79,7 +79,7 @@ daq::DevicePtr TmsClient::connect()
 
     const auto endTime = std::chrono::steady_clock::now();
     const auto connectTime = std::chrono::duration<double>(endTime - startTime);
-    LOG_I("Connected to penDAQ OPC UA server {}. Connect took {:.2f} s.", opcUaUrl, connectTime.count());
+    LOG_D("Connected to penDAQ OPC UA server {}. Connect took {:.2f} s.", opcUaUrl, connectTime.count());
     return device;
 }
 

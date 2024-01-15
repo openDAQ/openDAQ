@@ -101,9 +101,7 @@ protected:
         auto propObj = daq::PropertyObject();
         propObj->addProperty(daq::BoolProperty("boolprop", daq::True));
 
-        fb->addProperty(daq::ObjectProperty("objprop", daq::PropertyObject()));
-
-        fb->setPropertyValue("objprop", propObj);
+        fb->addProperty(daq::ObjectProperty("objprop", propObj));
     }
 
     daq::MockFunctionBlock::Strict fb;

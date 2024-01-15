@@ -371,11 +371,17 @@ WARNING: The Selection Property getter cannot use the "dot" notation at this mom
 Object type Properties can only have their Name, Description, Visible, Read-only and Default
 value configured, where the Default value is mandatory.
 
-IMPORTANT: Object Properties behave slightly differently than other Property types in that
-their Default Values do not get frozen when the Property is added to a Property Object 
-(they do get frozen when added to a <<#object_class, Property Object Class>>, or if the 
-Object Property is Read-only). As such, Properties of the Default Value Property Object 
-can be modified even after being added to a Property Object.
+IMPORTANT: Object properties, as all other Property types get frozen once added to a Property
+Object. The notable exception is that locally, the object (default value) is cloned and cached. 
+When the Property value of the Object-type Property is read, the cloned object is returned instead 
+of the default value. This cloned object is not frozen, allowing for the any Properties of 
+the child Property Object to be modified. The same behaviour is applied when a Property Object 
+is created from a Property Object Class - all Object-type properties of the class are cloned.
+
+Notably, by default, all Object properties are read-only. Read-only object-type properties
+cannot be wholly replaced, but the child property values of the object can still be modified.
+The "Clear property value" method will work on object-type properties, even if the object
+is read-only.
 
 .Object Properties example
 
@@ -389,9 +395,11 @@ auto propObj = PropertyObject();
 auto child1 = PropertyObject();
 auto child2 = PropertyObject();
 
-propObj.addProperty(ObjectProperty("Child", child1));
-child1.addProperty(ObjectProperty("Child", child2));
+// The order below is important, as "child1" and "child2" are frozen once 
+// used as default property values.
 child2.addProperty(StringProperty("String", "foo"));
+child1.addProperty(ObjectProperty("Child", child2));
+propObj.addProperty(ObjectProperty("Child", child1));
 
 // Prints out the value of the "String" Property of child2
 std::cout << propObj.getPropertyValue("Child.Child.String") << std::endl;
@@ -404,12 +412,15 @@ propObj = opendaq.PropertyObject()
 child1 = opendaq.PropertyObject()
 child2 = opendaq.PropertyObject()
 
-propObj.add_property(opendaq.ObjectProperty(
-    opendaq.String('Child'), child1))
-child1.add_property(opendaq.ObjectProperty(
-    opendaq.String('Child'), child2))
+# The order below is important, as "child1" and "child2" are frozen once 
+# used as default property values.
+
 child2.add_property(opendaq.StringProperty(opendaq.String(
     'String'), opendaq.String('foo'), opendaq.Boolean(True)))
+child1.add_property(opendaq.ObjectProperty(
+    opendaq.String('Child'), child2))
+propObj.add_property(opendaq.ObjectProperty(
+    opendaq.String('Child'), child1))
 
 # Prints out the value of the "String" Property of child2
 print(propObj.get_property_value('Child.Child.String'))
@@ -1114,13 +1125,12 @@ Cpp::
 [source,cpp]
 ----
 auto propObj = PropertyObject();
-
 auto child1 = PropertyObject();
-propObj.addProperty(ObjectProperty("Child", child1));
-
 auto child2 = PropertyObject();
+
 child2.addProperty(StringProperty("String", "foo"));
 child1.addProperty(ObjectProperty("Child", child2));
+propObj.addProperty(ObjectProperty("Child", child1));
 
 propObj.setPropertyValue("Child.Child.String", "bar");
 
@@ -1132,16 +1142,15 @@ Python::
 [source,python]
 ----
 propObj = opendaq.PropertyObject()
-
 child1 = opendaq.PropertyObject()
-propObj.add_property(opendaq.ObjectProperty(
-    opendaq.String('Child'), child1))
-
 child2 = opendaq.PropertyObject()
+
 child2.add_property(opendaq.StringProperty(opendaq.String(
     'String'), opendaq.String('foo'), opendaq.Boolean(True)))
 child1.add_property(opendaq.ObjectProperty(
     opendaq.String('Child'), child2))
+propObj.add_property(opendaq.ObjectProperty(
+    opendaq.String('Child'), child1))
 
 propObj.set_property_value(
     'Child.Child.String', opendaq.String('bar'))

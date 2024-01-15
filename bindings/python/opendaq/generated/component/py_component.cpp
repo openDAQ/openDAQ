@@ -124,7 +124,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             objectPtr.setVisible(visible);
         },
-        "Gets `visible` metadata state of the component");
+        "Gets `visible` metadata state of the component / Sets `visible` attribute state of the component");
     cls.def_property_readonly("locked_attributes",
         [](daq::IComponent *object)
         {
@@ -132,7 +132,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
             return objectPtr.getLockedAttributes().detach();
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Gets a list of the component's locked attributes. The locked attributes cannot be modified via their respective setters.");
     /*
     cls.def_property_readonly("on_component_core_event",
         [](daq::IComponent *object)
@@ -141,6 +141,6 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
             return objectPtr.getOnComponentCoreEvent().detach();
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Gets the Core Event object that triggers whenever a change to this component happens within the openDAQ core structure.");
     */
 }

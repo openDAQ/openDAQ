@@ -20,7 +20,7 @@ TmsClientFunctionImpl::TmsClientFunctionImpl(const TmsClientContextPtr& ctx,
 ErrCode TmsClientFunctionImpl::call(IBaseObject* args, IBaseObject** result)
 {
     // TODO: Return more specific error depending on OPC UA status code
-    return daqTry([&]()
+    ErrCode errCode = daqTry([&]()
     {
         auto argsPtr = BaseObjectPtr::Borrow(args);
         OpcUaCallMethodRequest callRequest;
@@ -48,6 +48,7 @@ ErrCode TmsClientFunctionImpl::call(IBaseObject* args, IBaseObject** result)
         *result = VariantConverter<IBaseObject>::ToDaqObject(OpcUaVariant(callResult->outputArguments[0]), daqContext).detach();
         return OPENDAQ_SUCCESS;
     });
+    return errCode == OPENDAQ_SUCCESS ? OPENDAQ_SUCCESS : OPENDAQ_IGNORED;
 }
 
 ErrCode TmsClientFunctionImpl::getCoreType(CoreType* coreType)

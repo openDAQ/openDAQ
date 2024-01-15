@@ -65,8 +65,7 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateFunctionBlocks()
         }
         catch(...)
         {
-            // TODO: Log failure to add function/procedure.
-            continue;
+            LOG_W("Failed to create function block \"{}\" to OpcUA client device", browseName);
         }
     }
 
@@ -100,12 +99,19 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateSignals()
 
     for (const auto& [signalNodeId, ref] : references.byNodeId)
     {
-        auto clientSignal = FindOrCreateTmsClientSignal(this->context, this->signals, this->clientContext, signalNodeId);
-        const auto numberInList = this->tryReadChildNumberInList(signalNodeId);
-        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedSignals.count(numberInList))
-            orderedSignals.insert(std::pair<uint32_t, SignalPtr>(numberInList, clientSignal));
-        else
-            unorderedSignals.emplace_back(clientSignal);
+        try
+        {
+            auto clientSignal = FindOrCreateTmsClientSignal(this->context, this->signals, this->clientContext, signalNodeId);
+            const auto numberInList = this->tryReadChildNumberInList(signalNodeId);
+            if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedSignals.count(numberInList))
+                orderedSignals.insert(std::pair<uint32_t, SignalPtr>(numberInList, clientSignal));
+            else
+                unorderedSignals.emplace_back(clientSignal);
+        } 
+        catch (...)
+        {
+            LOG_W("Failed to create signal to OPC UA client");
+        }
     }
     
     for (const auto& val : orderedSignals)
@@ -162,21 +168,42 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateInputPorts()
 
     for (const auto& [browseName, ref] : references.byBrowseName)
     {
-        const auto inputPortNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+        try
+        {
+             const auto inputPortNodeId = OpcUaNodeId(ref->nodeId.nodeId);
 
-        auto clientInputPort = TmsClientInputPort(this->context, this->inputPorts, browseName,  this->clientContext, inputPortNodeId);
+            auto clientInputPort = TmsClientInputPort(this->context, this->inputPorts, browseName,  this->clientContext, inputPortNodeId);
 
-        const auto numberInList = this->tryReadChildNumberInList(inputPortNodeId);
-        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedInputPorts.count(numberInList))
-            orderedInputPorts.insert(std::pair<uint32_t, InputPortPtr>(numberInList, clientInputPort));
-        else
-            unorderedInputPorts.emplace_back(clientInputPort);
+            const auto numberInList = this->tryReadChildNumberInList(inputPortNodeId);
+            if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedInputPorts.count(numberInList))
+                orderedInputPorts.insert(std::pair<uint32_t, InputPortPtr>(numberInList, clientInputPort));
+            else
+                unorderedInputPorts.emplace_back(clientInputPort);
+        }
+        catch(...)
+        {
+            LOG_W("Failed to find and create input port \"{}\" to OpcUA client", browseName);
+        }
     }
-    
+
     for (const auto& val : orderedInputPorts)
-        this->addInputPort(val.second);
+        try
+        {
+            this->addInputPort(val.second);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add input port \"{}\" to OpcUA client. Error: {}", val.second.getName(), e.what());
+        }
     for (const auto& val : unorderedInputPorts)
-        this->addInputPort(val);
+        try
+        {
+           this->addInputPort(val);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add input port \"{}\" to OpcUA client. Error: {}", val.getName(), e.what());
+        }
 }
 
 template <typename Impl>

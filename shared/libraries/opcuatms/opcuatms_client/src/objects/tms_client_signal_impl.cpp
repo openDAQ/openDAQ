@@ -47,9 +47,9 @@ ErrCode TmsClientSignalImpl::setPublic(Bool valPublic)
 
 ErrCode TmsClientSignalImpl::getDescriptor(IDataDescriptor** descriptor)
 {
-    return daqTry([&]() {
-        *descriptor = nullptr;
-
+    *descriptor = nullptr;
+    try
+    {
         if (descriptorNodeId)
         {
             OpcUaVariant opcUaVariant = client->readValue(*descriptorNodeId);
@@ -57,11 +57,15 @@ ErrCode TmsClientSignalImpl::getDescriptor(IDataDescriptor** descriptor)
             {
                 DataDescriptorPtr descriptorPtr = VariantConverter<IDataDescriptor, DataDescriptorPtr>::ToDaqObject(opcUaVariant);
                 *descriptor = descriptorPtr.addRefAndReturn();
+                return OPENDAQ_SUCCESS;
             }
         }
-
-        return OPENDAQ_SUCCESS;
-    });
+    }
+    catch (...)
+    {
+        LOG_W("Failed to get descriptor on Opc UA client signal");
+    }
+    return OPENDAQ_IGNORED;
 }
 
 ErrCode TmsClientSignalImpl::setDescriptor(IDataDescriptor* /*descriptor*/)
@@ -76,6 +80,11 @@ ErrCode TmsClientSignalImpl::getDomainSignal(ISignal** signal)
 
     *signal = signalPtr.detach();
 
+    if (errCode != OPENDAQ_SUCCESS)
+    {
+        LOG_W("Failed to get domain signal on Opc Ua client signal");
+        return OPENDAQ_IGNORED;
+    }
     return errCode;
 }
 
@@ -86,7 +95,11 @@ SignalPtr TmsClientSignalImpl::onGetDomainSignal()
     filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
     const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);
-    assert(references.byNodeId.size() <= 1);
+    if (references.byNodeId.size() > 1)
+    {
+        LOG_W("Opc UA client signal has multiple domain signals");
+        throw ValidateFailedException("Opc UA client signal has multiple domain signals");
+    }
 
     if (!references.byNodeId.empty())
     {
@@ -107,6 +120,11 @@ ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
     ListPtr<ISignal> signalsPtr;
     ErrCode errCode = wrapHandlerReturn(this, &TmsClientSignalImpl::onGetRelatedSignals, signalsPtr);
     *signals = signalsPtr.detach();
+    if (errCode != OPENDAQ_SUCCESS)
+    {
+        LOG_W("Failed to get related signals on Opc Ua client signal");
+        return OPENDAQ_IGNORED;
+    }
     return errCode;
 }
 
@@ -167,13 +185,20 @@ ErrCode TmsClientSignalImpl::getLastValue(IBaseObject** value)
 
     auto readValueFunction = [this](IBaseObject** value, const std::string& nodeName)
         {
-            const auto valueNodeId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, nodeName);
-            OpcUaVariant opcUaVariant = client->readValue(*valueNodeId);
-            if (!opcUaVariant.isNull())
+            try
             {
-                BaseObjectPtr valuePtr = VariantConverter<IBaseObject, BaseObjectPtr>::ToDaqObject(opcUaVariant);
-                *value = valuePtr.addRefAndReturn();
-                return OPENDAQ_SUCCESS;
+                const auto valueNodeId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, nodeName);
+                OpcUaVariant opcUaVariant = client->readValue(*valueNodeId);
+                if (!opcUaVariant.isNull())
+                {
+                    BaseObjectPtr valuePtr = VariantConverter<IBaseObject, BaseObjectPtr>::ToDaqObject(opcUaVariant);
+                    *value = valuePtr.addRefAndReturn();
+                    return OPENDAQ_SUCCESS;
+                }
+            }
+            catch (...)
+            {
+                LOG_W("Failed to get last value on Opc Ua clieng signal");
             }
             return OPENDAQ_IGNORED;
         };

@@ -88,20 +88,41 @@ void TmsClientDeviceImpl::findAndCreateSubdevices()
 
     for (const auto& [browseName, ref] : references.byBrowseName)
     {
-        auto subdeviceNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-        auto clientSubdevice = TmsClientDevice(context, devices, browseName, clientContext, subdeviceNodeId, createStreamingCallback);
-                    
-        auto numberInList = this->tryReadChildNumberInList(subdeviceNodeId);
-        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedDevices.count(numberInList))
-            orderedDevices.insert(std::pair<uint32_t, ComponentPtr>(numberInList, clientSubdevice));
-        else
-            unorderedDevices.emplace_back(clientSubdevice);
+        try
+        {
+            auto subdeviceNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+            auto clientSubdevice = TmsClientDevice(context, devices, browseName, clientContext, subdeviceNodeId, createStreamingCallback);
+                        
+            auto numberInList = this->tryReadChildNumberInList(subdeviceNodeId);
+            if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedDevices.count(numberInList))
+                orderedDevices.insert(std::pair<uint32_t, ComponentPtr>(numberInList, clientSubdevice));
+            else
+                unorderedDevices.emplace_back(clientSubdevice);
+        }
+        catch(...)
+        {
+            LOG_W("Failed to find and create subdevice \"{}\" to OpcUA client", browseName);
+        }
     }
 
     for (const auto& val : orderedDevices)
-        addSubDevice(val.second);
+        try
+        {
+            addSubDevice(val.second);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add subdevice \"{}\" to OpcUA client device. Error: {}", val.second.getName(), e.what());
+        }
     for (const auto& val : unorderedDevices)
-        addSubDevice(val);
+        try
+        {
+           addSubDevice(val);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to add subdevice \"{}\" to OpcUA client device. Error: {}", val.getName(), e.what());
+        }
 }
 
 DevicePtr TmsClientDeviceImpl::onAddDevice(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
@@ -255,18 +276,18 @@ void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
         }
         catch(...)
         {
-            // TODO: Log failure to add fb
+            LOG_W("Failed to create function block \"{}\" to OpcUA client device", browseName);
         }
     }
 
-    for (const auto& val : orderedFunctionBlocks)
+    for (const auto& [_, val] : orderedFunctionBlocks)
         try
         {
-            this->addNestedFunctionBlock(val.second);
+            this->addNestedFunctionBlock(val);
         }
         catch (const std::exception& e)
         {
-            LOG_W("Failed to add function block to OpcUA client device. Error: {}", e.what());
+            LOG_W("Failed to add function block \"{}\" to OpcUA client device. Error: {}", val.getLocalId(), e.what());
         }
     for (const auto& val : unorderedFunctionBlocks)
         try
@@ -275,7 +296,7 @@ void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
         }
         catch (const std::exception& e)
         {
-            LOG_W("Failed to add function block to OpcUA client device. Error: {}", e.what());
+            LOG_W("Failed to add function block \"{}\" to OpcUA client device. Error: {}", val.getLocalId(), e.what());
         }
 }
 
@@ -289,12 +310,20 @@ void TmsClientDeviceImpl::findAndCreateSignals()
 
     for (const auto& [signalNodeId, ref] : references.byNodeId)
     {
-        auto clientSignal = FindOrCreateTmsClientSignal(context, signals, clientContext, signalNodeId);
-        const auto numberInList = this->tryReadChildNumberInList(signalNodeId);
-        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedSignals.count(numberInList))
-            orderedSignals.insert(std::pair<uint32_t, SignalPtr>(numberInList, clientSignal));
-        else
-            unorderedSignals.emplace_back(clientSignal);
+        try
+        {
+            auto clientSignal = FindOrCreateTmsClientSignal(context, signals, clientContext, signalNodeId);
+            const auto numberInList = this->tryReadChildNumberInList(signalNodeId);
+            if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedSignals.count(numberInList))
+                orderedSignals.insert(std::pair<uint32_t, SignalPtr>(numberInList, clientSignal));
+            else
+                unorderedSignals.emplace_back(clientSignal);
+        }
+        catch (...)
+        {
+            LOG_W("Failed to find signal to OpcUA client device");
+        }
+       
     }
     for (const auto& val : orderedSignals)
         try
@@ -327,28 +356,42 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
 
     for (const auto& [browseName, ref] : channelreferences.byBrowseName)
     {
-        const auto channelNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-        auto tmsClientChannel = TmsClientChannel(context, this->ioFolder, browseName, clientContext, channelNodeId);
+        try
+        {
+            const auto channelNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+            auto tmsClientChannel = TmsClientChannel(context, this->ioFolder, browseName, clientContext, channelNodeId);
 
-        auto numberInList = this->tryReadChildNumberInList(channelNodeId);
-        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
-            orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientChannel));
-        else
-            unorderedComponents.emplace_back(tmsClientChannel);
+            auto numberInList = this->tryReadChildNumberInList(channelNodeId);
+            if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
+                orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientChannel));
+            else
+                unorderedComponents.emplace_back(tmsClientChannel);
+        }
+        catch (...)
+        {
+            LOG_W("Failed to find channel \"{}\" to OpcUA client device", browseName);
+        }
     }
 
     const auto& folderReferences = getChildReferencesOfType(inputsOutputsNodeId, OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_IOCOMPONENTTYPE));
 
     for (const auto& [browseName, ref] : folderReferences.byBrowseName)
     {
-        const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-        auto tmsClientFolder = TmsClientIoFolder(context, this->ioFolder, browseName, clientContext, folderNodeId);
+        try
+        {
+            const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+            auto tmsClientFolder = TmsClientIoFolder(context, this->ioFolder, browseName, clientContext, folderNodeId);
 
-        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
-        if (numberInList != std::numeric_limits<uint32_t>::max())
-            orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientFolder));
-        else
-            unorderedComponents.emplace_back(tmsClientFolder);
+            auto numberInList = this->tryReadChildNumberInList(folderNodeId);
+            if (numberInList != std::numeric_limits<uint32_t>::max())
+                orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientFolder));
+            else
+                unorderedComponents.emplace_back(tmsClientFolder);
+        }
+        catch (...)
+        {
+            LOG_W("Failed to find io folder \"{}\" to OpcUA client device", browseName);
+        }
     }
 
     for (const auto& val : orderedComponents)
@@ -430,24 +473,31 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
 
     for (const auto& [browseName, ref] : folderReferences.byBrowseName)
     {
-        const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+        try
+        {
+            const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
 
-        if (detail::defaultComponents.count(browseName))
-            continue;
+            if (detail::defaultComponents.count(browseName))
+                continue;
 
-        const auto& componentReferences = getChildReferencesOfType(folderNodeId, componentId);
+            const auto& componentReferences = getChildReferencesOfType(folderNodeId, componentId);
 
-        ComponentPtr child;
-        if (!componentReferences.byNodeId.empty())
-            child = TmsClientFolder(context, this->thisPtr<ComponentPtr>(), browseName, clientContext, folderNodeId);
-        else
-            child = TmsClientComponent(context, this->thisPtr<ComponentPtr>(), browseName, clientContext, folderNodeId);
-    
-        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
-        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
-            orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, child));
-        else
-            unorderedComponents.push_back(child);
+            ComponentPtr child;
+            if (!componentReferences.byNodeId.empty())
+                child = TmsClientFolder(context, this->thisPtr<ComponentPtr>(), browseName, clientContext, folderNodeId);
+            else
+                child = TmsClientComponent(context, this->thisPtr<ComponentPtr>(), browseName, clientContext, folderNodeId);
+        
+            auto numberInList = this->tryReadChildNumberInList(folderNodeId);
+            if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
+                orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, child));
+            else
+                unorderedComponents.push_back(child);
+        }
+        catch (...)
+        {
+            LOG_W("Failed to find channel  \"{}\" to OpcUA client device", browseName);
+        }
     }
 
     for (const auto& val : orderedComponents)

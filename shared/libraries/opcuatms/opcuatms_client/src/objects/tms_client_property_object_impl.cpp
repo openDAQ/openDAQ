@@ -22,10 +22,15 @@ using namespace opcua;
 template <class Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite)
 {
-    return daqTry(
+    ErrCode errCode = daqTry(
         [&]()
         {
-            if (const auto& it = introspectionVariableIdMap.find((StringPtr) propertyName); it != introspectionVariableIdMap.cend())
+            if (propertyName == nullptr)
+                throw ArgumentNullException("Can not set property for nullptr name");
+            
+            StringPtr propertyNamePtr = StringPtr::Borrow(propertyName);
+
+            if (const auto& it = introspectionVariableIdMap.find(propertyNamePtr); it != introspectionVariableIdMap.cend())
             {
                 if (protectedWrite)
                 {
@@ -41,19 +46,21 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
                 return OPENDAQ_SUCCESS;
             }
 
-            if (const auto& it = referenceVariableIdMap.find((StringPtr) propertyName); it != referenceVariableIdMap.cend())
+            if (const auto& it = referenceVariableIdMap.find(propertyNamePtr); it != referenceVariableIdMap.cend())
             {
                 const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
                 return setPropertyValue(refProp.getName(), value);
             }
 
-            if (const auto& it = objectTypeIdMap.find((StringPtr) propertyName); it != objectTypeIdMap.cend())
+            if (const auto& it = objectTypeIdMap.find(propertyNamePtr); it != objectTypeIdMap.cend())
             {
+                LOG_W("Object type properties cannot be set over OPC UA client");
                 return this->makeErrorInfo(OPENDAQ_ERR_NOTIMPLEMENTED, "Object type properties cannot be set over OPC UA");
             }
-
+            LOG_W("Property with name \"{}\" is not found", propertyNamePtr.toStdString());
             return OPENDAQ_ERR_NOTFOUND;
         });
+    return errCode == OPENDAQ_SUCCESS ? OPENDAQ_SUCCESS : OPENDAQ_IGNORED;
 }
 
 template <class Impl>
@@ -82,7 +89,10 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setProtectedProper
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
-    return daqTry([&]() {
+    ErrCode errCode = daqTry([&]() {
+        if (propertyName == nullptr)
+            throw ArgumentNullException("Can not get property for nullptr name");
+
         if (const auto& introIt = introspectionVariableIdMap.find((StringPtr) propertyName); introIt != introspectionVariableIdMap.cend())
         {
             const auto variant = client->readValue(introIt->second);
@@ -102,6 +112,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
 
         return Impl::getPropertyValue(propertyName, value);
     });
+    return errCode == OPENDAQ_SUCCESS ? OPENDAQ_SUCCESS : OPENDAQ_IGNORED;
 }
 
 template <typename Impl>

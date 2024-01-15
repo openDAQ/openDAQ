@@ -121,7 +121,10 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 
     deviceInfo = DeviceInfo("");
 
-    const auto& references = clientContext->getReferenceBrowser()->browse(nodeId);
+    auto browseFilter = BrowseFilter();
+    browseFilter.nodeClass = UA_NODECLASS_VARIABLE;
+    const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, browseFilter);
+
     auto reader = AttributeReader(client, clientContext->getMaxNodesPerRead());
 
     for (const auto& [browseName, ref] : references.byBrowseName)

@@ -104,11 +104,14 @@ void AttributeReader::addBatchToResultMap(tsl::ordered_set<OpcUaAttribute>::iter
     for (size_t i = 0; i < response->resultsSize; i++)
     {
         const auto& attr = *attrIterator;
+        const auto& result = response->results[i];
 
         if (resultMap.count(attr.nodeId) == 0)
             resultMap[attr.nodeId] = {};
 
-        resultMap[attr.nodeId][attr.attributeId] = OpcUaVariant(response->results[i].value);
+        if (result.status == UA_STATUSCODE_GOOD)
+            resultMap[attr.nodeId][attr.attributeId] = OpcUaVariant(result.value);
+
         attrIterator++;
     }
 }

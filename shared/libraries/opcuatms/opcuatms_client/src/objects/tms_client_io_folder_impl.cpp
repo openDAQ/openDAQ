@@ -14,6 +14,8 @@ TmsClientIoFolderImpl::TmsClientIoFolderImpl(const ContextPtr& ctx,
                                              const TmsClientContextPtr& clientContext,
                                              const opcua::OpcUaNodeId& nodeId)
     : TmsClientFolderImpl<IoFolderImpl>(ctx, parent, localId, clientContext, nodeId, true)
+    , loggerComponent(this->daqContext.getLogger().assigned() ? this->daqContext.getLogger().getOrAddComponent("OpcUaClientIoFolder")
+                                                              : throw ArgumentNullException("Logger must not be null"))
 {
     std::map<uint32_t, ComponentPtr> orderedComponents;
     std::vector<ComponentPtr> unorderedComponents;

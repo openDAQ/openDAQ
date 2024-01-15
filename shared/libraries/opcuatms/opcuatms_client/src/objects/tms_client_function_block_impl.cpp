@@ -20,6 +20,8 @@ TmsClientFunctionBlockBaseImpl<Impl>::TmsClientFunctionBlockBaseImpl(
     const OpcUaNodeId& nodeId
 )
     : TmsClientComponentBaseImpl<Impl>(context, parent, localId, clientContext, nodeId, nullptr)
+    , loggerComponent(this->daqContext.getLogger().assigned() ? this->daqContext.getLogger().getOrAddComponent("OpcUaClientFunctionBlock")
+                                                              : throw ArgumentNullException("Logger must not be null"))
 {
     clientContext->readObjectAttributes(nodeId);
 

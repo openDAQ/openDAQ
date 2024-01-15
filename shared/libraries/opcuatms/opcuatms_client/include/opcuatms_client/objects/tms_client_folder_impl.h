@@ -32,6 +32,8 @@ public:
                                  bool customFolderType);
 private:
     void findAndCreateFolders(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents);
+
+    LoggerComponentPtr loggerComponent;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

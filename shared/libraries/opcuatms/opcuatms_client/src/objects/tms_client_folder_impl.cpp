@@ -15,6 +15,8 @@ TmsClientFolderImpl<Impl>::TmsClientFolderImpl(const ContextPtr& ctx,
                                                const opcua::OpcUaNodeId& nodeId,
                                                bool customFolderType)
     : TmsClientComponentBaseImpl<Impl>(ctx, parent, localId, clientContext, nodeId)
+    , loggerComponent(this->daqContext.getLogger().assigned() ? this->daqContext.getLogger().getOrAddComponent("OpcUaClientFolder")
+                                                              : throw ArgumentNullException("Logger must not be null"))
 {
     if (!customFolderType)
     {

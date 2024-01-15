@@ -333,6 +333,9 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(const OpcUaNodeI
         const auto typeId = OpcUaNodeId(ref->typeDefinition.nodeId);
         const auto propName = String(utils::ToStdString(ref->browseName.name));
 
+        if (isIgnoredMethodPeoperty(propName))
+            continue;
+
         Bool hasProp;
         daq::checkErrorInfo(Impl::hasProperty(propName, &hasProp));
 
@@ -422,6 +425,12 @@ void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
     for (const auto& val : functionPropValues)
         daq::checkErrorInfo(Impl::setProtectedPropertyValue(String(val.first), val.second));
 
+}
+
+template <class Impl>
+bool TmsClientPropertyObjectBaseImpl<Impl>::isIgnoredMethodPeoperty(const std::string& browseName)
+{
+    return browseName == "BeginUpdate" || browseName == "EndUpdate";
 }
 
 template class TmsClientPropertyObjectBaseImpl<PropertyObjectImpl>;

@@ -121,6 +121,7 @@ protected:
                              std::vector<PropertyPtr>& unorderedProperties,
                              std::unordered_map<std::string, BaseObjectPtr>& functionPropValues);
     void browseRawProperties();
+    bool isIgnoredMethodPeoperty(const std::string& browseName);
     ErrCode INTERFACE_FUNC setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite);
 };
 

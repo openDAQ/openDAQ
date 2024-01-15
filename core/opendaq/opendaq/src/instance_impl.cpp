@@ -77,7 +77,10 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
 
     auto connectionString = builderPtr.getRootDevice();
     if (connectionString.assigned() && connectionString.getLength())
-        rootDevice = detail::createDevice(connectionString, nullptr, nullptr, moduleManager, nullptr);    
+    {
+        rootDevice = detail::createDevice(connectionString, nullptr, nullptr, moduleManager, loggerComponent);
+        rootDeviceSet = true;
+    }
     else
         rootDevice = defaultRootDevice;
 

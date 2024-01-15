@@ -811,7 +811,7 @@ TEST_F(TmsPropertyObjectAdvancedTest, GainScalingStructure)
 
     const auto logger = Logger();
     const auto serverProp =
-        std::make_shared<TmsServerPropertyObject>(obj, server, Context(nullptr, logger, manager, nullptr));
+        std::make_shared<TmsServerPropertyObject>(obj, server, Context(nullptr, logger, manager, nullptr), serverContext);
     const auto nodeId = serverProp->registerOpcUaNode();
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);

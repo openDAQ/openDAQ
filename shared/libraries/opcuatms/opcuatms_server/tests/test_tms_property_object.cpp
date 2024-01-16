@@ -96,7 +96,7 @@ TEST_F(TmsPropertyObjectTest, OnPropertyValueChangeEvent)
             waitForChangeEvent.set_value();
         });
 
-    propertyObject.setPropertyValue("IntProp", 1);
+    propertyObject.setPropertyValue("IntProp", 2);
 
     auto future = waitForChangeEvent.get_future();
     ASSERT_NE(future.wait_for(2s), std::future_status::timeout);

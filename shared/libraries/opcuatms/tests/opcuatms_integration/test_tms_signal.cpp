@@ -52,8 +52,8 @@ public:
         // Build server signal
         auto serverSignal = SignalWithDescriptor(NullContext(), serverDataDescriptor, nullptr, "sig");
         serverSignal->setActive(true);
-        serverSignal.getTags().add("tag1");
-        serverSignal.getTags().add("tag2");
+        serverSignal.getTags().asPtr<ITagsPrivate>().add("tag1");
+        serverSignal.getTags().asPtr<ITagsPrivate>().add("tag2");
 
         return serverSignal;
     }

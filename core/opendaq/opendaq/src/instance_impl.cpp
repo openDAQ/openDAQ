@@ -444,7 +444,7 @@ ErrCode InstanceImpl::setDescription(IString* description)
     return rootDevice->setDescription(description);
 }
 
-ErrCode InstanceImpl::getTags(ITagsConfig** tags)
+ErrCode InstanceImpl::getTags(ITags** tags)
 {
     return rootDevice->getTags(tags);
 }

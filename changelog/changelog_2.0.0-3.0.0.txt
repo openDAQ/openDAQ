@@ -1,3 +1,17 @@
+23.1.2024
+Description:
+	- Change ITagsConfig to ITagsPrivate and remove inheritance
+	- Add TagsChanged core event
+	- Make Tags changeable after creation (Tags are no longer freezable)
+	
+-m [interface] ITagsConfig : public ITags
++m [interface] ITagsPrivate : public IBaseObject
+- [factory] inline TagsConfigPtr TagsCopy(TagsPtr tags)
+-m [factory] inline TagsConfigPtr Tags()
++m [factory] inline TagsPtr Tags()
+-m [function] IComponent::getTags(ITagsConfig** tags)
+-m [function] IComponent::getTags(ITags** tags)
+
 22.1.2024
 Description:
   - Support for external deserialization factory

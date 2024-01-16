@@ -21,6 +21,7 @@
 #include "opendaq/data_descriptor_ptr.h"
 #include "open62541/daqbt_nodeids.h"
 #include "open62541/daqbsp_nodeids.h"
+#include "open62541/daqhbk_nodeids.h"
 #include "open62541/nodeids.h"
 #include "opendaq/function_block_type_ptr.h"
 
@@ -172,6 +173,8 @@ namespace converters
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IInteger>::ToDaqObject(var, context); }},
         {OpcUaNodeId(0, UA_NS0ID_STRING),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IString>::ToDaqObject(var, context); }},
+        {OpcUaNodeId(NAMESPACE_DAQHBK, UA_DAQHBKID_EXCITATIONTYPEENUMERATION),
+         [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IInteger>::ToDaqObject(var, context); }},
         {OpcUaNodeId(0, UA_NS0ID_LOCALIZEDTEXT),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IString>::ToDaqObject(var, context); }},
         {OpcUaNodeId(0, UA_NS0ID_QUALIFIEDNAME),

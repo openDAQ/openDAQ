@@ -78,12 +78,15 @@ namespace VariantUtils
                 return ReadScalar<UA_UInt16>(value);
             case UA_TYPES_INT32:
                 return ReadScalar<UA_Int32>(value);
+            case UA_TYPES_ENUMERATION:
+                return ReadScalar<UA_Int32>(value);
             case UA_TYPES_UINT32:
                 return ReadScalar<UA_UInt32>(value);
             case UA_TYPES_INT64:
                 return ReadScalar<UA_Int64>(value);
             case UA_TYPES_UINT64:
                 return ReadScalar<UA_UInt64>(value);
+
             default:
                 throw std::runtime_error("Type not supported!");
         }

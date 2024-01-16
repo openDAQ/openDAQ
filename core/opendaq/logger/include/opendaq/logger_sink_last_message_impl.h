@@ -13,27 +13,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#pragma once
 #include <coretypes/string_ptr.h>
-#include <spdlog/spdlog.h>
 #include <spdlog/sinks/base_sink.h>
+#include <mutex>
 
-BEGIN_NAMESPACE_OPENDAQ
+namespace spdlog {
+namespace sinks {
 
 // TODO: add logger sink private
 template<typename Mutex>
-class LastMessageSink : public spdlog::sinks::base_sink<Mutex>
+class LoggerSinkLastMessage : public base_sink<Mutex>
 {
-    protected:
-        void sink_it_(const spdlog::details::log_msg& msg) override;
-        void flush_() override;
+protected:
+    // base_sink();
+    // explicit base_sink(std::unique_ptr<spdlog::formatter> formatter);
 
-    public:
-        // TODO: override from logger sink private
-        ErrCode getLastMessage(IString** lastMessage);
+    // set_level(level::level_enum::debug);
+    void sink_it_(const details::log_msg& msg) override
+    {
+        std::lock_guard lock(mx);
+        lastMessage = fmt::to_string(msg.payload);
+    }
 
-    private:
-        StringPtr lastMessage;
+    void flush_() override
+    {
+    }
+
+public:
+    daq::ErrCode getLastMessage(daq::IString** lastMessage)
+    {
+        OPENDAQ_PARAM_NOT_NULL(lastMessage);
+
+        std::lock_guard lock(mx);
+        *lastMessage = this->lastMessage.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+private:
+    std::mutex mx;
+    daq::StringPtr lastMessage;
 };
 
-END_NAMESPACE_OPENDAQ
+using LoggerSinkLastMessageMt = LoggerSinkLastMessage<std::mutex>;
+using LoggerSinkLastMessageSt = LoggerSinkLastMessage<spdlog::details::null_mutex>;
+
+} // namespace sinks
+} // namespace spdlog

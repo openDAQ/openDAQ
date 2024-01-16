@@ -441,7 +441,7 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
     }
     catch (const std::exception& e)
     {
-        LOG_E("Failed to find 'StreamingOptions' OpcUa node: {}", e.what());
+        LOG_W("Failed to find 'StreamingOptions' OpcUa node: {}", e.what());
     }
     for (const auto& val : orderedStreamings)
         try

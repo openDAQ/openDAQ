@@ -17,26 +17,30 @@
 #include <opendaq/logger_sink_last_message_impl.h>
 #include <coretypes/validation.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+namespace spdlog {
+namespace sinks {
 
-template<typename Mutex>
-void LastMessageSink<Mutex>::sink_it_(const spdlog::details::log_msg& msg)
-{
-    lastMessage = fmt::to_string(msg.payload);
-}
+// template<typename Mutex>
+// void LoggerSinkLastMessage<Mutex>::sink_it_(const details::log_msg& msg)
+// {
+//     std::lock_guard lock(mx);
+//     lastMessage = fmt::to_string(msg.payload);
+// }
 
-template<typename Mutex>
-void LastMessageSink<Mutex>::flush_()
-{
-}
+// template<typename Mutex>
+// void LoggerSinkLastMessage<Mutex>::flush_()
+// {
+// }
 
-template<typename Mutex>
-ErrCode LastMessageSink<Mutex>::getLastMessage(IString** lastMessage)
-{
-    OPENDAQ_PARAM_NOT_NULL(lastMessage);
+// template<typename Mutex>
+// daq::ErrCode LoggerSinkLastMessage<Mutex>::getLastMessage(daq::IString** lastMessage)
+// {
+//     OPENDAQ_PARAM_NOT_NULL(lastMessage);
 
-    *lastMessage = this->lastMessage.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
+//     std::lock_guard lock(mx);
+//     *lastMessage = this->lastMessage.addRefAndReturn();
+//     return OPENDAQ_SUCCESS;
+// }
 
-END_NAMESPACE_OPENDAQ
+} // namespace sinks
+} // namespace spdlog

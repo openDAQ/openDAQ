@@ -6,6 +6,8 @@
 #include <spdlog/sinks/msvc_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <opendaq/logger_sink_last_message_impl.h>
+
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -45,6 +47,13 @@ LoggerSinkImpl<spdlog::sinks::basic_file_sink_mt>::LoggerSinkImpl(IString* fileN
     : LoggerSinkImpl<void>(std::make_shared<spdlog::sinks::basic_file_sink_mt>(toFileName(fileName)))
 {
 }
+
+// LoggerSinkImpl<LoggerSinkLastMessageMt>::LoggerSinkImpl()
+//     : LoggerSinkImpl<void>(
+//         std::make_shared<LoggerSinkLastMessageMt>()
+//       )
+// {
+// }
 
 LoggerSinkBase::LoggerSinkBase(SinkPtr&& sink)
     : sink(sink)
@@ -188,5 +197,12 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
 )
 
 #endif
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
+    LIBRARY_FACTORY,
+    LoggerSinkImpl<spdlog::sinks::LoggerSinkLastMessageMt>,
+    ILoggerSink,
+    createLastMessageLoggerSink
+)
 
 END_NAMESPACE_OPENDAQ

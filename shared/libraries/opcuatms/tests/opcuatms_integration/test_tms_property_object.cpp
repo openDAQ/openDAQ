@@ -64,13 +64,24 @@ public:
         return object;
     }
 
+    static LoggerPtr createLoggerWithDebugSink(LoggerSinkPtr sink)
+    {
+        sink.setLevel(LogLevel::Debug);
+        auto sinks = DefaultSinks(nullptr);
+        sinks.pushBack(sink);
+        return LoggerWithSinks(sinks);
+    }
+
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)
     {
-        auto serverProp = std::make_shared<TmsServerPropertyObject>(prop, server, NullContext());
+        auto serverProp = std::make_shared<TmsServerPropertyObject>(prop, server, NullContext(createLoggerWithDebugSink(serverDebugSink)));
         auto nodeId = serverProp->registerOpcUaNode();
-        auto clientProp = TmsClientPropertyObject(NullContext(), clientContext, nodeId);
+        auto clientProp = TmsClientPropertyObject(NullContext(createLoggerWithDebugSink(clientDebugSink)), clientContext, nodeId);
         return {serverProp, clientProp};
     }
+
+    LoggerSinkPtr serverDebugSink = LastMessageLoggerSink();
+    LoggerSinkPtr clientDebugSink = LastMessageLoggerSink();
 };
 
 TEST_F(TmsPropertyObjectTest, Create)

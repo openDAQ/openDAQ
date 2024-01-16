@@ -105,7 +105,7 @@ TEST_F(CoreEventTest, PropertyChangedNested)
     };
 
     obj1.setPropertyValue("string", "bar");
-    obj2.setPropertyValue("string", "foo");
+    obj2.setPropertyValue("string", "bar");
 
     ASSERT_EQ(callCount, 2);
 }

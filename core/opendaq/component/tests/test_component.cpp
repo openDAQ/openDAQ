@@ -132,7 +132,7 @@ TEST_F(ComponentTest, SerializeAndDeserialize)
 
     component.setName(name);
     component.setDescription(desc);
-    component.getTags().add("tag");
+    component.getTags().asPtr<ITagsPrivate>().add("tag");
 
     component.addProperty(IntPropertyBuilder("prop", 2).build());
     component.setPropertyValue("prop", 3);

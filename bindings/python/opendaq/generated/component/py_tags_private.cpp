@@ -28,30 +28,27 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
-PyDaqIntf<daq::ITagsConfig, daq::ITags> declareITagsConfig(pybind11::module_ m)
+PyDaqIntf<daq::ITagsPrivate, daq::IBaseObject> declareITagsPrivate(pybind11::module_ m)
 {
-    return wrapInterface<daq::ITagsConfig, daq::ITags>(m, "ITagsConfig");
+    return wrapInterface<daq::ITagsPrivate, daq::IBaseObject>(m, "ITagsPrivate");
 }
 
-void defineITagsConfig(pybind11::module_ m, PyDaqIntf<daq::ITagsConfig, daq::ITags> cls)
+void defineITagsPrivate(pybind11::module_ m, PyDaqIntf<daq::ITagsPrivate, daq::IBaseObject> cls)
 {
-    cls.doc() = "";
-
-    m.def("Tags", &daq::Tags_Create);
-    m.def("TagsFromExisting", &daq::TagsFromExisting_Create);
+    cls.doc() = "Private interface to component tags. Allows for adding/removing tags.";
 
     cls.def("add",
-        [](daq::ITagsConfig *object, const std::string& name)
+        [](daq::ITagsPrivate *object, const std::string& name)
         {
-            const auto objectPtr = daq::TagsConfigPtr::Borrow(object);
+            const auto objectPtr = daq::TagsPrivatePtr::Borrow(object);
             objectPtr.add(name);
         },
         py::arg("name"),
         "Adds a new tag to the list.");
     cls.def("remove",
-        [](daq::ITagsConfig *object, const std::string& name)
+        [](daq::ITagsPrivate *object, const std::string& name)
         {
-            const auto objectPtr = daq::TagsConfigPtr::Borrow(object);
+            const auto objectPtr = daq::TagsPrivatePtr::Borrow(object);
             objectPtr.remove(name);
         },
         py::arg("name"),

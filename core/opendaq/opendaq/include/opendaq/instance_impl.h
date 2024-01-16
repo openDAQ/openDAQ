@@ -91,7 +91,7 @@ public:
     ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
-    ErrCode INTERFACE_FUNC getTags(ITagsConfig** tags) override;
+    ErrCode INTERFACE_FUNC getTags(ITags** tags) override;
     ErrCode INTERFACE_FUNC getVisible(Bool* visible) override;
     ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;

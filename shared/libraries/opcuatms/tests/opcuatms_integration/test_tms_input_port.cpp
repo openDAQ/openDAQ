@@ -28,7 +28,7 @@ public:
     {
         auto ip = InputPort(NullContext(), nullptr, name);
         ip.setRequiresSignal(requiresSignal);
-        ip.getTags().add("port");
+        ip.getTags().asPtr<ITagsPrivate>().add("port");
         return ip;
     }
 };

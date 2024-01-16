@@ -125,7 +125,7 @@ TEST_F(ConfigProtocolSerializationTest, Component)
 
     component.setName(name);
     component.setDescription(desc);
-    component.getTags().add("tag");
+    component.getTags().asPtr<ITagsPrivate>().add("tag");
 
     const auto serializer = JsonSerializer(True);
     component.serialize(serializer);
@@ -174,12 +174,12 @@ TEST_F(ConfigProtocolSerializationTest, FolderWithComponent)
     const auto folder = Folder(ctx, nullptr, "folder");
     folder.setName("folder_name");
     folder.setDescription("folder_desc");
-    folder.getTags().add("folder_tag");
+    folder.getTags().asPtr<ITagsPrivate>().add("folder_tag");
 
     const auto component = Component(ctx, folder, "component");
     component.setName("comp_name");
     component.setDescription("comp_desc");
-    component.getTags().add("comp_tag");
+    component.getTags().asPtr<ITagsPrivate>().add("comp_tag");
 
     folder.addItem(component);
 
@@ -239,12 +239,12 @@ TEST_F(ConfigProtocolSerializationTest, IoFolderWithComponent)
     const auto folder = IoFolder(ctx, nullptr, "folder");
     folder.setName("folder_name");
     folder.setDescription("folder_desc");
-    folder.getTags().add("folder_tag");
+    folder.getTags().asPtr<ITagsPrivate>().add("folder_tag");
 
     const auto subFolder = IoFolder(ctx, folder, "subfolder");
     subFolder.setName("sfld_name");
     subFolder.setDescription("sfld_desc");
-    subFolder.getTags().add("sfld_tag");
+    subFolder.getTags().asPtr<ITagsPrivate>().add("sfld_tag");
 
     folder.addItem(subFolder);
 
@@ -294,7 +294,7 @@ TEST_F(ConfigProtocolSerializationTest, InputPort)
     const auto inputPort = InputPort(NullContext(), nullptr, "ip");
 
     inputPort.setName("ip_name");
-    inputPort.getTags().add("tag");
+    inputPort.getTags().asPtr<ITagsPrivate>().add("tag");
 
     const auto serializer = JsonSerializer(True);
     inputPort.serialize(serializer);
@@ -342,7 +342,7 @@ TEST_F(ConfigProtocolSerializationTest, Signal)
     const auto signal = Signal(NullContext(), nullptr, "sig");
 
     signal.setName("sig_name");
-    signal.getTags().add("sig_tag");
+    signal.getTags().asPtr<ITagsPrivate>().add("sig_tag");
 
     const auto serializer = JsonSerializer(True);
     signal.serialize(serializer);
@@ -407,7 +407,7 @@ TEST_F(ConfigProtocolSerializationTest, FunctionBlock)
     const auto fb = createWithImplementation<IFunctionBlock, MockFbImpl>(NullContext(), nullptr, "fb", false);
     fb.setName("fb_name");
     fb.setDescription("fb_desc");
-    fb.getTags().add("fld_tag");
+    fb.getTags().asPtr<ITagsPrivate>().add("fld_tag");
 
     const auto serializer = JsonSerializer(True);
     fb.serialize(serializer);
@@ -493,7 +493,7 @@ TEST_F(ConfigProtocolSerializationTest, Channel)
     const auto ch = createWithImplementation<IChannel, MockChannel>(NullContext(), nullptr, "ch");
     ch.setName("fb_name");
     ch.setDescription("fb_desc");
-    ch.getTags().add("fld_tag");
+    ch.getTags().asPtr<ITagsPrivate>().add("fld_tag");
 
     const auto serializer = JsonSerializer(True);
     ch.serialize(serializer);

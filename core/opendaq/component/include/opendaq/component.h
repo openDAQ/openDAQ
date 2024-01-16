@@ -18,7 +18,7 @@
 
 #include <opendaq/context.h>
 #include <coreobjects/property_object.h>
-#include <opendaq/tags_config.h>
+#include <opendaq/tags.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -78,7 +78,8 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
     /*!
      * @brief Sets the component to be either active or inactive.
      * @param active The new active state of the component.
-     * @retval OPENDAQ_IGNORED if "Active" is part of the component's list of locked attributes.
+     * @retval OPENDAQ_IGNORED if "Active" is part of the component's list of locked attributes,
+     * or if the new active value is equal to the previous.
      *
      * An active component acquires data, performs calculations and send packets on the signal path.
      */
@@ -111,7 +112,8 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
     /*!
      * @brief Sets the name of the component.
      * @param name The name of the component.
-     * @retval OPENDAQ_IGNORED if "Name" is part of the component's list of locked attributes.
+     * @retval OPENDAQ_IGNORED if "Name" is part of the component's list of locked attributes,
+     * or if the new name value is equal to the previous.
      *
      * The object that implements this interface defines how the name is specified.
      */
@@ -128,7 +130,8 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
     /*!
      * @brief Sets the description of the component.
      * @param description The description of the component.
-     * @retval OPENDAQ_IGNORED if "Description" is part of the component's list of locked attributes.
+     * @retval OPENDAQ_IGNORED if "Description" is part of the component's list of locked attributes,
+     * or if the new description value is equal to the previous.
      *
      * The object that implements this interface defines how the description is specified.
      */
@@ -140,7 +143,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
      *
      * Tags are user definable labels that can be attached to the component.
      */
-    virtual ErrCode INTERFACE_FUNC getTags(ITagsConfig** tags) = 0;
+    virtual ErrCode INTERFACE_FUNC getTags(ITags** tags) = 0;
 
     /*!
      * @brief Gets `visible` metadata state of the component

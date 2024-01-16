@@ -11,6 +11,7 @@
 #include <opendaq/folder_config_ptr.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/signal_factory.h>
+#include <opendaq/tags_private_ptr.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>
 
@@ -1213,4 +1214,88 @@ TEST_F(CoreEventTest, RelatedSignalsChanged)
     sig.removeRelatedSignal(relatedSig3);
 
     ASSERT_EQ(changeCount, 4);
+}
+
+TEST_F(CoreEventTest, NameDescriptionChanged)
+{
+    int changeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventId(), core_event_ids::AttributeChanged);
+            ASSERT_EQ(args.getEventName(), "AttributeChanged");
+            changeCount++;
+        };
+
+    instance.setName("name1");
+    instance.setName("name1");
+    instance.setName("name2");
+    
+    instance.setDescription("desc1");
+    instance.setDescription("desc1");
+    instance.setDescription("desc2");
+
+    instance.getRootDevice().asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    instance.setName("name1");
+    instance.setName("name2");
+    
+    instance.setDescription("desc1");
+    instance.setDescription("desc2");
+
+    instance.getRootDevice().asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    instance.setName("name1");
+    instance.setName("name1");
+    instance.setName("name2");
+    
+    instance.setDescription("desc1");
+    instance.setDescription("desc1");
+    instance.setDescription("desc2");
+
+    ASSERT_EQ(changeCount, 8);
+}
+TEST_F(CoreEventTest, TagsChanged)
+{
+    int changeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventId(), core_event_ids::TagsChanged);
+            ASSERT_EQ(args.getEventName(), "TagsChanged");
+            changeCount++;
+        };
+
+    const auto tagsPrivate = instance.getTags().asPtr<ITagsPrivate>();
+
+    tagsPrivate.add("Tag1");
+    tagsPrivate.add("Tag1");
+    tagsPrivate.add("Tag2");
+    tagsPrivate.add("Tag2");
+
+    ASSERT_EQ(changeCount, 2);
+}
+
+
+TEST_F(CoreEventTest, TagsChangedMuted)
+{
+    instance.getRootDevice().asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    int changeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventId(), core_event_ids::TagsChanged);
+            ASSERT_EQ(args.getEventName(), "TagsChanged");
+            changeCount++;
+        };
+
+    const auto tagsPrivate = instance.getTags().asPtr<ITagsPrivate>();
+
+    tagsPrivate.add("Tag1");
+    tagsPrivate.add("Tag1");
+    tagsPrivate.add("Tag2");
+    tagsPrivate.add("Tag2");
+
+    ASSERT_EQ(changeCount, 0);
 }

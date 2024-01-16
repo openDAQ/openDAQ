@@ -10,6 +10,7 @@
 #include <opendaq/logger_factory.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/signal_factory.h>
+#include <opendaq/tags_private_ptr.h>
 #include <open62541/daqbsp_nodeids.h>
 #include <test_input_port_notifications.h>
 
@@ -23,7 +24,7 @@ public:
     InputPortPtr createInputPort()
     {
         auto port = InputPort(ctx, nullptr, "port");
-        port.getTags().add("port");
+        port.getTags().asPtr<ITagsPrivate>().add("port");
         return port;
     }
 };

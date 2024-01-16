@@ -23,7 +23,8 @@
 #include <coreobjects/property_object_impl.h>
 #include <opendaq/component_ptr.h>
 #include <coretypes/weakrefptr.h>
-#include <opendaq/tags_factory.h>
+#include <opendaq/tags_private_ptr.h>
+#include <opendaq/tags_ptr.h>
 #include <opendaq/search_filter_ptr.h>
 #include <opendaq/folder_ptr.h>
 #include <mutex>
@@ -35,6 +36,7 @@
 #include <coreobjects/core_event_args_impl.h>
 #include <opendaq/recursive_search_ptr.h>
 #include <opendaq/component_private_ptr.h>
+#include <opendaq/tags_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -61,7 +63,7 @@ public:
     virtual ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     virtual ErrCode INTERFACE_FUNC setDescription(IString* description) override;
-    ErrCode INTERFACE_FUNC getTags(ITagsConfig** tags) override;
+    ErrCode INTERFACE_FUNC getTags(ITags** tags) override;
     ErrCode INTERFACE_FUNC getVisible(Bool* visible) override;
     virtual ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
     ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) override;
@@ -103,7 +105,7 @@ protected:
     bool isComponentRemoved;
     WeakRefPtr<IComponent> parent;
     StringPtr localId;
-    TagsConfigPtr tags;
+    TagsPrivatePtr tags;
     StringPtr globalId;
     EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
     
@@ -153,7 +155,11 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
       , isComponentRemoved(false)
       , parent(parent)
       , localId(localId)
-      , tags(Tags())
+      , tags(createWithImplementation<ITagsPrivate, TagsImpl>([&](const CoreEventArgsPtr& args)
+          {
+              if (!this->coreEventMuted)
+                  triggerCoreEvent(args);
+          }))
       , visible(true)
       , active(true)
       , name(localId)
@@ -293,6 +299,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
     {
         std::scoped_lock lock(sync);
 
+        if (StringPtr namePtr = name; this->name == namePtr)
+            return OPENDAQ_IGNORED;
+
         if (lockedAttributes.count("Name"))
         {
             if (context.assigned() && context.getLogger().assigned())
@@ -307,7 +316,6 @@ ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
         }
 
         this->name = name;
-        
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -339,6 +347,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
     {
         std::scoped_lock lock(sync);
 
+        if (StringPtr descriptionPtr = description; this->description == descriptionPtr)
+            return OPENDAQ_IGNORED;
+
         if (lockedAttributes.count("Description"))
         {
             if (context.assigned() && context.getLogger().assigned())
@@ -367,11 +378,11 @@ ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
 }
 
 template <class Intf, class ... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::getTags(ITagsConfig** tags)
+ErrCode ComponentImpl<Intf, Intfs...>::getTags(ITags** tags)
 {
     OPENDAQ_PARAM_NOT_NULL(tags);
 
-    *tags = this->tags.addRefAndReturn();
+    *tags = this->tags.template asPtr<ITags>().addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -827,7 +838,7 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         serializer.writeString(name);
     }
 
-    if (!tags.getList().empty())
+    if (!tags.asPtr<ITags>().getList().empty())
     {
         serializer.key("tags");
         tags.serialize(serializer);

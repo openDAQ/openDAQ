@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <opendaq/tags_config_ptr.h>
+#include <opendaq/tags_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -28,17 +28,9 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief Creates a new Tags object with an empty list of tags.
  */
-inline TagsConfigPtr Tags()
+inline TagsPtr Tags()
 {
-    return TagsConfigPtr(Tags_Create());
-}
-
-/*!
- * @brief Creates a new Tags object with the same tags as the other one.
- */
-inline TagsConfigPtr TagsCopy(TagsPtr tags)
-{
-    return TagsConfigPtr(TagsFromExisting_Create(tags));
+    return TagsPtr(Tags_Create());
 }
 
 /*!@}*/

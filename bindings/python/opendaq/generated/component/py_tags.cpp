@@ -37,6 +37,8 @@ void defineITags(pybind11::module_ m, PyDaqIntf<daq::ITags, daq::IBaseObject> cl
 {
     cls.doc() = "List of string tags. Provides helpers to get and search the list of tags.";
 
+    m.def("Tags", &daq::Tags_Create);
+
     cls.def_property_readonly("list",
         [](daq::ITags *object)
         {

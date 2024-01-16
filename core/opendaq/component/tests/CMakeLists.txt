@@ -4,6 +4,7 @@ set(MODULE_NAME component)
 set(TEST_SOURCES
     test_component.cpp
     test_folder.cpp
+    test_tags.cpp
     test_component_deserialize_context.cpp
 )
 

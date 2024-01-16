@@ -22,6 +22,12 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
+ * @ingroup opendaq_core_events
+ * @addtogroup opendaq_core_events_factories Factories
+ * @{
+ */
+
+/*!
  * @brief Creates Core event args that are passed as argument when a new component is added as a child.
  * @param component The added component.
  *
@@ -118,5 +124,18 @@ inline CoreEventArgsPtr CoreEventArgsAttributeChanged(const StringPtr& attribute
     return obj;
 }
 
+/*!
+ * @brief Creates Core event args that are passed as argument when a tag is added/removed from a component.
+ * @param tags The list of tags (as strings).
+ *
+ * The ID of the event is 110, and the event name is "TagsChanged".
+ */
+inline CoreEventArgsPtr CoreEventArgsTagsChanged(const ListPtr<IString>& tags)
+{
+    CoreEventArgsPtr obj(CoreEventArgsTagsChanged_Create(tags));
+    return obj;
+}
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

@@ -195,6 +195,15 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * The ID of the event is 100, and the event name is "AttributeChanged".
  *
+ * @subsubsection opendaq_core_event_types_tags_changed Tags changed
+ *
+ * Triggered when a tag of the sender component was added or removed.
+ *
+ * The event contains the following parameters:
+ *  - The list of tags (list of string) under the key "Tags"
+ *
+ * The ID of the connected event is 110, and the event name is "TagsChanged".
+ *
  * @subsection opendaq_core_event_muting Muting core events
  *
  * Components, as previously mentioned, do not trigger core events until they are connected to the root of the

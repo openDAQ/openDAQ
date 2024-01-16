@@ -34,8 +34,8 @@ public:
         obj.addProperty(IntProperty("int", 0));
         leafFolder.addProperty(ObjectProperty("obj", obj));
 
-        folder1.getTags().add("tag1");
-        folder2.getTags().add("tag2");
+        folder1.getTags().asPtr<ITagsPrivate>().add("tag1");
+        folder2.getTags().asPtr<ITagsPrivate>().add("tag2");
 
         return folder1;
     }

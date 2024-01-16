@@ -15,9 +15,11 @@
  */
 #pragma once
 #include <coretypes/string_ptr.h>
+#include <coretypes/validation.h>
 #include <spdlog/sinks/base_sink.h>
 #include <mutex>
 #include <condition_variable>
+#include <chrono>
 
 namespace spdlog {
 namespace sinks {
@@ -51,7 +53,7 @@ public:
     daq::ErrCode waitForMessage(daq::SizeT timeoutMs, daq::Bool* success)
     {
         std::unique_lock lock(mx);
-        auto result = cv.wait_for(lock, std::chrono_literals::milliseconds(timeoutMs), [this]{ return newMessage; });
+        auto result = cv.wait_for(lock, std::chrono::milliseconds(timeoutMs), [this]{ return newMessage; });
         newMessage = false;
         return result;
     }

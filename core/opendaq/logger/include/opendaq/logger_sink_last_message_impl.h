@@ -17,6 +17,7 @@
 #include <coretypes/string_ptr.h>
 #include <spdlog/sinks/base_sink.h>
 #include <mutex>
+#include <condition_variable>
 
 namespace spdlog {
 namespace sinks {
@@ -26,14 +27,11 @@ template<typename Mutex>
 class LoggerSinkLastMessage : public base_sink<Mutex>
 {
 protected:
-    // base_sink();
-    // explicit base_sink(std::unique_ptr<spdlog::formatter> formatter);
-
-    // set_level(level::level_enum::debug);
     void sink_it_(const details::log_msg& msg) override
     {
         std::lock_guard lock(mx);
         lastMessage = fmt::to_string(msg.payload);
+        newMessage = true;
     }
 
     void flush_() override
@@ -50,8 +48,18 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    daq::ErrCode waitForMessage(daq::SizeT timeoutMs, daq::Bool* success)
+    {
+        std::unique_lock lock(mx);
+        auto result = cv.wait_for(lock, std::chrono_literals::milliseconds(timeoutMs), [this]{ return newMessage; });
+        newMessage = false;
+        return result;
+    }
+
 private:
     std::mutex mx;
+    std::condition_variable cv;
+    bool newMessage = false;
     daq::StringPtr lastMessage;
 };
 

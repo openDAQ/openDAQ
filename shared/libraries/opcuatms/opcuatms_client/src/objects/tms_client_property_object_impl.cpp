@@ -175,35 +175,21 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(I
 template <class Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::beginUpdate()
 {
-
     if (!hasReference("BeginUpdate"))
         return OPENDAQ_SUCCESS;
 
-    const auto beginUpdateId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "BeginUpdate");
-
-
+    const auto beginUpdateId = getNodeId("BeginUpdate");
     OpcUaCallMethodRequest request;
     request->inputArgumentsSize = 0;
     request->objectId = nodeId.getValue();
     request->methodId = beginUpdateId.getValue();
-
     client->callMethod(request);
     return OPENDAQ_SUCCESS;
-    const auto response = client->callMethod(request);
-    const auto success = response->statusCode == UA_STATUSCODE_GOOD;
-    
-    return (success) ? OPENDAQ_SUCCESS : OPENDAQ_ERR_GENERALERROR;
 }
 
 template <class Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::endUpdate()
 {
-
-    if (!hasReference("EndUpdate"))
-        return OPENDAQ_SUCCESS;
-
-    const auto endUpdateId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "EndUpdate");
-
     if (!hasReference("EndUpdate"))
         return OPENDAQ_SUCCESS;
 
@@ -212,10 +198,8 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::endUpdate()
     request->inputArgumentsSize = 0;
     request->objectId = nodeId.getValue();
     request->methodId = endUpdateId.getValue();
-    const auto response = client->callMethod(request);
-    const auto success = response->statusCode == UA_STATUSCODE_GOOD;
-
-    return (success) ? OPENDAQ_SUCCESS : OPENDAQ_ERR_GENERALERROR;
+    client->callMethod(request);
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Impl>

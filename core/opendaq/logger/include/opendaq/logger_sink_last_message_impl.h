@@ -31,9 +31,13 @@ class LoggerSinkLastMessage : public base_sink<Mutex>
 protected:
     void sink_it_(const details::log_msg& msg) override
     {
-        std::lock_guard lock(mx);
-        lastMessage = fmt::to_string(msg.payload);
-        newMessage = true;
+        {
+            std::lock_guard lock(mx);
+            if (finishing) return;
+            lastMessage = fmt::to_string(msg.payload);
+            newMessage = true;
+        }
+        cv.notify_all();
     }
 
     void flush_() override
@@ -53,15 +57,27 @@ public:
     daq::ErrCode waitForMessage(daq::SizeT timeoutMs, daq::Bool* success)
     {
         std::unique_lock lock(mx);
+        if (finishing) return false;
         auto result = cv.wait_for(lock, std::chrono::milliseconds(timeoutMs), [this]{ return newMessage; });
         newMessage = false;
         return result;
+    }
+
+    ~LoggerSinkLastMessage() 
+    {
+        {
+            std::lock_guard lock(mx);
+            finishing = true;
+            newMessage = true;
+        }
+        cv.notify_all();
     }
 
 private:
     std::mutex mx;
     std::condition_variable cv;
     bool newMessage = false;
+    bool finishing = false;
     daq::StringPtr lastMessage;
 };
 

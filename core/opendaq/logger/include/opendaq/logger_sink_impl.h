@@ -22,6 +22,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <opendaq/logger_sink_last_message_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -74,5 +75,14 @@ class LoggerSinkImpl<spdlog::sinks::basic_file_sink_mt>
 public:
     explicit LoggerSinkImpl(IString* fileName);
 };
+
+class LoggerSinkLastMessageImpl
+    : public LoggerSinkImpl<spdlog::sinks::LoggerSinkLastMessageMt>
+{
+public:
+    StringPtr INTERFACE_FUNC getLastMessage();
+    Bool INTERFACE_FUNC waitForMessage(SizeT timeoutMs);
+};
+
 
 END_NAMESPACE_OPENDAQ

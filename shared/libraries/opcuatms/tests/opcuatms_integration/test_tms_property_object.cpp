@@ -11,8 +11,8 @@
 #include "opcuatms_client/objects/tms_client_property_object_factory.h"
 #include <coreobjects/property_object_class_factory.h>
 
-#include "coreobjects/callable_info_factory.h"
-#include "opendaq/context_factory.h"
+#include <coreobjects/callable_info_factory.h>
+#include <opendaq/context_factory.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -64,7 +64,7 @@ public:
         return object;
     }
 
-    static LoggerPtr createLoggerWithDebugSink(LoggerSinkPtr sink)
+    static LoggerPtr createLoggerWithDebugSink(const LoggerSinkPtr& sink)
     {
         sink.setLevel(LogLevel::Debug);
         auto sinks = DefaultSinks(nullptr);
@@ -72,16 +72,51 @@ public:
         return LoggerWithSinks(sinks);
     }
 
+    StringPtr getLastMessage(const LoggerSinkPtr& sink) 
+    {
+        return StringPtr();
+        // if(!sink.assigned())
+        // {
+        //     throw ArgumentNullException("Sink must not be null");
+        // }
+        // auto sinkPtr = reinterpret_cast<LoggerSinkLastMessageImpl*>(sink.getObject());
+        // if (sinkPtr == nullptr)
+        // {
+        //     throw InvalidTypeException("Sink must have valid type");
+        // }
+
+        // return sinkPtr->getLastMessage();
+    }
+
+    Bool waitForMessage(const LoggerSinkPtr& sink, SizeT timeoutMs)
+    {
+        return false;
+        // if(!sink.assigned())
+        // {
+        //     throw ArgumentNullException("Sink must not be null");
+        // }
+        // auto sinkPtr = reinterpret_cast<LoggerSinkLastMessageImpl*>(sink.getObject());
+        // if (sinkPtr == nullptr)
+        // {
+        //     throw InvalidTypeException("Sink must have valid type");
+        // }
+
+        // return sinkPtr->waitForMessage(timeoutMs);
+    }
+
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)
     {
-        auto serverProp = std::make_shared<TmsServerPropertyObject>(prop, server, NullContext(createLoggerWithDebugSink(serverDebugSink)));
+        auto serverProp = std::make_shared<TmsServerPropertyObject>(prop, server, NullContext(serverLogger));
         auto nodeId = serverProp->registerOpcUaNode();
-        auto clientProp = TmsClientPropertyObject(NullContext(createLoggerWithDebugSink(clientDebugSink)), clientContext, nodeId);
+        auto clientProp = TmsClientPropertyObject(NullContext(clientLogger), clientContext, nodeId);
         return {serverProp, clientProp};
     }
 
+  
     LoggerSinkPtr serverDebugSink = LastMessageLoggerSink();
     LoggerSinkPtr clientDebugSink = LastMessageLoggerSink();
+    LoggerPtr serverLogger = createLoggerWithDebugSink(serverDebugSink);
+    LoggerPtr clientLogger = createLoggerWithDebugSink(clientDebugSink);
 };
 
 TEST_F(TmsPropertyObjectTest, Create)
@@ -120,6 +155,13 @@ TEST_F(TmsPropertyObjectTest, PropertyValue)
     clientProp.setPropertyValue("Height", 100);
     ASSERT_EQ(clientProp.getPropertyValue("Height"), 100);
     ASSERT_EQ(prop.getPropertyValue("Height"), 100);
+    clientProp.setPropertyValue("Missing", 100);
+    clientLogger.flush();
+
+    auto newMessage = waitForMessage(clientDebugSink, 1000);
+    // ASSERT_TRUE(newMessage);
+    auto message = getLastMessage(clientDebugSink);
+
 
     ASSERT_THROW(clientProp.setPropertyValue("Missing", 100), DaqException);
 }

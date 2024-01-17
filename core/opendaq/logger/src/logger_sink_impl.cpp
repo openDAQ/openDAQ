@@ -48,13 +48,6 @@ LoggerSinkImpl<spdlog::sinks::basic_file_sink_mt>::LoggerSinkImpl(IString* fileN
 {
 }
 
-// LoggerSinkImpl<LoggerSinkLastMessageMt>::LoggerSinkImpl()
-//     : LoggerSinkImpl<void>(
-//         std::make_shared<LoggerSinkLastMessageMt>()
-//       )
-// {
-// }
-
 LoggerSinkBase::LoggerSinkBase(SinkPtr&& sink)
     : sink(sink)
 {
@@ -151,6 +144,24 @@ LoggerSinkBase::SinkPtr LoggerSinkBase::getSinkImpl() const
     return sink;
 }
 
+StringPtr LoggerSinkLastMessageImpl::getLastMessage()
+{
+    StringPtr lastMessage;
+    SinkType* sink = static_cast<SinkType*>(this->sink.get());
+    if (sink)
+        sink->getLastMessage(&lastMessage);
+    return lastMessage;
+}
+
+Bool LoggerSinkLastMessageImpl::waitForMessage(SizeT timeoutMs)
+{
+    Bool success = false;
+    SinkType* sink = static_cast<SinkType*>(this->sink.get());
+    if (sink)
+        sink->waitForMessage(timeoutMs, &success);
+    return success;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     LIBRARY_FACTORY,
     LoggerSinkImpl<spdlog::sinks::stderr_color_sink_mt>,
@@ -200,7 +211,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     LIBRARY_FACTORY,
-    LoggerSinkImpl<spdlog::sinks::LoggerSinkLastMessageMt>,
+    LoggerSinkLastMessageImpl,
     ILoggerSink,
     createLastMessageLoggerSink
 )

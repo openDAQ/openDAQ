@@ -241,7 +241,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             }
             catch(const std::exception& e)
             {
-                LOG_W("Failed to add reference property {}", e.what());
+                LOG_W("Failed to add {} reference property {}",propName, e.what());
                 continue;
             }
         }
@@ -257,7 +257,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             }                     
             catch(const std::exception& e)
             {
-                LOG_W("Failed to add property {}", e.what());
+                LOG_W("Failed to add {} property {}", propName, e.what());
                 continue;
             }
         }

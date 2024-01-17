@@ -6,6 +6,7 @@
 #include "open62541/daqbt_nodeids.h"
 #include "open62541/types_di_generated.h"
 #include "open62541/types_daqesp_generated.h"
+#include "open62541/types_daqhbk_generated.h"
 
 using namespace daq::opcua;
 using namespace daq;
@@ -243,6 +244,7 @@ const UA_DataType* GetUAStructureDataTypeByName(const std::string& structName)
     typeArr.add(UA_TYPES_DAQBSP_COUNT, UA_TYPES_DAQBSP);
     typeArr.add(UA_TYPES_DAQDEVICE_COUNT, UA_TYPES_DAQDEVICE);
     typeArr.add(UA_TYPES_DAQESP_COUNT, UA_TYPES_DAQESP);
+    typeArr.add(UA_TYPES_DAQHBK_COUNT, UA_TYPES_DAQHBK);
     
     const UA_DataTypeArray* dataType = typeArr.getCustomDataTypes();
     while(dataType)

@@ -138,8 +138,27 @@ void TmsClientPropertyImpl::configurePropertyFields()
                     switch (propertyField)
                     {
                         case details::PropertyField::DefaultValue:
-                            this->defaultValue =
-                                VariantConverter<IBaseObject>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE), daqContext);
+                            // ToDo: This is a workarround for devices which are delivering not a default value,
+                            // even if this is a mandatory property in the openDAQ Standard.
+                            // However, the SDK creates too strong a requirement, which cannot be 
+                            // met by all the standards or devices to be embraced.
+                            // In this case the actual value from the first connect is set to it.
+                            // But, this creates a weak point:
+                            // SDK stores only values of variables which are != to the device default value.
+                            // The choosen default value could be not the true default value from the device.
+                            // So, all in all we aligned on that in future the SDK will also support properties
+                            // which have not a default value as the device for which the workaround is needed. 
+                            // But this is feature request and is covered with 
+                            // https://blueberrydaq.atlassian.net/browse/TBBAS-1216.
+                            // But as long as the feature is not implemented this is a valid workarround to get 
+                            // devices working which are deliviering not a default value via the opc-ua interface.
+                            // Afterwards, the workaround needs to be rolled back. 
+                            try
+                            {
+                                this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE), daqContext);
+                            }catch(const std::exception& e){
+                                this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(reader->getValue(nodeId, UA_ATTRIBUTEID_VALUE), daqContext);
+                            }
                             if (this->defaultValue.assigned() && this->defaultValue.asPtrOrNull<IFreezable>().assigned())
                                 this->defaultValue.freeze();
                             break;

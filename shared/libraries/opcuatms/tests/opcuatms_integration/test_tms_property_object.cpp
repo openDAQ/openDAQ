@@ -13,6 +13,7 @@
 
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/context_factory.h>
+#include <opendaq/logger_sink_impl.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -74,34 +75,42 @@ public:
 
     StringPtr getLastMessage(const LoggerSinkPtr& sink) 
     {
-        return StringPtr();
-        // if(!sink.assigned())
-        // {
-        //     throw ArgumentNullException("Sink must not be null");
-        // }
-        // auto sinkPtr = reinterpret_cast<LoggerSinkLastMessageImpl*>(sink.getObject());
-        // if (sinkPtr == nullptr)
-        // {
-        //     throw InvalidTypeException("Sink must have valid type");
-        // }
+        // return StringPtr();
+        if(!sink.assigned())
+        {
+            throw ArgumentNullException("Sink must not be null");
+        }
+        auto sinkPtr = reinterpret_cast<LoggerSinkLastMessageImpl*>(sink.getObject());
+        if (sinkPtr == nullptr)
+        {
+            throw InvalidTypeException("Sink must have valid type");
+        }
 
-        // return sinkPtr->getLastMessage();
+        return sinkPtr->getLastMessage();
     }
 
     Bool waitForMessage(const LoggerSinkPtr& sink, SizeT timeoutMs)
     {
-        return false;
-        // if(!sink.assigned())
-        // {
-        //     throw ArgumentNullException("Sink must not be null");
-        // }
-        // auto sinkPtr = reinterpret_cast<LoggerSinkLastMessageImpl*>(sink.getObject());
-        // if (sinkPtr == nullptr)
-        // {
-        //     throw InvalidTypeException("Sink must have valid type");
-        // }
+        // return false;
+        if(!sink.assigned())
+        {
+            throw ArgumentNullException("Sink must not be null");
+        }
+        auto sinkPtr = reinterpret_cast<LoggerSinkLastMessageImpl*>(sink.getObject());
+        if (sinkPtr == nullptr)
+        {
+            throw InvalidTypeException("Sink must have valid type");
+        }
 
-        // return sinkPtr->waitForMessage(timeoutMs);
+        return sinkPtr->waitForMessage(timeoutMs);
+    }
+
+    StringPtr getClientLastMessage()
+    {
+        clientLogger.flush();
+        auto newLogMessage = waitForMessage(clientDebugSink, 5000);
+        auto logMessage = getLastMessage(clientDebugSink);
+        return logMessage;
     }
 
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)
@@ -155,15 +164,9 @@ TEST_F(TmsPropertyObjectTest, PropertyValue)
     clientProp.setPropertyValue("Height", 100);
     ASSERT_EQ(clientProp.getPropertyValue("Height"), 100);
     ASSERT_EQ(prop.getPropertyValue("Height"), 100);
-    clientProp.setPropertyValue("Missing", 100);
-    clientLogger.flush();
-
-    auto newMessage = waitForMessage(clientDebugSink, 1000);
-    // ASSERT_TRUE(newMessage);
-    auto message = getLastMessage(clientDebugSink);
-
-
-    ASSERT_THROW(clientProp.setPropertyValue("Missing", 100), DaqException);
+    
+    ASSERT_NO_THROW(clientProp.setPropertyValue("Missing", 100));
+    ASSERT_EQ(getClientLastMessage(), "Property with name \"Missing\" is not found");
 }
 
 TEST_F(TmsPropertyObjectTest, PropertyValueRole)

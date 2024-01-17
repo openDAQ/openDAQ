@@ -56,11 +56,14 @@ public:
 
     daq::ErrCode waitForMessage(daq::SizeT timeoutMs, daq::Bool* success)
     {
+        OPENDAQ_PARAM_NOT_NULL(success);
+
+        *success = false;
         std::unique_lock lock(mx);
-        if (finishing) return false;
-        auto result = cv.wait_for(lock, std::chrono::milliseconds(timeoutMs), [this]{ return newMessage; });
+        if (finishing) return OPENDAQ_IGNORED;
+        *success = cv.wait_for(lock, std::chrono::milliseconds(timeoutMs), [this]{ return newMessage; });
         newMessage = false;
-        return result;
+        return OPENDAQ_SUCCESS;
     }
 
     ~LoggerSinkLastMessage() 

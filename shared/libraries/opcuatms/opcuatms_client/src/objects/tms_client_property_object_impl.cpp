@@ -22,45 +22,50 @@ using namespace opcua;
 template <class Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite)
 {
-    ErrCode errCode = daqTry(
-        [&]()
+    if (propertyName == nullptr)
+    {
+        LOG_W("Failed to set property value on OPC UA client. Property name is null");
+        return OPENDAQ_IGNORED;
+    }
+    StringPtr propertyNamePtr = StringPtr::Borrow(propertyName);
+
+    if (const auto& it = introspectionVariableIdMap.find(propertyNamePtr); it != introspectionVariableIdMap.cend())
+    {
+        try
         {
-            if (propertyName == nullptr)
-                throw ArgumentNullException("Can not set property for nullptr name");
-            
-            StringPtr propertyNamePtr = StringPtr::Borrow(propertyName);
-
-            if (const auto& it = introspectionVariableIdMap.find(propertyNamePtr); it != introspectionVariableIdMap.cend())
+            if (protectedWrite)
             {
-                if (protectedWrite)
-                {
-                    PropertyPtr prop;
-                    checkErrorInfo(getProperty(propertyName, &prop));
-                    const bool readOnly = prop.getReadOnly();
-                    if (readOnly)
-                        return OPENDAQ_SUCCESS;
-                }
-
-                const auto variant = VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
-                client->writeValue(it->second, variant);
-                return OPENDAQ_SUCCESS;
+                PropertyPtr prop;
+                checkErrorInfo(getProperty(propertyName, &prop));
+                const bool readOnly = prop.getReadOnly();
+                if (readOnly)
+                    return OPENDAQ_SUCCESS;
             }
 
-            if (const auto& it = referenceVariableIdMap.find(propertyNamePtr); it != referenceVariableIdMap.cend())
-            {
-                const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
-                return setPropertyValue(refProp.getName(), value);
-            }
+            const auto variant = VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
+            client->writeValue(it->second, variant);
+        }
+        catch (...)
+        {
+            LOG_W("Failed to set value for existing property \"{}\" on OPC UA client", propertyNamePtr.toStdString());
+            return OPENDAQ_IGNORED;
+        }
+        return OPENDAQ_SUCCESS;
+    }
 
-            if (const auto& it = objectTypeIdMap.find(propertyNamePtr); it != objectTypeIdMap.cend())
-            {
-                LOG_W("Object type properties cannot be set over OPC UA client");
-                return this->makeErrorInfo(OPENDAQ_ERR_NOTIMPLEMENTED, "Object type properties cannot be set over OPC UA");
-            }
-            LOG_W("Property with name \"{}\" is not found", propertyNamePtr.toStdString());
-            return OPENDAQ_ERR_NOTFOUND;
-        });
-    return errCode == OPENDAQ_SUCCESS ? OPENDAQ_SUCCESS : OPENDAQ_IGNORED;
+    if (const auto& it = referenceVariableIdMap.find(propertyNamePtr); it != referenceVariableIdMap.cend())
+    {
+        const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
+        return setPropertyValue(refProp.getName(), value);
+    }
+
+    if (const auto& it = objectTypeIdMap.find(propertyNamePtr); it != objectTypeIdMap.cend())
+    {
+        LOG_W("Object type property \"{}\" cannot be set over OPC UA client", propertyNamePtr.toStdString());
+        return OPENDAQ_IGNORED;
+    }
+    LOG_W("Property with name \"{}\" is not found", propertyNamePtr.toStdString());
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>

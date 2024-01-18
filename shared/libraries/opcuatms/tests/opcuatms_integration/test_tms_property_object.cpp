@@ -108,7 +108,9 @@ public:
     StringPtr getClientLastMessage()
     {
         clientLogger.flush();
-        waitForMessage(clientDebugSink, 2000);
+        auto newMessage = waitForMessage(clientDebugSink, 2000);
+        if (newMessage == 0)
+            return StringPtr("");
         auto logMessage = getLastMessage(clientDebugSink);
         return logMessage;
     }
@@ -179,7 +181,8 @@ TEST_F(TmsPropertyObjectTest, PropertyValueRole)
     ASSERT_EQ(clientProp.getPropertyValue("Role"), 1);
     ASSERT_EQ(prop.getPropertyValue("Role"), 1);
     
-    ASSERT_THROW(clientProp.setPropertyValue("Role", 2), DaqException);
+    ASSERT_NO_THROW(clientProp.setPropertyValue("Role", 2));
+    ASSERT_EQ(getClientLastMessage(), "Failed to set value for existing property \"Role\" on OPC UA client");
 }
 
 TEST_F(TmsPropertyObjectTest, getPropertySelectionValue)

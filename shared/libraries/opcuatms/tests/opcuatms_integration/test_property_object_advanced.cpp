@@ -15,6 +15,7 @@
 #include "coretypes/struct_factory.h"
 #include "coretypes/type_manager_factory.h"
 #include <coreobjects/property_object_protected_ptr.h>
+#include <opendaq/logger_sink_last_message_private_ptr.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -173,13 +174,67 @@ public:
 
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)
     {
-        const auto logger = Logger();
         const auto serverProp =
-            std::make_shared<TmsServerPropertyObject>(prop, server, Context(nullptr, logger, manager, nullptr));
+            std::make_shared<TmsServerPropertyObject>(prop, server, Context(nullptr, serverLogger, manager, nullptr));
         const auto nodeId = serverProp->registerOpcUaNode();
-        const auto clientProp = TmsClientPropertyObject(Context(nullptr, logger, manager,nullptr), clientContext, nodeId);
+        const auto clientProp = TmsClientPropertyObject(Context(nullptr, clientLogger, manager,nullptr), clientContext, nodeId);
         return {serverProp, clientProp};
     }
+
+    static LoggerPtr createLoggerWithDebugSink(const LoggerSinkPtr& sink)
+    {
+        sink.setLevel(LogLevel::Debug);
+        auto sinks = DefaultSinks(nullptr);
+        sinks.pushBack(sink);
+        return LoggerWithSinks(sinks);
+    }
+
+    StringPtr getLastMessage(const LoggerSinkPtr& sink) 
+    {
+        // return StringPtr();
+        if(!sink.assigned())
+        {
+            throw ArgumentNullException("Sink must not be null");
+        }
+        auto sinkPtr =  sink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+        if (sinkPtr == nullptr)
+        {
+            throw InvalidTypeException("Wrong sink. GetLastMessage supports only by LastMessageLoggerSink");
+        }
+
+        return sinkPtr.getLastMessage();
+    }
+
+    Bool waitForMessage(const LoggerSinkPtr& sink, SizeT timeoutMs)
+    {
+        // return false;
+        if(!sink.assigned())
+        {
+            throw ArgumentNullException("Sink must not be null");
+        }
+        auto sinkPtr =  sink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+        if (sinkPtr == nullptr)
+        {
+            throw InvalidTypeException("Wrong sink. GetLastMessage supports only by LastMessageLoggerSink");
+        }
+
+        return sinkPtr.waitForMessage(timeoutMs);
+    }
+
+    StringPtr getClientLastMessage()
+    {
+        clientLogger.flush();
+        auto newMessage = waitForMessage(clientDebugSink, 2000);
+        if (newMessage == 0)
+            return StringPtr("");
+        auto logMessage = getLastMessage(clientDebugSink);
+        return logMessage;
+    }
+
+    LoggerSinkPtr serverDebugSink = LastMessageLoggerSink();
+    LoggerSinkPtr clientDebugSink = LastMessageLoggerSink();
+    LoggerPtr serverLogger = createLoggerWithDebugSink(serverDebugSink);
+    LoggerPtr clientLogger = createLoggerWithDebugSink(clientDebugSink);
 
     RatioPtr testRatio;
     StringPtr testString;
@@ -487,8 +542,11 @@ TEST_F(TmsPropertyObjectAdvancedTest, ObjectGetSet)
     auto testObj = PropertyObject();
     testObj.addProperty(IntProperty("test", 0));
 
-    ASSERT_ANY_THROW(clientObj.setPropertyValue("Object", testObj));
-    ASSERT_ANY_THROW(clientChildObj.setPropertyValue("ObjNumber", 1));
+    ASSERT_NO_THROW(clientObj.setPropertyValue("Object", testObj));
+    ASSERT_EQ(getClientLastMessage(), "Object type property \"Object\" cannot be set over OPC UA client");
+
+    ASSERT_NO_THROW(clientChildObj.setPropertyValue("ObjNumber", 1));
+    ASSERT_EQ(getClientLastMessage(), "Failed to set value for existing property \"ObjNumber\" on OPC UA client");
 
     PropertyObjectPtr serverNonClassObj = obj.getPropertyValue("NonClassObj");
     PropertyObjectPtr clientNonClassObj = clientObj.getPropertyValue("NonClassObj");
@@ -603,7 +661,8 @@ TEST_F(TmsPropertyObjectAdvancedTest, ValidationCoercion)
     ASSERT_EQ(obj.getPropertyValue("ValidatedInt"), clientObj.getPropertyValue("ValidatedInt"));
     ASSERT_EQ(obj.getPropertyValue("CoercedInt"), clientObj.getPropertyValue("CoercedInt"));
     
-    ASSERT_ANY_THROW(clientObj.setPropertyValue("ValidatedInt", 11));
+    ASSERT_NO_THROW(clientObj.setPropertyValue("ValidatedInt", 11));
+    ASSERT_EQ(getClientLastMessage(), "Failed to set value for existing property \"ValidatedInt\" on OPC UA client");
     ASSERT_EQ(obj.getPropertyValue("ValidatedInt"), 5);
     ASSERT_EQ(clientObj.getPropertyValue("ValidatedInt"), 5);
 
@@ -639,10 +698,12 @@ TEST_F(TmsPropertyObjectAdvancedTest, ObjectPropWithMetadata)
     auto [serverObj, clientObj] = registerPropertyObject(obj);
 
     PropertyObjectPtr clientObjWithMetadata = clientObj.getPropertyValue("ObjectWithMetadata");
-    ASSERT_ANY_THROW(clientObjWithMetadata.setPropertyValue("foo", "notbar"));
+    ASSERT_NO_THROW(clientObjWithMetadata.setPropertyValue("foo", "notbar"));
+    ASSERT_EQ(getClientLastMessage(), "Failed to set value for existing property \"foo\" on OPC UA client");
 
     PropertyObjectPtr clientLocalObjWithMetadata = clientObj.getPropertyValue("LocalObjectWithMetadata");
-    ASSERT_ANY_THROW(clientLocalObjWithMetadata.setPropertyValue("foo", "notbar"));
+    ASSERT_NO_THROW(clientLocalObjWithMetadata.setPropertyValue("foo", "notbar"));
+    ASSERT_EQ(getClientLastMessage(), "Failed to set value for existing property \"foo\" on OPC UA client");
 
     PropertyPtr clientObjectWithMetadataProp = clientObj.getProperty("ObjectWithMetadata");
     PropertyPtr serverObjectWithMetadataProp = obj.getProperty("ObjectWithMetadata");

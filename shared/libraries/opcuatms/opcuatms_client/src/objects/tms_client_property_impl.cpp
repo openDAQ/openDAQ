@@ -144,64 +144,74 @@ void TmsClientPropertyImpl::configurePropertyFields()
                     switch (propertyField)
                     {
                         case details::PropertyField::DefaultValue:
+                        {
                             // ToDo: This is a workarround for devices which are delivering not a default value,
                             // even if this is a mandatory property in the openDAQ Standard.
-                            // However, the SDK creates too strong a requirement, which cannot be 
+                            // However, the SDK creates too strong a requirement, which cannot be
                             // met by all the standards or devices to be embraced.
                             // In this case the actual value from the first connect is set to it.
                             // But, this creates a weak point:
                             // SDK stores only values of variables which are != to the device default value.
                             // The choosen default value could be not the true default value from the device.
                             // So, all in all we aligned on that in future the SDK will also support properties
-                            // which have not a default value as the device for which the workaround is needed. 
-                            // But this is feature request and is covered with 
+                            // which have not a default value as the device for which the workaround is needed.
+                            // But this is feature request and is covered with
                             // https://blueberrydaq.atlassian.net/browse/TBBAS-1216.
-                            // But as long as the feature is not implemented this is a valid workarround to get 
+                            // But as long as the feature is not implemented this is a valid workarround to get
                             // devices working which are deliviering not a default value via the opc-ua interface.
-                            // Afterwards, the workaround needs to be rolled back. 
+                            // Afterwards, the workaround needs to be rolled back.
+
                             try
                             {
-                                this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE), daqContext);
-                            }catch(const std::exception& e){
-                                this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(reader->getValue(nodeId, UA_ATTRIBUTEID_VALUE), daqContext);
-                                LOG_W("Failed to read default value of property {}. Detault value is set to the value at connection time. {}", this->name, e.what());
+                                const auto value = reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE);
+                                this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);
                             }
+                            catch (const std::exception& e)
+                            {
+                                const auto value = reader->getValue(nodeId, UA_ATTRIBUTEID_VALUE);
+                                this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);
+                                LOG_W(
+                                    "Failed to read default value of property {}. Detault value is set to the value at connection time. {}",
+                                    this->name,
+                                    e.what());
+                            }
+
                             if (this->defaultValue.assigned() && this->defaultValue.asPtrOrNull<IFreezable>().assigned())
                                 this->defaultValue.freeze();
-                            break;
 
+                            break;
+                        }
                         case details::PropertyField::IsReadOnly:
                             this->readOnly = VariantConverter<IBoolean>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                             break;
-
                         case details::PropertyField::IsVisible:
                             this->visible = VariantConverter<IBoolean>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                             break;
-
                         case details::PropertyField::Unit:
                             this->unit = VariantConverter<IUnit>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                             break;
-
                         case details::PropertyField::MaxValue:
                             this->maxValue = VariantConverter<INumber>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                             break;
-
                         case details::PropertyField::MinValue:
                             this->minValue = VariantConverter<INumber>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                             break;
-
                         case details::PropertyField::SuggestedValues:
+                        {
                             this->suggestedValues =
                                 VariantConverter<IBaseObject>::ToDaqList(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE), daqContext);
                             if (this->suggestedValues.assigned() && this->suggestedValues.asPtrOrNull<IFreezable>().assigned())
                                 this->suggestedValues.freeze();
                             break;
-
+                        }
                         case details::PropertyField::SelectionValues:
-                            this->selectionValues = SelectionVariantConverter::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
+                        {
+                            this->selectionValues =
+                                SelectionVariantConverter::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
                             if (this->selectionValues.assigned() && this->selectionValues.asPtrOrNull<IFreezable>().assigned())
                                 this->selectionValues.freeze();
                             break;
+                        }
                         case details::PropertyField::CoercionExpression:
                         case details::PropertyField::ValidationExpression:
                             break;

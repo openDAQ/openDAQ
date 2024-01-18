@@ -220,9 +220,6 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
         const auto typeId = OpcUaNodeId(ref->typeDefinition.nodeId);
         const auto propName = String(utils::ToStdString(ref->browseName.name));
 
-        if (!clientContext->getAttributeReader()->hasAnyValue(childNodeId))
-            continue;
-
         Bool hasProp;
         daq::checkErrorInfo(Impl::hasProperty(propName, &hasProp));
         PropertyPtr prop;
@@ -263,46 +260,18 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
         }
         else if (clientContext->getReferenceBrowser()->isSubtypeOf(typeId, variableBlockTypeId))
         {
-            if (!hasProp)
+            try
             {
-                auto obj = TmsClientPropertyObject(daqContext, clientContext, childNodeId);
-                const auto description = reader->getValue(childNodeId, UA_ATTRIBUTEID_DESCRIPTION).toString();
-                auto propBuilder = ObjectPropertyBuilder(propName, obj).setDescription(String(description));
+                if (!hasProp)
+                    prop = addVariableBlockProperty(propName, childNodeId);
 
-                const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_EVALUATIONVARIABLETYPE);
-                const auto variableBlockRefs = clientContext->getReferenceBrowser()->browse(childNodeId);
-
-                for (auto& [browseName, variableBlockRef] : variableBlockRefs.byBrowseName)
-                {
-                    const auto variableBlockNodeId = OpcUaNodeId(variableBlockRef->nodeId.nodeId);
-
-                    if (clientContext->getReferenceBrowser()->isSubtypeOf(variableBlockRef->typeDefinition.nodeId, evaluationVariableTypeId))
-                    {
-                        auto evalId = clientContext->getReferenceBrowser()->getChildNodeId(variableBlockNodeId, "EvaluationExpression");
-
-                        StringPtr evalStr = VariantConverter<IString>::ToDaqObject(reader->getValue(evalId, UA_ATTRIBUTEID_VALUE));
-
-                        if (browseName == "IsReadOnly")
-                        {
-                            if (evalStr.assigned())
-                                propBuilder.setReadOnly(EvalValue(evalStr).asPtr<IBoolean>());
-                            else
-                                propBuilder.setReadOnly(VariantConverter<IBoolean>::ToDaqObject(reader->getValue(variableBlockNodeId, UA_ATTRIBUTEID_VALUE)));
-                        }
-                        else if (browseName == "IsVisible")
-                        {
-                            if (evalStr.assigned())
-                                propBuilder.setVisible(EvalValue(evalStr).asPtr<IBoolean>());
-                            else
-                                propBuilder.setVisible(VariantConverter<IBoolean>::ToDaqObject(reader->getValue(variableBlockNodeId, UA_ATTRIBUTEID_VALUE)));
-                        }
-                    }
-                }
-
-                prop = propBuilder.build();
+                objectTypeIdMap.insert(std::pair(propName, childNodeId));
             }
-
-            objectTypeIdMap.insert(std::pair(propName, childNodeId));
+            catch (const std::exception& e)
+            {
+                LOG_W("Failed to add {} property {}", propName, e.what());
+                continue;
+            }
         }
 
         if (prop.assigned())
@@ -396,6 +365,50 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(const OpcUaNodeI
             }
         }
     }
+}
+
+template <class Impl>
+PropertyPtr TmsClientPropertyObjectBaseImpl<Impl>::addVariableBlockProperty(const StringPtr& propName, const OpcUaNodeId& propNodeId)
+{
+    auto reader = this->clientContext->getAttributeReader();
+
+    auto obj = TmsClientPropertyObject(daqContext, clientContext, propNodeId);
+    const auto description = reader->getValue(propNodeId, UA_ATTRIBUTEID_DESCRIPTION).toString();
+    auto propBuilder = ObjectPropertyBuilder(propName, obj).setDescription(String(description));
+
+    const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_EVALUATIONVARIABLETYPE);
+    const auto variableBlockRefs = clientContext->getReferenceBrowser()->browse(propNodeId);
+
+    for (auto& [browseName, variableBlockRef] : variableBlockRefs.byBrowseName)
+    {
+        const auto variableBlockNodeId = OpcUaNodeId(variableBlockRef->nodeId.nodeId);
+
+        if (clientContext->getReferenceBrowser()->isSubtypeOf(variableBlockRef->typeDefinition.nodeId, evaluationVariableTypeId))
+        {
+            auto evalId = clientContext->getReferenceBrowser()->getChildNodeId(variableBlockNodeId, "EvaluationExpression");
+
+            StringPtr evalStr = VariantConverter<IString>::ToDaqObject(reader->getValue(evalId, UA_ATTRIBUTEID_VALUE));
+
+            if (browseName == "IsReadOnly")
+            {
+                if (evalStr.assigned())
+                    propBuilder.setReadOnly(EvalValue(evalStr).asPtr<IBoolean>());
+                else
+                    propBuilder.setReadOnly(
+                        VariantConverter<IBoolean>::ToDaqObject(reader->getValue(variableBlockNodeId, UA_ATTRIBUTEID_VALUE)));
+            }
+            else if (browseName == "IsVisible")
+            {
+                if (evalStr.assigned())
+                    propBuilder.setVisible(EvalValue(evalStr).asPtr<IBoolean>());
+                else
+                    propBuilder.setVisible(
+                        VariantConverter<IBoolean>::ToDaqObject(reader->getValue(variableBlockNodeId, UA_ATTRIBUTEID_VALUE)));
+            }
+        }
+    }
+
+    return propBuilder.build();
 }
 
 template <typename Impl>

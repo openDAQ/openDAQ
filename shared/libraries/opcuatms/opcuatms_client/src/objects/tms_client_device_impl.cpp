@@ -394,6 +394,11 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
         }
     }
 
+    if (!this->ioFolder.assigned())
+    {
+        LOG_W("Failed to add port to OpcUA client device. IO Folder is not assigned");
+        return;
+    }
     for (const auto& val : orderedComponents)
         try
         {
@@ -442,6 +447,12 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
     catch (const std::exception& e)
     {
         LOG_W("Failed to find 'StreamingOptions' OpcUa node: {}", e.what());
+    }
+
+    if (!this->ioFolder.assigned())
+    {
+        LOG_W("Failed to add port to OpcUA client device. IO Folder is not assigned");
+        return;
     }
     for (const auto& val : orderedStreamings)
         try

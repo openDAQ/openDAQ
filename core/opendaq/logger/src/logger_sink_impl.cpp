@@ -8,18 +8,17 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <opendaq/logger_sink_last_message_impl.h>
 
-
 BEGIN_NAMESPACE_OPENDAQ
 
 template <typename TSinkType, typename... Interfaces>
 LoggerSinkImpl<TSinkType, Interfaces...>::LoggerSinkImpl()
-    : LoggerSinkBase(std::make_shared<TSinkType>())
+    : Super(std::make_shared<TSinkType>())
 {
 }
 
 template <typename TSinkType, typename... Interfaces>
 LoggerSinkImpl<TSinkType, Interfaces...>::LoggerSinkImpl(typename Super::SinkPtr&& sink)
-    : LoggerSinkBase(std::move(sink))
+    : Super(std::move(sink))
 {
 }
 
@@ -67,7 +66,7 @@ ErrCode LoggerSinkBase<Interfaces...>::getLevel(LogLevel* level)
 {
     if (level == nullptr)
     {
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot save return value to a null pointer.");
+        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot save return value to a null pointer.");
     }
 
     *level = static_cast<LogLevel>(sink->level());
@@ -79,7 +78,7 @@ ErrCode LoggerSinkBase<Interfaces...>::shouldLog(LogLevel level, Bool* willLog)
 {
     if (willLog == nullptr)
     {
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot save return value to a null pointer.");
+        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot save return value to a null pointer.");
     }
 
     *willLog = sink->should_log(static_cast<spdlog::level::level_enum>(level));
@@ -91,7 +90,7 @@ ErrCode LoggerSinkBase<Interfaces...>::setPattern(IString* pattern)
 {
     if (pattern == nullptr)
     {
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "The pattern can not be null.");
+        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "The pattern can not be null.");
     }
 
     try

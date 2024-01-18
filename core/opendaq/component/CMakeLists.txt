@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.5)
 set_cmake_folder_context(TARGET_FOLDER_NAME)
-project(Component VERSION 1.0.0 LANGUAGES CXX)
+project(Component VERSION ${OPENDAQ_CORE_VERSION} LANGUAGES CXX)
 
 add_subdirectory(src)
 

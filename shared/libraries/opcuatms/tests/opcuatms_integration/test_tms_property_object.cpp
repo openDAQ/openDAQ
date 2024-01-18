@@ -108,7 +108,7 @@ public:
     StringPtr getClientLastMessage()
     {
         clientLogger.flush();
-        auto newLogMessage = waitForMessage(clientDebugSink, 5000);
+        waitForMessage(clientDebugSink, 2000);
         auto logMessage = getLastMessage(clientDebugSink);
         return logMessage;
     }

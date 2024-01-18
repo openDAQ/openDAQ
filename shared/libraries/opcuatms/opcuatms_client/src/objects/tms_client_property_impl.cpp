@@ -5,6 +5,7 @@
 #include "opcuatms/converters/variant_converter.h"
 #include "opcuatms/converters/selection_converter.h"
 #include "open62541/daqbt_nodeids.h"
+#include "opendaq/custom_log.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -43,6 +44,11 @@ namespace details
 TmsClientPropertyImpl::TmsClientPropertyImpl(const ContextPtr& daqContext, const TmsClientContextPtr& ctx, const opcua::OpcUaNodeId& nodeId)
     : TmsClientObjectImpl(daqContext, ctx, nodeId)
 {
+    if (!this->daqContext.getLogger().assigned())
+        throw ArgumentNullException("Logger must not be null");
+
+    this->loggerComponent = this->daqContext.getLogger().getOrAddComponent("TmsClientPropertyImpl");
+    
     clientContext->readObjectAttributes(nodeId);
 
     readBasicInfo();
@@ -158,6 +164,7 @@ void TmsClientPropertyImpl::configurePropertyFields()
                                 this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE), daqContext);
                             }catch(const std::exception& e){
                                 this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(reader->getValue(nodeId, UA_ATTRIBUTEID_VALUE), daqContext);
+                                LOG_W("Failed to read default value of property {}. Detault value is set to the value at connection time. {}", this->name, e.what());
                             }
                             if (this->defaultValue.assigned() && this->defaultValue.asPtrOrNull<IFreezable>().assigned())
                                 this->defaultValue.freeze();

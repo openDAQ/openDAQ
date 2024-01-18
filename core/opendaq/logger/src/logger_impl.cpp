@@ -3,7 +3,7 @@
 
 #include <opendaq/logger_component_factory.h>
 #include <opendaq/logger_sink_factory.h>
-#include <opendaq/logger_sink_impl.h>
+#include <opendaq/logger_sink_base_private_ptr.h>
 #include <opendaq/logger_thread_pool_factory.h>
 #include <spdlog/async.h>
 #include <spdlog/spdlog.h>
@@ -30,7 +30,7 @@ LoggerImpl::LoggerImpl(const ListPtr<ILoggerSink>& sinksList, LogLevel level)
         {
             throw ArgumentNullException("Sink must not be null.");
         }
-        auto sinkPtr = dynamic_cast<LoggerSinkBase*>(sink.getObject());
+        auto sinkPtr = sink.asPtrOrNull<ILoggerSinkBasePrivate>();
         if( sinkPtr == nullptr )
         {
             throw InvalidTypeException("Sink must have valid type.");

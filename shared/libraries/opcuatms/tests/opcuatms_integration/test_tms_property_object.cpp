@@ -13,7 +13,7 @@
 
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/context_factory.h>
-#include <opendaq/logger_sink_impl.h>
+#include <opendaq/logger_sink_last_message_private_ptr.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -80,13 +80,13 @@ public:
         {
             throw ArgumentNullException("Sink must not be null");
         }
-        auto sinkPtr = reinterpret_cast<LoggerSinkLastMessageImpl*>(sink.getObject());
+        auto sinkPtr =  sink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
         if (sinkPtr == nullptr)
         {
-            throw InvalidTypeException("Sink must have valid type");
+            throw InvalidTypeException("Wrong sink. GetLastMessage supports only by LastMessageLoggerSink");
         }
 
-        return sinkPtr->getLastMessage();
+        return sinkPtr.getLastMessage();
     }
 
     Bool waitForMessage(const LoggerSinkPtr& sink, SizeT timeoutMs)
@@ -96,13 +96,13 @@ public:
         {
             throw ArgumentNullException("Sink must not be null");
         }
-        auto sinkPtr = reinterpret_cast<LoggerSinkLastMessageImpl*>(sink.getObject());
+        auto sinkPtr =  sink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
         if (sinkPtr == nullptr)
         {
-            throw InvalidTypeException("Sink must have valid type");
+            throw InvalidTypeException("Wrong sink. GetLastMessage supports only by LastMessageLoggerSink");
         }
 
-        return sinkPtr->waitForMessage(timeoutMs);
+        return sinkPtr.waitForMessage(timeoutMs);
     }
 
     StringPtr getClientLastMessage()

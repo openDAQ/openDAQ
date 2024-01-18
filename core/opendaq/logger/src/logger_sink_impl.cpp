@@ -11,14 +11,14 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-template <typename TSinkType>
-LoggerSinkImpl<TSinkType>::LoggerSinkImpl()
+template <typename TSinkType, typename... Interfaces>
+LoggerSinkImpl<TSinkType, Interfaces...>::LoggerSinkImpl()
     : LoggerSinkBase(std::make_shared<TSinkType>())
 {
 }
 
-template <typename TSinkType>
-LoggerSinkImpl<TSinkType>::LoggerSinkImpl(SinkPtr&& sink)
+template <typename TSinkType, typename... Interfaces>
+LoggerSinkImpl<TSinkType, Interfaces...>::LoggerSinkImpl(typename Super::SinkPtr&& sink)
     : LoggerSinkBase(std::move(sink))
 {
 }
@@ -48,19 +48,22 @@ LoggerSinkImpl<spdlog::sinks::basic_file_sink_mt>::LoggerSinkImpl(IString* fileN
 {
 }
 
-LoggerSinkBase::LoggerSinkBase(SinkPtr&& sink)
+template <typename... Interfaces>
+LoggerSinkBase<Interfaces...>::LoggerSinkBase(SinkPtr&& sink)
     : sink(sink)
 {
     this->sink->set_pattern("[tid: %t]%+");
 }
 
-ErrCode LoggerSinkBase::setLevel(LogLevel level)
+template <typename... Interfaces>
+ErrCode LoggerSinkBase<Interfaces...>::setLevel(LogLevel level)
 {
     this->sink->set_level(static_cast<spdlog::level::level_enum>(level));
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode LoggerSinkBase::getLevel(LogLevel* level)
+template <typename... Interfaces>
+ErrCode LoggerSinkBase<Interfaces...>::getLevel(LogLevel* level)
 {
     if (level == nullptr)
     {
@@ -71,7 +74,8 @@ ErrCode LoggerSinkBase::getLevel(LogLevel* level)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode LoggerSinkBase::shouldLog(LogLevel level, Bool* willLog)
+template <typename... Interfaces>
+ErrCode LoggerSinkBase<Interfaces...>::shouldLog(LogLevel level, Bool* willLog)
 {
     if (willLog == nullptr)
     {
@@ -82,7 +86,8 @@ ErrCode LoggerSinkBase::shouldLog(LogLevel level, Bool* willLog)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode LoggerSinkBase::setPattern(IString* pattern)
+template <typename... Interfaces>
+ErrCode LoggerSinkBase<Interfaces...>::setPattern(IString* pattern)
 {
     if (pattern == nullptr)
     {
@@ -105,7 +110,8 @@ ErrCode LoggerSinkBase::setPattern(IString* pattern)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode LoggerSinkBase::flush()
+template <typename... Interfaces>
+ErrCode LoggerSinkBase<Interfaces...>::flush()
 {
     try
     {
@@ -123,7 +129,8 @@ ErrCode LoggerSinkBase::flush()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode LoggerSinkBase::equals(IBaseObject* other, Bool* equals) const
+template <typename... Interfaces>
+ErrCode LoggerSinkBase<Interfaces...>::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
         return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
@@ -138,28 +145,28 @@ ErrCode LoggerSinkBase::equals(IBaseObject* other, Bool* equals) const
     }
     return OPENDAQ_SUCCESS;
 }
-
-LoggerSinkBase::SinkPtr LoggerSinkBase::getSinkImpl() const
+template <typename... Interfaces>
+ErrCode LoggerSinkBase<Interfaces...>::getSinkImpl(typename LoggerSinkBase<Interfaces...>::SinkPtr* sinkImp)
 {
-    return sink;
+    if (sinkImp == nullptr)
+       return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "SinkImp out-parameter must not be null");
+    *sinkImp = sink;
+    return OPENDAQ_SUCCESS;
 }
 
-StringPtr LoggerSinkLastMessageImpl::getLastMessage()
+ErrCode LoggerSinkLastMessageImpl::getLastMessage(IString** lastMessage)
 {
-    StringPtr lastMessage;
     SinkType* sink = static_cast<SinkType*>(this->sink.get());
     if (sink)
-        sink->getLastMessage(&lastMessage);
-    return lastMessage;
+        return sink->getLastMessage(lastMessage);
+    return OPENDAQ_IGNORED;
 }
-
-Bool LoggerSinkLastMessageImpl::waitForMessage(SizeT timeoutMs)
+ErrCode LoggerSinkLastMessageImpl::waitForMessage(SizeT timeoutMs, Bool* success)
 {
-    Bool success = false;
     SinkType* sink = static_cast<SinkType*>(this->sink.get());
     if (sink)
-        sink->waitForMessage(timeoutMs, &success);
-    return success;
+        return sink->waitForMessage(timeoutMs, success);
+    return OPENDAQ_IGNORED;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(

@@ -33,10 +33,12 @@ public:
     ~RefDeviceImpl() override;
 
     static DeviceInfoPtr CreateDeviceInfo(size_t id);
-    static DeviceTypePtr createType();
+    static DeviceTypePtr CreateType();
 
     // IDevice
     DeviceInfoPtr onGetInfo() override;
+    DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
 
     // IDeviceDomain
     RatioPtr onGetResolution() override;
@@ -44,6 +46,16 @@ public:
     std::string onGetOrigin() override;
     UnitPtr onGetDomainUnit() override;
 private:
+    void initClock();
+    void initIoFolder();
+    void initSyncComponent();
+    void initProperties();
+    void acqLoop();
+    void updateNumberOfChannels();
+    void updateAcqLoopTime();
+    void updateGlobalSampleRate();
+    std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
+
     size_t id;
 
     std::thread acqThread;
@@ -54,20 +66,10 @@ private:
 
     std::vector<ChannelPtr> channels;
     size_t acqLoopTime;
+    bool stopAcq;
 
     FolderConfigPtr aiFolder;
     ComponentPtr syncComponent;
-
-    void initClock();
-    void initIoFolder();
-    void initSyncComponent();
-    void initProperties();
-    bool stopAcq;
-    void acqLoop();
-    void updateNumberOfChannels();
-    void updateAcqLoopTime();
-    void updateGlobalSampleRate();
-    std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;

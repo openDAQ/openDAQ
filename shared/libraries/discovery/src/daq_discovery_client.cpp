@@ -1,6 +1,7 @@
 #include "daq_discovery/daq_discovery_client.h"
-#include "opendaq/device_info_factory.h"
-#include "coreobjects/property_factory.h"
+#include <opendaq/device_info_factory.h>
+#include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_protected_ptr.h>
 
 BEGIN_NAMESPACE_DISCOVERY
 
@@ -51,15 +52,8 @@ void DiscoveryClient::discoverMdnsDevices()
 
     for (const auto& device : mdnsDevices)
     {
-        try
-        {
-            if (auto deviceInfo = createDeviceInfo(device); deviceInfo.assigned())
-                discoveredDevices.pushBack(deviceInfo);
-        }
-        catch (...)
-        {
-            // not a valid openDAQ device
-        }
+        if (auto deviceInfo = createDeviceInfo(device); deviceInfo.assigned())
+            discoveredDevices.pushBack(deviceInfo);
     }
 }
 
@@ -68,37 +62,47 @@ void addInfoProperty(DeviceInfoConfigPtr& info, std::string propName, T propValu
 {
     if (info.hasProperty(propName))
     {
-        info.setPropertyValue(propName, propValue);
-    }
-    else
-    {
-        if constexpr (std::is_same_v<T, std::string>)
+        if (auto protectedObj = info.asPtrOrNull<IPropertyObjectProtected>(); protectedObj.assigned())
         {
-            info.addProperty(StringProperty(propName, propValue));
-        }
-        else if constexpr (std::is_integral_v<T>)
-        {
-            info.addProperty(IntProperty(propName, propValue));
-        }
-        else if constexpr (std::is_floating_point_v<T>)
-        {
-            info.addProperty(DoubleProperty(propName, propValue));
-        }
-        else if constexpr (std::is_same_v<T, bool>)
-        {
-            info.addProperty(BoolProperty(propName, propValue));
+            protectedObj.setProtectedPropertyValue(propName, propValue);
         }
         else
         {
-            return;
+            // Ignore errors
+            info->setPropertyValue(String(propName), (daq::BaseObjectPtr) propValue);
+        }
+    }
+    else
+    {
+        PropertyBuilderPtr builder;
+
+        if constexpr (std::is_same_v<T, std::string>)
+        {
+            builder = StringPropertyBuilder(propName, propValue);
+        }
+        else if constexpr (std::is_integral_v<T>)
+        {
+            builder = IntPropertyBuilder(propName, propValue);
+        }
+        else if constexpr (std::is_floating_point_v<T>)
+        {
+            builder = DoublePropertyBuilder(propName, propValue);
+        }
+        else if constexpr (std::is_same_v<T, bool>)
+        {
+            builder = BoolProperty(propName, propValue);
+        }
+
+        if (builder.assigned())
+        {
+            builder.setReadOnly(true);
+            info.addProperty(builder.build());
         }
     }
 }
 
 DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredDevice) const
 {
-    auto exceptionMessage = "Failed to parse discovery data. Not a openDAQ device.";
-
     if (discoveredDevice.ipv4Address.empty())
         return nullptr;
 
@@ -118,7 +122,7 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
     }
 
     if (!requiredCapsCopy.empty())
-        throw DaqException(OPENDAQ_ERR_INVALIDPARAMETER, exceptionMessage);
+        return nullptr;
 
     DeviceInfoConfigPtr deviceInfo = DeviceInfo(connectionStringFormatCb(discoveredDevice));
 

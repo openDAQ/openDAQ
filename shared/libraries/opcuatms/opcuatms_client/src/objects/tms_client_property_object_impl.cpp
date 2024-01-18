@@ -96,7 +96,10 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
 {
     ErrCode errCode = daqTry([&]() {
         if (propertyName == nullptr)
-            throw ArgumentNullException("Can not get property for nullptr name");
+        {
+            LOG_W("Can not get property for nullptr name on OPC UA client");
+            return OPENDAQ_ERR_ARGUMENT_NULL;
+        }
 
         if (const auto& introIt = introspectionVariableIdMap.find((StringPtr) propertyName); introIt != introspectionVariableIdMap.cend())
         {
@@ -117,7 +120,12 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
 
         return Impl::getPropertyValue(propertyName, value);
     });
-    return errCode == OPENDAQ_SUCCESS ? OPENDAQ_SUCCESS : OPENDAQ_IGNORED;
+    if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_W("Failed to get value for property on OPC UA client");
+        return OPENDAQ_IGNORED;
+    }
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename Impl>

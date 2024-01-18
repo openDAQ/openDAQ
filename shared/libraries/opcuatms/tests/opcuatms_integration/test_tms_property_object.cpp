@@ -73,61 +73,48 @@ public:
         return LoggerWithSinks(sinks);
     }
 
-    StringPtr getLastMessage(const LoggerSinkPtr& sink) 
+    static LastMessageLoggerSinkPrivatePtr getPrivateSink(const LoggerSinkPtr& sink)
     {
-        // return StringPtr();
         if(!sink.assigned())
-        {
             throw ArgumentNullException("Sink must not be null");
-        }
         auto sinkPtr =  sink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
         if (sinkPtr == nullptr)
-        {
             throw InvalidTypeException("Wrong sink. GetLastMessage supports only by LastMessageLoggerSink");
-        }
+        return sinkPtr;
+    }
 
+    static StringPtr getLastMessage(const LoggerSinkPtr& sink) 
+    {
+        auto sinkPtr = getPrivateSink(sink);
         return sinkPtr.getLastMessage();
     }
 
-    Bool waitForMessage(const LoggerSinkPtr& sink, SizeT timeoutMs)
+    static Bool waitForMessage(const LoggerSinkPtr& sink, SizeT timeoutMs)
     {
-        // return false;
-        if(!sink.assigned())
-        {
-            throw ArgumentNullException("Sink must not be null");
-        }
-        auto sinkPtr =  sink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
-        if (sinkPtr == nullptr)
-        {
-            throw InvalidTypeException("Wrong sink. GetLastMessage supports only by LastMessageLoggerSink");
-        }
-
+        auto sinkPtr = getPrivateSink(sink);
         return sinkPtr.waitForMessage(timeoutMs);
     }
 
-    StringPtr getClientLastMessage()
+    StringPtr getLastMessage()
     {
-        clientLogger.flush();
-        auto newMessage = waitForMessage(clientDebugSink, 2000);
+        logger.flush();
+        auto newMessage = waitForMessage(debugSink, 2000);
         if (newMessage == 0)
             return StringPtr("");
-        auto logMessage = getLastMessage(clientDebugSink);
+        auto logMessage = getLastMessage(debugSink);
         return logMessage;
     }
 
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)
     {
-        auto serverProp = std::make_shared<TmsServerPropertyObject>(prop, server, NullContext(serverLogger));
+        auto serverProp = std::make_shared<TmsServerPropertyObject>(prop, server, NullContext(logger));
         auto nodeId = serverProp->registerOpcUaNode();
-        auto clientProp = TmsClientPropertyObject(NullContext(clientLogger), clientContext, nodeId);
+        auto clientProp = TmsClientPropertyObject(NullContext(logger), clientContext, nodeId);
         return {serverProp, clientProp};
     }
 
-  
-    LoggerSinkPtr serverDebugSink = LastMessageLoggerSink();
-    LoggerSinkPtr clientDebugSink = LastMessageLoggerSink();
-    LoggerPtr serverLogger = createLoggerWithDebugSink(serverDebugSink);
-    LoggerPtr clientLogger = createLoggerWithDebugSink(clientDebugSink);
+    LoggerSinkPtr debugSink = LastMessageLoggerSink();
+    LoggerPtr logger = createLoggerWithDebugSink(debugSink);
 };
 
 TEST_F(TmsPropertyObjectTest, Create)
@@ -168,7 +155,7 @@ TEST_F(TmsPropertyObjectTest, PropertyValue)
     ASSERT_EQ(prop.getPropertyValue("Height"), 100);
     
     ASSERT_NO_THROW(clientProp.setPropertyValue("Missing", 100));
-    ASSERT_EQ(getClientLastMessage(), "Property with name \"Missing\" is not found");
+    ASSERT_EQ(getLastMessage(), "Property with name \"Missing\" is not found");
 }
 
 TEST_F(TmsPropertyObjectTest, PropertyValueRole)
@@ -182,7 +169,7 @@ TEST_F(TmsPropertyObjectTest, PropertyValueRole)
     ASSERT_EQ(prop.getPropertyValue("Role"), 1);
     
     ASSERT_NO_THROW(clientProp.setPropertyValue("Role", 2));
-    ASSERT_EQ(getClientLastMessage(), "Failed to set value for existing property \"Role\" on OPC UA client");
+    ASSERT_EQ(getLastMessage(), "Failed to set value for existing property \"Role\" on OPC UA client");
 }
 
 TEST_F(TmsPropertyObjectTest, getPropertySelectionValue)

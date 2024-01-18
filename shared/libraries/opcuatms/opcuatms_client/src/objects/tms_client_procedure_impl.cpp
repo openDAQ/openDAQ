@@ -2,6 +2,7 @@
 #include "opcuatms_client/objects/tms_client_procedure_factory.h"
 #include "opcuatms/converters/variant_converter.h"
 #include "opcuatms/converters/list_conversion_utils.h"
+#include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -21,7 +22,7 @@ TmsClientProcedureImpl::TmsClientProcedureImpl(const TmsClientContextPtr& ctx,
 ErrCode TmsClientProcedureImpl::dispatch(IBaseObject* args)
 {
     // TODO: Return more specific error depending on OPC UA status code
-    return daqTry([&]()
+    ErrCode errCode = daqTry([&]()
     {
         auto argsPtr = BaseObjectPtr::Borrow(args);
         OpcUaCallMethodRequest callRequest;
@@ -48,6 +49,13 @@ ErrCode TmsClientProcedureImpl::dispatch(IBaseObject* args)
         
         return OPENDAQ_SUCCESS;
     });
+    if (OPENDAQ_FAILED(errCode) && this->daqContext.getLogger().assigned())
+    {
+        auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientProcudure");
+        LOG_W("Failed to call OPC UA client procedure");
+        return OPENDAQ_IGNORED;
+    }
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode TmsClientProcedureImpl::getCoreType(CoreType* coreType)

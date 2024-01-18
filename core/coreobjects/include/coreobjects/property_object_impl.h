@@ -525,7 +525,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::coerceMinMax(co
 {
     if (!prop.assigned() || !valuePtr.assigned())
         return;
-    
+
     const auto min = prop.getMinValue();
     if (min.assigned())
     {

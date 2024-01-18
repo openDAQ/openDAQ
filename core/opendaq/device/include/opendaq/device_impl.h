@@ -101,7 +101,7 @@ public:
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;
     ErrCode INTERFACE_FUNC addDevice(IDevice** device, IString* connectionString, IPropertyObject* config = nullptr) override;
     ErrCode INTERFACE_FUNC removeDevice(IDevice* device) override;
-    ErrCode INTERFACE_FUNC getDevices(IList** devices, ISearchFilter* searchFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC getDevices(IList** subDevices, ISearchFilter* searchFilter = nullptr) override;
 
     ErrCode INTERFACE_FUNC saveConfiguration(IString** configuration) override;
     ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration) override;
@@ -360,11 +360,15 @@ ListPtr<ISignal> GenericDevice<TInterface, Interfaces...>::getSignalsRecursiveIn
 template <typename TInterface, typename... Interfaces>
 template <class ChannelImpl, class... Params>
 ChannelPtr GenericDevice<TInterface, Interfaces...>::createAndAddChannel(const FolderConfigPtr& parentFolder,
-                                                                const StringPtr& localId,
-                                                                Params&&... params)
+                                                                         const StringPtr& localId,
+                                                                         Params&&... params)
 {
     auto ch = createWithImplementation<IChannel, ChannelImpl>(
-        this->context, parentFolder, localId, std::forward<Params>(params)...);
+        this->context,
+        parentFolder,
+        localId,
+        std::forward<Params>(params)...
+    );
 
     parentFolder.addItem(ch);
     return ch;
@@ -398,7 +402,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getTickResolution(IRatio** res
 template <typename TInterface, typename... Interfaces>
 RatioPtr GenericDevice<TInterface, Interfaces...>::onGetResolution()
 {
-    throw NotImplementedException();
+    return nullptr;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -414,7 +418,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getTicksSinceOrigin(uint64_t* 
 template <typename TInterface, typename... Interfaces>
 uint64_t GenericDevice<TInterface, Interfaces...>::onGetTicksSinceOrigin()
 {
-    throw NotImplementedException();
+    return 0;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -474,7 +478,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::Deserialize(ISerializedObject*
 template <typename TInterface, typename... Interfaces>
 UnitPtr GenericDevice<TInterface, Interfaces...>::onGetDomainUnit()
 {
-    throw NotImplementedException();
+    return nullptr;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -512,7 +516,7 @@ template <typename TInterface, typename... Interfaces>
 FunctionBlockPtr GenericDevice<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& /*typeId*/,
                                                                               const PropertyObjectPtr& /*config*/)
 {
-    throw NotFoundException("Function block not found");
+    return nullptr;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -733,24 +737,24 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveDevice(const DevicePtr& /
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getDevices(IList** devices, ISearchFilter* searchFilter)
+ErrCode GenericDevice<TInterface, Interfaces...>::getDevices(IList** subDevices, ISearchFilter* searchFilter)
 {
-    OPENDAQ_PARAM_NOT_NULL(devices);
+    OPENDAQ_PARAM_NOT_NULL(subDevices);
 
     if (!searchFilter)
-        return this->devices->getItems(devices);
+        return devices->getItems(subDevices);
     
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
     if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
     {
         return daqTry([&]
         {
-            *devices = getDevicesRecursive(searchFilter).detach();
+            *subDevices = getDevicesRecursive(searchFilter).detach();
             return OPENDAQ_SUCCESS;
         });
     }
 
-    return this->devices->getItems(devices, searchFilter);
+    return devices->getItems(subDevices, searchFilter);
 }
 
 template <typename TInterface, typename ... Interfaces>

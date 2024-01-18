@@ -126,6 +126,7 @@ opendaq_forward_include_headers(${LIB_NAME} PRIVATE_LIBRARIES)
 target_compile_definitions(${LIB_NAME} PRIVATE BUILDING_SHARED_LIBRARY
                                        INTERFACE OPENDAQ_LINKS_OPENDAQ
 )
+
 set_target_properties(${LIB_NAME}
     PROPERTIES
         PUBLIC_HEADER "${SRC_PublicHeaders}"

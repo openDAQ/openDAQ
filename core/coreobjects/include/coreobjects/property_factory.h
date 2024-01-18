@@ -317,7 +317,7 @@ inline PropertyPtr FunctionProperty(const StringPtr& name,
  * on the return type or not.
  */
 inline PropertyBuilderPtr FunctionPropertyBuilder(const StringPtr& name,
-                                          const CallableInfoPtr& callableInfo)
+                                                  const CallableInfoPtr& callableInfo)
 {
     PropertyBuilderPtr obj(FunctionPropertyBuilder_Create(name, callableInfo));
     return obj;

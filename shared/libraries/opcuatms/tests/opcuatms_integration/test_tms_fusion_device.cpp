@@ -12,6 +12,7 @@
 #include "opcuatms_server/objects/tms_server_signal.h"
 #include "tms_object_integration_test.h"
 #include "opendaq/instance_factory.h"
+#include <opcuatms_client/tms_client.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -51,8 +52,6 @@ protected:
 
         objManager = TypeManager();
         objManager.addType(stgAmplClass);
-
-       
     }
 
     void TearDown() override
@@ -72,7 +71,7 @@ protected:
     }
 };
 
-TEST_F(TmsFusionDevice, IntegrationTest)
+TEST_F(TmsFusionDevice, SampleRateTest)
 {
 
     SignalPtr daqServerSignal = createSignal("id");
@@ -82,9 +81,22 @@ TEST_F(TmsFusionDevice, IntegrationTest)
     auto nodeId = serverSignal.registerOpcUaNode();
 
     SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
+    //std::cin.get();
 
     ASSERT_TRUE(clientSignal.getPublic());
-
     ASSERT_NO_THROW(clientSignal.getPropertyValue("SampleRate"));
 }
+
+TEST_F(TmsFusionDevice, DISABLED_SimulatorTest)
+{
+    // this test should pass, if you have Fusion simulator running
+
+    const std::string connectionString = "opc.tcp://10.0.210.201";
+
+    TmsClient tmsClient(NullContext(), nullptr, connectionString, nullptr);
+    auto clientDevice = tmsClient.connect();
+
+    ASSERT_TRUE(clientDevice.assigned());
+}
+
 

@@ -24,7 +24,7 @@ BEGIN_NAMESPACE_DISCOVERY
 class DiscoveryClient
 {
 public:
-    DiscoveryClient(std::function<std::string(MdnsDiscoveredDevice)> connectionStringFormatCb, std::unordered_set<std::string> requiredCaps = {});
+    explicit DiscoveryClient(std::function<std::string(MdnsDiscoveredDevice)> connectionStringFormatCb, std::unordered_set<std::string> requiredCaps = {});
     
     void initMdnsClient(const std::string& serviceName, std::chrono::milliseconds discoveryDuration = 500ms);
     virtual ListPtr<IDeviceInfo> discoverDevices();

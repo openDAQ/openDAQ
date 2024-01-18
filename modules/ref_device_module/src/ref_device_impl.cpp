@@ -2,6 +2,7 @@
 #include <opendaq/device_info_factory.h>
 #include <coreobjects/unit_factory.h>
 #include <ref_device_module/ref_channel_impl.h>
+#include <opendaq/module_manager_ptr.h>
 #include <fmt/format.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_type_factory.h>
@@ -47,12 +48,12 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id)
     devInfo.setName(fmt::format("Device {}", id));
     devInfo.setModel("Reference Device");
     devInfo.setSerialNumber(fmt::format("dev_ser_{}", id));
-    devInfo.setDeviceType(createType());
+    devInfo.setDeviceType(CreateType());
 
     return devInfo;
 }
 
-DeviceTypePtr RefDeviceImpl::createType()
+DeviceTypePtr RefDeviceImpl::CreateType()
 {
     return DeviceType("daqref",
                       "Reference device",
@@ -93,6 +94,78 @@ UnitPtr RefDeviceImpl::onGetDomainUnit()
     auto unitPtr = daq::UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build();
 
     return unitPtr;
+}
+
+DevicePtr RefDeviceImpl::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
+{
+    ModuleManagerPtr manager = context.getModuleManager().asPtr<IModuleManager>();
+    for (const auto module : manager.getModules())
+    {
+        bool accepted;
+        try
+        {
+            accepted = module.acceptsConnectionParameters(connectionString, config);
+        }
+        catch (NotImplementedException&)
+        {
+            LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
+            accepted = false;
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
+            accepted = false;
+        }
+
+        if (accepted)
+        {
+            auto device = module.createDevice(connectionString, devices, config);
+            addSubDevice(device);
+
+            return device;
+        }
+    }
+
+    return nullptr;
+}
+
+FunctionBlockPtr RefDeviceImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
+{
+    ModuleManagerPtr manager = context.getModuleManager().asPtr<IModuleManager>();
+    for (const auto module : manager.getModules())
+    {
+        DictPtr<IString, IFunctionBlockType> types;
+
+        try
+        {
+            types = module.getAvailableFunctionBlockTypes();
+        }
+        catch (NotImplementedException&)
+        {
+            LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getName())
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getName(), e.what())
+        }
+
+        if (!types.assigned())
+            continue;
+
+        if (!types.hasKey(typeId))
+            continue;
+
+        if (functionBlocks.hasItem(typeId))
+            throw DuplicateItemException("The function block is already added");
+
+        std::string localId = typeId;
+
+        auto fb = module.createFunctionBlock(typeId, functionBlocks, localId, config);
+        functionBlocks.addItem(fb);
+        return fb;
+    }
+
+    throw NotFoundException{"Function block with given uid is not available."};
 }
 
 void RefDeviceImpl::initClock()

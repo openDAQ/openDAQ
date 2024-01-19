@@ -101,28 +101,14 @@ void TmsClientDeviceImpl::findAndCreateSubdevices()
         }
         catch(...)
         {
-            LOG_W("Failed to find and create subdevice \"{}\" to OpcUA client", browseName);
+            LOG_W("Failed to create subdevice \"{}\" in OpcUA client device \"{}\"", browseName, this->localId);
         }
     }
 
     for (const auto& val : orderedDevices)
-        try
-        {
             addSubDevice(val.second);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add subdevice \"{}\" to OpcUA client device. Error: {}", val.second.getName(), e.what());
-        }
     for (const auto& val : unorderedDevices)
-        try
-        {
            addSubDevice(val);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add subdevice \"{}\" to OpcUA client device. Error: {}", val.getName(), e.what());
-        }
 }
 
 DevicePtr TmsClientDeviceImpl::onAddDevice(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
@@ -183,7 +169,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         }
         catch (const std::exception& e)
         {
-            LOG_W("Failed to read device info attribute: {}", e.what());
+            LOG_W("Failed to read device info attribute on OpcUa client device \"{}\": {}", this->localId, e.what());
         }
     }
 
@@ -279,28 +265,14 @@ void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
         }
         catch(...)
         {
-            LOG_W("Failed to create function block \"{}\" to OpcUA client device", browseName);
+            LOG_W("Failed to create function block \"{}\" to OpcUA client device \"{}\"", browseName, this->localId);
         }
     }
 
-    for (const auto& [_, val] : orderedFunctionBlocks)
-        try
-        {
-            this->addNestedFunctionBlock(val);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add function block \"{}\" to OpcUA client device. Error: {}", val.getLocalId(), e.what());
-        }
+    for (const auto& val : orderedFunctionBlocks)
+        this->addNestedFunctionBlock(val.second);
     for (const auto& val : unorderedFunctionBlocks)
-        try
-        {
            this->addNestedFunctionBlock(val);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add function block \"{}\" to OpcUA client device. Error: {}", val.getLocalId(), e.what());
-        }
 }
 
 void TmsClientDeviceImpl::findAndCreateSignals()
@@ -324,28 +296,14 @@ void TmsClientDeviceImpl::findAndCreateSignals()
         }
         catch (...)
         {
-            LOG_W("Failed to find signal to OpcUA client device");
+            LOG_W("Failed to find signal to OpcUA client device \"{}\"", this->localId);
         }
-       
     }
+
     for (const auto& val : orderedSignals)
-        try
-        {
             this->addSignal(val.second);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add signal \"{}\" to OpcUA client device. Error: {}", val.second.getName(), e.what());
-        }
     for (const auto& val : unorderedSignals)
-        try
-        {
            this->addSignal(val);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add signal \"{}\" to OpcUA client device. Error: {}", val.getName(), e.what());
-        }
 }
 
 void TmsClientDeviceImpl::findAndCreateInputsOutputs()
@@ -372,7 +330,7 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
         }
         catch (...)
         {
-            LOG_W("Failed to find channel \"{}\" to OpcUA client device", browseName);
+            LOG_W("Failed to find channel \"{}\" to OpcUA client device \"{}\"", browseName, this->localId);
         }
     }
 
@@ -393,33 +351,14 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
         }
         catch (...)
         {
-            LOG_W("Failed to find io folder \"{}\" to OpcUA client device", browseName);
+            LOG_W("Failed to find io folder \"{}\" to OpcUA client device \"{}\"", browseName, this->localId);
         }
     }
 
-    if (!this->ioFolder.assigned())
-    {
-        LOG_W("Failed to add port to OpcUA client device. IO Folder is not assigned");
-        return;
-    }
     for (const auto& val : orderedComponents)
-        try
-        {
             this->ioFolder.addItem(val.second);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add port \"{}\" to OpcUA client device. Error: {}", val.second.getName(), e.what());
-        }
     for (const auto& val : unorderedComponents)
-        try
-        {
            this->ioFolder.addItem(val);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add port \"{}\" to OpcUA client device. Error: {}", val.getName(), e.what());
-        }
 }
 
 void TmsClientDeviceImpl::findAndCreateStreamingOptions()
@@ -449,32 +388,13 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
     }
     catch (const std::exception& e)
     {
-        LOG_W("Failed to find 'StreamingOptions' OpcUa node: {}", e.what());
+        LOG_W("Failed to find 'StreamingOptions' OpcUA node on OpcUA client device \"{}\": {}", this->localId, e.what());
     }
 
-    if (!this->ioFolder.assigned())
-    {
-        LOG_W("Failed to add port to OpcUA client device. IO Folder is not assigned");
-        return;
-    }
     for (const auto& val : orderedStreamings)
-        try
-        {
-            this->ioFolder.addItem(val.second);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add port to OpcUA client device. Error: {}", e.what());
-        }
+        this->streamingOptions.push_back(val.second);
     for (const auto& val : unorderedStreamings)
-        try
-        {
-           this->ioFolder.addItem(val);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add port to OpcUA client device. Error: {}", e.what());
-        }
+        this->streamingOptions.push_back(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateCustomComponents()
@@ -510,28 +430,14 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
         }
         catch (...)
         {
-            LOG_W("Failed to find channel  \"{}\" to OpcUA client device", browseName);
+            LOG_W("Failed to find channel \"{}\" to OpcUA client device \"{}\"", browseName, this->localId);
         }
     }
 
     for (const auto& val : orderedComponents)
-        try
-        {
             this->components.push_back(val.second);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add custom component \"{}\" to OpcUA client device. Error: {}", val.second.getName(), e.what());
-        }
     for (const auto& val : unorderedComponents)
-        try
-        {
            this->components.push_back(val);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add custom component \"{}\" to OpcUA client device. Error: {}", val.getName(), e.what());
-        }
 }
 
 FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)

@@ -57,7 +57,7 @@ ErrCode TmsClientFunctionImpl::call(IBaseObject* args, IBaseObject** result)
     if (OPENDAQ_FAILED(errCode) && this->daqContext.getLogger().assigned())
     {
         auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientProcedure");
-        LOG_W("Failed to call function on OPC UA client. Error: \"{}\"", lastProccessDescription.toStdString());
+        LOG_W("Failed to call function on OpcUA client. Error in \"{}\"", lastProccessDescription);
         return OPENDAQ_IGNORED;
     }
     return OPENDAQ_SUCCESS;

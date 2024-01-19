@@ -25,23 +25,9 @@ TmsClientFolderImpl<Impl>::TmsClientFolderImpl(const ContextPtr& ctx,
         findAndCreateFolders(orderedComponents, unorderedComponents);
         auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
         for (const auto& val : orderedComponents)
-            try
-            {
                 thisPtr.addItem(val.second);
-            }
-            catch (const std::exception& e)
-            {
-                LOG_W("Failed to add port \"{}\" to OpcUA client folder. Error: {}", val.second.getName(), e.what());
-            }
         for (const auto& val : unorderedComponents)
-            try
-            {
                 thisPtr.addItem(val);
-            }
-            catch (const std::exception& e)
-            {
-                LOG_W("Failed to add port \"{}\" to OpcUA client folder. Error: {}", val.getName(), e.what());
-            }
     }
 }
 
@@ -74,7 +60,7 @@ void TmsClientFolderImpl<Impl>::findAndCreateFolders(std::map<uint32_t, Componen
         }
         catch (...)
         {
-            LOG_W("Failed to find and create folder \"{}\" to OpcUA client", browseName);
+            LOG_W("Failed to find and create folder \"{}\" to OpcUA client \"{}\"", browseName, this->localId);
         }
         
     }

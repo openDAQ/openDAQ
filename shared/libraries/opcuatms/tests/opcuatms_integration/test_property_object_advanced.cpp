@@ -501,10 +501,10 @@ TEST_F(TmsPropertyObjectAdvancedTest, ObjectGetSet)
     testObj.addProperty(IntProperty("test", 0));
 
     ASSERT_NO_THROW(clientObj.setPropertyValue("Object", testObj));
-    ASSERT_EQ(getLastMessage(), "Object type property \"Object\" cannot be set over OPC UA client");
+    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"Object\" on OpcUA client property object: Object type properties cannot be set over OpcUA");
 
     ASSERT_NO_THROW(clientChildObj.setPropertyValue("ObjNumber", 1));
-    ASSERT_EQ(getLastMessage(), "Failed to set value for existing property \"ObjNumber\" on OPC UA client");
+    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"ObjNumber\" on OpcUA client property object: Writting property value");
 
     PropertyObjectPtr serverNonClassObj = obj.getPropertyValue("NonClassObj");
     PropertyObjectPtr clientNonClassObj = clientObj.getPropertyValue("NonClassObj");
@@ -620,7 +620,7 @@ TEST_F(TmsPropertyObjectAdvancedTest, ValidationCoercion)
     ASSERT_EQ(obj.getPropertyValue("CoercedInt"), clientObj.getPropertyValue("CoercedInt"));
     
     ASSERT_NO_THROW(clientObj.setPropertyValue("ValidatedInt", 11));
-    ASSERT_EQ(getLastMessage(), "Failed to set value for existing property \"ValidatedInt\" on OPC UA client");
+    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"ValidatedInt\" on OpcUA client property object: Writting property value");
     ASSERT_EQ(obj.getPropertyValue("ValidatedInt"), 5);
     ASSERT_EQ(clientObj.getPropertyValue("ValidatedInt"), 5);
 
@@ -657,11 +657,11 @@ TEST_F(TmsPropertyObjectAdvancedTest, ObjectPropWithMetadata)
 
     PropertyObjectPtr clientObjWithMetadata = clientObj.getPropertyValue("ObjectWithMetadata");
     ASSERT_NO_THROW(clientObjWithMetadata.setPropertyValue("foo", "notbar"));
-    ASSERT_EQ(getLastMessage(), "Failed to set value for existing property \"foo\" on OPC UA client");
+    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"foo\" on OpcUA client property object: Writting property value");
 
     PropertyObjectPtr clientLocalObjWithMetadata = clientObj.getPropertyValue("LocalObjectWithMetadata");
     ASSERT_NO_THROW(clientLocalObjWithMetadata.setPropertyValue("foo", "notbar"));
-    ASSERT_EQ(getLastMessage(), "Failed to set value for existing property \"foo\" on OPC UA client");
+    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"foo\" on OpcUA client property object: Writting property value");
 
     PropertyPtr clientObjectWithMetadataProp = clientObj.getProperty("ObjectWithMetadata");
     PropertyPtr serverObjectWithMetadataProp = obj.getProperty("ObjectWithMetadata");

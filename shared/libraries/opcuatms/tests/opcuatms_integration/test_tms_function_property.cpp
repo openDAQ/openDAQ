@@ -202,7 +202,7 @@ TEST_F(TmsFunctionTest, InvalidArgTypes)
     ProcedurePtr clientProc = clientObj.getPropertyValue("proc");
 
     ASSERT_NO_THROW(clientProc("foo"));
-    ASSERT_EQ(getLastMessage(), "Failed to call procedure on OPC UA client. Error: \"Calling procedure\""); 
+    ASSERT_EQ(getLastMessage(), "Failed to call procedure on OpcUA client. Error: \"Calling procedure\""); 
 }
 
 // NOTE: Should this throw an error?
@@ -231,10 +231,10 @@ TEST_F(TmsFunctionTest, InvalidArgCount)
     ProcedurePtr clientProc = clientObj.getPropertyValue("proc");
 
     ASSERT_NO_THROW(clientProc());
-    ASSERT_EQ(getLastMessage(), "Failed to call procedure on OPC UA client. Error: \"Calling procedure\""); 
+    ASSERT_EQ(getLastMessage(), "Failed to call procedure on OpcUA client. Error: \"Calling procedure\""); 
 
     ASSERT_NO_THROW(clientProc(1, 2));
-    ASSERT_EQ(getLastMessage(), "Failed to call procedure on OPC UA client. Error: \"Calling procedure\""); 
+    ASSERT_EQ(getLastMessage(), "Failed to call procedure on OpcUA client. Error: \"Calling procedure\""); 
 }
 
 TEST_F(TmsFunctionTest, ProcedureArgumentInfo)
@@ -313,5 +313,5 @@ TEST_F(TmsFunctionTest, ServerThrow)
     auto [serverObj, clientObj] = registerPropertyObject(obj);
     FunctionPtr clientFunc = clientObj.getPropertyValue("func");
     ASSERT_NO_THROW(clientFunc());
-    ASSERT_EQ(getLastMessage(), "Failed to call function on OPC UA client. Error: \"Calling function\""); 
+    ASSERT_EQ(getLastMessage(), "Failed to call function on OpcUA client. Error in \"Calling function\""); 
 }

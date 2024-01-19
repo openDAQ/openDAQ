@@ -14,8 +14,6 @@ TmsClientIoFolderImpl::TmsClientIoFolderImpl(const ContextPtr& ctx,
                                              const TmsClientContextPtr& clientContext,
                                              const opcua::OpcUaNodeId& nodeId)
     : TmsClientFolderImpl<IoFolderImpl>(ctx, parent, localId, clientContext, nodeId, true)
-    , loggerComponent(this->daqContext.getLogger().assigned() ? this->daqContext.getLogger().getOrAddComponent("OpcUaClientIoFolder")
-                                                              : throw ArgumentNullException("Logger must not be null"))
 {
     std::map<uint32_t, ComponentPtr> orderedComponents;
     std::vector<ComponentPtr> unorderedComponents;
@@ -25,23 +23,9 @@ TmsClientIoFolderImpl::TmsClientIoFolderImpl(const ContextPtr& ctx,
 
     auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
     for (const auto& val : orderedComponents)
-        try
-        {
-            thisPtr.addItem(val.second);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add custom component \"{}\" to OpcUA client io folder. Error: {}", val.second.getName(), e.what());
-        }
+        thisPtr.addItem(val.second);
     for (const auto& val : unorderedComponents)
-        try
-        {
-           thisPtr.addItem(val);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add custom component \"{}\" to OpcUA client io folder. Error: {}", val.getName(), e.what());
-        }
+        thisPtr.addItem(val);
 }
 
 void TmsClientIoFolderImpl::findAndCreateChannels(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents)
@@ -50,22 +34,15 @@ void TmsClientIoFolderImpl::findAndCreateChannels(std::map<uint32_t, ComponentPt
 
     for (const auto& [browseName, ref] : references.byBrowseName)
     {
-        try
-        {
-            const auto channelNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-            auto thisPtr = this->borrowPtr<FolderConfigPtr>();
-            auto tmsClientChannel = TmsClientChannel(this->context, thisPtr, browseName, this->clientContext, channelNodeId);
-                
-            auto numberInList = this->tryReadChildNumberInList(channelNodeId);
-            if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
-                orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientChannel));
-            else
-                unorderedComponents.emplace_back(tmsClientChannel);
-        }
-        catch(...)
-        {
-            LOG_W("Failed to find and create channel \"{}\" to OpcUA client", browseName);
-        }
+        const auto channelNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+        auto thisPtr = this->borrowPtr<FolderConfigPtr>();
+        auto tmsClientChannel = TmsClientChannel(this->context, thisPtr, browseName, this->clientContext, channelNodeId);
+            
+        auto numberInList = this->tryReadChildNumberInList(channelNodeId);
+        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
+            orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientChannel));
+        else
+            unorderedComponents.emplace_back(tmsClientChannel);
     }
 }
 
@@ -75,22 +52,15 @@ void TmsClientIoFolderImpl::findAndCreateIoFolders(std::map<uint32_t, ComponentP
 
     for (const auto& [browseName, ref] : folderReferences.byBrowseName)
     {
-        try
-        {
-            const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-            auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
-            auto tmsClientFolder = TmsClientIoFolder(this->context, thisPtr, browseName, this->clientContext, folderNodeId);
+        const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+        auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
+        auto tmsClientFolder = TmsClientIoFolder(this->context, thisPtr, browseName, this->clientContext, folderNodeId);
 
-            auto numberInList = this->tryReadChildNumberInList(folderNodeId);
-            if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
-                orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientFolder));
-            else
-                unorderedComponents.emplace_back(tmsClientFolder);
-        }
-        catch(...)
-        {
-            LOG_W("Failed to find and create io folder \"{}\" to OpcUA client", browseName);
-        }
+        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
+        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
+            orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, tmsClientFolder));
+        else
+            unorderedComponents.emplace_back(tmsClientFolder);
     }
 }
 

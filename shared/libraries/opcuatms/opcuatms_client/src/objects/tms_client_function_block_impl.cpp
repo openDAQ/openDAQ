@@ -67,28 +67,14 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateFunctionBlocks()
         }
         catch(...)
         {
-            LOG_W("Failed to create function block \"{}\" to OpcUA client device", browseName);
+            LOG_W("Failed to create function block \"{}\" to OpcUA client device \"{}\"", browseName, this->localId);
         }
     }
 
     for (const auto& val : orderedFunctionBlocks)
-        try
-        {
             this->addNestedFunctionBlock(val.second);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add function block to OpcUA client function block. Error: {}", e.what());
-        }
     for (const auto& val : unorderedFunctionBlocks)
-        try
-        {
            this->addNestedFunctionBlock(val);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add function block to OpcUA client function block. Error: {}", e.what());
-        }
 }
 
 template <typename Impl> 
@@ -112,28 +98,14 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateSignals()
         } 
         catch (...)
         {
-            LOG_W("Failed to create signal to OPC UA client");
+            LOG_W("Failed to create signal to OpcUA client \"{}\"", this->localId);
         }
     }
     
     for (const auto& val : orderedSignals)
-        try
-        {
             this->addSignal(val.second);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add signal \"{}\" to OpcUA client device. Error: {}", val.second.getName(), e.what());
-        }
     for (const auto& val : unorderedSignals)
-        try
-        {
            this->addSignal(val);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add signal \"{}\" to OpcUA client device. Error: {}", val.getName(), e.what());
-        }
 }
 
 template <typename Impl>
@@ -184,28 +156,14 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateInputPorts()
         }
         catch(...)
         {
-            LOG_W("Failed to find and create input port \"{}\" to OpcUA client", browseName);
+            LOG_W("Failed to find and create input port \"{}\" to OpcUA client \"{}\"", browseName, this->localId);
         }
     }
 
     for (const auto& val : orderedInputPorts)
-        try
-        {
             this->addInputPort(val.second);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add input port \"{}\" to OpcUA client. Error: {}", val.second.getName(), e.what());
-        }
     for (const auto& val : unorderedInputPorts)
-        try
-        {
            this->addInputPort(val);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Failed to add input port \"{}\" to OpcUA client. Error: {}", val.getName(), e.what());
-        }
 }
 
 template <typename Impl>

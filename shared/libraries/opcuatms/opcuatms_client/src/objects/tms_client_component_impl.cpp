@@ -56,12 +56,12 @@ void TmsClientComponentBaseImpl<Impl>::initComponent()
     catch([[maybe_unused]] const std::exception& e)
     {
         const auto loggerComponent = getLogger();
-        LOG_D("OPC UA Component {} failed to fetch tags: {}", this->localId, e.what());
+        LOG_D("OpcUA Component {} failed to fetch tags: {}", this->localId, e.what());
     }
     catch(...)
     {
         const auto loggerComponent = getLogger();
-        LOG_D("OPC UA Component {} failed to fetch tags.", this->localId);
+        LOG_D("OpcUA Component {} failed to fetch tags.", this->localId);
     }
 }
 
@@ -153,7 +153,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getVisible(Bool* visible)
     {
         *visible = true;
         const auto loggerComponent = getLogger();
-        LOG_D("OPC UA Component {} failed to fetch \"Visible\" state.", this->localId);
+        LOG_D("OpcUA Component {} failed to fetch \"Visible\" state.", this->localId);
     }
 
     return OPENDAQ_SUCCESS;
@@ -170,7 +170,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setVisible(Bool visible)
     catch (...)
     {
         const auto loggerComponent = getLogger();
-        LOG_D("OPC UA Component {} failed to set \"Active\" state.", this->localId);
+        LOG_D("OpcUA Component {} failed to set \"Active\" state.", this->localId);
     }
 
     return OPENDAQ_IGNORED;

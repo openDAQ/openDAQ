@@ -63,7 +63,7 @@ ErrCode TmsClientSignalImpl::getDescriptor(IDataDescriptor** descriptor)
     }
     catch (...)
     {
-        LOG_W("Failed to get descriptor on Opc UA client signal");
+        LOG_W("Failed to get descriptor on OpcUA client signal \"{}\"", this->localId);
     }
     return OPENDAQ_IGNORED;
 }
@@ -79,10 +79,9 @@ ErrCode TmsClientSignalImpl::getDomainSignal(ISignal** signal)
     ErrCode errCode = wrapHandlerReturn(this, &TmsClientSignalImpl::onGetDomainSignal, signalPtr);
 
     *signal = signalPtr.detach();
-
-    if (errCode != OPENDAQ_SUCCESS)
+    if (OPENDAQ_FAILED(errCode))
     {
-        LOG_W("Failed to get domain signal on Opc Ua client signal");
+        LOG_W("Failed to get domain signal on OpcUA client signal \"{}\"", this->localId);
         return OPENDAQ_IGNORED;
     }
     return errCode;
@@ -95,11 +94,7 @@ SignalPtr TmsClientSignalImpl::onGetDomainSignal()
     filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
     const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);
-    if (references.byNodeId.size() > 1)
-    {
-        LOG_W("Opc UA client signal has multiple domain signals");
-        throw ValidateFailedException("Opc UA client signal has multiple domain signals");
-    }
+    assert(references.byNodeId.size() <= 1);
 
     if (!references.byNodeId.empty())
     {
@@ -120,9 +115,9 @@ ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
     ListPtr<ISignal> signalsPtr;
     ErrCode errCode = wrapHandlerReturn(this, &TmsClientSignalImpl::onGetRelatedSignals, signalsPtr);
     *signals = signalsPtr.detach();
-    if (errCode != OPENDAQ_SUCCESS)
+    if (OPENDAQ_FAILED(errCode))
     {
-        LOG_W("Failed to get related signals on Opc Ua client signal");
+        LOG_W("Failed to get related signals on OpcUA client signal \"{}\"", this->localId);
         return OPENDAQ_IGNORED;
     }
     return errCode;
@@ -199,7 +194,7 @@ ErrCode TmsClientSignalImpl::getLastValue(IBaseObject** value)
             }
             catch (...)
             {
-                LOG_W("Failed to get last value on Opc Ua clieng signal");
+                LOG_W("Failed to get last value on OpcUA client signal \"{}\"", this->localId);
             }
             return OPENDAQ_IGNORED;
         };

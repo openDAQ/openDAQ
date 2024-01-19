@@ -24,7 +24,7 @@ ErrCode TmsClientInputPortImpl::getRequiresSignal(Bool* value)
     }
     catch(...)
     {
-        LOG_W("Failed to get requires signals");
+        LOG_W("Failed to get requires signals on OpcUA client input port \"{}\"", this->localId);
     }
     return OPENDAQ_IGNORED;
 }

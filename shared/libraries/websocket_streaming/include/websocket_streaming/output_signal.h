@@ -50,10 +50,11 @@ protected:
     uint64_t getTickResolution();
     void createSignalStream();
     void createStreamedSignal();
+    void subscribeToCoreEvent();
     void writeEventPacket(const EventPacketPtr& packet);
     void writeDataPacket(const DataPacketPtr& packet);
     void writeDescriptorChangedPacket(const EventPacketPtr& packet);
-    void writePropertyChangedPacket(const EventPacketPtr& packet);
+    void processCoreEvent(ComponentPtr& component, CoreEventArgsPtr& args);
 
     SignalPtr signal;
     SignalConfigPtr streamedSignal;

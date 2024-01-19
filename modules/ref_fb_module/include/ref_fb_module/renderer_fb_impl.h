@@ -226,7 +226,9 @@ private:
     void processSignalDescriptorChanged(SignalContext& signalContext,
                                         const DataDescriptorPtr& valueSignalDescriptor,
                                         const DataDescriptorPtr& domainSignalDescriptor);
-    void processPropertyChanged(SignalContext& signalContext, const StringPtr& propName, const StringPtr& propValue);
+    void processAttributeChanged(SignalContext& signalContext, const StringPtr& attrName, const StringPtr& attrValue);
+    void subscribeToSignalCoreEvent(const SignalPtr& signal);
+    void processCoreEvent(ComponentPtr& component, CoreEventArgsPtr& args);
     void configureSignalContext(SignalContext& signalContext);
     void setSignalContextCaption(SignalContext& signalContext, const std::string& caption = std::string {});
     void processDataPacket(SignalContext& signalContext, const DataPacketPtr& dataPacket);

@@ -416,7 +416,7 @@ class App(tk.Tk):
 
     def remove_function_block(self, iid):
         node = self.nodes[iid]
-        fbs = daq.IFolderConfig.cast_from(self.instance.get_item("fb"))
+        fbs = daq.IFolderConfig.cast_from(self.instance.get_item("FB"))
         fbs.remove_item(node)
         self.selected_node = None
         self.update_tree_widget()

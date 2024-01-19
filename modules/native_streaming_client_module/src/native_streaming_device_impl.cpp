@@ -83,9 +83,12 @@ void NativeStreamingDeviceImpl::updateSignalProperties(const SignalPtr& signal,
                                                        const StringPtr& name,
                                                        const StringPtr& description)
 {
-    auto protectedObject = signal.asPtr<IPropertyObjectProtected>();
-    protectedObject.setProtectedPropertyValue("Name", name);
-    protectedObject.setProtectedPropertyValue("Description", description);
+    auto compPrivate = signal.asPtr<IComponentPrivate>();
+
+    compPrivate.unlockAllAttributes();
+    signal.setName(name);
+    signal.setDescription(description);
+    compPrivate.lockAllAttributes();
 }
 
 void NativeStreamingDeviceImpl::signalAvailableHandler(const StringPtr& signalStringId,

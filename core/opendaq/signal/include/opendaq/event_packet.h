@@ -76,20 +76,4 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
                                         IDataDescriptor*,
                                         domainDataDescriptor)
 
-/*!
- * @brief Creates a PropertyChanged Event packet.
- * @param name The name of the property.
- * @param value The value of the property.
- *
- * The ID of the packet is "PROPERTY_CHANGED". Its parameters dictionary contains the keys "Name"
- * and "Value".
- */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
-                                             PropertyChangedEventPacket,
-                                             IEventPacket,
-                                             IString*,
-                                             name,
-                                             IBaseObject*,
-                                             value)
-
 END_NAMESPACE_OPENDAQ

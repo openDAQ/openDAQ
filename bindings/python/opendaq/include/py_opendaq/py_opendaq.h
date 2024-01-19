@@ -87,6 +87,8 @@ PyDaqIntf<daq::IStreamingInfo, daq::IPropertyObject> declareIStreamingInfo(pybin
 PyDaqIntf<daq::IStreamingInfoConfig, daq::IStreamingInfo> declareIStreamingInfoConfig(pybind11::module_ m);
 PyDaqIntf<daq::IMirroredSignalConfig, daq::ISignalConfig> declareIMirroredSignalConfig(pybind11::module_ m);
 PyDaqIntf<daq::ISubscriptionEventArgs, daq::IEventArgs> declareISubscriptionEventArgs(pybind11::module_ m);
+PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> declareIComponentPrivate(pybind11::module_ m);
+PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> declareISearchFilter(pybind11::module_ m);
 
 py::class_<daq::TimeReader<daq::StreamReaderPtr>> declareTimeStreamReader(pybind11::module_ m);
 py::class_<daq::TimeReader<daq::TailReaderPtr>> declareTimeTailReader(pybind11::module_ m);
@@ -162,3 +164,5 @@ void defineIStreamingInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IStreamingIn
 void defineIMirroredSignalConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredSignalConfig, daq::ISignalConfig> cls);
 void defineISubscriptionEventArgs(pybind11::module_ m, PyDaqIntf<daq::ISubscriptionEventArgs, daq::IEventArgs> cls);
 void defineMockSignal(pybind11::module_ m, py::class_<daq::MockSignal> cls);
+void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> cls);
+void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> cls);

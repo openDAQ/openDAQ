@@ -45,6 +45,8 @@
 #include <opendaq/input_port_factory.h>
 
 #include <opendaq/component_ptr.h>
+#include <opendaq/component_private_ptr.h>
+#include <opendaq/search_filter_factory.h>
 #include <opendaq/removable_ptr.h>
 
 #include <opendaq/data_descriptor_factory.h>

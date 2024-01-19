@@ -96,6 +96,8 @@ CachedReferences CachedReferenceBrowser::browseFiltered(const OpcUaNodeId& nodeI
             continue;
         if (filter.direction == UA_BROWSEDIRECTION_INVERSE && ref->isForward)
             continue;
+        if (filter.nodeClass != UA_NODECLASS_UNSPECIFIED && filter.nodeClass != ref->nodeClass)
+            continue;
 
         filtered.byNodeId.insert({ref->nodeId.nodeId, ref});
         filtered.byBrowseName.insert({browseName, ref});

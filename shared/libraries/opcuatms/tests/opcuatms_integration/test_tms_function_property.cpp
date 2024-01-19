@@ -8,7 +8,6 @@
 #include "tms_object_integration_test.h"
 #include "coreobjects/argument_info_factory.h"
 #include "opendaq/context_factory.h"
-#include <opendaq/logger_sink_last_message_private_ptr.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -25,54 +24,22 @@ class TmsFunctionTest: public TmsObjectIntegrationTest
 public:
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& obj)
     {
-        const auto serverProp = std::make_shared<TmsServerPropertyObject>(obj, server, NullContext(logger));
+        const auto serverProp = std::make_shared<TmsServerPropertyObject>(obj, server, ctx, serverContext);
         const auto nodeId = serverProp->registerOpcUaNode();
         const auto clientProp = TmsClientPropertyObject(NullContext(logger), clientContext, nodeId);
         return {serverProp, clientProp};
     }
 
-    static LoggerPtr createLoggerWithDebugSink(const LoggerSinkPtr& sink)
-    {
-        sink.setLevel(LogLevel::Debug);
-        auto sinks = DefaultSinks(nullptr);
-        sinks.pushBack(sink);
-        return LoggerWithSinks(sinks);
-    }
-
-    static LastMessageLoggerSinkPrivatePtr getPrivateSink(const LoggerSinkPtr& sink)
-    {
-        if(!sink.assigned())
-            throw ArgumentNullException("Sink must not be null");
-        auto sinkPtr =  sink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
-        if (sinkPtr == nullptr)
-            throw InvalidTypeException("Wrong sink. GetLastMessage supports only by LastMessageLoggerSink");
-        return sinkPtr;
-    }
-
-    StringPtr getLastMessage(const LoggerSinkPtr& sink) 
-    {
-        auto sinkPtr = getPrivateSink(sink);
-        return sinkPtr.getLastMessage();
-    }
-
-    Bool waitForMessage(const LoggerSinkPtr& sink, SizeT timeoutMs)
-    {
-        auto sinkPtr = getPrivateSink(sink);
-        return sinkPtr.waitForMessage(timeoutMs);
-    }
-
     StringPtr getLastMessage()
     {
         logger.flush();
-        auto newMessage = waitForMessage(debugSink, 2000);
+        auto sink = getPrivateSink();
+        auto newMessage = sink.waitForMessage(2000);
         if (newMessage == 0)
             return StringPtr("");
-        auto logMessage = getLastMessage(debugSink);
+        auto logMessage = sink.getLastMessage();
         return logMessage;
     }
-
-    LoggerSinkPtr debugSink = LastMessageLoggerSink();
-    LoggerPtr logger = createLoggerWithDebugSink(debugSink);
 };
 
 TEST_F(TmsFunctionTest, ProcedureNoArgs)

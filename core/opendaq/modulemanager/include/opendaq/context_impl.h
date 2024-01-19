@@ -31,6 +31,7 @@ public:
                          LoggerPtr logger,
                          TypeManagerPtr typeManager,
                          ModuleManagerPtr moduleManager);
+    ~ContextImpl();
 
     ErrCode INTERFACE_FUNC getScheduler(IScheduler** scheduler) override;
     ErrCode INTERFACE_FUNC getLogger(ILogger** logger) override;
@@ -40,6 +41,8 @@ public:
     ErrCode INTERFACE_FUNC moveModuleManager(IModuleManager** manager) override;
 
 private:
+    void componentCoreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
+
     LoggerPtr logger;
     SchedulerPtr scheduler;
     WeakRefPtr<IModuleManager> moduleManagerWeakRef;

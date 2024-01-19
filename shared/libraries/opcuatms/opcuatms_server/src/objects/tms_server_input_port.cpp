@@ -10,8 +10,8 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 using namespace opcua;
 
-TmsServerInputPort::TmsServerInputPort(const InputPortPtr& object, const OpcUaServerPtr& server, const ContextPtr& context)
-    : Super(object, server, context)
+TmsServerInputPort::TmsServerInputPort(const InputPortPtr& object, const OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext)
+    : Super(object, server, context, tmsContext)
 {
 }
 

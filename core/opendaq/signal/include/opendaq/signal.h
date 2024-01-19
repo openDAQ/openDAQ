@@ -137,6 +137,7 @@ DECLARE_OPENDAQ_INTERFACE(ISignal, IComponent)
      */
     virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) = 0;
 };
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

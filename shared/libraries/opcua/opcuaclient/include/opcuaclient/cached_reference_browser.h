@@ -41,6 +41,7 @@ struct BrowseFilter
     OpcUaNodeId referenceTypeId = OpcUaNodeId();
     OpcUaNodeId typeDefinition = OpcUaNodeId();
     UA_BrowseDirection direction = UA_BROWSEDIRECTION_BOTH;
+    UA_NodeClass nodeClass = UA_NODECLASS_UNSPECIFIED;
 };
 
 class CachedReferenceBrowser

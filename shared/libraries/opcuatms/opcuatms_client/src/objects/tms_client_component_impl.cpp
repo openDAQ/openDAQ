@@ -20,9 +20,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getActive(Bool* active)
     catch(...)
     {
         auto loggerComponent = getLogger();
-        StringPtr nameObj;
-        this->getName(&nameObj);
-        LOG_W("Failed to get active of component \"{}\"", nameObj);
+        LOG_W("Failed to get active of component \"{}\"", this->localId);
     }
     return OPENDAQ_IGNORED;
 }
@@ -38,15 +36,13 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setActive(Bool active)
     catch(...)
     {
         auto loggerComponent = getLogger();
-        StringPtr nameObj;
-        this->getName(&nameObj);
-        LOG_W("Failed to set active of component \"{}\"", nameObj);
+        LOG_W("Failed to set active of component \"{}\"", this->localId);
     }
     return OPENDAQ_IGNORED;
 }
 
 template <class Impl>
-ErrCode TmsClientComponentBaseImpl<Impl>::getTags(ITagsConfig** tags)
+void TmsClientComponentBaseImpl<Impl>::initComponent()
 {
     try
     {
@@ -55,17 +51,18 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getTags(ITagsConfig** tags)
         for (auto tag : tagValues)
             tagsObj.add(tag);
         tagsObj.freeze();
-        *tags = tagsObj.detach();
-        return OPENDAQ_SUCCESS;
+        this->tags = tagsObj.detach();
+    }
+    catch([[maybe_unused]] const std::exception& e)
+    {
+        const auto loggerComponent = getLogger();
+        LOG_D("OPC UA Component {} failed to fetch tags: {}", this->localId, e.what());
     }
     catch(...)
     {
-        auto loggerComponent = getLogger();
-        StringPtr nameObj;
-        this->getName(&nameObj);
-        LOG_W("Failed to get tags of component \"{}\"", nameObj);
+        const auto loggerComponent = getLogger();
+        LOG_D("OPC UA Component {} failed to fetch tags.", this->localId);
     }
-    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>
@@ -100,9 +97,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setName(IString* name)
     catch(...)
     {
         auto loggerComponent = getLogger();
-        StringPtr nameObj;
-        this->getName(&nameObj);
-        LOG_W("Failed to set name of component \"{}\"", nameObj);
+        LOG_W("Failed to set name of component \"{}\"", this->localId);
     }
 
     return OPENDAQ_IGNORED;
@@ -122,9 +117,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getDescription(IString** description)
     catch(...)
     {
         auto loggerComponent = getLogger();
-        StringPtr nameObj;
-        this->getName(&nameObj);
-        LOG_W("Failed to get description of component \"{}\"", nameObj);
+        LOG_W("Failed to get description of component \"{}\"", this->localId);
     }
     return OPENDAQ_IGNORED;
 }
@@ -143,9 +136,41 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setDescription(IString* description)
     catch(...)
     {
         auto loggerComponent = getLogger();
-        StringPtr descObj;
-        this->getName(&descObj);
-        LOG_W("Failed to set description of component \"{}\"", descObj);
+        LOG_W("Failed to set description of component \"{}\"", this->localId);
+    }
+
+    return OPENDAQ_IGNORED;
+}
+
+template <class Impl>
+ErrCode TmsClientComponentBaseImpl<Impl>::getVisible(Bool* visible)
+{
+    try
+    {
+        *visible = this->template readValue<IBoolean>("Visible");
+    }
+    catch(...)
+    {
+        *visible = true;
+        const auto loggerComponent = getLogger();
+        LOG_D("OPC UA Component {} failed to fetch \"Visible\" state.", this->localId);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
+ErrCode TmsClientComponentBaseImpl<Impl>::setVisible(Bool visible)
+{
+    try
+    {
+        this->template writeValue<IBoolean>("Visible", visible);
+        return OPENDAQ_SUCCESS;
+    }
+    catch (...)
+    {
+        const auto loggerComponent = getLogger();
+        LOG_D("OPC UA Component {} failed to set \"Active\" state.", this->localId);
     }
 
     return OPENDAQ_IGNORED;

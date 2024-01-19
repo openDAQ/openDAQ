@@ -4,9 +4,8 @@ using namespace daq;
 
 MockMirroredSignalImpl::MockMirroredSignalImpl(const ContextPtr& ctx,
                                                const ComponentPtr& parent,
-                                               const StringPtr& localId,
-                                               const ComponentStandardProps propsMode)
-    : MirroredSignal(ctx, parent, localId, nullptr, propsMode)
+                                               const StringPtr& localId)
+    : MirroredSignal(ctx, parent, localId, nullptr)
     , streamingId(localId)
 {
 }

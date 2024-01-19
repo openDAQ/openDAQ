@@ -34,7 +34,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     using namespace std::chrono_literals;
 
     // Find the first signal
-    daq::SignalPtr signal = device.getSignalsRecursive()[0];
+    daq::SignalPtr signal = device.getSignals()[0];
     daq::StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
 
     // Get the resolution and origin

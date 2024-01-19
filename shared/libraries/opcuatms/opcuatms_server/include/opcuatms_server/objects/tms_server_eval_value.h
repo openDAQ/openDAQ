@@ -32,8 +32,8 @@ public:
     using ReadCallback = std::function<BaseObjectPtr()>;
     using WriteCallback = std::function<UA_StatusCode(const BaseObjectPtr& object)>;
     
-    TmsServerEvalValue(const EvalValuePtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context);
-    TmsServerEvalValue(const opcua::OpcUaServerPtr& server, const ContextPtr& context);
+    TmsServerEvalValue(const EvalValuePtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
+    TmsServerEvalValue(const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
     std::string getBrowseName() override;
     void setReadCallback(ReadCallback readCallback);
     void setWriteCallback(WriteCallback writeCallback);

@@ -3,6 +3,8 @@
 #include <open62541/types_daqdevice_generated.h>
 #include <open62541/types_daqbsp_generated.h>
 #include <open62541/types_di_generated.h>
+#include <open62541/types_daqhbk_generated.h>
+#include <open62541/types_daqesp_generated.h>
 
 using namespace daq::opcua;
 
@@ -95,6 +97,8 @@ daq::opcua::OpcUaClientPtr TmsObjectTest::CreateAndConnectTestClient()
     endpoint.registerCustomTypes(UA_TYPES_DAQBT_COUNT, UA_TYPES_DAQBT);
     endpoint.registerCustomTypes(UA_TYPES_DAQBSP_COUNT, UA_TYPES_DAQBSP);
     endpoint.registerCustomTypes(UA_TYPES_DAQDEVICE_COUNT, UA_TYPES_DAQDEVICE);
+    endpoint.registerCustomTypes(UA_TYPES_DAQESP_COUNT, UA_TYPES_DAQESP);
+    endpoint.registerCustomTypes(UA_TYPES_DAQHBK_COUNT, UA_TYPES_DAQHBK);
 
     auto client = std::make_shared<daq::opcua::OpcUaClient>(endpoint);
     client->connect();

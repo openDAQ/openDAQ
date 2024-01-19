@@ -250,7 +250,7 @@ void TmsAttributeCollector::collectSignalsNode(const OpcUaNodeId& nodeId)
 
     for (const auto& [refNodeId, ref] : signalReferences.byNodeId)
     {
-        if (typeEquals(ref->typeDefinition.nodeId, NodeIdSignalType))
+        if (isSubtypeOf(ref->typeDefinition.nodeId, NodeIdSignalType))
             collectSignalAttributes(refNodeId);
     }
 }

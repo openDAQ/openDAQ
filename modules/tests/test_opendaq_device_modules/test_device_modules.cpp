@@ -17,11 +17,8 @@ static InstancePtr CreateServerInstance()
 
     const auto statistics = instance.addFunctionBlock("ref_fb_module_statistics");
     const auto refDevice = instance.addDevice("daqref://device1");
-    statistics.getInputPorts()[0].connect(refDevice.getSignalsRecursive()[0]);
-
-    auto sigs = instance.getSignalsRecursive();
-    auto avgSigs = statistics.getSignalsRecursive();
-    auto devSigs = refDevice.getSignalsRecursive();
+    statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
+    statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
 
     instance.addServer("openDAQ OpcUa", nullptr);
 
@@ -43,6 +40,11 @@ TEST_F(DeviceModulesTest, ConnectAndDisconnect)
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
+
+    client->releaseRef();
+    server->releaseRef();
+    client.detach();
+    server.detach();
 }
 
 TEST_F(DeviceModulesTest, GetRemoteDeviceObjects)
@@ -51,14 +53,34 @@ TEST_F(DeviceModulesTest, GetRemoteDeviceObjects)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
     
-    auto signals = client.getSignalsRecursive();
+    auto signals = client.getSignals(search::Recursive(search::Any()));
+    auto signalsServer = server.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(signals.getCount(), 7u);
+    auto signalsVisible = client.getSignals(search::Recursive(search::Visible()));
+    ASSERT_EQ(signalsVisible.getCount(), 4u);
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
     auto fbs = devices[0].getFunctionBlocks();
     ASSERT_EQ(fbs.getCount(), 1u);
-    auto channels = client.getChannelsRecursive();
+    auto channels = client.getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 2u);
+}
+
+TEST_F(DeviceModulesTest, RemoteGlobalIds)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    const auto clientRootId = client.getGlobalId();
+    const auto serverDeviceId = server.getGlobalId(); 
+    const auto clientDeviceId = client.getDevices()[0].getGlobalId(); 
+
+    const auto serverSignalId = server.getSignalsRecursive()[0].getGlobalId();
+    const auto clientSignalId = client.getSignalsRecursive()[0].getGlobalId();
+
+    ASSERT_EQ(clientDeviceId, clientRootId + "/Dev" + serverDeviceId);
+    ASSERT_EQ(clientSignalId, clientRootId + "/Dev" + serverSignalId);
 }
 
 TEST_F(DeviceModulesTest, GetSetDeviceProperties)
@@ -140,11 +162,11 @@ TEST_F(DeviceModulesTest, DISABLED_Signal)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    auto signal = client.getSignalsRecursive()[0];
-    auto serverSignal = server.getSignalsRecursive()[0];
+    auto signal = client.getSignals(search::Recursive(search::Visible()))[0];
+    auto serverSignal = server.getSignals(search::Recursive(search::Visible()))[0];
 
-    ASSERT_GT(client.getDevices()[0].getSignalsRecursive().getCount(), 0u);
-    ASSERT_GT(client.getDevices()[0].getDevices()[0].getSignalsRecursive().getCount(), 0u);
+    ASSERT_GT(client.getDevices()[0].getSignals(search::Recursive(search::Visible())).getCount(), 0u);
+    ASSERT_GT(client.getDevices()[0].getDevices()[0].getSignals(search::Recursive(search::Visible())).getCount(), 0u);
 
     ASSERT_EQ(signal.getLocalId(), serverSignal.getLocalId());
     ASSERT_EQ(signal.getActive(), serverSignal.getActive());
@@ -166,13 +188,13 @@ TEST_F(DeviceModulesTest, SignalConfig_Server)
 
     auto server = CreateServerInstance();
 
-    auto serverSignal = server.getSignalsRecursive()[0].asPtr<ISignalConfig>();
+    auto serverSignal = server.getSignals(search::Recursive(search::Visible()))[0].asPtr<ISignalConfig>();
     auto serverSignalDataDescriptor = DataDescriptorBuilderCopy(serverSignal.getDescriptor()).setName(newSignalName).build();
     serverSignal.setDescriptor(serverSignalDataDescriptor);
 
     auto client = CreateClientInstance();
 
-    auto clientSignals = client.getDevices()[0].getSignalsRecursive();
+    auto clientSignals = client.getDevices()[0].getSignals(search::Recursive(search::Visible()));
     auto clientSignal = clientSignals[0].asPtr<ISignalConfig>();
 
     auto clientSignalDataDescriptor = DataDescriptorBuilderCopy(clientSignal.getDescriptor()).build();
@@ -186,7 +208,7 @@ TEST_F(DeviceModulesTest, DISABLED_SignalConfig_Client)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    auto clientSignals = client.getDevices()[0].getSignalsRecursive();
+    auto clientSignals = client.getDevices()[0].getSignals(search::Recursive(search::Visible()));
     auto clientSignal = clientSignals[0].asPtr<ISignalConfig>();
 
     auto descCopy = DataDescriptorBuilderCopy(clientSignal.getDescriptor()).setName("test123").build();
@@ -209,7 +231,7 @@ TEST_F(DeviceModulesTest, DISABLED_SignalLocalConnections)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    auto signal = client.getSignalsRecursive()[0].asPtr<ISignalConfig>();
+    auto signal = client.getSignals(search::Recursive(search::Visible()))[0].asPtr<ISignalConfig>();
     auto reader = PacketReader(signal);
     ASSERT_EQ(signal.getConnections().getCount(), 1u);
 
@@ -221,8 +243,8 @@ TEST_F(DeviceModulesTest, SignalDescriptor)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    auto signalDescriptor = client.getSignalsRecursive()[0].getDescriptor();
-    auto serverSignalDescriptor = server.getSignalsRecursive()[0].getDescriptor();
+    auto signalDescriptor = client.getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
+    auto serverSignalDescriptor = server.getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
 
     ASSERT_EQ(signalDescriptor.getName(), serverSignalDescriptor.getName());
     ASSERT_EQ(signalDescriptor.getMetadata(), serverSignalDescriptor.getMetadata());
@@ -245,11 +267,11 @@ TEST_F(DeviceModulesTest, DataDescriptor)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    DataDescriptorPtr dataDescriptor = client.getSignalsRecursive()[0].getDescriptor();
-    DataDescriptorPtr serverDataDescriptor = server.getSignalsRecursive()[0].getDescriptor();
+    DataDescriptorPtr dataDescriptor = client.getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
+    DataDescriptorPtr serverDataDescriptor = server.getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
 
-    DataDescriptorPtr domainDataDescriptor = client.getSignalsRecursive()[2].getDescriptor();
-    DataDescriptorPtr serverDomainDataDescriptor = server.getSignalsRecursive()[2].getDescriptor();
+    DataDescriptorPtr domainDataDescriptor = client.getSignals(search::Recursive(search::Visible()))[2].getDescriptor();
+    DataDescriptorPtr serverDomainDataDescriptor = server.getSignals(search::Recursive(search::Visible()))[2].getDescriptor();
 
     ASSERT_EQ(dataDescriptor.getName(), serverDataDescriptor.getName());
     ASSERT_EQ(dataDescriptor.getDimensions().getCount(), serverDataDescriptor.getDimensions().getCount());
@@ -263,11 +285,11 @@ TEST_F(DeviceModulesTest, DataDescriptor)
     ASSERT_EQ(domainDataDescriptor.getOrigin(), serverDomainDataDescriptor.getOrigin());
     ASSERT_EQ(domainDataDescriptor.getTickResolution(), serverDomainDataDescriptor.getTickResolution());
 
-    auto refChannel = client.getChannelsRecursive()[0];
+    auto refChannel = client.getChannels(search::Recursive(search::Visible()))[0];
     refChannel.setPropertyValue("ClientSideScaling", true);
 
-    dataDescriptor = client.getChannelsRecursive()[0].getSignalsRecursive()[0].getDescriptor();
-    serverDataDescriptor = server.getChannelsRecursive()[0].getSignalsRecursive()[0].getDescriptor();
+    dataDescriptor = client.getChannels(search::Recursive(search::Visible()))[0].getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
+    serverDataDescriptor = server.getChannels(search::Recursive(search::Visible()))[0].getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
     ASSERT_EQ(dataDescriptor.getPostScaling().getParameters(), dataDescriptor.getPostScaling().getParameters());
 }
 
@@ -287,10 +309,10 @@ TEST_F(DeviceModulesTest, DISABLED_FunctionBlock)
     ASSERT_EQ(fbType.getName(), serverFbType.getName());
 
     ASSERT_EQ(fb.getInputPorts().getCount(), serverFb.getInputPorts().getCount());
-    ASSERT_EQ(fb.getSignalsRecursive().getCount(), serverFb.getSignalsRecursive().getCount());
+    ASSERT_EQ(fb.getSignals(search::Recursive(search::Visible())).getCount(), serverFb.getSignals(search::Recursive(search::Visible())).getCount());
 
-    auto fbSignal = fb.getSignalsRecursive()[0];
-    auto serverFbSignal = serverFb.getSignalsRecursive()[0];
+    auto fbSignal = fb.getSignals(search::Recursive(search::Visible()))[0];
+    auto serverFbSignal = serverFb.getSignals(search::Recursive(search::Visible()))[0];
 
     ASSERT_EQ(fbSignal.getLocalId(), serverFbSignal.getLocalId());
     ASSERT_EQ(fbSignal.getActive(), serverFbSignal.getActive());
@@ -352,12 +374,12 @@ TEST_F(DeviceModulesTest, DISABLED_PublicProp)
 {
     auto server = Instance();
     const auto refDevice = server.addDevice("daqref://device1");
-    refDevice.getSignalsRecursive()[0].setPublic(false);
-    auto id = refDevice.getSignalsRecursive()[0].getLocalId();
+    refDevice.getSignals(search::Recursive(search::Visible()))[0].setPublic(false);
+    auto id = refDevice.getSignals(search::Recursive(search::Visible()))[0].getLocalId();
     server.addServer("openDAQ OpcUa", nullptr);
     auto client = CreateClientInstance();
 
-    ASSERT_NE(client.getDevices()[0].getDevices()[0].getSignalsRecursive()[0].getLocalId(), id);
+    ASSERT_NE(client.getDevices()[0].getDevices()[0].getSignals(search::Recursive(search::Visible()))[0].getLocalId(), id);
 }
 
 TEST_F(DeviceModulesTest, ProcedureProp)
@@ -388,7 +410,7 @@ TEST_F(DeviceModulesTest, DISABLED_ReferenceMethods)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
     
-    auto signals = client.getDevices()[0].getDevices()[0].getSignalsRecursive();
+    auto signals = client.getDevices()[0].getDevices()[0].getSignals(search::Recursive(search::Visible()));
     auto connectedSignal = signals[0];
     auto domainSignal = signals[1];
 
@@ -407,11 +429,11 @@ TEST_F(DeviceModulesTest, DISABLED_DynamicSignalConfig)
     auto serverDevice = server.addDevice("daqref://device0");
     auto client = CreateClientInstance();
 
-    auto clientSignals = client.getDevices()[0].getDevices()[0].getSignalsRecursive();
+    auto clientSignals = client.getDevices()[0].getDevices()[0].getSignals(search::Recursive(search::Visible()));
     auto clientSignal = clientSignals[0].asPtr<ISignalConfig>();
     
     clientSignal.setDomainSignal(clientSignals[1]);
-    ASSERT_EQ(serverDevice.getSignalsRecursive()[0].getDomainSignal().getLocalId(), clientSignal.getDomainSignal().getLocalId());
+    ASSERT_EQ(serverDevice.getSignals(search::Recursive(search::Visible()))[0].getDomainSignal().getLocalId(), clientSignal.getDomainSignal().getLocalId());
 }
 
 TEST_F(DeviceModulesTest, FunctionBlocksOnClient)

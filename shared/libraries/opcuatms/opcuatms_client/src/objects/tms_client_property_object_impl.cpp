@@ -197,6 +197,36 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(I
 }
 
 template <class Impl>
+ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::beginUpdate()
+{
+    if (!hasReference("BeginUpdate"))
+        return OPENDAQ_SUCCESS;
+
+    const auto beginUpdateId = getNodeId("BeginUpdate");
+    OpcUaCallMethodRequest request;
+    request->inputArgumentsSize = 0;
+    request->objectId = nodeId.getValue();
+    request->methodId = beginUpdateId.getValue();
+    client->callMethod(request);
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
+ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::endUpdate()
+{
+    if (!hasReference("EndUpdate"))
+        return OPENDAQ_SUCCESS;
+
+    const auto endUpdateId = getNodeId("EndUpdate");
+    OpcUaCallMethodRequest request;
+    request->inputArgumentsSize = 0;
+    request->objectId = nodeId.getValue();
+    request->methodId = endUpdateId.getValue();
+    client->callMethod(request);
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
 void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& parentId,
                                                           std::map<uint32_t, PropertyPtr>& orderedProperties,
                                                           std::vector<PropertyPtr>& unorderedProperties)
@@ -213,6 +243,9 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
     {
         const auto typeId = OpcUaNodeId(ref->typeDefinition.nodeId);
         const auto propName = String(utils::ToStdString(ref->browseName.name));
+
+        if (!clientContext->getAttributeReader()->hasAnyValue(childNodeId))
+            continue;
 
         Bool hasProp;
         daq::checkErrorInfo(Impl::hasProperty(propName, &hasProp));
@@ -232,7 +265,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             }
             catch(const std::exception& e)
             {
-                LOG_W("Failed to add reference property {}", e.what());
+                LOG_W("Failed to add {} reference property {}",propName, e.what());
                 continue;
             }
         }
@@ -248,7 +281,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             }                     
             catch(const std::exception& e)
             {
-                LOG_W("Failed to add property {}", e.what());
+                LOG_W("Failed to add {} property {}", propName, e.what());
                 continue;
             }
         }
@@ -323,6 +356,9 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(const OpcUaNodeI
     {
         const auto typeId = OpcUaNodeId(ref->typeDefinition.nodeId);
         const auto propName = String(utils::ToStdString(ref->browseName.name));
+
+        if (isIgnoredMethodPeoperty(propName))
+            continue;
 
         Bool hasProp;
         daq::checkErrorInfo(Impl::hasProperty(propName, &hasProp));
@@ -413,6 +449,12 @@ void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
     for (const auto& val : functionPropValues)
         daq::checkErrorInfo(Impl::setProtectedPropertyValue(String(val.first), val.second));
 
+}
+
+template <class Impl>
+bool TmsClientPropertyObjectBaseImpl<Impl>::isIgnoredMethodPeoperty(const std::string& browseName)
+{
+    return browseName == "BeginUpdate" || browseName == "EndUpdate";
 }
 
 template class TmsClientPropertyObjectBaseImpl<PropertyObjectImpl>;

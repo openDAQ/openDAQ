@@ -13,7 +13,6 @@
 
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/context_factory.h>
-#include <opendaq/logger_sink_last_message_private_ptr.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -65,63 +64,31 @@ public:
         return object;
     }
 
-    static LoggerPtr createLoggerWithDebugSink(const LoggerSinkPtr& sink)
-    {
-        sink.setLevel(LogLevel::Debug);
-        auto sinks = DefaultSinks(nullptr);
-        sinks.pushBack(sink);
-        return LoggerWithSinks(sinks);
-    }
-
-    static LastMessageLoggerSinkPrivatePtr getPrivateSink(const LoggerSinkPtr& sink)
-    {
-        if(!sink.assigned())
-            throw ArgumentNullException("Sink must not be null");
-        auto sinkPtr =  sink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
-        if (sinkPtr == nullptr)
-            throw InvalidTypeException("Wrong sink. GetLastMessage supports only by LastMessageLoggerSink");
-        return sinkPtr;
-    }
-
-    static StringPtr getLastMessage(const LoggerSinkPtr& sink) 
-    {
-        auto sinkPtr = getPrivateSink(sink);
-        return sinkPtr.getLastMessage();
-    }
-
-    static Bool waitForMessage(const LoggerSinkPtr& sink, SizeT timeoutMs)
-    {
-        auto sinkPtr = getPrivateSink(sink);
-        return sinkPtr.waitForMessage(timeoutMs);
-    }
-
     StringPtr getLastMessage()
     {
         logger.flush();
-        auto newMessage = waitForMessage(debugSink, 2000);
+        auto sink = getPrivateSink();
+        auto newMessage = sink.waitForMessage(2000);
         if (newMessage == 0)
             return StringPtr("");
-        auto logMessage = getLastMessage(debugSink);
+        auto logMessage = sink.getLastMessage();
         return logMessage;
     }
 
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)
     {
-        auto serverProp = std::make_shared<TmsServerPropertyObject>(prop, server, NullContext(logger));
+        auto serverProp = std::make_shared<TmsServerPropertyObject>(prop, server, ctx, serverContext);
         auto nodeId = serverProp->registerOpcUaNode();
         auto clientProp = TmsClientPropertyObject(NullContext(logger), clientContext, nodeId);
         return {serverProp, clientProp};
     }
-
-    LoggerSinkPtr debugSink = LastMessageLoggerSink();
-    LoggerPtr logger = createLoggerWithDebugSink(debugSink);
 };
 
 TEST_F(TmsPropertyObjectTest, Create)
 {
     auto prop = createPropertyObject();
 
-    auto serverProp = TmsServerPropertyObject(prop, server, NullContext());
+    auto serverProp = TmsServerPropertyObject(prop, server, ctx, serverContext);
     auto nodeId = serverProp.registerOpcUaNode();
     ASSERT_TRUE(server->nodeExists(nodeId));
 

@@ -142,7 +142,10 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 
     deviceInfo = DeviceInfo("");
 
-    const auto& references = clientContext->getReferenceBrowser()->browse(nodeId);
+    auto browseFilter = BrowseFilter();
+    browseFilter.nodeClass = UA_NODECLASS_VARIABLE;
+    const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, browseFilter);
+
     auto reader = AttributeReader(client, clientContext->getMaxNodesPerRead());
 
     for (const auto& [browseName, ref] : references.byBrowseName)
@@ -544,7 +547,7 @@ void TmsClientDeviceImpl::onRemoveFunctionBlock(const FunctionBlockPtr& /*functi
 void TmsClientDeviceImpl::setUpStreamings()
 {
     auto self = this->borrowPtr<DevicePtr>();
-    const auto signals = self.getSignalsRecursive();
+    const auto signals = self.getSignals(search::Recursive(search::Any()));
     LOG_I("Device \"{}\" has established {} streaming connections", globalId, streamings.size());
     for (const auto& streaming : streamings)
     {

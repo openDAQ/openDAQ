@@ -6,7 +6,7 @@
 #include <opendaq/mock/mock_fb_factory.h>
 #include "opcuaclient/opcuaclient.h"
 #include "opcuatms_server/objects/tms_server_function_block.h"
-#include "tms_object_test.h"
+#include "tms_server_test.h"
 #include "open62541/daqbsp_nodeids.h"
 #include <coreobjects/unit_factory.h>
 
@@ -15,28 +15,26 @@ using namespace opcua::tms;
 using namespace opcua;
 using namespace daq::opcua::utils;
 
-class TmsFunctionBlockTest : public TmsObjectTest
+class TmsFunctionBlockTest : public TmsServerObjectTest
 {
 public:
 
     FunctionBlockPtr createFunctionBlock(const FunctionBlockTypePtr& type = FunctionBlockType("uid", "name", "desc"))
     {
-        const auto context = NullContext();
-
-        return MockFunctionBlock(type, context, nullptr, "mockfb");
+        return MockFunctionBlock(type, ctx, nullptr, "mockfb");
     }
 };
 
 TEST_F(TmsFunctionBlockTest, Create)
 {
     FunctionBlockPtr functionBlock = createFunctionBlock();
-    auto tmsFunctionBlock = TmsServerFunctionBlock(functionBlock, this->getServer(), NullContext());
+    auto tmsFunctionBlock = TmsServerFunctionBlock(functionBlock, this->getServer(), ctx, tmsCtx);
 }
 
 TEST_F(TmsFunctionBlockTest, Register)
 {
     FunctionBlockPtr functionBlock = createFunctionBlock();
-    auto serverFunctionBlock = TmsServerFunctionBlock(functionBlock, this->getServer(), NullContext());
+    auto serverFunctionBlock = TmsServerFunctionBlock(functionBlock, this->getServer(), ctx, tmsCtx);
     auto nodeId = serverFunctionBlock.registerOpcUaNode();
 
     ASSERT_TRUE(this->getClient()->nodeExists(nodeId));
@@ -52,7 +50,7 @@ TEST_F(TmsFunctionBlockTest, AttrFunctionBlockType)
 
     ASSERT_EQ(serverFunctionBlock.getFunctionBlockType(), type);
 
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsServerFunctionBlock.registerOpcUaNode();
 
     auto variant = readChildNode(nodeId, "FunctionBlockInfo");
@@ -68,7 +66,7 @@ TEST_F(TmsFunctionBlockTest, AttrFunctionBlockType)
 TEST_F(TmsFunctionBlockTest, BrowseSignals)
 {
     FunctionBlockPtr functionBlock = createFunctionBlock();
-    auto serverFunctionBlock = TmsServerFunctionBlock(functionBlock, this->getServer(), NullContext());
+    auto serverFunctionBlock = TmsServerFunctionBlock(functionBlock, this->getServer(), ctx, tmsCtx);
     auto nodeId = serverFunctionBlock.registerOpcUaNode();
 
     OpcUaServerNode serverNodeFB(*this->getServer(), nodeId);
@@ -91,7 +89,7 @@ TEST_F(TmsFunctionBlockTest, DISABLED_Property)
 
     serverFunctionBlock.addProperty(sampleRateProp);
 
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, tmsCtx);
     auto nodeId = tmsServerFunctionBlock.registerOpcUaNode();
 
     auto sampleRateNodeId = this->getChildNodeId(nodeId, "SampleRate");
@@ -118,7 +116,7 @@ TEST_F(TmsFunctionBlockTest, NestedFunctionBlocks)
 {
     FunctionBlockPtr functionBlock = createFunctionBlock();
 
-    auto serverFunctionBlock = TmsServerFunctionBlock(functionBlock, this->getServer(), NullContext());    
+    auto serverFunctionBlock = TmsServerFunctionBlock(functionBlock, this->getServer(), ctx, tmsCtx);    
     auto nodeId = serverFunctionBlock.registerOpcUaNode();
 
     auto firstFB = functionBlock.getFunctionBlocks()[0];

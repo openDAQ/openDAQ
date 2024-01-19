@@ -4,14 +4,15 @@
 #include "open62541/statuscodes.h"
 #include "open62541/daqbsp_nodeids.h"
 #include "open62541/di_nodeids.h"
+#include "opendaq/search_filter_factory.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 using namespace opcua;
 
 template <typename T>
-TmsServerFunctionBlock<T>::TmsServerFunctionBlock(const FunctionBlockPtr& object, const OpcUaServerPtr& server, const ContextPtr& context)
-    : Super(object, server, context)
+TmsServerFunctionBlock<T>::TmsServerFunctionBlock(const FunctionBlockPtr& object, const OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext)
+    : Super(object, server, context, tmsContext)
 {
 }
 
@@ -50,7 +51,7 @@ void TmsServerFunctionBlock<T>::addChildNodes()
     assert(!signalsNodeId.isNull());
     
     uint32_t numberInList = 0;
-    for (const auto& signal : this->object.getSignals())
+    for (const auto& signal : this->object.getSignals(search::Any()))
     {
         auto tmsSignal = this->template registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal, numberInList++);
         signals.push_back(std::move(tmsSignal));
@@ -60,14 +61,14 @@ void TmsServerFunctionBlock<T>::addChildNodes()
     assert(!inputPortsNodeId.isNull());
     
     numberInList = 0;
-    for (const auto& inputPort : this->object.getInputPorts())
+    for (const auto& inputPort : this->object.getInputPorts(search::Any()))
     {
         auto tmsInputPort = this->template registerTmsObjectOrAddReference<TmsServerInputPort>(inputPortsNodeId, inputPort, numberInList++);
         inputPorts.push_back(std::move(tmsInputPort));
     }
     
     numberInList = 0;
-    for (const auto& fb : this->object.getFunctionBlocks())
+    for (const auto& fb : this->object.getFunctionBlocks(search::Any()))
     {
         auto tmsFunctionBlock = this->template registerTmsObjectOrAddReference<TmsServerFunctionBlock<>>(this->nodeId, fb, numberInList++);
         functionBlocks.push_back(std::move(tmsFunctionBlock));

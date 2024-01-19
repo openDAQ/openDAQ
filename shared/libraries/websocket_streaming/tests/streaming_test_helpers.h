@@ -88,6 +88,8 @@ namespace streaming_test_helpers
         signal.setDomainSignal(timeSignal);
         signal.setName("TestName");
         signal.setDescription("TestDescription");
+
+        signal.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
         return signal;
     }
 

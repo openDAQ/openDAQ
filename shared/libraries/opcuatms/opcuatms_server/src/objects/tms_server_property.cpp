@@ -12,8 +12,11 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 using namespace opcua;
 
-TmsServerProperty::TmsServerProperty(const PropertyPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context)
-    : Super(object, server, context)
+TmsServerProperty::TmsServerProperty(const PropertyPtr& object,
+                                     const opcua::OpcUaServerPtr& server,
+                                     const ContextPtr& context,
+                                     const TmsServerContextPtr& tmsContext)
+    : Super(object, server, context, tmsContext)
 {
     objectInternal = object.asPtr<IPropertyInternal>(false);
     if (isReferenceType())
@@ -31,8 +34,9 @@ TmsServerProperty::TmsServerProperty(const PropertyPtr& object, const opcua::Opc
 TmsServerProperty::TmsServerProperty(const PropertyPtr& object,
                                      const opcua::OpcUaServerPtr& server,
                                      const ContextPtr& context,
+                                     const TmsServerContextPtr& tmsContext,
                                      const std::unordered_map<std::string, uint32_t>& propOrder)
-    : TmsServerProperty(object, server, context) 
+    : TmsServerProperty(object, server, context, tmsContext)
 {
     this->propOrder = propOrder;
     this->numberInList = propOrder.at(object.getName());
@@ -41,9 +45,10 @@ TmsServerProperty::TmsServerProperty(const PropertyPtr& object,
 TmsServerProperty::TmsServerProperty(const PropertyPtr& object,
                                      const opcua::OpcUaServerPtr& server,
                                      const ContextPtr& context,
+                                     const TmsServerContextPtr& tmsContext,
                                      const PropertyObjectPtr& parent,
                                      const std::unordered_map<std::string, uint32_t>& propOrder)
-    : TmsServerProperty(object, server, context, propOrder)
+    : TmsServerProperty(object, server, context, tmsContext, propOrder)
 {
     this->parent = parent;
 }
@@ -159,7 +164,7 @@ void TmsServerProperty::validate()
 void TmsServerProperty::registerEvalValueNode(const std::string& nodeName, TmsServerEvalValue::ReadCallback readCallback, bool isSelection)
 {
     auto nodeId = getChildNodeId(nodeName);
-    auto serverObject = std::make_shared<TmsServerEvalValue>(server, daqContext);
+    auto serverObject = std::make_shared<TmsServerEvalValue>(server, daqContext, tmsContext);
     serverObject->setReadCallback(std::move(readCallback));
     serverObject->setIsSelectionType(isSelection);
     auto childNodeId = serverObject->registerToExistingOpcUaNode(nodeId);

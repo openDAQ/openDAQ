@@ -69,7 +69,7 @@ public:
                                     const TmsClientContextPtr& clientContext,
                                     const opcua::OpcUaNodeId& nodeId)
         : TmsClientObjectImpl(ctx, clientContext, nodeId)
-        , Impl(ctx, parent, localId, nullptr, ComponentStandardProps::Skip)
+        , Impl(ctx, parent, localId, nullptr)
     {
         init();
     }
@@ -82,7 +82,7 @@ public:
                                     const opcua::OpcUaNodeId& nodeId,
                                     const FunctionBlockTypePtr& type)
         : TmsClientObjectImpl(ctx, clientContext, nodeId)
-        , Impl(type, ctx, parent, localId, nullptr, ComponentStandardProps::Skip)
+        , Impl(type, ctx, parent, localId, nullptr)
     {
         init();
     }
@@ -103,6 +103,8 @@ public:
     ErrCode INTERFACE_FUNC hasProperty(IString* propertyName, Bool* hasProperty) override;
     ErrCode INTERFACE_FUNC getAllProperties(IList** properties) override;
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
+    ErrCode INTERFACE_FUNC beginUpdate() override;
+    ErrCode INTERFACE_FUNC endUpdate() override;
 
 protected:
     std::unordered_map<std::string, opcua::OpcUaNodeId> introspectionVariableIdMap;
@@ -119,6 +121,7 @@ protected:
                              std::vector<PropertyPtr>& unorderedProperties,
                              std::unordered_map<std::string, BaseObjectPtr>& functionPropValues);
     void browseRawProperties();
+    bool isIgnoredMethodPeoperty(const std::string& browseName);
     ErrCode INTERFACE_FUNC setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite);
 };
 

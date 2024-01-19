@@ -174,6 +174,7 @@ Bool TmsClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
     return True;
 }
 
+
 StringPtr TmsClientSignalImpl::onGetRemoteId() const
 {
     return String(deviceSignalId);

@@ -45,6 +45,14 @@ void defineIFolder(pybind11::module_ m, PyDaqIntf<daq::IFolder, daq::IComponent>
         },
         py::return_value_policy::take_ownership,
         "Gets the list of the items in the folder.");
+    cls.def("get_items",
+        [](daq::IFolder *object, daq::ISearchFilter* searchFilter)
+        {
+            const auto objectPtr = daq::FolderPtr::Borrow(object);
+            return objectPtr.getItems(searchFilter).detach();
+        },
+        py::arg("search_filter") = nullptr,
+        "Gets the list of the items in the folder.");
     cls.def_property_readonly("empty",
         [](daq::IFolder *object)
         {

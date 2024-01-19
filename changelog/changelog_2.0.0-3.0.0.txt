@@ -1,4 +1,11 @@
 12.01.2024
+Add debug logger sink for testing purpose
++ [interface] ILastMessageLoggerSinkPrivate : public IBaseObject
++ [function] ILastMessageLoggerSinkPrivate::getLastMessage(IString** lastMessage)
++ [function] ILastMessageLoggerSinkPrivate::waitForMessage(SizeT timeoutMs, Bool* success)
++ [factory] LoggerSinkPtr LastMessageLoggerSink()
+
+12.01.2024
 Search filters, visible flag, component attributes
   - Add SearchFilter that allows for more granular component search on tree traversal methods (getItems, getSignals...)
   - Add visible flag to Component

@@ -25,9 +25,9 @@ TmsClientFolderImpl<Impl>::TmsClientFolderImpl(const ContextPtr& ctx,
         findAndCreateFolders(orderedComponents, unorderedComponents);
         auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
         for (const auto& val : orderedComponents)
-                thisPtr.addItem(val.second);
+            thisPtr.addItem(val.second);
         for (const auto& val : unorderedComponents)
-                thisPtr.addItem(val);
+            thisPtr.addItem(val);
     }
 }
 

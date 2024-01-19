@@ -81,6 +81,7 @@ run_rtgen opendaq opendaq/functionblock opendaq opendaq/generated/functionblock 
 run_rtgen opendaq opendaq/logger        opendaq opendaq/generated/logger        logger
 run_rtgen opendaq opendaq/logger        opendaq opendaq/generated/logger        logger_component
 run_rtgen opendaq opendaq/logger        opendaq opendaq/generated/logger        logger_sink
+run_rtgen opendaq opendaq/logger        opendaq opendaq/generated/logger        logger_sink_last_message_private
 run_rtgen opendaq opendaq/logger        opendaq opendaq/generated/logger        logger_thread_pool
 run_rtgen opendaq opendaq/modulemanager opendaq opendaq/generated/modulemanager module
 run_rtgen opendaq opendaq/modulemanager opendaq opendaq/generated/modulemanager module_manager

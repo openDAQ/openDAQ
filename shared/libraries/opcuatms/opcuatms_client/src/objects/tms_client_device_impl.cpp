@@ -272,7 +272,7 @@ void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
     for (const auto& val : orderedFunctionBlocks)
         this->addNestedFunctionBlock(val.second);
     for (const auto& val : unorderedFunctionBlocks)
-           this->addNestedFunctionBlock(val);
+        this->addNestedFunctionBlock(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateSignals()
@@ -301,9 +301,9 @@ void TmsClientDeviceImpl::findAndCreateSignals()
     }
 
     for (const auto& val : orderedSignals)
-            this->addSignal(val.second);
+        this->addSignal(val.second);
     for (const auto& val : unorderedSignals)
-           this->addSignal(val);
+        this->addSignal(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateInputsOutputs()
@@ -356,9 +356,9 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
     }
 
     for (const auto& val : orderedComponents)
-            this->ioFolder.addItem(val.second);
+        this->ioFolder.addItem(val.second);
     for (const auto& val : unorderedComponents)
-           this->ioFolder.addItem(val);
+        this->ioFolder.addItem(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateStreamingOptions()
@@ -435,9 +435,9 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
     }
 
     for (const auto& val : orderedComponents)
-            this->components.push_back(val.second);
+        this->components.push_back(val.second);
     for (const auto& val : unorderedComponents)
-           this->components.push_back(val);
+        this->components.push_back(val);
 }
 
 FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)

@@ -161,9 +161,9 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateInputPorts()
     }
 
     for (const auto& val : orderedInputPorts)
-            this->addInputPort(val.second);
+        this->addInputPort(val.second);
     for (const auto& val : unorderedInputPorts)
-           this->addInputPort(val);
+        this->addInputPort(val);
 }
 
 template <typename Impl>

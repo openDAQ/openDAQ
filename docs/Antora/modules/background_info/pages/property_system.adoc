@@ -1213,6 +1213,23 @@ propObj.addProperty(ListProperty("List", List<IString>("Banana", "Kiwi")));
 
 // Prints "Banana"
 std::cout << propObj.getPropertyValue("List[0]") << std::endl;
+
+// Sets a new value to the List Property. 
+propObj.setPropertyValue("List", List<IString>("Pear", "Strawberry"));
+
+// To extend / shorten the list, a clone of the list is required as getPropertyValue returns a frozen list. 
+ListPtr<IString> list = propObj->getPropertyValue("List");
+ListPtr<IString> clonedList;
+for (const auto& item : list)
+    clonedList.pushBack(item);
+
+clonedList.pushBack("Pear");
+propObj.setPropertyValue("List", clonedList);
+
+// Prints "Banana", "Kiwi" and "Pear"
+list = propObj->getPropertyValue("List");
+for (const auto& item : list)
+    std::cout << item << std::endl;
 ----
 Python::
 +

@@ -27,6 +27,8 @@ public:
     explicit TmsClientPropertyImpl(const ContextPtr& daqContext, const TmsClientContextPtr& ctx, const opcua::OpcUaNodeId& nodeId);
 
 protected:
+    LoggerComponentPtr loggerComponent;
+
     void readBasicInfo();
     void configurePropertyFields();
 };

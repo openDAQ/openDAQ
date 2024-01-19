@@ -8,6 +8,7 @@
 #include "tms_object_integration_test.h"
 #include "coreobjects/argument_info_factory.h"
 #include "opendaq/context_factory.h"
+#include <opendaq/logger_sink_last_message_private_ptr.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -24,11 +25,54 @@ class TmsFunctionTest: public TmsObjectIntegrationTest
 public:
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& obj)
     {
-        const auto serverProp = std::make_shared<TmsServerPropertyObject>(obj, server, NullContext());
+        const auto serverProp = std::make_shared<TmsServerPropertyObject>(obj, server, NullContext(logger));
         const auto nodeId = serverProp->registerOpcUaNode();
-        const auto clientProp = TmsClientPropertyObject(NullContext(), clientContext, nodeId);
+        const auto clientProp = TmsClientPropertyObject(NullContext(logger), clientContext, nodeId);
         return {serverProp, clientProp};
     }
+
+    static LoggerPtr createLoggerWithDebugSink(const LoggerSinkPtr& sink)
+    {
+        sink.setLevel(LogLevel::Debug);
+        auto sinks = DefaultSinks(nullptr);
+        sinks.pushBack(sink);
+        return LoggerWithSinks(sinks);
+    }
+
+    static LastMessageLoggerSinkPrivatePtr getPrivateSink(const LoggerSinkPtr& sink)
+    {
+        if(!sink.assigned())
+            throw ArgumentNullException("Sink must not be null");
+        auto sinkPtr =  sink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+        if (sinkPtr == nullptr)
+            throw InvalidTypeException("Wrong sink. GetLastMessage supports only by LastMessageLoggerSink");
+        return sinkPtr;
+    }
+
+    StringPtr getLastMessage(const LoggerSinkPtr& sink) 
+    {
+        auto sinkPtr = getPrivateSink(sink);
+        return sinkPtr.getLastMessage();
+    }
+
+    Bool waitForMessage(const LoggerSinkPtr& sink, SizeT timeoutMs)
+    {
+        auto sinkPtr = getPrivateSink(sink);
+        return sinkPtr.waitForMessage(timeoutMs);
+    }
+
+    StringPtr getLastMessage()
+    {
+        logger.flush();
+        auto newMessage = waitForMessage(debugSink, 2000);
+        if (newMessage == 0)
+            return StringPtr("");
+        auto logMessage = getLastMessage(debugSink);
+        return logMessage;
+    }
+
+    LoggerSinkPtr debugSink = LastMessageLoggerSink();
+    LoggerPtr logger = createLoggerWithDebugSink(debugSink);
 };
 
 TEST_F(TmsFunctionTest, ProcedureNoArgs)
@@ -190,7 +234,8 @@ TEST_F(TmsFunctionTest, InvalidArgTypes)
     auto [serverObj, clientObj] = registerPropertyObject(obj);
     ProcedurePtr clientProc = clientObj.getPropertyValue("proc");
 
-    ASSERT_THROW(clientProc("foo"), CallFailedException);
+    ASSERT_NO_THROW(clientProc("foo"));
+    ASSERT_EQ(getLastMessage(), "Failed to call procedure on OPC UA client. Error: \"Calling procedure\""); 
 }
 
 // NOTE: Should this throw an error?
@@ -218,8 +263,11 @@ TEST_F(TmsFunctionTest, InvalidArgCount)
     auto [serverObj, clientObj] = registerPropertyObject(obj);
     ProcedurePtr clientProc = clientObj.getPropertyValue("proc");
 
-    ASSERT_THROW(clientProc(), CallFailedException);
-    ASSERT_THROW(clientProc(1, 2), CallFailedException);
+    ASSERT_NO_THROW(clientProc());
+    ASSERT_EQ(getLastMessage(), "Failed to call procedure on OPC UA client. Error: \"Calling procedure\""); 
+
+    ASSERT_NO_THROW(clientProc(1, 2));
+    ASSERT_EQ(getLastMessage(), "Failed to call procedure on OPC UA client. Error: \"Calling procedure\""); 
 }
 
 TEST_F(TmsFunctionTest, ProcedureArgumentInfo)
@@ -297,5 +345,6 @@ TEST_F(TmsFunctionTest, ServerThrow)
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
     FunctionPtr clientFunc = clientObj.getPropertyValue("func");
-    ASSERT_ANY_THROW(clientFunc());
+    ASSERT_NO_THROW(clientFunc());
+    ASSERT_EQ(getLastMessage(), "Failed to call function on OPC UA client. Error: \"Calling function\""); 
 }

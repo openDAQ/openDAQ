@@ -21,7 +21,7 @@ TmsClientProcedureImpl::TmsClientProcedureImpl(const TmsClientContextPtr& ctx,
 
 ErrCode TmsClientProcedureImpl::dispatch(IBaseObject* args)
 {
-    // TODO: Return more specific error depending on OPC UA status code
+    StringPtr lastProccessDescription = "";
     ErrCode errCode = daqTry([&]()
     {
         auto argsPtr = BaseObjectPtr::Borrow(args);
@@ -29,20 +29,24 @@ ErrCode TmsClientProcedureImpl::dispatch(IBaseObject* args)
 
         if (!argsPtr.assigned())
         {
+            lastProccessDescription = "Creating call request with no args";
             callRequest = OpcUaCallMethodRequest(methodId, parentId, 0);
         }
         else if (argsPtr.asPtrOrNull<IList>().assigned())
         {
+            lastProccessDescription = "Creating call request with list of arguments";
             auto argsList = argsPtr.asPtrOrNull<IList>();
             OpcUaVariant varArgs = ListConversionUtils::ToVariantTypeArrayVariant(argsList, daqContext);
             callRequest = OpcUaCallMethodRequest(methodId, parentId, argsList.getCount(), (UA_Variant*) varArgs->data);
         }
         else
         {
+            lastProccessDescription = "Creating call request with one arguments";
             OpcUaVariant varArgs = VariantConverter<IBaseObject>::ToVariant(argsPtr, nullptr, daqContext);
             callRequest = OpcUaCallMethodRequest(methodId, parentId, 1, &varArgs.getValue());
         }
 
+        lastProccessDescription = "Calling procedure";
         OpcUaObject<UA_CallMethodResult> callResult = ctx->getClient()->callMethod(callRequest);
         if (OPCUA_STATUSCODE_FAILED(callResult->statusCode) || (callResult->outputArgumentsSize != 0))
             return OPENDAQ_ERR_CALLFAILED;
@@ -52,7 +56,7 @@ ErrCode TmsClientProcedureImpl::dispatch(IBaseObject* args)
     if (OPENDAQ_FAILED(errCode) && this->daqContext.getLogger().assigned())
     {
         auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientProcudure");
-        LOG_W("Failed to call OPC UA client procedure");
+        LOG_W("Failed to call procedure on OPC UA client. Error: \"{}\"", lastProccessDescription.toStdString());
         return OPENDAQ_IGNORED;
     }
     return OPENDAQ_SUCCESS;

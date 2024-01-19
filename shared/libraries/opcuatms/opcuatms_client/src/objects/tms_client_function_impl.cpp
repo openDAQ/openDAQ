@@ -20,55 +20,44 @@ TmsClientFunctionImpl::TmsClientFunctionImpl(const TmsClientContextPtr& ctx,
 
 ErrCode TmsClientFunctionImpl::call(IBaseObject* args, IBaseObject** result)
 {
-    auto argsPtr = BaseObjectPtr::Borrow(args);
-    OpcUaCallMethodRequest callRequest;
+    StringPtr lastProccessDescription = "";
+    ErrCode errCode = daqTry([&]()
+    {
+        auto argsPtr = BaseObjectPtr::Borrow(args);
+        OpcUaCallMethodRequest callRequest;
 
-    if (!argsPtr.assigned())
-    {
-        callRequest = OpcUaCallMethodRequest(methodId, parentId, 0);
-    }
-    else if (argsPtr.asPtrOrNull<IList>().assigned())
-    {
-        try {
+        if (!argsPtr.assigned())
+        {
+            lastProccessDescription = "Creating call request with no args";
+            callRequest = OpcUaCallMethodRequest(methodId, parentId, 0);
+        }
+        else if (argsPtr.asPtrOrNull<IList>().assigned())
+        {
+            lastProccessDescription = "Creating call request with list of arguments";
             auto argsList = argsPtr.asPtrOrNull<IList>();
             OpcUaVariant varArgs = ListConversionUtils::ToVariantTypeArrayVariant(argsList, daqContext);
             callRequest = OpcUaCallMethodRequest(methodId, parentId, argsList.getCount(), (UA_Variant*) varArgs->data);
         }
-        catch (...)
+        else
         {
-            auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientFunction");
-            LOG_W("Failed to prepapre list of input arguments for OPC UA client function");
-            return OPENDAQ_IGNORED;
-        }
-    }
-    else
-    {
-        try {
+            lastProccessDescription = "Creating call request with one arguments";
             OpcUaVariant varArgs = VariantConverter<IBaseObject>::ToVariant(argsPtr, nullptr, daqContext);
             callRequest = OpcUaCallMethodRequest(methodId, parentId, 1, &varArgs.getValue());
         }
-        catch (...)
-        {
-            auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientFunction");
-            LOG_W("Failed to prepapre input argument for OPC UA client function");
-            return OPENDAQ_IGNORED;
-        }
-    }
 
-    OpcUaObject<UA_CallMethodResult> callResult = ctx->getClient()->callMethod(callRequest);
-    if (OPCUA_STATUSCODE_FAILED(callResult->statusCode) || (callResult->outputArgumentsSize != 1))
-    {
-        auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientFunction");
-        LOG_W("Failed to call OPC UA client function");
-        return OPENDAQ_IGNORED;
-    }
-    try {
+        lastProccessDescription = "Calling function";
+        OpcUaObject<UA_CallMethodResult> callResult = ctx->getClient()->callMethod(callRequest);
+        if (OPCUA_STATUSCODE_FAILED(callResult->statusCode) || (callResult->outputArgumentsSize != 1))
+            return OPENDAQ_ERR_CALLFAILED;
+
+        lastProccessDescription = "Getting call result";
         *result = VariantConverter<IBaseObject>::ToDaqObject(OpcUaVariant(callResult->outputArguments[0]), daqContext).detach();
-    }
-    catch (...)
+        return OPENDAQ_SUCCESS;
+    });
+    if (OPENDAQ_FAILED(errCode) && this->daqContext.getLogger().assigned())
     {
-        auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientFunction");
-        LOG_W("Failed to convert OPC UA client function result to daq object");
+        auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientProcedure");
+        LOG_W("Failed to call function on OPC UA client. Error: \"{}\"", lastProccessDescription.toStdString());
         return OPENDAQ_IGNORED;
     }
     return OPENDAQ_SUCCESS;

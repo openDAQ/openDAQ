@@ -153,7 +153,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setVisible(Bool visible)
 
 template class TmsClientComponentBaseImpl<ComponentImpl<>>;
 template class TmsClientComponentBaseImpl<FolderImpl<IFolderConfig>>;
-template class TmsClientComponentBaseImpl<IoFolderImpl>;
+template class TmsClientComponentBaseImpl<IoFolderImpl<>>;
 template class TmsClientComponentBaseImpl<Device>;
 template class TmsClientComponentBaseImpl<FunctionBlock>;
 template class TmsClientComponentBaseImpl<Channel>;

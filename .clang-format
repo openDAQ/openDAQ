@@ -32,7 +32,7 @@ IndentWidth: 4
 KeepEmptyLinesAtTheStartOfBlocks: false
 Language: Cpp
 MaxEmptyLinesToKeep: 1
-NamespaceIndentation: All
+NamespaceIndentation: None
 ObjCBlockIndentWidth: 4
 PenaltyBreakBeforeFirstCallParameter: 1
 PenaltyBreakComment: 300

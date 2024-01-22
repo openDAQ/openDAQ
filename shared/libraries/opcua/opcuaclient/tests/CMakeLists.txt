@@ -35,6 +35,10 @@ add_test(NAME ${TEST_APP}
          WORKING_DIRECTORY bin
 )
 
+if (MSVC)
+    target_compile_options(${TEST_APP} PRIVATE /bigobj)
+endif()
+
 if(OPENDAQ_ENABLE_COVERAGE)
     setup_target_for_coverage(${MODULE_NAME}coverage ${TEST_APP} ${MODULE_NAME}coverage)
 endif()

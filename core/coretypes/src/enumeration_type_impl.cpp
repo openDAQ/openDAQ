@@ -135,7 +135,7 @@ ConstCharPtr EnumerationTypeImpl::SerializeId()
     return "EnumerationType";
 }
 
-ErrCode EnumerationTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IBaseObject** obj)
+ErrCode EnumerationTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
@@ -145,7 +145,7 @@ ErrCode EnumerationTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* co
         return errCode;
 
     BaseObjectPtr enumerators;
-    errCode = ser->readObject("enumerators"_daq, context, &enumerators);
+    errCode = ser->readObject("enumerators"_daq, context, factoryCallback, &enumerators);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 

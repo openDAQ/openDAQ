@@ -72,12 +72,12 @@ DECLARE_OPENDAQ_INTERFACE(ISerializer, IBaseObject)
         ISerializable* serializable;                                                                         \
         ErrCode errCode = name->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializable)); \
                                                                                                              \
-        if (errCode == OPENDAQ_ERR_NOINTERFACE)                                                                   \
+        if (errCode == OPENDAQ_ERR_NOINTERFACE)                                                              \
         {                                                                                                    \
-            return OPENDAQ_ERR_NOT_SERIALIZABLE;                                                                  \
+            return OPENDAQ_ERR_NOT_SERIALIZABLE;                                                             \
         }                                                                                                    \
                                                                                                              \
-        if (OPENDAQ_FAILED(errCode))                                                                              \
+        if (OPENDAQ_FAILED(errCode))                                                                         \
         {                                                                                                    \
             return errCode;                                                                                  \
         }                                                                                                    \
@@ -85,7 +85,7 @@ DECLARE_OPENDAQ_INTERFACE(ISerializer, IBaseObject)
         serializer->key(#name);                                                                              \
         errCode = serializable->serialize(serializer);                                                       \
                                                                                                              \
-        if (OPENDAQ_FAILED(errCode))                                                                              \
+        if (OPENDAQ_FAILED(errCode))                                                                         \
         {                                                                                                    \
             return errCode;                                                                                  \
         }                                                                                                    \

@@ -32,6 +32,7 @@ class ChannelImpl : public FunctionBlockImpl<IChannel, Interfaces...>
 {
 public:
     using Self = ChannelImpl<Interfaces...>;
+    using Super = FunctionBlockImpl<IChannel, Interfaces...>;
 
     explicit ChannelImpl(const FunctionBlockTypePtr& fbType,
                          const ContextPtr& context,
@@ -43,7 +44,7 @@ public:
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
     static ConstCharPtr SerializeId();
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 };
 
 template <typename... Interfaces>
@@ -73,9 +74,22 @@ ConstCharPtr ChannelImpl<Interfaces...>::SerializeId()
 }
 
 template <typename... Interfaces>
-ErrCode ChannelImpl<Interfaces...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
+ErrCode ChannelImpl<Interfaces...>::Deserialize(ISerializedObject* serialized,
+                                                IBaseObject* context,
+                                                IFunction* factoryCallback,
+                                                IBaseObject** obj)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = Super:: template DeserializeFunctionBlock<Channel>(serialized,
+                                                            context,
+                                                            factoryCallback).detach();
+        });
 }
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(Channel)
 
 END_NAMESPACE_OPENDAQ

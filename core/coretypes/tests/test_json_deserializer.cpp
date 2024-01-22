@@ -6,12 +6,12 @@
 
 using namespace daq;
 
-static ErrCode serializedObjectFactory(ISerializedObject*, IBaseObject*, IBaseObject**)
+static ErrCode serializedObjectFactory(ISerializedObject*, IBaseObject*, IFunction*, IBaseObject**)
 {
     return OPENDAQ_SUCCESS;
 }
 
-static ErrCode errorFactory(ISerializedObject*, IBaseObject*, IBaseObject**)
+static ErrCode errorFactory(ISerializedObject*, IBaseObject*, IFunction*, IBaseObject**)
 {
     return OPENDAQ_ERR_GENERALERROR;
 }
@@ -331,7 +331,7 @@ TEST_F(JsonDeserializerTest, unknownObjectType)
     std::string json = R"({"__type":")" + std::string("unknown") + "\"}";
 
     IBaseObject* obj;
-    ErrCode errCode = deserializer->deserialize(String(json.data()), nullptr, &obj);
+    ErrCode errCode = deserializer->deserialize(String(json.data()), nullptr, nullptr, &obj);
 
     ASSERT_EQ(errCode, OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
 }
@@ -339,7 +339,7 @@ TEST_F(JsonDeserializerTest, unknownObjectType)
 TEST_F(JsonDeserializerTest, objectTypeTagNotInt)
 {
     IBaseObject* obj;
-    ErrCode errCode = deserializer->deserialize(String(R"({"__type":0.0})"), nullptr, &obj);
+    ErrCode errCode = deserializer->deserialize(String(R"({"__type":0.0})"), nullptr, nullptr, &obj);
 
     ASSERT_EQ(errCode, OPENDAQ_ERR_DESERIALIZE_UNKNOWN_TYPE);
 }
@@ -347,7 +347,7 @@ TEST_F(JsonDeserializerTest, objectTypeTagNotInt)
 TEST_F(JsonDeserializerTest, noObjectType)
 {
     IBaseObject* obj;
-    ErrCode errCode = deserializer->deserialize(String(R"({"test":0})"), nullptr, &obj);
+    ErrCode errCode = deserializer->deserialize(String(R"({"test":0})"), nullptr, nullptr, &obj);
 
     ASSERT_EQ(errCode, OPENDAQ_ERR_DESERIALIZE_NO_TYPE);
 }

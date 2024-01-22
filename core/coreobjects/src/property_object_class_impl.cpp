@@ -357,7 +357,10 @@ ConstCharPtr PropertyObjectClassImpl::SerializeId()
     return "PropertyObjectClass";
 }
 
-ErrCode PropertyObjectClassImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
+ErrCode PropertyObjectClassImpl::Deserialize(ISerializedObject* serialized,
+                                             IBaseObject* context,
+                                             IFunction* factoryCallback,
+                                             IBaseObject** obj)
 {
     StringPtr name;
     ErrCode errCode = serialized->readString(String("name"), &name);
@@ -414,7 +417,7 @@ ErrCode PropertyObjectClassImpl::Deserialize(ISerializedObject* serialized, IBas
         }
 
         BaseObjectPtr baseProp;
-        errCode = properties->readObject(propName, context, &baseProp);
+        errCode = properties->readObject(propName, context, factoryCallback, &baseProp);
         if (OPENDAQ_FAILED(errCode))
         {
             return errCode;

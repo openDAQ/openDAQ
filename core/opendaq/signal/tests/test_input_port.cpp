@@ -5,8 +5,9 @@
 #include <opendaq/gmock/input_port.h>
 #include <opendaq/gmock/input_port_notifications.h>
 #include <opendaq/gmock/signal.h>
-
-#include "opendaq/context_factory.h"
+#include <opendaq/deserialize_component_ptr.h>
+#include <opendaq/context_factory.h>
+#include <opendaq/component_deserialize_context_factory.h>
 
 using namespace daq;
 using namespace testing;
@@ -115,4 +116,42 @@ TEST_F(InputPortTest, StandardProperties)
 
     ASSERT_EQ(signal.getName(), name);
     ASSERT_EQ(signal.getDescription(), desc);
+}
+
+TEST_F(InputPortTest, SerializeAndDeserialize)
+{
+    EXPECT_CALL(notifications.mock(), connected(inputPort.getObject())).WillOnce(Return(OPENDAQ_SUCCESS));
+    EXPECT_CALL(notifications.mock(), acceptsSignal(inputPort.getObject(), &signal.mock(), _))
+        .WillOnce(DoAll(SetArgPointee<2>(True), Return(OPENDAQ_SUCCESS)));
+    EXPECT_CALL(signal.mock(), listenerConnected).Times(2);
+    EXPECT_CALL(signal.mock(), isRemoved(_)).WillRepeatedly(DoAll(SetArgPointee<0>(False), Return(OPENDAQ_SUCCESS)));
+    EXPECT_CALL(signal.mock(), getGlobalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("sig"));
+
+    inputPort.setName("sig_name");
+    inputPort.setDescription("sig_description");
+
+    inputPort.connect(signal);
+
+    const auto serializer = JsonSerializer(True);
+    inputPort.serialize(serializer);
+    const auto str1 = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+    const auto deserializeContext = ComponentDeserializeContext(daq::NullContext(), nullptr, "TestPort");
+
+    const InputPortPtr newInputPort = deserializer.deserialize(str1, deserializeContext, nullptr);
+
+    const auto deserializedSignalId = newInputPort.asPtr<IDeserializeComponent>(true).getDeserializedParameter("signalId");
+    ASSERT_EQ(deserializedSignalId, "sig");
+
+    ASSERT_EQ(newInputPort.getName(), inputPort.getName());
+    ASSERT_EQ(newInputPort.getDescription(), inputPort.getDescription());
+
+    newInputPort.connect(signal);
+
+    const auto serializer2 = JsonSerializer(True);
+    newInputPort.serialize(serializer2);
+    const auto str2 = serializer2.getOutput();
+
+    ASSERT_EQ(str1, str2);
 }

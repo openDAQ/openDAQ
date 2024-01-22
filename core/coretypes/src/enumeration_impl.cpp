@@ -158,7 +158,7 @@ ConstCharPtr EnumerationImpl::SerializeId()
     return "Enumeration";
 }
 
-ErrCode EnumerationImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IBaseObject** obj)
+ErrCode EnumerationImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* /* factoryCallback*/, IBaseObject** obj)
 {
     TypeManagerPtr typeManager;
     if (context == nullptr || OPENDAQ_FAILED(context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager))))

@@ -26,7 +26,6 @@ set(SRC_Cpp
     generated/logger/py_logger.cpp
     generated/logger/py_logger_component.cpp
     generated/logger/py_logger_sink.cpp
-    generated/logger/py_last_message_logger_sink_private.cpp
     generated/logger/py_logger_thread_pool.cpp
     generated/modulemanager/py_module.cpp
     generated/modulemanager/py_module_manager.cpp

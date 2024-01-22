@@ -45,7 +45,6 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classILogger = declareILogger(m);
     auto classILoggerComponent = declareILoggerComponent(m);
     auto classILoggerSink = declareILoggerSink(m);
-    auto classILastMessageLoggerSinkPrivate = declareILastMessageLoggerSinkPrivate(m);
     auto classILoggerThreadPool = declareILoggerThreadPool(m);
     auto classIModule = declareIModule(m);
     auto classIModuleManager = declareIModuleManager(m);
@@ -118,7 +117,6 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineILogger(m, classILogger);
     defineILoggerComponent(m, classILoggerComponent);
     defineILoggerSink(m, classILoggerSink);
-    defineILastMessageLoggerSinkPrivate(m, classILastMessageLoggerSinkPrivate);
     defineILoggerThreadPool(m, classILoggerThreadPool);
     defineIModule(m, classIModule);
     defineIModuleManager(m, classIModuleManager);

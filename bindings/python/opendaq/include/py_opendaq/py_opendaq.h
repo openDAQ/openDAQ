@@ -42,7 +42,6 @@ PyDaqIntf<daq::IFunctionBlockType, daq::IComponentType> declareIFunctionBlockTyp
 PyDaqIntf<daq::ILogger, daq::IBaseObject> declareILogger(pybind11::module_ m);
 PyDaqIntf<daq::ILoggerComponent, daq::IBaseObject> declareILoggerComponent(pybind11::module_ m);
 PyDaqIntf<daq::ILoggerSink, daq::IBaseObject> declareILoggerSink(pybind11::module_ m);
-PyDaqIntf<daq::ILastMessageLoggerSinkPrivate, daq::IBaseObject> declareILastMessageLoggerSinkPrivate(pybind11::module_ m);
 PyDaqIntf<daq::ILoggerThreadPool, daq::IBaseObject> declareILoggerThreadPool(pybind11::module_ m);
 PyDaqIntf<daq::IModule, daq::IBaseObject> declareIModule(pybind11::module_ m);
 PyDaqIntf<daq::IModuleManager, daq::IBaseObject> declareIModuleManager(pybind11::module_ m);
@@ -116,7 +115,6 @@ void defineIFunctionBlockType(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock
 void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject> cls);
 void defineILoggerComponent(pybind11::module_ m, PyDaqIntf<daq::ILoggerComponent, daq::IBaseObject> cls);
 void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBaseObject> cls);
-void defineILastMessageLoggerSinkPrivate(pybind11::module_ m, PyDaqIntf<daq::ILastMessageLoggerSinkPrivate, daq::IBaseObject> cls);
 void defineILoggerThreadPool(pybind11::module_ m, PyDaqIntf<daq::ILoggerThreadPool, daq::IBaseObject> cls);
 void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject> cls);
 void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, daq::IBaseObject> cls);

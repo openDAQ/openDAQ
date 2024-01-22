@@ -2,6 +2,7 @@
 #include <coretypes/coretypes.h>
 #include <coretypes/dict_element_type.h>
 #include <gmock/gmock-matchers.h>
+#include <coretypes/cloneable.h>
 
 using DictObjectTest = testing::Test;
 
@@ -675,6 +676,19 @@ TEST_F(DictObjectTest, EqualsSameSize)
 
     d1->equals(d3, &eq);
     ASSERT_FALSE(eq);
+}
+
+TEST_F(DictObjectTest, Clone)
+{
+    auto d1 = Dict<IString, IBaseObject>();
+    d1.set("name", "jon");
+    d1.set("age", 20);
+    d1.set("height", 180);
+
+    DictPtr<IString, IBaseObject> d2;
+    d1.asPtr<ICloneable<IDict>>()->clone(&d2);
+
+    ASSERT_EQ(d1, d2);
 }
 
 TEST_F(DictObjectTest, EqualsDifferentOrder)

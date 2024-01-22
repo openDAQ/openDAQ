@@ -22,6 +22,7 @@
 #include <coretypes/serializable.h>
 #include <coretypes/deserializer.h>
 #include <coretypes/dict_element_type.h>
+#include <coretypes/cloneable.h>
 #include <tsl/ordered_map.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -52,7 +53,7 @@ using BaseObjectPair = std::pair<IBaseObject*, IBaseObject*>;
 
 ErrCode INTERFACE_FUNC deserializeDict(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
-class DictImpl : public ImplementationOf<IDict, IIterable, ISerializable, ICoreType, IDictElementType, IFreezable>
+class DictImpl : public ImplementationOf<IDict, IIterable, ISerializable, ICoreType, IDictElementType, IFreezable, ICloneable<IDict>>
 {
 private:
     using HashTableType = typename tsl::ordered_map<IBaseObject*, IBaseObject*, BaseObjectHash, BaseObjectEqualTo>;
@@ -93,6 +94,9 @@ public:
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    // ICloneable<T>
+    ErrCode INTERFACE_FUNC clone(IDict** cloned) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 

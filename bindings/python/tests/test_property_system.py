@@ -350,7 +350,38 @@ class TestPropertySystem(opendaq_test.TestCase):
 
         self.assertEqual(property_object.get_property_value(
             'property[0]'), 'value1')
+        
+    def test_list_property_set(self):
+        property_object = opendaq.PropertyObject()
+        list = opendaq.List()
+        list.pushBack('value1')
+        list.pushBack('value2')
+        property_object.add_property(opendaq.ListProperty(
+            opendaq.String('List'), list, opendaq.Boolean(True)))
 
+        list = property_object.get_property_value("List")
+        list.pushBack('value3')
+        property_object.set_property_value('List', list)
+        print(property_object.get_property_value('List'))
+        
+        self.assertEqual(property_object.get_property_value(
+            'List[2]'), 'value3')
+     
+    def test_dict_property_set(self):
+        property_object = opendaq.PropertyObject()
+        dict = opendaq.Dict()
+        dict[0] = 'Banana'
+        dict[1] = 'Kiwi'
+        property_object.add_property(opendaq.DictProperty(
+            opendaq.String('Dict'), dict, opendaq.Boolean(True)))
+
+        dict = property_object.get_property_value("Dict")
+        dict[2] = 'Blueberry'
+        property_object.set_property_value('Dict', dict)
+
+        # Prints "Pear", "Strawberry", and "Blueberry"
+        print(property_object.get_property_value('Dict'))
+        
     # TODO: events not supported yet
 
     def test_class(self):

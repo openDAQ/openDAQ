@@ -40,6 +40,7 @@
 #include <coretypes/validation.h>
 #include <coreobjects/core_event_args_factory.h>
 #include <coretypes/validation.h>
+#include <coretypes/cloneable.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -802,8 +803,21 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             coercePropertyWrite(prop, valuePtr);
             validatePropertyWrite(prop, valuePtr);
             coerceMinMax(prop, valuePtr);
-
-            if (prop.getValueType() == ctObject)
+            
+            const auto ct = prop.getValueType();
+            if (ct == ctList)
+            {
+                ListPtr<IBaseObject> listValue;
+                valuePtr.asPtr<ICloneable<IList>>()->clone(&listValue);
+                valuePtr = listValue.detach();
+            }
+            else if (ct == ctDict)
+            {
+                DictPtr<IBaseObject, IBaseObject> dictValue;
+                valuePtr.asPtr<ICloneable<IDict>>()->clone(&dictValue);
+                valuePtr = dictValue.detach();
+            }
+            else if (ct == ctObject)
             {
                 const auto objInternal = valuePtr.asPtrOrNull<IPropertyObjectInternal>();
                 if (objInternal.assigned() && !coreEventMuted)
@@ -1193,6 +1207,21 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
             value = list[std::size_t(index)];
         }
     }
+    
+    CoreType coreType = value.getCoreType();
+    if (coreType == ctList)
+    {
+        ListPtr<IBaseObject> listValue;
+        value.asPtr<ICloneable<IList>>()->clone(&listValue);
+        value = listValue.detach();
+    }
+    else if (coreType == ctDict)
+    {
+        DictPtr<IBaseObject, IBaseObject> dictValue;
+        value.asPtr<ICloneable<IDict>>()->clone(&dictValue);
+        value = dictValue.detach();
+    }
+
     if (triggerEvent)
         value = callPropertyValueRead(property, value);
     return OPENDAQ_SUCCESS;

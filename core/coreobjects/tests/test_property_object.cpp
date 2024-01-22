@@ -1738,6 +1738,34 @@ TEST_F(PropertyObjectTest, BeginEndUpdate)
     ASSERT_EQ(propObj.getPropertyValue("Prop3"), "-");
 }
 
+TEST_F(PropertyObjectTest, TestContainerClone)
+{
+    const auto propObj = PropertyObject();
+    propObj.addProperty(ListProperty("List", List<IString>("foo", "bar")));
+    propObj.addProperty(DictProperty("Dict", Dict<IInteger, IString>({{1, "foo"}, {2, "bar"}})));
+
+    ListPtr<IString> lst = propObj.getPropertyValue("List");
+    DictPtr<Int, IString> dct = propObj.getPropertyValue("Dict");
+
+    lst.pushBack("test");
+    dct.set(3, "test");
+
+    ASSERT_NE(propObj.getPropertyValue("List"), lst);
+    ASSERT_NE(propObj.getPropertyValue("Dict"), dct);
+
+    propObj.setPropertyValue("List", lst);
+    propObj.setPropertyValue("Dict", dct);
+
+    ASSERT_EQ(propObj.getPropertyValue("List"), lst);
+    ASSERT_EQ(propObj.getPropertyValue("Dict"), dct);
+
+    lst.clear();
+    dct.clear();
+
+    ASSERT_NE(propObj.getPropertyValue("List"), lst);
+    ASSERT_NE(propObj.getPropertyValue("Dict"), dct);
+}
+
 TEST_F(PropertyObjectTest, Clone)
 {
     auto propObj = PropertyObject();

@@ -71,7 +71,7 @@ ErrCode ListImpl::clone(IList** cloned)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     }
 
-    ListImpl* lst = new(std::nothrow) ListImpl();
+    ListImpl* lst = new(std::nothrow) ListImpl(iid);
     if (lst == nullptr)
     {
         *cloned = nullptr;

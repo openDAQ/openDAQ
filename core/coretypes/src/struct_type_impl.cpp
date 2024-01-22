@@ -172,7 +172,7 @@ ConstCharPtr StructTypeImpl::SerializeId()
     return "StructType";
 }
 
-ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IBaseObject** obj)
+ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
     StringPtr typeName;
     ErrCode errCode = ser->readString("typeName"_daq, &typeName);
@@ -180,17 +180,17 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
         return errCode;
 
     BaseObjectPtr types;
-    errCode = ser->readObject("types"_daq, context, &types);
+    errCode = ser->readObject("types"_daq, context, factoryCallback, &types);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
     BaseObjectPtr defaultValues;
-    errCode = ser->readObject("defaultValues"_daq, context, &defaultValues);
+    errCode = ser->readObject("defaultValues"_daq, context, factoryCallback, &defaultValues);
     if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTFOUND)
         return errCode;
 
     BaseObjectPtr names;
-    errCode = ser->readObject("names"_daq, context, &names);
+    errCode = ser->readObject("names"_daq, context, factoryCallback, &names);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 

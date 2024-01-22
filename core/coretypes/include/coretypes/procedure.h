@@ -59,7 +59,7 @@ DECLARE_OPENDAQ_INTERFACE(IProcedure, IBaseObject)
      * If it expects multiple parameters, pass an IList<IBaseObject> as the `params` parameter.
      *
      */
-    virtual ErrCode INTERFACE_FUNC dispatch(IBaseObject * params) = 0;
+    virtual ErrCode INTERFACE_FUNC dispatch(IBaseObject* params) = 0;
 };
 
 /*!@}*/

@@ -39,7 +39,7 @@ ErrCode JsonSerializedList::readSerializedList(ISerializedList** list)
     return OPENDAQ_ERR_INVALIDTYPE;
 }
 
-ErrCode JsonSerializedList::readList(IBaseObject* context, IList** list)
+ErrCode JsonSerializedList::readList(IBaseObject* context, IFunction* factoryCallback, IList** list)
 {
     if (list == nullptr)
     {
@@ -55,7 +55,7 @@ ErrCode JsonSerializedList::readList(IBaseObject* context, IList** list)
     if (genericValue.IsArray())
     {
         IBaseObject* object;
-        ErrCode errCode = JsonDeserializerImpl::Deserialize(array[index++], context, &object);
+        ErrCode errCode = JsonDeserializerImpl::Deserialize(array[index++], context, factoryCallback, &object);
 
         if (OPENDAQ_FAILED(errCode))
         {
@@ -112,7 +112,7 @@ ErrCode JsonSerializedList::readSerializedObject(ISerializedObject** plainObj)
     return OPENDAQ_ERR_INVALIDTYPE;
 }
 
-ErrCode JsonSerializedList::readObject(IBaseObject* context, IBaseObject** obj)
+ErrCode JsonSerializedList::readObject(IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
     if (obj == nullptr)
     {
@@ -124,7 +124,7 @@ ErrCode JsonSerializedList::readObject(IBaseObject* context, IBaseObject** obj)
         return OPENDAQ_ERR_OUTOFRANGE;
     }
 
-    return JsonDeserializerImpl::Deserialize(array[index++], context, obj);
+    return JsonDeserializerImpl::Deserialize(array[index++], context, factoryCallback, obj);
 }
 
 ErrCode JsonSerializedList::readString(IString** obj)

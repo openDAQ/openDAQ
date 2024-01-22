@@ -127,6 +127,7 @@ DEFINE_EXCEPTION(DiscoveryFailed, OPENDAQ_ERR_DISCOVERY_FAILED, "Device discover
 DEFINE_EXCEPTION(CoerceFailed, OPENDAQ_ERR_COERCE_FAILED, "Coercing failed")
 DEFINE_EXCEPTION(NotSupported, OPENDAQ_ERR_NOT_SUPPORTED, "The operation or type is not supported")
 DEFINE_EXCEPTION(ListNotHomogeneous, OPENDAQ_ERR_LIST_NOT_HOMOGENEOUS, "List is not homogeneous")
+DEFINE_EXCEPTION(FactoryNotRegistered, OPENDAQ_ERR_FACTORY_NOT_REGISTERED, "Factory not registered")
 
 extern void checkErrorInfo(ErrCode errCode);
 

@@ -74,7 +74,7 @@ public:
     }
 };
 
-class TestIOFolder : public IoFolderImpl
+class TestIOFolder : public IoFolderImpl<>
 {
 public:
     TestIOFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& id, Bool visible, Bool isRoot = true) 

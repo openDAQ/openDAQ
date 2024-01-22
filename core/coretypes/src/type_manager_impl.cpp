@@ -103,10 +103,10 @@ ConstCharPtr TypeManagerImpl::SerializeId()
     return "TypeManager";
 }
 
-ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IBaseObject** obj)
+ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
     BaseObjectPtr types;
-    ErrCode errCode = ser->readObject("types"_daq, context, &types);
+    ErrCode errCode = ser->readObject("types"_daq, context, factoryCallback, &types);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 

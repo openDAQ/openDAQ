@@ -1,4 +1,23 @@
+22.1.2024
+Description:
+  - Support for external deserialization factory
+  
+-m [function] IDeserializer::deserialize(IString* serialized, IBaseObject* context, IBaseObject** object)
++m [function] IDeserializer::deserialize(IString* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** object)
+-m [function] ISerializedObject::readList(IString* key, IBaseObject* context, IList** list)
++m [function] ISerializedObject::readList(IString* key, IBaseObject* context, IFunction* factoryCallback, IList** list)
+-m [function] ISerializedObject::readObject(IString* key, IBaseObject* context, IBaseObject** obj)
++m [function] ISerializedObject::readObject(IString* key, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+-m [function] ISerializedList::readObject(IBaseObject* context, IBaseObject** obj)
++m [function] ISerializedList::readObject(IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+-m [function] ISerializedList::readList(IBaseObject* context, IBaseObject** obj)
++m [function] ISerializedList::readList(IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
++  [function] IUpdatable::serializeForUpdate(ISerializer* serializer)
++  [interface] IComponentDeserializeContext: public IBaseObject
++  [interface] IDeserializeComponent: public IBaseObject
+
 12.01.2024
+Description:
 Search filters, visible flag, component attributes
   - Add SearchFilter that allows for more granular component search on tree traversal methods (getItems, getSignals...)
   - Add visible flag to Component

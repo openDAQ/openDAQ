@@ -449,7 +449,7 @@ bool TmsClientPropertyObjectBaseImpl<Impl>::isIgnoredMethodPeoperty(const std::s
 template class TmsClientPropertyObjectBaseImpl<PropertyObjectImpl>;
 template class TmsClientPropertyObjectBaseImpl<ComponentImpl<>>;
 template class TmsClientPropertyObjectBaseImpl<FolderImpl<IFolderConfig>>;
-template class TmsClientPropertyObjectBaseImpl<IoFolderImpl>;
+template class TmsClientPropertyObjectBaseImpl<IoFolderImpl<>>;
 template class TmsClientPropertyObjectBaseImpl<Device>;
 template class TmsClientPropertyObjectBaseImpl<FunctionBlock>;
 template class TmsClientPropertyObjectBaseImpl<Channel>;

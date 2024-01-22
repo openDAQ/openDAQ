@@ -31,7 +31,7 @@ protected:
 
 const std::string JsonSerializedListTest::FactoryId = "test";
 
-static ErrCode objectFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode objectFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
     ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
@@ -42,7 +42,7 @@ static ErrCode objectFactory(ISerializedObject* serialized, IBaseObject* /*conte
     }
 
     IBaseObject* baseObj;
-    errCode = serializedList->readObject(nullptr, &baseObj);
+    errCode = serializedList->readObject(nullptr, nullptr, &baseObj);
 
     if (OPENDAQ_FAILED(errCode))
     {
@@ -54,7 +54,10 @@ static ErrCode objectFactory(ISerializedObject* serialized, IBaseObject* /*conte
     return OPENDAQ_SUCCESS;
 }
 
-static ErrCode serializedObjectFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode serializedObjectFactory(ISerializedObject* serialized,
+                                       IBaseObject* /*context*/,
+                                       IFunction* /*factoryCallback*/,
+                                       IBaseObject** obj)
 {
     SerializedListPtr list;
     ErrCode errCode = serialized->readSerializedList(String("list"), &list);
@@ -67,7 +70,7 @@ static ErrCode serializedObjectFactory(ISerializedObject* serialized, IBaseObjec
     return list->readSerializedObject(reinterpret_cast<ISerializedObject**>(obj));
 }
 
-static ErrCode listFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode listFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
     ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
@@ -78,7 +81,7 @@ static ErrCode listFactory(ISerializedObject* serialized, IBaseObject* /*context
     }
 
     IList* list;
-    errCode = serializedList->readList(nullptr, &list);
+    errCode = serializedList->readList(nullptr, nullptr, &list);
 
     if (OPENDAQ_FAILED(errCode))
     {
@@ -89,7 +92,7 @@ static ErrCode listFactory(ISerializedObject* serialized, IBaseObject* /*context
     return OPENDAQ_SUCCESS;
 }
 
-static ErrCode boolFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode boolFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
     ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
@@ -112,7 +115,7 @@ static ErrCode boolFactory(ISerializedObject* serialized, IBaseObject* /*context
     return OPENDAQ_SUCCESS;
 }
 
-static ErrCode intFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode intFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
     ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
@@ -135,7 +138,7 @@ static ErrCode intFactory(ISerializedObject* serialized, IBaseObject* /*context*
     return OPENDAQ_SUCCESS;
 }
 
-static ErrCode floatFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode floatFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
     ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
@@ -158,7 +161,7 @@ static ErrCode floatFactory(ISerializedObject* serialized, IBaseObject* /*contex
     return OPENDAQ_SUCCESS;
 }
 
-static ErrCode stringFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode stringFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
     ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
@@ -181,7 +184,7 @@ static ErrCode stringFactory(ISerializedObject* serialized, IBaseObject* /*conte
     return OPENDAQ_SUCCESS;
 }
 
-static ErrCode serializedListFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode serializedListFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedListPtr serializedList;
     ErrCode errCode = serialized->readSerializedList(String("list"), &serializedList);
@@ -446,7 +449,7 @@ TEST_F(JsonSerializedListTest, readObjectOutOfRange)
 TEST_F(JsonSerializedListTest, readObject)
 {
     daqRegisterSerializerFactory(FactoryId.data(),
-                                [](ISerializedObject* /*serialized*/, IBaseObject* /*context*/, IBaseObject** obj) -> ErrCode
+        [](ISerializedObject* /*serialized*/, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj) -> ErrCode
                                   {
                                       *obj = nullptr;
                                       return OPENDAQ_SUCCESS;

@@ -21,47 +21,73 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class IoFolderImpl : public FolderImpl<IIoFolderConfig>
+template <class... Intfs>
+class IoFolderImpl : public FolderImpl<IIoFolderConfig, Intfs ...>
 {
 public:
-    using Super = FolderImpl<IIoFolderConfig>;
+    using Super = FolderImpl<IIoFolderConfig, Intfs...>;
 
     IoFolderImpl(const ContextPtr& context,
                  const ComponentPtr& parent,
                  const StringPtr& localId,
-                 const StringPtr& className = nullptr)
-        : Super(context, parent, localId, className)
-    {
-    }
+                 const StringPtr& className = nullptr);
 
     // ISerializable
-    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override
-    {
-        OPENDAQ_PARAM_NOT_NULL(id);
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
-        *id = SerializeId();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    static ConstCharPtr SerializeId()
-    {
-        return "IoFolder";
-    }
-
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
-    {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
-    }
-
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
-    bool addItemInternal(const ComponentPtr& component) override
-    {
-        if (!component.supportsInterface<IIoFolderConfig>() && !component.supportsInterface<IChannel>())
-            throw InvalidParameterException("Type of item not allowed in the folder");
+    bool addItemInternal(const ComponentPtr& component) override;
 
-        return Super::addItemInternal(component);
-    }
 };
+
+template <class... Intfs>
+IoFolderImpl<Intfs...>::IoFolderImpl(const ContextPtr& context,
+                           const ComponentPtr& parent,
+                           const StringPtr& localId,
+                           const StringPtr& className)
+    : Super(context, parent, localId, className)
+{
+}
+
+template <class... Intfs>
+ErrCode IoFolderImpl<Intfs...>::getSerializeId(ConstCharPtr* id) const
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    *id = SerializeId();
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class... Intfs>
+ConstCharPtr IoFolderImpl<Intfs...>::SerializeId()
+{
+    return "IoFolder";
+}
+
+template <class... Intfs>
+ErrCode IoFolderImpl<Intfs...>::Deserialize(ISerializedObject* serialized,
+                                                   IBaseObject* context,
+                                                   IFunction* factoryCallback,
+                                                   IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(context);
+
+    return daqTry([&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = Super::template DeserializeFolder<IIoFolderConfig, IoFolderImpl>(serialized, context, factoryCallback).detach();
+    });
+}
+
+template <class... Intfs>
+bool IoFolderImpl<Intfs...>::addItemInternal(const ComponentPtr& component)
+{
+    if (!component.supportsInterface<IIoFolderConfig>() && !component.supportsInterface<IChannel>())
+        throw InvalidParameterException("Type of item not allowed in the folder");
+
+    return Super::addItemInternal(component);
+}
 
 END_NAMESPACE_OPENDAQ

@@ -140,6 +140,7 @@ public:
 
     // IUpdatable
     ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+    ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
 
 private:
     DevicePtr rootDevice;

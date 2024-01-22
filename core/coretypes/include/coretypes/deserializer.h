@@ -20,10 +20,11 @@
 #include <coretypes/serialized_object.h>
 #include <coretypes/serialized_list.h>
 #include <coretypes/updatable.h>
+#include <coretypes/function.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-typedef ErrCode (*daqDeserializerFactory)(ISerializedObject* serialized, IBaseObject* context, IBaseObject** deserialized);
+typedef ErrCode (*daqDeserializerFactory)(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** deserialized);
 
 /*!
  * @ingroup types_serialization
@@ -33,8 +34,8 @@ typedef ErrCode (*daqDeserializerFactory)(ISerializedObject* serialized, IBaseOb
 
 DECLARE_OPENDAQ_INTERFACE(IDeserializer, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC deserialize(IString* serialized, IBaseObject* context, IBaseObject** object) = 0;
-    virtual ErrCode INTERFACE_FUNC update(IUpdatable* updatable, IString* serialized) = 0;
+    virtual ErrCode INTERFACE_FUNC deserialize(IString* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** object) = 0;
+    virtual ErrCode INTERFACE_FUNC update(IUpdatable * updatable, IString * serialized) = 0;
 };
 
 /*!

@@ -429,7 +429,7 @@ ErrCode DictImpl::serialize(ISerializer* serializer)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC deserializeDict(ISerializedObject* ser, IBaseObject* context, IBaseObject** obj)
+ErrCode INTERFACE_FUNC deserializeDict(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
     SerializedListPtr list = nullptr;
     ser->readSerializedList(String("values"), &list);
@@ -448,13 +448,13 @@ ErrCode INTERFACE_FUNC deserializeDict(ISerializedObject* ser, IBaseObject* cont
             return errCode;
 
         BaseObjectPtr key;
-        errCode = keyValue->readObject(String("key"), context, &key);
+        errCode = keyValue->readObject(String("key"), context, factoryCallback, &key);
 
         if (OPENDAQ_FAILED(errCode))
             return errCode;
 
         BaseObjectPtr value;
-        errCode = keyValue->readObject(String("value"), context, &value);
+        errCode = keyValue->readObject(String("value"), context, factoryCallback, &value);
 
         if (OPENDAQ_FAILED(errCode))
             return errCode;

@@ -3,8 +3,9 @@
 #include <coretypes/impl.h>
 #include <utility>
 
-BEGIN_NAMESPACE_OPENDAQ
+#include "coretypes/validation.h"
 
+BEGIN_NAMESPACE_OPENDAQ
 namespace detail
 {
     static const StructTypePtr callableInfoStructType = CallableInfoStructType();
@@ -63,6 +64,65 @@ ErrCode CallableInfoImpl::equals(IBaseObject* other, Bool* equal) const
         *equal = true;
         return OPENDAQ_SUCCESS;
     });
+}
+
+ErrCode CallableInfoImpl::serialize(ISerializer* serializer)
+{
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+
+    const auto serializerPtr = SerializerPtr::Borrow(serializer);
+
+    return daqTry(
+        [this, &serializerPtr] {
+            serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
+            {
+                if (arguments.assigned() && !arguments.empty())
+                {
+                    serializerPtr.key("arguments");
+                    arguments.serialize(serializerPtr);
+                }
+
+                serializerPtr.key("returnType");
+                serializerPtr.writeInt(static_cast<Int>(returnType));
+            }
+
+            serializerPtr.endObject();
+        });
+}
+
+ErrCode CallableInfoImpl::getSerializeId(ConstCharPtr* id) const
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    *id = SerializeId();
+    return OPENDAQ_SUCCESS;
+}
+
+ConstCharPtr CallableInfoImpl::SerializeId()
+{
+    return "CallableInfo";
+}
+
+ErrCode CallableInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(serialized);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    const auto serializedObj = SerializedObjectPtr::Borrow(serialized);
+    const auto contextPtr = BaseObjectPtr::Borrow(context);
+    const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
+
+    return daqTry(
+        [&serializedObj, &contextPtr, factoryCallbackPtr, &obj]
+        {
+            ListPtr<IArgumentInfo> arguments;
+            if(serializedObj.hasKey("arguments"))
+                arguments = serializedObj.readObject("arguments", contextPtr, factoryCallbackPtr);
+
+            const auto returnType = static_cast<CoreType>(serializedObj.readInt("returnType"));
+
+            *obj = createWithImplementation<ICallableInfo, CallableInfoImpl>(arguments, returnType).detach();
+        });
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

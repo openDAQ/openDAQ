@@ -30,8 +30,8 @@ public:
 
     ErrCode INTERFACE_FUNC readSerializedObject(IString* key, ISerializedObject** plainObj) override;
     ErrCode INTERFACE_FUNC readSerializedList(IString* key, ISerializedList** list) override;
-    ErrCode INTERFACE_FUNC readList(IString* key, IBaseObject* context, IList** list) override;
-    ErrCode INTERFACE_FUNC readObject(IString* key, IBaseObject* context, IBaseObject** obj) override;
+    ErrCode INTERFACE_FUNC readList(IString* key, IBaseObject* context, IFunction* factoryCallback, IList** list) override;
+    ErrCode INTERFACE_FUNC readObject(IString* key, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj) override;
     ErrCode INTERFACE_FUNC readString(IString* key, IString** string) override;
     ErrCode INTERFACE_FUNC readBool(IString* key, Bool* boolean) override;
     ErrCode INTERFACE_FUNC readInt(IString* key, Int* integer) override;

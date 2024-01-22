@@ -28,7 +28,7 @@ protected:
 
 const std::string JsonSerializedObjectTest::factoryId = "test";
 
-static ErrCode intFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode intFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction*, IBaseObject** obj)
 {
     Int value;
     ErrCode errCode = serialized->readInt(String("int"), &value);
@@ -41,7 +41,7 @@ static ErrCode intFactory(ISerializedObject* serialized, IBaseObject* /*context*
     return OPENDAQ_SUCCESS;
 }
 
-static ErrCode floatFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode floatFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction*, IBaseObject** obj)
 {
     Float value;
     ErrCode errCode = serialized->readFloat(String("float"), &value);
@@ -54,7 +54,7 @@ static ErrCode floatFactory(ISerializedObject* serialized, IBaseObject* /*contex
     return OPENDAQ_SUCCESS;
 }
 
-static ErrCode boolFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode boolFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction*, IBaseObject** obj)
 {
     Bool value;
     ErrCode errCode = serialized->readBool(String("bool"), &value);
@@ -67,7 +67,7 @@ static ErrCode boolFactory(ISerializedObject* serialized, IBaseObject* /*context
     return OPENDAQ_SUCCESS;
 }
 
-static ErrCode stringFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode stringFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction*, IBaseObject** obj)
 {
     IString* value;
     ErrCode errCode = serialized->readString(String("string"), &value);
@@ -80,15 +80,15 @@ static ErrCode stringFactory(ISerializedObject* serialized, IBaseObject* /*conte
     return OPENDAQ_SUCCESS;
 }
 
-static ErrCode serializedObjectFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode serializedObjectFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction*, IBaseObject** obj)
 {
     return serialized->readSerializedList(String("list"), reinterpret_cast<ISerializedList**>(obj));
 }
 
-static ErrCode listFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+static ErrCode listFactory(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction*, IBaseObject** obj)
 {
     IList* list;
-    ErrCode errCode = serialized->readList(String("list"), nullptr, &list);
+    ErrCode errCode = serialized->readList(String("list"), nullptr, nullptr, &list);
 
     if (OPENDAQ_FAILED(errCode))
     {
@@ -243,7 +243,7 @@ TEST_F(JsonSerializedObjectTest, readNonExistentString)
 TEST_F(JsonSerializedObjectTest, testHasKeyTrue)
 {
     registerFactory(
-        [](ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj) -> ErrCode
+        [](ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj) -> ErrCode
     {
         Bool hasKey;
         ErrCode errCode = serialized->hasKey(String("str"), &hasKey);
@@ -267,7 +267,7 @@ TEST_F(JsonSerializedObjectTest, testHasKeyTrue)
 TEST_F(JsonSerializedObjectTest, testHasKeyFalse)
 {
     registerFactory(
-        [](ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj) -> ErrCode
+        [](ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj) -> ErrCode
     {
         Bool hasKey;
         ErrCode errCode = serialized->hasKey(String("str"), &hasKey);
@@ -291,7 +291,7 @@ TEST_F(JsonSerializedObjectTest, testHasKeyFalse)
 TEST_F(JsonSerializedObjectTest, readEmptyObjectKeys)
 {
     registerFactory(
-        [](ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj) -> ErrCode
+        [](ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj) -> ErrCode
     {
         ISerializedObject* serializedObj;
         ErrCode errCode = serialized->readSerializedObject(String("object"), &serializedObj);
@@ -322,7 +322,7 @@ TEST_F(JsonSerializedObjectTest, readEmptyObjectKeys)
 TEST_F(JsonSerializedObjectTest, readObjectKeys)
 {
     registerFactory(
-        [](ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj) -> ErrCode
+        [](ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj) -> ErrCode
     {
         ISerializedObject* serializedObj;
         ErrCode errCode = serialized->readSerializedObject(String("object"), &serializedObj);
@@ -354,9 +354,9 @@ TEST_F(JsonSerializedObjectTest, readObjectKeys)
 TEST_F(JsonSerializedObjectTest, readNonExistentObject)
 {
     registerFactory(
-        [](ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj) -> ErrCode
+        [](ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj) -> ErrCode
     {
-        ErrCode errCode = serialized->readObject(String("doesNotExist"), nullptr, obj);
+        ErrCode errCode = serialized->readObject(String("doesNotExist"), nullptr, nullptr, obj);
         if (OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -371,7 +371,7 @@ TEST_F(JsonSerializedObjectTest, readNonExistentObject)
 TEST_F(JsonSerializedObjectTest, readSerializedObjectInvalidType)
 {
     registerFactory(
-        [](ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** /*obj*/) -> ErrCode
+        [](ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** /*obj*/) -> ErrCode
     {
         ISerializedObject* serializedObj;
         ErrCode errCode = serialized->readSerializedObject(String("object"), &serializedObj);
@@ -391,7 +391,7 @@ TEST_F(JsonSerializedObjectTest, readSerializedObjectInvalidType)
 TEST_F(JsonSerializedObjectTest, readNonExistentSerializedObject)
 {
     registerFactory(
-        [](ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** /*obj*/) -> ErrCode
+        [](ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** /*obj*/) -> ErrCode
     {
         ISerializedObject* serializedObj;
         ErrCode errCode = serialized->readSerializedObject(String("object"), &serializedObj);

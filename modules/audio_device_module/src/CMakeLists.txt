@@ -46,6 +46,10 @@ if("${Boost_LIBRARIES}")
     set(BOOST_LIBS ${Boost_LIBRARIES})
 endif()
 
+if (MSVC)
+    target_compile_options(${LIB_NAME} PRIVATE /bigobj)
+endif()
+
 target_link_libraries(${LIB_NAME}
         PUBLIC
             daq::opendaq

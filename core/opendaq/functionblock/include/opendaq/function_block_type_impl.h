@@ -29,6 +29,15 @@ public:
                                    const StringPtr& name,
                                    const StringPtr& description,
                                    const FunctionPtr& createDefaultConfigCallback);
+
+    // ISerializable
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 };
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(FunctionBlockTypeImpl)
 
 END_NAMESPACE_OPENDAQ

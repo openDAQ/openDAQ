@@ -152,7 +152,7 @@ ConstCharPtr RatioImpl::SerializeId()
     return "Ratio";
 }
 
-ErrCode RatioImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+ErrCode RatioImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj)
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
     Int num = serializedObj.readInt("num");

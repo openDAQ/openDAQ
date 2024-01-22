@@ -44,6 +44,7 @@ set(TEST_SOURCES test_objectptr.cpp
                  test_struct.cpp
                  test_type.cpp
                  test_type_manager.cpp
+                 test_callback_factory_deserialization.cpp
                  test_enumeration.cpp
 )
 

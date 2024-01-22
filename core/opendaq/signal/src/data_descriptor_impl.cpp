@@ -380,7 +380,7 @@ ConstCharPtr DataDescriptorImpl::SerializeId()
     return "DataDescriptor";
 }
 
-ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IBaseObject** obj)
+ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction*, IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(serialized);
     OPENDAQ_PARAM_NOT_NULL(obj);

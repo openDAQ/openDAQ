@@ -58,3 +58,19 @@ TEST_F(ArgumentInfoTest, StructNames)
     const StructPtr structPtr = ArgumentInfo("test", ctString);
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
+
+TEST_F(ArgumentInfoTest, SerializeDeserialize)
+{
+    const auto argInfo1 = ArgumentInfo("name", CoreType::ctBool);
+
+    const auto serializer = JsonSerializer();
+    argInfo1.serialize(serializer);
+
+    const auto jsonStr = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const ArgumentInfoPtr argInfo = deserializer.deserialize(jsonStr);
+    ASSERT_EQ(argInfo.getName(), argInfo1.getName());
+    ASSERT_EQ(argInfo.getType(), argInfo1.getType());
+}

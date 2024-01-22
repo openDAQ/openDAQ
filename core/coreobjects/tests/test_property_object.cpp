@@ -245,6 +245,31 @@ TEST_F(PropertyObjectTest, SerializeJsonSimple)
     ASSERT_EQ(json, expectedJson);
 }
 
+TEST_F(PropertyObjectTest, SerializeJsonSimpleWithLocalProperty)
+{
+    const std::string expectedJson = R"({"__type":"PropertyObject","className":"Test","propValues":{"Referenced":12},"properties":[{"__type":"Property","name":"LocalProp","valueType":3,"defaultValue":"-","readOnly":false,"visible":true}]})";
+
+    PropertyObjectPtr propObj = PropertyObject(objManager, "Test");
+    propObj.addProperty(StringPropertyBuilder("LocalProp", "-").build());
+
+    propObj.setPropertyValue("IntProperty", "12");
+    propObj.setPropertyValue("Function", Function([](IBaseObject*, IBaseObject**) { return OPENDAQ_SUCCESS; }));
+
+    propObj.setPropertyValue("Procedure",
+                             Procedure(
+                                 []()
+                                 {
+                                     // nothing
+                                 }));
+
+    auto serializer = JsonSerializer();
+    propObj.serialize(serializer);
+
+    std::string json = serializer.getOutput().toStdString();
+
+    ASSERT_EQ(json, expectedJson);
+}
+
 TEST_F(PropertyObjectTest, DeserializeJsonSimple)
 {
     const std::string json = R"({"__type":"PropertyObject","className":"Test","propValues":{"Referenced":12}})";
@@ -257,6 +282,23 @@ TEST_F(PropertyObjectTest, DeserializeJsonSimple)
     ptr.serialize(serializer);
 
     std::string deserializedJson = serializer.getOutput().toStdString();
+
+    ASSERT_EQ(json, deserializedJson);
+}
+
+TEST_F(PropertyObjectTest, DeserializeJsonSimpleWithLocalProperty)
+{
+    const std::string json =
+        R"({"__type":"PropertyObject","className":"Test","propValues":{"Referenced":12},"properties":[{"__type":"Property","name":"LocalProp","valueType":3,"defaultValue":"-","readOnly":false,"visible":true}]})";
+
+    const auto deserializer = JsonDeserializer();
+
+    const PropertyObjectPtr ptr = deserializer.deserialize(String(json.data()), objManager);
+
+    const auto serializer = JsonSerializer();
+    ptr.serialize(serializer);
+
+    const std::string deserializedJson = serializer.getOutput().toStdString();
 
     ASSERT_EQ(json, deserializedJson);
 }

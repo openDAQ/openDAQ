@@ -57,6 +57,6 @@ void TmsClientFolderImpl<Impl>::findAndCreateFolders(std::map<uint32_t, Componen
 }
 
 template class TmsClientFolderImpl<FolderImpl<IFolderConfig>>;
-template class TmsClientFolderImpl<IoFolderImpl>;
+template class TmsClientFolderImpl<IoFolderImpl<>>;
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

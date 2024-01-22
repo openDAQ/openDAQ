@@ -121,3 +121,18 @@ TEST_F(CallableInfoTest, StructNames)
     const StructPtr structPtr = FunctionInfo(ctString);
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
+
+TEST_F(CallableInfoTest, SerializeDeserialize)
+{
+    const auto functionInfo1 = FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("name", CoreType::ctString)));
+
+    const auto serializer = JsonSerializer();
+    functionInfo1.serialize(serializer);
+
+    const auto jsonStr = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const CallableInfoPtr functionInfo2 = deserializer.deserialize(jsonStr);
+    ASSERT_EQ(functionInfo1, functionInfo2);
+}

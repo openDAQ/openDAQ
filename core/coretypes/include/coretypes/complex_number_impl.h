@@ -55,7 +55,7 @@ public:
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
-    static ErrCode Deserialize(ISerializedObject* serializedObj, IBaseObject* /*context*/, IBaseObject** obj);
+    static ErrCode Deserialize(ISerializedObject* serializedObj, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj);
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
     static ConstCharPtr SerializeId();
 

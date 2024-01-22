@@ -110,6 +110,10 @@ else()
     set_target_properties(${LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE OFF)
 endif()
 
+if (MSVC)
+    target_compile_options(${LIB_NAME} PRIVATE /bigobj)
+endif()
+
 target_link_libraries(${LIB_NAME}
         PUBLIC
             daq::opcuatms

@@ -814,7 +814,10 @@ ErrCode EvalValueImpl::getSerializeId(ConstCharPtr* id) const
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode EvalValueImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+ErrCode EvalValueImpl::Deserialize(ISerializedObject* serialized,
+                                   IBaseObject* /*context*/,
+                                   IFunction* /*factoryCallback*/,
+                                   IBaseObject** obj)
 {
     StringPtr eval;
     ErrCode errCode = serialized->readString(String("eval"), &eval);

@@ -9,6 +9,10 @@ add_executable(${TEST_APP}
     test_signal_generator.cpp
 )
 
+if (MSVC)
+    target_compile_options(${TEST_APP} PRIVATE /bigobj)
+endif()
+
 target_link_libraries(${TEST_APP} PRIVATE
     ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
     daq::opendaq

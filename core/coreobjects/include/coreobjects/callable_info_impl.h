@@ -34,9 +34,18 @@ public:
     
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 
+    // ISerializable
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
 private:
     CoreType returnType{};
     ListPtr<IArgumentInfo> arguments;
 };
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(CallableInfoImpl)
 
 END_NAMESPACE_OPENDAQ

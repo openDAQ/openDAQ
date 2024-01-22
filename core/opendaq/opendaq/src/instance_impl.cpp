@@ -662,7 +662,7 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
         {
             auto serializer = JsonSerializer(True);
 
-            checkErrorInfo(this->serialize(serializer));
+            checkErrorInfo(this->serializeForUpdate(serializer));
 
             auto str = serializer.getOutput();
 
@@ -778,21 +778,9 @@ ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)
 
 ErrCode InstanceImpl::serialize(ISerializer* serializer)
 {
-    OPENDAQ_PARAM_NOT_NULL(serializer);
-
-    serializer->startTaggedObject(this);
-    {
-        serializer->key("rootDevice");
-        serializer->startObject();
-        {            
-            serializer->key(rootDevice.getLocalId().getCharPtr());
-            rootDevice.serialize(serializer);
-        }
-        serializer->endObject();
-    }
-    serializer->endObject();
-
-    return OPENDAQ_SUCCESS;
+    return daqTry([this, &serializer] {
+            rootDevice.asPtr<ISerializable>(true).serialize(serializer);
+        });
 }
 
 ErrCode InstanceImpl::getSerializeId(ConstCharPtr* id) const
@@ -841,6 +829,27 @@ ErrCode INTERFACE_FUNC InstanceImpl::update(ISerializedObject* obj)
             return OPENDAQ_SUCCESS;
         });
 }
+
+ErrCode InstanceImpl::serializeForUpdate(ISerializer* serializer)
+{
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+
+    serializer->startTaggedObject(this);
+    {
+        serializer->key("rootDevice");
+        serializer->startObject();
+        {
+            serializer->key(rootDevice.getLocalId().getCharPtr());
+            const auto updatableRootDevice = rootDevice.asPtr<IUpdatable>(true);
+            updatableRootDevice.serializeForUpdate(serializer);
+        }
+        serializer->endObject();
+    }
+    serializer->endObject();
+
+    return OPENDAQ_SUCCESS;
+}
+
 
 void InstanceImpl::connectInputPorts()
 {

@@ -2,8 +2,9 @@
 #include <coretypes/impl.h>
 #include <coreobjects/argument_info_factory.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+#include "coretypes/validation.h"
 
+BEGIN_NAMESPACE_OPENDAQ
 namespace detail
 {
     static const StructTypePtr argumentInfoStructType = ArgumentInfoStructType();
@@ -58,6 +59,53 @@ ErrCode ArgumentInfoImpl::equals(IBaseObject* other, Bool* equal) const
 
         *equal = true;
         return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ArgumentInfoImpl::serialize(ISerializer* serializer)
+{
+    serializer->startTaggedObject(this);
+    {
+        if (name.assigned())
+        {
+            serializer->key("name");
+            serializer->writeString(name.getCharPtr(), name.getLength());
+        }
+
+        serializer->key("type");
+        serializer->writeInt(static_cast<Int>(argType));
+    }
+
+    serializer->endObject();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ArgumentInfoImpl::getSerializeId(ConstCharPtr* id) const
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    *id = SerializeId();
+    return OPENDAQ_SUCCESS;
+}
+
+ConstCharPtr ArgumentInfoImpl::SerializeId()
+{
+    return "ArgumentInfo";
+}
+
+ErrCode ArgumentInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction*, IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(serialized);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    const SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
+
+    return daqTry([&serializedObj, &obj]
+    {
+        const auto name = serializedObj.readString("name");
+        const auto argType = static_cast<CoreType>(serializedObj.readInt("type"));
+
+        *obj = createWithImplementation<IArgumentInfo, ArgumentInfoImpl>(name, argType).detach();
     });
 }
 

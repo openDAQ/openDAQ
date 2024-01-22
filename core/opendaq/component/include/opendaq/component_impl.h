@@ -30,6 +30,8 @@
 #include <opendaq/component_keys.h>
 #include <tsl/ordered_set.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/component_deserialize_context_ptr.h>
+#include <opendaq/deserialize_component_ptr.h>
 #include <coreobjects/core_event_args_impl.h>
 #include <opendaq/recursive_search_ptr.h>
 #include <opendaq/component_private_ptr.h>
@@ -39,10 +41,10 @@ BEGIN_NAMESPACE_OPENDAQ
 static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
 
 template <class Intf = IComponent, class ... Intfs>
-class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, Intfs ...>
+class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, IDeserializeComponent, Intfs ...>
 {
 public:
-    using Super = GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, Intfs ...>;
+    using Super = GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, IDeserializeComponent, Intfs ...>;
 
     ComponentImpl(const ContextPtr& context,
                   const ComponentPtr& parent,
@@ -78,6 +80,16 @@ public:
     // IUpdatable
     ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
 
+    // IDeserializeComponent
+    ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory) override;
+    ErrCode INTERFACE_FUNC complete() override;
+    ErrCode INTERFACE_FUNC getDeserializedParameter(IString* parameter, IBaseObject** value) override;
+
+    // ISerializable
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
     virtual void activeChanged();
@@ -102,16 +114,26 @@ protected:
     StringPtr name;
     StringPtr description;
 
-
-    ErrCode serializeCustomValues(ISerializer* serializer) override;
+    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
     virtual int getSerializeFlags();
 
     std::unordered_map<std::string, SerializedObjectPtr> getSerializedItems(const SerializedObjectPtr& object);
 
     virtual void updateObject(const SerializedObjectPtr& obj);
-    virtual void serializeCustomObjectValues(const SerializerPtr& serializer);
-    static std::string getRelativeGlobalId(const std::string& globalId);
+    virtual void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate);
     void triggerCoreEvent(const CoreEventArgsPtr& args);
+
+    virtual void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                               const BaseObjectPtr& context,
+                                               const FunctionPtr& factoryCallback);
+
+    template <class CreateComponentCallback>
+    static BaseObjectPtr DeserializeComponent(const SerializedObjectPtr& serialized,
+                                              const BaseObjectPtr& context,
+                                              const FunctionPtr& factoryCallback,
+                                              CreateComponentCallback&& createComponentCallback);
+
+    virtual BaseObjectPtr getDeserializedParameter(const StringPtr& parameter);
 
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
@@ -123,7 +145,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     const ComponentPtr& parent,
     const StringPtr& localId,
     const StringPtr& className)
-    : GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, Intfs ...>(
+    : Super(
         context.assigned() ? context.getTypeManager() : nullptr,
         className,
         [&](const CoreEventArgsPtr& args){ triggerCoreEvent(args); })
@@ -563,6 +585,114 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
         });
 }
 
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory)
+{
+    auto serializedObjectPtr = SerializedObjectPtr::Borrow(serializedObject);
+    auto contextPtr = BaseObjectPtr::Borrow(context);
+    auto callbackFactoryPtr = FunctionPtr::Borrow(callbackFactory);
+
+    return daqTry(
+        [&serializedObjectPtr, &contextPtr, &callbackFactoryPtr, this]()
+        {
+            deserializeCustomObjectValues(serializedObjectPtr, contextPtr, callbackFactoryPtr);
+            return OPENDAQ_SUCCESS;
+        });
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::complete()
+{
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class... Intfs>
+ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::getDeserializedParameter(IString* parameter, IBaseObject** value)
+{
+    OPENDAQ_PARAM_NOT_NULL(parameter);
+    OPENDAQ_PARAM_NOT_NULL(value);
+
+    return daqTry([this, &parameter, &value]
+        {
+            const auto parameterPtr = StringPtr::Borrow(parameter);
+            *value = getDeserializedParameter(parameterPtr).detach();
+        });
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getSerializeId(ConstCharPtr* id) const
+{
+    *id = SerializeId();
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ConstCharPtr ComponentImpl<Intf, Intfs...>::SerializeId()
+{
+    return "Component";
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::Deserialize(ISerializedObject* serialized,
+    IBaseObject* context,
+    IFunction* factoryCallback,
+    IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = DeserializeComponent(
+                serialized,
+                context,
+                factoryCallback, 
+                [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
+                {
+                    return createWithImplementation<IComponent, ComponentImpl>(
+                        deserializeContext.getContext(),
+                        deserializeContext.getParent(),
+                        deserializeContext.getLocalId(),
+                        className);
+                }).detach();
+        });
+}
+
+template <class Intf, class... Intfs>
+template <class CreateComponentCallback>
+BaseObjectPtr ComponentImpl<Intf, Intfs...>::DeserializeComponent(const SerializedObjectPtr& serialized,
+                                                                  const BaseObjectPtr& context,
+                                                                  const FunctionPtr& factoryCallback,
+                                                                  CreateComponentCallback&& createComponentCallback)
+{
+    if (!serialized.assigned())
+        throw ArgumentNullException("Serialized object not assigned");
+
+    if (!context.assigned())
+        throw ArgumentNullException("Deserialization context not assigned");
+
+    const auto componentDeserializeContext = context.asPtrOrNull<IComponentDeserializeContext>(true);
+    if (!componentDeserializeContext.assigned())
+        throw InvalidParameterException("Invalid deserialization context");
+
+    ComponentPtr component = Super::DeserializePropertyObject(
+        serialized,
+        context,
+        factoryCallback,
+        [&componentDeserializeContext, &createComponentCallback, &factoryCallback](
+            const SerializedObjectPtr& serialized, const BaseObjectPtr& context, const StringPtr& className)
+        {
+            ComponentPtr component = createComponentCallback(serialized, componentDeserializeContext, className);
+            component.asPtr<IDeserializeComponent>(true).deserializeValues(serialized, context, factoryCallback);
+            return component;
+        });
+
+    const auto deserializeComponent = component.asPtr<IDeserializeComponent>(true);
+    deserializeComponent.complete();
+
+    return component;
+}
+
 template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::activeChanged()
 {
@@ -610,18 +740,18 @@ ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilte
 }
 
 template <class Intf, class... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serializer)
+ErrCode ComponentImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
 {
     const auto serializerPtr = SerializerPtr::Borrow(serializer);
 
-    auto errCode = Super::serializeCustomValues(serializer);
+    auto errCode = Super::serializeCustomValues(serializer, forUpdate);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
     return daqTry(
-        [&serializerPtr, this]()
+        [&serializerPtr, forUpdate, this]()
         {
-            serializeCustomObjectValues(serializerPtr);
+            serializeCustomObjectValues(serializerPtr, forUpdate);
 
             return OPENDAQ_SUCCESS;
         });
@@ -669,9 +799,9 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer)
+void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool /* forUpdate */)
 {
-    auto flags = getSerializeFlags();
+    const auto flags = getSerializeFlags();
 
     if (flags & ComponentSerializeFlag_SerializeActiveProp && !active)
     {
@@ -705,13 +835,9 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
 }
 
 template <class Intf, class... Intfs>
-std::string ComponentImpl<Intf, Intfs...>::getRelativeGlobalId(const std::string& globalId)
+BaseObjectPtr ComponentImpl<Intf, Intfs...>::getDeserializedParameter(const StringPtr&)
 {
-    const auto equalsIdx = globalId.find_first_of('/');
-    if (std::string::npos != equalsIdx)
-        return globalId.substr(equalsIdx + 1);
-
-    return globalId;
+    return {};
 }
 
 template <class Intf, class ... Intfs>
@@ -733,5 +859,31 @@ void ComponentImpl<Intf, Intfs...>::triggerCoreEvent(const CoreEventArgsPtr& arg
         LOG_W("Component {} failed while triggering core event {}", this->localId, args.getEventName())
     }
 }
+
+template <class Intf, class ... Intfs>
+void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                            const BaseObjectPtr& context,
+                                                            const FunctionPtr& factoryCallback)
+{
+    if (serializedObject.hasKey("active"))
+        active = serializedObject.readBool("active");
+
+    if (serializedObject.hasKey("visible"))
+        visible = serializedObject.readBool("visible");
+
+    if (serializedObject.hasKey("description"))
+        description = serializedObject.readString("description");
+
+    if (serializedObject.hasKey("name"))
+        name = serializedObject.readString("name");
+
+    if (serializedObject.hasKey("tags"))
+        tags = serializedObject.readObject("tags", context, factoryCallback);
+}
+
+using StandardComponent = ComponentImpl<>;
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(StandardComponent)
+
 
 END_NAMESPACE_OPENDAQ

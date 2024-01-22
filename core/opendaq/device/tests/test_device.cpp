@@ -9,6 +9,9 @@
 #include <gtest/gtest.h>
 #include <opendaq/device_private.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/function_block_impl.h>
+#include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/channel_impl.h>
 
 using DeviceTest = testing::Test;
 
@@ -47,7 +50,7 @@ TEST_F(DeviceTest, IOFolder)
 
 TEST_F(DeviceTest, IOFolderCreateCustom)
 {
-    ASSERT_NO_THROW((daq::createWithImplementation<daq::IIoFolderConfig, daq::IoFolderImpl>(daq::NullContext(), nullptr, "fld")));
+    ASSERT_NO_THROW((daq::createWithImplementation<daq::IIoFolderConfig, daq::IoFolderImpl<>>(daq::NullContext(), nullptr, "fld")));
 }
 
 TEST_F(DeviceTest, IOFolderSubItems)
@@ -152,4 +155,62 @@ TEST_F(DeviceTest, StandardProperties)
 
     ASSERT_EQ(device.getName(), name);
     ASSERT_EQ(device.getDescription(), desc);
+}
+
+class MockFbImpl final : public daq::FunctionBlock
+{
+public:
+    MockFbImpl(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
+        : daq::FunctionBlock(daq::FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId)
+    {
+        createAndAddSignal("sig_fb");
+        createAndAddInputPort("ip_fb", daq::PacketReadyNotification::None);
+    }
+};
+
+class MockChannel final : public daq::Channel
+{
+public:
+    MockChannel(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
+        : daq::Channel(daq::FunctionBlockType("ch", "", ""), ctx, parent, localId)
+    {
+        createAndAddSignal("sig_ch");
+    }
+};
+
+class MockDevice final : public daq::Device
+{
+public:
+    MockDevice(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
+        : daq::Device(ctx, parent, localId)
+    {
+        createAndAddSignal("sig_device");
+
+        auto aiIoFolder = this->addIoFolder("ai", ioFolder);
+        createAndAddChannel<MockChannel>(aiIoFolder, "ch");
+
+        const auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "fb");
+        addNestedFunctionBlock(fb);
+    }
+};
+
+TEST_F(DeviceTest, SerializeAndDeserialize)
+{
+    const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+
+    const auto serializer = daq::JsonSerializer(daq::True);
+    dev.serialize(serializer);
+    const auto str1 = serializer.getOutput();
+
+    const auto deserializer = daq::JsonDeserializer();
+
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, "dev");
+
+    const daq::DevicePtr newDev = deserializer.deserialize(str1, deserializeContext, nullptr);
+
+    const auto serializer2 = daq::JsonSerializer(daq::True);
+    newDev.serialize(serializer2);
+    const auto str2 = serializer2.getOutput();
+
+    ASSERT_EQ(str1, str2);
 }

@@ -89,9 +89,9 @@ public:
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
     static ConstCharPtr SerializeId();
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
-    void serializeCustomObjectValues(const SerializerPtr& serializer) override;
+    void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void updateObject(const SerializedObjectPtr& obj) override;
     int getSerializeFlags() override;
 
@@ -99,6 +99,11 @@ protected:
     virtual void onListenedStatusChanged(bool connected);
 
     void removed() override;
+    BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
+
     ErrCode lockAllAttributesInternal() override;
     
     inline static std::unordered_set<std::string> signalAvailableAttributes = {"Public"};
@@ -110,6 +115,7 @@ private:
     SignalPtr domainSignal;
     std::vector<ConnectionPtr> connections;
     std::vector<WeakRefPtr<ISignalConfig>> domainSignalReferences;
+    StringPtr deserializedDomainSignalId;
     bool keepLastPacket = true;
     DataPacketPtr lastDataPacket;
 
@@ -568,22 +574,37 @@ ConstCharPtr SignalBase<TInterface, Interfaces...>::SerializeId()
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode SignalBase<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
+ErrCode SignalBase<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = Super::DeserializeComponent(
+                       serialized,
+                       context,
+                       factoryCallback,
+                       [](const SerializedObjectPtr& serialized,
+                          const ComponentDeserializeContextPtr& deserializeContext,
+                          const StringPtr& className)
+                       {
+                           return createWithImplementation<ISignalConfig, SignalImpl>(
+                               deserializeContext.getContext(), nullptr, deserializeContext.getParent(), deserializeContext.getLocalId(), className);
+                       }).detach();
+        });
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer)
+void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
     if (domainSignal.assigned())
     {
-        serializer->key("domainSignalId");
-        auto domainSignalGlobalId = this->getRelativeGlobalId(domainSignal.getGlobalId());
-        serializer->writeString(domainSignalGlobalId.c_str(), domainSignalGlobalId.size());
+        serializer.key("domainSignalId");
+        const auto domainSignalGlobalId = domainSignal.getGlobalId();
+        serializer.writeString(domainSignalGlobalId);
     }
 
-    Super::serializeCustomObjectValues(serializer);
+    Super::serializeCustomObjectValues(serializer, forUpdate);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -629,6 +650,25 @@ void SignalBase<TInterface, Interfaces...>::removed()
 
     domainSignalReferences.clear();
     relatedSignals.clear();
+}
+
+template <typename TInterface, typename... Interfaces>
+BaseObjectPtr SignalBase<TInterface, Interfaces...>::getDeserializedParameter(const StringPtr& parameter)
+{
+    if (parameter == "domainSignalId")
+        return deserializedDomainSignalId;
+
+    throw NotFoundException();
+}
+
+template <typename TInterface, typename... Interfaces>
+void SignalBase<TInterface, Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                                    const BaseObjectPtr& context,
+                                                                    const FunctionPtr& factoryCallback)
+{
+    Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+    if (serializedObject.hasKey("domainSignalId"))
+        deserializedDomainSignalId = serializedObject.readString("domainSignalId");
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -751,5 +791,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject ** value
     };
     return OPENDAQ_SUCCESS;
 }
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SignalImpl)
 
 END_NAMESPACE_OPENDAQ

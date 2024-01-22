@@ -44,6 +44,7 @@ set(GMOCK_HEADERS context.h
                   signal.h
                   task_graph.h
                   component.h
+                  device.h
                   allocator.h
                   function_block.h
                   streaming.h
@@ -56,6 +57,10 @@ source_group("gmock" FILES ${GMOCK_HEADERS}
 
 add_library(${MOCK_LIB_NAME} STATIC ${GMOCK_HEADERS} ${MOCK_HEADERS} ${MOCK_SOURCES})
 add_library(${SDK_TARGET_NAMESPACE}::${MOCK_LIB_NAME} ALIAS ${MOCK_LIB_NAME})
+
+if (MSVC)
+    target_compile_options(${MOCK_LIB_NAME} PRIVATE /bigobj)
+endif()
 
 target_link_libraries(${MOCK_LIB_NAME} PRIVATE daq::opendaq
                                                daq::server_dev

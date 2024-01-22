@@ -33,7 +33,7 @@ inline IoFolderConfigPtr IoFolder(const ContextPtr& context,
                                   const ComponentPtr& parent,
                                   const StringPtr& localId)
 {
-    FolderConfigPtr obj(IoFolder_Create(context, parent, localId));
+    IoFolderConfigPtr obj(IoFolder_Create(context, parent, localId));
     return obj;
 }
 

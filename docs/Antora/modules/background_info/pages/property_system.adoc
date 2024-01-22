@@ -1217,19 +1217,8 @@ std::cout << propObj.getPropertyValue("List[0]") << std::endl;
 // Sets a new value to the List Property. 
 propObj.setPropertyValue("List", List<IString>("Pear", "Strawberry"));
 
-// To extend / shorten the list, a clone of the list is required as getPropertyValue returns a frozen list. 
-ListPtr<IString> list = propObj->getPropertyValue("List");
-ListPtr<IString> clonedList;
-for (const auto& item : list)
-    clonedList.pushBack(item);
-
-clonedList.pushBack("Pear");
-propObj.setPropertyValue("List", clonedList);
-
-// Prints "Banana", "Kiwi" and "Pear"
-list = propObj->getPropertyValue("List");
-for (const auto& item : list)
-    std::cout << item << std::endl;
+// Prints "Pear" and "Strawberry"
+std::cout << list.toString() << std::endl;
 ----
 Python::
 +
@@ -1244,6 +1233,75 @@ propObj.add_property(opendaq.ListProperty(
 
 # Prints "Banana"
 print(propObj.get_property_value('List[0]'))
+
+----
+====
+
+When retrieving a list-type property value, the list object is cloned, and can be modified without
+side effects to the Property object. As such, we can extend the Property defined in the above
+code snippet as follows:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+ListPtr<IString> list = propObj.getPropertyValue("List");
+list.pushBack("Blueberry");
+propObj.setPropertyValue("List", list);
+
+// Prints "Pear", "Strawberry", and "Blueberry"
+std::cout << propObj.getPropertyValue("List").toString() << std::endl;
+----
+Python::
++
+[source,python]
+----
+list = propObj.get_property_value("List")
+list.pushBack('Blueberry')
+propObj.set_property_value('List', list)
+
+# Prints "Pear", "Strawberry", and "Blueberry"
+print(propObj.get_property_value('List'))
+----
+====
+
+==== Dictionary properties
+
+As with list-type properties, when retrieveing a dictionary property value, the dictionary object
+is cloned, and can be modified without side effects to the Property object:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+propObj.addProperty(DictProperty("Dict", Dict<IInteger, IString>({{1, "Banana"}, {2, "Kiwi"}})));
+
+DictPtr<IInteger, IString> dict = propObj.getPropertyValue("Dict");
+dict.set(3, "Blueberry");
+
+// The "Dict" property now contains {1 : "Banana"}, {2 : "Kiwi"}, {3 : "Blueberry"}
+propObj.setPropertyValue("Dict", dict);
+----
+Python::
++
+[source,python]
+----
+dict = opendaq.Dict()
+dict[1] = 'Banana'
+dict[2] = 'Kiwi'
+property_object.add_property(opendaq.DictProperty(
+    opendaq.String('Dict'), dict, opendaq.Boolean(True)))
+
+dict = propObj.get_property_value("Dict")
+dict[3] = 'Blueberry'
+
+# The "Dict" property now contains {1 : "Banana"}, {2 : "Kiwi"}, {3 : "Blueberry"}
+propObj.set_property_value('Dict', dict)
 ----
 ====
 

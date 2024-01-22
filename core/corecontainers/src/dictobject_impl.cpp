@@ -320,6 +320,32 @@ ErrCode DictImpl::getSerializeId(ConstCharPtr* id) const
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode DictImpl::clone(IDict** cloned)
+{
+    if (cloned == nullptr)
+    {
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    }
+
+    DictImpl* lst = new(std::nothrow) DictImpl(keyId, valueId);
+    if (lst == nullptr)
+    {
+        *cloned = nullptr;
+        return OPENDAQ_SUCCESS;
+    }
+
+    auto size = this->hashTable.size();
+    lst->hashTable.reserve(size);
+    for (const auto& item : hashTable)
+    {
+        item.first->addRef();
+        item.second->addRef();
+        lst->hashTable.insert(std::make_pair(item.first, item.second));
+    }
+
+    return lst->queryInterface(IDict::Id, reinterpret_cast<void**>(cloned));
+}
+
 ErrCode INTERFACE_FUNC DictImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)

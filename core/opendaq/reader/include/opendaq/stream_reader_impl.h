@@ -101,7 +101,7 @@ private:
 
     void onPacketReady();
 
-    void handleDescriptorChanged(const EventPacketPtr& eventPacket);
+    void handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback = true);
 
     [[nodiscard]]
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket);
@@ -113,6 +113,8 @@ private:
     NotifyInfo notify{};
     std::unique_ptr<Reader> valueReader;
     std::unique_ptr<Reader> domainReader;
+
+    DataDescriptorPtr dataDescriptor;
 
     ReadMode readMode;
     ReadTimeoutType timeoutType;

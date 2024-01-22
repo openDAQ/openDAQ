@@ -94,23 +94,25 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     , timeoutType(ReadTimeoutType::All)
 {
     std::scoped_lock lock(old->mutex);
+    dataDescriptor = old->dataDescriptor;
     old->invalid = true;
 
     info = old->info;
     timeoutType = old->timeoutType;
 
-    valueReader = createReaderForType(valueReadType, old->valueReader->getTransformFunction(), old->valueReader->getReadType());
-    domainReader = createReaderForType(domainReadType, old->domainReader->getTransformFunction(), old->domainReader->getReadType());
+    valueReader = createReaderForType(valueReadType, old->valueReader->getTransformFunction());
+    domainReader = createReaderForType(domainReadType, old->domainReader->getTransformFunction());
 
     old->portBinder = PropertyObject();
     inputPort = old->inputPort;
-    connection = inputPort.getConnection();
-    changeCallback = old->changeCallback;
     inputPort.asPtr<IOwnable>().setOwner(portBinder);
 
+    connection = inputPort.getConnection();
+    readCallback = old->readCallback;
+    changeCallback = old->changeCallback;
+
     this->internalAddRef();
-    if (!changeCallback.assigned())
-        readDescriptorFromPort();
+    readDescriptorFromPort();
 }
 
 StreamReaderImpl::~StreamReaderImpl()
@@ -138,18 +140,7 @@ void StreamReaderImpl::readDescriptorFromPort()
         }
     }
 
-    const auto signal = inputPort.getSignal();
-    if (!signal.assigned())
-    {
-        throw InvalidStateException("Input port must already have a signal assigned");
-    }
-
-    const auto descriptor = signal.getDescriptor();
-    if (!descriptor.assigned())
-    {
-        throw InvalidStateException("Input port connected signal must have a descriptor assigned.");
-    }
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(descriptor, nullptr));
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr), false);
 }
 
 void StreamReaderImpl::connectSignal(const SignalPtr& signal)
@@ -288,7 +279,7 @@ void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescripto
     reader = createReaderForType(newDescriptor.getSampleType(), reader->getTransformFunction());
 }
 
-void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket)
+void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback)
 {
     if (!eventPacket.assigned())
         return;
@@ -301,6 +292,7 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
     // Check if value is stil convertible
     if (newValueDescriptor.assigned())
     {
+        dataDescriptor = newValueDescriptor;
         if (valueReader->isUndefined())
         {
             inferReaderReadType(newValueDescriptor, valueReader);
@@ -330,7 +322,7 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
 
     // If both value and domain are still convertible
     // check with the user if new state is valid for them
-    if (!invalid && changeCallback.assigned())
+    if (callChangeCallback && !invalid && changeCallback.assigned())
     {
         bool descriptorOk = false;
         ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor);
@@ -466,7 +458,7 @@ ErrCode StreamReaderImpl::readPackets()
                 auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
-                    errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket);
+                    errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket, true);
                     if (OPENDAQ_FAILED(errCode))
                     {
                         invalid = true;

@@ -1018,12 +1018,10 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromExistingOnReadCallback)
     std::future<void> future = promise.get_future();
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Int64));
-    size_t cnt = 0;
 
     StreamReaderPtr reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined);
     StreamReaderPtr newReader;
     reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
-        cnt++;
         newReader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
         return nullptr;

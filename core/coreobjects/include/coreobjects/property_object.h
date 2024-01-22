@@ -83,6 +83,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * @retval OPENDAQ_ERR_VALIDATE_FAILED if the Validator fails to validate the `value`.
      * @retval OPENDAQ_ERR_COERCION_FAILED if the Coercer fails to coerce the `value`.
      * @retval OPENDAQ_ERR_FROZEN if the Property object is frozen.
+     * @retval OPENDAQ_ERR_IGNORED if the `value` is the same as the default, or the previously written value.
      *
      * Stores the provided `value` into an internal dictionary of property name and value pairs. This property value can
      * later be retrieved through the corresponding getter method when invoked with the same `propertyName`. The provided

@@ -77,6 +77,14 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         py::return_value_policy::take_ownership,
         "Gets a list of the device's signals.");
+    cls.def("get_signals",
+        [](daq::IDevice *object, daq::ISearchFilter* searchFilter)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getSignals(searchFilter).detach();
+        },
+        py::arg("search_filter") = nullptr,
+        "Gets a list of the device's signals.");
     cls.def_property_readonly("signals_recursive",
         [](daq::IDevice *object)
         {
@@ -84,6 +92,14 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             return objectPtr.getSignalsRecursive().detach();
         },
         py::return_value_policy::take_ownership,
+        "Gets a list of the signals that belong to the device.");
+    cls.def("get_signals_recursive",
+        [](daq::IDevice *object, daq::ISearchFilter* searchFilter)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getSignalsRecursive(searchFilter).detach();
+        },
+        py::arg("search_filter") = nullptr,
         "Gets a list of the signals that belong to the device.");
     cls.def_property_readonly("channels",
         [](daq::IDevice *object)
@@ -93,6 +109,14 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         py::return_value_policy::take_ownership,
         "Gets a flat list of the device's physical channels.");
+    cls.def("get_channels",
+        [](daq::IDevice *object, daq::ISearchFilter* searchFilter)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getChannels(searchFilter).detach();
+        },
+        py::arg("search_filter") = nullptr,
+        "Gets a flat list of the device's physical channels.");
     cls.def_property_readonly("channels_recursive",
         [](daq::IDevice *object)
         {
@@ -100,7 +124,15 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             return objectPtr.getChannelsRecursive().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets a flat list of the device's physical channels. Also finds all channels of child devices");
+        "Gets a flat list of the device's physical channels. Also finds all visible channels of visible child devices");
+    cls.def("get_channels_recursive",
+        [](daq::IDevice *object, daq::ISearchFilter* searchFilter)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getChannelsRecursive(searchFilter).detach();
+        },
+        py::arg("search_filter") = nullptr,
+        "Gets a flat list of the device's physical channels. Also finds all visible channels of visible child devices");
     cls.def_property_readonly("devices",
         [](daq::IDevice *object)
         {
@@ -108,6 +140,14 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             return objectPtr.getDevices().detach();
         },
         py::return_value_policy::take_ownership,
+        "Gets a list of child devices that the device is connected to.");
+    cls.def("get_devices",
+        [](daq::IDevice *object, daq::ISearchFilter* searchFilter)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getDevices(searchFilter).detach();
+        },
+        py::arg("search_filter") = nullptr,
         "Gets a list of child devices that the device is connected to.");
     cls.def_property_readonly("available_devices",
         [](daq::IDevice *object)
@@ -148,6 +188,14 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             return objectPtr.getFunctionBlocks().detach();
         },
         py::return_value_policy::take_ownership,
+        "Gets the list of added function blocks.");
+    cls.def("get_function_blocks",
+        [](daq::IDevice *object, daq::ISearchFilter* searchFilter)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getFunctionBlocks(searchFilter).detach();
+        },
+        py::arg("search_filter") = nullptr,
         "Gets the list of added function blocks.");
     cls.def_property_readonly("available_function_block_types",
         [](daq::IDevice *object)

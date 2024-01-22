@@ -12,22 +12,25 @@
 #include "open62541/types_generated.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
-    using namespace opcua;
+
+using namespace opcua;
 
 TmsServerPropertyObject::TmsServerPropertyObject(const PropertyObjectPtr& object,
                                                  const OpcUaServerPtr& server,
                                                  const ContextPtr& context,
+                                                 const TmsServerContextPtr& tmsContext,
                                                  const std::unordered_set<std::string>& ignoredProps)
-    : Super(object, server, context)
-    , ignoredProps(ignoredProps)
+    : Super(object, server, context, tmsContext)
+      , ignoredProps(ignoredProps)
 {
 }
 
 TmsServerPropertyObject::TmsServerPropertyObject(const PropertyObjectPtr& object,
                                                  const opcua::OpcUaServerPtr& server,
                                                  const ContextPtr& context,
+                                                 const TmsServerContextPtr& tmsContext,
                                                  const StringPtr& name)
-    : TmsServerPropertyObject(object, server, context)
+    : TmsServerPropertyObject(object, server, context, tmsContext)
 {
     this->name = name;
 }
@@ -35,9 +38,10 @@ TmsServerPropertyObject::TmsServerPropertyObject(const PropertyObjectPtr& object
 TmsServerPropertyObject::TmsServerPropertyObject(const PropertyObjectPtr& object,
                                                  const opcua::OpcUaServerPtr& server,
                                                  const ContextPtr& context,
+                                                 const TmsServerContextPtr& tmsContext,
                                                  const StringPtr& name,
                                                  const PropertyPtr& objProp)
-    : TmsServerPropertyObject(object, server, context, name)
+    : TmsServerPropertyObject(object, server, context, tmsContext, name)
 {
     this->objProp = objProp;
 }
@@ -104,7 +108,7 @@ void TmsServerPropertyObject::addChildNodes()
             const auto propName = prop.getName();
             if (hasChildNode(propName))
             {
-                serverInfo = std::make_shared<TmsServerProperty>(prop, server, daqContext, object, propOrder);
+                serverInfo = std::make_shared<TmsServerProperty>(prop, server, daqContext, tmsContext, object, propOrder);
                 childNodeId = serverInfo->registerToExistingOpcUaNode(nodeId);
             }
             else
@@ -124,6 +128,9 @@ void TmsServerPropertyObject::addChildNodes()
             childObjects.insert({childNodeId, serverInfo});
         }
     }
+
+    addBeginUpdateNode();
+    addEndUpdateNode();
 }
 
 void TmsServerPropertyObject::bindCallbacks()
@@ -186,7 +193,7 @@ void TmsServerPropertyObject::setMethodParentNodeId(const OpcUaNodeId& methodPar
 void TmsServerPropertyObject::registerEvalValueNode(const std::string& nodeName, TmsServerEvalValue::ReadCallback readCallback)
 {
     auto nodeId = getChildNodeId(nodeName);
-    auto serverObject = std::make_shared<TmsServerEvalValue>(server, daqContext);
+    auto serverObject = std::make_shared<TmsServerEvalValue>(server, daqContext, tmsContext);
     serverObject->setReadCallback(std::move(readCallback));
     auto childNodeId = serverObject->registerToExistingOpcUaNode(nodeId);
 
@@ -297,6 +304,40 @@ void TmsServerPropertyObject::bindMethodCallbacks()
             }
         });
     }
+}
+
+void TmsServerPropertyObject::addBeginUpdateNode()
+{
+    OpcUaNodeId nodeIdOut;
+    AddMethodNodeParams params(nodeIdOut, nodeId);
+    params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
+    params.setBrowseName("BeginUpdate");
+    auto methodNodeId = server->addMethodNode(params);
+
+    auto callback = [this](NodeEventManager::MethodArgs args)
+    {
+        const auto status = this->object->beginUpdate();
+        return status == OPENDAQ_SUCCESS ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINTERNALERROR;
+    };
+
+    addEvent(methodNodeId)->onMethodCall(callback);
+}
+
+void TmsServerPropertyObject::addEndUpdateNode()
+{
+    OpcUaNodeId nodeIdOut;
+    AddMethodNodeParams params(nodeIdOut, nodeId);
+    params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
+    params.setBrowseName("EndUpdate");
+    auto methodNodeId = server->addMethodNode(params);
+
+    auto callback = [this](NodeEventManager::MethodArgs args)
+    {
+        const auto status = this->object->endUpdate();
+        return status == OPENDAQ_SUCCESS ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINTERNALERROR;
+    };
+
+    addEvent(methodNodeId)->onMethodCall(callback);
 }
 
 void TmsServerPropertyObject::addPropertyNode(const std::string& name, const opcua::OpcUaNodeId& parentId)

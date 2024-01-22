@@ -306,7 +306,7 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
             inferReaderReadType(newValueDescriptor, valueReader);
         }
 
-        auto valid = valueReader->handleDescriptorChanged(newValueDescriptor);
+        auto valid = valueReader->handleDescriptorChanged(newValueDescriptor, readMode);
         if (!invalid)
         {
             invalid = !valid;
@@ -321,7 +321,7 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
             inferReaderReadType(newDomainDescriptor, domainReader);
         }
 
-        auto valid = domainReader->handleDescriptorChanged(newDomainDescriptor);
+        auto valid = domainReader->handleDescriptorChanged(newDomainDescriptor, readMode);
         if (!invalid)
         {
             invalid = !valid;
@@ -353,7 +353,7 @@ bool StreamReaderImpl::trySetDomainSampleType(const daq::DataPacketPtr& domainPa
         inferReaderReadType(dataDescriptor, domainReader);
     }
 
-    if (!domainReader->handleDescriptorChanged(dataDescriptor))
+    if (!domainReader->handleDescriptorChanged(dataDescriptor, readMode))
     {
         daqSetErrorInfo(errInfo);
         return false;

@@ -15,6 +15,7 @@
 #include "coretypes/struct_factory.h"
 #include "coretypes/type_manager_factory.h"
 #include <coreobjects/property_object_protected_ptr.h>
+#include <gmock/gmock.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -174,8 +175,9 @@ public:
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)
     {
         const auto logger = Logger();
+        const auto context = Context(nullptr, logger, manager, nullptr);
         const auto serverProp =
-            std::make_shared<TmsServerPropertyObject>(prop, server, Context(nullptr, logger, manager, nullptr));
+            std::make_shared<TmsServerPropertyObject>(prop, server, context, std::make_shared<TmsServerContext>(context));
         const auto nodeId = serverProp->registerOpcUaNode();
         const auto clientProp = TmsClientPropertyObject(Context(nullptr, logger, manager,nullptr), clientContext, nodeId);
         return {serverProp, clientProp};
@@ -190,7 +192,7 @@ TEST_F(TmsPropertyObjectAdvancedTest, SetUpServer)
 {
     const auto obj = PropertyObject(manager, "TestClass");
 
-    const auto serverProp = std::make_shared<TmsServerPropertyObject>(obj, server, NullContext());
+    const auto serverProp = std::make_shared<TmsServerPropertyObject>(obj, server, ctx, serverContext);
     const auto nodeId = serverProp->registerOpcUaNode();
 }
 
@@ -763,3 +765,57 @@ TEST_F(TmsPropertyObjectAdvancedTest, PropertyOrder)
     for (SizeT i = 0; i < serverProps.getCount(); ++i)
         ASSERT_EQ(serverProps[i].getName(), clientProps[i].getName());
 }
+
+TEST_F(TmsPropertyObjectAdvancedTest, GainScalingStructure)
+{
+    const auto typeManager = TypeManager();
+    const auto type = StructType("GainScalingStructure", List<IString>("Factor", "Offset"), List<IType>(SimpleType(ctFloat), SimpleType(ctFloat)));
+    typeManager.addType(type);
+
+    const auto obj = PropertyObject();
+    const auto structBuilder = StructBuilder("GainScalingStructure", typeManager).set("Factor", 0.5).set("Offset", 2.5);
+    obj.addProperty(StructProperty("Gain", structBuilder.build()));
+    
+
+    const auto logger = Logger();
+    const auto serverProp =
+    std::make_shared<TmsServerPropertyObject>(obj, server, Context(nullptr, logger, manager, nullptr), serverContext);
+    const auto nodeId = serverProp->registerOpcUaNode();
+
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+    
+    const auto structObj = obj.getPropertyValue("Gain");
+    const auto newBuilder = StructBuilder(structObj);
+    clientObj.setPropertyValue("Gain", newBuilder.set("Factor", 2.0).set("Offset", 10.0).build());
+}
+
+TEST_F(TmsPropertyObjectAdvancedTest, BeginEndUpdate)
+{
+    bool eventTriggered = false;
+
+    const auto obj = PropertyObject(manager, "TestClass");
+    obj.addProperty(IntProperty("Prop1", 1, true));
+    obj.addProperty(IntProperty("Prop2", 2, true));
+    obj.addProperty(IntProperty("Prop3", 3, true));
+
+    obj.getOnEndUpdate() += [&eventTriggered](PropertyObjectPtr&, EndUpdateEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventName(), "EndUpdateEvent");
+
+        auto properties = args.getProperties();
+        testing::ElementsAre("Prop1", "Prop2", "Prop3");
+
+        eventTriggered = true;
+    };
+
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+
+    clientObj.beginUpdate();
+    clientObj.setPropertyValue("Prop1", 10);
+    clientObj.setPropertyValue("Prop2", 20);
+    clientObj.setPropertyValue("Prop3", 30);
+    clientObj.endUpdate();
+
+    ASSERT_TRUE(eventTriggered);
+}
+

@@ -1,3 +1,96 @@
+12.01.2024
+Search filters, visible flag, component attributes
+  - Add SearchFilter that allows for more granular component search on tree traversal methods (getItems, getSignals...)
+  - Add visible flag to Component
+  - Default component getters were modified to return only components with visible==true
+  - PropertyChanged event packets were removed
+  - ComponentModified core event was changed to AttributeModified
+  - Attribute lock was added to components preventing changes to locked attributes
+  - Name and Description are no longer properties, but component attributes
+  - Add per-component core event triggers
+  
++ [interface] ISearchFilter : public IBaseObject
++ [function] ISearchFilter::acceptsComponent(IComponent* component, Bool* accepts)
++ [function] ISearchFilter::visitChildren(IComponent* component, Bool* visit)
++ [factory] SearchFilterPtr search::Visible()
++ [factory] SearchFilterPtr search::RequireTags(const ListPtr<IString>& requiredTags)
++ [factory] SearchFilterPtr search::ExcludeTags(const ListPtr<IString>& excludedTags)
++ [factory] SearchFilterPtr search::SearchId(const IntfID searchId)
++ [factory] SearchFilterPtr search::Any()
++ [factory] SearchFilterPtr search::And(const SearchFilterPtr& left, const SearchFilterPtr& right)
++ [factory] SearchFilterPtr search::Or(const SearchFilterPtr& left, const SearchFilterPtr& right)
++ [factory] SearchFilterPtr search::Not(const SearchFilterPtr& filter)
++ [factory] SearchFilterPtr search::Custom(const FunctionPtr& acceptsFunction, const FunctionPtr& visitFunction)
++ [factory] SearchFilterPtr search::Recursive(const SearchFilterPtr& filter)
+
++ [interface] IRecursiveSearch : public IBaseObject
+  
++ [function] IComponent::getVisible(Bool* visible)
++ [function] IComponent::setVisible(Bool visible)
++ [function] IComponent::getLockedAttributes(IList** attributes)
++ [function] IComponent::getOnComponentCoreEvent(IEvent** event)
+-m [factory] ComponentPtr Component(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, ComponentStandardProps propertyMode = ComponentStandardProps::Add)
++m [factory] ComponentPtr Component(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+ 
++ [interface] IComponentPrivate : public IBaseObject
++ [function] IComponentPrivate::lockAttributes(IList* attributes)
++ [function] IComponentPrivate::lockAllAttributes()
++ [function] IComponentPrivate::unlockAttributes(IList* attributes)
++ [function] IComponentPrivate::unlockAllAttributes()
++ [function] IComponentPrivate::triggerComponentCoreEvent(ICoreEventArgs* args)
+ 
+-m [function] IFolder::getItems(IList** items)
++m [function] IFolder::getItems(IList** items, ISearchFilter* searchFilter = nullptr)
+-m [factory] FolderConfigPtr Folder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const ComponentStandardProps propertyMode = ComponentStandardProps::Add)
++m [factory] FolderConfigPtr Folder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+
+-m [factory] IoFolderConfigPtr IoFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const ComponentStandardProps propertyMode = ComponentStandardProps::Add)
++m [factory] IoFolderConfigPtr IoFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+
+-m [function] IFunctionBlock::getFunctionBlocks(IList** functionBlocks)
++m [function] IFunctionBlock::getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr)
+-m [function] IFunctionBlock::getInputPorts(IList** ports)
++m [function] IFunctionBlock::getInputPorts(IList** ports, ISearchFilter* searchFilter = nullptr)
+-m [function] IFunctionBlock::getSignals(IList** signals)
++m [function] IFunctionBlock::getSignals(IList** signals, ISearchFilter* searchFilter = nullptr)
+-m [function] IFunctionBlock::getSignalsRecursive(IList** signals)
++m [function] IFunctionBlock::getSignalsRecursive(IList** signals, ISearchFilter* searchFilter = nullptr)
+
+-m [function] IDevice::getFunctionBlocks(IList** functionBlocks)
++m [function] IDevice::getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr)
+-m [function] IDevice::getChannels(IList** channels)
++m [function] IDevice::getChannels(IList** channels, ISearchFilter* searchFilter = nullptr)
+-m [function] IDevice::getChannelsRecursive(IList** channels)
++m [function] IDevice::getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr)
+-m [function] IDevice::getSignals(IList** signals)
++m [function] IDevice::getSignals(IList** signals, ISearchFilter* searchFilter = nullptr)
+-m [function] IDevice::getSignalsRecursive(IList** signals)
++m [function] IDevice::getSignalsRecursive(IList** signals, ISearchFilter* searchFilter = nullptr)
+-m [function] IDevice::getDevices(IList** devices)
++m [function] IDevice::getDevices(IList** devices, ISearchFilter* searchFilter = nullptr)
+
+- [factory] EventPacketPtr PropertyChangedEventPacket(const StringPtr& name, const BaseObjectPtr& value)
+
+-m [factory] CoreEventArgsPtr CoreEventArgsComponentModified(const DictPtr<IString, IBaseObject>& modifiedAttributes)
++m [factory] CoreEventArgsPtr CoreEventArgsAttributeChanged(const StringPtr& attributeName, const BaseObjectPtr& attributeValue)
+
+11.01.2024
+Description:
+  - Add Enumeration Core type implementations
+
++ [interface] IEnumerationType : public IType
++ [function] IEnumerationType::getEnumeratorNames(IList** names)
++ [function] IEnumerationType::getAsDictionary(IDict** dictionary)
++ [function] IEnumerationType::getEnumeratorIntValue(IString* name, Int* value)
++ [function] IEnumerationType::getCount(SizeT* count)
++ [factory] EnumerationTypePtr EnumerationType(const StringPtr& typeName, const ListPtr<IString>& enumeratorNames, const Int firstEnumeratorIntValue)
++ [factory] EnumerationTypePtr EnumerationTypeWithValues(const StringPtr& typeName, const DictPtr<IString, IInteger>& enumerators)
+
++ [interface] IEnumeration : public IBaseObject
++ [function] IEnumeration::getEnumerationType(IEnumerationType** type)
++ [function] IEnumeration::getValue(IString** value)
++ [factory] EnumerationPtr Enumeration(const StringPtr& typeName, const StringPtr& value, const TypeManagerPtr& typeManager)
+
 03.01.2024
 Description:
   - Add method getLastValue in ISignal

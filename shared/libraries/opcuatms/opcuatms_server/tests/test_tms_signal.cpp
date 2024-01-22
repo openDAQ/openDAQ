@@ -8,14 +8,13 @@
 #include "opcuaclient/opcuaclient.h"
 #include "opcuatms_server/objects/tms_server_input_port.h"
 #include "opcuatms_server/objects/tms_server_signal.h"
-#include "tms_object_test.h"
-#include <opendaq/context_factory.h>
+#include "tms_server_test.h"
 
 using namespace daq;
 using namespace opcua::tms;
 using namespace opcua;
 
-class TmsSignalTest : public TmsObjectTest
+class TmsSignalTest : public TmsServerObjectTest
 {
 public:
     SignalPtr createSignal(const ContextPtr& context, const StringPtr& localId = "sig")
@@ -28,14 +27,14 @@ public:
 
 TEST_F(TmsSignalTest, Create)
 {
-    SignalPtr signal = Signal(NullContext(), nullptr, "sig");
-    auto tmsSignal = TmsServerSignal(signal, this->getServer(), NullContext());
+    SignalPtr signal = Signal(ctx, nullptr, "sig");
+    auto tmsSignal = TmsServerSignal(signal, this->getServer(), ctx, tmsCtx);
 }
 
 TEST_F(TmsSignalTest, Register)
 {
-    SignalPtr signal = Signal(NullContext(), nullptr, "sig");
-    auto serverSignal = TmsServerSignal(signal, this->getServer(), NullContext());
+    SignalPtr signal = Signal(ctx, nullptr, "sig");
+    auto serverSignal = TmsServerSignal(signal, this->getServer(), ctx, tmsCtx);
     auto nodeId = serverSignal.registerOpcUaNode();
 
     ASSERT_TRUE(this->getClient()->nodeExists(nodeId));
@@ -43,14 +42,14 @@ TEST_F(TmsSignalTest, Register)
 
 TEST_F(TmsSignalTest, DomainSignalReference)
 {
-    SignalPtr signal = createSignal(NullContext(), "signal");
-    SignalPtr domainSignal = createSignal(NullContext(), "time signal");
+    SignalPtr signal = createSignal(ctx, "signal");
+    SignalPtr domainSignal = createSignal(ctx, "time signal");
     signal.asPtr<ISignalConfig>(true).setDomainSignal(domainSignal);
 
-    auto serverSignal = TmsServerSignal(signal, this->getServer(), NullContext());
+    auto serverSignal = TmsServerSignal(signal, this->getServer(), ctx, tmsCtx);
     auto signalNodeId = serverSignal.registerOpcUaNode();
 
-    auto serverDomainSignal = TmsServerSignal(domainSignal, this->getServer(), NullContext());
+    auto serverDomainSignal = TmsServerSignal(domainSignal, this->getServer(), ctx, tmsCtx);
     auto domainSignalNodeId = serverDomainSignal.registerOpcUaNode();
 
     ASSERT_NO_THROW(serverSignal.createNonhierarchicalReferences());

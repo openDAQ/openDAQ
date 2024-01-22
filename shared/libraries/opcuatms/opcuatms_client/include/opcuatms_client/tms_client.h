@@ -43,6 +43,7 @@ protected:
     std::string opcUaUrl;
     FunctionPtr createStreamingCallback;
     ComponentPtr parent;
+    LoggerComponentPtr loggerComponent;
 
 private:
     StringPtr getUniqueLocalId(const StringPtr& localId, int iteration = 0);

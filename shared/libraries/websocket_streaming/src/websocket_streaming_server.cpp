@@ -6,6 +6,7 @@
 #include <opendaq/streaming_info_config_ptr.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/streaming_info_factory.h>
+#include <opendaq/search_filter_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -46,7 +47,7 @@ void WebsocketStreamingServer::start()
     if (streamingPort == 0 || controlPort == 0)
         return;
 
-    streamingServer.onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) { return device.getSignalsRecursive(); });
+    streamingServer.onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) { return device.getSignals(search::Recursive(search::Any())); });
     streamingServer.onSubscribe([this](const daq::SignalPtr& signal) { packetReader.startReadSignal(signal); } );
     streamingServer.onUnsubscribe([this](const daq::SignalPtr& signal) { packetReader.stopReadSignal(signal); } );
     streamingServer.start(streamingPort, controlPort);

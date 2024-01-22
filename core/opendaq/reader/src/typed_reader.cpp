@@ -326,7 +326,7 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
             return OPENDAQ_SUCCESS;
         }
 
-        // If the type of samples is the same just copy
+        // If the type of samples is the same, then just copy
         if (std::is_same_v<TReadType, TDataType>)
         {
             // Returns the pointer to the value after the last copied one
@@ -381,7 +381,7 @@ ErrCode TypedReader<ClockTick>::readValues<ClockRange>(void* inputBuffer, SizeT 
 }
 
 template <typename ReadType>
-bool TypedReader<ReadType>::handleDescriptorChanged(DataDescriptorPtr& descriptor)
+bool TypedReader<ReadType>::handleDescriptorChanged(DataDescriptorPtr& descriptor, ReadMode readMode)
 {
     if (!descriptor.assigned())
     {
@@ -391,7 +391,16 @@ bool TypedReader<ReadType>::handleDescriptorChanged(DataDescriptorPtr& descripto
     bool valid = false;
     if (descriptor.assigned() && !descriptor.isStructDescriptor())
     {
-        dataSampleType = descriptor.getSampleType();
+        auto postScaling = descriptor.getPostScaling();
+        if (!postScaling.assigned() || readMode == ReadMode::Scaled)
+        {
+            dataSampleType = descriptor.getSampleType();
+        }
+        else
+        {
+            dataSampleType = postScaling.getInputSampleType();
+        }
+
         valid = isSampleTypeConvertibleTo<ReadType>(dataSampleType);
 
         auto dimensions = descriptor.getDimensions();

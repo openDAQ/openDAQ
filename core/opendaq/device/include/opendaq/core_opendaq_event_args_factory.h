@@ -103,18 +103,18 @@ inline CoreEventArgsPtr CoreEventArgsComponentUpdateEnd()
 }
 
 /*!
- * @brief Creates Core event args that are passed as argument when a component's internal fields/parameters
- * are modified.
- * @param modifiedAttributes Dictionary of modified attributes where the string key represents the attribute, and the
- * base object value the new value.
+ * @brief Creates Core event args that are passed as argument when a component's internal attribute
+ * is modified.
+ * @param attributeName The name of the changed attribute.
+ * @param attributeValue The new value of the attribute.
  *
- * An example of such attribute is the "active" state of a component.
+ * An example of such attribute are the "active" and "visible" states of a component.
  *
- * The ID of the event is 100, and the event name is "ComponentModified".
+ * The ID of the event is 100, and the event name is "AttributeChanged".
  */
-inline CoreEventArgsPtr CoreEventArgsComponentUpdateEnd(const DictPtr<IString, IBaseObject>& modifiedAttributes)
+inline CoreEventArgsPtr CoreEventArgsAttributeChanged(const StringPtr& attributeName, const BaseObjectPtr& attributeValue)
 {
-    CoreEventArgsPtr obj(CoreEventArgsComponentModified_Create(modifiedAttributes));
+    CoreEventArgsPtr obj(CoreEventArgsAttributeChanged_Create(attributeName, attributeValue));
     return obj;
 }
 

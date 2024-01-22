@@ -220,11 +220,11 @@ ListPtr<TInterface> FunctionBlockWrapperImpl::getObjects(
     return objectList;
 }
 
-ErrCode FunctionBlockWrapperImpl::getInputPorts(IList** ports)
+ErrCode FunctionBlockWrapperImpl::getInputPorts(IList** ports, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(ports);
 
-    const auto innerPorts = functionBlock.getInputPorts();
+    const auto innerPorts = functionBlock.getInputPorts(searchFilter);
 
     std::scoped_lock lock(sync);
 
@@ -237,11 +237,11 @@ ErrCode FunctionBlockWrapperImpl::getInputPorts(IList** ports)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode FunctionBlockWrapperImpl::getSignals(IList** signals)
+ErrCode FunctionBlockWrapperImpl::getSignals(IList** signals, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
 
-    const auto innerSignals = functionBlock.getSignals();
+    const auto innerSignals = functionBlock.getSignals(searchFilter);
 
     std::scoped_lock lock(sync);
 
@@ -254,11 +254,11 @@ ErrCode FunctionBlockWrapperImpl::getSignals(IList** signals)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode FunctionBlockWrapperImpl::getFunctionBlocks(IList** functionBlocks)
+ErrCode FunctionBlockWrapperImpl::getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlocks);
 
-    const auto innerFbs = functionBlock.getFunctionBlocks();
+    const auto innerFbs = functionBlock.getFunctionBlocks(searchFilter);
 
     std::scoped_lock lock(sync);
 

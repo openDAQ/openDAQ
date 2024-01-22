@@ -187,7 +187,7 @@ private:
     PropertyNameInfo getPropertyNameInfo(const StringPtr& name) const;
 
     // Adds the value to the local list of values (`propValues`)
-    void writeLocalValue(const StringPtr& name, const BaseObjectPtr& value);
+    bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value);
 
     // Checks if the value is a container type, or base `IPropertyObject`. Only such values can be set in `setProperty`
     ErrCode checkContainerType(const PropertyPtr& prop, const BaseObjectPtr& value);
@@ -525,7 +525,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::coerceMinMax(co
 {
     if (!prop.assigned() || !valuePtr.assigned())
         return;
-    
+
     const auto min = prop.getMinValue();
     if (min.assigned())
     {
@@ -772,7 +772,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             }
             else
             {
-                writeLocalValue(propName, valuePtr);
+                if (!writeLocalValue(propName, valuePtr))
+                    return OPENDAQ_IGNORED;
+
                 setOwnerToPropertyValue(valuePtr);
                 if (triggerEvent)
                 {
@@ -831,17 +833,33 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
 }
 
 template <class PropObjInterface, class... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::writeLocalValue(const StringPtr& name, const BaseObjectPtr& value)
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::writeLocalValue(const StringPtr& name, const BaseObjectPtr& value)
 {
     auto it = propValues.find(name);
     if (it != propValues.end())
     {
+        if (it->second == value)
+            return false;
         it->second = value;
     }
     else
     {
-        propValues.emplace(name, value);
+        bool shouldWrite = true;
+        try
+        {
+            shouldWrite = objPtr.getProperty(name).getDefaultValue() != value;
+        }
+        catch(...)
+        {
+        }
+
+        if (shouldWrite)
+            propValues.emplace(name, value);
+        else
+            return false;
     }
+
+    return true;
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -1612,11 +1630,16 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginUpdate(
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::applyUpdate()
 {
+    auto ignoredProps = List<IProperty>();
     for (auto& item : updatingPropsAndValues)
     {
         if (item.second.setValue)
         {
-            writeLocalValue(item.first.getName(), item.second.value);
+            if (!writeLocalValue(item.first.getName(), item.second.value))
+            {
+                ignoredProps.pushBack(item.first);
+                continue;
+            }
             setOwnerToPropertyValue(item.second.value);
         }
         else
@@ -1629,6 +1652,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::applyUpdate()
         else
             callPropertyValueWrite(item.first, nullptr, PropertyEventType::Clear, true);
     }
+
+    for (const auto& prop : ignoredProps)
+        updatingPropsAndValues.erase(prop);
 
     updatingValuesWrite(updatingPropsAndValues);
     updatingPropsAndValues.clear();
@@ -2199,6 +2225,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
         case ctBinaryData:
         case ctFunc:
         case ctComplexNumber:
+        case ctEnumeration:
         case ctUndefined:
             return OPENDAQ_SUCCESS;
     }

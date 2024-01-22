@@ -22,12 +22,11 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-enum class ComponentStandardProps
-{
-    Add,
-    AddReadOnly,
-    Skip
-};
+/*!
+ * @ingroup opendaq_components
+ * @addtogroup opendaq_component Component
+ * @{
+ */
 
 /*#
  * [includeHeader("<opendaq/removable.h>")]
@@ -35,13 +34,10 @@ enum class ComponentStandardProps
  * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
  * [templated(defaultAliasName: ComponentPtr)]
  * [interfaceSmartPtr(IComponent, GenericComponentPtr)]
+ * [interfaceLibrary(ICoreEventArgs, "coreobjects")]
+ * [includeHeader("<coretypes/event_wrapper.h>")]
  */
 
-/*!
- * @ingroup opendaq_components
- * @addtogroup opendaq_component Component
- * @{
- */
 
 /*!
  * @brief Acts as a base interface for components, such as device, function block, channel and signal.
@@ -82,6 +78,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
     /*!
      * @brief Sets the component to be either active or inactive.
      * @param active The new active state of the component.
+     * @retval OPENDAQ_IGNORED if "Active" is part of the component's list of locked attributes.
      *
      * An active component acquires data, performs calculations and send packets on the signal path.
      */
@@ -114,8 +111,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
     /*!
      * @brief Sets the name of the component.
      * @param name The name of the component.
-     * @retval OPENDAQ_IGNORED if the name is not configurable.
-     * @retval OPENDAQ_ERR_ACCESSDENIED if the name is read-only.
+     * @retval OPENDAQ_IGNORED if "Name" is part of the component's list of locked attributes.
      *
      * The object that implements this interface defines how the name is specified.
      */
@@ -132,8 +128,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
     /*!
      * @brief Sets the description of the component.
      * @param description The description of the component.
-     * @retval OPENDAQ_IGNORED if the description is not configurable.
-     * @retval OPENDAQ_ERR_ACCESSDENIED if the description is read-only.
+     * @retval OPENDAQ_IGNORED if "Description" is part of the component's list of locked attributes.
      *
      * The object that implements this interface defines how the description is specified.
      */
@@ -146,6 +141,43 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
      * Tags are user definable labels that can be attached to the component.
      */
     virtual ErrCode INTERFACE_FUNC getTags(ITagsConfig** tags) = 0;
+
+    /*!
+     * @brief Gets `visible` metadata state of the component
+     * @param[out] visible True if the component is visible; False otherwise.
+     *
+     * Visible determines whether search/getter methods return find the component by default.
+     */
+    virtual ErrCode INTERFACE_FUNC getVisible(Bool* visible) = 0;
+    
+    /*!
+     * @brief Sets `visible` attribute state of the component
+     * @param visible True if the component is visible; False otherwise.
+     * @retval OPENDAQ_IGNORED if "Visible" is part of the component's list of locked attributes.
+     *
+     * Visible determines whether search/getter methods return find the component by default.
+     */
+    virtual ErrCode INTERFACE_FUNC setVisible(Bool visible) = 0;
+
+    // [templateType(attributes, IString)]
+    /*!
+     * @brief Gets a list of the component's locked attributes. The locked attributes cannot be modified via their respective setters.
+     * @param[out] attributes A list of strings containing the names of locked attributes in capital case (eg. "Name", "Description"). 
+     */
+    virtual ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) = 0;
+    
+    // [templateType(event, IComponent, ICoreEventArgs)]
+    /*!
+     * @brief Gets the Core Event object that triggers whenever a change to this component happens within the openDAQ core structure.
+     * @param[out] event The Core Event object. The event triggers with a Component reference and a CoreEventArgs object as arguments.
+     *
+     * The Core Event is triggered on various changes to the openDAQ Components. This includes changes to property values,
+     * addition/removal of child components, connecting signals to input ports and others. The event type can be identified
+     * via the event ID available within the CoreEventArgs object. Each event type has a set of predetermined parameters
+     * available in the `parameters` field of the arguments. These can be used by any openDAQ server, or other listener to
+     * react to changes within the core structure.
+     */
+    virtual ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) = 0;
 };
 /*!@}*/
 
@@ -167,24 +199,6 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IComponent*, parent,
     IString*, localId,
     IString*, className
-)
-
-/*!
- * @brief Creates a component with a specific property mode for default properties.
- * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
- * @param parent The parent component.
- * @param localId The local ID of the component.
- * @param propertyMode Integer property defining whether standard properties such as "Name" and "Description" are created.
- *                     0 to create the default properties; 1 to create the properties, but configure them as "read-only"; 2 to skip creation.
- */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY,
-    ComponentWithDefaultPropertyMode, IComponent,
-    IContext*, context,
-    IComponent*, parent,
-    IString*, localId,
-    IString*, className,
-    Int, propertyMode
 )
 
 /*!@}*/

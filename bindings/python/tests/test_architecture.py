@@ -4,7 +4,7 @@ import unittest
 import opendaq_test
 import opendaq
 
-class TestDocumentationQuickStartGuide(opendaq_test.TestCase):
+class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
 
     def test_start_simulator(self):
         # Create openDAQ instance
@@ -113,6 +113,14 @@ class TestDocumentationQuickStartGuide(opendaq_test.TestCase):
         # doc code
         packet = input_port.connection.dequeue()
         #
+    
+    # Corresponding document: Antora/modules/background_info/pages/components.adoc
+    def test_search_filter(self):
+        instance = opendaq.Instance()
+        device = instance.add_device("daqref://device0")
+        search_filter = opendaq.RecursiveSearchFilter(opendaq.AnySearchFilter())
+        sigs = device.get_signals(search_filter)
+        self.assertTrue(len(sigs) > 0)
 
 if __name__ == '__main__':
     unittest.main()

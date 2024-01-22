@@ -32,14 +32,17 @@ public:
     TmsServerPropertyObject(const PropertyObjectPtr& object,
                             const opcua::OpcUaServerPtr& server,
                             const ContextPtr& context,
+                            const TmsServerContextPtr& tmsContext,
                             const std::unordered_set<std::string>& ignoredProps = {});
     TmsServerPropertyObject(const PropertyObjectPtr& object,
                             const opcua::OpcUaServerPtr& server,
                             const ContextPtr& context,
+                            const TmsServerContextPtr& tmsContext,
                             const StringPtr& name);
     TmsServerPropertyObject(const PropertyObjectPtr& object,
                             const opcua::OpcUaServerPtr& server,
                             const ContextPtr& context,
+                            const TmsServerContextPtr& tmsContext,
                             const StringPtr& name,
                             const PropertyPtr& objProp);
     ~TmsServerPropertyObject();
@@ -66,6 +69,8 @@ private:
     void registerEvalValueNode(const std::string& nodeName, TmsServerEvalValue::ReadCallback readCallback);
     void addMethodPropertyNode(const PropertyPtr& prop, uint32_t numberInList);
     void bindMethodCallbacks();
+    void addBeginUpdateNode();
+    void addEndUpdateNode();
 
     StringPtr name;
     PropertyInternalPtr objProp;

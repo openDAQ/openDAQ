@@ -1,5 +1,4 @@
 set_cmake_context()
-set_mode(ANCIENT)
 
 add_subdirectory(utils)
 add_subdirectory(signal_generator)

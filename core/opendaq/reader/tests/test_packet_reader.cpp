@@ -13,6 +13,7 @@
 #include <opendaq/data_descriptor_builder_ptr.h>
 #include <opendaq/logger_factory.h>
 #include <opendaq/input_port_factory.h>
+#include <opendaq/data_descriptor_factory.h>
 
 #include <future>
 #include <chrono>

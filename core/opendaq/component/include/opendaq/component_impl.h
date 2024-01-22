@@ -24,37 +24,53 @@
 #include <opendaq/component_ptr.h>
 #include <coretypes/weakrefptr.h>
 #include <opendaq/tags_factory.h>
+#include <opendaq/search_filter_ptr.h>
+#include <opendaq/folder_ptr.h>
 #include <mutex>
+#include <opendaq/component_keys.h>
+#include <tsl/ordered_set.h>
 #include <opendaq/custom_log.h>
 #include <coreobjects/core_event_args_impl.h>
+#include <opendaq/recursive_search_ptr.h>
+#include <opendaq/component_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
 
 template <class Intf = IComponent, class ... Intfs>
-class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, Intfs ...>
+class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, Intfs ...>
 {
 public:
-    using Super = GenericPropertyObjectImpl<Intf, IRemovable, Intfs ...>;
+    using Super = GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, Intfs ...>;
 
     ComponentImpl(const ContextPtr& context,
                   const ComponentPtr& parent,
                   const StringPtr& localId,
-                  const StringPtr& className = nullptr,
-                  ComponentStandardProps propsMode = ComponentStandardProps::Add);
+                  const StringPtr& className = nullptr);
 
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getGlobalId(IString** globalId) override;
     ErrCode INTERFACE_FUNC getActive(Bool* active) override;
-    ErrCode INTERFACE_FUNC setActive(Bool active) override;
+    virtual ErrCode INTERFACE_FUNC setActive(Bool active) override;
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
-    ErrCode INTERFACE_FUNC setName(IString* name) override;
+    virtual ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
-    ErrCode INTERFACE_FUNC setDescription(IString* description) override;
+    virtual ErrCode INTERFACE_FUNC setDescription(IString* description) override;
     ErrCode INTERFACE_FUNC getTags(ITagsConfig** tags) override;
+    ErrCode INTERFACE_FUNC getVisible(Bool* visible) override;
+    virtual ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
+    ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) override;
+
+    // IComponentPrivate
+    ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
+    virtual ErrCode INTERFACE_FUNC lockAllAttributes() override;
+    ErrCode INTERFACE_FUNC unlockAttributes(IList* attributes) override;
+    ErrCode INTERFACE_FUNC unlockAllAttributes() override;
+    ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
+    ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) override;
 
     ErrCode INTERFACE_FUNC remove() override;
     ErrCode INTERFACE_FUNC isRemoved(Bool* removed) override;
@@ -62,20 +78,30 @@ public:
     // IUpdatable
     ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
 
+
 protected:
     virtual void activeChanged();
     virtual void removed();
+    virtual ErrCode lockAllAttributesInternal();
+    ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
 
     std::mutex sync;
     ContextPtr context;
 
-    bool active;
     bool isComponentRemoved;
     WeakRefPtr<IComponent> parent;
     StringPtr localId;
     TagsConfigPtr tags;
     StringPtr globalId;
     EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
+    
+    inline static std::unordered_set<std::string> componentAvailableAttributes = {"Name", "Description", "Visible", "Active"};
+    std::unordered_set<std::string> lockedAttributes;
+    bool visible;
+    bool active;
+    StringPtr name;
+    StringPtr description;
+
 
     ErrCode serializeCustomValues(ISerializer* serializer) override;
     virtual int getSerializeFlags();
@@ -88,7 +114,7 @@ protected:
     void triggerCoreEvent(const CoreEventArgsPtr& args);
 
 private:
-    void initComponentProperties(ComponentStandardProps propsMode);
+    EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
 };
 
 template <class Intf, class ... Intfs>
@@ -96,18 +122,20 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     const ContextPtr& context,
     const ComponentPtr& parent,
     const StringPtr& localId,
-    const StringPtr& className,
-    const ComponentStandardProps propsMode)
-    : GenericPropertyObjectImpl<Intf, IRemovable, Intfs ...>(
+    const StringPtr& className)
+    : GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, Intfs ...>(
         context.assigned() ? context.getTypeManager() : nullptr,
         className,
         [&](const CoreEventArgsPtr& args){ triggerCoreEvent(args); })
       , context(context)
-      , active(true)
       , isComponentRemoved(false)
       , parent(parent)
       , localId(localId)
       , tags(Tags())
+      , visible(true)
+      , active(true)
+      , name(localId)
+      , description("")
 {
     if (!localId.assigned() || localId.toStdString().empty())
         throw GeneralErrorException("Local id not assigned");
@@ -115,13 +143,13 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     if (parent.assigned())
         globalId = parent.getGlobalId().toStdString() + "/" + static_cast<std::string>(localId);
     else
-        globalId = localId;
+        globalId = "/" + localId;
 
     if (!context.assigned())
         throw InvalidParameterException{"Context must be assigned on component creation"};
 
     context->getOnCoreEvent(&this->coreEvent);
-    initComponentProperties(propsMode);
+    lockedAttributes.insert("Visible");
 }
 
 template <class Intf, class ... Intfs>
@@ -156,9 +184,25 @@ ErrCode ComponentImpl<Intf, Intfs ...>::getActive(Bool* active)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 {
-    std::scoped_lock lock(sync);
+    if (this->frozen)
+        return OPENDAQ_ERR_FROZEN;
 
     {
+        std::scoped_lock lock(sync);
+    
+        if (lockedAttributes.count("Active"))
+        {
+            if (context.assigned() && context.getLogger().assigned())
+            {
+                const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("Active attribute of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
+        }
+
         if (static_cast<bool>(active) == this->active)
             return OPENDAQ_IGNORED;
 
@@ -171,7 +215,8 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
-        const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(core_event_ids::ComponentModified, Dict<IString, IBaseObject>({{"Active", this->active}}));
+        const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+            core_event_ids::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Active"}, {"Active", this->active}}));
         triggerCoreEvent(args);
     }
 
@@ -209,42 +254,49 @@ ErrCode ComponentImpl<Intf, Intfs...>::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
 
-    auto objPtr = this->template borrowPtr<ComponentPtr>();
+    if (this->name.assigned())
+        *name = this->name.addRefAndReturn();
+    else
+        *name = localId.addRefAndReturn();
 
-    return daqTry([this, &name, &objPtr]()
-        {
-            if (!objPtr.hasProperty("Name"))
-                *name = localId.addRefAndReturn();
-            else
-                *name = objPtr.getPropertyValue("Name").template asPtr<IString>().detach();
-            return OPENDAQ_SUCCESS;
-        });
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
 {
-    auto namePtr = StringPtr::Borrow(name);
-    auto objPtr = this->template borrowPtr<ComponentPtr>();
+    if (this->frozen)
+        return OPENDAQ_ERR_FROZEN;
 
-    if (!objPtr.hasProperty("Name"))
     {
-        if (context.assigned() && context.getLogger().assigned())
+        std::scoped_lock lock(sync);
+
+        if (lockedAttributes.count("Name"))
         {
-            const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
-            StringPtr nameObj;
-            this->getName(&nameObj);
-            LOG_I("Name of {} cannot be changed", nameObj);
+            if (context.assigned() && context.getLogger().assigned())
+            {
+                const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("Name of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
         }
-        return OPENDAQ_IGNORED;
+
+        this->name = name;
+        
     }
 
-    return daqTry(
-        [&namePtr, &objPtr, this]()
-        {
-            objPtr.setPropertyValue("Name", namePtr);
-            return OPENDAQ_SUCCESS;
-        });
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+            core_event_ids::AttributeChanged,
+            Dict<IString, IBaseObject>({{"AttributeName", "Name"}, {"Name", this->name}}));
+        triggerCoreEvent(args);
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class ... Intfs>
@@ -252,43 +304,44 @@ ErrCode ComponentImpl<Intf, Intfs...>::getDescription(IString** description)
 {
     OPENDAQ_PARAM_NOT_NULL(description);
 
-    auto objPtr = this->template borrowPtr<ComponentPtr>();
-
-    return daqTry(
-        [&description, &objPtr]()
-        {
-            if (!objPtr.hasProperty("Description"))
-                *description = String("").detach();
-            else
-                *description = objPtr.getPropertyValue("Description").template asPtr<IString>().detach();
-            return OPENDAQ_SUCCESS;
-        });
+    *description = this->description.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
 {
-    auto descPtr = StringPtr::Borrow(description);
-    auto objPtr = this->template borrowPtr<ComponentPtr>();
+    if (this->frozen)
+        return OPENDAQ_ERR_FROZEN;
 
-    if (!objPtr.hasProperty("Description"))
     {
-        if (context.assigned() && context.getLogger().assigned())
+        std::scoped_lock lock(sync);
+
+        if (lockedAttributes.count("Description"))
         {
-            const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
-            StringPtr descObj;
-            this->getDescription(&descObj);
-            LOG_I("Description of {} cannot be changed", descObj);
+            if (context.assigned() && context.getLogger().assigned())
+            {
+                const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("Description of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
         }
-        return OPENDAQ_IGNORED;
+
+        this->description = description;
     }
 
-    return daqTry(
-        [&descPtr, &objPtr, this]()
-        {
-            objPtr.setPropertyValue("Description", descPtr);
-            return OPENDAQ_SUCCESS;
-        });
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+            core_event_ids::AttributeChanged,
+            Dict<IString, IBaseObject>({{"AttributeName", "Description"}, {"Description", this->description}}));
+        triggerCoreEvent(args);
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class ... Intfs>
@@ -298,6 +351,155 @@ ErrCode ComponentImpl<Intf, Intfs...>::getTags(ITagsConfig** tags)
 
     *tags = this->tags.addRefAndReturn();
 
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getVisible(Bool* visible)
+{
+    OPENDAQ_PARAM_NOT_NULL(visible);
+
+    *visible = this->visible;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
+{
+    if (this->frozen)
+        return OPENDAQ_ERR_FROZEN;
+
+    {
+        std::scoped_lock lock(sync);
+
+        if (lockedAttributes.count("Visible"))
+        {
+            if (context.assigned() && context.getLogger().assigned())
+            {
+                const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("Visible attribute of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
+        }
+
+        this->visible = visible;
+    }
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+            core_event_ids::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Visible"}, {"Visible", this->visible}}));
+        triggerCoreEvent(args);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
+{
+    if (!attributes)
+        return OPENDAQ_SUCCESS;
+
+    std::scoped_lock lock(sync);
+
+    const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
+    for (const auto& strPtr : attributesPtr)
+    {
+        std::string str = strPtr;
+        std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){ return std::tolower(c); });
+        str[0] = std::toupper(str[0]);
+        lockedAttributes.insert(str);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::lockAllAttributes()
+{
+    std::scoped_lock lock(sync);
+    return lockAllAttributesInternal();
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
+{
+    if (!attributes)
+        return OPENDAQ_SUCCESS;
+
+    std::scoped_lock lock(sync);
+
+    const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
+    for (const auto& strPtr : attributesPtr)
+    {
+        std::string str = strPtr;
+        std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){ return std::tolower(c); });
+        str[0] = std::toupper(str[0]);
+        lockedAttributes.erase(str);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::unlockAllAttributes()
+{
+    std::scoped_lock lock(sync);
+    lockedAttributes.clear();
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getLockedAttributes(IList** attributes)
+{
+    OPENDAQ_PARAM_NOT_NULL(attributes);
+    
+    std::scoped_lock lock(sync);
+
+    ListPtr<IString> attributesList = List<IString>();
+    for (const auto& str : lockedAttributes)
+        attributesList.pushBack(str);
+
+    *attributes = attributesList.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::triggerComponentCoreEvent(ICoreEventArgs* args)
+{
+    OPENDAQ_PARAM_NOT_NULL(args);
+
+    const auto argsPtr = CoreEventArgsPtr::Borrow(args);
+
+    try
+    {
+        const ComponentPtr thisPtr = this->template borrowPtr<ComponentPtr>();
+        this->componentCoreEvent(thisPtr, argsPtr);
+    }
+    catch (const std::exception& e)
+    {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+        LOG_W("Component {} failed while triggering core event {} with: {}", this->localId, argsPtr.getEventName(), e.what())
+    }
+    catch (...)
+    {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+        LOG_W("Component {} failed while triggering core event {}", this->localId, argsPtr.getEventName())
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getOnComponentCoreEvent(IEvent** event)
+{
+    OPENDAQ_PARAM_NOT_NULL(event);
+
+    *event = componentCoreEvent.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -371,6 +573,42 @@ void ComponentImpl<Intf, Intfs...>::removed()
 {
 }
 
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::lockAllAttributesInternal()
+{
+    for (const auto& str : componentAvailableAttributes)
+        lockedAttributes.insert(str);
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items)
+{
+    tsl::ordered_set<ComponentPtr, ComponentHash, ComponentEqualTo> allItems;
+    for (const auto& item : items)
+        if (searchFilter.acceptsComponent(item))
+            allItems.insert(item);
+
+    if (searchFilter.asPtrOrNull<IRecursiveSearch>().assigned())
+    {
+        for (const auto& item : items)
+        {
+            if (!searchFilter.visitChildren(item))
+                continue;
+
+            if (const auto folder = item.asPtrOrNull<IFolder>(); folder.assigned())
+                for (const auto& child : folder.getItems(searchFilter))
+                    allItems.insert(child);
+        }
+    }
+    
+    ListPtr<IComponent> childList = List<IComponent>();
+    for (const auto& signal : allItems)
+        childList.pushBack(signal);
+
+    return childList.detach();
+}
+
 template <class Intf, class... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serializer)
 {
@@ -414,8 +652,20 @@ std::unordered_map<std::string, SerializedObjectPtr> ComponentImpl<Intf, Intfs..
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& /* obj */)
+void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
 {
+    const auto flags = getSerializeFlags();
+    if (flags & ComponentSerializeFlag_SerializeActiveProp && obj.hasKey("active"))
+        active = obj.readBool("active");
+
+    if (obj.hasKey("visible"))
+        visible = obj.readBool("visible");
+
+    if (obj.hasKey("description"))
+        description = obj.readString("description");
+
+    if (obj.hasKey("name"))
+        name = obj.readString("name");
 }
 
 template <class Intf, class... Intfs>
@@ -429,25 +679,29 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         serializer.writeBool(active);
     }
 
+    if (!visible)
+    {
+        serializer.key("visible");
+        serializer.writeBool(visible);
+    }
+
+    if (description != "")
+    {
+        serializer.key("description");
+        serializer.writeString(description);
+    }
+
+    if (name != localId)
+    {
+        serializer.key("name");
+        serializer.writeString(name);
+    }
+
     if (!tags.getList().empty())
     {
         serializer.key("tags");
         tags.serialize(serializer);
     }
-}
-
-template <class Intf, class ... Intfs>
-void ComponentImpl<Intf, Intfs...>::initComponentProperties(const ComponentStandardProps propsMode)
-{
-    if (propsMode == ComponentStandardProps::Skip)
-        return;
-
-    auto objPtr = this->template borrowPtr<ComponentPtr>();
-    const auto nameProp = StringPropertyBuilder("Name", objPtr.getLocalId()).setReadOnly(propsMode == ComponentStandardProps::AddReadOnly).build();
-    objPtr.addProperty(nameProp);
-
-    const auto descProp = StringPropertyBuilder("Description", "").setReadOnly(propsMode == ComponentStandardProps::AddReadOnly).build();
-    objPtr.addProperty(descProp);
 }
 
 template <class Intf, class... Intfs>

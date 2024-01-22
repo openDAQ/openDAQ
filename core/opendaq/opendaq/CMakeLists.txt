@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.5)
 get_current_folder_name(TARGET_FOLDER_NAME)
 list(APPEND CMAKE_MESSAGE_CONTEXT ${TARGET_FOLDER_NAME})
 

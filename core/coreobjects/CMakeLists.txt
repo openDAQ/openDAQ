@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.5)
 set_cmake_folder_context(TARGET_FOLDER_NAME objects)
 project(CoreObjects VERSION ${OPENDAQ_CORE_VERSION} LANGUAGES CXX)
 

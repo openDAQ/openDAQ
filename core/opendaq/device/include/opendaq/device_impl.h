@@ -25,7 +25,7 @@
 #include <opendaq/signal_ptr.h>
 #include <coreobjects/unit_ptr.h>
 #include <opendaq/utility_sync.h>
-#include <opendaq/folder_factory.h>
+#include <opendaq/search_filter_factory.h>
 #include <opendaq/io_folder_factory.h>
 #include <coreobjects/property_object_impl.h>
 #include <coretypes/validation.h>
@@ -56,8 +56,7 @@ public:
     GenericDevice(const ContextPtr& ctx,
                   const ComponentPtr& parent,
                   const StringPtr& localId,
-                  const StringPtr& className = nullptr,
-                  ComponentStandardProps propsMode = ComponentStandardProps::Add);
+                  const StringPtr& className = nullptr);
 
     virtual DeviceInfoPtr onGetInfo() = 0;
 
@@ -81,10 +80,10 @@ public:
 
     ErrCode INTERFACE_FUNC getInputsOutputsFolder(IFolder** inputsOutputsFolder) override;
     ErrCode INTERFACE_FUNC getCustomComponents(IList** customComponents) override;
-    ErrCode INTERFACE_FUNC getSignals(IList** signals) override;
-    ErrCode INTERFACE_FUNC getSignalsRecursive(IList** signals) override;
-    ErrCode INTERFACE_FUNC getChannels(IList** channels) override;
-    ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels) override;
+    ErrCode INTERFACE_FUNC getSignals(IList** signals, ISearchFilter* searchFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC getSignalsRecursive(IList** signals, ISearchFilter* searchFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC getChannels(IList** channels, ISearchFilter* searchFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC addStreamingOption(IStreamingInfo* info) override;
@@ -95,14 +94,14 @@ public:
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
     ErrCode INTERFACE_FUNC addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC removeFunctionBlock(IFunctionBlock* functionBlock) override;
-    ErrCode INTERFACE_FUNC getFunctionBlocks(IList** functionBlocks) override;
+    ErrCode INTERFACE_FUNC getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr) override;
 
     // Client devices
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;
     ErrCode INTERFACE_FUNC addDevice(IDevice** device, IString* connectionString, IPropertyObject* config = nullptr) override;
     ErrCode INTERFACE_FUNC removeDevice(IDevice* device) override;
-    ErrCode INTERFACE_FUNC getDevices(IList** devices) override;
+    ErrCode INTERFACE_FUNC getDevices(IList** subDevices, ISearchFilter* searchFilter = nullptr) override;
 
     ErrCode INTERFACE_FUNC saveConfiguration(IString** configuration) override;
     ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration) override;
@@ -134,8 +133,7 @@ protected:
     void removeSubDevice(const DevicePtr& device);
 
     IoFolderConfigPtr addIoFolder(const std::string& localId,
-                                  const IoFolderConfigPtr& parent = nullptr,
-                                  ComponentStandardProps standardPropsConfig = ComponentStandardProps::Add);
+                                  const IoFolderConfigPtr& parent = nullptr);
 
     void serializeCustomObjectValues(const SerializerPtr& serializer) override;
     void deserializeFunctionBlock(const std::string& fbId,
@@ -149,16 +147,19 @@ protected:
     bool clearFunctionBlocksOnUpdate() override;
 
 private:
-    void getChannelsFromFolder(const FolderPtr& folder, ListPtr<IChannel>& channels);
+    void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
+    ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
+    ListPtr<IChannel> getChannelsRecursiveInternal(const SearchFilterPtr& searchFilter);
+    ListPtr<IFunctionBlock> getFunctionBlocksRecursive(const SearchFilterPtr& searchFilter);
+    ListPtr<IDevice> getDevicesRecursive(const SearchFilterPtr& searchFilter);
 };
 
 template <typename TInterface, typename... Interfaces>
 GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
                                                         const ComponentPtr& parent,
                                                         const StringPtr& localId,
-                                                        const StringPtr& className,
-                                                        const ComponentStandardProps propsMode)
-    : Super(ctx, parent, localId, className, propsMode)
+                                                        const StringPtr& className)
+    : Super(ctx, parent, localId, className)
     , loggerComponent(this->context.getLogger().assigned() ? this->context.getLogger().getOrAddComponent(this->globalId)
                                                            : throw ArgumentNullException("Logger must not be null"))
 
@@ -167,8 +168,11 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     this->defaultComponents.insert("IO");
     this->allowNonDefaultComponents = true;
 
-    devices = this->template addFolder<IDevice>("Dev", nullptr, ComponentStandardProps::Skip);
-    ioFolder = this->addIoFolder("IO", nullptr, ComponentStandardProps::Skip);
+    devices = this->template addFolder<IDevice>("Dev", nullptr);
+    ioFolder = this->addIoFolder("IO", nullptr);
+
+    devices.asPtr<IComponentPrivate>().lockAllAttributes();
+    ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();
 
     this->addProperty(StringProperty("UserName", ""));
     this->addProperty(StringProperty("Location", ""));
@@ -283,59 +287,88 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getCustomComponents(IList** cu
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getSignals(IList** signals)
-{
-    return this->signals->getItems(signals);
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getSignalsRecursive(IList** signals)
+ErrCode GenericDevice<TInterface, Interfaces...>::getSignals(IList** signals, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
 
+    if (!searchFilter)
+        return this->signals->getItems(signals);
+    
+    const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
+    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    {
+        return daqTry([&]
+        {
+            *signals = getSignalsRecursiveInternal(searchFilter).detach();
+            return OPENDAQ_SUCCESS;
+        });
+    }
+
+    return this->signals->getItems(signals, searchFilter);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getSignalsRecursive(IList** signals, ISearchFilter* searchFilter)
+{
+    OPENDAQ_PARAM_NOT_NULL(signals);
+    return daqTry([&]
+    {
+        SearchFilterPtr filter;
+        if (!searchFilter)
+            filter = search::Recursive(search::Visible());
+        else
+            filter = search::Recursive(searchFilter);
+
+        *signals = getSignalsRecursiveInternal(filter).detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <typename TInterface, typename... Interfaces>
+ListPtr<ISignal> GenericDevice<TInterface, Interfaces...>::getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter)
+{
     tsl::ordered_set<SignalPtr, ComponentHash, ComponentEqualTo> allSignals;
 
-    auto channels = List<IChannel>();
-    getChannelsFromFolder(ioFolder, channels);
-    for (const auto& ch : channels)
-    {
-        auto chSignals = ch.getSignalsRecursive();
-        for (const auto& signal : chSignals)
-            allSignals.insert(signal);
-    }
+    ListPtr<IChannel> chList = List<IChannel>();
+    getChannelsFromFolder(chList, this->ioFolder, searchFilter, false);
+    for (const auto& ch : chList)
+        if (searchFilter.visitChildren(ch))
+            for (const auto& signal : ch.getSignals(searchFilter))
+                allSignals.insert(signal);
 
-    auto deviceSignals = this->signals.getItems();
-    for (const auto& devSig : deviceSignals)
-        allSignals.insert(devSig.template asPtr<ISignal>());
+    for (const SignalPtr& devSig : this->signals.getItems(searchFilter))
+        allSignals.insert(devSig);
 
-    const auto functionBlocks = this->functionBlocks.getItems();
-    for (const auto& functionBlock : functionBlocks)
-    {
-        auto functionBlockSignals = functionBlock.template asPtr<IFunctionBlock>().getSignalsRecursive();
-        for (const auto& signal : functionBlockSignals)
-            allSignals.insert(signal);
-    }
+    for (const FunctionBlockPtr& functionBlock : this->functionBlocks.getItems(search::Any()))
+        if (searchFilter.visitChildren(functionBlock))
+            for (const auto& signal : functionBlock.getSignals(searchFilter))
+                allSignals.insert(signal);
 
-    for (const auto& device : this->devices.getItems())
-        for (const auto& signal : device.template asPtr<IDevice>().getSignalsRecursive())
-            allSignals.insert(signal);
+    for (const DevicePtr& device : this->devices.getItems(search::Any()))
+        if (searchFilter.visitChildren(device))
+            for (const auto& signal : device.getSignals(searchFilter))
+                allSignals.insert(signal);
 
     // Copy tsl set to openDAQ list
-    auto itemList = List<ISignal>();
+    auto signalList = List<ISignal>();
     for (const auto& signal : allSignals)
-        itemList.pushBack(signal);
-    *signals = itemList.detach();
-    return OPENDAQ_SUCCESS;
+        signalList.pushBack(signal);
+
+    return signalList;
 }
 
 template <typename TInterface, typename... Interfaces>
 template <class ChannelImpl, class... Params>
 ChannelPtr GenericDevice<TInterface, Interfaces...>::createAndAddChannel(const FolderConfigPtr& parentFolder,
-                                                                const StringPtr& localId,
-                                                                Params&&... params)
+                                                                         const StringPtr& localId,
+                                                                         Params&&... params)
 {
     auto ch = createWithImplementation<IChannel, ChannelImpl>(
-        this->context, parentFolder, localId, std::forward<Params>(params)...);
+        this->context,
+        parentFolder,
+        localId,
+        std::forward<Params>(params)...
+    );
 
     parentFolder.addItem(ch);
     return ch;
@@ -369,7 +402,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getTickResolution(IRatio** res
 template <typename TInterface, typename... Interfaces>
 RatioPtr GenericDevice<TInterface, Interfaces...>::onGetResolution()
 {
-    throw NotImplementedException();
+    return nullptr;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -385,7 +418,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getTicksSinceOrigin(uint64_t* 
 template <typename TInterface, typename... Interfaces>
 uint64_t GenericDevice<TInterface, Interfaces...>::onGetTicksSinceOrigin()
 {
-    throw NotImplementedException();
+    return 0;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -445,7 +478,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::Deserialize(ISerializedObject*
 template <typename TInterface, typename... Interfaces>
 UnitPtr GenericDevice<TInterface, Interfaces...>::onGetDomainUnit()
 {
-    throw NotImplementedException();
+    return nullptr;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -483,7 +516,7 @@ template <typename TInterface, typename... Interfaces>
 FunctionBlockPtr GenericDevice<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& /*typeId*/,
                                                                               const PropertyObjectPtr& /*config*/)
 {
-    throw NotFoundException("Function block not found");
+    return nullptr;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -504,49 +537,129 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveFunctionBlock(const Funct
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getFunctionBlocks(IList** functionBlocks)
+ErrCode GenericDevice<TInterface, Interfaces...>::getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter)
 {
-    return this->functionBlocks->getItems(functionBlocks);
+    OPENDAQ_PARAM_NOT_NULL(functionBlocks);
+
+    if (!searchFilter)
+        return this->functionBlocks->getItems(functionBlocks);
+    
+    const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
+    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    {
+        return daqTry([&]
+        {
+            *functionBlocks = getFunctionBlocksRecursive(searchFilter).detach();
+            return OPENDAQ_SUCCESS;
+        });
+    }
+
+    return this->functionBlocks->getItems(functionBlocks, searchFilter);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ListPtr<IFunctionBlock> GenericDevice<TInterface, Interfaces...>::getFunctionBlocksRecursive(const SearchFilterPtr& searchFilter)
+{
+    tsl::ordered_set<FunctionBlockPtr, ComponentHash, ComponentEqualTo> allFbs;
+
+    for (const FunctionBlockPtr& fb : this->functionBlocks.getItems(search::Any()))
+        if (searchFilter.acceptsComponent(fb))
+            allFbs.insert(fb);
+
+    for (const DevicePtr& dev : this->devices.getItems(search::Any()))
+        if (searchFilter.visitChildren(dev))
+            for (const auto& fb : dev.getFunctionBlocks(searchFilter))
+                allFbs.insert(fb);
+
+    auto fbList = List<IFunctionBlock>();
+    for (const auto& ch : allFbs)
+        fbList.pushBack(ch);
+
+    return fbList;
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getChannels(IList** channels)
+ErrCode GenericDevice<TInterface, Interfaces...>::getChannels(IList** channels, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(channels);
 
-    auto chList = List<IChannel>();
-    getChannelsFromFolder(ioFolder, chList);
+    if (!searchFilter)
+    {
+        ListPtr<IChannel> chList = List<IChannel>();
+        getChannelsFromFolder(chList, this->ioFolder, search::Visible());
+        *channels = chList.detach();
+        return OPENDAQ_SUCCESS;
+    }
+    
+    const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
+    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    {
+        return daqTry([&]
+        {
+            *channels = getChannelsRecursiveInternal(searchFilter).detach();
+            return OPENDAQ_SUCCESS;
+        });
+    }
 
+    ListPtr<IChannel> chList = List<IChannel>();
+    getChannelsFromFolder(chList, this->ioFolder, searchFilter);
     *channels = chList.detach();
     return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getChannelsRecursive(IList** channels)
+ErrCode GenericDevice<TInterface, Interfaces...>::getChannelsRecursive(IList** channels, ISearchFilter* searchFilter)
 {
-    auto chList = List<IChannel>();
-    getChannelsFromFolder(ioFolder, chList);
-
-    for (const auto& dev : devices.getItems())
+    OPENDAQ_PARAM_NOT_NULL(channels);
+    return daqTry([&]
     {
-        auto devChs = dev.template asPtr<IDevice>().getChannelsRecursive();
-        for (const auto& ch : devChs)
-            chList.pushBack(ch);
-    }
+        SearchFilterPtr filter;
+        if (!searchFilter)
+            filter = search::Recursive(search::Visible());
+        else
+            filter = search::Recursive(searchFilter);
 
-    *channels = chList.detach();
-    return OPENDAQ_SUCCESS;
+        *channels = getChannelsRecursiveInternal(filter).detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <typename TInterface, typename ... Interfaces>
+ListPtr<IChannel> GenericDevice<TInterface, Interfaces...>::getChannelsRecursiveInternal(const SearchFilterPtr& searchFilter)
+{
+    tsl::ordered_set<ChannelPtr, ComponentHash, ComponentEqualTo> allChannels;
+
+    ListPtr<IChannel> chList = List<IChannel>();
+    getChannelsFromFolder(chList, this->ioFolder, searchFilter);
+    for (const ChannelPtr& ch : chList)
+        allChannels.insert(ch);
+
+    for (const DevicePtr& dev : this->devices.getItems(search::Any()))
+        if (searchFilter.visitChildren(dev))
+            for (const ChannelPtr& ch : dev.getChannels(searchFilter))
+                allChannels.insert(ch);
+
+    chList = List<IChannel>();
+    for (const auto& ch : allChannels)
+        chList.pushBack(ch);
+
+    return chList;
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::getChannelsFromFolder(const FolderPtr& folder, ListPtr<IChannel>& channels)
+void GenericDevice<TInterface, Interfaces...>::getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels)
 {
-    for (const auto& component: folder.getItems())
+    for (const auto& item : folder.getItems(search::Any()))
     {
-        if (component.supportsInterface<IChannel>())
-            channels.pushBack(component);
-        else if (component.supportsInterface<IFolder>())
-            getChannelsFromFolder(component, channels);
+        if (item.supportsInterface<IChannel>())
+        {
+            if (filterChannels && !searchFilter.acceptsComponent(item))
+                continue;
+
+            channelList.pushBack(item);
+        }
+        else if (item.supportsInterface<IIoFolderConfig>() && searchFilter.visitChildren(item))
+            getChannelsFromFolder(channelList, item, searchFilter, filterChannels);
     }
 }
 
@@ -624,9 +737,45 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveDevice(const DevicePtr& /
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getDevices(IList** devices)
+ErrCode GenericDevice<TInterface, Interfaces...>::getDevices(IList** subDevices, ISearchFilter* searchFilter)
 {
-    return this->devices->getItems(devices);
+    OPENDAQ_PARAM_NOT_NULL(subDevices);
+
+    if (!searchFilter)
+        return devices->getItems(subDevices);
+    
+    const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
+    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    {
+        return daqTry([&]
+        {
+            *subDevices = getDevicesRecursive(searchFilter).detach();
+            return OPENDAQ_SUCCESS;
+        });
+    }
+
+    return devices->getItems(subDevices, searchFilter);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ListPtr<IDevice> GenericDevice<TInterface, Interfaces...>::getDevicesRecursive(const SearchFilterPtr& searchFilter)
+{
+    tsl::ordered_set<DevicePtr, ComponentHash, ComponentEqualTo> allDevices;
+
+    for (const DevicePtr& dev : this->devices.getItems(search::Any()))
+        if (searchFilter.acceptsComponent(dev))
+            allDevices.insert(dev);
+
+    for (const DevicePtr& dev : this->devices.getItems(search::Any()))
+        if (searchFilter.visitChildren(dev))
+            for (const DevicePtr& childDev : dev.getDevices(searchFilter))
+                allDevices.insert(childDev);
+
+    auto devList = List<IDevice>();
+    for (const auto& dev : allDevices)
+        devList.pushBack(dev);
+
+    return devList;
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -690,14 +839,13 @@ void GenericDevice<TInterface, Interfaces...>::removeSubDevice(const DevicePtr& 
 
 template <typename TInterface, typename... Interfaces>
 inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(const std::string& localId,
-                                                                               const IoFolderConfigPtr& parent,
-                                                                               const ComponentStandardProps standardPropsConfig)
+                                                                               const IoFolderConfigPtr& parent)
 {
     if (!parent.assigned())
     {
         this->validateComponentNotExists(localId);
 
-        auto folder = IoFolder(this->context, this->template thisPtr<ComponentPtr>(), localId, standardPropsConfig);
+        auto folder = IoFolder(this->context, this->template thisPtr<ComponentPtr>(), localId);
         this->components.push_back(folder);
 
         if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -709,7 +857,7 @@ inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(c
         return folder;
     }
 
-    auto folder = IoFolder(this->context, parent, localId, standardPropsConfig);
+    auto folder = IoFolder(this->context, parent, localId);
     parent.addItem(folder);
     return folder;
 }

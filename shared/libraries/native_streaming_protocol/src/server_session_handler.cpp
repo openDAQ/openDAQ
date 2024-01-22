@@ -11,10 +11,11 @@ using namespace daq::native_streaming;
 using namespace packet_streaming;
 
 ServerSessionHandler::ServerSessionHandler(const ContextPtr& context,
+                                           boost::asio::io_context& ioContext,
                                            SessionPtr session,
                                            OnSignalSubscriptionCallback signalSubscriptionHandler,
-                                           OnErrorCallback errorHandler)
-    : BaseSessionHandler(session, errorHandler)
+                                           OnSessionErrorCallback errorHandler)
+    : BaseSessionHandler(session, ioContext, errorHandler)
     , signalSubscriptionHandler(signalSubscriptionHandler)
     , logger(context.getLogger())
     , packetStreamingServer(10)
@@ -220,7 +221,7 @@ ReadTask ServerSessionHandler::readSignalSubscribe(const void *data, size_t size
     catch (const DaqException& e)
     {
         LOG_E("Protocol error: {}", e.what());
-        errorHandler(e.what(), session);
+        errorHandler(std::string("Protocol error - readSignalSubscribe - ") + e.what(), session);
         return createReadStopTask();
     }
 
@@ -250,7 +251,7 @@ ReadTask ServerSessionHandler::readSignalUnsubscribe(const void *data, size_t si
     catch (const DaqException& e)
     {
         LOG_E("Protocol error: {}", e.what());
-        errorHandler(e.what(), session);
+        errorHandler(std::string("Protocol error - readSignalUnsubscribe - ") + e.what(), session);
         return createReadStopTask();
     }
 

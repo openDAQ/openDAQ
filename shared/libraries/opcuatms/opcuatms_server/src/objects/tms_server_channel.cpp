@@ -7,8 +7,8 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 using namespace opcua;
 
-TmsServerChannel::TmsServerChannel(const ChannelPtr& object, const OpcUaServerPtr& server, const ContextPtr& context)
-    : Super(object, server, context)
+TmsServerChannel::TmsServerChannel(const ChannelPtr& object, const OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext)
+    : Super(object, server, context, tmsContext)
 {
 }
 

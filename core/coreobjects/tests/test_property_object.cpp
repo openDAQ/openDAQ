@@ -223,10 +223,10 @@ TEST_F(PropertyObjectTest, GetValueTypeReferenceProperty)
 
 TEST_F(PropertyObjectTest, SerializeJsonSimple)
 {
-    const std::string expectedJson = R"({"__type":"PropertyObject","className":"Test","propValues":{"Referenced":10}})";
+    const std::string expectedJson = R"({"__type":"PropertyObject","className":"Test","propValues":{"Referenced":12}})";
 
     PropertyObjectPtr propObj = PropertyObject(objManager, "Test");
-    propObj.setPropertyValue("IntProperty", "10");
+    propObj.setPropertyValue("IntProperty", "12");
     propObj.setPropertyValue("Function", Function([](IBaseObject*, IBaseObject**)
     {
         return OPENDAQ_SUCCESS;
@@ -247,7 +247,7 @@ TEST_F(PropertyObjectTest, SerializeJsonSimple)
 
 TEST_F(PropertyObjectTest, DeserializeJsonSimple)
 {
-    const std::string json = R"({"__type":"PropertyObject","className":"Test","propValues":{"Referenced":10}})";
+    const std::string json = R"({"__type":"PropertyObject","className":"Test","propValues":{"Referenced":12}})";
 
     auto deserializer = JsonDeserializer();
 
@@ -290,6 +290,60 @@ TEST_F(PropertyObjectTest, ClearNonExistentProperty)
     auto propObj = PropertyObject(objManager, "Test");
 
     ASSERT_THROW(propObj.clearPropertyValue("doesNotExist"), NotFoundException);
+}
+
+TEST_F(PropertyObjectTest, SetSameValueFloat)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+    int callCount = 0;
+    propObj.getOnPropertyValueWrite("FloatProperty") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { callCount++; };
+    propObj.setPropertyValue("FloatProperty", 1.0);
+    propObj.setPropertyValue("FloatProperty", 2.0);
+    propObj.setPropertyValue("FloatProperty", 2.0);
+
+    ASSERT_EQ(callCount, 1);
+}
+
+TEST_F(PropertyObjectTest, SetSameValueReferenced)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+    int callCount = 0;
+    propObj.getOnPropertyValueWrite("Referenced") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { callCount++; };
+    propObj.setPropertyValue("IntProperty", 10);
+    propObj.setPropertyValue("IntProperty", 12);
+    propObj.setPropertyValue("TwoHopReference", 12);
+    propObj.setPropertyValue("TwoHopReference", 10);
+    propObj.setPropertyValue("IntProperty", 10);
+    propObj.setPropertyValue("IntProperty", 12);
+
+    ASSERT_EQ(callCount, 3);
+}
+
+TEST_F(PropertyObjectTest, SetSameValueBeginEndUpdate)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+    int callCount = 0;
+    
+    propObj.getOnPropertyValueWrite("Referenced") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { callCount++; };
+    propObj.getOnPropertyValueWrite("FloatProperty") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { callCount++; };
+
+    propObj.beginUpdate();
+
+    propObj.setPropertyValue("IntProperty", 10);
+    propObj.setPropertyValue("FloatProperty", 1.0);
+
+    propObj.endUpdate();
+
+    ASSERT_EQ(callCount, 0);
+    
+    propObj.beginUpdate();
+
+    propObj.setPropertyValue("IntProperty", 12);
+    propObj.setPropertyValue("FloatProperty", 2.0);
+
+    propObj.endUpdate();
+
+    ASSERT_EQ(callCount, 2);
 }
 
 TEST_F(PropertyObjectTest, GetNonExistentPropertyObject)

@@ -54,8 +54,6 @@ using OnSubscriptionAckCallback = std::function<void(const SignalNumericIdType& 
 using OnPacketReceivedCallback = std::function<void(const SignalNumericIdType& signalNumericId,
                                                     const PacketPtr& packet)>;
 
-using OnErrorCallback = std::function<void(const std::string& errorMessage, SessionPtr session)>;
-
 enum class PayloadType
 {
     PAYLOAD_TYPE_PACKET = 1,

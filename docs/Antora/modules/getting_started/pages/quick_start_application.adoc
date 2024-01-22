@@ -397,8 +397,11 @@ int main(int argc, const char* argv[])
 {
     ...
 
-    // Get the first device signal
-    daq::SignalPtr signal = device.getSignalsRecursive()[0];
+    // Get the first device channel
+    daq::ChannelPtr channel = device.getChannels()[0];
+    
+    // Get the first channel signal
+    daq::SignalPtr signal = channel.getSignals()[0];
 
     // Output 40 samples using reader
     using namespace std::chrono_literals;
@@ -435,8 +438,10 @@ Python::
 
 import time
 
-# Find the first signal
-signal = device.signals_recursive[0]
+# Get the first device channel
+channel = device.channels[0]
+# Get the first channel signal
+signal = channel.signals[0]
 reader = opendaq.StreamReader(signal)
 
 # Output 40 samples using reader
@@ -493,8 +498,10 @@ int main(int argc, const char* argv[])
     // Output 10 samples using reader
     using namespace std::chrono_literals;
 
-    // Get the first signal
-    daq::SignalPtr signal = device.getSignalsRecursive()[0];
+    // Get the first channel
+    daq::ChannelPtr channel = device.getChannels()[0];
+    // Get the first channel signal
+    daq::SignalPtr signal = channel.getSignals()[0];
 
     daq::StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
 
@@ -590,8 +597,10 @@ int main(int argc, const char* argv[])
 
     // Output 10 samples using reader
 
-    // Get the first signal
-    daq::SignalPtr signal = device.getSignalsRecursive()[0];
+    // Get the first channel
+    daq::ChannelPtr channel = device.getChannels()[0];
+    // Get the first channel signal
+    daq::SignalPtr signal = channel.getSignals()[0];
     daq::StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
 
     // From here on the reader returns system-clock time-points as a domain
@@ -818,27 +827,24 @@ int main(int argc, const char* argv[])
 {
     ...
 
-    // Get the first channel of the device
-    const daq::ChannelPtr sineChannel = device.getChannels()[0];
-
     // List the names of all properties
-    for (daq::PropertyPtr prop : sineChannel.getVisibleProperties())
+    for (daq::PropertyPtr prop : channel.getVisibleProperties())
         std::cout << prop.getName() << std::endl;
 
     // Set the frequency to 5 Hz
-    sineChannel.setPropertyValue("Frequency", 5);
+    channel.setPropertyValue("Frequency", 5);
     // Set the noise amplitude to 0.75
-    sineChannel.setPropertyValue("NoiseAmplitude", 0.75);
+    channel.setPropertyValue("NoiseAmplitude", 0.75);
 
     // Modulate the signal amplitude by a step of 0.1 every 25ms.
     double amplStep = 0.1;
     while (true)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(25));
-        const double ampl = sineChannel.getPropertyValue("Amplitude");
+        const double ampl = channel.getPropertyValue("Amplitude");
         if (9.95 < ampl || ampl < 1.05)
             amplStep *= -1;
-        sineChannel.setPropertyValue("Amplitude", ampl + amplStep);
+        channel.setPropertyValue("Amplitude", ampl + amplStep);
     }
 
     return 0;
@@ -850,25 +856,23 @@ Python::
 ----
 # ...
 
-# Get the first AI channel of the device
-sine_channel = device.channels[0]
 # List the names of all properties
-for prop in sine_channel.visible_properties:
+for prop in channel.visible_properties:
     print(prop.name)
 
 # Set the frequency to 5 Hz
-sine_channel.set_property_value('Frequency', 5)
+channel.set_property_value('Frequency', 5)
 # Set the noise amplitude to 0.75
-sine_channel.set_property_value('NoiseAmplitude', 0.75)
+channel.set_property_value('NoiseAmplitude', 0.75)
 
 # Modulate the signal amplitude by a step of 0.1 every 25 ms.
 amplitude_step = 0.1
 while True:
     time.sleep(0.025)
-    amplitude = sine_channel.get_property_value('Amplitude')
+    amplitude = channel.get_property_value('Amplitude')
     if not (1.05 <= amplitude <= 9.95):
         amplitude_step = -amplitude_step
-    sine_channel.set_property_value('Amplitude', amplitude + amplitude_step)
+    channel.set_property_value('Amplitude', amplitude + amplitude_step)
 ----
 ====
 
@@ -917,7 +921,6 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Output 10 samples using reader
     using namespace std::chrono_literals;
-    auto signals = device.getSignalsRecursive();
 
     // Get the first channel and its signal
     daq::ChannelPtr channel = device.getChannels()[0];
@@ -988,17 +991,14 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Connect the first output signal of the statistics to the renderer
     renderer.getInputPorts()[1].connect(statistics.getSignals()[0]);
 
-    // Get the first channel of the device
-    const daq::ChannelPtr sineChannel = channel;
-
     // List the names of all properties
-    for (daq::PropertyPtr prop : sineChannel.getVisibleProperties())
+    for (daq::PropertyPtr prop : channel.getVisibleProperties())
         std::cout << prop.getName() << std::endl;
 
     // Set the frequency to 5Hz
-    sineChannel.setPropertyValue("Frequency", 5);
+    channel.setPropertyValue("Frequency", 5);
     // Set the noise amplitude to 0.75
-    sineChannel.setPropertyValue("NoiseAmplitude", 0.75);
+    channel.setPropertyValue("NoiseAmplitude", 0.75);
 
     // Modulate the signal amplitude by a step of 0.1 every 25ms. Modulate for 15 seconds.
     double amplStep = 0.1;
@@ -1006,11 +1006,11 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         std::this_thread::sleep_for(25ms);
 
-        const double ampl = sineChannel.getPropertyValue("Amplitude");
+        const double ampl = channel.getPropertyValue("Amplitude");
         if (9.95 < ampl || ampl < 1.05)
             amplStep *= -1;
 
-        sineChannel.setPropertyValue("Amplitude", ampl + amplStep);
+        channel.setPropertyValue("Amplitude", ampl + amplStep);
     }
 
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
@@ -1153,7 +1153,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     using namespace std::chrono_literals;
 
     // Find the first signal
-    daq::SignalPtr signal = device.getSignalsRecursive()[0];
+    daq::SignalPtr signal = device.getSignals()[0];
     daq::StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
 
     // Get the resolution and origin
@@ -1237,7 +1237,7 @@ else:
 print(device.info.name)
 
 # Find the first signal
-signal = device.signals_recursive[0]
+signal = device.signals[0]
 
 # Output 40 samples using reader
 reader = opendaq.StreamReader(signal)

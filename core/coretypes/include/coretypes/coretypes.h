@@ -77,6 +77,9 @@
 #include <coretypes/simple_type_factory.h>
 #include <coretypes/type_manager_factory.h>
 
+#include <coretypes/enumeration_factory.h>
+#include <coretypes/enumeration_type_factory.h>
+
 /*!
  * @defgroup coretypes Core Types
  * @brief Core types
@@ -143,6 +146,12 @@
  * @ingroup coretypes
  * @defgroup types_structs Structs
  * @brief Core types Struct-type objects and utilities
+ */
+
+/*!
+ * @ingroup coretypes
+ * @defgroup types_enumerations Enumerations
+ * @brief Core types Enumeration-type objects and utilities
  */
 
 /*!

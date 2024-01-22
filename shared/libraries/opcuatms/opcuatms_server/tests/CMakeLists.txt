@@ -9,6 +9,8 @@ set(TEST_SOURCES test_helpers.h
                  test_tms_input_port.cpp
                  test_tms_property_object.cpp
                  test_tms_server.cpp
+                 tms_server_test.h
+                 tms_server_test.cpp
 )
 
 add_executable(${TEST_APP} testapp.cpp

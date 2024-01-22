@@ -173,6 +173,36 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(I
 }
 
 template <class Impl>
+ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::beginUpdate()
+{
+    if (!hasReference("BeginUpdate"))
+        return OPENDAQ_SUCCESS;
+
+    const auto beginUpdateId = getNodeId("BeginUpdate");
+    OpcUaCallMethodRequest request;
+    request->inputArgumentsSize = 0;
+    request->objectId = nodeId.getValue();
+    request->methodId = beginUpdateId.getValue();
+    client->callMethod(request);
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
+ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::endUpdate()
+{
+    if (!hasReference("EndUpdate"))
+        return OPENDAQ_SUCCESS;
+
+    const auto endUpdateId = getNodeId("EndUpdate");
+    OpcUaCallMethodRequest request;
+    request->inputArgumentsSize = 0;
+    request->objectId = nodeId.getValue();
+    request->methodId = endUpdateId.getValue();
+    client->callMethod(request);
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
 void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& parentId,
                                                           std::map<uint32_t, PropertyPtr>& orderedProperties,
                                                           std::vector<PropertyPtr>& unorderedProperties)
@@ -208,7 +238,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             }
             catch(const std::exception& e)
             {
-                LOG_W("Failed to add reference property {}", e.what());
+                LOG_W("Failed to add {} reference property {}",propName, e.what());
                 continue;
             }
         }
@@ -224,52 +254,24 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             }                     
             catch(const std::exception& e)
             {
-                LOG_W("Failed to add property {}", e.what());
+                LOG_W("Failed to add {} property {}", propName, e.what());
                 continue;
             }
         }
         else if (clientContext->getReferenceBrowser()->isSubtypeOf(typeId, variableBlockTypeId))
         {
-            if (!hasProp)
+            try
             {
-                auto obj = TmsClientPropertyObject(daqContext, clientContext, childNodeId);
-                const auto description = reader->getValue(childNodeId, UA_ATTRIBUTEID_DESCRIPTION).toString();
-                auto propBuilder = ObjectPropertyBuilder(propName, obj).setDescription(String(description));
+                if (!hasProp)
+                    prop = addVariableBlockProperty(propName, childNodeId);
 
-                const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_EVALUATIONVARIABLETYPE);
-                const auto variableBlockRefs = clientContext->getReferenceBrowser()->browse(childNodeId);
-
-                for (auto& [browseName, variableBlockRef] : variableBlockRefs.byBrowseName)
-                {
-                    const auto variableBlockNodeId = OpcUaNodeId(variableBlockRef->nodeId.nodeId);
-
-                    if (clientContext->getReferenceBrowser()->isSubtypeOf(variableBlockRef->typeDefinition.nodeId, evaluationVariableTypeId))
-                    {
-                        auto evalId = clientContext->getReferenceBrowser()->getChildNodeId(variableBlockNodeId, "EvaluationExpression");
-
-                        StringPtr evalStr = VariantConverter<IString>::ToDaqObject(reader->getValue(evalId, UA_ATTRIBUTEID_VALUE));
-
-                        if (browseName == "IsReadOnly")
-                        {
-                            if (evalStr.assigned())
-                                propBuilder.setReadOnly(EvalValue(evalStr).asPtr<IBoolean>());
-                            else
-                                propBuilder.setReadOnly(VariantConverter<IBoolean>::ToDaqObject(reader->getValue(variableBlockNodeId, UA_ATTRIBUTEID_VALUE)));
-                        }
-                        else if (browseName == "IsVisible")
-                        {
-                            if (evalStr.assigned())
-                                propBuilder.setVisible(EvalValue(evalStr).asPtr<IBoolean>());
-                            else
-                                propBuilder.setVisible(VariantConverter<IBoolean>::ToDaqObject(reader->getValue(variableBlockNodeId, UA_ATTRIBUTEID_VALUE)));
-                        }
-                    }
-                }
-
-                prop = propBuilder.build();
+                objectTypeIdMap.insert(std::pair(propName, childNodeId));
             }
-
-            objectTypeIdMap.insert(std::pair(propName, childNodeId));
+            catch (const std::exception& e)
+            {
+                LOG_W("Failed to add {} property {}", propName, e.what());
+                continue;
+            }
         }
 
         if (prop.assigned())
@@ -299,6 +301,9 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(const OpcUaNodeI
     {
         const auto typeId = OpcUaNodeId(ref->typeDefinition.nodeId);
         const auto propName = String(utils::ToStdString(ref->browseName.name));
+
+        if (isIgnoredMethodPeoperty(propName))
+            continue;
 
         Bool hasProp;
         daq::checkErrorInfo(Impl::hasProperty(propName, &hasProp));
@@ -362,6 +367,50 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(const OpcUaNodeI
     }
 }
 
+template <class Impl>
+PropertyPtr TmsClientPropertyObjectBaseImpl<Impl>::addVariableBlockProperty(const StringPtr& propName, const OpcUaNodeId& propNodeId)
+{
+    auto reader = this->clientContext->getAttributeReader();
+
+    auto obj = TmsClientPropertyObject(daqContext, clientContext, propNodeId);
+    const auto description = reader->getValue(propNodeId, UA_ATTRIBUTEID_DESCRIPTION).toString();
+    auto propBuilder = ObjectPropertyBuilder(propName, obj).setDescription(String(description));
+
+    const auto evaluationVariableTypeId = OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_EVALUATIONVARIABLETYPE);
+    const auto variableBlockRefs = clientContext->getReferenceBrowser()->browse(propNodeId);
+
+    for (auto& [browseName, variableBlockRef] : variableBlockRefs.byBrowseName)
+    {
+        const auto variableBlockNodeId = OpcUaNodeId(variableBlockRef->nodeId.nodeId);
+
+        if (clientContext->getReferenceBrowser()->isSubtypeOf(variableBlockRef->typeDefinition.nodeId, evaluationVariableTypeId))
+        {
+            auto evalId = clientContext->getReferenceBrowser()->getChildNodeId(variableBlockNodeId, "EvaluationExpression");
+
+            StringPtr evalStr = VariantConverter<IString>::ToDaqObject(reader->getValue(evalId, UA_ATTRIBUTEID_VALUE));
+
+            if (browseName == "IsReadOnly")
+            {
+                if (evalStr.assigned())
+                    propBuilder.setReadOnly(EvalValue(evalStr).asPtr<IBoolean>());
+                else
+                    propBuilder.setReadOnly(
+                        VariantConverter<IBoolean>::ToDaqObject(reader->getValue(variableBlockNodeId, UA_ATTRIBUTEID_VALUE)));
+            }
+            else if (browseName == "IsVisible")
+            {
+                if (evalStr.assigned())
+                    propBuilder.setVisible(EvalValue(evalStr).asPtr<IBoolean>());
+                else
+                    propBuilder.setVisible(
+                        VariantConverter<IBoolean>::ToDaqObject(reader->getValue(variableBlockNodeId, UA_ATTRIBUTEID_VALUE)));
+            }
+        }
+    }
+
+    return propBuilder.build();
+}
+
 template <typename Impl>
 void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
 {
@@ -389,6 +438,12 @@ void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
     for (const auto& val : functionPropValues)
         daq::checkErrorInfo(Impl::setProtectedPropertyValue(String(val.first), val.second));
 
+}
+
+template <class Impl>
+bool TmsClientPropertyObjectBaseImpl<Impl>::isIgnoredMethodPeoperty(const std::string& browseName)
+{
+    return browseName == "BeginUpdate" || browseName == "EndUpdate";
 }
 
 template class TmsClientPropertyObjectBaseImpl<PropertyObjectImpl>;

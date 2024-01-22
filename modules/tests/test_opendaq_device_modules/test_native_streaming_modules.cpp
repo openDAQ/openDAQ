@@ -44,7 +44,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
     auto client = CreateClientInstance();
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
-    auto clientSignals = client.getSignalsRecursive();
+    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(clientSignals.getCount(), 4u);
 
     ASSERT_EQ(clientSignals[0].getDomainSignal(), clientSignals[1]);
@@ -52,21 +52,17 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(clientSignals[2].getDomainSignal(), clientSignals[3]);
     ASSERT_TRUE(!clientSignals[3].getDomainSignal().assigned());
 
-    auto serverSignals = server.getSignalsRecursive();
+    auto serverSignals = server.getSignals(search::Recursive(search::Any()));
 
     for (size_t i = 0; i < serverSignals.getCount(); ++i)
     {
         auto serverDataDescriptor = serverSignals[i].getDescriptor();
         auto clientDataDescriptor = clientSignals[i].getDescriptor();
 
-        ASSERT_EQ(clientDataDescriptor.getName(), serverDataDescriptor.getName());
-        ASSERT_EQ(clientDataDescriptor.getDimensions().getCount(), serverDataDescriptor.getDimensions().getCount());
-        ASSERT_EQ(clientDataDescriptor.getSampleType(), serverDataDescriptor.getSampleType());
-        ASSERT_EQ(clientDataDescriptor.getUnit().getSymbol(), serverDataDescriptor.getUnit().getSymbol());
-        ASSERT_EQ(clientDataDescriptor.getValueRange(), serverDataDescriptor.getValueRange());
-        ASSERT_EQ(clientDataDescriptor.getRule().getType(), serverDataDescriptor.getRule().getType());
-        ASSERT_EQ(clientDataDescriptor.getName(), serverDataDescriptor.getName());
-        ASSERT_EQ(clientDataDescriptor.getMetadata(), serverDataDescriptor.getMetadata());
+        ASSERT_EQ(clientDataDescriptor, serverDataDescriptor);
+
+        ASSERT_EQ(serverSignals[i].getName(), clientSignals[i].getName());
+        ASSERT_EQ(serverSignals[i].getDescription(), clientSignals[i].getDescription());
     }
 
     DeviceInfoPtr info;
@@ -136,9 +132,117 @@ TEST_F(NativeStreamingModulesTest, DISABLED_RenderSignal)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    auto signals = client.getSignalsRecursive();
+    auto signals = client.getSignals(search::Recursive(search::Visible()));
     const auto renderer = client.addFunctionBlock("ref_fb_module_renderer");
     renderer.getInputPorts()[0].connect(signals[0]);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+}
+
+TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto clientSignalsBeforeDisconnection = client.getSignals(search::Recursive(search::Any()));
+
+    // destroy server to emulate disconnection
+    server.release();
+    // TODO check for disconnected status
+
+    // re-create server to enable reconnection
+    server = CreateServerInstance();
+    auto serverSignals = server.getSignals(search::Recursive(search::Any()));
+
+    // TODO check for reconnected status
+
+    auto clientSignalsAfterReconnection = client.getSignals(search::Recursive(search::Any()));
+    ASSERT_EQ(clientSignalsAfterReconnection.getCount(), clientSignalsBeforeDisconnection.getCount());
+    for (size_t i = 0; i < clientSignalsAfterReconnection.getCount(); ++i)
+    {
+        ASSERT_EQ(clientSignalsAfterReconnection[i], clientSignalsBeforeDisconnection[i]);
+    }
+
+    ASSERT_EQ(clientSignalsAfterReconnection[0].getDomainSignal(), clientSignalsAfterReconnection[1]);
+    ASSERT_TRUE(!clientSignalsAfterReconnection[1].getDomainSignal().assigned());
+    ASSERT_EQ(clientSignalsAfterReconnection[2].getDomainSignal(), clientSignalsAfterReconnection[3]);
+    ASSERT_TRUE(!clientSignalsAfterReconnection[3].getDomainSignal().assigned());
+
+    for (size_t i = 0; i < serverSignals.getCount(); ++i)
+    {
+        auto serverDataDescriptor = serverSignals[i].getDescriptor();
+        auto clientDataDescriptor = clientSignalsAfterReconnection[i].getDescriptor();
+
+        ASSERT_EQ(clientDataDescriptor, serverDataDescriptor);
+
+        ASSERT_EQ(serverSignals[i].getName(), clientSignalsAfterReconnection[i].getName());
+        ASSERT_EQ(serverSignals[i].getDescription(), clientSignalsAfterReconnection[i].getDescription());
+
+    }
+}
+
+TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto signal = client.getSignals(search::Recursive(search::Any()))[0].template asPtr<IMirroredSignalConfig>();
+    auto domainSignal = signal.getDomainSignal().template asPtr<IMirroredSignalConfig>();
+
+    std::promise<StringPtr> signalSubscribePromise[2];
+    std::future<StringPtr> signalSubscribeFuture[2];
+    std::promise<StringPtr> domainSubscribePromise[2];
+    std::future<StringPtr> domainSubscribeFuture[2];
+
+    test_helpers::setupSubscribeAckHandler(signalSubscribePromise[0], signalSubscribeFuture[0], signal);
+    test_helpers::setupSubscribeAckHandler(domainSubscribePromise[0], domainSubscribeFuture[0], domainSignal);
+
+    using namespace std::chrono_literals;
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
+
+    // wait for subscribe ack before read
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture[0]));
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture[0]));
+
+    // destroy server to emulate disconnection
+    server.release();
+    // TODO check for disconnected status
+
+    {
+        double samples[1000];
+
+        // read all data received from server before disconnection
+        daq::SizeT count = 1000;
+        reader.read(samples, &count);
+
+        count = 1000;
+        // and test there is no more data to read
+        std::this_thread::sleep_for(100ms);
+        reader.read(samples, &count);
+        EXPECT_EQ(count, 0);
+    }
+
+    test_helpers::setupSubscribeAckHandler(signalSubscribePromise[1], signalSubscribeFuture[1], signal);
+    test_helpers::setupSubscribeAckHandler(domainSubscribePromise[1], domainSubscribeFuture[1], domainSignal);
+
+    // re-create server to enable reconnection
+    server = CreateServerInstance();
+
+    // TODO check for reconnected status
+
+    // wait for new subscribe ack before further reading
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture[1], 5s));
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture[1], 5s));
+
+    // read data received from server after reconnection
+    for (int i = 0; i < 10; ++i)
+    {
+        std::this_thread::sleep_for(100ms);
+        daq::SizeT count = 100;
+        double samples[100];
+        reader.read(samples, &count);
+        EXPECT_GT(count, 0) << "iteration " << i;
+    }
 }

@@ -38,13 +38,13 @@ public:
 TEST_F(TmsFunctionBlockTest, Create)
 {
     FunctionBlockPtr functionBlock = createFunctionBlock();
-    auto tmsFunctionBlock = TmsServerFunctionBlock(functionBlock, this->getServer(), NullContext());
+    auto tmsFunctionBlock = TmsServerFunctionBlock(functionBlock, this->getServer(), ctx, serverContext);
 }
 
 TEST_F(TmsFunctionBlockTest, Register)
 {
     FunctionBlockPtr functionBlock = createFunctionBlock();
-    auto serverFunctionBlock = TmsServerFunctionBlock(functionBlock, this->getServer(), NullContext());  // Not possible either
+    auto serverFunctionBlock = TmsServerFunctionBlock(functionBlock, this->getServer(), ctx, serverContext);  // Not possible either
     auto nodeId = serverFunctionBlock.registerOpcUaNode();
 
     FunctionBlockPtr clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, nodeId);
@@ -61,7 +61,7 @@ TEST_F(TmsFunctionBlockTest, BrowseName)
    
     ASSERT_EQ(serverFunctionBlock.getFunctionBlockType(), type);
     
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerFunctionBlock.registerOpcUaNode();
 
     FunctionBlockPtr clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, nodeId);
@@ -83,7 +83,7 @@ TEST_F(TmsFunctionBlockTest, AttrFunctionBlockType)
    
     ASSERT_EQ(serverFunctionBlock.getFunctionBlockType(), type);
     
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerFunctionBlock.registerOpcUaNode();
 
     FunctionBlockPtr clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, nodeId);
@@ -98,7 +98,7 @@ TEST_F(TmsFunctionBlockTest, MethodGetInputPorts)
 {
     const FunctionBlockTypePtr type = FunctionBlockType("UNIQUE ID", "NAME", "DESCRIPTION");
     auto serverFunctionBlock = createFunctionBlock(type);
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, serverContext);
     auto functionBlockNodeId = tmsServerFunctionBlock.registerOpcUaNode();
 
     FunctionBlockPtr clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, functionBlockNodeId);
@@ -115,7 +115,7 @@ TEST_F(TmsFunctionBlockTest, MethodGetSignals)
 {
     const FunctionBlockTypePtr type = FunctionBlockType("UNIQUE ID", "NAME", "DESCRIPTION");
     auto serverFunctionBlock = createFunctionBlock(type);
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, serverContext);
     auto functionBlockNodeId = tmsServerFunctionBlock.registerOpcUaNode();
 
     auto clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, functionBlockNodeId);
@@ -137,7 +137,7 @@ TEST_F(TmsFunctionBlockTest, SignalCheckGlobalId)
 {
     const FunctionBlockTypePtr type = FunctionBlockType("UNIQUE ID", "NAME", "DESCRIPTION");
     auto serverFunctionBlock = createFunctionBlock(type);
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, serverContext);
     auto functionBlockNodeId = tmsServerFunctionBlock.registerOpcUaNode();
 
     auto clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, serverFunctionBlock.getLocalId(), clientContext, functionBlockNodeId);
@@ -153,11 +153,11 @@ TEST_F(TmsFunctionBlockTest, MethodGetStatusSignal)
 {
     const FunctionBlockTypePtr type = FunctionBlockType("UNIQUE ID", "NAME", "DESCRIPTION");
     auto serverFunctionBlock = createFunctionBlock(type);
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, serverContext);
     auto functionBlockNodeId = tmsServerFunctionBlock.registerOpcUaNode();
 
     SignalPtr serverSignal = Signal(NullContext(), nullptr, "sig");
-    auto tmsServerSignal = TmsServerSignal(serverSignal, this->getServer(), NullContext());
+    auto tmsServerSignal = TmsServerSignal(serverSignal, this->getServer(), ctx, serverContext);
     auto signalNodeId = tmsServerSignal.registerOpcUaNode();
 
     OpcUaNodeId referenceTypeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASSTATUSSIGNAL);
@@ -179,7 +179,7 @@ TEST_F(TmsFunctionBlockTest, Property)
 
     serverFunctionBlock.addProperty(sampleRateProp);
 
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, serverContext);
     auto nodeId = tmsServerFunctionBlock.registerOpcUaNode();
 
     auto clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, nodeId);
@@ -203,7 +203,7 @@ TEST_F(TmsFunctionBlockTest, Property)
 TEST_F(TmsFunctionBlockTest, NestedFunctionBlocks)
 {
     auto serverFunctionBlock = createFunctionBlock();
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, serverContext);
     auto functionBlockNodeId = tmsServerFunctionBlock.registerOpcUaNode();
 
     FunctionBlockPtr clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, functionBlockNodeId);
@@ -215,7 +215,7 @@ TEST_F(TmsFunctionBlockTest, NestedFunctionBlocks)
 TEST_F(TmsFunctionBlockTest, ComponentMethods)
 {
     auto serverFunctionBlock = createFunctionBlock();
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, serverContext);
     auto functionBlockNodeId = tmsServerFunctionBlock.registerOpcUaNode();
 
     FunctionBlockPtr clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, functionBlockNodeId);
@@ -242,7 +242,7 @@ TEST_F(TmsFunctionBlockTest, SignalOrder)
     for (int i = 0; i < 100; ++i)
         folder.addItem(Signal(NullContext(), folder, "sig_" + std::to_string(i)));
     
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, serverContext);
     auto functionBlockNodeId = tmsServerFunctionBlock.registerOpcUaNode();
     FunctionBlockPtr clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, functionBlockNodeId);
 
@@ -260,7 +260,7 @@ TEST_F(TmsFunctionBlockTest, InputPortOrder)
     for (int i = 0; i < 100; ++i)
         folder.addItem(InputPort(NullContext(), folder, "ip_" + std::to_string(i)));
     
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, serverContext);
     auto functionBlockNodeId = tmsServerFunctionBlock.registerOpcUaNode();
     FunctionBlockPtr clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, functionBlockNodeId);
 
@@ -278,7 +278,7 @@ TEST_F(TmsFunctionBlockTest, FunctionBlockOrder)
     for (int i = 0; i < 40; ++i)
         folder.addItem(DefaultFunctionBlock(NullContext(), folder, "fb_" + std::to_string(i)));
     
-    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), NullContext());
+    auto tmsServerFunctionBlock = TmsServerFunctionBlock(serverFunctionBlock, this->getServer(), ctx, serverContext);
     auto functionBlockNodeId = tmsServerFunctionBlock.registerOpcUaNode();
     FunctionBlockPtr clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, functionBlockNodeId);
 

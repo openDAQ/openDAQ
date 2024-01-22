@@ -34,7 +34,7 @@ class TmsServerFunctionBlock : public TmsServerComponent<T>
 public:
     using Super = TmsServerComponent<T>;
 
-    TmsServerFunctionBlock(const FunctionBlockPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context);
+    TmsServerFunctionBlock(const FunctionBlockPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
 
     bool createOptionalNode(const opcua::OpcUaNodeId& nodeId) override;
     void bindCallbacks() override;

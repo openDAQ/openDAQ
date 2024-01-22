@@ -7,7 +7,7 @@ using TypeTest = testing::Test;
 
 TEST_F(TypeTest, SimpleTypes)
 {
-    for (SizeT i = 0; i <= static_cast<SizeT>(ctStruct); ++i)
+    for (SizeT i = 0; i <= static_cast<SizeT>(ctEnumeration); ++i)
     {
         const auto simpleType = SimpleType(static_cast<CoreType>(i));
         ASSERT_EQ(static_cast<CoreType>(i), simpleType.getCoreType());

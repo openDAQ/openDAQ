@@ -48,9 +48,11 @@ ErrCode PUBLIC_EXPORT createCoreEventArgsComponentUpdateEnd(ICoreEventArgs** obj
     return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, Int, IDict*>(objTmp, core_event_ids::ComponentUpdateEnd,dict);
 }
 
-extern "C" ErrCode PUBLIC_EXPORT createCoreEventArgsComponentModified(ICoreEventArgs** objTmp, IDict* modifiedAttributes)
+extern "C"
+ErrCode PUBLIC_EXPORT createCoreEventArgsAttributeChanged(ICoreEventArgs** objTmp, IString* attributeName, IBaseObject* attributeValue)
 {
-    return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, Int, IDict*>(objTmp, core_event_ids::ComponentModified, modifiedAttributes);
+    const auto dict = Dict<IString, IBaseObject>({{"AttributeName", attributeName}, {attributeName, attributeValue}});
+    return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, Int, IDict*>(objTmp, core_event_ids::AttributeChanged, dict);
 }
 
 #endif

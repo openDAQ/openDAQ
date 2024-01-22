@@ -34,8 +34,7 @@ public:
     explicit InputPortImpl(const ContextPtr& context,
                            const ComponentPtr& parent,
                            const StringPtr& localId,
-                           const StringPtr& className = nullptr,
-                           ComponentStandardProps propsMode = ComponentStandardProps::Add);
+                           const StringPtr& className = nullptr);
 
     ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;

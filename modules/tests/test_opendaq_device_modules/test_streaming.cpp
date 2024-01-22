@@ -41,7 +41,7 @@ public:
 
     SignalPtr getSignal(const DevicePtr& device, const std::string& signalName)
     {
-        auto signals = device.getSignalsRecursive();
+        auto signals = device.getSignals(search::Recursive(search::Visible()));
 
         for (const auto& signal : signals)
         {
@@ -258,57 +258,6 @@ TEST_P(StreamingTest, DataPackets)
     EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 
-TEST_P(StreamingTest, SignalPropertyEvents)
-{
-    const size_t packetsToRead = 10;
-
-    // Expect to receive all data packets,
-    // +1 signal initial descriptor changed event packet
-    // +2 signal property changed event packet
-    // TODO web-socket streaming does not recreate "PROPERTY_CHANGED" event packet
-    // when property changed on server side
-    const size_t packetsToReceive = packetsToRead + 1 + 2;
-    const size_t clientPacketsToReceive =
-        (std::get<0>(GetParam()) == "openDAQ WebsocketTcp Streaming") ? (packetsToRead + 1) : packetsToReceive;
-
-    SignalPtr serverSignal = getSignal(serverInstance, "ByteStep");
-    SignalPtr clientSignal = getSignal(clientInstance, "ByteStep");
-
-    auto mirroredSignalPtr = clientSignal.template asPtr<IMirroredSignalConfig>();
-    std::promise<StringPtr> subscribeCompletePromise;
-    std::future<StringPtr> subscribeCompleteFuture;
-    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
-
-    ASSERT_EQ(clientSignal.getName(), serverSignal.getName());
-    ASSERT_EQ(clientSignal.getDescription(), serverSignal.getDescription());
-
-    auto serverReader = createServerReader("ByteStep");
-    auto clientReader = createClientReader("ByteStep");
-
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
-
-    serverSignal.setName("ByteStepChanged");
-    serverSignal.setDescription("DescriptionChanged");
-
-    generatePackets(packetsToRead);
-
-    auto serverReceivedPackets = tryReadPackets(serverReader, packetsToReceive);
-    auto clientReceivedPackets = tryReadPackets(clientReader, clientPacketsToReceive);
-
-    EXPECT_EQ(clientSignal.getName(), serverSignal.getName());
-    EXPECT_EQ(clientSignal.getDescription(), serverSignal.getDescription());
-
-    // TODO
-    // packet comparing for web-socket streaming is skipped since it does not recreate "PROPERTY_CHANGED"
-    // event packet when property changed on server side
-    if (std::get<0>(GetParam()) == "openDAQ WebsocketTcp Streaming")
-        return;
-
-    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToReceive);
-    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToReceive);
-    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
-}
-
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
 INSTANTIATE_TEST_SUITE_P(
     StreamingTestGroup,
@@ -403,4 +352,95 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.opcua://127.0.0.1/")
     )
 );
+
+class StreamingReconnectionTest : public StreamingTest
+{
+protected:
+    InstancePtr CreateServerInstance() override
+    {
+        auto logger = Logger();
+        auto scheduler = Scheduler(logger);
+        auto moduleManager = ModuleManager("");
+        auto context = Context(scheduler, logger, nullptr, moduleManager);
+
+        const ModulePtr deviceModule(MockDeviceModule_Create(context));
+        moduleManager.addModule(deviceModule);
+
+        auto instance = InstanceCustom(context, "local");
+
+        const auto mockDevice = instance.addDevice("mock_phys_device");
+
+        auto streamingServerName = std::get<0>(GetParam());
+        streamingServer = instance.addServer(streamingServerName, nullptr);
+        // streaming server added first, so registered device streaming options is published over opcua
+        instance.addServer("openDAQ OpcUa", nullptr);
+
+        return instance;
+    }
+
+    void removeStreamingServer()
+    {
+        serverInstance.removeServer(streamingServer);
+    }
+
+    void restoreStreamingServer()
+    {
+        auto streamingServerName = std::get<0>(GetParam());
+        streamingServer = serverInstance.addServer(streamingServerName, nullptr);
+    }
+
+    ServerPtr streamingServer;
+};
+
+TEST_P(StreamingReconnectionTest, Reconnection)
+{
+    auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise[2];
+    std::future<StringPtr> subscribeCompleteFuture[2];
+
+    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise[0], subscribeCompleteFuture[0], mirroredSignalPtr);
+
+    auto serverReader = createServerReader("ByteStep");
+    auto clientReader = createClientReader("ByteStep");
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture[0]));
+
+    // read client initial event packet
+    auto clientReceivedPackets = tryReadPackets(clientReader, 1);
+    EXPECT_EQ(clientReceivedPackets.getCount(), 1);
+
+    // remove streaming server to emulate disconnection
+    removeStreamingServer();
+    // TODO test disconnected status
+    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise[1], subscribeCompleteFuture[1], mirroredSignalPtr);
+    // add streaming server back to enable reconnection
+    restoreStreamingServer();
+    // TODO test reconnected status
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture[1], 5s));
+
+    const size_t packetsToGenerate = 10;
+    // Expect to receive all data packets,
+    // +1 signal initial descriptor changed event packet
+    const size_t packetsToRead = packetsToGenerate + 1;
+
+    generatePackets(packetsToGenerate);
+
+    auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
+    clientReceivedPackets = tryReadPackets(clientReader, packetsToRead);
+
+    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
+    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
+    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    StreamingReconnectionTestGroup,
+    StreamingReconnectionTest,
+    testing::Values(
+        std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.nsd://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.opcua://127.0.0.1/")
+    )
+);
+
 #endif

@@ -622,6 +622,7 @@ void RendererFbImpl::onConnected(const InputPortPtr& inputPort)
 {
     std::scoped_lock lock(sync);
 
+    subscribeToSignalCoreEvent(inputPort.getSignal());
     updateInputPorts();
     LOG_T("Connected to port {}", inputPort.getLocalId());
 }
@@ -1131,12 +1132,6 @@ void RendererFbImpl::processSignalContext(SignalContext& signalContext)
                 DataDescriptorPtr domainSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
                 processSignalDescriptorChanged(signalContext, valueSignalDescriptor, domainSignalDescriptor);
             }
-            else if (eventPacket.getEventId() == event_packet_id::PROPERTY_CHANGED)
-            {
-                StringPtr propName = eventPacket.getParameters().get(event_packet_param::NAME);
-                BaseObjectPtr propValue = eventPacket.getParameters().get(event_packet_param::VALUE);
-                processPropertyChanged(signalContext, propName, propValue);
-            }
         }
         else if (packet.getType() == PacketType::Data)
         {
@@ -1159,12 +1154,33 @@ void RendererFbImpl::processSignalDescriptorChanged(SignalContext& signalContext
     configureSignalContext(signalContext);
 }
 
-void RendererFbImpl::processPropertyChanged(SignalContext& signalContext,
-                                            const StringPtr& propName,
-                                            const StringPtr& propValue)
+void RendererFbImpl::processAttributeChanged(SignalContext& signalContext,
+                                             const StringPtr& attrName,
+                                             const StringPtr& attrValue)
 {
-    if (propName == "Name")
-        setSignalContextCaption(signalContext, propValue);
+    if (attrName == "Name")
+        setSignalContextCaption(signalContext, attrValue);
+}
+
+void RendererFbImpl::subscribeToSignalCoreEvent(const SignalPtr& signal)
+{
+    signal.getOnComponentCoreEvent() += event(&RendererFbImpl::processCoreEvent);
+}
+
+void RendererFbImpl::processCoreEvent(ComponentPtr& component, CoreEventArgsPtr& args)
+{
+    for (auto& sigCtx: signalContexts)
+    {
+        if (sigCtx.inputPort.getSignal() == component)
+        {
+            const auto params = args.getParameters();
+            const auto name = params.get("AttributeName");
+            const auto value = params.get(name);
+
+            processAttributeChanged(sigCtx, name, value);
+            break;
+        }
+    }
 }
 
 void RendererFbImpl::configureSignalContext(SignalContext& signalContext)

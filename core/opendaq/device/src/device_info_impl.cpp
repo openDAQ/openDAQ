@@ -35,7 +35,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setName(IString* name)
 {
-    return Super::setPropertyValue(String("name"), name);
+    return Super::setProtectedPropertyValue(String("name"), name);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -50,7 +50,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getName(IString** name)
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setConnectionString(IString* connectionString)
 {
-    return Super::setPropertyValue(String("connectionString"), connectionString);
+    return Super::setProtectedPropertyValue(String("connectionString"), connectionString);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -87,7 +87,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceType(IDeviceTy
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setManufacturer(IString* manufacturer)
 {
-    return Super::setPropertyValue(String("manufacturer"), manufacturer);
+    return Super::setProtectedPropertyValue(String("manufacturer"), manufacturer);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -102,7 +102,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getManufacturer(IString
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setManufacturerUri(IString* manufacturerUri)
 {
-    return Super::setPropertyValue(String("manufacturerUri"), manufacturerUri);
+    return Super::setProtectedPropertyValue(String("manufacturerUri"), manufacturerUri);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -117,7 +117,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getManufacturerUri(IStr
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setModel(IString* model)
 {
-    return Super::setPropertyValue(String("model"), model);
+    return Super::setProtectedPropertyValue(String("model"), model);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -132,7 +132,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getModel(IString** mode
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setProductCode(IString* productCode)
 {
-    return Super::setPropertyValue(String("productCode"), productCode);
+    return Super::setProtectedPropertyValue(String("productCode"), productCode);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -156,7 +156,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceRevision(IStri
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setDeviceRevision(IString* deviceRevision)
 {
-    return Super::setPropertyValue(String("deviceRevision"), deviceRevision);
+    return Super::setProtectedPropertyValue(String("deviceRevision"), deviceRevision);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -171,7 +171,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getAssetId(IString** id
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setAssetId(IString* id)
 {
-    return Super::setPropertyValue(String("assetId"), id);
+    return Super::setProtectedPropertyValue(String("assetId"), id);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -186,7 +186,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getMacAddress(IString**
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setMacAddress(IString* macAddress)
 {
-    return Super::setPropertyValue(String("macAddress"), macAddress);
+    return Super::setProtectedPropertyValue(String("macAddress"), macAddress);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -201,7 +201,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getParentMacAddress(ISt
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setParentMacAddress(IString* macAddress)
 {
-    return Super::setPropertyValue(String("parentMacAddress"), macAddress);
+    return Super::setProtectedPropertyValue(String("parentMacAddress"), macAddress);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -216,7 +216,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPlatform(IString** p
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setPlatform(IString* platform)
 {
-    return Super::setPropertyValue(String("platform"), platform);
+    return Super::setProtectedPropertyValue(String("platform"), platform);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -231,7 +231,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPosition(Int* positi
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setPosition(Int position)
 {
-    return Super::setPropertyValue(String("position"), Integer(position));
+    return Super::setProtectedPropertyValue(String("position"), Integer(position));
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -246,7 +246,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSystemType(IString**
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setSystemType(IString* type)
 {
-    return Super::setPropertyValue(String("systemType"), type);
+    return Super::setProtectedPropertyValue(String("systemType"), type);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -261,7 +261,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSystemUuid(IString**
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setSystemUuid(IString* uuid)
 {
-    return Super::setPropertyValue(String("systemUuid"), uuid);
+    return Super::setProtectedPropertyValue(String("systemUuid"), uuid);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -287,7 +287,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getCustomInfoPropertyNa
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setHardwareRevision(IString* hardwareRevision)
 {
-    return Super::setPropertyValue(String("hardwareRevision"), hardwareRevision);
+    return Super::setProtectedPropertyValue(String("hardwareRevision"), hardwareRevision);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -302,7 +302,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getHardwareRevision(ISt
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setSoftwareRevision(IString* softwareRevision)
 {
-    return Super::setPropertyValue(String("softwareRevision"), softwareRevision);
+    return Super::setProtectedPropertyValue(String("softwareRevision"), softwareRevision);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -317,7 +317,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSoftwareRevision(ISt
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setDeviceManual(IString* deviceManual)
 {
-    return Super::setPropertyValue(String("deviceManual"), deviceManual);
+    return Super::setProtectedPropertyValue(String("deviceManual"), deviceManual);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -332,7 +332,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceManual(IString
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setDeviceClass(IString* deviceClass)
 {
-    return Super::setPropertyValue(String("deviceClass"), deviceClass);
+    return Super::setProtectedPropertyValue(String("deviceClass"), deviceClass);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -347,7 +347,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceClass(IString*
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setSerialNumber(IString* serialNumber)
 {
-    return Super::setPropertyValue(String("serialNumber"), serialNumber);
+    return Super::setProtectedPropertyValue(String("serialNumber"), serialNumber);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -362,7 +362,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSerialNumber(IString
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setProductInstanceUri(IString* productInstanceUri)
 {
-    return Super::setPropertyValue(String("productInstanceUri"), productInstanceUri);
+    return Super::setProtectedPropertyValue(String("productInstanceUri"), productInstanceUri);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -377,7 +377,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getProductInstanceUri(I
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setRevisionCounter(Int revisionCounter)
 {
-    return Super::setPropertyValue(String("revisionCounter"), Integer(revisionCounter));
+    return Super::setProtectedPropertyValue(String("revisionCounter"), Integer(revisionCounter));
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -414,8 +414,10 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::createAndSetDefaultStri
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::createAndSetStringProperty(const StringPtr& name, const StringPtr& value)
 {
-    auto info = StringProperty(name, value);
-    return Super::addProperty(info);
+    auto info = StringPropertyBuilder(name, value);
+    info.setReadOnly(true);
+
+    return Super::addProperty(info.build());
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -428,8 +430,10 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::createAndSetDefaultIntP
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::createAndSetIntProperty(const StringPtr& name, const IntegerPtr& value)
 {
-    auto info = IntProperty(name, value);
-    return Super::addProperty(info);
+    auto info = IntPropertyBuilder(name, value);
+    info.setReadOnly(true);
+
+    return Super::addProperty(info.build());
 }
 
 template <typename TInterface, typename... Interfaces>

@@ -4,22 +4,35 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
 
-BaseSessionHandler::BaseSessionHandler(SessionPtr session, OnErrorCallback errorHandler)
+static std::chrono::milliseconds heartbeatPeriod = std::chrono::milliseconds(1000);
+static std::chrono::milliseconds heartbeatTimeout = std::chrono::milliseconds(1500);
+
+BaseSessionHandler::BaseSessionHandler(SessionPtr session,
+                                       boost::asio::io_context& ioContext,
+                                       OnSessionErrorCallback errorHandler)
     : session(session)
     , errorHandler(errorHandler)
+    , heartbeatTimer(std::make_shared<boost::asio::steady_timer>(ioContext))
 {
+    initHeartbeat();
 }
 
-void BaseSessionHandler::initErrorHandlers()
+void BaseSessionHandler::initHeartbeat()
 {
-    // read/write failure indicates that connection is lost, and it should be handled properly
-    // server and client constantly and continuously perform read operation
-    // so connection lost is handled only on read failure and not handled on write failure
-    session->setErrorHandlers([](const boost::system::error_code& ec) {},
-                              [this](const boost::system::error_code& ec)
-                              {
-                                  this->errorHandler(ec.message(), this->session);
-                              });
+    OnHeartbeatCallback onHeartbeatCallback = [this]()
+    {
+        heartbeatTimer->cancel();
+        heartbeatTimer->expires_from_now(heartbeatTimeout);
+        heartbeatTimer->async_wait(
+            [this](const boost::system::error_code& ec)
+            {
+                if (ec)
+                    return;
+                this->errorHandler("Heartbeat timeout error", session);
+            }
+        );
+    };
+    session->startHeartbeat(onHeartbeatCallback, heartbeatPeriod);
 }
 
 ReadTask BaseSessionHandler::readHeader(const void *data, size_t size)
@@ -29,6 +42,7 @@ ReadTask BaseSessionHandler::readHeader(const void *data, size_t size)
 
 BaseSessionHandler::~BaseSessionHandler()
 {
+    heartbeatTimer->cancel();
 }
 
 ReadTask BaseSessionHandler::createReadHeaderTask()

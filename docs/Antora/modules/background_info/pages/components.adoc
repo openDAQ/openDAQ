@@ -106,7 +106,11 @@ When working with a custom Folder implementation, however, a generic getter meth
 Components. Folders, unless specialized (eg. <<IO Folders>>), should only have base Folders or base Components as children.
 A base Folder should not have Devices, Function Blocks, Signals, or other DAQ Components as child Components.
 
-Example of a recursive folder traversal method that prints out the Global IDs of all leaf Components:
+Each specialized, or generic child `get` call has an optional filter parameter, allowing for customizing your search query.
+These search filters allow for filtering out unwanted components from the results list, as well as enabling recursion.
+By default, the getters will not search recursively, and will only return children with `visible` set to `true`.
+
+Example code snippet that recursively finds all signals in a given device and prints their global IDs:
 
 
 [tabs]
@@ -115,27 +119,21 @@ Cpp::
 +
 [source,cpp]
 ----
-void traverseFolder(const FolderPtr& folder)
+using namespace daq::search;
+void findSignals(const DevicePtr& device)
 {
-    for (auto childComponent : folder.getItems())
-    {
-        if (auto childFolder = childComponent.asPtrOrNull<IFolder>(); childFolder.assigned())
-            traverseFolder(childFolder);
-        else
-            std::cout << childComponent.getGlobalId() << std::endl;
-    }
+    for (const auto& signal : device.getSignals(Recursive(Any)))
+        std::cout << signal.getGlobalId() << std::endl;
 }
 ----
 Python::
 +
 [source,python]
 ----
-def traverseFolder(folder: opendaq.IFolder):
-    for childComponent in folder.items:
-        if isinstance(childComponent, opendaq.IFolder):
-            traverseFolder(childComponent)
-        else:
-            print(childComponent.global_id)
+def findSignals(device: opendaq.IDevice):
+    search_filter = opendaq.RecursiveSearchFilter(opendaq.AnySearchFilter())
+    for signal in device.get_signals(search_filter):
+        print(signal.global_id)
 ----
 ====
 
@@ -148,11 +146,3 @@ allows Devices to organize their channels below the IO Folder in a tree structur
 non-Channel Components into the folder.
 
 NOTE: Each Device always has an `IO` folder as its child, and all its Channels should be children of the IO Folder. 
-
-== Component search
-
-:note-caption: TODO
-[NOTE]
-====
-* How to search components (not yet implemented/automated in the SDK)
-====

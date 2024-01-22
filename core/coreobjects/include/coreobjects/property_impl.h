@@ -76,7 +76,6 @@ protected:
         {
             throw InvalidTypeException{"Properties cannot be BinaryData types"};
         }
-
         propPtr = this->borrowPtr<PropertyPtr>();
     }
 

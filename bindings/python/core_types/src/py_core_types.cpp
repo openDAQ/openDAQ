@@ -16,6 +16,7 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
         .value("ctFunc", daq::CoreType::ctFunc)
         .value("ctComplexNumber", daq::CoreType::ctComplexNumber)
         .value("ctStruct", daq::CoreType::ctStruct)
+        .value("ctEnumeration", daq::CoreType::ctEnumeration)
         .value("ctUndefined", daq::CoreType::ctUndefined);
 
     declareAndDefineIBaseObject(m);
@@ -42,6 +43,8 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
     auto classIStructType = declareIStructType(m);
     auto classIStruct = declareIStruct(m);
     auto classIStructBuilder = declareIStructBuilder(m);
+    auto classIEnumerationType = declareIEnumerationType(m);
+    auto classIEnumeration = declareIEnumeration(m);
 
     defineIInteger(m, classIInteger);
     defineIFloat(m, classIFloat);
@@ -65,4 +68,6 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
     defineIStructType(m, classIStructType);
     defineIStruct(m, classIStruct);
     defineIStructBuilder(m, classIStructBuilder);
+    defineIEnumerationType(m, classIEnumerationType);
+    defineIEnumeration(m, classIEnumeration);
 }

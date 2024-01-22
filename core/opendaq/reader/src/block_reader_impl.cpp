@@ -55,8 +55,7 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     this->internalAddRef();
     packets = old->packets;
     availableSamples = old->availableSamples;
-    if (!changeCallback.assigned())
-        readDescriptorFromPort();
+    readDescriptorFromPort();
     notify.dataReady = false;
 }
 

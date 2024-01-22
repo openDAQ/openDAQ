@@ -51,8 +51,7 @@ TailReaderImpl::TailReaderImpl(TailReaderImpl* old,
     , historySize(historySize)
     , cachedSamples(0)
 {
-    if (!changeCallback.assigned())
-        readDescriptorFromPort();
+    readDescriptorFromPort();
 }
 
 ErrCode TailReaderImpl::getAvailableCount(SizeT* count)

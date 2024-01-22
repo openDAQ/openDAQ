@@ -333,10 +333,11 @@ protected:
                         SampleType valueReadType,
                         SampleType domainReadType)
         : readMode(old->readMode)
-        , valueReader(daq::createReaderForType(valueReadType, old->valueReader->getTransformFunction(), old->valueReader->getReadType()))
-        , domainReader(daq::createReaderForType(domainReadType, old->domainReader->getTransformFunction(), old->domainReader->getReadType()))
+        , valueReader(daq::createReaderForType(valueReadType, old->valueReader->getTransformFunction()))
+        , domainReader(daq::createReaderForType(domainReadType, old->domainReader->getTransformFunction()))
     {
         std::unique_lock lock(old->mutex);
+        dataDescriptor = old->dataDescriptor;
         old->invalid = true;
 
         timeoutType = old->timeoutType;
@@ -390,7 +391,7 @@ protected:
         }
     }
 
-    virtual void handleDescriptorChanged(const EventPacketPtr& eventPacket)
+    virtual void handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback = true)
     {
         if (!eventPacket.assigned())
             return;
@@ -402,6 +403,7 @@ protected:
         // Check if value is stil convertible
         if (newValueDescriptor.assigned())
         {
+            dataDescriptor = newValueDescriptor;
             if (valueReader->isUndefined())
             {
                 inferReaderReadType(newValueDescriptor, valueReader);
@@ -431,7 +433,7 @@ protected:
 
         // If both value and domain are still convertible
         // check with the user if new state is valid for them
-        if (!invalid && changeCallback.assigned())
+        if (callChangeCallback && !invalid && changeCallback.assigned())
         {
             bool descriptorOk = false;
             ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor);
@@ -461,18 +463,7 @@ protected:
             }
         }
 
-        const auto signal = port.getSignal();
-        if (!signal.assigned())
-        {
-            throw InvalidStateException("Input port must already have a signal assigned");
-        }
-
-        const auto descriptor = signal.getDescriptor();
-        if (!descriptor.assigned())
-        {
-            throw InvalidStateException("Input port connected signal must have a descriptor assigned.");
-        }
-        handleDescriptorChanged(DataDescriptorChangedEventPacket(descriptor, nullptr));
+        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr), false);
     }
 
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket)
@@ -524,6 +515,8 @@ protected:
     FunctionPtr changeCallback;
     FunctionPtr readCallback;
     ReadTimeoutType timeoutType;
+
+    DataDescriptorPtr dataDescriptor;
 
     std::unique_ptr<Reader> valueReader;
     std::unique_ptr<Reader> domainReader;

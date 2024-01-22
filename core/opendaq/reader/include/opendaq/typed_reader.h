@@ -27,7 +27,7 @@ class Comparable;
 class Reader
 {
 public:
-    explicit Reader(FunctionPtr transform, SampleType descriptorReadType = SampleType::Undefined);
+    explicit Reader(FunctionPtr transform);
     virtual ~Reader() = default;
 
     virtual ErrCode readData(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT count) = 0;
@@ -48,17 +48,13 @@ protected:
     bool ignoreTransform;
     FunctionPtr transformFunction;
     DataDescriptorPtr dataDescriptor;
-    SampleType dataSampleType;
+    SampleType dataSampleType{SampleType::Undefined};
 };
 
 class UndefinedReader final : public Reader
 {
 public:
     using Reader::Reader;
-    explicit UndefinedReader(FunctionPtr transform):
-        Reader(transform, SampleType::Undefined)
-    {
-    }
 
     ErrCode readData(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT count) override
     {
@@ -117,7 +113,7 @@ private:
     SizeT valuesPerSample{1};
 };
 
-std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionPtr& transformFunction, SampleType descriptorReadType = SampleType::Undefined);
+std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionPtr& transformFunction);
 
 extern template class TypedReader<SampleTypeToType<SampleType::Float32>::Type>;
 extern template class TypedReader<SampleTypeToType<SampleType::Float64>::Type>;

@@ -17,6 +17,10 @@ add_executable(${TEST_APP} testapp.cpp
                            ${TEST_SOURCES}
 )
 
+if (MSVC)
+    target_compile_options(${TEST_APP} PRIVATE /bigobj)
+endif()
+
 set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)
 
 target_link_libraries(${TEST_APP} PRIVATE ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}

@@ -1,5 +1,4 @@
 set_cmake_context()
-set_mode(ANCIENT)
 
 add_subdirectory(utils)
 add_subdirectory(signal_generator)
@@ -24,4 +23,5 @@ if (OPENDAQ_ENABLE_NATIVE_STREAMING)
     message(STATUS "Native streaming")
     add_subdirectory(native_streaming_protocol)
     add_subdirectory(packet_streaming)
+    add_subdirectory(config_protocol)    
 endif()

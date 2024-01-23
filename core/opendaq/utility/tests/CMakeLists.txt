@@ -7,7 +7,7 @@ set(MODULE_NAME utility)
 set(TEST_HEADERS
 )
 
-set(TEST_SOURCES test_tags.cpp
+set(TEST_SOURCES
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

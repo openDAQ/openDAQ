@@ -22,6 +22,10 @@ target_link_libraries(${TEST_APP} PRIVATE ${SDK_TARGET_NAMESPACE}::${MODULE_NAME
                                           daq::opendaq_mocks
 )
 
+if (MSVC)
+    target_compile_options(${TEST_APP} PRIVATE /bigobj)
+endif()
+
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE:${TEST_APP}>
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}

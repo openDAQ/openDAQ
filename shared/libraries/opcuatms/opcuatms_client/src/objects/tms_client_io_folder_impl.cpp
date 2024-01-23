@@ -13,7 +13,7 @@ TmsClientIoFolderImpl::TmsClientIoFolderImpl(const ContextPtr& ctx,
                                              const StringPtr& localId,
                                              const TmsClientContextPtr& clientContext,
                                              const opcua::OpcUaNodeId& nodeId)
-    : TmsClientFolderImpl<IoFolderImpl>(ctx, parent, localId, clientContext, nodeId, true)
+    : TmsClientFolderImpl<IoFolderImpl<>>(ctx, parent, localId, clientContext, nodeId, true)
 {
     std::map<uint32_t, ComponentPtr> orderedComponents;
     std::vector<ComponentPtr> unorderedComponents;

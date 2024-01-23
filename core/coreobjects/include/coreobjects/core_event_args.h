@@ -69,6 +69,12 @@ BEGIN_NAMESPACE_OPENDAQ
  *  - The Property object owner of the property under the key "Owner"
  *  - The name of the property as a string under the key "Name"
  *  - The new value of the property under the key "Value"
+ *  - The relative path to the property owner from the sender component under the key "Path".
+ *
+ * The "Path" parameter is used for object-type properties where it represents the path to the property through child Property objects.
+ * Eg. the path to the "MyInt" property of child object-type property named "Child1" on a component would be "Child1". In the case of
+ * deeper nesting of object-type properties (if "Child1" had another object-type property named "Child2") the path would be as follows:
+ * "Child1.Child2.MyInt".
  *
  * The ID of the event is 0, and the event name is "PropertyValueChanged".
  *
@@ -83,6 +89,12 @@ BEGIN_NAMESPACE_OPENDAQ
  *  - The Property object owner of the property under the key "Owner"
  *  - The dictionary of updated properties under the key "UpdatedProperties". The dictionary has the string names
  *  of properties as key, and base object values as values.
+ *  - The relative path to the property owner from the sender component under the key "Path".
+ *
+ * The "Path" parameter is used for object-type properties where it represents the path to the property through child Property objects.
+ * Eg. the path to the "MyInt" property of child object-type property named "Child1" on a component would be "Child1". In the case of
+ * deeper nesting of object-type properties (if "Child1" had another object-type property named "Child2") the path would be as follows:
+ * "Child1.Child2.MyInt".
  *
  * The ID of the event is 10, and the event name is "PropertyObjectUpdateEnd".
  *
@@ -96,11 +108,18 @@ BEGIN_NAMESPACE_OPENDAQ
  * The "added" event contains the following parameters:
  *  - The Property object owner of the property under the key "Owner"
  *  - The added property as a Property object under the key "Property"
+ *  - The relative path to the property owner from the sender component under the key "Path".
  *
  * The "removed" event contains the following parameters:
  *  - The Property object owner of the property under the key "Owner"
  *  - The name of the property as a string under the key "Name"
+ *  - The relative path to the property owner from the sender component under the key "Path".
  *  
+ * The "Path" parameter is used for object-type properties where it represents the path to the property through child Property objects.
+ * Eg. the path to the "MyInt" property of child object-type property named "Child1" on a component would be "Child1". In the case of
+ * deeper nesting of object-type properties (if "Child1" had another object-type property named "Child2") the path would be as follows:
+ * "Child1.Child2.MyInt".
+ *
  * The ID of the Property added event is 20, and the event name is "PropertyAdded".
  * The ID of the Property removed event is 30, and the event name is "PropertyRemoved".
  *
@@ -176,6 +195,15 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * The ID of the event is 100, and the event name is "AttributeChanged".
  *
+ * @subsubsection opendaq_core_event_types_tags_changed Tags changed
+ *
+ * Triggered when a tag of the sender component was added or removed.
+ *
+ * The event contains the following parameters:
+ *  - The list of tags (list of string) under the key "Tags"
+ *
+ * The ID of the connected event is 110, and the event name is "TagsChanged".
+ *
  * @subsection opendaq_core_event_muting Muting core events
  *
  * Components, as previously mentioned, do not trigger core events until they are connected to the root of the
@@ -219,6 +247,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
  * @param propOwner The property object that owns the changed property.
  * @param propName The name of the property of which value was changed.
  * @param value The new value of the property.
+ * @param path The relative path to the property owner from the sender component. Used for object-type properties. Eg. "child1.child2".
+ * Does not include the Component id and property name.
  *
  * The ID of the event is 0, and the event name is "PropertyValueChanged".
  */
@@ -226,7 +256,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, CoreEventArgsPropertyValueChanged, ICoreEventArgs,
     IPropertyObject*, propOwner,
     IString*, propName,
-    IBaseObject*, value
+    IBaseObject*, value,
+    IString*, path
 )
 
 /*!
@@ -234,6 +265,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
  * @param propOwner The property object that was updated.
  * @param updatedProperties The dictionary of updated properties. Contains the name (string) of a property
  * as key, and the new value (base object) as the dictionary value.
+ * @param path The relative path to the property owner from the sender component. Used for object-type properties. Eg. "child1.child2".
+ * Does not include the Component id.
  *
  * A property object finished updating when `endUpdate` is called, or at the end of the `update` call.
  * The ID of the event is 10, and the event name is "PropertyObjectUpdateEnd".
@@ -241,33 +274,40 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, CoreEventArgsPropertyObjectUpdateEnd, ICoreEventArgs,
     IPropertyObject*, propOwner,
-    IDict*, updatedProperties
+    IDict*, updatedProperties,
+    IString*, path
 )
 
 /*!
  * @brief Creates Core event args that are passed as argument when a property is added to a component.
  * @param propOwner The property object that owns the added property.
  * @param prop The property that was added.
+ * @param path The relative path to the property owner from the sender component. Used for object-type properties. Eg. "child1.child2".
+ * Does not include the Component id and property name.
  *
  * The ID of the event is 20, and the event name is "PropertyAdded".
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, CoreEventArgsPropertyAdded, ICoreEventArgs,
     IPropertyObject*, propOwner,
-    IProperty*, prop
+    IProperty*, prop,
+    IString*, path
 )
 
 /*!
  * @brief Creates Core event args that are passed as argument when a property is removed from a component.
  * @param propOwner The property object that owned the removed property.
  * @param propName The name of the property that was removed.
+ * @param path The relative path to the property owner from the sender component. Used for object-type properties. Eg. "child1.child2".
+ * Does not include the Component id and property name.
  *
  * The ID of the event is 30, and the event name is "PropertyRemoved".
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, CoreEventArgsPropertyRemoved, ICoreEventArgs,
     IPropertyObject*, propOwner,
-    IString*, propName
+    IString*, propName,
+    IString*, path
 )
 
 /*!@}*/

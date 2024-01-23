@@ -35,6 +35,9 @@
 #include <map>
 #include <coreobjects/property_internal_ptr.h>
 #include <coreobjects/property_object_internal_ptr.h>
+#include <coreobjects/property_object_protected_ptr.h>
+#include <coreobjects/property_object_factory.h>
+#include <coretypes/validation.h>
 #include <coreobjects/core_event_args_factory.h>
 #include <coretypes/validation.h>
 
@@ -60,8 +63,7 @@ class GenericPropertyObjectImpl : public ImplementationOfWeak<PropObjInterface,
 {
 public:
     explicit GenericPropertyObjectImpl();
-    explicit GenericPropertyObjectImpl(const TypeManagerPtr& manager, const StringPtr& className);
-    explicit GenericPropertyObjectImpl(const TypeManagerPtr& manager, const StringPtr& className, const ProcedurePtr& triggerCoreEvent);
+    explicit GenericPropertyObjectImpl(const TypeManagerPtr& manager, const StringPtr& className, const ProcedurePtr& triggerCoreEvent = nullptr);
 
     virtual ErrCode INTERFACE_FUNC getClassName(IString** className) override;
 
@@ -93,10 +95,13 @@ public:
     virtual ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
     virtual ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
     ErrCode INTERFACE_FUNC getCoreEventTrigger(IProcedure** trigger) override;
-    ErrCode INTERFACE_FUNC setCoreEventTrigger(IProcedure* trigger)override;
+    ErrCode INTERFACE_FUNC setCoreEventTrigger(IProcedure* trigger) override;
+    ErrCode INTERFACE_FUNC clone(IPropertyObject** clonedPropertyObject) override;
+    ErrCode INTERFACE_FUNC setPath(IString* path) override;
 
     // IUpdatable
     virtual ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+    virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
 
     // ISerializable
     virtual ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
@@ -105,7 +110,7 @@ public:
     virtual ErrCode INTERFACE_FUNC toString(CharPtr* str) override;
 
     static ConstCharPtr SerializeId();
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj);
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
     // IOwnable
     virtual ErrCode INTERFACE_FUNC setOwner(IPropertyObject* newOwner) override;
@@ -120,6 +125,17 @@ public:
     // IPropertyObjectProtected
     virtual ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) override;
+    
+    using PropertyValueEventEmitter = EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr>;
+    using EndUpdateEventEmitter = EventEmitter<PropertyObjectPtr, EndUpdateEventArgsPtr>;
+
+    void configureClonedMembers(const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueWriteEvents,
+                                const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueReadEvents,
+                                const EndUpdateEventEmitter& endUpdateEvent,
+                                const ProcedurePtr& triggerCoreEvent,
+                                const PropertyOrderedMap& localProperties,
+                                const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues,
+                                const std::vector<StringPtr>& customOrder);
 
 protected:
     struct UpdatingAction
@@ -137,6 +153,7 @@ protected:
     int updateCount;
     UpdatingActions updatingPropsAndValues;
     bool coreEventMuted;
+    WeakRefPtr<ITypeManager> manager;
 
     void internalDispose(bool) override;
     ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool isUpdating);
@@ -144,13 +161,21 @@ protected:
 
     // Serialization
 
-    ErrCode serializeProperties(ISerializer* serializer);
+    ErrCode serializePropertyValues(ISerializer* serializer);
+    ErrCode serializeLocalProperties(ISerializer* serializer);
 
-    virtual ErrCode serializeCustomValues(ISerializer* serializer);
-    virtual ErrCode serializeProperty(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
+    virtual ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate);
+    virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
 
-    static ErrCode DeserializeProperties(ISerializedObject* serialized, IBaseObject* context, IPropertyObject* propObjPtr);
+    static void DeserializePropertyValues(const SerializedObjectPtr& serialized,
+                                             const BaseObjectPtr& context,
+                                             const FunctionPtr& factoryCallback,
+                                             PropertyObjectPtr& propObjPtr);
 
+    static void DeserializeLocalProperties(const SerializedObjectPtr& serialized,
+                                           const BaseObjectPtr& context,
+                                           const FunctionPtr& factoryCallback,
+                                           PropertyObjectPtr& propObjPtr);
 
     // Child property handling - Used when a property is queried in the "parent.child" format
     bool isChildProperty(const StringPtr& name, StringPtr& childName, StringPtr& subName) const;
@@ -163,9 +188,19 @@ protected:
 
     virtual void updatingValuesWrite(const UpdatingActions& propsAndValues);
     virtual void applyUpdate();
+
+    template <class F>
+    static PropertyObjectPtr DeserializePropertyObject(
+        const SerializedObjectPtr& serialized,
+        const BaseObjectPtr& context,
+        const FunctionPtr& factoryCallback,
+        F&& f);
+
+    // Does not bind property to object and does not look up reference property
+    PropertyPtr getUnboundProperty(const StringPtr& name);
+    PropertyPtr getUnboundPropertyOrNull(const StringPtr& name) const;
+
 private:
-    using PropertyValueEventEmitter = EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr>;
-    using EndUpdateEventEmitter = EventEmitter<PropertyObjectPtr, EndUpdateEventArgsPtr>;
 
     StringPtr className;
     PropertyObjectClassPtr objectClass;
@@ -173,9 +208,11 @@ private:
     std::unordered_map<StringPtr, PropertyValueEventEmitter> valueReadEvents;
     EndUpdateEventEmitter endUpdateEvent;
     ProcedurePtr triggerCoreEvent;
+    StringPtr path;
 
     PropertyOrderedMap localProperties;
     std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
+
 
     // Gets the property, as well as its value. Gets the referenced property, if the property is a refProp
     ErrCode getPropertyAndValueInternal(const StringPtr& name, BaseObjectPtr& value, PropertyPtr& property, bool triggerEvent = true);
@@ -221,11 +258,9 @@ private:
     // Child property handling - Used when a property is queried in the "parent.child" format
     ErrCode getChildPropertyValue(const StringPtr& childName, const StringPtr& subName, BaseObjectPtr& value);
 
-    // Does not bind property to object and does not look up reference property
-    PropertyPtr getUnboundProperty(const StringPtr& name);
-    PropertyPtr getUnboundPropertyOrNull(const StringPtr& name) const;
-    
     PropertyPtr checkForRefPropAndGetBoundProp(PropertyPtr& prop, bool* isReferenced = nullptr) const;
+
+    void cloneAndSetChildPropertyObject(const PropertyPtr& prop);
 
     // Checks whether the property is a reference property that references an already referenced property
     bool hasDuplicateReferences(const PropertyPtr& prop);
@@ -251,17 +286,20 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     , coreEventMuted(true)
     , className(nullptr)
     , objectClass(nullptr)
+    , path("")
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
 }
 
-
 template <typename PropObjInterface, typename... Interfaces>
 GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl(const TypeManagerPtr& manager,
-                                                                                      const StringPtr& className)
+                                                                                      const StringPtr& className,
+                                                                                      const ProcedurePtr& triggerCoreEvent)
     : GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl()
 {
+    this->triggerCoreEvent = triggerCoreEvent;
+
     if (className.assigned() && className != "")
     {
         this->className = className;
@@ -278,16 +316,13 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
             throw InvalidTypeException{"Type with name {} is not a property object class", className};
 
         objectClass = objClass;
-    }
-}
 
-template <typename PropObjInterface, typename... Interfaces>
-GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl(const TypeManagerPtr& manager,
-                                                                                      const StringPtr& className,
-                                                                                      const ProcedurePtr& triggerCoreEvent)
-    : GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl(manager, className)
-{
-    this->triggerCoreEvent = triggerCoreEvent;
+        for (const auto& prop : objectClass.getProperties(true))
+            cloneAndSetChildPropertyObject(prop);
+    }
+
+    if (manager.assigned())
+        this->manager = manager;
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -525,7 +560,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::coerceMinMax(co
 {
     if (!prop.assigned() || !valuePtr.assigned())
         return;
-    
+
     const auto min = prop.getMinValue();
     if (min.assigned())
     {
@@ -718,7 +753,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
         {
             if (prop.getReadOnly())
             {
-                return OPENDAQ_ERR_ACCESSDENIED;
+                CoreType coreType = prop.getCoreType();
+                if (!(coreType == ctObject && isChildProp))
+                    return OPENDAQ_ERR_ACCESSDENIED;
             }
         }
 
@@ -766,6 +803,18 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             validatePropertyWrite(prop, valuePtr);
             coerceMinMax(prop, valuePtr);
 
+            if (prop.getValueType() == ctObject)
+            {
+                const auto objInternal = valuePtr.asPtrOrNull<IPropertyObjectInternal>();
+                if (objInternal.assigned() && !coreEventMuted)
+                {
+                    const auto childPath = path != "" ? path + "." + propName : propName;
+                    objInternal.setPath(childPath);
+                    objInternal.setCoreEventTrigger(triggerCoreEvent);
+                    objInternal.enableCoreEventTrigger();
+                }
+            }
+
             if (isUpdating)
             {
                 updatingPropsAndValues.insert_or_assign(prop, UpdatingAction{true, valuePtr});
@@ -780,18 +829,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
                 {
                     const auto newVal = callPropertyValueWrite(prop, valuePtr, PropertyEventType::Update, false);
                     if (!coreEventMuted && triggerCoreEvent.assigned())
-                        triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, newVal));
-                }
-            }
-
-            if (prop.getValueType() == ctObject)
-            {
-                const auto obj = valuePtr.asPtrOrNull<IPropertyObjectInternal>();
-                if (obj.assigned())
-                {
-                    obj.setCoreEventTrigger(triggerCoreEvent);
-                    if (!coreEventMuted)
-                        obj.enableCoreEventTrigger();
+                        triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, newVal, path));
                 }
             }
         }
@@ -948,6 +986,30 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkFor
     if (isReferenced)
         *isReferenced = false;
     return boundProp;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneAndSetChildPropertyObject(const PropertyPtr& prop)
+{
+    const auto propPtrInternal = prop.asPtr<IPropertyInternal>();
+    if (propPtrInternal.assigned() && propPtrInternal.getValueTypeUnresolved() == ctObject && prop.getDefaultValue().assigned())
+    {
+        const auto propName = prop.getName();
+        const auto defaultValueObjInternal = prop.getDefaultValue().asPtrOrNull<IPropertyObjectInternal>();
+        if (!defaultValueObjInternal.assigned())
+            return;
+        const auto cloned = defaultValueObjInternal.clone();
+        setPropertyValueInternal(propName, cloned, false, true, false);
+
+        if (!coreEventMuted)
+        {
+            const auto childPath = path != "" ? path + "." + propName : propName;
+            const auto clonedInternal = cloned.asPtr<IPropertyObjectInternal>();
+            clonedInternal.setPath(childPath);
+            clonedInternal.setCoreEventTrigger(triggerCoreEvent);
+            clonedInternal.enableCoreEventTrigger();
+        }
+    }
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -1241,6 +1303,25 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearProtect
     return clearPropertyValueInternal(propertyName, true, updateCount > 0);
 }
 
+template <typename PropObjInterface, typename... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureClonedMembers(
+    const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueWriteEvents,
+    const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueReadEvents,
+    const EndUpdateEventEmitter& endUpdateEvent,
+    const ProcedurePtr& triggerCoreEvent,
+    const PropertyOrderedMap& localProperties,
+    const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues,
+    const std::vector<StringPtr>& customOrder)
+{
+    this->valueWriteEvents = valueWriteEvents;
+    this->valueReadEvents = valueReadEvents;
+    this->endUpdateEvent = endUpdateEvent;
+    this->triggerCoreEvent = triggerCoreEvent;
+    this->localProperties = localProperties;
+    this->propValues = propValues;
+    this->customOrder = customOrder;
+}
+
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropertyValue(IString* propertyName)
 {
@@ -1280,7 +1361,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
 
         if (!protectedAccess)
         {
-            if (prop.getReadOnly())
+            if (prop.getReadOnly() && prop.getValueType() != ctObject)
             {
                 return OPENDAQ_ERR_ACCESSDENIED;
             }
@@ -1320,9 +1401,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             else
             {
                 propValues.erase(it);
+                cloneAndSetChildPropertyObject(prop);
+
                 const auto val = callPropertyValueWrite(prop, nullptr, PropertyEventType::Clear, false);
                 if (!coreEventMuted && triggerCoreEvent.assigned())
-                    triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, val));
+                    triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, val, path));
             }
         }
     }
@@ -1378,21 +1461,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
         const auto res = localProperties.insert(std::make_pair(propName, propPtr));
         if (!res.second)
             return this->makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists.)", propName));
+        
+        cloneAndSetChildPropertyObject(propPtr);
 
         if (!coreEventMuted && triggerCoreEvent.assigned())
-            triggerCoreEvent(CoreEventArgsPropertyAdded(objPtr, propPtr));
-
-        const auto propPtrInternal = propPtr.asPtr<IPropertyInternal>();
-        if (propPtrInternal.getValueTypeUnresolved() == ctObject && propPtr.getDefaultValue().assigned())
-        {
-            const auto defaultValueObjInternal = propPtr.getDefaultValue().asPtrOrNull<IPropertyObjectInternal>();
-            if (defaultValueObjInternal.assigned())
-            {
-                defaultValueObjInternal.setCoreEventTrigger(triggerCoreEvent);
-                if (!coreEventMuted)
-                    defaultValueObjInternal.enableCoreEventTrigger();
-            }
-        }
+            triggerCoreEvent(CoreEventArgsPropertyAdded(objPtr, propPtr, path));
 
         return OPENDAQ_SUCCESS;
     });
@@ -1424,7 +1497,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
     }
 
     if(!coreEventMuted && triggerCoreEvent.assigned())
-        triggerCoreEvent(CoreEventArgsPropertyRemoved(objPtr, propertyName));
+        triggerCoreEvent(CoreEventArgsPropertyRemoved(objPtr, propertyName, path));
 
     return OPENDAQ_SUCCESS;
 }
@@ -1644,7 +1717,10 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::applyUpdate()
         }
         else
         {
-            propValues.erase(item.first.getName());
+            const auto prop = item.first;
+            propValues.erase(prop.getName());
+
+            cloneAndSetChildPropertyObject(prop);
         }
 
         if (item.second.setValue)
@@ -1763,24 +1839,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::enableCoreEv
         {
             const auto objInternal = item.second.template asPtrOrNull<IPropertyObjectInternal>();
             if (objInternal.assigned())
-                objInternal.enableCoreEventTrigger();
-        }
-    }
-
-    for (const auto& item : localProperties)
-    {
-        if (item.second.assigned())
-        {
-            const auto  propInternal = item.second.template asPtrOrNull<IPropertyInternal>();
-            if (propInternal.getValueTypeUnresolved() == ctObject)
             {
-                const auto defaultVal = item.second.getDefaultValue();
-                if (defaultVal.assigned())
-                {
-                    const auto objInternal = defaultVal.template asPtrOrNull<IPropertyObjectInternal>();
-                    if (objInternal.assigned())
-                        objInternal.enableCoreEventTrigger();
-                }
+                const auto childPath = path != "" ? path + "." + item.first : item.first;
+                objInternal.setPath(childPath);
+                objInternal.setCoreEventTrigger(triggerCoreEvent);
+                objInternal.enableCoreEventTrigger();
             }
         }
     }
@@ -1840,14 +1903,48 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setCoreEvent
     return OPENDAQ_SUCCESS;
 }
 
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPropertyObject** clonedPropertyObject)
+{
+    OPENDAQ_PARAM_NOT_NULL(clonedPropertyObject);
+
+    const auto managerRef = manager.assigned() ? manager.getRef() : nullptr; 
+    PropertyObjectPtr obj = createWithImplementation<IPropertyObject, PropertyObjectImpl>(managerRef, this->className);
+
+    auto implPtr = static_cast<PropertyObjectImpl*>(obj.getObject());
+    implPtr->configureClonedMembers(valueWriteEvents,
+                                    valueReadEvents,
+                                    endUpdateEvent,
+                                    triggerCoreEvent,
+                                    localProperties,
+                                    propValues,
+                                    customOrder);
+
+    *clonedPropertyObject = obj.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPath(IString* path)
+{
+    OPENDAQ_PARAM_NOT_NULL(path);
+
+    if (this->path == "")
+        this->path = path;
+    else
+        return OPENDAQ_IGNORED;
+
+    return OPENDAQ_SUCCESS;
+}
+
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeCustomValues(ISerializer* /*serializer*/)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeCustomValues(ISerializer* /*serializer*/, bool /*forUpdate*/)
 {
     return OPENDAQ_SUCCESS;
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeProperty(const StringPtr& name,
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValue(const StringPtr& name,
                                                                                       const ObjectPtr<IBaseObject>& value,
                                                                                       ISerializer* serializer)
 {
@@ -1897,12 +1994,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeProperties(ISerializer* serializer)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValues(ISerializer* serializer)
 {
-    bool numOfSerializablePropertyValues = std::count_if(
+    const int numOfSerializablePropertyValues = std::count_if(
         propValues.begin(),
         propValues.end(),
-        [](std::pair<StringPtr, BaseObjectPtr> keyValue) { return keyValue.second.asPtrOrNull<ISerializable>(true).assigned(); });
+        [](const std::pair<StringPtr, BaseObjectPtr>& keyValue) { return keyValue.second.asPtrOrNull<ISerializable>(true).assigned(); });
 
     if (numOfSerializablePropertyValues == 0)
         return OPENDAQ_SUCCESS;
@@ -1918,7 +2015,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
             auto propValue = sorted.find(propName);
             if (propValue != sorted.cend())
             {
-                ErrCode err = serializeProperty(propValue->first, propValue->second, serializer);
+                ErrCode err = serializePropertyValue(propValue->first, propValue->second, serializer);
                 if (OPENDAQ_FAILED(err))
                 {
                     return err;
@@ -1930,7 +2027,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
         // Serialize the rest of without set order
         for (auto&& propValue : sorted)
         {
-            ErrCode err = serializeProperty(propValue.first, propValue.second, serializer);
+            ErrCode err = serializePropertyValue(propValue.first, propValue.second, serializer);
             if (OPENDAQ_FAILED(err))
             {
                 return err;
@@ -1941,6 +2038,26 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
     serializer->endObject();
 
     return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLocalProperties(ISerializer* serializer)
+{
+    return daqTry([&serializer, this]
+    {
+        if (localProperties.size() == 0)
+            return OPENDAQ_NOTFOUND;
+
+        checkErrorInfo(serializer->key("properties"));
+        checkErrorInfo(serializer->startList());
+        for (const auto& prop : localProperties)
+        {
+            prop.second.serialize(serializer);
+        }
+        checkErrorInfo(serializer->endList());
+
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -1956,13 +2073,19 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
         serializer->writeBool(frozen);
     }
 
-    ErrCode errCode = serializeCustomValues(serializer);
+    ErrCode errCode = serializeCustomValues(serializer, false);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
     }
 
-    errCode = serializeProperties(serializer);
+    errCode = serializePropertyValues(serializer);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+
+    errCode = serializeLocalProperties(serializer);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -1972,125 +2095,110 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
     return OPENDAQ_SUCCESS;
 }
 
+template <typename PropObjInterface, typename... Interfaces>
+template <class F>
+PropertyObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializePropertyObject(
+    const SerializedObjectPtr& serialized, const BaseObjectPtr& context, const FunctionPtr& factoryCallback, F&& f)
+{
+    StringPtr className;
+    if (serialized.hasKey("className"))
+        className = serialized.readString("className");
+
+    Bool isFrozen{};
+    if (serialized.hasKey("frozen"))
+        isFrozen = serialized.readBool("frozen");
+
+    PropertyObjectPtr propObjPtr = f(serialized, context, className);
+
+    DeserializeLocalProperties(serialized, context, factoryCallback, propObjPtr);
+
+    DeserializePropertyValues(serialized, context, factoryCallback, propObjPtr);
+
+    if (isFrozen)
+    {
+        const auto freezable = propObjPtr.asPtrOrNull<IFreezable>(true);
+        if (freezable.assigned())
+            freezable.freeze();
+    }
+
+    return propObjPtr;
+}
+
 // static
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
                                                                                 IBaseObject* context,
+                                                                                IFunction* factoryCallback,
                                                                                 IBaseObject** obj)
 {
-    StringPtr className;
-    ErrCode errCode = serialized->readString("className"_daq, &className);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_PARAM_NOT_NULL(serialized);
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
-    Bool isFrozen{};
-    errCode = serialized->readBool("frozen"_daq, &isFrozen);
-    if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
-    daqClearErrorInfo();
-
-    PropertyObjectPtr propObjPtr;
-    TypeManagerPtr objManager;
-
-    if (context != nullptr && OPENDAQ_SUCCEEDED(context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&objManager))))
-    {
-        errCode = createPropertyObjectWithClassAndManager(&propObjPtr, objManager, className);
-    }
-    else
-    {
-        errCode = createPropertyObject(&propObjPtr);
-    }
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
-
-    errCode = DeserializeProperties(serialized, context, propObjPtr);
-    if (isFrozen)
-    {
-        if (ObjectPtr<IFreezable> freezable = propObjPtr.asPtrOrNull<IFreezable>(true); freezable.assigned())
+    return daqTry(
+        [&serialized, &context, &factoryCallback, &obj]()
         {
-            errCode = freezable->freeze();
-            if (OPENDAQ_FAILED(errCode))
-            {
-                return errCode;
-            }
-        }
-    }
-
-    *obj = propObjPtr.addRefAndReturn();
-    return errCode;
+            *obj = DeserializePropertyObject(serialized,
+                                             context,
+                                             factoryCallback,
+                                             [](const SerializedObjectPtr&, const BaseObjectPtr& context, const StringPtr& className)
+                                             {
+                                                 const TypeManagerPtr objManager = context.assigned() ? context.asOrNull<ITypeManager>() : nullptr;
+                                                 if (objManager.assigned())
+                                                     return PropertyObject(objManager, className);
+                                                 return PropertyObject();
+                                             }).detach();
+        });
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeProperties(ISerializedObject* serialized,
-                                                                                          IBaseObject* context, 
-                                                                                          IPropertyObject* propObjPtr)
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializePropertyValues(const SerializedObjectPtr& serialized,
+                                                                                           const BaseObjectPtr& context,
+                                                                                           const FunctionPtr& factoryCallback,
+                                                                                           PropertyObjectPtr& propObjPtr)
 {
-    auto hasKeyStr = String("propValues");
+    const auto hasKeyStr = String("propValues");
 
-    Bool hasKey;
-    ErrCode errCode = serialized->hasKey(hasKeyStr, &hasKey);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    if (!serialized.hasKey(hasKeyStr))
+        return;
 
-    if (!IsTrue(hasKey))
-        return OPENDAQ_SUCCESS;
+    const auto propValues = serialized.readSerializedObject("propValues");
 
-    SerializedObjectPtr propValues;
-    errCode = serialized->readSerializedObject(String("propValues"), &propValues);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    const auto keys = propValues.getKeys();
 
-    ListPtr<IString> keys;
-    errCode = propValues->getKeys(&keys);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
-
-    IPropertyObjectProtected* protectedPropObjPtr{};
-    errCode = propObjPtr->borrowInterface(IPropertyObjectProtected::Id, reinterpret_cast<void**>(&protectedPropObjPtr));
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    const auto protectedPropObjPtr = propObjPtr.asPtr<IPropertyObjectProtected>();
 
     for (const auto& key : keys)
     {
-        IString* keyStr;
-        errCode = key->borrowInterface(IString::Id, reinterpret_cast<void**>(&keyStr));
+        const auto propValue = propValues.readObject(key, context, factoryCallback);
+        protectedPropObjPtr.setProtectedPropertyValue(key, propValue);
+    }
+}
 
-        if (OPENDAQ_FAILED(errCode))
+template <class PropObjInterface, class... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeLocalProperties(const SerializedObjectPtr& serialized,
+                                                                                            const BaseObjectPtr& context,
+                                                                                            const FunctionPtr& factoryCallback,
+                                                                                            PropertyObjectPtr& propObjPtr)
+{
+    const auto keyStr = String("properties");
+
+    const auto hasKey = serialized.hasKey(keyStr);
+
+    if (!IsTrue(hasKey))
+        return;
+
+    const auto propertyList = serialized.readSerializedList(keyStr);
+
+    for (SizeT i = 0; i < propertyList.getCount(); i++)
+    {
+        const PropertyPtr prop = propertyList.readObject(context, factoryCallback);
+        const auto propName = prop.getName();
+
+        if (!propObjPtr.hasProperty(propName))
         {
-            return errCode;
-        }
-
-        BaseObjectPtr propValue;
-        errCode = propValues->readObject(keyStr, context, &propValue);
-
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
-
-        errCode = protectedPropObjPtr->setProtectedPropertyValue(keyStr, propValue);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
+            propObjPtr.addProperty(prop);
         }
     }
-
-    return OPENDAQ_SUCCESS;
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -2252,7 +2360,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updatingValuesW
     }
 
     if(!coreEventMuted && triggerCoreEvent.assigned())
-        triggerCoreEvent(CoreEventArgsPropertyObjectUpdateEnd(objPtr, dict));
+        triggerCoreEvent(CoreEventArgsPropertyObjectUpdateEnd(objPtr, dict, path));
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -2339,6 +2447,35 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISeri
     {
         return OPENDAQ_ERR_GENERALERROR;
     }
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeForUpdate(ISerializer* serializer)
+{
+    serializer->startTaggedObject(this);
+
+    SERIALIZE_PROP_PTR(className)
+
+    if (frozen)
+    {
+        serializer->key("frozen");
+        serializer->writeBool(frozen);
+    }
+
+    ErrCode errCode = serializeCustomValues(serializer, true);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+
+    errCode = serializePropertyValues(serializer);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+
+    serializer->endObject();
+    return OPENDAQ_SUCCESS;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(PropertyObjectImpl)

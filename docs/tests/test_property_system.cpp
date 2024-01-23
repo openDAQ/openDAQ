@@ -69,10 +69,10 @@ TEST_F(PropertySystemTest, ObjectProps)
     auto propObj = PropertyObject();
     auto child1 = PropertyObject();
     auto child2 = PropertyObject();
-
-    propObj.addProperty(ObjectProperty("Child", child1));
-    child1.addProperty(ObjectProperty("Child", child2));
+    
     child2.addProperty(StringProperty("String", "foo"));
+    child1.addProperty(ObjectProperty("Child", child2));
+    propObj.addProperty(ObjectProperty("Child", child1));
 
     // Prints out the value of the "String" property of child2
     ASSERT_EQ(propObj.getPropertyValue("Child.Child.String"), "foo");
@@ -249,13 +249,14 @@ TEST_F(PropertySystemTest, ReadWritePropValues)
 TEST_F(PropertySystemTest, NestedObjects)
 {
     auto propObj = PropertyObject();
-
-    auto child1 = PropertyObject();
-    propObj.addProperty(ObjectProperty("Child", child1));
-
+    
     auto child2 = PropertyObject();
     child2.addProperty(StringProperty("String", "foo"));
+
+    auto child1 = PropertyObject();
     child1.addProperty(ObjectProperty("Child", child2));
+
+    propObj.addProperty(ObjectProperty("Child", child1));
 
     propObj.setPropertyValue("Child.Child.String", "bar");
     ASSERT_EQ(propObj.getPropertyValue("Child.Child.String"), "bar");

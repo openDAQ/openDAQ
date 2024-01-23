@@ -32,14 +32,14 @@
     </Expand>
   </Type>
   <Type Name="daq::CustomFunctionImpl&lt;*,*&gt;">
-    <DisplayString>Procedure, &lt;{refCount}&gt;</DisplayString>
+    <DisplayString>Function, &lt;{refCount}&gt;</DisplayString>
     <Expand>
       <Item Name="[refCount]">refCount</Item>
       <Item Name="proc">functor</Item>
     </Expand>
   </Type>
   <Type Name="daq::FunctionImpl&lt;*,*&gt;">
-    <DisplayString>Procedure, &lt;{refCount}&gt;</DisplayString>
+    <DisplayString>Function, &lt;{refCount}&gt;</DisplayString>
     <Expand>
       <Item Name="[refCount]">refCount</Item>
       <Item Name="proc">functor</Item>

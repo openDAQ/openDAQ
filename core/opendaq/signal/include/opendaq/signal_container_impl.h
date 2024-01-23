@@ -73,8 +73,8 @@ protected:
 
     void removed() override;
 
-    ErrCode serializeCustomValues(ISerializer* serializer) override;
-    virtual void deserializeFunctionBlock(const std::string& fbId,
+    void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
+    virtual void updateFunctionBlock(const std::string& fbId,
                                           const SerializedObjectPtr& serializedFunctionBlock);
     virtual void updateSignal(const std::string& sigId,
                               const SerializedObjectPtr& serializedSignal);
@@ -84,7 +84,24 @@ protected:
 
     void updateObject(const SerializedObjectPtr& obj) override;
 
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
+
+    void serializeFolder(const SerializerPtr& serializer, const FolderConfigPtr& folder, const std::string& id, bool forUpdate);
+
+    template <class FolderPtr>
+    void deserializeFolder(const SerializedObjectPtr& serializedObject,
+                           const BaseObjectPtr& context,
+                           const FunctionPtr& factoryCallback,
+                           FolderPtr& folder,
+                           const std::string& id);
+
     virtual bool clearFunctionBlocksOnUpdate();
+
+private:
+    template <class Component>
+    void swapComponent(Component& origComponent, const Component& newComponent);
 };
 
 template <class Intf = IComponent, class... Intfs>
@@ -436,30 +453,59 @@ void GenericSignalContainerImpl<Intf, Intfs...>::removed()
         component.remove();
 }
 
-template <class Intf, class ... Intfs>
-ErrCode GenericSignalContainerImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serializer)
+template <class Intf, class... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::serializeFolder(const SerializerPtr& serializer,
+                                                                 const FolderConfigPtr& folder,
+                                                                 const std::string& id,
+                                                                 bool forUpdate)
 {
-    auto errCode = Super::serializeCustomValues(serializer);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-
-    return daqTry(
-        [&serializer, this]()
+    if (forUpdate)
+    {
+        if (!folder.isEmpty())
         {
-            if (!signals.isEmpty())
-            {
-                serializer->key("sig");
-                signals.serialize(serializer);
-            }
+            serializer.key(id);
+            folder.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+        }
+    }
+    else
+    {
+        serializer.key(id);
+        folder.serialize(serializer);
+    }
+}
 
-            if (!functionBlocks.isEmpty())
-            {
-                serializer->key("fb");
-                functionBlocks.serialize(serializer);
-            }
+template <class Intf, class... Intfs>
+template <class Component>
+void GenericSignalContainerImpl<Intf, Intfs...>::swapComponent(Component& origComponent, const Component& newComponent)
+{
+    const auto it = std::find(components.begin(), components.end(), origComponent.template asPtr<IComponent>(false));
+    *it = newComponent;
+    origComponent = newComponent;
+}
 
-            return OPENDAQ_SUCCESS;
-        });
+template <class Intf, class... Intfs>
+template <class FolderPtr>
+void GenericSignalContainerImpl<Intf, Intfs...>::deserializeFolder(const SerializedObjectPtr& serializedObject,
+                                                                   const BaseObjectPtr& context,
+                                                                   const FunctionPtr& factoryCallback,
+                                                                   FolderPtr& folder,
+                                                                   const std::string& id)
+{
+    if (serializedObject.hasKey(id))
+    {
+        const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
+        const auto newDeserializeContext = deserializeContext.clone(this->template borrowPtr<ComponentPtr>(), id);
+        const FolderPtr newFolder = serializedObject.readObject(id, newDeserializeContext, factoryCallback);
+        swapComponent(folder, newFolder);
+    }
+}
+
+template <class Intf, class ... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
+{
+    Super::serializeCustomObjectValues(serializer, forUpdate);
+    serializeFolder(serializer, signals, "Sig", forUpdate);
+    serializeFolder(serializer, functionBlocks, "FB", forUpdate);
 }
 
 template <class Intf, class... Intfs>
@@ -467,9 +513,9 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
 {
     Super::updateObject(obj);
 
-    if (obj.hasKey("fb"))
+    if (obj.hasKey("FB"))
     {
-        const auto fbFolder = obj.readSerializedObject("fb");
+        const auto fbFolder = obj.readSerializedObject("FB");
         fbFolder.checkObjectType("Folder");
 
         if (clearFunctionBlocksOnUpdate())
@@ -480,13 +526,13 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
                      "FunctionBlock",
                      [this](const std::string& localId, const SerializedObjectPtr& obj)
                      {
-                         deserializeFunctionBlock(localId, obj);
+                         updateFunctionBlock(localId, obj);
                      });
     }
 
-    if (obj.hasKey("sig"))
+    if (obj.hasKey("Sig"))
     {
-        const auto sigFolder = obj.readSerializedObject("sig");
+        const auto sigFolder = obj.readSerializedObject("Sig");
         sigFolder.checkObjectType("Folder");
 
         updateFolder(sigFolder,
@@ -495,6 +541,18 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
                      [this](const std::string& localId, const SerializedObjectPtr& obj)
                      { updateSignal(localId, obj); });
     }
+}
+
+template <class Intf, class ... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::deserializeCustomObjectValues(
+    const SerializedObjectPtr& serializedObject,
+    const BaseObjectPtr& context,
+    const FunctionPtr& factoryCallback)
+{
+    Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+
+    deserializeFolder(serializedObject, context, factoryCallback, this->signals, "Sig");
+    deserializeFolder(serializedObject, context, factoryCallback, this->functionBlocks, "FB");
 }
 
 template <class Intf, class ... Intfs>
@@ -521,7 +579,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFolder(const SerializedOb
 }
 
 template <class Intf, class... Intfs>
-void GenericSignalContainerImpl<Intf, Intfs...>::deserializeFunctionBlock(const std::string& /*fbId*/,
+void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::string& /*fbId*/,
                                                                           const SerializedObjectPtr& /* serializedFunctionBlock */)
 {
 

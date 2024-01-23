@@ -13,32 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#include <opendaq/tags_config_ptr.h>
+#include <opendaq/component_deserialize_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @ingroup opendaq_tags
- * @addtogroup opendaq_tag_factories Factories
+ * @ingroup opendaq_component
+ * @addtogroup opendaq_component_factories Factories
  * @{
  */
 
-/*!
- * @brief Creates a new Tags object with an empty list of tags.
- */
-inline TagsConfigPtr Tags()
+inline ComponentDeserializeContextPtr ComponentDeserializeContext(const ContextPtr& context,
+                                                                  const ComponentPtr& parent,
+                                                                  const StringPtr& localId)
 {
-    return TagsConfigPtr(Tags_Create());
-}
-
-/*!
- * @brief Creates a new Tags object with the same tags as the other one.
- */
-inline TagsConfigPtr TagsCopy(TagsPtr tags)
-{
-    return TagsConfigPtr(TagsFromExisting_Create(tags));
+    ComponentDeserializeContextPtr obj(ComponentDeserializeContext_Create(context, parent, localId));
+    return obj;
 }
 
 /*!@}*/

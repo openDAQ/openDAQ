@@ -11,7 +11,9 @@
 #include <opendaq/folder_config_ptr.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/signal_factory.h>
+#include <opendaq/tags_private_ptr.h>
 #include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_object_protected_ptr.h>
 
 using namespace daq;
 
@@ -75,15 +77,17 @@ TEST_F(CoreEventTest, PropertyChangedNested)
 {
     const auto context = NullContext();
     const auto component = Component(context, nullptr, "comp");
-    const auto obj1 = PropertyObject();
+
+    const auto defaultObj = PropertyObject();
     const auto obj2 = PropertyObject();
-    component.addProperty(ObjectProperty("obj1", obj1));
+    defaultObj.addProperty(StringProperty("string", "foo"));
+    obj2.addProperty(StringProperty("string", "foo"));
+
+    component.addProperty(ObjectProperty("obj1", defaultObj));
+    const PropertyObjectPtr obj1 = component.getPropertyValue("obj1");
 
     component.addProperty(ObjectProperty("obj2"));
-    component.setPropertyValue("obj2", obj2);
-
-    obj1.addProperty(StringProperty("string", "foo"));
-    obj2.addProperty(StringProperty("string", "foo"));
+    component.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("obj2", obj2);
 
     int callCount = 0;
 
@@ -97,9 +101,14 @@ TEST_F(CoreEventTest, PropertyChangedNested)
         ASSERT_TRUE(args.getParameters().hasKey("Value"));
 
         if (callCount == 0)
+        {
             ASSERT_EQ(obj1, args.getParameters().get("Owner"));
+        }
         else
+        {
             ASSERT_EQ(obj2, args.getParameters().get("Owner"));
+            ASSERT_EQ("obj2", args.getParameters().get("Path"));
+        }
 
         callCount++;
     };
@@ -110,20 +119,87 @@ TEST_F(CoreEventTest, PropertyChangedNested)
     ASSERT_EQ(callCount, 2);
 }
 
+TEST_F(CoreEventTest, MultipleLevelNestedObjectPath)
+{
+    const auto context = NullContext();
+    const auto component = Component(context, nullptr, "comp");
+
+    const auto defaultObj = PropertyObject();
+    const auto defaultObj1 = PropertyObject();
+    const auto defaultObj2 = PropertyObject();
+    defaultObj2.addProperty(IntProperty("IntVal", 5));
+    
+    defaultObj1.addProperty(ObjectProperty("obj3", defaultObj2));
+    defaultObj.addProperty(ObjectProperty("obj2", defaultObj1));
+    component.addProperty(ObjectProperty("obj1", defaultObj));
+
+    int callCount = 0;
+    component.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
+    context.getOnCoreEvent() += [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ("obj1.obj2.obj3", args.getParameters().get("Path"));
+        callCount++;
+    };
+
+    const PropertyObjectPtr obj = component.getPropertyValue("obj1.obj2.obj3");
+    component.setPropertyValue("obj1.obj2.obj3.IntVal", 10);
+    obj.addProperty(StringProperty("test", "test"));
+    obj.removeProperty("test");
+    obj.beginUpdate();
+    obj.endUpdate();
+
+    ASSERT_EQ(callCount, 4);
+}
+
+TEST_F(CoreEventTest, NestedAddAfterCoreEventEnable)
+{
+    const auto context = NullContext();
+    const auto component = Component(context, nullptr, "comp");
+
+    const auto defaultObj = PropertyObject();
+    const auto defaultObj1 = PropertyObject();
+    const auto defaultObj2 = PropertyObject();
+
+    defaultObj2.addProperty(IntProperty("IntVal", 5));
+    defaultObj1.addProperty(ObjectProperty("obj3", defaultObj2));
+
+    component.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    defaultObj.addProperty(ObjectProperty("obj2", defaultObj1));
+    component.addProperty(ObjectProperty("obj1", defaultObj));
+
+    int callCount = 0;
+    context.getOnCoreEvent() += [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ("obj1.obj2.obj3", args.getParameters().get("Path"));
+        callCount++;
+    };
+
+    const PropertyObjectPtr obj = component.getPropertyValue("obj1.obj2.obj3");
+    component.setPropertyValue("obj1.obj2.obj3.IntVal", 10);
+    obj.addProperty(StringProperty("test", "test"));
+    obj.removeProperty("test");
+    obj.beginUpdate();
+    obj.endUpdate();
+
+    ASSERT_EQ(callCount, 4);
+}
+
 TEST_F(CoreEventTest, NestedObjDisableTrigger)
 {
     const auto context = NullContext();
     const auto component = Component(context, nullptr, "comp");
 
-    const auto obj1 = PropertyObject();
+    const auto defaultObj = PropertyObject();
     const auto obj2 = PropertyObject();
-    component.addProperty(ObjectProperty("obj1", obj1));
+    defaultObj.addProperty(StringProperty("string", "foo"));
+    obj2.addProperty(StringProperty("string", "foo"));
+
+    component.addProperty(ObjectProperty("obj1", defaultObj));
+    const PropertyObjectPtr obj1 = component.getPropertyValue("obj1");
 
     component.addProperty(ObjectProperty("obj2"));
-    component.setPropertyValue("obj2", obj2);
-
-    obj1.addProperty(StringProperty("string", "foo"));
-    obj2.addProperty(StringProperty("string", "foo"));
+    component.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("obj2", obj2);
 
     int callCount = 0;
 
@@ -293,12 +369,15 @@ TEST_F(CoreEventTest, PropertyAddedNested)
 {
     const auto context = NullContext();
     const auto component = Component(context, nullptr, "comp");
-    const auto obj1 = PropertyObject();
+
+    const auto defaultObj = PropertyObject();
     const auto obj2 = PropertyObject();
-    component.addProperty(ObjectProperty("obj1", obj1));
+
+    component.addProperty(ObjectProperty("obj1", defaultObj));
+    const PropertyObjectPtr obj1 = component.getPropertyValue("obj1");
 
     component.addProperty(ObjectProperty("obj2"));
-    component.setPropertyValue("obj2", obj2);
+    component.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("obj2", obj2);
 
     int addCount = 0;
     
@@ -356,15 +435,17 @@ TEST_F(CoreEventTest, PropertyRemovedNested)
 {
     const auto context = NullContext();
     const auto component = Component(context, nullptr, "comp");
-    const auto obj1 = PropertyObject();
+
+    const auto defaultObj = PropertyObject();
     const auto obj2 = PropertyObject();
-    component.addProperty(ObjectProperty("obj1", obj1));
+    defaultObj.addProperty(StringProperty("string", "foo"));
+    obj2.addProperty(StringProperty("string", "foo"));
+
+    component.addProperty(ObjectProperty("obj1", defaultObj));
+    const PropertyObjectPtr obj1 = component.getPropertyValue("obj1");
 
     component.addProperty(ObjectProperty("obj2"));
-    component.setPropertyValue("obj2", obj2);
-
-    obj1.addProperty(StringProperty("string", "foo"));
-    obj2.addProperty(StringProperty("string", "foo"));
+    component.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("obj2", obj2);
 
     int removeCount = 0;
     
@@ -1133,4 +1214,88 @@ TEST_F(CoreEventTest, RelatedSignalsChanged)
     sig.removeRelatedSignal(relatedSig3);
 
     ASSERT_EQ(changeCount, 4);
+}
+
+TEST_F(CoreEventTest, NameDescriptionChanged)
+{
+    int changeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventId(), core_event_ids::AttributeChanged);
+            ASSERT_EQ(args.getEventName(), "AttributeChanged");
+            changeCount++;
+        };
+
+    instance.setName("name1");
+    instance.setName("name1");
+    instance.setName("name2");
+    
+    instance.setDescription("desc1");
+    instance.setDescription("desc1");
+    instance.setDescription("desc2");
+
+    instance.getRootDevice().asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    instance.setName("name1");
+    instance.setName("name2");
+    
+    instance.setDescription("desc1");
+    instance.setDescription("desc2");
+
+    instance.getRootDevice().asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    instance.setName("name1");
+    instance.setName("name1");
+    instance.setName("name2");
+    
+    instance.setDescription("desc1");
+    instance.setDescription("desc1");
+    instance.setDescription("desc2");
+
+    ASSERT_EQ(changeCount, 8);
+}
+TEST_F(CoreEventTest, TagsChanged)
+{
+    int changeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventId(), core_event_ids::TagsChanged);
+            ASSERT_EQ(args.getEventName(), "TagsChanged");
+            changeCount++;
+        };
+
+    const auto tagsPrivate = instance.getTags().asPtr<ITagsPrivate>();
+
+    tagsPrivate.add("Tag1");
+    tagsPrivate.add("Tag1");
+    tagsPrivate.add("Tag2");
+    tagsPrivate.add("Tag2");
+
+    ASSERT_EQ(changeCount, 2);
+}
+
+
+TEST_F(CoreEventTest, TagsChangedMuted)
+{
+    instance.getRootDevice().asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    int changeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventId(), core_event_ids::TagsChanged);
+            ASSERT_EQ(args.getEventName(), "TagsChanged");
+            changeCount++;
+        };
+
+    const auto tagsPrivate = instance.getTags().asPtr<ITagsPrivate>();
+
+    tagsPrivate.add("Tag1");
+    tagsPrivate.add("Tag1");
+    tagsPrivate.add("Tag2");
+    tagsPrivate.add("Tag2");
+
+    ASSERT_EQ(changeCount, 0);
 }

@@ -5,6 +5,10 @@
 #include <opendaq/gmock/component.h>
 #include <opendaq/folder_factory.h>
 #include <opendaq/io_folder_factory.h>
+#include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/component_factory.h>
+#include <opendaq/context_factory.h>
+#include <opendaq/tags_private_ptr.h>
 
 using namespace testing;
 
@@ -188,4 +192,45 @@ TEST_F(FolderTest, IOStandardProperties)
 
     ASSERT_EQ(component.getName(), name);
     ASSERT_EQ(component.getDescription(), desc);
+}
+
+TEST_F(FolderTest, SerializeAndDeserialize)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+    folder.setName("fld_name");
+    folder.setDescription("fld_desc");
+    folder.getTags().asPtr<daq::ITagsPrivate>().add("fld_tag");
+
+    const auto component = daq::Component(ctx, nullptr, "component");
+
+    component.setName("comp_name");
+    component.setDescription("comp_desc");
+    component.getTags().asPtr<daq::ITagsPrivate>().add("comp_tag");
+
+    folder.addItem(component);
+
+    const auto serializer = daq::JsonSerializer(daq::True);
+    folder.serialize(serializer);
+    const auto str1 = serializer.getOutput();
+
+    const auto deserializer = daq::JsonDeserializer();
+
+    const auto deserializeContext = daq::ComponentDeserializeContext(ctx, nullptr, "folder");
+
+    const daq::FolderPtr newFolder = deserializer.deserialize(str1, deserializeContext, nullptr);
+
+    ASSERT_EQ(newFolder.getName(), folder.getName());
+    ASSERT_EQ(newFolder.getDescription(), folder.getDescription());
+    ASSERT_EQ(newFolder.getTags(), folder.getTags());
+
+    ASSERT_EQ(newFolder.getItems()[0].getName(), component.getName());
+    ASSERT_EQ(newFolder.getItems()[0].getDescription(), component.getDescription());
+    ASSERT_EQ(newFolder.getItems()[0].getTags(), component.getTags());
+
+    const auto serializer2 = daq::JsonSerializer(daq::True);
+    newFolder.serialize(serializer2);
+    const auto str2 = serializer2.getOutput();
+
+    ASSERT_EQ(str1, str2);
 }

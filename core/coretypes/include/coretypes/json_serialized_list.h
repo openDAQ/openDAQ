@@ -30,9 +30,9 @@ public:
     explicit JsonSerializedList(const JsonList& list);
 
     ErrCode INTERFACE_FUNC readSerializedList(ISerializedList** list) override;
-    ErrCode INTERFACE_FUNC readList(IBaseObject* context, IList** list) override;
+    ErrCode INTERFACE_FUNC readList(IBaseObject* context, IFunction* factoryCallback, IList** list) override;
     ErrCode INTERFACE_FUNC readSerializedObject(ISerializedObject** plainObj) override;
-    ErrCode INTERFACE_FUNC readObject(IBaseObject* context, IBaseObject** obj) override;
+    ErrCode INTERFACE_FUNC readObject(IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj) override;
     ErrCode INTERFACE_FUNC readString(IString** obj) override;
     ErrCode INTERFACE_FUNC readBool(Bool* obj) override;
     ErrCode INTERFACE_FUNC readInt(Int* obj) override;

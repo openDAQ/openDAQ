@@ -4,6 +4,7 @@
 #include "opendaq/io_folder_impl.h"
 #include "opendaq/mirrored_signal_impl.h"
 #include "opendaq/input_port_impl.h"
+#include "opcuatms_client/objects/tms_client_tags_factory.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -43,24 +44,20 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setActive(Bool active)
 template <class Impl>
 void TmsClientComponentBaseImpl<Impl>::initComponent()
 {
+
     try
     {
-        ListPtr<IString> tagValues = this->template readList<IString>("Tags");
-        auto tagsObj = Tags();
-        for (auto tag : tagValues)
-            tagsObj.add(tag);
-        tagsObj.freeze();
-        this->tags = tagsObj.detach();
+        this->tags = TmsClientTags(this->daqContext, this->clientContext, this->getNodeId("Tags"));
     }
     catch([[maybe_unused]] const std::exception& e)
     {
         const auto loggerComponent = getLoggerComponent();
-        LOG_D("OpcUA Component {} failed to fetch tags: {}", this->globalId, e.what());
+        LOG_W("OpcUA Component {} failed to initialize: {}", this->globalId, e.what());
     }
     catch(...)
     {
         const auto loggerComponent = getLoggerComponent();
-        LOG_D("OpcUA Component {} failed to fetch tags.", this->globalId);
+        LOG_W("OpcUA Component {} failed to initialize", this->globalId);
     }
 }
 
@@ -181,7 +178,7 @@ LoggerComponentPtr TmsClientComponentBaseImpl<Impl>::getLoggerComponent()
 }
 template class TmsClientComponentBaseImpl<ComponentImpl<>>;
 template class TmsClientComponentBaseImpl<FolderImpl<IFolderConfig>>;
-template class TmsClientComponentBaseImpl<IoFolderImpl>;
+template class TmsClientComponentBaseImpl<IoFolderImpl<>>;
 template class TmsClientComponentBaseImpl<Device>;
 template class TmsClientComponentBaseImpl<FunctionBlock>;
 template class TmsClientComponentBaseImpl<Channel>;

@@ -128,7 +128,7 @@ ConstCharPtr DataRuleImpl::SerializeId()
     return "DataRule";
 }
 
-ErrCode DataRuleImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IBaseObject** obj)
+ErrCode DataRuleImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction*, IBaseObject** obj)
 {
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
     auto ruleType = static_cast<DataRuleType>(serializedObj.readInt("ruleType"));

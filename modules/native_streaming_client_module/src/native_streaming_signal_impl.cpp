@@ -105,4 +105,11 @@ void NativeStreamingSignalImpl::removeDomainSignal()
     mirroredDomainSignal = nullptr;
 }
 
+void NativeStreamingSignalImpl::assignDescriptor(const DataDescriptorPtr& descriptor)
+{
+    std::scoped_lock lock(signalMutex);
+
+    mirroredDataDescriptor = descriptor;
+}
+
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

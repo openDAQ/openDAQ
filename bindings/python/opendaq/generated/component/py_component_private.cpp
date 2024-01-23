@@ -35,7 +35,7 @@ PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> declareIComponentPrivate(pyb
 
 void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> cls)
 {
-    cls.doc() = "";
+    cls.doc() = "Provides access to private methods of the component.";
 
     cls.def("lock_attributes",
         [](daq::IComponentPrivate *object, daq::IList* attributes)
@@ -44,14 +44,14 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
             objectPtr.lockAttributes(attributes);
         },
         py::arg("attributes"),
-        "");
+        "Locks the attributes contained in the provided list.");
     cls.def("lock_all_attributes",
         [](daq::IComponentPrivate *object)
         {
             const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
             objectPtr.lockAllAttributes();
         },
-        "");
+        "Locks all attributes of the component.");
     cls.def("unlock_attributes",
         [](daq::IComponentPrivate *object, daq::IList* attributes)
         {
@@ -59,14 +59,14 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
             objectPtr.unlockAttributes(attributes);
         },
         py::arg("attributes"),
-        "");
+        "Unlocks the attributes contained in the provided list.");
     cls.def("unlock_all_attributes",
         [](daq::IComponentPrivate *object)
         {
             const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
             objectPtr.unlockAllAttributes();
         },
-        "");
+        "Unlocks all attributes of the component.");
     cls.def("trigger_component_core_event",
         [](daq::IComponentPrivate *object, daq::ICoreEventArgs* args)
         {
@@ -74,5 +74,5 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
             objectPtr.triggerComponentCoreEvent(args);
         },
         py::arg("args"),
-        "");
+        "Triggers the component-specific core event with the provided arguments.");
 }

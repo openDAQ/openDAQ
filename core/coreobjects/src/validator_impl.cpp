@@ -79,7 +79,10 @@ ConstCharPtr ValidatorImpl::SerializeId()
     return "Validator";
 }
 
-ErrCode ValidatorImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IBaseObject** obj)
+ErrCode ValidatorImpl::Deserialize(ISerializedObject* serialized,
+                                   IBaseObject* /*context*/,
+                                   IFunction* /*factoryCallback*/,
+                                   IBaseObject** obj)
 {
     const SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
     const StringPtr str = serializedObj.readString("EvalStr");

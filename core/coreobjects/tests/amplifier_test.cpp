@@ -715,7 +715,7 @@ TEST_F(STGAmplifierTest, Deserialize)
     auto deserializer = JsonDeserializer();
 
     BaseObjectPtr deserialized;
-    deserializer->deserialize(str, objManager, & deserialized);
+    deserializer->deserialize(str, objManager, nullptr, &deserialized);
 
     /*    ASSERT_FALSE(OPENDAQ_FAILED(errCode));
 

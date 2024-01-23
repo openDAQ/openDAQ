@@ -1,11 +1,63 @@
-12.01.2024
-Add debug logger sink for testing purpose
+23.01.2024
+Description:
+	- Add debug logger sink for testing purpose
+
 + [interface] ILastMessageLoggerSinkPrivate : public IBaseObject
 + [function] ILastMessageLoggerSinkPrivate::getLastMessage(IString** lastMessage)
 + [function] ILastMessageLoggerSinkPrivate::waitForMessage(SizeT timeoutMs, Bool* success)
 + [factory] LoggerSinkPtr LastMessageLoggerSink()
 
+23.1.2024
+Description:
+	- Change ITagsConfig to ITagsPrivate and remove inheritance
+	- Add TagsChanged core event
+	- Make Tags changeable after creation (Tags are no longer freezable)
+	
+-m [interface] ITagsConfig : public ITags
++m [interface] ITagsPrivate : public IBaseObject
+- [factory] inline TagsConfigPtr TagsCopy(TagsPtr tags)
+-m [factory] inline TagsConfigPtr Tags()
++m [factory] inline TagsPtr Tags()
+-m [function] IComponent::getTags(ITagsConfig** tags)
+-m [function] IComponent::getTags(ITags** tags)
+
+22.1.2024
+Description:
+  - Support for external deserialization factory
+  
+-m [function] IDeserializer::deserialize(IString* serialized, IBaseObject* context, IBaseObject** object)
++m [function] IDeserializer::deserialize(IString* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** object)
+-m [function] ISerializedObject::readList(IString* key, IBaseObject* context, IList** list)
++m [function] ISerializedObject::readList(IString* key, IBaseObject* context, IFunction* factoryCallback, IList** list)
+-m [function] ISerializedObject::readObject(IString* key, IBaseObject* context, IBaseObject** obj)
++m [function] ISerializedObject::readObject(IString* key, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+-m [function] ISerializedList::readObject(IBaseObject* context, IBaseObject** obj)
++m [function] ISerializedList::readObject(IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+-m [function] ISerializedList::readList(IBaseObject* context, IBaseObject** obj)
++m [function] ISerializedList::readList(IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
++  [function] IUpdatable::serializeForUpdate(ISerializer* serializer)
++  [interface] IComponentDeserializeContext: public IBaseObject
++  [interface] IDeserializeComponent: public IBaseObject
+
+16.01.2024
+Nested object-type property enhancement
+  - Object-type property default values are now frozen when added to Property objects 
+  - Said default values are cloned as local values that can be modified by users
+  - Property object core events now contain the path to the property if the property is contained within a nested property object
+
++ [function] IPropertyObjectInternal::clone(IPropertyObject** cloned)
++ [function] IPropertyObjectInternal::setPath(IString* path)
+-m [factory] CoreEventArgsPtr CoreEventArgsPropertyValueChanged(const PropertyObjectPtr& propOwner, const StringPtr& propName, const BaseObjectPtr& value)
++m [factory] CoreEventArgsPtr CoreEventArgsPropertyValueChanged(const PropertyObjectPtr& propOwner, const StringPtr& propName, const BaseObjectPtr& value, const StringPtr& path)
+-m [factory] CoreEventArgsPtr CoreEventArgsPropertyObjectUpdateEnd(const PropertyObjectPtr& propOwner, const DictPtr<IString, IBaseObject>& updatedProperties)
++m [factory] CoreEventArgsPtr CoreEventArgsPropertyObjectUpdateEnd(const PropertyObjectPtr& propOwner, const DictPtr<IString, IBaseObject>& updatedProperties, const StringPtr& path)
+-m [factory] CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyObjectPtr& propOwner, const PropertyPtr& prop)
++m [factory] CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyObjectPtr& propOwner, const PropertyPtr& prop, const StringPtr& path)
+-m [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName)
++m [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName, const StringPtr& path)
+
 12.01.2024
+Description:
 Search filters, visible flag, component attributes
   - Add SearchFilter that allows for more granular component search on tree traversal methods (getItems, getSignals...)
   - Add visible flag to Component

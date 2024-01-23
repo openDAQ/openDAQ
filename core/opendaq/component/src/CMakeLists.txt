@@ -12,8 +12,12 @@ rtgen(SRC_SearchFilter search_filter.h)
 rtgen(SRC_Folder folder.h)
 rtgen(SRC_FolderConfig folder_config.h)
 rtgen(SRC_Removable removable.h)
+rtgen(SRC_ComponentDeserializeContext component_deserialize_context.h)
+rtgen(SRC_DeserializeComponent deserialize_component.h)
 rtgen(SRC_RecursiveSearch recursive_search.h)
 rtgen(SRC_ComponentPrivate component_private.h)
+rtgen(SRC_Tags tags.h)
+rtgen(SRC_TagsPrivate tags_private.h)
 
 source_group("component" FILES ${SDK_HEADERS_DIR}/component.h
                                ${SDK_HEADERS_DIR}/component_impl.h
@@ -26,8 +30,13 @@ source_group("component" FILES ${SDK_HEADERS_DIR}/component.h
                                ${SDK_HEADERS_DIR}/folder_factory.h
                                ${SDK_HEADERS_DIR}/component_keys.h
                                ${SDK_HEADERS_DIR}/removable.h
+							   ${SDK_HEADERS_DIR}/deserialize_component.h
+							   ${SDK_HEADERS_DIR}/component_deserialize_context.h
+							   ${SDK_HEADERS_DIR}/component_deserialize_context_impl.h
+							   ${SDK_HEADERS_DIR}/component_deserialize_context_factory.h
                                component_impl.cpp
                                folder_impl.cpp
+							   component_deserialize_context.cpp
 )
 
 source_group("search_filter" FILES ${SDK_HEADERS_DIR}/search_filter.h
@@ -37,10 +46,20 @@ source_group("search_filter" FILES ${SDK_HEADERS_DIR}/search_filter.h
                                    search_filter_impl.cpp
 )
 
+source_group("tag" FILES  ${SDK_HEADERS_DIR}/tags_impl.h
+                          ${SDK_HEADERS_DIR}/tags.h
+                          ${SDK_HEADERS_DIR}/tags_factory.h
+                          ${SDK_HEADERS_DIR}/tags_private.h
+                          tags_impl.cpp
+)
+
+
 set(SRC_Cpp 
     component_impl.cpp
     folder_impl.cpp
+	component_deserialize_context_impl.cpp
     search_filter_impl.cpp
+    tags_impl.cpp
 )
 
 
@@ -49,12 +68,17 @@ set(SRC_PublicHeaders
     component_ptr.custom.h
     folder_factory.h
     folder_impl.h
+    deserialize_component.h
     component_factory.h
+	component_deserialize_context_factory.h
+    component_deserialize_context_impl.h	
     search_filter_factory.h
+    tags_factory.h
 )
 
 set(SRC_PrivateHeaders
     search_filter_impl.h
+	tags_impl.h      
 )
 
 prepend_include(${MAIN_TARGET} SRC_PublicHeaders)
@@ -63,7 +87,11 @@ prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)
 list(APPEND SRC_Cpp ${SRC_Component_Cpp}
                     ${SRC_Folder_Cpp}
                     ${SRC_FolderConfig_Cpp}
+                    ${SRC_FolderConfig_Cpp}
+					${SRC_ComponentDeserializeContext_Cpp}
                     ${SRC_SearchFilter_Cpp}
+					${SRC_Tags_Cpp}
+					${SRC_TagsPrivate_Cpp}
 )
 
 list(APPEND SRC_PublicHeaders ${SRC_Component_PublicHeaders}
@@ -71,9 +99,12 @@ list(APPEND SRC_PublicHeaders ${SRC_Component_PublicHeaders}
                               ${SRC_FolderConfig_PublicHeaders}
                               ${SRC_IoFolder_PublicHeaders}
                               ${SRC_Removable_PublicHeaders}
+                              ${SRC_ComponentDeserializeContext_PublicHeaders}
                               ${SRC_SearchFilter_PublicHeaders}
                               ${SRC_RecursiveSearch_PublicHeaders}
                               ${SRC_ComponentPrivate_PublicHeaders}
+							  ${SRC_Tags_PublicHeaders}
+							  ${SRC_TagsPrivate_PublicHeaders}
 )
 
 opendaq_add_library(${BASE_NAME} STATIC

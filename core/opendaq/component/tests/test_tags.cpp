@@ -1,4 +1,5 @@
 #include <opendaq/tags_factory.h>
+#include <opendaq/tags_private_ptr.h>
 #include <gtest/gtest.h>
 
 using namespace daq;
@@ -15,7 +16,8 @@ TEST_F(TagsTest, ContainsTagNullName)
 TEST_F(TagsTest, AddTag)
 {
     auto tags = Tags();
-    tags.add("test1");
+    auto tagsPrivate = tags.asPtr<ITagsPrivate>();
+    tagsPrivate.add("test1");
 
     ASSERT_TRUE(tags.contains("test1"));
 }
@@ -23,14 +25,17 @@ TEST_F(TagsTest, AddTag)
 TEST_F(TagsTest, AddTagNullName)
 {
     auto tags = Tags();
-    ASSERT_THROW(tags.add(nullptr), ArgumentNullException);
+    auto tagsPrivate = tags.asPtr<ITagsPrivate>();
+    ASSERT_THROW(tagsPrivate.add(nullptr), ArgumentNullException);
 }
 
 TEST_F(TagsTest, DuplicateTag)
 {
     auto tags = Tags();
-    tags.add("test1");
-    ASSERT_THROW(tags.add("test1"), DuplicateItemException);
+    auto tagsPrivate = tags.asPtr<ITagsPrivate>();
+    tagsPrivate.add(String("test1"));
+    ErrCode err = tagsPrivate->add(String("test1"));
+    ASSERT_EQ(err, OPENDAQ_IGNORED);
 }
 
 TEST_F(TagsTest, TagNotFound)
@@ -43,30 +48,35 @@ TEST_F(TagsTest, TagNotFound)
 TEST_F(TagsTest, RemoveTag)
 {
     auto tags = Tags();
-    tags.add("test1");
-    tags.remove("test1");
+    auto tagsPrivate = tags.asPtr<ITagsPrivate>();
+    tagsPrivate.add("test1");
+    tagsPrivate.remove("test1");
     ASSERT_FALSE(tags.contains("test1"));
 }
 
 TEST_F(TagsTest, RemoveTagNotFound)
 {
     auto tags = Tags();
-    ASSERT_THROW(tags.remove("test1"), NotFoundException);
+    auto tagsPrivate = tags.asPtr<ITagsPrivate>();
+    ErrCode err = tagsPrivate->remove(String("test1"));
+    ASSERT_EQ(err, OPENDAQ_IGNORED);
 }
 
 TEST_F(TagsTest, RemoveTagNullName)
 {
     auto tags = Tags();
-    ASSERT_THROW(tags.remove(nullptr), ArgumentNullException);
+    auto tagsPrivate = tags.asPtr<ITagsPrivate>();
+    ASSERT_THROW(tagsPrivate.remove(nullptr), ArgumentNullException);
 }
 
 TEST_F(TagsTest, MultipleTags)
 {
     auto tags = Tags();
-    tags.add("test1");
-    tags.add("test2");
-    tags.add("test3");
-    tags.remove("test2");
+    auto tagsPrivate = tags.asPtr<ITagsPrivate>();
+    tagsPrivate.add("test1");
+    tagsPrivate.add("test2");
+    tagsPrivate.add("test3");
+    tagsPrivate.remove("test2");
     ASSERT_TRUE(tags.contains("test1"));
     ASSERT_FALSE(tags.contains("test2"));
     ASSERT_TRUE(tags.contains("test3"));
@@ -76,16 +86,17 @@ TEST_F(TagsTest, MultipleTags)
 TEST_F(TagsTest, Query)
 {
     auto tags = Tags();
-    tags.add("test1");
-    tags.add("test2");
-    tags.add("test3");
+    auto tagsPrivate = tags.asPtr<ITagsPrivate>();
+    tagsPrivate.add("test1");
+    tagsPrivate.add("test2");
+    tagsPrivate.add("test3");
 
     ASSERT_TRUE(tags.query("test1"));
     ASSERT_TRUE(tags.query("test1 && test3"));
     ASSERT_FALSE(tags.query("test1 && test4"));
     ASSERT_TRUE(tags.query("test1 && !test4"));
 
-    tags.add("test4");
+    tagsPrivate.add("test4");
     ASSERT_TRUE(tags.query("test1 && test4"));
     ASSERT_FALSE(tags.query("test1 && !test4"));
     ASSERT_TRUE(tags.query("test2 || test5"));
@@ -93,46 +104,41 @@ TEST_F(TagsTest, Query)
     ASSERT_FALSE(tags.query("test2 && (test3 && (test5 || test6))"));
 }
 
-TEST_F(TagsTest, Freeze)
-{
-    auto tags = Tags();
-    tags.freeze();
-    ASSERT_TRUE(tags.isFrozen());
-
-    ASSERT_THROW(tags.add("test"), FrozenException);
-    ASSERT_THROW(tags.remove("test"), FrozenException);
-}
-
 TEST_F(TagsTest, Equals)
 {
     auto tags = Tags();
-    tags.add("jovanka");
-    tags.add("greta");
-    tags.add("marica");
+    auto tagsPrivate = tags.asPtr<ITagsPrivate>();
+    tagsPrivate.add("jovanka");
+    tagsPrivate.add("greta");
+    tagsPrivate.add("marica");
 
     auto tagsCopy = Tags();
-    tagsCopy.add("jovanka");
-    tagsCopy.add("greta");
-    tagsCopy.add("marica");
+    auto tagsCopyPrivate = tagsCopy.asPtr<ITagsPrivate>();
+    tagsCopyPrivate.add("jovanka");
+    tagsCopyPrivate.add("greta");
+    tagsCopyPrivate.add("marica");
 
     auto tagsDifferentOrder = Tags();
-    tagsDifferentOrder.add("greta");
-    tagsDifferentOrder.add("jovanka");
-    tagsDifferentOrder.add("marica");
+    auto tagsDifferentOrderPrivate = tagsDifferentOrder.asPtr<ITagsPrivate>();
+    tagsDifferentOrderPrivate.add("greta");
+    tagsDifferentOrderPrivate.add("jovanka");
+    tagsDifferentOrderPrivate.add("marica");
 
     ASSERT_TRUE(BaseObjectPtr::Equals(tags, tagsCopy));
     ASSERT_TRUE(BaseObjectPtr::Equals(tags, tagsDifferentOrder));
 
     auto tagsDifferentValues = Tags();
-    tagsDifferentValues.add("jovanka");
-    tagsDifferentValues.add("greta");
-    tagsDifferentValues.add("andreja");
+    auto tagsDifferentValuesPrivate = tagsDifferentValues.asPtr<ITagsPrivate>();
+    tagsDifferentValuesPrivate.add("jovanka");
+    tagsDifferentValuesPrivate.add("greta");
+    tagsDifferentValuesPrivate.add("andreja");
 
     ASSERT_FALSE(BaseObjectPtr::Equals(tags, tagsDifferentValues));
 
     auto tagsDifferentSize = Tags();
-    tagsDifferentSize.add("jovanka");
-    tagsDifferentSize.add("greta");
+    auto tagsDifferentSizePrivate = tagsDifferentSize.asPtr<ITagsPrivate>();
+    tagsDifferentSizePrivate.add("jovanka");
+    tagsDifferentSizePrivate.add("greta");
 
     ASSERT_FALSE(BaseObjectPtr::Equals(tags, tagsDifferentSize));
     ASSERT_FALSE(BaseObjectPtr::Equals(tags, nullptr));
@@ -141,9 +147,10 @@ TEST_F(TagsTest, Equals)
 TEST_F(TagsTest, Serialize)
 {
     auto tags = Tags();
-    tags.add("greta");
-    tags.add("jovanka");
-    tags.add("marica");
+    auto tagsPrivate = tags.asPtr<ITagsPrivate>();
+    tagsPrivate.add("greta");
+    tagsPrivate.add("jovanka");
+    tagsPrivate.add("marica");
 
     const auto serializer = JsonSerializer(False);
     tags.serialize(serializer);

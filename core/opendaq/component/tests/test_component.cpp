@@ -9,6 +9,7 @@
 #include <coreobjects/property_object_class_factory.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/component_factory.h>
+#include <opendaq/component_deserialize_context_factory.h>
 
 using namespace daq;
 using namespace testing;
@@ -115,6 +116,41 @@ TEST_F(ComponentTest, SerializeAndUpdate)
 
     ASSERT_EQ(newComponent.getName(), name);
     ASSERT_EQ(newComponent.getDescription(), desc);
+
+    const auto serializer2 = JsonSerializer(True);
+    newComponent.serialize(serializer2);
+    const auto str2 = serializer2.getOutput();
+
+    ASSERT_EQ(str1, str2);
+}
+
+TEST_F(ComponentTest, SerializeAndDeserialize)
+{
+    const auto name = "foo";
+    const auto desc = "bar";
+    const auto component = Component(NullContext(), nullptr, "temp");
+
+    component.setName(name);
+    component.setDescription(desc);
+    component.getTags().asPtr<ITagsPrivate>().add("tag");
+
+    component.addProperty(IntPropertyBuilder("prop", 2).build());
+    component.setPropertyValue("prop", 3);
+
+    const auto serializer = JsonSerializer(True);
+    component.serialize(serializer);
+    const auto str1 = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const auto deserializeContext = ComponentDeserializeContext(NullContext(), nullptr, "temp");
+
+    const ComponentPtr newComponent = deserializer.deserialize(str1, deserializeContext, nullptr);
+
+    ASSERT_EQ(newComponent.getName(), name);
+    ASSERT_EQ(newComponent.getDescription(), desc);
+    ASSERT_EQ(newComponent.getTags(), component.getTags());
+    ASSERT_EQ(newComponent.getPropertyValue("prop"), component.getPropertyValue("prop"));
 
     const auto serializer2 = JsonSerializer(True);
     newComponent.serialize(serializer2);

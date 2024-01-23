@@ -36,6 +36,9 @@ public:
     std::promise< StringPtr > unsubscribedAckPromise;
     std::future< StringPtr > unsubscribedAckFuture;
 
+    std::promise< ClientReconnectionStatus > reconnectionStatusPromise;
+    std::future< ClientReconnectionStatus > reconnectionStatusFuture;
+
     std::shared_ptr<NativeStreamingClientHandler> clientHandler;
     ContextPtr clientContext;
 
@@ -44,6 +47,7 @@ public:
     OnSignalUnavailableCallback signalUnavailableHandler;
     OnPacketCallback packetHandler;
     OnSignalSubscriptionAckCallback signalSubscriptionAckHandler;
+    OnReconnectionStatusChangedCallback reconnectionStatusChangedHandler;
 
     /// async operations handler
     std::shared_ptr<boost::asio::io_context> ioContextPtrClient;
@@ -69,6 +73,9 @@ public:
 
         unsubscribedAckPromise = std::promise< StringPtr >();
         unsubscribedAckFuture = unsubscribedAckPromise.get_future();
+
+        reconnectionStatusPromise = std::promise< ClientReconnectionStatus >();
+        reconnectionStatusFuture = reconnectionStatusPromise.get_future();
 
         signalAvailableHandler = [this](const StringPtr& signalStringId,
                                         const StringPtr& domainSignalStringId,
@@ -104,6 +111,11 @@ public:
                 subscribedAckPromise.set_value(signalStringId);
             else
                 unsubscribedAckPromise.set_value(signalStringId);
+        };
+
+        reconnectionStatusChangedHandler = [this](ClientReconnectionStatus status)
+        {
+            reconnectionStatusPromise.set_value(status);
         };
 
         ioContextPtrClient = std::make_shared<boost::asio::io_context>();
@@ -158,10 +170,6 @@ public:
             signalUnsubscribedPromise.set_value(signal);
         };
 
-        ioContextPtrServer = std::make_shared<boost::asio::io_context>();
-        workGuardServer = std::make_unique<WorkGuardType>(ioContextPtrServer->get_executor());
-        execThreadServer = std::thread([this]() { ioContextPtrServer->run(); });
-
         clientsCount = std::get<0>(GetParam());
         clients = std::vector<ClientAttributes>(clientsCount);
         for (size_t i = 0; i < clients.size(); ++i)
@@ -174,12 +182,7 @@ public:
     {
         if (std::get<1>(GetParam())) // stop server first
         {
-            ioContextPtrServer->stop();
-            if (execThreadServer.joinable())
-                execThreadServer.join();
-            workGuardServer.reset();
-            ioContextPtrServer.reset();
-            serverHandler.reset();
+            stopServer();
             for (auto& client : clients)
                 client.tearDown();
         }
@@ -187,13 +190,45 @@ public:
         {
             for (auto& client : clients)
                 client.tearDown();
-            ioContextPtrServer->stop();
-            if (execThreadServer.joinable())
-                execThreadServer.join();
-            workGuardServer.reset();
-            ioContextPtrServer.reset();
-            serverHandler.reset();
+            stopServer();
         }
+    }
+
+    std::shared_ptr<NativeStreamingClientHandler> createClient(const ClientAttributes& client,
+                                                               OnSignalAvailableCallback signalAvailableHandler)
+    {
+        return std::make_shared<NativeStreamingClientHandler>(client.clientContext,
+                                                              client.ioContextPtrClient,
+                                                              signalAvailableHandler,
+                                                              client.signalUnavailableHandler,
+                                                              client.packetHandler,
+                                                              client.signalSubscriptionAckHandler,
+                                                              client.reconnectionStatusChangedHandler);
+    }
+
+    void startServer(const ListPtr<ISignal>& signalsList)
+    {
+        ioContextPtrServer = std::make_shared<boost::asio::io_context>();
+        workGuardServer = std::make_unique<WorkGuardType>(ioContextPtrServer->get_executor());
+        execThreadServer = std::thread([this]() { ioContextPtrServer->run(); });
+
+        serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
+                                                                       ioContextPtrServer,
+                                                                       signalsList,
+                                                                       signalSubscribedHandler,
+                                                                       signalUnsubscribedHandler);
+        serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
+    }
+
+    void stopServer()
+    {
+        if (ioContextPtrServer)
+            ioContextPtrServer->stop();
+        if (execThreadServer.joinable())
+            execThreadServer.join();
+        workGuardServer.reset();
+        ioContextPtrServer.reset();
+        serverHandler.reset();
     }
 
 protected:
@@ -234,12 +269,7 @@ TEST_P(ProtocolTest, CreateClient)
 {
     for (auto& client : clients)
     {
-        client.clientHandler =
-            std::make_shared<NativeStreamingClientHandler>(client.clientContext,
-                                                           client.signalAvailableHandler,
-                                                           client.signalUnavailableHandler,
-                                                           client.packetHandler,
-                                                           client.signalSubscriptionAckHandler);
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
     }
 }
 
@@ -247,34 +277,52 @@ TEST_P(ProtocolTest, ClientConnectFailed)
 {
     for (auto& client : clients)
     {
-        client.clientHandler =
-            std::make_shared<NativeStreamingClientHandler>(client.clientContext,
-                                                           client.signalAvailableHandler,
-                                                           client.signalUnavailableHandler,
-                                                           client.packetHandler,
-                                                           client.signalSubscriptionAckHandler);
-        ASSERT_FALSE(client.clientHandler->connect(client.ioContextPtrClient, SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_FALSE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
     }
 }
 
 TEST_P(ProtocolTest, ConnectDisconnectNoSignals)
 {
-    serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                   ioContextPtrServer,
-                                                                   List<ISignal>(),
-                                                                   signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler);
-    serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
+    startServer(List<ISignal>());
 
     for (auto& client : clients)
     {
-        client.clientHandler =
-            std::make_shared<NativeStreamingClientHandler>(client.clientContext,
-                                                           client.signalAvailableHandler,
-                                                           client.signalUnavailableHandler,
-                                                           client.packetHandler,
-                                                           client.signalSubscriptionAckHandler);
-        ASSERT_TRUE(client.clientHandler->connect(client.ioContextPtrClient, SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    }
+}
+
+TEST_P(ProtocolTest, Reconnection)
+{
+    startServer(List<ISignal>());
+
+    for (auto& client : clients)
+    {
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    }
+
+    stopServer();
+
+    for (auto& client : clients)
+    {
+        ASSERT_EQ(client.reconnectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
+        ASSERT_EQ(client.reconnectionStatusFuture.get(), ClientReconnectionStatus::Reconnecting);
+
+        client.reconnectionStatusPromise = std::promise< ClientReconnectionStatus >();
+        client.reconnectionStatusFuture = client.reconnectionStatusPromise.get_future();
+    }
+
+    startServer(List<ISignal>());
+
+    for (auto& client : clients)
+    {
+        ASSERT_EQ(client.reconnectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
+        ASSERT_EQ(client.reconnectionStatusFuture.get(), ClientReconnectionStatus::Restored);
+
+        client.reconnectionStatusPromise = std::promise< ClientReconnectionStatus >();
+        client.reconnectionStatusFuture = client.reconnectionStatusPromise.get_future();
     }
 }
 
@@ -284,22 +332,12 @@ TEST_P(ProtocolTest, ConnectDisconnectWithSignalDomainUnassigned)
     serverSignal.setName("signalName");
     serverSignal.setDescription("signalDescription");
 
-    serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                   ioContextPtrServer,
-                                                                   List<ISignal>(serverSignal),
-                                                                   signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler);
-    serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
+    startServer(List<ISignal>(serverSignal));
 
     for (auto& client : clients)
     {
-        client.clientHandler =
-            std::make_shared<NativeStreamingClientHandler>(client.clientContext,
-                                                           client.signalWithDomainAvailableHandler,
-                                                           client.signalUnavailableHandler,
-                                                           client.packetHandler,
-                                                           client.signalSubscriptionAckHandler);
-        ASSERT_TRUE(client.clientHandler->connect(client.ioContextPtrClient, SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler = createClient(client, client.signalWithDomainAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         ASSERT_EQ(client.signalWithDomainAvailableFuture.wait_for(timeout), std::future_status::ready);
         auto [clientSignalStringId, clientDomainSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription] =
@@ -322,22 +360,12 @@ TEST_P(ProtocolTest, ConnectDisconnectWithSignalDomainAssigned)
     serverSignal.setName("signalName");
     serverSignal.setDescription("signalDescription");
 
-    serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                   ioContextPtrServer,
-                                                                   List<ISignal>(serverSignal),
-                                                                   signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler);
-    serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
+    startServer(List<ISignal>(serverSignal));
 
     for (auto& client : clients)
     {
-        client.clientHandler =
-            std::make_shared<NativeStreamingClientHandler>(client.clientContext,
-                                                           client.signalWithDomainAvailableHandler,
-                                                           client.signalUnavailableHandler,
-                                                           client.packetHandler,
-                                                           client.signalSubscriptionAckHandler);
-        ASSERT_TRUE(client.clientHandler->connect(client.ioContextPtrClient, SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler = createClient(client, client.signalWithDomainAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         ASSERT_EQ(client.signalWithDomainAvailableFuture.wait_for(timeout), std::future_status::ready);
         auto [clientSignalStringId, clientDomainSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription] =
@@ -352,22 +380,12 @@ TEST_P(ProtocolTest, ConnectDisconnectWithSignalDomainAssigned)
 
 TEST_P(ProtocolTest, AddSignal)
 {
-    serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                   ioContextPtrServer,
-                                                                   List<ISignal>(),
-                                                                   signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler);
-    serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
+    startServer(List<ISignal>());
 
     for (auto& client : clients)
     {
-        client.clientHandler =
-            std::make_shared<NativeStreamingClientHandler>(client.clientContext,
-                                                           client.signalAvailableHandler,
-                                                           client.signalUnavailableHandler,
-                                                           client.packetHandler,
-                                                           client.signalSubscriptionAckHandler);
-        ASSERT_TRUE(client.clientHandler->connect(client.ioContextPtrClient, SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
     }
 
     auto serverSignal =
@@ -393,22 +411,12 @@ TEST_P(ProtocolTest, RemoveSignal)
     auto serverSignal =
         SignalWithDescriptor(serverContext, DataDescriptorBuilder().setSampleType(SampleType::Undefined).build(), nullptr, "signal");
 
-    serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                   ioContextPtrServer,
-                                                                   List<ISignal>(serverSignal),
-                                                                   signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler);
-    serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
+    startServer(List<ISignal>(serverSignal));
 
     for (auto& client : clients)
     {
-        client.clientHandler =
-            std::make_shared<NativeStreamingClientHandler>(client.clientContext,
-                                                           client.signalAvailableHandler,
-                                                           client.signalUnavailableHandler,
-                                                           client.packetHandler,
-                                                           client.signalSubscriptionAckHandler);
-        ASSERT_TRUE(client.clientHandler->connect(client.ioContextPtrClient, SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
         auto [clientSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription] =
@@ -434,22 +442,12 @@ TEST_P(ProtocolTest, SignalSubscribeUnsubscribe)
 
     auto serverSignal =
         SignalWithDescriptor(serverContext, DataDescriptorBuilder().setSampleType(SampleType::Undefined).build(), nullptr, "signal");
-    serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                   ioContextPtrServer,
-                                                                   List<ISignal>(serverSignal),
-                                                                   signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler);
-    serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
+    startServer(List<ISignal>(serverSignal));
 
     for (auto& client : clients)
     {
-        client.clientHandler =
-            std::make_shared<NativeStreamingClientHandler>(client.clientContext,
-                                                           client.signalAvailableHandler,
-                                                           client.signalUnavailableHandler,
-                                                           client.packetHandler,
-                                                           client.signalSubscriptionAckHandler);
-        ASSERT_TRUE(client.clientHandler->connect(client.ioContextPtrClient, SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
         std::tie(clientSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription) =
@@ -478,22 +476,12 @@ TEST_P(ProtocolTest, InitialEventPacket)
     auto initialEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
 
-    serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                   ioContextPtrServer,
-                                                                   List<ISignal>(serverSignal),
-                                                                   signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler);
-    serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
+    startServer(List<ISignal>(serverSignal));
 
     for (auto& client : clients)
     {
-        client.clientHandler =
-            std::make_shared<NativeStreamingClientHandler>(client.clientContext,
-                                                           client.signalAvailableHandler,
-                                                           client.signalUnavailableHandler,
-                                                           client.packetHandler,
-                                                           client.signalSubscriptionAckHandler);
-        ASSERT_TRUE(client.clientHandler->connect(client.ioContextPtrClient, SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
         auto [signalId, packet] = client.packetReceivedFuture.get();
@@ -508,22 +496,12 @@ TEST_P(ProtocolTest, SendEventPacket)
     auto initialEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
 
-    serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                   ioContextPtrServer,
-                                                                   List<ISignal>(serverSignal),
-                                                                   signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler);
-    serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
+    startServer(List<ISignal>(serverSignal));
 
     for (auto& client : clients)
     {
-        client.clientHandler =
-            std::make_shared<NativeStreamingClientHandler>(client.clientContext,
-                                                           client.signalAvailableHandler,
-                                                           client.signalUnavailableHandler,
-                                                           client.packetHandler,
-                                                           client.signalSubscriptionAckHandler);
-        ASSERT_TRUE(client.clientHandler->connect(client.ioContextPtrClient, SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
         auto [clientSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription] =
@@ -559,22 +537,12 @@ TEST_P(ProtocolTest, SendPacketsNoSubscribers)
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
 
-    serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                   ioContextPtrServer,
-                                                                   List<ISignal>(serverSignal),
-                                                                   signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler);
-    serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
+    startServer(List<ISignal>(serverSignal));
 
     for (auto& client : clients)
     {
-        client.clientHandler =
-            std::make_shared<NativeStreamingClientHandler>(client.clientContext,
-                                                           client.signalAvailableHandler,
-                                                           client.signalUnavailableHandler,
-                                                           client.packetHandler,
-                                                           client.signalSubscriptionAckHandler);
-        ASSERT_TRUE(client.clientHandler->connect(client.ioContextPtrClient, SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         // wait for initial event packet
         ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
@@ -603,22 +571,12 @@ TEST_P(ProtocolTest, SendDataPacket)
     auto serverDataPacket = DataPacket(valueDescriptor, 100);
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
 
-    serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                   ioContextPtrServer,
-                                                                   List<ISignal>(serverSignal),
-                                                                   signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler);
-    serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
+    startServer(List<ISignal>(serverSignal));
 
     for (auto& client : clients)
     {
-        client.clientHandler =
-            std::make_shared<NativeStreamingClientHandler>(client.clientContext,
-                                                           client.signalAvailableHandler,
-                                                           client.signalUnavailableHandler,
-                                                           client.packetHandler,
-                                                           client.signalSubscriptionAckHandler);
-        ASSERT_TRUE(client.clientHandler->connect(client.ioContextPtrClient, SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
         auto [clientSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription] =

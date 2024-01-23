@@ -115,6 +115,18 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IString*, attributeName, IBaseObject*, attributeValue
 )
 
+/*!
+ * @brief Creates Core event args that are passed as argument when a tag is added/removed from a component.
+ * @param tags The list of tags (as strings).
+ *
+ * The ID of the event is 110, and the event name is "TagsChanged".
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, CoreEventArgsTagsChanged, ICoreEventArgs,
+    IList*, tags
+)
+
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

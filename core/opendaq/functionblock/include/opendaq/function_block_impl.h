@@ -72,6 +72,8 @@ public:
     virtual void onDisconnected(const InputPortPtr& port);
     virtual void onPacketReceived(const InputPortPtr& port);
 
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
 protected:
     FunctionBlockTypePtr type;
     LoggerComponentPtr loggerComponent;
@@ -85,17 +87,27 @@ protected:
 
     void removed() override;
 
-    void serializeCustomObjectValues(const SerializerPtr& serializer) override;
+    void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void updateInputPort(const std::string& localId, const SerializedObjectPtr& obj);
-    void deserializeFunctionBlock(const std::string& fbId, const SerializedObjectPtr& serializedFunctionBlock) override;
+    void updateFunctionBlock(const std::string& fbId, const SerializedObjectPtr& serializedFunctionBlock) override;
+
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
 
     void updateObject(const SerializedObjectPtr& obj) override;
 
+    template <class Impl>
+    static BaseObjectPtr DeserializeFunctionBlock(const SerializedObjectPtr& serialized,
+                                                  const BaseObjectPtr& context,
+                                                  const FunctionPtr& factoryCallback);
 private:
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
     ListPtr<IFunctionBlock> getFunctionBlocksRecursiveInternal(const SearchFilterPtr& searchFilter);
     ListPtr<IInputPort> getInputPortsRecursiveInternal(const SearchFilterPtr& searchFilter);
 };
+
+
 
 template <typename TInterface, typename... Interfaces>
 FunctionBlockImpl<TInterface, Interfaces...>::FunctionBlockImpl(const FunctionBlockTypePtr& type,
@@ -239,9 +251,9 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getStatusSignal(ISignal** 
 template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
 {
-    if (obj.hasKey("ip"))
+    if (obj.hasKey("IP"))
     {
-        const auto ipFolder = obj.readSerializedObject("ip");
+        const auto ipFolder = obj.readSerializedObject("IP");
         this->updateFolder(ipFolder,
                      "Folder",                    
                      "InputPort",
@@ -282,7 +294,7 @@ void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& local
 }
 
 template <typename TInterface, typename ... Interfaces>
-void FunctionBlockImpl<TInterface, Interfaces...>::deserializeFunctionBlock(const std::string& fbId,
+void FunctionBlockImpl<TInterface, Interfaces...>::updateFunctionBlock(const std::string& fbId,
     const SerializedObjectPtr& serializedFunctionBlock)
 {
     if (!this->functionBlocks.hasItem(fbId))
@@ -300,6 +312,16 @@ void FunctionBlockImpl<TInterface, Interfaces...>::deserializeFunctionBlock(cons
     const auto updatableFb = fb.template asPtr<IUpdatable>(true);
 
     updatableFb.update(serializedFunctionBlock);
+}
+
+template <typename TInterface, typename... Interfaces>
+void FunctionBlockImpl<TInterface, Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                                                 const BaseObjectPtr& context,
+                                                                                 const FunctionPtr& factoryCallback)
+{
+    Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+
+    this->deserializeFolder(serializedObject, context, factoryCallback, this->inputPorts, "IP");
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -436,19 +458,14 @@ void FunctionBlockImpl<TInterface, Interfaces...>::removed()
 }
 
 template <typename TInterface, typename... Interfaces>
-void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer)
+void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
     serializer.key("typeId");
     auto typeId = type.getId();
     serializer.writeString(typeId.getCharPtr(), typeId.getLength());
 
-    Super::serializeCustomObjectValues(serializer);
-
-    if (!inputPorts.isEmpty())
-    {
-        serializer.key("ip");
-        inputPorts.serialize(serializer);
-    }
+    Super::serializeCustomObjectValues(serializer, forUpdate);
+    this->serializeFolder(serializer, inputPorts, "IP", forUpdate);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -483,5 +500,46 @@ template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::onPacketReceived(const InputPortPtr& /*port*/)
 {
 }
+
+template <typename TInterface, typename... Interfaces>
+template <class Impl>
+BaseObjectPtr FunctionBlockImpl<TInterface, Interfaces...>::DeserializeFunctionBlock(
+    const SerializedObjectPtr& serialized,
+    const BaseObjectPtr& context,
+    const FunctionPtr& factoryCallback)
+{
+    return Super::DeserializeComponent(
+               serialized,
+               context,
+               factoryCallback,
+               [](const SerializedObjectPtr& serialized,
+                  const ComponentDeserializeContextPtr& deserializeContext,
+                  const StringPtr& className) -> BaseObjectPtr
+               {
+                   const auto typeId = serialized.readString("typeId");
+
+                   const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
+
+                   return createWithImplementation<IFunctionBlock, Impl>(
+                       fbType, deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className);
+               });
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
+    IBaseObject* context,
+    IFunction* factoryCallback,
+    IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = DeserializeFunctionBlock<FunctionBlock>(serialized, context, factoryCallback).detach();
+        });
+}
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(FunctionBlock)
 
 END_NAMESPACE_OPENDAQ

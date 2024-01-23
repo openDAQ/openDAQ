@@ -8,6 +8,8 @@
 #include <opendaq/packet_factory.h>
 #include <coreobjects/property_object_class_factory.h>
 #include <gtest/gtest.h>
+#include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/deserialize_component_ptr.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/tags_factory.h>
 
@@ -436,6 +438,44 @@ TEST_F(SignalTest, SerializeAndUpdate)
 
     ASSERT_EQ(newSignal.getName(), name);
     ASSERT_EQ(newSignal.getDescription(), desc);
+
+    const auto serializer2 = JsonSerializer(True);
+    newSignal.serialize(serializer2);
+    const auto str2 = serializer2.getOutput();
+
+    ASSERT_EQ(str1, str2);
+}
+
+TEST_F(SignalTest, SerializeAndDeserialize)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    const auto domainSignal = Signal(NullContext(), nullptr, "domainSig");
+
+    signal.setName("sig_name");
+    signal.setDescription("sig_description");
+    signal.setActive(false);
+
+    domainSignal.setName("domainSig_name");
+    domainSignal.setDescription("domainSig_description");
+
+    signal.setDomainSignal(domainSignal);
+
+    const auto serializer = JsonSerializer(True);
+    signal.serialize(serializer);
+    const auto str1 = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+    const auto deserializeContext = ComponentDeserializeContext(daq::NullContext(), nullptr, "sig");
+
+    const SignalConfigPtr newSignal = deserializer.deserialize(str1, deserializeContext, nullptr);
+
+    const auto deserializedDomainSignalId = newSignal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+    ASSERT_EQ(deserializedDomainSignalId, domainSignal.getGlobalId());
+    newSignal.setDomainSignal(domainSignal);
+
+    ASSERT_EQ(newSignal.getName(), signal.getName());
+    ASSERT_EQ(newSignal.getDescription(), signal.getDescription());
+    ASSERT_EQ(newSignal.getActive(), signal.getActive());
 
     const auto serializer2 = JsonSerializer(True);
     newSignal.serialize(serializer2);

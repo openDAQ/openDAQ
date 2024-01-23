@@ -14,6 +14,8 @@ set(SRC_Cpp
     generated/component/py_search_filter.cpp
     generated/component/py_component_private.cpp
     generated/component/py_folder_config.cpp
+    generated/component/py_tags.cpp
+    generated/component/py_tags_private.cpp
     generated/context/py_context.cpp
     generated/device/py_device.cpp
     generated/device/py_device_domain.cpp
@@ -72,8 +74,6 @@ set(SRC_Cpp
     generated/streaming/py_streaming_info_config.cpp
     generated/streaming/py_mirrored_signal_config.cpp
     generated/streaming/py_subscription_event_args.cpp
-    generated/utility/py_tags.cpp
-    generated/utility/py_tags_config.cpp
 )
 
 add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})

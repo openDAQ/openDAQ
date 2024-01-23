@@ -28,8 +28,8 @@ public:
         obj.addProperty(IntProperty("int", 0));
         component.addProperty(ObjectProperty("obj", obj));
 
-        component.getTags().add("tag1");
-        component.getTags().add("tag2");
+        component.getTags().asPtr<ITagsPrivate>().add("tag1");
+        component.getTags().asPtr<ITagsPrivate>().add("tag2");
         
 
         return component;
@@ -82,6 +82,29 @@ TEST_F(TmsComponentTest, Tags)
     auto clientTags = component.clientComponent.getTags();
     
     ASSERT_TRUE(clientTags.query("tag1") && clientTags.query("tag2"));
+    ASSERT_TRUE(clientTags.contains("tag1") && clientTags.contains("tag2"));
+}
+
+
+TEST_F(TmsComponentTest, ModifyTags)
+{
+    auto component = registerTestComponent();
+
+    auto serverTags = component.serverComponent.getTags();
+    auto clientTags = component.clientComponent.getTags();
+    
+    ASSERT_TRUE(clientTags.query("tag1") && clientTags.query("tag2"));
+    ASSERT_TRUE(clientTags.contains("tag1") && clientTags.contains("tag2"));
+
+    serverTags.asPtr<ITagsPrivate>().remove("tag2");
+    
+    ASSERT_TRUE(clientTags.query("tag1") && !clientTags.query("tag2"));
+    ASSERT_TRUE(clientTags.contains("tag1") && !clientTags.contains("tag2"));
+
+    serverTags.asPtr<ITagsPrivate>().add("tag3");
+
+    ASSERT_TRUE(clientTags.query("tag1") && clientTags.query("tag3"));
+    ASSERT_TRUE(clientTags.contains("tag1") && clientTags.contains("tag3"));
 }
 
 TEST_F(TmsComponentTest, Properties)

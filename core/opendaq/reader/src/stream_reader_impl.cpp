@@ -140,6 +140,21 @@ void StreamReaderImpl::readDescriptorFromPort()
         }
     }
 
+    if (!dataDescriptor.assigned())
+    {
+        const auto signal = inputPort.getSignal();
+        if (!signal.assigned())
+        {
+            throw InvalidStateException("Input port must already have a signal assigned");
+        }
+
+        dataDescriptor = signal.getDescriptor();
+        if (!dataDescriptor.assigned())
+        {
+            throw InvalidStateException("Input port connected signal must have a descriptor assigned.");
+        }
+    }
+
     handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr), false);
 }
 

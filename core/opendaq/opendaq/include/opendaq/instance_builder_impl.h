@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/instance_builder.h>
 #include <opendaq/instance_factory.h>
+#include <opendaq/config_provider_ptr.h>
 #include <set>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -26,41 +27,43 @@ class InstanceBuilderImpl : public ImplementationOf<IInstanceBuilder>
 public:
     explicit InstanceBuilderImpl();
 
-    ErrCode INTERFACE_FUNC build(IInstance** instance);
+    ErrCode INTERFACE_FUNC build(IInstance** instance) override;
 
-    ErrCode INTERFACE_FUNC setLogger(ILogger* logger);
-    ErrCode INTERFACE_FUNC getLogger(ILogger** logger);
+    ErrCode INTERFACE_FUNC addConfigProvider(IConfigProvider* configProvider) override;
+
+    ErrCode INTERFACE_FUNC setLogger(ILogger* logger) override;
+    ErrCode INTERFACE_FUNC getLogger(ILogger** logger) override;
     
-    ErrCode INTERFACE_FUNC setGlobalLogLevel(LogLevel logLevel);
-    ErrCode INTERFACE_FUNC getGlobalLogLevel(LogLevel* logLevel);
+    ErrCode INTERFACE_FUNC setGlobalLogLevel(LogLevel logLevel) override;
+    ErrCode INTERFACE_FUNC getGlobalLogLevel(LogLevel* logLevel) override;
 
-    ErrCode INTERFACE_FUNC setComponentLogLevel(IString* component, LogLevel logLevel);
-    ErrCode INTERFACE_FUNC getComponentsLogLevel(IDict** components);
+    ErrCode INTERFACE_FUNC setComponentLogLevel(IString* component, LogLevel logLevel) override;
+    ErrCode INTERFACE_FUNC getComponentsLogLevel(IDict** components) override;
 
-    ErrCode INTERFACE_FUNC addLoggerSink(ILoggerSink* sink);
-    ErrCode INTERFACE_FUNC setSinkLogLevel(ILoggerSink* sink, LogLevel logLevel);
-    ErrCode INTERFACE_FUNC getLoggerSinks(IList** sinks);
+    ErrCode INTERFACE_FUNC addLoggerSink(ILoggerSink* sink) override;
+    ErrCode INTERFACE_FUNC setSinkLogLevel(ILoggerSink* sink, LogLevel logLevel) override;
+    ErrCode INTERFACE_FUNC getLoggerSinks(IList** sinks) override;
 
-    ErrCode INTERFACE_FUNC setModulePath(IString* path);
-    ErrCode INTERFACE_FUNC getModulePath(IString** path);
+    ErrCode INTERFACE_FUNC setModulePath(IString* path) override;
+    ErrCode INTERFACE_FUNC getModulePath(IString** path) override;
 
-    ErrCode INTERFACE_FUNC setModuleManager(IModuleManager* moduleManager);
-    ErrCode INTERFACE_FUNC getModuleManager(IModuleManager** moduleManager);
+    ErrCode INTERFACE_FUNC setModuleManager(IModuleManager* moduleManager) override;
+    ErrCode INTERFACE_FUNC getModuleManager(IModuleManager** moduleManager) override;
 
-    ErrCode INTERFACE_FUNC setSchedulerWorkerNum(SizeT numWorkers);
-    ErrCode INTERFACE_FUNC getSchedulerWorkerNum(SizeT* numWorkers);
+    ErrCode INTERFACE_FUNC setSchedulerWorkerNum(SizeT numWorkers) override;
+    ErrCode INTERFACE_FUNC getSchedulerWorkerNum(SizeT* numWorkers) override;
 
-    ErrCode INTERFACE_FUNC setScheduler(IScheduler* scheduler);
-    ErrCode INTERFACE_FUNC getScheduler(IScheduler** scheduler);
+    ErrCode INTERFACE_FUNC setScheduler(IScheduler* scheduler) override;
+    ErrCode INTERFACE_FUNC getScheduler(IScheduler** scheduler) override;
 
-    ErrCode INTERFACE_FUNC setDefaultRootDeviceLocalId(IString* localId);
-    ErrCode INTERFACE_FUNC getDefaultRootDeviceLocalId(IString** localId);
+    ErrCode INTERFACE_FUNC setDefaultRootDeviceLocalId(IString* localId) override;
+    ErrCode INTERFACE_FUNC getDefaultRootDeviceLocalId(IString** localId) override;
 
-    ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString);
-    ErrCode INTERFACE_FUNC getRootDevice(IString** connectionString);
+    ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString) override;
+    ErrCode INTERFACE_FUNC getRootDevice(IString** connectionString) override;
 
-    ErrCode INTERFACE_FUNC setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo);
-    ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo);
+    ErrCode INTERFACE_FUNC setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo) override;
+    ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo) override;
 
 private:
     // stub. will be replaced by IContext.getOptions()
@@ -81,6 +84,7 @@ private:
 
     SchedulerPtr scheduler;
     ModuleManagerPtr moduleManager;
+    ConfigProviderPtr configProvider;
 
     DictPtr<IString, IBaseObject> options;
 };

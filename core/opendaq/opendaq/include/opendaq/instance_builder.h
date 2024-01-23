@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/stringobject.h>
 #include <opendaq/instance.h>
+#include <opendaq/config_provider.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -80,6 +81,13 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * @param[out] instance The built Instance.
      */
     virtual ErrCode INTERFACE_FUNC build(IInstance** instance) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Adds the configuration provider
+     * @param sink The configuration provider
+     */
+    virtual ErrCode INTERFACE_FUNC addConfigProvider(IConfigProvider* configProvider) = 0;
 
     // [returnSelf]
     /*!

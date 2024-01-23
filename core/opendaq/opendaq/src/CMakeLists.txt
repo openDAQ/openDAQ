@@ -17,6 +17,7 @@ set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 rtgen(SRC_Instance instance.h)
 rtgen(SRC_InstanceBuilder instance_builder.h)
+rtgen(SRC_ConfigProvider config_provider.h)
 
 source_group("instance" FILES ${SDK_HEADERS_DIR}/instance.h
                               ${SDK_HEADERS_DIR}/instance_impl.h
@@ -25,6 +26,7 @@ source_group("instance" FILES ${SDK_HEADERS_DIR}/instance.h
                               ${SDK_HEADERS_DIR}/client_impl.h
                               ${SDK_HEADERS_DIR}/create_device.h
                               ${SDK_HEADERS_DIR}/instance_builder.h
+                              ${SDK_HEADERS_DIR}/config_provider.h
                               ${SDK_HEADERS_DIR}/instance_builder_impl.h
                               instance_impl.cpp
                               client_impl.cpp
@@ -65,10 +67,12 @@ list(APPEND SRC_Cpp ${SRC_Instance_Cpp}
 list(APPEND SRC_PublicHeaders ${ConfigHeader}
                               ${SRC_Instance_PublicHeaders}
                               ${SRC_InstanceBuilder_PublicHeaders}
+                              ${SRC_ConfigProvider_PublicHeaders}
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_Instance_PrivateHeaders}
                                ${SRC_InstanceBuilder_PrivateHeaders}
+                               ${SRC_ConfigProvider_PrivateHeaders}
 )
 
 add_library(${LIB_NAME} SHARED ${SRC_Cpp}

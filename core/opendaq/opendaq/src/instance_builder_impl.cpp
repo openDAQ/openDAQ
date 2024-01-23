@@ -65,6 +65,12 @@ ErrCode InstanceBuilderImpl::build(IInstance** instance)
     });
 }
 
+ErrCode InstanceBuilderImpl::addConfigProvider(IConfigProvider* configProvider)
+{
+    this->configProvider = configProvider;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode InstanceBuilderImpl::setLogger(ILogger* logger)
 {
     this->logger = logger;    

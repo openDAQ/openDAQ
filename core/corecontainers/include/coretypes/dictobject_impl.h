@@ -53,7 +53,7 @@ using BaseObjectPair = std::pair<IBaseObject*, IBaseObject*>;
 
 ErrCode INTERFACE_FUNC deserializeDict(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
-class DictImpl : public ImplementationOf<IDict, IIterable, ISerializable, ICoreType, IDictElementType, IFreezable, ICloneable<IDict>>
+class DictImpl : public ImplementationOf<IDict, IIterable, ISerializable, ICoreType, IDictElementType, IFreezable, ICloneable>
 {
 private:
     using HashTableType = typename tsl::ordered_map<IBaseObject*, IBaseObject*, BaseObjectHash, BaseObjectEqualTo>;
@@ -95,8 +95,8 @@ public:
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
-    // ICloneable<T>
-    ErrCode INTERFACE_FUNC clone(IDict** cloned) override;
+    // ICloneable
+    ErrCode INTERFACE_FUNC clone(IBaseObject** cloned) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 

@@ -28,13 +28,13 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief Objects that can be cloned implement this interface.
  */
-DECLARE_TEMPLATED_OPENDAQ_INTERFACE_T(ICloneable, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(ICloneable, IBaseObject)
 {
     /*!
      * @brief Clones the object.
      * @param[out] cloned The cloned object.
      */
-    virtual ErrCode INTERFACE_FUNC clone(T** cloned) = 0;
+    virtual ErrCode INTERFACE_FUNC clone(IBaseObject** cloned) = 0;
 };
 
 /*!@}*/

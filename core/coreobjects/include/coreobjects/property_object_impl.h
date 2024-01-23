@@ -805,17 +805,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             coerceMinMax(prop, valuePtr);
             
             const auto ct = prop.getValueType();
-            if (ct == ctList)
+            if (ct == ctList || ct == ctDict)
             {
-                ListPtr<IBaseObject> listValue;
-                valuePtr.asPtr<ICloneable<IList>>()->clone(&listValue);
-                valuePtr = listValue.detach();
-            }
-            else if (ct == ctDict)
-            {
-                DictPtr<IBaseObject, IBaseObject> dictValue;
-                valuePtr.asPtr<ICloneable<IDict>>()->clone(&dictValue);
-                valuePtr = dictValue.detach();
+                BaseObjectPtr clonedValue;
+                err = valuePtr.asPtr<ICloneable>()->clone(&clonedValue);
+                if (OPENDAQ_FAILED(err))
+                    return err;
+
+                valuePtr = clonedValue.detach();
             }
             else if (ct == ctObject)
             {
@@ -1209,17 +1206,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
     }
     
     CoreType coreType = value.getCoreType();
-    if (coreType == ctList)
+    if (coreType == ctList || coreType == ctDict)
     {
-        ListPtr<IBaseObject> listValue;
-        value.asPtr<ICloneable<IList>>()->clone(&listValue);
-        value = listValue.detach();
-    }
-    else if (coreType == ctDict)
-    {
-        DictPtr<IBaseObject, IBaseObject> dictValue;
-        value.asPtr<ICloneable<IDict>>()->clone(&dictValue);
-        value = dictValue.detach();
+        BaseObjectPtr clonedValue;
+        value.asPtr<ICloneable>()->clone(&clonedValue);
+        value = clonedValue.detach();
     }
 
     if (triggerEvent)

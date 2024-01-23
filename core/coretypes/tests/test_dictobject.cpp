@@ -685,10 +685,29 @@ TEST_F(DictObjectTest, Clone)
     d1.set("age", 20);
     d1.set("height", 180);
 
-    DictPtr<IString, IBaseObject> d2;
-    d1.asPtr<ICloneable<IDict>>()->clone(&d2);
+    BaseObjectPtr d2;
+    d1.asPtr<ICloneable>()->clone(&d2);
 
     ASSERT_EQ(d1, d2);
+}
+
+TEST_F(DictObjectTest, CloneListType)
+{
+    auto d1 = Dict<IList, IList>();
+    d1.set(List<IString>("foo", "bar"), List<IInteger>(1, 2));
+    d1.set(List<IInteger>(1, 2), List<IString>("foo", "bar"));
+
+    BaseObjectPtr cloned;
+    d1.asPtr<ICloneable>()->clone(&cloned);
+    DictPtr<IList, IList> d2 = cloned;
+
+    auto keyList1 = d1.getKeyList();
+    //auto keyList2 = d2.getKeyList();
+
+    //ASSERT_EQ(d1.getKeyList()[0], d2.getKeyList()[0]);
+    //ASSERT_EQ(d1.getKeyList()[1], d2.getKeyList()[1]);
+    //ASSERT_EQ(d1.getValueList()[0], d2.getValueList()[0]);
+    //ASSERT_EQ(d1.getValueList()[1], d2.getValueList()[1]);
 }
 
 TEST_F(DictObjectTest, EqualsDifferentOrder)

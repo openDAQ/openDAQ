@@ -64,7 +64,7 @@ ErrCode ListImpl::toString(CharPtr* str)
     return daqDuplicateCharPtr(stream.str().c_str(), str);
 }
 
-ErrCode ListImpl::clone(IList** cloned)
+ErrCode ListImpl::clone(IBaseObject** cloned)
 {
     if (cloned == nullptr)
     {
@@ -83,10 +83,23 @@ ErrCode ListImpl::clone(IList** cloned)
     lst->list.reserve(size);
     for (SizeT i = 0; i < size; i++)
     {
-        lst->pushBack(this->list[i]);
+        BaseObjectPtr valPtr = BaseObjectPtr::Borrow(this->list[i]);
+        if (const auto cloneable = valPtr.asPtrOrNull<ICloneable>(); cloneable.assigned())
+        {
+            BaseObjectPtr clonedVal;
+            const ErrCode err = cloneable->clone(&clonedVal);
+            if (OPENDAQ_FAILED(err))
+                return err;
+
+            lst->pushBack(clonedVal);
+        }
+        else
+        {
+            lst->pushBack(this->list[i]);
+        }
     }
 
-    return lst->queryInterface(IList::Id, reinterpret_cast<void**>(cloned));
+    return lst->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(cloned));
 }
 
 ErrCode INTERFACE_FUNC ListImpl::equals(IBaseObject* other, Bool* equal) const

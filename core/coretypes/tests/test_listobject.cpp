@@ -1,5 +1,6 @@
 #include <coretypes/coretypes.h>
 #include <coretypes/list_element_type.h>
+#include <coretypes/cloneable.h>
 #include <gtest/gtest.h>
 
 using namespace daq;
@@ -218,6 +219,26 @@ TEST_F(ListObjectTest, CreateStaticRValue)
     ASSERT_EQ(list.getCount(), 2u);
     ASSERT_EQ(list.getItemAt(0), obj1);
     ASSERT_NE(list.getItemAt(1), nullptr);
+}
+
+TEST_F(ListObjectTest, Clone)
+{
+    auto list1 = List<IBaseObject>("foo", 1, 1.21);
+
+    BaseObjectPtr list2;
+    list1.asPtr<ICloneable>()->clone(&list2);
+
+    ASSERT_EQ(list1, list2);
+}
+
+TEST_F(ListObjectTest, CloneListOfLists)
+{
+    auto list1 = List<IList>(List<IString>("foo"), List<IInteger>(1), List<IFloat>(1.123));
+
+    BaseObjectPtr list2;
+    list1.asPtr<ICloneable>()->clone(&list2);
+
+    ASSERT_EQ(list1, list2);
 }
 
 TEST_F(ListObjectTest, ToString)

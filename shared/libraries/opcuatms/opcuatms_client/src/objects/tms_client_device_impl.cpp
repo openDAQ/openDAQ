@@ -101,7 +101,7 @@ void TmsClientDeviceImpl::findAndCreateSubdevices()
         }
         catch(...)
         {
-            LOG_W("Failed to create subdevice \"{}\" in OpcUA client device \"{}\"", browseName, this->localId);
+            LOG_W("Failed to create subdevice \"{}\" in OpcUA client device \"{}\"", browseName, this->globalId);
         }
     }
 
@@ -169,7 +169,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         }
         catch (const std::exception& e)
         {
-            LOG_W("Failed to read device info attribute on OpcUa client device \"{}\": {}", this->localId, e.what());
+            LOG_W("Failed to read device info attribute on OpcUa client device \"{}\": {}", this->globalId, e.what());
         }
     }
 
@@ -265,7 +265,7 @@ void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
         }
         catch(...)
         {
-            LOG_W("Failed to create function block \"{}\" to OpcUA client device \"{}\"", browseName, this->localId);
+            LOG_W("Failed to create function block \"{}\" to OpcUA client device \"{}\"", browseName, this->globalId);
         }
     }
 
@@ -296,7 +296,7 @@ void TmsClientDeviceImpl::findAndCreateSignals()
         }
         catch (...)
         {
-            LOG_W("Failed to find signal to OpcUA client device \"{}\"", this->localId);
+            LOG_W("Failed to find signal to OpcUA client device \"{}\"", this->globalId);
         }
     }
 
@@ -330,7 +330,7 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
         }
         catch (...)
         {
-            LOG_W("Failed to find channel \"{}\" to OpcUA client device \"{}\"", browseName, this->localId);
+            LOG_W("Failed to find channel \"{}\" to OpcUA client device \"{}\"", browseName, this->globalId);
         }
     }
 
@@ -351,7 +351,7 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
         }
         catch (...)
         {
-            LOG_W("Failed to find io folder \"{}\" to OpcUA client device \"{}\"", browseName, this->localId);
+            LOG_W("Failed to find io folder \"{}\" to OpcUA client device \"{}\"", browseName, this->globalId);
         }
     }
 
@@ -388,7 +388,7 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
     }
     catch (const std::exception& e)
     {
-        LOG_W("Failed to find 'StreamingOptions' OpcUA node on OpcUA client device \"{}\": {}", this->localId, e.what());
+        LOG_W("Failed to find 'StreamingOptions' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
     }
 
     for (const auto& val : orderedStreamings)
@@ -430,7 +430,7 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
         }
         catch (...)
         {
-            LOG_W("Failed to find channel \"{}\" to OpcUA client device \"{}\"", browseName, this->localId);
+            LOG_W("Failed to find channel \"{}\" to OpcUA client device \"{}\"", browseName, this->globalId);
         }
     }
 

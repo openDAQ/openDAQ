@@ -25,7 +25,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
     if (propertyName == nullptr)
     {
         LOG_W("Failed to set value for property with nullptr name on OpcUA client property object");
-        return OPENDAQ_IGNORED;
+        return OPENDAQ_SUCCESS;
     }
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
@@ -67,9 +67,11 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
             return OPENDAQ_ERR_NOTFOUND;
         });
     if (OPENDAQ_FAILED(errCode))
-    {
         LOG_W("Failed to set value for property \"{}\" on OpcUA client property object: {}", propertyNamePtr, lastProccessDescription);
-    }
+
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+        return errCode;
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -102,7 +104,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
     if (propertyName == nullptr)
     {
         LOG_W("Failed to get value for property with nullptr name on OpcUA client property object");
-        return OPENDAQ_IGNORED;
+        return OPENDAQ_SUCCESS;
     }
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 

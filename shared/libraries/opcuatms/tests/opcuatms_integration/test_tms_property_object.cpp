@@ -121,7 +121,7 @@ TEST_F(TmsPropertyObjectTest, PropertyValue)
     ASSERT_EQ(clientProp.getPropertyValue("Height"), 100);
     ASSERT_EQ(prop.getPropertyValue("Height"), 100);
     
-    ASSERT_NO_THROW(clientProp.setPropertyValue("Missing", 100));
+    ASSERT_ANY_THROW(clientProp.setPropertyValue("Missing", 100));
     ASSERT_EQ(getLastMessage(), "Failed to set value for property \"Missing\" on OpcUA client property object: Property not found");
 }
 

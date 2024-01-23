@@ -50,7 +50,8 @@ void LoggerSinkLastMessage<Mutex>::sink_it_(const details::log_msg& msg)
 {
     {
         std::lock_guard lock(mx);
-        if (finishing) return;
+        if (finishing) 
+            return;
         lastMessage = fmt::to_string(msg.payload);
         newMessage = true;
     }

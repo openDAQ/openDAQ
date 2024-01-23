@@ -20,13 +20,12 @@ ErrCode TmsClientInputPortImpl::getRequiresSignal(Bool* value)
     try
     {
         *value = readValue<IBoolean>("RequiresSignal");
-        return OPENDAQ_SUCCESS;
     }
     catch(...)
     {
-        LOG_W("Failed to get requires signals on OpcUA client input port \"{}\"", this->localId);
+        LOG_W("Failed to get requires signals on OpcUA client input port \"{}\"", this->globalId);
     }
-    return OPENDAQ_IGNORED;
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode TmsClientInputPortImpl::setRequiresSignal(Bool value)

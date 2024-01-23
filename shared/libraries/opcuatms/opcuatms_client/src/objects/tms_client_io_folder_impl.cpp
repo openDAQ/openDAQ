@@ -48,7 +48,7 @@ void TmsClientIoFolderImpl::findAndCreateChannels(std::map<uint32_t, ComponentPt
         }
         catch (...)
         {
-            LOG_W("Failed to find and create channel \"{}\" to OpcUA client io folder \"{}\"", browseName, this->localId);
+            LOG_W("Failed to find and create channel \"{}\" to OpcUA client io folder \"{}\"", browseName, this->globalId);
         }
     }
 }
@@ -73,7 +73,7 @@ void TmsClientIoFolderImpl::findAndCreateIoFolders(std::map<uint32_t, ComponentP
         }
         catch (...)
         {
-            LOG_W("Failed to find and create folder \"{}\" to OpcUA client io folder \"{}\"", browseName, this->localId);
+            LOG_W("Failed to find and create folder \"{}\" to OpcUA client io folder \"{}\"", browseName, this->globalId);
         }
     }
 }

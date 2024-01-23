@@ -57,7 +57,6 @@ ErrCode TmsClientProcedureImpl::dispatch(IBaseObject* args)
     {
         auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientProcudure");
         LOG_W("Failed to call procedure on OpcUA client. Error: \"{}\"", lastProccessDescription);
-        return OPENDAQ_IGNORED;
     }
     return OPENDAQ_SUCCESS;
 }

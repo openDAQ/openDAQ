@@ -63,9 +63,9 @@ ErrCode TmsClientSignalImpl::getDescriptor(IDataDescriptor** descriptor)
     }
     catch (...)
     {
-        LOG_W("Failed to get descriptor on OpcUA client signal \"{}\"", this->localId);
+        LOG_W("Failed to get descriptor on OpcUA client signal \"{}\"", this->globalId);
     }
-    return OPENDAQ_IGNORED;
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode TmsClientSignalImpl::setDescriptor(IDataDescriptor* /*descriptor*/)
@@ -81,10 +81,9 @@ ErrCode TmsClientSignalImpl::getDomainSignal(ISignal** signal)
     *signal = signalPtr.detach();
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_W("Failed to get domain signal on OpcUA client signal \"{}\"", this->localId);
-        return OPENDAQ_IGNORED;
+        LOG_W("Failed to get domain signal on OpcUA client signal \"{}\"", this->globalId);
     }
-    return errCode;
+    return OPENDAQ_SUCCESS;
 }
 
 SignalPtr TmsClientSignalImpl::onGetDomainSignal()
@@ -117,10 +116,9 @@ ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
     *signals = signalsPtr.detach();
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_W("Failed to get related signals on OpcUA client signal \"{}\"", this->localId);
-        return OPENDAQ_IGNORED;
+        LOG_W("Failed to get related signals on OpcUA client signal \"{}\"", this->globalId);
     }
-    return errCode;
+    return OPENDAQ_SUCCESS;
 }
 
 
@@ -189,23 +187,22 @@ ErrCode TmsClientSignalImpl::getLastValue(IBaseObject** value)
                 {
                     BaseObjectPtr valuePtr = VariantConverter<IBaseObject, BaseObjectPtr>::ToDaqObject(opcUaVariant);
                     *value = valuePtr.addRefAndReturn();
-                    return OPENDAQ_SUCCESS;
                 }
             }
             catch (...)
             {
-                LOG_W("Failed to get last value on OpcUA client signal \"{}\"", this->localId);
+                LOG_W("Failed to get last value on OpcUA client signal \"{}\"", this->globalId);
             }
-            return OPENDAQ_IGNORED;
+            return OPENDAQ_SUCCESS;
         };
 
-    if (descriptorNodeId && readValueFunction(value, "Value") == OPENDAQ_SUCCESS)
+    if (descriptorNodeId && *value != nullptr)
         return OPENDAQ_SUCCESS;
     
     if (hasReference("AnalogValue"))
         return readValueFunction(value, "AnalogValue");
 
-    return OPENDAQ_IGNORED;
+    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

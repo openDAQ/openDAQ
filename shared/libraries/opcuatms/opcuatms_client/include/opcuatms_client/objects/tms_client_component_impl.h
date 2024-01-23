@@ -66,7 +66,7 @@ public:
     ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
 
 private:
-    LoggerComponentPtr getLogger();
+    LoggerComponentPtr getLoggerComponent();
     void initComponent();
 };
 

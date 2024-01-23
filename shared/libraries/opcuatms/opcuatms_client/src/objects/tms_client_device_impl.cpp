@@ -388,7 +388,7 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
     }
     catch (const std::exception& e)
     {
-        LOG_W("Failed to find 'StreamingOptions' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
+        LOG_D("Failed to find 'StreamingOptions' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
     }
 
     for (const auto& val : orderedStreamings)

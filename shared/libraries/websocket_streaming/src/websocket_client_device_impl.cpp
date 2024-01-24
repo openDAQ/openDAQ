@@ -112,7 +112,7 @@ void WebsocketClientDeviceImpl::onDomainDescriptor(const StringPtr& signalId,
 
     // Sets domain descriptor for data signal
     if (auto signalIt = deviceSignals.find(signalId); signalIt != deviceSignals.end())
-        signalIt->second.asPtr<IWebsocketStreamingSignalPrivate>()->assignDomainSignal(domainDescriptor);
+        signalIt->second.asPtr<IWebsocketStreamingSignalPrivate>()->createAndAssignDomainSignal(domainDescriptor);
 }
 
 void WebsocketClientDeviceImpl::createDeviceSignals(const std::vector<std::string>& signalIds)

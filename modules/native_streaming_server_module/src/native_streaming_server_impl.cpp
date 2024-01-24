@@ -11,6 +11,7 @@
 #include <opendaq/event_packet_ids.h>
 
 #include <native_streaming_protocol/native_streaming_server_handler.h>
+#include <config_protocol/config_protocol_server.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
@@ -77,11 +78,28 @@ void NativeStreamingServerImpl::prepareServerHandler()
         std::scoped_lock lock(readersSync);
         removeReader(signal);
     };
+
+    // The Callback establishes a new native configuration server for each connected client
+    // and transfers ownership of the configuration server to the transport layer session
+    SetUpConfigProtocolServerCb createConfigServerCb =
+        [rootDevice = rootDevice](ConfigProtocolPacketCb sendConfigPacketCb)
+    {
+        auto configServer = std::make_shared<config_protocol::ConfigProtocolServer>(rootDevice, sendConfigPacketCb);
+        ConfigProtocolPacketCb processConfigRequestCb =
+            [configServer, sendConfigPacketCb](const config_protocol::PacketBuffer& packetBuffer)
+        {
+            auto replyPacketBuffer = configServer->processRequestAndGetReply(packetBuffer);
+            sendConfigPacketCb(replyPacketBuffer);
+        };
+        return processConfigRequestCb;
+    };
+
     serverHandler = std::make_shared<NativeStreamingServerHandler>(context,
                                                                    ioContextPtr,
                                                                    rootDevice.getSignals(search::Recursive(search::Any())),
                                                                    signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler);
+                                                                   signalUnsubscribedHandler,
+                                                                   createConfigServerCb);
 }
 
 PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig()
@@ -113,7 +131,7 @@ ServerTypePtr NativeStreamingServerImpl::createType()
     return ServerType(
         "openDAQ Native Streaming",
         "openDAQ Native Streaming server",
-        "Publishes device signals as a flat list and streams data over openDAQ native streaming protocol",
+        "Publishes device structure over openDAQ native configuration protocol and streams data over openDAQ native streaming protocol",
         configurationCallback);
 }
 

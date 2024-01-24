@@ -53,6 +53,7 @@ target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_
 target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq
                                          daq::packet_streaming
                                          daq::native_streaming
+                                         daq::config_protocol
 )
 
 if (WIN32)

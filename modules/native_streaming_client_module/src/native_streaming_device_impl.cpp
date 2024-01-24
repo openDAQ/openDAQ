@@ -1,12 +1,14 @@
 #include <native_streaming_client_module/native_streaming_device_impl.h>
-#include <native_streaming_client_module/native_streaming_signal_factory.h>
-#include <native_streaming_client_module/native_streaming_factory.h>
+#include <native_streaming_client_module/native_streaming_signal_impl.h>
+#include <native_streaming_client_module/native_streaming_impl.h>
 
 #include <opendaq/device_info_factory.h>
 
 #include <coretypes/function_factory.h>
 
 #include <coreobjects/property_object_protected_ptr.h>
+
+#include <regex>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -56,14 +58,20 @@ void NativeStreamingDeviceImpl::createNativeStreaming(const StringPtr& host,
             reconnectionStatusChangedHandler(status);
         };
 
-    nativeStreaming = NativeStreaming(connectionString,
-                                      host,
-                                      port,
-                                      path,
-                                      context,
-                                      onSignalAvailableCallback,
-                                      onSignalUnavailableCallback,
-                                      onReconnectionStatusChangedCallback);
+    auto clientHandler = std::make_shared<NativeStreamingClientHandler>(context);
+    std::string streamingConnectionString = std::regex_replace(connectionString.toStdString(),
+                                                               std::regex(NativeStreamingDevicePrefix),
+                                                               NativeStreamingPrefix);
+    nativeStreaming =
+        createWithImplementation<IStreaming, NativeStreamingImpl>(streamingConnectionString,
+                                                                  host,
+                                                                  port,
+                                                                  path,
+                                                                  context,
+                                                                  clientHandler,
+                                                                  onSignalAvailableCallback,
+                                                                  onSignalUnavailableCallback,
+                                                                  onReconnectionStatusChangedCallback);
 }
 
 void NativeStreamingDeviceImpl::activateStreaming()
@@ -117,7 +125,10 @@ void NativeStreamingDeviceImpl::addToDeviceSignals(const StringPtr& signalString
     if (auto iter = deviceSignals.find(signalStringId); iter != deviceSignals.end())
         throw AlreadyExistsException("Signal with id {} already exists in native streaming device", signalStringId);
 
-    auto signalToAdd = NativeStreamingSignal(this->context, this->signals, signalDescriptor, signalStringId);
+    auto signalToAdd = createWithImplementation<ISignal, NativeStreamingSignalImpl>(this->context,
+                                                                                    this->signals,
+                                                                                    signalDescriptor,
+                                                                                    signalStringId);
     initSignalName(signalToAdd, name);
     initSignalDescription(signalToAdd, description);
 
@@ -128,11 +139,11 @@ void NativeStreamingDeviceImpl::addToDeviceSignals(const StringPtr& signalString
         auto [addedSignal, domainSignalId] = item.second;
         if (domainSignalId == signalStringId)
         {
-            addedSignal.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(signalToAdd);
+            addedSignal.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(signalToAdd);
         }
         if (domainSignalStringId == addedSignalId)
         {
-            signalToAdd.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(addedSignal);
+            signalToAdd.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(addedSignal);
         }
     }
 
@@ -155,7 +166,10 @@ void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr
     else
     {
         if (auto iter2 = deviceSignalsReconnection.find(signalStringId); iter2 == deviceSignalsReconnection.end())
-            signalToAdd = NativeStreamingSignal(this->context, this->signals, signalDescriptor, signalStringId);
+            signalToAdd = createWithImplementation<ISignal, NativeStreamingSignalImpl>(this->context,
+                                                                                       this->signals,
+                                                                                       signalDescriptor,
+                                                                                       signalStringId);
         else
             throw AlreadyExistsException("Signal with id {} already exists in native streaming device", signalStringId);
     }
@@ -177,11 +191,11 @@ void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr
         auto [addedSignal, domainSignalId] = item.second;
         if (domainSignalId == signalStringId)
         {
-            addedSignal.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(signalToAdd);
+            addedSignal.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(signalToAdd);
         }
         if (domainSignalStringId == addedSignalId)
         {
-            signalToAdd.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(addedSignal);
+            signalToAdd.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(addedSignal);
         }
     }
 

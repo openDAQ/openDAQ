@@ -48,16 +48,13 @@ using OnPacketCallback = std::function<void(const StringPtr& signalStringId, con
 using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
 using OnReconnectionStatusChangedCallback = std::function<void(ClientReconnectionStatus status)>;
 
+class NativeStreamingClientHandler;
+using NativeStreamingClientHandlerPtr = std::shared_ptr<NativeStreamingClientHandler>;
+
 class NativeStreamingClientHandler
 {
 public:
-    explicit NativeStreamingClientHandler(const ContextPtr& context,
-                                          std::shared_ptr<boost::asio::io_context> ioContextPtr,
-                                          OnSignalAvailableCallback signalAvailableHandler,
-                                          OnSignalUnavailableCallback signalUnavailableHandler,
-                                          OnPacketCallback packetHandler,
-                                          OnSignalSubscriptionAckCallback signalSubscriptionAckCallback,
-                                          OnReconnectionStatusChangedCallback reconnectionStatusChangedCb);
+    explicit NativeStreamingClientHandler(const ContextPtr& context);
 
     ~NativeStreamingClientHandler();
 
@@ -68,6 +65,16 @@ public:
     void subscribeSignal(const StringPtr& signalStringId);
     void unsubscribeSignal(const StringPtr& signalStringId);
     EventPacketPtr getDataDescriptorChangedEventPacket(const StringPtr& signalStringId);
+
+    void sendConfigRequest(const config_protocol::PacketBuffer& packet);
+
+    void setIoContext(const std::shared_ptr<boost::asio::io_context>& ioContextPtr);
+    void setSignalAvailableHandler(const OnSignalAvailableCallback& signalAvailableHandler);
+    void setSignalUnavailableHandler(const OnSignalUnavailableCallback& signalUnavailableHandler);
+    void setPacketHandler(const OnPacketCallback& packetHandler);
+    void setSignalSubscriptionAckCallback(const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback);
+    void setReconnectionStatusChangedCb(const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb);
+    void setConfigPacketHandler(const ConfigProtocolPacketCb& configPacketHandler);
 
 protected:
     void initClientSessionHandler(SessionPtr session);
@@ -105,6 +112,7 @@ protected:
     OnPacketCallback packetHandler;
     OnSignalSubscriptionAckCallback signalSubscriptionAckCallback;
     OnReconnectionStatusChangedCallback reconnectionStatusChangedCb;
+    ConfigProtocolPacketCb configPacketHandler = [](const config_protocol::PacketBuffer& packet) {};
 
     std::shared_ptr<boost::asio::steady_timer> reconnectionTimer;
     std::shared_ptr<boost::asio::steady_timer> protocolInitTimer;

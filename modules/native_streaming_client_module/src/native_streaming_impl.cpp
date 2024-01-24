@@ -16,18 +16,19 @@ NativeStreamingImpl::NativeStreamingImpl(
     const StringPtr& port,
     const StringPtr& path,
     const ContextPtr& context,
+    NativeStreamingClientHandlerPtr clientHandler,
     const ProcedurePtr& onDeviceSignalAvailableCallback,
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
     OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb)
     : Streaming(connectionString, context)
+    , clientHandler(clientHandler)
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
     , onDeviceReconnectionStatusChangedCb(onReconnectionStatusChangedCb)
     , reconnectionStatus(ClientReconnectionStatus::Connected)
     , ioContextPtr(std::make_shared<boost::asio::io_context>())
     , workGuard(ioContextPtr->get_executor())
-    , logger(context.getLogger())
-    , loggerComponent(logger.getOrAddComponent("NativeStreamingImpl"))
+    , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingImpl"))
 {
     prepareClientHandler();
     startAsyncOperations();
@@ -203,13 +204,12 @@ void NativeStreamingImpl::prepareClientHandler()
     {
         reconnectionStatusChangedHandler(status);
     };
-    clientHandler = std::make_shared<NativeStreamingClientHandler>(context,
-                                                                   ioContextPtr,
-                                                                   signalAvailableCb,
-                                                                   signalUnavailableCb,
-                                                                   onPacketCallback,
-                                                                   onSignalSubscriptionAckCallback,
-                                                                   onReconnectionStatusChangedCb);
+    clientHandler->setIoContext(ioContextPtr);
+    clientHandler->setSignalAvailableHandler(signalAvailableCb);
+    clientHandler->setSignalUnavailableHandler(signalUnavailableCb);
+    clientHandler->setPacketHandler(onPacketCallback);
+    clientHandler->setSignalSubscriptionAckCallback(onSignalSubscriptionAckCallback);
+    clientHandler->setReconnectionStatusChangedCb(onReconnectionStatusChangedCb);
 }
 
 void NativeStreamingImpl::onPacket(const StringPtr& signalStringId, const PacketPtr& packet)

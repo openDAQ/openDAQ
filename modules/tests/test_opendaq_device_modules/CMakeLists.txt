@@ -1,6 +1,7 @@
 set(TEST_APP test_device_modules)
 
-set(TEST_SOURCES test_device_modules.cpp
+set(TEST_SOURCES test_native_device_modules.cpp
+                 test_opcua_device_modules.cpp
                  test_app.cpp
                  test_helpers.h
 )

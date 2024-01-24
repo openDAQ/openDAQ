@@ -3,7 +3,7 @@
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include "test_helpers.h"
 
-using DeviceModulesTest = testing::Test;
+using OpcuaDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
@@ -48,7 +48,7 @@ static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder)
 }
 
 
-TEST_F(DeviceModulesTest, ConnectAndDisconnect)  
+TEST_F(OpcuaDeviceModulesTest, ConnectAndDisconnect)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -60,12 +60,12 @@ TEST_F(DeviceModulesTest, ConnectAndDisconnect)
     server.detach();
 }
 
-TEST_F(DeviceModulesTest, GetRemoteDeviceObjects)
+TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    
+
     auto signals = client.getSignals(search::Recursive(search::Any()));
     auto signalsServer = server.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(signals.getCount(), 7u);
@@ -79,15 +79,15 @@ TEST_F(DeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(channels.getCount(), 2u);
 }
 
-TEST_F(DeviceModulesTest, RemoteGlobalIds)
+TEST_F(OpcuaDeviceModulesTest, RemoteGlobalIds)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
     const auto clientRootId = client.getGlobalId();
-    const auto serverDeviceId = server.getGlobalId(); 
-    const auto clientDeviceId = client.getDevices()[0].getGlobalId(); 
+    const auto serverDeviceId = server.getGlobalId();
+    const auto clientDeviceId = client.getDevices()[0].getGlobalId();
 
     const auto serverSignalId = server.getSignalsRecursive()[0].getGlobalId();
     const auto clientSignalId = client.getSignalsRecursive()[0].getGlobalId();
@@ -96,7 +96,7 @@ TEST_F(DeviceModulesTest, RemoteGlobalIds)
     ASSERT_EQ(clientSignalId, clientRootId + "/Dev" + serverSignalId);
 }
 
-TEST_F(DeviceModulesTest, GetSetDeviceProperties)
+TEST_F(OpcuaDeviceModulesTest, GetSetDeviceProperties)
 {
     SKIP_TEST_MAC_CI;
     auto loggerSink = LastMessageLoggerSink();
@@ -109,14 +109,14 @@ TEST_F(DeviceModulesTest, GetSetDeviceProperties)
 
     auto server = CreateServerInstance();
     auto client = CreateClientInstance(InstanceBuilder().setLogger(logger));
-    
+
     auto refDevice = client.getDevices()[0].getDevices()[0];
     auto serverRefDevice = server.getDevices()[0];
 
     PropertyPtr propInfo;
     ASSERT_NO_THROW(propInfo = refDevice.getProperty("NumberOfChannels"));
     ASSERT_EQ(propInfo.getValueType(), CoreType::ctInt);
-    
+
     ASSERT_EQ(refDevice.getPropertyValue("NumberOfChannels"), 2);
     refDevice.setPropertyValue("NumberOfChannels", 3);
     ASSERT_EQ(refDevice.getPropertyValue("NumberOfChannels"), 3);
@@ -141,7 +141,7 @@ TEST_F(DeviceModulesTest, GetSetDeviceProperties)
     ASSERT_EQ(properties.getCount(), 6u);
 }
 
-TEST_F(DeviceModulesTest, DeviceInfoAndDomain)
+TEST_F(OpcuaDeviceModulesTest, DeviceInfoAndDomain)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -164,7 +164,7 @@ TEST_F(DeviceModulesTest, DeviceInfoAndDomain)
     ASSERT_NO_THROW(domain.getTicksSinceOrigin());
 }
 
-TEST_F(DeviceModulesTest, DeviceDynamicFeatures)
+TEST_F(OpcuaDeviceModulesTest, DeviceDynamicFeatures)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -184,7 +184,7 @@ TEST_F(DeviceModulesTest, DeviceDynamicFeatures)
     ASSERT_THROW(daqDevice.removeFunctionBlock(refFb), opcua::OpcUaClientCallNotAvailableException);
 }
 
-TEST_F(DeviceModulesTest, DISABLED_Signal)
+TEST_F(OpcuaDeviceModulesTest, DISABLED_Signal)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -208,7 +208,7 @@ TEST_F(DeviceModulesTest, DISABLED_Signal)
     ASSERT_THROW(signal.getRelatedSignals(), opcua::OpcUaClientCallNotAvailableException);
 }
 
-TEST_F(DeviceModulesTest, SignalConfig_Server)
+TEST_F(OpcuaDeviceModulesTest, SignalConfig_Server)
 {
     const std::string newSignalName{"some new name"};
 
@@ -224,12 +224,12 @@ TEST_F(DeviceModulesTest, SignalConfig_Server)
     auto clientSignal = clientSignals[0].asPtr<ISignalConfig>();
 
     auto clientSignalDataDescriptor = DataDescriptorBuilderCopy(clientSignal.getDescriptor()).build();
-    
+
     ASSERT_EQ(serverSignal.getDescriptor().getName(), newSignalName);
     ASSERT_EQ(serverSignal.getDescriptor().getName(), clientSignal.getDescriptor().getName());
 }
 
-TEST_F(DeviceModulesTest, DISABLED_SignalConfig_Client)
+TEST_F(OpcuaDeviceModulesTest, DISABLED_SignalConfig_Client)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -241,7 +241,7 @@ TEST_F(DeviceModulesTest, DISABLED_SignalConfig_Client)
 
     // This currently fails. Should throw OpcUaClientCallNotAvailableException if we cannot fix it.
     // causes UA_STATUSCODE_BADWRITENOTSUPPORTED: The server does not support writing the combination of value
-    ASSERT_NO_THROW(clientSignal.setDescriptor(descCopy)); 
+    ASSERT_NO_THROW(clientSignal.setDescriptor(descCopy));
     ASSERT_TRUE(descCopy.isFrozen());
     ASSERT_EQ(descCopy.getName(), clientSignal.getDescriptor().getName());
 
@@ -252,7 +252,7 @@ TEST_F(DeviceModulesTest, DISABLED_SignalConfig_Client)
     ASSERT_THROW(clientSignal.clearRelatedSignals(), opcua::OpcUaClientCallNotAvailableException);
 }
 
-TEST_F(DeviceModulesTest, DISABLED_SignalLocalConnections)
+TEST_F(OpcuaDeviceModulesTest, DISABLED_SignalLocalConnections)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -265,7 +265,7 @@ TEST_F(DeviceModulesTest, DISABLED_SignalLocalConnections)
     ASSERT_EQ(signal.getConnections().getCount(), 0u);
 }
 
-TEST_F(DeviceModulesTest, SignalDescriptor)
+TEST_F(OpcuaDeviceModulesTest, SignalDescriptor)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -276,7 +276,7 @@ TEST_F(DeviceModulesTest, SignalDescriptor)
     ASSERT_EQ(signalDescriptor.getMetadata(), serverSignalDescriptor.getMetadata());
 }
 
-TEST_F(DeviceModulesTest, ChannelProps)
+TEST_F(OpcuaDeviceModulesTest, ChannelProps)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -288,7 +288,7 @@ TEST_F(DeviceModulesTest, ChannelProps)
 }
 
 
-TEST_F(DeviceModulesTest, DataDescriptor)
+TEST_F(OpcuaDeviceModulesTest, DataDescriptor)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -319,7 +319,7 @@ TEST_F(DeviceModulesTest, DataDescriptor)
     ASSERT_EQ(dataDescriptor.getPostScaling().getParameters(), dataDescriptor.getPostScaling().getParameters());
 }
 
-TEST_F(DeviceModulesTest, DISABLED_FunctionBlock)
+TEST_F(OpcuaDeviceModulesTest, DISABLED_FunctionBlock)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -353,7 +353,7 @@ TEST_F(DeviceModulesTest, DISABLED_FunctionBlock)
     ASSERT_THROW(notifications.disconnected(nullptr), opcua::OpcUaClientCallNotAvailableException);
 }
 
-TEST_F(DeviceModulesTest, FunctionBlockProperties)
+TEST_F(OpcuaDeviceModulesTest, FunctionBlockProperties)
 {
     auto loggerSink = LastMessageLoggerSink();
     loggerSink.setLevel(LogLevel::Warn);
@@ -372,7 +372,7 @@ TEST_F(DeviceModulesTest, FunctionBlockProperties)
     ASSERT_EQ(fb.getPropertyValue("BlockSize"), serverFb.getPropertyValue("BlockSize"));
     fb.setPropertyValue("BlockSize", 20);
     ASSERT_EQ(fb.getPropertyValue("BlockSize"), serverFb.getPropertyValue("BlockSize"));
-    
+
     ASSERT_EQ(fb.getPropertyValue("DomainSignalType"), serverFb.getPropertyValue("DomainSignalType"));
     fb.setPropertyValue("DomainSignalType", 2);
     ASSERT_EQ(fb.getPropertyValue("DomainSignalType"), serverFb.getPropertyValue("DomainSignalType"));
@@ -385,7 +385,7 @@ TEST_F(DeviceModulesTest, FunctionBlockProperties)
     ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"DomainSignalType\" on OpcUA client property object: Writting property value");
 }
 
-TEST_F(DeviceModulesTest, DISABLED_InputPort)
+TEST_F(OpcuaDeviceModulesTest, DISABLED_InputPort)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -409,7 +409,7 @@ TEST_F(DeviceModulesTest, DISABLED_InputPort)
     ASSERT_THROW(portConfig.setCustomData(nullptr), opcua::OpcUaClientCallNotAvailableException);
 }
 
-TEST_F(DeviceModulesTest, DISABLED_PublicProp)
+TEST_F(OpcuaDeviceModulesTest, DISABLED_PublicProp)
 {
     auto server = Instance();
     const auto refDevice = server.addDevice("daqref://device1");
@@ -421,7 +421,7 @@ TEST_F(DeviceModulesTest, DISABLED_PublicProp)
     ASSERT_NE(client.getDevices()[0].getDevices()[0].getSignals(search::Recursive(search::Visible()))[0].getLocalId(), id);
 }
 
-TEST_F(DeviceModulesTest, ProcedureProp)
+TEST_F(OpcuaDeviceModulesTest, ProcedureProp)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -432,7 +432,7 @@ TEST_F(DeviceModulesTest, ProcedureProp)
     ASSERT_NO_THROW(proc());
 }
 
-TEST_F(DeviceModulesTest, PackageVersion1)
+TEST_F(OpcuaDeviceModulesTest, PackageVersion1)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -444,11 +444,11 @@ TEST_F(DeviceModulesTest, PackageVersion1)
 // Tests defining future requirements
 ////////
 
-TEST_F(DeviceModulesTest, DISABLED_ReferenceMethods)
+TEST_F(OpcuaDeviceModulesTest, DISABLED_ReferenceMethods)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    
+
     auto signals = client.getDevices()[0].getDevices()[0].getSignals(search::Recursive(search::Visible()));
     auto connectedSignal = signals[0];
     auto domainSignal = signals[1];
@@ -462,7 +462,7 @@ TEST_F(DeviceModulesTest, DISABLED_ReferenceMethods)
     // TODO: We have no related signals example. Should be added when we do.
 }
 
-TEST_F(DeviceModulesTest, DISABLED_DynamicSignalConfig)
+TEST_F(OpcuaDeviceModulesTest, DISABLED_DynamicSignalConfig)
 {
     auto server = CreateServerInstance();
     auto serverDevice = server.addDevice("daqref://device0");
@@ -470,12 +470,12 @@ TEST_F(DeviceModulesTest, DISABLED_DynamicSignalConfig)
 
     auto clientSignals = client.getDevices()[0].getDevices()[0].getSignals(search::Recursive(search::Visible()));
     auto clientSignal = clientSignals[0].asPtr<ISignalConfig>();
-    
+
     clientSignal.setDomainSignal(clientSignals[1]);
     ASSERT_EQ(serverDevice.getSignals(search::Recursive(search::Visible()))[0].getDomainSignal().getLocalId(), clientSignal.getDomainSignal().getLocalId());
 }
 
-TEST_F(DeviceModulesTest, FunctionBlocksOnClient)
+TEST_F(OpcuaDeviceModulesTest, FunctionBlocksOnClient)
 {
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
@@ -484,7 +484,7 @@ TEST_F(DeviceModulesTest, FunctionBlocksOnClient)
     auto context = Context(scheduler, logger, typeManager, moduleManager);
 
     auto instance = InstanceCustom(context, "local");
-    
+
     instance.setRootDevice("daqref://device1");
 
     const auto statistics = instance.addFunctionBlock("ref_fb_module_statistics");

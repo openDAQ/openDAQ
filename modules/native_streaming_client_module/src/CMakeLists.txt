@@ -12,9 +12,8 @@ set(SRC_Include common.h
                 native_streaming_device_impl.h
                 native_streaming_signal_impl.h
                 native_streaming_impl.h
-                native_streaming_device_factory.h
-                native_streaming_signal_factory.h
-                native_streaming_factory.h
+                native_device_impl.h
+                device_wrapper_impl.h
 )
 
 set(SRC_Srcs module_dll.cpp
@@ -22,6 +21,8 @@ set(SRC_Srcs module_dll.cpp
              native_streaming_device_impl.cpp
              native_streaming_signal_impl.cpp
              native_streaming_impl.cpp
+             native_device_impl.cpp
+             device_wrapper_impl.cpp
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
@@ -33,17 +34,18 @@ source_group("module" FILES ${MODULE_HEADERS_DIR}/native_streaming_client_module
 )
 
 source_group("device" FILES ${MODULE_HEADERS_DIR}/native_streaming_device_impl.h
-                            ${MODULE_HEADERS_DIR}/native_streaming_device_factory.h
+                            ${MODULE_HEADERS_DIR}/native_device_impl.h
+                            ${MODULE_HEADERS_DIR}/device_wrapper_impl.h
                             native_streaming_device_impl.cpp
+                            native_device_impl.cpp
+                            device_wrapper_impl.cpp
 )
 
 source_group("signal" FILES ${MODULE_HEADERS_DIR}/native_streaming_signal_impl.h
-                            ${MODULE_HEADERS_DIR}/native_streaming_signal_factory.h
                             native_streaming_signal_impl.cpp
 )
 
 source_group("streaming" FILES ${MODULE_HEADERS_DIR}/native_streaming_impl.h
-                               ${MODULE_HEADERS_DIR}/native_streaming_factory.h
                                native_streaming_impl.cpp
 )
 

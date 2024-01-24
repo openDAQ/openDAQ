@@ -10,20 +10,16 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 using namespace daq::native_streaming;
 using namespace packet_streaming;
 
-ServerSessionHandler::ServerSessionHandler(const ContextPtr& context,
+ServerSessionHandler::ServerSessionHandler(const ContextPtr& daqContext,
                                            boost::asio::io_context& ioContext,
                                            SessionPtr session,
                                            OnSignalSubscriptionCallback signalSubscriptionHandler,
                                            OnSessionErrorCallback errorHandler)
-    : BaseSessionHandler(session, ioContext, errorHandler)
+    : BaseSessionHandler(daqContext, session, ioContext, errorHandler, "NativeProtocolServerSessionHandler")
     , signalSubscriptionHandler(signalSubscriptionHandler)
-    , logger(context.getLogger())
     , packetStreamingServer(10)
     , jsonSerializer(JsonSerializer(False))
 {
-    if (!this->logger.assigned())
-        throw ArgumentNullException("Logger must not be null");
-    loggerComponent = this->logger.getOrAddComponent("NativeStreamingServerSessionHandler");
 }
 
 ServerSessionHandler::~ServerSessionHandler()
@@ -284,6 +280,16 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
             [this](const void* data, size_t size)
             {
                 return readSignalUnsubscribe(data, size);
+            },
+            payloadSize
+        );
+    }
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_CONFIGURATION_PACKET)
+    {
+        return ReadTask(
+            [this](const void* data, size_t size)
+            {
+                return readConfigurationPacket(data, size);
             },
             payloadSize
         );

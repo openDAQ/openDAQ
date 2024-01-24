@@ -23,9 +23,8 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 DECLARE_OPENDAQ_INTERFACE(INativeStreamingSignalPrivate, IBaseObject)
 {
-    virtual void assignDomainSignal(const SignalPtr& domainSignal) = 0;
-    virtual void removeDomainSignal() = 0;
-    virtual void assignDescriptor(const DataDescriptorPtr& descriptor) = 0;
+    virtual void INTERFACE_FUNC removeDomainSignal() = 0;
+    virtual void INTERFACE_FUNC assignDescriptor(const DataDescriptorPtr& descriptor) = 0;
 };
 
 class NativeStreamingSignalImpl final : public MirroredSignalBase<INativeStreamingSignalPrivate>
@@ -43,9 +42,12 @@ public:
     StringPtr onGetRemoteId() const override;
     Bool onTriggerEvent(EventPacketPtr eventPacket) override;
 
-    void assignDomainSignal(const SignalPtr& domainSignal) override;
-    void removeDomainSignal() override;
-    void assignDescriptor(const DataDescriptorPtr& descriptor) override;
+    // IMirroredSignalPrivate
+    void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
+
+    // INativeStreamingSignalPrivate
+    void INTERFACE_FUNC removeDomainSignal() override;
+    void INTERFACE_FUNC assignDescriptor(const DataDescriptorPtr& descriptor) override;
 
 private:
     static StringPtr createLocalId(const StringPtr& streamingId);

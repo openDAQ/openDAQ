@@ -36,6 +36,8 @@ public:
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const StreamingInfoPtr& config) override;
 
 private:
+    static bool connectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
+    static DeviceTypePtr createPseudoDeviceType();
     static DeviceTypePtr createDeviceType();
     static StringPtr getHost(const StringPtr& url);
     static StringPtr getPort(const StringPtr& url);

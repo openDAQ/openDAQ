@@ -68,13 +68,13 @@ Python::
 def loading_modules(context: opendaq.IContext):
     # Loads modules from the executable directory
     manager1 = opendaq.ModuleManager(opendaq.String(''), context)
-# Loads modules from the current working directory
+    # Loads modules from the current working directory
     manager2 = opendaq.ModuleManager(opendaq.String('.'), context)
-# Loads modules from a path relative to the current directory
+    # Loads modules from a path relative to the current directory
     manager3 = opendaq.ModuleManager(opendaq.String('./dir1/dir2'), context)
-# Loads modules from an absolute path
+    # Loads modules from an absolute path
     manager4 = opendaq.ModuleManager(opendaq.String('/dir1/dir2'), context)
-# Does not load any modules
+    # Does not load any modules
     manager5 = opendaq.ModuleManager(opendaq.String('[[none]]'), context)
 ----
 ====
@@ -99,9 +99,9 @@ Python::
 [source,python]
 ----
 def instance():
-# if the path is not specified, the executable directory is used for the module path
+    # if the path is not specified, the executable directory is used for the module path
     instance1 = opendaq.Instance()
-# Uses the  current working directory as the module path
+    # Uses the  current working directory as the module path
     instance2 = opendaq.Instance(opendaq.String('.'))
 ----
 ====

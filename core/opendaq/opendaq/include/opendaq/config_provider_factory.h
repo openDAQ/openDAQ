@@ -15,29 +15,14 @@
  */
 
 #pragma once
-#include <coretypes/dictobject_factory.h>
+#include <opendaq/config_provider_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*!
- * @ingroup opendaq_devices
- * @addtogroup opendaq_instance IConfigProvider
- * @{
- */
-DECLARE_OPENDAQ_INTERFACE(IConfigProvider, IBaseObject)
+inline ConfigProviderPtr JsonConfigProvider(const StringPtr& filename)
 {
-    // [returnSelf]
-    // [templateType(options, IString, IBaseObject)]
-    /*!
-     * @brief Populate the existing dictionary with variables from from provider
-     * @param options The dictionary
-     */
-    virtual ErrCode INTERFACE_FUNC populateOptions(IDict* options) = 0;
-};
-/*!@}*/
-
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, JsonConfigProvider, IConfigProvider, IString*, filename)
-
-
+    ConfigProviderPtr obj(JsonConfigProvider_Create(filename));
+    return obj;
+}
 
 END_NAMESPACE_OPENDAQ

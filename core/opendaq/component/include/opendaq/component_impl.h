@@ -920,7 +920,29 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
         tags = serializedObject.readObject("tags", context, factoryCallback);
 
     if (serializedObject.hasKey("statuses"))
-        statusContainer = serializedObject.readObject("statuses", context, factoryCallback);
+        statusContainer = serializedObject.readObject(
+            "statuses",
+            context,
+            [this](const StringPtr& typeId,
+                   const SerializedObjectPtr& object,
+                   const BaseObjectPtr& context,
+                   const FunctionPtr& factoryCallback) -> BaseObjectPtr
+            {
+                if (typeId == ComponentStatusContainerImpl::SerializeId())
+                {
+                    auto container = createWithImplementation<IComponentStatusContainerPrivate, ComponentStatusContainerImpl>(
+                        [this](const CoreEventArgsPtr& args)
+                        {
+                            if (!this->coreEventMuted)
+                                triggerCoreEvent(args);
+                        });
+                    DictPtr<IString, IEnumeration> statuses = object.readObject("statuses", context, factoryCallback);
+                    for (const auto& [name, value] : statuses)
+                        container->addStatus(name, value);
+                    return container;
+                }
+                return nullptr;
+            });
 }
 
 using StandardComponent = ComponentImpl<>;

@@ -27,6 +27,7 @@ inline StreamingPtr NativeStreaming(
     const StringPtr& port,
     const StringPtr& path,
     const ContextPtr& context,
+    opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr clientHandler,
     const ProcedurePtr& onSignalAvailableCallback = nullptr,
     const ProcedurePtr& onSignalUnavailableCallback = nullptr,
     opendaq_native_streaming_protocol::OnReconnectionStatusChangedCallback onReconnectionStatusChangedCallback = nullptr)
@@ -36,6 +37,7 @@ inline StreamingPtr NativeStreaming(
                                                                                port,
                                                                                path,
                                                                                context,
+                                                                               clientHandler,
                                                                                onSignalAvailableCallback,
                                                                                onSignalUnavailableCallback,
                                                                                onReconnectionStatusChangedCallback));

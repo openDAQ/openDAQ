@@ -15,6 +15,41 @@ using namespace daq::opendaq_native_streaming_protocol;
 using ClientCountType = size_t;
 using WorkGuardType = boost::asio::executor_work_guard<boost::asio::io_context::executor_type>;
 
+class DummyConfigProtocolInstance
+{
+public:
+    DummyConfigProtocolInstance()
+        : sendPacketCb(nullptr)
+    {};
+
+    void receivePacket(const config_protocol::PacketBuffer& packetBuffer)
+    {
+        receivedPackets.push_back(config_protocol::PacketBuffer(packetBuffer.getBuffer(), true));
+    };
+
+    void sendPacket(const config_protocol::PacketBuffer& packetBuffer)
+    {
+        sentPackets.push_back(config_protocol::PacketBuffer(packetBuffer.getBuffer(), true));
+        //sendPacketCb(packetBuffer);
+    };
+
+    static void testPacketsEquality(const config_protocol::PacketBuffer& packetBuffer1,
+                                    const config_protocol::PacketBuffer& packetBuffer2)
+    {
+        ASSERT_TRUE(packetBuffer1.getPacketType() == packetBuffer2.getPacketType());
+        ASSERT_TRUE(packetBuffer1.getId() == packetBuffer2.getId());
+        ASSERT_TRUE(packetBuffer1.getPayloadSize() == packetBuffer2.getPayloadSize());
+        ASSERT_TRUE(packetBuffer1.getLength() == packetBuffer2.getLength());
+        ASSERT_TRUE(std::memcmp(packetBuffer1.getPayload(), packetBuffer2.getPayload(), packetBuffer1.getPayloadSize()) == 0);
+        ASSERT_TRUE(std::memcmp(packetBuffer1.getBuffer(), packetBuffer2.getBuffer(), packetBuffer1.getLength()) == 0);
+    };
+
+    std::vector<config_protocol::PacketBuffer> receivedPackets;
+    std::vector<config_protocol::PacketBuffer> sentPackets;
+
+    ConfigProtocolPacketCb sendPacketCb;
+};
+
 class ClientAttributes
 {
 public:
@@ -48,6 +83,9 @@ public:
     OnPacketCallback packetHandler;
     OnSignalSubscriptionAckCallback signalSubscriptionAckHandler;
     OnReconnectionStatusChangedCallback reconnectionStatusChangedHandler;
+
+    DummyConfigProtocolInstance configProtocolHandler;
+    ConfigProtocolPacketCb configProtocolPacketHandler;
 
     /// async operations handler
     std::shared_ptr<boost::asio::io_context> ioContextPtrClient;
@@ -118,6 +156,11 @@ public:
             reconnectionStatusPromise.set_value(status);
         };
 
+        configProtocolPacketHandler = [this](const config_protocol::PacketBuffer& packetBuffer)
+        {
+            configProtocolHandler.receivePacket(packetBuffer);
+        };
+
         ioContextPtrClient = std::make_shared<boost::asio::io_context>();
         workGuardClient = std::make_unique<WorkGuardType>(ioContextPtrClient->get_executor());
         execThreadClient = std::thread([this]() { ioContextPtrClient->run(); });
@@ -170,6 +213,19 @@ public:
             signalUnsubscribedPromise.set_value(signal);
         };
 
+        setUpConfigProtocolServerCb =
+            [this](ConfigProtocolPacketCb sendPacketCb)
+        {
+            auto configProtocolHandler = std::make_shared<DummyConfigProtocolInstance>();
+            ConfigProtocolPacketCb receivePacketCb =
+                [configProtocolHandler](const config_protocol::PacketBuffer& packetBuffer)
+            {
+                configProtocolHandler->receivePacket(packetBuffer);
+            };
+            configProtocolHandlers.push_back(configProtocolHandler);
+            return receivePacketCb;
+        };
+
         clientsCount = std::get<0>(GetParam());
         clients = std::vector<ClientAttributes>(clientsCount);
         for (size_t i = 0; i < clients.size(); ++i)
@@ -197,13 +253,15 @@ public:
     std::shared_ptr<NativeStreamingClientHandler> createClient(const ClientAttributes& client,
                                                                OnSignalAvailableCallback signalAvailableHandler)
     {
-        return std::make_shared<NativeStreamingClientHandler>(client.clientContext,
-                                                              client.ioContextPtrClient,
-                                                              signalAvailableHandler,
-                                                              client.signalUnavailableHandler,
-                                                              client.packetHandler,
-                                                              client.signalSubscriptionAckHandler,
-                                                              client.reconnectionStatusChangedHandler);
+        auto clientHandler = std::make_shared<NativeStreamingClientHandler>(client.clientContext);
+        clientHandler->setIoContext(client.ioContextPtrClient);
+        clientHandler->setSignalAvailableHandler(signalAvailableHandler);
+        clientHandler->setSignalUnavailableHandler(client.signalUnavailableHandler);
+        clientHandler->setPacketHandler(client.packetHandler);
+        clientHandler->setSignalSubscriptionAckCallback(client.signalSubscriptionAckHandler);
+        clientHandler->setReconnectionStatusChangedCb(client.reconnectionStatusChangedHandler);
+        clientHandler->setConfigPacketHandler(client.configProtocolPacketHandler);
+        return clientHandler;
     }
 
     void startServer(const ListPtr<ISignal>& signalsList)
@@ -216,7 +274,8 @@ public:
                                                                        ioContextPtrServer,
                                                                        signalsList,
                                                                        signalSubscribedHandler,
-                                                                       signalUnsubscribedHandler);
+                                                                       signalUnsubscribedHandler,
+                                                                       setUpConfigProtocolServerCb);
         serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
     }
 
@@ -240,6 +299,9 @@ protected:
     OnSignalSubscribedCallback signalSubscribedHandler;
     OnSignalUnsubscribedCallback signalUnsubscribedHandler;
 
+    std::vector<std::shared_ptr<DummyConfigProtocolInstance>> configProtocolHandlers;
+    SetUpConfigProtocolServerCb setUpConfigProtocolServerCb;
+
     std::promise< SignalPtr > signalSubscribedPromise;
     std::future< SignalPtr > signalSubscribedFuture;
 
@@ -262,7 +324,8 @@ TEST_P(ProtocolTest, CreateServerNoSignals)
                                                                    ioContextPtrServer,
                                                                    List<ISignal>(),
                                                                    signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler);
+                                                                   signalUnsubscribedHandler,
+                                                                   setUpConfigProtocolServerCb);
 }
 
 TEST_P(ProtocolTest, CreateClient)
@@ -602,6 +665,39 @@ TEST_P(ProtocolTest, SendDataPacket)
         auto [signalId, packet] = client.packetReceivedFuture.get();
         ASSERT_EQ(signalId, serverSignal.getGlobalId());
         ASSERT_EQ(packet, serverDataPacket);
+    }
+}
+
+TEST_P(ProtocolTest, DISABLED_ConfigProtocolPackets)
+{
+    startServer(List<ISignal>());
+
+    for (auto& client : clients)
+    {
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    }
+
+    ASSERT_EQ(clients.size(), configProtocolHandlers.size());
+
+    for (auto& client : clients)
+    {
+        auto packet = config_protocol::PacketBuffer::createGetProtocolInfoRequest(1);
+        client.clientHandler->sendConfigRequest(packet);
+        client.configProtocolHandler.sendPacket(packet);
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    for (size_t i = 0; i < clients.size(); ++i)
+    {
+        auto packetsReceived = configProtocolHandlers[i]->receivedPackets.size();
+        ASSERT_EQ(clients[i].configProtocolHandler.sentPackets.size(), packetsReceived);
+        for (size_t j = 0; j < packetsReceived; ++j)
+            DummyConfigProtocolInstance::testPacketsEquality(
+                configProtocolHandlers[i]->receivedPackets[j],
+                clients[i].configProtocolHandler.sentPackets[j]
+            );
     }
 }
 

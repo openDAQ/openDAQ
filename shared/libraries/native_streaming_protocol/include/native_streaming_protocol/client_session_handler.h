@@ -18,9 +18,6 @@
 
 #include <native_streaming_protocol/base_session_handler.h>
 
-#include <opendaq/context_ptr.h>
-#include <opendaq/logger_ptr.h>
-#include <opendaq/logger_component_ptr.h>
 #include <opendaq/data_descriptor_ptr.h>
 
 #include <packet_streaming/packet_streaming_client.h>
@@ -30,7 +27,7 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 class ClientSessionHandler : public BaseSessionHandler
 {
 public:
-    ClientSessionHandler(const ContextPtr& context,
+    ClientSessionHandler(const ContextPtr& daqContext,
                          boost::asio::io_context& ioContext,
                          SessionPtr session,
                          OnSignalCallback signalReceivedHandler,
@@ -61,9 +58,6 @@ private:
     OnPacketReceivedCallback packetReceivedHandler;
     OnProtocolInitDoneCallback protocolInitDoneHandler;
     OnSubscriptionAckCallback subscriptionAckHandler;
-
-    LoggerPtr logger;
-    LoggerComponentPtr loggerComponent;
 
     packet_streaming::PacketStreamingClient packetStreamingClient;
     DeserializerPtr jsonDeserializer;

@@ -9,7 +9,7 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 using namespace daq::native_streaming;
 using namespace packet_streaming;
 
-ClientSessionHandler::ClientSessionHandler(const ContextPtr& context,
+ClientSessionHandler::ClientSessionHandler(const ContextPtr& daqContext,
                                            boost::asio::io_context& ioContext,
                                            SessionPtr session,
                                            OnSignalCallback signalReceivedHandler,
@@ -17,17 +17,13 @@ ClientSessionHandler::ClientSessionHandler(const ContextPtr& context,
                                            OnProtocolInitDoneCallback protocolInitDoneHandler,
                                            OnSubscriptionAckCallback subscriptionAckHandler,
                                            OnSessionErrorCallback errorHandler)
-    : BaseSessionHandler(session, ioContext, errorHandler)
+    : BaseSessionHandler(daqContext, session, ioContext, errorHandler, "NativeProtocolClientSessionHandler")
     , signalReceivedHandler(signalReceivedHandler)
     , packetReceivedHandler(packetReceivedHandler)
     , protocolInitDoneHandler(protocolInitDoneHandler)
     , subscriptionAckHandler(subscriptionAckHandler)
-    , logger(context.getLogger())
     , jsonDeserializer(JsonDeserializer())
 {
-    if (!this->logger.assigned())
-        throw ArgumentNullException("Logger must not be null");
-    loggerComponent = this->logger.getOrAddComponent("NativeStreamingClientSessionHandler");
 }
 
 ClientSessionHandler::~ClientSessionHandler()
@@ -89,6 +85,12 @@ ReadTask ClientSessionHandler::readPacket(const void* data, size_t size)
         // Get packet buffer header size from received buffer
         copyData(&headerSize, data, sizeof(headerSize), bytesDone, size);
         LOG_T("Received packet buffer header size: {}", headerSize);
+
+        if (headerSize < sizeof(GenericPacketHeader))
+        {
+            LOG_E("Unsupported streaming packet buffer header size: {}. Skipping payload.", headerSize);
+            return createReadHeaderTask();
+        }
 
         // Get packet buffer header from received buffer
         packetBufferHeader = static_cast<GenericPacketHeader*>(std::malloc(headerSize));
@@ -369,6 +371,16 @@ ReadTask ClientSessionHandler::readHeader(const void* data, size_t size)
             [this](const void* data, size_t size)
             {
                 return readSignalUnsubscribedAck(data, size);
+            },
+            payloadSize
+        );
+    }
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_CONFIGURATION_PACKET)
+    {
+        return ReadTask(
+            [this](const void* data, size_t size)
+            {
+                return readConfigurationPacket(data, size);
             },
             payloadSize
         );

@@ -31,6 +31,8 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 using OnSignalSubscribedCallback = std::function<void(const SignalPtr& signal)>;
 using OnSignalUnsubscribedCallback = std::function<void(const SignalPtr& signal)>;
 
+using SetUpConfigProtocolServerCb = std::function<ConfigProtocolPacketCb(ConfigProtocolPacketCb cb)>;
+
 class NativeStreamingServerHandler
 {
 public:
@@ -38,7 +40,8 @@ public:
                                           std::shared_ptr<boost::asio::io_context> ioContextPtr,
                                           const ListPtr<ISignal>& signalsList,
                                           OnSignalSubscribedCallback signalSubscribedHandler,
-                                          OnSignalUnsubscribedCallback signalUnsubscribedHandler);
+                                          OnSignalUnsubscribedCallback signalUnsubscribedHandler,
+                                          SetUpConfigProtocolServerCb setUpConfigProtocolServerCb);
     ~NativeStreamingServerHandler();
 
     void startServer(uint16_t port);
@@ -51,6 +54,7 @@ public:
 
 protected:
     void initSessionHandler(SessionPtr session);
+    void setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void releaseSessionHandler(SessionPtr session);
 
     SignalNumericIdType registerSignal(const SignalPtr& signal);
@@ -73,6 +77,7 @@ protected:
 
     OnSignalSubscribedCallback signalSubscribedHandler;
     OnSignalUnsubscribedCallback signalUnsubscribedHandler;
+    SetUpConfigProtocolServerCb setUpConfigProtocolServerCb;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

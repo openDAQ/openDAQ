@@ -8,6 +8,8 @@
 
 #include <coreobjects/property_object_protected_ptr.h>
 
+#include <regex>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 using namespace opendaq_native_streaming_protocol;
@@ -56,11 +58,17 @@ void NativeStreamingDeviceImpl::createNativeStreaming(const StringPtr& host,
             reconnectionStatusChangedHandler(status);
         };
 
-    nativeStreaming = NativeStreaming(connectionString,
+    auto clientHandler = std::make_shared<NativeStreamingClientHandler>(context);
+    std::string streamingConnectionString =
+        std::regex_replace(connectionString.toStdString(),
+                           std::regex(NativeStreamingDevicePrefix),
+                           NativeStreamingImpl::NativeStreamingPrefix);
+    nativeStreaming = NativeStreaming(streamingConnectionString,
                                       host,
                                       port,
                                       path,
                                       context,
+                                      clientHandler,
                                       onSignalAvailableCallback,
                                       onSignalUnavailableCallback,
                                       onReconnectionStatusChangedCallback);
@@ -128,11 +136,11 @@ void NativeStreamingDeviceImpl::addToDeviceSignals(const StringPtr& signalString
         auto [addedSignal, domainSignalId] = item.second;
         if (domainSignalId == signalStringId)
         {
-            addedSignal.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(signalToAdd);
+            addedSignal.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(signalToAdd);
         }
         if (domainSignalStringId == addedSignalId)
         {
-            signalToAdd.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(addedSignal);
+            signalToAdd.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(addedSignal);
         }
     }
 
@@ -177,11 +185,11 @@ void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr
         auto [addedSignal, domainSignalId] = item.second;
         if (domainSignalId == signalStringId)
         {
-            addedSignal.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(signalToAdd);
+            addedSignal.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(signalToAdd);
         }
         if (domainSignalStringId == addedSignalId)
         {
-            signalToAdd.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(addedSignal);
+            signalToAdd.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(addedSignal);
         }
     }
 

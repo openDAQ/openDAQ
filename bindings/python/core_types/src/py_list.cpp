@@ -95,25 +95,25 @@ void defineIList(pybind11::module_ m, PyDaqIntf<daq::IList> cls)
             return pythonIterator;
         });
 
-    cls.def("pushBack",  // this should be .append()
+    cls.def("push_back",  // this should be .append()
         [](daq::IList* list, const py::object& pyObject)
         {
             auto listPtr = daq::ListPtr<daq::IBaseObject>::Borrow(list);
             listPtr.pushBack(pyObjectToBaseObject(pyObject));
         });
-    cls.def("pushFront",
+    cls.def("push_front",
         [](daq::IList* list, const py::object& pyObject)
         {
             auto listPtr = daq::ListPtr<daq::IBaseObject>::Borrow(list);
             listPtr.pushFront(pyObjectToBaseObject(pyObject));
         });
-    cls.def("popFront",
+    cls.def("pop_front",
         [](daq::IList* list)
         {
             auto listPtr = daq::ListPtr<daq::IBaseObject>::Borrow(list);
             return baseObjectToPyObject(listPtr.popFront(), listPtr.getElementInterfaceId());
         });
-    cls.def("popBack",
+    cls.def("pop_back",
         [](daq::IList* list)
         {
             auto listPtr = daq::ListPtr<daq::IBaseObject>::Borrow(list);

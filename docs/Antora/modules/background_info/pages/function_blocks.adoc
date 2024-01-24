@@ -42,7 +42,7 @@ Python::
 [source,python]
 ----
 input_port.connect(signal)
-// signal is now connected to the inputPort
+# signal is now connected to the inputPort
 signal1 = input_port.signal
 assert signal1 == signal
 ----
@@ -81,7 +81,7 @@ Python::
 +
 [source,python]
 ----
-fb = instance.addFunctionBlock("fft_fb")
+fb = instance.add_function_block("fft_fb")
 # Function Block appears under FunctionBlocks of the instance
 fbs = instance.function_blocks
 fb1 = fbs[-1]

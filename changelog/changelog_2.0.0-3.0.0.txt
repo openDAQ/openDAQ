@@ -1,3 +1,11 @@
+05.02.2024
+Description:
+	- Add core event support to config client
+
+-m [function] IInstance::findComponent(IComponent* component, IString* id, IComponent** outComponent)
++m [function] IComponent::findComponent(IString* id, IComponent** outComponent)
++ [function] ITags::set(IList* tags) = 0;
+
 5.2.2024
 Description:
   - Add Component status implementations

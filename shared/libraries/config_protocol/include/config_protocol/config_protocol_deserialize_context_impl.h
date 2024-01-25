@@ -27,6 +27,7 @@ public:
     ConfigProtocolDeserializeContextImpl(const ConfigProtocolClientCommPtr& clientComm,
                                          const std::string& remoteGlobalId,
                                          const ContextPtr& context,
+                                         const ComponentPtr& root,
                                          const ComponentPtr& parent,
                                          const StringPtr& localId);
 

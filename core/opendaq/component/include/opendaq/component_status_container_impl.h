@@ -132,7 +132,7 @@ inline ErrCode ComponentStatusContainerImpl::setStatus(IString *name, IEnumerati
     if (triggerCoreEvent.assigned())
     {
         const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-            core_event_ids::StatusChanged, Dict<IString, IBaseObject>({{name, value}}));
+            CoreEventId::StatusChanged, Dict<IString, IBaseObject>({{name, value}}));
         triggerCoreEvent(args);
     }
 

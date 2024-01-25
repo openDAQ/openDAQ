@@ -32,6 +32,7 @@ public:
 
     ErrCode INTERFACE_FUNC getList(IList** value) override;
     ErrCode INTERFACE_FUNC add(IString* name) override;
+    ErrCode INTERFACE_FUNC set(IList* tags) override;
     ErrCode INTERFACE_FUNC remove(IString* name) override;
     ErrCode INTERFACE_FUNC contains(IString* name, Bool* value) override;
     ErrCode INTERFACE_FUNC query(IString* query, Bool* value) override;

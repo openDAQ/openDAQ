@@ -187,7 +187,19 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
      * @brief Gets the container of Component statuses.
      * @param[out] statusContainer The container of Component statuses.
      */
-    virtual ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) = 0;
+    virtual ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) = 0;  
+  
+    /*!
+     * @brief Finds the component (signal/device/function block) with the specified (global) id.
+     * @param id The id of the component to search for.
+     * @param[out] outComponent The resulting component.
+     *
+     * If the component parameter is true, the starting component is the root device.
+     *
+     * The id provided should be in relative form from the starting component. E.g., to find a signal in
+     * the starting component, the id should be in the form of "dev/dev_id/ch/ch_id/sig/sig_id.
+     */
+    virtual ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) = 0;
 };
 /*!@}*/
 

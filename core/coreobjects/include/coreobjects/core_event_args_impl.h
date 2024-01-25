@@ -19,39 +19,41 @@
 #include <coreobjects/core_event_args.h>
 #include <coretypes/event_args_impl.h>
 #include <coretypes/validation.h>
+#include <core_event_args_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 namespace core_event_args_impl
 {
-    static std::string getCoreEventName(const Int id)
+    static std::string getCoreEventName(const CoreEventId id)
     {
         switch(id)
         {
-            case core_event_ids::PropertyValueChanged:
+            case CoreEventId::PropertyValueChanged:
                 return "PropertyValueChanged";
-            case core_event_ids::PropertyObjectUpdateEnd:
+            case CoreEventId::PropertyObjectUpdateEnd:
                 return "PropertyObjectUpdateEnd";
-            case core_event_ids::PropertyAdded:
+            case CoreEventId::PropertyAdded:
                 return "PropertyAdded";
-            case core_event_ids::PropertyRemoved:
+            case CoreEventId::PropertyRemoved:
                 return "PropertyRemoved";
-            case core_event_ids::ComponentAdded:
+            case CoreEventId::ComponentAdded:
                 return "ComponentAdded";
-            case core_event_ids::ComponentRemoved:
+            case CoreEventId::ComponentRemoved:
                 return "ComponentRemoved";
-            case core_event_ids::SignalConnected:
+            case CoreEventId::SignalConnected:
                 return "SignalConnected";
-            case core_event_ids::SignalDisconnected:
+            case CoreEventId::SignalDisconnected:
                 return "SignalDisconnected";
-            case core_event_ids::DataDescriptorChanged:
+            case CoreEventId::DataDescriptorChanged:
                 return "DataDescriptorChanged";
-            case core_event_ids::ComponentUpdateEnd:
+            case CoreEventId::ComponentUpdateEnd:
                 return "ComponentUpdateEnd";
-            case core_event_ids::AttributeChanged:
+            case CoreEventId::AttributeChanged:
                 return "AttributeChanged";
-            case core_event_ids::TagsChanged:
+            case CoreEventId::TagsChanged:
                 return "TagsChanged";
-            case core_event_ids::StatusChanged:
+            case CoreEventId::StatusChanged:
                 return "StatusChanged";
             default:
                 break;
@@ -62,20 +64,37 @@ namespace core_event_args_impl
 }
 
 
-class CoreEventArgsImpl : public EventArgsBase<ICoreEventArgs>
+class CoreEventArgsImpl : public EventArgsBase<ICoreEventArgs, ISerializable>
 {
 public:
-    explicit CoreEventArgsImpl (Int id, const DictPtr<IString, IBaseObject>& parameters);
+    explicit CoreEventArgsImpl (CoreEventId id, const DictPtr<IString, IBaseObject>& parameters);
+    explicit CoreEventArgsImpl (CoreEventId id, const StringPtr& name, const DictPtr<IString, IBaseObject>& parameters);
 
     ErrCode INTERFACE_FUNC getParameters(IDict** parameters) override;
+    
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+    
+    static ConstCharPtr SerializeId();
+
+    static ErrCode Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
 private:
     DictPtr<IString, IBaseObject> parameters;
     bool validateParameters() const;
 };
 
 
-inline CoreEventArgsImpl::CoreEventArgsImpl(Int id, const DictPtr<IString, IBaseObject>& parameters)
-    : EventArgsImplTemplate<ICoreEventArgs>(id, core_event_args_impl::getCoreEventName(id))
+inline CoreEventArgsImpl::CoreEventArgsImpl(CoreEventId id, const DictPtr<IString, IBaseObject>& parameters)
+    : EventArgsImplTemplate<ICoreEventArgs, ISerializable>(static_cast<int>(id), core_event_args_impl::getCoreEventName(id))
+    , parameters(parameters)
+{
+    if (!validateParameters())
+        throw InvalidParameterException{"Core event parameters for event type \"{}\" are invalid", this->eventName};
+}
+
+inline CoreEventArgsImpl::CoreEventArgsImpl(CoreEventId id, const StringPtr& name, const DictPtr<IString, IBaseObject>& parameters)
+    : EventArgsImplTemplate<ICoreEventArgs, ISerializable>(static_cast<int>(id), name)
     , parameters(parameters)
 {
     if (!validateParameters())
@@ -90,29 +109,112 @@ inline ErrCode CoreEventArgsImpl::getParameters(IDict** parameters)
     return OPENDAQ_SUCCESS;
 }
 
+inline ErrCode CoreEventArgsImpl::serialize(ISerializer* serializer)
+{
+    serializer->startTaggedObject(this);
+
+    serializer->key("id");
+    serializer->writeInt(this->eventId);
+
+    serializer->key("name");
+    serializer->writeString(this->eventName.getCharPtr(), this->eventName.getLength());
+
+    serializer->key("params");
+    ISerializable* serializableParams;
+    ErrCode errCode = this->parameters->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableParams));
+
+    if (errCode == OPENDAQ_ERR_NOINTERFACE)
+        return OPENDAQ_ERR_NOT_SERIALIZABLE;
+
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    errCode = serializableParams->serialize(serializer);
+
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    serializer->endObject();
+
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode CoreEventArgsImpl::getSerializeId(ConstCharPtr* id) const
+{
+    *id = SerializeId();
+
+    return OPENDAQ_SUCCESS;
+}
+
+inline ConstCharPtr CoreEventArgsImpl::SerializeId()
+{
+    return "CoreEventArgs";
+}
+
+inline ErrCode CoreEventArgsImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+{
+    Int id;
+    ErrCode errCode = ser->readInt("id"_daq, &id);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    StringPtr name;
+    errCode = ser->readString("name"_daq, &name);
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+    {
+        name = core_event_args_impl::getCoreEventName((CoreEventId) id);
+        errCode = OPENDAQ_SUCCESS;
+    }
+
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    BaseObjectPtr params;
+    errCode = ser->readObject("params"_daq, context, factoryCallback, &params);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    try
+    {
+        CoreEventArgsPtr argsPtr; 
+        createCoreEventArgs(&argsPtr, (CoreEventId) id, name, params.asPtr<IDict>());
+        *obj = argsPtr.detach();
+    }
+    catch(const DaqException& e)
+    {
+        return e.getErrCode();
+    }
+    catch(...)
+    {
+        return OPENDAQ_ERR_GENERALERROR;
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
 inline bool CoreEventArgsImpl::validateParameters() const
 {
-    switch(eventId)
+    switch(static_cast<CoreEventId>(eventId))
     {
-        case core_event_ids::PropertyValueChanged:
-            return parameters.hasKey("Name") && parameters.hasKey("Value") && parameters.hasKey("Owner");
-        case core_event_ids::PropertyObjectUpdateEnd:
-            return parameters.hasKey("UpdatedProperties") && parameters.get("UpdatedProperties").asPtrOrNull<IDict>().assigned() && parameters.hasKey("Owner");
-        case core_event_ids::PropertyAdded:
-            return parameters.hasKey("Property") && parameters.hasKey("Owner");
-        case core_event_ids::PropertyRemoved:
-            return parameters.hasKey("Name") && parameters.hasKey("Owner");
-        case core_event_ids::ComponentAdded:
+        case CoreEventId::PropertyValueChanged:
+            return parameters.hasKey("Name") && parameters.hasKey("Value") && parameters.hasKey("Path");
+        case CoreEventId::PropertyObjectUpdateEnd:
+            return parameters.hasKey("UpdatedProperties") && parameters.get("UpdatedProperties").asPtrOrNull<IDict>().assigned() && parameters.hasKey("Path");
+        case CoreEventId::PropertyAdded:
+            return parameters.hasKey("Property") && parameters.hasKey("Path");
+        case CoreEventId::PropertyRemoved:
+            return parameters.hasKey("Name") && parameters.hasKey("Path");
+        case CoreEventId::ComponentAdded:
             return parameters.hasKey("Component");
-        case core_event_ids::ComponentRemoved:
+        case CoreEventId::ComponentRemoved:
             return parameters.hasKey("Id");
-        case core_event_ids::SignalConnected:
+        case CoreEventId::SignalConnected:
             return parameters.hasKey("Signal");
-        case core_event_ids::DataDescriptorChanged:
+        case CoreEventId::DataDescriptorChanged:
             return parameters.hasKey("DataDescriptor");
-        case core_event_ids::AttributeChanged:
+        case CoreEventId::AttributeChanged:
             return parameters.hasKey("AttributeName");
-        case core_event_ids::TagsChanged:
+        case CoreEventId::TagsChanged:
             return parameters.hasKey("Tags");
         default:
             break;
@@ -120,5 +222,7 @@ inline bool CoreEventArgsImpl::validateParameters() const
 
     return true;
 }
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(CoreEventArgsImpl)
 
 END_NAMESPACE_OPENDAQ

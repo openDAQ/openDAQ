@@ -98,18 +98,18 @@ struct IDataDescriptorBuilder;
  * 1. Check and apply `Rule`:
  *    - If the rule is `explicit`, the values of a packet are present in the packet's data buffer
  *    - If not `explicit`, the packet's values need to be calculated. To calculate them, take the PacketOffset and SampleCount of the
- * packet. Use the PacketOffset, as well as the index of the sample in a packet to calculate the rule's output value: `Value = PacketOffset
- * + Rule(Index)`. Eg. `Value = PacketOffset + Delta * Index + Start`
+ *      packet. Use the PacketOffset, as well as the index of the sample in a packet to calculate the rule's output value: `Value = PacketOffset + Rule(Index)`.
+ *      Eg. `Value = PacketOffset + Delta * Index + Start`
  * 2. Apply `TickResolution`:
  *    - If the `TickResolution` is set, multiply the value from 1. with the `Resolution`. This scales the value into the `Unit` of the value
- * descriptor.
+ *      descriptor.
  *    - If not set, keep the value from 1.
  * 3. Add `Origin`:
  *    - If the `Origin` is set, take the value from 2. and add it to the `Origin`.
  *      In example, if using the Unix Epoch, a value `1669279690` in seconds would mean Thursday, 24 November 2022 08:48:10 GMT.
  *    - If not set, keep the value from 2.
  *
- * @subsubsection data_descriptor_calculation_without_scaling With `PostScaling`
+ * @subsubsection data_descriptor_calculation_with_scaling With `PostScaling`
  *
  * If `PostScaling` is set, the `Rule` must be explicit, while `Resolution` and `Origin` must not be configured.
  *

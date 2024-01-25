@@ -321,7 +321,7 @@ void FunctionBlockImpl<TInterface, Interfaces...>::deserializeCustomObjectValues
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
-    this->deserializeFolder(serializedObject, context, factoryCallback, this->inputPorts, "IP");
+    this->deserializeDefaultFolder(serializedObject, context, factoryCallback, this->inputPorts, "IP");
 }
 
 template <typename TInterface, typename... Interfaces>

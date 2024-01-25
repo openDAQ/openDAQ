@@ -249,7 +249,8 @@ DECLARE_OPENDAQ_INTERFACE(ICoreEventArgs, IEventArgs)
  */
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, CoreEventArgs,
-    Int, eventId,
+    CoreEventId, eventId,
+    IString*, eventName,
     IDict*, parameters
 )
 

@@ -10,6 +10,9 @@ add_executable(${TEST_APP}
     test_ref_modules.cpp
     test_component_holder.cpp
     test_app.cpp
+    test_core_events.cpp
+    test_utils.h
+    test_utils.cpp
 )
 
 target_link_libraries(${TEST_APP} PRIVATE

@@ -68,7 +68,7 @@ public:
 
 protected:
     using SignalMap = std::unordered_map<std::string, std::pair<daq::SizeT, daq::SignalPtr>>;
-    using ClientMap = std::unordered_map<daq::streaming_protocol::StreamWriterPtr, SignalMap>;
+    using ClientMap = std::unordered_map<std::string, std::pair<daq::streaming_protocol::StreamWriterPtr, SignalMap>>;
 
     void onAcceptInternal(const daq::stream::StreamPtr& stream);
     void writeProtocolInfo(const daq::streaming_protocol::StreamWriterPtr& writer);

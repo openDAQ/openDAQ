@@ -111,7 +111,7 @@ void MockStreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
     }
 
     LOG_I("New client connected. Stream Id: {}", writer->id());
-    clients.insert({writer, outputSignals});
+    clients.insert({writer->id(), {writer, outputSignals}});
 
     writeSignalsAvailable(writer, signals);
 }
@@ -128,13 +128,7 @@ int MockStreamingServer::onControlCommand(const std::string& streamId,
         return -1;
     }
 
-    auto clientIter = std::find_if(std::begin(clients),
-                                   std::end(clients),
-                                   [&streamId](const auto& pair)
-                                   {
-                                       return pair.first->id() == streamId;
-                                   });
-
+    auto clientIter = clients.find(streamId);
     if (clientIter == std::end(clients))
     {
         LOG_W("Unknown streamId: {}, reject command", streamId);
@@ -142,8 +136,8 @@ int MockStreamingServer::onControlCommand(const std::string& streamId,
         return -1;
     }
 
-    auto writer = clientIter->first;
-    auto signalMap = clientIter->second;
+    auto writer = clientIter->second.first;
+    auto signalMap = clientIter->second.second;
 
     if (command == "subscribe")
     {

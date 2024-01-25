@@ -104,12 +104,4 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
         },
         py::return_value_policy::take_ownership,
         "Get list of added servers.");
-    cls.def("find_component",
-        [](daq::IInstance *object, daq::IComponent* component, const std::string& id)
-        {
-            const auto objectPtr = daq::InstancePtr::Borrow(object);
-            return objectPtr.findComponent(component, id).detach();
-        },
-        py::arg("component"), py::arg("id"),
-        "Finds the component (signal/device/function block) with the specified (global) id.");
 }

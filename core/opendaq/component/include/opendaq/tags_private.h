@@ -45,6 +45,13 @@ DECLARE_OPENDAQ_INTERFACE(ITagsPrivate, IBaseObject)
      * @retval OPENDAQ_IGNORED if a node with the `name` is not in the list of tags.
      */
     virtual ErrCode INTERFACE_FUNC remove(IString* name) = 0;
+
+    // [templateType(tags, IString)]
+    /*!
+     * @brief Replaces all tags.
+     * @param tags The new list of tags.
+     */
+    virtual ErrCode INTERFACE_FUNC set(IList* tags) = 0;
 };
 
 /*!@}*/

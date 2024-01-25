@@ -137,7 +137,7 @@ TEST_F(InputPortTest, SerializeAndDeserialize)
     const auto str1 = serializer.getOutput();
 
     const auto deserializer = JsonDeserializer();
-    const auto deserializeContext = ComponentDeserializeContext(daq::NullContext(), nullptr, "TestPort");
+    const auto deserializeContext = ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "TestPort");
 
     const InputPortPtr newInputPort = deserializer.deserialize(str1, deserializeContext, nullptr);
 

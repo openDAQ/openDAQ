@@ -38,7 +38,7 @@ TEST_F(ChannelTest, SerializeAndDeserialize)
 
     const auto deserializer = daq::JsonDeserializer();
 
-    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, "ch");
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "ch");
 
     const daq::ChannelPtr newCh = deserializer.deserialize(str1, deserializeContext, nullptr);
 

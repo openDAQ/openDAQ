@@ -29,10 +29,11 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
  * @param parent The parent component.
  * @param localId The local ID of the component.
+ * @param className The property object class name of the component.
  */
-inline ComponentPtr Component(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+inline ComponentPtr Component(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className = "")
 {
-    ComponentPtr obj(Component_Create(context, parent, localId, nullptr));
+    ComponentPtr obj(Component_Create(context, parent, localId, className));
     return obj;
 }
 

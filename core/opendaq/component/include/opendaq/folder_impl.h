@@ -209,7 +209,7 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
     {
         const auto component = ComponentPtr::Borrow(item);
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::ComponentAdded,
+                CoreEventId::ComponentAdded,
                 Dict<IString, IBaseObject>({{"Component", component}}));
          this->triggerCoreEvent(args);
          component.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
@@ -244,7 +244,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItem(IComponent* item)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::ComponentRemoved,
+                CoreEventId::ComponentRemoved,
                 Dict<IString, IBaseObject>({{"Id", str}}));
         
         this->triggerCoreEvent(args);
@@ -279,7 +279,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalId(IString* localId)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::ComponentRemoved,
+                CoreEventId::ComponentRemoved,
                 Dict<IString, IBaseObject>({{"Id", str}}));
         
         this->triggerCoreEvent(args);
@@ -383,7 +383,7 @@ void FolderImpl<Intf, Intfs...>::clearInternal()
         if (!this->coreEventMuted && this->coreEvent.assigned())
         {
             const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::ComponentRemoved,
+                CoreEventId::ComponentRemoved,
                 Dict<IString, IBaseObject>({{"Id", item.second.getLocalId()}}));
             
             this->triggerCoreEvent(args);

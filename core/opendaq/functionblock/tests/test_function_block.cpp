@@ -106,7 +106,7 @@ TEST_F(FunctionBlockTest, SerializeAndDeserialize)
 
     const auto deserializer = daq::JsonDeserializer();
 
-    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, "fb");
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "fb");
 
     const daq::FunctionBlockPtr newFb = deserializer.deserialize(str1, deserializeContext, nullptr);
 

@@ -4,6 +4,8 @@
 #include <config_protocol/config_server_component.h>
 #include <config_protocol/config_server_device.h>
 #include <config_protocol/config_server_input_port.h>
+#include <coreobjects/core_event_args_factory.h>
+#include <coretypes/cloneable.h>
 
 namespace daq::config_protocol
 {
@@ -63,6 +65,7 @@ ComponentPtr ComponentFinderRootDevice::findComponent(const std::string& globalI
 ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
                                            NotificationReadyCallback notificationReadyCallback)
     : rootDevice(std::move(rootDevice))
+    , daqContext(this->rootDevice.getContext())
     , notificationReadyCallback(std::move(notificationReadyCallback))
     , deserializer(JsonDeserializer())
     , serializer(JsonSerializer())
@@ -70,6 +73,15 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
 {
     buildRpcDispatchStructure();
+
+    if (daqContext.assigned())
+        daqContext.getOnCoreEvent() += event(this, &ConfigProtocolServer::coreEventCallback);
+}
+
+ConfigProtocolServer::~ConfigProtocolServer()
+{
+    if (daqContext.assigned())
+        daqContext.getOnCoreEvent() -= event(this, &ConfigProtocolServer::coreEventCallback);
 }
 
 template <class SmartPtr, class F>
@@ -281,6 +293,78 @@ BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) co
         throw NotFoundException("Component not found");
 
     return ComponentHolder(component);
+}
+
+void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
+{
+    const auto packed = packCoreEvent(component, eventArgs);
+    sendNotification(packed);
+}
+
+
+ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
+{
+    auto packedEvent = List<IBaseObject>(component.getGlobalId());
+
+    switch (static_cast<CoreEventId>(args.getEventId()))
+    {
+        case CoreEventId::PropertyValueChanged:
+        case CoreEventId::PropertyObjectUpdateEnd:
+        case CoreEventId::PropertyAdded:
+        case CoreEventId::TagsChanged:
+        case CoreEventId::PropertyRemoved:
+        case CoreEventId::SignalConnected:
+        case CoreEventId::ComponentAdded:
+        case CoreEventId::AttributeChanged:
+            packedEvent.pushBack(processCoreEventArgs(args));
+            break;
+        case CoreEventId::ComponentRemoved:
+        case CoreEventId::SignalDisconnected:
+        case CoreEventId::DataDescriptorChanged:
+        case CoreEventId::ComponentUpdateEnd:
+            packedEvent.pushBack(args);
+    }
+    
+    return packedEvent;
+}
+
+CoreEventArgsPtr ConfigProtocolServer::processCoreEventArgs(const CoreEventArgsPtr& args)
+{
+    BaseObjectPtr cloned;
+    checkErrorInfo(args.getParameters().asPtr<ICloneable>()->clone(&cloned));
+    DictPtr<IString, IBaseObject> dict = cloned;
+
+    if (dict.hasKey("Owner"))
+        dict.remove("Owner");
+
+    if (dict.hasKey("Signal"))
+    {
+        const auto globalId = dict.get("Signal").asPtr<IComponent>().getGlobalId();
+        dict.set("Signal", globalId);
+    }
+    
+    if (dict.hasKey("DomainSignal"))
+    {
+        const auto globalId = dict.get("DomainSignal").asPtr<IComponent>().getGlobalId();
+        dict.set("DomainSignal", globalId);
+    }
+    
+    if (dict.hasKey("RelatedSignals"))
+    {
+        ListPtr<IString> globalIds = List<IString>();
+        const ListPtr<ISignal> relatedSignals = dict.get("RelatedSignals");
+        for (const auto& sig : relatedSignals)
+            globalIds.pushBack(sig.getGlobalId());
+        dict.set("RelatedSignals", globalIds);
+    }
+
+    if (dict.hasKey("Component"))
+    {
+        const ComponentPtr comp = dict.get("Component");
+        dict.set("Component", ComponentHolder(comp));
+    }
+
+    return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), cloned);
 }
 
 BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) const

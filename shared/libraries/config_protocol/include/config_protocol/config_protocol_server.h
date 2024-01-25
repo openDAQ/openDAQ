@@ -19,6 +19,8 @@
 #include <config_protocol/config_protocol.h>
 #include <opendaq/device_ptr.h>
 
+#include "config_protocol/component_holder_ptr.h"
+
 namespace daq::config_protocol
 {
 
@@ -46,6 +48,8 @@ class ConfigProtocolServer
 {
 public:
     ConfigProtocolServer(DevicePtr rootDevice, NotificationReadyCallback notificationReadyCallback);
+    ~ConfigProtocolServer();
+
     void buildRpcDispatchStructure();
 
     // called from transport layer
@@ -65,6 +69,7 @@ private:
     using DispatchFunction = std::function<BaseObjectPtr(const ParamsDictPtr&)>;
 
     DevicePtr rootDevice;
+    ContextPtr daqContext;
     NotificationReadyCallback notificationReadyCallback;
     DeserializerPtr deserializer;
     SerializerPtr serializer;
@@ -87,6 +92,11 @@ private:
 
     template <class SmartPtr, class Handler>
     void addHandler(const std::string& name, const Handler& handler);
+    
+    void coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
+    
+    ListPtr<IBaseObject> packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
+    CoreEventArgsPtr processCoreEventArgs(const CoreEventArgsPtr& args);
 };
 
 }

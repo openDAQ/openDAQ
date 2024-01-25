@@ -109,19 +109,6 @@ DECLARE_OPENDAQ_INTERFACE(IInstance, IDevice)
      * @param[out] servers List of added servers.
      */
     virtual ErrCode INTERFACE_FUNC getServers(IList** servers) = 0;
-
-    /*!
-     * @brief Finds the component (signal/device/function block) with the specified (global) id.
-     * @param component The component where the search starts from.
-     * @param id The id of the component to search for.
-     * @param[out] outComponent The resulting component.
-     *
-     * If the component parameter is true, the starting component is the root device.
-     *
-     * The id provided should be in relative form from the starting component. E.g., to find a signal in
-     * the starting component, the id should be in the form of "dev/dev_id/ch/ch_id/sig/sig_id.
-     */
-    virtual ErrCode INTERFACE_FUNC findComponent(IComponent* component, IString* id, IComponent** outComponent) = 0;
 };
 /*!@}*/
 

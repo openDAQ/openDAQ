@@ -299,7 +299,7 @@ TEST_F(RefModulesTest, FindComponentSignal)
     auto instance = Instance("", "localInstance");
     auto device = instance.addDevice("daqref://device1");
 
-    auto comp = instance.findComponent(nullptr, "Dev/ref_dev1/IO/ai/refch0/Sig/ai0");
+    auto comp = instance.findComponent("Dev/ref_dev1/IO/ai/refch0/Sig/ai0");
     ASSERT_TRUE(comp.assigned());
     ASSERT_TRUE(comp.supportsInterface<ISignal>());
 }
@@ -310,7 +310,7 @@ TEST_F(RefModulesTest, FindComponentSignalRelative)
     auto device = instance.addDevice("daqref://device1");
     auto ch = device.getChannels()[0];
 
-    auto comp = instance.findComponent(ch, "Sig/ai0");
+    auto comp = ch.findComponent("Sig/ai0");
     ASSERT_TRUE(comp.assigned());
     ASSERT_TRUE(comp.supportsInterface<ISignal>());
 }
@@ -320,7 +320,7 @@ TEST_F(RefModulesTest, FindComponentChannel)
     auto instance = Instance("", "localInstance");
     auto device = instance.addDevice("daqref://device1");
 
-    auto comp = instance.findComponent(nullptr, "Dev/ref_dev1/IO/ai/refch0");
+    auto comp = instance.findComponent("Dev/ref_dev1/IO/ai/refch0");
     ASSERT_TRUE(comp.assigned());
     ASSERT_TRUE(comp.supportsInterface<IChannel>());
 }
@@ -330,7 +330,7 @@ TEST_F(RefModulesTest, FindComponentDevice)
     auto instance = Instance("", "localInstance");
     auto device = instance.addDevice("daqref://device1");
 
-    auto comp = instance.findComponent(nullptr, "Dev/ref_dev1");
+    auto comp = instance.findComponent("Dev/ref_dev1");
     ASSERT_TRUE(comp.assigned());
     ASSERT_TRUE(comp.supportsInterface<IDevice>());
 }

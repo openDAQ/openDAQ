@@ -57,7 +57,7 @@ TEST_F(CoreEventTest, PropertyChanged)
     component.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
     context.getOnCoreEvent() += [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
     {
-        ASSERT_EQ(args.getEventId(), core_event_ids::PropertyValueChanged);
+        ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::PropertyValueChanged));
         ASSERT_EQ(args.getEventName(), "PropertyValueChanged");
         ASSERT_EQ(comp, component);
         ASSERT_TRUE(args.getParameters().hasKey("Name"));
@@ -95,7 +95,7 @@ TEST_F(CoreEventTest, PropertyChangedNested)
     component.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
     context.getOnCoreEvent() += [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
     {
-        ASSERT_EQ(args.getEventId(), core_event_ids::PropertyValueChanged);
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::PropertyValueChanged));
         ASSERT_EQ(args.getEventName(), "PropertyValueChanged");
         ASSERT_EQ(comp, component);
         ASSERT_TRUE(args.getParameters().hasKey("Name"));
@@ -240,7 +240,7 @@ TEST_F(CoreEventTest, PropertyChangedWithInternalEvent)
     context.getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::PropertyValueChanged);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::PropertyValueChanged));
             ASSERT_EQ(args.getEventName(), "PropertyValueChanged");
             ASSERT_EQ(comp, component);
             ASSERT_TRUE(args.getParameters().hasKey("Name"));
@@ -309,12 +309,12 @@ TEST_F(CoreEventTest, EndUpdateEventBeginEnd)
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
             DictPtr<IString, IBaseObject> updated;
-            switch (args.getEventId())
+            switch (static_cast<CoreEventId>(args.getEventId()))
             {
-                case core_event_ids::PropertyValueChanged:
+                case CoreEventId::PropertyValueChanged:
                     propChangeCount++;
                     break;
-                case core_event_ids::PropertyObjectUpdateEnd:
+                case CoreEventId::PropertyObjectUpdateEnd:
                     updateCount++;
                     updated = args.getParameters().get("UpdatedProperties");
                     ASSERT_EQ(updated.getCount(), 2u);
@@ -353,7 +353,7 @@ TEST_F(CoreEventTest, PropertyAddedEvent)
     context.getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::PropertyAdded);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::PropertyAdded));
             ASSERT_EQ(args.getEventName(), "PropertyAdded");
             ASSERT_TRUE(args.getParameters().hasKey("Property"));
             ASSERT_EQ(comp, args.getParameters().get("Owner"));
@@ -386,7 +386,7 @@ TEST_F(CoreEventTest, PropertyAddedNested)
     context.getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::PropertyAdded);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::PropertyAdded));
             ASSERT_EQ(args.getEventName(), "PropertyAdded");
             ASSERT_TRUE(args.getParameters().hasKey("Property"));
 
@@ -418,7 +418,7 @@ TEST_F(CoreEventTest, PropertyRemovedEvent)
     context.getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::PropertyRemoved);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::PropertyRemoved));
             ASSERT_EQ(args.getEventName(), "PropertyRemoved");
             ASSERT_TRUE(args.getParameters().hasKey("Name"));
             ASSERT_EQ(comp, args.getParameters().get("Owner"));
@@ -454,7 +454,7 @@ TEST_F(CoreEventTest, PropertyRemovedNested)
     context.getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::PropertyRemoved);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::PropertyRemoved));
             ASSERT_EQ(args.getEventName(), "PropertyRemoved");
             ASSERT_TRUE(args.getParameters().hasKey("Name"));
             if (removeCount == 0)
@@ -604,7 +604,7 @@ TEST_F(CoreEventTest, SignalConnected)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::SignalConnected);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::SignalConnected));
             ASSERT_EQ(args.getEventName(), "SignalConnected");
             ASSERT_TRUE(args.getParameters().hasKey("Signal"));
             ASSERT_EQ(args.getParameters().get("Signal"), sig);
@@ -657,7 +657,7 @@ TEST_F(CoreEventTest, SignalDisconnected)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::SignalDisconnected);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::SignalDisconnected));
             ASSERT_EQ(args.getEventName(), "SignalDisconnected");
             ASSERT_EQ(comp, instance.getFunctionBlocks()[0].getInputPorts()[0]);
             disconnectCount++;
@@ -702,7 +702,7 @@ TEST_F(CoreEventTest, DescriptorChanged)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::DataDescriptorChanged);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::DataDescriptorChanged));
             ASSERT_EQ(args.getEventName(), "DataDescriptorChanged");
             ASSERT_TRUE(args.getParameters().hasKey("DataDescriptor"));
             ASSERT_EQ(comp, instance.getSignalsRecursive()[0]);
@@ -752,7 +752,7 @@ TEST_F(CoreEventTest, ComponentUpdated)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::ComponentUpdateEnd);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ComponentUpdateEnd));
             ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
             ASSERT_EQ(comp, instance.getRootDevice());
             updateCount++;
@@ -794,7 +794,7 @@ TEST_F(CoreEventTest, DeviceAdded)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::ComponentAdded);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ComponentAdded));
             ASSERT_EQ(args.getEventName(), "ComponentAdded");
             ASSERT_TRUE(args.getParameters().hasKey("Component"));
             ASSERT_EQ(args.getParameters().get("Component"), instance.getDevices()[addCount + 1]);
@@ -819,7 +819,7 @@ TEST_F(CoreEventTest, DeviceRemoved)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::ComponentRemoved);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ComponentRemoved));
             ASSERT_EQ(args.getEventName(), "ComponentRemoved");
             ASSERT_TRUE(args.getParameters().hasKey("Id"));
             ASSERT_EQ(comp, instance.getRootDevice().getItem("Dev"));
@@ -867,7 +867,7 @@ TEST_F(CoreEventTest, FBAdded)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::ComponentAdded);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ComponentAdded));
             ASSERT_EQ(args.getEventName(), "ComponentAdded");
             ASSERT_TRUE(args.getParameters().hasKey("Component"));
             ASSERT_EQ(args.getParameters().get("Component"), instance.getFunctionBlocks()[addCount + 1]);
@@ -894,7 +894,7 @@ TEST_F(CoreEventTest, FBRemoved)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::ComponentRemoved);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ComponentRemoved));
             ASSERT_EQ(args.getEventName(), "ComponentRemoved");
             ASSERT_TRUE(args.getParameters().hasKey("Id"));
             ASSERT_EQ(args.getParameters().get("Id"), ids[removeCount]);
@@ -944,7 +944,7 @@ TEST_F(CoreEventTest, SignalAdded)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::ComponentAdded);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ComponentAdded));
             ASSERT_EQ(args.getEventName(), "ComponentAdded");
             ASSERT_TRUE(args.getParameters().hasKey("Component"));
             ASSERT_EQ(args.getParameters().get("Component"), sigs.getItems()[addCount]);
@@ -972,7 +972,7 @@ TEST_F(CoreEventTest, SignalRemoved)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::ComponentRemoved);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ComponentRemoved));
             ASSERT_EQ(args.getEventName(), "ComponentRemoved");
             ASSERT_TRUE(args.getParameters().hasKey("Id"));
             ASSERT_EQ(args.getParameters().get("Id"), ids[removeCount]);
@@ -1023,7 +1023,7 @@ TEST_F(CoreEventTest, InputPortAdded)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::ComponentAdded);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ComponentAdded));
             ASSERT_EQ(args.getEventName(), "ComponentAdded");
             ASSERT_TRUE(args.getParameters().hasKey("Component"));
             const auto ipps = ips.getItems();
@@ -1052,7 +1052,7 @@ TEST_F(CoreEventTest, InputPortRemoved)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::ComponentRemoved);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ComponentRemoved));
             ASSERT_EQ(args.getEventName(), "ComponentRemoved");
             ASSERT_TRUE(args.getParameters().hasKey("Id"));
             ASSERT_EQ(args.getParameters().get("Id"), ids[removeCount]);
@@ -1127,7 +1127,7 @@ TEST_F(CoreEventTest, ActiveChanged)
     getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::AttributeChanged);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::AttributeChanged));
             ASSERT_EQ(args.getEventName(), "AttributeChanged");
             ASSERT_TRUE(args.getParameters().hasKey("Active"));
             changeCount++;
@@ -1158,7 +1158,7 @@ TEST_F(CoreEventTest, DomainSignalChanged)
     getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::AttributeChanged);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::AttributeChanged));
             ASSERT_EQ(args.getEventName(), "AttributeChanged");
             ASSERT_TRUE(args.getParameters().hasKey("DomainSignal"));
             if (changeCount % 2 == 0)
@@ -1195,7 +1195,7 @@ TEST_F(CoreEventTest, RelatedSignalsChanged)
     getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::AttributeChanged);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::AttributeChanged));
             ASSERT_EQ(args.getEventName(), "AttributeChanged");
             ASSERT_TRUE(args.getParameters().hasKey("RelatedSignals"));
             ASSERT_TRUE(args.getParameters().get("RelatedSignals").asPtrOrNull<IList>().assigned());
@@ -1223,7 +1223,7 @@ TEST_F(CoreEventTest, NameDescriptionChanged)
     getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::AttributeChanged);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::AttributeChanged));
             ASSERT_EQ(args.getEventName(), "AttributeChanged");
             changeCount++;
         };
@@ -1262,7 +1262,7 @@ TEST_F(CoreEventTest, TagsChanged)
     getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::TagsChanged);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::TagsChanged));
             ASSERT_EQ(args.getEventName(), "TagsChanged");
             changeCount++;
         };
@@ -1285,7 +1285,7 @@ TEST_F(CoreEventTest, TagsChangedMuted)
     getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), core_event_ids::TagsChanged);
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::TagsChanged));
             ASSERT_EQ(args.getEventName(), "TagsChanged");
             changeCount++;
         };
@@ -1317,7 +1317,7 @@ TEST_F(CoreEventTest, StatusChanged)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
     {
-        ASSERT_EQ(args.getEventId(), core_event_ids::StatusChanged);
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::StatusChanged));
         ASSERT_EQ(args.getEventName(), "StatusChanged");
         ASSERT_TRUE(args.getParameters().hasKey("TestStatus"));
         ASSERT_EQ(comp, instance.getRootDevice());

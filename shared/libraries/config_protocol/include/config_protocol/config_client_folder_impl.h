@@ -18,6 +18,8 @@
 #include <config_protocol/config_client_component_impl.h>
 #include <opendaq/folder_impl.h>
 
+#include "config_protocol/component_holder_ptr.h"
+
 namespace daq::config_protocol
 {
 
@@ -44,6 +46,12 @@ protected:
     static BaseObjectPtr DeserializeConfigFolder(const SerializedObjectPtr& serialized,
                                                  const BaseObjectPtr& context,
                                                  const FunctionPtr& factoryCallback);
+
+    void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+
+private:
+    void componentAdded(const CoreEventArgsPtr& args);
+    void componentRemoved(const CoreEventArgsPtr& args);
 };
 
 template <class Impl>
@@ -97,4 +105,50 @@ BaseObjectPtr ConfigClientBaseFolderImpl<Impl>::DeserializeConfigFolder(
         });
 }
 
+template <class Impl>
+void ConfigClientBaseFolderImpl<Impl>::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
+{
+    switch (static_cast<CoreEventId>(args.getEventId()))
+    {
+        case CoreEventId::ComponentAdded:
+            componentAdded(args);
+            break;
+        case CoreEventId::ComponentRemoved:
+            componentRemoved(args);
+            break;
+        case CoreEventId::PropertyValueChanged:
+        case CoreEventId::PropertyObjectUpdateEnd:
+        case CoreEventId::PropertyAdded:
+        case CoreEventId::PropertyRemoved:
+        case CoreEventId::SignalConnected:
+        case CoreEventId::SignalDisconnected:
+        case CoreEventId::DataDescriptorChanged:
+        case CoreEventId::ComponentUpdateEnd:
+        case CoreEventId::AttributeChanged:
+        case CoreEventId::TagsChanged:
+            break;
+    }
+
+    ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(sender, args);
+}
+
+template <class Impl>
+void ConfigClientBaseFolderImpl<Impl>::componentAdded(const CoreEventArgsPtr& args)
+{
+    const ComponentPtr comp = args.getParameters().get("Component");
+    Bool hasItem{false};
+    checkErrorInfo(Impl::hasItem(comp.getLocalId(), &hasItem));
+    if (!hasItem)
+        checkErrorInfo(Impl::addItem(comp));
+}
+
+template <class Impl>
+void ConfigClientBaseFolderImpl<Impl>::componentRemoved(const CoreEventArgsPtr& args)
+{
+    const StringPtr id = args.getParameters().get("Id");
+    Bool hasItem{false};
+    checkErrorInfo(Impl::hasItem(id, &hasItem));
+    if (hasItem)
+        checkErrorInfo(Impl::removeItemWithLocalId(id));
+}
 }

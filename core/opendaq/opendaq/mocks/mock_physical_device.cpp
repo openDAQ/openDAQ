@@ -50,6 +50,8 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx, con
     componentB.addProperty(IntProperty("IntProp", 5));
     registerProperties();
 
+    const PropertyObjectPtr thisPtr = this->borrowPtr<PropertyObjectPtr>();
+    thisPtr.addProperty(StringProperty("TestProperty", "Test").detach());
     this->tags.add("phys_device");
 }
 

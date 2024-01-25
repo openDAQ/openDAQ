@@ -11,7 +11,7 @@ TEST_F(ComponentDeserializeContextTest, Create)
     MockContext::Strict context;
     daq::MockComponent::Strict parent;
 
-    const auto deserializeContext = daq::ComponentDeserializeContext(context.ptr, parent.ptr, "id");
+    const auto deserializeContext = daq::ComponentDeserializeContext(context.ptr, parent.ptr, parent.ptr, "id");
 
     ASSERT_EQ(deserializeContext.getContext(), context.ptr);
     ASSERT_EQ(deserializeContext.getParent(), parent.ptr);
@@ -23,7 +23,7 @@ TEST_F(ComponentDeserializeContextTest, Clone)
     MockContext::Strict context;
     daq::MockComponent::Strict parent;
 
-    const auto deserializeContext = daq::ComponentDeserializeContext(context.ptr, parent.ptr, "id");
+    const auto deserializeContext = daq::ComponentDeserializeContext(context.ptr, parent.ptr, parent.ptr, "id");
 
     daq::MockComponent::Strict newParent;
 
@@ -36,7 +36,7 @@ TEST_F(ComponentDeserializeContextTest, Clone)
 
 TEST_F(ComponentDeserializeContextTest, QueryInterfaceTypeManager)
 {
-    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, "id");
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "id");
 
     const auto typeManager = deserializeContext.asPtr<daq::ITypeManager>();
     ASSERT_TRUE(typeManager.assigned());
@@ -44,7 +44,7 @@ TEST_F(ComponentDeserializeContextTest, QueryInterfaceTypeManager)
 
 TEST_F(ComponentDeserializeContextTest, BorrowInterfaceTypeManager)
 {
-    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, "id");
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "id");
 
     const auto typeManager = deserializeContext.asPtr<daq::ITypeManager>(true);
     ASSERT_TRUE(typeManager.assigned());

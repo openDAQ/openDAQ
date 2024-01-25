@@ -339,7 +339,7 @@ ErrCode DictImpl::clone(IBaseObject** cloned)
     for (const auto& item : hashTable)
     {
         ObjectPtr<ICloneable> keyCloneable;
-        IBaseObject* key;
+        IBaseObject* key = nullptr;
 
         ErrCode err = item.first->queryInterface(ICloneable::Id, reinterpret_cast<void**>(&keyCloneable));
         if (OPENDAQ_SUCCEEDED(err))
@@ -351,15 +351,18 @@ ErrCode DictImpl::clone(IBaseObject** cloned)
         }
         
         ObjectPtr<ICloneable> valCloneable;
-        IBaseObject* val;
+        IBaseObject* val = nullptr;
 
-        err = item.second->queryInterface(ICloneable::Id, reinterpret_cast<void**>(&valCloneable));
-        if (OPENDAQ_SUCCEEDED(err))
-            valCloneable->clone(&val);
-        else
+        if (item.second)
         {
-            item.second->addRef();
-            val = item.second;
+            err = item.second->queryInterface(ICloneable::Id, reinterpret_cast<void**>(&valCloneable));
+            if (OPENDAQ_SUCCEEDED(err))
+                valCloneable->clone(&val);
+            else
+            {
+                item.second->addRef();
+                val = item.second;
+            }
         }
         
         lst->hashTable.insert(std::make_pair(key, val));

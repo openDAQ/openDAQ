@@ -35,6 +35,9 @@ public:
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+protected:
+    void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
 };
 
 inline ConfigClientInputPortImpl::ConfigClientInputPortImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
@@ -79,4 +82,28 @@ inline ErrCode ConfigClientInputPortImpl::Deserialize(ISerializedObject* seriali
         });
 }
 
+inline void ConfigClientInputPortImpl::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
+{
+    switch (static_cast<CoreEventId>(args.getEventId()))
+    {
+        case CoreEventId::SignalConnected:
+        case CoreEventId::SignalDisconnected:
+            if (!this->coreEventMuted && this->coreEvent.assigned())
+                this->triggerCoreEvent(args);
+            break;
+        case CoreEventId::ComponentUpdateEnd:
+        case CoreEventId::AttributeChanged:
+        case CoreEventId::TagsChanged:
+        case CoreEventId::PropertyValueChanged:
+        case CoreEventId::PropertyObjectUpdateEnd:
+        case CoreEventId::PropertyAdded:
+        case CoreEventId::PropertyRemoved:
+        case CoreEventId::DataDescriptorChanged:
+        case CoreEventId::ComponentAdded:
+        case CoreEventId::ComponentRemoved:
+            break;
+    }
+
+    ConfigClientComponentBaseImpl<GenericInputPortImpl<IConfigClientObject>>::handleRemoteCoreObjectInternal(sender, args);
+}
 }

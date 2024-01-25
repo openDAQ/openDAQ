@@ -36,6 +36,7 @@ public:
     ErrCode INTERFACE_FUNC getList(IList** value) override;
     ErrCode INTERFACE_FUNC add(IString* name) override;
     ErrCode INTERFACE_FUNC remove(IString* name) override;
+    ErrCode INTERFACE_FUNC set(IList* tags) override;
     ErrCode INTERFACE_FUNC contains(IString* name, Bool* value) override;
     ErrCode INTERFACE_FUNC query(IString* query, Bool* value) override;
     
@@ -98,7 +99,7 @@ inline ErrCode TagsImpl::add(IString* name)
     {
         const auto thisPtr = this->borrowPtr<TagsPtr>();
         const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-            core_event_ids::TagsChanged, Dict<IString, IBaseObject>({{"Tags", thisPtr}}));
+            CoreEventId::TagsChanged, Dict<IString, IBaseObject>({{"Tags", thisPtr}}));
         triggerCoreEvent(args);
     }
 
@@ -119,7 +120,27 @@ inline ErrCode TagsImpl::remove(IString* name)
     {
         const auto thisPtr = this->borrowPtr<TagsPtr>();
         const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-            core_event_ids::TagsChanged, Dict<IString, IBaseObject>({{"Tags", thisPtr}}));
+            CoreEventId::TagsChanged, Dict<IString, IBaseObject>({{"Tags", thisPtr}}));
+        triggerCoreEvent(args);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode TagsImpl::set(IList* tags)
+{
+    OPENDAQ_PARAM_NOT_NULL(tags);
+    this->tags.clear();
+
+    const auto tagsPtr = ListPtr<IString>::Borrow(tags);
+    for (const auto& tag : tagsPtr)
+        this->tags.insert(tag);
+    
+    if (triggerCoreEvent.assigned())
+    {
+        const auto thisPtr = this->borrowPtr<TagsPtr>();
+        const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+            CoreEventId::TagsChanged, Dict<IString, IBaseObject>({{"Tags", thisPtr}}));
         triggerCoreEvent(args);
     }
 

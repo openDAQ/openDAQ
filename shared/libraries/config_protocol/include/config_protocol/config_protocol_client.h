@@ -39,6 +39,7 @@ public:
     BaseObjectPtr callProperty(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& params);
 
     bool getConnected() const;
+    ContextPtr getDaqContext();
 
     BaseObjectPtr sendComponentCommand(const StringPtr& globalId,
                                        const StringPtr& command,
@@ -47,6 +48,12 @@ public:
     BaseObjectPtr sendComponentCommand(const StringPtr& globalId, const StringPtr& command, const ComponentPtr& parentComponent = nullptr);
     BaseObjectPtr sendCommand(const StringPtr& command, const ParamsDictPtr& params = nullptr);
 
+    friend class ConfigProtocolClient;
+protected:
+    BaseObjectPtr deserializeConfigComponent(const StringPtr& typeId,
+                                             const SerializedObjectPtr& serObj,
+                                             const BaseObjectPtr& context,
+                                             const FunctionPtr& factoryCallback);
 private:
     ContextPtr daqContext;
     size_t id;
@@ -61,10 +68,6 @@ private:
     BaseObjectPtr parseRpcReplyPacketBuffer(const PacketBuffer& packetBuffer, const ComponentDeserializeContextPtr& context = nullptr);
     size_t generateId();
 
-    BaseObjectPtr deserializeConfigComponent(const StringPtr& typeId,
-                                             const SerializedObjectPtr& serObj,
-                                             const BaseObjectPtr& context,
-                                             const FunctionPtr& factoryCallback);
 
     BaseObjectPtr sendComponentCommandInternal(const StringPtr& command,
                                                const ParamsDictPtr& params,
@@ -104,14 +107,13 @@ private:
 
     ConfigProtocolClientCommPtr clientComm;
     DevicePtr device;
-
+    
+    ComponentPtr findComponent(std::string globalId);
     // this should handle server component updates
     void triggerNotificationObject(const BaseObjectPtr& object);
+    CoreEventArgsPtr unpackCoreEvents(const CoreEventArgsPtr& args);
 
     // called on connect to build initial device tree
     void buildDevice(const DevicePtr& device);
-
 };
-
-
 }

@@ -107,7 +107,7 @@ TEST_F(ComponentStatusContainerTest, SerializeDeserialize)
     auto serialized = serializer.getOutput();
 
     auto deserializer = JsonDeserializer();
-    const auto deserializeContext = ComponentDeserializeContext(ctx, nullptr, nullptr);
+    const auto deserializeContext = ComponentDeserializeContext(ctx, nullptr, nullptr, nullptr);
     ComponentStatusContainerPtr deserializedStatusContainer = deserializer.deserialize(serialized, deserializeContext);
 
     ASSERT_EQ(deserializedStatusContainer.getStatuses(), statusContainer.getStatuses());

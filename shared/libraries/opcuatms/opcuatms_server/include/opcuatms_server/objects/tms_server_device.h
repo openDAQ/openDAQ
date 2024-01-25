@@ -46,6 +46,16 @@ protected:
     opcua::OpcUaNodeId getTmsTypeId() override;
     void populateDeviceInfo();
     void populateStreamingOptions();
+    void addFbMethodNodes();
+    void createAddFunctionBlockNode(const OpcUaNodeId& parentId);
+    void createRemoveFunctionBlockNode(const OpcUaNodeId& parentId);
+    void createGetAvailableFunctionBlockTypesNode(const OpcUaNodeId& parentId);
+    void onGetAvailableFunctionBlockTypes(const NodeEventManager::MethodArgs& args);
+    void onAddFunctionBlock(const NodeEventManager::MethodArgs& args);
+    void onRemoveFunctionBlock(const NodeEventManager::MethodArgs& args);
+    TmsServerFunctionBlockPtr addFunctionBlock(const StringPtr& fbTypeId, const OpcUaVariant& configVariant);
+    TmsServerFunctionBlockPtr addFunctionBlock(const StringPtr& fbTypeId, const PropertyObjectPtr& config);
+    void removeFunctionBlock(const StringPtr& localId);
 
     // TODO we need following list to keep this because of handlers. Move handlers (TmsServerObject) to context and use UA_NodeTypeLifecycle
     // for deleting it

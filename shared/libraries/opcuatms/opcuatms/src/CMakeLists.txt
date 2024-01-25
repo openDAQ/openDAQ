@@ -23,6 +23,7 @@ set(SRC_Converters_Headers ${CONVERTERS_SRC_DIR}/struct_converter.h
                            ${CONVERTERS_SRC_DIR}/variant_converter.h
                            ${CONVERTERS_SRC_DIR}/list_conversion_utils.h
                            ${CONVERTERS_SRC_DIR}/selection_converter.h
+                           ${CONVERTERS_SRC_DIR}/dict_conversion_utils.h
 )
 
 set(SRC_Converters ${CONVERTERS_SRC_DIR}/range_converter.cpp
@@ -41,6 +42,7 @@ set(SRC_Converters ${CONVERTERS_SRC_DIR}/range_converter.cpp
                    ${CONVERTERS_SRC_DIR}/selection_converter.cpp
                    ${CONVERTERS_SRC_DIR}/argument_converter.cpp
                    ${CONVERTERS_SRC_DIR}/generic_struct_converter.cpp
+                   ${CONVERTERS_SRC_DIR}/dict_conversion_utils.cpp
 )
 
 set(SRC_PublicHeaders ${SRC_PublicHeaders} ${SRC_Converters_Headers})

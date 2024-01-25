@@ -13,23 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
-#include <opendaq/function_block_ptr.h>
+#include <coretypes/common.h>
+#include <coreobjects/property_object_ptr.h>
 #include <opendaq/function_block_type_ptr.h>
-#include <opendaq/mock/mock_fb.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline FunctionBlockPtr MockFunctionBlock(
-    const FunctionBlockTypePtr& type,
-    const daq::ContextPtr& ctx,
-    const ComponentPtr& parent,
-    const StringPtr& localId,
-    const PropertyObjectPtr& config = nullptr
-    )
+class TestComparators
 {
-    FunctionBlockPtr obj(MockFunctionBlock_Create(type, ctx, parent, localId, config));
-    return obj;
-}
+public:
+    static bool PropertyObjectEquals(const PropertyObjectPtr& a, const PropertyObjectPtr& b);
+    static bool FunctionBlockTypeEquals(const FunctionBlockTypePtr& a, const FunctionBlockTypePtr& b);
+    static bool FunctionBlockTypeDictEquals(const DictPtr<IString, IFunctionBlockType>& a, const DictPtr<IString, IFunctionBlockType>& b);
+};
 
 END_NAMESPACE_OPENDAQ

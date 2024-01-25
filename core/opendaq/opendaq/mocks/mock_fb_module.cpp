@@ -6,7 +6,7 @@
 #include <opendaq/mock/mock_fb_factory.h>
 #include "opendaq/mock/mock_fb_module.h"
 #include "opendaq/mock/mock_fb.h"
-
+#include <coreobjects/property_object_factory.h>
 
 using namespace daq;
 
@@ -62,15 +62,26 @@ ErrCode MockFunctionBlockModuleImpl::getAvailableFunctionBlockTypes(IDict** func
 
 daq::FunctionBlockTypePtr MockFunctionBlockModuleImpl::CreateDeviceFunctionType()
 {
-    return FunctionBlockType("mock_fb_uid", "mock_fb", "");
+    auto createDefaultConfig = [](IBaseObject* /*params*/, IBaseObject** result)
+    {
+        auto obj = PropertyObject();
+        obj.addProperty(IntProperty("TestConfigInt", 0));
+        obj.addProperty(StringProperty("TestConfigString", ""));
+        *result = obj.detach();
+        return OPENDAQ_SUCCESS;
+    };
+
+    return FunctionBlockType("mock_fb_uid", "mock_fb", "", createDefaultConfig);
 }
 
-ErrCode MockFunctionBlockModuleImpl::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IString* localId, IPropertyObject* /*config*/)
+ErrCode MockFunctionBlockModuleImpl::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IString* localId, IPropertyObject* config)
 {
+    const auto type = CreateDeviceFunctionType();
     const StringPtr idPtr = id;
-    if (idPtr == CreateDeviceFunctionType().getId())
+
+    if (idPtr == type.getId())
     {
-        *functionBlock = MockFunctionBlock(CreateDeviceFunctionType(), ctx, parent, localId).detach();
+        *functionBlock = MockFunctionBlock(CreateDeviceFunctionType(), ctx, parent, localId, config).detach();
     }
     else
     {

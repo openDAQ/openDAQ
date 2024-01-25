@@ -11,6 +11,11 @@
 #include <opendaq/device_private.h>
 #include <opendaq/streaming_info_ptr.h>
 #include <opendaq/search_filter_factory.h>
+#include <open62541/types_daqesp_generated.h>
+#include <opcuatms/converters/variant_converter.h>
+#include <coreobjects/property_object_factory.h>
+#include <opcuatms/converters/dict_conversion_utils.h>
+#include <opcuatms/converters/list_conversion_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -230,6 +235,199 @@ void TmsServerDevice::populateStreamingOptions()
     }
 }
 
+void TmsServerDevice::addFbMethodNodes()
+{
+    auto fbNodeId = getChildNodeId("FB");
+
+    createGetAvailableFunctionBlockTypesNode(fbNodeId);
+    createAddFunctionBlockNode(fbNodeId);
+    createRemoveFunctionBlockNode(fbNodeId);
+}
+
+void TmsServerDevice::createAddFunctionBlockNode(const OpcUaNodeId& parentId)
+{
+    OpcUaNodeId nodeIdOut;
+    AddMethodNodeParams params(nodeIdOut, parentId);
+    params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
+    params.setBrowseName("AddFunctionBlock");
+    params.outputArgumentsSize = 1;
+    params.outputArguments = (UA_Argument*) UA_Array_new(params.outputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
+    params.inputArgumentsSize = 2;
+    params.inputArguments = (UA_Argument*) UA_Array_new(params.inputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
+
+    params.outputArguments[0].name = UA_STRING_ALLOC("functionBlockNodeId");
+    params.outputArguments[0].dataType = UA_TYPES[UA_TYPES_NODEID].typeId;
+    params.outputArguments[0].valueRank = UA_VALUERANK_SCALAR;
+
+    params.inputArguments[0].name = UA_STRING_ALLOC("typeId");
+    params.inputArguments[0].dataType = UA_TYPES[UA_TYPES_STRING].typeId;
+    params.inputArguments[0].valueRank = UA_VALUERANK_SCALAR;
+
+    params.inputArguments[1].name = UA_STRING_ALLOC("config");
+    params.inputArguments[1].dataType = UA_TYPES_DAQBT[UA_TYPES_DAQBT_DAQKEYVALUEPAIR].typeId;
+    params.inputArguments[1].valueRank = UA_VALUERANK_ONE_DIMENSION;
+
+    auto methodNodeId = server->addMethodNode(params);
+
+    auto callback = [this](NodeEventManager::MethodArgs args)
+    {
+        try
+        {
+            this->onAddFunctionBlock(args);
+            return OPENDAQ_SUCCESS;
+        }
+        catch (const OpcUaException& e)
+        {
+            return e.getStatusCode();
+        }
+    };
+
+    addEvent(methodNodeId)->onMethodCall(callback);
+}
+
+void TmsServerDevice::createRemoveFunctionBlockNode(const OpcUaNodeId& parentId)
+{
+    OpcUaNodeId nodeIdOut;
+    AddMethodNodeParams params(nodeIdOut, parentId);
+    params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
+    params.setBrowseName("RemoveFunctionBlock");
+    params.inputArgumentsSize = 1;
+    params.inputArguments = (UA_Argument*) UA_Array_new(params.inputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
+
+    params.inputArguments[0].name = UA_STRING_ALLOC("browseName");
+    params.inputArguments[0].dataType = UA_TYPES[UA_TYPES_STRING].typeId;
+    params.inputArguments[0].valueRank = UA_VALUERANK_SCALAR;
+
+    auto methodNodeId = server->addMethodNode(params);
+
+    auto callback = [this](NodeEventManager::MethodArgs args)
+    {
+        try
+        {
+            this->onRemoveFunctionBlock(args);
+            return OPENDAQ_SUCCESS;
+        }
+        catch (const OpcUaException& e)
+        {
+            return e.getStatusCode();
+        }
+    };
+
+    addEvent(methodNodeId)->onMethodCall(callback);
+}
+
+void TmsServerDevice::createGetAvailableFunctionBlockTypesNode(const OpcUaNodeId& parentId)
+{
+    OpcUaNodeId nodeIdOut;
+    AddMethodNodeParams params(nodeIdOut, parentId);
+    params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
+    params.setBrowseName("GetAvailableFunctionBlockTypes");
+    params.inputArgumentsSize = 0;
+    params.outputArgumentsSize = 1;
+    params.outputArguments = (UA_Argument*) UA_Array_new(params.outputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
+
+    params.outputArguments[0].name = UA_STRING_ALLOC("availableTypes");
+    params.outputArguments[0].dataType = UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_FUNCTIONBLOCKINFOSTRUCTURE].typeId;
+    params.outputArguments[0].valueRank = UA_VALUERANK_ONE_DIMENSION;
+
+    auto methodNodeId = server->addMethodNode(params);
+
+    auto callback = [this](NodeEventManager::MethodArgs args)
+    {
+        try
+        {
+            onGetAvailableFunctionBlockTypes(args);
+            return OPENDAQ_SUCCESS;
+        }
+        catch (const OpcUaException& e)
+        {
+            return e.getStatusCode();
+        }
+    };
+
+    addEvent(methodNodeId)->onMethodCall(callback);
+}
+
+void TmsServerDevice::onGetAvailableFunctionBlockTypes(const NodeEventManager::MethodArgs& args)
+{
+    assert(args.outputSize == 1);
+
+    const auto fbTypes = object.getAvailableFunctionBlockTypes().getValueList();
+    const auto variant = ListConversionUtils::ToArrayVariant<IFunctionBlockType, UA_FunctionBlockInfoStructure>(fbTypes);
+    args.output[0] = variant.copyAndGetDetachedValue();
+}
+
+void TmsServerDevice::onAddFunctionBlock(const NodeEventManager::MethodArgs& args)
+{
+    assert(args.inputSize == 2);
+    assert(args.outputSize == 1);
+
+    const auto fbTypeId = OpcUaVariant(args.input[0]).toString();
+    const auto configVariant = OpcUaVariant(args.input[1]);
+
+    auto tmsFunctionBlock = addFunctionBlock(fbTypeId, configVariant);
+
+    auto outVariant = OpcUaVariant(tmsFunctionBlock->getNodeId());
+    args.output[0] = outVariant.copyAndGetDetachedValue();
+}
+
+void TmsServerDevice::onRemoveFunctionBlock(const NodeEventManager::MethodArgs& args)
+{
+    assert(args.inputSize == 1);
+
+    const auto fbLocalId = OpcUaVariant(args.input[0]).toString();
+    removeFunctionBlock(fbLocalId);
+}
+
+
+TmsServerFunctionBlockPtr TmsServerDevice::addFunctionBlock(const StringPtr& fbTypeId, const OpcUaVariant& configVariant)
+{
+    const auto fbTypes = object.getAvailableFunctionBlockTypes();
+
+    if (!fbTypes.hasKey(fbTypeId))
+        throw OpcUaException(UA_STATUSCODE_BADNOTFOUND, "Function block type not found");
+
+    auto config = fbTypes.get(fbTypeId).createDefaultConfig();
+    DictConversionUtils::ToPropertyObject(configVariant, config);
+    return addFunctionBlock(fbTypeId, config);
+}
+
+TmsServerFunctionBlockPtr TmsServerDevice::addFunctionBlock(const StringPtr& fbTypeId, const PropertyObjectPtr& config)
+{
+    const auto fbFolderNodeId = getChildNodeId("FB");
+
+    auto functionBlock = object.addFunctionBlock(fbTypeId, config);
+    auto tmsFunctionBlock = registerTmsObjectOrAddReference<TmsServerFunctionBlock<>>(fbFolderNodeId, functionBlock, functionBlocks.size());
+    functionBlocks.push_back(tmsFunctionBlock);
+    return tmsFunctionBlock;
+}
+
+void TmsServerDevice::removeFunctionBlock(const StringPtr& localId)
+{
+    for (auto it = functionBlocks.begin(); it != functionBlocks.end(); ++it)
+    {
+        auto fb = *it;
+
+        if (fb->getBrowseName() == localId)
+        {
+            server->deleteNode(fb->getNodeId());
+            functionBlocks.erase(it);
+            break;
+        }
+    }
+
+    const auto objFunctionBlocks = this->object.getFunctionBlocks(search::Any());
+
+    for (auto& fb : objFunctionBlocks)
+    {
+        if (fb.getLocalId() == localId)
+        {
+            this->object.removeFunctionBlock(fb);
+            break;
+        }
+    }
+}
+
 void TmsServerDevice::addChildNodes()
 {
     populateDeviceInfo();
@@ -289,6 +487,7 @@ void TmsServerDevice::addChildNodes()
         }
     }
 
+    addFbMethodNodes();
     Super::addChildNodes();
 }
 

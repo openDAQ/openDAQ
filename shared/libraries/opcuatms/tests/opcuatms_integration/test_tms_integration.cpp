@@ -7,6 +7,7 @@
 #include <opendaq/search_filter_factory.h>
 #include <chrono>
 #include <thread>
+#include <testutils/test_comparators.h>
 
 using namespace daq;
 using namespace daq::opcua;
@@ -235,4 +236,85 @@ TEST_F(TmsIntegrationTest, GetDomainSignal)
     SignalPtr domainSignal;
     ASSERT_NO_THROW(domainSignal = byteStepSignal.getDomainSignal());
     ASSERT_TRUE(domainSignal.assigned());
+}
+
+TEST_F(TmsIntegrationTest, GetAvailableFunctionBlockTypes)
+{
+    InstancePtr device = createDevice();
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    auto serverFbTypes = device.getAvailableFunctionBlockTypes();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    auto clientDevice = tmsClient.connect();
+
+    const auto clientFbTypes = clientDevice.getAvailableFunctionBlockTypes();
+    
+    ASSERT_TRUE(TestComparators::FunctionBlockTypeDictEquals(serverFbTypes, clientFbTypes));
+}
+
+TEST_F(TmsIntegrationTest, AddFunctionBlock)
+{
+    InstancePtr device = createDevice();
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    auto clientDevice = tmsClient.connect();
+
+    auto fb1 = clientDevice.addFunctionBlock("mock_fb_uid");
+    ASSERT_TRUE(fb1.assigned());
+    ASSERT_EQ("mock_fb_uid_1", fb1.getLocalId());
+
+    auto fb2 = clientDevice.addFunctionBlock("mock_fb_uid");
+    ASSERT_TRUE(fb2.assigned());
+    ASSERT_EQ("mock_fb_uid_2", fb2.getLocalId());
+
+    ASSERT_EQ(3, clientDevice.getFunctionBlocks().getCount());
+}
+
+TEST_F(TmsIntegrationTest, AddFunctionBlockWitchConfig)
+{
+    InstancePtr device = createDevice();
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    auto clientDevice = tmsClient.connect();
+
+    const auto clientFbTypes = clientDevice.getAvailableFunctionBlockTypes();
+
+    auto config = clientFbTypes.get("mock_fb_uid").createDefaultConfig();
+    config.addProperty(IntProperty("TestConfigInt", 0)); // I realy dont like this, but there is no way of trasfering default config property object over opcua ...
+    config.addProperty(StringProperty("TestConfigString", ""));
+    config.setPropertyValue("TestConfigInt", 10);
+    config.setPropertyValue("TestConfigString", "Hello Property!");
+
+    auto fb = clientDevice.addFunctionBlock("mock_fb_uid", config);
+
+    ASSERT_EQ(2, clientDevice.getFunctionBlocks().getCount());
+    ASSERT_EQ(fb.getPropertyValue("TestConfigInt"), 10);
+    ASSERT_EQ(fb.getPropertyValue("TestConfigString"), "Hello Property!");
+}
+
+
+TEST_F(TmsIntegrationTest, RemoveFunctionBlock)
+{
+    InstancePtr device = createDevice();
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    auto clientDevice = tmsClient.connect();
+
+    auto fb1 = clientDevice.addFunctionBlock("mock_fb_uid");
+    auto fb2 = clientDevice.addFunctionBlock("mock_fb_uid");
+    ASSERT_EQ(3, clientDevice.getFunctionBlocks().getCount());
+
+    clientDevice.removeFunctionBlock(fb1);
+    ASSERT_EQ(2, clientDevice.getFunctionBlocks().getCount());
+
+    clientDevice.removeFunctionBlock(fb2);
+    ASSERT_EQ(1, clientDevice.getFunctionBlocks().getCount());
 }

@@ -184,12 +184,16 @@ TEST_F(TmsFunctionBlockTest, Property)
     auto clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, nodeId);
 
     auto visibleProperties = clientFunctionBlock.getVisibleProperties();
-    ASSERT_EQ(visibleProperties.getCount(), 1u);
-    ASSERT_EQ(visibleProperties[0].getName(), "SampleRate");
+    ASSERT_EQ(visibleProperties.getCount(), 3u);
+    ASSERT_EQ(visibleProperties[0].getName(), "TestConfigInt");
+    ASSERT_EQ(visibleProperties[1].getName(), "TestConfigString");
+    ASSERT_EQ(visibleProperties[2].getName(), "SampleRate");
 
     auto properties = clientFunctionBlock.getAllProperties();
-    ASSERT_EQ(properties.getCount(), 1u);
-    ASSERT_EQ(properties[0].getName(), "SampleRate");
+    ASSERT_EQ(properties.getCount(), 3u);
+    ASSERT_EQ(properties[0].getName(), "TestConfigInt");
+    ASSERT_EQ(properties[1].getName(), "TestConfigString");
+    ASSERT_EQ(properties[2].getName(), "SampleRate");
 
     ASSERT_TRUE(clientFunctionBlock.hasProperty("SampleRate"));
     ASSERT_EQ(clientFunctionBlock.getPropertyValue("SampleRate"), 100.0);

@@ -137,10 +137,8 @@ jobs:
           aws s3 ls "s3://${{ env.s3bucket }}/${{ env.s3path }}/" --recursive --human-readable
           Write-Output "# S3 remove '*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe'"
           aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3path }}/" --recursive --exclude '*' --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe"
-          aws s3 ls "s3://${{ env.s3bucket }}/${{ env.s3path }}/" --recursive --human-readable
           Write-Output "# S3 copy from '${{ env.package_path }}'"
           aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3path }}/" --recursive
-          aws s3 ls "s3://${{ env.s3bucket }}/${{ env.s3path }}/" --recursive --human-readable
 
       - name: Upload Wheels to S3
         if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'

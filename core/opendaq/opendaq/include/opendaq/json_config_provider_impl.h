@@ -16,6 +16,8 @@
 
 #pragma once
 #include <opendaq/config_provider.h>
+#include <rapidjson/document.h>
+#include <coretypes/baseobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -27,6 +29,11 @@ public:
     ErrCode INTERFACE_FUNC populateOptions(IDict* options) override;
 private:
     static StringPtr getDataFromFile(const StringPtr& filename);
+
+    static BaseObjectPtr handleNumber(const rapidjson::Value& value);
+    static BaseObjectPtr handlePrimitive(const rapidjson::Value& value);
+    static void handleArray (const BaseObjectPtr& options, const rapidjson::Value& value);
+    static void handleObject(const BaseObjectPtr& options, const rapidjson::Value& value);
 
     StringPtr filename;
 };

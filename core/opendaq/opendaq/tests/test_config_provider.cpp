@@ -19,15 +19,28 @@ protected:
         file << R"(
             {
                 "ModuleManager": {
-                    "ModulesPath": ""
+                    "ModulesPath": "testtest"
+                },
+                "Scheduler": {
+                    "WorkersNum": 123
                 },
                 "Logging": {
-                    "WorkersNum": 0
+                    "GlobalLogLevel": 1
                 },
-                "Logging": {
-                    "GlobalLogLevel": 2
-                },
-                "Modules": {}
+                "Modules": {},
+                "FloatValue": 1.001,
+                "ListValue": [
+                    123,
+                    "string",
+                    {
+                        "val1": 123
+                    },
+                    [
+                        1,
+                        2,
+                        3
+                    ]
+                ]
             }
         )";
         file.close();
@@ -45,7 +58,19 @@ protected:
 TEST_F(ConfigProviderTest, jsonConfigRead)
 {
     auto provider = JsonConfigProvider(StringPtr(filename));
-    auto options = Dict<IString, IBaseObject>();
+    auto options = Dict<IString, IBaseObject>({
+        {"ModuleManager", Dict<IString, IBaseObject>({
+                {"ModulesPath", ""}
+            })},
+        {"Scheduler", Dict<IString, IBaseObject>({
+                {"WorkersNum", 0}
+            })},
+        {"Logging", Dict<IString, IBaseObject>({
+                {"GlobalLogLevel", 2}
+            })},
+        {"Modules", Dict<IString, IBaseObject>()},
+        {"FloatValue",123.123}
+    });
     provider.populateOptions(options);
     std::cout << "done" << std::endl;
 }

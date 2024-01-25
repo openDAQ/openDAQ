@@ -46,6 +46,7 @@ protected:
     void findAndCreateSignals();
     void findAndCreateInputsOutputs();
     void findAndCreateCustomComponents();
+    DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 

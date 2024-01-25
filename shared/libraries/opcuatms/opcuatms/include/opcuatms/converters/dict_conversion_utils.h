@@ -13,23 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
-#include <opendaq/function_block_ptr.h>
-#include <opendaq/function_block_type_ptr.h>
-#include <opendaq/mock/mock_fb.h>
+#include <opcuatms/opcuatms.h>
+#include <opcuashared/opcuavariant.h>
+#include <property_object_ptr.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-inline FunctionBlockPtr MockFunctionBlock(
-    const FunctionBlockTypePtr& type,
-    const daq::ContextPtr& ctx,
-    const ComponentPtr& parent,
-    const StringPtr& localId,
-    const PropertyObjectPtr& config = nullptr
-    )
+class DictConversionUtils
 {
-    FunctionBlockPtr obj(MockFunctionBlock_Create(type, ctx, parent, localId, config));
-    return obj;
-}
+public:
+    static OpcUaVariant ToDictVariant(const PropertyObjectPtr& obj);
+    static void ToPropertyObject(const OpcUaVariant& variant, PropertyObjectPtr& objOut);
+};
 
-END_NAMESPACE_OPENDAQ
+END_NAMESPACE_OPENDAQ_OPCUA_TMS

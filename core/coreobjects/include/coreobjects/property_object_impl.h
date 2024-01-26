@@ -155,6 +155,7 @@ protected:
     UpdatingActions updatingPropsAndValues;
     bool coreEventMuted;
     WeakRefPtr<ITypeManager> manager;
+    StringPtr path;
 
     void internalDispose(bool) override;
     ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool isUpdating);
@@ -169,9 +170,9 @@ protected:
     virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
 
     static void DeserializePropertyValues(const SerializedObjectPtr& serialized,
-                                             const BaseObjectPtr& context,
-                                             const FunctionPtr& factoryCallback,
-                                             PropertyObjectPtr& propObjPtr);
+                                          const BaseObjectPtr& context,
+                                          const FunctionPtr& factoryCallback,
+                                          PropertyObjectPtr& propObjPtr);
 
     static void DeserializeLocalProperties(const SerializedObjectPtr& serialized,
                                            const BaseObjectPtr& context,
@@ -200,16 +201,15 @@ protected:
     // Does not bind property to object and does not look up reference property
     PropertyPtr getUnboundProperty(const StringPtr& name);
     PropertyPtr getUnboundPropertyOrNull(const StringPtr& name) const;
+    PropertyPtr getChildProperty(const StringPtr& name);
 
 private:
-
     StringPtr className;
     PropertyObjectClassPtr objectClass;
     std::unordered_map<StringPtr, PropertyValueEventEmitter> valueWriteEvents;
     std::unordered_map<StringPtr, PropertyValueEventEmitter> valueReadEvents;
     EndUpdateEventEmitter endUpdateEvent;
     ProcedurePtr triggerCoreEvent;
-    StringPtr path;
 
     PropertyOrderedMap localProperties;
     std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
@@ -285,9 +285,9 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     : frozen(false)
     , updateCount(0)
     , coreEventMuted(true)
+    , path("")
     , className(nullptr)
     , objectClass(nullptr)
-    , path("")
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();

@@ -146,20 +146,6 @@ TEST_F(ConfigProtocolTest, GetPropertyValueRoot)
     ASSERT_EQ(value, "val");
 }
 
-TEST_F(ConfigProtocolTest, GetObjectPropertyValue)
-{
-    const auto defaultValue = PropertyObject();
-    defaultValue.addProperty(StringPropertyBuilder("StringProp", "-").build());
-    defaultValue.addProperty(IntPropertyBuilder("IntProp", 0).build());
-
-    device->addProperty(ObjectPropertyBuilder("PropName", defaultValue).build());
-
-    const auto clientVal = client.getClientComm()->getPropertyValue("//root", "PropName").asPtr<IPropertyObject>();
-
-    ASSERT_EQ(clientVal.getPropertyValue("StringProp"), "-");
-    ASSERT_EQ(clientVal.getPropertyValue("IntProp"), 0);
-}
-
 TEST_F(ConfigProtocolTest, GetChildObjectPropertyValue)
 {
     const auto defaultValue = PropertyObject();

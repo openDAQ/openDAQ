@@ -220,6 +220,13 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
         return obj;
     }
 
+    if (typeId == "PropertyObject")
+    {
+        BaseObjectPtr obj;
+        checkErrorInfo(ConfigClientPropertyObjectImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        return obj;
+    }
+
     return nullptr;
 }
 
@@ -289,7 +296,7 @@ DevicePtr ConfigProtocolClient::getDevice()
     return device;
 }
 
-void ConfigProtocolClient::connect(const ComponentPtr& parent)
+void ConfigProtocolClient::connect(const ComponentPtr& parent, bool enableCoreTriggerEvent)
 {
     auto getProtocolInfoRequestPacketBuffer = PacketBuffer::createGetProtocolInfoRequest(clientComm->generateId());
     const auto getProtocolInfoReplyPacketBuffer = sendRequestCallback(getProtocolInfoRequestPacketBuffer);
@@ -315,6 +322,8 @@ void ConfigProtocolClient::connect(const ComponentPtr& parent)
 
     const ComponentHolderPtr deviceHolder = clientComm->sendComponentCommand("//root", "GetComponent", parent);
     device = deviceHolder.getComponent();
+    if (enableCoreTriggerEvent)
+        device.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
 
     clientComm->connected = true;
 }

@@ -85,7 +85,7 @@ public:
                                   const ServerNotificationReceivedCallback& serverNotificationReceivedCallback);
 
     // called from client module
-    void connect(const ComponentPtr& parent = nullptr);
+    void connect(const ComponentPtr& parent = nullptr, bool enableCoreTriggerEvent = false);
     DevicePtr getDevice();
     ConfigProtocolClientCommPtr getClientComm();
 

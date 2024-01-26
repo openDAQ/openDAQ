@@ -51,6 +51,12 @@ public:
         createAndAddSignal("sig_ch");
         const auto childFb = createWithImplementation<IFunctionBlock, MockFb1Impl>(ctx, this->functionBlocks, "childFb");
         addNestedFunctionBlock(childFb);
+
+        const auto defPropObj = PropertyObject();
+        defPropObj.addProperty(StringPropertyBuilder("Str1Prop", "DefValue").build());
+
+        objPtr.addProperty(ObjectPropertyBuilder("ObjProp", defPropObj).build());
+
     }
 };
 
@@ -266,6 +272,56 @@ TEST_F(ConfigProtocolIntegrationTest, SetPropertyValue)
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), clientDevice.getChannels()[0].getPropertyValue("StrProp"));
 }
 
+TEST_F(ConfigProtocolIntegrationTest, GetPropertyValueOnObjectProperty)
+{
+    const auto serverDevice = createServerDevice();
+    ConfigProtocolServer server(serverDevice, nullptr);
+
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    const auto serverCh = serverSubDevice.getChannels()[0];
+
+    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+
+    client.connect(nullptr, true);
+
+    const auto clientDevice = client.getDevice();
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+    const auto clientChannel = clientSubDevice.getChannels()[0];
+
+    const auto objProp = clientChannel.getPropertyValue("ObjProp").asPtr<IPropertyObject>();
+    const auto val = objProp.getPropertyValue("Str1Prop");
+    ASSERT_EQ(val, "DefValue");
+
+    serverCh.getPropertyValue("ObjProp").asPtr<IPropertyObject>().setPropertyValue("Str1Prop", "NewValue");
+
+    const auto newVal = objProp.getPropertyValue("Str1Prop");
+    ASSERT_EQ(newVal, "NewValue");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, SetPropertyValueOnObjectProperty)
+{
+    const auto serverDevice = createServerDevice();
+    ConfigProtocolServer server(serverDevice, nullptr);
+
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    const auto serverCh = serverSubDevice.getChannels()[0];
+
+    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+
+    client.connect(nullptr, true);
+
+    const auto clientDevice = client.getDevice();
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+    const auto clientChannel = clientSubDevice.getChannels()[0];
+
+    const auto objProp = clientChannel.getPropertyValue("ObjProp").asPtr<IPropertyObject>();
+
+    clientChannel.getPropertyValue("ObjProp").asPtr<IPropertyObject>().setPropertyValue("Str1Prop", "NewValue");
+
+    const auto newVal = objProp.getPropertyValue("Str1Prop");
+    ASSERT_EQ(newVal, "NewValue");
+}
+
 TEST_F(ConfigProtocolIntegrationTest, SetProtectedPropertyValue)
 {
     const auto serverDevice = createServerDevice();
@@ -324,6 +380,27 @@ TEST_F(ConfigProtocolIntegrationTest, CallFuncProp)
 
     Int r = clientFuncPropValue.call(2, 4);
     ASSERT_EQ(r, 6);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, SetPropertyValueFuncProp)
+{
+    const auto serverDevice = createServerDevice();
+    const auto serverCh = serverDevice.getChannels()[0];
+    const auto funcProp =
+        FunctionPropertyBuilder("FuncProp", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
+            .setReadOnly(True)
+            .build();
+    serverCh.addProperty(funcProp);
+
+    ConfigProtocolServer server(serverDevice, nullptr);
+
+    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+
+    client.connect();
+    const auto clientDevice = client.getDevice();
+    const auto clientChannel = clientDevice.getChannels()[0];
+
+    ASSERT_THROW(clientChannel.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("FuncProp", Function([]{ return 0; })), InvalidOperationException);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, CallProcProp)

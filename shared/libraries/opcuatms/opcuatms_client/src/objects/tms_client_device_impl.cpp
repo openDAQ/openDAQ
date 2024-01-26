@@ -461,7 +461,7 @@ DictPtr<IString, IFunctionBlockType> TmsClientDeviceImpl::onGetAvailableFunction
     const auto typeList = ListConversionUtils::ExtensionObjectVariantToList<IFunctionBlockType>(outvariant);
 
     auto dict = Dict<IString, IFunctionBlockType>();
-    for (auto& type : typeList)
+    for (const auto& type : typeList)
         dict.set(type.getId(), type);
 
     return dict;

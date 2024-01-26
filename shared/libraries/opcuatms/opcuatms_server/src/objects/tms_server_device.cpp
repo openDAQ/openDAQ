@@ -418,7 +418,7 @@ void TmsServerDevice::removeFunctionBlock(const StringPtr& localId)
 
     const auto objFunctionBlocks = this->object.getFunctionBlocks(search::Any());
 
-    for (auto& fb : objFunctionBlocks)
+    for (const auto& fb : objFunctionBlocks)
     {
         if (fb.getLocalId() == localId)
         {

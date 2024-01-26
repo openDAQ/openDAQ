@@ -2,44 +2,34 @@
 #include <opendaq/instance_builder_impl.h>
 #include <opendaq/instance_builder_ptr.h>
 #include <opendaq/instance_ptr.h>
+#include <opendaq/instance_context_factory.h>
 #include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetOptions()
-{
-    return Dict<IString, IBaseObject>({
-        {"ModuleManager", Dict<IString, IBaseObject>({
-                {"ModulesPath", ""}
-            })},
-        {"Scheduler", Dict<IString, IBaseObject>({
-                {"WorkersNum", 0}
-            })},
-        {"Logging", Dict<IString, IBaseObject>({
-                {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
-            })},
-        {"Modules", Dict<IString, IBaseObject>()}
-    });
-}
-
-InstanceBuilderImpl::InstanceBuilderImpl()
+InstanceBuilderImpl::InstanceBuilderImpl(InstanceContextPtr context)
     : componentsLogLevel(Dict<IString, LogLevel>())
-    , options(GetOptions())
 {
+    if (!context.assigned())
+        context = InstanceContext();
+    options = context.getOptions();
 }
 
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getModuleManagerOptions()
 {
     return options.get("ModuleManager");
 }
+
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getSchedulerOptions()
 {
     return options.get("Scheduler");
 }
+
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getLoggingOptions()
 {
     return options.get("Logging");
 }
+
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getModuleOptions(IString* module)
 {
     DictPtr<IString, IBaseObject> modules = options.get("Modules").asPtr<IDict>();
@@ -281,9 +271,9 @@ ErrCode InstanceBuilderImpl::getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo)
 ////
 ////////////////////
 
-extern "C" ErrCode PUBLIC_EXPORT createInstanceBuilder(IInstanceBuilder** objTmp)
+extern "C" ErrCode PUBLIC_EXPORT createInstanceBuilder(IInstanceBuilder** objTmp, IInstanceContext* context)
 {
-    return daq::createObject<IInstanceBuilder, InstanceBuilderImpl>(objTmp);
+    return daq::createObject<IInstanceBuilder, InstanceBuilderImpl>(objTmp, context);
 }
 
 END_NAMESPACE_OPENDAQ

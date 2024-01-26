@@ -21,6 +21,7 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/module_manager_factory.h>
 #include <coretypes/type_manager_factory.h>
+#include <opendaq/instance_context_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -70,9 +71,9 @@ inline InstancePtr Instance(const std::string& modulePath = "", const std::strin
 /*!
  * @brief Creates a InstanceBuilder with no parameters configured.
  */
-inline InstanceBuilderPtr InstanceBuilder()
+inline InstanceBuilderPtr InstanceBuilder(const InstanceContextPtr & context = InstanceContext())
 {
-    InstanceBuilderPtr obj(InstanceBuilder_Create());
+    InstanceBuilderPtr obj(InstanceBuilder_Create(context));
     return obj;
 }
 

@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/stringobject.h>
 #include <opendaq/instance.h>
+#include <opendaq/instance_context.h>
 #include <opendaq/config_provider.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -259,7 +260,10 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 /*!
  * @brief Creates a InstanceBuilder with no parameters configured.
  */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, InstanceBuilder, IInstanceBuilder)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, 
+InstanceBuilder, IInstanceBuilder,
+IInstanceContext*, context
+)
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

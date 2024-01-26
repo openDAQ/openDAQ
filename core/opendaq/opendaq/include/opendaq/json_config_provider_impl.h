@@ -28,12 +28,12 @@ public:
 
     ErrCode INTERFACE_FUNC populateOptions(IDict* options) override;
 private:
-    static StringPtr getDataFromFile(const StringPtr& filename);
+    static StringPtr GetDataFromFile(const StringPtr& filename);
 
-    static BaseObjectPtr handleNumber(const rapidjson::Value& value);
-    static BaseObjectPtr handlePrimitive(const rapidjson::Value& value);
-    static void handleArray (const BaseObjectPtr& options, const rapidjson::Value& value);
-    static void handleObject(const BaseObjectPtr& options, const rapidjson::Value& value);
+    static BaseObjectPtr HandleNumber(const rapidjson::Value& value);
+    static BaseObjectPtr HandlePrimitive(const rapidjson::Value& value);
+    static void HandleArray(const BaseObjectPtr& options, const rapidjson::Value& value);
+    static void HandleObject(const BaseObjectPtr& options, const rapidjson::Value& value);
 
     StringPtr filename;
 };

@@ -21,7 +21,7 @@ JsonConfigProviderImpl::JsonConfigProviderImpl(const StringPtr& filename)
     this->filename = filename; 
 }
 
-StringPtr JsonConfigProviderImpl::getDataFromFile(const StringPtr& filename)
+StringPtr JsonConfigProviderImpl::GetDataFromFile(const StringPtr& filename)
 {
     std::ifstream file (filename.toStdString());
 
@@ -33,7 +33,7 @@ StringPtr JsonConfigProviderImpl::getDataFromFile(const StringPtr& filename)
     return ss.str();
 }
 
-BaseObjectPtr JsonConfigProviderImpl::handleNumber(const rapidjson::Value& value)
+BaseObjectPtr JsonConfigProviderImpl::HandleNumber(const rapidjson::Value& value)
 {
     if (value.IsInt()) 
     {
@@ -57,7 +57,7 @@ BaseObjectPtr JsonConfigProviderImpl::handleNumber(const rapidjson::Value& value
     } 
     throw InvalidTypeException("json value type have to be number"); 
 }
-BaseObjectPtr JsonConfigProviderImpl::handlePrimitive(const rapidjson::Value& value)
+BaseObjectPtr JsonConfigProviderImpl::HandlePrimitive(const rapidjson::Value& value)
 {
     switch (value.GetType())
     {
@@ -76,7 +76,7 @@ BaseObjectPtr JsonConfigProviderImpl::handlePrimitive(const rapidjson::Value& va
         }
         case (rapidjson::Type::kNumberType):
         {
-            return handleNumber(value);
+            return HandleNumber(value);
         }
         default:
         {
@@ -84,13 +84,14 @@ BaseObjectPtr JsonConfigProviderImpl::handlePrimitive(const rapidjson::Value& va
         }
     };
 }
-void JsonConfigProviderImpl::handleArray(const BaseObjectPtr& options, const rapidjson::Value& value)
+void JsonConfigProviderImpl::HandleArray(const BaseObjectPtr& options, const rapidjson::Value& value)
 {
     if (!value.IsArray())
         throw InvalidTypeException("json value type have to be array"); 
     
     if (!options.assigned())
         throw ArgumentNullException("options is null");    
+    
     auto optionsPtr = options.asPtrOrNull<IList>();
     if (!optionsPtr.assigned())
         throw InvalidTypeException("json type mistamatch");
@@ -98,32 +99,32 @@ void JsonConfigProviderImpl::handleArray(const BaseObjectPtr& options, const rap
     optionsPtr.clear();
     for (auto & el : value.GetArray())
     {
+        BaseObjectPtr optionValue;
         if (el.IsObject()) 
         {
-            auto optionValue = Dict<IString, IBaseObject>();
-            handleObject(optionValue, el);
-            optionsPtr.pushBack(optionValue);
+            optionValue = Dict<IString, IBaseObject>();
+            HandleObject(optionValue, el);
         } 
         else if (el.IsArray()) 
         {
-            auto optionValue = List<IBaseObject>();
-            handleArray(optionValue, el);
-            optionsPtr.pushBack(optionValue);
+            optionValue = List<IBaseObject>();
+            HandleArray(optionValue, el);
         }
         else
         {
-            auto optionValue = handlePrimitive(el);
-            optionsPtr.pushBack(optionValue);
+            optionValue = HandlePrimitive(el);
         }
+        optionsPtr.pushBack(optionValue);
     }
 }
-void JsonConfigProviderImpl::handleObject(const BaseObjectPtr& options, const rapidjson::Value& value)
+void JsonConfigProviderImpl::HandleObject(const BaseObjectPtr& options, const rapidjson::Value& value)
 {
     if (!value.IsObject())
         throw InvalidTypeException("json value type have to be object"); 
     
     if (!options.assigned())
         throw ArgumentNullException("options is null");    
+    
     auto optionsPtr = options.asPtrOrNull<IDict, DictPtr<IString, IBaseObject>>();
     if (!optionsPtr.assigned())
         throw InvalidTypeException("json type mistamatch");
@@ -136,28 +137,26 @@ void JsonConfigProviderImpl::handleObject(const BaseObjectPtr& options, const ra
 
         if (el.value.IsObject()) 
         {
-            if (!optionValue.assigned()) {
+            if (!optionValue.assigned())
                 optionValue = Dict<IString, IBaseObject>();
-                optionsPtr.set(el.name.GetString(), optionValue);
-            }
-            handleObject(optionValue, el.value);
+
+            HandleObject(optionValue, el.value);
         } 
         else if (el.value.IsArray()) 
         {
             if (!optionValue.assigned())
-            {
                 optionValue = List<IBaseObject>();
-                optionsPtr.set(el.name.GetString(), optionValue);
-            }
-            handleArray(optionValue, el.value);
+
+            HandleArray(optionValue, el.value);
         }
         else
         {
-            auto parsedValue = handlePrimitive(el.value);
+            auto parsedValue = HandlePrimitive(el.value);
             if (optionValue.assigned() && optionValue.getCoreType() != parsedValue.getCoreType())
                 throw InvalidTypeException("json primtive type mistamatch");
-            optionsPtr.set(el.name.GetString(), parsedValue);
+            optionValue = parsedValue;
         }
+        optionsPtr.set(el.name.GetString(), optionValue);
     }
 }
 
@@ -165,7 +164,7 @@ ErrCode JsonConfigProviderImpl::populateOptions(IDict* options)
 {
     OPENDAQ_PARAM_NOT_NULL(options);
 
-    auto jsonStr = getDataFromFile(filename);
+    auto jsonStr = GetDataFromFile(filename);
 
     rapidjson::Document document;
     if (document.Parse(jsonStr.toStdString().c_str()).HasParseError())
@@ -177,7 +176,7 @@ ErrCode JsonConfigProviderImpl::populateOptions(IDict* options)
         return this->makeErrorInfo(OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR, errorMsg);
     }
 
-    handleObject(BaseObjectPtr::Borrow(options), document);
+    HandleObject(BaseObjectPtr::Borrow(options), document);
 
     return OPENDAQ_SUCCESS;
 }

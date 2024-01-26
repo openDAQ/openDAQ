@@ -195,6 +195,11 @@ double OpcUaVariant::toDouble() const
     return readScalar<UA_Double>();
 }
 
+float OpcUaVariant::toFloat() const
+{
+    return readScalar<UA_Float>();
+}
+
 bool OpcUaVariant::toBool() const
 {
     return readScalar<UA_Boolean>();

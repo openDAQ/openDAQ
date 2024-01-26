@@ -263,7 +263,9 @@ OpcUaObject<UA_Float> StructConverter<IFloat, UA_Float>::ToTmsType(const FloatPt
 template <>
 FloatPtr VariantConverter<IFloat>::ToDaqObject(const OpcUaVariant& variant, const ContextPtr& /*context*/)
 {
-    return variant.toDouble();
+    if (variant.isType<UA_Double>())
+        return variant.toDouble();
+    return variant.toFloat();
 }
 
 template <>

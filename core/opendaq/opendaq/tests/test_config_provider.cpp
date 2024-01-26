@@ -27,6 +27,13 @@ protected:
             return defaultValue;
     }
 
+#ifdef _WIN32
+    inline int setenv(const char* name, const char* value, int overwrite)
+    {
+        return !_putenv_s(name, value);
+    }
+#endif
+
     static void SetEnvironmentVariableValue(const std::string& variableName, const std::string& defaultValue)
     {
         if (variableName.empty())

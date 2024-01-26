@@ -30,7 +30,7 @@ protected:
 #ifdef _WIN32
     inline int setenv(const char* name, const char* value, int overwrite)
     {
-        return !_putenv_s(name, value);
+        return _putenv_s(name, value);
     }
 #endif
 

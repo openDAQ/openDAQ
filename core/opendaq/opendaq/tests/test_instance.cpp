@@ -331,16 +331,16 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     ASSERT_EQ(instanceBuilder.getGlobalLogLevel(), LogLevel::Debug);
     
     auto components = instanceBuilder.getComponentsLogLevel();
-    ASSERT_EQ(components.getCount(), 1);
+    ASSERT_EQ(components.getCount(), 1u);
     ASSERT_EQ(components["component1"], LogLevel::Critical);
     
     auto sinks = instanceBuilder.getLoggerSinks();
-    ASSERT_EQ(sinks.getCount(), 1);
+    ASSERT_EQ(sinks.getCount(), 1u);
     ASSERT_EQ(sinks[0].getLevel(), LogLevel::Warn);
 
     ASSERT_EQ(instanceBuilder.getModulePath(), "./modulePath2");
     ASSERT_EQ(instanceBuilder.getModuleManager(), moduleManager);
-    ASSERT_EQ(instanceBuilder.getSchedulerWorkerNum(), 1);
+    ASSERT_EQ(instanceBuilder.getSchedulerWorkerNum(), 1u);
     ASSERT_EQ(instanceBuilder.getScheduler(), scheduler);
     ASSERT_EQ(instanceBuilder.getDefaultRootDeviceLocalId(), "DefaultRootDeviceLocalId");
     ASSERT_EQ(instanceBuilder.getRootDevice(), "test");

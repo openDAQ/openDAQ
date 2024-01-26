@@ -38,7 +38,7 @@ TEST_F(StructObjectTest, SimpleStruct)
     const auto structMembers = Dict<IString, IBaseObject>({{"string", "bar"}, {"integer", 10}, {"float", 5.123}});
     const auto simpleStruct = Struct("foo", structMembers, manager);
 
-    ASSERT_EQ(manager.getTypes().getCount(), 1);
+    ASSERT_EQ(manager.getTypes().getCount(), 1u);
     ASSERT_EQ(simpleStruct.getStructType(), manager.getType("foo"));
     ASSERT_EQ(structMembers, simpleStruct.getAsDictionary());
 
@@ -53,7 +53,7 @@ TEST_F(StructObjectTest, NestedStructCustom)
     const auto structMembers = Dict<IString, IBaseObject>({{"string", "bar"}, {"integer", 10}, {"struct", innerStruct}});
     const auto nestedStruct = Struct("foo", structMembers, manager);
 
-    ASSERT_EQ(manager.getTypes().getCount(), 2);
+    ASSERT_EQ(manager.getTypes().getCount(), 2u);
     ASSERT_EQ(nestedStruct.getStructType(), manager.getType("foo"));
     ASSERT_EQ(structMembers, nestedStruct .getAsDictionary());
 }
@@ -67,7 +67,7 @@ TEST_F(StructObjectTest, NestedStructPredefined)
                                                            {"complexNumber", complexNumber}});
     const auto nestedStruct = Struct("foo", structMembers, manager);
 
-    ASSERT_EQ(manager.getTypes().getCount(), 1);
+    ASSERT_EQ(manager.getTypes().getCount(), 1u);
     ASSERT_EQ(nestedStruct.getStructType(), manager.getType("foo"));
     ASSERT_EQ(structMembers, nestedStruct .getAsDictionary());
 }

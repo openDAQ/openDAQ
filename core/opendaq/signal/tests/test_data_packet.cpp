@@ -367,7 +367,7 @@ TEST_F(DataPacketTest, PacketRefCount)
     const auto desc = setupDescriptor(SampleType::Float64, LinearDataRule(10.5, 200), nullptr);
     const DataPacketPtr packet = DataPacket(desc, 100, 10);
 
-    ASSERT_EQ(packet.getRefCount(), 1);
+    ASSERT_EQ(packet.getRefCount(), 1u);
 }
 
 END_NAMESPACE_OPENDAQ

@@ -316,7 +316,7 @@ TEST_F(CoreEventTest, EndUpdateEventBeginEnd)
                 case core_event_ids::PropertyObjectUpdateEnd:
                     updateCount++;
                     updated = args.getParameters().get("UpdatedProperties");
-                    ASSERT_EQ(updated.getCount(), 2);
+                    ASSERT_EQ(updated.getCount(), 2u);
                     ASSERT_EQ(args.getEventName(), "PropertyObjectUpdateEnd");
                     ASSERT_EQ(comp, args.getParameters().get("Owner"));
                     break;

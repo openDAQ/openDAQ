@@ -76,10 +76,10 @@ TEST_F(DeviceTest, CustomComponentSubItems)
     const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
     const auto customComponents = device.getCustomComponents();
 
-    ASSERT_EQ(customComponents.getCount(), 2);
+    ASSERT_EQ(customComponents.getCount(), 2u);
 
     daq::FolderPtr folder1 = customComponents[0];
-    ASSERT_EQ(folder1.getItems().getCount(), 1);
+    ASSERT_EQ(folder1.getItems().getCount(), 1u);
     ASSERT_FALSE(customComponents[1].asPtrOrNull<daq::IFolder>().assigned());
 }
 

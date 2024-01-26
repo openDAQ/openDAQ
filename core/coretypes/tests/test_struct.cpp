@@ -384,3 +384,16 @@ TEST_F(StructObjectTest, NestedStructBuilder)
 
     ASSERT_EQ(nestedStruct, builtStruct);
 }
+
+TEST_F(StructObjectTest, PrintTrackedObjectWithoutDeadlock)
+{
+    if (!daqIsTrackingObjects())
+        GTEST_SKIP() << "The test has no meaning if object tracking is disabled";
+
+    const auto manager = TypeManager();
+
+    const auto structMembers = Dict<IString, IBaseObject>({{"string", "bar"}, {"integer", 10}});
+    const auto simpleStruct = Struct("foo", structMembers, manager);
+
+    daqPrintTrackedObjects();  // Struct::ToString should not create any new objects (deadlock)
+}

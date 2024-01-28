@@ -69,6 +69,7 @@ private:
     DictPtr<IString, IBaseObject> getModuleManagerOptions();
     DictPtr<IString, IBaseObject> getSchedulerOptions();
     DictPtr<IString, IBaseObject> getLoggingOptions();
+    DictPtr<IString, IBaseObject> getModules();
     DictPtr<IString, IBaseObject> getModuleOptions(IString* module);
 
     StringPtr localId;

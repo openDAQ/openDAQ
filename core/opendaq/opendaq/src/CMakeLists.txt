@@ -33,6 +33,7 @@ source_group("instance" FILES ${SDK_HEADERS_DIR}/instance.h
                               ${SDK_HEADERS_DIR}/instance_context_impl.h
                               ${SDK_HEADERS_DIR}/config_provider.h
                               ${SDK_HEADERS_DIR}/json_config_provider_impl.h
+                              ${SDK_HEADERS_DIR}/env_config_provider_impl.h
                               ${SDK_HEADERS_DIR}/config_provider_factory.h
                               instance_impl.cpp
                               client_impl.cpp
@@ -68,6 +69,7 @@ set(SRC_PrivateHeaders instance_impl.h
                        instance_builder_impl.h
                        instance_context_impl.h
                        json_config_provider_impl.h
+                       env_config_provider_impl.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)

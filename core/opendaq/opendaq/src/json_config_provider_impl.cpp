@@ -57,6 +57,7 @@ BaseObjectPtr JsonConfigProviderImpl::HandleNumber(const rapidjson::Value& value
     } 
     throw InvalidTypeException("json value type have to be number"); 
 }
+
 BaseObjectPtr JsonConfigProviderImpl::HandlePrimitive(const rapidjson::Value& value)
 {
     switch (value.GetType())
@@ -84,6 +85,7 @@ BaseObjectPtr JsonConfigProviderImpl::HandlePrimitive(const rapidjson::Value& va
         }
     };
 }
+
 void JsonConfigProviderImpl::HandleArray(const BaseObjectPtr& options, const rapidjson::Value& value)
 {
     if (!value.IsArray())
@@ -117,6 +119,7 @@ void JsonConfigProviderImpl::HandleArray(const BaseObjectPtr& options, const rap
         optionsPtr.pushBack(optionValue);
     }
 }
+
 void JsonConfigProviderImpl::HandleObject(const BaseObjectPtr& options, const rapidjson::Value& value)
 {
     if (!value.IsObject())

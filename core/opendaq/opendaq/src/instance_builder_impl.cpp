@@ -30,9 +30,14 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::getLoggingOptions()
     return options.get("Logging");
 }
 
+DictPtr<IString, IBaseObject> InstanceBuilderImpl::getModules()
+{
+    return options.get("Modules");
+}
+
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getModuleOptions(IString* module)
 {
-    DictPtr<IString, IBaseObject> modules = options.get("Modules").asPtr<IDict>();
+    auto modules = getModules();
     if (!modules.hasKey(module)) 
     {   
         auto moduleOptions = Dict<IString, IBaseObject>();

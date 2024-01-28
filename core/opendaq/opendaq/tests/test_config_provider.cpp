@@ -27,19 +27,21 @@ protected:
             return defaultValue;
     }
 
-#ifdef _WIN32
-    inline int setenv(const char* name, const char* value, int overwrite)
+    static inline int setEnv(const std::string&  name, const std::string&  value)
     {
-        return _putenv_s(name, value);
+    #ifdef _WIN32
+        return _putenv_s(name.c_str(), value.c_str());
+    #else
+        return setenv(name.c_str(), value.c_str(), 1);
+    #endif
     }
-#endif
 
     static void SetEnvironmentVariableValue(const std::string& variableName, const std::string& defaultValue)
     {
         if (variableName.empty())
             return;
 
-        if (setenv(variableName.c_str(), defaultValue.c_str(), 1) != 0)
+        if (setEnv(variableName.c_str(), defaultValue.c_str()) != 0)
             throw std::runtime_error("Failed to set env variable");
     }
 

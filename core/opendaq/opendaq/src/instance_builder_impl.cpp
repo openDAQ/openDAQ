@@ -58,6 +58,14 @@ ErrCode InstanceBuilderImpl::build(IInstance** instance)
 ErrCode InstanceBuilderImpl::addConfigProvider(IConfigProvider* configProvider)
 {
     this->configProvider = configProvider;
+    if (this->configProvider.assigned())
+        try
+        {
+            this->configProvider.populateOptions(options);
+        }
+        catch (...)
+        {
+        }
     return OPENDAQ_SUCCESS;
 }
 

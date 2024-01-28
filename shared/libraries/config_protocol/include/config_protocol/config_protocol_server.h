@@ -80,6 +80,7 @@ private:
     ComponentPtr findComponent(const std::string& componentGlobalId) const;
 
     BaseObjectPtr getComponent(const ParamsDictPtr& params) const;
+    BaseObjectPtr getTypeManager(const ParamsDictPtr& params) const;
 
     template <class SmartPtr, class F>
     BaseObjectPtr bindComponentWrapper(const F& f, const ParamsDictPtr& params);

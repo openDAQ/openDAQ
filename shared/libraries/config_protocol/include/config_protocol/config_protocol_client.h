@@ -45,6 +45,8 @@ public:
                                        ParamsDictPtr& params,
                                        const ComponentPtr& parentComponent = nullptr);
     BaseObjectPtr sendComponentCommand(const StringPtr& globalId, const StringPtr& command, const ComponentPtr& parentComponent = nullptr);
+    BaseObjectPtr sendCommand(const StringPtr& command, const ParamsDictPtr& params = nullptr);
+
 private:
     ContextPtr daqContext;
     size_t id;

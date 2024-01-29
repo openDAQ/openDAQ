@@ -104,7 +104,7 @@ TEST_F(TmsFusionDevice, StructTest)
     
     const auto adjustmentPointManipulated =  StructBuilder(fusionAmp.getPropertyValue("AdjustmentPoint"));                
     ASSERT_EQ(adjustmentPointManipulated.get("Index"), 10);
-    ASSERT_FLOAT_EQ(adjustmentPointManipulated.get("Factor"), 3.1);
+    ASSERT_FLOAT_EQ(adjustmentPointManipulated.get("Factor"), (float) 3.1);
 
     // Test strusct with double values
     const auto scaler =  StructBuilder(fusionAmp.getPropertyValue("Scaler"));                
@@ -113,8 +113,8 @@ TEST_F(TmsFusionDevice, StructTest)
     fusionAmp.setPropertyValue("Scaler", scaler.build());
     
     const auto scalerManipulated =  StructBuilder(fusionAmp.getPropertyValue("Scaler"));                
-    ASSERT_DOUBLE_EQ(scalerManipulated.get("Factor"), 3.62);
-    ASSERT_DOUBLE_EQ(scalerManipulated.get("Offset"), 3.1);
+    ASSERT_DOUBLE_EQ(scalerManipulated.get("Factor"), (double) 3.62);
+    ASSERT_DOUBLE_EQ(scalerManipulated.get("Offset"), (double) 3.1);
 
 }
 

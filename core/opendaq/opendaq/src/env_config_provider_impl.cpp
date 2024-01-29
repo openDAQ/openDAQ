@@ -1,5 +1,7 @@
 #include <opendaq/env_config_provider_impl.h>
 #include <cstdlib>
+#include <string>
+
 BEGIN_NAMESPACE_OPENDAQ
 
 EnvConfigProviderImpl::EnvConfigProviderImpl()
@@ -92,21 +94,60 @@ ErrCode INTERFACE_FUNC EnvConfigProviderImpl::populateOptions(IDict* options)
         SizeT deep = 0;
         for (const auto & token : splitedKey)
         {
+            if (!optionsValue.assigned())
+            {
+                printf("type mistmatch");
+                break;
+            }
+
             if (deep == 0)
             {
                 deep++;
                 continue;
             }
 
+
             if (deep == splitedKey.getCount() - 1)
             {
-                optionsValue.set(token, envValue);
+                if (optionsValue.hasKey(token))
+                {
+                    auto child = optionsValue.get(token);
+                    switch (child.getCoreType())
+                    {
+                        case CoreType::ctString:
+                        {
+                            optionsValue.set(token, envValue);
+                            break;
+                        }
+                        case CoreType::ctInt:
+                        {
+                            Int number = std::stoi(envValue.toStdString());
+                            optionsValue.set(token, number);
+                            break;
+                        }
+
+
+                    }
+                }
+                else
+                {
+                    optionsValue.set(token, envValue);
+                }
             } 
             else 
             {
-                optionsValue = optionsValue.get(token);
+                if (!optionsValue.hasKey(token))
+                {
+                    optionsValue.set(token, Dict<IString, IBaseObject>());
+                }
+                auto child = optionsValue.get(token);
+                if (child.getCoreType() != CoreType::ctDict)
+                {
+                    // type mistamatach
+                    break;
+                }
+                optionsValue = child;
             }
-
             deep++;
         }
     }

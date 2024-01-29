@@ -69,11 +69,10 @@ private:
     DictPtr<IString, IBaseObject> getModuleManagerOptions();
     DictPtr<IString, IBaseObject> getSchedulerOptions();
     DictPtr<IString, IBaseObject> getLoggingOptions();
+    DictPtr<IString, IBaseObject> getRootDevice();
     DictPtr<IString, IBaseObject> getModules();
     DictPtr<IString, IBaseObject> getModuleOptions(IString* module);
 
-    StringPtr localId;
-    StringPtr connectionString;
     DeviceInfoPtr defaultRootDeviceInfo;
 
     DictPtr<IString, LogLevel> componentsLogLevel;
@@ -82,7 +81,6 @@ private:
 
     SchedulerPtr scheduler;
     ModuleManagerPtr moduleManager;
-    ConfigProviderPtr configProvider;
 
     DictPtr<IString, IBaseObject> options;
 };

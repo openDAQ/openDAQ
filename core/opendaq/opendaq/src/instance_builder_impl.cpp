@@ -30,6 +30,11 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::getLoggingOptions()
     return options.get("Logging");
 }
 
+DictPtr<IString, IBaseObject> InstanceBuilderImpl::getRootDevice()
+{
+    return options.get("RootDevice");
+}
+
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getModules()
 {
     return options.get("Modules");
@@ -62,15 +67,17 @@ ErrCode InstanceBuilderImpl::build(IInstance** instance)
 
 ErrCode InstanceBuilderImpl::addConfigProvider(IConfigProvider* configProvider)
 {
-    this->configProvider = configProvider;
-    if (this->configProvider.assigned())
-        try
-        {
-            this->configProvider.populateOptions(options);
-        }
-        catch (...)
-        {
-        }
+    if (configProvider == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    auto configProviderPtr = ConfigProviderPtr::Borrow(configProvider);
+    try
+    {
+        configProviderPtr.populateOptions(options);
+    }
+    catch (...)
+    {
+    }
     return OPENDAQ_SUCCESS;
 }
 
@@ -91,7 +98,7 @@ ErrCode InstanceBuilderImpl::getLogger(ILogger** logger)
 
 ErrCode InstanceBuilderImpl::setGlobalLogLevel(LogLevel logLevel)
 {
-    getLoggingOptions()["GlobalLogLevel"] = UInt(logLevel);
+    getLoggingOptions().set("GlobalLogLevel", UInt(logLevel));
     return OPENDAQ_SUCCESS;
 }
 
@@ -159,7 +166,7 @@ ErrCode InstanceBuilderImpl::setModulePath(IString* path)
     if (path == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    getModuleManagerOptions()["ModulesPath"] = path;
+    getModuleManagerOptions().set("ModulesPath", path);
     return OPENDAQ_SUCCESS;
 }
 
@@ -192,7 +199,7 @@ ErrCode InstanceBuilderImpl::getModuleManager(IModuleManager** moduleManager)
 
 ErrCode InstanceBuilderImpl::setSchedulerWorkerNum(SizeT numWorkers)
 {
-    getSchedulerOptions()["WorkersNum"] = numWorkers;
+    getSchedulerOptions().set("WorkersNum", numWorkers);
     return OPENDAQ_SUCCESS;
 }
 
@@ -228,7 +235,8 @@ ErrCode InstanceBuilderImpl::setDefaultRootDeviceLocalId(IString* localId)
     if (localId == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    this->localId = localId;
+
+    getRootDevice().set("DefaultLocalId", localId);
     return OPENDAQ_SUCCESS;
 }
 
@@ -237,7 +245,7 @@ ErrCode InstanceBuilderImpl::getDefaultRootDeviceLocalId(IString** localId)
     if (localId == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    *localId = this->localId.addRefAndReturn();
+    *localId = getRootDevice().get("DefaultLocalId").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -246,7 +254,7 @@ ErrCode InstanceBuilderImpl::setRootDevice(IString* connectionString)
     if (connectionString == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    this->connectionString = connectionString;
+    getRootDevice().set("Connection", connectionString);
     return OPENDAQ_SUCCESS;
 }
 
@@ -255,7 +263,7 @@ ErrCode InstanceBuilderImpl::getRootDevice(IString** connectionString)
     if (connectionString == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    *connectionString = this->connectionString.addRefAndReturn();
+    *connectionString = getRootDevice().get("Connection").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

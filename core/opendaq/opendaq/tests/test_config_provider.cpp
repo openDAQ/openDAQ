@@ -8,6 +8,7 @@
 #include <opendaq/log_level.h>
 #include <opendaq/instance_context_impl.h>
 #include <opendaq/instance_factory.h>
+#include <coretypes/coretypes.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -80,6 +81,10 @@ protected:
             {"Logging", Dict<IString, IBaseObject>({
                     {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
                 })},
+            {"RootDevice", Dict<IString, IBaseObject>({
+                    {"DefaultLocalId", ""},
+                    {"Connection", ""}
+                })},
             {"Modules", Dict<IString, IBaseObject>()}
         });
     }
@@ -100,18 +105,14 @@ TEST_F(ConfigProviderTest, jsonConfigReadModuleManagerPath)
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions(); 
-    SizeT optionsKeys = options.getCount();
+
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "ModuleManager").set("ModulesPath", "testtest");
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
 
-    // amount of option keys have to be unchanged
-    ASSERT_EQ(options.getCount(), optionsKeys);
-
-    // check that options have new value
-    StringPtr modulePath;
-    ASSERT_NO_THROW(modulePath = getChildren(options, "ModuleManager").get("ModulesPath"));
-    ASSERT_EQ(modulePath.toStdString(), "testtest");
+    ASSERT_EQ(options, expectedOptions);
 }
 
 TEST_F(ConfigProviderTest, jsonConfigReadSchedulerWorkersNum)
@@ -121,18 +122,14 @@ TEST_F(ConfigProviderTest, jsonConfigReadSchedulerWorkersNum)
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions(); 
-    SizeT optionsKeys = options.getCount();
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "Scheduler").set("WorkersNum", 4);
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
 
-    // amount of option keys have to be unchanged
-    ASSERT_EQ(options.getCount(), optionsKeys);
-
-    // check that options have new value
-    SizeT workersNum;
-    ASSERT_NO_THROW(workersNum = getChildren(options, "Scheduler").get("WorkersNum"));
-    ASSERT_EQ(workersNum, 4);
+    ASSERT_EQ(options, expectedOptions);
 }
 
 TEST_F(ConfigProviderTest, jsonConfigReadLoggingGlobalLogLevel)
@@ -142,18 +139,48 @@ TEST_F(ConfigProviderTest, jsonConfigReadLoggingGlobalLogLevel)
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions(); 
-    SizeT optionsKeys = options.getCount();
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "Logging").set("GlobalLogLevel", 0);
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
 
-    // amount of option keys have to be unchanged
-    ASSERT_EQ(options.getCount(), optionsKeys);
+    ASSERT_EQ(options, expectedOptions);
+}
 
-    // check that options have new value
-    SizeT globalLogLevel;
-    ASSERT_NO_THROW(globalLogLevel = getChildren(options, "Logging").get("GlobalLogLevel"));
-    ASSERT_EQ(globalLogLevel, 0);
+TEST_F(ConfigProviderTest, jsonConfigReadRootDeviceDefaultLocalId)
+{
+    std::string filename = "jsonConfigReadLoggingGlobalLogLevel.json";
+    std::string json = "{ \"RootDevice\": { \"DefaultLocalId\": \"localId\" } }";
+    createConfigFile(filename, json);
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "RootDevice").set("DefaultLocalId", "localId");
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, jsonConfigReadRootDeviceConnectionString)
+{
+    std::string filename = "jsonConfigReadLoggingGlobalLogLevel.json";
+    std::string json = "{ \"RootDevice\": { \"Connection\": \"dev://connectionString\" } }";
+    createConfigFile(filename, json);
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "RootDevice").set("Connection", "dev://connectionString");
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
 }
 
 TEST_F(ConfigProviderTest, jsonConfigReadModules)
@@ -162,31 +189,23 @@ TEST_F(ConfigProviderTest, jsonConfigReadModules)
     std::string json = "{ \"Modules\": { \"OpcUAClient\": { \"Debug\": 1 }, \"RefDevice\": { \"UseGlobalThreadForAcq\": 1 } } }";
     createConfigFile(filename, json);
 
-    auto options = GetDefaultOptions(); 
-    SizeT optionsKeys = options.getCount();
+    auto options = GetDefaultOptions();
+
+    auto expectedModules = Dict<IString, IBaseObject>({
+            {"OpcUAClient", Dict<IString, IBaseObject>({
+                    {"Debug", 1}
+                })},
+            {"RefDevice", Dict<IString, IBaseObject>({
+                    {"UseGlobalThreadForAcq", 1}
+                })},
+        });
+    auto expectedOptions = GetDefaultOptions();
+    expectedOptions.set("Modules", expectedModules);    
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
 
-    // amount of option keys have to be unchanged
-    ASSERT_EQ(options.getCount(), optionsKeys);
-
-    // check that options have new value
-    DictPtr<IString, IBaseObject> modules;
-    ASSERT_NO_THROW(modules = getChildren(options, "Modules"));
-    ASSERT_EQ(modules.getCount(), 2);
-
-    DictPtr<IString, IBaseObject> opcuaClient;
-    ASSERT_NO_THROW(opcuaClient = getChildren(modules, "OpcUAClient"));
-    SizeT debug;
-    ASSERT_NO_THROW(debug = opcuaClient.get("Debug"));
-    ASSERT_EQ(debug, 1);
-
-    DictPtr<IString, IBaseObject> refDevice;
-    ASSERT_NO_THROW(refDevice = getChildren(modules, "RefDevice"));
-    SizeT useGlobalThreadForAcq;
-    ASSERT_NO_THROW(useGlobalThreadForAcq = refDevice.get("UseGlobalThreadForAcq"));
-    ASSERT_EQ(useGlobalThreadForAcq, 1);
+    ASSERT_EQ(options, expectedOptions);
 }
 
 TEST_F(ConfigProviderTest, jsonConfigReadLists)
@@ -195,26 +214,14 @@ TEST_F(ConfigProviderTest, jsonConfigReadLists)
     std::string json = "{ \"List\": [\"test\", 123, true, {}, null] }";
     createConfigFile(filename, json);
 
-    auto options = GetDefaultOptions(); 
-    SizeT optionsKeys = options.getCount();
+    auto options = GetDefaultOptions();
+    auto expectedOptions = GetDefaultOptions();
+    expectedOptions.set("List", List<IBaseObject>(String("test"), Integer(123), Boolean(true), Dict<IString, IBaseObject>(), BaseObjectPtr()));
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
 
-    // amount of option keys have increased by one
-    ASSERT_EQ(options.getCount(), optionsKeys + 1);
-
-    // check that options have new value
-    ListPtr<IBaseObject> items;
-    ASSERT_NO_THROW(items = options.get("List"));
-    ASSERT_EQ(items.getCount(), 5);
-
-    ASSERT_EQ(items[0], "test");
-    ASSERT_EQ(items[1], 123);
-    ASSERT_EQ(items[2], true);
-    auto emptyDict = Dict<IString, IBaseObject>();
-    ASSERT_EQ(items[3], emptyDict);
-    ASSERT_FALSE(items[4].assigned());
+    ASSERT_EQ(options, expectedOptions);
 }
 
 TEST_F(ConfigProviderTest, jsonConfigIncorrectType)
@@ -223,8 +230,7 @@ TEST_F(ConfigProviderTest, jsonConfigIncorrectType)
     std::string json = "{ \"ModuleManager\": { \"ModulesPath\": 123 } }";
     createConfigFile(filename, json);
 
-    auto options = GetDefaultOptions(); 
-    SizeT optionsKeys = options.getCount();
+    auto options = GetDefaultOptions();
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     ASSERT_ANY_THROW(provider.populateOptions(options));
@@ -237,8 +243,7 @@ TEST_F(ConfigProviderTest, jsonConfigIncorrectType2)
     std::string json = "{ \"ModuleManager\": true }";
     createConfigFile(filename, json);
 
-    auto options = GetDefaultOptions(); 
-    SizeT optionsKeys = options.getCount();
+    auto options = GetDefaultOptions();
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     ASSERT_ANY_THROW(provider.populateOptions(options));
@@ -251,11 +256,10 @@ TEST_F(ConfigProviderTest, jsonConfigDamagaed)
     std::string json = "{ \"ModuleManager\": true }";
     createConfigFile(filename, json);
 
-    auto options = GetDefaultOptions(); 
-    SizeT optionsKeys = options.getCount();
-
+    auto options = GetDefaultOptions();
     auto provider = JsonConfigProvider(StringPtr(filename));
     ASSERT_ANY_THROW(provider.populateOptions(options));
+
     ASSERT_EQ(options, GetDefaultOptions());
 }
 

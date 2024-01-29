@@ -39,6 +39,10 @@ DictPtr<IString, IBaseObject> InstanceContextImpl::GetDefaultOptions()
         {"Logging", Dict<IString, IBaseObject>({
                 {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
             })},
+        {"RootDevice", Dict<IString, IBaseObject>({
+                {"DefaultLocalId", ""},
+                {"Connection", ""}
+            })},   
         {"Modules", Dict<IString, IBaseObject>()}
     });
 }

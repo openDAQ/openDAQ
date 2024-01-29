@@ -25,4 +25,10 @@ inline ConfigProviderPtr JsonConfigProvider(const StringPtr& filename)
     return obj;
 }
 
+inline ConfigProviderPtr EnvConfigProvider()
+{
+    ConfigProviderPtr obj(EnvConfigProvider_Create());
+    return obj;
+}
+
 END_NAMESPACE_OPENDAQ

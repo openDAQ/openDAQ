@@ -16,12 +16,20 @@ ErrCode InstanceContextImpl::getOptions(IDict** options)
     auto jsonPath = GetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", "opendaq-config.json");
 
     auto generatedOptions = GetDefaultOptions();
+
     try {
         auto jsonProvider = JsonConfigProvider(jsonPath);
         jsonProvider.populateOptions(generatedOptions);
     } catch (...)
     {
     }
+
+    // try {
+    //     auto envProvider = EnvConfigProvider();
+    //     envProvider.populateOptions(generatedOptions);
+    // } catch (...)
+    // {
+    // }
 
     *options = generatedOptions.detach();
     return OPENDAQ_SUCCESS;

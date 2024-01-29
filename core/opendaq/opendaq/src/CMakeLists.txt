@@ -40,6 +40,7 @@ source_group("instance" FILES ${SDK_HEADERS_DIR}/instance.h
                               create_device.cpp
                               instance_builder_impl.cpp
                               json_config_provider_impl.cpp
+                              env_config_provider_impl.cpp
 )
 
 set(SRC_Cpp version.cpp
@@ -50,6 +51,7 @@ set(SRC_Cpp version.cpp
             instance_builder_impl.cpp
             instance_context_impl.cpp
             json_config_provider_impl.cpp
+            env_config_provider_impl.cpp
 )
 
 set(SRC_PublicHeaders version.h

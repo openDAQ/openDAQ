@@ -28,7 +28,7 @@ protected:
             return defaultValue;
     }
 
-    static inline int setEnv(const std::string&  name, const std::string&  value)
+    static inline int setEnv(const std::string& name, const std::string& value)
     {
     #ifdef _WIN32
         return _putenv_s(name.c_str(), value.c_str());
@@ -42,7 +42,7 @@ protected:
         if (variableName.empty())
             return;
 
-        if (setEnv(variableName.c_str(), defaultValue.c_str()) != 0)
+        if (setEnv(variableName, defaultValue) != 0)
             throw std::runtime_error("Failed to set env variable");
     }
 
@@ -289,5 +289,84 @@ TEST_F(ConfigProviderTest, InstanceBuilderFromJson)
     ASSERT_EQ(int(instanceBuilder.getGlobalLogLevel()), 6);
 }
 
+TEST_F(ConfigProviderTest, envConfigReadModuleManagerPath)
+{
+    std::string filename = "envConfigReadModuleManagerPath.json";
+    SetEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath", "testtest");
+
+    auto options = GetDefaultOptions(); 
+
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "ModuleManager").set("ModulesPath", "testtest");
+
+    auto provider = EnvConfigProvider();
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, envConfigReadSchedulerWorkersNum)
+{
+    std::string filename = "envConfigReadSchedulerWorkersNum.json";
+    SetEnvironmentVariableValue("OPENDAQ_CONFIG_Scheduler_WorkersNum", "4");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "Scheduler").set("WorkersNum", 4);
+
+    auto provider = EnvConfigProvider();
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, envConfigReadLoggingGlobalLogLevel)
+{
+    std::string filename = "envConfigReadLoggingGlobalLogLevel.json";
+    SetEnvironmentVariableValue("OPENDAQ_CONFIG_Logging_GlobalLogLevel", "0");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "Logging").set("GlobalLogLevel", 0);
+
+    auto provider = EnvConfigProvider();
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, envConfigReadRootDeviceDefaultLocalId)
+{
+    std::string filename = "envConfigReadRootDeviceDefaultLocalId.json";
+    SetEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_DefaultLocalId", "localId");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "RootDevice").set("DefaultLocalId", "localId");
+
+    auto provider = EnvConfigProvider();
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, envConfigReadRootDeviceConnectionString)
+{
+    std::string filename = "envConfigReadRootDeviceConnectionString.json";
+    SetEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_Connection", "dev://connectionString");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "RootDevice").set("Connection", "dev://connectionString");
+
+    auto provider = EnvConfigProvider();
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
 
 END_NAMESPACE_OPENDAQ

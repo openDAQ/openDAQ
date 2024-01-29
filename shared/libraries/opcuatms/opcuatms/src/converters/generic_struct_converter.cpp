@@ -31,7 +31,7 @@ StructPtr VariantConverter<IStruct>::ToDaqObject(const OpcUaVariant& variant, co
     if (!context.assigned() || !context.getTypeManager().assigned())
         throw ConversionFailedException{"Generic struct conversion requires the TypeManager."};
 
-    const auto typeManager = context.getTypeManager(); 
+    const auto typeManager = context.getTypeManager();
 
     const auto type = variant->type;
 
@@ -47,12 +47,6 @@ StructPtr VariantConverter<IStruct>::ToDaqObject(const OpcUaVariant& variant, co
         const UA_DataTypeMember* member = &members[i];
         const UA_DataType* memberType = member->memberType;
         src += member->padding;
-
-        // For better debugging
-        //if (std::strcmp(member->memberName,"Type") == 0)
-        //{
-        //    std::cout << "here we go" << std::endl;
-        //}
 
         // TODO: Refactor this
         if (!member->isOptional)

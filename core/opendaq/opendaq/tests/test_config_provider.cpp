@@ -33,6 +33,8 @@ protected:
     #ifdef _WIN32
         return _putenv_s(name.c_str(), value.c_str());
     #else
+        if (value.empty())
+            return unsetenv(name.c_str());
         return setenv(name.c_str(), value.c_str(), 1);
     #endif
     }

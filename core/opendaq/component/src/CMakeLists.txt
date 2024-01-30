@@ -70,10 +70,12 @@ set(SRC_PublicHeaders
     folder_impl.h
     deserialize_component.h
     component_factory.h
+    component_keys.h
 	component_deserialize_context_factory.h
     component_deserialize_context_impl.h	
     search_filter_factory.h
     tags_factory.h
+    tags_impl.h
 )
 
 set(SRC_PrivateHeaders
@@ -100,6 +102,7 @@ list(APPEND SRC_PublicHeaders ${SRC_Component_PublicHeaders}
                               ${SRC_IoFolder_PublicHeaders}
                               ${SRC_Removable_PublicHeaders}
                               ${SRC_ComponentDeserializeContext_PublicHeaders}
+                              ${SRC_DeserializeComponent_PublicHeaders}
                               ${SRC_SearchFilter_PublicHeaders}
                               ${SRC_RecursiveSearch_PublicHeaders}
                               ${SRC_ComponentPrivate_PublicHeaders}

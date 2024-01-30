@@ -30,8 +30,11 @@ public:
     ErrCode INTERFACE_FUNC populateOptions(IDict* options) override;
 
 private:
-    static DictPtr<IString, IString> GetEnvValuesStartingWith(const std::string& prefix);
+    bool handleOptionLeaf(DictPtr<IString, IBaseObject> optionsValue, StringPtr envKey, StringPtr envValue);
 
+    static DictPtr<IString, IString> GetEnvValuesStartingWith(const std::string& prefix);
+    static ListPtr<IString> SplitEnvKey(const std::string& envKey, const std::string& prefix, char delimiter = '_');
+    static std::string ToUpperCase(const std::string &input);
 };
 
 END_NAMESPACE_OPENDAQ

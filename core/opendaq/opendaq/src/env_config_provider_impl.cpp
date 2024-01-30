@@ -2,6 +2,13 @@
 #include <cstdlib>
 #include <string>
 
+#ifdef _environ
+    #define ENVIRON _environ
+#else
+    extern char **environ;
+    #define ENVIRON environ
+#endif
+
 BEGIN_NAMESPACE_OPENDAQ
 
 EnvConfigProviderImpl::EnvConfigProviderImpl()
@@ -14,7 +21,8 @@ DictPtr<IString, IString> EnvConfigProviderImpl::GetEnvValuesStartingWith(const 
         return {};
 
     auto result = Dict<IString, IString>();
-    for (char** env = _environ; *env != 0; env++) {
+    for (char** env = ENVIRON; *env != 0; env++) 
+    {
         std::string envVar = *env;
 
         if (envVar.substr(0, prefix.length()) == prefix)
@@ -39,14 +47,15 @@ ErrCode INTERFACE_FUNC EnvConfigProviderImpl::populateModuleOptions(IDict* optio
     return OPENDAQ_SUCCESS;
 }
 
-ListPtr<IString> splitEnvKey(const std::string& envKey, const std::string& prefix, char delimiter = '_')
+ListPtr<IString> EnvConfigProviderImpl::SplitEnvKey(const std::string& envKey, const std::string& prefix, char delimiter)
 {
     auto result = List<IString>();
 
     size_t start = prefix.length();
     size_t end = envKey.find(delimiter, start);
 
-    while (end != std::string::npos) {
+    while (end != std::string::npos) 
+    {
         result.pushBack(envKey.substr(start, end - start));
         start = end + 1;
         end = envKey.find(delimiter, start);
@@ -56,12 +65,67 @@ ListPtr<IString> splitEnvKey(const std::string& envKey, const std::string& prefi
     return result;
 }
 
-std::string toUpperCase(const std::string &input) {
+std::string EnvConfigProviderImpl::ToUpperCase(const std::string &input) 
+{
     std::string result = input;
     for (char &c : result)
         c = std::toupper(static_cast<unsigned char>(c));
 
     return result;
+}
+
+bool EnvConfigProviderImpl::handleOptionLeaf(DictPtr<IString, IBaseObject> optionsValue, StringPtr envKey, StringPtr envValue)
+{
+    auto child = optionsValue.get(envKey);
+    CoreType childType = child.assigned() ? child.getCoreType() : CoreType::ctString;
+    switch (childType)
+    {
+        case CoreType::ctBool:
+        {
+            auto upEnvValue = ToUpperCase(envValue);
+            bool booleanVal = upEnvValue == "TRUE" || upEnvValue == "1"; 
+            optionsValue.set(envKey, booleanVal);
+            return true;
+        }
+        case CoreType::ctInt:
+        {
+            try 
+            {
+                Int number = std::stoll(envValue.toStdString());
+                optionsValue.set(envKey, number);
+                return true;
+            }
+            catch(...)
+            {
+            }
+            // can not convert to long long or out of range
+            return false;
+        }
+        case CoreType::ctFloat:
+        {
+            try 
+            {
+                Float number = std::stod(envValue.toStdString());
+                optionsValue.set(envKey, number);
+                return true;
+            }
+            catch(...)
+            {
+            }
+            // can not convert string value to Float
+            return false;
+        }
+        case CoreType::ctString:
+        {
+            optionsValue.set(envKey, envValue);
+            return true;
+        }
+        default:
+        {
+            // not supported type or we are not in leaf
+            return false;
+        }
+    }
 }
 
 ErrCode INTERFACE_FUNC EnvConfigProviderImpl::populateOptions(IDict* options) 
@@ -73,13 +137,13 @@ ErrCode INTERFACE_FUNC EnvConfigProviderImpl::populateOptions(IDict* options)
 
     for (const auto& [envKey, envValue] : envDict)
     {
-        auto splitedKey = splitEnvKey(envKey, envPrefix);
+        auto splitedKey = SplitEnvKey(envKey, envPrefix);
         if (splitedKey.empty())
             break;
 
         DictPtr<IString, IBaseObject> optionsValue;
 
-        auto envKeyUpper = toUpperCase(splitedKey[0]);
+        auto envKeyUpper = ToUpperCase(splitedKey[0]);
         if (envKeyUpper == "MODULEMANAGER")
             optionsValue = optionsPtr.get("ModuleManager");
         else if (envKeyUpper == "SCHEDULER")
@@ -111,52 +175,7 @@ ErrCode INTERFACE_FUNC EnvConfigProviderImpl::populateOptions(IDict* options)
             {
                 if (optionsValue.hasKey(token))
                 {
-                    auto child = optionsValue.get(token);
-                    switch (child.getCoreType())
-                    {
-                        case CoreType::ctBool:
-                        {
-                            auto upEnvValue = toUpperCase(envValue);
-                            bool booleanVal = upEnvValue == "TRUE" || upEnvValue == "1"; 
-                            optionsValue.set(token, booleanVal);
-                            break;
-                        }
-                        case CoreType::ctInt:
-                        {
-                            try 
-                            {
-                                Int number = std::stoll(envValue.toStdString());
-                                optionsValue.set(token, number);
-                            }
-                            catch(...)
-                            {
-                                // can not convert to long long or out of range
-                            }
-                            break;
-                        }
-                        case CoreType::ctFloat:
-                        {
-                            try 
-                            {
-                                Float number = std::stod(envValue.toStdString());
-                                optionsValue.set(token, number);
-                            }
-                            catch(...)
-                            {
-                                // can not convert string value to Float
-                            }
-                            break;
-                        }
-                        case CoreType::ctString:
-                        {
-                            optionsValue.set(token, envValue);
-                            break;
-                        }
-                        default:
-                        {
-                            // not supported type or we are not in leaf
-                        }
-                    }
+                    handleOptionLeaf(optionsValue, token, envValue);
                 }
                 else
                 {
@@ -170,7 +189,7 @@ ErrCode INTERFACE_FUNC EnvConfigProviderImpl::populateOptions(IDict* options)
                     optionsValue.set(token, Dict<IString, IBaseObject>());
                 }
                 auto child = optionsValue.get(token);
-                if (child.getCoreType() != CoreType::ctDict)
+                if (child.assigned() && child.getCoreType() != CoreType::ctDict)
                 {
                     // type mistamatach
                     break;

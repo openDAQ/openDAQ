@@ -55,7 +55,9 @@ BaseObjectPtr JsonConfigProviderImpl::HandleNumber(const rapidjson::Value& value
     {
         return Floating(value.GetDouble());
     } 
-    throw InvalidTypeException("json value type have to be number"); 
+
+    // json value type have to be number;
+    return {};
 }
 
 BaseObjectPtr JsonConfigProviderImpl::HandlePrimitive(const rapidjson::Value& value)
@@ -81,7 +83,8 @@ BaseObjectPtr JsonConfigProviderImpl::HandlePrimitive(const rapidjson::Value& va
         }
         default:
         {
-            throw InvalidTypeException("json value type have to be primitive"); 
+            // json value type have to be primitive
+            return {};
         }
     };
 }
@@ -89,14 +92,20 @@ BaseObjectPtr JsonConfigProviderImpl::HandlePrimitive(const rapidjson::Value& va
 void JsonConfigProviderImpl::HandleArray(const BaseObjectPtr& options, const rapidjson::Value& value)
 {
     if (!value.IsArray())
-        throw InvalidTypeException("json value type have to be array"); 
+    {
+        // json value type have to be array;
+        return;
+    }
     
     if (!options.assigned())
-        throw ArgumentNullException("options is null");    
+        return;  
     
     auto optionsPtr = options.asPtrOrNull<IList>();
     if (!optionsPtr.assigned())
-        throw InvalidTypeException("json type mistamatch");
+    {
+        // options node can not be converted to list
+        return;
+    }
 
     optionsPtr.clear();
     for (auto & el : value.GetArray())
@@ -123,14 +132,20 @@ void JsonConfigProviderImpl::HandleArray(const BaseObjectPtr& options, const rap
 void JsonConfigProviderImpl::HandleObject(const BaseObjectPtr& options, const rapidjson::Value& value)
 {
     if (!value.IsObject())
-        throw InvalidTypeException("json value type have to be object"); 
+    {
+        // json value type have to be object
+        return;
+    }
     
     if (!options.assigned())
-        throw ArgumentNullException("options is null");    
+        return;   
     
     auto optionsPtr = options.asPtrOrNull<IDict, DictPtr<IString, IBaseObject>>();
     if (!optionsPtr.assigned())
-        throw InvalidTypeException("json type mistamatch");
+    {
+        // options node can not be converted to dict
+        return;
+    }
     
     for (auto & el : value.GetObject())
     {
@@ -155,8 +170,12 @@ void JsonConfigProviderImpl::HandleObject(const BaseObjectPtr& options, const ra
         else
         {
             auto parsedValue = HandlePrimitive(el.value);
-            if (optionValue.assigned() && optionValue.getCoreType() != parsedValue.getCoreType())
-                throw InvalidTypeException("json primtive type mistamatch");
+            if (optionValue.assigned() && (!parsedValue.assigned() || optionValue.getCoreType() != parsedValue.getCoreType()))
+            {
+                // json primtive type mistamatch
+                continue;
+            }
+                
             optionValue = parsedValue;
         }
         optionsPtr.set(el.name.GetString(), optionValue);

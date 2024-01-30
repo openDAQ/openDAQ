@@ -228,36 +228,73 @@ TEST_F(ConfigProviderTest, jsonConfigReadLists)
     ASSERT_EQ(options, expectedOptions);
 }
 
+TEST_F(ConfigProviderTest, jsonConfigReadNull)
+{
+    std::string filename = "jsonConfigReadNull.json";
+    std::string json = "{ \"NullValue\": null }";
+    createConfigFile(filename, json);
+
+    auto options = GetDefaultOptions();
+    auto expectedOptions = GetDefaultOptions();
+    expectedOptions.set("NullValue", {});
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, jsonConfigReadNull2)
+{
+    std::string filename = "jsonConfigReadNull2.json";
+    std::string json = "{ \"Modules\": null }";
+    createConfigFile(filename, json);
+
+    auto options = GetDefaultOptions();
+    auto expectedOptions = GetDefaultOptions();
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
 TEST_F(ConfigProviderTest, jsonConfigIncorrectType)
 {
     std::string filename = "jsonConfigIncorrectType.json";
-    std::string json = "{ \"ModuleManager\": { \"ModulesPath\": 123 } }";
+    std::string json = "{ \"ModuleManager\": { \"ModulesPath\": 123 }, \"RootDevice\": { \"Connection\": \"dev://connectionString\" } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
 
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "RootDevice").set("Connection", "dev://connectionString");
+
     auto provider = JsonConfigProvider(StringPtr(filename));
-    ASSERT_ANY_THROW(provider.populateOptions(options));
-    ASSERT_EQ(options, GetDefaultOptions());
+    ASSERT_NO_THROW(provider.populateOptions(options));
+    ASSERT_EQ(options, expectedOptions);
 }
 
 TEST_F(ConfigProviderTest, jsonConfigIncorrectType2)
 {
     std::string filename = "jsonConfigIncorrectType2.json";
-    std::string json = "{ \"ModuleManager\": true }";
+    std::string json = "{ \"ModuleManager\": true, \"Logging\": { \"GlobalLogLevel\": 0 } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "Logging").set("GlobalLogLevel", 0);
 
     auto provider = JsonConfigProvider(StringPtr(filename));
-    ASSERT_ANY_THROW(provider.populateOptions(options));
-    ASSERT_EQ(options, GetDefaultOptions());
+    ASSERT_NO_THROW(provider.populateOptions(options));
+    ASSERT_EQ(options, expectedOptions);
 }
 
 TEST_F(ConfigProviderTest, jsonConfigDamagaed)
 {
     std::string filename = "jsonConfigIncorrectType2.json";
-    std::string json = "{ \"ModuleManager\": true }";
+    std::string json = "{ \"ModuleManager\" : { ModulesPath : \"testtest\"} }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();

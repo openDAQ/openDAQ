@@ -21,7 +21,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getActive(Bool* active)
     {
         *active = true;
         auto loggerComponent = getLoggerComponent();
-        LOG_W("Failed to get active of component \"{}\"", this->globalId);
+        LOG_I("Failed to get active of component \"{}\". The default value was returned \"true\"", this->globalId);
     }
     return OPENDAQ_SUCCESS;
 }
@@ -32,13 +32,14 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setActive(Bool active)
     try
     {
         this->template writeValue<IBoolean>("Active", active);
+        return OPENDAQ_SUCCESS;
     }
     catch(...)
     {
         auto loggerComponent = getLoggerComponent();
-        LOG_W("Failed to set active of component \"{}\"", this->globalId);
+        LOG_I("Failed to set active of component \"{}\"", this->globalId);
     }
-    return OPENDAQ_SUCCESS;
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>
@@ -52,12 +53,12 @@ void TmsClientComponentBaseImpl<Impl>::initComponent()
     catch([[maybe_unused]] const std::exception& e)
     {
         const auto loggerComponent = getLoggerComponent();
-        LOG_W("OpcUA Component {} failed to initialize: {}", this->globalId, e.what());
+        LOG_I("OpcUA Component {} failed to initialize: {}", this->globalId, e.what());
     }
     catch(...)
     {
         const auto loggerComponent = getLoggerComponent();
-        LOG_W("OpcUA Component {} failed to initialize", this->globalId);
+        LOG_I("OpcUA Component {} failed to initialize", this->globalId);
     }
 }
 
@@ -75,7 +76,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getName(IString** name)
     {
         nameObj = this->localId;
         auto loggerComponent = getLoggerComponent();
-        LOG_W("Failed to get name of component \"{}\"", this->globalId);
+        LOG_I("Failed to get name of component \"{}\". The default value was returned \"{}\" (local id)", this->globalId, nameObj);
     }
     *name = nameObj.detach();
     return OPENDAQ_SUCCESS;
@@ -90,14 +91,15 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setName(IString* name)
     {
         StringPtr nameObj = name;
         this->client->writeDisplayName(this->nodeId, nameObj);
+        return OPENDAQ_SUCCESS;
     }
     catch(...)
     {
         auto loggerComponent = getLoggerComponent();
-        LOG_W("Failed to set name of component \"{}\"", this->globalId);
+        LOG_I("Failed to set name of component \"{}\"", this->globalId);
     }
 
-    return OPENDAQ_SUCCESS;
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>
@@ -114,7 +116,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getDescription(IString** description)
     {
         *description = StringPtr("").detach();
         auto loggerComponent = getLoggerComponent();
-        LOG_W("Failed to get description of component \"{}\"", this->globalId);
+        LOG_I("Failed to get description of component \"{}\". The default value was returned \"\"", this->globalId);
     }
     return OPENDAQ_SUCCESS;
 }
@@ -128,14 +130,15 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setDescription(IString* description)
     {
         StringPtr descriptionObj = description;
         this->client->writeDescription(this->nodeId, descriptionObj);
+        return OPENDAQ_SUCCESS;
     }
     catch(...)
     {
         auto loggerComponent = getLoggerComponent();
-        LOG_W("Failed to set description of component \"{}\"", this->globalId);
+        LOG_I("Failed to set description of component \"{}\"", this->globalId);
     }
 
-    return OPENDAQ_SUCCESS;
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>
@@ -149,7 +152,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getVisible(Bool* visible)
     {
         *visible = true;
         const auto loggerComponent = getLoggerComponent();
-        LOG_D("OpcUA Component {} failed to fetch \"Visible\" state.", this->globalId);
+        LOG_D("OpcUA Component {} failed to fetch \"Visible\" state. The default value was returned \"true\"", this->globalId);
     }
 
     return OPENDAQ_SUCCESS;
@@ -161,6 +164,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setVisible(Bool visible)
     try
     {
         this->template writeValue<IBoolean>("Visible", visible);
+        return OPENDAQ_SUCCESS;
     }
     catch (...)
     {
@@ -168,7 +172,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setVisible(Bool visible)
         LOG_D("OpcUA Component {} failed to set \"Active\" state.", this->globalId);
     }
 
-    return OPENDAQ_SUCCESS;
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>

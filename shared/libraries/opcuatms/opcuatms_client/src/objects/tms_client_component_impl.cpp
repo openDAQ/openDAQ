@@ -21,7 +21,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getActive(Bool* active)
     {
         *active = true;
         auto loggerComponent = getLoggerComponent();
-        LOG_I("Failed to get active of component \"{}\". The default value was returned \"true\"", this->globalId);
+        LOG_D("Failed to get active of component \"{}\". The default value was returned \"true\"", this->globalId);
     }
     return OPENDAQ_SUCCESS;
 }
@@ -37,7 +37,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setActive(Bool active)
     catch(...)
     {
         auto loggerComponent = getLoggerComponent();
-        LOG_I("Failed to set active of component \"{}\"", this->globalId);
+        LOG_D("Failed to set active of component \"{}\"", this->globalId);
     }
     return OPENDAQ_IGNORED;
 }
@@ -53,12 +53,12 @@ void TmsClientComponentBaseImpl<Impl>::initComponent()
     catch([[maybe_unused]] const std::exception& e)
     {
         const auto loggerComponent = getLoggerComponent();
-        LOG_I("OpcUA Component {} failed to initialize: {}", this->globalId, e.what());
+        LOG_D("OpcUA Component {} failed to initialize: {}", this->globalId, e.what());
     }
     catch(...)
     {
         const auto loggerComponent = getLoggerComponent();
-        LOG_I("OpcUA Component {} failed to initialize", this->globalId);
+        LOG_D("OpcUA Component {} failed to initialize", this->globalId);
     }
 }
 
@@ -76,7 +76,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getName(IString** name)
     {
         nameObj = this->localId;
         auto loggerComponent = getLoggerComponent();
-        LOG_I("Failed to get name of component \"{}\". The default value was returned \"{}\" (local id)", this->globalId, nameObj);
+        LOG_D("Failed to get name of component \"{}\". The default value was returned \"{}\" (local id)", this->globalId, nameObj);
     }
     *name = nameObj.detach();
     return OPENDAQ_SUCCESS;
@@ -96,7 +96,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setName(IString* name)
     catch(...)
     {
         auto loggerComponent = getLoggerComponent();
-        LOG_I("Failed to set name of component \"{}\"", this->globalId);
+        LOG_D("Failed to set name of component \"{}\"", this->globalId);
     }
 
     return OPENDAQ_IGNORED;
@@ -116,7 +116,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getDescription(IString** description)
     {
         *description = StringPtr("").detach();
         auto loggerComponent = getLoggerComponent();
-        LOG_I("Failed to get description of component \"{}\". The default value was returned \"\"", this->globalId);
+        LOG_D("Failed to get description of component \"{}\". The default value was returned \"\"", this->globalId);
     }
     return OPENDAQ_SUCCESS;
 }
@@ -135,7 +135,7 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setDescription(IString* description)
     catch(...)
     {
         auto loggerComponent = getLoggerComponent();
-        LOG_I("Failed to set description of component \"{}\"", this->globalId);
+        LOG_D("Failed to set description of component \"{}\"", this->globalId);
     }
 
     return OPENDAQ_IGNORED;

@@ -444,7 +444,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
     for (const auto& strPtr : attributesPtr)
     {
         std::string str = strPtr;
-        std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){ return std::tolower(c); });
+        std::transform(str.begin(), str.end(), str.begin(), [](char c){ return std::tolower(c); });
         str[0] = std::toupper(str[0]);
         lockedAttributes.insert(str);
     }

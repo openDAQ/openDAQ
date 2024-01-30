@@ -40,6 +40,7 @@
 #include <coretypes/validation.h>
 #include <coreobjects/core_event_args_factory.h>
 #include <coretypes/validation.h>
+#include <coretypes/cloneable.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -802,8 +803,18 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             coercePropertyWrite(prop, valuePtr);
             validatePropertyWrite(prop, valuePtr);
             coerceMinMax(prop, valuePtr);
+            
+            const auto ct = prop.getValueType();
+            if (ct == ctList || ct == ctDict)
+            {
+                BaseObjectPtr clonedValue;
+                err = valuePtr.asPtr<ICloneable>()->clone(&clonedValue);
+                if (OPENDAQ_FAILED(err))
+                    return err;
 
-            if (prop.getValueType() == ctObject)
+                valuePtr = clonedValue.detach();
+            }
+            else if (ct == ctObject)
             {
                 const auto objInternal = valuePtr.asPtrOrNull<IPropertyObjectInternal>();
                 if (objInternal.assigned() && !coreEventMuted)
@@ -1193,6 +1204,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
             value = list[std::size_t(index)];
         }
     }
+    
+    CoreType coreType = value.getCoreType();
+    if (coreType == ctList || coreType == ctDict)
+    {
+        BaseObjectPtr clonedValue;
+        value.asPtr<ICloneable>()->clone(&clonedValue);
+        value = clonedValue.detach();
+    }
+
     if (triggerEvent)
         value = callPropertyValueRead(property, value);
     return OPENDAQ_SUCCESS;

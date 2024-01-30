@@ -42,6 +42,9 @@ public:
     void setTableId(std::string id);
     std::string getTableId() const;
 
+    void setIsDomainSignal(bool value);
+    bool getIsDomainSignal() const;
+
 protected:
     DataDescriptorPtr currentDataDescriptor;
     DataDescriptorPtr currentDomainDataDescriptor;
@@ -49,6 +52,7 @@ protected:
     std::string name;
     std::string description;
     std::string tableId;
+    bool isDomainSignal;
 
     mutable std::mutex descriptorsSync;
 };

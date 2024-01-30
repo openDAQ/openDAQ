@@ -40,12 +40,13 @@ public:
      */
     static void ToStreamedSignal(const daq::SignalPtr& signal, daq::streaming_protocol::BaseSignalPtr stream, const SignalProps& sigProps);
 
+    static void EncodeInterpretationObject(const DataDescriptorPtr& dataDescriptor, nlohmann::json& extra);
+
 private:
     static daq::DataRulePtr GetRule(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
     static void SetTimeRule(const daq::DataRulePtr& rule, daq::streaming_protocol::BaseSignalPtr signal);
     static daq::SampleType Convert(daq::streaming_protocol::SampleType dataType);
     static daq::streaming_protocol::SampleType Convert(daq::SampleType sampleType);
-    static void EncodeInterpretationObject(const DataDescriptorPtr& dataDescriptor, nlohmann::json& extra);
     static void DecodeInterpretationObject(const nlohmann::json& extra, DataDescriptorBuilderPtr& dataDescriptor);
     static nlohmann::json DictToJson(const DictPtr<IString, IBaseObject>& dict);
     static DictPtr<IString, IBaseObject> JsonToDict(const nlohmann::json& json);

@@ -21,7 +21,7 @@ class TestPropertySystem(opendaq_test.TestCase):
 
         property_object.set_property_value('property1', 'value')
         property_object.set_property_value('property2', 3)
-             
+
         self.assertEqual(
             property_object.get_property_value('property1'), 'value')
         self.assertEqual(property_object.get_property_value('property2'), 3)
@@ -44,9 +44,9 @@ class TestPropertySystem(opendaq_test.TestCase):
             'property2'), opendaq.Float(10.0))
         float_property_builder.visible = opendaq.Boolean(True)
         suggested_values = opendaq.List()
-        suggested_values.pushBack(1.0)
-        suggested_values.pushBack(2.0)
-        suggested_values.pushBack(3.0)
+        suggested_values.push_back(1.0)
+        suggested_values.push_back(2.0)
+        suggested_values.push_back(3.0)
         float_property_builder.suggested_values = suggested_values
         property_object.add_property(float_property_builder.build())
 
@@ -61,9 +61,9 @@ class TestPropertySystem(opendaq_test.TestCase):
         property_object = opendaq.PropertyObject()
 
         list = opendaq.List()
-        list.pushBack('value1')
-        list.pushBack('value2')
-        list.pushBack('value3')
+        list.push_back('value1')
+        list.push_back('value2')
+        list.push_back('value3')
 
         selection_property = opendaq.SelectionProperty(opendaq.String(
             'property1'), list, opendaq.Integer(1), opendaq.Boolean(True))
@@ -94,14 +94,14 @@ class TestPropertySystem(opendaq_test.TestCase):
         property_object = opendaq.PropertyObject()
         child1 = opendaq.PropertyObject()
         child2 = opendaq.PropertyObject()
-        
+
         child2.add_property(opendaq.IntProperty(opendaq.String(
             'property1'), opendaq.Integer(10), opendaq.Boolean(True)))
         child1.add_property(opendaq.ObjectProperty(
             opendaq.String('child'), child2))
         property_object.add_property(
             opendaq.ObjectProperty(opendaq.String('child'), child1))
-        
+
         self.assertEqual(property_object.get_property_value(
             'child.child.property1'), 10)
 
@@ -109,9 +109,9 @@ class TestPropertySystem(opendaq_test.TestCase):
         property_object = opendaq.PropertyObject()
 
         list = opendaq.List()
-        list.pushBack('Banana')
-        list.pushBack('Apple')
-        list.pushBack('Kiwi')
+        list.push_back('Banana')
+        list.push_back('Apple')
+        list.push_back('Kiwi')
         property_object.add_property(opendaq.ListProperty(
             opendaq.String('list'), list, opendaq.Boolean(True)))
 
@@ -183,8 +183,8 @@ class TestPropertySystem(opendaq_test.TestCase):
 
         simulated_channel = opendaq.PropertyObject()
         waveform_list = opendaq.List()
-        waveform_list.pushBack('Sine')
-        waveform_list.pushBack('Counter')
+        waveform_list.push_back('Sine')
+        waveform_list.push_back('Counter')
         simulated_channel.add_property(opendaq.SelectionProperty(opendaq.String(
             'waveform'), waveform_list, opendaq.Integer(0), opendaq.Boolean(True)))
         simulated_channel.add_property(opendaq.ReferenceProperty(opendaq.String('settings'), opendaq.EvalValue(
@@ -198,10 +198,10 @@ class TestPropertySystem(opendaq_test.TestCase):
         frequency_property_builder.unit = opendaq.Unit(1, opendaq.String(
             'Hz'), opendaq.String(''), opendaq.String(''))
         suggested_values = opendaq.List()
-        suggested_values.pushBack(0.1)
-        suggested_values.pushBack(10.0)
-        suggested_values.pushBack(100.0)
-        suggested_values.pushBack(1000.0)
+        suggested_values.push_back(0.1)
+        suggested_values.push_back(10.0)
+        suggested_values.push_back(100.0)
+        suggested_values.push_back(1000.0)
         frequency_property_builder.suggested_values = suggested_values
         simulated_channel.add_property(frequency_property_builder.build())
 
@@ -209,8 +209,8 @@ class TestPropertySystem(opendaq_test.TestCase):
 
         sine_settings = opendaq.PropertyObject()
         unit_list = opendaq.List()
-        unit_list.pushBack('V')
-        unit_list.pushBack('mV')
+        unit_list.push_back('V')
+        unit_list.push_back('mV')
         sine_settings.add_property(opendaq.SelectionProperty(opendaq.String(
             'amplitude_unit'), unit_list, opendaq.Integer(0), opendaq.Boolean(True)))
 
@@ -240,8 +240,8 @@ class TestPropertySystem(opendaq_test.TestCase):
         counter_settings.add_property(opendaq.IntProperty(opendaq.String(
             'increment'), opendaq.Integer(1), opendaq.Boolean(True)))
         mode_list = opendaq.List()
-        mode_list.pushBack('Infinite')
-        mode_list.pushBack('Loop')
+        mode_list.push_back('Infinite')
+        mode_list.push_back('Loop')
         counter_settings.add_property(opendaq.SelectionProperty(opendaq.String(
             'mode'), mode_list, opendaq.Integer(0), opendaq.Boolean(True)))
 
@@ -317,7 +317,7 @@ class TestPropertySystem(opendaq_test.TestCase):
         property_object = opendaq.PropertyObject()
         child1 = opendaq.PropertyObject()
         child2 = opendaq.PropertyObject()
-        
+
         child2.add_property(opendaq.StringProperty(opendaq.String(
             'property'), opendaq.String('value'), opendaq.Boolean(True)))
         child1.add_property(opendaq.ObjectProperty(
@@ -332,8 +332,8 @@ class TestPropertySystem(opendaq_test.TestCase):
     def test_selection_property_read(self):
         property_object = opendaq.PropertyObject()
         list = opendaq.List()
-        list.pushBack('value1')
-        list.pushBack('value2')
+        list.push_back('value1')
+        list.push_back('value2')
         property_object.add_property(opendaq.SelectionProperty(opendaq.String(
             'property'), list, opendaq.Integer(1), opendaq.Boolean(True)))
 
@@ -343,13 +343,44 @@ class TestPropertySystem(opendaq_test.TestCase):
     def test_list_property_read(self):
         property_object = opendaq.PropertyObject()
         list = opendaq.List()
-        list.pushBack('value1')
-        list.pushBack('value2')
+        list.push_back('value1')
+        list.push_back('value2')
         property_object.add_property(opendaq.ListProperty(
             opendaq.String('property'), list, opendaq.Boolean(True)))
 
         self.assertEqual(property_object.get_property_value(
             'property[0]'), 'value1')
+
+    def test_list_property_set(self):
+        property_object = opendaq.PropertyObject()
+        list = opendaq.List()
+        list.push_back('value1')
+        list.push_back('value2')
+        property_object.add_property(opendaq.ListProperty(
+            opendaq.String('List'), list, opendaq.Boolean(True)))
+
+        list = property_object.get_property_value("List")
+        list.push_back('value3')
+        property_object.set_property_value('List', list)
+        print(property_object.get_property_value('List'))
+
+        self.assertEqual(property_object.get_property_value(
+            'List[2]'), 'value3')
+
+    def test_dict_property_set(self):
+        property_object = opendaq.PropertyObject()
+        dict = opendaq.Dict()
+        dict[0] = 'Banana'
+        dict[1] = 'Kiwi'
+        property_object.add_property(opendaq.DictProperty(
+            opendaq.String('Dict'), dict, opendaq.Boolean(True)))
+
+        dict = property_object.get_property_value("Dict")
+        dict[2] = 'Blueberry'
+        property_object.set_property_value('Dict', dict)
+
+        # Prints "Pear", "Strawberry", and "Blueberry"
+        print(property_object.get_property_value('Dict'))
 
     # TODO: events not supported yet
 
@@ -360,8 +391,8 @@ class TestPropertySystem(opendaq_test.TestCase):
             'property1'), opendaq.Integer(1), opendaq.Boolean(True)))
 
         list = opendaq.List()
-        list.pushBack('value1')
-        list.pushBack('value2')
+        list.push_back('value1')
+        list.push_back('value2')
 
         property_class_builder.add_property(opendaq.SelectionProperty(opendaq.String(
             'property2'), list, opendaq.Integer(1), opendaq.Boolean(True)))
@@ -376,8 +407,8 @@ class TestPropertySystem(opendaq_test.TestCase):
         property_class_builder.add_property(opendaq.IntProperty(opendaq.String(
             'property1'), opendaq.Integer(1), opendaq.Boolean(True)))
         list = opendaq.List()
-        list.pushBack('value1')
-        list.pushBack('value2')
+        list.push_back('value1')
+        list.push_back('value2')
         property_class_builder.add_property(opendaq.SelectionProperty(opendaq.String(
             'property2'), list, opendaq.Integer(1), opendaq.Boolean(True)))
         property_class = property_class_builder.build()

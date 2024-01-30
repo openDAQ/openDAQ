@@ -157,12 +157,12 @@ public:
      * @brief Gets a list of all added Types.
      * @returns The list of all added Types.
      */
-    ListPtr<IType> getTypes() const
+    ListPtr<IString> getTypes() const
     {
         if (this->object == nullptr)
             throw InvalidParameterException();
 
-        ListPtr<IType> types;
+        ListPtr<IString> types;
         const auto errCode = this->object->getTypes(&types);
         checkErrorInfo(errCode);
 

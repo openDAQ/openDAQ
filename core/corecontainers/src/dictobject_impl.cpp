@@ -320,6 +320,54 @@ ErrCode DictImpl::getSerializeId(ConstCharPtr* id) const
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode DictImpl::clone(IBaseObject** cloned)
+{
+    if (cloned == nullptr)
+    {
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    }
+
+    DictImpl* lst = new(std::nothrow) DictImpl(keyId, valueId);
+    if (lst == nullptr)
+    {
+        *cloned = nullptr;
+        return OPENDAQ_SUCCESS;
+    }
+
+    auto size = this->hashTable.size();
+    lst->hashTable.reserve(size);
+    for (const auto& item : hashTable)
+    {
+        ObjectPtr<ICloneable> keyCloneable;
+        IBaseObject* key;
+
+        ErrCode err = item.first->queryInterface(ICloneable::Id, reinterpret_cast<void**>(&keyCloneable));
+        if (OPENDAQ_SUCCEEDED(err))
+            keyCloneable->clone(&key);
+        else
+        {
+            item.first->addRef();
+            key = item.first;
+        }
+        
+        ObjectPtr<ICloneable> valCloneable;
+        IBaseObject* val;
+
+        err = item.second->queryInterface(ICloneable::Id, reinterpret_cast<void**>(&valCloneable));
+        if (OPENDAQ_SUCCEEDED(err))
+            valCloneable->clone(&val);
+        else
+        {
+            item.second->addRef();
+            val = item.second;
+        }
+        
+        lst->hashTable.insert(std::make_pair(key, val));
+    }
+
+    return lst->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(cloned));
+}
+
 ErrCode INTERFACE_FUNC DictImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)

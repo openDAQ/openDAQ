@@ -39,10 +39,10 @@ Python::
 [source,python]
 ----
 # save configuration to string
-json_str = instance.save_configuration();
+json_str = instance.save_configuration()
 
 # write configuration string to file
-config_file = open("config.json", "w")       
+config_file = open("config.json", "w")
 config_file.write(json_str)
 config_file.close()
 ----
@@ -102,11 +102,11 @@ Python::
 ----
 # read configuration from file
 config_file = open("config.json", "r")
-json_str = config_file.read();
+json_str = config_file.read()
 config_file.close()
 
 # load configuration from string
-instance.load_configuration(json_str);
+instance.load_configuration(json_str)
 ----
 ====
 

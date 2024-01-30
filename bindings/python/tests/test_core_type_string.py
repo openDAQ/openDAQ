@@ -40,7 +40,7 @@ class TestString(opendaq_test.TestCase):
     def test_can_cast_from(self):
         self.assertTrue(daq.IBaseObject.can_cast_from(daq.String('test')))
 
-    def test_intConversion(self):
+    def test_int_conversion(self):
         self.assertEqual(int(daq.String('10')), 10)
 
     '''

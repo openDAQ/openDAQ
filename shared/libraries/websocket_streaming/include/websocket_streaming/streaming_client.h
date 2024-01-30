@@ -89,7 +89,7 @@ protected:
     void setDomainDescriptor(const std::string& signalId,
                              const InputSignalPtr& inputSignal,
                              const DataDescriptorPtr& domainDescriptor);
-    std::pair<std::string, InputSignalPtr> findSignalByTableId(const std::string& tableId);
+    std::vector<std::pair<std::string, InputSignalPtr>> findDataSignalsByTableId(const std::string& tableId);
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;

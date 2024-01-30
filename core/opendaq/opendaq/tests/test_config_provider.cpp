@@ -37,10 +37,12 @@ protected:
     #endif
     }
 
-    static void SetEnvironmentVariableValue(const std::string& variableName, const std::string& defaultValue)
+    void setEnvironmentVariableValue(const std::string& variableName, const std::string& defaultValue)
     {
         if (variableName.empty())
             return;
+
+        oldEnvValues.try_emplace(variableName, GetEnvironmentVariableValue(variableName));
 
         if (setEnv(variableName, defaultValue) != 0)
             throw std::runtime_error("Failed to set env variable");
@@ -57,8 +59,7 @@ protected:
         file.close();
         filenames.insert(filename);
 
-        oldConfigPath = GetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH");
-        SetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", filename);
+        setEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", filename);
     }
 
     void TearDown() override
@@ -66,7 +67,10 @@ protected:
         for (const auto & filename : filenames)
             remove(filename.c_str());
         filenames.clear();
-        SetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", oldConfigPath);
+
+        for (const auto& [envKey, envVal] : oldEnvValues)
+            setEnv(envKey, envVal);
+        oldEnvValues.clear();
     }
 
     static DictPtr<IString, IBaseObject> GetDefaultOptions()
@@ -89,8 +93,8 @@ protected:
         });
     }
 
-    std::string oldConfigPath;
     std::set<std::string> filenames;
+    std::map<std::string, std::string> oldEnvValues;
 };
 
 DictPtr<IString, IBaseObject> getChildren(const DictPtr<IString, IBaseObject>& dict, const StringPtr& name)
@@ -291,8 +295,7 @@ TEST_F(ConfigProviderTest, InstanceBuilderFromJson)
 
 TEST_F(ConfigProviderTest, envConfigReadModuleManagerPath)
 {
-    std::string filename = "envConfigReadModuleManagerPath.json";
-    SetEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath", "testtest");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath", "testtest");
 
     auto options = GetDefaultOptions(); 
 
@@ -307,8 +310,7 @@ TEST_F(ConfigProviderTest, envConfigReadModuleManagerPath)
 
 TEST_F(ConfigProviderTest, envConfigReadSchedulerWorkersNum)
 {
-    std::string filename = "envConfigReadSchedulerWorkersNum.json";
-    SetEnvironmentVariableValue("OPENDAQ_CONFIG_Scheduler_WorkersNum", "4");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_Scheduler_WorkersNum", "4");
 
     auto options = GetDefaultOptions(); 
     
@@ -323,8 +325,7 @@ TEST_F(ConfigProviderTest, envConfigReadSchedulerWorkersNum)
 
 TEST_F(ConfigProviderTest, envConfigReadLoggingGlobalLogLevel)
 {
-    std::string filename = "envConfigReadLoggingGlobalLogLevel.json";
-    SetEnvironmentVariableValue("OPENDAQ_CONFIG_Logging_GlobalLogLevel", "0");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_Logging_GlobalLogLevel", "0");
 
     auto options = GetDefaultOptions(); 
     
@@ -339,8 +340,7 @@ TEST_F(ConfigProviderTest, envConfigReadLoggingGlobalLogLevel)
 
 TEST_F(ConfigProviderTest, envConfigReadRootDeviceDefaultLocalId)
 {
-    std::string filename = "envConfigReadRootDeviceDefaultLocalId.json";
-    SetEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_DefaultLocalId", "localId");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_DefaultLocalId", "localId");
 
     auto options = GetDefaultOptions(); 
     
@@ -355,8 +355,7 @@ TEST_F(ConfigProviderTest, envConfigReadRootDeviceDefaultLocalId)
 
 TEST_F(ConfigProviderTest, envConfigReadRootDeviceConnectionString)
 {
-    std::string filename = "envConfigReadRootDeviceConnectionString.json";
-    SetEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_Connection", "dev://connectionString");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_Connection", "dev://connectionString");
 
     auto options = GetDefaultOptions(); 
     
@@ -368,5 +367,57 @@ TEST_F(ConfigProviderTest, envConfigReadRootDeviceConnectionString)
 
     ASSERT_EQ(options, expectedOptions);
 }
+
+TEST_F(ConfigProviderTest, envConfigReadOutOfReservedName)
+{
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_Deep1_Deep2", "SomeValue");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    expectedOptions.set("Deep1", Dict<IString, IBaseObject>({{"Deep2", "SomeValue"}}));
+
+    auto provider = EnvConfigProvider();
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, envConfigReadInvalidArgument1)
+{
+    // correct field
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath", "testtest");
+    // broken field (can not convert to integer)
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_Scheduler_WorkersNum", "string");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "ModuleManager").set("ModulesPath", "testtest");
+
+    auto provider = EnvConfigProvider();
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, envConfigReadInvalidArgument2)
+{
+    // correct field
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_Deep1_Deep2", "SomeValue");
+    // broken field (out of depth)
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath_NotExpectedChild", "string");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    expectedOptions.set("Deep1", Dict<IString, IBaseObject>({{"Deep2", "SomeValue"}}));
+
+    auto provider = EnvConfigProvider();
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
 
 END_NAMESPACE_OPENDAQ

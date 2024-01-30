@@ -88,24 +88,24 @@ ErrCode INTERFACE_FUNC EnvConfigProviderImpl::populateOptions(IDict* options)
             optionsValue = optionsPtr.get("Logging");
         else if (envKeyUpper == "MODULES")
             optionsValue = optionsPtr.get("Modules");
-        
-        assert(optionsValue.assigned());
+        else if (envKeyUpper == "ROOTDEVICE")
+            optionsValue = optionsPtr.get("RootDevice");
 
         SizeT deep = 0;
         for (const auto & token : splitedKey)
         {
-            if (!optionsValue.assigned())
-            {
-                printf("type mistmatch");
-                break;
-            }
-
             if (deep == 0)
             {
-                deep++;
-                continue;
+                if (optionsValue.assigned())
+                {
+                    deep++;
+                    continue;
+                }
+                optionsValue = optionsPtr;
             }
 
+            if (!optionsValue.assigned())
+                break;
 
             if (deep == splitedKey.getCount() - 1)
             {
@@ -114,19 +114,48 @@ ErrCode INTERFACE_FUNC EnvConfigProviderImpl::populateOptions(IDict* options)
                     auto child = optionsValue.get(token);
                     switch (child.getCoreType())
                     {
+                        case CoreType::ctBool:
+                        {
+                            auto upEnvValue = toUpperCase(envValue);
+                            bool booleanVal = upEnvValue == "TRUE" || upEnvValue == "1"; 
+                            optionsValue.set(token, booleanVal);
+                            break;
+                        }
+                        case CoreType::ctInt:
+                        {
+                            try 
+                            {
+                                Int number = std::stoll(envValue.toStdString());
+                                optionsValue.set(token, number);
+                            }
+                            catch(...)
+                            {
+                                // can not convert to long long or out of range
+                            }
+                            break;
+                        }
+                        case CoreType::ctFloat:
+                        {
+                            try 
+                            {
+                                Float number = std::stod(envValue.toStdString());
+                                optionsValue.set(token, number);
+                            }
+                            catch(...)
+                            {
+                                // can not convert string value to Float
+                            }
+                            break;
+                        }
                         case CoreType::ctString:
                         {
                             optionsValue.set(token, envValue);
                             break;
                         }
-                        case CoreType::ctInt:
+                        default:
                         {
-                            Int number = std::stoi(envValue.toStdString());
-                            optionsValue.set(token, number);
-                            break;
+                            // not supported type or we are not in leaf
                         }
-
-
                     }
                 }
                 else

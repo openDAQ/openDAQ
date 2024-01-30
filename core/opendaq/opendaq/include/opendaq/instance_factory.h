@@ -44,31 +44,6 @@ inline InstancePtr InstanceCustom(const ContextPtr& context,
 }
 
 /*!
- * @brief Creates a new Instance, using the default logger and module manager. The module manager
- * searches for module shared libraries at the given module path, using the executable directory if left empty.
- * @param modulePath The module search path to be used by the Module manager.
- * @param localId The local id of the instance.
- *
- * If localId is empty, the local id will be set to the OPENDAQ_INSTANCE_ID environment variable if available. Otherwise
- * a random UUID will be generated for the local id.
- */
-inline InstancePtr Instance(const std::string& modulePath = "", const std::string& localId = "")
-{
-    const auto logger = Logger();
-    const auto scheduler = Scheduler(logger);
-    const auto moduleManager = ModuleManager(modulePath);
-    const auto typeManager = TypeManager();
-    const auto context = Context(scheduler, logger, typeManager, moduleManager);
-
-    StringPtr localIdStr;
-    if (!localId.empty())
-        localIdStr = localId;
-
-    InstancePtr obj(Instance_Create(context, localIdStr));
-    return obj;
-}
-
-/*!
  * @brief Creates a InstanceBuilder with no parameters configured.
  */
 inline InstanceBuilderPtr InstanceBuilder(const InstanceContextPtr & context = InstanceContext())
@@ -81,11 +56,25 @@ inline InstanceBuilderPtr InstanceBuilder(const InstanceContextPtr & context = I
  * @brief Creates a Instance with Builder
  * @param builder Instance Builder
  */
-
 inline InstancePtr InstanceFromBuilder(const InstanceBuilderPtr& builder)
 {
     InstancePtr obj(InstanceFromBuilder_Create(builder));
     return obj;
+}
+
+/*!
+ * @brief Creates a new Instance, using the default logger and module manager. The module manager
+ * searches for module shared libraries at the given module path, using the executable directory if left empty.
+ * @param modulePath The module search path to be used by the Module manager.
+ * @param localId The local id of the instance.
+ *
+ * If localId is empty, the local id will be set to the OPENDAQ_INSTANCE_ID environment variable if available. Otherwise
+ * a random UUID will be generated for the local id.
+ */
+inline InstancePtr Instance(const std::string& modulePath = "", const std::string& localId = "")
+{
+    auto builder = InstanceBuilder().setModulePath(modulePath).setDefaultRootDeviceLocalId(localId);
+    return InstanceFromBuilder(builder);
 }
 
 /*!

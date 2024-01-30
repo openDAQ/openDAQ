@@ -22,7 +22,7 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
     if (this->moduleManager.assigned())
     {
         this->moduleManagerWeakRef = this->moduleManager;
-        // Have to increment the ref-count with `thisInterface()` so passing it to the module doesn't crashc
+        // Have to increment the ref-count with `thisInterface()` so passing it to the module doesn't crash
         checkErrorInfo(this->moduleManager.asPtr<IModuleManager>()->loadModules(this->thisInterface()));
 
         // manually remove the reference count without deleting the object (as reference count should drop to 0)

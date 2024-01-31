@@ -27,7 +27,7 @@ TEST_F(ConfigPacketTest, PacketBuffer)
     const PacketBuffer packetBuffer(PacketType::getProtocolInfo, 1, buf.data(), 8);
 
     ASSERT_EQ(packetBuffer.getPacketType(), PacketType::getProtocolInfo);
-    ASSERT_EQ(packetBuffer.getId(), 1);
+    ASSERT_EQ(packetBuffer.getId(), 1u);
 
     std::vector<uint8_t> buf1;
     buf1.resize(8);
@@ -46,7 +46,7 @@ TEST_P(ConfigPacketFromParamTest, PacketBufferFromMemoryCopy)
     const PacketBuffer packetBuffer(packetBufferSource.getBuffer(), GetParam());
 
     ASSERT_EQ(packetBuffer.getPacketType(), PacketType::getProtocolInfo);
-    ASSERT_EQ(packetBuffer.getId(), 1);
+    ASSERT_EQ(packetBuffer.getId(), 1u);
 
     std::vector<uint8_t> buf1;
     buf1.resize(8);
@@ -76,7 +76,7 @@ TEST_F(ConfigPacketTest, PacketBufferWithDeleter)
     }));
 
     ASSERT_EQ(packetBuffer.getPacketType(), PacketType::getProtocolInfo);
-    ASSERT_EQ(packetBuffer.getId(), 1);
+    ASSERT_EQ(packetBuffer.getId(), 1u);
 
     std::vector<uint8_t> buf1;
     buf1.resize(8);
@@ -90,7 +90,7 @@ TEST_F(ConfigPacketTest, GetProtocolInfoRequest)
 
     const PacketBuffer packetBuffer(packetBufferSource.getBuffer(), false);
 
-    ASSERT_EQ(packetBuffer.getId(), 1);
+    ASSERT_EQ(packetBuffer.getId(), 1u);
     packetBuffer.parseProtocolInfoRequest();
 }
 
@@ -100,7 +100,7 @@ TEST_F(ConfigPacketTest, GetProtocolInfoReply)
 
     const PacketBuffer packetBuffer(packetBufferSource.getBuffer(), false);
 
-    ASSERT_EQ(packetBuffer.getId(), 1);
+    ASSERT_EQ(packetBuffer.getId(), 1u);
     uint16_t curVer;
     std::vector<uint16_t> supVer;
     packetBuffer.parseProtocolInfoReply(curVer, supVer);
@@ -115,7 +115,7 @@ TEST_F(ConfigPacketTest, UpgradeProtocolRequest)
 
     const PacketBuffer packetBuffer(packetBufferSource.getBuffer(), false);
 
-    ASSERT_EQ(packetBuffer.getId(), 1);
+    ASSERT_EQ(packetBuffer.getId(), 1u);
     uint16_t ver;
     packetBuffer.parseProtocolUpgradeRequest(ver);
 
@@ -128,7 +128,7 @@ TEST_F(ConfigPacketTest, UpgradeProtocolReply)
 
     const PacketBuffer packetBuffer(packetBufferSource.getBuffer(), false);
 
-    ASSERT_EQ(packetBuffer.getId(), 1);
+    ASSERT_EQ(packetBuffer.getId(), 1u);
     bool success;
     packetBuffer.parseProtocolUpgradeReply(success);
 
@@ -141,7 +141,7 @@ TEST_F(ConfigPacketTest, InvalidRequestReply)
 
     const PacketBuffer packetBuffer(packetBufferSource.getBuffer(), false);
 
-    ASSERT_EQ(packetBuffer.getId(), 1);
+    ASSERT_EQ(packetBuffer.getId(), 1u);
     packetBuffer.parseInvalidRequestReply();
 }
 
@@ -152,7 +152,7 @@ TEST_F(ConfigPacketTest, RpcRequest)
 
     const PacketBuffer packetBuffer(packetBufferSource.getBuffer(), false);
 
-    ASSERT_EQ(packetBuffer.getId(), 1);
+    ASSERT_EQ(packetBuffer.getId(), 1u);
     const auto json1 = packetBuffer.parseRpcRequestOrReply();
 
     ASSERT_EQ(json1, json);

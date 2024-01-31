@@ -54,7 +54,7 @@ function(opendaq_add_library LIB_BASE_NAME)
                     OPENDAQ_SKIP_DLL_IMPORT
             )
 
-            #add_dependencies(${VARIANT_TARGET} ${SDK_TARGET_NAMESPACE}::${LIB_BASE_NAME})
+            add_dependencies(${VARIANT_TARGET} ${SDK_TARGET_NAMESPACE}::${LIB_BASE_NAME})
         endif()
 
         opendaq_set_output_lib_name(${VARIANT_TARGET} ${PROJECT_VERSION_MAJOR})
@@ -105,8 +105,6 @@ function(opendaq_target_link_libraries)
 
         if ("${VARIANT_TYPE}" STREQUAL "default")
             target_link_libraries(${VARIANT_TARGET} ${COMMAND_ARGS})
-
-            message("${VARIANT_TARGET}: ${COMMAND_ARGS}")
         else()
             set(VARIANT_ARGS )
             set(VARIANT_SUFFIX "_${VARIANT_TYPE}")
@@ -132,8 +130,6 @@ function(opendaq_target_link_libraries)
             endforeach()
 
             target_link_libraries(${VARIANT_TARGET} ${VARIANT_ARGS})
-
-            message("${VARIANT_TARGET}: ${VARIANT_ARGS}")
         endif()
     endforeach()
 endfunction()

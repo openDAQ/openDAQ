@@ -28,6 +28,7 @@ public:
 
     ErrCode INTERFACE_FUNC populateOptions(IDict* options) override;
 private:
+    static StringPtr GetEnvironmentVariableValue(StringPtr variableName, StringPtr defaultValue);
     static StringPtr GetDataFromFile(const StringPtr& filename);
 
     static BaseObjectPtr HandleNumber(const rapidjson::Value& value);

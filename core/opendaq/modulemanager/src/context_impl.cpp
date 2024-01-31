@@ -10,11 +10,13 @@ BEGIN_NAMESPACE_OPENDAQ
 ContextImpl::ContextImpl(SchedulerPtr scheduler,
                              LoggerPtr logger,
                              TypeManagerPtr typeManager,
-                             ModuleManagerPtr moduleManager)
+                             ModuleManagerPtr moduleManager,
+                             DictPtr<IString, IBaseObject> options)
     : logger(std::move(logger))
     , scheduler(std::move(scheduler))
     , moduleManager(std::move(moduleManager))
     , typeManager(std::move(typeManager))
+    , options(options)
 {
     if (!this->logger.assigned())
         throw ArgumentNullException("Logger must not be null");
@@ -108,6 +110,14 @@ ErrCode ContextImpl::moveModuleManager(IModuleManager** manager)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ContextImpl::getOptions(IDict** options)
+{
+    OPENDAQ_PARAM_NOT_NULL(options);
+
+    *options = this->options.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
 {
     try
@@ -130,14 +140,10 @@ void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventA
 OPENDAQ_DEFINE_CLASS_FACTORY(
     LIBRARY_FACTORY,
     Context,
-    IScheduler*,
-    Scheduler,
-    ILogger*,
-    Logger,
-    ITypeManager*,
-    typeManager,
-    IModuleManager*,
-    moduleManager
-    )
+    IScheduler*, Scheduler,
+    ILogger*, Logger,
+    ITypeManager*, typeManager,
+    IModuleManager*, moduleManager,
+    IDict*, options)
 
 END_NAMESPACE_OPENDAQ

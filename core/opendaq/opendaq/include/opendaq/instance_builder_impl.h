@@ -25,7 +25,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class InstanceBuilderImpl : public ImplementationOf<IInstanceBuilder>
 {
 public:
-    explicit InstanceBuilderImpl(InstanceContextPtr context);
+    explicit InstanceBuilderImpl();
 
     ErrCode INTERFACE_FUNC build(IInstance** instance) override;
 
@@ -65,13 +65,16 @@ public:
     ErrCode INTERFACE_FUNC setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo) override;
     ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo) override;
 
+    ErrCode INTERFACE_FUNC getModulesOptions(IDict** options) override;
+
 private:
+    static DictPtr<IString, IBaseObject> GetDefaultOptions();
+
     DictPtr<IString, IBaseObject> getModuleManagerOptions();
     DictPtr<IString, IBaseObject> getSchedulerOptions();
     DictPtr<IString, IBaseObject> getLoggingOptions();
     DictPtr<IString, IBaseObject> getRootDevice();
     DictPtr<IString, IBaseObject> getModules();
-    DictPtr<IString, IBaseObject> getModuleOptions(IString* module);
 
     DeviceInfoPtr defaultRootDeviceInfo;
 

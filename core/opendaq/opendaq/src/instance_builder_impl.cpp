@@ -2,17 +2,34 @@
 #include <opendaq/instance_builder_impl.h>
 #include <opendaq/instance_builder_ptr.h>
 #include <opendaq/instance_ptr.h>
-#include <opendaq/instance_context_factory.h>
 #include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-InstanceBuilderImpl::InstanceBuilderImpl(InstanceContextPtr context)
-    : componentsLogLevel(Dict<IString, LogLevel>())
+DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 {
-    if (!context.assigned())
-        context = InstanceContext();
-    options = context.getOptions();
+    return Dict<IString, IBaseObject>({
+        {"ModuleManager", Dict<IString, IBaseObject>({
+                {"ModulesPath", ""}
+            })},
+        {"Scheduler", Dict<IString, IBaseObject>({
+                {"WorkersNum", 0}
+            })},
+        {"Logging", Dict<IString, IBaseObject>({
+                {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
+            })},
+        {"RootDevice", Dict<IString, IBaseObject>({
+                {"DefaultLocalId", ""},
+                {"Connection", ""}
+            })},   
+        {"Modules", Dict<IString, IBaseObject>()}
+    });
+}
+
+InstanceBuilderImpl::InstanceBuilderImpl()
+    : componentsLogLevel(Dict<IString, LogLevel>())
+    , options(GetDefaultOptions())
+{
 }
 
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getModuleManagerOptions()
@@ -40,18 +57,6 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::getModules()
     return options.get("Modules");
 }
 
-DictPtr<IString, IBaseObject> InstanceBuilderImpl::getModuleOptions(IString* module)
-{
-    auto modules = getModules();
-    if (!modules.hasKey(module)) 
-    {   
-        auto moduleOptions = Dict<IString, IBaseObject>();
-        modules[module] = moduleOptions;
-        return moduleOptions;
-    }
-    return modules[module];
-}
-
 ErrCode InstanceBuilderImpl::build(IInstance** instance)
 {
     if (instance == nullptr)
@@ -74,11 +79,12 @@ ErrCode InstanceBuilderImpl::addConfigProvider(IConfigProvider* configProvider)
     try
     {
         configProviderPtr.populateOptions(options);
+        return OPENDAQ_SUCCESS;
     }
     catch (...)
     {
     }
-    return OPENDAQ_SUCCESS;
+    return OPENDAQ_IGNORED;
 }
 
 ErrCode InstanceBuilderImpl::setLogger(ILogger* logger)
@@ -285,6 +291,15 @@ ErrCode InstanceBuilderImpl::getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode InstanceBuilderImpl::getModulesOptions(IDict** options)
+{
+    if (options == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    *options = getModules().detach();
+    return OPENDAQ_SUCCESS;
+}
+
 
 /////////////////////
 ////
@@ -292,9 +307,9 @@ ErrCode InstanceBuilderImpl::getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo)
 ////
 ////////////////////
 
-extern "C" ErrCode PUBLIC_EXPORT createInstanceBuilder(IInstanceBuilder** objTmp, IInstanceContext* context)
+extern "C" ErrCode PUBLIC_EXPORT createInstanceBuilder(IInstanceBuilder** objTmp)
 {
-    return daq::createObject<IInstanceBuilder, InstanceBuilderImpl>(objTmp, context);
+    return daq::createObject<IInstanceBuilder, InstanceBuilderImpl>(objTmp);
 }
 
 END_NAMESPACE_OPENDAQ

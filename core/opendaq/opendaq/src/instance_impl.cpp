@@ -61,7 +61,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     if (!moduleManager.assigned())
         moduleManager = ModuleManager(builderPtr.getModulePath());
 
-    return Context(scheduler, logger, typeManager, moduleManager);
+    return Context(scheduler, logger, typeManager, moduleManager, builderPtr.getModulesOptions());
 }
 
 InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)

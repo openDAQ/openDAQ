@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <set>
 #include <opendaq/log_level.h>
-#include <opendaq/instance_context_impl.h>
 #include <opendaq/instance_factory.h>
 #include <coretypes/coretypes.h>
 
@@ -326,6 +325,7 @@ TEST_F(ConfigProviderTest, InstanceBuilderFromJson)
     createConfigFile(filename, json);
 
     const auto instanceBuilder = InstanceBuilder();
+    instanceBuilder.addConfigProvider(JsonConfigProvider());
 
     ASSERT_EQ(instanceBuilder.getModulePath(), "testtest");
     ASSERT_EQ(instanceBuilder.getSchedulerWorkerNum(), 8);

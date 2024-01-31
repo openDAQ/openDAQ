@@ -14,11 +14,23 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 JsonConfigProviderImpl::JsonConfigProviderImpl(const StringPtr& filename)
+    :filename(filename)
 {
-    if (!filename.assigned())
-        throw ArgumentNullException("filename for json config provider is not assigned");
+    if (!this->filename.assigned())
+        this->filename = GetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", "opendaq-config.json");
+}
 
-    this->filename = filename; 
+StringPtr JsonConfigProviderImpl::GetEnvironmentVariableValue(StringPtr variableName, StringPtr defaultValue)
+{
+    if (!variableName.assigned() || variableName.getLength() == 0)
+        return defaultValue;
+    
+    const char* value = std::getenv(variableName.toStdString().c_str());
+
+    if (value)
+        return String(value);
+    else
+        return defaultValue;
 }
 
 StringPtr JsonConfigProviderImpl::GetDataFromFile(const StringPtr& filename)

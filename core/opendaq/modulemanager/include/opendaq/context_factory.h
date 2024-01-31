@@ -38,9 +38,10 @@ BEGIN_NAMESPACE_OPENDAQ
 inline ContextPtr Context(const SchedulerPtr& scheduler,
                           const LoggerPtr& logger,
                           const TypeManagerPtr& typeManager,
-                          const ModuleManagerPtr& moduleManager)
+                          const ModuleManagerPtr& moduleManager,
+                          const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>())
 {
-    ContextPtr obj(Context_Create(scheduler, logger, typeManager, moduleManager));
+    ContextPtr obj(Context_Create(scheduler, logger, typeManager, moduleManager, options));
     return obj;
 }
 
@@ -51,7 +52,7 @@ inline ContextPtr Context(const SchedulerPtr& scheduler,
  */
 inline ContextPtr NullContext(const LoggerPtr& logger = Logger(), const TypeManagerPtr& typeManager = TypeManager())
 {
-    ContextPtr obj(Context_Create(nullptr, logger, typeManager, nullptr));
+    ContextPtr obj(Context_Create(nullptr, logger, typeManager, nullptr, Dict<IString, IBaseObject>()));
     return obj;
 }
 

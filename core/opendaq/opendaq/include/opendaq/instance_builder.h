@@ -17,7 +17,6 @@
 #pragma once
 #include <coretypes/stringobject.h>
 #include <opendaq/instance.h>
-#include <opendaq/instance_context.h>
 #include <opendaq/config_provider.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -248,6 +247,13 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * @param defaultDevice The default device info of Instance. Returns nullptr, if default device info has not been set.
      */
     virtual ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo) = 0;
+
+    // [templateType(options, IString, IBaseObject)]
+    /*!
+     * @brief Gets the dictionary of module options
+     * @param[out] options The dictionary of module options
+     */
+    virtual ErrCode INTERFACE_FUNC getModulesOptions(IDict** options) = 0;
 };
 /*!@}*/
 
@@ -260,10 +266,7 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 /*!
  * @brief Creates a InstanceBuilder with no parameters configured.
  */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, 
-InstanceBuilder, IInstanceBuilder,
-IInstanceContext*, context
-)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, InstanceBuilder, IInstanceBuilder)
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

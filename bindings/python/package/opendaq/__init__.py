@@ -14,7 +14,7 @@ def Instance(*args) -> IInstance:
         logger = opendaq.Logger(sinks, opendaq.LogLevel.Default)
         scheduler = opendaq.Scheduler(logger, 0)
         context = opendaq.Context(
-            scheduler, logger, type_manager, module_manager)
+            scheduler, logger, type_manager, module_manager, None)
         return opendaq.Instance(context, None)
     else:
         return opendaq.Instance(*args)

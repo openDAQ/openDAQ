@@ -31,12 +31,14 @@ source_group("instance" FILES ${SDK_HEADERS_DIR}/instance.h
                               ${SDK_HEADERS_DIR}/config_provider_factory.h
                               ${SDK_HEADERS_DIR}/json_config_provider_impl.h
                               ${SDK_HEADERS_DIR}/env_config_provider_impl.h
+                              ${SDK_HEADERS_DIR}/cmd_line_args_config_provider_impl.h
                               instance_impl.cpp
                               client_impl.cpp
                               create_device.cpp
                               instance_builder_impl.cpp
                               json_config_provider_impl.cpp
                               env_config_provider_impl.cpp
+                              cmd_line_args_config_provider_impl.cpp
 )
 
 set(SRC_Cpp version.cpp
@@ -47,6 +49,7 @@ set(SRC_Cpp version.cpp
             instance_builder_impl.cpp
             json_config_provider_impl.cpp
             env_config_provider_impl.cpp
+            cmd_line_args_config_provider_impl.cpp
 )
 
 set(SRC_PublicHeaders version.h
@@ -65,6 +68,7 @@ set(SRC_PrivateHeaders instance_impl.h
                        instance_builder_impl.h
                        json_config_provider_impl.h
                        env_config_provider_impl.h
+                       cmd_line_args_config_provider_impl.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)

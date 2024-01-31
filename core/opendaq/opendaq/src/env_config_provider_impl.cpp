@@ -1,6 +1,7 @@
 #include <opendaq/env_config_provider_impl.h>
 #include <cstdlib>
 #include <string>
+#include <coretypes/coretypes.h>
 
 #ifdef _environ
     #define ENVIRON _environ
@@ -27,7 +28,7 @@ DictPtr<IString, IString> EnvConfigProviderImpl::GetEnvValuesStartingWith(const 
 
         if (envVar.substr(0, prefix.length()) == prefix)
         {
-            size_t pos = envVar.find('=');
+            size_t pos = envVar.find('=', prefix.length());
             if (pos != std::string::npos)
             {
                 std::string key = envVar.substr(0, pos);
@@ -74,8 +75,49 @@ std::string EnvConfigProviderImpl::ToUpperCase(const std::string &input)
     return result;
 }
 
+BaseObjectPtr EnvConfigProviderImpl::handleUnderfineValue(const std::string& value)
+{
+    if (value.length() > 1 && value[0] == '"' && value[value.length() - 1] == '"')
+        return String(value.substr(1, value.length() - 2));
+
+    // try parse as boolean
+    auto upEnvValue = ToUpperCase(value);
+    if (upEnvValue == "TRUE" || upEnvValue == "FALSE")
+        return Boolean(upEnvValue == "TRUE");
+
+    // try parse as float
+    if (value.find('.') != std::string::npos)
+    {
+        try
+        {
+            Float number = std::stod(value);
+            return Floating(number);
+        }
+        catch (...)
+        {
+        }
+    }
+
+    // try paese as integer
+    try
+    {
+        Int number = std::stoll(value);
+        return Integer(number);
+    }
+    catch(...)
+    {
+
+    }
+
+    // leave as string
+    return String(value);
+}
+
 bool EnvConfigProviderImpl::handleOptionLeaf(DictPtr<IString, IBaseObject> optionsValue, StringPtr envKey, StringPtr envValue)
 {
+    if (envValue.getLength() > 1 && envValue[0] == '"' && envValue[envValue.getLength() - 1] == '"')
+       envValue = envValue.toStdString().substr(1, envValue.getLength() - 2);
+
     auto child = optionsValue.get(envKey);
     CoreType childType = child.assigned() ? child.getCoreType() : CoreType::ctString;
     switch (childType)
@@ -130,6 +172,9 @@ bool EnvConfigProviderImpl::handleOptionLeaf(DictPtr<IString, IBaseObject> optio
 
 ErrCode INTERFACE_FUNC EnvConfigProviderImpl::populateOptions(IDict* options) 
 {
+    if (options == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
     auto optionsPtr = DictPtr<IString, IBaseObject>::Borrow(options);
 
     std::string envPrefix = "OPENDAQ_CONFIG_";
@@ -174,7 +219,7 @@ ErrCode INTERFACE_FUNC EnvConfigProviderImpl::populateOptions(IDict* options)
                 if (optionsValue.hasKey(token))
                     handleOptionLeaf(optionsValue, token, envValue);
                 else
-                    optionsValue.set(token, envValue);
+                    optionsValue.set(token, handleUnderfineValue(envValue));
             } 
             else 
             {

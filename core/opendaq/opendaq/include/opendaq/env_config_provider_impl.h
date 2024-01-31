@@ -30,6 +30,7 @@ public:
     ErrCode INTERFACE_FUNC populateOptions(IDict* options) override;
 
 private:
+    BaseObjectPtr handleUnderfineValue(const std::string& value);
     bool handleOptionLeaf(DictPtr<IString, IBaseObject> optionsValue, StringPtr envKey, StringPtr envValue);
 
     static DictPtr<IString, IString> GetEnvValuesStartingWith(const std::string& prefix);

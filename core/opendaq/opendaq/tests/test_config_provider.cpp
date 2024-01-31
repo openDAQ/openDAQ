@@ -334,7 +334,7 @@ TEST_F(ConfigProviderTest, InstanceBuilderFromJson)
 
 TEST_F(ConfigProviderTest, envConfigReadModuleManagerPath)
 {
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath", "testtest");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath", "\"testtest\"");
 
     auto options = GetDefaultOptions(); 
 
@@ -379,7 +379,7 @@ TEST_F(ConfigProviderTest, envConfigReadLoggingGlobalLogLevel)
 
 TEST_F(ConfigProviderTest, envConfigReadRootDeviceDefaultLocalId)
 {
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_DefaultLocalId", "localId");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_DefaultLocalId", "\"localId\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -394,7 +394,7 @@ TEST_F(ConfigProviderTest, envConfigReadRootDeviceDefaultLocalId)
 
 TEST_F(ConfigProviderTest, envConfigReadRootDeviceConnectionString)
 {
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_Connection", "dev://connectionString");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_Connection", "\"dev://connectionString\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -409,7 +409,7 @@ TEST_F(ConfigProviderTest, envConfigReadRootDeviceConnectionString)
 
 TEST_F(ConfigProviderTest, envConfigReadOutOfReservedName)
 {
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_Deep1_Deep2", "SomeValue");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_Deep1_Deep2", "\"SomeValue\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -425,9 +425,9 @@ TEST_F(ConfigProviderTest, envConfigReadOutOfReservedName)
 TEST_F(ConfigProviderTest, envConfigReadInvalidArgument1)
 {
     // correct field
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath", "testtest");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath", "\"testtest\"");
     // broken field (can not convert to integer)
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_Scheduler_WorkersNum", "string");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_Scheduler_WorkersNum", "\"string\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -443,9 +443,9 @@ TEST_F(ConfigProviderTest, envConfigReadInvalidArgument1)
 TEST_F(ConfigProviderTest, envConfigReadInvalidArgument2)
 {
     // correct field
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_Deep1_Deep2", "SomeValue");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_Deep1_Deep2", "\"SomeValue\"");
     // broken field (out of depth)
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath_NotExpectedChild", "string");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath_NotExpectedChild", "\"string\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -457,6 +457,5 @@ TEST_F(ConfigProviderTest, envConfigReadInvalidArgument2)
 
     ASSERT_EQ(options, expectedOptions);
 }
-
 
 END_NAMESPACE_OPENDAQ

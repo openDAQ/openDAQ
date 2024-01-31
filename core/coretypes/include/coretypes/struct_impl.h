@@ -376,13 +376,17 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::toString(CharPtr* str
 
     std::ostringstream strStream;
     bool first = true;
-    for (const auto& field: fields)
+    auto fieldNames = structType.getFieldNames();
+    for (daq::SizeT i = 0; i < fieldNames.getCount(); i++)
     {
+        const StringPtr& fieldName = fieldNames[i];
+        const BaseObjectPtr& fieldValue = fields[fieldName];
+
         if (!first)
             strStream << "; ";
 
         first = false;
-        strStream << field.first.toStdString() << "=" << (field.second.assigned() ? static_cast<std::string>(field.second) : "null");
+        strStream << fieldName.toStdString() << "=" << (fieldValue.assigned() ? static_cast<std::string>(fieldValue) : "null");
     }
 
     const auto len = strStream.str().size() + 1;

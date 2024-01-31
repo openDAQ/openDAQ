@@ -738,7 +738,7 @@ TEST_F(MultiReaderTest, Clock10kHzDelta10)
     ASSERT_EQ(available, 446u);
 
     available = multi.getAvailableCount();
-    ASSERT_EQ(available, 446);
+    ASSERT_EQ(available, 446u);
 
     constexpr const SizeT SAMPLES = 5u;
 
@@ -763,7 +763,7 @@ TEST_F(MultiReaderTest, Clock10kHzDelta10)
 TEST_F(MultiReaderTest, Clock10kHzDelta10Relative)
 {
     constexpr const auto NUM_SIGNALS = 3;
-    constexpr const auto SIG0_PACKET_SIZE = 523;
+    constexpr const auto SIG0_PACKET_SIZE = 523u;
 
     // prevent vector from re-allocating, so we have "stable" pointers
     readSignals.reserve(3);
@@ -944,7 +944,7 @@ TEST_F(MultiReaderTest, Clock10kHzDelta10WithIntersampleOffset)
     sig2.createAndSendPacket(2);
 
     available = multi.getAvailableCount();
-    ASSERT_EQ(available, 3 * SIG10_PACKET_SIZE);
+    ASSERT_EQ(available, 3u * SIG10_PACKET_SIZE);
 
     constexpr const SizeT SAMPLES = 5u;
 
@@ -1264,7 +1264,7 @@ TEST_F(MultiReaderTest, SampleRateChanged)
 
     SizeT count{SAMPLES};
     multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
-    ASSERT_EQ(count, 632);
+    ASSERT_EQ(count, 632u);
 
     ASSERT_THROW_MSG(multi.readWithDomain(valuesPerSignal, domainPerSignal, &count),
                      InvalidDataException,

@@ -37,6 +37,7 @@
 #include <opendaq/recursive_search_ptr.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/tags_impl.h>
+#include <cctype>
 
 BEGIN_NAMESPACE_OPENDAQ
 

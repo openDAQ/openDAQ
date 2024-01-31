@@ -97,8 +97,8 @@ bool EnvConfigProviderImpl::handleOptionLeaf(DictPtr<IString, IBaseObject> optio
             }
             catch(...)
             {
+                // can not convert to long long or out of range
             }
-            // can not convert to long long or out of range
             return false;
         }
         case CoreType::ctFloat:
@@ -111,8 +111,8 @@ bool EnvConfigProviderImpl::handleOptionLeaf(DictPtr<IString, IBaseObject> optio
             }
             catch(...)
             {
+                // can not convert string value to Float
             }
-            // can not convert string value to Float
             return false;
         }
         case CoreType::ctString:
@@ -155,48 +155,38 @@ ErrCode INTERFACE_FUNC EnvConfigProviderImpl::populateOptions(IDict* options)
         else if (envKeyUpper == "ROOTDEVICE")
             optionsValue = optionsPtr.get("RootDevice");
 
-        SizeT deep = 0;
-        for (const auto & token : splitedKey)
+        for (SizeT depth = 0; depth < splitedKey.getCount(); depth++)
         {
-            if (deep == 0)
+            if (depth == 0)
             {
                 if (optionsValue.assigned())
-                {
-                    deep++;
                     continue;
-                }
                 optionsValue = optionsPtr;
             }
 
             if (!optionsValue.assigned())
                 break;
 
-            if (deep == splitedKey.getCount() - 1)
+            const auto & token = splitedKey[depth];
+
+            if (depth == splitedKey.getCount() - 1)
             {
                 if (optionsValue.hasKey(token))
-                {
                     handleOptionLeaf(optionsValue, token, envValue);
-                }
                 else
-                {
                     optionsValue.set(token, envValue);
-                }
             } 
             else 
             {
                 if (!optionsValue.hasKey(token))
-                {
                     optionsValue.set(token, Dict<IString, IBaseObject>());
-                }
+
                 auto child = optionsValue.get(token);
                 if (child.assigned() && child.getCoreType() != CoreType::ctDict)
-                {
                     // type mistamatach
                     break;
-                }
                 optionsValue = child;
             }
-            deep++;
         }
     }
     return OPENDAQ_SUCCESS;

@@ -28,9 +28,9 @@ source_group("instance" FILES ${SDK_HEADERS_DIR}/instance.h
                               ${SDK_HEADERS_DIR}/instance_builder.h
                               ${SDK_HEADERS_DIR}/instance_builder_impl.h
                               ${SDK_HEADERS_DIR}/config_provider.h
+                              ${SDK_HEADERS_DIR}/config_provider_factory.h
                               ${SDK_HEADERS_DIR}/json_config_provider_impl.h
                               ${SDK_HEADERS_DIR}/env_config_provider_impl.h
-                              ${SDK_HEADERS_DIR}/config_provider_factory.h
                               instance_impl.cpp
                               client_impl.cpp
                               create_device.cpp

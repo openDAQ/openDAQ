@@ -150,7 +150,8 @@ namespace RTGen.Types
                 {"arrayArg", ArrayPointerArgument},
                 {"factory", FactorySettings},
                 {"isCoreConfig", IsCoreConfigAttribute},
-                {"returnSelf", ReturnSelfAttribute}
+                {"returnSelf", ReturnSelfAttribute},
+                {"polymorphic", PolymorphicAttribute}
             };
 
             DefaultBasePtr = "ObjectPtr";
@@ -448,6 +449,14 @@ namespace RTGen.Types
             }
 
             Next.Method.ReturnSelf = true;
+        }
+
+        private void PolymorphicAttribute(IRTAttribute attribute)
+        {
+            foreach(IRTAttributeArgument argument in attribute.Arguments)
+            {
+                Next.Method.Polymorphics.Add(argument.Value, argument.Name);
+            }
         }
 
         private void IgnoreMethod(IRTAttribute attribute)

@@ -106,7 +106,7 @@ namespace RTGen.Python.Generators
                     return "const size_t";
                 else if (argumentName == "Bool")
                     return "const bool";
-                else if (argumentName == "IBaseObject")
+                else if (argumentName == "IBaseObject" || argument.IsPolymorphic)
                     return "const py::object&";
             }
 
@@ -115,7 +115,7 @@ namespace RTGen.Python.Generators
 
         private string GetPyBind11WrappedName(IArgument argument)
         {
-            if (!argument.IsOutParam && (argument.Type.Name == "IBaseObject"))
+            if (!argument.IsOutParam && (argument.Type.Name == "IBaseObject" || argument.IsPolymorphic))
                 return "pyObjectToBaseObject(" + argument.Name + ")";
             else
                 return argument.Name;

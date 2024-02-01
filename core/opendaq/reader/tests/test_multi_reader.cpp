@@ -304,6 +304,75 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0)
     ASSERT_THAT(time[2], ElementsAreArray(time[0]));
 }
 
+TEST_F(MultiReaderTest, SignalStartDomainFrom0SkipSamples)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(3);
+
+    auto& sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00"));
+    auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
+
+    auto multi = MultiReader(signalsToList());
+
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    sig0.createAndSendPacket(1);
+    sig1.createAndSendPacket(1);
+    sig2.createAndSendPacket(1);
+
+    sig0.createAndSendPacket(2);
+    sig1.createAndSendPacket(2);
+    sig2.createAndSendPacket(2);
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 446u);
+
+    SizeT skip = 100;
+    multi.skipSamples(&skip);
+    ASSERT_EQ(skip, 100);
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 346u);
+
+    constexpr const SizeT SAMPLES = 5u;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+
+    SizeT count{SAMPLES};
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    ASSERT_EQ(count, SAMPLES);
+
+    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};
+    printData<std::chrono::microseconds>(SAMPLES, time, values, domain);
+
+    ASSERT_THAT(time[1], ElementsAreArray(time[0]));
+    ASSERT_THAT(time[2], ElementsAreArray(time[0]));
+    ASSERT_EQ(domain[0][0], 1223);
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 341u);
+
+    skip = 1000;
+    multi.skipSamples(&skip);
+    ASSERT_EQ(skip, 341);
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+}
+
 TEST_F(MultiReaderTest, SignalStartDomainFrom0Raw)
 {
     constexpr const auto NUM_SIGNALS = 3;

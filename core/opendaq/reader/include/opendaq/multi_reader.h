@@ -91,6 +91,16 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      */
     virtual ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0) = 0;
 
+    // [arrayArg(count, 1)]
+    /*!
+     * @brief Skips the specified amount of samples.
+     *
+     * @param[in,out] count The maximum amount of samples to be skipped. If the `count` is less than
+     * available the parameter value is set to the actual amount and only the available
+     * samples are skipped. The rest of the buffer is not modified or cleared.
+     */
+    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT* count) = 0;
+
     /*!
      * @brief Gets the resolution the reader aligned all the signals to.
      * This is the highest resolution (lowest value) of all the signals to not loose the precision.

@@ -73,6 +73,12 @@ BEGIN_NAMESPACE_OPENDAQ
  *   When configured, the `Default root device local ID` and `Default root device info` will be ignored.
  *
  * - **Sink log level:** The sink logger level of the default Instance logger. This level is ignored if a custom logger has been configured.
+ * 
+ * - **Config provider:** The config provider is expanding the local options of instance builder from json file or command lines.
+ *   If value was set before, provider will override this with new one.
+ * 
+ * - **Module options:** Local options dictionary of instance builder has `modules` key which contains custom values for modules.
+ *   By default this dictionary is empty, but can be populated from json file, env variables or command line arguments.
  */
 DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 {
@@ -84,7 +90,7 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Adds the configuration provider
+     * @brief Populates internal options dictionary with values from set config provider
      * @param sink The configuration provider
      */
     virtual ErrCode INTERFACE_FUNC addConfigProvider(IConfigProvider* configProvider) = 0;

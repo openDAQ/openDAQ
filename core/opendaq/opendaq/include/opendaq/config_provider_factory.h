@@ -19,7 +19,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline ConfigProviderPtr JsonConfigProvider(const StringPtr& filename = StringPtr())
+inline ConfigProviderPtr JsonConfigProvider(const StringPtr& filename = nullptr)
 {
     ConfigProviderPtr obj(JsonConfigProvider_Create(filename));
     return obj;

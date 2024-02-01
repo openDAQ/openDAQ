@@ -1,3 +1,23 @@
+01.02.2024
+Description:
+Support configuring instance builder from config provider
+  - enviorment variables
+  - external json file
+  - command line argument
+
+-m  [factory] ContextPtr Context(const SchedulerPtr& scheduler, const LoggerPtr& logger, const TypeManagerPtr& typeManager, const ModuleManagerPtr& moduleManager)
++m  [factory] ContextPtr Context(const SchedulerPtr& scheduler, const LoggerPtr& logger, const TypeManagerPtr& typeManager, const ModuleManagerPtr& moduleManager, const DictPtr<IString, IBaseObject> options)
+
++ [function] IInstanceBuilder::addConfigProvider(IConfigProvider* configProvider)
++ [function] IInstanceBuilder::getModulesOptions(IDict** options)
+
++  [interface] IConfigProvider: public IBaseObject
++ [function] IConfigProvider::populateOptions(IDict* options)
+
++ [factory] ConfigProviderPtr JsonConfigProvider(const StringPtr& filename)
++ [factory] ConfigProviderPtr EnvConfigProvider()
++ [factory] ConfigProviderPtr CmdLineArgsConfigProvider(const ListPtr<IString>& args)
+
 22.1.2024
 Description:
   - Support for external deserialization factory

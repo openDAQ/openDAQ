@@ -53,7 +53,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.addConfigProvider(configProvider);
         },
         py::arg("config_provider"),
-        "Adds the configuration provider");
+        "Populates internal options dictionary with values from set config provider");
     cls.def_property("logger",
         [](daq::IInstanceBuilder *object)
         {

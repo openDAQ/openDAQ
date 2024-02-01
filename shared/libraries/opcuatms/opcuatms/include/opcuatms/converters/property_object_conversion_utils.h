@@ -21,7 +21,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-class DictConversionUtils
+class PropertyObjectConversionUtils
 {
 public:
     static OpcUaVariant ToDictVariant(const PropertyObjectPtr& obj);

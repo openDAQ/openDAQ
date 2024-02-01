@@ -7,6 +7,10 @@ Description:
 + [function] ILastMessageLoggerSinkPrivate::waitForMessage(SizeT timeoutMs, Bool* success)
 + [factory] LoggerSinkPtr LastMessageLoggerSink()
 
+1.2.2024
+
++m [function] IMultiReader::skipSamples
+
 23.1.2024
 Description:
 	- Change ITagsConfig to ITagsPrivate and remove inheritance

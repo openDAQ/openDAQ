@@ -403,10 +403,13 @@ ErrCode SignalReader::readPacketData()
     auto remainingSampleCount = info.dataPacket.getSampleCount() - info.prevSampleIndex;
     SizeT toRead = std::min(info.remainingToRead, remainingSampleCount);
 
-    ErrCode errCode = valueReader->readData(getValuePacketData(info.dataPacket), info.prevSampleIndex, &info.values, toRead);
-    if (OPENDAQ_FAILED(errCode))
+    if (info.values != nullptr)
     {
-        return errCode;
+        ErrCode errCode = valueReader->readData(getValuePacketData(info.dataPacket), info.prevSampleIndex, &info.values, toRead);
+        if (OPENDAQ_FAILED(errCode))
+        {
+            return errCode;
+        }
     }
 
     if (info.domainValues != nullptr)
@@ -424,7 +427,7 @@ ErrCode SignalReader::readPacketData()
         LOG_T("[Reading: {} ", port.getSignal().getLocalId());
 
         auto domainPacket = dataPacket.getDomainPacket();
-        errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
+        ErrCode errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
             if (!trySetDomainSampleType(domainPacket))

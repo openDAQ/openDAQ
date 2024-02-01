@@ -30,6 +30,9 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
+static const char* NativeConfigurationDeviceTypeId = "daq.nd";
+static const char* NativeConfigurationDevicePrefix = "daq.nd://";
+
 /// wraps the root device obtained from config protocol
 /// main purpose to hold the config and transport protocol clients
 /// implements custom device info
@@ -37,9 +40,6 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 class NativeDeviceImpl final : public DeviceWrapperImpl
 {
 public:
-    static constexpr const char* NativeConfigurationDeviceTypeId = "daq.ncd";
-    static constexpr const char* NativeConfigurationDevicePrefix = "daq.ncd://";
-
     explicit NativeDeviceImpl(const ContextPtr& context,
                               const ComponentPtr& parent,
                               const StringPtr& connectionString,

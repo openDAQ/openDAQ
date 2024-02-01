@@ -22,12 +22,12 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
+static const char* NativeStreamingPrefix = "daq.ns://";
+static const char* NativeStreamingID = "daq.ns";
+
 class NativeStreamingImpl : public Streaming
 {
 public:
-    static constexpr const char* NativeStreamingPrefix = "daq.ns://";
-    static constexpr const char* NativeStreamingID = "daq.ns";
-
     explicit NativeStreamingImpl(
         const StringPtr& connectionString,
         const StringPtr& host,

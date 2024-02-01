@@ -29,7 +29,7 @@ static InstancePtr CreateClientInstance()
 {
     auto instance = Instance();
 
-    auto refDevice = instance.addDevice("daq.ncd://127.0.0.1", nullptr);
+    auto refDevice = instance.addDevice("daq.nd://127.0.0.1", nullptr);
     return instance;
 }
 
@@ -122,7 +122,7 @@ TEST_F(NativeDeviceModulesTest, DeviceInfo)
     auto info = client.getDevices()[0].getInfo();
 
     ASSERT_TRUE(info.assigned());
-    ASSERT_EQ(info.getConnectionString(), "daq.ncd://127.0.0.1");
+    ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
 }
 
 TEST_F(NativeDeviceModulesTest, ChannelProps)

@@ -4,8 +4,8 @@
 #include <daq_discovery/daq_discovery_client.h>
 #include <opendaq/device_type_factory.h>
 
-#include <native_streaming_client_module/native_streaming_device_factory.h>
-#include <native_streaming_client_module/native_streaming_factory.h>
+#include <native_streaming_client_module/native_streaming_device_impl.h>
+#include <native_streaming_client_module/native_streaming_impl.h>
 #include <native_streaming_client_module/native_device_impl.h>
 
 #include <regex>
@@ -76,14 +76,14 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     auto port = getPort(connectionString);
     auto path = getPath(connectionString);
 
-    if (connectionStringHasPrefix(connectionString, NativeStreamingDeviceImpl::NativeStreamingDevicePrefix))
+    if (connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
     {
         std::scoped_lock lock(sync);
 
         std::string localId = fmt::format("streaming_pseudo_device{}", deviceIndex++);
-        return NativeStreamingDevice(context, parent, localId, connectionString, host, port, path);
+        return createWithImplementation<IDevice, NativeStreamingDeviceImpl>(context, parent, localId, connectionString, host, port, path);
     }
-    else if (connectionStringHasPrefix(connectionString, NativeDeviceImpl::NativeConfigurationDevicePrefix))
+    else if (connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
     {
         return createWithImplementation<IDevice, NativeDeviceImpl>(context, parent, connectionString, host, port, path);
     }
@@ -97,8 +97,8 @@ bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr&
                                                           const PropertyObjectPtr& /*config*/)
 {
     std::string connStr = connectionString;
-    auto pseudoDevicePrefixFound = connectionStringHasPrefix(connectionString, NativeStreamingDeviceImpl::NativeStreamingDevicePrefix);
-    auto devicePrefixFound = connectionStringHasPrefix(connectionString, NativeDeviceImpl::NativeConfigurationDevicePrefix);
+    auto pseudoDevicePrefixFound = connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix);
+    auto devicePrefixFound = connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix);
     return (devicePrefixFound || pseudoDevicePrefixFound) && validateConnectionString(connectionString);
 }
 
@@ -107,12 +107,12 @@ bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const S
 {
     if (connectionString.assigned())
     {
-        return connectionStringHasPrefix(connectionString, NativeStreamingImpl::NativeStreamingPrefix) &&
+        return connectionStringHasPrefix(connectionString, NativeStreamingPrefix) &&
                validateConnectionString(connectionString);
     }
     else if (config.assigned())
     {
-        if (config.getProtocolId() == NativeStreamingImpl::NativeStreamingID && config.getPrimaryAddress().assigned())
+        if (config.getProtocolId() == NativeStreamingID && config.getPrimaryAddress().assigned())
         {
             const auto propertyObj = config.asPtr<IPropertyObject>();
             return propertyObj.assigned() && propertyObj.hasProperty("Port");
@@ -132,13 +132,16 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
         auto host = getHost(connectionString);
         auto port = getPort(connectionString);
         auto path = getPath(connectionString);
-        return NativeStreaming(
+        return createWithImplementation<IStreaming, NativeStreamingImpl>(
             connectionString,
             host,
             port,
             path,
             context,
-            std::make_shared<opendaq_native_streaming_protocol::NativeStreamingClientHandler>(context));
+            std::make_shared<opendaq_native_streaming_protocol::NativeStreamingClientHandler>(context),
+            nullptr,
+            nullptr,
+            nullptr);
     }
     else if(config.assigned())
     {
@@ -149,14 +152,17 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
         auto portNumber = propertyObj.getPropertyValue("Port").template asPtr<IInteger>();
         auto port = String(fmt::format("{}", portNumber));
 
-        auto generatedConnectionString = String(fmt::format("{}{}:{}", NativeStreamingImpl::NativeStreamingPrefix, host, portNumber));
-        return NativeStreaming(
+        auto generatedConnectionString = String(fmt::format("{}{}:{}", NativeStreamingPrefix, host, portNumber));
+        return createWithImplementation<IStreaming, NativeStreamingImpl>(
             generatedConnectionString,
             host,
             port,
             String("/"),
             context,
-            std::make_shared<opendaq_native_streaming_protocol::NativeStreamingClientHandler>(context));
+            std::make_shared<opendaq_native_streaming_protocol::NativeStreamingClientHandler>(context),
+            nullptr,
+            nullptr,
+            nullptr);
     }
     else
     {
@@ -174,14 +180,14 @@ bool NativeStreamingClientModule::connectionStringHasPrefix(const StringPtr& con
 
 DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
 {
-    return DeviceType(NativeStreamingDeviceImpl::NativeStreamingDeviceTypeId,
+    return DeviceType(NativeStreamingDeviceTypeId,
                       "PseudoDevice",
                       "Pseudo device, provides only signals of the remote device as flat list");
 }
 
 DeviceTypePtr NativeStreamingClientModule::createDeviceType()
 {
-    return DeviceType(NativeDeviceImpl::NativeConfigurationDeviceTypeId,
+    return DeviceType(NativeConfigurationDeviceTypeId,
                       "Device",
                       "Network device connected over Native configuration protocol");
 }

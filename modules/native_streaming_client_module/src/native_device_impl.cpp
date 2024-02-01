@@ -1,5 +1,5 @@
 #include <native_streaming_client_module/native_device_impl.h>
-#include <native_streaming_client_module/native_streaming_factory.h>
+#include <native_streaming_client_module/native_streaming_impl.h>
 
 #include <opendaq/custom_log.h>
 #include <regex>
@@ -25,16 +25,19 @@ NativeDeviceImpl::NativeDeviceImpl(const ContextPtr& context,
 {
     deviceInfo.freeze();
 
-    std::string streamingConnectionString =
-        std::regex_replace(connectionString.toStdString(),
-                           std::regex(NativeConfigurationDevicePrefix),
-                           NativeStreamingImpl::NativeStreamingPrefix);
-    nativeStreaming = NativeStreaming(streamingConnectionString,
-                                      host,
-                                      port,
-                                      path,
-                                      context,
-                                      transportProtocolClient);
+    std::string streamingConnectionString = std::regex_replace(connectionString.toStdString(),
+                                                               std::regex(NativeConfigurationDevicePrefix),
+                                                               NativeStreamingPrefix);
+    nativeStreaming =
+        createWithImplementation<IStreaming, NativeStreamingImpl>(streamingConnectionString,
+                                                                  host,
+                                                                  port,
+                                                                  path,
+                                                                  context,
+                                                                  transportProtocolClient,
+                                                                  nullptr,
+                                                                  nullptr,
+                                                                  nullptr);
     setupProtocolClients();
     configProtocolClient->connect(parent);
     wrappedDevice = configProtocolClient->getDevice();

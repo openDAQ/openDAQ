@@ -22,12 +22,12 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
+static const char* NativeStreamingDeviceTypeId = "daq.nsd";
+static const char* NativeStreamingDevicePrefix = "daq.nsd://";
+
 class NativeStreamingDeviceImpl : public Device
 {
 public:
-    static constexpr const char* NativeStreamingDeviceTypeId = "daq.nsd";
-    static constexpr const char* NativeStreamingDevicePrefix = "daq.nsd://";
-
     explicit NativeStreamingDeviceImpl(const ContextPtr& ctx,
                                        const ComponentPtr& parent,
                                        const StringPtr& localId,

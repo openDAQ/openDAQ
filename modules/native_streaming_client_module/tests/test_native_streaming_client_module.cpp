@@ -71,7 +71,7 @@ TEST_F(NativeStreamingClientModuleTest, AcceptsConnectionStringCorrect)
     auto module = CreateModule();
 
     ASSERT_TRUE(module.acceptsConnectionParameters("daq.nsd://device8"));
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.ncd://device8"));
+    ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://device8"));
 }
 
 TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionStringNull)
@@ -87,7 +87,7 @@ TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionFailed)
     auto module = CreateModule();
 
     ASSERT_THROW(module.createDevice("daq.nsd://127.0.0.1", nullptr), NotFoundException);
-    ASSERT_THROW(module.createDevice("daq.ncd://127.0.0.1", nullptr), NotFoundException);
+    ASSERT_THROW(module.createDevice("daq.nd://127.0.0.1", nullptr), NotFoundException);
 }
 
 TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConnectionStringNull)
@@ -138,8 +138,8 @@ TEST_F(NativeStreamingClientModuleTest, GetAvailableComponentTypes)
     ASSERT_EQ(deviceTypes.getCount(), 2u);
     ASSERT_TRUE(deviceTypes.hasKey("daq.nsd"));
     ASSERT_EQ(deviceTypes.get("daq.nsd").getId(), "daq.nsd");
-    ASSERT_TRUE(deviceTypes.hasKey("daq.ncd"));
-    ASSERT_EQ(deviceTypes.get("daq.ncd").getId(), "daq.ncd");
+    ASSERT_TRUE(deviceTypes.hasKey("daq.nd"));
+    ASSERT_EQ(deviceTypes.get("daq.nd").getId(), "daq.nd");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());

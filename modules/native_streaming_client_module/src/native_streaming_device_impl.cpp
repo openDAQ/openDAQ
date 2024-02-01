@@ -1,6 +1,6 @@
 #include <native_streaming_client_module/native_streaming_device_impl.h>
-#include <native_streaming_client_module/native_streaming_signal_factory.h>
-#include <native_streaming_client_module/native_streaming_factory.h>
+#include <native_streaming_client_module/native_streaming_signal_impl.h>
+#include <native_streaming_client_module/native_streaming_impl.h>
 
 #include <opendaq/device_info_factory.h>
 
@@ -59,19 +59,19 @@ void NativeStreamingDeviceImpl::createNativeStreaming(const StringPtr& host,
         };
 
     auto clientHandler = std::make_shared<NativeStreamingClientHandler>(context);
-    std::string streamingConnectionString =
-        std::regex_replace(connectionString.toStdString(),
-                           std::regex(NativeStreamingDevicePrefix),
-                           NativeStreamingImpl::NativeStreamingPrefix);
-    nativeStreaming = NativeStreaming(streamingConnectionString,
-                                      host,
-                                      port,
-                                      path,
-                                      context,
-                                      clientHandler,
-                                      onSignalAvailableCallback,
-                                      onSignalUnavailableCallback,
-                                      onReconnectionStatusChangedCallback);
+    std::string streamingConnectionString = std::regex_replace(connectionString.toStdString(),
+                                                               std::regex(NativeStreamingDevicePrefix),
+                                                               NativeStreamingPrefix);
+    nativeStreaming =
+        createWithImplementation<IStreaming, NativeStreamingImpl>(streamingConnectionString,
+                                                                  host,
+                                                                  port,
+                                                                  path,
+                                                                  context,
+                                                                  clientHandler,
+                                                                  onSignalAvailableCallback,
+                                                                  onSignalUnavailableCallback,
+                                                                  onReconnectionStatusChangedCallback);
 }
 
 void NativeStreamingDeviceImpl::activateStreaming()
@@ -125,7 +125,10 @@ void NativeStreamingDeviceImpl::addToDeviceSignals(const StringPtr& signalString
     if (auto iter = deviceSignals.find(signalStringId); iter != deviceSignals.end())
         throw AlreadyExistsException("Signal with id {} already exists in native streaming device", signalStringId);
 
-    auto signalToAdd = NativeStreamingSignal(this->context, this->signals, signalDescriptor, signalStringId);
+    auto signalToAdd = createWithImplementation<ISignal, NativeStreamingSignalImpl>(this->context,
+                                                                                    this->signals,
+                                                                                    signalDescriptor,
+                                                                                    signalStringId);
     initSignalName(signalToAdd, name);
     initSignalDescription(signalToAdd, description);
 
@@ -163,7 +166,10 @@ void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr
     else
     {
         if (auto iter2 = deviceSignalsReconnection.find(signalStringId); iter2 == deviceSignalsReconnection.end())
-            signalToAdd = NativeStreamingSignal(this->context, this->signals, signalDescriptor, signalStringId);
+            signalToAdd = createWithImplementation<ISignal, NativeStreamingSignalImpl>(this->context,
+                                                                                       this->signals,
+                                                                                       signalDescriptor,
+                                                                                       signalStringId);
         else
             throw AlreadyExistsException("Signal with id {} already exists in native streaming device", signalStringId);
     }

@@ -101,10 +101,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getUnit().detach();
         },
-        [](daq::IPropertyBuilder *object, daq::IUnit* unit)
+        [](daq::IPropertyBuilder *object, const py::object& unit)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setUnit(unit);
+            objectPtr.setUnit(pyObjectToBaseObject(unit));
         },
         py::return_value_policy::take_ownership,
         "Gets the Unit of the Property. / Sets the Unit of the Property.");
@@ -114,10 +114,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getMinValue().detach();
         },
-        [](daq::IPropertyBuilder *object, daq::INumber* min)
+        [](daq::IPropertyBuilder *object, const py::object& min)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setMinValue(min);
+            objectPtr.setMinValue(pyObjectToBaseObject(min));
         },
         py::return_value_policy::take_ownership,
         "Gets the Minimum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`. / Sets the Minimum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`.");
@@ -127,10 +127,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getMaxValue().detach();
         },
-        [](daq::IPropertyBuilder *object, daq::INumber* max)
+        [](daq::IPropertyBuilder *object, const py::object& max)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setMaxValue(max);
+            objectPtr.setMaxValue(pyObjectToBaseObject(max));
         },
         py::return_value_policy::take_ownership,
         "Gets the Maximum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`. / Sets the Maximum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`.");
@@ -153,10 +153,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getSuggestedValues().detach();
         },
-        [](daq::IPropertyBuilder *object, daq::IList* values)
+        [](daq::IPropertyBuilder *object, const py::object& values)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setSuggestedValues(values);
+            objectPtr.setSuggestedValues(pyObjectToBaseObject(values));
         },
         py::return_value_policy::take_ownership,
         "Gets the list of Suggested values. Contains values that are the optimal gettings for the corresponding Property value. These values, however, are not enforced when getting a new Property value. / Sets the list of Suggested values. Contains values that are the optimal settings for the corresponding Property value. These values, however, are not enforced when setting a new Property value.");
@@ -166,10 +166,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getVisible().detach();
         },
-        [](daq::IPropertyBuilder *object, daq::IBoolean* visible)
+        [](daq::IPropertyBuilder *object, const py::object& visible)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setVisible(visible);
+            objectPtr.setVisible(pyObjectToBaseObject(visible));
         },
         py::return_value_policy::take_ownership,
         "Used to determine whether the property is visible or not. / Used to determine whether the property is visible or not.");
@@ -179,10 +179,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getReadOnly().detach();
         },
-        [](daq::IPropertyBuilder *object, daq::IBoolean* readOnly)
+        [](daq::IPropertyBuilder *object, const py::object& readOnly)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setReadOnly(readOnly);
+            objectPtr.setReadOnly(pyObjectToBaseObject(readOnly));
         },
         py::return_value_policy::take_ownership,
         "Used to determine whether the Property is a read-only property or not. / Used to determine whether the Property is a read-only property or not.");
@@ -218,10 +218,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getValidator().detach();
         },
-        [](daq::IPropertyBuilder *object, daq::IValidator* validator)
+        [](daq::IPropertyBuilder *object, const py::object& validator)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setValidator(validator);
+            objectPtr.setValidator(pyObjectToBaseObject(validator));
         },
         py::return_value_policy::take_ownership,
         "Gets the validator of the Property. / Sets the validator of the Property.");
@@ -231,10 +231,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getCoercer().detach();
         },
-        [](daq::IPropertyBuilder *object, daq::ICoercer* coercer)
+        [](daq::IPropertyBuilder *object, const py::object& coercer)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setCoercer(coercer);
+            objectPtr.setCoercer(pyObjectToBaseObject(coercer));
         },
         py::return_value_policy::take_ownership,
         "Gets the coercer of the Property. / Sets the coercer of the Property.");
@@ -244,10 +244,10 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             return objectPtr.getCallableInfo().detach();
         },
-        [](daq::IPropertyBuilder *object, daq::ICallableInfo* callable)
+        [](daq::IPropertyBuilder *object, const py::object& callable)
         {
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setCallableInfo(callable);
+            objectPtr.setCallableInfo(pyObjectToBaseObject(callable));
         },
         py::return_value_policy::take_ownership,
         "Gets the Callable information objects of the Property that specifies the argument and return types of the callable object stored as the Property value. / Sets the Callable information objects of the Property that specifies the argument and return types of the callable object stored as the Property value.");

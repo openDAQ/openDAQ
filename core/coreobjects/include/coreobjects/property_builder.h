@@ -96,7 +96,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getDescription(IString** description) = 0;
     
-    // [returnSelf]
+    // [returnSelf, polymorphic(unit)]
     /*!
      * @brief Sets the Unit of the Property.
      * @param unit The Unit of the Property.
@@ -109,7 +109,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getUnit(IUnit** unit) = 0;
     
-    // [returnSelf]
+    // [returnSelf, polymorphic(min)]
     /*!
      * @brief Sets the Minimum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`.
      * @param min The Minimum value of the Property.
@@ -122,7 +122,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getMinValue(INumber** min) = 0;
     
-    // [returnSelf]
+    // [returnSelf, polymorphic(max)]
     /*!
      * @brief Sets the Maximum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`.
      * @param max The Maximum value of the Property.
@@ -135,7 +135,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getMaxValue(INumber** max) = 0;
     
-    // [returnSelf]
+    // [returnSelf, polymorphic(value)]
     /*!
      * @brief Sets the Default value of the Property. The Default value must always be configured for a Property to be
      * in a valid state. Exceptions are Function/Procedure and Reference properties.
@@ -150,7 +150,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getDefaultValue(IBaseObject** value) = 0;
 
-    // [templateType(values, IBaseObject), returnSelf]
+    // [templateType(values, IBaseObject), returnSelf, polymorphic(values)]
     /*!
      * @brief Sets the list of Suggested values. Contains values that are the optimal settings for the corresponding
      * Property value. These values, however, are not enforced when setting a new Property value.
@@ -166,7 +166,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getSuggestedValues(IList** values) = 0;
     
-    // [returnSelf]
+    // [returnSelf, polymorphic(visible)]
     /*!
      * @brief Used to determine whether the property is visible or not.
      * @param visible True if the Property is visible; false otherwise.
@@ -179,7 +179,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getVisible(IBoolean** visible) = 0;
     
-    // [returnSelf]
+    // [returnSelf, polymorphic(readOnly)]
     /*!
      * @brief Used to determine whether the Property is a read-only property or not.
      * @param readOnly True if the Property is a read-only property; false otherwise.
@@ -194,7 +194,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getReadOnly(IBoolean** readOnly) = 0;
     
-    // [returnSelf]
+    // [returnSelf, polymorphic(values)]
     /*!
      * @brief Sets the list or dictionary of selection values. If the list/dictionary is not empty, the property
      * is a Selection property, and must have the Value type `ctInt`.
@@ -224,7 +224,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * @param[out] propertyEval The referenced property.
      */
     virtual ErrCode INTERFACE_FUNC getReferencedProperty(IEvalValue** propertyEval) = 0;
-    // [returnSelf]
+    // [returnSelf, polymorphic(validator)]
     /*!
      * @brief Sets the validator of the Property.
      * @param validator The validator.
@@ -239,7 +239,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getValidator(IValidator** validator) = 0;
     
-    // [returnSelf]
+    // [returnSelf, polymorphic(coercer)]
     /*!
      * @brief Sets the coercer of the Property.
      * @param coercer The coercer.
@@ -254,7 +254,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getCoercer(ICoercer** coercer) = 0;
     
-    // [returnSelf]
+    // [returnSelf, polymorphic(callable)]
     /*!
      * @brief Sets the Callable information objects of the Property that specifies the argument and return types
      * of the callable object stored as the Property value.

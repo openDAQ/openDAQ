@@ -112,8 +112,9 @@ BaseObjectPtr BaseConfigProviderImpl::HandleUnderfineValue(const std::string& va
 
 bool BaseConfigProviderImpl::HandleOptionLeaf(DictPtr<IString, IBaseObject> optionsValue, StringPtr envKey, StringPtr envValue)
 {
-    if (envValue.getLength() > 1 && envValue[0] == '"' && envValue[envValue.getLength() - 1] == '"')
-       envValue = envValue.toStdString().substr(1, envValue.getLength() - 2);
+    std::string value = envValue;
+    if (value.length() > 1 && value[0] == '"' && value[value.length() - 1] == '"')
+        envValue = value.substr(1, value.length() - 2);
 
     auto child = optionsValue.get(envKey);
     CoreType childType = child.assigned() ? child.getCoreType() : CoreType::ctString;

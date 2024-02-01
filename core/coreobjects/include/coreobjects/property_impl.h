@@ -202,6 +202,7 @@ public:
         : PropertyImpl(name, BaseObjectPtr(defaultValue), true)
     {
         this->valueType = ctObject;
+        this->readOnly = true;
         if (defaultValue == nullptr)
             this->defaultValue = PropertyObject().detach();
 
@@ -786,15 +787,7 @@ public:
 
         if (defaultValue.assigned())
         {
-            Bool shouldFreeze = true;
-            if (valueType == ctObject)
-            {
-                const ErrCode err = getReadOnly(&shouldFreeze);
-                if (OPENDAQ_FAILED(err))
-                    return err;
-            }
-
-            if (const auto freezable = defaultValue.asPtrOrNull<IFreezable>(); shouldFreeze && freezable.assigned())
+            if (const auto freezable = defaultValue.asPtrOrNull<IFreezable>(); freezable.assigned())
             {
                 const ErrCode err = freezable->freeze();
                 if (OPENDAQ_FAILED(err))

@@ -87,30 +87,41 @@ void StreamingServer::onUnsubscribe(const OnUnsubscribeCallback& callback)
     onUnsubscribeCallback = callback;
 }
 
-void StreamingServer::unicastPacket(const daq::streaming_protocol::StreamWriterPtr& client,
+void StreamingServer::unicastPacket(const std::string& streamId,
                                     const std::string& signalId,
                                     const PacketPtr& packet)
 {
-    auto& signals = clients[client];
-    if (signals.count(signalId) > 0)
-        signals[signalId]->write(packet);
+    if (auto clientIt = clients.find(streamId); clientIt != clients.end())
+    {
+        auto signals = clientIt->second.second;
+        if (auto signalIt = signals.find(streamId); signalIt != signals.end())
+            signalIt->second->write(packet);
+    }
 }
 
 void StreamingServer::broadcastPacket(const std::string& signalId, const PacketPtr& packet)
 {
     for (auto& [_, client] : clients)
-        if (client.count(signalId) > 0)
-            client[signalId]->write(packet);
+    {
+        auto signals = client.second;
+        if (auto signalIter = signals.find(signalId); signalIter != signals.end())
+        {
+            signalIter->second->write(packet);
+        }
+    }
 }
 
 void StreamingServer::sendPacketToSubscribers(const std::string& signalId, const PacketPtr& packet)
 {
     for (auto& [_, client] : clients)
-        if (auto signalIter = client.find(signalId); signalIter != client.end())
+    {
+        auto signals = client.second;
+        if (auto signalIter = signals.find(signalId); signalIter != signals.end())
         {
             if (signalIter->second->isSubscribed())
                 signalIter->second->write(packet);
         }
+    }
 }
 
 void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
@@ -142,7 +153,7 @@ void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
     }
 
     LOG_I("New client connected. Stream Id: {}", writer->id());
-    clients.insert({writer, outputSignals});
+    clients.insert({writer->id(), {writer, outputSignals}});
 
     writeSignalsAvailable(writer, signals);
 }
@@ -159,13 +170,7 @@ int StreamingServer::onControlCommand(const std::string& streamId,
         return -1;
     }
 
-    auto clientIter = std::find_if(std::begin(clients),
-                                   std::end(clients),
-                                   [&streamId](const auto& pair)
-                                   {
-                                       return pair.first->id() == streamId;
-                                   });
-
+    auto clientIter = clients.find(streamId);
     if (clientIter == std::end(clients))
     {
         LOG_W("Unknown streamId: {}, reject command", streamId);
@@ -179,7 +184,8 @@ int StreamingServer::onControlCommand(const std::string& streamId,
         std::string message = "Command '" + command + "' failed for unknown signals:\n";
         for (const auto& signalId : signalIds)
         {
-            if (auto signalIter = clientIter->second.find(signalId); signalIter != clientIter->second.end())
+            auto signals = clientIter->second.second;
+            if (auto signalIter = signals.find(signalId); signalIter != signals.end())
             {
                 if (command == "subscribe")
                     subscribeHandler(signalId, signalIter->second);
@@ -253,8 +259,9 @@ void StreamingServer::writeInit(const streaming_protocol::StreamWriterPtr& write
 bool StreamingServer::isSignalSubscribed(const std::string& signalId) const
 {
     bool result = false;
-    for (const auto& [_, signals] : clients)
+    for (const auto& [_, client] : clients)
     {
+        auto signals = client.second;
         if (auto iter = signals.find(signalId); iter != signals.end())
             result = result || iter->second->isSubscribed();
     }

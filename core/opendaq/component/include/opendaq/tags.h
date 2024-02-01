@@ -27,18 +27,14 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-/*#
- * [templated(defaultAliasName: TagsPtr)]
- * [interfaceSmartPtr(ITags, GenericTagsPtr)]
- */
-
 /*!
  * @brief List of string tags. Provides helpers to get and search the list of tags.
  *
  * Tags provide a view into an underlying list of tags. The list can be retrieved via
  * `getList`, and inspected through `contains` and `query`.
  *
- * To manipulate the list of tags, the TagsConfig functions must be used.
+ * To manipulate the list of tags, the add/remove tag functions can be used. The Tags
+ * object can only be modified if the object is not locked by the owning Component.
  */
 DECLARE_OPENDAQ_INTERFACE(ITags, IBaseObject)
 {
@@ -63,5 +59,8 @@ DECLARE_OPENDAQ_INTERFACE(ITags, IBaseObject)
     virtual ErrCode INTERFACE_FUNC query(IString* query, Bool* value) = 0;
 };
 /*!@}*/
+
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, Tags, ITags)
 
 END_NAMESPACE_OPENDAQ

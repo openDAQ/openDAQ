@@ -40,6 +40,7 @@
 #include <coretypes/validation.h>
 #include <coreobjects/core_event_args_factory.h>
 #include <coretypes/validation.h>
+#include <coretypes/cloneable.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -63,8 +64,7 @@ class GenericPropertyObjectImpl : public ImplementationOfWeak<PropObjInterface,
 {
 public:
     explicit GenericPropertyObjectImpl();
-    explicit GenericPropertyObjectImpl(const TypeManagerPtr& manager, const StringPtr& className);
-    explicit GenericPropertyObjectImpl(const TypeManagerPtr& manager, const StringPtr& className, const ProcedurePtr& triggerCoreEvent);
+    explicit GenericPropertyObjectImpl(const TypeManagerPtr& manager, const StringPtr& className, const ProcedurePtr& triggerCoreEvent = nullptr);
 
     virtual ErrCode INTERFACE_FUNC getClassName(IString** className) override;
 
@@ -96,7 +96,9 @@ public:
     virtual ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
     virtual ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
     ErrCode INTERFACE_FUNC getCoreEventTrigger(IProcedure** trigger) override;
-    ErrCode INTERFACE_FUNC setCoreEventTrigger(IProcedure* trigger)override;
+    ErrCode INTERFACE_FUNC setCoreEventTrigger(IProcedure* trigger) override;
+    ErrCode INTERFACE_FUNC clone(IPropertyObject** clonedPropertyObject) override;
+    ErrCode INTERFACE_FUNC setPath(IString* path) override;
 
     // IUpdatable
     virtual ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
@@ -124,6 +126,17 @@ public:
     // IPropertyObjectProtected
     virtual ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) override;
+    
+    using PropertyValueEventEmitter = EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr>;
+    using EndUpdateEventEmitter = EventEmitter<PropertyObjectPtr, EndUpdateEventArgsPtr>;
+
+    void configureClonedMembers(const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueWriteEvents,
+                                const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueReadEvents,
+                                const EndUpdateEventEmitter& endUpdateEvent,
+                                const ProcedurePtr& triggerCoreEvent,
+                                const PropertyOrderedMap& localProperties,
+                                const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues,
+                                const std::vector<StringPtr>& customOrder);
 
 protected:
     struct UpdatingAction
@@ -141,6 +154,7 @@ protected:
     int updateCount;
     UpdatingActions updatingPropsAndValues;
     bool coreEventMuted;
+    WeakRefPtr<ITypeManager> manager;
 
     void internalDispose(bool) override;
     ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool isUpdating);
@@ -188,8 +202,6 @@ protected:
     PropertyPtr getUnboundPropertyOrNull(const StringPtr& name) const;
 
 private:
-    using PropertyValueEventEmitter = EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr>;
-    using EndUpdateEventEmitter = EventEmitter<PropertyObjectPtr, EndUpdateEventArgsPtr>;
 
     StringPtr className;
     PropertyObjectClassPtr objectClass;
@@ -197,9 +209,11 @@ private:
     std::unordered_map<StringPtr, PropertyValueEventEmitter> valueReadEvents;
     EndUpdateEventEmitter endUpdateEvent;
     ProcedurePtr triggerCoreEvent;
+    StringPtr path;
 
     PropertyOrderedMap localProperties;
     std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
+
 
     // Gets the property, as well as its value. Gets the referenced property, if the property is a refProp
     ErrCode getPropertyAndValueInternal(const StringPtr& name, BaseObjectPtr& value, PropertyPtr& property, bool triggerEvent = true);
@@ -247,6 +261,8 @@ private:
 
     PropertyPtr checkForRefPropAndGetBoundProp(PropertyPtr& prop, bool* isReferenced = nullptr) const;
 
+    void cloneAndSetChildPropertyObject(const PropertyPtr& prop);
+
     // Checks whether the property is a reference property that references an already referenced property
     bool hasDuplicateReferences(const PropertyPtr& prop);
 
@@ -271,17 +287,20 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     , coreEventMuted(true)
     , className(nullptr)
     , objectClass(nullptr)
+    , path("")
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
 }
 
-
 template <typename PropObjInterface, typename... Interfaces>
 GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl(const TypeManagerPtr& manager,
-                                                                                      const StringPtr& className)
+                                                                                      const StringPtr& className,
+                                                                                      const ProcedurePtr& triggerCoreEvent)
     : GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl()
 {
+    this->triggerCoreEvent = triggerCoreEvent;
+
     if (className.assigned() && className != "")
     {
         this->className = className;
@@ -298,16 +317,13 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
             throw InvalidTypeException{"Type with name {} is not a property object class", className};
 
         objectClass = objClass;
-    }
-}
 
-template <typename PropObjInterface, typename... Interfaces>
-GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl(const TypeManagerPtr& manager,
-                                                                                      const StringPtr& className,
-                                                                                      const ProcedurePtr& triggerCoreEvent)
-    : GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl(manager, className)
-{
-    this->triggerCoreEvent = triggerCoreEvent;
+        for (const auto& prop : objectClass.getProperties(true))
+            cloneAndSetChildPropertyObject(prop);
+    }
+
+    if (manager.assigned())
+        this->manager = manager;
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -738,7 +754,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
         {
             if (prop.getReadOnly())
             {
-                return OPENDAQ_ERR_ACCESSDENIED;
+                CoreType coreType = prop.getCoreType();
+                if (!(coreType == ctObject && isChildProp))
+                    return OPENDAQ_ERR_ACCESSDENIED;
             }
         }
 
@@ -785,6 +803,28 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             coercePropertyWrite(prop, valuePtr);
             validatePropertyWrite(prop, valuePtr);
             coerceMinMax(prop, valuePtr);
+            
+            const auto ct = prop.getValueType();
+            if (ct == ctList || ct == ctDict)
+            {
+                BaseObjectPtr clonedValue;
+                err = valuePtr.asPtr<ICloneable>()->clone(&clonedValue);
+                if (OPENDAQ_FAILED(err))
+                    return err;
+
+                valuePtr = clonedValue.detach();
+            }
+            else if (ct == ctObject)
+            {
+                const auto objInternal = valuePtr.asPtrOrNull<IPropertyObjectInternal>();
+                if (objInternal.assigned() && !coreEventMuted)
+                {
+                    const auto childPath = path != "" ? path + "." + propName : propName;
+                    objInternal.setPath(childPath);
+                    objInternal.setCoreEventTrigger(triggerCoreEvent);
+                    objInternal.enableCoreEventTrigger();
+                }
+            }
 
             if (isUpdating)
             {
@@ -800,18 +840,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
                 {
                     const auto newVal = callPropertyValueWrite(prop, valuePtr, PropertyEventType::Update, false);
                     if (!coreEventMuted && triggerCoreEvent.assigned())
-                        triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, newVal));
-                }
-            }
-
-            if (prop.getValueType() == ctObject)
-            {
-                const auto obj = valuePtr.asPtrOrNull<IPropertyObjectInternal>();
-                if (obj.assigned())
-                {
-                    obj.setCoreEventTrigger(triggerCoreEvent);
-                    if (!coreEventMuted)
-                        obj.enableCoreEventTrigger();
+                        triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, newVal, path));
                 }
             }
         }
@@ -968,6 +997,30 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkFor
     if (isReferenced)
         *isReferenced = false;
     return boundProp;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneAndSetChildPropertyObject(const PropertyPtr& prop)
+{
+    const auto propPtrInternal = prop.asPtr<IPropertyInternal>();
+    if (propPtrInternal.assigned() && propPtrInternal.getValueTypeUnresolved() == ctObject && prop.getDefaultValue().assigned())
+    {
+        const auto propName = prop.getName();
+        const auto defaultValueObjInternal = prop.getDefaultValue().asPtrOrNull<IPropertyObjectInternal>();
+        if (!defaultValueObjInternal.assigned())
+            return;
+        const auto cloned = defaultValueObjInternal.clone();
+        setPropertyValueInternal(propName, cloned, false, true, false);
+
+        if (!coreEventMuted)
+        {
+            const auto childPath = path != "" ? path + "." + propName : propName;
+            const auto clonedInternal = cloned.asPtr<IPropertyObjectInternal>();
+            clonedInternal.setPath(childPath);
+            clonedInternal.setCoreEventTrigger(triggerCoreEvent);
+            clonedInternal.enableCoreEventTrigger();
+        }
+    }
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -1151,6 +1204,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
             value = list[std::size_t(index)];
         }
     }
+    
+    CoreType coreType = value.getCoreType();
+    if (coreType == ctList || coreType == ctDict)
+    {
+        BaseObjectPtr clonedValue;
+        value.asPtr<ICloneable>()->clone(&clonedValue);
+        value = clonedValue.detach();
+    }
+
     if (triggerEvent)
         value = callPropertyValueRead(property, value);
     return OPENDAQ_SUCCESS;
@@ -1261,6 +1323,25 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearProtect
     return clearPropertyValueInternal(propertyName, true, updateCount > 0);
 }
 
+template <typename PropObjInterface, typename... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureClonedMembers(
+    const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueWriteEvents,
+    const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueReadEvents,
+    const EndUpdateEventEmitter& endUpdateEvent,
+    const ProcedurePtr& triggerCoreEvent,
+    const PropertyOrderedMap& localProperties,
+    const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues,
+    const std::vector<StringPtr>& customOrder)
+{
+    this->valueWriteEvents = valueWriteEvents;
+    this->valueReadEvents = valueReadEvents;
+    this->endUpdateEvent = endUpdateEvent;
+    this->triggerCoreEvent = triggerCoreEvent;
+    this->localProperties = localProperties;
+    this->propValues = propValues;
+    this->customOrder = customOrder;
+}
+
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropertyValue(IString* propertyName)
 {
@@ -1300,7 +1381,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
 
         if (!protectedAccess)
         {
-            if (prop.getReadOnly())
+            if (prop.getReadOnly() && prop.getValueType() != ctObject)
             {
                 return OPENDAQ_ERR_ACCESSDENIED;
             }
@@ -1340,9 +1421,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             else
             {
                 propValues.erase(it);
+                cloneAndSetChildPropertyObject(prop);
+
                 const auto val = callPropertyValueWrite(prop, nullptr, PropertyEventType::Clear, false);
                 if (!coreEventMuted && triggerCoreEvent.assigned())
-                    triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, val));
+                    triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, val, path));
             }
         }
     }
@@ -1398,21 +1481,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
         const auto res = localProperties.insert(std::make_pair(propName, propPtr));
         if (!res.second)
             return this->makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists.)", propName));
+        
+        cloneAndSetChildPropertyObject(propPtr);
 
         if (!coreEventMuted && triggerCoreEvent.assigned())
-            triggerCoreEvent(CoreEventArgsPropertyAdded(objPtr, propPtr));
-
-        const auto propPtrInternal = propPtr.asPtr<IPropertyInternal>();
-        if (propPtrInternal.getValueTypeUnresolved() == ctObject && propPtr.getDefaultValue().assigned())
-        {
-            const auto defaultValueObjInternal = propPtr.getDefaultValue().asPtrOrNull<IPropertyObjectInternal>();
-            if (defaultValueObjInternal.assigned())
-            {
-                defaultValueObjInternal.setCoreEventTrigger(triggerCoreEvent);
-                if (!coreEventMuted)
-                    defaultValueObjInternal.enableCoreEventTrigger();
-            }
-        }
+            triggerCoreEvent(CoreEventArgsPropertyAdded(objPtr, propPtr, path));
 
         return OPENDAQ_SUCCESS;
     });
@@ -1444,7 +1517,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
     }
 
     if(!coreEventMuted && triggerCoreEvent.assigned())
-        triggerCoreEvent(CoreEventArgsPropertyRemoved(objPtr, propertyName));
+        triggerCoreEvent(CoreEventArgsPropertyRemoved(objPtr, propertyName, path));
 
     return OPENDAQ_SUCCESS;
 }
@@ -1664,7 +1737,10 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::applyUpdate()
         }
         else
         {
-            propValues.erase(item.first.getName());
+            const auto prop = item.first;
+            propValues.erase(prop.getName());
+
+            cloneAndSetChildPropertyObject(prop);
         }
 
         if (item.second.setValue)
@@ -1783,24 +1859,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::enableCoreEv
         {
             const auto objInternal = item.second.template asPtrOrNull<IPropertyObjectInternal>();
             if (objInternal.assigned())
-                objInternal.enableCoreEventTrigger();
-        }
-    }
-
-    for (const auto& item : localProperties)
-    {
-        if (item.second.assigned())
-        {
-            const auto  propInternal = item.second.template asPtrOrNull<IPropertyInternal>();
-            if (propInternal.getValueTypeUnresolved() == ctObject)
             {
-                const auto defaultVal = item.second.getDefaultValue();
-                if (defaultVal.assigned())
-                {
-                    const auto objInternal = defaultVal.template asPtrOrNull<IPropertyObjectInternal>();
-                    if (objInternal.assigned())
-                        objInternal.enableCoreEventTrigger();
-                }
+                const auto childPath = path != "" ? path + "." + item.first : item.first;
+                objInternal.setPath(childPath);
+                objInternal.setCoreEventTrigger(triggerCoreEvent);
+                objInternal.enableCoreEventTrigger();
             }
         }
     }
@@ -1857,6 +1920,40 @@ template <typename PropObjInterface, typename ... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setCoreEventTrigger(IProcedure* trigger)
 {
     this->triggerCoreEvent = trigger;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPropertyObject** clonedPropertyObject)
+{
+    OPENDAQ_PARAM_NOT_NULL(clonedPropertyObject);
+
+    const auto managerRef = manager.assigned() ? manager.getRef() : nullptr; 
+    PropertyObjectPtr obj = createWithImplementation<IPropertyObject, PropertyObjectImpl>(managerRef, this->className);
+
+    auto implPtr = static_cast<PropertyObjectImpl*>(obj.getObject());
+    implPtr->configureClonedMembers(valueWriteEvents,
+                                    valueReadEvents,
+                                    endUpdateEvent,
+                                    triggerCoreEvent,
+                                    localProperties,
+                                    propValues,
+                                    customOrder);
+
+    *clonedPropertyObject = obj.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPath(IString* path)
+{
+    OPENDAQ_PARAM_NOT_NULL(path);
+
+    if (this->path == "")
+        this->path = path;
+    else
+        return OPENDAQ_IGNORED;
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -2283,7 +2380,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updatingValuesW
     }
 
     if(!coreEventMuted && triggerCoreEvent.assigned())
-        triggerCoreEvent(CoreEventArgsPropertyObjectUpdateEnd(objPtr, dict));
+        triggerCoreEvent(CoreEventArgsPropertyObjectUpdateEnd(objPtr, dict, path));
 }
 
 template <class PropObjInterface, class... Interfaces>

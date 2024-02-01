@@ -30,7 +30,7 @@ TEST_F(ChannelTest, SerializeAndDeserialize)
     const auto ch = daq::createWithImplementation<daq::IChannel, MockChannel>(daq::NullContext(), nullptr, "ch");
     ch.setName("ch_name");
     ch.setDescription("ch_desc");
-    ch.getTags().add("ch_tag");
+    ch.getTags().asPtr<ITagsPrivate>().add("ch_tag");
 
     const auto serializer = daq::JsonSerializer(daq::True);
     ch.serialize(serializer);

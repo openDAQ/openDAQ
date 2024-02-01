@@ -17,6 +17,23 @@ Support configuring instance builder from config provider
 + [factory] ConfigProviderPtr JsonConfigProvider(const StringPtr& filename)
 + [factory] ConfigProviderPtr EnvConfigProvider()
 + [factory] ConfigProviderPtr CmdLineArgsConfigProvider(const ListPtr<IString>& args)
+1.2.2024
+
++m [function] IMultiReader::skipSamples
+
+23.1.2024
+Description:
+	- Change ITagsConfig to ITagsPrivate and remove inheritance
+	- Add TagsChanged core event
+	- Make Tags changeable after creation (Tags are no longer freezable)
+	
+-m [interface] ITagsConfig : public ITags
++m [interface] ITagsPrivate : public IBaseObject
+- [factory] inline TagsConfigPtr TagsCopy(TagsPtr tags)
+-m [factory] inline TagsConfigPtr Tags()
++m [factory] inline TagsPtr Tags()
+-m [function] IComponent::getTags(ITagsConfig** tags)
+-m [function] IComponent::getTags(ITags** tags)
 
 22.1.2024
 Description:
@@ -35,6 +52,24 @@ Description:
 +  [function] IUpdatable::serializeForUpdate(ISerializer* serializer)
 +  [interface] IComponentDeserializeContext: public IBaseObject
 +  [interface] IDeserializeComponent: public IBaseObject
+
+16.01.2024
+Nested object-type property enhancement
+  - Object-type property default values are now frozen when added to Property objects 
+  - Said default values are cloned as local values that can be modified by users
+  - Property object core events now contain the path to the property if the property is contained within a nested property object
+
++ [function] IPropertyObjectInternal::clone(IPropertyObject** cloned)
++ [function] IPropertyObjectInternal::setPath(IString* path)
+-m [factory] CoreEventArgsPtr CoreEventArgsPropertyValueChanged(const PropertyObjectPtr& propOwner, const StringPtr& propName, const BaseObjectPtr& value)
++m [factory] CoreEventArgsPtr CoreEventArgsPropertyValueChanged(const PropertyObjectPtr& propOwner, const StringPtr& propName, const BaseObjectPtr& value, const StringPtr& path)
+-m [factory] CoreEventArgsPtr CoreEventArgsPropertyObjectUpdateEnd(const PropertyObjectPtr& propOwner, const DictPtr<IString, IBaseObject>& updatedProperties)
++m [factory] CoreEventArgsPtr CoreEventArgsPropertyObjectUpdateEnd(const PropertyObjectPtr& propOwner, const DictPtr<IString, IBaseObject>& updatedProperties, const StringPtr& path)
+-m [factory] CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyObjectPtr& propOwner, const PropertyPtr& prop)
++m [factory] CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyObjectPtr& propOwner, const PropertyPtr& prop, const StringPtr& path)
+-m [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName)
++m [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName, const StringPtr& path)
+
 
 12.01.2024
 Description:

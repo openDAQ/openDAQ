@@ -28,7 +28,7 @@ DictPtr<IString, IDeviceType> RefDeviceModule::onGetAvailableDeviceTypes()
 {
     auto result = Dict<IString, IDeviceType>();
 
-    auto deviceType = RefDeviceImpl::createType();
+    auto deviceType = RefDeviceImpl::CreateType();
     result.set(deviceType.getId(), deviceType);
 
     return result;

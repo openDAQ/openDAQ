@@ -35,7 +35,7 @@ PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> declareISearchFilter(pybind11::m
 
 void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> cls)
 {
-    cls.doc() = "";
+    cls.doc() = "Search filter that can be passed as an optional parameter to openDAQ tree traversal functions to filter out unwanted results. Allows for recursive searches.";
 
     m.def("VisibleSearchFilter", &daq::VisibleSearchFilter_Create);
     m.def("RequiredTagsSearchFilter", &daq::RequiredTagsSearchFilter_Create);
@@ -55,7 +55,7 @@ void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq:
             return objectPtr.acceptsComponent(component);
         },
         py::arg("component"),
-        "");
+        "Defines whether or not the component should be included in the search results");
     cls.def("visit_children",
         [](daq::ISearchFilter *object, daq::IComponent* component)
         {
@@ -63,5 +63,5 @@ void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq:
             return objectPtr.visitChildren(component);
         },
         py::arg("component"),
-        "");
+        "Defines whether or not the children of said component should be traversed during a recursive search.");
 }

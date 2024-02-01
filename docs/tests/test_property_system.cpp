@@ -69,10 +69,10 @@ TEST_F(PropertySystemTest, ObjectProps)
     auto propObj = PropertyObject();
     auto child1 = PropertyObject();
     auto child2 = PropertyObject();
-
-    propObj.addProperty(ObjectProperty("Child", child1));
-    child1.addProperty(ObjectProperty("Child", child2));
+    
     child2.addProperty(StringProperty("String", "foo"));
+    child1.addProperty(ObjectProperty("Child", child2));
+    propObj.addProperty(ObjectProperty("Child", child1));
 
     // Prints out the value of the "String" property of child2
     ASSERT_EQ(propObj.getPropertyValue("Child.Child.String"), "foo");
@@ -249,13 +249,14 @@ TEST_F(PropertySystemTest, ReadWritePropValues)
 TEST_F(PropertySystemTest, NestedObjects)
 {
     auto propObj = PropertyObject();
-
-    auto child1 = PropertyObject();
-    propObj.addProperty(ObjectProperty("Child", child1));
-
+    
     auto child2 = PropertyObject();
     child2.addProperty(StringProperty("String", "foo"));
+
+    auto child1 = PropertyObject();
     child1.addProperty(ObjectProperty("Child", child2));
+
+    propObj.addProperty(ObjectProperty("Child", child1));
 
     propObj.setPropertyValue("Child.Child.String", "bar");
     ASSERT_EQ(propObj.getPropertyValue("Child.Child.String"), "bar");
@@ -374,4 +375,41 @@ TEST_F(PropertySystemTest, Inheritance)
     ASSERT_EQ(propObj.getPropertyValue("InheritedProp"), "foo");
     ASSERT_EQ(propObj.getPropertyValue("OwnProp"), "bar");
 }
+
+TEST_F(PropertySystemTest, ListWrite)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(ListProperty("List", List<IString>("Banana", "Kiwi")));
+
+    // Prints "Banana"
+    std::cout << propObj.getPropertyValue("List[0]") << std::endl;
+
+    // Sets a new value to the List Property. 
+    propObj.setPropertyValue("List", List<IString>("Pear", "Strawberry"));
+
+    ListPtr<IString> list = propObj.getPropertyValue("List");
+    ASSERT_EQ(list, List<IString>("Pear", "Strawberry"));
+
+    list.pushBack("Blueberry");
+    propObj.setPropertyValue("List", list);
+    
+    ASSERT_EQ(propObj.getPropertyValue("List"), List<IString>("Pear", "Strawberry", "Blueberry"));
+}
+
+TEST_F(PropertySystemTest, DictWrite)
+{
+    auto propObj = PropertyObject();
+    const auto initialDict = Dict<IInteger, IString>({{1, "Banana"}, {2, "Kiwi"}});
+    propObj.addProperty(DictProperty("Dict", initialDict));
+
+    DictPtr<IInteger, IString> dict = propObj.getPropertyValue("Dict");
+    ASSERT_EQ(dict, initialDict);
+
+    dict.set(3, "Blueberry");
+    propObj.setPropertyValue("Dict", dict);
+
+    const auto cmpDict = Dict<IInteger, IString>({{1, "Banana"}, {2, "Kiwi"}, {3, "Blueberry"}});
+    ASSERT_EQ(propObj.getPropertyValue("Dict"), cmpDict);
+}
+
 END_NAMESPACE_OPENDAQ

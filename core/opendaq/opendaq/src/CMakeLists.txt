@@ -160,7 +160,7 @@ set_source_files_properties(${ConfigHeader} PROPERTIES GENERATED TRUE)
 source_group("Generated\\Header Files" FILES ${ConfigHeader})
 
 if (MSVC)
-    target_compile_options(${LIB_NAME} PRIVATE /wd4100)
+    target_compile_options(${LIB_NAME} PRIVATE /wd4100 /bigobj)
 endif()
 
 opendaq_set_output_lib_name(${LIB_NAME} ${PROJECT_VERSION_MAJOR})

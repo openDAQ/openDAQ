@@ -490,8 +490,9 @@ TEST_F(TmsPropertyObjectAdvancedTest, ObjectGetSet)
     testObj.addProperty(IntProperty("test", 0));
 
     ASSERT_ANY_THROW(clientObj.setPropertyValue("Object", testObj));
-    ASSERT_ANY_THROW(clientChildObj.setPropertyValue("ObjNumber", 1));
+    ASSERT_NO_THROW(clientChildObj.setPropertyValue("ObjNumber", 1));
 
+    ASSERT_EQ(clientChildObj.getPropertyValue("ObjNumber"), 1);
     PropertyObjectPtr serverNonClassObj = obj.getPropertyValue("NonClassObj");
     PropertyObjectPtr clientNonClassObj = clientObj.getPropertyValue("NonClassObj");
     ASSERT_EQ(serverNonClassObj.getPropertyValue("test"), clientNonClassObj.getPropertyValue("test"));
@@ -641,10 +642,12 @@ TEST_F(TmsPropertyObjectAdvancedTest, ObjectPropWithMetadata)
     auto [serverObj, clientObj] = registerPropertyObject(obj);
 
     PropertyObjectPtr clientObjWithMetadata = clientObj.getPropertyValue("ObjectWithMetadata");
-    ASSERT_ANY_THROW(clientObjWithMetadata.setPropertyValue("foo", "notbar"));
+    ASSERT_NO_THROW(clientObjWithMetadata.setPropertyValue("foo", "notbar"));
+    ASSERT_EQ(clientObjWithMetadata.getPropertyValue("foo"), "notbar");
 
     PropertyObjectPtr clientLocalObjWithMetadata = clientObj.getPropertyValue("LocalObjectWithMetadata");
-    ASSERT_ANY_THROW(clientLocalObjWithMetadata.setPropertyValue("foo", "notbar"));
+    ASSERT_NO_THROW(clientLocalObjWithMetadata.setPropertyValue("foo", "notbar"));
+    ASSERT_EQ(clientLocalObjWithMetadata.getPropertyValue("foo"), "notbar");
 
     PropertyPtr clientObjectWithMetadataProp = clientObj.getProperty("ObjectWithMetadata");
     PropertyPtr serverObjectWithMetadataProp = obj.getProperty("ObjectWithMetadata");

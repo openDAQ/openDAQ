@@ -15,47 +15,38 @@
  */
 
 #pragma once
-#include <opendaq/tags.h>
+#include <coretypes/stringobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_utility
- * @addtogroup opendaq_tags Tags
+ * @addtogroup opendaq_tags Tags private
  * @{
  */
 
-/*#
- * [interfaceSmartPtr(ITags, GenericTagsPtr)]
- */
-
 /*!
- * The config component of Tags objets. Allows users to add and remove tags from the list of tags.
+ * @brief Private interface to component tags. Allows for adding/removing tags.
  *
- * The implementation of `config` also implements the `freeze` function that freezes the object making it
- * immutable. Once frozen, all method calls fail as the list of tags can no longer be modified.
+ * Modifying the tags of a component might have unintended sideffects and should in most cases only be done
+ * by the component owner module.
  */
-DECLARE_OPENDAQ_INTERFACE(ITagsConfig, ITags)
+DECLARE_OPENDAQ_INTERFACE(ITagsPrivate, IBaseObject)
 {
     /*!
      * @brief Adds a new tag to the list.
      * @param name The name of the tag to be added.
-     * @retval OPENDAQ_ERR_DUPLICATEITEM if a node with the `name` is already in the list of tags.
+     * @retval OPENDAQ_IGNORED if a node with the `name` is already in the list of tags.
      */
     virtual ErrCode INTERFACE_FUNC add(IString* name) = 0;
     /*!
      * @brief Removes a new tag from the list.
      * @param name The name of the tag to be removed.
-     * @retval OPENDAQ_ERR_NOTFOUND if a node with the `name` is not in the list of tags.
+     * @retval OPENDAQ_IGNORED if a node with the `name` is not in the list of tags.
      */
     virtual ErrCode INTERFACE_FUNC remove(IString* name) = 0;
 };
-/*!@}*/
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, Tags, ITagsConfig)
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, TagsFromExisting, ITagsConfig,
-    ITags*, tagsToCopy
-)
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

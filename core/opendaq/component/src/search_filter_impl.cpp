@@ -32,7 +32,7 @@ ErrCode RequiredTagsSearchFilterImpl::acceptsComponent(IComponent* component, Bo
     OPENDAQ_PARAM_NOT_NULL(accepts);
     OPENDAQ_PARAM_NOT_NULL(component);
 
-    TagsConfigPtr tags;
+    TagsPtr tags;
     const ErrCode err = component->getTags(&tags);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -69,7 +69,7 @@ ErrCode ExcludedTagsSearchFilterImpl::acceptsComponent(IComponent* component, Bo
     OPENDAQ_PARAM_NOT_NULL(accepts);
     OPENDAQ_PARAM_NOT_NULL(component);
 
-    TagsConfigPtr tags;
+    TagsPtr tags;
     const ErrCode err = component->getTags(&tags);
     if (OPENDAQ_FAILED(err))
         return err;

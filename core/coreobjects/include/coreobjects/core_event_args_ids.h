@@ -38,6 +38,7 @@ namespace core_event_ids
     constexpr Int DataDescriptorChanged = 80;
     constexpr Int ComponentUpdateEnd = 90;
     constexpr Int AttributeChanged = 100;
+    constexpr Int TagsChanged = 110;
 }
 
 /*!@}*/

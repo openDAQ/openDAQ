@@ -30,7 +30,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 class ListIteratorImpl;
 
-class ListImpl : public ImplementationOf<IList, IIterable, ISerializable, IListElementType, ICoreType, ICloneable<IList>, IFreezable>
+class ListImpl : public ImplementationOf<IList, IIterable, ISerializable, IListElementType, ICoreType, ICloneable, IFreezable>
 {
 public:
     ListImpl();
@@ -75,8 +75,8 @@ public:
     // IBaseObject
     ErrCode INTERFACE_FUNC toString(CharPtr* str) override;
 
-    // ICloneable<T>
-    ErrCode INTERFACE_FUNC clone(IList** cloned) override;
+    // ICloneable
+    ErrCode INTERFACE_FUNC clone(IBaseObject** cloned) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 

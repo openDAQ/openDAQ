@@ -51,14 +51,14 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
-propObj.add_property(opendaq.StringProperty(opendaq.String(
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
     'MyString'), opendaq.String('foo'), opendaq.Boolean(True)))
-propObj.add_property(opendaq.IntProperty(opendaq.String(
+prop_obj.add_property(opendaq.IntProperty(opendaq.String(
     'MyInteger'), opendaq.Integer(0), opendaq.Boolean(True)))
 
-propObj.set_property_value('MyString', opendaq.String('bar'))
-print(propObj.get_property_value('MyString'))
+prop_obj.set_property_value('MyString', opendaq.String('bar'))
+print(prop_obj.get_property_value('MyString'))
 ----
 ====
 
@@ -107,11 +107,11 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
-propObj.add_property(opendaq.StringProperty(opendaq.String(
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
     'MyString'), opendaq.String('foo'), opendaq.Boolean(True)))
-propObj.set_property_value('MyString', opendaq.String('bar'))
-print(propObj.get_property_value('MyString'))
+prop_obj.set_property_value('MyString', opendaq.String('bar'))
+print(prop_obj.get_property_value('MyString'))
 ----
 ====
 
@@ -250,28 +250,28 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
-intProp = opendaq.IntPropertyBuilder(opendaq.String('Integer'), opendaq.Integer(10))
+prop_obj = opendaq.PropertyObject()
+int_prop = opendaq.IntPropertyBuilder(opendaq.String('Integer'), opendaq.Integer(10))
 # Unsupported in the current version
-# intProp.min_value = 0
-# intProp.max_value = 15
-propObj.add_property(intProp.build())
+# int_prop.min_value = 0
+# int_prop.max_value = 15
+prop_obj.add_property(int_prop.build())
 
-floatProp = opendaq.FloatPropertyBuilder(opendaq.String('Float'), opendaq.Float(3.21))
+float_prop = opendaq.FloatPropertyBuilder(opendaq.String('Float'), opendaq.Float(3.21))
 
 suggested_values = opendaq.List()
-suggested_values.pushBack(opendaq.Float(1.23))
-suggested_values.pushBack(opendaq.Float(3.21))
-suggested_values.pushBack(opendaq.Float(5.67))
-floatProp.suggested_values = suggested_values
+suggested_values.push_back(opendaq.Float(1.23))
+suggested_values.push_back(opendaq.Float(3.21))
+suggested_values.push_back(opendaq.Float(5.67))
+float_prop.suggested_values = suggested_values
 
-propObj.add_property(floatProp.build())
+prop_obj.add_property(float_prop.build())
 # "Integer" is set to 15 due to the max value
-propObj.set_property_value('Integer', opendaq.Integer(20))
-print(propObj.get_property_value('Integer'))
+prop_obj.set_property_value('Integer', opendaq.Integer(20))
+print(prop_obj.get_property_value('Integer'))
 # "Float" is set to 2.34 in despite the suggested values not containing the value 2.34
-propObj.set_property_value('Float', opendaq.Float(2.34))
-print(propObj.get_property_value('Float'))
+prop_obj.set_property_value('Float', opendaq.Float(2.34))
+print(prop_obj.get_property_value('Float'))
 ----
 ====
 
@@ -326,31 +326,31 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
+prop_obj = opendaq.PropertyObject()
 
 list = opendaq.List()
-list.pushBack(opendaq.String('Apple'))
-list.pushBack(opendaq.String('Banana'))
-list.pushBack(opendaq.String('Kiwi'))
+list.push_back(opendaq.String('Apple'))
+list.push_back(opendaq.String('Banana'))
+list.push_back(opendaq.String('Kiwi'))
 
-propObj.add_property(opendaq.SelectionProperty(opendaq.String(
+prop_obj.add_property(opendaq.SelectionProperty(opendaq.String(
     'ListSelection'), list, opendaq.Integer(1), opendaq.Boolean(True)))
 dict = opendaq.Dict()
 dict[0] = opendaq.String('foo')
 dict[10] = opendaq.String('bar')
-propObj.add_property(opendaq.SparseSelectionProperty(opendaq.String(
+prop_obj.add_property(opendaq.SparseSelectionProperty(opendaq.String(
     'DictSelection'), dict, opendaq.Integer(10), opendaq.Boolean(True)))
 
 # Prints "1"
-print(propObj.get_property_value('ListSelection'))
+print(prop_obj.get_property_value('ListSelection'))
 # Prints "Banana"
-print(propObj.get_property_selection_value('ListSelection'))
-propObj.set_property_value('ListSelection', opendaq.Integer(2))
+print(prop_obj.get_property_selection_value('ListSelection'))
+prop_obj.set_property_value('ListSelection', opendaq.Integer(2))
 
 # Prints "bar"
-print(propObj.get_property_selection_value('DictSelection'))
+print(prop_obj.get_property_selection_value('DictSelection'))
 # Selects "foo"
-propObj.set_property_value('DictSelection', opendaq.Integer(0))
+prop_obj.set_property_value('DictSelection', opendaq.Integer(0))
 ----
 ====
 
@@ -371,11 +371,17 @@ WARNING: The Selection Property getter cannot use the "dot" notation at this mom
 Object type Properties can only have their Name, Description, Visible, Read-only and Default
 value configured, where the Default value is mandatory.
 
-IMPORTANT: Object Properties behave slightly differently than other Property types in that
-their Default Values do not get frozen when the Property is added to a Property Object 
-(they do get frozen when added to a <<#object_class, Property Object Class>>, or if the 
-Object Property is Read-only). As such, Properties of the Default Value Property Object 
-can be modified even after being added to a Property Object.
+IMPORTANT: Object properties, as all other Property types get frozen once added to a Property
+Object. The notable exception is that locally, the object (default value) is cloned and cached. 
+When the Property value of the Object-type Property is read, the cloned object is returned instead 
+of the default value. This cloned object is not frozen, allowing for the any Properties of 
+the child Property Object to be modified. The same behaviour is applied when a Property Object 
+is created from a Property Object Class - all Object-type properties of the class are cloned.
+
+Notably, by default, all Object properties are read-only. Read-only object-type properties
+cannot be wholly replaced, but the child property values of the object can still be modified.
+The "Clear property value" method will work on object-type properties, even if the object
+is read-only.
 
 .Object Properties example
 
@@ -389,9 +395,11 @@ auto propObj = PropertyObject();
 auto child1 = PropertyObject();
 auto child2 = PropertyObject();
 
-propObj.addProperty(ObjectProperty("Child", child1));
-child1.addProperty(ObjectProperty("Child", child2));
+// The order below is important, as "child1" and "child2" are frozen once 
+// used as default property values.
 child2.addProperty(StringProperty("String", "foo"));
+child1.addProperty(ObjectProperty("Child", child2));
+propObj.addProperty(ObjectProperty("Child", child1));
 
 // Prints out the value of the "String" Property of child2
 std::cout << propObj.getPropertyValue("Child.Child.String") << std::endl;
@@ -400,19 +408,22 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
+prop_obj = opendaq.PropertyObject()
 child1 = opendaq.PropertyObject()
 child2 = opendaq.PropertyObject()
 
-propObj.add_property(opendaq.ObjectProperty(
-    opendaq.String('Child'), child1))
-child1.add_property(opendaq.ObjectProperty(
-    opendaq.String('Child'), child2))
+# The order below is important, as "child1" and "child2" are frozen once 
+# used as default property values.
+
 child2.add_property(opendaq.StringProperty(opendaq.String(
     'String'), opendaq.String('foo'), opendaq.Boolean(True)))
+child1.add_property(opendaq.ObjectProperty(
+    opendaq.String('Child'), child2))
+prop_obj.add_property(opendaq.ObjectProperty(
+    opendaq.String('Child'), child1))
 
 # Prints out the value of the "String" Property of child2
-print(propObj.get_property_value('Child.Child.String'))
+print(prop_obj.get_property_value('Child.Child.String'))
 ----
 ====
 
@@ -459,29 +470,28 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
+prop_obj = opendaq.PropertyObject()
 
 list = opendaq.List()
-list.pushBack(opendaq.String('Banana'))
-list.pushBack(opendaq.String('Apple'))
-list.pushBack(opendaq.String('Kiwi'))
-propObj.add_property(opendaq.ListProperty(
+list.push_back(opendaq.String('Banana'))
+list.push_back(opendaq.String('Apple'))
+list.push_back(opendaq.String('Kiwi'))
+prop_obj.add_property(opendaq.ListProperty(
     opendaq.String('List'), list, opendaq.Boolean(True)))
 
 dict = opendaq.Dict()
 dict[0] = opendaq.String('foo')
 dict[10] = opendaq.String('bar')
-propObj.add_property(opendaq.DictProperty(
+prop_obj.add_property(opendaq.DictProperty(
     opendaq.String('Dict'), dict, opendaq.Boolean(True)))
 
-# Unsupported in the current version
-# print(propObj.get_property_value('List')[0])
-# print(propObj.get_property_value('Dict')[10])
+print(prop_obj.get_property_value('List')[0])
+print(prop_obj.get_property_value('Dict')[10])
 
 list1 = opendaq.List()
-list1.pushBack(opendaq.String('Pear'))
-list1.pushBack(opendaq.String('Strawberry'))
-propObj.set_property_value('List', list1)
+list1.push_back(opendaq.String('Pear'))
+list1.push_back(opendaq.String('Strawberry'))
+prop_obj.set_property_value('List', list1)
 ----
 ====
 
@@ -534,24 +544,24 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
-propObj.add_property(opendaq.IntProperty(opendaq.String(
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.IntProperty(opendaq.String(
     'Integer'), opendaq.Integer(0), opendaq.Boolean(True)))
-propObj.add_property(opendaq.StringProperty(opendaq.String(
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
     'Prop1'), opendaq.String('foo'), opendaq.Boolean(True)))
-propObj.add_property(opendaq.StringProperty(opendaq.String(
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
     'Prop2'), opendaq.String('bar'), opendaq.Boolean(True)))
 
-propObj.add_property(opendaq.ReferenceProperty(opendaq.String(
+prop_obj.add_property(opendaq.ReferenceProperty(opendaq.String(
     'RefProp'), opendaq.EvalValue(opendaq.String('switch($Integer, 0, %Prop1, 1, %Prop2)'))))
 
 # Prints "foo"
-print(propObj.get_property_value('RefProp'))
+print(prop_obj.get_property_value('RefProp'))
 
-propObj.set_property_value('Integer', opendaq.Integer(1))
+prop_obj.set_property_value('Integer', opendaq.Integer(1))
 
 # Prints "bar"
-print(propObj.get_property_value('RefProp'))
+print(prop_obj.get_property_value('RefProp'))
 ----
 ====
 
@@ -627,12 +637,12 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
-propObj.add_property(opendaq.StringProperty(opendaq.String(
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
     'String'), opendaq.String('foo'), opendaq.Boolean(True)))
-propObj.add_property(opendaq.RatioProperty(opendaq.String(
+prop_obj.add_property(opendaq.RatioProperty(opendaq.String(
     'Ratio'), opendaq.Ratio(1, 10), opendaq.Boolean(True)))
-propObj.add_property(opendaq.BoolProperty(opendaq.String(
+prop_obj.add_property(opendaq.BoolProperty(opendaq.String(
     'Bool'), opendaq.Boolean(True), opendaq.Boolean(True)))
 ----
 ====
@@ -667,13 +677,13 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
-floatProp = opendaq.FloatPropertyBuilder(opendaq.String('MyFloat'), opendaq.Float(1.123))
+prop_obj = opendaq.PropertyObject()
+float_prop = opendaq.FloatPropertyBuilder(opendaq.String('MyFloat'), opendaq.Float(1.123))
 # Unsupported in the current version
-# floatProp.min_value = 0.0
-# floatProp.max_value = 10.0
+# float_prop.min_value = 0.0
+# float_prop.max_value = 10.0
 
-propObj.add_property(floatProp.build())
+propObj.add_property(float_prop.build())
 ----
 ====
 
@@ -777,23 +787,23 @@ Python::
 +
 [source,python]
 ----
-simulatedChannel = opendaq.PropertyObject()
+simulated_channel = opendaq.PropertyObject()
 list = opendaq.List()
-list.pushBack(opendaq.String('Sine'))
-list.pushBack(opendaq.String('Counter'))
-simulatedChannel.add_property(opendaq.SelectionProperty(opendaq.String(
+list.push_back(opendaq.String('Sine'))
+list.push_back(opendaq.String('Counter'))
+simulated_channel.add_property(opendaq.SelectionProperty(opendaq.String(
     'Waveform'), list, opendaq.Integer(0), opendaq.Boolean(True)))
-simulatedChannel.add_property(opendaq.ReferenceProperty(opendaq.String(
+simulated_channel.add_property(opendaq.ReferenceProperty(opendaq.String(
     'Settings'), opendaq.EvalValue(opendaq.String('if($Waveform == 0, %SineSettings, %CounterSettings)'))))
-    
+
 ...
 
-simulatedChannel.add_property(opendaq.ObjectProperty(
+simulated_channel.add_property(opendaq.ObjectProperty(
     opendaq.String('SineSettings'), sineSettings))
 
 ...
 
-simulatedChannel.add_property(opendaq.ObjectProperty(
+simulated_channel.add_property(opendaq.ObjectProperty(
     opendaq.String('CounterSettings'), counterSettings))
 ----
 ====
@@ -853,13 +863,13 @@ Python::
 
 # The ScalingFactor Property is shown if EnableScaling is true.
 # Unsupported in the current version
-scalingFactor.visible = opendaq.EvalValue(opendaq.String('$EnableScaling'))
+scaling_factor.visible = opendaq.EvalValue(opendaq.String('$EnableScaling'))
 
 ...
 
 # The LoopThreshold Property is shown if the "Mode" Property is set to 1.
 # Unsupported in the current version
-loopThreshold.visible = opendaq.EvalValue(opendaq.String('$Mode == 1'))
+loop_threshold.visible = opendaq.EvalValue(opendaq.String('$Mode == 1'))
 ----
 ====
 
@@ -888,15 +898,15 @@ Python::
 [source,python]
 ----
 list = opendaq.List()
-list.pushBack(opendaq.String('V'))
-list.pushBack(opendaq.String('mV'))
-sineSettings.add_property(opendaq.SelectionProperty(opendaq.String(
+list.push_back(opendaq.String('V'))
+list.push_back(opendaq.String('mV'))
+sine_settings.add_property(opendaq.SelectionProperty(opendaq.String(
     'AmplitudeUnit'), list, opendaq.Integer(0), opendaq.Boolean(True)))
 
 ...
 
 # Unsupported in the current version
-amplitudeProp.unit = opendaq.EvalValue(opendaq.String('Unit(%AmplitudeUnit:SelectedValue)'))
+amplitude_prop.unit = opendaq.EvalValue(opendaq.String('Unit(%AmplitudeUnit:SelectedValue)'))
 ----
 ====
 
@@ -945,19 +955,19 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
-coercedProp = opendaq.IntPropertyBuilder(opendaq.String('CoercedProp'), opendaq.Integer(5))
-coercedProp.coercer = opendaq.Coercer(opendaq.String('if(Value < 10, Value, 10)'))
-propObj.add_property(coercedProp.build())
+prop_obj = opendaq.PropertyObject()
+coerced_prop = opendaq.IntPropertyBuilder(opendaq.String('CoercedProp'), opendaq.Integer(5))
+coerced_prop.coercer = opendaq.Coercer(opendaq.String('if(Value < 10, Value, 10)'))
+prop_obj.add_property(coerced_prop.build())
 
-validatedProp = opendaq.IntPropertyBuilder(opendaq.String('ValidatedProp'), opendaq.Integer(5))
-validatedProp.validator = opendaq.Validator(opendaq.String('Value < 10'))
-propObj.add_property(validatedProp.build())
+validated_prop = opendaq.IntPropertyBuilder(opendaq.String('ValidatedProp'), opendaq.Integer(5))
+validated_prop.validator = opendaq.Validator(opendaq.String('Value < 10'))
+prop_obj.add_property(validated_prop.build())
 
 # Sets the value to 10
-propObj.set_property_value('CoercedProp', opendaq.Integer(15))
+prop_obj.set_property_value('CoercedProp', opendaq.Integer(15))
 # Throws a validation error
-propObj.set_property_value('ValidatedProp', opendaq.Integer(15))
+prop_obj.set_property_value('ValidatedProp', opendaq.Integer(15))
 ----
 ====
 
@@ -999,12 +1009,12 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
-propObj.add_property(opendaq.StringProperty(opendaq.String(
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
     'foo'), opendaq.String('bar'), opendaq.Boolean(True)))
-propObj.remove_property('foo')
+prop_obj.remove_property('foo')
 
-fooProp = propObj.get_property('foo') # Throws runtime error
+foo_prop = prop_obj.get_property('foo') # Throws runtime error
 ----
 ====
 
@@ -1049,18 +1059,18 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
-propObj.add_property(opendaq.StringProperty(opendaq.String(
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
     'String'), opendaq.String('foo'), opendaq.Boolean(True)))
-propObj.add_property(opendaq.IntProperty(opendaq.String(
+prop_obj.add_property(opendaq.IntProperty(opendaq.String(
     'Int'), opendaq.Integer(10), opendaq.Boolean(False)))
-propObj.add_property(opendaq.FloatProperty(opendaq.String(
+prop_obj.add_property(opendaq.FloatProperty(opendaq.String(
     'Float'), opendaq.Float(15.0), opendaq.Boolean(True)))
-propObj.add_property(opendaq.ReferenceProperty(opendaq.String(
+prop_obj.add_property(opendaq.ReferenceProperty(opendaq.String(
     'FloatRef'), opendaq.EvalValue(opendaq.String('%Float'))))
 
-allProps = propObj.all_properties
-visibleProps = propObj.visible_properties
+all_props = prop_obj.all_properties
+visible_props = prop_obj.visible_properties
 # Properties orderings are not supported in the current version
 ----
 ====
@@ -1089,16 +1099,16 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
-propObj.add_property(opendaq.StringProperty(opendaq.String(
+prop_obj = opendaq.PropertyObject()
+prop_obj.add_property(opendaq.StringProperty(opendaq.String(
     'String'), opendaq.String('foo'), opendaq.Boolean(True)))
 
 # Prints "foo"
-print(propObj.get_property_value('String'))
-propObj.set_property_value('String', opendaq.String('bar'))
+print(prop_obj.get_property_value('String'))
+prop_obj.set_property_value('String', opendaq.String('bar'))
 
 # Prints "bar"
-print(propObj.get_property_value('String'))
+print(prop_obj.get_property_value('String'))
 ----
 ====
 
@@ -1114,13 +1124,12 @@ Cpp::
 [source,cpp]
 ----
 auto propObj = PropertyObject();
-
 auto child1 = PropertyObject();
-propObj.addProperty(ObjectProperty("Child", child1));
-
 auto child2 = PropertyObject();
+
 child2.addProperty(StringProperty("String", "foo"));
 child1.addProperty(ObjectProperty("Child", child2));
+propObj.addProperty(ObjectProperty("Child", child1));
 
 propObj.setPropertyValue("Child.Child.String", "bar");
 
@@ -1131,23 +1140,22 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
-
+prop_obj = opendaq.PropertyObject()
 child1 = opendaq.PropertyObject()
-propObj.add_property(opendaq.ObjectProperty(
-    opendaq.String('Child'), child1))
-
 child2 = opendaq.PropertyObject()
+
 child2.add_property(opendaq.StringProperty(opendaq.String(
     'String'), opendaq.String('foo'), opendaq.Boolean(True)))
 child1.add_property(opendaq.ObjectProperty(
     opendaq.String('Child'), child2))
+prop_obj.add_property(opendaq.ObjectProperty(
+    opendaq.String('Child'), child1))
 
-propObj.set_property_value(
+prop_obj.set_property_value(
     'Child.Child.String', opendaq.String('bar'))
 
 # Prints "bar"
-print(propObj.get_property_value('Child.Child.String'))
+print(prop_obj.get_property_value('Child.Child.String'))
 ----
 ====
 
@@ -1176,15 +1184,15 @@ Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
+prop_obj = opendaq.PropertyObject()
 list = opendaq.List()
-list.pushBack(opendaq.String('Banana'))
-list.pushBack(opendaq.String('Kiwi'))
-propObj.add_property(opendaq.SelectionProperty(opendaq.String(
+list.push_back(opendaq.String('Banana'))
+list.push_back(opendaq.String('Kiwi'))
+prop_obj.add_property(opendaq.SelectionProperty(opendaq.String(
     'Selection'), list, opendaq.Integer(1), opendaq.Boolean(True)))
 
 # Prints "Kiwi"
-print(propObj.get_property_selection_value('Selection'))
+print(prop_obj.get_property_selection_value('Selection'))
 ----
 ====
 
@@ -1204,20 +1212,95 @@ propObj.addProperty(ListProperty("List", List<IString>("Banana", "Kiwi")));
 
 // Prints "Banana"
 std::cout << propObj.getPropertyValue("List[0]") << std::endl;
+
+// Sets a new value to the List Property. 
+propObj.setPropertyValue("List", List<IString>("Pear", "Strawberry"));
+
+// Prints "Pear" and "Strawberry"
+std::cout << list.toString() << std::endl;
 ----
 Python::
 +
 [source,python]
 ----
-propObj = opendaq.PropertyObject()
+prop_obj = opendaq.PropertyObject()
 list = opendaq.List()
-list.pushBack(opendaq.String('Banana'))
-list.pushBack(opendaq.String('Kiwi'))
-propObj.add_property(opendaq.ListProperty(
+list.push_back(opendaq.String('Banana'))
+list.push_back(opendaq.String('Kiwi'))
+prop_obj.add_property(opendaq.ListProperty(
     opendaq.String('List'), list, opendaq.Boolean(True)))
 
 # Prints "Banana"
-print(propObj.get_property_value('List[0]'))
+print(prop_obj.get_property_value('List[0]'))
+
+----
+====
+
+When retrieving a list-type property value, the list object is cloned, and can be modified without
+side effects to the Property object. As such, we can extend the Property defined in the above
+code snippet as follows:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+ListPtr<IString> list = propObj.getPropertyValue("List");
+list.pushBack("Blueberry");
+propObj.setPropertyValue("List", list);
+
+// Prints "Pear", "Strawberry", and "Blueberry"
+std::cout << propObj.getPropertyValue("List").toString() << std::endl;
+----
+Python::
++
+[source,python]
+----
+list = prop_obj.get_property_value("List")
+list.push_back('Blueberry')
+prop_obj.set_property_value('List', list)
+
+# Prints "Pear", "Strawberry", and "Blueberry"
+print(prop_obj.get_property_value('List'))
+----
+====
+
+==== Dictionary properties
+
+As with list-type properties, when retrieveing a dictionary property value, the dictionary object
+is cloned, and can be modified without side effects to the Property object:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+propObj.addProperty(DictProperty("Dict", Dict<IInteger, IString>({{1, "Banana"}, {2, "Kiwi"}})));
+
+DictPtr<IInteger, IString> dict = propObj.getPropertyValue("Dict");
+dict.set(3, "Blueberry");
+
+// The "Dict" property now contains {1 : "Banana"}, {2 : "Kiwi"}, {3 : "Blueberry"}
+propObj.setPropertyValue("Dict", dict);
+----
+Python::
++
+[source,python]
+----
+dict = opendaq.Dict()
+dict[1] = 'Banana'
+dict[2] = 'Kiwi'
+property_object.add_property(opendaq.DictProperty(
+    opendaq.String('Dict'), dict, opendaq.Boolean(True)))
+
+dict = property_object.get_property_value("Dict")
+dict[3] = 'Blueberry'
+
+# The "Dict" property now contains {1 : "Banana"}, {2 : "Kiwi"}, {3 : "Blueberry"}
+property_object.set_property_value('Dict', dict)
 ----
 ====
 
@@ -1304,9 +1387,9 @@ prop_class = opendaq.PropertyObjectClassBuilder(opendaq.String('MyClass'))
 prop_class.add_property(opendaq.IntProperty(opendaq.String(
     'Integer'), opendaq.Integer(10), opendaq.Boolean(True)))
 list = opendaq.List()
-list.pushBack(opendaq.String('Banana'))
-list.pushBack(opendaq.String('Apple'))
-list.pushBack(opendaq.String('Kiwi'))
+list.push_back(opendaq.String('Banana'))
+list.push_back(opendaq.String('Apple'))
+list.push_back(opendaq.String('Kiwi'))
 prop_class.add_property(opendaq.SelectionProperty(opendaq.String('Selection'), list, opendaq.Integer(1), opendaq.Boolean(True)))
 ----
 ====
@@ -1349,17 +1432,17 @@ manager = opendaq.TypeManager()
 prop_class = opendaq.PropertyObjectClassBuilder(opendaq.String('MyClass'))
 prop_class.add_property(opendaq.IntProperty(opendaq.String('Integer'), opendaq.Integer(10), opendaq.Boolean(True)))
 list = opendaq.List()
-list.pushBack(opendaq.String('Banana'))
-list.pushBack(opendaq.String('Apple'))
-list.pushBack(opendaq.String('Kiwi'))
+list.push_back(opendaq.String('Banana'))
+list.push_back(opendaq.String('Apple'))
+list.push_back(opendaq.String('Kiwi'))
 prop_class.add_property(opendaq.SelectionProperty(opendaq.String('Selection'), list, opendaq.Integer(1), opendaq.Boolean(True)))
 
 manager.add_class(prop_class.build())
 
-propObj = opendaq.PropertyObjectWithClassAndManager(manager, opendaq.String('MyClass'))
+prop_obj = opendaq.PropertyObjectWithClassAndManager(manager, opendaq.String('MyClass'))
 
 # Prints "Apple"
-print(propObj.get_property_selection_value('Selection'))
+print(prop_obj.get_property_selection_value('Selection'))
 ----
 ====
 
@@ -1408,13 +1491,13 @@ prop_class2.add_property(opendaq.StringProperty(opendaq.String('OwnProp'), opend
 prop_class2.parent_name = 'InheritedClass'
 manager.add_class(prop_class2.build())
 
-propObj = opendaq.PropertyObjectWithClassAndManager(manager, opendaq.String('MyClass'))
+prop_obj = opendaq.PropertyObjectWithClassAndManager(manager, opendaq.String('MyClass'))
 
 # Prints "foo"
-print(propObj.get_property_value('InheritedProp'))
+print(prop_obj.get_property_value('InheritedProp'))
 
 # Prints "bar"
-print(propObj.get_property_value('OwnProp'))
+print(prop_obj.get_property_value('OwnProp'))
 ----
 ====
 

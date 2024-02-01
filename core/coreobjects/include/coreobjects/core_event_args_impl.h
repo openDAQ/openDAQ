@@ -49,6 +49,8 @@ namespace core_event_args_impl
                 return "ComponentUpdateEnd";
             case core_event_ids::AttributeChanged:
                 return "AttributeChanged";
+            case core_event_ids::TagsChanged:
+                return "TagsChanged";
             default:
                 break;
         }
@@ -108,6 +110,8 @@ inline bool CoreEventArgsImpl::validateParameters() const
             return parameters.hasKey("DataDescriptor");
         case core_event_ids::AttributeChanged:
             return parameters.hasKey("AttributeName");
+        case core_event_ids::TagsChanged:
+            return parameters.hasKey("Tags");
         default:
             break;
     }

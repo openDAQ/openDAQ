@@ -66,8 +66,8 @@ Python::
 +
 [source,python]
 ----
-currentBlockSize = function_block.get_property_value('BlockSize')
-print(f'Current block size is {currentBlockSize}')
+current_block_size = function_block.get_property_value('BlockSize')
+print(f'Current block size is {current_block_size}')
 function_block.set_property_value('BlockSize', 100)
 ---- 
 ====
@@ -186,8 +186,8 @@ for prop in function_block.visible_properties:
     print(prop.name)
 
 # print current block size
-currentBlockSize = function_block.get_property_value('BlockSize')
-print(f'Current block size is {currentBlockSize}')
+current_block_size = function_block.get_property_value('BlockSize')
+print(f'Current block size is {current_block_size}')
 
 # configure the properties of the function block
 function_block.set_property_value('BlockSize', 100)

@@ -130,7 +130,7 @@ Python::
 +
 [source,python]
 ----
-def findSignals(device: opendaq.IDevice):
+def find_signals(device: opendaq.IDevice):
     search_filter = opendaq.RecursiveSearchFilter(opendaq.AnySearchFilter())
     for signal in device.get_signals(search_filter):
         print(signal.global_id)

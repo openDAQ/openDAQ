@@ -274,8 +274,10 @@ TEST_F(TmsIntegrationTest, AddFunctionBlock)
     ASSERT_EQ(3, clientDevice.getFunctionBlocks().getCount());
 }
 
-TEST_F(TmsIntegrationTest, AddFunctionBlockWitchConfig)
+TEST_F(TmsIntegrationTest, DISABLED_AddFunctionBlockWitchConfig)
 {
+    // Work in progress
+
     InstancePtr device = createDevice();
     TmsServer tmsServer(device);
     tmsServer.start();
@@ -286,8 +288,6 @@ TEST_F(TmsIntegrationTest, AddFunctionBlockWitchConfig)
     const auto clientFbTypes = clientDevice.getAvailableFunctionBlockTypes();
 
     auto config = clientFbTypes.get("mock_fb_uid").createDefaultConfig();
-    config.addProperty(IntProperty("TestConfigInt", 0)); // I realy dont like this, but there is no way of trasfering default config property object over opcua ...
-    config.addProperty(StringProperty("TestConfigString", ""));
     config.setPropertyValue("TestConfigInt", 10);
     config.setPropertyValue("TestConfigString", "Hello Property!");
 

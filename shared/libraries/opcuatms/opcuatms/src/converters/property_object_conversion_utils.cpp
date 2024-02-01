@@ -1,10 +1,10 @@
-#include <opcuatms/converters/dict_conversion_utils.h>
+#include <opcuatms/converters/property_object_conversion_utils.h>
 #include <opcuatms/converters/variant_converter.h>
 #include <coreobjects/property_object_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-OpcUaVariant DictConversionUtils::ToDictVariant(const PropertyObjectPtr& obj)
+OpcUaVariant PropertyObjectConversionUtils::ToDictVariant(const PropertyObjectPtr& obj)
 {
     if (!obj.assigned())
     {
@@ -26,7 +26,7 @@ OpcUaVariant DictConversionUtils::ToDictVariant(const PropertyObjectPtr& obj)
     return VariantConverter<IDict>::ToVariant(dict);
 }
 
-void DictConversionUtils::ToPropertyObject(const OpcUaVariant& variant, PropertyObjectPtr& objOut)
+void PropertyObjectConversionUtils::ToPropertyObject(const OpcUaVariant& variant, PropertyObjectPtr& objOut)
 {
     const auto dict = VariantConverter<IDict>::ToDaqObject(variant);
 

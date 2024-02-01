@@ -4,7 +4,7 @@
 #include <coreobjects/property_factory.h>
 #include <testutils/test_comparators.h>
 
-using DictConversionUtilsTest = testing::Test;
+using PropertyObjectConversionUtilsTest = testing::Test;
 
 using namespace daq;
 using namespace daq::opcua;
@@ -22,7 +22,7 @@ static PropertyObjectPtr CreateTestPropertyObject()
 }
 
 
-TEST_F(DictConversionUtilsTest, SimpleObject)
+TEST_F(PropertyObjectConversionUtilsTest, SimpleObject)
 {
     auto obj = CreateTestPropertyObject();
     obj.setPropertyValue("name", "Jovanka");
@@ -40,7 +40,7 @@ TEST_F(DictConversionUtilsTest, SimpleObject)
     ASSERT_TRUE(TestComparators::PropertyObjectEquals(obj, objOut));
 }
 
-TEST_F(DictConversionUtilsTest, EmptyObject)
+TEST_F(PropertyObjectConversionUtilsTest, EmptyObject)
 {
     auto obj = CreateTestPropertyObject();
 

@@ -14,7 +14,7 @@
 #include <open62541/types_daqesp_generated.h>
 #include <opcuatms/converters/variant_converter.h>
 #include <coreobjects/property_object_factory.h>
-#include <opcuatms/converters/dict_conversion_utils.h>
+#include <opcuatms/converters/property_object_conversion_utils.h>
 #include <opcuatms/converters/list_conversion_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -318,10 +318,12 @@ void TmsServerDevice::createRemoveFunctionBlockNode(const OpcUaNodeId& parentId)
 
 void TmsServerDevice::createGetAvailableFunctionBlockTypesNode(const OpcUaNodeId& parentId)
 {
+    // todo: migrate to AvailableTypes folder node
+
     OpcUaNodeId nodeIdOut;
     AddMethodNodeParams params(nodeIdOut, parentId);
     params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
-    params.setBrowseName("GetAvailableFunctionBlockTypes");
+    params.setBrowseName("_TmpGetAvailableFunctionBlockTypes");
     params.inputArgumentsSize = 0;
     params.outputArgumentsSize = 1;
     params.outputArguments = (UA_Argument*) UA_Array_new(params.outputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
@@ -388,7 +390,7 @@ TmsServerFunctionBlockPtr TmsServerDevice::addFunctionBlock(const StringPtr& fbT
         throw OpcUaException(UA_STATUSCODE_BADNOTFOUND, "Function block type not found");
 
     auto config = fbTypes.get(fbTypeId).createDefaultConfig();
-    DictConversionUtils::ToPropertyObject(configVariant, config);
+    PropertyObjectConversionUtils::ToPropertyObject(configVariant, config);
     return addFunctionBlock(fbTypeId, config);
 }
 

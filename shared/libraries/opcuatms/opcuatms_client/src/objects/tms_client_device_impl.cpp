@@ -20,7 +20,7 @@
 #include "opcuatms/core_types_utils.h"
 #include "opcuatms/exceptions.h"
 #include "opcuatms/converters/list_conversion_utils.h"
-#include "opcuatms/converters/dict_conversion_utils.h"
+#include "opcuatms/converters/property_object_conversion_utils.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 using namespace daq::opcua;
@@ -444,8 +444,10 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
 
 DictPtr<IString, IFunctionBlockType> TmsClientDeviceImpl::onGetAvailableFunctionBlockTypes()
 {
+    // todo: migrate to AvailableTypes folder node
+
     const auto fbFolderNodeId = getNodeId("FB");
-    const auto methodNodeId = clientContext->getReferenceBrowser()->getChildNodeId(fbFolderNodeId, "GetAvailableFunctionBlockTypes");
+    const auto methodNodeId = clientContext->getReferenceBrowser()->getChildNodeId(fbFolderNodeId, "_TmpGetAvailableFunctionBlockTypes");
 
     auto request = OpcUaCallMethodRequest();
     request->objectId = fbFolderNodeId.copyAndGetDetachedValue();
@@ -473,7 +475,7 @@ FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& typeId
     const auto methodNodeId = clientContext->getReferenceBrowser()->getChildNodeId(fbFolderNodeId, "AddFunctionBlock");
 
     const auto typeIdVariant = OpcUaVariant(typeId.toStdString().c_str());
-    const auto configVariant = DictConversionUtils::ToDictVariant(config);
+    const auto configVariant = PropertyObjectConversionUtils::ToDictVariant(config);
 
     auto request = OpcUaCallMethodRequest();
     request->objectId = fbFolderNodeId.copyAndGetDetachedValue();

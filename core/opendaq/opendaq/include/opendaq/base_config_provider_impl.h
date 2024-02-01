@@ -21,23 +21,21 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class JsonConfigProviderImpl final : public ImplementationOf<IConfigProvider>
+class BaseConfigProviderImpl : public ImplementationOf<IConfigProvider>
 {
-public:
-    explicit JsonConfigProviderImpl(const StringPtr& filename);
+protected:
+    static BaseObjectPtr TryConvertToBoolean(const std::string& value);
+    static BaseObjectPtr TryConvertToFloat(const std::string& value);
+    static BaseObjectPtr TryConvertToInteger(const std::string& value);
 
-    ErrCode INTERFACE_FUNC populateOptions(IDict* options) override;
-private:
-    static StringPtr GetEnvironmentVariableValue(StringPtr variableName, StringPtr defaultValue);
-    static StringPtr GetDataFromFile(const StringPtr& filename);
     static std::string ToLowerCase(const std::string& input);
+    static ListPtr<IString> SplitKey(const std::string& envKey, const std::string& prefix, char delimiter);
+    static DictPtr<IString, IString> GetValuesStartingWith(const ListPtr<IString>& cmdLineArgs, const std::string& prefix);
 
-    static BaseObjectPtr HandleNumber(const rapidjson::Value& value);
-    static BaseObjectPtr HandlePrimitive(const rapidjson::Value& value);
-    static void HandleArray(const BaseObjectPtr& options, const rapidjson::Value& value);
-    static void HandleObject(const BaseObjectPtr& options, const rapidjson::Value& value);
+    static BaseObjectPtr HandleUnderfineValue(const std::string& value);
+    static bool HandleOptionLeaf(DictPtr<IString, IBaseObject> optionsValue, StringPtr envKey, StringPtr envValue);
 
-    StringPtr filename;
+    static bool WriteValue(DictPtr<IString,IBaseObject> options, const ListPtr<IString>& tokens, const std::string& value);
 };
 
 END_NAMESPACE_OPENDAQ

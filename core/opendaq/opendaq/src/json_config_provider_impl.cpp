@@ -20,6 +20,15 @@ JsonConfigProviderImpl::JsonConfigProviderImpl(const StringPtr& filename)
         this->filename = GetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", "opendaq-config.json");
 }
 
+std::string JsonConfigProviderImpl::ToLowerCase(const std::string &input) 
+{
+    std::string result = input;
+    for (char &c : result)
+        c = std::tolower(static_cast<unsigned char>(c));
+
+    return result;
+}
+
 StringPtr JsonConfigProviderImpl::GetEnvironmentVariableValue(StringPtr variableName, StringPtr defaultValue)
 {
     if (!variableName.assigned() || variableName.getLength() == 0)
@@ -161,9 +170,10 @@ void JsonConfigProviderImpl::HandleObject(const BaseObjectPtr& options, const ra
     
     for (auto & el : value.GetObject())
     {
+        auto optionName = ToLowerCase(el.name.GetString());
         BaseObjectPtr optionValue;
-        if (optionsPtr.hasKey(el.name.GetString()))
-            optionValue = optionsPtr.get(el.name.GetString());
+        if (optionsPtr.hasKey(optionName))
+            optionValue = optionsPtr.get(optionName);
 
         if (el.value.IsObject()) 
         {
@@ -190,7 +200,7 @@ void JsonConfigProviderImpl::HandleObject(const BaseObjectPtr& options, const ra
                 
             optionValue = parsedValue;
         }
-        optionsPtr.set(el.name.GetString(), optionValue);
+        optionsPtr.set(optionName, optionValue);
     }
 }
 

@@ -18,21 +18,17 @@
 #include <opendaq/config_provider.h>
 #include <rapidjson/document.h>
 #include <coretypes/baseobject_factory.h>
+#include <opendaq/base_config_provider_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class CmdLineArgsConfigProviderImpl final : public ImplementationOf<IConfigProvider>
+class CmdLineArgsConfigProviderImpl final : public BaseConfigProviderImpl
 {
 public:
     explicit CmdLineArgsConfigProviderImpl(const ListPtr<IString>& cmdLineArgs);
     ErrCode INTERFACE_FUNC populateOptions(IDict* options) override;
 
 private:
-    bool handleOptionLeaf(DictPtr<IString, IBaseObject> optionsValue, StringPtr argKey, StringPtr argValue);
-
-    static std::string ToUpperCase(const std::string &input);
-    static DictPtr<IString, IString> GetValuesStartingWith(const ListPtr<IString>& cmdLineArgs, const std::string & prefix);
-    static ListPtr<IString> SplitByDelimiter(const std::string& argKey, const std::string& prefix, char delimiter = '-');
     ListPtr<IString> cmdLineArgs;
 };
 

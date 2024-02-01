@@ -77,20 +77,20 @@ protected:
     static DictPtr<IString, IBaseObject> GetDefaultOptions()
     {
         return Dict<IString, IBaseObject>({
-            {"ModuleManager", Dict<IString, IBaseObject>({
-                    {"ModulesPath", ""}
+            {"modulemanager", Dict<IString, IBaseObject>({
+                    {"modulespath", ""}
                 })},
-            {"Scheduler", Dict<IString, IBaseObject>({
-                    {"WorkersNum", 0}
+            {"scheduler", Dict<IString, IBaseObject>({
+                    {"workersnum", 0}
                 })},
-            {"Logging", Dict<IString, IBaseObject>({
-                    {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
+            {"logging", Dict<IString, IBaseObject>({
+                    {"globalloglevel", OPENDAQ_LOG_LEVEL_DEFAULT}
                 })},
-            {"RootDevice", Dict<IString, IBaseObject>({
-                    {"DefaultLocalId", ""},
-                    {"Connection", ""}
+            {"rootdevice", Dict<IString, IBaseObject>({
+                    {"defaultlocalid", ""},
+                    {"connection", ""}
                 })},
-            {"Modules", Dict<IString, IBaseObject>()}
+            {"modules", Dict<IString, IBaseObject>()}
         });
     }
 
@@ -112,7 +112,7 @@ TEST_F(ConfigProviderTest, jsonConfigReadModuleManagerPath)
     auto options = GetDefaultOptions(); 
 
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "ModuleManager").set("ModulesPath", "testtest");
+    getChildren(expectedOptions, "modulemanager").set("modulespath", "testtest");
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
@@ -129,7 +129,7 @@ TEST_F(ConfigProviderTest, jsonConfigReadSchedulerWorkersNum)
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "Scheduler").set("WorkersNum", 4);
+    getChildren(expectedOptions, "scheduler").set("workersnum", 4);
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
@@ -146,7 +146,7 @@ TEST_F(ConfigProviderTest, jsonConfigReadLoggingGlobalLogLevel)
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "Logging").set("GlobalLogLevel", 0);
+    getChildren(expectedOptions, "logging").set("globalloglevel", 0);
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
@@ -163,7 +163,7 @@ TEST_F(ConfigProviderTest, jsonConfigReadRootDeviceDefaultLocalId)
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "RootDevice").set("DefaultLocalId", "localId");
+    getChildren(expectedOptions, "rootdevice").set("defaultlocalid", "localId");
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
@@ -180,7 +180,7 @@ TEST_F(ConfigProviderTest, jsonConfigReadRootDeviceConnectionString)
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "RootDevice").set("Connection", "dev://connectionString");
+    getChildren(expectedOptions, "rootdevice").set("connection", "dev://connectionString");
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
@@ -197,15 +197,15 @@ TEST_F(ConfigProviderTest, jsonConfigReadModules)
     auto options = GetDefaultOptions();
 
     auto expectedModules = Dict<IString, IBaseObject>({
-            {"OpcUAClient", Dict<IString, IBaseObject>({
-                    {"Debug", 1}
+            {"opcuaclient", Dict<IString, IBaseObject>({
+                    {"debug", 1}
                 })},
-            {"RefDevice", Dict<IString, IBaseObject>({
-                    {"UseGlobalThreadForAcq", 1}
+            {"refdevice", Dict<IString, IBaseObject>({
+                    {"useglobalthreadforacq", 1}
                 })},
         });
     auto expectedOptions = GetDefaultOptions();
-    expectedOptions.set("Modules", expectedModules);    
+    expectedOptions.set("modules", expectedModules);    
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
@@ -221,7 +221,7 @@ TEST_F(ConfigProviderTest, jsonConfigReadLists)
 
     auto options = GetDefaultOptions();
     auto expectedOptions = GetDefaultOptions();
-    expectedOptions.set("List", List<IBaseObject>(String("test"), Integer(123), Boolean(true), Dict<IString, IBaseObject>(), BaseObjectPtr()));
+    expectedOptions.set("list", List<IBaseObject>(String("test"), Integer(123), Boolean(true), Dict<IString, IBaseObject>(), BaseObjectPtr()));
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
@@ -237,7 +237,7 @@ TEST_F(ConfigProviderTest, jsonConfigReadNull)
 
     auto options = GetDefaultOptions();
     auto expectedOptions = GetDefaultOptions();
-    expectedOptions.set("NullValue", {});
+    expectedOptions.set("nullvalue", {});
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
@@ -269,7 +269,7 @@ TEST_F(ConfigProviderTest, jsonConfigIncorrectType)
     auto options = GetDefaultOptions();
 
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "RootDevice").set("Connection", "dev://connectionString");
+    getChildren(expectedOptions, "rootdevice").set("connection", "dev://connectionString");
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     ASSERT_NO_THROW(provider.populateOptions(options));
@@ -285,7 +285,7 @@ TEST_F(ConfigProviderTest, jsonConfigIncorrectType2)
     auto options = GetDefaultOptions();
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "Logging").set("GlobalLogLevel", 0);
+    getChildren(expectedOptions, "logging").set("globalloglevel", 0);
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     ASSERT_NO_THROW(provider.populateOptions(options));
@@ -339,7 +339,7 @@ TEST_F(ConfigProviderTest, envConfigReadModuleManagerPath)
     auto options = GetDefaultOptions(); 
 
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "ModuleManager").set("ModulesPath", "testtest");
+    getChildren(expectedOptions, "modulemanager").set("modulespath", "testtest");
 
     auto provider = EnvConfigProvider();
     provider.populateOptions(options);
@@ -354,7 +354,7 @@ TEST_F(ConfigProviderTest, envConfigReadSchedulerWorkersNum)
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "Scheduler").set("WorkersNum", 4);
+    getChildren(expectedOptions, "scheduler").set("workersnum", 4);
 
     auto provider = EnvConfigProvider();
     provider.populateOptions(options);
@@ -369,7 +369,7 @@ TEST_F(ConfigProviderTest, envConfigReadLoggingGlobalLogLevel)
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "Logging").set("GlobalLogLevel", 0);
+    getChildren(expectedOptions, "logging").set("globalloglevel", 0);
 
     auto provider = EnvConfigProvider();
     provider.populateOptions(options);
@@ -384,7 +384,7 @@ TEST_F(ConfigProviderTest, envConfigReadRootDeviceDefaultLocalId)
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "RootDevice").set("DefaultLocalId", "localId");
+    getChildren(expectedOptions, "rootdevice").set("defaultlocalid", "localId");
 
     auto provider = EnvConfigProvider();
     provider.populateOptions(options);
@@ -399,7 +399,7 @@ TEST_F(ConfigProviderTest, envConfigReadRootDeviceConnectionString)
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "RootDevice").set("Connection", "dev://connectionString");
+    getChildren(expectedOptions, "rootdevice").set("connection", "dev://connectionString");
 
     auto provider = EnvConfigProvider();
     provider.populateOptions(options);
@@ -414,7 +414,7 @@ TEST_F(ConfigProviderTest, envConfigReadOutOfReservedName)
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    expectedOptions.set("Deep1", Dict<IString, IBaseObject>({{"Deep2", "SomeValue"}}));
+    expectedOptions.set("deep1", Dict<IString, IBaseObject>({{"deep2", "SomeValue"}}));
 
     auto provider = EnvConfigProvider();
     provider.populateOptions(options);
@@ -432,7 +432,7 @@ TEST_F(ConfigProviderTest, envConfigReadInvalidArgument1)
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "ModuleManager").set("ModulesPath", "testtest");
+    getChildren(expectedOptions, "modulemanager").set("modulespath", "testtest");
 
     auto provider = EnvConfigProvider();
     provider.populateOptions(options);
@@ -450,7 +450,7 @@ TEST_F(ConfigProviderTest, envConfigReadInvalidArgument2)
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    expectedOptions.set("Deep1", Dict<IString, IBaseObject>({{"Deep2", "SomeValue"}}));
+    expectedOptions.set("deep1", Dict<IString, IBaseObject>({{"deep2", "SomeValue"}}));
 
     auto provider = EnvConfigProvider();
     provider.populateOptions(options);

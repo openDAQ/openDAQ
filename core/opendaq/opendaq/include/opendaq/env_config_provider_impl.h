@@ -18,24 +18,17 @@
 #include <opendaq/config_provider.h>
 #include <rapidjson/document.h>
 #include <coretypes/baseobject_factory.h>
+#include <opendaq/base_config_provider_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class EnvConfigProviderImpl final : public ImplementationOf<IConfigProvider>
+class EnvConfigProviderImpl final : public BaseConfigProviderImpl
 {
 public:
-    explicit EnvConfigProviderImpl();
-
-    ErrCode INTERFACE_FUNC populateModuleOptions(IDict* options);
     ErrCode INTERFACE_FUNC populateOptions(IDict* options) override;
 
 private:
-    BaseObjectPtr handleUnderfineValue(const std::string& value);
-    bool handleOptionLeaf(DictPtr<IString, IBaseObject> optionsValue, StringPtr envKey, StringPtr envValue);
-
-    static DictPtr<IString, IString> GetEnvValuesStartingWith(const std::string& prefix);
-    static ListPtr<IString> SplitEnvKey(const std::string& envKey, const std::string& prefix, char delimiter = '_');
-    static std::string ToUpperCase(const std::string &input);
+    static ListPtr<IString> GetEnvValues();
 };
 
 END_NAMESPACE_OPENDAQ

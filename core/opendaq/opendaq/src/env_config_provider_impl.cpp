@@ -14,7 +14,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 ListPtr<IString> EnvConfigProviderImpl::GetEnvValues()
 {
-
     auto result = List<IString>();
     for (char** env = ENVIRON; *env != 0; env++) 
         result.pushBack(*env);

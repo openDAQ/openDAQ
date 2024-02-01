@@ -31,7 +31,7 @@ inline ConfigProviderPtr EnvConfigProvider()
     return obj;
 }
 
-inline ConfigProviderPtr createCmdLineArgsConfigProvider(const ListPtr<IString>& args)
+inline ConfigProviderPtr CmdLineArgsConfigProvider(const ListPtr<IString>& args)
 {
     ConfigProviderPtr obj(CmdLineArgsConfigProvider_Create(args));
     return obj;

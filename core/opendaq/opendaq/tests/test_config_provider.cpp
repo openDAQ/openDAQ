@@ -458,4 +458,144 @@ TEST_F(ConfigProviderTest, envConfigReadInvalidArgument2)
     ASSERT_EQ(options, expectedOptions);
 }
 
+
+TEST_F(ConfigProviderTest, cmdLineArgsConfigReadModuleManagerPath)
+{
+    auto comandLineArgs = List<IString>("--config-modulemanager-modulespath=\"testtest\"");
+
+    auto options = GetDefaultOptions(); 
+
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "modulemanager").set("modulespath", "testtest");
+
+    auto provider = CmdLineArgsConfigProvider(comandLineArgs);
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, cmdLineArgsConfigReadSchedulerWorkersNum)
+{
+    auto comandLineArgs = List<IString>("--config-scheduler-workersnum=4");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "scheduler").set("workersnum", 4);
+
+    auto provider = CmdLineArgsConfigProvider(comandLineArgs);
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, cmdLineArgsConfigReadLoggingGlobalLogLevel)
+{
+    auto comandLineArgs = List<IString>("--config-logging-globalloglevel=0");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "logging").set("globalloglevel", 0);
+
+    auto provider = CmdLineArgsConfigProvider(comandLineArgs);
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, cmdLineArgsConfigReadRootDeviceDefaultLocalId)
+{
+    auto comandLineArgs = List<IString>("--config-rootdevice-defaultlocalid=\"localId\"");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "rootdevice").set("defaultlocalid", "localId");
+
+    auto provider = CmdLineArgsConfigProvider(comandLineArgs);
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, cmdLineArgsConfigReadRootDeviceConnectionString)
+{
+    auto comandLineArgs = List<IString>("--config-rootdevice-connection=\"dev://connectionString\"");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "rootdevice").set("connection", "dev://connectionString");
+
+    auto provider = CmdLineArgsConfigProvider(comandLineArgs);
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, cmdLineArgsConfigReadOutOfReservedName)
+{
+    auto comandLineArgs = List<IString>("--config-deep1-deep2=\"SomeValue\"");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    expectedOptions.set("deep1", Dict<IString, IBaseObject>({{"deep2", "SomeValue"}}));
+
+    auto provider = CmdLineArgsConfigProvider(comandLineArgs);
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, cmdLineArgsConfigReadInvalidArgument1)
+{
+    auto comandLineArgs = List<IString>(
+        "--config-modulemanager-modulespath=\"testtest\"", 
+        "--config-scheduler-workersnum=\"string\"");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "modulemanager").set("modulespath", "testtest");
+
+    auto provider = CmdLineArgsConfigProvider(comandLineArgs);
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, cmdLineArgsConfigReadInvalidArgument2)
+{
+    auto comandLineArgs = List<IString>(
+        "--config-deep1-deep2=\"SomeValue\"",
+        "--config-modulemanager-modulespath-notexpectedchild=\"string\"");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    expectedOptions.set("deep1", Dict<IString, IBaseObject>({{"deep2", "SomeValue"}}));
+
+    auto provider = CmdLineArgsConfigProvider(comandLineArgs);
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
+TEST_F(ConfigProviderTest, cmdLineArgsConfigReadBrokenCommand)
+{
+    auto comandLineArgs = List<IString>("--config-deep1-deep2=", "\"SomeValue\"");
+
+    auto options = GetDefaultOptions(); 
+    
+    auto expectedOptions = GetDefaultOptions();
+    expectedOptions.set("deep1", Dict<IString, IBaseObject>({{"deep2", ""}}));
+
+    auto provider = CmdLineArgsConfigProvider(comandLineArgs);
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
 END_NAMESPACE_OPENDAQ

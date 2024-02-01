@@ -1,6 +1,5 @@
 #include <opendaq/context_factory.h>
 #include <coreobjects/unit_factory.h>
-#include <opendaq/function_block_type_impl.h>
 #include <opendaq/function_block_type.h>
 #include <opendaq/function_block_type_ptr.h>
 #include <opendaq/function_block_ptr.h>

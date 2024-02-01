@@ -426,7 +426,7 @@ TEST_F(PropertyObjectTest, EnumVisiblePropertyListNull)
 TEST_F(PropertyObjectTest, EnumVisiblePropertyWhenClassNull)
 {
     auto propObj = PropertyObject();
-    ASSERT_EQ(propObj.getVisibleProperties().getCount(), 0);
+    ASSERT_EQ(propObj.getVisibleProperties().getCount(), 0u);
 }
 
 TEST_F(PropertyObjectTest, GetPropertyObjectWhenClassNull)
@@ -1581,7 +1581,7 @@ TEST_F(PropertyObjectTest, ObjectPropMetadata)
 
     propObj.addProperty(prop);
 
-    ASSERT_EQ(propObj.getVisibleProperties().getCount(), 0);
+    ASSERT_EQ(propObj.getVisibleProperties().getCount(), 0u);
     ASSERT_THROW(propObj.setPropertyValue("child", PropertyObject()), AccessDeniedException);
     ASSERT_THROW(childObj.setPropertyValue("Foo", "NotBar"), FrozenException);
 }

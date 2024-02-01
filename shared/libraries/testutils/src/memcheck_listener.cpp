@@ -36,7 +36,7 @@ void MemCheckListener::OnTestStart(const testing::TestInfo& info)
 
 void MemCheckListener::OnTestEnd(const testing::TestInfo& info)
 {
-    if (!info.result()->Failed())
+    if (info.result()->Passed())
     {
 #ifndef NDEBUG
     #ifdef _MSC_VER

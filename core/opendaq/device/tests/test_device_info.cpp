@@ -187,7 +187,7 @@ TEST_F(DeviceInfoTest, CustomProperties)
     ASSERT_NO_THROW(info.addProperty(FloatProperty("Height", 172.4)));
     ASSERT_NO_THROW(info.addProperty(BoolProperty("IsAsleep", true)));
 
-    ASSERT_EQ(info.getCustomInfoPropertyNames().getCount(), 4);
+    ASSERT_EQ(info.getCustomInfoPropertyNames().getCount(), 4u);
 }
 
 END_NAMESPACE_OPENDAQ

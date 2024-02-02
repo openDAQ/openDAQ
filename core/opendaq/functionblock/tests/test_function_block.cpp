@@ -114,6 +114,10 @@ TEST_F(FunctionBlockTest, SerializeAndDeserialize)
     ASSERT_EQ(newFb.getDescription(), fb.getDescription());
     ASSERT_EQ(newFb.getTags(), fb.getTags());
 
+    ASSERT_EQ(newFb.getSignals().getElementInterfaceId(), daq::ISignal::Id);
+    ASSERT_EQ(newFb.getInputPorts().getElementInterfaceId(), daq::IInputPort::Id);
+    ASSERT_EQ(newFb.getFunctionBlocks().getElementInterfaceId(), daq::IFunctionBlock::Id);
+
     const auto serializer2 = daq::JsonSerializer(daq::True);
     newFb.serialize(serializer2);
     const auto str2 = serializer2.getOutput();

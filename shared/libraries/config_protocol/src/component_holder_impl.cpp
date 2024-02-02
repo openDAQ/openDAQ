@@ -123,7 +123,7 @@ ErrCode ComponentHolderImpl::Deserialize(ISerializedObject* serialized, IBaseObj
                 parent = root.findComponent(globalId);
             }
 
-            const ComponentDeserializeContextPtr newDeserializeContextPtr = deserializeContextPtr.clone(parent, rootKey);
+            const ComponentDeserializeContextPtr newDeserializeContextPtr = deserializeContextPtr.clone(parent, rootKey, nullptr);
             const ComponentPtr comp = serializedObj.readObject(rootKey, newDeserializeContextPtr, factoryCallbackPtr);
 
 

@@ -28,6 +28,14 @@ public:
 
     ConfigClientIoFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                              const std::string& remoteGlobalId,
+                             const IntfID& intfID,
+                             const ContextPtr& ctx,
+                             const ComponentPtr& parent,
+                             const StringPtr& localId,
+                             const StringPtr& className = nullptr);
+
+    ConfigClientIoFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                             const std::string& remoteGlobalId,
                              const ContextPtr& ctx,
                              const ComponentPtr& parent,
                              const StringPtr& localId,
@@ -35,6 +43,17 @@ public:
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 };
+
+inline ConfigClientIoFolderImpl::ConfigClientIoFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                                          const std::string& remoteGlobalId,
+                                                          const IntfID& intfID,
+                                                          const ContextPtr& ctx,
+                                                          const ComponentPtr& parent,
+                                                          const StringPtr& localId,
+                                                          const StringPtr& className)
+    : Super(configProtocolClientComm, remoteGlobalId, intfID, ctx, parent, localId, className)
+{
+}
 
 inline ConfigClientIoFolderImpl::ConfigClientIoFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                                           const std::string& remoteGlobalId,

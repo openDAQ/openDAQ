@@ -32,6 +32,12 @@ public:
                  const StringPtr& localId,
                  const StringPtr& className = nullptr);
 
+    IoFolderImpl(const IntfID& itemId,
+                 const ContextPtr& context,
+                 const ComponentPtr& parent,
+                 const StringPtr& localId,
+                 const StringPtr& className = nullptr);
+
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
@@ -48,6 +54,17 @@ IoFolderImpl<Intfs...>::IoFolderImpl(const ContextPtr& context,
                            const StringPtr& localId,
                            const StringPtr& className)
     : Super(context, parent, localId, className)
+{
+}
+
+template <class ... Intfs>
+IoFolderImpl<Intfs...>::IoFolderImpl(
+    const IntfID& itemId,
+    const ContextPtr& context,
+    const ComponentPtr& parent,
+    const StringPtr& localId,
+    const StringPtr& className)
+    : Super(itemId, context, parent, localId, className)
 {
 }
 

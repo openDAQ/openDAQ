@@ -991,8 +991,8 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
-    this->deserializeFolder(serializedObject, context, factoryCallback, ioFolder, "IO");
-    this->deserializeFolder(serializedObject, context, factoryCallback, devices, "Dev");
+    this->template deserializeFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");
+    this->template deserializeFolder<IDevice>(serializedObject, context, factoryCallback, devices, "Dev");
 }
 
 template <typename TInterface, typename... Interfaces>

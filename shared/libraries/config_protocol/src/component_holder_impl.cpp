@@ -95,7 +95,7 @@ ErrCode ComponentHolderImpl::Deserialize(ISerializedObject* serialized, IBaseObj
 
             const auto rootKey = keys[1];
 
-            const auto newDeserializeContextPtr = deserializeContextPtr.clone(deserializeContextPtr.getParent(), rootKey);
+            const auto newDeserializeContextPtr = deserializeContextPtr.clone(deserializeContextPtr.getParent(), rootKey, nullptr);
 
             const ComponentPtr comp = serializedObj.readObject(rootKey, newDeserializeContextPtr, factoryCallbackPtr);
 

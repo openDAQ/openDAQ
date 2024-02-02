@@ -67,7 +67,7 @@ BaseObjectPtr ConfigProtocolClientComm::getPropertyValue(const std::string& glob
     const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
 
     const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        shared_from_this(), std::string{}, daqContext, nullptr, nullptr);
+        shared_from_this(), std::string{}, daqContext, nullptr, nullptr, nullptr);
 
     return parseRpcReplyPacketBuffer(getPropertyValueRpcReplyPacketBuffer, deserializeContext);
 }
@@ -274,7 +274,7 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Strin
     }
 
     const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        shared_from_this(), remoteGlobalId, daqContext, parentComponent, nullptr);
+        shared_from_this(), remoteGlobalId, daqContext, parentComponent, nullptr, nullptr);
 
     return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, deserializeContext);
 }

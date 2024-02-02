@@ -31,12 +31,16 @@ DECLARE_OPENDAQ_INTERFACE(IComponentDeserializeContext, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getParent(IComponent** parent) = 0;
     virtual ErrCode INTERFACE_FUNC getLocalId(IString** localId) = 0;
     virtual ErrCode INTERFACE_FUNC getContext(IContext** context) = 0;
-    virtual ErrCode INTERFACE_FUNC clone(IComponent* newParent,
-                                         IString* newLocalId,
-                                         IComponentDeserializeContext** newComponentDeserializeContext) = 0;
+    virtual ErrCode INTERFACE_FUNC getIntfID(IntfID* intfID) = 0;
+    // [arrayArg(newIntfID, 1)]
+    virtual ErrCode INTERFACE_FUNC clone(
+        IComponent * newParent,
+        IString* newLocalId,
+        IComponentDeserializeContext** newComponentDeserializeContext,
+        IntfID* newIntfID) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY(
-    LIBRARY_FACTORY, ComponentDeserializeContext, IContext*, context, IComponent*, parent, IString*, localId);
+    LIBRARY_FACTORY, ComponentDeserializeContext, IContext*, context, IComponent*, parent, IString*, localId, IntfID*, intfID);
 
 END_NAMESPACE_OPENDAQ

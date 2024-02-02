@@ -7,8 +7,9 @@ ConfigProtocolDeserializeContextImpl::ConfigProtocolDeserializeContextImpl(const
                                                                            const std::string& remoteGlobalId,
                                                                            const ContextPtr& context,
                                                                            const ComponentPtr& parent,
-                                                                           const StringPtr& localId)
-    : GenericComponentDeserializeContextImpl(context, parent, localId)
+                                                                           const StringPtr& localId,
+                                                                           IntfID* inftID)
+    : GenericComponentDeserializeContextImpl(context, parent, localId, inftID)
     , clientComm(clientComm)
     , remoteGlobalId(remoteGlobalId)
 {
@@ -26,7 +27,8 @@ std::string ConfigProtocolDeserializeContextImpl::getRemoteGlobalId()
 
 ErrCode ConfigProtocolDeserializeContextImpl::clone(IComponent* newParent,
     IString* newLocalId,
-    IComponentDeserializeContext** newComponentDeserializeContext)
+    IComponentDeserializeContext** newComponentDeserializeContext,
+    IntfID* newIntfID)
 {
     OPENDAQ_PARAM_NOT_NULL(newLocalId);
     OPENDAQ_PARAM_NOT_NULL(newComponentDeserializeContext);
@@ -41,7 +43,8 @@ ErrCode ConfigProtocolDeserializeContextImpl::clone(IComponent* newParent,
         newRemoteGlobalId,
         this->context,
         newParent,
-        newLocalId);
+        newLocalId,
+        newIntfID);
 }
 
 }

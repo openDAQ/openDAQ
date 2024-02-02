@@ -387,7 +387,7 @@ BaseObjectPtr FolderImpl<Intf, Intfs...>::DeserializeFolder(const SerializedObje
             }
             checkErrorInfo(errCode);
 
-            return InterfaceToSmartPtr<Interface>::SmartPtr();
+            return typename InterfaceToSmartPtr<Interface>::SmartPtr();
         });
 }
 

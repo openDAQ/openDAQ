@@ -130,7 +130,7 @@ BaseObjectPtr ConfigClientBaseFolderImpl<Impl>::DeserializeConfigFolder(
                                                                            className);
             }
             checkErrorInfo(errCode);
-            return InterfaceToSmartPtr<Interface>::SmartPtr();
+            return typename InterfaceToSmartPtr<Interface>::SmartPtr();
         });
 }
 

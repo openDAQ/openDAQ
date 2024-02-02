@@ -10,6 +10,7 @@ namespace RTGen.Delphi.Types
             IsOutPointer = false;
             ArrayInfo = null;
             DefaultValue = null;
+            IsPolymorphic = false;
         }
 
         public ITypeName Type { get; set; }
@@ -25,6 +26,8 @@ namespace RTGen.Delphi.Types
         public IArray ArrayInfo { get; }
 
         public string DefaultValue { get; }
+
+        public bool IsPolymorphic { get; set; } 
 
         public IArgument Clone()
         {

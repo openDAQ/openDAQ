@@ -83,6 +83,10 @@ if (WIN32)
     )
 endif()
 
+if (MSVC)
+    target_compile_options(${LIB_NAME} PRIVATE /bigobj)
+endif()
+
 set_target_properties(${LIB_NAME} PROPERTIES PUBLIC_HEADER "${SRC_PublicHeaders}")
 
 opendaq_set_output_lib_name(${LIB_NAME} ${LIB_MAJOR_VERSION})

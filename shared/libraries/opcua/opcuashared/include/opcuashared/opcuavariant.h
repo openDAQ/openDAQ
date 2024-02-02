@@ -163,6 +163,7 @@ public:
     std::string toString() const;
     int64_t toInteger() const;
     double toDouble() const;
+    float toFloat() const;
     bool toBool() const;
     OpcUaNodeId toNodeId() const;
 

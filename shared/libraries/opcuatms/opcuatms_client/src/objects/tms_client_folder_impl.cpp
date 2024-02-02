@@ -61,6 +61,7 @@ void TmsClientFolderImpl<Impl>::findAndCreateFolders(std::map<uint32_t, Componen
         catch (...)
         {
             LOG_W("Failed to find and create folder \"{}\" to OpcUA client folder \"{}\"", browseName, this->globalId);
+            throw;
         }
         
     }

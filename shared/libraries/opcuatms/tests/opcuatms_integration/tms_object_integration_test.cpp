@@ -5,7 +5,7 @@ using namespace daq;
 using namespace daq::opcua;
 using namespace daq::opcua::tms;
 
-static LoggerPtr createLoggerWithDebugSink(const LoggerSinkPtr& sink)
+static LoggerPtr CreateLoggerWithDebugSink(const LoggerSinkPtr& sink)
 {
     sink.setLevel(LogLevel::Warn);
     auto sinks = DefaultSinks(nullptr);
@@ -17,7 +17,7 @@ void TmsObjectIntegrationTest::SetUp()
 {
     TmsObjectTest::SetUp();
     debugSink = LastMessageLoggerSink();
-    logger = createLoggerWithDebugSink(debugSink);
+    logger = CreateLoggerWithDebugSink(debugSink);
 
     ctx = daq::NullContext(logger);
     clientContext = std::make_shared<TmsClientContext>(client, ctx);

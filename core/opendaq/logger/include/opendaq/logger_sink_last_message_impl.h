@@ -27,14 +27,14 @@ namespace sinks {
 template<typename Mutex>
 class LoggerSinkLastMessage : public base_sink<Mutex>
 {
-protected:
-    void sink_it_(const details::log_msg& msg) override;
-    void flush_() override;
-
 public:
     daq::ErrCode getLastMessage(daq::IString** lastMessage);
     daq::ErrCode waitForMessage(daq::SizeT timeoutMs, daq::Bool* success);
     ~LoggerSinkLastMessage();
+
+protected:
+    void sink_it_(const details::log_msg& msg) override;
+    void flush_() override;
 
 private:
     std::mutex mx;

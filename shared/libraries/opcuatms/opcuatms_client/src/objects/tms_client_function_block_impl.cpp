@@ -68,6 +68,7 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateFunctionBlocks()
         catch(...)
         {
             LOG_W("Failed to create function block \"{}\" to OpcUA client device \"{}\"", browseName, this->globalId);
+            throw;
         }
     }
 
@@ -99,6 +100,7 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateSignals()
         catch (...)
         {
             LOG_W("Failed to create signal to OpcUA client \"{}\"", this->globalId);
+            throw;
         }
     }
     
@@ -157,6 +159,7 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateInputPorts()
         catch(...)
         {
             LOG_W("Failed to find and create input port \"{}\" to OpcUA client \"{}\"", browseName, this->globalId);
+            throw;
         }
     }
 

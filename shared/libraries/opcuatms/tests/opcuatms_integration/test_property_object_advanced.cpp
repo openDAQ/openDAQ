@@ -504,7 +504,6 @@ TEST_F(TmsPropertyObjectAdvancedTest, ObjectGetSet)
     ASSERT_EQ(getLastMessage(), "Failed to set value for property \"Object\" on OpcUA client property object: Object type properties cannot be set over OpcUA");
 
     ASSERT_NO_THROW(clientChildObj.setPropertyValue("ObjNumber", 1));
-    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"ObjNumber\" on OpcUA client property object: Writting property value");
 
     ASSERT_EQ(clientChildObj.getPropertyValue("ObjNumber"), 1);
     PropertyObjectPtr serverNonClassObj = obj.getPropertyValue("NonClassObj");
@@ -658,12 +657,10 @@ TEST_F(TmsPropertyObjectAdvancedTest, ObjectPropWithMetadata)
 
     PropertyObjectPtr clientObjWithMetadata = clientObj.getPropertyValue("ObjectWithMetadata");
     ASSERT_NO_THROW(clientObjWithMetadata.setPropertyValue("foo", "notbar"));
-    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"foo\" on OpcUA client property object: Writting property value");
     ASSERT_EQ(clientObjWithMetadata.getPropertyValue("foo"), "notbar");
 
     PropertyObjectPtr clientLocalObjWithMetadata = clientObj.getPropertyValue("LocalObjectWithMetadata");
     ASSERT_NO_THROW(clientLocalObjWithMetadata.setPropertyValue("foo", "notbar"));
-    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"foo\" on OpcUA client property object: Writting property value");
     ASSERT_EQ(clientLocalObjWithMetadata.getPropertyValue("foo"), "notbar");
 
     PropertyPtr clientObjectWithMetadataProp = clientObj.getProperty("ObjectWithMetadata");

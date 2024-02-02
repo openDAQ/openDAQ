@@ -53,8 +53,6 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , info(old->info)
 {
     this->internalAddRef();
-    packets = old->packets;
-    availableSamples = old->availableSamples;
     readDescriptorFromPort();
     notify.dataReady = false;
 }
@@ -90,7 +88,7 @@ SizeT BlockReaderImpl::getAvailableSamples() const
         count = info.dataPacket.getSampleCount() - info.prevSampleIndex;
     }
 
-    count += availableSamples;
+    count += connection.getAvailableSamples();
     return count;
 }
 
@@ -100,17 +98,6 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
 
     {
         std::scoped_lock lock(notify.mutex);
-
-        auto packet = connection.dequeue();
-        while (packet.assigned())
-        {
-            if (readCallback.assigned() && packet.getType() == PacketType::Event)
-                handleDescriptorChanged(packet);
-            else
-                pushPacket(packet);
-
-            packet = connection.dequeue();
-        }
 
         if (getAvailable() != 0)
         {   
@@ -195,9 +182,9 @@ ErrCode BlockReaderImpl::readPackets()
         // if no partially-read packet and there are more blocks left in the connection
         if (getAvailable() > 0 && !packet.assigned())
         {
-            std::unique_lock lock(notify.mutex);
+            std::unique_lock notifyLock(notify.mutex);
 
-            packet = popPacket();
+            packet = connection.dequeue();
             notify.dataReady = false;
         }
         else if (!packet.assigned())
@@ -210,7 +197,7 @@ ErrCode BlockReaderImpl::readPackets()
                 return notify.dataReady && getAvailable() != 0;
             }))
             {
-                packet = popPacket();
+                packet = connection.dequeue();
                 notify.dataReady = false;
             }
             else
@@ -303,27 +290,6 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
     SizeT samplesRead = samplesToRead - info.remainingSamplesToRead;
     *count = samplesRead / blockSize;
     return errCode;
-}
-
-void BlockReaderImpl::pushPacket(const PacketPtr & packet) 
-{
-    packets.push_back(packet);
-    auto dataPacket = packet.asPtrOrNull<IDataPacket>();
-    if (dataPacket.assigned())
-        availableSamples += dataPacket.getSampleCount();
-}
-
-PacketPtr BlockReaderImpl::popPacket()
-{
-    if (packets.size() == 0)
-        return PacketPtr();
-
-    auto packet = packets.front();
-    packets.pop_front();
-    auto dataPacket = packet.asPtrOrNull<IDataPacket>();
-    if (dataPacket.assigned())
-        availableSamples -= dataPacket.getSampleCount();
-    return packet;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

@@ -128,12 +128,6 @@ private:
     SizeT blockSize;
     BlockReadInfo info{};
     BlockNotifyInfo notify{};
-
-    SizeT availableSamples {0};
-    std::deque<PacketPtr> packets;
-
-    void pushPacket(const PacketPtr & packet);
-    PacketPtr popPacket();
 };
 
 END_NAMESPACE_OPENDAQ

@@ -337,7 +337,7 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0SkipSamples)
 
     SizeT skip = 100;
     multi.skipSamples(&skip);
-    ASSERT_EQ(skip, 100);
+    ASSERT_EQ(skip, 100u);
 
     available = multi.getAvailableCount();
     ASSERT_EQ(available, 346u);
@@ -367,7 +367,7 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0SkipSamples)
 
     skip = 1000;
     multi.skipSamples(&skip);
-    ASSERT_EQ(skip, 341);
+    ASSERT_EQ(skip, 341u);
 
     available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);

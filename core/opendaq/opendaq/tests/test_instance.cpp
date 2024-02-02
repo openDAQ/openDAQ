@@ -324,26 +324,26 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
                                 .setSchedulerWorkerNum(1)
                                 .setScheduler(scheduler)
                                 .setDefaultRootDeviceLocalId("DefaultRootDeviceLocalId")
-                                .setRootDevice("daqref://device0")
+                                .setRootDevice("test")
                                 .setDefaultRootDeviceInfo(defaultRootDeviceInfo);
     
     ASSERT_EQ(instanceBuilder.getLogger(), logger);
     ASSERT_EQ(instanceBuilder.getGlobalLogLevel(), LogLevel::Debug);
     
     auto components = instanceBuilder.getComponentsLogLevel();
-    ASSERT_EQ(components.getCount(), 1);
+    ASSERT_EQ(components.getCount(), 1u);
     ASSERT_EQ(components["component1"], LogLevel::Critical);
     
     auto sinks = instanceBuilder.getLoggerSinks();
-    ASSERT_EQ(sinks.getCount(), 1);
+    ASSERT_EQ(sinks.getCount(), 1u);
     ASSERT_EQ(sinks[0].getLevel(), LogLevel::Warn);
 
     ASSERT_EQ(instanceBuilder.getModulePath(), "./modulePath2");
     ASSERT_EQ(instanceBuilder.getModuleManager(), moduleManager);
-    ASSERT_EQ(instanceBuilder.getSchedulerWorkerNum(), 1);
+    ASSERT_EQ(instanceBuilder.getSchedulerWorkerNum(), 1u);
     ASSERT_EQ(instanceBuilder.getScheduler(), scheduler);
     ASSERT_EQ(instanceBuilder.getDefaultRootDeviceLocalId(), "DefaultRootDeviceLocalId");
-    ASSERT_EQ(instanceBuilder.getRootDevice(), "daqref://device0");
+    ASSERT_EQ(instanceBuilder.getRootDevice(), "test");
     ASSERT_EQ(instanceBuilder.getDefaultRootDeviceInfo(), defaultRootDeviceInfo);
 }
 
@@ -377,11 +377,10 @@ TEST_F(InstanceTest, InstanceCreateFactory)
 TEST_F(InstanceTest, InstanceBuilderGetDefault)
 {
     const auto instanceBuilder = InstanceBuilder()
-                                .setGlobalLogLevel(LogLevel::Debug)
-                                .setComponentLogLevel("Instance", LogLevel::Error)
-                                .addLoggerSink(StdOutLoggerSink())
-                                .setSchedulerWorkerNum(1)
-                                .setRootDevice("daqref://device0");
+                                     .setGlobalLogLevel(LogLevel::Debug)
+                                     .setComponentLogLevel("Instance", LogLevel::Error)
+                                     .addLoggerSink(StdOutLoggerSink())
+                                     .setSchedulerWorkerNum(1);
 
     ASSERT_EQ(instanceBuilder.getLogger().assigned(), false);
     ASSERT_EQ(instanceBuilder.getScheduler().assigned(), false);
@@ -402,11 +401,16 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
     ASSERT_EQ(scheduler.isMultiThreaded(), false);
 
     // check moduleManager
-    auto moduleManager = instance.getContext().getModuleManager();
+    ModuleManagerPtr moduleManager = instance.getContext().getModuleManager();
     ASSERT_EQ(moduleManager.assigned(), true);
 
+    // We cannot add modules in the instance builder as the context is not yet created
+    const ModulePtr deviceModule(MockDeviceModule_Create(instance.getContext()));
+    moduleManager.addModule(deviceModule);
+
+    instance.setRootDevice("mock_phys_device");
     ASSERT_TRUE(instance.getRootDevice().assigned());
-    ASSERT_FALSE(instance.getRootDevice().getName() == "DefaultRootDeviceLocalId");   
+    ASSERT_EQ(instance.getRootDevice().getName(), "mockdev");
 }
 
 END_NAMESPACE_OPENDAQ

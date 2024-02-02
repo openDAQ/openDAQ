@@ -128,6 +128,7 @@ DEFINE_EXCEPTION(CoerceFailed, OPENDAQ_ERR_COERCE_FAILED, "Coercing failed")
 DEFINE_EXCEPTION(NotSupported, OPENDAQ_ERR_NOT_SUPPORTED, "The operation or type is not supported")
 DEFINE_EXCEPTION(ListNotHomogeneous, OPENDAQ_ERR_LIST_NOT_HOMOGENEOUS, "List is not homogeneous")
 DEFINE_EXCEPTION(FactoryNotRegistered, OPENDAQ_ERR_FACTORY_NOT_REGISTERED, "Factory not registered")
+DEFINE_EXCEPTION(NoData, OPENDAQ_ERR_NO_DATA, "No data")
 
 extern void checkErrorInfo(ErrCode errCode);
 

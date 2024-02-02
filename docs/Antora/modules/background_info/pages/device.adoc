@@ -84,7 +84,7 @@ Python::
 [source,python]
 ----
 def access_device_components(device: opendaq.IDevice):
-    functionBlocks = device.function_blocks
+    function_blocks = device.function_blocks
     signals = device.signals
     sub_devices = device.devices
     io_folder = device.inputs_outputs_folder
@@ -192,7 +192,7 @@ def device_info(device: opendaq.IDevice):
     # Gets the Device information and prints its serial number
     info = device.info
     print(info.serial_number)
-# Prints the name of the first available device
+    # Prints the name of the first available device
     available_device_info = device.available_devices.values[0]
     print(available_device_info.name)
 ----
@@ -240,8 +240,8 @@ Python::
 ----
 def instance_and_root():
     instance = opendaq.Instance()
-    
-# The below two lines are equivalent.
+
+    # The below two lines are equivalent.
     available_devices1 = instance.available_devices
     available_devices2 = instance.root_device.available_devices
 ----

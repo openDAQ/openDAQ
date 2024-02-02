@@ -457,6 +457,25 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
     return errCode;
 }
 
+ErrCode MultiReaderImpl::skipSamples(SizeT* count)
+{
+    OPENDAQ_PARAM_NOT_NULL(count);
+
+    std::scoped_lock lock(mutex);
+
+    if (invalid)
+        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, errorMessage, nullptr);
+
+    const SizeT samplesToRead = *count;
+    prepare(nullptr, samplesToRead, milliseconds(0));
+
+    const ErrCode errCode = readPackets();
+
+    const SizeT samplesRead = samplesToRead - remainingSamplesToRead;
+    *count = samplesRead;
+    return errCode;
+}
+
 SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) const
 {
     SizeT min = std::numeric_limits<SizeT>::max();
@@ -753,10 +772,11 @@ void MultiReaderImpl::prepare(void** outValues, SizeT count, std::chrono::millis
     timeout = std::chrono::duration_cast<Duration>(timeoutTime);
     startTime = std::chrono::steady_clock::now();
 
-    auto signalsNum = signals.size();
+    const auto signalsNum = signals.size();
     for (SizeT i = 0u; i < signalsNum; ++i)
     {
-        signals[i].prepare(outValues[i], count, timeoutTime);
+        const auto outPtr = outValues != nullptr ? outValues[i] : nullptr;
+        signals[i].prepare(outPtr, count, timeoutTime);
     }
 }
 

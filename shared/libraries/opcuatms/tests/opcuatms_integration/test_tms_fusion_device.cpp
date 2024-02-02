@@ -41,22 +41,26 @@ protected:
     void SetUp() override
     {
         TmsObjectIntegrationTest::SetUp();
-
-         // create class with name "STGAmplifier"
-        auto stgAmplClass =
-            PropertyObjectClassBuilder("StgAmp")
-                .addProperty(SelectionProperty(
-                    "Measurement", List<IString>("Voltage", "Bridge", "Resistance", "Temperature", "Current", "Potentiometer"), 0))
-                
-                .build();
-
         objManager = TypeManager();
-        objManager.addType(stgAmplClass);
+
+        // create class with name "FusionAmp"
+        auto fusionAmpClass =
+            PropertyObjectClassBuilder("FusionAmp")
+                .addProperty(SelectionProperty(
+                    "Measurement", List<IString>("Voltage", "FullBridge", "HalfBridge", "QuarterBridge"), 0))
+                .addProperty(StructProperty(
+                    "AdjustmentPoint", Struct("AdjustmentPointScalingStructure", Dict<IString, IBaseObject>({{"Index", 1}, {"Factor", 2.1}, {"Offset", 3.0}}), objManager))
+                )
+                .addProperty(StructProperty(
+                    "Scaler", Struct("GainScalingStructure", Dict<IString, IBaseObject>({{"Factor", 2.1}, {"Offset", 3.0}}), objManager))
+                )
+                .build();
+        objManager.addType(fusionAmpClass);
     }
 
     void TearDown() override
     {
-        objManager.removeType("StgAmp");
+        objManager.removeType("FusionAmp");
     }
 
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)
@@ -85,6 +89,33 @@ TEST_F(TmsFusionDevice, SampleRateTest)
 
     ASSERT_TRUE(clientSignal.getPublic());
     ASSERT_NO_THROW(clientSignal.getPropertyValue("SampleRate"));
+}
+
+TEST_F(TmsFusionDevice, StructTest)
+{
+    const auto obj = PropertyObject(objManager, "FusionAmp");
+    auto [serverObj, fusionAmp] = registerPropertyObject(obj);
+ 
+    // Test struct with int and float values
+    const auto adjustmentPoint =  StructBuilder(fusionAmp.getPropertyValue("AdjustmentPoint"));                
+    adjustmentPoint.set("Index", 10);
+    adjustmentPoint.set("Factor", 3.1);
+    fusionAmp.setPropertyValue("AdjustmentPoint", adjustmentPoint.build());
+    
+    const auto adjustmentPointManipulated =  StructBuilder(fusionAmp.getPropertyValue("AdjustmentPoint"));                
+    ASSERT_EQ(adjustmentPointManipulated.get("Index"), 10);
+    ASSERT_FLOAT_EQ(adjustmentPointManipulated.get("Factor"), (float) 3.1);
+
+    // Test strusct with double values
+    const auto scaler =  StructBuilder(fusionAmp.getPropertyValue("Scaler"));                
+    scaler.set("Factor", 3.62);
+    scaler.set("Offset", 3.1);
+    fusionAmp.setPropertyValue("Scaler", scaler.build());
+    
+    const auto scalerManipulated =  StructBuilder(fusionAmp.getPropertyValue("Scaler"));                
+    ASSERT_DOUBLE_EQ(scalerManipulated.get("Factor"), (double) 3.62);
+    ASSERT_DOUBLE_EQ(scalerManipulated.get("Offset"), (double) 3.1);
+
 }
 
 TEST_F(TmsFusionDevice, DISABLED_SimulatorTest)

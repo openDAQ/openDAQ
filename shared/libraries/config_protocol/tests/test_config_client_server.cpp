@@ -78,6 +78,7 @@ protected:
 TEST_F(ConfigProtocolTest, Connect)
 {
     EXPECT_CALL(device.mock(), getLocalId(_)).WillOnce(Get(String("id")));
+    EXPECT_CALL(device.mock(), getContext(_)).WillOnce(Get(NullContext()));
     ASSERT_THROW(client.connect(), ConfigProtocolException);
 }
 
@@ -281,4 +282,10 @@ TEST_F(ConfigProtocolTest, ConnectSignalToInputPort)
 
     auto params = ParamsDict({{"SignalId", "sig"}});
     client.getClientComm()->sendComponentCommand("/dev/comp/test", "ConnectSignal", params);
+}
+
+TEST_F(ConfigProtocolTest, GetTypeManager)
+{
+    EXPECT_CALL(device.mock(), getContext(_)).WillOnce(Get(NullContext()));
+    const TypeManagerPtr typeManager = client.getClientComm()->sendCommand("GetTypeManager");
 }

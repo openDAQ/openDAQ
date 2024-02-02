@@ -70,7 +70,7 @@ DECLARE_OPENDAQ_INTERFACE(ITypeManager, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getType(IString* typeName, IType** type) = 0;
 
-    // [elementType(types, IType)]
+    // [elementType(types, IString)]
     /*!
      * @brief Gets a list of all added Types.
      * @param[out] types The list of all added Types.

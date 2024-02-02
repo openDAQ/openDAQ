@@ -61,6 +61,7 @@ TEST_F(TypeManagerTest, GetTypes)
     manager.addType(SimpleType(ctInt));
     manager.addType(SimpleType(ctString));
     ASSERT_EQ(manager.getTypes().getCount(), (SizeT) 2);
+    ASSERT_EQ(manager.getTypes()[0].getCoreType(), ctString);
 }
 
 TEST_F(TypeManagerTest, Serialization)

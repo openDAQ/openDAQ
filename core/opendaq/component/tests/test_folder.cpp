@@ -8,6 +8,7 @@
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/component_factory.h>
 #include <opendaq/context_factory.h>
+#include <opendaq/tags_private_ptr.h>
 
 using namespace testing;
 
@@ -199,13 +200,13 @@ TEST_F(FolderTest, SerializeAndDeserialize)
     const auto folder = daq::Folder(ctx, nullptr, "folder");
     folder.setName("fld_name");
     folder.setDescription("fld_desc");
-    folder.getTags().add("fld_tag");
+    folder.getTags().asPtr<daq::ITagsPrivate>().add("fld_tag");
 
     const auto component = daq::Component(ctx, nullptr, "component");
 
     component.setName("comp_name");
     component.setDescription("comp_desc");
-    component.getTags().add("comp_tag");
+    component.getTags().asPtr<daq::ITagsPrivate>().add("comp_tag");
 
     folder.addItem(component);
 

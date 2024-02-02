@@ -121,6 +121,11 @@ public:
 
         const auto dev = createWithImplementation<IDevice, MockDevice1Impl>(ctx, this->devices, "dev");
         devices.addItem(dev);
+
+        const auto structMembers = Dict<IString, IBaseObject>({{"string", "bar"}, {"integer", 10}, {"float", 5.123}});
+        const auto defStructValue = Struct("FooStruct", structMembers, manager.getRef());
+
+        objPtr.addProperty(StructPropertyBuilder("StructProp", defStructValue).build());
     }
 };
 
@@ -406,4 +411,37 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlock)
     ASSERT_EQ(fb, clientSubDevice.getFunctionBlocks()[1]);
 
     ASSERT_EQ(fb.asPtr<IConfigClientObject>().getRemoteGlobalId(), serverDevice.getDevices()[0].getFunctionBlocks()[1].getGlobalId());
+}
+
+TEST_F(ConfigProtocolIntegrationTest, GetInitialStructPropertyValue)
+{
+    const auto serverDevice = createServerDevice();
+    const auto serverDeviceSerialized = serializeComponent(serverDevice);
+
+    ConfigProtocolServer server(serverDevice, nullptr);
+
+    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+
+    client.connect();
+    const auto clientDevice = client.getDevice();
+
+    ASSERT_EQ(serverDevice.getPropertyValue("StructProp"), clientDevice.getPropertyValue("StructProp"));
+}
+
+TEST_F(ConfigProtocolIntegrationTest, SetStructPropertyValue)
+{
+    const auto serverDevice = createServerDevice();
+    ConfigProtocolServer server(serverDevice, nullptr);
+
+    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+
+    client.connect();
+    const auto clientDevice = client.getDevice();
+
+    const auto structMembers = Dict<IString, IBaseObject>({{"string", "bar1"}, {"integer", 11}, {"float", 5.223}});
+    const auto structVal = Struct("FooStruct", structMembers, serverDevice.getContext().getTypeManager());
+    serverDevice.setPropertyValue("StructProp", structVal);
+
+    ASSERT_EQ(serverDevice.getPropertyValue("StructProp"), structVal);
+    ASSERT_EQ(serverDevice.getPropertyValue("StructProp"), clientDevice.getPropertyValue("StructProp"));
 }

@@ -80,7 +80,7 @@ TEST_F(SignalContainerTest, RemoveFunctionBlock)
     removeNestedFunctionBlock(fb2);
     removeNestedFunctionBlock(fb3);
 
-    ASSERT_EQ(functionBlocks.getItems().getCount(), 0);
+    ASSERT_EQ(functionBlocks.getItems().getCount(), 0u);
 }
 
 TEST_F(SignalContainerTest, CreateAndAddFunctionBlockInvalidId)

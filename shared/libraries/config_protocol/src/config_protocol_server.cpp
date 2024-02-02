@@ -113,6 +113,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     using namespace std::placeholders;
 
     rpcDispatch.insert({"GetComponent", std::bind(&ConfigProtocolServer::getComponent, this,  _1)});
+    rpcDispatch.insert({"GetTypeManager", std::bind(&ConfigProtocolServer::getTypeManager, this, _1)});
 
     addHandler<ComponentPtr>("SetPropertyValue", &ConfigServerComponent::setPropertyValue);
     addHandler<ComponentPtr>("GetPropertyValue", &ConfigServerComponent::getPropertyValue);
@@ -223,10 +224,12 @@ StringPtr ConfigProtocolServer::processRpc(const StringPtr& jsonStr)
     try
     {
         const auto obj = deserializer.deserialize(jsonStr, nullptr);
-        const auto dictObj = obj.asPtr<IDict>(true);
+        const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
 
-        const auto funcName = dictObj["Name"];
-        const auto funcParams = dictObj["Params"];
+        const auto funcName = dictObj.get("Name");
+        ParamsDictPtr funcParams;
+        if (dictObj.hasKey("Params"))
+            funcParams = dictObj.get("Params");
 
         const auto retValue = callRpc(funcName, funcParams);
 
@@ -278,6 +281,12 @@ BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) co
         throw NotFoundException("Component not found");
 
     return ComponentHolder(component);
+}
+
+BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) const
+{
+    const auto typeManager = rootDevice.getContext().getTypeManager();
+    return typeManager;
 }
 
 }

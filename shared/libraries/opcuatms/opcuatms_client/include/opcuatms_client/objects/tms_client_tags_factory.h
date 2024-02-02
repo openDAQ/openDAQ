@@ -13,30 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#include <coretypes/common.h>
-#include <coretypes/baseobject.h>
+#include "opcuatms_client/objects/tms_client_context.h"
+#include "opcuatms_client/objects/tms_client_tags_impl.h"
 
-BEGIN_NAMESPACE_OPENDAQ
+BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-/*!
- * @addtogroup types_utility
- * @{
- */
-
-/*!
- * @brief Objects that can be cloned implement this interface.
- */
-DECLARE_OPENDAQ_INTERFACE(ICloneable, IBaseObject)
+inline TagsPtr TmsClientTags(const ContextPtr& ctx, const TmsClientContextPtr& clientContext, const OpcUaNodeId& nodeId)
 {
-    /*!
-     * @brief Clones the object.
-     * @param[out] cloned The cloned object.
-     */
-    virtual ErrCode INTERFACE_FUNC clone(IBaseObject** cloned) = 0;
-};
+    TagsPtr obj(createWithImplementation<ITags, TmsClientTagsImpl>(ctx, clientContext, nodeId));
+    return obj;
+}
 
-/*!@}*/
-
-END_NAMESPACE_OPENDAQ
+END_NAMESPACE_OPENDAQ_OPCUA_TMS

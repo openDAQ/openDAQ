@@ -132,7 +132,7 @@ TEST_F(ComponentTest, SerializeAndDeserialize)
 
     component.setName(name);
     component.setDescription(desc);
-    component.getTags().add("tag");
+    component.getTags().asPtr<ITagsPrivate>().add("tag");
 
     component.addProperty(IntPropertyBuilder("prop", 2).build());
     component.setPropertyValue("prop", 3);
@@ -163,7 +163,7 @@ TEST_F(ComponentTest, LockedProperties)
 {
     const auto component = Component(NullContext(), nullptr, "temp");
 
-    ASSERT_EQ(component.getLockedAttributes().getCount(), 1);
+    ASSERT_EQ(component.getLockedAttributes().getCount(), 1u);
 
     ASSERT_NO_THROW(component.setName("name"));
     ASSERT_NO_THROW(component.setDescription("desc"));

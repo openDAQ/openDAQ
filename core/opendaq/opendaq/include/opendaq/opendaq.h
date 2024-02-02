@@ -57,6 +57,7 @@
 #include <opendaq/range_factory.h>
 #include <coreobjects/coreobjects.h>
 #include <opendaq/tags_factory.h>
+#include <opendaq/tags_private_ptr.h>
 #include <opendaq/scaling_factory.h>
 
 #include <opendaq/dimension_rule_factory.h>

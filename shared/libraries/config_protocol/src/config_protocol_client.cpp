@@ -66,7 +66,10 @@ BaseObjectPtr ConfigProtocolClientComm::getPropertyValue(const std::string& glob
     auto getPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetPropertyValue", dict);
     const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
 
-    return parseRpcReplyPacketBuffer(getPropertyValueRpcReplyPacketBuffer);
+    const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
+        shared_from_this(), std::string{}, daqContext, nullptr, nullptr);
+
+    return parseRpcReplyPacketBuffer(getPropertyValueRpcReplyPacketBuffer, deserializeContext);
 }
 
 void ConfigProtocolClientComm::clearPropertyValue(
@@ -246,12 +249,20 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommand(const StringPtr& gl
     return sendComponentCommandInternal(command, params, parentComponent);
 }
 
+BaseObjectPtr ConfigProtocolClientComm::sendCommand(const StringPtr& command, const ParamsDictPtr& params)
+{
+    auto sendCommandRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), command, params);
+    const auto sendCommandRpcReplyPacketBuffer = sendRequestCallback(sendCommandRpcRequestPacketBuffer);
+
+    return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, nullptr);
+}
+
 BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const StringPtr& command,
                                                                      const ParamsDictPtr& params,
                                                                      const ComponentPtr& parentComponent)
 {
-    auto getPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), command, params);
-    const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
+    auto sendCommandRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), command, params);
+    const auto sendCommandRpcReplyPacketBuffer = sendRequestCallback(sendCommandRpcRequestPacketBuffer);
 
     std::string remoteGlobalId{};
     if (parentComponent.assigned() && parentComponent.supportsInterface<IConfigClientObject>())
@@ -265,7 +276,7 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Strin
     const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
         shared_from_this(), remoteGlobalId, daqContext, parentComponent, nullptr);
 
-    return parseRpcReplyPacketBuffer(getPropertyValueRpcReplyPacketBuffer, deserializeContext);
+    return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, deserializeContext);
 }
 
 ConfigProtocolClientCommPtr ConfigProtocolClient::getClientComm()
@@ -312,6 +323,24 @@ void ConfigProtocolClient::connect(const ComponentPtr& parent)
 
     if (!success)
         throw ConfigProtocolException("Protocol upgrade failed");
+
+    const auto localTypeManager = daqContext.getTypeManager();
+    const TypeManagerPtr typeManager = clientComm->sendCommand("GetTypeManager");
+    const auto types = typeManager.getTypes();
+
+    for (const auto& typeName : types)
+    {
+        const auto type = typeManager.getType(typeName);
+        if (localTypeManager.hasType(type.getName()))
+        {
+            const auto localType = localTypeManager.getType(type.getName());
+            if (localType != type)
+                throw InvalidValueException("Remote type different than local");
+            continue;
+        }
+
+        localTypeManager.addType(type);
+    }
 
     const ComponentHolderPtr deviceHolder = clientComm->sendComponentCommand("//root", "GetComponent", parent);
     device = deviceHolder.getComponent();

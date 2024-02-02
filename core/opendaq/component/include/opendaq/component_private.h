@@ -34,7 +34,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentPrivate, IBaseObject)
 {
     // [templateType(attributes, IString)]
     /*!
-     * @brief Adds the attributes contained in the list to the set of locked components.
+     * @brief Locks the attributes contained in the provided list.
      * @param attributes The list of attributes that should be locked. Is not case sensitive.
      */
     virtual ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) = 0;
@@ -46,7 +46,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentPrivate, IBaseObject)
 
     // [templateType(attributes, IString)]
     /*!
-     * @brief Removes the attributes contained in the list from the set of locked components.
+     * @brief Unlocks the attributes contained in the provided list.
      * @param attributes The list of attributes that should be unlocked. Is not case sensitive.
      */
     virtual ErrCode INTERFACE_FUNC unlockAttributes(IList* attributes) = 0;

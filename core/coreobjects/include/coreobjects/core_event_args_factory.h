@@ -43,10 +43,12 @@ inline CoreEventArgsPtr CoreEventArgs(Int id, const DictPtr<IString, IBaseObject
  * @param propOwner The property object that owns the changed property.
  * @param propName The name of the property of which value was changed.
  * @param value The new value of the property.
+ * @param path The relative path to the property owner from the sender component. Used for object-type properties. Eg. "child1.child2".
+ * Does not include the Component id and property name.
  */
-inline CoreEventArgsPtr CoreEventArgsPropertyValueChanged(const PropertyObjectPtr& propOwner, const StringPtr& propName, const BaseObjectPtr& value)
+inline CoreEventArgsPtr CoreEventArgsPropertyValueChanged(const PropertyObjectPtr& propOwner, const StringPtr& propName, const BaseObjectPtr& value, const StringPtr& path)
 {
-    CoreEventArgsPtr obj(CoreEventArgsPropertyValueChanged_Create(propOwner, propName, value));
+    CoreEventArgsPtr obj(CoreEventArgsPropertyValueChanged_Create(propOwner, propName, value, path));
     return obj;
 }
 
@@ -55,12 +57,14 @@ inline CoreEventArgsPtr CoreEventArgsPropertyValueChanged(const PropertyObjectPt
  * @param propOwner The property object that was updated.
  * @param updatedProperties The dictionary of updated properties. Contains the name (string) of a property
  * as key, and the new value (base object) as the dictionary value.
+ * @param path The relative path to the property owner from the sender component. Used for object-type properties. Eg. "child1.child2".
+ * Does not include the Component id.
  *
  * A component finished updating when `endUpdate` is called, or at the end of the `update` call.
  */
-inline CoreEventArgsPtr CoreEventArgsPropertyObjectUpdateEnd(const PropertyObjectPtr& propOwner, const DictPtr<IString, IBaseObject>& updatedProperties)
+inline CoreEventArgsPtr CoreEventArgsPropertyObjectUpdateEnd(const PropertyObjectPtr& propOwner, const DictPtr<IString, IBaseObject>& updatedProperties, const StringPtr& path)
 {
-    CoreEventArgsPtr obj(CoreEventArgsPropertyObjectUpdateEnd_Create(propOwner, updatedProperties));
+    CoreEventArgsPtr obj(CoreEventArgsPropertyObjectUpdateEnd_Create(propOwner, updatedProperties, path));
     return obj;
 }
 
@@ -68,10 +72,12 @@ inline CoreEventArgsPtr CoreEventArgsPropertyObjectUpdateEnd(const PropertyObjec
  * @brief Creates Core event args that are passed as argument when a property is added to a component.
  * @param propOwner The property object that owns the added property.
  * @param prop The property that was added.
+ * @param path The relative path to the property owner from the sender component. Used for object-type properties. Eg. "child1.child2".
+ * Does not include the Component id and property name.
  */
-inline CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyObjectPtr& propOwner, const PropertyPtr& prop)
+inline CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyObjectPtr& propOwner, const PropertyPtr& prop, const StringPtr& path)
 {
-    CoreEventArgsPtr obj(CoreEventArgsPropertyAdded_Create(propOwner, prop));
+    CoreEventArgsPtr obj(CoreEventArgsPropertyAdded_Create(propOwner, prop, path));
     return obj;
 }
 
@@ -79,10 +85,12 @@ inline CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyObjectPtr& prop
  * @brief Creates Core event args that are passed as argument when a property is removed from a component.
  * @param propOwner The property object that owned the removed property.
  * @param propName The name of the property that was removed.
+ * @param path The relative path to the property owner from the sender component. Used for object-type properties. Eg. "child1.child2".
+ * Does not include the Component id and property name.
  */
-inline CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName)
+inline CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName, const StringPtr& path)
 {
-    CoreEventArgsPtr obj(CoreEventArgsPropertyRemoved_Create(propOwner, propName));
+    CoreEventArgsPtr obj(CoreEventArgsPropertyRemoved_Create(propOwner, propName, path));
     return obj;
 }
 

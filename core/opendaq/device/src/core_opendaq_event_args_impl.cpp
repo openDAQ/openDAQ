@@ -55,6 +55,13 @@ ErrCode PUBLIC_EXPORT createCoreEventArgsAttributeChanged(ICoreEventArgs** objTm
     return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, Int, IDict*>(objTmp, core_event_ids::AttributeChanged, dict);
 }
 
+extern "C"
+ErrCode PUBLIC_EXPORT createCoreEventArgsTagsChanged(ICoreEventArgs** objTmp, IList* tags)
+{
+    const auto dict = Dict<IString, IBaseObject>({{"Tags", tags}});
+    return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, Int, IDict*>(objTmp, core_event_ids::TagsChanged, dict);
+}
+
 #endif
 
 END_NAMESPACE_OPENDAQ

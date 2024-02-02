@@ -186,11 +186,17 @@ struct IPropertyBuilder;
  * Object type properties can only have their Name, Description and Default value configured,
  * where the Default value is mandatory.
  *
- * Object Properties behave slightly differently in that their Default Values do
- * not get frozen when the Property is added to a Property Object (they do get frozen when
- * added to a Property Object Class, or if the Object Property is Read-only).
- * As such, Properties of the Default Value Property Object can be modified even after being
- * added to a Property Object.
+ * Object properties, as all other Property types get frozen once added to a Property
+ * Object. The notable exception is that locally, the object (default value) is cloned and cached. 
+ * When the Property value of the Object-type Property is read, the cloned object is returned instead 
+ * of the default value. This cloned object is not frozen, allowing for the any Properties of 
+ * the child Property Object to be modified. The same behaviour is applied when a Property Object 
+ * is created from a Property Object Class - all Object-type properties of the class are cloned.
+ *
+ * Notably, by default, all Object properties are read-only. Read-only object-type properties
+ * cannot be wholly replaced, but the child property values of the object can still be modified.
+ * The "Clear property value" method will work on object-type properties, even if the object
+ * is read-only.
  *
  * @subsection objects_property_containers Container-type properties
  *

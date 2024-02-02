@@ -23,9 +23,9 @@ yes_no = {
 }
 
 class DeviceInfoLocal:
-    def __init__(self, connString):
-        self.name = connString
-        self.connection_string = connString
+    def __init__(self, conn_string):
+        self.name = conn_string
+        self.connection_string = conn_string
         self.serial_number = 'no-serial-number'
 
 def show_modal(window):

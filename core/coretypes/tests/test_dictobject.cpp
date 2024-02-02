@@ -2,6 +2,7 @@
 #include <coretypes/coretypes.h>
 #include <coretypes/dict_element_type.h>
 #include <gmock/gmock-matchers.h>
+#include <coretypes/cloneable.h>
 
 using DictObjectTest = testing::Test;
 
@@ -675,6 +676,38 @@ TEST_F(DictObjectTest, EqualsSameSize)
 
     d1->equals(d3, &eq);
     ASSERT_FALSE(eq);
+}
+
+TEST_F(DictObjectTest, Clone)
+{
+    auto d1 = Dict<IString, IBaseObject>();
+    d1.set("name", "jon");
+    d1.set("age", 20);
+    d1.set("height", 180);
+
+    BaseObjectPtr d2;
+    d1.asPtr<ICloneable>()->clone(&d2);
+
+    ASSERT_EQ(d1, d2);
+}
+
+TEST_F(DictObjectTest, CloneListType)
+{
+    auto d1 = Dict<IList, IList>();
+    d1.set(List<IString>("foo", "bar"), List<IInteger>(1, 2));
+    d1.set(List<IInteger>(1, 2), List<IString>("foo", "bar"));
+
+    BaseObjectPtr cloned;
+    d1.asPtr<ICloneable>()->clone(&cloned);
+    DictPtr<IList, IList> d2 = cloned;
+
+    auto keyList1 = d1.getKeyList();
+    //auto keyList2 = d2.getKeyList();
+
+    //ASSERT_EQ(d1.getKeyList()[0], d2.getKeyList()[0]);
+    //ASSERT_EQ(d1.getKeyList()[1], d2.getKeyList()[1]);
+    //ASSERT_EQ(d1.getValueList()[0], d2.getValueList()[0]);
+    //ASSERT_EQ(d1.getValueList()[1], d2.getValueList()[1]);
 }
 
 TEST_F(DictObjectTest, EqualsDifferentOrder)

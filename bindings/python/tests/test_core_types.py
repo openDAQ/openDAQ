@@ -27,12 +27,12 @@ class TestBaseObject(opendaq_test.TestCase):
         self.assertTrue(daq.IBaseObject.can_cast_from(daq.BaseObject()))
 
     '''
-    def test_toString(self):
+    def test_to_string(self):
         s = str(daq.BaseObject())
         self.assertEqual(s, "daq::IBaseObject")
     '''
 
-    def test_toInt(self):
+    def test_to_int(self):
         with self.assertRaisesRegex(RuntimeError, 'Invalid cast'):
             int(daq.BaseObject())
 
@@ -85,7 +85,7 @@ class TestNumObjectWrapper:
             self.customAssertEqual(hash(self.createObject(0)), 0)
             self.customAssertEqual(hash(self.createObject(1230)), 1230)
 
-        def test_intConversion(self):
+        def test_int_conversion(self):
             self.customAssertEqual(int(self.createObject(12)), 12)
 
         '''
@@ -155,55 +155,55 @@ class TestList(opendaq_test.TestCase):
             int(list)
     '''
 
-    def test_getCount(self):
+    def test_get_count(self):
         self.assertEqual(len(daq.List()), 0)
 
-    def test_pushAndPop(self):
+    def test_push_and_pop(self):
         list = daq.List()
         val = daq.Integer(2)
-        list.pushBack(val)
+        list.push_back(val)
         self.assertEqual(len(list), 1)
-        val1 = list.popBack()
+        val1 = list.pop_back()
         self.assertEqual(val, val1)
         self.assertEqual(len(list), 0)
 
-    def test_pushPythonObject(self):
+    def test_push_python_object(self):
         list = daq.List()
-        list.pushBack(1)
+        list.push_back(1)
         self.assertEqual(len(list), 1)
-        value = list.popBack()
+        value = list.pop_back()
         self.assertIsInstance(value, int)
         self.assertEqual(value, 1)
 
-    def test_pushBack(self):
+    def test_push_back(self):
         list = daq.List()
-        list.pushBack(3)
-        list.pushBack(4)
+        list.push_back(3)
+        list.push_back(4)
         self.assertEqual(len(list), 2)
         self.assertEqual(list[1], 4)
 
-    def test_pushFront(self):
+    def test_push_front(self):
         list = daq.List()
-        list.pushFront(3)
-        list.pushFront(4)
+        list.push_front(3)
+        list.push_front(4)
         self.assertEqual(len(list), 2)
         self.assertEqual(list[1], 3)
 
-    def test_popBack(self):
+    def test_pop_back(self):
         list = daq.List()
-        list.pushBack(3)
-        list.pushBack(4)
-        self.assertEqual(list.popBack(), 4)
+        list.push_back(3)
+        list.push_back(4)
+        self.assertEqual(list.pop_back(), 4)
         self.assertEqual(len(list), 1)
 
-    def test_popFront(self):
+    def test_pop_front(self):
         list = daq.List()
-        list.pushBack(3)
-        list.pushBack(4)
-        self.assertEqual(list.popFront(), 3)
+        list.push_back(3)
+        list.push_back(4)
+        self.assertEqual(list.pop_front(), 3)
         self.assertEqual(len(list), 1)
 
-    def test_getItemAtSlice(self):
+    def test_get_item_at_slice(self):
         list = daq.List()
 
         n = 20
@@ -215,14 +215,14 @@ class TestList(opendaq_test.TestCase):
         for i in range(n//k):
             self.assertEqual(slice[i], k*i)
 
-    def test_getItemAt(self):
+    def test_get_item_at(self):
         list = daq.List()
 
-        list.pushBack(3)
-        list.pushBack(False)
-        list.pushBack(1.0)
-        list.pushBack(daq.BaseObject())
-        list.pushBack("Test")
+        list.push_back(3)
+        list.push_back(False)
+        list.push_back(1.0)
+        list.push_back(daq.BaseObject())
+        list.push_back("Test")
 
         value = list[0]
         self.assertEqual(value, 3)
@@ -246,17 +246,17 @@ class TestList(opendaq_test.TestCase):
     def test_get_last_item(self):
         list = daq.List()
 
-        list.pushBack(3)
-        list.pushBack(2)
-        list.pushBack(1)
+        list.push_back(3)
+        list.push_back(2)
+        list.push_back(1)
         self.assertEqual(list[-1], 1)
 
 class TestIterable(opendaq_test.TestCase):
     def test_from_iterable(self):
         l = daq.List()
-        l.pushBack(1)
-        l.pushBack(2)
-        l.pushBack(3)
+        l.push_back(1)
+        l.push_back(2)
+        l.push_back(3)
         iterable = daq.IIterable.cast_from(l)
 
         i = 1
@@ -266,9 +266,9 @@ class TestIterable(opendaq_test.TestCase):
 
     def test_from_list(self):
         l = daq.List()
-        l.pushBack(1)
-        l.pushBack(2)
-        l.pushBack(3)
+        l.push_back(1)
+        l.push_back(2)
+        l.push_back(3)
 
         i = 1
         for item in l:
@@ -288,10 +288,10 @@ class TestDict(opendaq_test.TestCase):
     def test_core_type(self):
         self.assertEqual(daq.Dict().core_type, daq.CoreType.ctDict)
 
-    def test_getCount(self):
+    def test_get_count(self):
         self.assertEqual(len(daq.Dict()), 0)
 
-    def test_insertGetAndRemove(self):
+    def test_insert_get_and_remove(self):
         dict = daq.Dict()
         dict[2] = "Test"
         dict["A"] = 3
@@ -368,69 +368,69 @@ class TestLeaks(opendaq_test.TestCase):
 
         a = l[0]
         a = l[0]
-        
+
 class TestProcedure(opendaq_test.TestCase):
-    
+
     def test_no_params(self):
-        
+
         value = 10
         def set_value():
             nonlocal value
             value = 20
         proc = daq.Procedure(set_value)
         proc()
-        
+
         self.assertEqual(value, 20)
 
     def test_one_param(self):
-        
+
         value = 10
         def set_value(v):
             nonlocal value
             value += v
         proc = daq.Procedure(set_value)
         proc(10)
-        
+
         self.assertEqual(value, 20)
 
     def test_two_params(self):
-        
+
         value = 10
         def set_value(v1, v2):
             nonlocal value
             value += v1 + v2
         proc = daq.Procedure(set_value)
         proc(8, 2)
-        
+
         self.assertEqual(value, 20)
 
 class TestFunction(opendaq_test.TestCase):
-    
+
     def test_no_params(self):
-        
+
         def set_value():
             return 10
         func = daq.Function(set_value)
         value = func()
-        
+
         self.assertEqual(value, 10)
 
     def test_one_param(self):
-        
+
         def set_value(v):
             return v
         func = daq.Function(set_value)
         value = func(10)
-        
+
         self.assertEqual(value, 10)
 
     def test_two_param(self):
-        
+
         def set_value(v1, v2):
             return v1 - v2
         func = daq.Function(set_value)
         value = func(20, 10)
-        
+
         self.assertEqual(value, 10)
 
 if __name__ == '__main__':

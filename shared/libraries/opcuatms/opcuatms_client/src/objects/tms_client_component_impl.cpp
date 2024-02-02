@@ -4,6 +4,7 @@
 #include "opendaq/io_folder_impl.h"
 #include "opendaq/mirrored_signal_impl.h"
 #include "opendaq/input_port_impl.h"
+#include "opcuatms_client/objects/tms_client_tags_factory.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -30,24 +31,20 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setActive(Bool active)
 template <class Impl>
 void TmsClientComponentBaseImpl<Impl>::initComponent()
 {
+
     try
     {
-        ListPtr<IString> tagValues = this->template readList<IString>("Tags");
-        auto tagsObj = Tags();
-        for (auto tag : tagValues)
-            tagsObj.add(tag);
-        tagsObj.freeze();
-        this->tags = tagsObj.detach();
+        this->tags = TmsClientTags(this->daqContext, this->clientContext, this->getNodeId("Tags"));
     }
     catch([[maybe_unused]] const std::exception& e)
     {
         const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
-        LOG_D("OPC UA Component {} failed to fetch tags: {}", this->localId, e.what());
+        LOG_W("OPC UA Component {} failed to initialize: {}", this->localId, e.what());
     }
     catch(...)
     {
         const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
-        LOG_D("OPC UA Component {} failed to fetch tags.", this->localId);
+        LOG_W("OPC UA Component {} failed to initialize", this->localId);
     }
 }
 

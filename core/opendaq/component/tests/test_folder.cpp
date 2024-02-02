@@ -228,6 +228,8 @@ TEST_F(FolderTest, SerializeAndDeserialize)
     ASSERT_EQ(newFolder.getItems()[0].getDescription(), component.getDescription());
     ASSERT_EQ(newFolder.getItems()[0].getTags(), component.getTags());
 
+    ASSERT_EQ(newFolder.getItems().getElementInterfaceId(), daq::IComponent::Id);
+
     const auto serializer2 = daq::JsonSerializer(daq::True);
     newFolder.serialize(serializer2);
     const auto str2 = serializer2.getOutput();

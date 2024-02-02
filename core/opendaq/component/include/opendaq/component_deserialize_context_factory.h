@@ -27,9 +27,10 @@ BEGIN_NAMESPACE_OPENDAQ
 inline ComponentDeserializeContextPtr ComponentDeserializeContext(const ContextPtr& context,
                                                                   const ComponentPtr& root,
                                                                   const ComponentPtr& parent,
-                                                                  const StringPtr& localId)
+                                                                  const StringPtr& localId,
+                                                                  IntfID* id = nullptr)
 {
-    ComponentDeserializeContextPtr obj(ComponentDeserializeContext_Create(context, root, parent, localId));
+    ComponentDeserializeContextPtr obj(ComponentDeserializeContext_Create(context, root, parent, localId, id));
     return obj;
 }
 

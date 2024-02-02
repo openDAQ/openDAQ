@@ -34,6 +34,14 @@ class ConfigClientBaseFolderImpl : public ConfigClientComponentBaseImpl<Impl>
 public:
     ConfigClientBaseFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                const std::string& remoteGlobalId,
+                               const IntfID& intfID,
+                               const ContextPtr& ctx,
+                               const ComponentPtr& parent,
+                               const StringPtr& localId,
+                               const StringPtr& className = nullptr);
+
+    ConfigClientBaseFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                               const std::string& remoteGlobalId,
                                const ContextPtr& ctx,
                                const ComponentPtr& parent,
                                const StringPtr& localId,
@@ -53,6 +61,19 @@ private:
     void componentAdded(const CoreEventArgsPtr& args);
     void componentRemoved(const CoreEventArgsPtr& args);
 };
+
+template <class Impl>
+ConfigClientBaseFolderImpl<Impl>::ConfigClientBaseFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                                             const std::string& remoteGlobalId,
+                                                             const IntfID& intfID,
+                                                             const ContextPtr& ctx,
+                                                             const ComponentPtr& parent,
+                                                             const StringPtr& localId,
+                                                             const StringPtr& className)
+
+    : ConfigClientComponentBaseImpl<Impl>(configProtocolClientComm, remoteGlobalId, intfID, ctx, parent, localId, className)
+{
+}
 
 template <class Impl>
 ConfigClientBaseFolderImpl<Impl>::ConfigClientBaseFolderImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
@@ -94,14 +115,30 @@ BaseObjectPtr ConfigClientBaseFolderImpl<Impl>::DeserializeConfigFolder(
         factoryCallback,
         [](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
         {
+            IntfID intfID;
             const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
-            return createWithImplementation<Interface, Implementation>(
-                ctx->getClientComm(),
-                ctx->getRemoteGlobalId(),
-                deserializeContext.getContext(),
-                deserializeContext.getParent(),
-                deserializeContext.getLocalId(),
-                className);
+            const auto errCode = ctx->getIntfID(&intfID);
+            if (errCode == OPENDAQ_SUCCESS)
+            {
+                return createWithImplementation<Interface, Implementation>(ctx->getClientComm(),
+                                                                           ctx->getRemoteGlobalId(),
+                                                                           intfID,
+                                                                           deserializeContext.getContext(),
+                                                                           deserializeContext.getParent(),
+                                                                           deserializeContext.getLocalId(),
+                                                                           className);
+            }
+            if (errCode == OPENDAQ_NOTFOUND)
+            {
+                return createWithImplementation<Interface, Implementation>(ctx->getClientComm(),
+                                                                           ctx->getRemoteGlobalId(),
+                                                                           deserializeContext.getContext(),
+                                                                           deserializeContext.getParent(),
+                                                                           deserializeContext.getLocalId(),
+                                                                           className);
+            }
+            checkErrorInfo(errCode);
+            return typename InterfaceToSmartPtr<Interface>::SmartPtr();
         });
 }
 

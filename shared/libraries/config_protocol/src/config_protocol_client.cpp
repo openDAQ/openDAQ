@@ -286,7 +286,7 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Strin
     }
 
     const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        shared_from_this(), remoteGlobalId, daqContext, nullptr, parentComponent, nullptr);
+        shared_from_this(), remoteGlobalId, daqContext, nullptr, parentComponent, nullptr, nullptr);
 
     return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, deserializeContext);
 }

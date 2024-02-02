@@ -68,14 +68,13 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateFunctionBlocks()
         catch(...)
         {
             LOG_W("Failed to create function block \"{}\" to OpcUA client device \"{}\"", browseName, this->globalId);
-            throw;
         }
     }
 
     for (const auto& val : orderedFunctionBlocks)
-            this->addNestedFunctionBlock(val.second);
+        this->addNestedFunctionBlock(val.second);
     for (const auto& val : unorderedFunctionBlocks)
-           this->addNestedFunctionBlock(val);
+        this->addNestedFunctionBlock(val);
 }
 
 template <typename Impl> 
@@ -105,9 +104,9 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateSignals()
     }
     
     for (const auto& val : orderedSignals)
-            this->addSignal(val.second);
+        this->addSignal(val.second);
     for (const auto& val : unorderedSignals)
-           this->addSignal(val);
+        this->addSignal(val);
 }
 
 template <typename Impl>
@@ -146,7 +145,7 @@ void TmsClientFunctionBlockBaseImpl<Impl>::findAndCreateInputPorts()
     {
         try
         {
-             const auto inputPortNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+            const auto inputPortNodeId = OpcUaNodeId(ref->nodeId.nodeId);
 
             auto clientInputPort = TmsClientInputPort(this->context, this->inputPorts, browseName,  this->clientContext, inputPortNodeId);
 

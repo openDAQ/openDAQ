@@ -23,7 +23,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE(ILastMessageLoggerSinkPrivate, IBaseObject)
 {
-
     /*!
      * @brief Get the last log message
      * @param[out] lastMessage The last log message

@@ -106,9 +106,9 @@ void TmsClientDeviceImpl::findAndCreateSubdevices()
     }
 
     for (const auto& val : orderedDevices)
-            addSubDevice(val.second);
+        addSubDevice(val.second);
     for (const auto& val : unorderedDevices)
-           addSubDevice(val);
+        addSubDevice(val);
 }
 
 DevicePtr TmsClientDeviceImpl::onAddDevice(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)

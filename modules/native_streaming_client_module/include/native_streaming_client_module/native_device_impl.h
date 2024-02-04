@@ -17,9 +17,9 @@
 #pragma once
 
 #include <native_streaming_client_module/common.h>
-#include <native_streaming_client_module/device_wrapper_impl.h>
 
 #include <config_protocol/config_protocol_client.h>
+#include <config_protocol/config_client_device_impl.h>
 
 #include <native_streaming_protocol/native_streaming_client_handler.h>
 
@@ -33,41 +33,61 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 static const char* NativeConfigurationDeviceTypeId = "daq.nd";
 static const char* NativeConfigurationDevicePrefix = "daq.nd://";
 
-/// wraps the root device obtained from config protocol
-/// main purpose to hold the config and transport protocol clients
-/// implements custom device info
+class NativeDeviceImpl;
 
-class NativeDeviceImpl final : public DeviceWrapperImpl
+class NativeDeviceHelper
 {
 public:
-    explicit NativeDeviceImpl(const ContextPtr& context,
-                              const ComponentPtr& parent,
-                              const StringPtr& connectionString,
-                              const StringPtr& host,
-                              const StringPtr& port,
-                              const StringPtr& path);
-    ~NativeDeviceImpl() override;
+    explicit NativeDeviceHelper(const ContextPtr& context,
+                                opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient);
+    ~NativeDeviceHelper();
 
-    // IDevice
-    ErrCode INTERFACE_FUNC getInfo(IDeviceInfo** info) override;
+    DevicePtr connectAndGetDevice(const ComponentPtr& parent);
 
 private:
-    void setupProtocolClients();
-    void setDomainSignals();
-    void activateStreaming();
-    void validateWrapperInterfaces();
-
+    void setupProtocolClients(const ContextPtr& context);
     config_protocol::PacketBuffer doConfigRequest(const config_protocol::PacketBuffer& reqPacket);
     void receiveConfigPacket(const config_protocol::PacketBuffer& packet);
 
     LoggerComponentPtr loggerComponent;
-    StreamingPtr nativeStreaming;
-    ContextPtr context;
-    DeviceInfoConfigPtr deviceInfo;
-
-    std::unique_ptr<config_protocol::ConfigProtocolClient> configProtocolClient;
+    std::unique_ptr<config_protocol::ConfigProtocolClient<NativeDeviceImpl>> configProtocolClient;
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient;
     std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
+};
+
+DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)
+{
+    virtual void INTERFACE_FUNC attachNativeStreaming(const StreamingPtr& streaming) = 0;
+    virtual void INTERFACE_FUNC attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper) = 0;
+    virtual void INTERFACE_FUNC setConnectionString(const StringPtr& connectionString) = 0;
+};
+
+class NativeDeviceImpl final : public config_protocol::GenericConfigClientDeviceImpl<config_protocol::ConfigClientDeviceBase<INativeDevicePrivate>>
+{
+public:
+    using Super = config_protocol::GenericConfigClientDeviceImpl<config_protocol::ConfigClientDeviceBase<INativeDevicePrivate>>;
+
+    explicit NativeDeviceImpl(const config_protocol::ConfigProtocolClientCommPtr& configProtocolClientComm,
+                              const std::string& remoteGlobalId,
+                              const ContextPtr& ctx,
+                              const ComponentPtr& parent,
+                              const StringPtr& localId);
+
+    // IDevice
+    ErrCode INTERFACE_FUNC getInfo(IDeviceInfo** info) override;
+
+    // INativeDevicePrivate
+    void INTERFACE_FUNC attachNativeStreaming(const StreamingPtr& streaming) override;
+    void INTERFACE_FUNC attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper) override;
+    void INTERFACE_FUNC setConnectionString(const StringPtr& connectionString) override;
+
+    // ISerializable
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+private:
+    StreamingPtr nativeStreaming;
+    DeviceInfoConfigPtr deviceInfo;
+    std::unique_ptr<NativeDeviceHelper> deviceHelper;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

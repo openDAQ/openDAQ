@@ -43,6 +43,12 @@ private:
     static StringPtr getPort(const StringPtr& url);
     static StringPtr getPath(const StringPtr& url);
     static bool validateConnectionString(const StringPtr& connectionString);
+    static DevicePtr createNativeDevice(const ContextPtr& context,
+                                        const ComponentPtr& parent,
+                                        const StringPtr& connectionString,
+                                        const StringPtr& host,
+                                        const StringPtr& port,
+                                        const StringPtr& path);
 
     std::mutex sync;
     size_t deviceIndex;

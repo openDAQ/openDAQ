@@ -21,6 +21,7 @@
 #include <config_protocol/config_client_device_impl.h>
 #include <coreobjects/callable_info_factory.h>
 #include <coreobjects/argument_info_factory.h>
+#include <config_protocol/config_client_device_impl.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -39,7 +40,7 @@ TEST_F(ConfigProtocolSerializationTest, PropertyObject)
 
     const auto deserializer = JsonDeserializer();
 
-    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr);
+    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr, nullptr);
 
     bool configPropertyObjectInstantiated = false;
     const PropertyObjectPtr newPropObj = deserializer.deserialize(
@@ -85,7 +86,7 @@ TEST_F(ConfigProtocolSerializationTest, Function)
 
     const auto deserializer = JsonDeserializer();
 
-    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr);
+    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr, nullptr);
 
     bool configPropertyObjectInstantiated = false;
     const PropertyObjectPtr newPropObj =
@@ -133,7 +134,7 @@ TEST_F(ConfigProtocolSerializationTest, Component)
 
     const auto deserializer = JsonDeserializer();
 
-    auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr);
+    auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
         clientComm, std::string {}, ctx, nullptr, nullptr, "temp", nullptr);
@@ -182,7 +183,7 @@ TEST_F(ConfigProtocolSerializationTest, FolderWithType)
 
     const auto deserializer = JsonDeserializer();
 
-    auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr);
+    auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr, nullptr);
 
     IntfID intfId = IDevice::Id;
 
@@ -243,7 +244,7 @@ TEST_F(ConfigProtocolSerializationTest, FolderWithComponent)
 
     const auto deserializer = JsonDeserializer();
 
-    auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr);
+    auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
         clientComm, std::string {}, ctx, nullptr, nullptr, "folder", nullptr);
@@ -308,7 +309,7 @@ TEST_F(ConfigProtocolSerializationTest, IoFolderWithComponent)
 
     const auto deserializer = JsonDeserializer();
 
-    auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr);
+    auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
         clientComm, std::string{}, ctx, nullptr, nullptr, "folder", nullptr);
@@ -356,7 +357,7 @@ TEST_F(ConfigProtocolSerializationTest, InputPort)
 
     const auto deserializer = JsonDeserializer();
 
-    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr);
+    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
         clientComm, std::string {}, NullContext(), nullptr, nullptr, "ip", nullptr);
@@ -404,7 +405,7 @@ TEST_F(ConfigProtocolSerializationTest, Signal)
 
     const auto deserializer = JsonDeserializer();
 
-    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr);
+    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
         clientComm, std::string {}, NullContext(), nullptr, nullptr, "sig", nullptr);
@@ -469,7 +470,7 @@ TEST_F(ConfigProtocolSerializationTest, FunctionBlock)
 
     const auto deserializer = JsonDeserializer();
 
-    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr);
+    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
         clientComm, std::string {} , NullContext(), nullptr, nullptr, "fb", nullptr);
@@ -555,7 +556,7 @@ TEST_F(ConfigProtocolSerializationTest, Channel)
 
     const auto deserializer = JsonDeserializer();
 
-    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr);
+    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
         clientComm, std::string {}, NullContext(), nullptr, nullptr, "ch", nullptr);
@@ -634,7 +635,7 @@ TEST_F(ConfigProtocolSerializationTest, Device)
 
     const auto deserializer = JsonDeserializer();
 
-    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr);
+    auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
         clientComm, std::string {}, NullContext(), nullptr, nullptr, "dev", nullptr);

@@ -14,6 +14,7 @@
 #include <coreobjects/argument_info_factory.h>
 #include <opendaq/function_block_impl.h>
 #include <config_protocol/component_holder_ptr.h>
+#include <config_protocol/config_client_device_impl.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -37,7 +38,7 @@ public:
     {
         EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
         server = std::make_unique<ConfigProtocolServer>(device, std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1));
-        client = std::make_unique<ConfigProtocolClient>(NullContext(), std::bind(&ConfigProtocolTest::sendRequest, this, std::placeholders::_1), std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1));
+        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(NullContext(), std::bind(&ConfigProtocolTest::sendRequest, this, std::placeholders::_1), std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1));
 
         std::unique_ptr<IComponentFinder> m = std::make_unique<MockComponentFinder>();
         server->setComponentFinder(m);
@@ -46,7 +47,7 @@ public:
 protected:
     MockDevice::Strict device;
     std::unique_ptr<ConfigProtocolServer> server;
-    std::unique_ptr<ConfigProtocolClient> client;
+    std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
     BaseObjectPtr notificationObj;
 
     // server handling

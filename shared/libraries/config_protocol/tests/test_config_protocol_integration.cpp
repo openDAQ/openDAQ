@@ -24,8 +24,12 @@ public:
     MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
         : FunctionBlock(FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId)
     {
-        createAndAddSignal("sig1");
-        createAndAddSignal("sig2");
+        const auto sig1 = createAndAddSignal("sig1");
+        const auto sig2 = createAndAddSignal("sig2");
+        const auto sigDomain = createAndAddSignal("sig_domain");
+        sig1.setDomainSignal(sigDomain);
+        sig2.setDomainSignal(sigDomain);
+
         createAndAddInputPort("ip", PacketReadyNotification::None);
     }
 };
@@ -49,7 +53,9 @@ public:
     MockChannel1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
         : Channel(FunctionBlockType("ch", "", ""), ctx, parent, localId)
     {
-        createAndAddSignal("sig_ch");
+        const auto valueSig = createAndAddSignal("sig_ch");
+        const auto domainSig = createAndAddSignal("sig_ch_time");
+        valueSig.setDomainSignal(domainSig);
         const auto childFb = createWithImplementation<IFunctionBlock, MockFb1Impl>(ctx, this->functionBlocks, "childFb");
         addNestedFunctionBlock(childFb);
     }
@@ -399,6 +405,7 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlock)
     ASSERT_EQ(fb, clientSubDevice.getFunctionBlocks()[1]);
 
     ASSERT_EQ(fb.asPtr<IConfigClientObject>().getRemoteGlobalId(), serverDevice.getDevices()[0].getFunctionBlocks()[1].getGlobalId());
+    ASSERT_EQ(fb.getSignals()[0].getDomainSignal(), fb.getSignals()[2]);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetInitialStructPropertyValue)
@@ -430,4 +437,20 @@ TEST_F(ConfigProtocolIntegrationTest, SetStructPropertyValue)
 
     ASSERT_EQ(serverDevice.getPropertyValue("StructProp"), structVal);
     ASSERT_EQ(serverDevice.getPropertyValue("StructProp"), clientDevice.getPropertyValue("StructProp"));
+}
+
+TEST_F(ConfigProtocolIntegrationTest, DomainSignals)
+{
+    const auto serverDevice = createServerDevice();
+    ASSERT_EQ(serverDevice.getDevices()[0].getChannels()[0].getSignals()[0].getDomainSignal(),
+              serverDevice.getDevices()[0].getChannels()[0].getSignals()[1]);
+
+    ConfigProtocolServer server(serverDevice, nullptr);
+
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+
+    const auto clientDevice = client.connect();
+
+    ASSERT_EQ(clientDevice.getDevices()[0].getChannels()[0].getSignals()[0].getDomainSignal(),
+              clientDevice.getDevices()[0].getChannels()[0].getSignals()[1]);
 }

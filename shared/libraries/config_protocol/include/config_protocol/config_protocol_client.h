@@ -20,6 +20,9 @@
 #include <opendaq/component_deserialize_context_ptr.h>
 #include <opendaq/device_ptr.h>
 #include <opendaq/component_holder_ptr.h>
+#include <opendaq/ids_parser.h>
+#include <opendaq/deserialize_component_ptr.h>
+#include <opendaq/mirrored_signal_private.h>
 
 namespace daq::config_protocol
 {
@@ -52,6 +55,13 @@ public:
     BaseObjectPtr sendComponentCommand(const StringPtr& globalId, const StringPtr& command, const ComponentPtr& parentComponent = nullptr);
     BaseObjectPtr sendCommand(const StringPtr& command, const ParamsDictPtr& params = nullptr);
 
+    static SignalPtr findSignalByRemoteGlobalId(const DevicePtr& device, const std::string& remoteGlobalId);
+
+    void setRootDevice(const DevicePtr& rootDevice);
+    DevicePtr getRootDevice() const;
+
+    void connectDomainSignals(const ComponentPtr& component);
+
 private:
     ContextPtr daqContext;
     size_t id;
@@ -60,6 +70,7 @@ private:
     SerializerPtr serializer;
     DeserializerPtr deserializer;
     bool connected;
+    WeakRefPtr<IDevice> rootDevice;
 
     BaseObjectPtr createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const;
     StringPtr createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params);
@@ -81,6 +92,11 @@ private:
                                                bool isGetRootDeviceCommand = false);
 
     BaseObjectPtr requestRootDevice(const ComponentPtr& parentComponent);
+
+    static SignalPtr findSignalByRemoteGlobalIdWithComponent(const ComponentPtr& component, const std::string& remoteGlobalId);
+
+    template <class F>
+    void forEachSignal(const ComponentPtr& component, const F& f);
 };
 
 using ConfigProtocolClientCommPtr = std::shared_ptr<ConfigProtocolClientComm>;
@@ -118,10 +134,6 @@ private:
 
     // this should handle server component updates
     void triggerNotificationObject(const BaseObjectPtr& object);
-
-    // called on connect to build initial device tree
-    void buildDevice(const DevicePtr& device);
-
 };
 
 template<class TRootDeviceImpl>
@@ -186,6 +198,9 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
 
     const ComponentHolderPtr deviceHolder = clientComm->requestRootDevice(parent);
     auto device = deviceHolder.getComponent();
+
+    clientComm->setRootDevice(device);
+    clientComm->connectDomainSignals(device);
 
     clientComm->connected = true;
 

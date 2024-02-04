@@ -74,6 +74,7 @@ FunctionBlockPtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddFunctionBlock(
         this->clientComm->sendComponentCommand(this->remoteGlobalId, "AddFunctionBlock", params, this->functionBlocks);
     const FunctionBlockPtr fb = fbHolder.getComponent();
     this->addNestedFunctionBlock(fb);
+    this->clientComm->connectDomainSignals(fb);
     return fb;
 }
 

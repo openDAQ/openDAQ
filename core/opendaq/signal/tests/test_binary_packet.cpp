@@ -36,7 +36,8 @@ TEST_F(BinaryPacketTest, DataPacketTestGetters)
     ASSERT_EQ(packet.getOffset(), 0u);
     ASSERT_NE(packet.getData(), nullptr);
     ASSERT_NE(packet.getRawData(), nullptr);
-    ASSERT_EQ(packet.getSampleMemSize(), 16u);
+    ASSERT_EQ(packet.getDataSize(), 16u);
+    ASSERT_EQ(packet.getRawDataSize(), 16u);
 }
 
 TEST_F(BinaryPacketTest, DataPacketTestGettersExternalMemory)
@@ -52,5 +53,6 @@ TEST_F(BinaryPacketTest, DataPacketTestGettersExternalMemory)
     ASSERT_EQ(packet.getOffset(), 0u);
     ASSERT_EQ(packet.getData(), data);
     ASSERT_EQ(packet.getRawData(), data);
-    ASSERT_EQ(packet.getSampleMemSize(), 16u);
+    ASSERT_EQ(packet.getDataSize(), 16u);
+    ASSERT_EQ(packet.getRawDataSize(), 16u);
 }

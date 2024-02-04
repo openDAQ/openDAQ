@@ -92,10 +92,18 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
     virtual ErrCode INTERFACE_FUNC getRawData(void** address) = 0;
 
     /*!
-     * @brief Gets a sample memory size in bytes, calculated from data descriptor.
-     * @param[out] sampleMemSize sample memory size in bytes.
+     * @brief Gets size of data buffer in bytes.
+     * @param[out] dataSize the size of data buffer in bytes.
      */
-    virtual ErrCode INTERFACE_FUNC getSampleMemSize(SizeT* sampleMemSize) = 0;
+    virtual ErrCode INTERFACE_FUNC getDataSize(SizeT* dataSize) = 0;
+
+    /*!
+     * @brief Gets size of raw data buffer in bytes.
+     * @param[out] dataSize the size of raw data buffer in bytes.
+     *
+     * Raw data size is 0 if signal's data rule is implicit.
+     */
+    virtual ErrCode INTERFACE_FUNC getRawDataSize(SizeT* rawDataSize) = 0;
 
     // [templateType(packet, IDataPacket)]
     /*!

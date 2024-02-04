@@ -124,4 +124,18 @@ void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, 
         },
         py::return_value_policy::take_ownership,
         "Gets any extra metadata defined by the data descriptor.");
+    cls.def_property_readonly("sample_size",
+        [](daq::IDataDescriptor *object)
+        {
+            const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
+            return objectPtr.getSampleSize();
+        },
+        "Gets the size of one sample in bytes.");
+    cls.def_property_readonly("raw_sample_size",
+        [](daq::IDataDescriptor *object)
+        {
+            const auto objectPtr = daq::DataDescriptorPtr::Borrow(object);
+            return objectPtr.getRawSampleSize();
+        },
+        "Gets the actual sample size in buffer of one sample in bytes.");
 }

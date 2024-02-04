@@ -112,7 +112,7 @@ TEST_F(DeviceModulesTest, GetSetDeviceProperties)
     ASSERT_ANY_THROW(refDevice.setPropertyValue("InvalidProp", 100));
 
     auto properties = refDevice.getAllProperties();
-    ASSERT_EQ(properties.getCount(), 5u);
+    ASSERT_EQ(properties.getCount(), 6u);
 }
 
 TEST_F(DeviceModulesTest, DeviceInfoAndDomain)

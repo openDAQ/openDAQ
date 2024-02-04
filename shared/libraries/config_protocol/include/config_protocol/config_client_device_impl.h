@@ -85,10 +85,13 @@ FunctionBlockPtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddFunctionBlock(
     if (!this->functionBlocks.hasItem(fb.getLocalId()))
     {
         this->addNestedFunctionBlock(fb);
+        this->clientComm->connectDomainSignals(fb);
         return fb;
     }
 
-    return this->functionBlocks.getItem(fb.getLocalId());
+    FunctionBlockPtr existingFb = this->functionBlocks.getItem(fb.getLocalId());
+    this->clientComm->connectDomainSignals(existingFb);
+    return existingFb;
 }
 
 template <class TDeviceBase>

@@ -17,7 +17,6 @@ using namespace config_protocol;
 using namespace testing;
 using namespace std::placeholders;
 
-
 class ConfigProtocolIntegrationTest : public Test
 {
 public:
@@ -220,6 +219,7 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlock)
     ASSERT_EQ(fb, clientSubDevice.getFunctionBlocks()[1]);
 
     ASSERT_EQ(fb.asPtr<IConfigClientObject>().getRemoteGlobalId(), serverSubDevice.getFunctionBlocks()[1].getGlobalId());
+    ASSERT_EQ(fb.getSignals()[0].getDomainSignal(), fb.getSignals()[2]);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlockWithEvent)
@@ -238,6 +238,7 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlockWithEvent)
     ASSERT_EQ(fb, clientSubDevice.getFunctionBlocks()[1]);
 
     ASSERT_EQ(fb.asPtr<IConfigClientObject>().getRemoteGlobalId(), serverSubDevice.getFunctionBlocks()[1].getGlobalId());
+    ASSERT_EQ(fb.getSignals()[0].getDomainSignal(), fb.getSignals()[2]);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetInitialStructPropertyValue)
@@ -253,4 +254,13 @@ TEST_F(ConfigProtocolIntegrationTest, SetStructPropertyValue)
 
     ASSERT_EQ(serverDevice.getPropertyValue("StructProp"), structVal);
     ASSERT_EQ(serverDevice.getPropertyValue("StructProp"), clientDevice.getPropertyValue("StructProp"));
+}
+
+TEST_F(ConfigProtocolIntegrationTest, DomainSignals)
+{
+    ASSERT_EQ(serverDevice.getDevices()[0].getChannels()[0].getSignals()[0].getDomainSignal(),
+              serverDevice.getDevices()[0].getChannels()[0].getSignals()[1]);
+
+    ASSERT_EQ(clientDevice.getDevices()[0].getChannels()[0].getSignals()[0].getDomainSignal(),
+              clientDevice.getDevices()[0].getChannels()[0].getSignals()[1]);
 }

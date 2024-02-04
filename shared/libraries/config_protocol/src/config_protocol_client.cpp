@@ -294,6 +294,34 @@ BaseObjectPtr ConfigProtocolClientComm::sendCommand(const StringPtr& command, co
     return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, nullptr);
 }
 
+void ConfigProtocolClientComm::setRootDevice(const DevicePtr& rootDevice)
+{
+    this->rootDeviceRef = rootDevice;
+}
+
+DevicePtr ConfigProtocolClientComm::getRootDevice() const
+{
+    return rootDeviceRef.assigned() ? rootDeviceRef.getRef() : nullptr;
+}
+
+void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& component)
+{
+    const auto dev = getRootDevice();
+    if (!dev.assigned())
+        return;
+
+    forEachSignal(component,
+                  [&dev](const SignalPtr& signal)
+                  {
+                      const auto domainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+                      if (domainSignalId.assigned())
+                      {
+                          const auto domainSignal = findSignalByRemoteGlobalId(dev, domainSignalId);
+                          signal.asPtrOrNull<IMirroredSignalPrivate>(true)->assignDomainSignal(domainSignal);
+                      }
+                  });
+}
+
 BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const StringPtr& command,
                                                                      const ParamsDictPtr& params,
                                                                      const ComponentPtr& parentComponent,
@@ -314,6 +342,69 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Strin
     const auto deserializeContext = createDeserializeContext(remoteGlobalId, daqContext, nullptr, parentComponent, nullptr, nullptr);
 
     return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, deserializeContext, isGetRootDeviceCommand);
+}
+
+template <class F>
+void ConfigProtocolClientComm::forEachSignal(const ComponentPtr& component, const F& f)
+{
+    const auto signal = component.asPtrOrNull<ISignal>(true);
+    if (signal.assigned())
+    {
+        f(signal);
+        return;
+    }
+
+    const auto folder = component.asPtrOrNull<IFolder>(true);
+    if (folder.assigned())
+    {
+        for (const auto item : folder.getItems())
+            forEachSignal(item, f);
+    }
+}
+
+SignalPtr ConfigProtocolClientComm::findSignalByRemoteGlobalIdWithComponent(const ComponentPtr& component,
+                                                                            const std::string& remoteGlobalId)
+{
+    std::string startStr;
+    std::string restStr;
+    const bool hasSubComponentStr = IdsParser::splitRelativeId(remoteGlobalId, startStr, restStr);
+    if (!hasSubComponentStr)
+        startStr = remoteGlobalId;
+
+    const auto folder = component.asPtrOrNull<IFolder>(true);
+    if (!folder.assigned())
+        return nullptr;
+
+    if (folder.hasItem(startStr))
+    {
+        auto subComponent = folder.getItem(startStr);
+        if (hasSubComponentStr)
+            return findSignalByRemoteGlobalIdWithComponent(subComponent, restStr);
+
+        if (subComponent.supportsInterface<ISignal>())
+            return subComponent;
+    }
+
+    return nullptr;
+}
+
+SignalPtr ConfigProtocolClientComm::findSignalByRemoteGlobalId(const DevicePtr& device, const std::string& remoteGlobalId)
+{
+    if (remoteGlobalId.find("/") != 0)
+        throw InvalidParameterException("Global id must start with /");
+
+    const std::string globalIdWithoutSlash = remoteGlobalId.substr(1);
+
+    std::string startStr;
+    std::string restStr;
+    const bool hasSubComponentStr = IdsParser::splitRelativeId(globalIdWithoutSlash, startStr, restStr);
+    if (!hasSubComponentStr)
+        return nullptr;
+
+    if (startStr == device.getLocalId())
+        return findSignalByRemoteGlobalIdWithComponent(device, restStr);
+
+    return nullptr;
 }
 
 }

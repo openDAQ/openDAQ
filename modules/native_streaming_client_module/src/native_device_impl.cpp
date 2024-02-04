@@ -11,68 +11,37 @@ using namespace config_protocol;
 
 static std::chrono::milliseconds requestTimeout = std::chrono::milliseconds(10000);
 
-NativeDeviceImpl::NativeDeviceImpl(const ContextPtr& context,
-                                   const ComponentPtr& parent,
-                                   const StringPtr& connectionString,
-                                   const StringPtr& host,
-                                   const StringPtr& port,
-                                   const StringPtr& path)
-    : DeviceWrapperImpl()
-    , loggerComponent(context.getLogger().getOrAddComponent("NativeConfigurationDevice"))
-    , context(context)
-    , deviceInfo(DeviceInfo(connectionString, "NativeConfigDevice"))
-    , transportProtocolClient(std::make_shared<NativeStreamingClientHandler>(context))
+NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
+                                       NativeStreamingClientHandlerPtr transportProtocolClient)
+    : loggerComponent(context.getLogger().getOrAddComponent("NativeDevice"))
+    , transportProtocolClient(transportProtocolClient)
 {
-    deviceInfo.freeze();
-
-    std::string streamingConnectionString = std::regex_replace(connectionString.toStdString(),
-                                                               std::regex(NativeConfigurationDevicePrefix),
-                                                               NativeStreamingPrefix);
-    nativeStreaming =
-        createWithImplementation<IStreaming, NativeStreamingImpl>(streamingConnectionString,
-                                                                  host,
-                                                                  port,
-                                                                  path,
-                                                                  context,
-                                                                  transportProtocolClient,
-                                                                  nullptr,
-                                                                  nullptr,
-                                                                  nullptr);
-    setupProtocolClients();
-    configProtocolClient->connect(parent);
-    wrappedDevice = configProtocolClient->getDevice();
-
-    validateWrapperInterfaces();
-
-    setDomainSignals();
-    activateStreaming();
+    setupProtocolClients(context);
 }
 
-NativeDeviceImpl::~NativeDeviceImpl()
+NativeDeviceHelper::~NativeDeviceHelper()
 {
     // reset transport protocol handler of received config packets
-    auto receiveConfigPacketCb = [](const PacketBuffer& packet) {};
-    transportProtocolClient->setConfigPacketHandler(receiveConfigPacketCb);
+    if (transportProtocolClient)
+    {
+        auto receiveConfigPacketCb = [](const PacketBuffer& packet) {};
+        transportProtocolClient->setConfigPacketHandler(receiveConfigPacketCb);
+    }
 }
 
-// IDevice
-
-ErrCode NativeDeviceImpl::getInfo(IDeviceInfo** info)
+DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent)
 {
-    OPENDAQ_PARAM_NOT_NULL(info);
-
-    *info =  deviceInfo.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+    return configProtocolClient->connect(parent);
 }
 
-void NativeDeviceImpl::setupProtocolClients()
+void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
 {
     SendRequestCallback sendRequestCallback =
         [this](PacketBuffer& packet)
     {
         return this->doConfigRequest(packet);
     };
-    configProtocolClient = std::make_unique<ConfigProtocolClient>(context, sendRequestCallback, nullptr);
+    configProtocolClient = std::make_unique<ConfigProtocolClient<NativeDeviceImpl>>(context, sendRequestCallback, nullptr);
 
     auto receiveConfigPacketCb =
         [this](const PacketBuffer& packet)
@@ -82,62 +51,7 @@ void NativeDeviceImpl::setupProtocolClients()
     transportProtocolClient->setConfigPacketHandler(receiveConfigPacketCb);
 }
 
-// TODO get rid of device wrapper; or move this validation to tests:
-void NativeDeviceImpl::validateWrapperInterfaces()
-{
-    InspectablePtr wrappedPtr = wrappedDevice.asPtr<IInspectable>();
-    auto wrappedInstanceInfsIds = wrappedPtr.getInterfaceIds();
-
-    InspectablePtr thisPtr = this->template borrowPtr<InspectablePtr>();
-    auto wrapperInstanceInfsIds = thisPtr.getInterfaceIds();
-
-    for (const auto& id : wrappedInstanceInfsIds)
-    {
-        if (!thisPtr.supportsInterface(id))
-            throw GeneralErrorException("Some interfaces are missed");
-    }
-    for (const auto& id : wrapperInstanceInfsIds)
-    {
-        if (!wrappedDevice.supportsInterface(id))
-            throw GeneralErrorException("Some interfaces are redundant");
-    }
-}
-
-/// workaround which recreates signal->domainSignal relations on client side
-void NativeDeviceImpl::setDomainSignals()
-{
-    const auto signals = wrappedDevice.getSignals(search::Recursive(search::Any()));
-
-    for (const auto& signal : signals)
-    {
-        const auto deserializedDomainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
-        if (deserializedDomainSignalId.assigned())
-        {
-            for (const auto& domainSignal : signals)
-            {
-                if (domainSignal.asPtr<IMirroredSignalConfig>().getRemoteId() == deserializedDomainSignalId)
-                {
-                    signal.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(domainSignal);
-                }
-            }
-        }
-    }
-}
-
-void NativeDeviceImpl::activateStreaming()
-{
-    const auto signals = wrappedDevice.getSignals(search::Recursive(search::Any()));
-    nativeStreaming.addSignals(signals);
-    nativeStreaming.setActive(true);
-
-    for (const auto& signal : signals)
-    {
-        auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
-        mirroredSignalConfigPtr.setActiveStreamingSource(nativeStreaming.getConnectionString());
-    }
-}
-
-PacketBuffer NativeDeviceImpl::doConfigRequest(const PacketBuffer& reqPacket)
+PacketBuffer NativeDeviceHelper::doConfigRequest(const PacketBuffer& reqPacket)
 {
     // future/promise mechanism is used since transport client works asynchronously
     auto reqId = reqPacket.getId();
@@ -158,7 +72,7 @@ PacketBuffer NativeDeviceImpl::doConfigRequest(const PacketBuffer& reqPacket)
     }
 }
 
-void NativeDeviceImpl::receiveConfigPacket(const PacketBuffer& packet)
+void NativeDeviceHelper::receiveConfigPacket(const PacketBuffer& packet)
 {
     if (packet.getPacketType() == serverNotification)
     {
@@ -172,6 +86,70 @@ void NativeDeviceImpl::receiveConfigPacket(const PacketBuffer& packet)
     {
         LOG_E("Received reply for unknown request id {}, reply type {:#x}", packet.getId(), packet.getPacketType());
     }
+}
+
+NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                   const std::string& remoteGlobalId,
+                                   const ContextPtr& ctx,
+                                   const ComponentPtr& parent,
+                                   const StringPtr& localId)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
+{
+}
+
+// IDevice
+
+ErrCode NativeDeviceImpl::getInfo(IDeviceInfo** info)
+{
+    OPENDAQ_PARAM_NOT_NULL(info);
+
+    *info =  deviceInfo.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+// INativeDevicePrivate
+
+void NativeDeviceImpl::attachNativeStreaming(const StreamingPtr& streaming)
+{
+    nativeStreaming = streaming;
+
+    auto self = this->borrowPtr<DevicePtr>();
+    const auto signals = self.getSignals(search::Recursive(search::Any()));
+    nativeStreaming.addSignals(signals);
+    nativeStreaming.setActive(true);
+
+    for (const auto& signal : signals)
+    {
+        auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
+        mirroredSignalConfigPtr.setActiveStreamingSource(nativeStreaming.getConnectionString());
+    }
+}
+
+void NativeDeviceImpl::attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper)
+{
+    this->deviceHelper = std::move(deviceHelper);
+}
+
+void NativeDeviceImpl::setConnectionString(const StringPtr& connectionString)
+{
+    if (deviceInfo.assigned())
+        return;
+
+    deviceInfo = DeviceInfo(connectionString, "NativeConfigDevice");
+    deviceInfo.freeze();
+}
+
+ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,
+                                      IBaseObject* context,
+                                      IFunction* factoryCallback,
+                                      IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(context);
+
+    return daqTry([&obj, &serialized, &context, &factoryCallback]()
+                  {
+                      *obj = Super::Super::template DeserializeConfigComponent<IDevice, NativeDeviceImpl>(serialized, context, factoryCallback).detach();
+                  });
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

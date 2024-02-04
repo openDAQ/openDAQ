@@ -11,6 +11,7 @@
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/callable_info_factory.h>
 #include <config_protocol/config_client_object_ptr.h>
+#include <config_protocol/config_client_device_impl.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -160,10 +161,9 @@ TEST_F(ConfigProtocolIntegrationTest, Connect)
 
     ConfigProtocolServer server(serverDevice, nullptr);
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
     const auto clientDeviceSerialized = serializeComponent(clientDevice);
     ASSERT_EQ(serverDeviceSerialized, clientDeviceSerialized);
 }
@@ -175,10 +175,9 @@ TEST_F(ConfigProtocolIntegrationTest, RemoteGlobalIds)
 
     ConfigProtocolServer server(serverDevice, nullptr);
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
 
     ASSERT_EQ(clientDevice.asPtr<IConfigClientObject>(true).getRemoteGlobalId(), serverDevice.getGlobalId());
     ASSERT_EQ(clientDevice.getDevices()[0].asPtr<IConfigClientObject>(true).getRemoteGlobalId(), serverDevice.getDevices()[0].getGlobalId());
@@ -198,12 +197,11 @@ TEST_F(ConfigProtocolIntegrationTest, ConnectWithParent)
     ConfigProtocolServer server(serverDevice, nullptr);
 
     const auto clientContext = NullContext();
-    ConfigProtocolClient client(clientContext, std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(clientContext, std::bind(sendPacket, std::ref(server), _1), nullptr);
 
     const auto parentComponent = Component(clientContext, nullptr, "cmp");
 
-    client.connect(parentComponent);
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect(parentComponent);
 
     ASSERT_EQ(clientDevice.asPtr<IConfigClientObject>(true).getRemoteGlobalId(), serverDevice.getGlobalId());
     ASSERT_EQ(clientDevice.getGlobalId(), "/cmp/" + clientDevice.getLocalId().toStdString());
@@ -227,10 +225,9 @@ TEST_F(ConfigProtocolIntegrationTest, CheckConfigClientObject)
 
     ConfigProtocolServer server(serverDevice, nullptr);
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
     checkComponentForConfigClientObject(clientDevice);
 }
 
@@ -243,10 +240,9 @@ TEST_F(ConfigProtocolIntegrationTest, GetInitialPropertyValue)
 
     ConfigProtocolServer server(serverDevice, nullptr);
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
 
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), clientDevice.getChannels()[0].getPropertyValue("StrProp"));
 
@@ -260,10 +256,9 @@ TEST_F(ConfigProtocolIntegrationTest, SetPropertyValue)
     const auto serverDevice = createServerDevice();
     ConfigProtocolServer server(serverDevice, nullptr);
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
 
     clientDevice.getChannels()[0].setPropertyValue("StrProp", "SomeValue");
 
@@ -276,10 +271,9 @@ TEST_F(ConfigProtocolIntegrationTest, SetProtectedPropertyValue)
     const auto serverDevice = createServerDevice();
     ConfigProtocolServer server(serverDevice, nullptr);
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
 
     ASSERT_THROW(clientDevice.getChannels()[0].setPropertyValue("StrPropProtected", "SomeValue"), AccessDeniedException);
 
@@ -296,10 +290,9 @@ TEST_F(ConfigProtocolIntegrationTest, ClearPropertyValue)
 
     ConfigProtocolServer server(serverDevice, nullptr);
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
 
     clientDevice.getChannels()[0].clearPropertyValue("StrProp");
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), "-");
@@ -320,10 +313,9 @@ TEST_F(ConfigProtocolIntegrationTest, CallFuncProp)
 
     ConfigProtocolServer server(serverDevice, nullptr);
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
 
     const auto clientFuncPropValue = clientDevice.getChannels()[0].getPropertyValue("FuncProp");
 
@@ -346,10 +338,9 @@ TEST_F(ConfigProtocolIntegrationTest, CallProcProp)
 
     ConfigProtocolServer server(serverDevice, nullptr);
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
 
     const auto clientProcPropValue = clientDevice.getChannels()[0].getPropertyValue("ProcProp");
 
@@ -364,10 +355,9 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableFunctionBlockTypes)
     ConfigProtocolServer server(serverDevice, nullptr);
     const auto serverSubDevice = serverDevice.getDevices()[0];
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
     const auto clientSubDevice = clientDevice.getDevices()[0];
 
     const auto fbTypes = clientSubDevice.getAvailableFunctionBlockTypes();
@@ -381,10 +371,9 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlockNotFound)
     ConfigProtocolServer server(serverDevice, nullptr);
     const auto serverSubDevice = serverDevice.getDevices()[0];
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
     const auto clientSubDevice = clientDevice.getDevices()[0];
 
     ASSERT_THROW(clientSubDevice.addFunctionBlock("someFb"), NotFoundException);
@@ -397,10 +386,9 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlock)
     ConfigProtocolServer server(serverDevice, nullptr);
     const auto serverSubDevice = serverDevice.getDevices()[0];
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
     const auto clientSubDevice = clientDevice.getDevices()[0];
 
     const auto config = PropertyObject();
@@ -420,10 +408,9 @@ TEST_F(ConfigProtocolIntegrationTest, GetInitialStructPropertyValue)
 
     ConfigProtocolServer server(serverDevice, nullptr);
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
 
     ASSERT_EQ(serverDevice.getPropertyValue("StructProp"), clientDevice.getPropertyValue("StructProp"));
 }
@@ -433,10 +420,9 @@ TEST_F(ConfigProtocolIntegrationTest, SetStructPropertyValue)
     const auto serverDevice = createServerDevice();
     ConfigProtocolServer server(serverDevice, nullptr);
 
-    ConfigProtocolClient client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(NullContext(), std::bind(sendPacket, std::ref(server), _1), nullptr);
 
-    client.connect();
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
 
     const auto structMembers = Dict<IString, IBaseObject>({{"string", "bar1"}, {"integer", 11}, {"float", 5.223}});
     const auto structVal = Struct("FooStruct", structMembers, serverDevice.getContext().getTypeManager());

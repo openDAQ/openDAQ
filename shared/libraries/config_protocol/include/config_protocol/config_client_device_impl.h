@@ -22,16 +22,27 @@
 namespace daq::config_protocol
 {
 
-class ConfigClientDeviceImpl : public ConfigClientComponentBaseImpl<DeviceBase<IConfigClientObject>>
+template <typename... Interfaces>
+using ConfigClientDeviceBase = DeviceBase<IConfigClientObject, Interfaces...>;
+
+using ConfigClientDevice = ConfigClientDeviceBase<>;
+
+template <class TDeviceBase>
+class GenericConfigClientDeviceImpl;
+
+using ConfigClientDeviceImpl = GenericConfigClientDeviceImpl<ConfigClientDevice>;
+
+template <class TDeviceBase>
+class GenericConfigClientDeviceImpl : public ConfigClientComponentBaseImpl<TDeviceBase>
 {
 public:
-    using Super = ConfigClientComponentBaseImpl<DeviceBase<IConfigClientObject>>;
+    using Super = ConfigClientComponentBaseImpl<TDeviceBase>;
 
-    explicit ConfigClientDeviceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                    const std::string& remoteGlobalId,
-                                    const ContextPtr& ctx,
-                                    const ComponentPtr& parent,
-                                    const StringPtr& localId);
+    explicit GenericConfigClientDeviceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                           const std::string& remoteGlobalId,
+                                           const ContextPtr& ctx,
+                                           const ComponentPtr& parent,
+                                           const StringPtr& localId);
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
@@ -39,39 +50,44 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 };
 
-inline ConfigClientDeviceImpl::ConfigClientDeviceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                                      const std::string& remoteGlobalId,
-                                                      const ContextPtr& ctx,
-                                                      const ComponentPtr& parent,
-                                                      const StringPtr& localId)
+template <class TDeviceBase>
+GenericConfigClientDeviceImpl<TDeviceBase>::GenericConfigClientDeviceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                                                          const std::string& remoteGlobalId,
+                                                                          const ContextPtr& ctx,
+                                                                          const ComponentPtr& parent,
+                                                                          const StringPtr& localId)
     : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
 {
 }
 
-inline DictPtr<IString, IFunctionBlockType> ConfigClientDeviceImpl::onGetAvailableFunctionBlockTypes()
+template <class TDeviceBase>
+DictPtr<IString, IFunctionBlockType> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableFunctionBlockTypes()
 {
-    return clientComm->sendComponentCommand(remoteGlobalId, "GetAvailableFunctionBlockTypes");
+    return this->clientComm->sendComponentCommand(this->remoteGlobalId, "GetAvailableFunctionBlockTypes");
 }
 
-inline FunctionBlockPtr ConfigClientDeviceImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
+template <class TDeviceBase>
+FunctionBlockPtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
 {
     auto params = Dict<IString, IBaseObject>({{"TypeId", typeId}, {"Config", config}});
-    const ComponentHolderPtr fbHolder = clientComm->sendComponentCommand(remoteGlobalId, "AddFunctionBlock", params, functionBlocks);
+    const ComponentHolderPtr fbHolder =
+        this->clientComm->sendComponentCommand(this->remoteGlobalId, "AddFunctionBlock", params, this->functionBlocks);
     const FunctionBlockPtr fb = fbHolder.getComponent();
-    addNestedFunctionBlock(fb);
+    this->addNestedFunctionBlock(fb);
     return fb;
 }
 
-inline ErrCode ConfigClientDeviceImpl::Deserialize(ISerializedObject* serialized,
-                                                   IBaseObject* context,
-                                                   IFunction* factoryCallback,
-                                                   IBaseObject** obj)
+template <class TDeviceBase>
+ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::Deserialize(ISerializedObject* serialized,
+                                                                IBaseObject* context,
+                                                                IFunction* factoryCallback,
+                                                                IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
     return daqTry([&obj, &serialized, &context, &factoryCallback]()
         {
-            *obj = DeserializeConfigComponent<IDevice, ConfigClientDeviceImpl>(serialized, context, factoryCallback).detach();
+            *obj = Super::template DeserializeConfigComponent<IDevice, ConfigClientDeviceImpl>(serialized, context, factoryCallback).detach();
         });
 }
 

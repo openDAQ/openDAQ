@@ -14,6 +14,7 @@
 #include <coreobjects/argument_info_factory.h>
 #include <opendaq/function_block_impl.h>
 #include <config_protocol/component_holder_ptr.h>
+#include <config_protocol/config_client_device_impl.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -46,7 +47,7 @@ public:
 protected:
     MockDevice::Strict device;
     ConfigProtocolServer server;
-    ConfigProtocolClient client;
+    ConfigProtocolClient<ConfigClientDeviceImpl> client;
     BaseObjectPtr notificationObj;
 
     // server handling

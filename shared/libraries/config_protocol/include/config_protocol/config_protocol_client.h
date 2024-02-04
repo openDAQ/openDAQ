@@ -19,18 +19,23 @@
 #include <config_protocol/config_protocol.h>
 #include <opendaq/component_deserialize_context_ptr.h>
 #include <opendaq/device_ptr.h>
+#include <config_protocol/component_holder_ptr.h>
 
 namespace daq::config_protocol
 {
 
 using SendRequestCallback = std::function<PacketBuffer(PacketBuffer&)>;
 using ServerNotificationReceivedCallback = std::function<bool(const BaseObjectPtr& obj)>;
+using ComponentDeserializeCallback = std::function<ErrCode(ISerializedObject*, IBaseObject*, IFunction*, IBaseObject**)>;
 
 class ConfigProtocolClientComm : public std::enable_shared_from_this<ConfigProtocolClientComm>
 {
 public:
+    template <class TRootDeviceImpl>
     friend class ConfigProtocolClient;
-    explicit ConfigProtocolClientComm(const ContextPtr& daqContext, SendRequestCallback sendRequestCallback);
+    explicit ConfigProtocolClientComm(const ContextPtr& daqContext,
+                                      SendRequestCallback sendRequestCallback,
+                                      ComponentDeserializeCallback rootDeviceDeserializeCallback);
 
     void setPropertyValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue);
     void setProtectedPropertyValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue);
@@ -51,6 +56,7 @@ private:
     ContextPtr daqContext;
     size_t id;
     SendRequestCallback sendRequestCallback;
+    ComponentDeserializeCallback rootDeviceDeserializeCallback;
     SerializerPtr serializer;
     DeserializerPtr deserializer;
     bool connected;
@@ -58,21 +64,28 @@ private:
     BaseObjectPtr createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const;
     StringPtr createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params);
     PacketBuffer createRpcRequestPacketBuffer(size_t id, const StringPtr& name, const ParamsDictPtr& params);
-    BaseObjectPtr parseRpcReplyPacketBuffer(const PacketBuffer& packetBuffer, const ComponentDeserializeContextPtr& context = nullptr);
+    BaseObjectPtr parseRpcReplyPacketBuffer(const PacketBuffer& packetBuffer,
+                                            const ComponentDeserializeContextPtr& context = nullptr,
+                                            bool isGetRootDeviceReply = false);
     size_t generateId();
 
     BaseObjectPtr deserializeConfigComponent(const StringPtr& typeId,
                                              const SerializedObjectPtr& serObj,
                                              const BaseObjectPtr& context,
-                                             const FunctionPtr& factoryCallback);
+                                             const FunctionPtr& factoryCallback,
+                                             ComponentDeserializeCallback deviceDeserialzeCallback);
 
     BaseObjectPtr sendComponentCommandInternal(const StringPtr& command,
                                                const ParamsDictPtr& params,
-                                               const ComponentPtr& parentComponent = nullptr);
+                                               const ComponentPtr& parentComponent = nullptr,
+                                               bool isGetRootDeviceCommand = false);
+
+    BaseObjectPtr requestRootDevice(const ComponentPtr& parentComponent);
 };
 
 using ConfigProtocolClientCommPtr = std::shared_ptr<ConfigProtocolClientComm>;
 
+template <class TRootDeviceImpl>
 class ConfigProtocolClient
 {
 public:
@@ -87,10 +100,9 @@ public:
                                   const ServerNotificationReceivedCallback& serverNotificationReceivedCallback);
 
     // called from client module
-    void connect(const ComponentPtr& parent = nullptr);
-    DevicePtr getDevice();
-    ConfigProtocolClientCommPtr getClientComm();
+    DevicePtr connect(const ComponentPtr& parent = nullptr);
 
+    ConfigProtocolClientCommPtr getClientComm();
 
     // called from transport layer when notification packet is available. This will call serverNotificationReceivedCallback and
     // triggerNotificationObject method
@@ -103,7 +115,6 @@ private:
     DeserializerPtr deserializer;
 
     ConfigProtocolClientCommPtr clientComm;
-    DevicePtr device;
 
     // this should handle server component updates
     void triggerNotificationObject(const BaseObjectPtr& object);
@@ -113,5 +124,97 @@ private:
 
 };
 
+template<class TRootDeviceImpl>
+ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& daqContext, const SendRequestCallback& sendRequestCallback, const ServerNotificationReceivedCallback& serverNotificationReceivedCallback)
+    : daqContext(daqContext)
+    , sendRequestCallback(sendRequestCallback)
+    , serverNotificationReceivedCallback(serverNotificationReceivedCallback)
+    , deserializer(JsonDeserializer())
+    , clientComm(
+          std::make_shared<ConfigProtocolClientComm>(
+              daqContext,
+              sendRequestCallback,
+              [](ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+              {
+                  return TRootDeviceImpl::Deserialize(serialized, context, factoryCallback, obj);
+              }))
+{
+}
+
+template<class TRootDeviceImpl>
+DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& parent)
+{
+    auto getProtocolInfoRequestPacketBuffer = PacketBuffer::createGetProtocolInfoRequest(clientComm->generateId());
+    const auto getProtocolInfoReplyPacketBuffer = sendRequestCallback(getProtocolInfoRequestPacketBuffer);
+
+    uint16_t currentVersion;
+    std::vector<uint16_t> supportedVersions;
+    getProtocolInfoReplyPacketBuffer.parseProtocolInfoReply(currentVersion, supportedVersions);
+
+    if (currentVersion != 0)
+        throw ConfigProtocolException("Invalid server protocol version");
+
+    if (std::find(supportedVersions.begin(), supportedVersions.end(), 0) == supportedVersions.end())
+        throw ConfigProtocolException("Protocol not supported on server");
+
+    auto upgradeProtocolRequestPacketBuffer = PacketBuffer::createUpgradeProtocolRequest(clientComm->generateId(), 0);
+    const auto upgradeProtocolReplyPacketBuffer = sendRequestCallback(upgradeProtocolRequestPacketBuffer);
+
+    bool success;
+    upgradeProtocolReplyPacketBuffer.parseProtocolUpgradeReply(success);
+
+    if (!success)
+        throw ConfigProtocolException("Protocol upgrade failed");
+
+    const auto localTypeManager = daqContext.getTypeManager();
+    const TypeManagerPtr typeManager = clientComm->sendCommand("GetTypeManager");
+    const auto types = typeManager.getTypes();
+
+    for (const auto& typeName : types)
+    {
+        const auto type = typeManager.getType(typeName);
+        if (localTypeManager.hasType(type.getName()))
+        {
+            const auto localType = localTypeManager.getType(type.getName());
+            if (localType != type)
+                throw InvalidValueException("Remote type different than local");
+            continue;
+        }
+
+        localTypeManager.addType(type);
+    }
+
+    const ComponentHolderPtr deviceHolder = clientComm->requestRootDevice(parent);
+    auto device = deviceHolder.getComponent();
+
+    clientComm->connected = true;
+
+    return device;
+}
+
+template<class TRootDeviceImpl>
+ConfigProtocolClientCommPtr ConfigProtocolClient<TRootDeviceImpl>::getClientComm()
+{
+    return clientComm;
+}
+
+template<class TRootDeviceImpl>
+void ConfigProtocolClient<TRootDeviceImpl>::triggerNotificationPacket(const PacketBuffer& packet)
+{
+    const auto json = packet.parseServerNotification();
+
+    const auto obj = deserializer.deserialize(json);
+    // handle notifications in callback provided in constructor
+    const bool processed = serverNotificationReceivedCallback ? serverNotificationReceivedCallback(obj) : false;
+    // if callback not processed by callback, process it internally
+    if (!processed)
+        triggerNotificationObject(obj);
+}
+
+template<class TRootDeviceImpl>
+void ConfigProtocolClient<TRootDeviceImpl>::triggerNotificationObject(const BaseObjectPtr& object)
+{
+   // handle notifications from server
+}
 
 }

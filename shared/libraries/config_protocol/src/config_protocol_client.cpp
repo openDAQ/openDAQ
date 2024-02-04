@@ -7,15 +7,17 @@
 #include <config_protocol/config_client_device_impl.h>
 #include <config_protocol/config_client_channel_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
-#include <config_protocol/component_holder_ptr.h>
 
 namespace daq::config_protocol
 {
 
-ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext, SendRequestCallback sendRequestCallback)
+ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
+                                                   SendRequestCallback sendRequestCallback,
+                                                   ComponentDeserializeCallback rootDeviceDeserializeCallback)
         : daqContext(daqContext)
         , id(0)
         , sendRequestCallback(std::move(sendRequestCallback))
+        , rootDeviceDeserializeCallback(std::move(rootDeviceDeserializeCallback))
         , serializer(JsonSerializer())
         , deserializer(JsonDeserializer())
         , connected(false)
@@ -131,19 +133,21 @@ PacketBuffer ConfigProtocolClientComm::createRpcRequestPacketBuffer(const size_t
 }
 
 BaseObjectPtr ConfigProtocolClientComm::parseRpcReplyPacketBuffer(const PacketBuffer& packetBuffer,
-                                                                  const ComponentDeserializeContextPtr& context)
+                                                                  const ComponentDeserializeContextPtr& context,
+                                                                  bool isGetRootDeviceReply)
 {
     const auto jsonStr = packetBuffer.parseRpcRequestOrReply();
 
     ParamsDictPtr reply;
     try
     {
+        ComponentDeserializeCallback customDeviceDeserilazeCallback = isGetRootDeviceReply ? rootDeviceDeserializeCallback : nullptr;
         reply = deserializer.deserialize(
             jsonStr,
             context,
-            [this](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
+            [this, &customDeviceDeserilazeCallback](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
             {
-                return deserializeConfigComponent(typeId, object, context, factoryCallback);
+                return deserializeConfigComponent(typeId, object, context, factoryCallback, customDeviceDeserilazeCallback);
             });
     }
     catch (const std::exception& e)
@@ -172,7 +176,8 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcReplyPacketBuffer(const PacketBu
 BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringPtr& typeId,
                                                                    const SerializedObjectPtr& serObj,
                                                                    const BaseObjectPtr& context,
-                                                                   const FunctionPtr& factoryCallback)
+                                                                   const FunctionPtr& factoryCallback,
+                                                                   ComponentDeserializeCallback deviceDeserialzeCallback)
 {
     if (typeId == "Folder")
     {
@@ -219,7 +224,10 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
     if (typeId == "Device" || typeId == "Instance")
     {
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientDeviceImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        if (deviceDeserialzeCallback)
+            checkErrorInfo(deviceDeserialzeCallback(serObj, context, factoryCallback, &obj));
+        else
+            checkErrorInfo(ConfigClientDeviceImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 
@@ -249,6 +257,13 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommand(const StringPtr& gl
     return sendComponentCommandInternal(command, params, parentComponent);
 }
 
+BaseObjectPtr ConfigProtocolClientComm::requestRootDevice(const ComponentPtr& parentComponent)
+{
+    auto params = Dict<IString, IBaseObject>();
+    params.set("ComponentGlobalId", "//root");
+    return sendComponentCommandInternal("GetComponent", params, parentComponent, true);
+}
+
 BaseObjectPtr ConfigProtocolClientComm::sendCommand(const StringPtr& command, const ParamsDictPtr& params)
 {
     auto sendCommandRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), command, params);
@@ -259,7 +274,8 @@ BaseObjectPtr ConfigProtocolClientComm::sendCommand(const StringPtr& command, co
 
 BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const StringPtr& command,
                                                                      const ParamsDictPtr& params,
-                                                                     const ComponentPtr& parentComponent)
+                                                                     const ComponentPtr& parentComponent,
+                                                                     bool isGetRootDeviceCommand)
 {
     auto sendCommandRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), command, params);
     const auto sendCommandRpcReplyPacketBuffer = sendRequestCallback(sendCommandRpcRequestPacketBuffer);
@@ -276,93 +292,19 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Strin
     const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
         shared_from_this(), remoteGlobalId, daqContext, parentComponent, nullptr, nullptr);
 
-    return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, deserializeContext);
+    return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, deserializeContext, isGetRootDeviceCommand);
 }
 
-ConfigProtocolClientCommPtr ConfigProtocolClient::getClientComm()
-{
-    return clientComm;
-}
 
-ConfigProtocolClient::ConfigProtocolClient(const ContextPtr& daqContext,
-                                           const SendRequestCallback& sendRequestCallback,
-                                           const ServerNotificationReceivedCallback& serverNotificationReceivedCallback)
-    : daqContext(daqContext)
-    , sendRequestCallback(sendRequestCallback)
-    , serverNotificationReceivedCallback(serverNotificationReceivedCallback)
-    , deserializer(JsonDeserializer())
-    , clientComm(std::make_shared<ConfigProtocolClientComm>(daqContext, sendRequestCallback))
-{
-}
 
-DevicePtr ConfigProtocolClient::getDevice()
-{
-    return device;
-}
 
-void ConfigProtocolClient::connect(const ComponentPtr& parent)
-{
-    auto getProtocolInfoRequestPacketBuffer = PacketBuffer::createGetProtocolInfoRequest(clientComm->generateId());
-    const auto getProtocolInfoReplyPacketBuffer = sendRequestCallback(getProtocolInfoRequestPacketBuffer);
 
-    uint16_t currentVersion;
-    std::vector<uint16_t> supportedVersions;
-    getProtocolInfoReplyPacketBuffer.parseProtocolInfoReply(currentVersion, supportedVersions);
 
-    if (currentVersion != 0)
-        throw ConfigProtocolException("Invalid server protocol version");
 
-    if (std::find(supportedVersions.begin(), supportedVersions.end(), 0) == supportedVersions.end())
-        throw ConfigProtocolException("Protocol not supported on server");
 
-    auto upgradeProtocolRequestPacketBuffer = PacketBuffer::createUpgradeProtocolRequest(clientComm->generateId(), 0);
-    const auto upgradeProtocolReplyPacketBuffer = sendRequestCallback(upgradeProtocolRequestPacketBuffer);
 
-    bool success;
-    upgradeProtocolReplyPacketBuffer.parseProtocolUpgradeReply(success);
 
-    if (!success)
-        throw ConfigProtocolException("Protocol upgrade failed");
 
-    const auto localTypeManager = daqContext.getTypeManager();
-    const TypeManagerPtr typeManager = clientComm->sendCommand("GetTypeManager");
-    const auto types = typeManager.getTypes();
 
-    for (const auto& typeName : types)
-    {
-        const auto type = typeManager.getType(typeName);
-        if (localTypeManager.hasType(type.getName()))
-        {
-            const auto localType = localTypeManager.getType(type.getName());
-            if (localType != type)
-                throw InvalidValueException("Remote type different than local");
-            continue;
-        }
-
-        localTypeManager.addType(type);
-    }
-
-    const ComponentHolderPtr deviceHolder = clientComm->sendComponentCommand("//root", "GetComponent", parent);
-    device = deviceHolder.getComponent();
-
-    clientComm->connected = true;
-}
-
-void ConfigProtocolClient::triggerNotificationPacket(const PacketBuffer& packet)
-{
-    const auto json = packet.parseServerNotification();
-
-    const auto obj = deserializer.deserialize(json);
-    // handle notifications in callback provided in constructor
-    const bool processed = serverNotificationReceivedCallback ? serverNotificationReceivedCallback(obj) : false;
-    // if callback not processed by callback, process it internally
-    if (!processed)
-        triggerNotificationObject(obj);
-}
-
-void ConfigProtocolClient::triggerNotificationObject(const BaseObjectPtr& object)
-{
-    // handle notifications from server
-}
 
 }

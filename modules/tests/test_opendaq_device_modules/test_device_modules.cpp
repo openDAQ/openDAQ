@@ -138,7 +138,7 @@ TEST_F(DeviceModulesTest, GetSetDeviceProperties)
     ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"InvalidProp\" on OpcUA client property object: Property not found");
 
     auto properties = refDevice.getAllProperties();
-    ASSERT_EQ(properties.getCount(), 5u);
+    ASSERT_EQ(properties.getCount(), 6u);
 }
 
 TEST_F(DeviceModulesTest, DeviceInfoAndDomain)

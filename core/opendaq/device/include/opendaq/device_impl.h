@@ -128,6 +128,7 @@ protected:
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
     void removeChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel);
+    bool hasChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel);
 
     void addSubDevice(const DevicePtr& device);
     void removeSubDevice(const DevicePtr& device);
@@ -394,6 +395,18 @@ void GenericDevice<TInterface, Interfaces...>::removeChannel(const FolderConfigP
     }
     else
         parentFolder.removeItem(channel);
+}
+
+template <typename TInterface, typename... Interfaces>
+bool GenericDevice<TInterface, Interfaces...>::hasChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel)
+{
+    if (parentFolder == nullptr)
+    {
+        const auto folder = channel.getParent().asPtr<IFolderConfig>();
+        return folder.hasItem(channel);
+    }
+    else
+        return parentFolder.hasItem(channel);
 }
 
 template <typename TInterface, typename... Interfaces>

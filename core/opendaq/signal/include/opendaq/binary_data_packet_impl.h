@@ -53,12 +53,12 @@ public:
     template <bool B = ExternalMemory, std::enable_if_t<!B, int> = 0>
     explicit BinaryDataPacketImpl(const DataPacketPtr& domainPacket,
                                   const DataDescriptorPtr& dataDescriptor,
-                                  SizeT sampleMemSize);
+                                  SizeT sampleSize);
 
     template <bool B = ExternalMemory, std::enable_if_t<B, int> = 0>
     explicit BinaryDataPacketImpl(const DataPacketPtr& domainPacket,
                                   const DataDescriptorPtr& dataDescriptor,
-                                  SizeT sampleMemSize,
+                                  SizeT sampleSize,
                                   void* data,
                                   const DeleterPtr& deleter);
 
@@ -67,12 +67,13 @@ public:
     ErrCode INTERFACE_FUNC getOffset(INumber** offset) override;
     ErrCode INTERFACE_FUNC getRawData(void** address) override;
     ErrCode INTERFACE_FUNC getData(void** address) override;
-    ErrCode INTERFACE_FUNC getSampleMemSize(SizeT* sampleMemSize) override;
+    ErrCode INTERFACE_FUNC getDataSize(SizeT* dataSize) override;
+    ErrCode INTERFACE_FUNC getRawDataSize(SizeT* dataSize) override;
 
 private:
     DataPacketPtr domainPacket;
     DataDescriptorPtr dataDescriptor;
-    SizeT sampleMemSize;
+    SizeT sampleSize;
     std::unique_ptr<void, BinaryDataDeleter<ExternalMemory>> data;
 
 #ifdef OPENDAQ_ENABLE_PARAMETER_VALIDATION
@@ -96,11 +97,11 @@ template <bool ExternalMemory>
 template <bool B, std::enable_if_t<!B, int>>
 BinaryDataPacketImpl<ExternalMemory>::BinaryDataPacketImpl(const DataPacketPtr& domainPacket,
                                                            const DataDescriptorPtr& dataDescriptor,
-                                                           SizeT sampleMemSize)
+                                                           SizeT sampleSize)
     : GenericDataPacketImpl<IDataPacket>(domainPacket)
     , dataDescriptor(dataDescriptor)
-    , sampleMemSize(sampleMemSize)    
-    , data(std::malloc(sampleMemSize))
+    , sampleSize(sampleSize)    
+    , data(std::malloc(sampleSize))
 {
 #ifdef OPENDAQ_ENABLE_PARAMETER_VALIDATION
     validateDescriptor();
@@ -111,12 +112,12 @@ template <bool ExternalMemory>
 template <bool B, std::enable_if_t<B, int>>
 BinaryDataPacketImpl<ExternalMemory>::BinaryDataPacketImpl(const DataPacketPtr& domainPacket,
                                                            const DataDescriptorPtr& dataDescriptor,
-                                                           SizeT sampleMemSize,
+                                                           SizeT sampleSize,
                                                            void* data,
                                                            const DeleterPtr& deleter)
     : GenericDataPacketImpl<IDataPacket>(domainPacket)
     , dataDescriptor(dataDescriptor)
-    , sampleMemSize(sampleMemSize)
+    , sampleSize(sampleSize)
     , data(data, BinaryDataDeleter<true>{ deleter })
 {
 #ifdef OPENDAQ_ENABLE_PARAMETER_VALIDATION
@@ -168,11 +169,21 @@ ErrCode BinaryDataPacketImpl<ExternalMemory>::getData(void** address)
 }
 
 template <bool ExternalMemory>
-ErrCode BinaryDataPacketImpl<ExternalMemory>::getSampleMemSize(SizeT* sampleMemSize)
+ErrCode BinaryDataPacketImpl<ExternalMemory>::getDataSize(SizeT* dataSize)
 {
-    OPENDAQ_PARAM_NOT_NULL(sampleMemSize);
+    OPENDAQ_PARAM_NOT_NULL(dataSize);
 
-    *sampleMemSize = this->sampleMemSize;
+    *dataSize = this->sampleSize;
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <bool ExternalMemory>
+ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawDataSize(SizeT* rawDataSize)
+{
+    OPENDAQ_PARAM_NOT_NULL(rawDataSize);
+
+    *rawDataSize = this->sampleSize;
 
     return OPENDAQ_SUCCESS;
 }

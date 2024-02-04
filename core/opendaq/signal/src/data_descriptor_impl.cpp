@@ -54,6 +54,7 @@ DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBui
     this->scalingCalc = nullptr;
     this->dataRuleCalc = nullptr;
     checkErrorInfo(validate());
+    calculateSampleMemSize();
 }
 
 ErrCode DataDescriptorImpl::getName(IString** name)
@@ -143,6 +144,64 @@ ErrCode DataDescriptorImpl::getStructFields(IList** structFields)
 
     *structFields = this->structFields.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorImpl::getSampleSize(SizeT* sampleSize)
+{
+    OPENDAQ_PARAM_NOT_NULL(sampleSize);
+
+    *sampleSize = this->sampleSize;
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC DataDescriptorImpl::getRawSampleSize(SizeT* rawSampleSize)
+{
+    OPENDAQ_PARAM_NOT_NULL(rawSampleSize);
+
+    *rawSampleSize = this->rawSampleSize;
+
+    return OPENDAQ_SUCCESS;
+}
+
+void DataDescriptorImpl::calculateSampleMemSize()
+{
+    if (!structFields.assigned() || structFields.getCount() == 0)
+    {
+        sampleSize = daq::getSampleSize(sampleType);
+
+        SampleType rawType = sampleType;
+        if (scaling.assigned())
+            rawType = scaling.getInputSampleType();
+        rawSampleSize = daq::getSampleSize(rawType);
+
+        size_t elementCnt = 1;
+        for (const auto& dimension : dimensions)
+        {
+            elementCnt *= dimension.getSize();
+        }
+
+        if (elementCnt == 0)
+        {
+            elementCnt = 1;
+        }
+
+        sampleSize *= elementCnt;
+        rawSampleSize *= elementCnt;
+
+        if (dataRule.getType() != DataRuleType::Explicit)
+            rawSampleSize = 0;
+    }
+    else
+    {
+        sampleSize = 0;
+        rawSampleSize = 0;
+        for (const auto& structField : structFields)
+        {
+            sampleSize += structField.getSampleSize();
+            rawSampleSize += structField.getRawSampleSize();
+        }
+    }
 }
 
 ErrCode DataDescriptorImpl::validate()

@@ -52,6 +52,7 @@ private:
     void initProperties();
     void acqLoop();
     void updateNumberOfChannels();
+    void enableCANChannel();
     void updateAcqLoopTime();
     void updateGlobalSampleRate();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
@@ -65,10 +66,12 @@ private:
     std::chrono::microseconds microSecondsFromEpochToDeviceStart;
 
     std::vector<ChannelPtr> channels;
+    ChannelPtr canChannel;
     size_t acqLoopTime;
     bool stopAcq;
 
     FolderConfigPtr aiFolder;
+    FolderConfigPtr canFolder;
     ComponentPtr syncComponent;
 
     LoggerPtr logger;

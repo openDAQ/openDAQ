@@ -39,6 +39,24 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererSimple)
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 }
 
+TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererCANChannel)
+{
+    const auto instance = Instance();
+    const auto device = instance.addDevice("daqref://device1");
+    device.setPropertyValue("EnableCANChannel", True);
+
+    const auto rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+
+    const ChannelPtr canChannel = device.getInputsOutputsFolder().getItem("can").asPtr<IFolder>().getItems()[0];
+    const auto canSignal = canChannel.getSignals(search::Recursive(search::Visible()))[0];
+
+    const auto rendererInputPort0 = rendererFb.getInputPorts()[0];
+
+    rendererInputPort0.connect(canSignal);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+}
+
 TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererNameChange)
 {
     const auto instance = Instance();

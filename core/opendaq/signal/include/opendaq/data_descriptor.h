@@ -212,6 +212,24 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptor, IBaseObject)
      * All objects in the metadata dictionary must be key value pairs of <String, String>.
      */
     virtual ErrCode INTERFACE_FUNC getMetadata(IDict** metadata) = 0;
+
+    /*!
+     * @brief Gets the size of one sample in bytes.
+     * @param[out] sampleSize The size of one sample in bytes.
+     *
+     * The size of one sample is calculated on constructor of the data descriptor object.
+     */
+    virtual ErrCode INTERFACE_FUNC getSampleSize(SizeT* sampleSize) = 0;
+
+    /*!
+     * @brief Gets the actual sample size in buffer of one sample in bytes.
+     * @param[out] sampleSize The actual size of one sample in buffer in bytes.
+     *
+     * The actual size of one sample is calculated on constructor of the data descriptor object.
+     * Actual sample size is the sample size that is used in buffer. If the data descriptor includes
+     * implicitly generated samples, the actual sample size is less than sample size.
+     */
+    virtual ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSize) = 0;
 };
 /*!@}*/
 

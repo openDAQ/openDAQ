@@ -10,6 +10,13 @@
 #include <coretypes/common.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/search_filter_factory.h>
+#include <opendaq/reader_factory.h>
+#include <opendaq/data_packet_ptr.h>
+#include <opendaq/event_packet_ptr.h>
+#include <opendaq/event_packet_ids.h>
+#include <opendaq/event_packet_params.h>
+
+#include <thread>
 
 using RefDeviceModuleTest = testing::Test;
 using namespace daq;
@@ -559,4 +566,71 @@ TEST_F(RefDeviceModuleTest, Serialize)
 
     auto str = serializer.getOutput();
     std::cout << str << std::endl;
+}
+
+TEST_F(RefDeviceModuleTest, DeviceEnableCANChannel)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+
+    Int numChannels = device.getPropertyValue("NumberOfChannels");
+    ASSERT_EQ(numChannels, 2);
+
+    ASSERT_EQ(device.getChannels().getCount(), 2u);
+
+    device.setPropertyValue("EnableCANChannel", True);
+
+    ASSERT_EQ(device.getChannels().getCount(), 3u);
+}
+
+TEST_F(RefDeviceModuleTest, ReadCANChannel)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+
+    device.setPropertyValue("EnableCANChannel", True);
+
+    const ChannelPtr canCh = device.getInputsOutputsFolder().getItem("can").asPtr<IFolder>().getItems()[0];
+
+    const auto canSignal = canCh.getSignals()[0];
+    const auto canTimeSignal = canSignal.getDomainSignal();
+    const auto packetReader = PacketReader(canSignal);
+
+    while (packetReader.getAvailableCount() < 2)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    EventPacketPtr eventPacket = packetReader.read();
+    ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+
+    const DataDescriptorPtr dataDesc = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+    const DataDescriptorPtr domainDesc = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+    ASSERT_EQ(dataDesc, canSignal.getDescriptor());
+    ASSERT_EQ(domainDesc, canTimeSignal.getDescriptor());
+
+    ASSERT_GT(dataDesc.getStructFields().getCount(), 0);
+
+    DataPacketPtr dataPacket = packetReader.read();
+    ASSERT_EQ(dataPacket.getDataDescriptor(), dataDesc);
+
+    const auto sampleCount = dataPacket.getSampleCount();
+    ASSERT_GE(sampleCount, 1);
+
+#pragma pack(push, 1)
+    struct CANData
+    {
+        uint32_t arbId;
+        uint8_t length;
+        uint8_t data[64];
+    };
+#pragma pack(pop)
+
+    auto* canData = reinterpret_cast<CANData*>(dataPacket.getData());
+    for (size_t i = 0; i < sampleCount; i++)
+    {
+        ASSERT_EQ(canData->arbId, 12);
+        ASSERT_EQ(canData->length, 8);
+        canData++;
+    }
 }

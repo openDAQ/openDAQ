@@ -232,6 +232,12 @@ ErrCode CustomSearchFilterImpl::visitChildren(IComponent* component, Bool* visit
     OPENDAQ_PARAM_NOT_NULL(visit);
     OPENDAQ_PARAM_NOT_NULL(component);
 
+    if (!visitFunc.assigned())
+    {
+        *visit = True;
+        return OPENDAQ_SUCCESS;
+    }
+
     return daqTry(
         [&]()
         {

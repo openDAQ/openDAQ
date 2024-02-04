@@ -162,6 +162,16 @@ public:
     {
         return OPENDAQ_SUCCESS;
     }
+
+    ErrCode INTERFACE_FUNC getSampleSize(SizeT* size) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSize) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
 };
 
 TEST_F(SignalTest, IsComponent)

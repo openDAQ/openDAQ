@@ -200,7 +200,7 @@ void PacketStreamingServer::addDataPacket(const uint32_t signalId, DataPacket&& 
     setOffset(packet, packetHeader);
 
     const auto packetDataPtr = packet.getRawData();
-    const auto packetDataSize = packetDataPtr != nullptr ? packet.getSampleCount() * packet.getSampleMemSize() : 0;
+    const auto packetDataSize = packetDataPtr != nullptr ? packet.getRawDataSize() : 0;
     packetHeader->genericHeader.payloadSize = static_cast<uint32_t>(packetDataSize);
 
     const auto packetBuffer = std::make_shared<PacketBuffer>(

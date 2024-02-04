@@ -17,6 +17,7 @@
 #include "test_utils.h"
 #include "config_protocol/config_protocol_server.h"
 #include "config_protocol/config_protocol_client.h"
+#include "config_protocol/config_client_device_impl.h"
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -31,18 +32,17 @@ public:
         server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigCoreEventTest::serverNotificationReady, this, std::placeholders::_1));
 
         clientContext = NullContext();
-        client = std::make_unique<ConfigProtocolClient>(clientContext, std::bind(&ConfigCoreEventTest::sendRequest, this, std::placeholders::_1), nullptr);
+        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigCoreEventTest::sendRequest, this, std::placeholders::_1), nullptr);
 
-        client->connect();
-        client->getDevice().asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
-        clientDevice = client->getDevice();
+        clientDevice = client->connect();
+        clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     }
 
 protected:
     DevicePtr serverDevice;
     DevicePtr clientDevice;
     std::unique_ptr<ConfigProtocolServer> server;
-    std::unique_ptr<ConfigProtocolClient> client;
+    std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
     ContextPtr clientContext;
     BaseObjectPtr notificationObj;
 

@@ -11,6 +11,7 @@
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/instance_factory.h>
+#include <config_protocol/config_client_device_impl.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -28,7 +29,7 @@ public:
         server = std::make_unique<ConfigProtocolServer>(instance.getRootDevice(), nullptr);
 
         clientContext = NullContext();
-        client = std::make_unique<ConfigProtocolClient>(
+        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
             clientContext, [this](const PacketBuffer& requestPacket) -> PacketBuffer
             {
                 return server->processRequestAndGetReply(requestPacket);
@@ -39,7 +40,7 @@ public:
 protected:
     InstancePtr instance;
     std::unique_ptr<ConfigProtocolServer> server;
-    std::unique_ptr<ConfigProtocolClient> client;
+    std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
     ContextPtr clientContext;
 
 };
@@ -52,7 +53,7 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
     ConfigProtocolServer server(instance, nullptr);
 
     clientContext = NullContext();
-    ConfigProtocolClient client(
+    ConfigProtocolClient<ConfigClientDeviceImpl> client(
         clientContext,
         [&server](const PacketBuffer& requestPacket) -> PacketBuffer
         {
@@ -60,10 +61,7 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
         },
         nullptr);
 
-
-    client.connect();
-
-    const auto clientDevice = client.getDevice();
+    const auto clientDevice = client.connect();
     const auto ch = clientDevice.getChannels()[0];
     ch.setPropertyValue("Amplitude", 0.2);
 

@@ -15,6 +15,8 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 using namespace discovery;
+using namespace opendaq_native_streaming_protocol;
+using namespace config_protocol;
 
 NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     : Module("openDAQ native streaming client module",
@@ -59,6 +61,57 @@ DictPtr<IString, IDeviceType> NativeStreamingClientModule::onGetAvailableDeviceT
     return result;
 }
 
+DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& context,
+                                                          const ComponentPtr& parent,
+                                                          const StringPtr& connectionString,
+                                                          const StringPtr& host,
+                                                          const StringPtr& port,
+                                                          const StringPtr& path)
+{
+    std::string streamingConnectionString = std::regex_replace(connectionString.toStdString(),
+                                                               std::regex(NativeConfigurationDevicePrefix),
+                                                               NativeStreamingPrefix);
+    auto transportProtocolClient =
+        std::make_shared<NativeStreamingClientHandler>(context);
+    StreamingPtr nativeStreaming =
+        createWithImplementation<IStreaming, NativeStreamingImpl>(streamingConnectionString,
+                                                                  host,
+                                                                  port,
+                                                                  path,
+                                                                  context,
+                                                                  transportProtocolClient,
+                                                                  nullptr,
+                                                                  nullptr,
+                                                                  nullptr);
+    auto deviceHelper = std::make_unique<NativeDeviceHelper>(context, transportProtocolClient);
+    auto device = deviceHelper->connectAndGetDevice(parent);
+
+    {
+        const auto signals = device.getSignals(search::Recursive(search::Any()));
+
+        for (const auto& signal : signals)
+        {
+            const auto deserializedDomainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+            if (deserializedDomainSignalId.assigned())
+            {
+                for (const auto& domainSignal : signals)
+                {
+                    if (domainSignal.asPtr<IMirroredSignalConfig>().getRemoteId() == deserializedDomainSignalId)
+                    {
+                        signal.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(domainSignal);
+                    }
+                }
+            }
+        }
+    }
+
+    device.asPtr<INativeDevicePrivate>()->attachNativeStreaming(nativeStreaming);
+    device.asPtr<INativeDevicePrivate>()->attachDeviceHelper(std::move(deviceHelper));
+    device.asPtr<INativeDevicePrivate>()->setConnectionString(connectionString);
+
+    return device;
+}
+
 DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
                                                 const ComponentPtr& parent,
                                                 const PropertyObjectPtr& config)
@@ -85,7 +138,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     }
     else if (connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
     {
-        return createWithImplementation<IDevice, NativeDeviceImpl>(context, parent, connectionString, host, port, path);
+        return createNativeDevice(context, parent, connectionString, host, port, path);
     }
     else
     {

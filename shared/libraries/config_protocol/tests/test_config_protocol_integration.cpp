@@ -1,13 +1,16 @@
 // ReSharper disable CppClangTidyModernizeAvoidBind
+#include <opendaq/component.h>
+#include <coreobjects/core_event_args.h>
+#include <config_protocol/config_client_object_ptr.h>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
 #include "test_utils.h"
-#include <config_protocol/config_client_object_ptr.h>
 #include "coreobjects/argument_info_factory.h"
 #include "coreobjects/callable_info_factory.h"
 #include "opendaq/context_factory.h"
+#include <config_protocol/config_client_device_impl.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -25,11 +28,10 @@ public:
         server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1));
 
         clientContext = NullContext();
-        client = std::make_unique<ConfigProtocolClient>(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr);
+        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr);
 
-        client->connect();
-        client->getDevice().asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
-        clientDevice = client->getDevice();
+        clientDevice = client->connect();
+        clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     }
 
     static StringPtr serializeComponent(const ComponentPtr& component)
@@ -55,7 +57,7 @@ protected:
     DevicePtr serverDevice;
     DevicePtr clientDevice;
     std::unique_ptr<ConfigProtocolServer> server;
-    std::unique_ptr<ConfigProtocolClient> client;
+    std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
     ContextPtr clientContext;
     BaseObjectPtr notificationObj;
 
@@ -85,12 +87,11 @@ TEST_F(ConfigProtocolIntegrationTest, ConnectWithParent)
 {
     const auto serverDeviceSerialized = serializeComponent(serverDevice);
     
-    ConfigProtocolClient clientNew(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr);
+    ConfigProtocolClient<ConfigClientDeviceImpl> clientNew(clientContext, std::bind(&ConfigProtocolIntegrationTest::sendRequest, this, std::placeholders::_1), nullptr);
 
     const auto parentComponent = Component(clientContext, nullptr, "cmp");
 
-    clientNew.connect(parentComponent);
-    const auto clientDevice = clientNew.getDevice();
+    const auto clientDevice = clientNew.connect(parentComponent);
 
     ASSERT_EQ(clientDevice.asPtr<IConfigClientObject>(true).getRemoteGlobalId(), serverDevice.getGlobalId());
     ASSERT_EQ(clientDevice.getGlobalId(), "/cmp/" + clientDevice.getLocalId().toStdString());
@@ -146,7 +147,6 @@ TEST_F(ConfigProtocolIntegrationTest, SetProtectedPropertyValue)
 TEST_F(ConfigProtocolIntegrationTest, ClearPropertyValue)
 {
     serverDevice.getChannels()[0].setPropertyValue("StrProp", "SomeValue");
-
     clientDevice.getChannels()[0].clearPropertyValue("StrProp");
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), "-");
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), clientDevice.getChannels()[0].getPropertyValue("StrProp"));

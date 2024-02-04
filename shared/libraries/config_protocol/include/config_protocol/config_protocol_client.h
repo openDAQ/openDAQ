@@ -20,6 +20,9 @@
 #include <opendaq/component_deserialize_context_ptr.h>
 #include <opendaq/device_ptr.h>
 #include <opendaq/component_holder_ptr.h>
+#include <opendaq/ids_parser.h>
+#include <opendaq/deserialize_component_ptr.h>
+#include <opendaq/mirrored_signal_private.h>
 
 #include <config_protocol/config_client_object.h>
 #include <coretypes/cloneable.h>
@@ -57,12 +60,20 @@ public:
     BaseObjectPtr sendComponentCommand(const StringPtr& globalId, const StringPtr& command, const ComponentPtr& parentComponent = nullptr);
     BaseObjectPtr sendCommand(const StringPtr& command, const ParamsDictPtr& params = nullptr);
 
+    static SignalPtr findSignalByRemoteGlobalId(const DevicePtr& device, const std::string& remoteGlobalId);
+
+    void setRootDevice(const DevicePtr& rootDevice);
+    DevicePtr getRootDevice() const;
+
+    void connectDomainSignals(const ComponentPtr& component);
+
 protected:
     BaseObjectPtr deserializeConfigComponent(const StringPtr& typeId,
                                              const SerializedObjectPtr& serObj,
                                              const BaseObjectPtr& context,
                                              const FunctionPtr& factoryCallback,
                                              ComponentDeserializeCallback deviceDeserialzeCallback);
+
 private:
     ContextPtr daqContext;
     size_t id;
@@ -71,6 +82,7 @@ private:
     SerializerPtr serializer;
     DeserializerPtr deserializer;
     bool connected;
+    WeakRefPtr<IDevice> rootDeviceRef;
 
     ComponentDeserializeContextPtr createDeserializeContext(const std::string& remoteGlobalId,
                                                             const ContextPtr& context,
@@ -92,6 +104,11 @@ private:
                                                bool isGetRootDeviceCommand = false);
 
     BaseObjectPtr requestRootDevice(const ComponentPtr& parentComponent);
+
+    static SignalPtr findSignalByRemoteGlobalIdWithComponent(const ComponentPtr& component, const std::string& remoteGlobalId);
+
+    template <class F>
+    void forEachSignal(const ComponentPtr& component, const F& f);
 };
 
 using ConfigProtocolClientCommPtr = std::shared_ptr<ConfigProtocolClientComm>;
@@ -134,9 +151,6 @@ private:
     // this should handle server component updates
     void triggerNotificationObject(const BaseObjectPtr& object);
     CoreEventArgsPtr unpackCoreEvents(const CoreEventArgsPtr& args);
-
-    // called on connect to build initial device tree
-    void buildDevice(const DevicePtr& device);
 };
 
 template<class TRootDeviceImpl>
@@ -203,6 +217,9 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
     auto device = deviceHolder.getComponent();
     deviceRef = device;
 
+    clientComm->setRootDevice(device);
+    clientComm->connectDomainSignals(device);
+
     clientComm->connected = true;
 
     return device;
@@ -211,7 +228,7 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
 template<class TRootDeviceImpl>
 DevicePtr ConfigProtocolClient<TRootDeviceImpl>::getDevice()
 {
-    return deviceRef.assigned() ? deviceRef.getRef() : nullptr;
+    return clientComm->getRootDevice();
 }
 
 template<class TRootDeviceImpl>
@@ -225,7 +242,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::triggerNotificationPacket(const Pack
 {
     const auto json = packet.parseServerNotification();
 
-    const auto deserializeContext = clientComm->createDeserializeContext(std::string{}, daqContext, getDevice(), nullptr, nullptr, nullptr);
+    const auto deserializeContext = clientComm->createDeserializeContext(std::string{}, daqContext, clientComm->getRootDevice(), nullptr, nullptr, nullptr);
     const auto obj = deserializer.deserialize(json, deserializeContext,
                                               [this](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
                                               {
@@ -241,11 +258,15 @@ void ConfigProtocolClient<TRootDeviceImpl>::triggerNotificationPacket(const Pack
 template<class TRootDeviceImpl>
 ComponentPtr ConfigProtocolClient<TRootDeviceImpl>::findComponent(std::string globalId)
 {
-    globalId.erase(globalId.begin(), globalId.begin() + getDevice().getLocalId().getLength() + 1);
+    auto rootDevice = clientComm->getRootDevice();
+    if (!rootDevice.assigned())
+        throw NotAssignedException{"Root device is not assigned."};
+
+    globalId.erase(globalId.begin(), globalId.begin() + rootDevice.getLocalId().getLength() + 1);
     if (globalId.find_first_of('/') == 0)
         globalId.erase(globalId.begin(), globalId.begin() + 1);
 
-    return getDevice().findComponent(globalId);
+    return rootDevice.findComponent(globalId);
 }
 
 template<class TRootDeviceImpl>

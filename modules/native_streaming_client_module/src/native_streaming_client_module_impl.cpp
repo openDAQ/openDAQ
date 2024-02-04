@@ -86,25 +86,6 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     auto deviceHelper = std::make_unique<NativeDeviceHelper>(context, transportProtocolClient);
     auto device = deviceHelper->connectAndGetDevice(parent);
 
-    {
-        const auto signals = device.getSignals(search::Recursive(search::Any()));
-
-        for (const auto& signal : signals)
-        {
-            const auto deserializedDomainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
-            if (deserializedDomainSignalId.assigned())
-            {
-                for (const auto& domainSignal : signals)
-                {
-                    if (domainSignal.asPtr<IMirroredSignalConfig>().getRemoteId() == deserializedDomainSignalId)
-                    {
-                        signal.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(domainSignal);
-                    }
-                }
-            }
-        }
-    }
-
     device.asPtr<INativeDevicePrivate>()->attachNativeStreaming(nativeStreaming);
     device.asPtr<INativeDevicePrivate>()->attachDeviceHelper(std::move(deviceHelper));
     device.asPtr<INativeDevicePrivate>()->setConnectionString(connectionString);

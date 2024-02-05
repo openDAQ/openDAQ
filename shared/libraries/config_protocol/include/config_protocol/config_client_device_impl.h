@@ -110,6 +110,8 @@ inline void ConfigClientDeviceImpl::handleRemoteCoreObjectInternal(const Compone
         case CoreEventId::ComponentUpdateEnd:
         case CoreEventId::AttributeChanged:
         case CoreEventId::TagsChanged:
+        case CoreEventId::StatusChanged:
+        default:
             break;
     }
 

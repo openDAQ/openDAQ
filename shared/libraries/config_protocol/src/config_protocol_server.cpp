@@ -322,6 +322,7 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::SignalDisconnected:
         case CoreEventId::DataDescriptorChanged:
         case CoreEventId::ComponentUpdateEnd:
+        case CoreEventId::StatusChanged:
             packedEvent.pushBack(args);
     }
     

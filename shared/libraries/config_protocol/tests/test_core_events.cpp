@@ -4,7 +4,6 @@
 #include <gtest/gtest.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <opendaq/mock/mock_fb_module.h>
-#include <opendaq/mock/mock_device_module.h>
 #include <opendaq/instance_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/signal_config_ptr.h>
@@ -12,8 +11,9 @@
 #include <opendaq/input_port_factory.h>
 #include <opendaq/signal_factory.h>
 #include <opendaq/tags_private_ptr.h>
+#include <opendaq/component_status_container_private_ptr.h>
+#include <opendaq/component_status_container_ptr.h>
 #include <coreobjects/property_object_factory.h>
-#include <coreobjects/property_object_protected_ptr.h>
 #include "test_utils.h"
 #include "config_protocol/config_protocol_server.h"
 #include "config_protocol/config_protocol_client.h"
@@ -143,7 +143,7 @@ TEST_F(ConfigCoreEventTest, PropertyObjectUpdateEnd)
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
             DictPtr<IString, IBaseObject> updated;
-            switch (static_cast<int>(args.getEventId()))
+            switch (static_cast<CoreEventId>(args.getEventId()))
             {
                 case CoreEventId::PropertyValueChanged:
                     propChangeCount++;
@@ -688,4 +688,42 @@ TEST_F(ConfigCoreEventTest, TagsChanged)
     ASSERT_TRUE(clientDevice.getTags().contains("Tag1"));
     ASSERT_TRUE(clientDevice.getTags().contains("Tag2"));
     ASSERT_EQ(changeCount, 2);
+}
+
+TEST_F(ConfigCoreEventTest, StatusChanged)
+{
+    const auto typeManager = serverDevice.getContext().getTypeManager();
+    const auto statusInitValue = Enumeration("StatusType", "Status0", typeManager);
+    const auto statusValue = Enumeration("StatusType", "Status1", typeManager);
+
+    const auto statusContainer = serverDevice.getStatusContainer().asPtr<IComponentStatusContainerPrivate>();
+
+    int changeCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::StatusChanged));
+        ASSERT_EQ(args.getEventName(), "StatusChanged");
+        ASSERT_TRUE(args.getParameters().hasKey("TestStatus"));
+        ASSERT_EQ(comp, clientDevice);
+
+        if (changeCount % 2 == 0)
+        {
+            ASSERT_EQ(args.getParameters().get("TestStatus"), statusValue);
+            ASSERT_EQ(args.getParameters().get("TestStatus"), "Status1");
+        }
+        else
+        {
+            ASSERT_EQ(args.getParameters().get("TestStatus"), statusInitValue);
+            ASSERT_EQ(args.getParameters().get("TestStatus"), "Status0");
+        }
+        changeCount++;
+    };
+    
+    statusContainer.setStatus("TestStatus", statusValue);
+    statusContainer.setStatus("TestStatus", statusValue);
+    statusContainer.setStatus("TestStatus", statusInitValue);
+    statusContainer.setStatus("TestStatus", statusValue);
+
+    ASSERT_EQ(changeCount, 3);
 }

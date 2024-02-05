@@ -948,7 +948,7 @@ void ComponentImpl<Intf, Intfs...>::triggerCoreEvent(const CoreEventArgsPtr& arg
 template <class Intf, class ... Intfs>
 void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                                             const BaseObjectPtr& context,
-                                                            const FunctionPtr& factoryCallback)
+                                                            const FunctionPtr& /*factoryCallback*/)
 {
     if (serializedObject.hasKey("active"))
         active = serializedObject.readBool("active");
@@ -963,7 +963,34 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
         name = serializedObject.readString("name");
 
     if (serializedObject.hasKey("tags"))
-        tags = serializedObject.readObject("tags", context, factoryCallback);
+        tags = serializedObject.readObject(
+            "tags",
+            context,
+            [this](const StringPtr& typeId,
+                   const SerializedObjectPtr& object,
+                   const BaseObjectPtr& context,
+                   const FunctionPtr& factoryCallback) -> BaseObjectPtr
+            {
+                if (typeId == TagsImpl::SerializeId())
+                {
+                    ObjectPtr<ITagsPrivate> tags;
+                    auto errCode = createObject<ITagsPrivate, TagsImpl>(&tags,
+                        [this](const CoreEventArgsPtr& args)
+                        {
+                            if (!this->coreEventMuted)
+                                triggerCoreEvent(args);
+                        });
+                    if (OPENDAQ_FAILED(errCode))
+                        return errCode;
+
+                    const auto list = object.readList<IString>("list", context, factoryCallback);
+                    for (const auto& tag : list)
+                        tags->add(tag);
+
+                    return tags;
+                }
+                return nullptr;
+            });
 
     if (serializedObject.hasKey("statuses"))
         statusContainer = serializedObject.readObject(
@@ -982,6 +1009,7 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
                             if (!this->coreEventMuted)
                                 triggerCoreEvent(args);
                         });
+
                     DictPtr<IString, IEnumeration> statuses = object.readObject("statuses", context, factoryCallback);
                     for (const auto& [name, value] : statuses)
                         container->addStatus(name, value);

@@ -38,6 +38,8 @@ public:
     SignalPtr onGetStatusSignal() override;
 
 protected:
+    LoggerComponentPtr loggerComponent;
+
     void findAndCreateFunctionBlocks();
     void findAndCreateSignals();
     void findAndCreateInputPorts();

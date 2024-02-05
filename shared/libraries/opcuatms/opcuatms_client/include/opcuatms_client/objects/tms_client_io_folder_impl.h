@@ -30,6 +30,7 @@ public:
                                  const opcua::OpcUaNodeId& nodeId);
 
 protected:
+    LoggerComponentPtr loggerComponent;
     void findAndCreateChannels(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents);
     void findAndCreateIoFolders(std::map<uint32_t, ComponentPtr>& orderedComponents, std::vector<ComponentPtr>& unorderedComponents);
 };

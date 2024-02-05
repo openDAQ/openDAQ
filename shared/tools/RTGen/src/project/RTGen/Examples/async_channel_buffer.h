@@ -108,18 +108,18 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY,
 
 #endif
 
-    OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, InputGroupType, IString*, type, Int, maxCount, SizeT, count)
+OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, InputGroupType, IString*, type, Int, maxCount, SizeT, count)
 
-    OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY,
-        InputGroupTypeWithCallback,
-        IInputGroupType,
-        InputGroupTypeWithCallback_Create,
-        IString*,
-        type,
-        IFuncObject*,
-        onGetCount,
-        Int,
-        maxCount);
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY,
+    InputGroupTypeWithCallback,
+    IInputGroupType,
+    InputGroupTypeWithCallback_Create,
+    IString*,
+    type,
+    IFuncObject*,
+    onGetCount,
+    Int,
+    maxCount);
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY, DemoModuleDriver, Core::IModuleDriver, createDemoModuleDriver)
 

@@ -26,8 +26,19 @@ public:
     {
         const auto serverProp = std::make_shared<TmsServerPropertyObject>(obj, server, ctx, serverContext);
         const auto nodeId = serverProp->registerOpcUaNode();
-        const auto clientProp = TmsClientPropertyObject(NullContext(), clientContext, nodeId);
+        const auto clientProp = TmsClientPropertyObject(NullContext(logger), clientContext, nodeId);
         return {serverProp, clientProp};
+    }
+
+    StringPtr getLastMessage()
+    {
+        logger.flush();
+        auto sink = getPrivateSink();
+        auto newMessage = sink.waitForMessage(2000);
+        if (newMessage == 0)
+            return StringPtr("");
+        auto logMessage = sink.getLastMessage();
+        return logMessage;
     }
 };
 
@@ -190,7 +201,8 @@ TEST_F(TmsFunctionTest, InvalidArgTypes)
     auto [serverObj, clientObj] = registerPropertyObject(obj);
     ProcedurePtr clientProc = clientObj.getPropertyValue("proc");
 
-    ASSERT_THROW(clientProc("foo"), CallFailedException);
+    ASSERT_NO_THROW(clientProc("foo"));
+    ASSERT_EQ(getLastMessage(), "Failed to call procedure on OpcUA client. Error: \"Calling procedure\""); 
 }
 
 // NOTE: Should this throw an error?
@@ -218,8 +230,11 @@ TEST_F(TmsFunctionTest, InvalidArgCount)
     auto [serverObj, clientObj] = registerPropertyObject(obj);
     ProcedurePtr clientProc = clientObj.getPropertyValue("proc");
 
-    ASSERT_THROW(clientProc(), CallFailedException);
-    ASSERT_THROW(clientProc(1, 2), CallFailedException);
+    ASSERT_NO_THROW(clientProc());
+    ASSERT_EQ(getLastMessage(), "Failed to call procedure on OpcUA client. Error: \"Calling procedure\""); 
+
+    ASSERT_NO_THROW(clientProc(1, 2));
+    ASSERT_EQ(getLastMessage(), "Failed to call procedure on OpcUA client. Error: \"Calling procedure\""); 
 }
 
 TEST_F(TmsFunctionTest, ProcedureArgumentInfo)
@@ -297,5 +312,6 @@ TEST_F(TmsFunctionTest, ServerThrow)
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
     FunctionPtr clientFunc = clientObj.getPropertyValue("func");
-    ASSERT_ANY_THROW(clientFunc());
+    ASSERT_NO_THROW(clientFunc());
+    ASSERT_EQ(getLastMessage(), "Failed to call function on OpcUA client. Error in \"Calling function\""); 
 }

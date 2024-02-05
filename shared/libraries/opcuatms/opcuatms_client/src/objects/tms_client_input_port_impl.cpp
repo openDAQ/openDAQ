@@ -17,10 +17,15 @@ TmsClientInputPortImpl::TmsClientInputPortImpl(const ContextPtr& ctx,
 
 ErrCode TmsClientInputPortImpl::getRequiresSignal(Bool* value)
 {
-    return daqTry([&]() {
+    try
+    {
         *value = readValue<IBoolean>("RequiresSignal");
-        return OPENDAQ_SUCCESS;
-    });
+    }
+    catch(...)
+    {
+        LOG_W("Failed to get requires signals on OpcUA client input port \"{}\"", this->globalId);
+    }
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode TmsClientInputPortImpl::setRequiresSignal(Bool value)

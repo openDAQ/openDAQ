@@ -15,10 +15,10 @@
  */
 
 #pragma once
-#include <config_protocol/component_holder_impl.h>
-#include <config_protocol/component_holder_ptr.h>
+#include <opendaq/component_holder_impl.h>
+#include <opendaq/component_holder_ptr.h>
 
-namespace daq::config_protocol
+namespace daq
 {
 
 inline ComponentHolderPtr ComponentHolder(const StringPtr& id, const ComponentPtr& component)

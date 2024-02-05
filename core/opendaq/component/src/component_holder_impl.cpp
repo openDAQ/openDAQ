@@ -1,9 +1,10 @@
-#include <config_protocol/component_holder_impl.h>
+#include <opendaq/component_holder_impl.h>
 #include <coretypes/validation.h>
 #include <opendaq/component_deserialize_context_ptr.h>
 
-namespace daq::config_protocol
+namespace daq
 {
+
 ComponentHolderImpl::ComponentHolderImpl(const StringPtr& localId, const ComponentPtr& component)
     : localId(localId)
     , component(component)

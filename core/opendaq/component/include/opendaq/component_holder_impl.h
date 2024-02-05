@@ -15,10 +15,10 @@
  */
 
 #pragma once
-#include <config_protocol/component_holder.h>
+#include <opendaq/component_holder.h>
 #include <opendaq/component_ptr.h>
 
-namespace daq::config_protocol
+namespace daq
 {
 
 class ComponentHolderImpl : public ImplementationOf<IComponentHolder, ISerializable>

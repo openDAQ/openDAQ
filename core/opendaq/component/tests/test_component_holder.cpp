@@ -1,13 +1,12 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include <config_protocol/component_holder_factory.h>
+#include <opendaq/component_holder_factory.h>
 #include <opendaq/gmock/component.h>
 #include <opendaq/component_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/context_factory.h>
 
 using namespace daq;
-using namespace config_protocol;
 
 using ComponentHolderTest = testing::Test;
 

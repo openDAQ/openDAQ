@@ -6,6 +6,7 @@ set(TEST_SOURCES
     test_folder.cpp
     test_tags.cpp
     test_component_deserialize_context.cpp
+    test_component_holder.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

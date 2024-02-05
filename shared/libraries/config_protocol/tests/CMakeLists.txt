@@ -8,7 +8,6 @@ add_executable(${TEST_APP}
     test_config_protocol_integration.cpp
 	test_config_serialization.cpp
     test_ref_modules.cpp
-    test_component_holder.cpp
     test_app.cpp
 )
 

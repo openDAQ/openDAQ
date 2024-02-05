@@ -29,6 +29,7 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 
 InstanceBuilderImpl::InstanceBuilderImpl()
     : componentsLogLevel(Dict<IString, LogLevel>())
+    , providers(List<IConfigProvider>())
     , options(GetDefaultOptions())
 {
 }
@@ -63,6 +64,26 @@ ErrCode InstanceBuilderImpl::build(IInstance** instance)
     if (instance == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
+    auto logger = this->logger;
+    if (!logger.assigned())
+        logger = Logger();
+    auto loggerComponent = logger.getOrAddComponent("InstanceBuilder");
+
+    for (const auto& provider : providers)
+    {
+        try
+        {
+            provider.populateOptions(options);
+        }
+        catch (const DaqException& e)
+        {
+            LOG_E("Failed to populate instance builder options with given provider. Error message: {}", e.what());
+        }
+        catch (...)
+        {
+        }
+    }
+
     const auto builderPtr = this->borrowPtr<InstanceBuilderPtr>();
     return daqTry([&]()
     {
@@ -76,24 +97,13 @@ ErrCode InstanceBuilderImpl::addConfigProvider(IConfigProvider* configProvider)
     if (configProvider == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    auto logger = this->logger;
-    if (!logger.assigned())
-        logger = Logger();
-    auto loggerComponent = logger.getOrAddComponent("InstanceBuilder");
+    providers.pushBack(configProvider);
+    return OPENDAQ_SUCCESS;
+    
+    
 
     auto configProviderPtr = ConfigProviderPtr::Borrow(configProvider);
-    try
-    {
-        configProviderPtr.populateOptions(options);
-        return OPENDAQ_SUCCESS;
-    }
-    catch (const DaqException& e)
-    {
-        LOG_E("Failed to populate instance builder options with given provider. Error message: {}", e.what());
-    }
-    catch (...)
-    {
-    }
+    
     return OPENDAQ_IGNORED;
 }
 

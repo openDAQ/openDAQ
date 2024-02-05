@@ -85,6 +85,7 @@ private:
     SchedulerPtr scheduler;
     ModuleManagerPtr moduleManager;
 
+    ListPtr<IConfigProvider> providers;
     DictPtr<IString, IBaseObject> options;
 };
 

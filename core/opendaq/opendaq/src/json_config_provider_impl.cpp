@@ -16,7 +16,7 @@ BEGIN_NAMESPACE_OPENDAQ
 JsonConfigProviderImpl::JsonConfigProviderImpl(const StringPtr& filename)
     :filename(filename)
 {
-    if (!this->filename.assigned())
+    if (!this->filename.assigned() || this->filename.getLength() == 0)
         this->filename = GetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", "opendaq-config.json");
 }
 

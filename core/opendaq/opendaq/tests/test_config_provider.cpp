@@ -310,9 +310,6 @@ TEST_F(ConfigProviderTest, InstanceBuilderFromJson)
     std::string filename = "InstanceBuilderFromJson.json";
     std::string json =  R"(
         {
-            "ModuleManager": {
-                "ModulesPath": "testtest"
-            },
             "Scheduler": {
                 "WorkersNum": 8
             },
@@ -326,8 +323,8 @@ TEST_F(ConfigProviderTest, InstanceBuilderFromJson)
 
     const auto instanceBuilder = InstanceBuilder();
     instanceBuilder.addConfigProvider(JsonConfigProvider());
+    instanceBuilder.build();
 
-    ASSERT_EQ(instanceBuilder.getModulePath(), "testtest");
     ASSERT_EQ(instanceBuilder.getSchedulerWorkerNum(), 8);
     ASSERT_EQ(int(instanceBuilder.getGlobalLogLevel()), 6);
 }

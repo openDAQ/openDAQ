@@ -19,13 +19,21 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*#
- * [interfaceLibrary(IComponent, "opendaq")]
- */
 DECLARE_OPENDAQ_INTERFACE(IComponentHolder, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC getLocalId(IString** localId) = 0;
     virtual ErrCode INTERFACE_FUNC getComponent(IComponent** component) = 0;
 };
+
+OPENDAQ_DECLARE_CLASS_FACTORY(
+    LIBRARY_FACTORY, ComponentHolder,
+    IComponent*, component
+)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, ComponentHolderWithId, IComponentHolder,
+    IString*, id,
+    IComponent*, component
+)
 
 END_NAMESPACE_OPENDAQ

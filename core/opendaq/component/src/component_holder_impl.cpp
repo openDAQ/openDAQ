@@ -2,8 +2,7 @@
 #include <coretypes/validation.h>
 #include <opendaq/component_deserialize_context_ptr.h>
 
-namespace daq
-{
+BEGIN_NAMESPACE_OPENDAQ
 
 ComponentHolderImpl::ComponentHolderImpl(const StringPtr& localId, const ComponentPtr& component)
     : localId(localId)
@@ -104,4 +103,16 @@ ErrCode ComponentHolderImpl::Deserialize(ISerializedObject* serialized, IBaseObj
         });
 }
 
-}
+OPENDAQ_DEFINE_CLASS_FACTORY(
+    LIBRARY_FACTORY, ComponentHolder,
+    IComponent*, component
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, ComponentHolder,
+    IComponentHolder, createComponentHolderWithId,
+    IString*, id,
+    IComponent*, component
+)
+
+END_NAMESPACE_OPENDAQ

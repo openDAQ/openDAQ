@@ -3,6 +3,7 @@
 #include <opendaq/instance_builder_ptr.h>
 #include <opendaq/instance_ptr.h>
 #include <utility>
+#include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -74,12 +75,21 @@ ErrCode InstanceBuilderImpl::addConfigProvider(IConfigProvider* configProvider)
 {
     if (configProvider == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    auto logger = this->logger;
+    if (!logger.assigned())
+        logger = Logger();
+    auto loggerComponent = logger.getOrAddComponent("InstanceBuilder");
 
     auto configProviderPtr = ConfigProviderPtr::Borrow(configProvider);
     try
     {
         configProviderPtr.populateOptions(options);
         return OPENDAQ_SUCCESS;
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("Failed to populate instance builder options with given provider. Error message: {}", e.what());
     }
     catch (...)
     {

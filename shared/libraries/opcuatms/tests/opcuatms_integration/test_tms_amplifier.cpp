@@ -281,7 +281,6 @@ protected:
 
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)
     {
-        const auto logger = Logger();
         const auto context = Context(nullptr, logger, TypeManager(), nullptr);
         const auto serverProp =
             std::make_shared<TmsServerPropertyObject>(prop, server, context, std::make_shared<TmsServerContext>(context));

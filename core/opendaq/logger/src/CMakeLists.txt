@@ -12,6 +12,8 @@ set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 rtgen(SRC_Logger logger.h)
 rtgen(SRC_LoggerComponent logger_component.h)
 rtgen(SRC_LoggerSink logger_sink.h)
+rtgen(SRC_LoggerSinkBasePrivate logger_sink_base_private.h)
+rtgen(SRC_LoggerSinkLastMessagePrivate logger_sink_last_message_private.h)
 rtgen(SRC_LoggerThreadPool logger_thread_pool.h)
 
 source_group("logger" FILES ${SDK_HEADERS_DIR}/logger.h
@@ -30,6 +32,9 @@ source_group("component" FILES ${SDK_HEADERS_DIR}/logger_component.h
 source_group("sink" FILES ${SDK_HEADERS_DIR}/logger_sink.h
                             ${SDK_HEADERS_DIR}/logger_sink_factory.h
                             ${SDK_HEADERS_DIR}/logger_sink_impl.h
+                            ${SDK_HEADERS_DIR}/logger_sink_base_private.h
+                            ${SDK_HEADERS_DIR}/logger_sink_last_message_private.h
+                            ${SDK_HEADERS_DIR}/logger_sink_last_message_impl.h
                             logger_sink_impl.cpp
 )
 
@@ -60,6 +65,9 @@ set(SRC_PublicHeaders log.h
 set(SRC_PrivateHeaders logger_impl.h
                        logger_component_impl.h
                        logger_sink_impl.h
+                       logger_sink_base_private.h
+                       logger_sink_last_message_private.h
+                       logger_sink_last_message_impl.h
                        logger_thread_pool_private.h
                        logger_thread_pool_impl.h
 )
@@ -76,12 +84,16 @@ list(APPEND SRC_Cpp ${SRC_Logger_Cpp}
 list(APPEND SRC_PublicHeaders ${SRC_Logger_PublicHeaders}
                               ${SRC_LoggerComponent_PublicHeaders}
                               ${SRC_LoggerSink_PublicHeaders}
+                              ${SRC_LoggerSinkBasePrivate_PublicHeaders}
+                              ${SRC_LoggerSinkLastMessagePrivate_PublicHeaders}
                               ${SRC_LoggerThreadPool_PublicHeaders}
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_Logger_PrivateHeaders}
                                ${SRC_LoggerComponent_PrivateHeaders}
                                ${SRC_LoggerSink_PrivateHeaders}
+                               ${SRC_LoggerSinkBasePrivate_PrivateHeaders}
+                               ${SRC_LoggerSinkLastMessagePrivate_PrivateHeaders}
                                ${SRC_LoggerThreadPool_PrivateHeaders}
 )
 

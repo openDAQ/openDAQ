@@ -16,32 +16,21 @@
 
 #pragma once
 #include <coretypes/common.h>
+#include <coretypes/baseobject.h>
+#include <spdlog/sinks/sink.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*!
- * @ingroup opendaq_utility
- * @addtogroup opendaq_core_events Core Event IDs
- * @{
- */
-
-namespace core_event_ids
+DECLARE_OPENDAQ_INTERFACE(ILoggerSinkBasePrivate, IBaseObject)
 {
-    constexpr Int PropertyValueChanged = 0;
-    constexpr Int PropertyObjectUpdateEnd = 10;
-    constexpr Int PropertyAdded = 20;
-    constexpr Int PropertyRemoved = 30;
-    constexpr Int ComponentAdded = 40;
-    constexpr Int ComponentRemoved = 50;
-    constexpr Int SignalConnected = 60;
-    constexpr Int SignalDisconnected = 70;
-    constexpr Int DataDescriptorChanged = 80;
-    constexpr Int ComponentUpdateEnd = 90;
-    constexpr Int AttributeChanged = 100;
-    constexpr Int TagsChanged = 110;
-    constexpr Int StatusChanged = 120;
-}
+    using Sink = spdlog::sinks::sink;
+    using SinkPtr = std::shared_ptr<spdlog::sinks::sink>;
 
-/*!@}*/
+    /*!
+     * @brief Get the sink implementation
+     * @param[out] sinkImp The sink implementation
+     */
+    virtual ErrCode INTERFACE_FUNC getSinkImpl(SinkPtr* sinkImp) = 0;
+};
 
 END_NAMESPACE_OPENDAQ

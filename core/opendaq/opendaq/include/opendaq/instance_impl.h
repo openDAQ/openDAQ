@@ -96,6 +96,7 @@ public:
     ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
     ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) override;
+    ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
 
     // IFolder
 

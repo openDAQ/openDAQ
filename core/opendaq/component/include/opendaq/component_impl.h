@@ -38,6 +38,7 @@
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/tags_impl.h>
 #include <cctype>
+#include <opendaq/component_status_container_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -54,6 +55,7 @@ public:
                   const StringPtr& localId,
                   const StringPtr& className = nullptr);
 
+    // IComponent
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getGlobalId(IString** globalId) override;
     ErrCode INTERFACE_FUNC getActive(Bool* active) override;
@@ -68,6 +70,7 @@ public:
     ErrCode INTERFACE_FUNC getVisible(Bool* visible) override;
     virtual ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
     ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) override;
+    ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
@@ -77,6 +80,7 @@ public:
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
     ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) override;
 
+    // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
     ErrCode INTERFACE_FUNC isRemoved(Bool* removed) override;
 
@@ -116,6 +120,7 @@ protected:
     bool active;
     StringPtr name;
     StringPtr description;
+    ComponentStatusContainerPtr statusContainer;
 
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
     virtual int getSerializeFlags();
@@ -165,6 +170,12 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
       , active(true)
       , name(localId)
       , description("")
+      , statusContainer(createWithImplementation<IComponentStatusContainer, ComponentStatusContainerImpl>(
+          [&](const CoreEventArgsPtr& args)
+          {
+              if (!this->coreEventMuted)
+                  triggerCoreEvent(args);
+          }))
 {
     if (!localId.assigned() || localId.toStdString().empty())
         throw GeneralErrorException("Local id not assigned");
@@ -428,6 +439,16 @@ ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
             core_event_ids::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Visible"}, {"Visible", this->visible}}));
         triggerCoreEvent(args);
     }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getStatusContainer(IComponentStatusContainer** statusContainer)
+{
+    OPENDAQ_PARAM_NOT_NULL(statusContainer);
+
+    *statusContainer = this->statusContainer.addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -844,6 +865,12 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         serializer.key("tags");
         tags.serialize(serializer);
     }
+
+    if (statusContainer.getStatuses().getCount() > 0)
+    {
+        serializer.key("statuses");
+        statusContainer.serialize(serializer);
+    }
 }
 
 template <class Intf, class... Intfs>
@@ -891,6 +918,31 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
 
     if (serializedObject.hasKey("tags"))
         tags = serializedObject.readObject("tags", context, factoryCallback);
+
+    if (serializedObject.hasKey("statuses"))
+        statusContainer = serializedObject.readObject(
+            "statuses",
+            context,
+            [this](const StringPtr& typeId,
+                   const SerializedObjectPtr& object,
+                   const BaseObjectPtr& context,
+                   const FunctionPtr& factoryCallback) -> BaseObjectPtr
+            {
+                if (typeId == ComponentStatusContainerImpl::SerializeId())
+                {
+                    auto container = createWithImplementation<IComponentStatusContainerPrivate, ComponentStatusContainerImpl>(
+                        [this](const CoreEventArgsPtr& args)
+                        {
+                            if (!this->coreEventMuted)
+                                triggerCoreEvent(args);
+                        });
+                    DictPtr<IString, IEnumeration> statuses = object.readObject("statuses", context, factoryCallback);
+                    for (const auto& [name, value] : statuses)
+                        container->addStatus(name, value);
+                    return container;
+                }
+                return nullptr;
+            });
 }
 
 using StandardComponent = ComponentImpl<>;

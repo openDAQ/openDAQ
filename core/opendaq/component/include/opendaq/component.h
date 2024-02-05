@@ -19,6 +19,7 @@
 #include <opendaq/context.h>
 #include <coreobjects/property_object.h>
 #include <opendaq/tags.h>
+#include <opendaq/component_status_container.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -181,6 +182,12 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
      * react to changes within the core structure.
      */
     virtual ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) = 0;
+
+    /*!
+     * @brief Gets the container of Component statuses.
+     * @param[out] statusContainer The container of Component statuses.
+     */
+    virtual ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) = 0;
 };
 /*!@}*/
 

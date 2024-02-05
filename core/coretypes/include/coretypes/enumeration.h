@@ -60,6 +60,12 @@ DECLARE_OPENDAQ_INTERFACE(IEnumeration, IBaseObject)
      * @param[out] value Emumeration value.
      */
     virtual ErrCode INTERFACE_FUNC getValue(IString** value) = 0;
+
+    /*!
+     * @brief Gets the Enumeration value as Integer enumerator constant.
+     * @param[out] value Emumeration Integer value.
+     */
+    virtual ErrCode INTERFACE_FUNC getIntValue(Int* value) = 0;
 };
 
 /*!@}*/

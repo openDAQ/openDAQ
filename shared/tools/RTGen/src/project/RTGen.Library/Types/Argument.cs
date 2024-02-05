@@ -13,12 +13,13 @@ namespace RTGen.Types
         }
 
         /// <summary>Initializes a new instance of the <see cref="Argument" /> class.</summary>
-        public Argument(ITypeName type, string name, bool isConst = false, IArray arrayInfo = null)
+        public Argument(ITypeName type, string name, bool isConst = false, IArray arrayInfo = null, bool isPolymorphic = false)
         {
             Type = type;
             Name = name;
             IsConst = isConst;
             ArrayInfo = arrayInfo;
+            IsPolymorphic = isPolymorphic;
         }
 
         /// <summary>Makes a copy of the argument with a new type.</summary>
@@ -28,6 +29,7 @@ namespace RTGen.Types
             Name = argument.Name;
             IsConst = argument.IsConst;
             ArrayInfo = argument.ArrayInfo;
+            IsPolymorphic = argument.IsPolymorphic;
         }
 
         /// <summary>Argument type info.</summary>
@@ -74,6 +76,9 @@ namespace RTGen.Types
 
         /// <summary>Parameter info about a pointer that is passed in as an array not an output parameter.</summary>
         public IArray ArrayInfo { get; }
+
+        /// <summary>Argument could be represented by multiple types.</summary>
+        public bool IsPolymorphic { get; set; }
 
         /// <summary>Indicates whether the current object is equal to another object of the same type.</summary>
         /// <returns>true if the current object is equal to the <paramref name="other" /> parameter; otherwise, false.</returns>

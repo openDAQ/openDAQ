@@ -97,6 +97,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classMockSignal = declareMockSignal(m);
     auto classISearchFilter = declareISearchFilter(m);
     auto classIComponentPrivate = declareIComponentPrivate(m);
+    auto classIComponentStatusContainer = declareIComponentStatusContainer(m);
+    auto classIComponentStatusContainerPrivate = declareIComponentStatusContainerPrivate(m);
 
     defineIAllocator(m, classIAllocator);
     defineIRemovable(m, classIRemovable);
@@ -170,6 +172,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineMockSignal(m, classMockSignal);
     defineISearchFilter(m, classISearchFilter);
     defineIComponentPrivate(m, classIComponentPrivate);
+    defineIComponentStatusContainer(m, classIComponentStatusContainer);
+    defineIComponentStatusContainerPrivate(m, classIComponentStatusContainerPrivate);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
 }

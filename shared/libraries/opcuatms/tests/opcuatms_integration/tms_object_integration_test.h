@@ -18,16 +18,22 @@
 #include "tms_object_test.h"
 #include <opcuatms_client/objects/tms_client_context.h>
 #include "opcuatms_server/tms_server_context.h"
+#include <opendaq/logger_sink_ptr.h>
+#include <opendaq/logger_sink_last_message_private_ptr.h>
 
 class TmsObjectIntegrationTest : public TmsObjectTest
 {
 public:
     void SetUp() override;
     void TearDown() override;
+    daq::LastMessageLoggerSinkPrivatePtr getPrivateSink();
 
 protected:
-    daq::ContextPtr context;
     daq::opcua::tms::TmsClientContextPtr clientContext;
     daq::opcua::tms::TmsServerContextPtr serverContext;
+
+    daq::LoggerPtr logger;
     daq::ContextPtr ctx;
+private:
+    daq::LoggerSinkPtr debugSink;
 };

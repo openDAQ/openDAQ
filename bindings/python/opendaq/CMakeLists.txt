@@ -17,6 +17,8 @@ set(SRC_Cpp
     generated/component/py_folder_config.cpp
     generated/component/py_tags.cpp
     generated/component/py_tags_private.cpp
+    generated/component/py_component_status_container.cpp
+    generated/component/py_component_status_container_private.cpp
     generated/context/py_context.cpp
     generated/device/py_device.cpp
     generated/device/py_device_domain.cpp

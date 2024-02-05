@@ -52,6 +52,7 @@ public:
     // IEnumeration
     ErrCode INTERFACE_FUNC getEnumerationType(IEnumerationType** type) override;
     ErrCode INTERFACE_FUNC getValue(IString** value) override;
+    ErrCode INTERFACE_FUNC getIntValue(Int* value) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;

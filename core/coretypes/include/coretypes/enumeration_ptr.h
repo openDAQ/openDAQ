@@ -159,6 +159,22 @@ public:
         return value;
     }
 
+    /*!
+     * @brief Gets the Enumeration value as Integer enumerator constant.
+     * @returns Emumeration Integer value.
+     */
+    Int getIntValue() const
+    {
+        if (this->object == nullptr)
+            throw InvalidParameterException();
+
+        Int value;
+        auto errCode = this->object->getIntValue(&value);
+        checkErrorInfo(errCode);
+
+        return value;
+    }
+
 private:
 
     EnumerationPtr& fromStringObj(const StringPtr& value)

@@ -174,13 +174,24 @@ public:
 
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)
     {
-        const auto logger = Logger();
         const auto context = Context(nullptr, logger, manager, nullptr);
         const auto serverProp =
             std::make_shared<TmsServerPropertyObject>(prop, server, context, std::make_shared<TmsServerContext>(context));
         const auto nodeId = serverProp->registerOpcUaNode();
         const auto clientProp = TmsClientPropertyObject(Context(nullptr, logger, manager,nullptr), clientContext, nodeId);
         return {serverProp, clientProp};
+
+    }
+
+    StringPtr getLastMessage()
+    {
+        logger.flush();
+        auto sink = getPrivateSink();
+        auto newMessage = sink.waitForMessage(2000);
+        if (newMessage == 0)
+            return StringPtr("");
+        auto logMessage = sink.getLastMessage();
+        return logMessage;
     }
 
     RatioPtr testRatio;
@@ -489,7 +500,9 @@ TEST_F(TmsPropertyObjectAdvancedTest, ObjectGetSet)
     auto testObj = PropertyObject();
     testObj.addProperty(IntProperty("test", 0));
 
-    ASSERT_ANY_THROW(clientObj.setPropertyValue("Object", testObj));
+    ASSERT_NO_THROW(clientObj.setPropertyValue("Object", testObj));
+    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"Object\" on OpcUA client property object: Object type properties cannot be set over OpcUA");
+
     ASSERT_NO_THROW(clientChildObj.setPropertyValue("ObjNumber", 1));
 
     ASSERT_EQ(clientChildObj.getPropertyValue("ObjNumber"), 1);
@@ -606,7 +619,8 @@ TEST_F(TmsPropertyObjectAdvancedTest, ValidationCoercion)
     ASSERT_EQ(obj.getPropertyValue("ValidatedInt"), clientObj.getPropertyValue("ValidatedInt"));
     ASSERT_EQ(obj.getPropertyValue("CoercedInt"), clientObj.getPropertyValue("CoercedInt"));
     
-    ASSERT_ANY_THROW(clientObj.setPropertyValue("ValidatedInt", 11));
+    ASSERT_NO_THROW(clientObj.setPropertyValue("ValidatedInt", 11));
+    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"ValidatedInt\" on OpcUA client property object: Writting property value");
     ASSERT_EQ(obj.getPropertyValue("ValidatedInt"), 5);
     ASSERT_EQ(clientObj.getPropertyValue("ValidatedInt"), 5);
 

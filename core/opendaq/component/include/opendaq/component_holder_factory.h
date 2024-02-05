@@ -15,20 +15,20 @@
  */
 
 #pragma once
-#include <config_protocol/component_holder_impl.h>
-#include <config_protocol/component_holder_ptr.h>
+#include <opendaq/component_holder_ptr.h>
 
-namespace daq::config_protocol
-{
+BEGIN_NAMESPACE_OPENDAQ
 
 inline ComponentHolderPtr ComponentHolder(const StringPtr& id, const StringPtr& parentGlobalId, const ComponentPtr& component)
 {
-    return createWithImplementation<IComponentHolder, ComponentHolderImpl>(id, parentGlobalId, component);
+    ComponentHolderPtr obj(ComponentHolderWithIds_Create(id, parentGlobalId, component));
+    return obj;
 }
 
 inline ComponentHolderPtr ComponentHolder(const ComponentPtr& component)
 {
-    return createWithImplementation<IComponentHolder, ComponentHolderImpl>(component);
+    ComponentHolderPtr obj(ComponentHolder_Create(component));
+    return obj;
 }
 
-}
+END_NAMESPACE_OPENDAQ

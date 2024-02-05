@@ -13,7 +13,7 @@
 #include <coreobjects/callable_info_factory.h>
 #include <coreobjects/argument_info_factory.h>
 #include <opendaq/function_block_impl.h>
-#include <config_protocol/component_holder_ptr.h>
+#include <opendaq/component_holder_ptr.h>
 #include <config_protocol/config_client_device_impl.h>
 
 using namespace daq;

@@ -18,7 +18,7 @@
 #include <config_protocol/config_client_component_impl.h>
 #include <opendaq/folder_impl.h>
 
-#include "config_protocol/component_holder_ptr.h"
+#include <opendaq/component_holder_ptr.h>
 
 namespace daq::config_protocol
 {

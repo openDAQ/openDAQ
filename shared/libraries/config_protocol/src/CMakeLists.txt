@@ -10,7 +10,6 @@ set(RTGEN_HEADERS_DIR ${CONFIG_HEADERS_DIR})
 set(RTGEN_OUTPUT_DIR ${GENERATED_HEADERS_DIR})
 set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
-rtgen(SRC_ComponentHolder component_holder.h)
 rtgen(SRC_ConfigClientObject config_client_object.h)
 
 set(SRC_PublicHeaders config_protocol.h
@@ -31,12 +30,10 @@ set(SRC_PublicHeaders config_protocol.h
                       config_client_procedure_impl.h                      
                       config_server_component.h
                       config_server_device.h
-                      component_holder_factory.h
                       config_protocol_deserialize_context.h
 )
 
-set(SRC_PrivateHeaders component_holder_impl.h
-                       config_protocol_deserialize_context_impl.h
+set(SRC_PrivateHeaders config_protocol_deserialize_context_impl.h
                        config_server_input_port.h
 )                       
 
@@ -47,20 +44,15 @@ set(SRC_Cpp config_protocol.cpp
             server_wrappers.cpp
             config_client_object_impl.cpp
             config_protocol_deserialize_context_impl.cpp
-            component_holder_impl.cpp
 )
 
 prepend_include(${BASE_NAME} SRC_PublicHeaders)
 prepend_include(${BASE_NAME} SRC_PrivateHeaders)
 
-list(APPEND SRC_Cpp ${SRC_ComponentHolder_Cpp})
-
-list(APPEND SRC_PublicHeaders ${SRC_ComponentHolder_PublicHeaders}
-                              ${SRC_ConfigClientObject_PublicHeaders}  
+list(APPEND SRC_PublicHeaders ${SRC_ConfigClientObject_PublicHeaders}
 )
 
-list(APPEND SRC_PrivateHeaders ${SRC_ComponentHolder_PrivateHeaders}
-                               ${SRC_ConfigClientObject_PrivateHeaders}   
+list(APPEND SRC_PrivateHeaders ${SRC_ConfigClientObject_PrivateHeaders}
 )
 
 add_library(${MODULE_NAME} STATIC ${SRC_HEADERS} ${SRC_Cpp} ${SRC_PublicHeaders} ${SRC_PrivateHeaders})

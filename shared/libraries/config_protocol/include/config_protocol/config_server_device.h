@@ -16,8 +16,8 @@
 
 #pragma once
 #include <opendaq/device_ptr.h>
-#include <config_protocol/component_holder_ptr.h>
-#include <config_protocol/component_holder_factory.h>
+#include <opendaq/component_holder_ptr.h>
+#include <opendaq/component_holder_factory.h>
 
 namespace daq::config_protocol
 {

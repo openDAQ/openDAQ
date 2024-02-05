@@ -19,7 +19,7 @@
 #include <config_protocol/config_protocol.h>
 #include <opendaq/component_deserialize_context_ptr.h>
 #include <opendaq/device_ptr.h>
-#include <config_protocol/component_holder_ptr.h>
+#include <opendaq/component_holder_ptr.h>
 
 namespace daq::config_protocol
 {

@@ -15,11 +15,10 @@
  */
 
 #pragma once
-#include <config_protocol/component_holder.h>
+#include <opendaq/component_holder.h>
 #include <opendaq/component_ptr.h>
 
-namespace daq::config_protocol
-{
+BEGIN_NAMESPACE_OPENDAQ
 
 class ComponentHolderImpl : public ImplementationOf<IComponentHolder, ISerializable>
 {
@@ -47,4 +46,4 @@ private:
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ComponentHolderImpl)
 
-}
+END_NAMESPACE_OPENDAQ

@@ -101,6 +101,8 @@ inline void ConfigClientInputPortImpl::handleRemoteCoreObjectInternal(const Comp
         case CoreEventId::DataDescriptorChanged:
         case CoreEventId::ComponentAdded:
         case CoreEventId::ComponentRemoved:
+        case CoreEventId::StatusChanged:
+        default:
             break;
     }
 

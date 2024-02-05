@@ -126,6 +126,8 @@ void ConfigClientBaseFolderImpl<Impl>::handleRemoteCoreObjectInternal(const Comp
         case CoreEventId::ComponentUpdateEnd:
         case CoreEventId::AttributeChanged:
         case CoreEventId::TagsChanged:
+        case CoreEventId::StatusChanged:
+        default:
             break;
     }
 

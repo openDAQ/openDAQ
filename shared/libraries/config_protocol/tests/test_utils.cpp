@@ -5,6 +5,7 @@
 #include "coreobjects/property_object_class_factory.h"
 #include "coreobjects/validator_factory.h"
 #include "opendaq/context_factory.h"
+#include "opendaq/component_status_container_private_ptr.h"
 
 namespace daq::config_protocol::test_utils
 {
@@ -178,6 +179,12 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
 	const auto defStructValue = Struct("FooStruct", structMembers, manager.getRef());
 
 	objPtr.addProperty(StructPropertyBuilder("StructProp", defStructValue).build());
+    
+    const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
+    ctx.getTypeManager().addType(statusType);
+
+    const auto statusInitValue = Enumeration("StatusType", "Status0", ctx.getTypeManager());
+    statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusInitValue);
 }
 
 }

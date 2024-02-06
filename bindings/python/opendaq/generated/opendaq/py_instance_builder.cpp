@@ -206,12 +206,12 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
         },
         py::return_value_policy::take_ownership,
         "Gets the default device info of Instance / Sets the default device info of Instance. If device info has been set, method getInfo of Instance will return set device info if Root Device has not been set");
-    cls.def_property_readonly("modules_options",
+    cls.def_property_readonly("options",
         [](daq::IInstanceBuilder *object)
         {
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
-            return objectPtr.getModulesOptions().detach();
+            return objectPtr.getOptions().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the dictionary of module options");
+        "Gets the dictionary of instance options");
 }

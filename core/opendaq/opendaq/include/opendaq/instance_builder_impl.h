@@ -65,7 +65,7 @@ public:
     ErrCode INTERFACE_FUNC setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo) override;
     ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo) override;
 
-    ErrCode INTERFACE_FUNC getModulesOptions(IDict** options) override;
+    ErrCode INTERFACE_FUNC getOptions(IDict** options) override;
 
 private:
     static DictPtr<IString, IBaseObject> GetDefaultOptions();

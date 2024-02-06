@@ -1,18 +1,14 @@
 = Instance Configuration with Providers
 
-A Config Provider is an interface that enriches the input options dictionary with values from external sources such as a JSON file, environment variables, or command line arguments. A Config Provider can be assigned to the instance builder through the method `addConfigProvider`. This method does not override the options dictionary; instead, it retains the provider in the builder to augment options while building the instance.
+A Config Provider is an interface that enriches the input options dictionary with values from external sources such as a JSON file, environment variables, or command line arguments. A Config Provider can be assigned to the instance builder through the method `addConfigProvider`. This method does not override the options dictionary; instead, it retains the provider in the builder to augment options while calling `getOptions` method.
 
 **Related articles:**
 
 - xref:howto_configure_instance.adoc#instance[Architecture - Instance]
 
 == Instance Configuration with JSON Provider
+Json config provider is a *default provider* that tries to get configuration from a path set in the `OPENDAQ_CONFIG_PATH` environment variable, otherwise, it reads `opendaq-config.json` from the same folder from which the file was run. An example of a JSON file is listed below. JSON keys are case-insensitive, so the keys "MODULEMANAGER", "modulemanager", and "ModuleManager" are recognized as the same key. If a value has the wrong type, or there are additional key-value pairs, they will be ignored. If a provider is overriding a list value, the old list items will be erased.
 
-An instance can be configured from a JSON file. An example of a JSON file is listed below. JSON keys are not case-sensitive, so the keys "MODULEMANAGER", "modulemanager", and "MoDuLeMaNaGeR" are recognized as the same key. If a value has the wrong type, or there are additional key-value pairs, they will be ignored. If a provider is overriding a list value, the old list items will be erased.
-[tabs]
-====
-JSON::
-+
 [source,json]
 ----
 {
@@ -45,8 +41,7 @@ JSON::
   }
 }
 ----
-====
-To use configuration from a JSON file, a developer can create a `JsonConfigProvider` with the file path. If the file path is not configured, the provider will attempt to read the `OPENDAQ_CONFIG_PATH` environment variable. If this variable is also not set, the provider will try to read `opendaq-config.json` from the same folder from which the file was run.
+Additionaly user can create a `JsonConfigProvider` with the custom file path.
 [tabs]
 ====
 Cpp::
@@ -57,10 +52,10 @@ Cpp::
 
 int main(int argc, const char* argv[])
 {
-    const StringPtr configPath = "opendaq-config.json";
-    const ConfigProviderPtr configProvider = JsonConfigProvider(configPath);
-    const InstanceBuilderPtr instanceBuilder = InstanceBuilder().addConfigProvider(configProvider);
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder();
+    const daq::StringPtr configPath = "opendaq-config.json";
+    const daq::ConfigProviderPtr configProvider = daq::JsonConfigProvider(configPath);
+    const daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().addConfigProvider(configProvider);
+    const daq::InstancePtr instance = daq::InstanceFromBuilder(instanceBuilder);
 
     return 0;
 }
@@ -118,9 +113,9 @@ Cpp::
 
 int main(int argc, const char* argv[])
 {
-    const ConfigProviderPtr configProvider = EnvConfigProvider();
-    const InstanceBuilderPtr instanceBuilder = InstanceBuilder().addConfigProvider(configProvider);
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder();
+    const daq::ConfigProviderPtr configProvider = daq::EnvConfigProvider();
+    const daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().addConfigProvider(configProvider);
+    const daq::InstancePtr instance = daq::InstanceFromBuilder(instanceBuilder);
 
     return 0;
 }
@@ -140,7 +135,7 @@ instance = instance_builder.build()
 
 == Instance Configuration with Command Line Arguments
 
-An instance can be configured from command line arguments. If `CmdLineArgsConfigProvider` is set to the builder, the provider will parse all command line arguments starting with `--config-`. The structure of the command line arguments reflects the hierarchy of the configuration, with each level separated by a dash (`-`). For example, `--config-modulemanager-modulespath="testtest"` would be recognized and parsed accordingly. Note that values are treated similarly to environment variables: if enclosed in quotes, they are recognized as string types; otherwise, the provider attempts to parse them as integer, float, and boolean types. If parsing fails, the value is considered as a string type.
+An instance can be configured from command line arguments. If `CmdLineArgsConfigProvider` is set to the builder, the provider will parse all command line arguments starting with `-C`. The structure of the command line arguments reflects the hierarchy of the configuration, with each level separated by a underscore (`_-_`). For example, `-Cmodulemanager_modulespath="./custom_modules"` would be recognized and parsed accordingly. Note that values are treated similarly to environment variables: if enclosed in quotes, they are recognized as string types; otherwise, the provider attempts to parse them as integer, float, and boolean types. If parsing fails, the value is considered as a string type.
 
 [tabs]
 ====
@@ -149,12 +144,12 @@ Bash::
 [source,bash]
 []
 ----
-./program --config-modulemanager-modulespath="testtest" --config-LOGGING-GlobalLogLevel=1
---config-Modules-SomeModule-EnableSomething=true --config-Modules-SomeModule-FloatValue=12.5
+./program -Cmodulemanager_modulespath="./custom_modules" -CLOGGING_GlobalLogLevel=1
+-CModules_SomeModule_EnableSomething=true -CModules_SomeModule_FloatValue=12.5
 ----
 ====
 
-The `--config-` prefix is case-sensitive and indicates that the argument is part of the instance builder options. The rest of the argument is not case-sensitive and is considered as nodes of a dictionary, similar to how environment variables are treated.
+The `-C` prefix is case-sensitive and indicates that the argument is part of the instance builder options. The rest of the argument is not case-sensitive and is considered as nodes of a dictionary, similar to how environment variables are treated.
 
 If a value was already set in the configuration, it will be overridden by the value from the command line argument if the type of the new value matches the old one.
 
@@ -167,20 +162,22 @@ Cpp::
 [source,cpp]
 ----
 #include <opendaq/opendaq.h>
+#include <coretypes/listobject_factory.h>
 
 ConfigProviderPtr CmdLineArgsConfigProvider(int argc, char* argv[])
 {
-  List<IString> args();
+  daq::ListPtr<IString> args = daq::List<IString>();
   for (int i = 1; i < argc; i++)
     args.pushBack(argv[i]);
 
-  return CmdLineArgsConfigProvider(args);
+  return daq::CmdLineArgsConfigProvider(args);
 }
 
 int main(int argc, char* argv[])
 {
-  const ConfigProviderPtr configProvider = CmdLineArgsConfigProvider(argc, argv);
-  const InstanceBuilderPtr instanceBuilder = InstanceBuilder().addConfigProvider(configProvider);
+    const daq::ConfigProviderPtr configProvider = CmdLineArgsConfigProvider(argc, argv);
+    const daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().addConfigProvider(configProvider);
+    const daq::InstancePtr instance = daq::InstanceFromBuilder(instanceBuilder);
 
   return 0;
 }

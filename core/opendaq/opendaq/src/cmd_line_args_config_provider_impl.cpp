@@ -17,10 +17,10 @@ ErrCode INTERFACE_FUNC CmdLineArgsConfigProviderImpl::populateOptions(IDict* opt
 
     auto optionsPtr = DictPtr<IString, IBaseObject>::Borrow(options);
 
-    std::string prefix = "--config-";
+    std::string prefix = "-C";
     for (const auto& [argKey, argVal]: GetValuesStartingWith(cmdLineArgs, prefix))
     {
-        WriteValue(optionsPtr, SplitKey(argKey, prefix, '-'), argVal);
+        WriteValue(optionsPtr, SplitKey(argKey, prefix, '_'), argVal);
     }
     return OPENDAQ_SUCCESS;
 }

@@ -256,10 +256,10 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [templateType(options, IString, IBaseObject)]
     /*!
-     * @brief Gets the dictionary of module options
-     * @param[out] options The dictionary of module options
+     * @brief Gets the dictionary of instance options
+     * @param[out] options The dictionary of instance options
      */
-    virtual ErrCode INTERFACE_FUNC getModulesOptions(IDict** options) = 0;
+    virtual ErrCode INTERFACE_FUNC getOptions(IDict** options) = 0;
 };
 /*!@}*/
 

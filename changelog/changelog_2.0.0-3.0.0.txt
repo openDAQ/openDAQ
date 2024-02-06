@@ -6,7 +6,7 @@ Description:
 +m [factory] ContextPtr Context(const SchedulerPtr& scheduler, const LoggerPtr& logger, const TypeManagerPtr& typeManager, const ModuleManagerPtr& moduleManager, const DictPtr<IString, IBaseObject> options)
 
 + [function] IInstanceBuilder::addConfigProvider(IConfigProvider* configProvider)
-+ [function] IInstanceBuilder::getModulesOptions(IDict** options)
++ [function] IInstanceBuilder::getOptions(IDict** options)
 
 + [interface] IConfigProvider: public IBaseObject
 + [function] IConfigProvider::populateOptions(IDict* options)

@@ -3,6 +3,7 @@
 import unittest
 import opendaq_test
 import opendaq
+import sys
 
 class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
 
@@ -121,6 +122,34 @@ class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
         search_filter = opendaq.RecursiveSearchFilter(opendaq.AnySearchFilter())
         sigs = device.get_signals(search_filter)
         self.assertTrue(len(sigs) > 0)
+        
+    # Corresponding document: Antora/modules/howto_guides/pages/howto_configure_instance_providers.adoc
+    def test_json_config_provider(self):
+        config_path = "opendaq-config.json"
+        config_provider = opendaq.JsonConfigProvider(opendaq.String(config_path))
+        instance_builder = opendaq.InstanceBuilder()
+        instance_builder.add_config_provider(config_provider)
+        instance = instance_builder.build()
+        
+    # Corresponding document: Antora/modules/howto_guides/pages/howto_configure_instance_providers.adoc
+    def test_env_config_provider(self):
+        config_provider = opendaq.EnvConfigProvider()
+        instance_builder = opendaq.InstanceBuilder()
+        instance_builder.add_config_provider(config_provider)
+        instance = instance_builder.build()
+    
+    # Corresponding document: Antora/modules/howto_guides/pages/howto_configure_instance_providers.adoc
+    def create_cmd_line_args_config_provider(self):
+        list = opendaq.List()
+        for arg in sys.argv[1:]:
+            list.push_back(arg)
+        return opendaq.CmdLineArgsConfigProvider(list)
+
+    def test_cmd_line_args_config_provider(self):
+        config_provider = self.create_cmd_line_args_config_provider()
+        instance_builder = opendaq.InstanceBuilder()
+        instance_builder.add_config_provider(config_provider)
+        instance = instance_builder.build()
 
 if __name__ == '__main__':
     unittest.main()

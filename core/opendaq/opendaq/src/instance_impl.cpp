@@ -35,6 +35,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     auto scheduler = builderPtr.getScheduler();
     auto moduleManager = builderPtr.getModuleManager();
     auto typeManager = TypeManager();
+    auto modules = builderPtr.getOptions().get("modules");
 
     // Configure logger
     if (!logger.assigned()) 
@@ -61,7 +62,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     if (!moduleManager.assigned())
         moduleManager = ModuleManager(builderPtr.getModulePath());
 
-    return Context(scheduler, logger, typeManager, moduleManager, builderPtr.getModulesOptions());
+    return Context(scheduler, logger, typeManager, moduleManager, modules);
 }
 
 InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)

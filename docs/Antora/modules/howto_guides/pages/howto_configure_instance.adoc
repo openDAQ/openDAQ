@@ -11,7 +11,7 @@ Upon creation, it generates a Client device as the default root device. The clie
 
 == Creating openDAQ(TM) Instance with Instance Builder
 
-openDAQ(TM) offers an advanced method for configuring an Instance through the Instance Builder. With this, developers can customize the Logger, Scheduler, Module Manager, and Root Device by either defining custom modules or modifying default objects. Default builder values are described in doxygen.
+openDAQ(TM) offers an advanced method for configuring an Instance through the Instance Builder. With this, developers can customize the Logger, Scheduler, Module Manager, and Root Device by either defining custom modules or modifying default objects.
 [tabs]
 ====
 Cpp::

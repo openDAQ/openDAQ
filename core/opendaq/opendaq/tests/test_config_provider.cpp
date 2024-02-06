@@ -458,7 +458,7 @@ TEST_F(ConfigProviderTest, envConfigReadInvalidArgument2)
 
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadModuleManagerPath)
 {
-    auto comandLineArgs = List<IString>("--config-modulemanager-modulespath=\"testtest\"");
+    auto comandLineArgs = List<IString>("-Cmodulemanager_modulespath=\"testtest\"");
 
     auto options = GetDefaultOptions(); 
 
@@ -473,7 +473,7 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadModuleManagerPath)
 
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadSchedulerWorkersNum)
 {
-    auto comandLineArgs = List<IString>("--config-scheduler-workersnum=4");
+    auto comandLineArgs = List<IString>("-Cscheduler_workersnum=4");
 
     auto options = GetDefaultOptions(); 
     
@@ -488,7 +488,7 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadSchedulerWorkersNum)
 
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadLoggingGlobalLogLevel)
 {
-    auto comandLineArgs = List<IString>("--config-logging-globalloglevel=0");
+    auto comandLineArgs = List<IString>("-Clogging_globalloglevel=0");
 
     auto options = GetDefaultOptions(); 
     
@@ -503,7 +503,7 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadLoggingGlobalLogLevel)
 
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadRootDeviceDefaultLocalId)
 {
-    auto comandLineArgs = List<IString>("--config-rootdevice-defaultlocalid=\"localId\"");
+    auto comandLineArgs = List<IString>("-Crootdevice_defaultlocalid=\"localId\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -518,7 +518,7 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadRootDeviceDefaultLocalId)
 
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadRootDeviceConnectionString)
 {
-    auto comandLineArgs = List<IString>("--config-rootdevice-connection=\"dev://connectionString\"");
+    auto comandLineArgs = List<IString>("-Crootdevice_connection=\"dev://connectionString\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -533,7 +533,7 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadRootDeviceConnectionString)
 
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadOutOfReservedName)
 {
-    auto comandLineArgs = List<IString>("--config-deep1-deep2=\"SomeValue\"");
+    auto comandLineArgs = List<IString>("-Cdeep1_deep2=\"SomeValue\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -549,8 +549,8 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadOutOfReservedName)
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadInvalidArgument1)
 {
     auto comandLineArgs = List<IString>(
-        "--config-modulemanager-modulespath=\"testtest\"", 
-        "--config-scheduler-workersnum=\"string\"");
+        "-Cmodulemanager_modulespath=\"testtest\"", 
+        "-Cscheduler_workersnum=\"string\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -566,8 +566,8 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadInvalidArgument1)
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadInvalidArgument2)
 {
     auto comandLineArgs = List<IString>(
-        "--config-deep1-deep2=\"SomeValue\"",
-        "--config-modulemanager-modulespath-notexpectedchild=\"string\"");
+        "-Cdeep1_deep2=\"SomeValue\"",
+        "-Cmodulemanager_modulespath_notexpectedchild=\"string\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -582,7 +582,7 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadInvalidArgument2)
 
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadBrokenCommand)
 {
-    auto comandLineArgs = List<IString>("--config-deep1-deep2=", "\"SomeValue\"");
+    auto comandLineArgs = List<IString>("-Cdeep1_deep2=", "\"SomeValue\"");
 
     auto options = GetDefaultOptions(); 
     

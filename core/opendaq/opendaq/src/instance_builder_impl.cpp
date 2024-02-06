@@ -4,6 +4,7 @@
 #include <opendaq/instance_ptr.h>
 #include <utility>
 #include <opendaq/custom_log.h>
+#include <opendaq/config_provider_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -29,7 +30,7 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 
 InstanceBuilderImpl::InstanceBuilderImpl()
     : componentsLogLevel(Dict<IString, LogLevel>())
-    , providers(List<IConfigProvider>())
+    , providers(List<IConfigProvider>(JsonConfigProvider()))
     , options(GetDefaultOptions())
 {
 }
@@ -63,26 +64,6 @@ ErrCode InstanceBuilderImpl::build(IInstance** instance)
 {
     if (instance == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    auto logger = this->logger;
-    if (!logger.assigned())
-        logger = Logger();
-    auto loggerComponent = logger.getOrAddComponent("InstanceBuilder");
-
-    for (const auto& provider : providers)
-    {
-        try
-        {
-            provider.populateOptions(options);
-        }
-        catch (const DaqException& e)
-        {
-            LOG_E("Failed to populate instance builder options with given provider. Error message: {}", e.what());
-        }
-        catch (...)
-        {
-        }
-    }
 
     const auto builderPtr = this->borrowPtr<InstanceBuilderPtr>();
     return daqTry([&]()
@@ -311,12 +292,32 @@ ErrCode InstanceBuilderImpl::getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode InstanceBuilderImpl::getModulesOptions(IDict** options)
+ErrCode InstanceBuilderImpl::getOptions(IDict** options)
 {
     if (options == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    auto logger = this->logger;
+    if (!logger.assigned())
+        logger = Logger();
+    auto loggerComponent = logger.getOrAddComponent("InstanceBuilder");
+
+    for (const auto& provider : providers)
+    {
+        try
+        {
+            provider.populateOptions(this->options);
+        }
+        catch (const DaqException& e)
+        {
+            LOG_W("Failed to populate instance builder options with given provider. Error message: {}", e.what());
+        }
+        catch (...)
+        {
+        }
+    }
     
-    *options = getModules().detach();
+    *options = this->options.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -47,7 +47,7 @@ StringPtr JsonConfigProviderImpl::GetDataFromFile(const StringPtr& filename)
     std::ifstream file (filename.toStdString());
 
     if (!file)
-        throw NotFoundException("Json config file not found");
+        throw NotFoundException(fmt::format("Json config file \"{}\" not found", filename));
 
     std::ostringstream ss;
     ss << file.rdbuf();

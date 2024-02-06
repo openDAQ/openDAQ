@@ -39,10 +39,7 @@ enum class ClientReconnectionStatus
 };
 
 using OnSignalAvailableCallback = std::function<void(const StringPtr& signalStringId,
-                                                     const StringPtr& domainSignalStringId,
-                                                     const DataDescriptorPtr& signalDescriptor,
-                                                     const StringPtr& name,
-                                                     const StringPtr& description)>;
+                                                     const StringPtr& serializedSignal)>;
 using OnSignalUnavailableCallback = std::function<void(const StringPtr& signalStringId)>;
 using OnPacketCallback = std::function<void(const StringPtr& signalStringId, const PacketPtr& packet)>;
 using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
@@ -85,10 +82,7 @@ protected:
     void handlePacket(const SignalNumericIdType& signalNumericId, const PacketPtr& packet);
     void handleSignal(const SignalNumericIdType& signalNumericId,
                       const StringPtr& signalStringId,
-                      const StringPtr& domainSignalStringId,
-                      const DataDescriptorPtr& signalDescriptor,
-                      const StringPtr& name,
-                      const StringPtr& description,
+                      const StringPtr& serializedSignal,
                       bool available);
 
     void checkReconnectionStatus(const boost::system::error_code& ec);

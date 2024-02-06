@@ -22,7 +22,6 @@ ClientSessionHandler::ClientSessionHandler(const ContextPtr& daqContext,
     , packetReceivedHandler(packetReceivedHandler)
     , protocolInitDoneHandler(protocolInitDoneHandler)
     , subscriptionAckHandler(subscriptionAckHandler)
-    , jsonDeserializer(JsonDeserializer())
 {
 }
 
@@ -152,17 +151,7 @@ ReadTask ClientSessionHandler::readSignalAvailable(const void* data, size_t size
     uint16_t signalIdStringSize;
     StringPtr signalIdString;
 
-    uint16_t domainSignalIdStringSize;
-    StringPtr domainSignalIdString;
-
-    uint16_t namePropertyStringSize;
-    StringPtr namePropertyValue = "";
-
-    uint16_t descriptionPropertyStringSize;
-    StringPtr descriptionPropertyValue = "";
-
-    std::string serializedDescriptor;
-    DataDescriptorPtr descriptor;
+    StringPtr serializedSignal;
 
     try
     {
@@ -181,54 +170,9 @@ ReadTask ClientSessionHandler::readSignalAvailable(const void* data, size_t size
         LOG_T("Received signal string ID: {}", signalIdString);
         bytesDone += signalIdStringSize;
 
-        // Get size of domain signal string ID from received buffer
-        copyData(&domainSignalIdStringSize, data, sizeof(domainSignalIdStringSize), bytesDone, size);
-        LOG_T("Received domain signal string ID size: {}", domainSignalIdStringSize);
-        bytesDone += sizeof(domainSignalIdStringSize);
-
-        if (domainSignalIdStringSize > 0)
-        {
-            // Get domain signal string ID from received buffer
-            domainSignalIdString = String(getStringFromData(data, domainSignalIdStringSize, bytesDone, size));
-            LOG_T("Received domain signal string ID: {}", domainSignalIdString);
-            bytesDone += domainSignalIdStringSize;
-        }
-
-        // Get size of signal property "Name" from received buffer
-        copyData(&namePropertyStringSize, data, sizeof(namePropertyStringSize), bytesDone, size);
-        LOG_T("Received signal property \"Name\" value string size: {}", namePropertyStringSize);
-        bytesDone += sizeof(namePropertyStringSize);
-        if (namePropertyStringSize > 0)
-        {
-            // Get value of signal property "Name" from received buffer
-            namePropertyValue = String(getStringFromData(data, namePropertyStringSize, bytesDone, size));
-            LOG_T("Received signal property \"Name\" value string: {}", namePropertyValue);
-            bytesDone += namePropertyStringSize;
-        }
-
-        // Get size of signal property "Description" from received buffer
-        copyData(&descriptionPropertyStringSize, data, sizeof(descriptionPropertyStringSize), bytesDone, size);
-        LOG_T("Received signal property \"Description\" value string size: {}", descriptionPropertyStringSize);
-        bytesDone += sizeof(descriptionPropertyStringSize);
-        if (descriptionPropertyStringSize > 0)
-        {
-            // Get value of signal property "Description" from received buffer
-            descriptionPropertyValue = String(getStringFromData(data, descriptionPropertyStringSize, bytesDone, size));
-            LOG_T("Received signal property \"Description\" value string: {}", descriptionPropertyValue);
-            bytesDone += descriptionPropertyStringSize;
-        }
-
-        // Get serialized signal descriptor from received buffer
-        if ((size - bytesDone) > 0)
-        {
-            serializedDescriptor = getStringFromData(data, size - bytesDone, bytesDone, size);
-            LOG_T("Received signal descriptor:\n{}", serializedDescriptor);
-            descriptor = jsonDeserializer.deserialize(serializedDescriptor);
-        }
-        else
-        {
-            LOG_W("Received signal {} does not have descriptor", signalIdString);
-        }
+        // Get serialized signal from received buffer
+        serializedSignal = String(getStringFromData(data, size - bytesDone, bytesDone, size));
+        LOG_T("Received serialized signal:\n{}", serializedSignal);
     }
     catch (const DaqException& e)
     {
@@ -237,7 +181,7 @@ ReadTask ClientSessionHandler::readSignalAvailable(const void* data, size_t size
         return createReadStopTask();
     }
 
-    signalReceivedHandler(signalNumericId, signalIdString, domainSignalIdString, descriptor, namePropertyValue, descriptionPropertyValue, true);
+    signalReceivedHandler(signalNumericId, signalIdString, serializedSignal, true);
     return createReadHeaderTask();
 }
 
@@ -266,7 +210,7 @@ ReadTask ClientSessionHandler::readSignalUnavailable(const void *data, size_t si
         return createReadStopTask();
     }
 
-    signalReceivedHandler(signalNumericId, signalIdString, nullptr, nullptr, nullptr, nullptr, false);
+    signalReceivedHandler(signalNumericId, signalIdString, nullptr, false);
     return createReadHeaderTask();
 }
 

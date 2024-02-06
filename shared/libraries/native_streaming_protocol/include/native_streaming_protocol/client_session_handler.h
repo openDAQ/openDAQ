@@ -60,6 +60,5 @@ private:
     OnSubscriptionAckCallback subscriptionAckHandler;
 
     packet_streaming::PacketStreamingClient packetStreamingClient;
-    DeserializerPtr jsonDeserializer;
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

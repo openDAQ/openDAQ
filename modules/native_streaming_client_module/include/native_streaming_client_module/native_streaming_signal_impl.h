@@ -21,18 +21,12 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
-DECLARE_OPENDAQ_INTERFACE(INativeStreamingSignalPrivate, IBaseObject)
-{
-    virtual void INTERFACE_FUNC removeDomainSignal() = 0;
-    virtual void INTERFACE_FUNC assignDescriptor(const DataDescriptorPtr& descriptor) = 0;
-};
-
-class NativeStreamingSignalImpl final : public MirroredSignalBase<INativeStreamingSignalPrivate>
+class NativeStreamingSignalImpl final : public MirroredSignal
 {
 public:
+    using Super = MirroredSignal;
     explicit NativeStreamingSignalImpl(const ContextPtr& ctx,
                                        const ComponentPtr& parent,
-                                       const DataDescriptorPtr& descriptor,
                                        const StringPtr& streamingId);
 
     // ISignal
@@ -45,9 +39,13 @@ public:
     // IMirroredSignalPrivate
     void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
 
-    // INativeStreamingSignalPrivate
-    void INTERFACE_FUNC removeDomainSignal() override;
-    void INTERFACE_FUNC assignDescriptor(const DataDescriptorPtr& descriptor) override;
+    // ISerializable
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+protected:
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
 
 private:
     static StringPtr createLocalId(const StringPtr& streamingId);

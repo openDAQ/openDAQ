@@ -23,7 +23,7 @@ TEST_F(ConfigProvider, EnvConfigProvider)
     const daq::InstancePtr instance = daq::InstanceFromBuilder(instanceBuilder);
 }
 
-ConfigProviderPtr CmdLineArgsConfigProvider(int argc, char* argv[])
+static ConfigProviderPtr CmdLineArgsConfigProvider(int argc, const char* argv[])
 {
   daq::ListPtr<IString> args = daq::List<IString>();
   for (int i = 1; i < argc; i++)

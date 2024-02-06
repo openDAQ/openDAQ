@@ -39,27 +39,14 @@ public:
 protected:
     DeviceInfoPtr onGetInfo() override;
 
-    void initSignalName(const SignalPtr& signal, const StringPtr& name);
-    void initSignalDescription(const SignalPtr& signal, const StringPtr& description);
-    void signalAvailableHandler(const StringPtr& signalStringId,
-                                const StringPtr& domainSignalStringId,
-                                const DataDescriptorPtr& signalDescriptor,
-                                const StringPtr& name,
-                                const StringPtr& description);
+    void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void signalUnavailableHandler(const StringPtr& signalStringId);
     void reconnectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientReconnectionStatus status);
     void createNativeStreaming(const StringPtr& host, const StringPtr& port, const StringPtr& path);
     void activateStreaming();
-    void addToDeviceSignals(const StringPtr& signalStringId,
-                            const StringPtr& domainSignalStringId,
-                            const DataDescriptorPtr& signalDescriptor,
-                            const StringPtr& name,
-                            const StringPtr& description);
-    void addToDeviceSignalsOnReconnection(const StringPtr& signalStringId,
-                                          const StringPtr& domainSignalStringId,
-                                          const DataDescriptorPtr& signalDescriptor,
-                                          const StringPtr& name,
-                                          const StringPtr& description);
+    void addToDeviceSignals(const StringPtr& signalStringId, const StringPtr& serializedSignal);
+    void addToDeviceSignalsOnReconnection(const StringPtr& signalStringId, const StringPtr& serializedSignal);
+    SignalPtr createSignal(const StringPtr& signalStringId, const StringPtr& serializedSignal);
 
     StringPtr connectionString;
     opendaq_native_streaming_protocol::ClientReconnectionStatus reconnectionStatus;

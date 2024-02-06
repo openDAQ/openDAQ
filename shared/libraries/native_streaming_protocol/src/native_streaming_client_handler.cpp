@@ -246,13 +246,10 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
     OnSignalCallback signalReceivedHandler =
         [this](const SignalNumericIdType& signalNumericId,
                const StringPtr& signalStringId,
-               const StringPtr& domainSignalStringId,
-               const DataDescriptorPtr& signalDescriptor,
-               const StringPtr& name,
-               const StringPtr& description,
+               const StringPtr& serializedSignal,
                bool available)
     {
-        handleSignal(signalNumericId, signalStringId, domainSignalStringId, signalDescriptor, name, description, available);
+        handleSignal(signalNumericId, signalStringId, serializedSignal, available);
     };
 
     OnPacketReceivedCallback packetReceivedHandler =
@@ -347,16 +344,13 @@ void NativeStreamingClientHandler::handlePacket(const SignalNumericIdType& signa
 
 void NativeStreamingClientHandler::handleSignal(const SignalNumericIdType& signalNumericId,
                                                 const StringPtr& signalStringId,
-                                                const StringPtr& domainSignalStringId,
-                                                const DataDescriptorPtr& signalDescriptor,
-                                                const StringPtr& name,
-                                                const StringPtr& description,
+                                                const StringPtr& serializedSignal,
                                                 bool available)
 {
     if (available)
     {
         signalIds.insert({signalNumericId, signalStringId});
-        signalAvailableHandler(signalStringId, domainSignalStringId, signalDescriptor, name, description);
+        signalAvailableHandler(signalStringId, serializedSignal);
     }
     else
     {

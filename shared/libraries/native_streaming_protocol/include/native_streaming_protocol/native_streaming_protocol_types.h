@@ -36,10 +36,7 @@ using SignalNumericIdType = uint32_t;
 
 using OnSignalCallback = std::function<void(const SignalNumericIdType& signalNumericId,
                                             const StringPtr& signalStringId,
-                                            const StringPtr& domainSignalStringId,
-                                            const DataDescriptorPtr& signalDescriptor,
-                                            const StringPtr& name,
-                                            const StringPtr& description,
+                                            const StringPtr& serializedSignal,
                                             bool available)>;
 
 using OnSignalSubscriptionCallback = std::function<void(const SignalNumericIdType& signalNumericId,

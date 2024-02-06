@@ -53,10 +53,7 @@ protected:
     void checkAndUnsubscribe(const MirroredSignalConfigPtr& signal);
 
     void signalAvailableHandler(const StringPtr& signalStringId,
-                                const StringPtr& domainSignalStringId,
-                                const DataDescriptorPtr& signalDescriptor,
-                                const StringPtr& name,
-                                const StringPtr& description);
+                                const StringPtr& serializedSignal);
     void addToAvailableSignals(const StringPtr& signalStringId);
     void addToAvailableSignalsOnReconnection(const StringPtr& signalStringId);
 

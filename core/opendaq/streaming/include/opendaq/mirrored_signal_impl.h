@@ -98,6 +98,7 @@ MirroredSignalBase<Interfaces...>::MirroredSignalBase(const ContextPtr& ctx,
                                                       const StringPtr& localId,
                                                       const StringPtr& className)
     : Super(ctx, nullptr, parent, localId, className)
+    , activeStreamingSourceRef(nullptr)
     , listened(false)
     , streamed(true)
 {

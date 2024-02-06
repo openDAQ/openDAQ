@@ -3,6 +3,8 @@
 #include <native_streaming_client_module/native_streaming_impl.h>
 
 #include <opendaq/device_info_factory.h>
+#include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/deserialize_component_ptr.h>
 
 #include <coretypes/function_factory.h>
 
@@ -38,12 +40,9 @@ void NativeStreamingDeviceImpl::createNativeStreaming(const StringPtr& host,
 {
     ProcedurePtr onSignalAvailableCallback =
         Procedure([this](const StringPtr& signalStringId,
-                         const StringPtr& domainSignalStringId,
-                         const DataDescriptorPtr& signalDescriptor,
-                         const StringPtr& name,
-                         const StringPtr& description)
+                         const StringPtr& serializedSignal)
                   {
-                      signalAvailableHandler(signalStringId, domainSignalStringId, signalDescriptor, name, description);
+                      signalAvailableHandler(signalStringId, serializedSignal);
                   });
 
     ProcedurePtr onSignalUnavailableCallback =
@@ -77,7 +76,7 @@ void NativeStreamingDeviceImpl::createNativeStreaming(const StringPtr& host,
 void NativeStreamingDeviceImpl::activateStreaming()
 {
     auto self = this->borrowPtr<DevicePtr>();
-    const auto signals = self.getSignals();
+    const auto signals = self.getSignals(search::Any());
     nativeStreaming.addSignals(signals);
     nativeStreaming.setActive(true);
 
@@ -98,39 +97,33 @@ DeviceInfoPtr NativeStreamingDeviceImpl::onGetInfo()
     return deviceInfo;
 }
 
-void NativeStreamingDeviceImpl::initSignalName(const SignalPtr& signal, const StringPtr& name)
+SignalPtr NativeStreamingDeviceImpl::createSignal(const StringPtr& signalStringId,
+                                                  const StringPtr& serializedSignal)
 {
-    auto compPrivate = signal.asPtr<IComponentPrivate>();
+    const auto deserializer = JsonDeserializer();
+    const auto deserializeContext = ComponentDeserializeContext(context, nullptr, this->signals, signalStringId);
 
-    compPrivate.unlockAllAttributes();
-    signal.setName(name);
-    compPrivate.lockAllAttributes();
-}
-
-void NativeStreamingDeviceImpl::initSignalDescription(const SignalPtr& signal, const StringPtr& description)
-{
-    auto compPrivate = signal.asPtr<IComponentPrivate>();
-
-    compPrivate.unlockAllAttributes();
-    signal.setDescription(description);
-    compPrivate.lockAllAttributes();
+    return deserializer.deserialize(
+        serializedSignal,
+        deserializeContext,
+        [](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback) -> BaseObjectPtr
+        {
+            if (typeId != "Signal")
+                return nullptr;
+            BaseObjectPtr obj;
+            checkErrorInfo(NativeStreamingSignalImpl::Deserialize(object, context, factoryCallback, &obj));
+            return obj;
+        });
 }
 
 void NativeStreamingDeviceImpl::addToDeviceSignals(const StringPtr& signalStringId,
-                                                   const StringPtr& domainSignalStringId,
-                                                   const DataDescriptorPtr& signalDescriptor,
-                                                   const StringPtr& name,
-                                                   const StringPtr& description)
+                                                   const StringPtr& serializedSignal)
 {
     if (auto iter = deviceSignals.find(signalStringId); iter != deviceSignals.end())
         throw AlreadyExistsException("Signal with id {} already exists in native streaming device", signalStringId);
 
-    auto signalToAdd = createWithImplementation<ISignal, NativeStreamingSignalImpl>(this->context,
-                                                                                    this->signals,
-                                                                                    signalDescriptor,
-                                                                                    signalStringId);
-    initSignalName(signalToAdd, name);
-    initSignalDescription(signalToAdd, description);
+    auto signalToAdd = createSignal(signalStringId, serializedSignal);
+    StringPtr domainSignalStringId = signalToAdd.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
 
     // recreate signal -> domainSignal relations in the same way as on server
     for (const auto& item : deviceSignals)
@@ -152,37 +145,28 @@ void NativeStreamingDeviceImpl::addToDeviceSignals(const StringPtr& signalString
 }
 
 void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr& signalStringId,
-                                                                 const StringPtr& domainSignalStringId,
-                                                                 const DataDescriptorPtr& signalDescriptor,
-                                                                 const StringPtr& name,
-                                                                 const StringPtr& description)
+                                                                 const StringPtr& serializedSignal)
 {
-    SignalPtr signalToAdd;
+    SignalPtr signalToAdd = createSignal(signalStringId, serializedSignal);
+    StringPtr domainSignalStringId = signalToAdd.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+
     if (auto iter1 = deviceSignals.find(signalStringId); iter1 != deviceSignals.end())
     {
         signalToAdd = iter1->second.first;
-        signalToAdd.asPtr<INativeStreamingSignalPrivate>()->assignDescriptor(signalDescriptor);
+        // TODO update existing signal
     }
     else
     {
         if (auto iter2 = deviceSignalsReconnection.find(signalStringId); iter2 == deviceSignalsReconnection.end())
-            signalToAdd = createWithImplementation<ISignal, NativeStreamingSignalImpl>(this->context,
-                                                                                       this->signals,
-                                                                                       signalDescriptor,
-                                                                                       signalStringId);
+            signalToAdd = createSignal(signalStringId, serializedSignal);
         else
             throw AlreadyExistsException("Signal with id {} already exists in native streaming device", signalStringId);
     }
 
-    if (signalToAdd.getName() != name)
-        initSignalName(signalToAdd, name);
-    if (signalToAdd.getDescription() != description)
-        initSignalDescription(signalToAdd, description);
-
     // remove domain signal if it is no longer assigned after reconnection
     if (signalToAdd.getDomainSignal().assigned() && !domainSignalStringId.assigned())
     {
-        signalToAdd.asPtr<INativeStreamingSignalPrivate>()->removeDomainSignal();
+        signalToAdd.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(nullptr);
     }
     // recreate signal -> domainSignal relations in the same way as on server
     for (const auto& item : deviceSignalsReconnection)
@@ -206,26 +190,15 @@ void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr
 }
 
 void NativeStreamingDeviceImpl::signalAvailableHandler(const StringPtr& signalStringId,
-                                                       const StringPtr& domainSignalStringId,
-                                                       const DataDescriptorPtr& signalDescriptor,
-                                                       const StringPtr& name,
-                                                       const StringPtr& description)
+                                                       const StringPtr& serializedSignal)
 {
     if (reconnectionStatus == ClientReconnectionStatus::Reconnecting)
     {
-        addToDeviceSignalsOnReconnection(signalStringId,
-                                         domainSignalStringId,
-                                         signalDescriptor,
-                                         name,
-                                         description);
+        addToDeviceSignalsOnReconnection(signalStringId, serializedSignal);
     }
     else
     {
-        addToDeviceSignals(signalStringId,
-                           domainSignalStringId,
-                           signalDescriptor,
-                           name,
-                           description);
+        addToDeviceSignals(signalStringId, serializedSignal);
     }
 }
 
@@ -243,7 +216,7 @@ void NativeStreamingDeviceImpl::signalUnavailableHandler(const StringPtr& signal
         auto [addedSignal, domainSignalId] = item.second;
         if (domainSignalId == signalStringId)
         {
-            addedSignal.asPtr<INativeStreamingSignalPrivate>()->removeDomainSignal();
+            addedSignal.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(nullptr);
         }
     }
 

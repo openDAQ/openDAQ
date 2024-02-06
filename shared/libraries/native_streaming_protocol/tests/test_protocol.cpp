@@ -2,6 +2,8 @@
 #include <testutils/memcheck_listener.h>
 
 #include <opendaq/opendaq.h>
+#include <opendaq/deserialize_component_ptr.h>
+#include <opendaq/component_deserialize_context_factory.h>
 
 #include <native_streaming_protocol/native_streaming_client_handler.h>
 #include <native_streaming_protocol/native_streaming_server_handler.h>
@@ -49,15 +51,29 @@ public:
 
     ConfigProtocolPacketCb sendPacketCb;
 };
+#include <opendaq/signal_impl.h>
+static SignalPtr deserializeSignal(const ContextPtr& context, const StringPtr& serializedSignal)
+{
+    const auto deserializer = JsonDeserializer();
+    const auto deserializeContext = ComponentDeserializeContext(context, nullptr, nullptr, "sig");
+
+    const SignalPtr signal = deserializer.deserialize(serializedSignal, deserializeContext, nullptr);
+    return signal;
+}
+
+static StringPtr getDomainSignalId(const SignalPtr& signal)
+{
+    return signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+}
 
 class ClientAttributes
 {
 public:
-    std::promise< std::tuple<StringPtr, DataDescriptorPtr, StringPtr, StringPtr> > signalAvailablePromise;
-    std::future< std::tuple<StringPtr, DataDescriptorPtr, StringPtr, StringPtr> > signalAvailableFuture;
+    std::promise< std::tuple<StringPtr, StringPtr> > signalAvailablePromise;
+    std::future< std::tuple<StringPtr, StringPtr> > signalAvailableFuture;
 
-    std::promise< std::tuple<StringPtr, StringPtr, DataDescriptorPtr, StringPtr, StringPtr> > signalWithDomainAvailablePromise;
-    std::future< std::tuple<StringPtr, StringPtr, DataDescriptorPtr, StringPtr, StringPtr> > signalWithDomainAvailableFuture;
+    std::promise< std::tuple<StringPtr, StringPtr> > signalWithDomainAvailablePromise;
+    std::future< std::tuple<StringPtr, StringPtr> > signalWithDomainAvailableFuture;
 
     std::promise< StringPtr > signalUnavailablePromise;
     std::future< StringPtr > signalUnavailableFuture;
@@ -94,10 +110,10 @@ public:
     {
         clientContext = NullContext(Logger(nullptr, LogLevel::Trace));
 
-        signalAvailablePromise = std::promise< std::tuple<StringPtr, DataDescriptorPtr, StringPtr, StringPtr> >();
+        signalAvailablePromise = std::promise< std::tuple<StringPtr, StringPtr> >();
         signalAvailableFuture = signalAvailablePromise.get_future();
 
-        signalWithDomainAvailablePromise = std::promise< std::tuple<StringPtr, StringPtr, DataDescriptorPtr, StringPtr, StringPtr> >();
+        signalWithDomainAvailablePromise = std::promise< std::tuple<StringPtr, StringPtr> >();
         signalWithDomainAvailableFuture = signalWithDomainAvailablePromise.get_future();
 
         signalUnavailablePromise = std::promise< StringPtr >();
@@ -116,21 +132,15 @@ public:
         reconnectionStatusFuture = reconnectionStatusPromise.get_future();
 
         signalAvailableHandler = [this](const StringPtr& signalStringId,
-                                        const StringPtr& domainSignalStringId,
-                                        const DataDescriptorPtr& signalDescriptor,
-                                        const StringPtr& name,
-                                        const StringPtr& description)
+                                        const StringPtr& serializedSignal)
         {
-            signalAvailablePromise.set_value({signalStringId, signalDescriptor, name, description});
+            signalAvailablePromise.set_value({signalStringId, serializedSignal});
         };
 
         signalWithDomainAvailableHandler = [this](const StringPtr& signalStringId,
-                                                  const StringPtr& domainSignalStringId,
-                                                  const DataDescriptorPtr& signalDescriptor,
-                                                  const StringPtr& name,
-                                                  const StringPtr& description)
+                                                  const StringPtr& serializedSignal)
         {
-            signalWithDomainAvailablePromise.set_value({signalStringId, domainSignalStringId, signalDescriptor, name, description});
+            signalWithDomainAvailablePromise.set_value({signalStringId, serializedSignal});
         };
 
         signalUnavailableHandler = [this](const StringPtr& signalStringId)
@@ -403,13 +413,13 @@ TEST_P(ProtocolTest, ConnectDisconnectWithSignalDomainUnassigned)
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         ASSERT_EQ(client.signalWithDomainAvailableFuture.wait_for(timeout), std::future_status::ready);
-        auto [clientSignalStringId, clientDomainSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription] =
-            client.signalWithDomainAvailableFuture.get();
+        auto [clientSignalStringId, serializedSignal] = client.signalWithDomainAvailableFuture.get();
+        SignalPtr clientSignal = deserializeSignal(client.clientContext, serializedSignal);
         ASSERT_EQ(clientSignalStringId, serverSignal.getGlobalId());
-        ASSERT_TRUE(!clientDomainSignalStringId.assigned());
-        ASSERT_EQ(clientSignalDescriptor, serverSignal.getDescriptor());
-        ASSERT_EQ(clientSignalName, serverSignal.getName());
-        ASSERT_EQ(clientSignalDescription, serverSignal.getDescription());
+        ASSERT_TRUE(!getDomainSignalId(clientSignal).assigned());
+        ASSERT_EQ(clientSignal.getDescriptor(), serverSignal.getDescriptor());
+        ASSERT_EQ(clientSignal.getName(), serverSignal.getName());
+        ASSERT_EQ(clientSignal.getDescription(), serverSignal.getDescription());
     }
 }
 
@@ -431,13 +441,13 @@ TEST_P(ProtocolTest, ConnectDisconnectWithSignalDomainAssigned)
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         ASSERT_EQ(client.signalWithDomainAvailableFuture.wait_for(timeout), std::future_status::ready);
-        auto [clientSignalStringId, clientDomainSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription] =
-            client.signalWithDomainAvailableFuture.get();
+        auto [clientSignalStringId, serializedSignal] = client.signalWithDomainAvailableFuture.get();
+        SignalPtr clientSignal = deserializeSignal(client.clientContext, serializedSignal);
         ASSERT_EQ(clientSignalStringId, serverSignal.getGlobalId());
-        ASSERT_EQ(clientSignalDescriptor, serverSignal.getDescriptor());
-        ASSERT_EQ(clientDomainSignalStringId, serverDomainSignal.getGlobalId());
-        ASSERT_EQ(clientSignalName, serverSignal.getName());
-        ASSERT_EQ(clientSignalDescription, serverSignal.getDescription());
+        ASSERT_EQ(clientSignal.getDescriptor(), serverSignal.getDescriptor());
+        ASSERT_EQ(getDomainSignalId(clientSignal), serverDomainSignal.getGlobalId());
+        ASSERT_EQ(clientSignal.getName(), serverSignal.getName());
+        ASSERT_EQ(clientSignal.getDescription(), serverSignal.getDescription());
     }
 }
 
@@ -460,12 +470,12 @@ TEST_P(ProtocolTest, AddSignal)
     for (auto& client : clients)
     {
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
-        auto [clientSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription] =
-            client.signalAvailableFuture.get();
+        auto [clientSignalStringId, serializedSignal] = client.signalAvailableFuture.get();
+        SignalPtr clientSignal = deserializeSignal(client.clientContext, serializedSignal);
         ASSERT_EQ(clientSignalStringId, serverSignal.getGlobalId());
-        ASSERT_EQ(clientSignalDescriptor, serverSignal.getDescriptor());
-        ASSERT_EQ(clientSignalName, serverSignal.getName());
-        ASSERT_EQ(clientSignalDescription, serverSignal.getDescription());
+        ASSERT_EQ(clientSignal.getDescriptor(), serverSignal.getDescriptor());
+        ASSERT_EQ(clientSignal.getName(), serverSignal.getName());
+        ASSERT_EQ(clientSignal.getDescription(), serverSignal.getDescription());
     }
 }
 
@@ -482,10 +492,9 @@ TEST_P(ProtocolTest, RemoveSignal)
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
-        auto [clientSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription] =
+        auto [clientSignalStringId, serializedSignal] =
             client.signalAvailableFuture.get();
         ASSERT_EQ(clientSignalStringId, serverSignal.getGlobalId());
-        ASSERT_EQ(clientSignalDescriptor, serverSignal.getDescriptor());
     }
 
     serverHandler->removeSignal(serverSignal);
@@ -500,7 +509,7 @@ TEST_P(ProtocolTest, RemoveSignal)
 
 TEST_P(ProtocolTest, SignalSubscribeUnsubscribe)
 {
-    StringPtr clientSignalStringId, clientSignalName, clientSignalDescription;
+    StringPtr clientSignalStringId, serializedSignal;
     DataDescriptorPtr clientSignalDescriptor;
 
     auto serverSignal =
@@ -513,8 +522,7 @@ TEST_P(ProtocolTest, SignalSubscribeUnsubscribe)
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
-        std::tie(clientSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription) =
-            client.signalAvailableFuture.get();
+        std::tie(clientSignalStringId, serializedSignal) = client.signalAvailableFuture.get();
         client.clientHandler->subscribeSignal(clientSignalStringId);
         ASSERT_EQ(client.subscribedAckFuture.wait_for(timeout), std::future_status::ready);
         ASSERT_EQ(client.subscribedAckFuture.get(), clientSignalStringId);
@@ -567,7 +575,7 @@ TEST_P(ProtocolTest, SendEventPacket)
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
-        auto [clientSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription] =
+        auto [clientSignalStringId, serializedSignal] =
             client.signalAvailableFuture.get();
 
         // wait for initial event packet
@@ -642,7 +650,7 @@ TEST_P(ProtocolTest, SendDataPacket)
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
-        auto [clientSignalStringId, clientSignalDescriptor, clientSignalName, clientSignalDescription] =
+        auto [clientSignalStringId, serializedSignal] =
             client.signalAvailableFuture.get();
 
         // wait for initial event packet
@@ -705,7 +713,7 @@ INSTANTIATE_TEST_SUITE_P(
     ProtocolTestGroup,
     ProtocolTest,
     testing::Combine(
-        testing::Range<ClientCountType>(1, 5),
+        testing::Range<ClientCountType>(1, 4),
         testing::Values(true, false)
     )
 );

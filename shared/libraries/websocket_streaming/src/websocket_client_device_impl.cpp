@@ -34,7 +34,7 @@ DeviceInfoPtr WebsocketClientDeviceImpl::onGetInfo()
 void WebsocketClientDeviceImpl::activateStreaming()
 {
     auto self = this->borrowPtr<DevicePtr>();
-    const auto signals = self.getSignals();
+    const auto signals = self.getSignals(search::Any());
     websocketStreaming.addSignals(signals);
     websocketStreaming.setActive(true);
 

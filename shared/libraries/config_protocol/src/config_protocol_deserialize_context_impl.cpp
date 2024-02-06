@@ -6,9 +6,10 @@ namespace daq::config_protocol
 ConfigProtocolDeserializeContextImpl::ConfigProtocolDeserializeContextImpl(const ConfigProtocolClientCommPtr& clientComm,
                                                                            const std::string& remoteGlobalId,
                                                                            const ContextPtr& context,
+                                                                           const ComponentPtr& root,
                                                                            const ComponentPtr& parent,
                                                                            const StringPtr& localId)
-    : GenericComponentDeserializeContextImpl(context, parent, localId)
+    : GenericComponentDeserializeContextImpl(context, root, parent, localId)
     , clientComm(clientComm)
     , remoteGlobalId(remoteGlobalId)
 {
@@ -40,6 +41,7 @@ ErrCode ConfigProtocolDeserializeContextImpl::clone(IComponent* newParent,
         clientComm,
         newRemoteGlobalId,
         this->context,
+        this->root,
         newParent,
         newLocalId);
 }

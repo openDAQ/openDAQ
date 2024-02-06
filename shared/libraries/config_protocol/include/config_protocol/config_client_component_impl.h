@@ -17,6 +17,7 @@
 #pragma once
 #include <config_protocol/config_client_property_object_impl.h>
 #include <opendaq/component_impl.h>
+#include <opendaq/component_status_container_private_ptr.h>
 #include <config_protocol/config_protocol_deserialize_context.h>
 
 namespace daq::config_protocol
@@ -51,6 +52,14 @@ protected:
     static BaseObjectPtr DeserializeConfigComponent(const SerializedObjectPtr& serialized,
                                                     const BaseObjectPtr& context,
                                                     const FunctionPtr& factoryCallback);
+
+    void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+
+private:
+    void componentUpdateEnd(const CoreEventArgsPtr& args);
+    void attributeChanged(const CoreEventArgsPtr& args);
+    void tagsChanged(const CoreEventArgsPtr& args);
+    void statusChanged(const CoreEventArgsPtr& args);
 };
 
 template <class Impl>
@@ -142,4 +151,94 @@ BaseObjectPtr ConfigClientComponentBaseImpl<Impl>::DeserializeConfigComponent(co
         });
 }
 
+template <class Impl>
+void ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
+{
+    switch (static_cast<CoreEventId>(args.getEventId()))
+    {
+        case CoreEventId::ComponentUpdateEnd:
+            componentUpdateEnd(args);
+            break;
+        case CoreEventId::AttributeChanged:
+            attributeChanged(args);
+            break;
+        case CoreEventId::TagsChanged:
+            tagsChanged(args);
+            break;
+        case CoreEventId::StatusChanged:
+            statusChanged(args);
+            break;
+        case CoreEventId::PropertyValueChanged:
+        case CoreEventId::PropertyObjectUpdateEnd:
+        case CoreEventId::PropertyAdded:
+        case CoreEventId::PropertyRemoved:
+        case CoreEventId::SignalConnected:
+        case CoreEventId::SignalDisconnected:
+        case CoreEventId::DataDescriptorChanged:
+        case CoreEventId::ComponentAdded:
+        case CoreEventId::ComponentRemoved:
+        default:
+            break;
+    }
+
+    ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreObjectInternal(sender, args);
+}
+
+template <class Impl>
+void ConfigClientComponentBaseImpl<Impl>::componentUpdateEnd(const CoreEventArgsPtr& args)
+{
+    // TODO: Update the component once supported
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+        this->triggerCoreEvent(args);
+}
+
+template <class Impl>
+void ConfigClientComponentBaseImpl<Impl>::attributeChanged(const CoreEventArgsPtr& args)
+{
+    const std::string attrName = args.getParameters().get("AttributeName");
+    const bool relock = this->lockedAttributes.erase(attrName);
+
+    if (attrName == "Active")
+    {
+        const Bool active = args.getParameters().get("Active");
+        checkErrorInfo(Impl::setActive(active));
+    }
+    else if (attrName == "Name")
+    {
+        const StringPtr name = args.getParameters().get("Name");
+        checkErrorInfo(Impl::setName(name));
+    }
+    else if (attrName == "Description")
+    {
+        const StringPtr description = args.getParameters().get("Description");
+        checkErrorInfo(Impl::setDescription(description));
+    }
+    else if (attrName == "Visible")
+    {
+        const Bool visible = args.getParameters().get("Visible");
+        checkErrorInfo(Impl::setVisible(visible));
+    }
+
+    if (relock)
+        this->lockedAttributes.insert(attrName);
+}
+
+template <class Impl>
+void ConfigClientComponentBaseImpl<Impl>::tagsChanged(const CoreEventArgsPtr& args)
+{
+    TagsPtr tags;
+    checkErrorInfo(Impl::getTags(&tags));
+    const TagsPtr newTags = args.getParameters().get("Tags");
+    tags.asPtr<ITagsPrivate>().set(newTags.getList());
+}
+
+template <class Impl>
+void ConfigClientComponentBaseImpl<Impl>::statusChanged(const CoreEventArgsPtr& args)
+{
+    ComponentStatusContainerPtr statusContainer;
+    checkErrorInfo(Impl::getStatusContainer(&statusContainer));
+    DictPtr<IString, IEnumeration> changedStatuses = args.getParameters();
+    for (const auto& st : changedStatuses)
+        statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus(st.first, st.second);
+}
 }

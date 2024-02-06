@@ -37,6 +37,13 @@ public:
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+protected:
+    void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+
+private:
+    void componentAdded(const CoreEventArgsPtr& args);
+    void componentRemoved(const CoreEventArgsPtr& args);
 };
 
 inline ConfigClientDeviceImpl::ConfigClientDeviceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
@@ -57,9 +64,17 @@ inline FunctionBlockPtr ConfigClientDeviceImpl::onAddFunctionBlock(const StringP
 {
     auto params = Dict<IString, IBaseObject>({{"TypeId", typeId}, {"Config", config}});
     const ComponentHolderPtr fbHolder = clientComm->sendComponentCommand(remoteGlobalId, "AddFunctionBlock", params, functionBlocks);
-    const FunctionBlockPtr fb = fbHolder.getComponent();
-    addNestedFunctionBlock(fb);
-    return fb;
+
+    const DevicePtr thisPtr = this->borrowPtr<DevicePtr>();
+
+    FunctionBlockPtr fb = fbHolder.getComponent();
+    if (!functionBlocks.hasItem(fb.getLocalId()))
+    {
+        addNestedFunctionBlock(fb);
+        return fb;
+    }
+
+    return functionBlocks.getItem(fb.getLocalId());
 }
 
 inline ErrCode ConfigClientDeviceImpl::Deserialize(ISerializedObject* serialized,
@@ -75,5 +90,50 @@ inline ErrCode ConfigClientDeviceImpl::Deserialize(ISerializedObject* serialized
         });
 }
 
+inline void ConfigClientDeviceImpl::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
+{
+    switch (static_cast<CoreEventId>(args.getEventId()))
+    {
+        case CoreEventId::ComponentAdded:
+            componentAdded(args);
+            break;
+        case CoreEventId::ComponentRemoved:
+            componentRemoved(args);
+            break;
+        case CoreEventId::PropertyValueChanged:
+        case CoreEventId::PropertyObjectUpdateEnd:
+        case CoreEventId::PropertyAdded:
+        case CoreEventId::PropertyRemoved:
+        case CoreEventId::SignalConnected:
+        case CoreEventId::SignalDisconnected:
+        case CoreEventId::DataDescriptorChanged:
+        case CoreEventId::ComponentUpdateEnd:
+        case CoreEventId::AttributeChanged:
+        case CoreEventId::TagsChanged:
+        case CoreEventId::StatusChanged:
+        default:
+            break;
+    }
 
+    ConfigClientComponentBaseImpl::handleRemoteCoreObjectInternal(sender, args);
+}
+
+inline void ConfigClientDeviceImpl::componentAdded(const CoreEventArgsPtr& args)
+{
+    const ComponentPtr comp = args.getParameters().get("Component");
+    Bool hasItem{false};
+    checkErrorInfo(DeviceBase<IConfigClientObject>::hasItem(comp.getLocalId(), &hasItem));
+    if (!hasItem)
+        addExistingComponent(comp);
+}
+
+
+inline void ConfigClientDeviceImpl::componentRemoved(const CoreEventArgsPtr& args)
+{
+    const StringPtr id = args.getParameters().get("Id");
+    Bool hasItem{false};
+    checkErrorInfo(DeviceBase<IConfigClientObject>::hasItem(id, &hasItem));
+    if (hasItem)
+        removeComponentById(id);
+}
 }

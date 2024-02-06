@@ -67,7 +67,7 @@ BaseObjectPtr ConfigProtocolClientComm::getPropertyValue(const std::string& glob
     const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
 
     const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        shared_from_this(), std::string{}, daqContext, nullptr, nullptr);
+        shared_from_this(), std::string{}, daqContext, nullptr, nullptr, nullptr);
 
     return parseRpcReplyPacketBuffer(getPropertyValueRpcReplyPacketBuffer, deserializeContext);
 }
@@ -181,6 +181,13 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
         return obj;
     }
 
+    if (typeId == "Component")
+    {
+        BaseObjectPtr obj;
+        checkErrorInfo(ConfigClientComponentImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        return obj;
+    }
+
     if (typeId == "IoFolder")
     {
         BaseObjectPtr obj;
@@ -231,6 +238,11 @@ bool ConfigProtocolClientComm::getConnected() const
     return connected;
 }
 
+ContextPtr ConfigProtocolClientComm::getDaqContext()
+{
+    return daqContext;
+}
+
 BaseObjectPtr ConfigProtocolClientComm::sendComponentCommand(const StringPtr& globalId,
                                                              const StringPtr& command,
                                                              ParamsDictPtr& params,
@@ -274,7 +286,7 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Strin
     }
 
     const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        shared_from_this(), remoteGlobalId, daqContext, parentComponent, nullptr);
+        shared_from_this(), remoteGlobalId, daqContext, nullptr, parentComponent, nullptr);
 
     return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, deserializeContext);
 }
@@ -351,8 +363,14 @@ void ConfigProtocolClient::connect(const ComponentPtr& parent)
 void ConfigProtocolClient::triggerNotificationPacket(const PacketBuffer& packet)
 {
     const auto json = packet.parseServerNotification();
-
-    const auto obj = deserializer.deserialize(json);
+    
+    const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
+        clientComm, std::string{}, daqContext, device, nullptr, nullptr);
+    const auto obj = deserializer.deserialize(json, deserializeContext, 
+            [this](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
+            {
+                return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback);
+            });
     // handle notifications in callback provided in constructor
     const bool processed = serverNotificationReceivedCallback ? serverNotificationReceivedCallback(obj) : false;
     // if callback not processed by callback, process it internally
@@ -360,9 +378,68 @@ void ConfigProtocolClient::triggerNotificationPacket(const PacketBuffer& packet)
         triggerNotificationObject(obj);
 }
 
-void ConfigProtocolClient::triggerNotificationObject(const BaseObjectPtr& object)
+ComponentPtr ConfigProtocolClient::findComponent(std::string globalId)
 {
-    // handle notifications from server
+    globalId.erase(globalId.begin(), globalId.begin() + device.getLocalId().getLength() + 1);
+    if (globalId.find_first_of('/') == 0)
+        globalId.erase(globalId.begin(), globalId.begin() + 1);
+
+    return device.findComponent(globalId);
 }
 
+void ConfigProtocolClient::triggerNotificationObject(const BaseObjectPtr& object)
+{
+    ListPtr<IBaseObject> packedEvent = object.asPtrOrNull<IList>();
+    if (!packedEvent.assigned() || packedEvent.getCount() != 2)
+        return;
+
+    const ComponentPtr component = findComponent(packedEvent[0]);
+    if (component.assigned())
+    {
+        CoreEventArgsPtr argsPtr = unpackCoreEvents(packedEvent[1]);
+        component.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(component, argsPtr);
+    }
+}
+
+CoreEventArgsPtr ConfigProtocolClient::unpackCoreEvents(const CoreEventArgsPtr& args)
+{
+    
+    BaseObjectPtr cloned;
+    checkErrorInfo(args.getParameters().asPtr<ICloneable>()->clone(&cloned));
+    DictPtr<IString, IBaseObject> dict = cloned;
+
+    if (dict.hasKey("Signal"))
+    {
+        const auto globalId = dict.get("Signal");
+        dict.set("Signal", findComponent(globalId));
+    }
+    
+    if (dict.hasKey("DomainSignal"))
+    {
+        const auto globalId = dict.get("DomainSignal");
+        dict.set("DomainSignal", findComponent(globalId));
+    }
+    
+    if (dict.hasKey("RelatedSignals"))
+    {
+        ListPtr<ISignal> signals = List<ISignal>();
+        const ListPtr<IString> relatedSignals = dict.get("RelatedSignals");
+        for (const auto& id : relatedSignals)
+            signals.pushBack(findComponent(id));
+        dict.set("RelatedSignals", signals);
+    }
+
+    if (dict.hasKey("Component"))
+    {
+        const ComponentHolderPtr compHolder = dict.get("Component");
+        const ComponentPtr comp = compHolder.getComponent();
+        StringPtr parentRemoteId;
+        comp.getParent().asPtr<IConfigClientObject>()->getRemoteGlobalId(&parentRemoteId);
+
+        comp.asPtr<IConfigClientObject>()->setRemoteGlobalId(parentRemoteId + "/" + comp.getLocalId());
+        dict.set("Component", comp);
+    }
+
+    return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), dict);
+}
 }

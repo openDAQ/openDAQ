@@ -20,9 +20,15 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+/*#
+ * [interfaceLibrary(IComponent, "opendaq")]
+ * [interfaceLibrary(ICoreEventArgs, "coreobjects")]
+ */
 DECLARE_OPENDAQ_INTERFACE(IConfigClientObject, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC getRemoteGlobalId(IString** remoteGlobalId) = 0;
+    virtual ErrCode INTERFACE_FUNC setRemoteGlobalId(IString* remoteGlobalId) = 0;
+    virtual ErrCode INTERFACE_FUNC handleRemoteCoreEvent(IComponent* sender, ICoreEventArgs* args) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

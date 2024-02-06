@@ -465,7 +465,7 @@ TEST_F(SignalTest, SerializeAndDeserialize)
     const auto str1 = serializer.getOutput();
 
     const auto deserializer = JsonDeserializer();
-    const auto deserializeContext = ComponentDeserializeContext(daq::NullContext(), nullptr, "sig");
+    const auto deserializeContext = ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "sig");
 
     const SignalConfigPtr newSignal = deserializer.deserialize(str1, deserializeContext, nullptr);
 

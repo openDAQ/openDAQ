@@ -32,9 +32,9 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param id The ID of the event. If the ID is not equal to one of the pre-defined IDs, the event name will be "Unknown".
  * @param parameters The parameters of the event.
  */
-inline CoreEventArgsPtr CoreEventArgs(Int id, const DictPtr<IString, IBaseObject>& parameters)
+inline CoreEventArgsPtr CoreEventArgs(CoreEventId id, const StringPtr& name, const DictPtr<IString, IBaseObject>& parameters)
 {
-    CoreEventArgsPtr obj(CoreEventArgs_Create(id, parameters));
+    CoreEventArgsPtr obj(CoreEventArgs_Create(id, name,parameters));
     return obj;
 }
 

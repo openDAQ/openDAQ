@@ -21,9 +21,9 @@
 namespace daq::config_protocol
 {
 
-inline ComponentHolderPtr ComponentHolder(const StringPtr& id, const ComponentPtr& component)
+inline ComponentHolderPtr ComponentHolder(const StringPtr& id, const StringPtr& parentGlobalId, const ComponentPtr& component)
 {
-    return createWithImplementation<IComponentHolder, ComponentHolderImpl>(id, component);
+    return createWithImplementation<IComponentHolder, ComponentHolderImpl>(id, parentGlobalId, component);
 }
 
 inline ComponentHolderPtr ComponentHolder(const ComponentPtr& component)

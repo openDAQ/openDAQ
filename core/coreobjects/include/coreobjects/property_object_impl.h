@@ -1443,17 +1443,43 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getProperty(
     if (propertyName == nullptr || property == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    return daqTry([&]() -> auto {
-        PropertyPtr prop = getUnboundProperty(StringPtr::Borrow(propertyName));
-        auto boundProp = prop.asPtr<IPropertyInternal>().cloneWithOwner(objPtr);
+    return daqTry([&]() -> auto
+    {
+        StringPtr childName;
+        StringPtr subName;
+        StringPtr propName = propertyName;
 
-        auto freezable = boundProp.template asPtrOrNull<IFreezable>();
+        const auto isChildProp = isChildProperty(propName, childName, subName);
+
+        PropertyPtr prop;
+
+        if (isChildProp)
+        {
+            propName = childName;
+            BaseObjectPtr childProp;
+            const ErrCode err = getPropertyValue(propName, &childProp);
+            if (OPENDAQ_FAILED(err))
+            {
+                return err;
+            }
+
+            const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
+            prop = childPropAsPropertyObject.getProperty(subName);
+        }
+        else
+        {
+            
+            prop = getUnboundProperty(propName);
+            prop = prop.asPtr<IPropertyInternal>().cloneWithOwner(objPtr);
+        }
+
+        auto freezable = prop.template asPtrOrNull<IFreezable>();
         if (freezable.assigned())
         {
             freezable.freeze();
         }
 
-        *property = boundProp.detach();
+        *property = prop.detach();
         return OPENDAQ_SUCCESS;
     });
 }

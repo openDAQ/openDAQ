@@ -1,9 +1,6 @@
-05.02.2024
+06.02.2024
 Description:
-Support configuring instance builder from config provider
-  - enviorment variables
-  - external json file
-  - command line argument
+	- Support configuring instance builder from config provider
 
 -m [factory] ContextPtr Context(const SchedulerPtr& scheduler, const LoggerPtr& logger, const TypeManagerPtr& typeManager, const ModuleManagerPtr& moduleManager)
 +m [factory] ContextPtr Context(const SchedulerPtr& scheduler, const LoggerPtr& logger, const TypeManagerPtr& typeManager, const ModuleManagerPtr& moduleManager, const DictPtr<IString, IBaseObject> options)
@@ -17,6 +14,14 @@ Support configuring instance builder from config provider
 + [factory] ConfigProviderPtr JsonConfigProvider(const StringPtr& filename)
 + [factory] ConfigProviderPtr EnvConfigProvider()
 + [factory] ConfigProviderPtr CmdLineArgsConfigProvider(const ListPtr<IString>& args)
+
+05.02.2024
+Description:
+	- Add core event support to config client
+
+-m [function] IInstance::findComponent(IComponent* component, IString* id, IComponent** outComponent)
++m [function] IComponent::findComponent(IString* id, IComponent** outComponent)
++ [function] ITags::set(IList* tags) = 0;
 
 5.2.2024
 Description:

@@ -94,9 +94,11 @@ function(_rtgen_interface FILENAME OUTFILES_VAR)
             # If generating bindings set the output directory to "bindings/{LANG}"
             # Create the directory if it doesn't exist yet
             set(RTGEN_OUTPUT_DIR "${CURR_BINDINGS_DIR}/${LANG}")
-            if (NOT EXISTS RTGEN_OUTPUT_DIR)
-                opendaq_create_dir(${RTGEN_OUTPUT_DIR})
-            endif()
+        endif()
+
+        # Create the directory if it doesn't exist yet
+        if (NOT EXISTS RTGEN_OUTPUT_DIR)
+            opendaq_create_dir(${RTGEN_OUTPUT_DIR})
         endif()
 
         if (RTGEN_NAMESPACE)

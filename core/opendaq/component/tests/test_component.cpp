@@ -151,7 +151,7 @@ TEST_F(ComponentTest, SerializeAndDeserialize)
 
     const auto deserializer = JsonDeserializer();
 
-    const auto deserializeContext = ComponentDeserializeContext(ctx, nullptr, "temp");
+    const auto deserializeContext = ComponentDeserializeContext(ctx, nullptr, nullptr, "temp");
 
     const ComponentPtr newComponent = deserializer.deserialize(str1, deserializeContext, nullptr);
 

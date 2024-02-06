@@ -25,6 +25,7 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IComponentHolder, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC getLocalId(IString** localId) = 0;
+    virtual ErrCode INTERFACE_FUNC getParentGlobalId(IString** parentId) = 0;
     virtual ErrCode INTERFACE_FUNC getComponent(IComponent** component) = 0;
 };
 

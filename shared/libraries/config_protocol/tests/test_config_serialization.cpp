@@ -136,7 +136,7 @@ TEST_F(ConfigProtocolSerializationTest, Component)
     auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        clientComm, std::string {}, ctx, nullptr, "temp");
+        clientComm, std::string {}, ctx, nullptr, nullptr, "temp");
     bool configComponentInstantiated = false;
     const ComponentPtr newComponent = deserializer.deserialize(str1,
                                                                deserializeContext,
@@ -192,7 +192,7 @@ TEST_F(ConfigProtocolSerializationTest, FolderWithComponent)
     auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        clientComm, std::string {}, ctx, nullptr, "folder");
+        clientComm, std::string {}, ctx, nullptr, nullptr, "folder");
     int configComponentInstantiated = 0;
     const ComponentPtr newFolder =
         deserializer.deserialize(str1,
@@ -257,7 +257,7 @@ TEST_F(ConfigProtocolSerializationTest, IoFolderWithComponent)
     auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        clientComm, std::string{}, ctx, nullptr, "folder");
+        clientComm, std::string{}, ctx, nullptr, nullptr, "folder");
     int configComponentInstantiated = 0;
     const ComponentPtr newFolder =
         deserializer.deserialize(str1,
@@ -305,7 +305,7 @@ TEST_F(ConfigProtocolSerializationTest, InputPort)
     auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        clientComm, std::string {}, NullContext(), nullptr, "ip");
+        clientComm, std::string {}, NullContext(), nullptr, nullptr, "ip");
     bool configComponentInstantiated = false;
     const InputPortPtr newInputPort = deserializer.deserialize(str1,
         deserializeContext,
@@ -353,7 +353,7 @@ TEST_F(ConfigProtocolSerializationTest, Signal)
     auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        clientComm, std::string {}, NullContext(), nullptr, "sig");
+        clientComm, std::string {}, NullContext(), nullptr, nullptr, "sig");
     bool configComponentInstantiated = false;
     const SignalPtr newSignal =
         deserializer.deserialize(str1,
@@ -418,7 +418,7 @@ TEST_F(ConfigProtocolSerializationTest, FunctionBlock)
     auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        clientComm, std::string {} , NullContext(), nullptr, "fb");
+        clientComm, std::string {} , NullContext(), nullptr, nullptr, "fb");
 
     int configComponentInstantiated = 0;
     const FunctionBlockPtr newFunctionBlock =
@@ -504,7 +504,7 @@ TEST_F(ConfigProtocolSerializationTest, Channel)
     auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        clientComm, std::string {}, NullContext(), nullptr, "ch");
+        clientComm, std::string {}, NullContext(), nullptr, nullptr, "ch");
 
     int configComponentInstantiated = 0;
     const ChannelPtr newCh =
@@ -583,7 +583,7 @@ TEST_F(ConfigProtocolSerializationTest, Device)
     auto clientComm = std::make_shared<ConfigProtocolClientComm>(NullContext(), nullptr);
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-        clientComm, std::string {}, NullContext(), nullptr, "dev");
+        clientComm, std::string {}, NullContext(), nullptr, nullptr, "dev");
 
     int configComponentInstantiated = 0;
     const DevicePtr newFunctionBlock =

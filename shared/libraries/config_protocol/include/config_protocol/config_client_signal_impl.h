@@ -36,6 +36,13 @@ public:
     Bool onTriggerEvent(EventPacketPtr eventPacket) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+protected:
+    void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+
+private:
+    void descriptorChanged(const CoreEventArgsPtr& args);
+    void attributeChanged(const CoreEventArgsPtr& args);
 };
 
 
@@ -73,5 +80,58 @@ inline ErrCode ConfigClientSignalImpl::Deserialize(ISerializedObject* serialized
         });
 }
 
+inline void ConfigClientSignalImpl::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
+{
+    switch (static_cast<CoreEventId>(args.getEventId()))
+    {
+        case CoreEventId::DataDescriptorChanged:
+            descriptorChanged(args);
+            break;
+        case CoreEventId::AttributeChanged:
+            attributeChanged(args);
+            break;
+        case CoreEventId::SignalConnected:
+        case CoreEventId::SignalDisconnected:
+        case CoreEventId::ComponentUpdateEnd:
+        case CoreEventId::TagsChanged:
+        case CoreEventId::PropertyValueChanged:
+        case CoreEventId::PropertyObjectUpdateEnd:
+        case CoreEventId::PropertyAdded:
+        case CoreEventId::PropertyRemoved:
+        case CoreEventId::ComponentAdded:
+        case CoreEventId::ComponentRemoved:
+        case CoreEventId::StatusChanged:
+        default:
+            break;
+    }
 
+    ConfigClientComponentBaseImpl<MirroredSignalBase<IConfigClientObject>>::handleRemoteCoreObjectInternal(sender, args);
+}
+
+inline void ConfigClientSignalImpl::descriptorChanged(const CoreEventArgsPtr& args)
+{
+    this->dataDescriptor = args.getParameters().get("DataDescriptor");
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+        this->triggerCoreEvent(args);
+}
+
+inline void ConfigClientSignalImpl::attributeChanged(const CoreEventArgsPtr& args)
+{
+    const std::string attrName = args.getParameters().get("AttributeName");
+    const bool relock = this->lockedAttributes.erase(attrName);
+
+    if (attrName == "RelatedSignals")
+    {
+        const ListPtr<ISignal> relatedSignals = args.getParameters().get("RelatedSignals");
+        checkErrorInfo(SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject>::setRelatedSignals(relatedSignals));
+    }
+    else if (attrName == "DomainSignal")
+    {
+        const SignalPtr domainSignal = args.getParameters().get("DomainSignal");
+        checkErrorInfo(SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject>::setDomainSignal(domainSignal));
+    }
+
+    if (relock)
+        this->lockedAttributes.insert(attrName);
+}
 }

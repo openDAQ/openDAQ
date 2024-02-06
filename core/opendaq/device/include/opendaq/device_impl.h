@@ -991,8 +991,20 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
-    this->deserializeFolder(serializedObject, context, factoryCallback, ioFolder, "IO");
-    this->deserializeFolder(serializedObject, context, factoryCallback, devices, "Dev");
+    this->deserializeDefaultFolder(serializedObject, context, factoryCallback, ioFolder, "IO");
+    this->deserializeDefaultFolder(serializedObject, context, factoryCallback, devices, "Dev");
+    const auto keys = serializedObject.getKeys();
+    for (const auto& key : serializedObject.getKeys())
+    {
+        if (!this->defaultComponents.count(key) && serializedObject.getType(key) == ctObject)
+        {
+            const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
+            const auto newDeserializeContext = deserializeContext.clone(this->template borrowPtr<ComponentPtr>(), key);
+            const BaseObjectPtr obj = serializedObject.readObject(key, newDeserializeContext, factoryCallback);
+            if (const auto component = obj.asPtrOrNull<IComponent>(); component.assigned())
+                this->addExistingComponent(component);
+        }
+    }
 }
 
 template <typename TInterface, typename... Interfaces>

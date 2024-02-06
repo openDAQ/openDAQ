@@ -123,7 +123,9 @@ FunctionBlockTypePtr ClassifierFbImpl::CreateType()
 }
 
 bool ClassifierFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
-                                                   const DataDescriptorPtr& inputDomainDataDescriptor)
+                                                        const DataDescriptorPtr& inputDomainDataDescriptor, 
+                                                        void* remainingSample, 
+                                                        size_t remainingSize)
 {
     if (inputDataDescriptor.assigned())
         this->inputDataDescriptor = inputDataDescriptor;
@@ -300,7 +302,7 @@ void ClassifierFbImpl::processEventPacket(const EventPacketPtr& packet)
     {
         DataDescriptorPtr inputDataDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
         DataDescriptorPtr inputDomainDataDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-        processSignalDescriptorChanged(inputDataDescriptor, inputDomainDataDescriptor);
+        processSignalDescriptorChanged(inputDataDescriptor, inputDomainDataDescriptor, nullptr, 0);
     }
 }
 

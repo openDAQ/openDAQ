@@ -336,7 +336,6 @@ protected:
         , valueReader(daq::createReaderForType(valueReadType, old->valueReader->getTransformFunction()))
         , domainReader(daq::createReaderForType(domainReadType, old->domainReader->getTransformFunction()))
     {
-        std::unique_lock lock(old->mutex);
         dataDescriptor = old->dataDescriptor;
         old->invalid = true;
 
@@ -402,7 +401,7 @@ protected:
         }
     }
 
-    virtual void handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback = true)
+    virtual void handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback = true, void* remainingSample = nullptr, size_t remainingSize = 0)
     {
         if (!eventPacket.assigned())
             return;
@@ -447,7 +446,7 @@ protected:
         if (callChangeCallback && !invalid && changeCallback.assigned())
         {
             bool descriptorOk = false;
-            ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor);
+            ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor, nullptr, 0);
             invalid = !descriptorOk || OPENDAQ_FAILED(errCode);
 
             if (OPENDAQ_FAILED(errCode))

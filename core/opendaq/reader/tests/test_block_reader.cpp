@@ -621,7 +621,7 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedCallbackNotConvertible)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::BlockReader<TypeParam, ClockRange>(this->signal, BLOCK_SIZE);
-    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor)
+    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor, void* remainingSample, size_t remainingSize)
     {
         return false;
     });
@@ -1019,11 +1019,25 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
     BlockReaderPtr reader = daq::BlockReader(this->signal, 1, SampleType::Float64, SampleType::RangeInt64);
     BlockReaderPtr newReader;
     reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
-        newReader.readWithDomain(&samples, &domain, &count);
-        promise.set_value();
+        if (!newReader.assigned())
+        {
+            try 
+            {
+                size_t tmpCnt = 1;
+                reader.readWithDomain(&samples, &domain, &tmpCnt);
+            }
+            catch (...)
+            {
+            }
+        }
+        if (newReader.assigned())
+        {
+            newReader.readWithDomain(&samples, &domain, &count);
+            promise.set_value();
+        }
         return nullptr;
     });
-    reader.setOnDescriptorChanged([&] {
+    reader.setOnDescriptorChanged([&] (const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor, void* remainingSample, size_t remainingSize) {
         newReader = daq::BlockReaderFromExisting(reader, BLOCK_SIZE, SampleType::Float64, SampleType::RangeInt64);
         return false;
     });

@@ -685,7 +685,7 @@ TYPED_TEST(StreamReaderFromExistingTest, DescriptorChangedCallbackNotConvertible
     auto oldReader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
 
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
-    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor)
+    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor, void* remainingSample, size_t remainingSize)
     {
         return false;
     });

@@ -294,7 +294,7 @@ void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescripto
     reader = createReaderForType(newDescriptor.getSampleType(), reader->getTransformFunction());
 }
 
-void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback)
+void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback, void* remainingSample, size_t remainingSize)
 {
     if (!eventPacket.assigned())
         return;
@@ -340,7 +340,7 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
     if (callChangeCallback && !invalid && changeCallback.assigned())
     {
         bool descriptorOk = false;
-        ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor);
+        ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor, nullptr, 0);
         invalid = !descriptorOk || OPENDAQ_FAILED(errCode);
 
         if (OPENDAQ_FAILED(errCode))
@@ -473,7 +473,7 @@ ErrCode StreamReaderImpl::readPackets()
                 auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
-                    errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket, true);
+                    errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket, true, nullptr, 0);
                     if (OPENDAQ_FAILED(errCode))
                     {
                         invalid = true;

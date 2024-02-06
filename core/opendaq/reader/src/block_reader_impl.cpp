@@ -172,6 +172,8 @@ ErrCode BlockReaderImpl::readPackets()
 {
     ErrCode errCode = OPENDAQ_SUCCESS;
 
+    size_t sampleToRead = info.remainingSamplesToRead;
+
     BlockReadInfo::Duration remainingTime = info.timeout;
     auto shouldReadMore = getAvailable() > 0 || remainingTime.count() > 0;
 
@@ -226,7 +228,7 @@ ErrCode BlockReaderImpl::readPackets()
                 auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
-                    handleDescriptorChanged(eventPacket);
+                    handleDescriptorChanged(eventPacket, true, info.values, sampleToRead - info.remainingSamplesToRead);
                     if (invalid)
                     {
                         return this->makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Packet samples are no longer convertible to the read type");

@@ -148,7 +148,9 @@ void example4(const SignalConfigPtr& signal)
 
     // Instal a custom callback that invalidates the reader if the new value sample-type is `Int64`
     reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor,
-                                     const DataDescriptorPtr& /*domainDescriptor*/)
+                                     const DataDescriptorPtr& /*domainDescriptor*/, 
+                                     void* /*remainingSample*/, 
+                                     size_t /*remainingSize*/)
     {
         // If the value descriptor has changed
         if (valueDescriptor.assigned())
@@ -208,7 +210,9 @@ void example5(const SignalConfigPtr& signal)
 
     // Instal a custom callback that invalidates the reader if the new value sample-type is `Int64`
     reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor,
-                                     const DataDescriptorPtr& /*domainDescriptor*/)
+                                     const DataDescriptorPtr& /*domainDescriptor*/, 
+                                     void* /*remainingSample*/, 
+                                     size_t /*remainingSize*/)
     {
         // If the value descriptor has changed
         if (valueDescriptor.assigned())

@@ -101,7 +101,7 @@ private:
 
     void onPacketReady();
 
-    void handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback = true);
+    void handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback = true, void* remainingSample = nullptr, size_t remainingSize = 0);
 
     [[nodiscard]]
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket);

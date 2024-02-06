@@ -5,11 +5,11 @@
 
 BEGIN_NAMESPACE_DISCOVERY
 
-DiscoveryClient::DiscoveryClient(std::function<std::string(MdnsDiscoveredDevice)> connectionStringFormatCb,
-                                     std::unordered_set<std::string> requiredCaps)
+DiscoveryClient::DiscoveryClient(std::vector<ConnectionStringFormatCb> connectionStringFormatCbs,
+                                 std::unordered_set<std::string> requiredCaps)
     : discoveredDevices(List<IDeviceInfo>())
     , requiredCaps(std::move(requiredCaps))
-    , connectionStringFormatCb(std::move(connectionStringFormatCb))
+    , connectionStringFormatCbs(std::move(connectionStringFormatCbs))
 {
 }
 
@@ -52,8 +52,11 @@ void DiscoveryClient::discoverMdnsDevices()
 
     for (const auto& device : mdnsDevices)
     {
-        if (auto deviceInfo = createDeviceInfo(device); deviceInfo.assigned())
-            discoveredDevices.pushBack(deviceInfo);
+        for (const auto& connectionStringFormatCb : connectionStringFormatCbs)
+        {
+            if (auto deviceInfo = createDeviceInfo(device, connectionStringFormatCb); deviceInfo.assigned())
+                discoveredDevices.pushBack(deviceInfo);
+        }
     }
 }
 
@@ -101,7 +104,8 @@ void addInfoProperty(DeviceInfoConfigPtr& info, std::string propName, T propValu
     }
 }
 
-DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredDevice) const
+DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredDevice,
+                                                ConnectionStringFormatCb connectionStringFormatCb) const
 {
     if (discoveredDevice.ipv4Address.empty())
         return nullptr;

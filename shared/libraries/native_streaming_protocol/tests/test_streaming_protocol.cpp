@@ -1,12 +1,9 @@
-#include <gtest/gtest.h>
+#include "test_base.h"
 #include <testutils/memcheck_listener.h>
 
 #include <opendaq/opendaq.h>
 #include <opendaq/deserialize_component_ptr.h>
 #include <opendaq/component_deserialize_context_factory.h>
-
-#include <native_streaming_protocol/native_streaming_client_handler.h>
-#include <native_streaming_protocol/native_streaming_server_handler.h>
 
 #include <memory>
 #include <future>
@@ -14,44 +11,6 @@
 using namespace daq;
 using namespace daq::opendaq_native_streaming_protocol;
 
-using ClientCountType = size_t;
-using WorkGuardType = boost::asio::executor_work_guard<boost::asio::io_context::executor_type>;
-
-class DummyConfigProtocolInstance
-{
-public:
-    DummyConfigProtocolInstance()
-        : sendPacketCb(nullptr)
-    {};
-
-    void receivePacket(const config_protocol::PacketBuffer& packetBuffer)
-    {
-        receivedPackets.push_back(config_protocol::PacketBuffer(packetBuffer.getBuffer(), true));
-    };
-
-    void sendPacket(const config_protocol::PacketBuffer& packetBuffer)
-    {
-        sentPackets.push_back(config_protocol::PacketBuffer(packetBuffer.getBuffer(), true));
-        //sendPacketCb(packetBuffer);
-    };
-
-    static void testPacketsEquality(const config_protocol::PacketBuffer& packetBuffer1,
-                                    const config_protocol::PacketBuffer& packetBuffer2)
-    {
-        ASSERT_TRUE(packetBuffer1.getPacketType() == packetBuffer2.getPacketType());
-        ASSERT_TRUE(packetBuffer1.getId() == packetBuffer2.getId());
-        ASSERT_TRUE(packetBuffer1.getPayloadSize() == packetBuffer2.getPayloadSize());
-        ASSERT_TRUE(packetBuffer1.getLength() == packetBuffer2.getLength());
-        ASSERT_TRUE(std::memcmp(packetBuffer1.getPayload(), packetBuffer2.getPayload(), packetBuffer1.getPayloadSize()) == 0);
-        ASSERT_TRUE(std::memcmp(packetBuffer1.getBuffer(), packetBuffer2.getBuffer(), packetBuffer1.getLength()) == 0);
-    };
-
-    std::vector<config_protocol::PacketBuffer> receivedPackets;
-    std::vector<config_protocol::PacketBuffer> sentPackets;
-
-    ConfigProtocolPacketCb sendPacketCb;
-};
-#include <opendaq/signal_impl.h>
 static SignalPtr deserializeSignal(const ContextPtr& context, const StringPtr& serializedSignal)
 {
     const auto deserializer = JsonDeserializer();
@@ -66,7 +25,7 @@ static StringPtr getDomainSignalId(const SignalPtr& signal)
     return signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
 }
 
-class ClientAttributes
+class StreamingProtocolAttributes : public ClientAttributesBase
 {
 public:
     std::promise< std::tuple<StringPtr, StringPtr> > signalAvailablePromise;
@@ -90,9 +49,6 @@ public:
     std::promise< ClientReconnectionStatus > reconnectionStatusPromise;
     std::future< ClientReconnectionStatus > reconnectionStatusFuture;
 
-    std::shared_ptr<NativeStreamingClientHandler> clientHandler;
-    ContextPtr clientContext;
-
     OnSignalAvailableCallback signalAvailableHandler;
     OnSignalAvailableCallback signalWithDomainAvailableHandler;
     OnSignalUnavailableCallback signalUnavailableHandler;
@@ -100,15 +56,9 @@ public:
     OnSignalSubscriptionAckCallback signalSubscriptionAckHandler;
     OnReconnectionStatusChangedCallback reconnectionStatusChangedHandler;
 
-    DummyConfigProtocolInstance configProtocolHandler;
-    ConfigProtocolPacketCb configProtocolPacketHandler;
-
-    /// async operations handler
-    std::shared_ptr<boost::asio::io_context> ioContextPtrClient;
-
     void setUp()
     {
-        clientContext = NullContext(Logger(nullptr, LogLevel::Trace));
+        ClientAttributesBase::setUp();
 
         signalAvailablePromise = std::promise< std::tuple<StringPtr, StringPtr> >();
         signalAvailableFuture = signalAvailablePromise.get_future();
@@ -165,47 +115,20 @@ public:
         {
             reconnectionStatusPromise.set_value(status);
         };
-
-        configProtocolPacketHandler = [this](const config_protocol::PacketBuffer& packetBuffer)
-        {
-            configProtocolHandler.receivePacket(packetBuffer);
-        };
-
-        ioContextPtrClient = std::make_shared<boost::asio::io_context>();
-        workGuardClient = std::make_unique<WorkGuardType>(ioContextPtrClient->get_executor());
-        execThreadClient = std::thread([this]() { ioContextPtrClient->run(); });
     }
 
     void tearDown()
     {
-        ioContextPtrClient->stop();
-        if (execThreadClient.joinable())
-        {
-            execThreadClient.join();
-        }
-        workGuardClient.reset();
-        ioContextPtrClient.reset();
-        clientHandler.reset();
+        ClientAttributesBase::tearDown();
     }
-
-private:
-    /// prevents boost::asio::io_context::run() from returning when there is no more async operations pending
-    std::unique_ptr<WorkGuardType> workGuardClient;
-    /// async operations runner thread
-    std::thread execThreadClient;
 };
 
-class ProtocolTest : public testing::TestWithParam<std::tuple<ClientCountType, bool>>
+class StreamingProtocolTest : public ProtocolTestBase
 {
 public:
-    const uint16_t NATIVE_STREAMING_SERVER_PORT = 7420;
-    const std::string NATIVE_STREAMING_LISTENING_PORT = "7420";
-    const std::string SERVER_ADDRESS = "127.0.0.1";
-    const std::chrono::milliseconds timeout = std::chrono::milliseconds(500);
-
     void SetUp() override
     {
-        serverContext = NullContext(Logger(nullptr, LogLevel::Trace));
+        ProtocolTestBase::SetUp();
 
         signalSubscribedPromise = std::promise< SignalPtr >();
         signalSubscribedFuture = signalSubscribedPromise.get_future();
@@ -223,21 +146,13 @@ public:
             signalUnsubscribedPromise.set_value(signal);
         };
 
-        setUpConfigProtocolServerCb =
-            [this](ConfigProtocolPacketCb sendPacketCb)
+        setUpConfigProtocolServerCb = [](ConfigProtocolPacketCb sendPacketCb)
         {
-            auto configProtocolHandler = std::make_shared<DummyConfigProtocolInstance>();
-            ConfigProtocolPacketCb receivePacketCb =
-                [configProtocolHandler](const config_protocol::PacketBuffer& packetBuffer)
-            {
-                configProtocolHandler->receivePacket(packetBuffer);
-            };
-            configProtocolHandlers.push_back(configProtocolHandler);
-            return receivePacketCb;
+            return [](const config_protocol::PacketBuffer& packetBuffer) {};
         };
 
         clientsCount = std::get<0>(GetParam());
-        clients = std::vector<ClientAttributes>(clientsCount);
+        clients = std::vector<StreamingProtocolAttributes>(clientsCount);
         for (size_t i = 0; i < clients.size(); ++i)
         {
             clients[i].setUp();
@@ -258,28 +173,27 @@ public:
                 client.tearDown();
             stopServer();
         }
+        ProtocolTestBase::TearDown();
     }
 
-    std::shared_ptr<NativeStreamingClientHandler> createClient(const ClientAttributes& client,
+    std::shared_ptr<NativeStreamingClientHandler> createClient(StreamingProtocolAttributes& client,
                                                                OnSignalAvailableCallback signalAvailableHandler)
     {
         auto clientHandler = std::make_shared<NativeStreamingClientHandler>(client.clientContext);
+
         clientHandler->setIoContext(client.ioContextPtrClient);
         clientHandler->setSignalAvailableHandler(signalAvailableHandler);
         clientHandler->setSignalUnavailableHandler(client.signalUnavailableHandler);
         clientHandler->setPacketHandler(client.packetHandler);
         clientHandler->setSignalSubscriptionAckCallback(client.signalSubscriptionAckHandler);
         clientHandler->setReconnectionStatusChangedCb(client.reconnectionStatusChangedHandler);
-        clientHandler->setConfigPacketHandler(client.configProtocolPacketHandler);
+
         return clientHandler;
     }
 
     void startServer(const ListPtr<ISignal>& signalsList)
     {
-        ioContextPtrServer = std::make_shared<boost::asio::io_context>();
-        workGuardServer = std::make_unique<WorkGuardType>(ioContextPtrServer->get_executor());
-        execThreadServer = std::thread([this]() { ioContextPtrServer->run(); });
-
+        startIoOperations();
         serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
                                                                        ioContextPtrServer,
                                                                        signalsList,
@@ -291,26 +205,15 @@ public:
 
     void stopServer()
     {
-        if (ioContextPtrServer)
-            ioContextPtrServer->stop();
-        if (execThreadServer.joinable())
-            execThreadServer.join();
-        workGuardServer.reset();
-        ioContextPtrServer.reset();
+        stopIoOperations();
         serverHandler.reset();
     }
 
 protected:
-    ContextPtr serverContext;
-
-    ClientCountType clientsCount;
-    std::vector<ClientAttributes> clients;
+    std::vector<StreamingProtocolAttributes> clients;
 
     OnSignalSubscribedCallback signalSubscribedHandler;
     OnSignalUnsubscribedCallback signalUnsubscribedHandler;
-
-    std::vector<std::shared_ptr<DummyConfigProtocolInstance>> configProtocolHandlers;
-    SetUpConfigProtocolServerCb setUpConfigProtocolServerCb;
 
     std::promise< SignalPtr > signalSubscribedPromise;
     std::future< SignalPtr > signalSubscribedFuture;
@@ -318,17 +221,10 @@ protected:
     std::promise< SignalPtr > signalUnsubscribedPromise;
     std::future< SignalPtr > signalUnsubscribedFuture;
 
-    /// async operations handler
-    std::shared_ptr<boost::asio::io_context> ioContextPtrServer;
-    /// prevents boost::asio::io_context::run() from returning when there is no more async operations pending
-    std::unique_ptr<WorkGuardType> workGuardServer;
-    /// async operations runner thread
-    std::thread execThreadServer;
-
-    std::shared_ptr<NativeStreamingServerHandler> serverHandler;
+    SetUpConfigProtocolServerCb setUpConfigProtocolServerCb;
 };
 
-TEST_P(ProtocolTest, CreateServerNoSignals)
+TEST_P(StreamingProtocolTest, CreateServerNoSignals)
 {
     serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
                                                                    ioContextPtrServer,
@@ -338,7 +234,7 @@ TEST_P(ProtocolTest, CreateServerNoSignals)
                                                                    setUpConfigProtocolServerCb);
 }
 
-TEST_P(ProtocolTest, CreateClient)
+TEST_P(StreamingProtocolTest, CreateClient)
 {
     for (auto& client : clients)
     {
@@ -346,7 +242,7 @@ TEST_P(ProtocolTest, CreateClient)
     }
 }
 
-TEST_P(ProtocolTest, ClientConnectFailed)
+TEST_P(StreamingProtocolTest, ClientConnectFailed)
 {
     for (auto& client : clients)
     {
@@ -355,7 +251,7 @@ TEST_P(ProtocolTest, ClientConnectFailed)
     }
 }
 
-TEST_P(ProtocolTest, ConnectDisconnectNoSignals)
+TEST_P(StreamingProtocolTest, ConnectDisconnectNoSignals)
 {
     startServer(List<ISignal>());
 
@@ -366,7 +262,7 @@ TEST_P(ProtocolTest, ConnectDisconnectNoSignals)
     }
 }
 
-TEST_P(ProtocolTest, Reconnection)
+TEST_P(StreamingProtocolTest, Reconnection)
 {
     startServer(List<ISignal>());
 
@@ -399,7 +295,7 @@ TEST_P(ProtocolTest, Reconnection)
     }
 }
 
-TEST_P(ProtocolTest, ConnectDisconnectWithSignalDomainUnassigned)
+TEST_P(StreamingProtocolTest, ConnectDisconnectWithSignalDomainUnassigned)
 {
     auto serverSignal = SignalWithDescriptor(serverContext, DataDescriptorBuilder().setSampleType(SampleType::Undefined).build(), nullptr, "signal");
     serverSignal.setName("signalName");
@@ -423,7 +319,7 @@ TEST_P(ProtocolTest, ConnectDisconnectWithSignalDomainUnassigned)
     }
 }
 
-TEST_P(ProtocolTest, ConnectDisconnectWithSignalDomainAssigned)
+TEST_P(StreamingProtocolTest, ConnectDisconnectWithSignalDomainAssigned)
 {
     auto serverDomainSignal =
         SignalWithDescriptor(serverContext, DataDescriptorBuilder().setSampleType(SampleType::Undefined).build(), nullptr, "domainSignal");
@@ -451,7 +347,7 @@ TEST_P(ProtocolTest, ConnectDisconnectWithSignalDomainAssigned)
     }
 }
 
-TEST_P(ProtocolTest, AddSignal)
+TEST_P(StreamingProtocolTest, AddSignal)
 {
     startServer(List<ISignal>());
 
@@ -479,7 +375,7 @@ TEST_P(ProtocolTest, AddSignal)
     }
 }
 
-TEST_P(ProtocolTest, RemoveSignal)
+TEST_P(StreamingProtocolTest, RemoveSignal)
 {
     auto serverSignal =
         SignalWithDescriptor(serverContext, DataDescriptorBuilder().setSampleType(SampleType::Undefined).build(), nullptr, "signal");
@@ -507,7 +403,7 @@ TEST_P(ProtocolTest, RemoveSignal)
     }
 }
 
-TEST_P(ProtocolTest, SignalSubscribeUnsubscribe)
+TEST_P(StreamingProtocolTest, SignalSubscribeUnsubscribe)
 {
     StringPtr clientSignalStringId, serializedSignal;
     DataDescriptorPtr clientSignalDescriptor;
@@ -541,7 +437,7 @@ TEST_P(ProtocolTest, SignalSubscribeUnsubscribe)
     ASSERT_EQ(signalUnsubscribedFuture.get(), serverSignal);
 }
 
-TEST_P(ProtocolTest, InitialEventPacket)
+TEST_P(StreamingProtocolTest, InitialEventPacket)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
     auto initialEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
@@ -561,7 +457,7 @@ TEST_P(ProtocolTest, InitialEventPacket)
     }
 }
 
-TEST_P(ProtocolTest, SendEventPacket)
+TEST_P(StreamingProtocolTest, SendEventPacket)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
     auto initialEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
@@ -603,7 +499,7 @@ TEST_P(ProtocolTest, SendEventPacket)
     }
 }
 
-TEST_P(ProtocolTest, SendPacketsNoSubscribers)
+TEST_P(StreamingProtocolTest, SendPacketsNoSubscribers)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
@@ -636,7 +532,7 @@ TEST_P(ProtocolTest, SendPacketsNoSubscribers)
     }
 }
 
-TEST_P(ProtocolTest, SendDataPacket)
+TEST_P(StreamingProtocolTest, SendDataPacket)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
     auto serverDataPacket = DataPacket(valueDescriptor, 100);
@@ -676,44 +572,11 @@ TEST_P(ProtocolTest, SendDataPacket)
     }
 }
 
-TEST_P(ProtocolTest, DISABLED_ConfigProtocolPackets)
-{
-    startServer(List<ISignal>());
-
-    for (auto& client : clients)
-    {
-        client.clientHandler = createClient(client, client.signalAvailableHandler);
-        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
-    }
-
-    ASSERT_EQ(clients.size(), configProtocolHandlers.size());
-
-    for (auto& client : clients)
-    {
-        auto packet = config_protocol::PacketBuffer::createGetProtocolInfoRequest(1);
-        client.clientHandler->sendConfigRequest(packet);
-        client.configProtocolHandler.sendPacket(packet);
-    }
-
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-
-    for (size_t i = 0; i < clients.size(); ++i)
-    {
-        auto packetsReceived = configProtocolHandlers[i]->receivedPackets.size();
-        ASSERT_EQ(clients[i].configProtocolHandler.sentPackets.size(), packetsReceived);
-        for (size_t j = 0; j < packetsReceived; ++j)
-            DummyConfigProtocolInstance::testPacketsEquality(
-                configProtocolHandlers[i]->receivedPackets[j],
-                clients[i].configProtocolHandler.sentPackets[j]
-            );
-    }
-}
-
 INSTANTIATE_TEST_SUITE_P(
     ProtocolTestGroup,
-    ProtocolTest,
-    testing::Combine(
-        testing::Range<ClientCountType>(1, 4),
-        testing::Values(true, false)
-    )
+    StreamingProtocolTest,
+    testing::Values(std::make_tuple(1, true),
+                    std::make_tuple(1, false),
+                    std::make_tuple(4, true),
+                    std::make_tuple(4, false))
 );

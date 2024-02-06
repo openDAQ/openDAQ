@@ -25,21 +25,31 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                         NATIVE_STREAM_CL_MODULE_PATCH_VERSION),
             std::move(context))
     , deviceIndex(0)
-    , discoveryClient([](MdnsDiscoveredDevice discoveredDevice)
-                      {
-                          return fmt::format("daq.nsd://{}:{}{}",
-                                             discoveredDevice.ipv4Address,
-                                             discoveredDevice.servicePort,
-                                             discoveredDevice.getPropertyOrDefault("path", "/"));
-                      },
-                      {"OPENDAQ_NS"})
+    , discoveryClient(
+        {
+            [](MdnsDiscoveredDevice discoveredDevice)
+            {
+                return fmt::format("daq.nsd://{}:{}{}",
+                                   discoveredDevice.ipv4Address,
+                                   discoveredDevice.servicePort,
+                                   discoveredDevice.getPropertyOrDefault("path", "/"));
+            },
+            [](MdnsDiscoveredDevice discoveredDevice)
+            {
+                return fmt::format("daq.nd://{}:{}{}",
+                                   discoveredDevice.ipv4Address,
+                                   discoveredDevice.servicePort,
+                                   discoveredDevice.getPropertyOrDefault("path", "/"));
+            }
+        },
+        {"OPENDAQ_NS"}
+    )
 {
     discoveryClient.initMdnsClient("_opendaq-streaming-native._tcp.local.");
 }
 
 ListPtr<IDeviceInfo> NativeStreamingClientModule::onGetAvailableDevices()
 {
-    // TODO add native configuration devices to discovered devices list
     auto availableDevices = discoveryClient.discoverDevices();
     for (const auto& device : availableDevices)
     {

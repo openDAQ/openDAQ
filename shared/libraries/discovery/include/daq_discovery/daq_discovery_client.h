@@ -21,10 +21,12 @@
 
 BEGIN_NAMESPACE_DISCOVERY
 
+using ConnectionStringFormatCb = std::function<std::string(MdnsDiscoveredDevice)>;
+
 class DiscoveryClient
 {
 public:
-    explicit DiscoveryClient(std::function<std::string(MdnsDiscoveredDevice)> connectionStringFormatCb, std::unordered_set<std::string> requiredCaps = {});
+    explicit DiscoveryClient(std::vector<ConnectionStringFormatCb> connectionStringFormatCbs, std::unordered_set<std::string> requiredCaps = {});
     
     void initMdnsClient(const std::string& serviceName, std::chrono::milliseconds discoveryDuration = 500ms);
     virtual ListPtr<IDeviceInfo> discoverDevices();
@@ -38,8 +40,8 @@ protected:
     void runInThread(std::function<void()> func);
     void joinThreads();
     void discoverMdnsDevices();
-    DeviceInfoPtr createDeviceInfo(MdnsDiscoveredDevice discoveredDevice) const;
-    std::function<std::string(MdnsDiscoveredDevice)> connectionStringFormatCb;
+    DeviceInfoPtr createDeviceInfo(MdnsDiscoveredDevice discoveredDevice, ConnectionStringFormatCb connectionStringFormatCb) const;
+    std::vector<ConnectionStringFormatCb> connectionStringFormatCbs;
 };
 
 END_NAMESPACE_DISCOVERY

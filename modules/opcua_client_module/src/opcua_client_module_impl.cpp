@@ -23,11 +23,15 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
     : Module("openDAQ OpcUa client module",
             daq::VersionInfo(OPCUA_CLIENT_MODULE_MAJOR_VERSION, OPCUA_CLIENT_MODULE_MINOR_VERSION, OPCUA_CLIENT_MODULE_PATCH_VERSION),
             std::move(context))
-    , discoveryClient([](const MdnsDiscoveredDevice& discoveredDevice)
+    , discoveryClient(
         {
-            return DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
+            [](const MdnsDiscoveredDevice& discoveredDevice)
+            {
+                return DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
+            }
         },
-     {"OPENDAQ"})
+        {"OPENDAQ"}
+    )
 {
     discoveryClient.initMdnsClient("_opcua-tcp._tcp.local.");
 }

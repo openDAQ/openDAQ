@@ -35,7 +35,7 @@ ConfigProviderPtr CmdLineArgsConfigProvider(int argc, char* argv[])
 TEST_F(ConfigProvider, CmdLineArgsConfigProvider)
 {
     int argc = 2; 
-    char* argv[] = {"program", "-Cmodulemanager_modulespath=\"\""};
+    const char* argv[] = {"program", "-Cmodulemanager_modulespath=\"\""};
 
     const daq::ConfigProviderPtr configProvider = CmdLineArgsConfigProvider(argc, argv);
     const daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().addConfigProvider(configProvider);

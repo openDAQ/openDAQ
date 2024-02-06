@@ -28,7 +28,6 @@ public:
         // Create logger, context and module
         auto logger = Logger();
         context = Context(Scheduler(logger), logger, nullptr, nullptr);
-        module;
         createModule(&module, context);
 
         this->rule = rule;

@@ -47,9 +47,9 @@ ErrCode TmsClientSignalImpl::setPublic(Bool valPublic)
 
 ErrCode TmsClientSignalImpl::getDescriptor(IDataDescriptor** descriptor)
 {
-    return daqTry([&]() {
-        *descriptor = nullptr;
-
+    *descriptor = nullptr;
+    try
+    {
         if (descriptorNodeId)
         {
             OpcUaVariant opcUaVariant = client->readValue(*descriptorNodeId);
@@ -57,11 +57,15 @@ ErrCode TmsClientSignalImpl::getDescriptor(IDataDescriptor** descriptor)
             {
                 DataDescriptorPtr descriptorPtr = VariantConverter<IDataDescriptor, DataDescriptorPtr>::ToDaqObject(opcUaVariant);
                 *descriptor = descriptorPtr.addRefAndReturn();
+                return OPENDAQ_SUCCESS;
             }
         }
-
-        return OPENDAQ_SUCCESS;
-    });
+    }
+    catch (...)
+    {
+        LOG_W("Failed to get descriptor on OpcUA client signal \"{}\"", this->globalId);
+    }
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode TmsClientSignalImpl::setDescriptor(IDataDescriptor* /*descriptor*/)
@@ -75,8 +79,11 @@ ErrCode TmsClientSignalImpl::getDomainSignal(ISignal** signal)
     ErrCode errCode = wrapHandlerReturn(this, &TmsClientSignalImpl::onGetDomainSignal, signalPtr);
 
     *signal = signalPtr.detach();
-
-    return errCode;
+    if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_W("Failed to get domain signal on OpcUA client signal \"{}\"", this->globalId);
+    }
+    return OPENDAQ_SUCCESS;
 }
 
 SignalPtr TmsClientSignalImpl::onGetDomainSignal()
@@ -107,7 +114,11 @@ ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
     ListPtr<ISignal> signalsPtr;
     ErrCode errCode = wrapHandlerReturn(this, &TmsClientSignalImpl::onGetRelatedSignals, signalsPtr);
     *signals = signalsPtr.detach();
-    return errCode;
+    if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_W("Failed to get related signals on OpcUA client signal \"{}\"", this->globalId);
+    }
+    return OPENDAQ_SUCCESS;
 }
 
 
@@ -168,24 +179,30 @@ ErrCode TmsClientSignalImpl::getLastValue(IBaseObject** value)
 
     auto readValueFunction = [this](IBaseObject** value, const std::string& nodeName)
         {
-            const auto valueNodeId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, nodeName);
-            OpcUaVariant opcUaVariant = client->readValue(*valueNodeId);
-            if (!opcUaVariant.isNull())
+            try
             {
-                BaseObjectPtr valuePtr = VariantConverter<IBaseObject, BaseObjectPtr>::ToDaqObject(opcUaVariant);
-                *value = valuePtr.addRefAndReturn();
-                return OPENDAQ_SUCCESS;
+                const auto valueNodeId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, nodeName);
+                OpcUaVariant opcUaVariant = client->readValue(*valueNodeId);
+                if (!opcUaVariant.isNull())
+                {
+                    BaseObjectPtr valuePtr = VariantConverter<IBaseObject, BaseObjectPtr>::ToDaqObject(opcUaVariant);
+                    *value = valuePtr.addRefAndReturn();
+                }
             }
-            return OPENDAQ_IGNORED;
+            catch (...)
+            {
+                LOG_W("Failed to get last value on OpcUA client signal \"{}\"", this->globalId);
+            }
+            return OPENDAQ_SUCCESS;
         };
 
-    if (descriptorNodeId && readValueFunction(value, "Value") == OPENDAQ_SUCCESS)
+    if (descriptorNodeId && *value != nullptr)
         return OPENDAQ_SUCCESS;
     
     if (hasReference("AnalogValue"))
         return readValueFunction(value, "AnalogValue");
 
-    return OPENDAQ_IGNORED;
+    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

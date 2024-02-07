@@ -216,7 +216,7 @@ TEST_F(FolderTest, SerializeAndDeserialize)
 
     const auto deserializer = daq::JsonDeserializer();
 
-    const auto deserializeContext = daq::ComponentDeserializeContext(ctx, nullptr, "folder");
+    const auto deserializeContext = daq::ComponentDeserializeContext(ctx, nullptr, nullptr, "folder");
 
     const daq::FolderPtr newFolder = deserializer.deserialize(str1, deserializeContext, nullptr);
 

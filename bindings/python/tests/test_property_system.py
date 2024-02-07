@@ -32,11 +32,10 @@ class TestPropertySystem(opendaq_test.TestCase):
             'property1'), opendaq.Integer(10))
         int_property_builder.visible = opendaq.Boolean(True)
 
-        # FIXME: not accepting types
-        # int_property_builder.min_value = opendaq.Integer(0)
-        # int_property_builder.max_value = opendaq.Integer(100)
-        # int_property_builder.min_value = 0
-        # int_property_builder.max_value = 100
+        int_property_builder.min_value = opendaq.Integer(0)
+        int_property_builder.max_value = opendaq.Integer(100)
+        int_property_builder.min_value = 0
+        int_property_builder.max_value = 100
 
         property_object.add_property(int_property_builder.build())
 
@@ -53,8 +52,7 @@ class TestPropertySystem(opendaq_test.TestCase):
         property_object.set_property_value('property1', 101)
         property_object.set_property_value('property2', 4.0)
 
-        # Will fail because of the min/max values are not set
-        # self.assertEqual(property_object.get_property_value('property1'), 100)
+        self.assertEqual(property_object.get_property_value('property1'), 100)
         self.assertEqual(property_object.get_property_value('property2'), 4.0)
 
     def test_selection_props(self):
@@ -172,9 +170,8 @@ class TestPropertySystem(opendaq_test.TestCase):
             'property1'), opendaq.Float(10.0))
         float_property_builder.visible = opendaq.Boolean(True)
 
-        # FIXME: not accepting types
-        # float_property_builder.min_value = opendaq.Float(0.0)
-        # float_property_builder.max_value = 100.0
+        float_property_builder.min_value = opendaq.Float(0.0)
+        float_property_builder.max_value = 100.0
 
         property_object.add_property(float_property_builder.build())
         self.assertIsNotNone(property_object.get_property('property1'))
@@ -192,8 +189,8 @@ class TestPropertySystem(opendaq_test.TestCase):
 
         frequency_property_builder = opendaq.FloatPropertyBuilder(opendaq.String(
             'frequency'), opendaq.Float(10.0))
-        # frequency_property_builder.min_value = opendaq.Float(0.1)
-        # frequency_property_builder.max_value = opendaq.Float(1000.0)
+        frequency_property_builder.min_value = opendaq.Float(0.1)
+        frequency_property_builder.max_value = opendaq.Float(1000.0)
         frequency_property_builder.visible = opendaq.Boolean(True)
         frequency_property_builder.unit = opendaq.Unit(1, opendaq.String(
             'Hz'), opendaq.String(''), opendaq.String(''))
@@ -214,12 +211,12 @@ class TestPropertySystem(opendaq_test.TestCase):
         sine_settings.add_property(opendaq.SelectionProperty(opendaq.String(
             'amplitude_unit'), unit_list, opendaq.Integer(0), opendaq.Boolean(True)))
 
-        amplitude_property = opendaq.FloatProperty(opendaq.String(
-            'amplitude'), opendaq.Float(1.0), opendaq.Boolean(True))
-        # TypeError: EvalValue instead of Unit
-        # amplitude_property.unit = opendaq.EvalValue(opendaq.String('Unit(%amplitude_unit:SelectedValue)'))
+        amplitude_property_builder = opendaq.FloatPropertyBuilder(opendaq.String(
+            'amplitude'), opendaq.Float(1.0))
+        amplitude_property_builder.visible = opendaq.Boolean(True)
+        amplitude_property_builder.unit = opendaq.EvalValue(opendaq.String('%amplitude_unit:SelectedValue'))
 
-        sine_settings.add_property(amplitude_property)
+        sine_settings.add_property(amplitude_property_builder.build())
 
         sine_settings.add_property(opendaq.BoolProperty(opendaq.String(
             'enable_scaling'), opendaq.Boolean(False), opendaq.Boolean(True)))
@@ -227,9 +224,8 @@ class TestPropertySystem(opendaq_test.TestCase):
         scaling_property_builder = opendaq.FloatPropertyBuilder(opendaq.String(
             'scaling'), opendaq.Float(1.0))
         scaling_property_builder.visible = opendaq.Boolean(True)
-        # TypeError: EvalValue instead of Boolean
-        # scaling_property_builder.visible = opendaq.EvalValue(opendaq.String('%enable_scaling'))
-        # simulated_channel.add_property(scaling_property_builder.build())
+        scaling_property_builder.visible = opendaq.EvalValue(opendaq.String('%enable_scaling'))
+        simulated_channel.add_property(scaling_property_builder.build())
 
         simulated_channel.add_property(opendaq.ObjectProperty(
             opendaq.String('sine_settings'), sine_settings))
@@ -248,8 +244,8 @@ class TestPropertySystem(opendaq_test.TestCase):
         loop_threshold_property_builder = opendaq.IntPropertyBuilder(opendaq.String(
             'loop_threshold'), opendaq.Integer(100))
         loop_threshold_property_builder.visible = opendaq.Boolean(True)
-        # loop_threshold_property.min_value = 1
-        # loop_threshold_property.visible = opendaq.EvalValue(opendaq.String('%mode == 1'))
+        loop_threshold_property_builder.min_value = 1
+        loop_threshold_property_builder.visible = opendaq.EvalValue(opendaq.String('%mode == 1'))
         counter_settings.add_property(loop_threshold_property_builder.build())
 
         # TODO: function property is not finished yet

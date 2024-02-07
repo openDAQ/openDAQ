@@ -814,14 +814,13 @@ public:
                                            fmt::format(R"({}: Min/max can only be configured on Int, Float, and Ratio properties)", name));
         }
 
-        // TODO: Make callable info serializable
-        // if (callableInfo.assigned())
-        //{
-        //    if (!(valueType == ctProc || valueType == ctFunc))
-        //        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE,
-        //                                   fmt::format(R"({}: Callable info can be configured only on function- and procedure-type
-        //                                   properties.)", name));
-        //}
+        if (callableInfo.assigned())
+        {
+            if (!(valueType == ctProc || valueType == ctFunc))
+                return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE,
+                                           fmt::format(R"({}: Callable info can be configured only on function- and procedure-type
+                                           properties.)", name));
+        }
 
         if (refProp.assigned())
         {

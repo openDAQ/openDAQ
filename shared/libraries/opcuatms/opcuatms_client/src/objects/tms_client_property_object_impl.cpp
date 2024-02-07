@@ -22,13 +22,22 @@ using namespace opcua;
 template <class Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite)
 {
-    return daqTry(
+    if (propertyName == nullptr)
+    {
+        LOG_W("Failed to set value for property with nullptr name on OpcUA client property object");
+        return OPENDAQ_SUCCESS;
+    }
+    auto propertyNamePtr = StringPtr::Borrow(propertyName);
+
+    StringPtr lastProccessDescription = "";
+    ErrCode errCode = daqTry(
         [&]()
         {
-            if (const auto& it = introspectionVariableIdMap.find((StringPtr) propertyName); it != introspectionVariableIdMap.cend())
+            if (const auto& it = introspectionVariableIdMap.find(propertyNamePtr); it != introspectionVariableIdMap.cend())
             {
                 if (protectedWrite)
                 {
+                    lastProccessDescription = "Checking exisiting property is read-only";
                     PropertyPtr prop;
                     checkErrorInfo(getProperty(propertyName, &prop));
                     const bool readOnly = prop.getReadOnly();
@@ -36,24 +45,34 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
                         return OPENDAQ_SUCCESS;
                 }
 
+                lastProccessDescription = "Writting property value";
                 const auto variant = VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
                 client->writeValue(it->second, variant);
                 return OPENDAQ_SUCCESS;
             }
 
-            if (const auto& it = referenceVariableIdMap.find((StringPtr) propertyName); it != referenceVariableIdMap.cend())
+            if (const auto& it = referenceVariableIdMap.find(propertyNamePtr); it != referenceVariableIdMap.cend())
             {
+                lastProccessDescription = "Setting property value";
                 const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
                 return setPropertyValue(refProp.getName(), value);
             }
 
-            if (const auto& it = objectTypeIdMap.find((StringPtr) propertyName); it != objectTypeIdMap.cend())
+            if (const auto& it = objectTypeIdMap.find((propertyNamePtr)); it != objectTypeIdMap.cend())
             {
-                return this->makeErrorInfo(OPENDAQ_ERR_NOTIMPLEMENTED, "Object type properties cannot be set over OPC UA");
+                lastProccessDescription = "Object type properties cannot be set over OpcUA";
+                return OPENDAQ_ERR_NOTIMPLEMENTED;
             }
-
+            lastProccessDescription = "Property not found";
             return OPENDAQ_ERR_NOTFOUND;
         });
+    if (OPENDAQ_FAILED(errCode))
+        LOG_W("Failed to set value for property \"{}\" on OpcUA client property object: {}", propertyNamePtr, lastProccessDescription);
+
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+        return errCode;
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Impl>
@@ -82,19 +101,27 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setProtectedProper
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
-    return daqTry([&]() {
-        if (const auto& introIt = introspectionVariableIdMap.find((StringPtr) propertyName); introIt != introspectionVariableIdMap.cend())
+    if (propertyName == nullptr)
+    {
+        LOG_W("Failed to get value for property with nullptr name on OpcUA client property object");
+        return OPENDAQ_SUCCESS;
+    }
+    auto propertyNamePtr = StringPtr::Borrow(propertyName);
+
+    StringPtr lastProccessDescription = "";
+    ErrCode errCode = daqTry([&]() {
+        if (const auto& introIt = introspectionVariableIdMap.find(propertyNamePtr); introIt != introspectionVariableIdMap.cend())
         {
             const auto variant = client->readValue(introIt->second);
             const auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
             Impl::setProtectedPropertyValue(propertyName, object);
         }
-        else if (referenceVariableIdMap.count((StringPtr) propertyName))
+        else if (referenceVariableIdMap.count(propertyNamePtr))
         {
             const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
             return getPropertyValue(refProp.getName(), value);
         }
-        else if (const auto& objIt = objectTypeIdMap.find((StringPtr) propertyName); objIt != objectTypeIdMap.cend())
+        else if (const auto& objIt = objectTypeIdMap.find(propertyNamePtr); objIt != objectTypeIdMap.cend())
         {
             *value = TmsClientPropertyObject(daqContext, clientContext, objIt->second).detach();
             return OPENDAQ_SUCCESS;
@@ -102,6 +129,11 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
 
         return Impl::getPropertyValue(propertyName, value);
     });
+    if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_W("Failed to set value for property \"{}\" on OpcUA client property object", propertyNamePtr);
+    }
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename Impl>
@@ -238,7 +270,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             }
             catch(const std::exception& e)
             {
-                LOG_W("Failed to add {} reference property {}",propName, e.what());
+                LOG_W("Failed to add {} reference property on OpcUa client property object: {}", propName, e.what());
                 continue;
             }
         }
@@ -254,7 +286,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             }                     
             catch(const std::exception& e)
             {
-                LOG_W("Failed to add {} property {}", propName, e.what());
+                LOG_W("Failed to add {} property on OpcUa client property object: {}", propName, e.what());
                 continue;
             }
         }
@@ -269,7 +301,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             }
             catch (const std::exception& e)
             {
-                LOG_W("Failed to add {} property {}", propName, e.what());
+                LOG_W("Failed to add {} property on OpcUa client property object: {}", propName, e.what());
                 continue;
             }
         }
@@ -338,7 +370,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(const OpcUaNodeI
                 }
                 catch(const std::exception& e)
                 {
-                    LOG_W("Failed to parse method properties {}", e.what());
+                    LOG_W("Failed to parse method properties on OpcUa client property object: {}", e.what());
                     continue;
                 }
 

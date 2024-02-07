@@ -29,11 +29,13 @@ public:
     using Super = ImplementationOf<MainInterface, Interfaces...>;
 
     GenericComponentDeserializeContextImpl(const ContextPtr& context,
+                                           const ComponentPtr& root,
                                            const ComponentPtr& parent,
                                            const StringPtr& localId);
 
 
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
+    ErrCode INTERFACE_FUNC getRoot(IComponent** root) override;
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
 
@@ -46,6 +48,7 @@ public:
 
 protected:
     ContextPtr context;
+    ComponentPtr root;
     ComponentPtr parent;
     StringPtr localId;
     TypeManagerPtr typeManager;
@@ -56,9 +59,11 @@ using ComponentDeserializeContextImpl = GenericComponentDeserializeContextImpl<I
 template <class MainInterface, class ... Interfaces>
 GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::GenericComponentDeserializeContextImpl(
     const ContextPtr& context,
+    const ComponentPtr& root,
     const ComponentPtr& parent,
     const StringPtr& localId)
     : context(context)
+    , root(root)
     , parent(parent)
     , localId(localId)
     , typeManager(context.assigned() ? context.getTypeManager() : nullptr)
@@ -71,6 +76,16 @@ ErrCode GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::ge
     OPENDAQ_PARAM_NOT_NULL(parent);
 
     *parent = this->parent.addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class MainInterface, class ... Interfaces>
+ErrCode GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::getRoot(IComponent** root)
+{
+    OPENDAQ_PARAM_NOT_NULL(root);
+
+    *root = this->root.addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -104,7 +119,7 @@ ErrCode GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::cl
     OPENDAQ_PARAM_NOT_NULL(newLocalId);
     OPENDAQ_PARAM_NOT_NULL(newComponentDeserializeContext);
 
-    return createComponentDeserializeContext(newComponentDeserializeContext, context, newParent, newLocalId);
+    return createComponentDeserializeContext(newComponentDeserializeContext, context, root, newParent, newLocalId);
 }
 
 template <class MainInterface, class... Interfaces>

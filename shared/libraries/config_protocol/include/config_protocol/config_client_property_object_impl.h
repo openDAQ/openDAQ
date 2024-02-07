@@ -21,6 +21,8 @@
 #include <config_protocol/config_client_procedure_impl.h>
 #include <config_protocol/config_client_object.h>
 
+#include "opendaq/custom_log.h"
+
 namespace daq::config_protocol
 {
 
@@ -57,11 +59,22 @@ public:
     ErrCode INTERFACE_FUNC complete() override;
 
     ErrCode INTERFACE_FUNC getRemoteGlobalId(IString** remoteGlobalId) override;
+    ErrCode INTERFACE_FUNC setRemoteGlobalId(IString* remoteGlobalId) override;
+    ErrCode INTERFACE_FUNC handleRemoteCoreEvent(IComponent* sender, ICoreEventArgs* args) override;
+
+protected:
+    virtual void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args);
 
 private:
     bool deserializationComplete;
 
     BaseObjectPtr getValueFromServer(const StringPtr& propName, bool& setValue);
+
+    void propertyValueChanged(const CoreEventArgsPtr& args);
+    void propertyObjectUpdateEnd(const CoreEventArgsPtr& args);
+    void propertyAdded(const CoreEventArgsPtr& args);
+    void propertyRemoved(const CoreEventArgsPtr& args);
+    PropertyObjectPtr getObjectAtPath(const CoreEventArgsPtr& args);
 };
 
 template <class Impl>
@@ -116,7 +129,10 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
     return daqTry(
         [this, &propertyNamePtr, &value]()
         {
-            if (clientComm->getConnected())
+            // TODO: Refactor this
+            PropertyPtr prop;
+            checkErrorInfo(Impl::getProperty(propertyNamePtr, &prop));
+            if (clientComm->getConnected() && (prop.getValueType() == ctFunc || prop.getValueType() == ctProc))
             {
                 bool setValue;
                 auto v = getValueFromServer(propertyNamePtr, setValue);
@@ -223,6 +239,45 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getRemoteGlobalId(IString** re
 }
 
 template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setRemoteGlobalId(IString* remoteGlobalId)
+{
+    OPENDAQ_PARAM_NOT_NULL(remoteGlobalId);
+
+    this->remoteGlobalId = StringPtr::Borrow(remoteGlobalId).toStdString();
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreEvent(IComponent* sender, ICoreEventArgs* args)
+{
+    OPENDAQ_PARAM_NOT_NULL(sender);
+    OPENDAQ_PARAM_NOT_NULL(args);
+
+    try
+    {
+        handleRemoteCoreObjectInternal(sender, args);
+    }
+    catch ([[maybe_unused]] const std::exception& e)
+    {
+        const auto loggerComponent = this->clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigClient");
+        StringPtr globalId;
+        const auto argsPtr = CoreEventArgsPtr::Borrow(args);
+        sender->getGlobalId(&globalId);
+        LOG_D("Component {} failed to handle core event {}: {}", globalId, argsPtr.getEventName(), e.what());
+    }
+    catch (...)
+    {
+        const auto loggerComponent = this->clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigClient");
+        StringPtr globalId;
+        const auto argsPtr = CoreEventArgsPtr::Borrow(args);
+        sender->getGlobalId(&globalId);
+        LOG_D("Component {} failed to handle core event {}", globalId, argsPtr.getEventName());
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
 BaseObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getValueFromServer(const StringPtr& propName, bool& setValue)
 {
     const auto prop = Impl::getUnboundProperty(propName);
@@ -239,4 +294,124 @@ BaseObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getValueFromServer(const
     }
 }
 
+template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
+{
+    switch (static_cast<CoreEventId>(args.getEventId()))
+    {
+        case CoreEventId::PropertyValueChanged:
+            propertyValueChanged(args);
+            break;
+        case CoreEventId::PropertyObjectUpdateEnd:
+            propertyObjectUpdateEnd(args);
+            break;
+        case CoreEventId::PropertyAdded:
+            propertyAdded(args);
+            break;
+        case CoreEventId::PropertyRemoved:
+            propertyRemoved(args);
+            break;
+        default:
+            break;
+    }
+}
+
+template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::propertyValueChanged(const CoreEventArgsPtr& args)
+{
+    const auto params = args.getParameters();
+    StringPtr propName = params.get("Name");
+    StringPtr path = params.get("Path");
+    if (path != "")
+        propName = path + "." + propName;
+    const auto val = params.get("Value");
+    if (val.assigned())
+        Impl::setProtectedPropertyValue(propName, val);
+    else
+        Impl::clearProtectedPropertyValue(propName);
+}
+
+template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::propertyObjectUpdateEnd(const CoreEventArgsPtr& args)
+{
+    const auto params = args.getParameters();
+    const PropertyObjectPtr obj = getObjectAtPath(args);
+    
+    const DictPtr<IString, IBaseObject> updatedProperties = params.get("UpdatedProperties");
+
+    if (params.get("Path") != "")
+    {
+        auto objImpl = dynamic_cast<PropertyObjectImpl*>(obj.getObject());
+
+        checkErrorInfo(objImpl->beginUpdate());
+
+        for (const auto& val : updatedProperties)
+        {
+            if (val.second.assigned())
+                checkErrorInfo(objImpl->setProtectedPropertyValue(val.first, val.second));
+            else
+                checkErrorInfo(objImpl->clearProtectedPropertyValue(val.first));
+        }
+
+        checkErrorInfo(objImpl->endUpdate());
+    }
+    else
+    {
+        checkErrorInfo(Impl::beginUpdate());
+
+        for (const auto& val : updatedProperties)
+        {
+            if (val.second.assigned())
+                checkErrorInfo(Impl::setProtectedPropertyValue(val.first, val.second));
+            else
+                checkErrorInfo(Impl::clearProtectedPropertyValue(val.first));
+        }
+
+        checkErrorInfo(Impl::endUpdate());
+    }
+
+}
+
+template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::propertyAdded(const CoreEventArgsPtr& args)
+{
+    const auto params = args.getParameters();
+    const PropertyObjectPtr obj = getObjectAtPath(args);
+
+    PropertyPtr prop = params.get("Property");
+    if (obj.hasProperty(prop.getName()))
+        return;
+
+    if (params.get("Path") != "")
+        checkErrorInfo(dynamic_cast<PropertyObjectImpl*>(obj.getObject())->addProperty(prop));
+    else
+        checkErrorInfo(Impl::addProperty(prop));
+}
+
+template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::propertyRemoved(const CoreEventArgsPtr& args)
+{
+    const auto params = args.getParameters();
+    const PropertyObjectPtr obj = getObjectAtPath(args);
+    
+    const StringPtr propName = params.get("Name");
+    if (!obj.hasProperty(propName))
+        return;
+
+    if (params.get("Path") != "")
+        checkErrorInfo(dynamic_cast<PropertyObjectImpl*>(obj.getObject())->removeProperty(propName));
+    else
+        checkErrorInfo(Impl::removeProperty(propName));
+}
+
+template <class Impl>
+PropertyObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getObjectAtPath(const CoreEventArgsPtr& args)
+{
+    const auto params = args.getParameters();
+    const StringPtr path = params.get("Path");
+    PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
+    if (path != "")
+        return thisPtr.getPropertyValue(path);
+    return thisPtr;
+}
 }

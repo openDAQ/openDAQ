@@ -106,11 +106,12 @@ protected:
 
     ErrCode lockAllAttributesInternal() override;
     
-    inline static std::unordered_set<std::string> signalAvailableAttributes = {"Public"};
+    inline static std::unordered_set<std::string> signalAvailableAttributes = {"Public", "DomainSignal", "RelatedSignals"};
+    DataDescriptorPtr dataDescriptor;
+
 private:
     StringPtr name;
     bool isPublic{};
-    DataDescriptorPtr dataDescriptor;
     std::vector<SignalPtr> relatedSignals;
     SignalPtr domainSignal;
     std::vector<ConnectionPtr> connections;
@@ -130,8 +131,8 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
                                       const StringPtr& localId,
                                       const StringPtr& className)
     : Super(context, parent, localId, className)
-    , isPublic(true)
     , dataDescriptor(std::move(descriptor))
+    , isPublic(true)
 {
 }
 
@@ -181,7 +182,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Public"}, {"Public", this->isPublic}}));
+                CoreEventId::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Public"}, {"Public", this->isPublic}}));
         
         this->triggerCoreEvent(args);
     }
@@ -255,7 +256,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::DataDescriptorChanged,
+                CoreEventId::DataDescriptorChanged,
                 Dict<IString, IBaseObject>({{"DataDescriptor", dataDescriptor}}));
         
         this->triggerCoreEvent(args);
@@ -282,6 +283,19 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDomainSignal(ISignal* signal)
 {
     {
         std::scoped_lock lock(this->sync);
+        
+        if (this->lockedAttributes.count("DomainSignal"))
+        {
+            if (this->context.assigned() && this->context.getLogger().assigned())
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("Domain Signal attribute of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
+        }
 
         if (signal == domainSignal)
             return OPENDAQ_IGNORED;
@@ -298,7 +312,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDomainSignal(ISignal* signal)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::AttributeChanged,
+                CoreEventId::AttributeChanged,
                 Dict<IString, IBaseObject>({{"AttributeName", "DomainSignal"}, {"DomainSignal", domainSignal}}));
         
         this->triggerCoreEvent(args);
@@ -328,6 +342,19 @@ ErrCode SignalBase<TInterface, Interfaces...>::setRelatedSignals(IList* signals)
     {
         std::scoped_lock lock(this->sync);
 
+        if (this->lockedAttributes.count("RelatedSignals"))
+        {
+            if (this->context.assigned() && this->context.getLogger().assigned())
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("Related Signals attribute of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
+        }
+
         const auto signalsPtr = ListPtr<ISignal>::Borrow(signals);
         relatedSignals.clear();
         for (const auto& sig : signalsPtr)
@@ -347,6 +374,20 @@ ErrCode SignalBase<TInterface, Interfaces...>::addRelatedSignal(ISignal* signal)
 
     {
         std::scoped_lock lock(this->sync);
+
+        if (this->lockedAttributes.count("RelatedSignals"))
+        {
+            if (this->context.assigned() && this->context.getLogger().assigned())
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("Related Signals attribute of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
+        }
+
         const auto it = std::find(relatedSignals.begin(), relatedSignals.end(), signalPtr);
         if (it != relatedSignals.end())
             return OPENDAQ_ERR_DUPLICATEITEM;
@@ -367,6 +408,20 @@ ErrCode SignalBase<TInterface, Interfaces...>::removeRelatedSignal(ISignal* sign
 
     {
         std::scoped_lock lock(this->sync);
+
+        if (this->lockedAttributes.count("RelatedSignals"))
+        {
+            if (this->context.assigned() && this->context.getLogger().assigned())
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("Related Signals attribute of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
+        }
+
         auto it = std::find(relatedSignals.begin(), relatedSignals.end(), signalPtr);
         if (it == relatedSignals.end())
             return OPENDAQ_ERR_NOTFOUND;
@@ -445,7 +500,7 @@ void SignalBase<TInterface, Interfaces...>::triggerRelatedSignalsChanged()
             sigs.pushBack(sig);
 
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::AttributeChanged,
+                CoreEventId::AttributeChanged,
                 Dict<IString, IBaseObject>({{"AttributeName", "RelatedSignals"}, {"RelatedSignals", sigs}}));
         
         this->triggerCoreEvent(args);

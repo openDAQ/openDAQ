@@ -1,3 +1,39 @@
+05.02.2024
+Description:
+	- Add core event support to config client
+
+-m [function] IInstance::findComponent(IComponent* component, IString* id, IComponent** outComponent)
++m [function] IComponent::findComponent(IString* id, IComponent** outComponent)
++ [function] ITags::set(IList* tags) = 0;
+
+5.2.2024
+Description:
+  - Add Component status implementations
+  - Add method getIntValue for Enumeration object
+
++ [function] IEnumeration::getIntValue(Int* value)
+
++ [function] IComponent::getStatusContainer(IComponentStatus** statusContainer)
+
++ [interface] IComponentStatusContainerPrivate : public IBaseObject
++ [function] IComponentStatusContainerPrivate::addStatus(IString* name, IEnumeration* initialValue)
++ [function] IComponentStatusContainerPrivate::setStatus(IString* name, IEnumeration* value)
+
++ [interface] IComponentStatusContainer : public IBaseObject
++ [function] IComponentStatusContainer::getStatus(IString* name, IEnumeration** value)
++ [function] IComponentStatusContainer::getStatuses(IDict** statuses)
++ [function] IComponentStatusContainer::getOnStatusChanged(IEvent** event)
++ [factory] ComponentStatusContainerPtr ComponentStatusContainer()
+
+23.01.2024
+Description:
+	- Add debug logger sink for testing purpose
+
++ [interface] ILastMessageLoggerSinkPrivate : public IBaseObject
++ [function] ILastMessageLoggerSinkPrivate::getLastMessage(IString** lastMessage)
++ [function] ILastMessageLoggerSinkPrivate::waitForMessage(SizeT timeoutMs, Bool* success)
++ [factory] LoggerSinkPtr LastMessageLoggerSink()
+
 1.2.2024
 
 +m [function] IMultiReader::skipSamples
@@ -50,7 +86,6 @@ Nested object-type property enhancement
 +m [factory] CoreEventArgsPtr CoreEventArgsPropertyAdded(const PropertyObjectPtr& propOwner, const PropertyPtr& prop, const StringPtr& path)
 -m [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName)
 +m [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName, const StringPtr& path)
-
 
 12.01.2024
 Description:

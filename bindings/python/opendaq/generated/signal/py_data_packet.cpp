@@ -83,13 +83,20 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
         py::return_value_policy::take_ownership,
         "Gets a pointer to the raw packet data. `nullptr` if the signal's data rule is implicit.");
     */
-    cls.def_property_readonly("sample_mem_size",
+    cls.def_property_readonly("data_size",
         [](daq::IDataPacket *object)
         {
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
-            return objectPtr.getSampleMemSize();
+            return objectPtr.getDataSize();
         },
-        "Gets a sample memory size in bytes, calculated from data descriptor.");
+        "Gets size of data buffer in bytes.");
+    cls.def_property_readonly("raw_data_size",
+        [](daq::IDataPacket *object)
+        {
+            const auto objectPtr = daq::DataPacketPtr::Borrow(object);
+            return objectPtr.getRawDataSize();
+        },
+        "Gets size of raw data buffer in bytes.");
     cls.def_property_readonly("domain_packet",
         [](daq::IDataPacket *object)
         {

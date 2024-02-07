@@ -258,7 +258,7 @@ protected:
 
 static void zeroOutPacketData(const DataPacketPtr& packet)
 {
-    memset(packet.getData(), 0, packet.getSampleCount() * packet.getSampleMemSize());
+    memset(packet.getRawData(), 0, packet.getRawDataSize());
 }
 
 static DataPacketPtr createPacket(daq::SizeT numSamples, daq::Int offset, const ReadSignal& read)

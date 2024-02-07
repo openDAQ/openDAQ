@@ -162,6 +162,16 @@ public:
     {
         return OPENDAQ_SUCCESS;
     }
+
+    ErrCode INTERFACE_FUNC getSampleSize(SizeT* size) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSize) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
 };
 
 TEST_F(SignalTest, IsComponent)
@@ -465,7 +475,7 @@ TEST_F(SignalTest, SerializeAndDeserialize)
     const auto str1 = serializer.getOutput();
 
     const auto deserializer = JsonDeserializer();
-    const auto deserializeContext = ComponentDeserializeContext(daq::NullContext(), nullptr, "sig");
+    const auto deserializeContext = ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "sig");
 
     const SignalConfigPtr newSignal = deserializer.deserialize(str1, deserializeContext, nullptr);
 

@@ -1,4 +1,6 @@
 #include <opcuatms/exceptions.h>
+#include <opendaq/logger_sink_ptr.h>
+#include <opendaq/logger_sink_last_message_private_ptr.h>
 #include "test_helpers.h"
 
 using DeviceModulesTest = testing::Test;
@@ -34,6 +36,17 @@ static InstancePtr CreateClientInstance()
     auto refDevice = instance.addDevice("daq.opcua://127.0.0.1", config);
     return instance;
 }
+
+static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder)
+{
+    auto instance = builder.build();
+
+    auto config = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
+    config.setPropertyValue("StreamingConnectionHeuristic", 3); // 3 - not connected
+    auto refDevice = instance.addDevice("daq.opcua://127.0.0.1", config);
+    return instance;
+}
+
 
 TEST_F(DeviceModulesTest, ConnectAndDisconnect)  
 {
@@ -86,8 +99,16 @@ TEST_F(DeviceModulesTest, RemoteGlobalIds)
 TEST_F(DeviceModulesTest, GetSetDeviceProperties)
 {
     SKIP_TEST_MAC_CI;
+    auto loggerSink = LastMessageLoggerSink();
+    loggerSink.setLevel(LogLevel::Warn);
+    auto debugSink = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+
+    auto sinks = DefaultSinks(nullptr);
+    sinks.pushBack(loggerSink);
+    auto logger = LoggerWithSinks(sinks);
+
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(InstanceBuilder().setLogger(logger));
     
     auto refDevice = client.getDevices()[0].getDevices()[0];
     auto serverRefDevice = server.getDevices()[0];
@@ -109,10 +130,15 @@ TEST_F(DeviceModulesTest, GetSetDeviceProperties)
     ASSERT_EQ(refDevice.getPropertyValue("GlobalSampleRate"), 2000);
     ASSERT_EQ(serverRefDevice.getPropertyValue("GlobalSampleRate"), 2000);
 
+    // reset messages
+    debugSink.waitForMessage(0);
     ASSERT_ANY_THROW(refDevice.setPropertyValue("InvalidProp", 100));
+    logger.flush();
+    ASSERT_TRUE(debugSink.waitForMessage(2000));
+    ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"InvalidProp\" on OpcUA client property object: Property not found");
 
     auto properties = refDevice.getAllProperties();
-    ASSERT_EQ(properties.getCount(), 5u);
+    ASSERT_EQ(properties.getCount(), 6u);
 }
 
 TEST_F(DeviceModulesTest, DeviceInfoAndDomain)
@@ -329,8 +355,16 @@ TEST_F(DeviceModulesTest, DISABLED_FunctionBlock)
 
 TEST_F(DeviceModulesTest, FunctionBlockProperties)
 {
+    auto loggerSink = LastMessageLoggerSink();
+    loggerSink.setLevel(LogLevel::Warn);
+    auto debugSink = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+
+    auto sinks = DefaultSinks(nullptr);
+    sinks.pushBack(loggerSink);
+    auto logger = LoggerWithSinks(sinks);
+
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(InstanceBuilder().setLogger(logger));
 
     auto fb = client.getDevices()[0].getFunctionBlocks()[0];
     auto serverFb = server.getFunctionBlocks()[0];
@@ -343,7 +377,12 @@ TEST_F(DeviceModulesTest, FunctionBlockProperties)
     fb.setPropertyValue("DomainSignalType", 2);
     ASSERT_EQ(fb.getPropertyValue("DomainSignalType"), serverFb.getPropertyValue("DomainSignalType"));
 
-    ASSERT_ANY_THROW(fb.setPropertyValue("DomainSignalType" , 1000));
+    // reset messages
+    debugSink.waitForMessage(0);
+    ASSERT_NO_THROW(fb.setPropertyValue("DomainSignalType" , 1000));
+    logger.flush();
+    ASSERT_TRUE(debugSink.waitForMessage(2000));
+    ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"DomainSignalType\" on OpcUA client property object: Writting property value");
 }
 
 TEST_F(DeviceModulesTest, DISABLED_InputPort)

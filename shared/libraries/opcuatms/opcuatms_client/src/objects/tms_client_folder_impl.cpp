@@ -15,6 +15,8 @@ TmsClientFolderImpl<Impl>::TmsClientFolderImpl(const ContextPtr& ctx,
                                                const opcua::OpcUaNodeId& nodeId,
                                                bool customFolderType)
     : TmsClientComponentBaseImpl<Impl>(ctx, parent, localId, clientContext, nodeId)
+    , loggerComponent(this->daqContext.getLogger().assigned() ? this->daqContext.getLogger().getOrAddComponent("OpcUaClientFolder")
+                                                              : throw ArgumentNullException("Logger must not be null"))
 {
     if (!customFolderType)
     {
@@ -37,22 +39,30 @@ void TmsClientFolderImpl<Impl>::findAndCreateFolders(std::map<uint32_t, Componen
 
     for (const auto& [browseName, ref] : folderReferences.byBrowseName)
     {
-        const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-        auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
+        try
+        {
+            const auto folderNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+            auto thisPtr = this->template borrowPtr<FolderConfigPtr>();
 
-        const auto& childComponentsReferences = this->getChildReferencesOfType(folderNodeId, componentId);
+            const auto& childComponentsReferences = this->getChildReferencesOfType(folderNodeId, componentId);
 
-        ComponentPtr child;
-        if (!childComponentsReferences.byNodeId.empty())
-            child = TmsClientFolder(this->context, thisPtr, browseName, this->clientContext, folderNodeId);
-        else
-            child = TmsClientComponent(this->context, thisPtr, browseName, this->clientContext, folderNodeId);
-    
-        auto numberInList = this->tryReadChildNumberInList(folderNodeId);
-        if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
-            orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, child));
-        else
-            unorderedComponents.push_back(child);
+            ComponentPtr child;
+            if (!childComponentsReferences.byNodeId.empty())
+                child = TmsClientFolder(this->context, thisPtr, browseName, this->clientContext, folderNodeId);
+            else
+                child = TmsClientComponent(this->context, thisPtr, browseName, this->clientContext, folderNodeId);
+        
+            auto numberInList = this->tryReadChildNumberInList(folderNodeId);
+            if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedComponents.count(numberInList))
+                orderedComponents.insert(std::pair<uint32_t, ComponentPtr>(numberInList, child));
+            else
+                unorderedComponents.push_back(child);
+        }
+        catch (...)
+        {
+            LOG_W("Failed to find and create folder \"{}\" to OpcUA client folder \"{}\"", browseName, this->globalId);
+            throw;
+        }
     }
 }
 

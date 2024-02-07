@@ -98,18 +98,18 @@ struct IDataDescriptorBuilder;
  * 1. Check and apply `Rule`:
  *    - If the rule is `explicit`, the values of a packet are present in the packet's data buffer
  *    - If not `explicit`, the packet's values need to be calculated. To calculate them, take the PacketOffset and SampleCount of the
- * packet. Use the PacketOffset, as well as the index of the sample in a packet to calculate the rule's output value: `Value = PacketOffset
- * + Rule(Index)`. Eg. `Value = PacketOffset + Delta * Index + Start`
+ *      packet. Use the PacketOffset, as well as the index of the sample in a packet to calculate the rule's output value: `Value = PacketOffset + Rule(Index)`.
+ *      Eg. `Value = PacketOffset + Delta * Index + Start`
  * 2. Apply `TickResolution`:
  *    - If the `TickResolution` is set, multiply the value from 1. with the `Resolution`. This scales the value into the `Unit` of the value
- * descriptor.
+ *      descriptor.
  *    - If not set, keep the value from 1.
  * 3. Add `Origin`:
  *    - If the `Origin` is set, take the value from 2. and add it to the `Origin`.
  *      In example, if using the Unix Epoch, a value `1669279690` in seconds would mean Thursday, 24 November 2022 08:48:10 GMT.
  *    - If not set, keep the value from 2.
  *
- * @subsubsection data_descriptor_calculation_without_scaling With `PostScaling`
+ * @subsubsection data_descriptor_calculation_with_scaling With `PostScaling`
  *
  * If `PostScaling` is set, the `Rule` must be explicit, while `Resolution` and `Origin` must not be configured.
  *
@@ -212,6 +212,24 @@ DECLARE_OPENDAQ_INTERFACE(IDataDescriptor, IBaseObject)
      * All objects in the metadata dictionary must be key value pairs of <String, String>.
      */
     virtual ErrCode INTERFACE_FUNC getMetadata(IDict** metadata) = 0;
+
+    /*!
+     * @brief Gets the size of one sample in bytes.
+     * @param[out] sampleSize The size of one sample in bytes.
+     *
+     * The size of one sample is calculated on constructor of the data descriptor object.
+     */
+    virtual ErrCode INTERFACE_FUNC getSampleSize(SizeT* sampleSize) = 0;
+
+    /*!
+     * @brief Gets the actual sample size in buffer of one sample in bytes.
+     * @param[out] sampleSize The actual size of one sample in buffer in bytes.
+     *
+     * The actual size of one sample is calculated on constructor of the data descriptor object.
+     * Actual sample size is the sample size that is used in buffer. If the data descriptor includes
+     * implicitly generated samples, the actual sample size is less than sample size.
+     */
+    virtual ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSize) = 0;
 };
 /*!@}*/
 

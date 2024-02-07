@@ -249,7 +249,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
-        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(core_event_ids::SignalConnected,
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::SignalConnected,
                                                                                       Dict<IString, IBaseObject>({{"Signal", signal}}));
 
         this->triggerCoreEvent(args);
@@ -301,7 +301,7 @@ void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(bool notifyLi
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args =
-            createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(core_event_ids::SignalDisconnected, Dict<IString, IBaseObject>());
+            createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::SignalDisconnected, Dict<IString, IBaseObject>());
 
         this->triggerCoreEvent(args);
     }

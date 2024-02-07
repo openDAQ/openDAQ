@@ -213,7 +213,7 @@ void OutputSignal::writeDescriptorChangedPacket(const EventPacketPtr& packet)
 
 void OutputSignal::processCoreEvent(ComponentPtr& /*component*/, CoreEventArgsPtr& args)
 {
-    if (args.getEventId() != core_event_ids::AttributeChanged)
+    if (args.getEventId() != static_cast<int>(CoreEventId::AttributeChanged))
         return;
 
     const auto params = args.getParameters();

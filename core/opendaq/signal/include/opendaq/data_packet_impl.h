@@ -41,19 +41,20 @@ public:
     ErrCode INTERFACE_FUNC getOffset(INumber** offset) override;
     ErrCode INTERFACE_FUNC getRawData(void** address) override;
     ErrCode INTERFACE_FUNC getData(void** address) override;
-    ErrCode INTERFACE_FUNC getSampleMemSize(SizeT* sampleMemSize) override;
+    ErrCode INTERFACE_FUNC getDataSize(SizeT* dataSize) override;
+    ErrCode INTERFACE_FUNC getRawDataSize(SizeT* rawDataSize) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override;
 
 private:
-    void calculateSampleMemSize();
     bool isDataEqual(const DataPacketPtr& dataPacket) const;
 
     AllocatorPtr allocator;
     DataDescriptorPtr descriptor;
     SizeT sampleCount;
     NumberPtr offset = nullptr;
-    SizeT sampleMemSize = 0;
+    SizeT sampleSize, dataSize;
+    SizeT rawSampleSize, rawDataSize;
 
     void* data;
     void* scaledData;
@@ -86,32 +87,26 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     if (!descriptor.assigned())
         throw ArgumentNullException("Data descriptor in packet is null.");
 
-    calculateSampleMemSize();
+    sampleSize = descriptor.getSampleSize();
+    rawSampleSize = descriptor.getRawSampleSize();
+    dataSize = sampleCount * sampleSize;
+    rawDataSize = sampleCount * rawSampleSize;
 
-    if (descriptor.isStructDescriptor())
+    if (rawDataSize > 0)
     {
         if (this->allocator.assigned())
-            data = this->allocator.allocate(descriptor, sampleCount * this->sampleMemSize, this->sampleMemSize);
+            data = this->allocator.allocate(descriptor, rawDataSize, rawSampleSize);
         else
-            data = std::malloc(sampleCount * this->sampleMemSize);
-
-        if (data == nullptr)
-            throw NoMemoryException();
-
-        return;
-    }
-
-    const DataRuleType ruleType = descriptor.getRule().getType();
-    if (ruleType == DataRuleType::Explicit)
-    {
-        if (this->allocator.assigned())
-            data = this->allocator.allocate(descriptor, sampleCount * this->sampleMemSize, this->sampleMemSize);
-        else
-            data = std::malloc(sampleCount * this->sampleMemSize);
+            data = std::malloc(rawDataSize);
 
         if (data == nullptr)
             throw NoMemoryException();
     }
+
+    if (descriptor.isStructDescriptor() && rawSampleSize != sampleSize)
+        throw InvalidParameterException("Packets with struct implicit descriptor not supported");
+
+    const auto ruleType = descriptor.getRule().getType();
 
     if (ruleType == DataRuleType::Constant || (ruleType == DataRuleType::Linear && this->offset.assigned()))
         hasDataRuleCalc = descriptor.asPtr<IDataRuleCalcPrivate>(false)->hasDataRuleCalc();
@@ -199,19 +194,22 @@ ErrCode DataPacketImpl<TInterface>::getData(void** address)
     }
     else
     {
-        daqTry([&]() {
-            if (hasScalingCalc)
-            {
-                scaledData = descriptor.asPtr<IScalingCalcPrivate>(false)->scaleData(data, sampleCount);
-            }
-            else if (hasDataRuleCalc)
-            {
-                scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(offset, sampleCount);
-            }
+        if (sampleCount == 0)
+            *address = nullptr;
+        else
+            daqTry([&]() {
+                if (hasScalingCalc)
+                {
+                    scaledData = descriptor.asPtr<IScalingCalcPrivate>(false)->scaleData(data, sampleCount);
+                }
+                else if (hasDataRuleCalc)
+                {
+                    scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(offset, sampleCount);
+                }
 
-            *address = scaledData;
-            return OPENDAQ_SUCCESS;
-        });
+                *address = scaledData;
+                return OPENDAQ_SUCCESS;
+            });
     }
 
     readLock.unlock();
@@ -219,9 +217,20 @@ ErrCode DataPacketImpl<TInterface>::getData(void** address)
 }
 
 template <typename TInterface>
-ErrCode INTERFACE_FUNC DataPacketImpl<TInterface>::getSampleMemSize(SizeT* sampleMemSize)
+ErrCode INTERFACE_FUNC DataPacketImpl<TInterface>::getDataSize(SizeT* dataSize)
 {
-    *sampleMemSize = this->sampleMemSize;
+    OPENDAQ_PARAM_NOT_NULL(dataSize);
+
+    *dataSize = this->dataSize;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface>
+ErrCode INTERFACE_FUNC DataPacketImpl<TInterface>::getRawDataSize(SizeT* rawDataSize)
+{
+    OPENDAQ_PARAM_NOT_NULL(rawDataSize);
+
+    *rawDataSize = this->rawDataSize;
     return OPENDAQ_SUCCESS;
 }
 
@@ -264,42 +273,12 @@ ErrCode INTERFACE_FUNC DataPacketImpl<TInterface>::equals(IBaseObject* other, Bo
 }
 
 template <typename TInterface>
-void DataPacketImpl<TInterface>::calculateSampleMemSize()
-{
-    // todo: we need to adapt this method to work with struct descriptors as well
-    if (!descriptor.isStructDescriptor())
-    {
-        auto type = descriptor.getSampleType();
-        if (descriptor.getPostScaling().assigned())
-            type = descriptor.getPostScaling().getInputSampleType();
-
-        sampleMemSize = getSampleSize(type);
-
-        size_t elementCnt = 1;
-        for (const auto & dimension : descriptor.getDimensions()) {
-            elementCnt *= dimension.getSize();
-        }
-
-        if (elementCnt == 0) {
-            elementCnt = 1;
-        }
-
-        sampleMemSize *= elementCnt;
-    }
-}
-
-template <typename TInterface>
 bool DataPacketImpl<TInterface>::isDataEqual(const DataPacketPtr& dataPacket) const
 {
-    if (sampleMemSize == 0 || dataPacket.getSampleMemSize() == 0)
+    if (rawDataSize != dataPacket.getRawDataSize())
         throw InvalidSampleTypeException();
 
-    const size_t memSize = sampleMemSize * sampleCount;
-    const size_t otherMemSize = dataPacket.getSampleMemSize() * dataPacket.getSampleCount();
-    if (memSize != otherMemSize)
-        return false;
-
-    return data == dataPacket.getRawData() || std::memcmp(data, dataPacket.getRawData(), memSize) == 0;
+    return data == dataPacket.getRawData() || std::memcmp(data, dataPacket.getRawData(), rawDataSize) == 0;
 }
 
 END_NAMESPACE_OPENDAQ

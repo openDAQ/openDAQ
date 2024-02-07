@@ -114,30 +114,6 @@ void InstanceImpl::stopServers()
         server->stop();
 }
 
-ComponentPtr InstanceImpl::findComponentInternal(const ComponentPtr& component, const std::string& id)
-{
-    std::string startStr;
-    std::string restStr;
-    const bool hasSubComponentStr = IdsParser::splitRelativeId(id, startStr, restStr);
-    if (!hasSubComponentStr)
-        startStr = id;
-
-    const auto folder = component.asPtrOrNull<IFolder>(true);
-    if (!folder.assigned())
-        return nullptr;
-
-    if (folder.hasItem(startStr))
-    {
-        const auto subComponent = folder.getItem(startStr);
-        if (hasSubComponentStr)
-            return findComponentInternal(subComponent, restStr);
-
-        return subComponent;
-    }
-
-    return nullptr;
-}
-
 bool InstanceImpl::isDefaultRootDevice()
 {
     return rootDevice == defaultRootDevice;
@@ -469,6 +445,11 @@ ErrCode InstanceImpl::getOnComponentCoreEvent(IEvent** event)
     return rootDevice->getOnComponentCoreEvent(event);
 }
 
+ErrCode InstanceImpl::getStatusContainer(IComponentStatusContainer** statusContainer)
+{
+    return rootDevice->getStatusContainer(statusContainer);
+}
+
 ErrCode InstanceImpl::getItems(IList** items, ISearchFilter* searchFilter)
 {
     return rootDevice->getItems(items, searchFilter);
@@ -489,22 +470,9 @@ ErrCode InstanceImpl::hasItem(IString* localId, Bool* value)
     return rootDevice->hasItem(localId, value);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::findComponent(IComponent* component, IString* id, IComponent** outComponent)
+ErrCode INTERFACE_FUNC InstanceImpl::findComponent(IString* id, IComponent** outComponent)
 {
-    OPENDAQ_PARAM_NOT_NULL(id);
-    OPENDAQ_PARAM_NOT_NULL(outComponent);
-
-    ComponentPtr componentPtr = component;
-    if (!componentPtr.assigned())
-        componentPtr = rootDevice;
-
-    return daqTry(
-        [&outComponent, &componentPtr, &id]()
-        {
-            *outComponent = findComponentInternal(componentPtr, StringPtr(id)).detach();
-
-            return *outComponent == nullptr ? OPENDAQ_NOTFOUND : OPENDAQ_SUCCESS;
-        });
+    return rootDevice->findComponent(id, outComponent);
 }
 
 ErrCode InstanceImpl::getAvailableDevices(IList** availableDevices)
@@ -870,7 +838,8 @@ void InstanceImpl::connectInputPorts()
 
                     if (!signalId.empty())
                     {
-                        const SignalPtr sig = findComponentInternal(rootDevice, signalId);
+                        ComponentPtr sig;
+                        this->findComponent(String(signalId), &sig);
                         if (sig.assigned())
                         {
                             try

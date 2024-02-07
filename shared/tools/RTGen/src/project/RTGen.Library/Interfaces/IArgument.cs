@@ -27,5 +27,8 @@ namespace RTGen.Interfaces
 
         /// <summary>Argument default value in the source language.</summary>
         string DefaultValue { get; }
+
+        /// <summary>Argument could be represented by multiple types.</summary>
+        bool IsPolymorphic { get; set; }
     }
 }

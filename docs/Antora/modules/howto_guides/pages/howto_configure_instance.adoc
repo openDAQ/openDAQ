@@ -75,7 +75,7 @@ instance = instance_builder.build()
 ----
 ====
 
-In addition to adjusting the logging level globally, developers can customize the logging level for individual components and sinks. In the example below, the developer configures two logger sinks: `StdOutLoggerSink` with the default log level and `BasicFileLoggerSink with the error log level. Furthermore, custom log levels are specified for the `Instance` and `Some Module` components.
+In addition to adjusting the logging level globally, developers can customize the logging level for individual components and sinks. In the example below, the developer configures two logger sinks: `StdOutLoggerSink` with the default log level and `BasicFileLoggerSink` with the error log level. Furthermore, custom log levels are specified for the `Instance` and `Some Module` components.
 [tabs]
 ====
 Cpp::
@@ -116,7 +116,6 @@ Cpp::
 #include <opendaq/opendaq.h>
 #include <iostream>
 
-
 int main(int argc, const char* argv[])
 {
     daq::ListPtr<ILoggerSink> sinks = daq::List<ILoggerSink>(StdOutLoggerSink());
@@ -145,7 +144,6 @@ Cpp::
 ----
 #include <opendaq/opendaq.h>
 #include <iostream>
-
 
 int main(int argc, const char* argv[])
 {

@@ -38,8 +38,16 @@ public:
         this->thresholdChangesAfterPackets = thresholdChangesAfterPackets;
         this->mockDomainPackets = mockDomainPackets;
         this->newThresholds = newThresholds;
+    }
 
-        run();
+    void run()
+    {
+        createDomainSignal();
+        createDomainPackets();
+        createSignal();
+        createFunctionBlock();
+        sendPacketsAndChangeThreshold();
+        receivePacketsAndCheck();
     }
 
 private:
@@ -62,16 +70,6 @@ private:
     SignalConfigPtr signal;
     FunctionBlockPtr fb;
     PacketReaderPtr reader;
-
-    void run()
-    {
-        createDomainSignal();
-        createDomainPackets();
-        createSignal();
-        createFunctionBlock();
-        sendPacketsAndChangeThreshold();
-        receivePacketsAndCheck();
-    }
 
     void createDomainSignal()
     {
@@ -220,6 +218,7 @@ TEST_F(TriggerTest, TriggerTestFloatExplicit)
 
     auto helper = TriggerTestHelper(
         ExplicitDataRule(), expectedData, expectedDomain, SampleTypeFromType<Float>().SampleType, mockPackets, {}, mockDomainPackets);
+    helper.run();
 }
 
 TEST_F(TriggerTest, TriggerTestFloatLinear)
@@ -230,6 +229,7 @@ TEST_F(TriggerTest, TriggerTestFloatLinear)
 
     auto helper =
         TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Float>().SampleType, mockPackets, {});
+    helper.run();
 }
 
 TEST_F(TriggerTest, TriggerTestFloatExplicitThresholdChanged)
@@ -249,6 +249,7 @@ TEST_F(TriggerTest, TriggerTestFloatExplicitThresholdChanged)
                                     thresholdChangesAfterPackets,
                                     mockDomainPackets,
                                     newThresholds);
+    helper.run();
 }
 
 TEST_F(TriggerTest, TriggerTestFloatLinearThresholdChanged)
@@ -267,6 +268,7 @@ TEST_F(TriggerTest, TriggerTestFloatLinearThresholdChanged)
                                     thresholdChangesAfterPackets,
                                     {},
                                     newThresholds);
+    helper.run();
 }
 
 TEST_F(TriggerTest, TriggerTestIntExplicit)
@@ -278,6 +280,7 @@ TEST_F(TriggerTest, TriggerTestIntExplicit)
 
     auto helper = TriggerTestHelper(
         ExplicitDataRule(), expectedData, expectedDomain, SampleTypeFromType<Int>().SampleType, mockPackets, {}, mockDomainPackets);
+    helper.run();
 }
 
 TEST_F(TriggerTest, TriggerTestIntExplicitThresholdChanged)
@@ -297,6 +300,7 @@ TEST_F(TriggerTest, TriggerTestIntExplicitThresholdChanged)
                                     thresholdChangesAfterPackets,
                                     mockDomainPackets,
                                     newThresholds);
+    helper.run();
 }
 
 TEST_F(TriggerTest, TriggerTestIntLinear)
@@ -307,6 +311,7 @@ TEST_F(TriggerTest, TriggerTestIntLinear)
 
     auto helper =
         TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Int>().SampleType, mockPackets, {});
+    helper.run();
 }
 
 TEST_F(TriggerTest, TriggerTestIntLinearThresholdChanged)
@@ -326,4 +331,5 @@ TEST_F(TriggerTest, TriggerTestIntLinearThresholdChanged)
                                     thresholdChangesAfterPackets,
                                     {},
                                     newThresholds);
+    helper.run();
 }

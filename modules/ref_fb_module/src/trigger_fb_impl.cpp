@@ -12,8 +12,8 @@ namespace Trigger
 TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
-    threshold = THRESHOLD;
-    state = STATE;
+    threshold = INITIAL_THRESHOLD;
+    state = INITIAL_STATE;
     createInputPorts();
     createSignals();
     initProperties();
@@ -21,7 +21,7 @@ TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, 
 
 void TriggerFbImpl::initProperties()
 {
-    const auto thresholdProp = FloatProperty("Threshold", THRESHOLD);
+    const auto thresholdProp = FloatProperty("Threshold", INITIAL_THRESHOLD);
     objPtr.addProperty(thresholdProp);
     objPtr.getOnPropertyValueWrite("Threshold") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
@@ -86,7 +86,7 @@ void TriggerFbImpl::configure()
     }
     catch (const std::exception& e)
     {
-        LOG_W("Failed to set descriptor for power signal: {}", e.what())
+        LOG_W("Failed to set descriptor for trigger signal: {}", e.what())
         outputSignal.setDescriptor(nullptr);
     }
 }
@@ -139,34 +139,36 @@ void TriggerFbImpl::trigger(const DataPacketPtr& inputPacket, size_t triggerInde
 
     // Explicit vs Linear data rule type
     Int triggeredAt = -1;
-    if (inputPacket.getDomainPacket().getDataDescriptor().getRule().getType() == DataRuleType::Explicit)
+    auto inputDomainPacket = inputPacket.getDomainPacket();
+    auto rule = inputDomainPacket.getDataDescriptor().getRule();
+    if (rule.getType() == DataRuleType::Explicit)
     {
         // Get value of domain packet data at sample i (when triggered)
-        auto domainDataValues = static_cast<daq::Int*>(inputPacket.getDomainPacket().getData());
+        auto domainDataValues = static_cast<daq::Int*>(inputDomainPacket.getData());
         triggeredAt = static_cast<daq::Int>(domainDataValues[triggerIndex]);
     }
     else
     {
         // Use linear data rule to figure out when triggered
-        auto dictionary = inputPacket.getDomainPacket().getDataDescriptor().getRule().getParameters();
+        auto dictionary = rule.getParameters();
         auto delta = dictionary.get("delta");
         auto start = dictionary.get("start");
-        auto offset = inputPacket.getDomainPacket().getOffset();
+        auto offset = inputDomainPacket.getOffset();
         triggeredAt = offset + delta * triggerIndex + start;
     }
 
-    // Create domain packet
-    auto domainPacket = DataPacket(outputDomainDataDescriptor, 1);
-    auto domainPacketData = static_cast<daq::Int*>(domainPacket.getData());
+    // Create output domain packet
+    auto outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1);
+    auto domainPacketData = static_cast<daq::Int*>(outputDomainPacket.getData());
     *domainPacketData = triggeredAt;
 
-    // Create data packet
-    auto dataPacket = DataPacketWithDomain(domainPacket, outputDataDescriptor, 1);
+    // Create ouput data packet
+    auto dataPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
     auto packetData = static_cast<daq::Bool*>(dataPacket.getData());
     *packetData = static_cast<daq::Bool>(state);
 
     // Send packets
-    outputDomainSignal.sendPacket(domainPacket);
+    outputDomainSignal.sendPacket(outputDomainPacket);
     outputSignal.sendPacket(dataPacket);
 }
 

@@ -18,6 +18,7 @@ set(SRC_Include common.h
                 scaling_fb_impl.h
                 classifier_fb_impl.h
                 dispatch.h
+                trigger_fb_impl.h
 )
 
 set(SRC_Srcs module_dll.cpp
@@ -31,6 +32,7 @@ set(SRC_Srcs module_dll.cpp
              statistics_fb_impl.cpp
              classifier_fb_impl.cpp
              scaling_fb_impl.cpp
+             trigger_fb_impl.cpp
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
@@ -43,6 +45,7 @@ source_group("module" FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
                             ${MODULE_HEADERS_DIR}/scaling_fb_impl.h
                             ${MODULE_HEADERS_DIR}/dispatch.h
+                            ${MODULE_HEADERS_DIR}/trigger_fb_impl.h
                             ${MODULE_BINARY_HEADER_DIR}/arial.ttf.h
                             module_dll.cpp
                             ref_fb_module_impl.cpp
@@ -51,6 +54,7 @@ source_group("module" FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
                             statistics_fb_impl.cpp
                             scaling_fb_impl.cpp
                             classifier_fb_impl.cpp
+                            trigger_fb_impl.cpp
 )
 
 source_group("polyline" FILES ${MODULE_HEADERS_DIR}/polyline.h

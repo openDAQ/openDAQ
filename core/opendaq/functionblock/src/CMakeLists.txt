@@ -82,6 +82,10 @@ opendaq_add_library(${BASE_NAME} STATIC
     ${ConfigHeaderSource}
 )
 
+if (MSVC)
+    opendaq_target_compile_options(${BASE_NAME} PRIVATE /bigobj)
+endif()
+
 opendaq_target_link_libraries(${BASE_NAME}
     PUBLIC
         daq::coreobjects

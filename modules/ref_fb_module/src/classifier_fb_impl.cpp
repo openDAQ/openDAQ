@@ -376,7 +376,7 @@ void ClassifierFbImpl::processLinearDataPacket()
     auto outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1);
     auto outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
     auto outputData = static_cast<OutputType*>(outputPacket.getData());
-    memset(outputData, 0, outputPacket.getSampleMemSize());
+    memset(outputData, 0, outputPacket.getRawDataSize());
 
     for (size_t sampleIdx = 0; sampleIdx < linearBlockCount; sampleIdx++) 
     {

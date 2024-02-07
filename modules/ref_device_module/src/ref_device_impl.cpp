@@ -2,6 +2,7 @@
 #include <opendaq/device_info_factory.h>
 #include <coreobjects/unit_factory.h>
 #include <ref_device_module/ref_channel_impl.h>
+#include <ref_device_module/ref_can_channel_impl.h>
 #include <opendaq/module_manager_ptr.h>
 #include <fmt/format.h>
 #include <opendaq/custom_log.h>
@@ -27,6 +28,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const ContextPtr& ctx, const ComponentPt
     initClock();
     initProperties();
     updateNumberOfChannels();
+    enableCANChannel();
     updateAcqLoopTime();
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
 }
@@ -179,6 +181,7 @@ void RefDeviceImpl::initClock()
 void RefDeviceImpl::initIoFolder()
 {
     aiFolder = this->addIoFolder("ai", ioFolder);
+    canFolder = this->addIoFolder("can", ioFolder);
 }
 
 void RefDeviceImpl::initSyncComponent()
@@ -207,6 +210,12 @@ void RefDeviceImpl::acqLoop()
                 auto chPrivate = ch.asPtr<IRefChannel>();
                 chPrivate->collectSamples(curTime);
             }
+
+            if (canChannel.assigned())
+            {
+                auto chPrivate = canChannel.asPtr<IRefChannel>();
+                chPrivate->collectSamples(curTime);
+            }
         }
     }
 }
@@ -231,6 +240,10 @@ void RefDeviceImpl::initProperties()
     objPtr.getOnPropertyValueWrite("AcquisitionLoopTime") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) {
         updateAcqLoopTime();
     };
+
+    objPtr.addProperty(BoolProperty("EnableCANChannel", False));
+    objPtr.getOnPropertyValueWrite("EnableCANChannel") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { enableCANChannel(); };
 }
 
 void RefDeviceImpl::updateNumberOfChannels()
@@ -257,6 +270,26 @@ void RefDeviceImpl::updateNumberOfChannels()
         auto localId = fmt::format("refch{}", i);
         auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, localId, init);
         channels.push_back(std::move(ch));
+    }
+}
+
+void RefDeviceImpl::enableCANChannel()
+{
+    bool enableCANChannel = objPtr.getPropertyValue("EnableCANChannel");
+
+    std::scoped_lock lock(sync);
+
+    if (!enableCANChannel)
+    {
+        if (canChannel.assigned() && hasChannel(nullptr, canChannel))
+            removeChannel(nullptr, canChannel);
+        canChannel.release();
+    }
+    else
+    {
+        auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
+        RefCANChannelInit init{microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart};
+        canChannel = createAndAddChannel<RefCANChannelImpl>(canFolder, "refcanch", init);
     }
 }
 

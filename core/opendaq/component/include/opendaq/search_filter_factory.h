@@ -117,7 +117,7 @@ inline SearchFilterPtr Not(const SearchFilterPtr& filter)
  * @param acceptsFunction The function to be called when "accepts component" is called. Should return `true` or `false`.
  * @param visitFunction The function to be called when "visit children" is called. Should return `true` or `false`.
  */
-inline SearchFilterPtr Custom(const FunctionPtr& acceptsFunction, const FunctionPtr& visitFunction)
+inline SearchFilterPtr Custom(const FunctionPtr& acceptsFunction, const FunctionPtr& visitFunction = nullptr)
 {
     SearchFilterPtr obj(CustomSearchFilter_Create(acceptsFunction, visitFunction));
     return obj;

@@ -4,6 +4,7 @@
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/scaling_factory.h>
+#include <opendaq/dimension_factory.h>
 #include <gtest/gtest.h>
 
 using DataPacketTest = testing::Test;
@@ -368,6 +369,34 @@ TEST_F(DataPacketTest, PacketRefCount)
     const DataPacketPtr packet = DataPacket(desc, 100, 10);
 
     ASSERT_EQ(packet.getRefCount(), 1u);
+}
+
+TEST_F(DataPacketTest, PacketWithStructSampleType)
+{
+    const auto arbIdDescriptor = DataDescriptorBuilder()
+        .setName("ArbId")
+        .setSampleType(SampleType::UInt32)
+        .setRule(ExplicitDataRule())
+        .build();
+
+    const auto lengthDescriptor = DataDescriptorBuilder()
+        .setName("Length")
+        .setSampleType(SampleType::UInt8)
+        .setRule(ExplicitDataRule())
+        .build();
+
+    const auto dataDescriptor = DataDescriptorBuilder()
+        .setName("Data")
+        .setSampleType(SampleType::UInt8)
+        .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
+        .setRule(ExplicitDataRule())
+        .build();
+
+    const auto canMsgDescriptor = DataDescriptorBuilder()
+        .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
+        .build();
+
+    const DataPacketPtr packet = DataPacket(canMsgDescriptor, 100, 0);
 }
 
 END_NAMESPACE_OPENDAQ

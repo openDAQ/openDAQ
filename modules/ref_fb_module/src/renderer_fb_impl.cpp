@@ -1282,8 +1282,18 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
             return;
         }
         signalContext.sampleType = dataDescriptor.getSampleType();
-        signalContext.min = dataDescriptor.getValueRange().getLowValue();
-        signalContext.max = dataDescriptor.getValueRange().getHighValue();
+
+        const auto valueRange = dataDescriptor.getValueRange();
+        if (!valueRange.assigned())
+        {
+            signalContext.min = 0;
+            signalContext.max = 1;
+        }
+        else
+        {
+            signalContext.min = dataDescriptor.getValueRange().getLowValue();
+            signalContext.max = dataDescriptor.getValueRange().getHighValue();
+        }
         setSignalContextCaption(signalContext);
 
         signalContext.valid = true;

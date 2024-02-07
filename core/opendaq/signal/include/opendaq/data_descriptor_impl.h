@@ -44,6 +44,8 @@ public:
     ErrCode INTERFACE_FUNC getPostScaling(IScaling** scaling) override;
     ErrCode INTERFACE_FUNC getMetadata(IDict** metadata) override;
     ErrCode INTERFACE_FUNC getStructFields(IList** structFields) override;
+    ErrCode INTERFACE_FUNC getSampleSize(SizeT* sampleSize) override;
+    ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSizes) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 
@@ -85,8 +87,11 @@ private:
     void initCalcs();
     std::unique_ptr<ScalingCalc> scalingCalc;
     std::unique_ptr<DataRuleCalc> dataRuleCalc;
+    SizeT sampleSize;
+    SizeT rawSampleSize;
 
     static DictPtr<IString, IBaseObject> PackBuilder(IDataDescriptorBuilder* dataDescriptorBuilder);
+    void calculateSampleMemSize();
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DataDescriptorImpl)

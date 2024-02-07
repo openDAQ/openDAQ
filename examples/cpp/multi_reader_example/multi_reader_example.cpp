@@ -252,9 +252,9 @@ void ReadSignal::sendPacket()
     auto packet = daq::DataPacketWithDomain(domainPacket, valueDescriptor, packetSize);
 
     // Zero-out data
-    memset(packet.getData(), 0, packet.getSampleCount() * packet.getSampleMemSize());
+    memset(packet.getRawData(), 0, packet.getRawDataSize());
 
-    auto* data = static_cast<double*>(packet.getData());
+    auto* data = static_cast<double*>(packet.getRawData());
     for (auto i = 0; i < packetSize; ++i)
     {
         data[i] = offset + i;

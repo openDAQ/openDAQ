@@ -6,12 +6,14 @@ set(SRC_Include common.h
                 ref_device_module_impl.h
                 ref_device_impl.h
                 ref_channel_impl.h
+				ref_can_channel_impl.h
 )
 
 set(SRC_Srcs module_dll.cpp
              ref_device_module_impl.cpp
              ref_device_impl.cpp
              ref_channel_impl.cpp
+			 ref_can_channel_impl.cpp
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
@@ -19,12 +21,14 @@ prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 source_group("module" FILES ${MODULE_HEADERS_DIR}/ref_device_module_common.h
                             ${MODULE_HEADERS_DIR}/ref_device_module_impl.h
                             ${MODULE_HEADERS_DIR}/ref_channel_impl.h
+                            ${MODULE_HEADERS_DIR}/ref_can_channel_impl.h
                             ${MODULE_HEADERS_DIR}/ref_device_impl.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
                             module_dll.cpp
                             ref_device_module_impl.cpp
                             ref_device_impl.cpp
                             ref_channel_impl.cpp
+							ref_can_channel_impl.cpp
 )
 
 

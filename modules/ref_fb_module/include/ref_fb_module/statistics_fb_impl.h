@@ -69,6 +69,9 @@ private:
         }
     };
 
+    bool triggerMode;
+    FunctionBlockPtr nestedTriggerFunctionBlock;
+
     size_t blockSize;
     DomainSignalType domainSignalType;
 
@@ -99,6 +102,7 @@ private:
 
     void initProperties();
     void propertyChanged();
+    void triggerModeChanged();
     void configure();
     void readProperties();
 

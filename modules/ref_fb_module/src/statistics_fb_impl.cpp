@@ -28,10 +28,12 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
         packetReadyNotification = PacketReadyNotification::Scheduler;
 
     createAndAddInputPort("input", packetReadyNotification);
+    createAndAddInputPort("trigger", packetReadyNotification);
 }
 
 FunctionBlockTypePtr StatisticsFbImpl::CreateType()
 {
+
     return FunctionBlockType("ref_fb_module_statistics",
                              "Statistics",
                              "Calculates statistics",
@@ -52,6 +54,13 @@ void StatisticsFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("DomainSignalType") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
 
+    objPtr.addProperty(BoolProperty("TriggerMode", false));
+    objPtr.getOnPropertyValueWrite("TriggerMode") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
+    {
+        propertyChanged();
+        triggerModeChanged();
+    };
+
     readProperties();
 }
 
@@ -63,11 +72,30 @@ void StatisticsFbImpl::propertyChanged()
     configure();
 }
 
+void StatisticsFbImpl::triggerModeChanged()
+{
+    std::scoped_lock lock(sync);
+    if (triggerMode)
+    {
+        nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("ref_fb_module_trigger", "nfbt");
+        // TODO check if not null
+    }
+    else
+    {
+        removeNestedFunctionBlock(nestedTriggerFunctionBlock);
+        // TODO check if null
+    }
+}
+
 void StatisticsFbImpl::readProperties()
 {
     blockSize = objPtr.getPropertyValue("BlockSize");
     domainSignalType = static_cast<DomainSignalType>(static_cast<Int>(objPtr.getPropertyValue("DomainSignalType")));
-    LOG_D("Properties: BlockSize {}, DomainSignalType {}", blockSize, objPtr.getPropertySelectionValue("DomainSignalType").toString());
+    triggerMode = objPtr.getPropertyValue("TriggerMode");
+    LOG_D("Properties: BlockSize {}, DomainSignalType {}, TriggerMode {}",
+          blockSize,
+          objPtr.getPropertySelectionValue("DomainSignalType").toString(),
+          triggerMode);
 }
 
 void StatisticsFbImpl::configure()

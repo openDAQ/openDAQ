@@ -17,13 +17,14 @@
 #pragma once
 #include "opcuatms_client/objects/tms_client_property_object_impl.h"
 #include "opendaq/channel_impl.h"
+#include "opcuatms_client/objects/tms_client_component.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 template <typename Impl>
 class TmsClientComponentBaseImpl;
 
-using TmsClientComponentImpl = TmsClientComponentBaseImpl<ComponentImpl<>>;
+using TmsClientComponentImpl = TmsClientComponentBaseImpl<ComponentImpl<ITmsClientComponent>>;
 
 template <class Impl>
 class TmsClientComponentBaseImpl : public TmsClientPropertyObjectBaseImpl<Impl>

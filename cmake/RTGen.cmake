@@ -31,7 +31,7 @@
 #   - Output additional log messages and more extensive error reports.
 #
 #---------------------------------------------------------------------------------
-function(_rtgen_interface FILENAME OUTFILES_VAR)
+function(_rtgen_interface LANGUAGES FILENAME OUTFILES_VAR)
     if (NOT DEFINED RTGEN_OUTPUT_DIR)
         message(FATAL_ERROR "RTGen Output directory is not defined!")
     endif()
@@ -43,8 +43,6 @@ function(_rtgen_interface FILENAME OUTFILES_VAR)
     if (NOT DEFINED RTGEN_LIBRARY_NAME)
         set(RTGEN_LIBRARY_NAME ${PROJECT_NAME})
     endif()
-
-    set(LANGUAGES Cpp ${OPENDAQ_GENERATE_BINDINGS_LANG})
 
     # Expand the bindings dir
     get_filename_component(CURR_BINDINGS_DIR
@@ -70,7 +68,7 @@ function(_rtgen_interface FILENAME OUTFILES_VAR)
     if(RTGEN_VERBOSE)
         list(APPEND RTGEN_OPTIONS_GLOBAL -v)
     endif()
-
+    
     if (LANGUAGES STREQUAL "ALL")
         set(ARGN cpp delphi python)
     else()
@@ -217,10 +215,18 @@ endfunction(rtgen_add_file)
 #           - ${FILENAME}_decorator.h
 #       - PROPERTY_CLASS
 #           - ${FILENAME}_property_class.h
+#       - INTERNAL
+#           - only generate cpp smart pointers
 #
 #-------------------------------------------------------------------------------------
 function(rtgen OUT_VAR_BASE FILENAME)
-    set(RTGEN_LANGS Cpp ${OPENDAQ_GENERATE_BINDINGS_LANG})
+    list(FIND ARGN INTERNAL INTERNAL_FOUND)
+    if (INTERNAL_FOUND GREATER_EQUAL 0)
+        set(RTGEN_LANGS Cpp)
+        list(REMOVE_ITEM ARGN INTERNAL)
+    else()
+        set(RTGEN_LANGS Cpp ${OPENDAQ_GENERATE_BINDINGS_LANG})
+    endif()
 
     # Get the filename without extension
     get_filename_component(RTGEN_BASE_NAME "${FILENAME}" NAME_WE)
@@ -238,7 +244,7 @@ function(rtgen OUT_VAR_BASE FILENAME)
     # Setting it in parent scope does not define it in current scope
     set(${OUT_VAR_BASE} ${${OUT_VAR_BASE}_Cpp} ${${OUT_VAR_BASE}_PublicHeaders} ${${OUT_VAR_BASE}_PrivateHeaders})
 
-    _rtgen_interface(${FILENAME} ${OUT_VAR_BASE})
+    _rtgen_interface("${RTGEN_LANGS}" ${FILENAME} ${OUT_VAR_BASE})
 
     list(APPEND ${OUT_VAR_BASE}_PublicHeaders ${RTGEN_HEADERS_DIR}/${FILENAME})
     list(APPEND ${OUT_VAR_BASE} ${RTGEN_HEADERS_DIR}/${FILENAME})

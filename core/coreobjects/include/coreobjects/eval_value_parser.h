@@ -33,24 +33,58 @@ bool parseEvalValue(const std::string& str, ParseParams* params);
 
 class EvalValueParser
 {
+    enum OperatorPrecedence
+    {
+        MinPrecedence = 0,
+        Equality,
+        Logic,
+        Term,
+        Factor,
+        Prefix,
+    };
+
+    enum Associativity
+    {
+        Left,
+        Right,
+    };
+
+    typedef std::unique_ptr<daq::BaseNode>(EvalValueParser::*InfixParselet)(EvalValueToken /*token*/, std::unique_ptr<daq::BaseNode> /*left*/, Associativity /*associativity*/, int /*parseletPrecedence*/);
+    typedef std::unique_ptr<daq::BaseNode>(EvalValueParser::*PrefixParselet)(EvalValueToken /*token*/, int /*parseletPrecedence*/);
+
+    struct PrefixParseletWithPrecedence
+    {
+        PrefixParselet parse;
+        int precedence;
+    };
+
+    struct InfixParseletWithPrecedence
+    {
+        InfixParselet parse;
+        int precedence;
+        Associativity associativity;
+    };
 
 public:
     EvalValueParser(const std::vector<EvalValueToken>& aTokens, ParseParams* aParams);
 
-    // EvalValueParser is a recursive descent parser that parses the following
-    // grammar:
+    // [precedences]
+    //   equality: "==" | "!=" | "<" | "<=" | ">" | ">="
+    //   logic:    "||" | "&&"
+    //   term:     "+" | "-"
+    //   factor:   "*" | "/"
+    //   prefix:   "!" | "-" (unary)
     //
-    // expression : equality
-    // equality   : logic_op ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) logic_op )*
-    // logic_op   : term ( ( "||" | "&&" ) term )*
-    // term       : factor ( ( "+" | "-" ) factor )*
-    // factor     : unary ( ( "*" | "/" ) unary )*
-    // unary      : ( "!" | "-" ) unary
-    //            | literal
-    // literal    : FLOATVALUE
+    // [grammar]
+    // parse      : expression
+    // expression : infix
+    // infix      : prefix ( ( "==" | "!=" | "<" | "<=" | ">" | ">="  |  "||" | "&&"  |  "+" | "-"  |  "*" | "/"  | ) prefix )*
+    // prefix     : FLOATVALUE
     //            | INTVALUE
     //            | BOOLVALUE
     //            | STRINGVALUE
+    //            | "!" expression
+    //            | "-" expression
     //            | "[" ( expression ( "," expression )* )? "]"
     //            | "(" expression ")"
     //            | IF "(" expression "," expression "," expression ")"
@@ -59,7 +93,7 @@ public:
     //            | "%" propref
     //            | "{" INTVALUE "}" "." ( "$" valref | "%" propref )
     //            | IDENTIFIER
-    //            | UNIT "(" literal ( "," literal)? ( "," literal)? ( "," literal)? ")"
+    //            | UNIT "(" prefix ( "," prefix)? ( "," prefix)? ( "," prefix)? ")"
     // valref     : IDENTIFIER ( "[" INTVALUE "]" )?
     // propref    : IDENTIFIER ( ":" PROPERTYITEM )? ( "(" ")" )?
 
@@ -69,24 +103,26 @@ public:
     std::unique_ptr<std::unordered_set<std::string>> getPropertyReferences();
 
 private:
-    std::unique_ptr<daq::BaseNode> expression();
-    std::unique_ptr<daq::BaseNode> equality();
-    std::unique_ptr<daq::BaseNode> logicOp();
-    std::unique_ptr<daq::BaseNode> term();
-    std::unique_ptr<daq::BaseNode> factor();
-    std::unique_ptr<daq::BaseNode> unary();
-    std::unique_ptr<daq::BaseNode> literal();
+    std::unique_ptr<daq::BaseNode> parseExpression(int precedence = OperatorPrecedence::MinPrecedence);
+    std::unique_ptr<daq::BaseNode> parseInfix(EvalValueToken token, std::unique_ptr<daq::BaseNode> left, Associativity associativity, int parseletPrecedence);
+    std::unique_ptr<daq::BaseNode> parsePrefix(EvalValueToken token, int parseletPrecedence);
     std::unique_ptr<daq::BaseNode> valref();
     std::unique_ptr<daq::BaseNode> propref();
 
+    void registerInfix(EvalValueToken::Type tokenType, InfixParselet parselet, int precedence, Associativity associativity = Associativity::Left);
+    void registerPrefix(EvalValueToken::Type tokenType, PrefixParselet parselet, int precedence = OperatorPrecedence::Prefix);
+
+    int nextTokenPrecedence() const;
     bool isAt(EvalValueToken::Type tokenType) const;
     bool isAtEnd() const;
     bool isAtAnyOf(std::initializer_list<EvalValueToken::Type> tokenTypes) const;
     void assertIsAt(EvalValueToken::Type tokenType) const;
     void consume(EvalValueToken::Type tokenType);
     EvalValueToken advance();
-    void undoAdvance();
     EvalValueToken peek() const;
+
+    std::unordered_map<EvalValueToken::Type, PrefixParseletWithPrecedence> prefixParselets;
+    std::unordered_map<EvalValueToken::Type, InfixParseletWithPrecedence> infixParselets;
 
     std::vector<EvalValueToken> tokens;
     std::unordered_set<std::string> propertyReferences;

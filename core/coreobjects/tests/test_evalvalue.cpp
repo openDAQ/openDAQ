@@ -105,6 +105,15 @@ TEST_F(EvalValueTest, TestPrecedence)
     ASSERT_EQ(r, 5LL);
 }
 
+TEST_F(EvalValueTest, TestAssociativity)
+{
+    Int r = EvalValue("6 - 3 - 1");
+    ASSERT_EQ(r, 2LL);
+
+    r = EvalValue("16 / 4 / 2");
+    ASSERT_EQ(r, 2LL);
+}
+
 TEST_F(EvalValueTest, IntResultConversion)
 {
     Float r1 = EvalValue("1 + 1");
@@ -456,6 +465,10 @@ TEST_F(EvalValueTest, UnaryMinus)
     int a = EvalValue("-1");
 
     ASSERT_EQ(a, -1);
+
+    a = EvalValue("-3 + -2");
+
+    ASSERT_EQ(a, -5);
 }
 
 TEST_F(EvalValueTest, UnaryMinusFloat)

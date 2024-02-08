@@ -79,25 +79,7 @@ EvalValueParser::EvalValueParser(const std::vector<EvalValueToken>& aTokens, Par
 
 std::unique_ptr<daq::BaseNode> EvalValueParser::parse()
 {
-    return parseExpression(OperatorPrecedence::MinPrecedence);
-}
-
-std::unique_ptr<daq::BaseNode> EvalValueParser::parseExpression(int precedence)
-{
-    auto token = advance();
-    if (token.type == TokenType::End || prefixParselets.find(token.type) == prefixParselets.end())
-        throw daq::ParseFailedException("Unexpected end of expression");
-    auto prefixParselet = prefixParselets[token.type];
-    auto left = parsePrefix(token, prefixParselet.precedence);
-    while (precedence < nextTokenPrecedence())
-    {
-        token = advance();
-        if (infixParselets.find(token.type) == infixParselets.end())
-            throw daq::ParseFailedException("Unexpected token");
-        auto infixParselet = infixParselets[token.type];
-        left = parseInfix(token, std::move(left), infixParselet.associativity, infixParselet.precedence);
-    }
-    return left;
+    return expression();
 }
 
 std::unique_ptr<std::unordered_set<std::string>> EvalValueParser::getPropertyReferences()
@@ -105,9 +87,22 @@ std::unique_ptr<std::unordered_set<std::string>> EvalValueParser::getPropertyRef
     return std::make_unique<std::unordered_set<std::string>>(std::move(propertyReferences));
 }
 
-std::unique_ptr<daq::BaseNode> EvalValueParser::parseInfix(EvalValueToken token, std::unique_ptr<daq::BaseNode> left, Associativity associativity, int parseletPrecedence)
+std::unique_ptr<daq::BaseNode> EvalValueParser::expression(int precedence)
 {
-    auto right = parseExpression(parseletPrecedence - (associativity == Associativity::Right ? 1 : 0));
+    auto token = advance();
+    if (token.type == TokenType::End || prefixParseRules.find(token.type) == prefixParseRules.end())
+        throw daq::ParseFailedException("Unexpected end of expression");
+    auto left = prefix(token, prefixParseRules[token.type]);
+    while (precedence < infixTokenPrecedence(peek().type))
+    {
+        token = advance();
+        left = infix(token, std::move(left), infixParseRules[token.type]);
+    }
+    return left;
+}
+
+std::unique_ptr<daq::BaseNode> EvalValueParser::infix(const EvalValueToken& token, std::unique_ptr<daq::BaseNode> left, const ParseRule& rule)
+{
     std::unique_ptr<daq::BinaryNode> node;
     switch (token.type)
     {
@@ -126,11 +121,11 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::parseInfix(EvalValueToken token,
         default: assert(false);
     }
     node->leftNode = std::move(left);
-    node->rightNode = std::move(right);
+    node->rightNode = expression(rule.precedence - (rule.associativity == Associativity::Right ? 1 : 0));
     return node;
 }
 
-std::unique_ptr<daq::BaseNode> EvalValueParser::parsePrefix(EvalValueToken token, int parseletPrecedence)
+std::unique_ptr<daq::BaseNode> EvalValueParser::prefix(const EvalValueToken& token, const ParseRule& rule)
 {
     switch (token.type)
     {
@@ -141,18 +136,18 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::parsePrefix(EvalValueToken token
         case TokenType::Exclamation:
             {
                 auto node = std::make_unique<daq::UnaryOpNode<daq::UnaryOperationType::LogNegate>>();
-                node->expNode = parseExpression(parseletPrecedence);
+                node->expNode = expression(rule.precedence);
                 return node;
             }
         case TokenType::Minus:
             {
                 auto node = std::make_unique<daq::UnaryOpNode<daq::UnaryOperationType::Negate>>();
-                node->expNode = parseExpression(parseletPrecedence);
+                node->expNode = expression(rule.precedence);
                 return node;
             }
         case TokenType::OpenParen:
             {
-                auto expr = parseExpression();
+                auto expr = expression();
                 consume(TokenType::CloseParen);
                 return expr;
             }
@@ -161,7 +156,7 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::parsePrefix(EvalValueToken token
                 auto elements = std::make_unique<std::vector<std::unique_ptr<daq::BaseNode>>>();
                 while (!isAt(TokenType::CloseBracket))
                 {
-                    elements->push_back(parseExpression());
+                    elements->push_back(expression());
                     if (!isAt(TokenType::CloseBracket))
                         consume(TokenType::Comma);
                 }
@@ -172,23 +167,23 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::parsePrefix(EvalValueToken token
             {
                 consume(TokenType::OpenParen);
                 auto ifNode = std::make_unique<daq::IfNode>();
-                ifNode->condNode = parseExpression();
+                ifNode->condNode = expression();
                 consume(TokenType::Comma);
-                ifNode->trueNode = parseExpression();
+                ifNode->trueNode = expression();
                 consume(TokenType::Comma);
-                ifNode->falseNode = parseExpression();
+                ifNode->falseNode = expression();
                 consume(TokenType::CloseParen);
                 return ifNode;
             }
         case TokenType::Switch:
             {
                 consume(TokenType::OpenParen);
-                auto varNode = parseExpression();
+                auto varNode = expression();
                 auto valueNodes = std::make_unique<std::vector<std::unique_ptr<daq::BaseNode>>>();
                 while (!isAt(TokenType::CloseParen))
                 {
                     consume(TokenType::Comma);
-                    valueNodes->push_back(parseExpression());
+                    valueNodes->push_back(expression());
                 }
                 consume(TokenType::CloseParen);
                 if (valueNodes->size() < 2)
@@ -205,7 +200,7 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::parsePrefix(EvalValueToken token
                     if (unitParams->size() > 3)
                         throw daq::ParseFailedException("Unit literal accepts up to 4 arguments");
 
-                    unitParams->push_back(parseExpression());
+                    unitParams->push_back(expression());
                     if (!isAt(TokenType::CloseParen))
                         consume(TokenType::Comma);
                 }
@@ -247,8 +242,6 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::parsePrefix(EvalValueToken token
                 node->onResolveReference = params->onResolveReference;
                 return node;
             }
-        default:
-            throw daq::ParseFailedException("syntax error");
     }
     throw daq::ParseFailedException("syntax error");
 }
@@ -312,38 +305,25 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::propref()
 
 void EvalValueParser::registerPrefix(TokenType type, int precedence)
 {
-    prefixParselets[type] = {precedence};
+    prefixParseRules[type] = {precedence};
 }
 
 void EvalValueParser::registerInfix(TokenType type, int precedence, Associativity associativity)
 {
-    infixParselets[type] = {precedence, associativity};
+    infixParseRules[type] = {precedence, associativity};
 }
 
 
-int EvalValueParser::nextTokenPrecedence() const
+int EvalValueParser::infixTokenPrecedence(EvalValueToken::Type tokenType) const
 {
-    auto token = peek();
-    if (token.type == TokenType::End || infixParselets.find(token.type) == infixParselets.end())
+    if (tokenType == TokenType::End || infixParseRules.find(tokenType) == infixParseRules.end())
         return OperatorPrecedence::MinPrecedence;
-    return infixParselets.at(token.type).precedence;
+    return infixParseRules.at(tokenType).precedence;
 }
 
 bool EvalValueParser::isAt(TokenType tokenType) const
 {
-    if (isAtEnd())
-        return false;
     return peek().type == tokenType;
-}
-
-bool EvalValueParser::isAtEnd() const
-{
-    return peek().type == TokenType::End;
-}
-
-bool EvalValueParser::isAtAnyOf(std::initializer_list<TokenType> tokenTypes) const
-{
-    return std::find(tokenTypes.begin(), tokenTypes.end(), peek().type) != tokenTypes.end();
 }
 
 void EvalValueParser::assertIsAt(TokenType tokenType) const
@@ -361,7 +341,7 @@ void EvalValueParser::consume(TokenType tokenType)
 EvalValueToken EvalValueParser::advance()
 {
     auto prevToken = peek();
-    if (!isAtEnd())
+    if (prevToken.type != TokenType::End)
         current++;
     return prevToken;
 }

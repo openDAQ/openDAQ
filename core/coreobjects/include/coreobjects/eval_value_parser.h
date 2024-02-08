@@ -43,13 +43,13 @@ class EvalValueParser
         Prefix,
     };
 
-    enum Associativity
+    enum class Associativity
     {
         Left,
         Right,
     };
 
-    struct ParseletDetails
+    struct ParseRule
     {
         int precedence;
         Associativity associativity;
@@ -68,7 +68,7 @@ public:
     // [grammar]
     // parse      : expression
     // expression : infix
-    // infix      : prefix ( ( "==" | "!=" | "<" | "<=" | ">" | ">="  |  "||" | "&&"  |  "+" | "-"  |  "*" | "/"  | ) prefix )*
+    // infix      : prefix ( ( "==" | "!=" | "<" | "<=" | ">" | ">="  |  "||" | "&&"  |  "+" | "-"  |  "*" | "/" ) prefix )*
     // prefix     : FLOATVALUE
     //            | INTVALUE
     //            | BOOLVALUE
@@ -83,7 +83,7 @@ public:
     //            | "%" propref
     //            | "{" INTVALUE "}" "." ( "$" valref | "%" propref )
     //            | IDENTIFIER
-    //            | UNIT "(" prefix ( "," prefix)? ( "," prefix)? ( "," prefix)? ")"
+    //            | UNIT "(" expression ( "," expression)? ( "," expression)? ( "," expression)? ")"
     // valref     : IDENTIFIER ( "[" INTVALUE "]" )?
     // propref    : IDENTIFIER ( ":" PROPERTYITEM )? ( "(" ")" )?
 
@@ -93,26 +93,24 @@ public:
     std::unique_ptr<std::unordered_set<std::string>> getPropertyReferences();
 
 private:
-    std::unique_ptr<daq::BaseNode> parseExpression(int precedence = OperatorPrecedence::MinPrecedence);
-    std::unique_ptr<daq::BaseNode> parseInfix(EvalValueToken token, std::unique_ptr<daq::BaseNode> left, Associativity associativity, int parseletPrecedence);
-    std::unique_ptr<daq::BaseNode> parsePrefix(EvalValueToken token, int parseletPrecedence);
+    std::unique_ptr<daq::BaseNode> expression(int precedence = OperatorPrecedence::MinPrecedence);
+    std::unique_ptr<daq::BaseNode> infix(const EvalValueToken& token, std::unique_ptr<daq::BaseNode> left, const ParseRule& rule);
+    std::unique_ptr<daq::BaseNode> prefix(const EvalValueToken& token, const ParseRule& rule);
     std::unique_ptr<daq::BaseNode> valref();
     std::unique_ptr<daq::BaseNode> propref();
 
     void registerInfix(EvalValueToken::Type tokenType, int precedence, Associativity associativity = Associativity::Left);
     void registerPrefix(EvalValueToken::Type tokenType, int precedence = OperatorPrecedence::Prefix);
 
-    int nextTokenPrecedence() const;
+    int infixTokenPrecedence(EvalValueToken::Type tokenType) const;
     bool isAt(EvalValueToken::Type tokenType) const;
-    bool isAtEnd() const;
-    bool isAtAnyOf(std::initializer_list<EvalValueToken::Type> tokenTypes) const;
     void assertIsAt(EvalValueToken::Type tokenType) const;
     void consume(EvalValueToken::Type tokenType);
     EvalValueToken advance();
     EvalValueToken peek() const;
 
-    std::unordered_map<EvalValueToken::Type, ParseletDetails> prefixParselets;
-    std::unordered_map<EvalValueToken::Type, ParseletDetails> infixParselets;
+    std::unordered_map<EvalValueToken::Type, ParseRule> infixParseRules;
+    std::unordered_map<EvalValueToken::Type, ParseRule> prefixParseRules;
 
     std::vector<EvalValueToken> tokens;
     std::unordered_set<std::string> propertyReferences;

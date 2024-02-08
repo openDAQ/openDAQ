@@ -7,7 +7,7 @@ The Instance is the top-level openDAQ(TM) object, serving as a container for the
   * xref:background_info:opendaq_architecture.adoc#instance[Architecture - Instance]
 
 == Creating the default openDAQ(TM) Instance
-Upon creation, it generates a Client device as the default root device. The client device is capable of using the module manager to add function blocks and connect to any device supported by the loaded modules. The client is set as the root device when the instance is created if the developer has not set their own device.
+Upon creation, it generates a Client device as the default root device. The client device is capable of using the module manager to add function blocks and connect to any device supported by the loaded modules. The client is set as the root device when the instance is created if the developer has not set their own device. 
 
 == Creating openDAQ(TM) Instance with Instance Builder
 
@@ -39,6 +39,9 @@ instance_builder = opendaq.InstanceBuilder()
 instance = instance_builder.build()
 ----
 ====
+
+== Configuring openDAQ(TM) Instance from external providers
+Instance builder supports configuring from external providers like JSON file, environment variables, or command line arguments. More information about how to use providers see xref:howto_configure_instance_providers.adoc[Configuration provider] guide.
 
 == Configure openDAQ(TM) Instance Logger
 By default, the Instance Logger level is set to the info log level if the project was built in release mode or debug log level if built in debug mode. There are two ways to override this default level. The first method is to set the global default logger level.
@@ -72,7 +75,7 @@ instance = instance_builder.build()
 ----
 ====
 
-In addition to adjusting the logging level globally, developers can customize the logging level for individual components and sinks. In the example below, the developer configures two logger sinks: `StdOutLoggerSink` with the default log level and `BasicFileLoggerSink with the error log level. Furthermore, custom log levels are specified for the `Instance` and `Some Module` components.
+In addition to adjusting the logging level globally, developers can customize the logging level for individual components and sinks. In the example below, the developer configures two logger sinks: `StdOutLoggerSink` with the default log level and `BasicFileLoggerSink` with the error log level. Furthermore, custom log levels are specified for the `Instance` and `Some Module` components.
 [tabs]
 ====
 Cpp::
@@ -113,7 +116,6 @@ Cpp::
 #include <opendaq/opendaq.h>
 #include <iostream>
 
-
 int main(int argc, const char* argv[])
 {
     daq::ListPtr<ILoggerSink> sinks = daq::List<ILoggerSink>(StdOutLoggerSink());
@@ -142,7 +144,6 @@ Cpp::
 ----
 #include <opendaq/opendaq.h>
 #include <iostream>
-
 
 int main(int argc, const char* argv[])
 {

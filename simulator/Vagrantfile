@@ -110,6 +110,9 @@ Vagrant.configure("2") do |config|
     config.vm.provision "file", source: "native_streaming.service", destination: "/tmp/native_streaming.service"
     config.vm.provision "shell", inline: "cp /tmp/*.service /etc/avahi/services/"
 
+    # Copy opendaq-config.json file 
+    config.vm.provision "file", source: "opendaq-config.json", destination: "/tmp/opendaq-config.json"
+
     # Reduce memory usage
     config.vm.provision :shell, :inline => <<-SCRIPT
     sudo du -csh /var/cache/apt

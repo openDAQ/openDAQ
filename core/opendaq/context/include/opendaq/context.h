@@ -18,6 +18,7 @@
 #include <coretypes/type_manager.h>
 #include <coretypes/event.h>
 #include <opendaq/logger.h>
+#include <coretypes/dictobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -82,6 +83,13 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
      * react to changes within the core structure.
      */
     virtual ErrCode INTERFACE_FUNC getOnCoreEvent(IEvent** event) = 0;
+
+    // [templateType(options, IString, IBaseObject)]
+    /*!
+     * @brief Gets the dictionary of module options 
+     * @param[out] options The dictionary of module options
+     */
+    virtual ErrCode INTERFACE_FUNC getOptions(IDict** options) = 0;
 };
 /*!@}*/
 
@@ -96,7 +104,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IScheduler*, Scheduler,
     ILogger*, Logger,
     ITypeManager*, typeManager,
-    IModuleManager*, moduleManager
+    IModuleManager*, moduleManager,
+    IDict*, options
 )
 
 /*!@}*/

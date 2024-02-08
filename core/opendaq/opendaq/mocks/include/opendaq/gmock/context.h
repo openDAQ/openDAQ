@@ -36,6 +36,7 @@ struct MockContext : daq::ImplementationOf<daq::IContext, daq::IContextInternal>
     MOCK_METHOD(daq::ErrCode, getTypeManager, (daq::ITypeManager** manager), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getOnCoreEvent, (daq::IEvent** event), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, moveModuleManager, (daq::IModuleManager** manager), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getOptions, (daq::IDict** options), (override MOCK_CALL));
 
     daq::SchedulerPtr scheduler;
     daq::LoggerPtr logger;

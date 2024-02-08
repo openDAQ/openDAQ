@@ -30,7 +30,7 @@ DictPtr<IString, IString> BaseConfigProviderImpl::GetValuesStartingWith(const Li
 
 inline std::string BaseConfigProviderImpl::ToLowerCase(const std::string &input) 
 {
-    return boost::algorithm::to_lower_copy(input);;
+    return boost::algorithm::to_lower_copy(input);
 }
 
 ListPtr<IString> BaseConfigProviderImpl::SplitKey(const std::string& envKey, const std::string& prefix, char delimiter)

@@ -49,18 +49,8 @@ class EvalValueParser
         Right,
     };
 
-    typedef std::unique_ptr<daq::BaseNode>(EvalValueParser::*InfixParselet)(EvalValueToken /*token*/, std::unique_ptr<daq::BaseNode> /*left*/, Associativity /*associativity*/, int /*parseletPrecedence*/);
-    typedef std::unique_ptr<daq::BaseNode>(EvalValueParser::*PrefixParselet)(EvalValueToken /*token*/, int /*parseletPrecedence*/);
-
-    struct PrefixParseletWithPrecedence
+    struct ParseletDetails
     {
-        PrefixParselet parse;
-        int precedence;
-    };
-
-    struct InfixParseletWithPrecedence
-    {
-        InfixParselet parse;
         int precedence;
         Associativity associativity;
     };
@@ -109,8 +99,8 @@ private:
     std::unique_ptr<daq::BaseNode> valref();
     std::unique_ptr<daq::BaseNode> propref();
 
-    void registerInfix(EvalValueToken::Type tokenType, InfixParselet parselet, int precedence, Associativity associativity = Associativity::Left);
-    void registerPrefix(EvalValueToken::Type tokenType, PrefixParselet parselet, int precedence = OperatorPrecedence::Prefix);
+    void registerInfix(EvalValueToken::Type tokenType, int precedence, Associativity associativity = Associativity::Left);
+    void registerPrefix(EvalValueToken::Type tokenType, int precedence = OperatorPrecedence::Prefix);
 
     int nextTokenPrecedence() const;
     bool isAt(EvalValueToken::Type tokenType) const;
@@ -121,8 +111,8 @@ private:
     EvalValueToken advance();
     EvalValueToken peek() const;
 
-    std::unordered_map<EvalValueToken::Type, PrefixParseletWithPrecedence> prefixParselets;
-    std::unordered_map<EvalValueToken::Type, InfixParseletWithPrecedence> infixParselets;
+    std::unordered_map<EvalValueToken::Type, ParseletDetails> prefixParselets;
+    std::unordered_map<EvalValueToken::Type, ParseletDetails> infixParselets;
 
     std::vector<EvalValueToken> tokens;
     std::unordered_set<std::string> propertyReferences;

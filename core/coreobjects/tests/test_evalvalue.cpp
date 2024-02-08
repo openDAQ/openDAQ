@@ -112,6 +112,9 @@ TEST_F(EvalValueTest, TestAssociativity)
 
     r = EvalValue("16 / 4 / 2");
     ASSERT_EQ(r, 2LL);
+
+    Bool b = EvalValue("3 == -3 == False");
+    ASSERT_EQ(b, True);
 }
 
 TEST_F(EvalValueTest, IntResultConversion)

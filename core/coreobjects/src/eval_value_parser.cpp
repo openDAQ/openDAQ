@@ -47,34 +47,34 @@ EvalValueParser::EvalValueParser(const std::vector<EvalValueToken>& aTokens, Par
 {
     assert(!aTokens.empty() && aTokens.back().type == TokenType::End);
 
-    registerPrefix(TokenType::FloatValue,  &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::IntValue,    &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::BoolValue,   &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::StringValue, &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::Exclamation, &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::Minus,       &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::OpenParen,   &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::OpenBracket, &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::If,          &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::Switch,      &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::Unit,        &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::Dollar,      &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::Percent,     &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::OpenCurly,   &EvalValueParser::parsePrefix);
-    registerPrefix(TokenType::Identifier,  &EvalValueParser::parsePrefix);
+    registerPrefix(TokenType::FloatValue);
+    registerPrefix(TokenType::IntValue);
+    registerPrefix(TokenType::BoolValue);
+    registerPrefix(TokenType::StringValue);
+    registerPrefix(TokenType::Exclamation);
+    registerPrefix(TokenType::Minus);
+    registerPrefix(TokenType::OpenParen);
+    registerPrefix(TokenType::OpenBracket);
+    registerPrefix(TokenType::If);
+    registerPrefix(TokenType::Switch);
+    registerPrefix(TokenType::Unit);
+    registerPrefix(TokenType::Dollar);
+    registerPrefix(TokenType::Percent);
+    registerPrefix(TokenType::OpenCurly);
+    registerPrefix(TokenType::Identifier);
 
-    registerInfix(TokenType::EqEq,      &EvalValueParser::parseInfix, OperatorPrecedence::Equality);
-    registerInfix(TokenType::NotEq,     &EvalValueParser::parseInfix, OperatorPrecedence::Equality);
-    registerInfix(TokenType::Less,      &EvalValueParser::parseInfix, OperatorPrecedence::Equality);
-    registerInfix(TokenType::LessEq,    &EvalValueParser::parseInfix, OperatorPrecedence::Equality);
-    registerInfix(TokenType::Greater,   &EvalValueParser::parseInfix, OperatorPrecedence::Equality);
-    registerInfix(TokenType::GreaterEq, &EvalValueParser::parseInfix, OperatorPrecedence::Equality);
-    registerInfix(TokenType::AndAnd,    &EvalValueParser::parseInfix, OperatorPrecedence::Logic);
-    registerInfix(TokenType::OrOr,      &EvalValueParser::parseInfix, OperatorPrecedence::Logic);
-    registerInfix(TokenType::Plus,      &EvalValueParser::parseInfix, OperatorPrecedence::Term);
-    registerInfix(TokenType::Minus,     &EvalValueParser::parseInfix, OperatorPrecedence::Term);
-    registerInfix(TokenType::Star,      &EvalValueParser::parseInfix, OperatorPrecedence::Factor);
-    registerInfix(TokenType::Slash,     &EvalValueParser::parseInfix, OperatorPrecedence::Factor);
+    registerInfix(TokenType::EqEq,      OperatorPrecedence::Equality);
+    registerInfix(TokenType::NotEq,     OperatorPrecedence::Equality);
+    registerInfix(TokenType::Less,      OperatorPrecedence::Equality);
+    registerInfix(TokenType::LessEq,    OperatorPrecedence::Equality);
+    registerInfix(TokenType::Greater,   OperatorPrecedence::Equality);
+    registerInfix(TokenType::GreaterEq, OperatorPrecedence::Equality);
+    registerInfix(TokenType::AndAnd,    OperatorPrecedence::Logic);
+    registerInfix(TokenType::OrOr,      OperatorPrecedence::Logic);
+    registerInfix(TokenType::Plus,      OperatorPrecedence::Term);
+    registerInfix(TokenType::Minus,     OperatorPrecedence::Term);
+    registerInfix(TokenType::Star,      OperatorPrecedence::Factor);
+    registerInfix(TokenType::Slash,     OperatorPrecedence::Factor);
 }
 
 std::unique_ptr<daq::BaseNode> EvalValueParser::parse()
@@ -88,14 +88,14 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::parseExpression(int precedence)
     if (token.type == TokenType::End || prefixParselets.find(token.type) == prefixParselets.end())
         throw daq::ParseFailedException("Unexpected end of expression");
     auto prefixParselet = prefixParselets[token.type];
-    auto left = (this->*prefixParselet.parse)(token, prefixParselet.precedence);
+    auto left = parsePrefix(token, prefixParselet.precedence);
     while (precedence < nextTokenPrecedence())
     {
         token = advance();
         if (infixParselets.find(token.type) == infixParselets.end())
             throw daq::ParseFailedException("Unexpected token");
         auto infixParselet = infixParselets[token.type];
-        left = (this->*infixParselet.parse)(token, std::move(left), infixParselet.associativity, infixParselet.precedence);
+        left = parseInfix(token, std::move(left), infixParselet.associativity, infixParselet.precedence);
     }
     return left;
 }
@@ -310,14 +310,14 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::propref()
 }
 
 
-void EvalValueParser::registerPrefix(TokenType type, PrefixParselet parselet, int precedence)
+void EvalValueParser::registerPrefix(TokenType type, int precedence)
 {
-    prefixParselets[type] = {parselet, precedence};
+    prefixParselets[type] = {precedence};
 }
 
-void EvalValueParser::registerInfix(TokenType type, InfixParselet parselet, int precedence, Associativity associativity)
+void EvalValueParser::registerInfix(TokenType type, int precedence, Associativity associativity)
 {
-    infixParselets[type] = {parselet, precedence, associativity};
+    infixParselets[type] = {precedence, associativity};
 }
 
 

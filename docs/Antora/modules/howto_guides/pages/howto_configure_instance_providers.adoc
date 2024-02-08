@@ -23,7 +23,7 @@ Json config provider is a *default provider* that tries to get configuration fro
   },
   "RootDevice": {
     "DefaultLocalId": "",
-    "Connection": ""
+    "ConnectionString": ""
   },
   "Modules": {
     "SomeModule1": {
@@ -74,7 +74,6 @@ instance = instance_builder.build()
 ----
 ====
 
-
 == Instance Configuration with Environment Variable
 
 An instance can be configured from environment variables. If `EnvConfigProvider` is set to the builder, the provider will find all key-value pairs starting with `OPENDAQ_CONFIG_`. Examples of setting environment variables are listed below. Note that if a value is surrounded with quotes, it will be recognized as a string type. If not, the provider will try to parse it as an integer, float, and boolean type, and if casting fails, the value will be considered as a string type.
@@ -91,7 +90,7 @@ export OPENDAQ_CONFIG_Modules_SomeModule_EnableSomething=true
 export OPENDAQ_CONFIG_Modules_SomeModule_FloatValue=12.5
 ----
 ====
-The `OPENDAQ_CONFIG_` prefix is case-sensitive and indicates that the variable is part of the instance builder options. The rest of the environment key is not case-sensitive and is considered as nodes of a dictionary split by "_". For example, `OPENDAQ_CONFIG_MODULEMANAGER_MODULESPATH="/tmp/modules/"` is represented as populating the instance builder options with the corresponding values. If a value was already set, it will be overridden with the new one in case the type of the new value matches the old one.
+The `OPENDAQ_CONFIG_` prefix is case-sensitive and indicates that the variable is part of the instance builder options. The rest of the environment key is not case-sensitive and is considered as nodes of a dictionary split by underscore (`_-_`). For example, `OPENDAQ_CONFIG_MODULEMANAGER_MODULESPATH="/tmp/modules/"` is represented as populating the instance builder options with the corresponding values. If a value was already set, it will be overridden with the new one in case the type of the new value matches the old one.
 [source,json]
 ----
 {
@@ -100,7 +99,6 @@ The `OPENDAQ_CONFIG_` prefix is case-sensitive and indicates that the variable i
   }
 }
 ----
-If value was already set, it will be override with new one in case if type of new value is the same as for old one.
 
 Example of creating Instance from enviorment variables
 [tabs]

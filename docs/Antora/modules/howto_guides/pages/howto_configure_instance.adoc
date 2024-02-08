@@ -41,7 +41,7 @@ instance = instance_builder.build()
 ====
 
 == Configuring openDAQ(TM) Instance from external providers
-Instance builder supports configuring from external providers like JSON file, environment variables, or command line arguments. More information about how to use providers see xref:howto_configure_instance_providers.adoc[Configure Instance providers] guide.
+Instance builder supports configuring from external providers like JSON file, environment variables, or command line arguments. More information about how to use providers see xref:howto_configure_instance_providers.adoc[Configuration provider] guide.
 
 == Configure openDAQ(TM) Instance Logger
 By default, the Instance Logger level is set to the info log level if the project was built in release mode or debug log level if built in debug mode. There are two ways to override this default level. The first method is to set the global default logger level.

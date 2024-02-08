@@ -16,7 +16,7 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
     , scheduler(std::move(scheduler))
     , moduleManager(std::move(moduleManager))
     , typeManager(std::move(typeManager))
-    , options(options)
+    , options(std::move(options))
 {
     if (!this->logger.assigned())
         throw ArgumentNullException("Logger must not be null");

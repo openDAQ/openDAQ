@@ -13,6 +13,6 @@
         },
     "RootDevice": 
         {
-            "Connection": "daqref://device1"
+            "ConnectionString": "daqref://device1"
         }
 }

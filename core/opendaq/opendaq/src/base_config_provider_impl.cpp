@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <string>
 #include <coretypes/coretypes.h>
+#include <boost/algorithm/string.hpp>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -27,13 +28,9 @@ DictPtr<IString, IString> BaseConfigProviderImpl::GetValuesStartingWith(const Li
     return result;
 }
 
-std::string BaseConfigProviderImpl::ToLowerCase(const std::string &input) 
+inline std::string BaseConfigProviderImpl::ToLowerCase(const std::string &input) 
 {
-    std::string result = input;
-    for (char &c : result)
-        c = std::tolower(static_cast<unsigned char>(c));
-
-    return result;
+    return boost::algorithm::to_lower_copy(input);;
 }
 
 ListPtr<IString> BaseConfigProviderImpl::SplitKey(const std::string& envKey, const std::string& prefix, char delimiter)

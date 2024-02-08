@@ -88,7 +88,7 @@ protected:
                 })},
             {"rootdevice", Dict<IString, IBaseObject>({
                     {"defaultlocalid", ""},
-                    {"connection", ""}
+                    {"connectionstring", ""}
                 })},
             {"modules", Dict<IString, IBaseObject>()}
         });
@@ -174,13 +174,13 @@ TEST_F(ConfigProviderTest, jsonConfigReadRootDeviceDefaultLocalId)
 TEST_F(ConfigProviderTest, jsonConfigReadRootDeviceConnectionString)
 {
     std::string filename = "jsonConfigReadLoggingGlobalLogLevel.json";
-    std::string json = "{ \"RootDevice\": { \"Connection\": \"dev://connectionString\" } }";
+    std::string json = "{ \"RootDevice\": { \"ConnectionString\": \"dev://connectionString\" } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "rootdevice").set("connection", "dev://connectionString");
+    getChildren(expectedOptions, "rootdevice").set("connectionstring", "dev://connectionString");
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
@@ -263,13 +263,13 @@ TEST_F(ConfigProviderTest, jsonConfigReadNull2)
 TEST_F(ConfigProviderTest, jsonConfigIncorrectType)
 {
     std::string filename = "jsonConfigIncorrectType.json";
-    std::string json = "{ \"ModuleManager\": { \"ModulesPath\": 123 }, \"RootDevice\": { \"Connection\": \"dev://connectionString\" } }";
+    std::string json = "{ \"ModuleManager\": { \"ModulesPath\": 123 }, \"RootDevice\": { \"ConnectionString\": \"dev://connectionString\" } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
 
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "rootdevice").set("connection", "dev://connectionString");
+    getChildren(expectedOptions, "rootdevice").set("connectionstring", "dev://connectionString");
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     ASSERT_NO_THROW(provider.populateOptions(options));
@@ -331,7 +331,7 @@ TEST_F(ConfigProviderTest, InstanceBuilderFromJson)
 
 TEST_F(ConfigProviderTest, envConfigReadModuleManagerPath)
 {
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath", "\"testtest\"");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_ModuleManager_ModulesPath", "\"testtest\"");
 
     auto options = GetDefaultOptions(); 
 
@@ -391,12 +391,12 @@ TEST_F(ConfigProviderTest, envConfigReadRootDeviceDefaultLocalId)
 
 TEST_F(ConfigProviderTest, envConfigReadRootDeviceConnectionString)
 {
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_Connection", "\"dev://connectionString\"");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_RootDevice_ConnectionString", "\"dev://connectionString\"");
 
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "rootdevice").set("connection", "dev://connectionString");
+    getChildren(expectedOptions, "rootdevice").set("connectionstring", "dev://connectionString");
 
     auto provider = EnvConfigProvider();
     provider.populateOptions(options);
@@ -422,7 +422,7 @@ TEST_F(ConfigProviderTest, envConfigReadOutOfReservedName)
 TEST_F(ConfigProviderTest, envConfigReadInvalidArgument1)
 {
     // correct field
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath", "\"testtest\"");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_ModuleManager_ModulesPath", "\"testtest\"");
     // broken field (can not convert to integer)
     setEnvironmentVariableValue("OPENDAQ_CONFIG_Scheduler_WorkersNum", "\"string\"");
 
@@ -442,7 +442,7 @@ TEST_F(ConfigProviderTest, envConfigReadInvalidArgument2)
     // correct field
     setEnvironmentVariableValue("OPENDAQ_CONFIG_Deep1_Deep2", "\"SomeValue\"");
     // broken field (out of depth)
-    setEnvironmentVariableValue("OPENDAQ_CONFIG_MODULEMANAGER_ModulesPath_NotExpectedChild", "\"string\"");
+    setEnvironmentVariableValue("OPENDAQ_CONFIG_ModuleManager_ModulesPath_NotExpectedChild", "\"string\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -458,7 +458,7 @@ TEST_F(ConfigProviderTest, envConfigReadInvalidArgument2)
 
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadModuleManagerPath)
 {
-    auto comandLineArgs = List<IString>("-Cmodulemanager_modulespath=\"testtest\"");
+    auto comandLineArgs = List<IString>("-CmoduleManager_ModulesPath=\"testtest\"");
 
     auto options = GetDefaultOptions(); 
 
@@ -473,7 +473,7 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadModuleManagerPath)
 
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadSchedulerWorkersNum)
 {
-    auto comandLineArgs = List<IString>("-Cscheduler_workersnum=4");
+    auto comandLineArgs = List<IString>("-Cscheduler_WorkersNum=4");
 
     auto options = GetDefaultOptions(); 
     
@@ -488,7 +488,7 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadSchedulerWorkersNum)
 
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadLoggingGlobalLogLevel)
 {
-    auto comandLineArgs = List<IString>("-Clogging_globalloglevel=0");
+    auto comandLineArgs = List<IString>("-Clogging_GlobalLogLevel=0");
 
     auto options = GetDefaultOptions(); 
     
@@ -503,7 +503,7 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadLoggingGlobalLogLevel)
 
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadRootDeviceDefaultLocalId)
 {
-    auto comandLineArgs = List<IString>("-Crootdevice_defaultlocalid=\"localId\"");
+    auto comandLineArgs = List<IString>("-CrootDevice_DefaultLocalId=\"localId\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -518,12 +518,12 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadRootDeviceDefaultLocalId)
 
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadRootDeviceConnectionString)
 {
-    auto comandLineArgs = List<IString>("-Crootdevice_connection=\"dev://connectionString\"");
+    auto comandLineArgs = List<IString>("-CrootDevice_ConnectionString=\"dev://connectionString\"");
 
     auto options = GetDefaultOptions(); 
     
     auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "rootdevice").set("connection", "dev://connectionString");
+    getChildren(expectedOptions, "rootdevice").set("connectionstring", "dev://connectionString");
 
     auto provider = CmdLineArgsConfigProvider(comandLineArgs);
     provider.populateOptions(options);
@@ -549,8 +549,8 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadOutOfReservedName)
 TEST_F(ConfigProviderTest, cmdLineArgsConfigReadInvalidArgument1)
 {
     auto comandLineArgs = List<IString>(
-        "-Cmodulemanager_modulespath=\"testtest\"", 
-        "-Cscheduler_workersnum=\"string\"");
+        "-CmoduleManager_ModulesPath=\"testtest\"", 
+        "-Cscheduler_WorkersNum=\"string\"");
 
     auto options = GetDefaultOptions(); 
     
@@ -567,7 +567,7 @@ TEST_F(ConfigProviderTest, cmdLineArgsConfigReadInvalidArgument2)
 {
     auto comandLineArgs = List<IString>(
         "-Cdeep1_deep2=\"SomeValue\"",
-        "-Cmodulemanager_modulespath_notexpectedchild=\"string\"");
+        "-CmoduleManager_ModulesPath_NotExpectedChild=\"string\"");
 
     auto options = GetDefaultOptions(); 
     

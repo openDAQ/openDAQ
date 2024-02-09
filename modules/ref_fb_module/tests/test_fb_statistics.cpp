@@ -138,46 +138,51 @@ private:
         }
     }
 
-    void receivePacketsAndCheck(vecvec<Float> expected, PacketReaderPtr reader)
+    void receivePacketsAndCheck(vecvec<Float> expectedData, PacketReaderPtr reader)
     {
         // For each input data packet
         for (size_t i = 0; i < mockPackets.size(); i++)
         {
-            // Receive data packets that come from single input data packet
-            std::vector<DataPacketPtr> receivedPacketVector;
-
-            // Receive until you get all expected packets
-            while (receivedPacketVector.size() < expected[i].size())
+            // Check if you expect a packet
+            if (expectedData[i].size() != 0)
             {
-                auto receivedPacket = reader.read();
-                // Ignore nullptr and PacketType::Event
-                if (receivedPacket != nullptr && receivedPacket.getType() == PacketType::Data)
+                // Receive data packet that comes from single input data packet
+                PacketPtr receivedPacket;
+
+                // Receive until you get one expected packet
+                while (true)
                 {
-                    receivedPacketVector.push_back(receivedPacket);
+                    receivedPacket = reader.read();
+                    // Ignore nullptr and PacketType::Event
+                    if (receivedPacket != nullptr && receivedPacket.getType() == PacketType::Data)
+                    {
+                        break;
+                    }
                 }
-            }
 
-            // Check packet(s) contents
-            for (size_t ii = 0; ii < expected[i].size(); ii++)
-            {
-                auto data = static_cast<Float*>(receivedPacketVector[ii].getData());
-                const size_t sampleCount = receivedPacketVector[ii].getSampleCount();
-                auto dataSample = data[0];
+                auto dataPacket = static_cast<DataPacketPtr>(receivedPacket);
 
-                auto domainData = static_cast<Int*>(receivedPacketVector[ii].getDomainPacket().getData());
-                const size_t domainSampleCount = receivedPacketVector[ii].getDomainPacket().getSampleCount();
-                auto domainDataSample = domainData[0];
+                // Check packet(s) contents
+                for (size_t ii = 0; ii < expectedData[i].size(); ii++)
+                {
+                    auto data = static_cast<Float*>(dataPacket.getData());
+                    const size_t sampleCount = dataPacket.getSampleCount();
+                    auto dataSample = data[ii];
 
-                // Assert that packet has one sample
-                ASSERT_EQ(sampleCount, 1);
-                // Assert that domain packet has one sample
-                ASSERT_EQ(domainSampleCount, 1);
+                    auto domainData = static_cast<Int*>(dataPacket.getDomainPacket().getData());
+                    const size_t domainSampleCount = dataPacket.getDomainPacket().getSampleCount();
+                    auto domainDataSample = domainData[ii];
 
-                // Assert that first sample equals expected value
-                ASSERT_EQ(dataSample, expected[i][ii]);
+                    // Assert that packet has one sample
+                    ASSERT_EQ(sampleCount, expectedData[i].size());
+                    // Assert that domain packet has one sample
+                    ASSERT_EQ(domainSampleCount, expectedDomain[i].size());
 
-                // Assert that first domain sample equals expected value
-                ASSERT_EQ(domainDataSample, expectedDomain[i][ii]);
+                    // Assert that first sample equals expected value
+                    ASSERT_EQ(dataSample, expectedData[i][ii]);
+                    // Assert that first domain sample equals expected value
+                    ASSERT_EQ(domainDataSample, expectedDomain[i][ii]);
+                }
             }
         }
     }
@@ -191,7 +196,6 @@ private:
 
 TEST_F(StatisticsTest, StatisticsTestBasic)
 {
-    // TODO Test smaller, bigger, not size 10, etc.
     vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
                               {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
                               {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0}};
@@ -203,3 +207,39 @@ TEST_F(StatisticsTest, StatisticsTestBasic)
         LinearDataRule(2, 3), expectedAvg, expectedRms, expectedDomain, SampleTypeFromType<Float>().SampleType, mockPackets);
     helper.run();
 }
+
+TEST_F(StatisticsTest, StatisticsTestSmallerPackets)
+{
+    vecvec<Float> mockPackets{{0.1, 0.2, 0.3},
+                              {0.4, 0.5, 0.6},
+                              {0.7, 0.8, 0.9},
+                              {1.0, 1.1, 1.2},
+                              {1.3, 1.4, 1.5},
+                              {1.6, 1.7, 1.8},
+                              {1.9, 2.0, 2.1},
+                              {2.2, 2.3, 2.4},
+                              {2.5, 2.6, 2.7},
+                              {2.8, 2.9, 3.0}};
+    vecvec<Float> expectedAvg{{}, {}, {}, {0.55}, {}, {}, {1.55}, {}, {}, {2.55}};
+    vecvec<Float> expectedRms{{}, {}, {}, {0.62048368229954287}, {}, {}, {1.5763882770434448}, {}, {}, {2.5661254840712679}};
+    vecvec<Int> expectedDomain{{}, {}, {}, {3}, {}, {}, {23}, {}, {}, {43}};
+
+    auto helper = StatisticsTestHelper(
+        LinearDataRule(2, 3), expectedAvg, expectedRms, expectedDomain, SampleTypeFromType<Float>().SampleType, mockPackets);
+    helper.run();
+}
+
+TEST_F(StatisticsTest, StatisticsTestLargerPackets)
+{
+    vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5},
+                              {1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0}};
+    vecvec<Float> expectedAvg{{0.55}, {1.55, 2.55}};
+    vecvec<Float> expectedRms{{0.62048368229954287}, {1.5763882770434448, 2.5661254840712679}};
+    vecvec<Int> expectedDomain{{3}, {23, 43}};
+
+    auto helper = StatisticsTestHelper(
+        LinearDataRule(2, 3), expectedAvg, expectedRms, expectedDomain, SampleTypeFromType<Float>().SampleType, mockPackets);
+    helper.run();
+}
+
+// TODO test unequal sizes, BlockSize property changed, etc.

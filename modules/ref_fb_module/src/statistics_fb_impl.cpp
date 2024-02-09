@@ -1,7 +1,7 @@
-#include <ref_fb_module/statistics_fb_impl.h>
-#include <opendaq/packet_factory.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
+#include <opendaq/packet_factory.h>
+#include <ref_fb_module/statistics_fb_impl.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -19,16 +19,13 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& pa
     avgSignal.setDomainSignal(domainSignal);
     rmsSignal.setDomainSignal(domainSignal);
 
-    createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    // TODO SameThread vs Scheduler
+    createAndAddInputPort("input", PacketReadyNotification::SameThread);
 }
 
 FunctionBlockTypePtr StatisticsFbImpl::CreateType()
 {
-    return FunctionBlockType(
-        "ref_fb_module_statistics",
-        "Statistics",
-        "Calculates statistics"
-    );
+    return FunctionBlockType("ref_fb_module_statistics", "Statistics", "Calculates statistics");
 }
 
 void StatisticsFbImpl::initProperties()
@@ -51,14 +48,12 @@ void StatisticsFbImpl::propertyChanged()
     configure();
 }
 
-
 void StatisticsFbImpl::readProperties()
 {
     blockSize = objPtr.getPropertyValue("BlockSize");
     domainSignalType = static_cast<DomainSignalType>(static_cast<Int>(objPtr.getPropertyValue("DomainSignalType")));
     LOG_D("Properties: BlockSize {}, DomainSignalType {}", blockSize, objPtr.getPropertySelectionValue("DomainSignalType").toString());
 }
-
 
 void StatisticsFbImpl::configure()
 {
@@ -122,8 +117,8 @@ void StatisticsFbImpl::configure()
     sampleSize = getSampleSize(sampleType);
 
     const auto outputAverageDataDescriptor = DataDescriptorBuilderCopy(inputValueDataDescriptor)
-                                                  .setName(static_cast<std::string>(inputValueDataDescriptor.getName() + "/Avg"))
-                                                  .setPostScaling(nullptr);
+                                                 .setName(static_cast<std::string>(inputValueDataDescriptor.getName() + "/Avg"))
+                                                 .setPostScaling(nullptr);
     this->outputAverageDataDescriptor = outputAverageDataDescriptor.build();
 
     avgSignal.setDescriptor(this->outputAverageDataDescriptor);
@@ -224,7 +219,7 @@ void StatisticsFbImpl::getNextOutputDomainValue(const DataPacketPtr& domainPacke
 }
 
 void StatisticsFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& valueDataDescriptor,
-                                                     const DataDescriptorPtr& domainDataDescriptor)
+                                                      const DataDescriptorPtr& domainDataDescriptor)
 {
     if (valueDataDescriptor.assigned())
         inputValueDataDescriptor = valueDataDescriptor;

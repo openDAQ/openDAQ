@@ -15,11 +15,11 @@
  */
 
 #pragma once
-#include <ref_fb_module/common.h>
+#include <opendaq/data_packet_ptr.h>
 #include <opendaq/function_block_impl.h>
 #include <opendaq/input_port_config_ptr.h>
-#include <opendaq/data_packet_ptr.h>
 #include <opendaq/sample_type_traits.h>
+#include <ref_fb_module/common.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 

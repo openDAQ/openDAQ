@@ -764,7 +764,18 @@ ErrCode MultiReaderImpl::getOffset(void* domainStart)
     if (commonStart)
     {
         commonStart->getValue(domainStart);
+        return OPENDAQ_SUCCESS;
     }
+
+    return OPENDAQ_IGNORED;
+}
+
+ErrCode MultiReaderImpl::getIsSynchronized(Bool* isSynchronized)
+{
+    OPENDAQ_PARAM_NOT_NULL(isSynchronized);
+
+    *isSynchronized = static_cast<bool>(commonStart);
+
     return OPENDAQ_SUCCESS;
 }
 

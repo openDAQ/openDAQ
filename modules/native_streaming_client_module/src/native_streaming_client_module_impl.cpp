@@ -93,10 +93,15 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                                   nullptr,
                                                                   nullptr,
                                                                   nullptr);
+    nativeStreaming.setActive(true);
+
     auto deviceHelper = std::make_unique<NativeDeviceHelper>(context, transportProtocolClient);
     auto device = deviceHelper->connectAndGetDevice(parent);
 
-    device.asPtr<INativeDevicePrivate>()->attachNativeStreaming(nativeStreaming);
+    deviceHelper->addStreaming(nativeStreaming);
+    // TODO check streaming options recursively and add optional streamings
+    deviceHelper->subscribeToCoreEvent(context);
+
     device.asPtr<INativeDevicePrivate>()->attachDeviceHelper(std::move(deviceHelper));
     device.asPtr<INativeDevicePrivate>()->setConnectionString(connectionString);
 

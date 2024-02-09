@@ -18,3 +18,9 @@ TEST_F(IdsParserTest, SplitInvalid)
     std::string start, rest;
     ASSERT_FALSE(IdsParser::splitRelativeId("xch", start, rest));
 }
+
+TEST_F(IdsParserTest, NestedId)
+{
+    ASSERT_FALSE(IdsParser::isNestedComponentId("xch", "xch_1/id"));
+    ASSERT_TRUE(IdsParser::isNestedComponentId("xch", "xch/id"));
+}

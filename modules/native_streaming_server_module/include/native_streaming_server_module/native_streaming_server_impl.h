@@ -50,6 +50,10 @@ protected:
     void startAsyncOperations();
     void stopAsyncOperations();
 
+    void componentAdded(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
+    void componentRemoved(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
+    void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
+
     std::thread readThread;
     bool readThreadActive;
     std::chrono::milliseconds readThreadSleepTime;

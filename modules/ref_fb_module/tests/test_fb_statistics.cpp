@@ -21,7 +21,9 @@ public:
                          vecvec<Float> expectedRms,
                          vecvec<Int> expectedDomain,
                          SampleType sampleType,
-                         vecvec<T> mockPackets)
+                         vecvec<T> mockPackets,
+                         std::vector<Int> blockSizeChangesAfterPackets = {},
+                         std::vector<size_t> newBlockSizes = {})
     {
         // Create logger, context and module
         auto logger = Logger();
@@ -34,6 +36,8 @@ public:
         this->expectedDomain = expectedDomain;
         this->sampleType = sampleType;
         this->mockPackets = mockPackets;
+        this->blockSizeChangesAfterPackets = blockSizeChangesAfterPackets;
+        this->newBlockSizes = newBlockSizes;
     }
 
     void run()
@@ -42,7 +46,7 @@ public:
         createDomainPackets();
         createSignal();
         createFunctionBlock();
-        sendPackets();
+        sendPacketsAndChangeProperties();
         receivePacketsAndCheckBoth();
     }
 
@@ -56,13 +60,15 @@ private:
     vecvec<Int> expectedDomain;
     SampleType sampleType;
     vecvec<T> mockPackets;
+    std::vector<Int> blockSizeChangesAfterPackets;
+    std::vector<size_t> newBlockSizes;
 
     DataDescriptorPtr domainSignalDescriptor;
     SignalConfigPtr domainSignal;
     std::vector<DataPacketPtr> domainPackets;
     DataDescriptorPtr signalDescriptor;
     SignalConfigPtr signal;
-    FunctionBlockPtr fb;  // TODO use for changing properties
+    FunctionBlockPtr fb;
     PacketReaderPtr readerAvg;
     PacketReaderPtr readerRms;
 
@@ -121,7 +127,7 @@ private:
         readerRms = PacketReader(fb.getSignals()[1]);
     }
 
-    void sendPackets()
+    void sendPacketsAndChangeProperties()
     {
         // For each packet
         for (size_t i = 0; i < mockPackets.size(); i++)
@@ -135,6 +141,14 @@ private:
             // Send packet
             domainSignal.sendPacket(domainPackets[i]);
             signal.sendPacket(dataPacket);
+
+            // Check if we should change block size after sending packet
+            auto foundAt = std::find(blockSizeChangesAfterPackets.begin(), blockSizeChangesAfterPackets.end(), i);
+            if (foundAt != blockSizeChangesAfterPackets.end())
+            {
+                // Change block size if appropriate
+                fb.setPropertyValue("BlockSize", newBlockSizes[foundAt - blockSizeChangesAfterPackets.begin()]);
+            }
         }
     }
 
@@ -173,14 +187,14 @@ private:
                     const size_t domainSampleCount = dataPacket.getDomainPacket().getSampleCount();
                     auto domainDataSample = domainData[ii];
 
-                    // Assert that packet has one sample
+                    // Assert that packet has expected number of samples
                     ASSERT_EQ(sampleCount, expectedData[i].size());
-                    // Assert that domain packet has one sample
+                    // Assert that domain packet has expected number of samples
                     ASSERT_EQ(domainSampleCount, expectedDomain[i].size());
 
-                    // Assert that first sample equals expected value
-                    ASSERT_EQ(dataSample, expectedData[i][ii]);
-                    // Assert that first domain sample equals expected value
+                    // Assert that data sample equals expected value
+                    ASSERT_DOUBLE_EQ(dataSample, expectedData[i][ii]);
+                    // Assert that domain sample equals expected value
                     ASSERT_EQ(domainDataSample, expectedDomain[i][ii]);
                 }
             }
@@ -242,4 +256,26 @@ TEST_F(StatisticsTest, StatisticsTestLargerPackets)
     helper.run();
 }
 
-// TODO test unequal sizes, BlockSize property changed, etc.
+TEST_F(StatisticsTest, StatisticsTestBlockSizeChanged)
+{
+    vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0}};
+    vecvec<Float> expectedAvg{{0.55}, {1.3, 1.8}, {2.3, 2.8}};
+    vecvec<Float> expectedRms{{0.62048368229954287}, {1.3076696830622021, 1.8055470085267789}, {2.3043437243605824, 2.803569153775237}};
+    vecvec<Int> expectedDomain{{3}, {23, 33}, {43, 53}};
+    std::vector<Int> blockSizeChangesAfterPackets{0};
+    std::vector<size_t> newBlockSizes{5};
+
+    auto helper = StatisticsTestHelper(LinearDataRule(2, 3),
+                                       expectedAvg,
+                                       expectedRms,
+                                       expectedDomain,
+                                       SampleTypeFromType<Float>().SampleType,
+                                       mockPackets,
+                                       blockSizeChangesAfterPackets,
+                                       newBlockSizes);
+    helper.run();
+}
+
+// TODO BlockSize, DomainSignalType property changed, etc.

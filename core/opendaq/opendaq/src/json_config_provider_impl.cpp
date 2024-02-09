@@ -10,6 +10,7 @@
 #include <rapidjson/error/en.h>
 #include <coretypes/coretypes.h>
 #include <rapidjson/filereadstream.h> 
+#include <cctype>
 
 BEGIN_NAMESPACE_OPENDAQ
 

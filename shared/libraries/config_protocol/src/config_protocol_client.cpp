@@ -310,16 +310,33 @@ void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& componen
     if (!dev.assigned())
         return;
 
-    forEachSignal(component,
-                  [&dev](const SignalPtr& signal)
-                  {
-                      const auto domainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
-                      if (domainSignalId.assigned())
-                      {
-                          const auto domainSignal = findSignalByRemoteGlobalId(dev, domainSignalId);
-                          signal.asPtrOrNull<IMirroredSignalPrivate>(true)->assignDomainSignal(domainSignal);
-                      }
-                  });
+    forEachComponent(
+        component,
+        [&dev](const ComponentPtr& component)
+        {
+            const auto signal = component.asPtrOrNull<ISignal>(true);
+            if (signal.assigned())
+            {
+                const auto domainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+                if (domainSignalId.assigned())
+                {
+                    const auto domainSignal = findSignalByRemoteGlobalId(dev, domainSignalId);
+                    signal.asPtrOrNull<IMirroredSignalPrivate>(true)->assignDomainSignal(domainSignal);
+                }
+            }
+        });
+}
+
+void ConfigProtocolClientComm::setRemoteGlobalIds(const ComponentPtr& component, const StringPtr& parentRemoteId)
+{
+    forEachComponent(
+        component,
+        [&parentRemoteId](const ComponentPtr& comp)
+        {
+            StringPtr compRemoteId;
+            comp.asPtr<IConfigClientObject>()->getRemoteGlobalId(&compRemoteId);
+            comp.asPtr<IConfigClientObject>()->setRemoteGlobalId(parentRemoteId + compRemoteId);
+        });
 }
 
 BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const StringPtr& command,
@@ -345,20 +362,14 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Strin
 }
 
 template <class F>
-void ConfigProtocolClientComm::forEachSignal(const ComponentPtr& component, const F& f)
+void ConfigProtocolClientComm::forEachComponent(const ComponentPtr& component, const F& f)
 {
-    const auto signal = component.asPtrOrNull<ISignal>(true);
-    if (signal.assigned())
-    {
-        f(signal);
-        return;
-    }
-
+    f(component);
     const auto folder = component.asPtrOrNull<IFolder>(true);
     if (folder.assigned())
     {
-        for (const auto item : folder.getItems())
-            forEachSignal(item, f);
+        for (const auto& item : folder.getItems(search::Any()))
+            forEachComponent(item, f);
     }
 }
 

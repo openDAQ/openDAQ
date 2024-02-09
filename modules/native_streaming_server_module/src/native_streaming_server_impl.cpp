@@ -38,13 +38,71 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
     ErrCode errCode = this->rootDevice.asPtr<IDevicePrivate>()->addStreamingOption(streamingInfo);
     checkErrorInfo(errCode);
 
+    this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
+
     startReading();
 }
 
 NativeStreamingServerImpl::~NativeStreamingServerImpl()
 {
+    this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
     stopReading();
     stopAsyncOperations();
+}
+
+void NativeStreamingServerImpl::componentAdded(ComponentPtr& /*sender*/, CoreEventArgsPtr& eventArgs)
+{
+    ComponentPtr addedComponent = eventArgs.getParameters().get("Component");
+
+    auto deviceGlobalId = rootDevice.getGlobalId().toStdString();
+    auto addedComponentGlobalId = addedComponent.getGlobalId().toStdString();
+    if (addedComponentGlobalId.find(deviceGlobalId) != 0)
+        return;
+
+    LOG_I("Added Component: {};", addedComponentGlobalId);
+
+    if (addedComponent.supportsInterface<ISignal>())
+    {
+        serverHandler->addSignal(addedComponent.asPtr<ISignal>(true));
+    }
+    else if (addedComponent.supportsInterface<IFolder>())
+    {
+        auto nestedComponents = addedComponent.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
+        for (const auto& nestedComponent : nestedComponents)
+            if (nestedComponent.supportsInterface<ISignal>())
+            {
+                LOG_I("Added Signal: {};", nestedComponent.getGlobalId());
+                serverHandler->addSignal(nestedComponent.asPtr<ISignal>(true));
+            }
+    }
+}
+
+void NativeStreamingServerImpl::componentRemoved(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
+{
+    StringPtr removedComponentLocalId = eventArgs.getParameters().get("Id");
+
+    auto deviceGlobalId = rootDevice.getGlobalId().toStdString();
+    auto removedComponentGlobalId =
+        sender.getGlobalId().toStdString() + "/" + removedComponentLocalId.toStdString();
+    if (removedComponentGlobalId.find(deviceGlobalId) != 0)
+        return;
+
+    LOG_I("Component: {}; is removed", removedComponentGlobalId);
+}
+
+void NativeStreamingServerImpl::coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
+{
+    switch (static_cast<CoreEventId>(eventArgs.getEventId()))
+    {
+        case CoreEventId::ComponentAdded:
+            componentAdded(sender, eventArgs);
+            break;
+        case CoreEventId::ComponentRemoved:
+            componentRemoved(sender, eventArgs);
+            break;
+        default:
+            break;
+    }
 }
 
 void NativeStreamingServerImpl::startAsyncOperations()

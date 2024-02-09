@@ -195,20 +195,20 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
     auto signal = client.getSignals(search::Recursive(search::Any()))[0].template asPtr<IMirroredSignalConfig>();
     auto domainSignal = signal.getDomainSignal().template asPtr<IMirroredSignalConfig>();
 
-    std::promise<StringPtr> signalSubscribePromise[2];
-    std::future<StringPtr> signalSubscribeFuture[2];
-    std::promise<StringPtr> domainSubscribePromise[2];
-    std::future<StringPtr> domainSubscribeFuture[2];
+    std::promise<StringPtr> signalSubscribePromise;
+    std::future<StringPtr> signalSubscribeFuture;
+    std::promise<StringPtr> domainSubscribePromise;
+    std::future<StringPtr> domainSubscribeFuture;
 
-    test_helpers::setupSubscribeAckHandler(signalSubscribePromise[0], signalSubscribeFuture[0], signal);
-    test_helpers::setupSubscribeAckHandler(domainSubscribePromise[0], domainSubscribeFuture[0], domainSignal);
+    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+    test_helpers::setupSubscribeAckHandler(domainSubscribePromise, domainSubscribeFuture, domainSignal);
 
     using namespace std::chrono_literals;
     StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
 
     // wait for subscribe ack before read
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture[0]));
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture[0]));
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture));
 
     // destroy server to emulate disconnection
     server.release();
@@ -228,8 +228,10 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
         EXPECT_EQ(count, 0u);
     }
 
-    test_helpers::setupSubscribeAckHandler(signalSubscribePromise[1], signalSubscribeFuture[1], signal);
-    test_helpers::setupSubscribeAckHandler(domainSubscribePromise[1], domainSubscribeFuture[1], domainSignal);
+    signalSubscribePromise = std::promise<StringPtr>();
+    signalSubscribeFuture = signalSubscribePromise.get_future();
+    domainSubscribePromise = std::promise<StringPtr>();
+    domainSubscribeFuture = domainSubscribePromise.get_future();
 
     // re-create server to enable reconnection
     server = CreateServerInstance();
@@ -237,8 +239,8 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
     // TODO check for reconnected status
 
     // wait for new subscribe ack before further reading
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture[1], 5s));
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture[1], 5s));
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture, 5s));
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture, 5s));
 
     // read data received from server after reconnection
     for (int i = 0; i < 10; ++i)

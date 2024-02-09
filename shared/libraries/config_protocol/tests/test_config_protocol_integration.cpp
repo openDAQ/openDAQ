@@ -219,6 +219,10 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlock)
     ASSERT_EQ(fb, clientSubDevice.getFunctionBlocks()[1]);
 
     ASSERT_EQ(fb.asPtr<IConfigClientObject>().getRemoteGlobalId(), serverSubDevice.getFunctionBlocks()[1].getGlobalId());
+    ASSERT_EQ(fb.getSignals()[0].asPtr<IConfigClientObject>().getRemoteGlobalId(),
+              serverSubDevice.getFunctionBlocks()[1].getSignals()[0].getGlobalId());
+    ASSERT_EQ(fb.getSignals()[2].asPtr<IConfigClientObject>().getRemoteGlobalId(),
+              serverSubDevice.getFunctionBlocks()[1].getSignals()[2].getGlobalId());
     ASSERT_EQ(fb.getSignals()[0].getDomainSignal(), fb.getSignals()[2]);
 }
 
@@ -238,6 +242,10 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlockWithEvent)
     ASSERT_EQ(fb, clientSubDevice.getFunctionBlocks()[1]);
 
     ASSERT_EQ(fb.asPtr<IConfigClientObject>().getRemoteGlobalId(), serverSubDevice.getFunctionBlocks()[1].getGlobalId());
+    ASSERT_EQ(fb.getSignals()[0].asPtr<IConfigClientObject>().getRemoteGlobalId(),
+              serverSubDevice.getFunctionBlocks()[1].getSignals()[0].getGlobalId());
+    ASSERT_EQ(fb.getSignals()[2].asPtr<IConfigClientObject>().getRemoteGlobalId(),
+              serverSubDevice.getFunctionBlocks()[1].getSignals()[2].getGlobalId());
     ASSERT_EQ(fb.getSignals()[0].getDomainSignal(), fb.getSignals()[2]);
 }
 

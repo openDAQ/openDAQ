@@ -69,6 +69,10 @@ void NativeStreamingServerHandler::addSignal(const SignalPtr& signal)
     subscribersRegistry.sendToClients([signalNumericId, signal](std::shared_ptr<ServerSessionHandler>& sessionHandler)
                                       {
                                           sessionHandler->sendSignalAvailable(signalNumericId, signal);
+
+                                          // create and send event packet to initialize packet streaming
+                                          sessionHandler->sendPacket(signalNumericId,
+                                                                     createDataDescriptorChangedEventPacket(signal));
                                       });
 }
 

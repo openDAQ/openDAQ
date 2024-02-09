@@ -48,9 +48,6 @@ private:
     SignalConfigPtr outputSignal;
     SignalConfigPtr outputDomainSignal;
 
-    static constexpr Float INITIAL_THRESHOLD = 0.5;
-    static constexpr bool INITIAL_STATE = false;
-
     Float threshold;
     bool state;
     PacketReadyNotification packetReadyNotification;

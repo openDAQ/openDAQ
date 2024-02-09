@@ -12,6 +12,7 @@ namespace Trigger
 TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
+    state = false;
     if (config.assigned() && config.hasProperty("UseMultiThreadedScheduler") && config.getPropertyValue("UseMultiThreadedScheduler"))
     {
         packetReadyNotification = PacketReadyNotification::Scheduler;
@@ -20,9 +21,6 @@ TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, 
     {
         packetReadyNotification = PacketReadyNotification::SameThread;
     }
-
-    threshold = INITIAL_THRESHOLD;
-    state = INITIAL_STATE;
     createInputPorts();
     createSignals();
     initProperties();
@@ -30,7 +28,7 @@ TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, 
 
 void TriggerFbImpl::initProperties()
 {
-    const auto thresholdProp = FloatProperty("Threshold", INITIAL_THRESHOLD);
+    const auto thresholdProp = FloatProperty("Threshold", 0.5);
     objPtr.addProperty(thresholdProp);
     objPtr.getOnPropertyValueWrite("Threshold") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
 

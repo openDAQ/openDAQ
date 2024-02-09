@@ -71,6 +71,8 @@ public:
     ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
     ErrCode INTERFACE_FUNC getOffset(void* domainStart) override;
 
+    ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) override;
+
 private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;

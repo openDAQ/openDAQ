@@ -48,6 +48,9 @@ public:
         createFunctionBlock();
         sendPacketsAndChangeThreshold();
         receivePacketsAndCheck();
+
+        // TODO Temporay fix so PacketReadyNotification::Scheduler works
+        context.getScheduler().stop();
     }
 
 private:

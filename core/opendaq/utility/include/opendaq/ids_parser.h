@@ -35,6 +35,11 @@ public:
 
         return false;
     }
+
+    static bool isNestedComponentId(const std::string& ancestorGlobalId, const std::string& descendantGlobalId)
+    {
+        return descendantGlobalId.find(ancestorGlobalId + "/") == 0;
+    }
 };
 
 END_NAMESPACE_OPENDAQ

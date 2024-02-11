@@ -28,7 +28,8 @@ public:
                     SampleType valueReadType,
                     SampleType domainReadType,
                     ReadMode mode,
-                    ReadTimeoutType timeoutType);
+                    ReadTimeoutType timeoutType,
+                    bool startOnFullUnitOfDomain = false);
 
     MultiReaderImpl(MultiReaderImpl* old,
                     SampleType valueReadType,
@@ -119,6 +120,8 @@ private:
     std::vector<SignalReader> signals;
 
     LoggerComponentPtr loggerComponent;
+
+    bool startOnFullUnitOfDomain;
 };
 
 END_NAMESPACE_OPENDAQ

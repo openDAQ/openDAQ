@@ -144,6 +144,15 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 )
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, MultiReaderEx, IMultiReader,
+    IList*, signals,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode,
+    ReadTimeoutType, timeoutType,
+    bool, startOnFullUnitOfDomain)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, MultiReaderFromExisting, IMultiReader,
     IMultiReader*, invalidatedReader,
     SampleType, valueReadType,

@@ -1482,3 +1482,49 @@ TEST_F(MultiReaderTest, ReuseReader)
     ASSERT_EQ(samples, 1u);
     ASSERT_THAT(values, ElementsAreArray(oldReaderNextValues));
 }
+
+TEST_F(MultiReaderTest, StartOnFullUnitOfDomain)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(3);
+
+    auto& sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00"));
+    auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
+
+    auto multi = MultiReaderEx(signalsToList(), ReadTimeoutType::All, true);
+
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    for (Int i = 0; i < 5; i++)
+    {
+        sig0.createAndSendPacket(i);
+        sig1.createAndSendPacket(i);
+        sig2.createAndSendPacket(i);
+    }
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 615u);
+
+    constexpr const SizeT SAMPLES = 5u;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+
+    SizeT count{SAMPLES};
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    ASSERT_EQ(count, SAMPLES);
+
+    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};
+    printData<std::chrono::microseconds>(SAMPLES, time, values, domain);
+
+    ASSERT_THAT(time[1], ElementsAreArray(time[0]));
+    ASSERT_THAT(time[2], ElementsAreArray(time[0]));
+}

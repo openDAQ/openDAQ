@@ -278,6 +278,16 @@ inline MultiReaderPtr MultiReader(const ListPtr<ISignal>& signals,
     return MultiReader_Create(signals, valueReadType, domainReadType, mode, timeoutType);
 }
 
+inline MultiReaderPtr MultiReaderEx(const ListPtr<ISignal>& signals,
+                                    SampleType valueReadType,
+                                    SampleType domainReadType,
+                                    ReadMode mode = ReadMode::Scaled,
+                                    ReadTimeoutType timeoutType = ReadTimeoutType::All,
+                                    bool startOnFullUnitOfDomain = false)
+{
+    return MultiReaderEx_Create(signals, valueReadType, domainReadType, mode, timeoutType, startOnFullUnitOfDomain);
+}
+
 inline MultiReaderPtr MultiReaderFromExisting(const MultiReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)
 {
     return MultiReaderFromExisting_Create(invalidatedReader, valueReadType, domainReadType);
@@ -293,6 +303,13 @@ MultiReaderPtr MultiReader(ListPtr<ISignal> signals, ReadTimeoutType timeoutType
         ReadMode::Scaled,
         timeoutType
     );
+}
+
+template <typename TValueType = double, typename TDomainType = ClockTick>
+MultiReaderPtr MultiReaderEx(ListPtr<ISignal> signals, ReadTimeoutType timeoutType = ReadTimeoutType::All, bool startOnFullUnitOfDomain = false)
+{
+    return MultiReaderEx(
+        signals, SampleTypeFromType<TValueType>::SampleType, SampleTypeFromType<TDomainType>::SampleType, ReadMode::Scaled, timeoutType, startOnFullUnitOfDomain);
 }
 
 template <typename TValueType = double, typename TDomainType = ClockTick>

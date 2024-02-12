@@ -70,6 +70,9 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
 {
     clientContext->readObjectAttributes(nodeId);
 
+    if (isRootDevice)
+        clientContext->registerRootDevice(thisInterface());
+
     findAndCreateSubdevices();
     findAndCreateFunctionBlocks();
     findAndCreateSignals();
@@ -472,7 +475,7 @@ DictPtr<IString, IFunctionBlockType> TmsClientDeviceImpl::onGetAvailableFunction
 FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
 {
     const auto fbFolderNodeId = getNodeId("FB");
-    const auto methodNodeId = clientContext->getReferenceBrowser()->getChildNodeId(fbFolderNodeId, "AddFunctionBlock");
+    const auto methodNodeId = clientContext->getReferenceBrowser()->getChildNodeId(fbFolderNodeId, "Add");
 
     const auto typeIdVariant = OpcUaVariant(typeId.toStdString().c_str());
     const auto configVariant = PropertyObjectConversionUtils::ToDictVariant(config);
@@ -503,7 +506,7 @@ FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& typeId
 void TmsClientDeviceImpl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
     const auto fbFolderNodeId = getNodeId("FB");
-    const auto methodNodeId = clientContext->getReferenceBrowser()->getChildNodeId(fbFolderNodeId, "RemoveFunctionBlock");
+    const auto methodNodeId = clientContext->getReferenceBrowser()->getChildNodeId(fbFolderNodeId, "Remove");
 
     const auto fbIdVariant = OpcUaVariant(functionBlock.getLocalId().toStdString().c_str());
 

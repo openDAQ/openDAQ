@@ -22,6 +22,8 @@
 #include <opcuaclient/attribute_reader.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/context_ptr.h>
+#include <opendaq/component_ptr.h>
+#include <opendaq/device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -35,6 +37,8 @@ public:
 
     const opcua::OpcUaClientPtr& getClient() const;
 
+    void registerRootDevice(const DevicePtr& rootDevice);
+    DevicePtr getRootDevice();
     void registerObject(const opcua::OpcUaNodeId& nodeId, const BaseObjectPtr& object);
     void unregisterObject(const opcua::OpcUaNodeId& nodeId);
     BaseObjectPtr getObject(const opcua::OpcUaNodeId& nodeId) const;
@@ -71,6 +75,7 @@ protected:
     std::unordered_map<opcua::OpcUaNodeId, IBaseObject*> objects;
     size_t maxNodesPerBrowse = 0;
     size_t maxNodesPerRead = 0;
+    WeakRefPtr<IDevice> rootDevice;
 
     void initReferenceBrowser();
     void initAttributeReader();

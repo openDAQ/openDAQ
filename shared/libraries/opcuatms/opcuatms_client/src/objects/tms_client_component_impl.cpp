@@ -182,9 +182,29 @@ LoggerComponentPtr TmsClientComponentBaseImpl<Impl>::getLoggerComponent()
 }
 
 template <class Impl>
-ErrCode TmsClientComponentBaseImpl<Impl>::getRemoteGlobalId(IString** /*globalId*/)
+ErrCode TmsClientComponentBaseImpl<Impl>::getRemoteGlobalId(IString** globalId)
 {
+    OPENDAQ_PARAM_NOT_NULL(globalId);
+
+    *globalId = String(this->nodeId.getIdentifier()) .detach();
     return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
+bool TmsClientComponentBaseImpl<Impl>::isChildComponent(const ComponentPtr& component)
+{
+    DevicePtr parentDevice = this->clientContext->getRootDevice();
+    ComponentPtr currentComponent = component;
+
+    do
+    {
+        if (currentComponent == parentDevice)
+            return true;
+
+        currentComponent = currentComponent.getParent();
+    } while (currentComponent.assigned());
+
+    return false;
 }
 
 template class TmsClientComponentBaseImpl<ComponentImpl<IComponent, ITmsClientComponent>>;

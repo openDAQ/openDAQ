@@ -9,18 +9,15 @@ CachedReferenceBrowser::CachedReferenceBrowser(const OpcUaClientPtr& client, siz
 {
 }
 
-const CachedReferences& CachedReferenceBrowser::browse(const OpcUaNodeId& nodeId, bool forceInvalidate)
+const CachedReferences& CachedReferenceBrowser::browse(const OpcUaNodeId& nodeId)
 {
-    if (forceInvalidate)
-        invalidate(nodeId);
-
     if (!isCached(nodeId))
         browseMultiple({nodeId});
 
     return references[nodeId];
 }
 
-void CachedReferenceBrowser::invalidate(const OpcUaNodeId& nodeId)
+void CachedReferenceBrowser::invalidate(const OpcUaNodeId& nodeId, bool recursive)
 {
     if (!isCached(nodeId))
         return;
@@ -28,11 +25,24 @@ void CachedReferenceBrowser::invalidate(const OpcUaNodeId& nodeId)
     const auto children = references[nodeId].byNodeId;
     references.erase(nodeId);
 
+    if (!recursive)
+        return;
+
     for (const auto& [refNodeId, ref] : children)
     {
         if (ref->isForward)
             invalidate(refNodeId);
     }
+}
+
+void CachedReferenceBrowser::invalidate(const OpcUaNodeId& nodeId)
+{
+    invalidate(nodeId, false);
+}
+
+void CachedReferenceBrowser::invalidateRecursive(const OpcUaNodeId& nodeId)
+{
+    invalidate(nodeId, true);
 }
 
 bool CachedReferenceBrowser::isSubtypeOf(const OpcUaNodeId& typeId, const OpcUaNodeId& baseType)

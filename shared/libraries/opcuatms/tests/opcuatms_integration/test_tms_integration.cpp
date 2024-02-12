@@ -318,3 +318,71 @@ TEST_F(TmsIntegrationTest, RemoveFunctionBlock)
     clientDevice.removeFunctionBlock(fb2);
     ASSERT_EQ(1, clientDevice.getFunctionBlocks().getCount());
 }
+
+TEST_F(TmsIntegrationTest, InputPortConnect)
+{
+    InstancePtr device = createDevice();
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    auto clientDevice = tmsClient.connect();
+
+    auto inputPort = clientDevice.getChannelsRecursive().getItemAt(0).getInputPorts().getItemAt(0);
+    auto signal1 = clientDevice.getSignalsRecursive().getItemAt(0);
+    auto signal2 = clientDevice.getSignalsRecursive().getItemAt(1);
+
+    SignalPtr portSignal = inputPort.getSignal();
+    ASSERT_FALSE(portSignal.assigned());
+
+    inputPort.connect(signal1);
+    portSignal = inputPort.getSignal();
+    ASSERT_TRUE(portSignal.assigned());
+    ASSERT_EQ(portSignal, signal1);
+
+    inputPort.connect(signal2);
+    portSignal = inputPort.getSignal();
+    ASSERT_TRUE(portSignal.assigned());
+    ASSERT_EQ(portSignal, signal2);
+
+    inputPort.disconnect();
+    portSignal = inputPort.getSignal();
+    ASSERT_FALSE(portSignal.assigned());
+}
+
+TEST_F(TmsIntegrationTest, InputPortMultipleServers)
+{
+    auto StartServerDevice = [&](const InstancePtr& device, uint16_t port)
+    {
+        auto tmsServer = std::make_shared<TmsServer>(device);
+        tmsServer->setOpcUaPort(port);
+        tmsServer->start();
+        return tmsServer;
+    };
+
+    InstancePtr device1 = createDevice();
+    InstancePtr device2 = createDevice();
+    auto server1 = StartServerDevice(device1, 4001);
+    auto server2 = StartServerDevice(device1, 4002);
+    
+    InstancePtr instance = Instance();
+    auto clientDevice1 = instance.addDevice("daq.opcua://127.0.0.1:4001");
+    auto clientDevice2 = instance.addDevice("daq.opcua://127.0.0.1:4002");
+
+    auto inputPort1 = clientDevice1.getChannelsRecursive().getItemAt(0).getInputPorts().getItemAt(0);
+    auto inputPort2 = clientDevice2.getChannelsRecursive().getItemAt(0).getInputPorts().getItemAt(0);
+    auto signal1 = clientDevice1.getSignalsRecursive().getItemAt(0);
+    auto signal2 = clientDevice2.getSignalsRecursive().getItemAt(0);
+    SignalPtr portSignal;
+
+    ASSERT_NO_THROW(inputPort1.connect(signal1));
+    portSignal = inputPort1.getSignal();
+    ASSERT_EQ(portSignal, signal1);
+
+    ASSERT_NO_THROW(inputPort2.connect(signal2));
+    portSignal = inputPort2.getSignal();
+    ASSERT_EQ(portSignal, signal2);
+
+    ASSERT_THROW(inputPort1.connect(signal2), NotFoundException);
+    ASSERT_THROW(inputPort2.connect(signal1), NotFoundException);
+}

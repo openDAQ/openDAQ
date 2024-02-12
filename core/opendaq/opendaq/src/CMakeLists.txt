@@ -22,7 +22,6 @@ rtgen(SRC_ConfigProvider config_provider.h)
 source_group("instance" FILES ${SDK_HEADERS_DIR}/instance.h
                               ${SDK_HEADERS_DIR}/instance_impl.h
                               ${SDK_HEADERS_DIR}/instance_factory.h
-                              ${SDK_HEADERS_DIR}/client_private.h
                               ${SDK_HEADERS_DIR}/client_impl.h
                               ${SDK_HEADERS_DIR}/create_device.h
                               ${SDK_HEADERS_DIR}/instance_builder.h
@@ -64,7 +63,6 @@ set(SRC_PublicHeaders version.h
 )
 
 set(SRC_PrivateHeaders instance_impl.h
-                       client_private.h
                        client_impl.h
                        opendaq_init.h
                        create_device.h

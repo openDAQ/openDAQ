@@ -22,7 +22,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-class TmsClientDeviceImpl : public TmsClientComponentBaseImpl<Device>
+class TmsClientDeviceImpl : public TmsClientComponentBaseImpl<DeviceBase<ITmsClientComponent>>
 {
 public:
     explicit TmsClientDeviceImpl(const ContextPtr& ctx,

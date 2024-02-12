@@ -21,6 +21,7 @@
 #include "opcuatms_client/objects/tms_client_object_impl.h"
 #include "opendaq/channel_impl.h"
 #include "opendaq/streaming_info_impl.h"
+#include "opcuatms_client/objects/tms_client_component.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -62,7 +63,7 @@ public:
         init();
     }
 
-    template<class T = Impl, template_utils::enable_if_none<T, FunctionBlock, Channel, PropertyObjectImpl, StreamingInfoConfigImpl> = 0>
+    template<class T = Impl, template_utils::enable_if_none<T, FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>, ChannelImpl<ITmsClientComponent>, PropertyObjectImpl, StreamingInfoConfigImpl> = 0>
     TmsClientPropertyObjectBaseImpl(const ContextPtr& ctx,
                                     const ComponentPtr& parent,
                                     const StringPtr& localId,
@@ -74,7 +75,7 @@ public:
         init();
     }
     
-    template<class T = Impl, template_utils::enable_if_any<T, FunctionBlock, Channel> = 0>
+    template<class T = Impl, template_utils::enable_if_any<T, FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>, ChannelImpl<ITmsClientComponent>> = 0>
     TmsClientPropertyObjectBaseImpl(const ContextPtr& ctx,
                                     const ComponentPtr& parent,
                                     const StringPtr& localId,

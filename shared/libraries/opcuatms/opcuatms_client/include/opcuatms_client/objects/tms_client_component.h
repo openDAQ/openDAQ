@@ -33,7 +33,7 @@ DECLARE_OPENDAQ_INTERFACE(ITmsClientComponent, IBaseObject)
      * This means that global ID of a client component can be differnet that the one of the same component on the server side.
      * This method returs global ID as defined by openDAQ server.
      */
-    virtual ErrCode INTERFACE_FUNC getRemoteGlobalId(IString * *globalId) = 0;
+    virtual ErrCode INTERFACE_FUNC getRemoteGlobalId(IString** globalId) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

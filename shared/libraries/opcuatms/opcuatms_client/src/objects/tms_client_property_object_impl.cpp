@@ -479,14 +479,14 @@ bool TmsClientPropertyObjectBaseImpl<Impl>::isIgnoredMethodPeoperty(const std::s
 }
 
 template class TmsClientPropertyObjectBaseImpl<PropertyObjectImpl>;
-template class TmsClientPropertyObjectBaseImpl<ComponentImpl<>>;
-template class TmsClientPropertyObjectBaseImpl<FolderImpl<IFolderConfig>>;
-template class TmsClientPropertyObjectBaseImpl<IoFolderImpl<>>;
-template class TmsClientPropertyObjectBaseImpl<Device>;
-template class TmsClientPropertyObjectBaseImpl<FunctionBlock>;
-template class TmsClientPropertyObjectBaseImpl<Channel>;
-template class TmsClientPropertyObjectBaseImpl<MirroredSignal>;
-template class TmsClientPropertyObjectBaseImpl<InputPortImpl>;
+template class TmsClientPropertyObjectBaseImpl<ComponentImpl<IComponent,ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<FolderImpl<IFolderConfig, ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<IoFolderImpl<ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<DeviceBase<ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<ChannelImpl<ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<MirroredSignalBase<ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<GenericInputPortImpl<ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<StreamingInfoConfigImpl>;
 
 

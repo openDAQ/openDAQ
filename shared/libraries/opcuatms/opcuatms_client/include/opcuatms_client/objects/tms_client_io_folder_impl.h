@@ -20,7 +20,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-class TmsClientIoFolderImpl : public TmsClientFolderImpl<IoFolderImpl<>>
+class TmsClientIoFolderImpl : public TmsClientFolderImpl<IoFolderImpl<ITmsClientComponent>>
 {
 public:
     explicit TmsClientIoFolderImpl(const ContextPtr& ctx,

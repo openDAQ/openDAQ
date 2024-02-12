@@ -12,7 +12,7 @@ using namespace daq::opcua;
 
 template <class Impl>
 ErrCode TmsClientComponentBaseImpl<Impl>::getActive(Bool* active)
-{   
+{
     try
     {
         *active = this->template readValue<IBoolean>("Active");
@@ -178,15 +178,22 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setVisible(Bool visible)
 template <class Impl>
 LoggerComponentPtr TmsClientComponentBaseImpl<Impl>::getLoggerComponent()
 {
-    return this->daqContext.getLogger().getOrAddComponent("OpcUaClientComponent"); 
+    return this->daqContext.getLogger().getOrAddComponent("OpcUaClientComponent");
 }
-template class TmsClientComponentBaseImpl<ComponentImpl<>>;
-template class TmsClientComponentBaseImpl<FolderImpl<IFolderConfig>>;
-template class TmsClientComponentBaseImpl<IoFolderImpl<>>;
-template class TmsClientComponentBaseImpl<Device>;
-template class TmsClientComponentBaseImpl<FunctionBlock>;
-template class TmsClientComponentBaseImpl<Channel>;
-template class TmsClientComponentBaseImpl<MirroredSignal>;
-template class TmsClientComponentBaseImpl<InputPortImpl>;
+
+template <class Impl>
+ErrCode TmsClientComponentBaseImpl<Impl>::getRemoteGlobalId(IString** /*globalId*/)
+{
+    return OPENDAQ_SUCCESS;
+}
+
+template class TmsClientComponentBaseImpl<ComponentImpl<IComponent, ITmsClientComponent>>;
+template class TmsClientComponentBaseImpl<FolderImpl<IFolderConfig, ITmsClientComponent>>;
+template class TmsClientComponentBaseImpl<IoFolderImpl<ITmsClientComponent>>;
+template class TmsClientComponentBaseImpl<DeviceBase<ITmsClientComponent>>;
+template class TmsClientComponentBaseImpl<FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>>;
+template class TmsClientComponentBaseImpl<ChannelImpl<ITmsClientComponent>>;
+template class TmsClientComponentBaseImpl<MirroredSignalBase<ITmsClientComponent>>;
+template class TmsClientComponentBaseImpl<GenericInputPortImpl<ITmsClientComponent>>;
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

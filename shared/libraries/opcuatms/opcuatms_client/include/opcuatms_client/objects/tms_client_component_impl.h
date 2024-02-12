@@ -24,14 +24,14 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 template <typename Impl>
 class TmsClientComponentBaseImpl;
 
-using TmsClientComponentImpl = TmsClientComponentBaseImpl<ComponentImpl<ITmsClientComponent>>;
+using TmsClientComponentImpl = TmsClientComponentBaseImpl<ComponentImpl<IComponent, ITmsClientComponent>>;
 
 template <class Impl>
 class TmsClientComponentBaseImpl : public TmsClientPropertyObjectBaseImpl<Impl>
 {
 public:
     
-    template<class T = Impl, template_utils::enable_if_none<T, FunctionBlock, Channel> = 0>
+    template<class T = Impl, template_utils::enable_if_none<T, FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>, ChannelImpl<ITmsClientComponent>> = 0>
     TmsClientComponentBaseImpl(const ContextPtr& ctx,
                                const ComponentPtr& parent,
                                const StringPtr& localId,
@@ -43,7 +43,7 @@ public:
         clientContext->readObjectAttributes(nodeId);
     }
     
-    template<class T = Impl, template_utils::enable_if_any<T, FunctionBlock, Channel> = 0>
+    template<class T = Impl, template_utils::enable_if_any<T, FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>, ChannelImpl<ITmsClientComponent>> = 0>
     TmsClientComponentBaseImpl(const ContextPtr& ctx,
                                const ComponentPtr& parent,
                                const StringPtr& localId,
@@ -65,6 +65,9 @@ public:
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
     ErrCode INTERFACE_FUNC getVisible(Bool* visible) override;
     ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
+
+    
+    ErrCode INTERFACE_FUNC getRemoteGlobalId(IString** globalId) override;
 
 private:
     LoggerComponentPtr getLoggerComponent();

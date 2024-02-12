@@ -197,7 +197,7 @@ SignalPtr TmsClientFunctionBlockBaseImpl<Impl>::onGetStatusSignal()
 
 // To force the compiler to generate the template classes that are used elsewhere
 // If this is not done, then you will get linker errors if using it outside the static library
-template class TmsClientFunctionBlockBaseImpl<FunctionBlock>;
-template class TmsClientFunctionBlockBaseImpl<Channel>;
+template class TmsClientFunctionBlockBaseImpl<FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>>;
+template class TmsClientFunctionBlockBaseImpl<ChannelImpl<ITmsClientComponent>>;
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

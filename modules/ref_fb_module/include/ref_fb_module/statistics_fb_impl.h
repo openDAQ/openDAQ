@@ -89,6 +89,7 @@ private:
     size_t calcBufAllocatedSize;
     size_t sampleSize;
     size_t domainSampleSize;
+    Int start;
     Int inputDeltaTicks;
     Int outputDeltaTicks;
     Int nextExpectedDomainValue;

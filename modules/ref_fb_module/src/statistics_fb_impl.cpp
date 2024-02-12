@@ -20,7 +20,7 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& pa
     rmsSignal.setDomainSignal(domainSignal);
 
     // TODO SameThread vs Scheduler
-    createAndAddInputPort("input", PacketReadyNotification::SameThread);
+    createAndAddInputPort("input", PacketReadyNotification::Scheduler);
 }
 
 FunctionBlockTypePtr StatisticsFbImpl::CreateType()
@@ -78,7 +78,7 @@ void StatisticsFbImpl::configure()
     }
     const auto domainRuleParams = domainRule.getParameters();
 
-    const Int start = domainRuleParams.get("start");
+    start = domainRuleParams.get("start");
     inputDeltaTicks = domainRuleParams.get("delta");
     outputDeltaTicks = inputDeltaTicks * static_cast<Int>(blockSize);
 
@@ -329,13 +329,13 @@ void StatisticsFbImpl::calc(
         {
             if constexpr (DST == SampleType::Int64)
             {
-                *outDomainData++ = firstTick;
+                *outDomainData++ = firstTick + start;
                 firstTick += outputDeltaTicks;
             }
             else if constexpr (DST == SampleType::RangeInt64)
             {
-                outDomainData->start = firstTick;
-                outDomainData->end = firstTick + inputDeltaTicks * blockSize - 1;
+                outDomainData->start = firstTick + start;
+                outDomainData->end = outDomainData->start + inputDeltaTicks * blockSize - 1;
                 ++outDomainData;
                 firstTick += outputDeltaTicks;
             }

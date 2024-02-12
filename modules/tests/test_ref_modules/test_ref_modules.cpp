@@ -575,7 +575,7 @@ TEST_F(RefModulesTest, ClassifierGeneralDescriptor)
     ASSERT_EQ(classifierSignalDescription.getSampleType(), SampleType::Float64);
 
     // Dimension of classifier's output signal have to be 1 (vector)
-    ASSERT_EQ(classifierSignalDescription.getDimensions().getCount(), 1);
+    ASSERT_EQ(classifierSignalDescription.getDimensions().getCount(), 1u);
 
     // Classifier returns values in range [0, 1]
     ASSERT_EQ(classifierSignalDescription.getValueRange(), Range(0, 1));
@@ -703,7 +703,7 @@ TEST_F(RefModulesTest, ClassifierCheckSyncData)
     auto outputData = std::make_unique<outputSignalType[]>(21);
     reader.read(outputData.get(), &blockCnt, 500);
     // check that was read output packet
-    ASSERT_EQ(blockCnt, 1);
+    ASSERT_EQ(blockCnt, 1u);
 
     // check that sum of output values is eqauled to 1
     outputSignalType valuesSum = 0;
@@ -757,13 +757,13 @@ TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
     auto firstOutputData = std::make_unique<outputSignalType[]>(5);
     size_t firstBlockCnt = 1;
     reader.read(firstOutputData.get(), &firstBlockCnt, 500);
-    ASSERT_EQ(firstBlockCnt, 1);
+    ASSERT_EQ(firstBlockCnt, 1u);
 
     // reading second output block
     auto secondOutputData = std::make_unique<outputSignalType[]>(5);
     size_t secondBlockCnt = 1;
     reader.read(secondOutputData.get(), &secondBlockCnt, 500);
-    ASSERT_EQ(secondBlockCnt, 1);
+    ASSERT_EQ(secondBlockCnt, 1u);
 
     // check that values are in expected intervals for first result
     ASSERT_EQ(firstOutputData[0], 0.2);
@@ -812,7 +812,7 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClass)
     reader.read(outputData.get(), &blockCnt, 500);
 
     // check that was read output packet
-    ASSERT_EQ(blockCnt, 1);
+    ASSERT_EQ(blockCnt, 1u);
 
     // check that sum of output values is eqauled to 1
     outputSignalType valuesSum = 0;
@@ -860,7 +860,7 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
     auto outputData = std::make_unique<outputSignalType[]>(4);
     reader.read(outputData.get(), &blockCnt, 500);
     // check that was read output packet
-    ASSERT_EQ(blockCnt, 1);
+    ASSERT_EQ(blockCnt, 1u);
 
     // check that sum of output values is eqauled to 1
     outputSignalType valuesSum = 0;
@@ -904,7 +904,7 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     auto outputData = std::make_unique<outputSignalType[]>(4);
     reader.read(outputData.get(), &blockCnt, 500);
     // check that was read output packet
-    ASSERT_EQ(blockCnt, 1);
+    ASSERT_EQ(blockCnt, 1u);
 
     // check that sum of output values is eqauled to 1
     outputSignalType valuesSum = 0;
@@ -956,13 +956,13 @@ TEST_F(RefModulesTest, ClassifierCheckAsyncMultiData)
     auto firstOutputData = std::make_unique<outputSignalType[]>(5);
     size_t firstBlockCnt = 1;
     reader.read(firstOutputData.get(), &firstBlockCnt, 200);
-    ASSERT_EQ(firstBlockCnt, 1);
+    ASSERT_EQ(firstBlockCnt, 1u);
 
     // reading second output block
     auto secondOutputData = std::make_unique<outputSignalType[]>(5);
     size_t secondBlockCnt = 1;
     reader.read(secondOutputData.get(), &secondBlockCnt, 200);
-    ASSERT_EQ(secondBlockCnt, 1);
+    ASSERT_EQ(secondBlockCnt, 1u);
 
     // check that values are in expected intervals for first result
     ASSERT_EQ(firstOutputData[0], 0.2);

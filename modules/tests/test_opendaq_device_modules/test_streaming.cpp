@@ -212,7 +212,7 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     clientReader = createClientReader(clientSignal.getDescriptor().getName());
     clientReceivedPackets = tryReadPackets(clientReader, 1);
 
-    ASSERT_EQ(clientReceivedPackets.getCount(), 1);
+    ASSERT_EQ(clientReceivedPackets.getCount(), 1u);
 
     EventPacketPtr eventPacket = clientReceivedPackets[0].asPtrOrNull<IEventPacket>();
     ASSERT_TRUE(eventPacket.assigned());
@@ -407,7 +407,7 @@ TEST_P(StreamingReconnectionTest, Reconnection)
 
     // read client initial event packet
     auto clientReceivedPackets = tryReadPackets(clientReader, 1);
-    EXPECT_EQ(clientReceivedPackets.getCount(), 1);
+    EXPECT_EQ(clientReceivedPackets.getCount(), 1u);
 
     // remove streaming server to emulate disconnection
     removeStreamingServer();

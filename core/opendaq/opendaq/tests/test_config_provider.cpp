@@ -54,7 +54,7 @@ protected:
         std::ofstream file;
         file.open(filename);
         if (!file.is_open()) 
-            throw std::runtime_error("can not open file for writting");
+            throw std::runtime_error("can not open file for writing");
 
         file << data;
         file.close();
@@ -325,7 +325,7 @@ TEST_F(ConfigProviderTest, InstanceBuilderFromJson)
     instanceBuilder.addConfigProvider(JsonConfigProvider());
     instanceBuilder.build();
 
-    ASSERT_EQ(instanceBuilder.getSchedulerWorkerNum(), 8);
+    ASSERT_EQ(instanceBuilder.getSchedulerWorkerNum(), 8u);
     ASSERT_EQ(int(instanceBuilder.getGlobalLogLevel()), 6);
 }
 

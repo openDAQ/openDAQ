@@ -144,7 +144,6 @@ public:
 
 private:
     DevicePtr rootDevice;
-    DevicePtr defaultRootDevice;
     ContextPtr context;
     ModuleManagerPtr moduleManager;
     LoggerComponentPtr loggerComponent;
@@ -156,8 +155,6 @@ private:
 
     static std::string defineLocalId(const std::string& localId);
     void stopServers();
-
-    bool isDefaultRootDevice();
 
     void connectInputPorts();
 

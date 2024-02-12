@@ -280,6 +280,19 @@ void TmsServerObject::addReference(const OpcUaNodeId& targetNodeId, const OpcUaN
     server->addReference(nodeId, referenceTypeId, targetNodeId, true);
 }
 
+void TmsServerObject::deleteReferencesOfType(const opcua::OpcUaNodeId& referenceTypeId)
+{
+    browseReferences();
+
+    for (const auto& [browseName, ref] : references)
+    {
+        if (OpcUaNodeId(ref->referenceTypeId) == referenceTypeId)
+            server->deleteReference(nodeId, referenceTypeId, ref->nodeId.nodeId, ref->isForward);
+    }
+
+    browseReferences();
+}
+
 void TmsServerObject::browseReferences()
 {
     OpcUaObject<UA_BrowseDescription> bd;

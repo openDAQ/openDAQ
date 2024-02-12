@@ -66,8 +66,11 @@ public:
     ErrCode INTERFACE_FUNC getVisible(Bool* visible) override;
     ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
 
-    
+    // ITmsClientComponent
     ErrCode INTERFACE_FUNC getRemoteGlobalId(IString** globalId) override;
+
+protected:
+    bool isChildComponent(const ComponentPtr& component);
 
 private:
     LoggerComponentPtr getLoggerComponent();

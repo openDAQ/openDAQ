@@ -249,13 +249,13 @@ void TmsServerDevice::createAddFunctionBlockNode(const OpcUaNodeId& parentId)
     OpcUaNodeId nodeIdOut;
     AddMethodNodeParams params(nodeIdOut, parentId);
     params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
-    params.setBrowseName("AddFunctionBlock");
+    params.setBrowseName("Add");
     params.outputArgumentsSize = 1;
     params.outputArguments = (UA_Argument*) UA_Array_new(params.outputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
     params.inputArgumentsSize = 2;
     params.inputArguments = (UA_Argument*) UA_Array_new(params.inputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
 
-    params.outputArguments[0].name = UA_STRING_ALLOC("functionBlockNodeId");
+    params.outputArguments[0].name = UA_STRING_ALLOC("nodeId");
     params.outputArguments[0].dataType = UA_TYPES[UA_TYPES_NODEID].typeId;
     params.outputArguments[0].valueRank = UA_VALUERANK_SCALAR;
 
@@ -290,7 +290,7 @@ void TmsServerDevice::createRemoveFunctionBlockNode(const OpcUaNodeId& parentId)
     OpcUaNodeId nodeIdOut;
     AddMethodNodeParams params(nodeIdOut, parentId);
     params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
-    params.setBrowseName("RemoveFunctionBlock");
+    params.setBrowseName("Remove");
     params.inputArgumentsSize = 1;
     params.inputArguments = (UA_Argument*) UA_Array_new(params.inputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
 

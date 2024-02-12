@@ -5,6 +5,7 @@
 #include "open62541/daqbsp_nodeids.h"
 #include "open62541/di_nodeids.h"
 #include "open62541/daqbsp_nodeids.h"
+#include <opendaq/device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -20,69 +21,113 @@ OpcUaNodeId TmsServerInputPort::getReferenceType()
     return OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASINPUTPORT);
 }
 
+void TmsServerInputPort::addChildNodes()
+{
+    Super::addChildNodes();
+
+    createConnectMethodNode();
+    createDisconnectMethodNode();
+}
+
 OpcUaNodeId TmsServerInputPort::getTmsTypeId()
 {
     return OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_INPUTPORTTYPE);
 }
 
+void TmsServerInputPort::createConnectMethodNode()
+{
+    OpcUaNodeId nodeIdOut;
+    AddMethodNodeParams params(nodeIdOut, nodeId);
+    params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
+    params.setBrowseName("Connect");
+    params.inputArgumentsSize = 1;
+    params.inputArguments = (UA_Argument*) UA_Array_new(params.inputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
+
+    params.inputArguments[0].name = UA_STRING_ALLOC("signalGlobalId");
+    params.inputArguments[0].dataType = UA_TYPES[UA_TYPES_STRING].typeId;
+    params.inputArguments[0].valueRank = UA_VALUERANK_SCALAR;
+
+    auto methodNodeId = server->addMethodNode(params);
+
+    auto callback = [this](NodeEventManager::MethodArgs args) -> UA_StatusCode
+    {
+        try
+        {
+            onConnectSignal(args);
+        }
+        catch (const OpcUaException& e)
+        {
+            return e.getStatusCode();
+        }
+
+        return UA_STATUSCODE_GOOD;
+    };
+
+    addEvent(methodNodeId)->onMethodCall(callback);
+}
+
+void TmsServerInputPort::createDisconnectMethodNode()
+{
+    OpcUaNodeId nodeIdOut;
+    AddMethodNodeParams params(nodeIdOut, nodeId);
+    params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
+    params.setBrowseName("Disconnect");
+    params.inputArgumentsSize = 0;
+
+    auto methodNodeId = server->addMethodNode(params);
+
+    auto callback = [this](NodeEventManager::MethodArgs args) -> UA_StatusCode
+    {
+        try
+        {
+            onDisconenctSignal(args);
+        }
+        catch (const OpcUaException& e)
+        {
+            return e.getStatusCode();
+        }
+
+        return UA_STATUSCODE_GOOD;
+    };
+
+    addEvent(methodNodeId)->onMethodCall(callback);
+}
+
+void TmsServerInputPort::onConnectSignal(NodeEventManager::MethodArgs args)
+{
+    assert(args.inputSize == 1);
+
+    const auto globalId = OpcUaVariant(args.input[0]).toString();
+    const auto signal = tmsContext->findSingal(globalId);
+
+    if (!signal.assigned())
+        throw OpcUaException(UA_STATUSCODE_BADNOTFOUND, "Signal not found");
+
+    const auto refType = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_CONNECTEDTOSIGNAL);
+    const auto sourceId = nodeId;
+    const auto signalNodeId = findSignalNodeId(signal);
+
+    deleteReferencesOfType(refType);
+    addReference(signalNodeId, refType);
+    browseReferences();
+
+    object.connect(signal);
+}
+
+void TmsServerInputPort::onDisconenctSignal(NodeEventManager::MethodArgs args)
+{
+    assert(args.inputSize == 0);
+
+    const auto refType = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_CONNECTEDTOSIGNAL);
+
+    deleteReferencesOfType(refType);
+
+    object.disconnect();
+}
+
 void TmsServerInputPort::bindCallbacks()
 {
-
     addReadCallback("RequiresSignal", [this]() { return VariantConverter<IBoolean>::ToVariant(object.getRequiresSignal()); });
-
-    //addEvent("AcceptsSignal")->onMethodCall([this](NodeEventManager::MethodArgs args)
-    //{
-    //    if (args.inputSize != 1 || args.outputSize != 1)
-    //        return static_cast<UA_StatusCode>(UA_STATUSCODE_BADINTERNALERROR);
-
-    //    auto nodeId = OpcUaVariant(args.input[0]).toNodeId();
-    //    //TODO: check if signal can be accepted, for now allow all signals
-    //    // Pseudocode:
-    //    //   signal = lookUpSignal(nodeId)
-    //    //   if (signal == nullptr)
-    //    //     return static_cast<UA_StatusCode>(UA_STATUSCODE_BADNOTFOUND);
-    //    //   Whatever else that needs to be done...
-
-    //    bool accepts = true;
-    //    
-    //    OpcUaVariant result;
-    //    result.setScalar(accepts);
-    //    args.output[0] = result.getDetachedValue();
-    //    return static_cast<UA_StatusCode>(UA_STATUSCODE_GOOD);
-    //});
-
-    //addEvent("ConnectSignal")->onMethodCall([this](NodeEventManager::MethodArgs args)
-    //{
-    //    if (args.inputSize != 1)
-    //        return static_cast<UA_StatusCode>(UA_STATUSCODE_BADINTERNALERROR);
-
-    //    auto nodeId = OpcUaVariant(args.input[0]).toNodeId();
-
-    //    //TODO: Connect the signal to the input port
-    //    // Pseudocode:
-    //    //   signalNodeId = lookUpSignal(nodeId)
-    //    //   if (signalNodeId == nullptr)
-    //    //     return static_cast<UA_StatusCode>(UA_STATUSCODE_BADNOTFOUND);
-    //    //   OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_CONNECTEDTO);
-    //    //   server->addReference(signalNodeId, referenceTypeId, getNodeId(), true);
-    //    //   Whatever else that needs to be done...
-
-    //    return static_cast<UA_StatusCode>(UA_STATUSCODE_GOOD);
-    //});
-
-    //addEvent("DisconnectSignal")->onMethodCall([this](NodeEventManager::MethodArgs args)
-    //{
-    //    // TODO: Disconnect the signal to the input port
-    //    // Pseudocode:
-    //    //   auto signal = object.getSignal();
-    //    //   if (signal == nullptr)
-    //    //     return static_cast<UA_StatusCode>(UA_STATUSCODE_BADNOTFOUND);
-    //    //   OpcUaNodeId referenceTypeId(NAMESPACE_TMSBSP, UA_TMSBSPID_CONNECTEDTO);
-    //    //   server->deleteReference(this->getNodeId(), referenceTypeId, false);
-    //    //   Whatever else that needs to be done...
-    //    auto signal = object.getSignal();
-    //    return static_cast<UA_StatusCode>(UA_STATUSCODE_GOOD);
-    //});
 
     Super::bindCallbacks();
 }

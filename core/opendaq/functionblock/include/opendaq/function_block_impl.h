@@ -272,7 +272,7 @@ void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& local
     if (!inputPorts.hasItem(localId))
     {
         LOG_W("Input port {} not found", localId);
-        for (const auto& ip : inputPorts.getItems())
+        for (const auto& ip : inputPorts.getItems(search::Any()))
         {
             inputPort = ip.template asPtr<IInputPort>(true);
             if (!inputPort.getSignal().assigned())

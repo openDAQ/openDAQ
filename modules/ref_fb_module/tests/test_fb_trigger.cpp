@@ -104,14 +104,14 @@ private:
         }
         else
         {
+            Int delta = rule.getParameters().get("delta");
             for (size_t i = 0; i < mockPackets.size(); i++)
             {
                 // Linear creation of one domain packet
                 auto offset = 0;
                 for (size_t ii = 0; ii < i; ii++)
                 {
-                    Int delta = rule.getParameters().get("delta");
-                    offset = offset + mockPackets[ii].size() * delta;
+                    offset += mockPackets[ii].size() * delta;
                 }
 
                 auto domainPacket = DataPacket(domainSignalDescriptor, mockPackets[i].size(), offset);

@@ -163,7 +163,7 @@ private:
             signal.sendPacket(dataPacket);
 
             // Check if we should change the threshold after sending packet
-            auto foundAt = std::find(thresholdChangesAfterPackets.begin(), thresholdChangesAfterPackets.end(), i);
+            auto foundAt = std::find(thresholdChangesAfterPackets.begin(), thresholdChangesAfterPackets.end(), static_cast<Int>(i));
             if (foundAt != thresholdChangesAfterPackets.end())
             {
                 // Change the threshold if appropriate
@@ -202,9 +202,9 @@ private:
                 auto domainDataSample = domainData[0];
 
                 // Assert that packet has one sample
-                ASSERT_EQ(sampleCount, 1);
+                ASSERT_EQ(sampleCount, 1u);
                 // Assert that domain packet has one sample
-                ASSERT_EQ(domainSampleCount, 1);
+                ASSERT_EQ(domainSampleCount, 1u);
 
                 // Assert that first sample equals expected value
                 ASSERT_EQ(dataSample, expectedData[i][ii]);
@@ -284,7 +284,14 @@ TEST_F(TriggerTest, TriggerTestIntExplicit)
     vecvec<Int> expectedDomain{{9, 17, 23}, {31, 35}, {43}, {49}};
 
     auto helper = TriggerTestHelper(
-        ExplicitDataRule(), expectedData, expectedDomain, SampleTypeFromType<Int>::SampleType, mockPackets, {}, mockDomainPackets);
+        ExplicitDataRule(),
+        expectedData,
+        expectedDomain,
+        SampleTypeFromType<Int>::SampleType,
+        mockPackets,
+        {},
+        mockDomainPackets
+    );
     helper.run();
 }
 

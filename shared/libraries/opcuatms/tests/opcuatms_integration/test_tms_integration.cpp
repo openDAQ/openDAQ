@@ -160,7 +160,7 @@ TEST_F(TmsIntegrationTest, InputsOutputs)
     ASSERT_EQ(device1.getChannels().getCount(), 0u);
     auto device1IoFolder = device1.getInputsOutputsFolder();     // io
     ASSERT_TRUE(device1IoFolder.assigned());
-    ASSERT_EQ(device1IoFolder.getItems().getCount(), 0);
+    ASSERT_EQ(device1IoFolder.getItems().getCount(), 0u);
 
 
     auto device2 = devices.getItemAt(1);                   // device 2: 4 channels
@@ -169,7 +169,7 @@ TEST_F(TmsIntegrationTest, InputsOutputs)
     auto device2IoFolder = device2.getInputsOutputsFolder();    // io: 1 channnel, 2 folders
     ASSERT_TRUE(device2IoFolder.assigned());
     auto ioItems = device2IoFolder.getItems();
-    ASSERT_EQ(ioItems.getCount(), 3);
+    ASSERT_EQ(ioItems.getCount(), 3u);
     ASSERT_EQ(ioItems[0].getName(), "mockch1");                             // io/mockch1
     ASSERT_TRUE(ioItems[0].asPtrOrNull<IFolder>().assigned());
     ASSERT_TRUE(ioItems[0].asPtrOrNull<IChannel>().assigned());
@@ -179,7 +179,7 @@ TEST_F(TmsIntegrationTest, InputsOutputs)
     ASSERT_FALSE(ioItems[1].asPtrOrNull<IChannel>().assigned());
 
     auto mockFolderAItems = ioItems[1].asPtr<IFolder>().getItems();
-    ASSERT_EQ(mockFolderAItems.getCount(), 1);
+    ASSERT_EQ(mockFolderAItems.getCount(), 1u);
 
     ASSERT_EQ(mockFolderAItems[0].getName(), "mockchA1");                   // io/mockfolderA/mockchA1
     ASSERT_TRUE(mockFolderAItems[0].asPtrOrNull<IFolder>().assigned());
@@ -191,7 +191,7 @@ TEST_F(TmsIntegrationTest, InputsOutputs)
     ASSERT_FALSE(ioItems[2].asPtrOrNull<IChannel>().assigned());
 
     auto mockFolderBItems = ioItems[2].asPtr<IFolder>().getItems();
-    ASSERT_EQ(mockFolderBItems.getCount(), 2);
+    ASSERT_EQ(mockFolderBItems.getCount(), 2u);
 
     ASSERT_EQ(mockFolderBItems[0].getName(), "mockchB1");                   // io/mockfolderB/mockchB1
     ASSERT_TRUE(mockFolderBItems[0].asPtrOrNull<IFolder>().assigned());
@@ -208,11 +208,11 @@ TEST_F(TmsIntegrationTest, CustomComponents)
     auto devices = instance.getDevices();
     ASSERT_EQ(devices.getCount(), 2u);
 
-    auto device2 = devices.getItemAt(1);
+    auto device2 = devices.getItemAt(1u);
     ASSERT_EQ(device2.getCustomComponents().getCount(), 2u);
 
     FolderPtr componentA = device2.getCustomComponents()[0];
-    ASSERT_EQ(componentA.getItems().getCount(), 1);
+    ASSERT_EQ(componentA.getItems().getCount(), 1u);
 }
 
 TEST_F(TmsIntegrationTest, GetDomainSignal)

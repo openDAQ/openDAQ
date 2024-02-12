@@ -269,8 +269,8 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeSimple)
 {
     const auto dataDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
 
-    ASSERT_EQ(dataDescriptor.getSampleSize(), 8);
-    ASSERT_EQ(dataDescriptor.getRawSampleSize(), 8);
+    ASSERT_EQ(dataDescriptor.getSampleSize(), 8u);
+    ASSERT_EQ(dataDescriptor.getRawSampleSize(), 8u);
 }
 
 TEST_F(DataDescriptorTest, DataDescriptorSampleSizeSimplePostScaling)
@@ -280,16 +280,16 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeSimplePostScaling)
         .setPostScaling(LinearScaling(1, 0, SampleType::Int32, ScaledSampleType::Float64))
         .build();
 
-    ASSERT_EQ(dataDescriptor.getSampleSize(), 8);
-    ASSERT_EQ(dataDescriptor.getRawSampleSize(), 4);
+    ASSERT_EQ(dataDescriptor.getSampleSize(), 8u);
+    ASSERT_EQ(dataDescriptor.getRawSampleSize(), 4u);
 }
 
 TEST_F(DataDescriptorTest, DataDescriptorSampleSizeImplicitSimple)
 {
     const auto dataDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).setRule(LinearDataRule(10, 10)).build();
 
-    ASSERT_EQ(dataDescriptor.getSampleSize(), 8);
-    ASSERT_EQ(dataDescriptor.getRawSampleSize(), 0);
+    ASSERT_EQ(dataDescriptor.getSampleSize(), 8u);
+    ASSERT_EQ(dataDescriptor.getRawSampleSize(), 0u);
 }
 
 /*
@@ -324,8 +324,8 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeStruct)
         .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
         .build();
 
-    ASSERT_EQ(canMsgDescriptor.getSampleSize(), 69);
-    ASSERT_EQ(canMsgDescriptor.getRawSampleSize(), 69);
+    ASSERT_EQ(canMsgDescriptor.getSampleSize(), 69u);
+    ASSERT_EQ(canMsgDescriptor.getRawSampleSize(), 69u);
 }
 
 TEST_F(DataDescriptorTest, DataDescriptorSampleSizeMixedStruct)
@@ -346,8 +346,8 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeMixedStruct)
     const auto canMsgDescriptor =
         DataDescriptorBuilder().setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor)).build();
 
-    ASSERT_EQ(canMsgDescriptor.getSampleSize(), 69);
-    ASSERT_EQ(canMsgDescriptor.getRawSampleSize(), 68);
+    ASSERT_EQ(canMsgDescriptor.getSampleSize(), 69u);
+    ASSERT_EQ(canMsgDescriptor.getRawSampleSize(), 68u);
 }
 
 END_NAMESPACE_OPENDAQ

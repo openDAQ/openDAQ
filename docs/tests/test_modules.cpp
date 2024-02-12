@@ -36,7 +36,7 @@ TEST_F(ModulesTest, EnumerateModules)
     // Create the module manager and load modules in the executable directory
     daq::ModuleManagerPtr manager = daq::ModuleManager("");
     manager.loadModules(NullContext());
-    ASSERT_GT(manager.getModules().getCount(), 0);
+    ASSERT_GT(manager.getModules().getCount(), 0u);
 
     ModulePtr _module;
     for (auto mod : manager.getModules())
@@ -63,7 +63,7 @@ TEST_F(ModulesTest, CreateComponents)
     
     daq::ModuleManagerPtr manager = daq::ModuleManager("");
     manager.loadModules(NullContext());
-    ASSERT_GT(manager.getModules().getCount(), 0);
+    ASSERT_GT(manager.getModules().getCount(), 0u);
 
     ModulePtr fbModule;
     ModulePtr serverModule;
@@ -111,20 +111,20 @@ TEST_F(ModulesTest, CreateComponents)
     daq::DictPtr<daq::IString, daq::IServerType> nativeStreamingServerTypes =
         nativeStreamingServerModule.getAvailableServerTypes();
     daq::ServerTypePtr nativeStreamingServerType = nativeStreamingServerTypes.get("openDAQ Native Streaming");
-    ASSERT_GT(nativeStreamingServerTypes.getCount(), 0);
+    ASSERT_GT(nativeStreamingServerTypes.getCount(), 0u);
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     daq::DictPtr<daq::IString, daq::IServerType> websocketStreamingServerTypes =
         websocketStreamingServerModule.getAvailableServerTypes();
     daq::ServerTypePtr webSocketStreamingServerType = websocketStreamingServerTypes.get("openDAQ WebsocketTcp Streaming");
-    ASSERT_GT(websocketStreamingServerTypes.getCount(), 0);
+    ASSERT_GT(websocketStreamingServerTypes.getCount(), 0u);
 #endif
     daq::DictPtr<daq::IString, daq::IServerType> serverTypes = serverModule.getAvailableServerTypes();
     daq::ServerTypePtr opcUaServerType = serverTypes.get("openDAQ OpcUa");
 
-    ASSERT_GT(functionBlockTypes.getCount(), 0);
-    ASSERT_GT(availableDevices.getCount(), 0);
-    ASSERT_GT(serverTypes.getCount(), 0);
+    ASSERT_GT(functionBlockTypes.getCount(), 0u);
+    ASSERT_GT(availableDevices.getCount(), 0u);
+    ASSERT_GT(serverTypes.getCount(), 0u);
 
     daq::FunctionBlockPtr functionBlock = fbModule.createFunctionBlock(statisticsFbType.getId(), nullptr, "fb");
     daq::DevicePtr device = devModule.createDevice("daqref://device0", nullptr);
@@ -145,7 +145,7 @@ TEST_F(ModulesTest, CreateServer)
 {
     daq::ModuleManagerPtr manager = daq::ModuleManager("");
     manager.loadModules(NullContext());
-    ASSERT_GT(manager.getModules().getCount(), 0);
+    ASSERT_GT(manager.getModules().getCount(), 0u);
     
     ModulePtr serverModule;
     ModulePtr nativeStreamingServerModule;
@@ -168,19 +168,19 @@ TEST_F(ModulesTest, CreateServer)
     }
     ASSERT_TRUE(serverModule.assigned());
     daq::DictPtr<daq::IString, daq::IServerType> serverTypes = serverModule.getAvailableServerTypes();
-    ASSERT_GT(serverTypes.getCount(), 0);
+    ASSERT_GT(serverTypes.getCount(), 0u);
 
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     ASSERT_TRUE(nativeStreamingServerModule.assigned());
     daq::DictPtr<daq::IString, daq::IServerType> nativeStreamingServerTypes =
         nativeStreamingServerModule.getAvailableServerTypes();
-    ASSERT_GT(nativeStreamingServerTypes.getCount(), 0);
+    ASSERT_GT(nativeStreamingServerTypes.getCount(), 0u);
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     ASSERT_TRUE(websocketStreamingServerModule.assigned());
     daq::DictPtr<daq::IString, daq::IServerType> websocketStreamingServerTypes =
         websocketStreamingServerModule.getAvailableServerTypes();
-    ASSERT_GT(websocketStreamingServerTypes.getCount(), 0);
+    ASSERT_GT(websocketStreamingServerTypes.getCount(), 0u);
 #endif
 
     daq::DevicePtr device = devModule.createDevice("daqref://device0", nullptr);

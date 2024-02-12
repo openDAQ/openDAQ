@@ -61,15 +61,15 @@ TEST_F(SignalsTest, DataRule)
 TEST_F(SignalsTest, Dimensions)
 {
     auto dimensions1 = Dimension(LinearDimensionRule(10, 10, 100));
-    ASSERT_EQ(dimensions1.getSize(), 100);
+    ASSERT_EQ(dimensions1.getSize(), 100u);
     ASSERT_EQ(dimensions1.getLabels()[0], 10);
 
     auto dimensions2 = Dimension(LogarithmicDimensionRule(10, 0, 2, 1000));
-    ASSERT_EQ(dimensions2.getSize(), 1000);
+    ASSERT_EQ(dimensions2.getSize(), 1000u);
     ASSERT_EQ(dimensions2.getLabels()[0], 1);
 
     auto dimensions3 = Dimension(ListDimensionRule(List<INumber>(1, 5, 10, 20, 40)));
-    ASSERT_EQ(dimensions3.getSize(), 5);
+    ASSERT_EQ(dimensions3.getSize(), 5u);
     ASSERT_EQ(dimensions3.getLabels()[0], 1);
 }
 

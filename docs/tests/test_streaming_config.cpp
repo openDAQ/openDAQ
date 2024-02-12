@@ -124,7 +124,7 @@ TEST_F(StreamingConfigTest, WebsocketStreamingRead)
         docs_test_helpers::waitForSamplesReady();
         daq::SizeT count = 100;
         reader.read(samples, &count);
-        ASSERT_GT(count, 0);
+        ASSERT_GT(count, 0u);
     }
 }
 
@@ -156,7 +156,7 @@ TEST_F(StreamingConfigTest, NativeStreamingRead)
         docs_test_helpers::waitForSamplesReady();
         daq::SizeT count = 100;
         reader.read(samples, &count);
-        ASSERT_GT(count, 0);
+        ASSERT_GT(count, 0u);
     }
 }
 

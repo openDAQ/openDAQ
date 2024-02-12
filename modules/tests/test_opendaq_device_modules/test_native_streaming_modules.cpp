@@ -120,7 +120,7 @@ TEST_F(NativeStreamingModulesTest, SubscribeReadUnsubscribe)
         std::this_thread::sleep_for(100ms);
         daq::SizeT count = 100;
         reader.read(samples, &count);
-        EXPECT_GT(count, 0) << "iteration " << i;
+        EXPECT_GT(count, 0u) << "iteration " << i;
     }
 
     reader.release();
@@ -225,7 +225,7 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
         // and test there is no more data to read
         std::this_thread::sleep_for(100ms);
         reader.read(samples, &count);
-        EXPECT_EQ(count, 0);
+        EXPECT_EQ(count, 0u);
     }
 
     test_helpers::setupSubscribeAckHandler(signalSubscribePromise[1], signalSubscribeFuture[1], signal);
@@ -247,6 +247,6 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
         daq::SizeT count = 100;
         double samples[100];
         reader.read(samples, &count);
-        EXPECT_GT(count, 0) << "iteration " << i;
+        EXPECT_GT(count, 0u) << "iteration " << i;
     }
 }

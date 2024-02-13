@@ -177,6 +177,8 @@ void ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(const C
         case CoreEventId::DataDescriptorChanged:
         case CoreEventId::ComponentAdded:
         case CoreEventId::ComponentRemoved:
+        case CoreEventId::TypeAdded:
+        case CoreEventId::TypeRemoved:
         default:
             break;
     }

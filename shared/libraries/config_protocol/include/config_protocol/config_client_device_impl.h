@@ -130,6 +130,8 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
         case CoreEventId::AttributeChanged:
         case CoreEventId::TagsChanged:
         case CoreEventId::StatusChanged:
+        case CoreEventId::TypeAdded:
+        case CoreEventId::TypeRemoved:
         default:
             break;
     }

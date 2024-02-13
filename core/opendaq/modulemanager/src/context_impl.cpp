@@ -50,7 +50,8 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
         }
     };
 
-    this->typeManager.asPtr<ITypeManagerPrivate>()->setCoreEventCallback(typeManagerCallback);
+    if (this->typeManager.assigned())
+        this->typeManager.asPtr<ITypeManagerPrivate>()->setCoreEventCallback(typeManagerCallback);
     Event(this->coreEvent) += event(&ContextImpl::componentCoreEventCallback);
 }
 

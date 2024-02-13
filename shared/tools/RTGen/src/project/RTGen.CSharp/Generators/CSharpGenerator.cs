@@ -220,6 +220,7 @@ namespace RTGen.CSharp.Generators
                 _genericTypeParameters.Add(SAMPLE_READER + "Base", "TValue:struct,TDomain:struct");
 
                 //specific arguments of factories, format ("<metodName>,<genericTypeName>,<argumentName>", "<C#TypeName>")
+                _genericTypeParameters.Add("createContext,IDictObject,option",     "StringObject,BaseObject");
                 _genericTypeParameters.Add("createLogger,IListObject,sink",        "LoggerSink");
                 _genericTypeParameters.Add("createMultiReader,IListObject,signal", "Signal");
 
@@ -1082,7 +1083,8 @@ namespace RTGen.CSharp.Generators
                     break;
 
                 case "remarks":
-                    findTag = tag => (tag.TagType == TagType.Description);
+                    findTag = tag => (tag.TagType == TagType.Description)
+                                     || (tag.TagType == TagType.Unknown) && tag.RawText.StartsWith("@code");
                     break;
 
                 case "param":
@@ -1404,7 +1406,19 @@ namespace RTGen.CSharp.Generators
             switch (tagElement.TagType)
             {
                 case TagType.Unknown:
-                    ParseDocLines(csDocComment, tagElement.TagName, ((IUnknownTag)tagElement).Lines);
+                    if (tagElement.TagName != "code")
+                    {
+                        ParseDocLines(csDocComment, tagElement.TagName, ((IUnknownTag)tagElement).Lines);
+                    }
+                    else
+                    {
+                        string codeSnippet = Escape(tagElement.RawText)
+                                             .Replace("@code", "<code>")
+                                             .Replace("@endcode", "</code>")
+                                             .Replace(" *", "///");
+                        AppendDocText(csDocComment, codeSnippet);
+                        csDocComment.Add(string.Empty);
+                    }
                     break;
 
                 //case TagType.Brief:

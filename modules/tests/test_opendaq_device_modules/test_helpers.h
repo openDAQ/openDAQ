@@ -44,10 +44,22 @@ namespace test_helpers
     )
     {
         acknowledgementFuture = acknowledgementPromise.get_future();
+        auto signalId = std::make_shared<std::string>(signal.getGlobalId().toStdString());
         signal.getOnSubscribeComplete() +=
-            [&acknowledgementPromise](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
+            [&acknowledgementPromise, &acknowledgementFuture, signalId]
+            (MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
         {
-            acknowledgementPromise.set_value(args.getStreamingConnectionString());
+            if (acknowledgementFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+            {
+                acknowledgementPromise.set_value(args.getStreamingConnectionString());
+            }
+            else
+            {
+                ADD_FAILURE()  << " Set already satisfied subscribe ack promise for signal: "
+                               << *signalId.get()
+                               << "\n streaming: "
+                               << args.getStreamingConnectionString();
+            }
         };
     }
 
@@ -59,10 +71,22 @@ namespace test_helpers
     )
     {
         acknowledgementFuture = acknowledgementPromise.get_future();
+        auto signalId = std::make_shared<std::string>(signal.getGlobalId().toStdString());
         signal.getOnUnsubscribeComplete() +=
-            [&acknowledgementPromise](MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
+            [&acknowledgementPromise, &acknowledgementFuture, signalId]
+            (MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
         {
-            acknowledgementPromise.set_value(args.getStreamingConnectionString());
+            if (acknowledgementFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+            {
+                acknowledgementPromise.set_value(args.getStreamingConnectionString());
+            }
+            else
+            {
+                ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for signal: "
+                              << *signalId.get()
+                              << "\n streaming: "
+                              << args.getStreamingConnectionString();
+            }
         };
     }
 

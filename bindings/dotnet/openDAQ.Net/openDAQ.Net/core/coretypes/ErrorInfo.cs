@@ -60,7 +60,7 @@ internal unsafe class RawErrorInfo : RawBaseObject
 /// ErrCode ISomeInterface::checkValue(Int value)
 /// {
 ///     if (value &lt; 0)
-///         return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Parameter should be &gt;= 0", nullptr);
+///         return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Parameter should be &gt;= 0", null);
 ///     return OPENDAQ_SUCCESS;
 /// };
 ///

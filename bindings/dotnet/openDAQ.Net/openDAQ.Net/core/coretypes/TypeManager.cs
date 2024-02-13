@@ -159,7 +159,7 @@ public class TypeManager : BaseObject
 
     /// <summary>Gets a list of all added Types.</summary>
     /// <returns>The list of all added Types.</returns>
-    public IListObject<DaqType> GetTypes()
+    public IListObject<StringObject> GetTypes()
     {
         //native output argument
         IntPtr typesPtr;
@@ -175,7 +175,7 @@ public class TypeManager : BaseObject
             }
         }
 
-        return new ListObject<DaqType>(typesPtr, incrementReference: false);
+        return new ListObject<StringObject>(typesPtr, incrementReference: false);
     }
 
     /// <summary>Checks if a type with the specified name is already added.</summary>

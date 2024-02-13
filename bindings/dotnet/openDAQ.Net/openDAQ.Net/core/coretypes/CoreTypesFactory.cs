@@ -110,6 +110,7 @@ public static partial class CoreTypesFactory
             //case CoreType.ctFunc:          return null;
             //case CoreType.ctComplexNumber: return null;
             //case CoreType.ctStruct:        return null;
+            //case CoreType.ctEnumeration:   return null;
             //case CoreType.ctUndefined:     return null;
             default:                         return $"<{propertyType}>"; //StringObject ;)
         }

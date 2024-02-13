@@ -45,6 +45,16 @@ internal unsafe class RawIterator : RawBaseObject
 /// cannot be restarted. In this case a new iterator must be created.
 /// <para/>
 /// Example:
+/// <code>
+/// IIterator* it = ...;
+///
+/// while (it-&gt;moveNext() != OPENDAQ_NO_MORE_ITEMS)
+/// {
+///      IBaseObject* obj;
+///      it-&gt;getCurrent(&obj);
+///      // do something with obj
+/// }
+/// </code>
 /// </remarks>
 [Guid("f3b87158-f4cd-5890-9476-3c0e315c56d9")]
 public class Iterator<TValue> : BaseObject, IEnumerator<TValue>

@@ -494,11 +494,11 @@ FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& typeId
     if (response->statusCode != UA_STATUSCODE_GOOD)
         throw OpcUaException(response->statusCode, "Failed to add function block");
 
-    assert(response->outputArgumentsSize == 1);
-    const auto nodeId = OpcUaVariant(response->outputArguments[0]).toNodeId();
-    const auto browseName = client->readBrowseName(nodeId);
+    assert(response->outputArgumentsSize == 2);
+    const auto fbNodeId = OpcUaVariant(response->outputArguments[0]).toNodeId();
+    const auto localId = OpcUaVariant(response->outputArguments[1]).toString();
 
-    auto clientFunctionBlock = TmsClientFunctionBlock(context, this->functionBlocks, browseName, clientContext, nodeId);
+    auto clientFunctionBlock = TmsClientFunctionBlock(context, this->functionBlocks, localId, clientContext, fbNodeId);
     addNestedFunctionBlock(clientFunctionBlock);
     return clientFunctionBlock;
 }

@@ -29,7 +29,7 @@ public:
     ~TmsServerContext();
     void registerComponent(const ComponentPtr& component, TmsServerObject& obj);
     DevicePtr getRootDevice();
-    SignalPtr findSingal(const StringPtr& globalId);
+    ComponentPtr findComponent(const std::string& globalId);
 
 private:
     ContextPtr context;
@@ -37,6 +37,7 @@ private:
 
     std::unordered_map<std::string, std::weak_ptr<tms::TmsServerObject>> idToObjMap;
     void coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
+    std::string toRelativeGlobalId(const std::string& globalId);
 };
 
 using TmsServerContextPtr = std::shared_ptr<TmsServerContext>;

@@ -98,7 +98,7 @@ void TmsServerInputPort::onConnectSignal(NodeEventManager::MethodArgs args)
     assert(args.inputSize == 1);
 
     const auto globalId = OpcUaVariant(args.input[0]).toString();
-    const auto signal = tmsContext->findSingal(globalId);
+    SignalPtr signal = tmsContext->findComponent(globalId).asPtrOrNull<ISignal>();
 
     if (!signal.assigned())
         throw OpcUaException(UA_STATUSCODE_BADNOTFOUND, "Signal not found");

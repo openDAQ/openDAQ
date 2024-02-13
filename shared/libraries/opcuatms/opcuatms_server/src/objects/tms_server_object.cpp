@@ -295,6 +295,8 @@ void TmsServerObject::deleteReferencesOfType(const opcua::OpcUaNodeId& reference
 
 void TmsServerObject::browseReferences()
 {
+    references.clear();
+
     OpcUaObject<UA_BrowseDescription> bd;
     bd->nodeId = nodeId.copyAndGetDetachedValue();
     bd->resultMask = UA_BROWSERESULTMASK_ALL;

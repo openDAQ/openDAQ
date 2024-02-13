@@ -113,9 +113,9 @@ public class StringObject : BaseObject
     public static implicit operator StringObject(string value) => CoreTypesFactory.CreateString(value);
 
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.StringObject"/> to <see cref="string"/>.</summary>
-    /// <param name="stringObject">The SDK <c>StringObject</c>.</param>
+    /// <param name="value">The SDK <c>StringObject</c>.</param>
     /// <returns>The managed <c>string</c> value.</returns>
-    public static implicit operator string(StringObject stringObject) => stringObject.GetCharPtr();
+    public static implicit operator string(StringObject value) => value.GetCharPtr();
 
     /// <summary>Determines whether this instance and a specified <c>string</c>, have the same value.</summary>
     /// <param name="other">The other <c>string</c> to compare to this instance.</param>

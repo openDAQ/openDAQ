@@ -83,7 +83,9 @@ public static partial class OpenDAQFactory
     /// <param name="maxFileSize">The maximum size of each file.</param>
     /// <param name="maxFiles">The maximum count of files.</param>
     /// <returns></returns>
-    public static LoggerSink RotatingFileLoggerSink(string fileName, nuint maxFileSize, nuint maxFiles)
+    public static LoggerSink RotatingFileLoggerSink(string fileName,
+                                                    nuint maxFileSize,
+                                                    nuint maxFiles)
     {
         /*
             inline LoggerSinkPtr RotatingFileLoggerSink(const StringPtr& fileName, SizeT maxFileSize, SizeT maxFiles)
@@ -126,7 +128,8 @@ public static partial class OpenDAQFactory
     }
 #endif
 
-    private static LogLevel getEnvLogLevel(string envStr, int defaultLevel)
+    private static LogLevel getEnvLogLevel(string envStr,
+                                           int defaultLevel)
     {
         /*
             inline LogLevel getEnvLogLevel(const std::string& envStr, int defaultLevel)
@@ -170,7 +173,8 @@ public static partial class OpenDAQFactory
         return (LogLevel)level;
     }
 
-    private static void getEnvFileSinkLogLevelAndFileName(out LogLevel level, out string fileName)
+    private static void getEnvFileSinkLogLevelAndFileName(out LogLevel level,
+                                                          out string fileName)
     {
         /*
             inline void getEnvFileSinkLogLevelAndFileName(LogLevel& level, std::string& fileName)
@@ -309,21 +313,32 @@ public static partial class OpenDAQFactory
     /// <param name="logger">The logger the context has access to.</param>
     /// <param name="typeManager">The type manager.</param>
     /// <param name="moduleManager">The module manager.</param>
+    /// <param name="options">The options.</param>
     /// <returns>The Context instance.</returns>
-    public static Context Context(Scheduler scheduler, Logger logger, TypeManager typeManager, ModuleManager moduleManager)
+    public static Context Context(Scheduler scheduler,
+                                  Logger logger,
+                                  TypeManager typeManager,
+                                  ModuleManager moduleManager,
+                                  IDictObject<StringObject, BaseObject> options = null)
     {
         /*
             inline ContextPtr Context(const SchedulerPtr& scheduler,
                                       const LoggerPtr& logger,
                                       const TypeManagerPtr& typeManager,
-                                      const ModuleManagerPtr& moduleManager)
+                                      const ModuleManagerPtr& moduleManager,
+                                      const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>())
             {
-                ContextPtr obj(Context_Create(scheduler, logger, typeManager, moduleManager));
+                ContextPtr obj(Context_Create(scheduler, logger, typeManager, moduleManager, options));
                 return obj;
             }
         */
 
-        return CreateContext(scheduler, logger, typeManager, moduleManager);
+        if (options == null)
+        {
+            options = CoreTypesFactory.CreateDict<StringObject, BaseObject>();
+        }
+
+        return CreateContext(scheduler, logger, typeManager, moduleManager, options);
     }
 
     /// <summary>
@@ -337,7 +352,8 @@ public static partial class OpenDAQFactory
     /// If localId is empty, the local id will be set to the OPENDAQ_INSTANCE_ID environment variable if available.
     /// Otherwise a random UUID will be generated for the local id.
     /// </remarks>
-    public static Instance Instance(string modulePath = null, string localId = null)
+    public static Instance Instance(string modulePath = null,
+                                    string localId = null)
     {
         /*
             inline InstancePtr Instance(const std::string& modulePath = "", const std::string& localId = "")
@@ -373,7 +389,8 @@ public static partial class OpenDAQFactory
     /// <param name="fileName">The name used for the rotating files Sink. <see cref="RotatingFileLoggerSink"/>.</param>
     /// <param name="level">The default minimal severity level of the messages to be logged.</param>
     /// <returns>The Logger instance.</returns>
-    public static Logger Logger(string fileName = null, LogLevel level = LogLevel.Info)
+    public static Logger Logger(string fileName = null,
+                                LogLevel level = LogLevel.Info)
     {
         /*
             inline LoggerPtr Logger(const StringPtr& fileName = nullptr, LogLevel level = LogLevel(OPENDAQ_LOG_LEVEL))
@@ -430,7 +447,8 @@ public static partial class OpenDAQFactory
     /// <param name="logger">The logger instance.</param>
     /// <param name="numWorkers">The amount of worker threads. If <c>0</c> then maximum number of concurrent threads supported by the implementation is used.</param>
     /// <returns>A Scheduler instance with the specified amount of worker threads.</returns>
-    public static Scheduler Scheduler(Logger logger, nuint numWorkers = 0)
+    public static Scheduler Scheduler(Logger logger,
+                                      nuint numWorkers = 0)
     {
         /*
             inline SchedulerPtr Scheduler(LoggerPtr logger, SizeT numWorkers = 0)

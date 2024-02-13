@@ -108,9 +108,9 @@ public class FloatObject : BaseObject
     public static implicit operator FloatObject(double value) => CoreTypesFactory.CreateFloat(value);
 
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.FloatObject"/> to <see cref="double"/>.</summary>
-    /// <param name="floatObject">The SDK <c>FloatObject</c>.</param>
+    /// <param name="value">The SDK <c>FloatObject</c>.</param>
     /// <returns>The managed <c>double</c> value.</returns>
-    public static implicit operator double(FloatObject floatObject) => floatObject.GetValue();
+    public static implicit operator double(FloatObject value) => value.GetValue();
 
     /// <summary>Determines whether this instance and a specified <c>double</c>, have the same value.</summary>
     /// <param name="other">The other <c>double</c> to compare to this instance.</param>

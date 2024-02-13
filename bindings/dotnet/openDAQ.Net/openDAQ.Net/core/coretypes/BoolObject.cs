@@ -108,9 +108,9 @@ public class BoolObject : BaseObject
     public static implicit operator BoolObject(bool value) => CoreTypesFactory.CreateBoolean(value);
 
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.BoolObject"/> to <see cref="bool"/>.</summary>
-    /// <param name="boolObject">The SDK <c>BoolObject</c>.</param>
+    /// <param name="value">The SDK <c>BoolObject</c>.</param>
     /// <returns>The managed <c>bool</c> value.</returns>
-    public static implicit operator bool(BoolObject boolObject) => boolObject.GetValue();
+    public static implicit operator bool(BoolObject value) => value.GetValue();
 
     /// <summary>Determines whether this instance and a specified <c>bool</c>, have the same value.</summary>
     /// <param name="other">The other <c>bool</c> to compare to this instance.</param>

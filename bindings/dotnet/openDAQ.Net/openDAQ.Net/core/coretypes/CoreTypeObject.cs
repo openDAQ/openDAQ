@@ -59,6 +59,8 @@ public enum CoreType
     ctComplexNumber,
     /// <summary>Constant structure with dictionary of fields and types</summary>
     ctStruct,
+    /// <summary>Enumeration representing a predefined set of named integral constants</summary>
+    ctEnumeration,
     /// <summary>Undefined</summary>
     ctUndefined = 65535,
 };

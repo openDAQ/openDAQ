@@ -108,9 +108,9 @@ public class IntegerObject : BaseObject
     public static implicit operator IntegerObject(long value) => CoreTypesFactory.CreateInteger(value);
 
     /// <summary>Performs an implicit conversion from <see cref="Daq.Core.Types.IntegerObject"/> to <see cref="long"/>.</summary>
-    /// <param name="integerObject">The SDK <c>IntegerObject</c>.</param>
+    /// <param name="value">The SDK <c>IntegerObject</c>.</param>
     /// <returns>The managed <c>long</c> value.</returns>
-    public static implicit operator long(IntegerObject integerObject) => integerObject.GetValue();
+    public static implicit operator long(IntegerObject value) => value.GetValue();
 
     /// <summary>Determines whether this instance and a specified <c>long</c>, have the same value.</summary>
     /// <param name="other">The other <c>long</c> to compare to this instance.</param>

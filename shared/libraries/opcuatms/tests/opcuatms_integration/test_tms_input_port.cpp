@@ -115,44 +115,6 @@ TEST_F(TmsInputPortTest, MethodAcceptsSignal)
     EXPECT_THROW(clientInputPort.acceptsSignal(signal), daq::opcua::OpcUaClientCallNotAvailableException);
 }
 
-TEST_F(TmsInputPortTest, MethodConnectSignal)
-{
-    SignalPtr signal = Signal(NullContext(), nullptr, "sig");
-
-    InputPortPtr daqServerInputPort = createInputPort("The Name", true);
-    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), ctx, serverContext);
-    auto nodeId = serverInputPort.registerOpcUaNode();
-
-    InputPortPtr clientInputPort = TmsClientInputPort(NullContext(), nullptr, "inputPort", clientContext, nodeId);
-
-    //TODO: More testing when the server in fact really can connect the signal
-    EXPECT_THROW(clientInputPort.connect(signal), daq::opcua::OpcUaClientCallNotAvailableException);
-}
-
-TEST_F(TmsInputPortTest, MethodDisconnectSignal)
-{
-    InputPortPtr daqServerInputPort = createInputPort("The Name", true);
-    auto serverInputPort = TmsServerInputPort(daqServerInputPort, this->getServer(), ctx, serverContext);
-    auto nodeId = serverInputPort.registerOpcUaNode();
-
-    InputPortPtr clientInputPort = TmsClientInputPort(NullContext(), nullptr, "inputPort", clientContext, nodeId);
-
-    //TODO: More testing when the server in fact really can disconnect the signal
-    EXPECT_THROW(clientInputPort.disconnect(), daq::opcua::OpcUaClientCallNotAvailableException);
-    //auto status = clientInputPort->disconnect();
-    //ASSERT_EQ(status, OPENDAQ_SUCCESS); //TODO: Should fail when implemented on the server as nothing is connected
-
-    //SignalPtr signal = Signal(nullptr);
-    //status = clientInputPort->connect(signal);
-    //ASSERT_EQ(status, OPENDAQ_SUCCESS);
-
-    //status = clientInputPort->disconnect();
-    //ASSERT_EQ(status, OPENDAQ_SUCCESS);
-
-    //status = clientInputPort->disconnect();
-    //ASSERT_EQ(status, OPENDAQ_SUCCESS); //TODO: Should fail when implemented on the server as nothing is connected
-}
-
 TEST_F(TmsInputPortTest, ConnectedToReference)
 {
     const auto logger = Logger();

@@ -203,19 +203,19 @@ private:
                 {
                     receivedPacket = reader.read();
                     // Ignore nullptr and PacketType::Event
-                    if (receivedPacket != nullptr && receivedPacket.getType() == PacketType::Data)
+                    if (receivedPacket.assigned() && receivedPacket.getType() == PacketType::Data)
                     {
                         break;
                     }
                 }
 
-                auto dataPacket = static_cast<DataPacketPtr>(receivedPacket);
-
                 // Check packet contents
+                auto dataPacket = static_cast<DataPacketPtr>(receivedPacket);
+                auto data = static_cast<Float*>(dataPacket.getData());
+                const size_t sampleCount = dataPacket.getSampleCount();
+
                 for (size_t ii = 0; ii < expectedData[i].size(); ii++)
                 {
-                    auto data = static_cast<Float*>(dataPacket.getData());
-                    const size_t sampleCount = dataPacket.getSampleCount();
                     auto dataSample = data[ii];
 
                     // Assert that packet has expected number of samples

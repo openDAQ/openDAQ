@@ -315,8 +315,8 @@ TEST_F(TriggerTest, TriggerTestIntLinear)
     vecvec<Bool> expectedData{{true, false, true}, {false, true}, {false}, {true}};
     vecvec<Int> expectedDomain{{9, 17, 23}, {31, 35}, {43}, {49}};
 
-auto helper =
-    TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Int>::SampleType, mockPackets, {});
+    auto helper =
+        TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Int>::SampleType, mockPackets, {});
     helper.run();
 }
 

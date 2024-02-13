@@ -917,7 +917,7 @@ class App(tk.Tk):
         if convert_id:
             split_id = id.split('/')
             id = '/'.join(split_id[2:])
-        return self.instance.find_component(parent if parent else self.instance, id)
+        return parent.find_component(id)
 
     def treeview_get_first_selection(self, treeview):
         sel = treeview.selection()

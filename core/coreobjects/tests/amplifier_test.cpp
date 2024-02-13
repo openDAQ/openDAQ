@@ -753,3 +753,26 @@ TEST_F(STGAmplifierTest, GetRefPropSelectionValuesAfterChange)
     ampl.setPropertyValue("Measurement", 1);
     ASSERT_EQ(rangeProp.getSelectionValues(), bridgeRangeValues);
 }
+
+TEST_F(STGAmplifierTest, TestBeginEndUpdateOrder)
+{
+    auto ampl = PropertyObject(objManager, "StgAmp");
+
+    ampl.beginUpdate();
+    ampl.setPropertyValue("Measurement", 3);
+    ampl.setPropertyValue("InputType", 3);
+    ampl.setPropertyValue("Measurement", 2);
+    ampl.setPropertyValue("Range", 2);
+    ampl.setPropertyValue("Measurement", 1);
+    ampl.setPropertyValue("Range", 1);
+    ampl.setPropertyValue("Range", 1);
+    ampl.setPropertyValue("Range", 1);
+    ampl.setPropertyValue("Measurement", 0);
+    ampl.setPropertyValue("InputType", 0);
+    ampl.endUpdate();
+
+    ASSERT_EQ(ampl.getPropertyValue("TemperatureInputType"), 3);
+    ASSERT_EQ(ampl.getPropertyValue("ResistanceRange"), 2);
+    ASSERT_EQ(ampl.getPropertyValue("BridgeRange"), 1);
+    ASSERT_EQ(ampl.getPropertyValue("VoltageInputType"), 0);
+}

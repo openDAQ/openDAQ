@@ -142,10 +142,12 @@ protected:
     struct UpdatingAction
     {
         bool setValue;
+        bool protectedAccess;
         BaseObjectPtr value;
     };
 
-    using UpdatingActions = tsl::ordered_map<PropertyPtr, UpdatingAction, ObjectHash<IProperty>, ObjectEqualTo<IProperty>>;
+    // Using vector to preserve write order when the same property is changed twice within an update
+    using UpdatingActions = std::vector<std::pair<std::string, UpdatingAction>>;
 
     bool frozen;
     WeakRefPtr<IPropertyObject> owner;
@@ -157,8 +159,8 @@ protected:
     WeakRefPtr<ITypeManager> manager;
 
     void internalDispose(bool) override;
-    ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool isUpdating);
-    ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch);
+    ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool batch, bool isUpdating = false);
+    ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
 
     // Serialization
 
@@ -718,7 +720,8 @@ template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyValueInternal(IString* name,
                                                                                              IBaseObject* value,
                                                                                              bool triggerEvent, 
-                                                                                             bool protectedAccess,
+                                                                                             bool protectedAccess, 
+                                                                                             bool batch,
                                                                                              bool isUpdating)
 {
     if (name == nullptr || value == nullptr)
@@ -727,10 +730,17 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
     if (frozen)
         return OPENDAQ_ERR_FROZEN;
 
+
     try
     {
         auto propName = StringPtr::Borrow(name);
         auto valuePtr = BaseObjectPtr::Borrow(value);
+        
+        if (batch)
+        {
+            updatingPropsAndValues.emplace_back(std::make_pair(propName, UpdatingAction{true, protectedAccess, valuePtr}));
+            return OPENDAQ_SUCCESS;
+        }
 
         StringPtr childName;
         StringPtr subName;
@@ -826,22 +836,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
                 }
             }
 
-            if (isUpdating)
-            {
-                updatingPropsAndValues.insert_or_assign(prop, UpdatingAction{true, valuePtr});
-            }
-            else
-            {
-                if (!writeLocalValue(propName, valuePtr))
-                    return OPENDAQ_IGNORED;
+            if (!writeLocalValue(propName, valuePtr))
+                return OPENDAQ_IGNORED;
 
-                setOwnerToPropertyValue(valuePtr);
-                if (triggerEvent)
-                {
-                    const auto newVal = callPropertyValueWrite(prop, valuePtr, PropertyEventType::Update, false);
-                    if (!coreEventMuted && triggerCoreEvent.assigned())
-                        triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, newVal, path));
-                }
+            setOwnerToPropertyValue(valuePtr);
+            if (triggerEvent)
+            {
+                const auto newVal = callPropertyValueWrite(prop, valuePtr, PropertyEventType::Update, isUpdating);
+                if (!coreEventMuted && !isUpdating && triggerCoreEvent.assigned())
+                    triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, newVal, path));
             }
         }
 
@@ -1349,7 +1352,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating)
 {
     if (name == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
@@ -1360,6 +1363,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
     try
     {
         auto propName = StringPtr::Borrow(name);
+
+        if (batch)
+        {
+            updatingPropsAndValues.emplace_back(std::make_pair(propName, UpdatingAction{false, protectedAccess, nullptr}));
+            return OPENDAQ_SUCCESS;
+        }
 
         StringPtr childName;
         StringPtr subName;
@@ -1414,19 +1423,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
                     ownable.setOwner(nullptr);
             }
 
-            if (batch)
-            {
-                updatingPropsAndValues.insert_or_assign(prop, UpdatingAction{false, nullptr});
-            }
-            else
-            {
-                propValues.erase(it);
-                cloneAndSetChildPropertyObject(prop);
+            propValues.erase(it);
+            cloneAndSetChildPropertyObject(prop);
 
-                const auto val = callPropertyValueWrite(prop, nullptr, PropertyEventType::Clear, false);
-                if (!coreEventMuted && triggerCoreEvent.assigned())
-                    triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, val, path));
-            }
+            const auto val = callPropertyValueWrite(prop, nullptr, PropertyEventType::Clear, isUpdating);
+            if (!coreEventMuted && !isUpdating && triggerCoreEvent.assigned())
+                triggerCoreEvent(CoreEventArgsPropertyValueChanged(objPtr, propName, val, path));
         }
     }
     catch (const DaqException& e)
@@ -1749,34 +1751,42 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginUpdate(
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::applyUpdate()
 {
-    auto ignoredProps = List<IProperty>();
+    auto ignoredProps = List<IString>();
     for (auto& item : updatingPropsAndValues)
     {
+        StringPtr name = item.first;
+        ErrCode err;
         if (item.second.setValue)
         {
-            if (!writeLocalValue(item.first.getName(), item.second.value))
-            {
-                ignoredProps.pushBack(item.first);
-                continue;
-            }
-            setOwnerToPropertyValue(item.second.value);
+            err = setPropertyValueInternal(name, item.second.value, true, item.second.protectedAccess, false, true);
         }
         else
         {
-            const auto prop = item.first;
-            propValues.erase(prop.getName());
-
-            cloneAndSetChildPropertyObject(prop);
+            err = clearPropertyValueInternal(name, item.second.protectedAccess, false, true);
         }
 
-        if (item.second.setValue)
-            callPropertyValueWrite(item.first, item.second.value, PropertyEventType::Update, true);
+        if (err == OPENDAQ_IGNORED)
+            ignoredProps.pushBack(name);
         else
-            callPropertyValueWrite(item.first, nullptr, PropertyEventType::Clear, true);
+        {
+            PropertyPtr prop;
+            getPropertyAndValueInternal(name, item.second.value, prop);
+        }
+
+        checkErrorInfo(err);
     }
 
-    for (const auto& prop : ignoredProps)
-        updatingPropsAndValues.erase(prop);
+    for (const auto& propName : ignoredProps)
+    {
+        auto it = std::find_if(updatingPropsAndValues.begin(),
+                               updatingPropsAndValues.end(),
+                               [propName](const std::pair<std::string, UpdatingAction>& val)
+                               {
+                                   return propName == val.first;
+                               });
+        if (it != updatingPropsAndValues.end())
+            updatingPropsAndValues.erase(it);
+    }
 
     updatingValuesWrite(updatingPropsAndValues);
     updatingPropsAndValues.clear();
@@ -2388,15 +2398,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updatingValuesWrite(
-    const UpdatingActions& propsAndValues)
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updatingValuesWrite(const UpdatingActions& propsAndValues)
 {
     auto list = List<IString>();
     auto dict = Dict<IString, IBaseObject>();
     for (const auto& item: propsAndValues)
     {
-        list.pushBack(item.first.getName());
-        dict.set(item.first.getName(), item.second.value);
+        list.pushBack(item.first);
+        dict.set(item.first, item.second.value);
     }
 
     if (endUpdateEvent.hasListeners())

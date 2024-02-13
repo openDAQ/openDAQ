@@ -75,7 +75,7 @@ FunctionBlockPtr RefFbModule::onCreateFunctionBlock(const StringPtr& id,
     }
     if (id == Trigger::TriggerFbImpl::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Trigger::TriggerFbImpl>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Trigger::TriggerFbImpl>(context, parent, localId, config);
         return fb;
     }
 

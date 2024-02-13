@@ -9,9 +9,18 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 namespace Trigger
 {
 
-TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
+    if (config.assigned() && config.hasProperty("UseMultiThreadedScheduler") && config.getPropertyValue("UseMultiThreadedScheduler"))
+    {
+        packetReadyNotification = PacketReadyNotification::Scheduler;
+    }
+    else
+    {
+        packetReadyNotification = PacketReadyNotification::SameThread;
+    }
+
     threshold = INITIAL_THRESHOLD;
     state = INITIAL_STATE;
     createInputPorts();
@@ -23,18 +32,15 @@ void TriggerFbImpl::initProperties()
 {
     const auto thresholdProp = FloatProperty("Threshold", INITIAL_THRESHOLD);
     objPtr.addProperty(thresholdProp);
-    objPtr.getOnPropertyValueWrite("Threshold") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
+    objPtr.getOnPropertyValueWrite("Threshold") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
 
     readProperties();
 }
 
-void TriggerFbImpl::propertyChanged(bool configure)
+void TriggerFbImpl::propertyChanged()
 {
     std::scoped_lock lock(sync);
     readProperties();
-    if (configure)
-        this->configure();
 }
 
 void TriggerFbImpl::readProperties()
@@ -44,7 +50,15 @@ void TriggerFbImpl::readProperties()
 
 FunctionBlockTypePtr TriggerFbImpl::CreateType()
 {
-    return FunctionBlockType("ref_fb_module_trigger", "Trigger", "Trigger");
+    return FunctionBlockType("ref_fb_module_trigger",
+                             "Trigger",
+                             "Trigger",
+                             []()
+                             {
+                                 const auto obj = PropertyObject();
+                                 obj.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
+                                 return obj;
+                             });
 }
 
 void TriggerFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
@@ -201,8 +215,7 @@ void TriggerFbImpl::processDataPacket(const DataPacketPtr& packet)
 
 void TriggerFbImpl::createInputPorts()
 {
-    // TODO SameThread vs Scheduler
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    inputPort = createAndAddInputPort("input", packetReadyNotification);
 }
 
 void TriggerFbImpl::createSignals()

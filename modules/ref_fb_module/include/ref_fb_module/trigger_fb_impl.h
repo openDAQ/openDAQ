@@ -29,7 +29,7 @@ namespace Trigger
 class TriggerFbImpl final : public FunctionBlock
 {
 public:
-    explicit TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
     ~TriggerFbImpl() override = default;
 
     static FunctionBlockTypePtr CreateType();
@@ -53,6 +53,7 @@ private:
 
     Float threshold;
     bool state;
+    PacketReadyNotification packetReadyNotification;
 
     void createInputPorts();
     void createSignals();
@@ -70,7 +71,7 @@ private:
     void configure();
 
     void initProperties();
-    void propertyChanged(bool configure);
+    void propertyChanged();
     void readProperties();
 };
 }

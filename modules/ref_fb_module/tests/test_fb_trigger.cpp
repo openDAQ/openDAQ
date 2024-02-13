@@ -21,7 +21,7 @@ public:
                       vecvec<Int> expectedDomain,
                       SampleType sampleType,
                       vecvec<T> mockPackets,
-                      std::vector<Int> thresholdChangesAfterPackets,
+                      std::vector<Int> thresholdChangesAfterPackets = {},
                       vecvec<Int> mockDomainPackets = {},
                       std::vector<Float> newThresholds = {})
     {
@@ -104,14 +104,14 @@ private:
         }
         else
         {
+            Int delta = rule.getParameters().get("delta");
             for (size_t i = 0; i < mockPackets.size(); i++)
             {
                 // Linear creation of one domain packet
                 auto offset = 0;
                 for (size_t ii = 0; ii < i; ii++)
                 {
-                    Int delta = rule.getParameters().get("delta");
-                    offset = offset + mockPackets[ii].size() * delta;
+                    offset += mockPackets[ii].size() * delta;
                 }
 
                 auto domainPacket = DataPacket(domainSignalDescriptor, mockPackets[i].size(), offset);
@@ -233,8 +233,7 @@ TEST_F(TriggerTest, TriggerTestFloatLinear)
     vecvec<Bool> expectedData{{true, false, true}, {false, true}, {false}, {true}};
     vecvec<Int> expectedDomain{{9, 17, 23}, {31, 35}, {43}, {49}};
 
-    auto helper =
-        TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Float>::SampleType, mockPackets, {});
+    auto helper = TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Float>::SampleType, mockPackets);
     helper.run();
 }
 
@@ -315,8 +314,7 @@ TEST_F(TriggerTest, TriggerTestIntLinear)
     vecvec<Bool> expectedData{{true, false, true}, {false, true}, {false}, {true}};
     vecvec<Int> expectedDomain{{9, 17, 23}, {31, 35}, {43}, {49}};
 
-    auto helper =
-        TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Int>::SampleType, mockPackets, {});
+    auto helper = TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Int>::SampleType, mockPackets);
     helper.run();
 }
 

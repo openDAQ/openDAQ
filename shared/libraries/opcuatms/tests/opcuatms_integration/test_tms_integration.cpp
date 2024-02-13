@@ -335,6 +335,8 @@ TEST_F(TmsIntegrationTest, InputPortConnect)
     SignalPtr portSignal = inputPort.getSignal();
     ASSERT_FALSE(portSignal.assigned());
 
+    ASSERT_NO_THROW(inputPort.disconnect());
+
     inputPort.connect(signal1);
     portSignal = inputPort.getSignal();
     ASSERT_TRUE(portSignal.assigned());

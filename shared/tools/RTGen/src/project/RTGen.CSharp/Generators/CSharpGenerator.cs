@@ -220,9 +220,10 @@ namespace RTGen.CSharp.Generators
                 _genericTypeParameters.Add(SAMPLE_READER + "Base", "TValue:struct,TDomain:struct");
 
                 //specific arguments of factories, format ("<metodName>,<genericTypeName>,<argumentName>", "<C#TypeName>")
-                _genericTypeParameters.Add("createContext,IDictObject,option",     "StringObject,BaseObject");
-                _genericTypeParameters.Add("createLogger,IListObject,sink",        "LoggerSink");
-                _genericTypeParameters.Add("createMultiReader,IListObject,signal", "Signal");
+                _genericTypeParameters.Add("createContext,IDictObject,option",       "StringObject,BaseObject");
+                _genericTypeParameters.Add("createLogger,IListObject,sink",          "LoggerSink");
+                _genericTypeParameters.Add("createMultiReader,IListObject,signal",   "Signal");
+                _genericTypeParameters.Add("createMultiReaderEx,IListObject,signal", "Signal");
 
                 _castOperatorTypes.Add("Boolean", "bool");
                 _castOperatorTypes.Add("Float",   "double");
@@ -231,10 +232,13 @@ namespace RTGen.CSharp.Generators
 
                 _enumTypes.Add("CoreType",        "CoreType");
 
-                _factoryEnumTypesToIgnore.Add("SampleType");
+                //ignore certain factory argument types
+                _factoryEnumTypesToIgnore.Add("SampleType"); //replaced using `OpenDAQFactory.GetSampleType<TElementType>()`
 
-                _factoryArgumentDefaults.Add("ReadMode",        "ReadMode.Scaled");
-                _factoryArgumentDefaults.Add("ReadTimeoutType", "ReadTimeoutType.All");
+                //default values for certain factory argument types (or names)
+                _factoryArgumentDefaults.Add("ReadMode",                "ReadMode.Scaled");
+                _factoryArgumentDefaults.Add("ReadTimeoutType",         "ReadTimeoutType.All");
+                _factoryArgumentDefaults.Add("startOnFullUnitOfDomain", "false");
 
                 _keyWords.Add("base");
                 _keyWords.Add("event");
@@ -1912,9 +1916,11 @@ namespace RTGen.CSharp.Generators
                 //add defaults to some arguments
                 for (int index = 0; index < argsList.Count; ++index)
                 {
-                    string arg = argsList[index];
+                    string   arg            = argsList[index];
+                    string[] argTypeAndName = arg.TrimStart().Split(' ');
 
-                    if (!_factoryArgumentDefaults.TryGetValue(arg.TrimStart().Split(' ')[0], out string defaultValue))
+                    if (!_factoryArgumentDefaults.TryGetValue(argTypeAndName[0], out string defaultValue)
+                        && ((argTypeAndName.Length >= 2) && !_factoryArgumentDefaults.TryGetValue(argTypeAndName[1], out defaultValue)))
                         continue;
 
                     argsList[index] = string.Concat(arg, " = ", defaultValue);

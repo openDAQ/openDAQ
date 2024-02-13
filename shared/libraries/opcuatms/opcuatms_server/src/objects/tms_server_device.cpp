@@ -250,7 +250,7 @@ void TmsServerDevice::createAddFunctionBlockNode(const OpcUaNodeId& parentId)
     AddMethodNodeParams params(nodeIdOut, parentId);
     params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
     params.setBrowseName("Add");
-    params.outputArgumentsSize = 1;
+    params.outputArgumentsSize = 2;
     params.outputArguments = (UA_Argument*) UA_Array_new(params.outputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
     params.inputArgumentsSize = 2;
     params.inputArguments = (UA_Argument*) UA_Array_new(params.inputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
@@ -258,6 +258,10 @@ void TmsServerDevice::createAddFunctionBlockNode(const OpcUaNodeId& parentId)
     params.outputArguments[0].name = UA_STRING_ALLOC("nodeId");
     params.outputArguments[0].dataType = UA_TYPES[UA_TYPES_NODEID].typeId;
     params.outputArguments[0].valueRank = UA_VALUERANK_SCALAR;
+
+    params.outputArguments[1].name = UA_STRING_ALLOC("localId");
+    params.outputArguments[1].dataType = UA_TYPES[UA_TYPES_STRING].typeId;
+    params.outputArguments[1].valueRank = UA_VALUERANK_SCALAR;
 
     params.inputArguments[0].name = UA_STRING_ALLOC("typeId");
     params.inputArguments[0].dataType = UA_TYPES[UA_TYPES_STRING].typeId;
@@ -294,7 +298,7 @@ void TmsServerDevice::createRemoveFunctionBlockNode(const OpcUaNodeId& parentId)
     params.inputArgumentsSize = 1;
     params.inputArguments = (UA_Argument*) UA_Array_new(params.inputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
 
-    params.inputArguments[0].name = UA_STRING_ALLOC("browseName");
+    params.inputArguments[0].name = UA_STRING_ALLOC("localId");
     params.inputArguments[0].dataType = UA_TYPES[UA_TYPES_STRING].typeId;
     params.inputArguments[0].valueRank = UA_VALUERANK_SCALAR;
 
@@ -362,15 +366,17 @@ void TmsServerDevice::onGetAvailableFunctionBlockTypes(const NodeEventManager::M
 void TmsServerDevice::onAddFunctionBlock(const NodeEventManager::MethodArgs& args)
 {
     assert(args.inputSize == 2);
-    assert(args.outputSize == 1);
+    assert(args.outputSize == 2);
 
     const auto fbTypeId = OpcUaVariant(args.input[0]).toString();
     const auto configVariant = OpcUaVariant(args.input[1]);
 
     auto tmsFunctionBlock = addFunctionBlock(fbTypeId, configVariant);
 
-    auto outVariant = OpcUaVariant(tmsFunctionBlock->getNodeId());
-    args.output[0] = outVariant.copyAndGetDetachedValue();
+    auto nodeIdOut = OpcUaVariant(tmsFunctionBlock->getNodeId());
+    auto localIdOut = OpcUaVariant(tmsFunctionBlock->getBrowseName().c_str());
+    args.output[0] = nodeIdOut.copyAndGetDetachedValue();
+    args.output[1] = localIdOut.copyAndGetDetachedValue();
 }
 
 void TmsServerDevice::onRemoveFunctionBlock(const NodeEventManager::MethodArgs& args)

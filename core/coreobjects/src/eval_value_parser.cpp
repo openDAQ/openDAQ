@@ -242,8 +242,9 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::prefix(const EvalValueToken& tok
                 node->onResolveReference = params->onResolveReference;
                 return node;
             }
+        default:
+            throw daq::ParseFailedException("syntax error");
     }
-    throw daq::ParseFailedException("syntax error");
 }
 
 std::unique_ptr<daq::BaseNode> EvalValueParser::valref()

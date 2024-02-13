@@ -57,7 +57,7 @@ enum class DomainSignalType
 class StatisticsFbImpl final : public FunctionBlock
 {
 public:
-    StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
     static FunctionBlockTypePtr CreateType();
 
 private:
@@ -94,6 +94,8 @@ private:
     Int outputDeltaTicks;
     Int nextExpectedDomainValue;
     bool valid;
+
+    PacketReadyNotification packetReadyNotification;
 
     void initProperties();
     void propertyChanged();

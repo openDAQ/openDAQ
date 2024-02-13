@@ -139,8 +139,12 @@ private:
 
     void createFunctionBlock()
     {
+        // TODO Temporary fix
+        PropertyObjectPtr config = module.getAvailableFunctionBlockTypes().get("ref_fb_module_statistics").createDefaultConfig();
+        config.setPropertyValue("UseMultiThreadedScheduler", false);
+
         // Create function block
-        fb = module.createFunctionBlock("ref_fb_module_statistics", nullptr, "fb");
+        fb = module.createFunctionBlock("ref_fb_module_statistics", nullptr, "fb", config);
 
         // Set input (port) and outputs (signals) of the function block
         fb.getInputPorts()[0].connect(signal);
@@ -186,13 +190,12 @@ private:
 
     void receivePacketsAndCheck(vecvec<Float> expectedData, PacketReaderPtr reader)
     {
-        // For each input data packet
         for (size_t i = 0; i < mockPackets.size(); i++)
         {
             // Check if you expect a packet
             if (expectedData[i].size() != 0)
             {
-                // Receive data packet that comes from single input data packet
+                // Receive data packet
                 PacketPtr receivedPacket;
 
                 // Receive until you get one expected packet
@@ -208,7 +211,7 @@ private:
 
                 auto dataPacket = static_cast<DataPacketPtr>(receivedPacket);
 
-                // Check packet(s) contents
+                // Check packet contents
                 for (size_t ii = 0; ii < expectedData[i].size(); ii++)
                 {
                     auto data = static_cast<Float*>(dataPacket.getData());
@@ -272,14 +275,14 @@ TEST_F(StatisticsTest, StatisticsTestBasic)
     vecvec<Float> expectedAvg{{0.55}, {1.55}, {2.55}};
     vecvec<Float> expectedRms{{0.62048368229954287}, {1.5763882770434448}, {2.5661254840712679}};
     vecvec<Int> expectedDomain{{3}, {23}, {43}};
-    Int initalOutputDomain = 0;  // Implicit
+    Int initialOutputDomain = 0;  // Implicit
 
     auto helper = StatisticsTestHelper(LinearDataRule(2, 3),
-                                       initalOutputDomain,
+                                       initialOutputDomain,
                                        expectedAvg,
                                        expectedRms,
                                        expectedDomain,
-                                       SampleTypeFromType<Float>().SampleType,
+                                       SampleTypeFromType<Float>::SampleType,
                                        mockPackets);
     helper.run();
 }
@@ -299,10 +302,15 @@ TEST_F(StatisticsTest, StatisticsTestSmallerPackets)
     vecvec<Float> expectedAvg{{}, {}, {}, {0.55}, {}, {}, {1.55}, {}, {}, {2.55}};
     vecvec<Float> expectedRms{{}, {}, {}, {0.62048368229954287}, {}, {}, {1.5763882770434448}, {}, {}, {2.5661254840712679}};
     vecvec<Int> expectedDomain{{}, {}, {}, {3}, {}, {}, {23}, {}, {}, {43}};
-    Int outputDomain = 0;  // Implicit
+    Int initialOutputDomain = 0;  // Implicit
 
-    auto helper = StatisticsTestHelper(
-        LinearDataRule(2, 3), outputDomain, expectedAvg, expectedRms, expectedDomain, SampleTypeFromType<Float>().SampleType, mockPackets);
+    auto helper = StatisticsTestHelper(LinearDataRule(2, 3),
+                                       initialOutputDomain,
+                                       expectedAvg,
+                                       expectedRms,
+                                       expectedDomain,
+                                       SampleTypeFromType<Float>::SampleType,
+                                       mockPackets);
     helper.run();
 }
 
@@ -313,10 +321,15 @@ TEST_F(StatisticsTest, StatisticsTestLargerPackets)
     vecvec<Float> expectedAvg{{0.55}, {1.55, 2.55}};
     vecvec<Float> expectedRms{{0.62048368229954287}, {1.5763882770434448, 2.5661254840712679}};
     vecvec<Int> expectedDomain{{3}, {23, 43}};
-    Int outputDomain = 0;  // Implicit
+    Int initialOutputDomain = 0;  // Implicit
 
-    auto helper = StatisticsTestHelper(
-        LinearDataRule(2, 3), outputDomain, expectedAvg, expectedRms, expectedDomain, SampleTypeFromType<Float>().SampleType, mockPackets);
+    auto helper = StatisticsTestHelper(LinearDataRule(2, 3),
+                                       initialOutputDomain,
+                                       expectedAvg,
+                                       expectedRms,
+                                       expectedDomain,
+                                       SampleTypeFromType<Float>::SampleType,
+                                       mockPackets);
     helper.run();
 }
 
@@ -330,14 +343,14 @@ TEST_F(StatisticsTest, StatisticsTestBlockSizeChanged)
     vecvec<Int> expectedDomain{{3}, {23, 33}, {43, 53}};
     std::vector<Int> blockSizeChangesAfterPackets{0};
     std::vector<size_t> newBlockSizes{5};
-    Int outputDomain = 0;  // Implicit
+    Int initialOutputDomain = 0;  // Implicit
 
     auto helper = StatisticsTestHelper(LinearDataRule(2, 3),
-                                       outputDomain,
+                                       initialOutputDomain,
                                        expectedAvg,
                                        expectedRms,
                                        expectedDomain,
-                                       SampleTypeFromType<Float>().SampleType,
+                                       SampleTypeFromType<Float>::SampleType,
                                        mockPackets,
                                        {},
                                        blockSizeChangesAfterPackets,
@@ -353,14 +366,14 @@ TEST_F(StatisticsTest, StatisticsTestExplicitOutputDomain)
     vecvec<Float> expectedAvg{{0.55}, {1.55}, {2.55}};
     vecvec<Float> expectedRms{{0.62048368229954287}, {1.5763882770434448}, {2.5661254840712679}};
     vecvec<Int> expectedDomain{{5}, {25}, {45}};
-    Int initalOutputDomain = 1;  // Explicit
+    Int initialOutputDomain = 1;  // Explicit
 
     auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
-                                       initalOutputDomain,
+                                       initialOutputDomain,
                                        expectedAvg,
                                        expectedRms,
                                        expectedDomain,
-                                       SampleTypeFromType<Float>().SampleType,
+                                       SampleTypeFromType<Float>::SampleType,
                                        mockPackets);
     helper.run();
 }
@@ -374,14 +387,14 @@ TEST_F(StatisticsTest, StatisticsTestExplicitRangeOutputDomain)
     vecvec<Float> expectedRms{{0.62048368229954287}, {1.5763882770434448}, {2.5661254840712679}};
     vecvec<Int> expectedDomainStart{{5}, {25}, {45}};
     vecvec<Int> expectedDomainEnd{{24}, {44}, {64}};
-    Int initalOutputDomain = 2;  // ExplicitRange
+    Int initialOutputDomain = 2;  // ExplicitRange
 
     auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
-                                       initalOutputDomain,
+                                       initialOutputDomain,
                                        expectedAvg,
                                        expectedRms,
                                        expectedDomainStart,
-                                       SampleTypeFromType<Float>().SampleType,
+                                       SampleTypeFromType<Float>::SampleType,
                                        mockPackets,
                                        expectedDomainEnd);
     helper.run();
@@ -396,15 +409,15 @@ TEST_F(StatisticsTest, StatisticsTestChangingOutputDomain)
     vecvec<Float> expectedAvg{{0.55}, {1.55}, {2.55}, {0.55}};
     vecvec<Float> expectedRms{{0.62048368229954287}, {1.5763882770434448}, {2.5661254840712679}, {0.62048368229954287}};
     vecvec<Int> expectedDomainStart{{5}, {25}, {45}, {65}};
-    Int initalOutputDomain = 0;  // Implicit
+    Int initialOutputDomain = 0;  // Implicit
     std::vector<Int> outputDomainChangesAfterPackets{0, 1};
     std::vector<Int> newOutputDomain{1, 0};  // Explicit, Implicit
     auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
-                                       initalOutputDomain,
+                                       initialOutputDomain,
                                        expectedAvg,
                                        expectedRms,
                                        expectedDomainStart,
-                                       SampleTypeFromType<Float>().SampleType,
+                                       SampleTypeFromType<Float>::SampleType,
                                        mockPackets,
                                        {},
                                        {},

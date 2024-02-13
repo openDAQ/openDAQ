@@ -8,7 +8,10 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 namespace Statistics
 {
 
-StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
+                                   const ComponentPtr& parent,
+                                   const StringPtr& localId,
+                                   const PropertyObjectPtr& config)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
     initProperties();
@@ -19,13 +22,29 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& pa
     avgSignal.setDomainSignal(domainSignal);
     rmsSignal.setDomainSignal(domainSignal);
 
-    // TODO SameThread vs Scheduler
-    createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    if (config.assigned() && config.hasProperty("UseMultiThreadedScheduler") && config.getPropertyValue("UseMultiThreadedScheduler"))
+    {
+        packetReadyNotification = PacketReadyNotification::Scheduler;
+    }
+    else
+    {
+        packetReadyNotification = PacketReadyNotification::SameThread;
+    }
+
+    createAndAddInputPort("input", packetReadyNotification);
 }
 
 FunctionBlockTypePtr StatisticsFbImpl::CreateType()
 {
-    return FunctionBlockType("ref_fb_module_statistics", "Statistics", "Calculates statistics");
+    return FunctionBlockType("ref_fb_module_statistics",
+                             "Statistics",
+                             "Calculates statistics",
+                             []()
+                             {
+                                 const auto obj = PropertyObject();
+                                 obj.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
+                                 return obj;
+                             });
 }
 
 void StatisticsFbImpl::initProperties()

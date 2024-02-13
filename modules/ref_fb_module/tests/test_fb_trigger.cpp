@@ -49,7 +49,7 @@ public:
         sendPacketsAndChangeThreshold();
         receivePacketsAndCheck();
 
-        // TODO Temporay fix so PacketReadyNotification::Scheduler works
+        // TODO Temporaray fix so PacketReadyNotification::Scheduler works
         context.getScheduler().stop();
     }
 
@@ -136,8 +136,11 @@ private:
 
     void createFunctionBlock()
     {
+        // TODO Temporary fix
+        PropertyObjectPtr config = module.getAvailableFunctionBlockTypes().get("ref_fb_module_trigger").createDefaultConfig();
+        config.setPropertyValue("UseMultiThreadedScheduler", false);
         // Create function block
-        fb = module.createFunctionBlock("ref_fb_module_trigger", nullptr, "fb");
+        fb = module.createFunctionBlock("ref_fb_module_trigger", nullptr, "fb", config);
 
         // Set input (port) and output (signal) of the function block
         fb.getInputPorts()[0].connect(signal);
@@ -181,7 +184,7 @@ private:
             {
                 auto receivedPacket = reader.read();
                 // Ignore nullptr and PacketType::Event
-                if (receivedPacket != nullptr && receivedPacket.getType() == PacketType::Data)
+                if (receivedPacket.assigned() && receivedPacket.getType() == PacketType::Data)
                 {
                     receivedPacketVector.push_back(receivedPacket);
                 }
@@ -220,7 +223,7 @@ TEST_F(TriggerTest, TriggerTestFloatExplicit)
     vecvec<Int> expectedDomain{{9, 17, 23}, {31, 35}, {43}, {49}};
 
     auto helper = TriggerTestHelper(
-        ExplicitDataRule(), expectedData, expectedDomain, SampleTypeFromType<Float>().SampleType, mockPackets, {}, mockDomainPackets);
+        ExplicitDataRule(), expectedData, expectedDomain, SampleTypeFromType<Float>::SampleType, mockPackets, {}, mockDomainPackets);
     helper.run();
 }
 
@@ -231,7 +234,7 @@ TEST_F(TriggerTest, TriggerTestFloatLinear)
     vecvec<Int> expectedDomain{{9, 17, 23}, {31, 35}, {43}, {49}};
 
     auto helper =
-        TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Float>().SampleType, mockPackets, {});
+        TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Float>::SampleType, mockPackets, {});
     helper.run();
 }
 
@@ -247,7 +250,7 @@ TEST_F(TriggerTest, TriggerTestFloatExplicitThresholdChanged)
     auto helper = TriggerTestHelper(ExplicitDataRule(),
                                     expectedData,
                                     expectedDomain,
-                                    SampleTypeFromType<Float>().SampleType,
+                                    SampleTypeFromType<Float>::SampleType,
                                     mockPackets,
                                     thresholdChangesAfterPackets,
                                     mockDomainPackets,
@@ -266,7 +269,7 @@ TEST_F(TriggerTest, TriggerTestFloatLinearThresholdChanged)
     auto helper = TriggerTestHelper(LinearDataRule(2, 3),
                                     expectedData,
                                     expectedDomain,
-                                    SampleTypeFromType<Float>().SampleType,
+                                    SampleTypeFromType<Float>::SampleType,
                                     mockPackets,
                                     thresholdChangesAfterPackets,
                                     {},
@@ -282,7 +285,7 @@ TEST_F(TriggerTest, TriggerTestIntExplicit)
     vecvec<Int> expectedDomain{{9, 17, 23}, {31, 35}, {43}, {49}};
 
     auto helper = TriggerTestHelper(
-        ExplicitDataRule(), expectedData, expectedDomain, SampleTypeFromType<Int>().SampleType, mockPackets, {}, mockDomainPackets);
+        ExplicitDataRule(), expectedData, expectedDomain, SampleTypeFromType<Int>::SampleType, mockPackets, {}, mockDomainPackets);
     helper.run();
 }
 
@@ -298,7 +301,7 @@ TEST_F(TriggerTest, TriggerTestIntExplicitThresholdChanged)
     auto helper = TriggerTestHelper(ExplicitDataRule(),
                                     expectedData,
                                     expectedDomain,
-                                    SampleTypeFromType<Int>().SampleType,
+                                    SampleTypeFromType<Int>::SampleType,
                                     mockPackets,
                                     thresholdChangesAfterPackets,
                                     mockDomainPackets,
@@ -313,7 +316,7 @@ TEST_F(TriggerTest, TriggerTestIntLinear)
     vecvec<Int> expectedDomain{{9, 17, 23}, {31, 35}, {43}, {49}};
 
     auto helper =
-        TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Int>().SampleType, mockPackets, {});
+        TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Int>::SampleType, mockPackets, {});
     helper.run();
 }
 
@@ -329,7 +332,7 @@ TEST_F(TriggerTest, TriggerTestIntLinearThresholdChanged)
     auto helper = TriggerTestHelper(LinearDataRule(2, 3),
                                     expectedData,
                                     expectedDomain,
-                                    SampleTypeFromType<Int>().SampleType,
+                                    SampleTypeFromType<Int>::SampleType,
                                     mockPackets,
                                     thresholdChangesAfterPackets,
                                     {},

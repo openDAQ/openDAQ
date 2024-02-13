@@ -144,8 +144,18 @@ TEST_F(TmsFunctionBlockTest, SignalCheckGlobalId)
     ListPtr<ISignal> serverSignals = serverFunctionBlock.getSignals();
     ListPtr<ISignal> clientSignals = clientFunctionBlock.getSignals();
 
-    for (size_t i = 0; i < serverSignals.getCount(); i++)
-        ASSERT_EQ(serverSignals[i].getGlobalId(), clientSignals[i].getGlobalId());
+    // one private signal in MockPhysicalDeviceImpl
+    ASSERT_EQ(clientSignals.getCount(), serverSignals.getCount() - 1);
+
+    std::vector<std::string> serverSignalsName;
+    for (const auto & signal : serverSignals)
+        serverSignalsName.push_back(signal.getGlobalId());
+
+    for (const auto & signal : clientSignals)
+    {
+        auto it = find(serverSignalsName.begin(), serverSignalsName.end(), signal.getGlobalId().toStdString());
+        ASSERT_NE(it, serverSignalsName.end());
+    }
 }
 
 TEST_F(TmsFunctionBlockTest, MethodGetStatusSignal)

@@ -20,6 +20,8 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx, con
     , mockChannelB2(MockChannel(ctx, ioFolder, "mockchB2"))
 {
     auto mockSignal = Signal(this->context, signals, "devicetimesig");
+    auto mockPrivateSignal = Signal(this->context, signals, "devicetimesigprivate");
+
     const size_t nanosecondsInSecond = 1000000000;
     auto delta = nanosecondsInSecond / 10000;
 
@@ -33,6 +35,10 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx, con
 
     mockSignal.setDescriptor(valueDescriptor);
     signals.addItem(mockSignal);
+
+    mockPrivateSignal.setDescriptor(valueDescriptor);
+    mockPrivateSignal.setPublic(false);
+    signals.addItem(mockPrivateSignal);
 
     ioFolder.addItem(mockChannel1);
 

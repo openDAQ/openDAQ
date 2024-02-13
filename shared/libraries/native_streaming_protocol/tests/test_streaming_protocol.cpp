@@ -572,6 +572,48 @@ TEST_P(StreamingProtocolTest, SendDataPacket)
     }
 }
 
+TEST_P(StreamingProtocolTest, AddNotPublicSignal)
+{
+    startServer(List<ISignal>());
+
+    for (auto& client : clients)
+    {
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    }
+
+    auto serverSignal =
+        SignalWithDescriptor(serverContext, DataDescriptorBuilder().setSampleType(SampleType::Undefined).build(), nullptr, "signal");
+    serverSignal.setName("signalName");
+    serverSignal.setDescription("signalDescription");
+    serverSignal.setPublic(false);
+    serverHandler->addSignal(serverSignal);
+
+    for (auto& client : clients)
+    {
+        ASSERT_EQ(client.signalAvailableFuture.wait_for(std::chrono::milliseconds(100)), std::future_status::timeout);
+    }
+}
+
+TEST_P(StreamingProtocolTest, AddNotPublicSignalInConstructor)
+{
+    auto serverSignal =
+        SignalWithDescriptor(serverContext, DataDescriptorBuilder().setSampleType(SampleType::Undefined).build(), nullptr, "signal");
+    serverSignal.setName("signalName");
+    serverSignal.setDescription("signalDescription");
+    serverSignal.setPublic(false);
+
+    startServer(List<ISignal>(serverSignal));
+
+    for (auto& client : clients)
+    {
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+
+        ASSERT_EQ(client.signalAvailableFuture.wait_for(std::chrono::milliseconds(100)), std::future_status::timeout);
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(
     ProtocolTestGroup,
     StreamingProtocolTest,

@@ -53,7 +53,7 @@ protected:
 
     LoggerComponentPtr signalContainerLoggerComponent;
 
-    SignalConfigPtr createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor = nullptr, bool visible = true);
+    SignalConfigPtr createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor = nullptr, bool visible = true, bool isPublic = true);
 
     void addSignal(const SignalPtr& signal);
     void removeSignal(const SignalConfigPtr& signal);
@@ -253,7 +253,7 @@ ErrCode SignalContainerImpl<Intf, Intfs...>::getItem(IString* localId, IComponen
 }
 
 template<class Intf, class ...Intfs>
-SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs ...>::createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor, bool visible)
+SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs ...>::createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor, bool visible, bool isPublic)
 {
     auto signal = Signal(this->context, signals, localId);
     if (descriptor.assigned())
@@ -265,6 +265,8 @@ SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs ...>::createAndAddSignal(
         signal.setVisible(visible);
         signal.template asPtr<IComponentPrivate>().lockAttributes(List<IString>("visible"));
     }
+
+    signal.setPublic(isPublic);
 
     addSignal(signal);
     return signal;

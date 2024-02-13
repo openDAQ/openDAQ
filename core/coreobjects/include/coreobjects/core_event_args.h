@@ -215,6 +215,23 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * The ID of the event is 120, and the event name is "StatusChanged".
  *
+ * @subsubsection opendaq_core_event_types_type_added Type added/removed
+ *
+ * Triggered whenever a new "Type" is added to- or removed from the Type manager. Eg. when a new Struct or Enumeration type is
+ * created and added.
+ *
+ * The sender of the above event types is always an empty Component pointer.
+ *
+ * The "TypeAdded" event contains the following parameters:
+ *  - The newly added type under the key "Type"
+ *
+ * The ID of the event is 130, and the event name is "TypeAdded".
+ *
+  * The "TypeRemoved" event contains the following parameters:
+ *  - The name of the removed type under the key "TypeName"
+ *
+ * The ID of the event is 140, and the event name is "TypeRemoved".
+ *
  * @subsection opendaq_core_event_muting Muting core events
  *
  * Components, as previously mentioned, do not trigger core events until they are connected to the root of the
@@ -322,6 +339,27 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IString*, path
 )
 
+/*!
+ * @brief Creates Core event args that are passed as argument when a type is added to the type manager.
+ * @param type The type that was added.
+ *
+ * The ID of the event is 130, and the event name is "TypeAdded".
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, CoreEventArgsTypeAdded, ICoreEventArgs,
+    IType*, type
+)
+
+/*!
+ * @brief Creates Core event args that are passed as argument when a type is removed from the type manager.
+ * @param typeName The name of the removed type
+ *
+ * The ID of the event is 140, and the event name is "TypeRemoved".
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, CoreEventArgsTypeRemoved, ICoreEventArgs,
+    IString*, typeName
+)
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

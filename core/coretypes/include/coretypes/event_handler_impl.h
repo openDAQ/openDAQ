@@ -37,8 +37,8 @@ public:
     {
         try
         {
-            auto obj = TSenderPtr::Borrow(sender);
-            auto args = TEventArgsPtr::Borrow(eventArgs);
+            auto obj = sender != nullptr ? TSenderPtr::Borrow(sender) : TSenderPtr{};
+            auto args = eventArgs != nullptr ? TEventArgsPtr::Borrow(eventArgs) : TEventArgsPtr{};
 
             subscription(obj, args);
         }

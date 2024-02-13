@@ -217,6 +217,7 @@ set(SRC_PublicHeaders
     struct_type_factory.h
 
     type_manager.h
+    type_manager_private.h
     type_manager_ptr.h
     type_manager_factory.h
 

@@ -1386,6 +1386,7 @@ TEST_F(CoreEventTest, TypeAdded)
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
     {
         ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::TypeAdded));
+        ASSERT_TRUE(args.getParameters().hasKey("Type"));
         ASSERT_FALSE(comp.assigned());
         addCount++;
     };
@@ -1420,6 +1421,7 @@ TEST_F(CoreEventTest, TypeRemoved)
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
     {
         ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::TypeRemoved));
+        ASSERT_TRUE(args.getParameters().hasKey("TypeName"));
         ASSERT_FALSE(comp.assigned());
         removeCount++;
     };

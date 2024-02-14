@@ -1,7 +1,7 @@
 #include <opendaq/logger_component_impl.h>
 #include <coretypes/impl.h>
 
-#include <opendaq/logger_sink_impl.h>
+#include <opendaq/logger_sink_base_private_ptr.h>
 #include <opendaq/logger_thread_pool_private.h>
 #include <opendaq/logger_thread_pool_factory.h>
 
@@ -51,12 +51,12 @@ LoggerComponentImpl::LoggerComponentImpl(const StringPtr& name, const ListPtr<IL
         {
             throw ArgumentNullException("Sink must not be null");
         }
-        auto sinkPtr = dynamic_cast<LoggerSinkBase*>(sink.getObject());
+        auto sinkPtr = sink.asPtrOrNull<ILoggerSinkBasePrivate>();
         if (sinkPtr == nullptr)
         {
             throw InvalidTypeException("Sink must have valid type");
         }
-        spdlogLogger->sinks().push_back(sinkPtr->getSinkImpl());
+        spdlogLogger->sinks().push_back(sinkPtr.getSinkImpl());
     }
 }
 

@@ -25,6 +25,7 @@
 #include <native_streaming_protocol/native_streaming_protocol.h>
 
 #include <native_streaming/session.hpp>
+#include <config_protocol/config_protocol.h>
 
 #include <functional>
 
@@ -35,10 +36,7 @@ using SignalNumericIdType = uint32_t;
 
 using OnSignalCallback = std::function<void(const SignalNumericIdType& signalNumericId,
                                             const StringPtr& signalStringId,
-                                            const StringPtr& domainSignalStringId,
-                                            const DataDescriptorPtr& signalDescriptor,
-                                            const StringPtr& name,
-                                            const StringPtr& description,
+                                            const StringPtr& serializedSignal,
                                             bool available)>;
 
 using OnSignalSubscriptionCallback = std::function<void(const SignalNumericIdType& signalNumericId,
@@ -54,6 +52,8 @@ using OnSubscriptionAckCallback = std::function<void(const SignalNumericIdType& 
 using OnPacketReceivedCallback = std::function<void(const SignalNumericIdType& signalNumericId,
                                                     const PacketPtr& packet)>;
 
+using ConfigProtocolPacketCb = std::function<void(const config_protocol::PacketBuffer& packetBuffer)>;
+
 enum class PayloadType
 {
     PAYLOAD_TYPE_PACKET = 1,
@@ -63,7 +63,8 @@ enum class PayloadType
     PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_COMMAND = 5,
     PAYLOAD_TYPE_PROTOCOL_INIT_DONE = 6,
     PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_ACK = 7,
-    PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK = 8
+    PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK = 8,
+    PAYLOAD_TYPE_CONFIGURATION_PACKET = 9
 };
 
 constexpr std::initializer_list<PayloadType> allPayloadTypes =
@@ -75,7 +76,8 @@ constexpr std::initializer_list<PayloadType> allPayloadTypes =
         PayloadType::PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_COMMAND,
         PayloadType::PAYLOAD_TYPE_PROTOCOL_INIT_DONE,
         PayloadType::PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_ACK,
-        PayloadType::PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK
+        PayloadType::PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK,
+        PayloadType::PAYLOAD_TYPE_CONFIGURATION_PACKET
     };
 
 inline std::string convertPayloadTypeToString(PayloadType type)
@@ -98,6 +100,8 @@ inline std::string convertPayloadTypeToString(PayloadType type)
             return "PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_ACK";
         case PayloadType::PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK:
             return "PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK";
+        case PayloadType::PAYLOAD_TYPE_CONFIGURATION_PACKET:
+            return "PAYLOAD_TYPE_CONFIGURATION_PACKET";
     }
 
     return "PAYLOAD_TYPE_INVALID";

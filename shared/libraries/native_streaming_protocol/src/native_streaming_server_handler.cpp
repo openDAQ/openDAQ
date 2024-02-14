@@ -2,6 +2,8 @@
 
 #include <opendaq/custom_log.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/search_filter_factory.h>
+#include <config_protocol/config_protocol_server.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -11,19 +13,17 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
                                                            std::shared_ptr<boost::asio::io_context> ioContextPtr,
                                                            const ListPtr<ISignal>& signalsList,
                                                            OnSignalSubscribedCallback signalSubscribedHandler,
-                                                           OnSignalUnsubscribedCallback signalUnsubscribedHandler)
+                                                           OnSignalUnsubscribedCallback signalUnsubscribedHandler,
+                                                           SetUpConfigProtocolServerCb setUpConfigProtocolServerCb)
     : context(context)
     , ioContextPtr(ioContextPtr)
-    , logger(context.getLogger())
+    , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingServerHandler"))
     , signalNumericIdCounter(0)
     , subscribersRegistry(context)
     , signalSubscribedHandler(signalSubscribedHandler)
     , signalUnsubscribedHandler(signalUnsubscribedHandler)
+    , setUpConfigProtocolServerCb(setUpConfigProtocolServerCb)
 {
-    if (!this->logger.assigned())
-        throw ArgumentNullException("Logger must not be null");
-    loggerComponent = this->logger.getOrAddComponent("NativeStreamingServerHandler");
-
     for (const auto& signal : signalsList)
     {
         registerSignal(signal);
@@ -105,6 +105,19 @@ void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
         session->close();
 }
 
+void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler)
+{
+    auto sessionWeakPtr = std::weak_ptr<ServerSessionHandler>(sessionHandler);
+    ConfigProtocolPacketCb sendConfigPacketCb =
+        [sessionWeakPtr](const config_protocol::PacketBuffer& packetBuffer)
+    {
+        if (auto sessionPtr = sessionWeakPtr.lock())
+            sessionPtr->sendConfigurationPacket(packetBuffer);
+    };
+    ConfigProtocolPacketCb receiveConfigPacketCb = setUpConfigProtocolServerCb(sendConfigPacketCb);
+    sessionHandler->setConfigPacketReceivedHandler(receiveConfigPacketCb);
+}
+
 void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
 {
     LOG_I("New connection accepted by server");
@@ -151,6 +164,7 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
                                                                  session,
                                                                  signalSubscriptionHandler,
                                                                  errorHandler);
+    setUpConfigProtocolCallbacks(sessionHandler);
 
     // send sorted signals to newly connected client
     std::map<SignalNumericIdType, SignalPtr> sortedSignals;

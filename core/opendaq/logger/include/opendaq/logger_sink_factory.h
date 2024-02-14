@@ -74,6 +74,13 @@ inline LoggerSinkPtr WinDebugLoggerSink()
 
 #endif
 
+
+inline LoggerSinkPtr LastMessageLoggerSink()
+{
+    return LoggerSinkPtr(LastMessageLoggerSink_Create());
+}
+
+
 inline LogLevel getEnvLogLevel(const std::string& envStr, int defaultLevel)
 {
     int level = defaultLevel;

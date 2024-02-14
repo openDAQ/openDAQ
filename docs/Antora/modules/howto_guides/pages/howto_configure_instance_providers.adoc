@@ -1,0 +1,201 @@
+= Instance Configuration with Providers
+
+A Config Provider is an interface that enriches the input options dictionary with values from external sources such as a JSON file, environment variables, or command line arguments. A Config Provider can be assigned to the instance builder through the method `addConfigProvider`. This method does not override the options dictionary; instead, it retains the provider in the builder to augment options while calling `getOptions` method.
+
+**Related articles:**
+
+- xref:howto_configure_instance.adoc#instance[Architecture - Instance]
+
+== Instance Configuration with JSON Provider
+Json config provider is a *default provider* that tries to get configuration from a path set in the `OPENDAQ_CONFIG_PATH` environment variable, otherwise, it reads `opendaq-config.json` from the same folder from which the file was run. An example of a JSON file is listed below. JSON keys are case-insensitive, so the keys "MODULEMANAGER", "modulemanager", and "ModuleManager" are recognized as the same key. If a value has the wrong type, or there are additional key-value pairs, they will be ignored. If a provider is overriding a list value, the old list items will be erased.
+
+[source,json]
+----
+{
+  "ModuleManager": {
+    "ModulesPath": ""
+  },
+  "Scheduler": {
+    "WorkersNum": 0
+  },
+  "Logging": {
+    "GlobalLogLevel": 7
+  },
+  "RootDevice": {
+    "DefaultLocalId": "",
+    "ConnectionString": ""
+  },
+  "Modules": {
+    "SomeModule1": {
+        "option1": "value"
+    },
+    "SomeModule2": {
+        "enableOption2": true,
+        "listOfSomething": [
+            1,
+            2,
+            3,
+            4
+        ]
+    }
+  }
+}
+----
+Additionaly user can create a `JsonConfigProvider` with the custom file path.
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+
+int main(int argc, const char* argv[])
+{
+    const daq::StringPtr configPath = "opendaq-config.json";
+    const daq::ConfigProviderPtr configProvider = daq::JsonConfigProvider(configPath);
+    const daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().addConfigProvider(configProvider);
+    const daq::InstancePtr instance = daq::InstanceFromBuilder(instanceBuilder);
+
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+import opendaq
+
+config_path = "opendaq-config.json"
+config_provider = opendaq.JsonConfigProvider(opendaq.String(config_path))
+instance_builder = opendaq.InstanceBuilder()
+instance_builder.add_config_provider(config_provider)
+instance = instance_builder.build()
+----
+====
+
+== Instance Configuration with Environment Variable
+
+An instance can be configured from environment variables. If `EnvConfigProvider` is set to the builder, the provider will find all key-value pairs starting with `OPENDAQ_CONFIG_`. Examples of setting environment variables are listed below. Note that if a value is surrounded with quotes, it will be recognized as a string type. If not, the provider will try to parse it as an integer, float, and boolean type, and if casting fails, the value will be considered as a string type.
+[tabs]
+====
+Bash::
++
+[source,bash]
+[]
+----
+export OPENDAQ_CONFIG_MODULEMANAGER_MODULESPATH="/tmp/modules/"
+export OPENDAQ_CONFIG_LOGGING_GlobalLogLevel=1
+export OPENDAQ_CONFIG_Modules_SomeModule_EnableSomething=true
+export OPENDAQ_CONFIG_Modules_SomeModule_FloatValue=12.5
+----
+====
+The `OPENDAQ_CONFIG_` prefix is case-sensitive and indicates that the variable is part of the instance builder options. The rest of the environment key is not case-sensitive and is considered as nodes of a dictionary split by underscore (`_-_`). For example, `OPENDAQ_CONFIG_MODULEMANAGER_MODULESPATH="/tmp/modules/"` is represented as populating the instance builder options with the corresponding values. If a value was already set, it will be overridden with the new one in case the type of the new value matches the old one.
+[source,json]
+----
+{
+  "modulemanager": {
+    "modulespath": "/tmp/modules/"
+  }
+}
+----
+
+Example of creating Instance from enviorment variables
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+
+int main(int argc, const char* argv[])
+{
+    const daq::ConfigProviderPtr configProvider = daq::EnvConfigProvider();
+    const daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().addConfigProvider(configProvider);
+    const daq::InstancePtr instance = daq::InstanceFromBuilder(instanceBuilder);
+
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+import opendaq
+
+config_provider = opendaq.EnvConfigProvider()
+instance_builder = opendaq.InstanceBuilder()
+instance_builder.add_config_provider(config_provider)
+instance = instance_builder.build()
+----
+====
+
+== Instance Configuration with Command Line Arguments
+
+An instance can be configured from command line arguments. If `CmdLineArgsConfigProvider` is set to the builder, the provider will parse all command line arguments starting with `-C`. The structure of the command line arguments reflects the hierarchy of the configuration, with each level separated by a underscore (`_-_`). For example, `-Cmodulemanager_modulespath="./custom_modules"` would be recognized and parsed accordingly. Note that values are treated similarly to environment variables: if enclosed in quotes, they are recognized as string types; otherwise, the provider attempts to parse them as integer, float, and boolean types. If parsing fails, the value is considered as a string type.
+
+[tabs]
+====
+Bash::
++
+[source,bash]
+[]
+----
+./program -Cmodulemanager_modulespath="./custom_modules" -CLOGGING_GlobalLogLevel=1
+-CModules_SomeModule_EnableSomething=true -CModules_SomeModule_FloatValue=12.5
+----
+====
+
+The `-C` prefix is case-sensitive and indicates that the argument is part of the instance builder options. The rest of the argument is not case-sensitive and is considered as nodes of a dictionary, similar to how environment variables are treated.
+
+If a value was already set in the configuration, it will be overridden by the value from the command line argument if the type of the new value matches the old one.
+
+Example of creating an Instance from command line arguments:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <coretypes/listobject_factory.h>
+
+ConfigProviderPtr CmdLineArgsConfigProvider(int argc, char* argv[])
+{
+  daq::ListPtr<IString> args = daq::List<IString>();
+  for (int i = 1; i < argc; i++)
+    args.pushBack(argv[i]);
+
+  return daq::CmdLineArgsConfigProvider(args);
+}
+
+int main(int argc, char* argv[])
+{
+    const daq::ConfigProviderPtr configProvider = CmdLineArgsConfigProvider(argc, argv);
+    const daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().addConfigProvider(configProvider);
+    const daq::InstancePtr instance = daq::InstanceFromBuilder(instanceBuilder);
+
+  return 0;
+}
+----
+Python::
++
+[source,python]
+----
+import opendaq
+import sys
+
+def create_cmd_line_args_config_provider():
+  list = opendaq.List()
+  for arg in sys.argv[1:]:
+    list.push_back(arg)
+  return opendaq.CmdLineArgsConfigProvider(list)
+
+config_provider = create_cmd_line_args_config_provider()
+instance_builder = opendaq.InstanceBuilder()
+instance_builder.add_config_provider(config_provider)
+instance = instance_builder.build()
+----
+====

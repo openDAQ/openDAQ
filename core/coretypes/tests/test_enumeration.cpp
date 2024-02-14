@@ -96,9 +96,11 @@ TEST_F(EnumerationObjectTest, Basic)
 
     auto enumerationObj1 = Enumeration("enumType1", "one", manager);
     ASSERT_EQ(enumerationObj1.getValue(), "one");
+    ASSERT_EQ(enumerationObj1.getIntValue(), 1u);
 
     auto enumerationObj2 = Enumeration("enumType2", "one", manager);
     ASSERT_EQ(enumerationObj2.getValue(), "one");
+    ASSERT_EQ(enumerationObj2.getIntValue(), 1u);
 
     ASSERT_THROW(Enumeration("enumTypeOther", "one", manager), InvalidParameterException);
     ASSERT_THROW(Enumeration("enumType1", "foo", manager), InvalidParameterException);
@@ -178,12 +180,15 @@ TEST_F(EnumerationObjectTest, Assign)
 
     ASSERT_THROW(enumerationPtr = "two", InvalidParameterException);
     ASSERT_EQ(enumerationPtr.getValue(), "one");
+    ASSERT_EQ(enumerationPtr.getIntValue(), 1u);
 
     ASSERT_NO_THROW(enumerationPtr = "one");
     ASSERT_EQ(enumerationPtr.getValue(), "one");
+    ASSERT_EQ(enumerationPtr.getIntValue(), 1u);
 
     ASSERT_NO_THROW(enumerationPtr = "zero");
     ASSERT_EQ(enumerationPtr.getValue(), "zero");
+    ASSERT_EQ(enumerationPtr.getIntValue(), 0u);
 }
 
 TEST_F(EnumerationObjectTest, Conversion)

@@ -12,11 +12,9 @@ static constexpr char delimeter = '*';
 
 NativeStreamingSignalImpl::NativeStreamingSignalImpl(const ContextPtr& ctx,
                                                      const ComponentPtr& parent,
-                                                     const DataDescriptorPtr& descriptor,
                                                      const StringPtr& streamingId)
     : MirroredSignalBase(ctx, parent, createLocalId(streamingId), nullptr)
     , streamingId(streamingId)
-    , mirroredDataDescriptor(descriptor)
 {
 }
 
@@ -98,18 +96,33 @@ void NativeStreamingSignalImpl::assignDomainSignal(const SignalPtr& domainSignal
     mirroredDomainSignal = domainSignal;
 }
 
-void NativeStreamingSignalImpl::removeDomainSignal()
+ErrCode NativeStreamingSignalImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
-    std::scoped_lock lock(signalMutex);
-
-    mirroredDomainSignal = nullptr;
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = Super::DeserializeComponent(
+                       serialized,
+                       context,
+                       factoryCallback,
+                       [](const SerializedObjectPtr& serialized,
+                          const ComponentDeserializeContextPtr& deserializeContext,
+                          const StringPtr& className)
+                       {
+                           return createWithImplementation<ISignal, NativeStreamingSignalImpl>(
+                               deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId());
+                       }).detach();
+        });
 }
 
-void NativeStreamingSignalImpl::assignDescriptor(const DataDescriptorPtr& descriptor)
+void NativeStreamingSignalImpl::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                              const BaseObjectPtr& context,
+                                                              const FunctionPtr& factoryCallback)
 {
-    std::scoped_lock lock(signalMutex);
-
-    mirroredDataDescriptor = descriptor;
+    Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+    if (serializedObject.hasKey("dataDescriptor"))
+        mirroredDataDescriptor = serializedObject.readObject("dataDescriptor", context, factoryCallback);
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

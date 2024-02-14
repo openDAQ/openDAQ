@@ -15,16 +15,27 @@
  */
 
 #pragma once
-
-#include <coretypes/baseobject.h>
-#include <coretypes/stringobject.h>
 #include <opendaq/component.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-DECLARE_OPENDAQ_INTERFACE(IClientPrivate, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IComponentHolder, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC setRootDevice(IComponent* rootDevice) = 0;
+    virtual ErrCode INTERFACE_FUNC getLocalId(IString** localId) = 0;
+    virtual ErrCode INTERFACE_FUNC getParentGlobalId(IString** parentId) = 0;
+    virtual ErrCode INTERFACE_FUNC getComponent(IComponent** component) = 0;
 };
+
+OPENDAQ_DECLARE_CLASS_FACTORY(
+    LIBRARY_FACTORY, ComponentHolder,
+    IComponent*, component
+)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, ComponentHolderWithIds, IComponentHolder,
+    IString*, id,
+    IString*, parentGlobalId,
+    IComponent*, component
+)
 
 END_NAMESPACE_OPENDAQ

@@ -3,6 +3,7 @@ set(TEST_APP test_${MODULE_NAME})
 
 set(TEST_SOURCES test_ref_fb_module.cpp
                  test_app.cpp
+                 test_fb_trigger.cpp
 )
 
 add_executable(${TEST_APP} ${TEST_SOURCES}

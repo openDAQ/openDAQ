@@ -1,0 +1,18 @@
+{
+    "ModuleManager": 
+        {
+            "ModulesPath": ""
+        },
+    "Scheduler": 
+        {
+            "WorkerNnum": 0
+        },
+    "Logging": 
+        {
+            "GlobalLogLevel": 7
+        },
+    "RootDevice": 
+        {
+            "ConnectionString": "daqref://device1"
+        }
+}

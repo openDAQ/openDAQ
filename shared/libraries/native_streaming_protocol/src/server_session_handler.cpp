@@ -10,20 +10,16 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 using namespace daq::native_streaming;
 using namespace packet_streaming;
 
-ServerSessionHandler::ServerSessionHandler(const ContextPtr& context,
+ServerSessionHandler::ServerSessionHandler(const ContextPtr& daqContext,
                                            boost::asio::io_context& ioContext,
                                            SessionPtr session,
                                            OnSignalSubscriptionCallback signalSubscriptionHandler,
                                            OnSessionErrorCallback errorHandler)
-    : BaseSessionHandler(session, ioContext, errorHandler)
+    : BaseSessionHandler(daqContext, session, ioContext, errorHandler, "NativeProtocolServerSessionHandler")
     , signalSubscriptionHandler(signalSubscriptionHandler)
-    , logger(context.getLogger())
     , packetStreamingServer(10)
     , jsonSerializer(JsonSerializer(False))
 {
-    if (!this->logger.assigned())
-        throw ArgumentNullException("Logger must not be null");
-    loggerComponent = this->logger.getOrAddComponent("NativeStreamingServerSessionHandler");
 }
 
 ServerSessionHandler::~ServerSessionHandler()
@@ -48,55 +44,11 @@ void ServerSessionHandler::sendSignalAvailable(const SignalNumericIdType& signal
     // create write task for signal string ID itself
     tasks.push_back(createWriteStringTask(signalStringId.toStdString()));
 
-    if (signal.getDomainSignal().assigned())
-    {
-        auto domainSignalStringId = signal.getDomainSignal().getGlobalId();
-        // create write task for domain signal string ID size
-        auto domainSignalStringIdSize = domainSignalStringId.getLength();
-        if (domainSignalStringIdSize > signalStringIdMaxSize)
-            throw NativeStreamingProtocolException("Size of domain signal string id exceeds limit");
-        tasks.push_back(createWriteNumberTask<uint16_t>(static_cast<uint16_t>(domainSignalStringIdSize)));
-        // create write task for domain signal string ID itself
-        tasks.push_back(createWriteStringTask(domainSignalStringId.toStdString()));
-    }
-    else
-    {
-        // create write task for domain signal string ID size 0 - indicates absence on domain signal
-        auto domainSignalStringIdSize = 0;
-        tasks.push_back(createWriteNumberTask<uint16_t>(static_cast<uint16_t>(domainSignalStringIdSize)));
-    }
-
-    // create write tasks for signal properties
-    auto namePropertyValue = signal.getName();
-    if (namePropertyValue.getLength() > signalStringIdMaxSize)
-        throw NativeStreamingProtocolException("Size of property \"Name\" exceeds limit");
-    auto descriptionPropertyValue = signal.getDescription();
-    if (descriptionPropertyValue.getLength() > signalStringIdMaxSize)
-        throw NativeStreamingProtocolException("Size of property \"Description\" exceeds limit");
-    // create write task for property "Name" value string size
-    tasks.push_back(createWriteNumberTask<uint16_t>(static_cast<uint16_t>(namePropertyValue.getLength())));
-    // create write task for property "Name" value string itself
-    if (namePropertyValue.getLength() > 0)
-        tasks.push_back(createWriteStringTask(namePropertyValue.toStdString()));
-    // create write task for property "Description" value string size
-    tasks.push_back(createWriteNumberTask<uint16_t>(static_cast<uint16_t>(descriptionPropertyValue.getLength())));
-    // create write task for property "Description" value string itself
-    if (descriptionPropertyValue.getLength() > 0)
-        tasks.push_back(createWriteStringTask(descriptionPropertyValue.toStdString()));
-
-    // create write task for signal serialized descriptor
-    if (signal.getDescriptor().assigned())
-    {
-        jsonSerializer.reset();
-        signal.getDescriptor().serialize(jsonSerializer);
-        auto serializedDescriptor = jsonSerializer.getOutput();
-        LOG_T("Serialized descriptor:\n{}", serialized);
-        tasks.push_back(createWriteStringTask(serializedDescriptor.toStdString()));
-    }
-    else
-    {
-        LOG_W("Signal {} does not have descriptor", signalStringId);
-    }
+    jsonSerializer.reset();
+    signal.serialize(jsonSerializer);
+    auto serializedSignal = jsonSerializer.getOutput();
+    LOG_T("Serialized signal:\n{}", serializedSignal);
+    tasks.push_back(createWriteStringTask(serializedSignal.toStdString()));
 
     // create write task for transport header
     size_t payloadSize = calculatePayloadSize(tasks);
@@ -284,6 +236,16 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
             [this](const void* data, size_t size)
             {
                 return readSignalUnsubscribe(data, size);
+            },
+            payloadSize
+        );
+    }
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_CONFIGURATION_PACKET)
+    {
+        return ReadTask(
+            [this](const void* data, size_t size)
+            {
+                return readConfigurationPacket(data, size);
             },
             payloadSize
         );

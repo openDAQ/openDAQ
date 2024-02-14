@@ -11,8 +11,8 @@
 #include "opcuatms_client/objects/tms_client_property_object_factory.h"
 #include <coreobjects/property_object_class_factory.h>
 
-#include "coreobjects/callable_info_factory.h"
-#include "opendaq/context_factory.h"
+#include <coreobjects/callable_info_factory.h>
+#include <opendaq/context_factory.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -64,11 +64,22 @@ public:
         return object;
     }
 
+    StringPtr getLastMessage()
+    {
+        logger.flush();
+        auto sink = getPrivateSink();
+        auto newMessage = sink.waitForMessage(2000);
+        if (newMessage == 0)
+            return StringPtr("");
+        auto logMessage = sink.getLastMessage();
+        return logMessage;
+    }
+
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)
     {
         auto serverProp = std::make_shared<TmsServerPropertyObject>(prop, server, ctx, serverContext);
         auto nodeId = serverProp->registerOpcUaNode();
-        auto clientProp = TmsClientPropertyObject(NullContext(), clientContext, nodeId);
+        auto clientProp = TmsClientPropertyObject(NullContext(logger), clientContext, nodeId);
         return {serverProp, clientProp};
     }
 };
@@ -109,8 +120,9 @@ TEST_F(TmsPropertyObjectTest, PropertyValue)
     clientProp.setPropertyValue("Height", 100);
     ASSERT_EQ(clientProp.getPropertyValue("Height"), 100);
     ASSERT_EQ(prop.getPropertyValue("Height"), 100);
-
-    ASSERT_THROW(clientProp.setPropertyValue("Missing", 100), DaqException);
+    
+    ASSERT_ANY_THROW(clientProp.setPropertyValue("Missing", 100));
+    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"Missing\" on OpcUA client property object: Property not found");
 }
 
 TEST_F(TmsPropertyObjectTest, PropertyValueRole)
@@ -123,7 +135,8 @@ TEST_F(TmsPropertyObjectTest, PropertyValueRole)
     ASSERT_EQ(clientProp.getPropertyValue("Role"), 1);
     ASSERT_EQ(prop.getPropertyValue("Role"), 1);
     
-    ASSERT_THROW(clientProp.setPropertyValue("Role", 2), DaqException);
+    ASSERT_NO_THROW(clientProp.setPropertyValue("Role", 2));
+    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"Role\" on OpcUA client property object: Writting property value");
 }
 
 TEST_F(TmsPropertyObjectTest, getPropertySelectionValue)

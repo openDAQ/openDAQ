@@ -15,19 +15,19 @@
  */
 
 #pragma once
-#include <config_protocol/component_holder.h>
+#include <opendaq/component_holder.h>
 #include <opendaq/component_ptr.h>
 
-namespace daq::config_protocol
-{
+BEGIN_NAMESPACE_OPENDAQ
 
 class ComponentHolderImpl : public ImplementationOf<IComponentHolder, ISerializable>
 {
 public:
-    ComponentHolderImpl(const StringPtr& localId, const ComponentPtr& component);
+    ComponentHolderImpl(const StringPtr& localId, const StringPtr& parentGlobalId, const ComponentPtr& component);
     ComponentHolderImpl(const ComponentPtr& component);
 
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
+    ErrCode INTERFACE_FUNC getParentGlobalId(IString** parentId) override;
     ErrCode INTERFACE_FUNC getComponent(IComponent** component) override;
 
     // ISerializable
@@ -38,10 +38,12 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 private:
+    static StringPtr getParentIdOrNull(const ComponentPtr& component);
     StringPtr localId;
+    StringPtr parentId;
     ComponentPtr component;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ComponentHolderImpl)
 
-}
+END_NAMESPACE_OPENDAQ

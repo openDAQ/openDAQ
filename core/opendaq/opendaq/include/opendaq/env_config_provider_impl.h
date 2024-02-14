@@ -15,20 +15,20 @@
  */
 
 #pragma once
-#include <config_protocol/component_holder_impl.h>
-#include <config_protocol/component_holder_ptr.h>
+#include <opendaq/config_provider.h>
+#include <rapidjson/document.h>
+#include <coretypes/baseobject_factory.h>
+#include <opendaq/base_config_provider_impl.h>
 
-namespace daq::config_protocol
+BEGIN_NAMESPACE_OPENDAQ
+
+class EnvConfigProviderImpl final : public BaseConfigProviderImpl
 {
+public:
+    ErrCode INTERFACE_FUNC populateOptions(IDict* options) override;
 
-inline ComponentHolderPtr ComponentHolder(const StringPtr& id, const ComponentPtr& component)
-{
-    return createWithImplementation<IComponentHolder, ComponentHolderImpl>(id, component);
-}
+private:
+    static ListPtr<IString> GetEnvValues();
+};
 
-inline ComponentHolderPtr ComponentHolder(const ComponentPtr& component)
-{
-    return createWithImplementation<IComponentHolder, ComponentHolderImpl>(component);
-}
-
-}
+END_NAMESPACE_OPENDAQ

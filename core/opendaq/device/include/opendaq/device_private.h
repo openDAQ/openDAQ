@@ -31,6 +31,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevicePrivate, IBaseObject)
     virtual ErrCode INTERFACE_FUNC addStreamingOption(IStreamingInfo* info) = 0;
     virtual ErrCode INTERFACE_FUNC removeStreamingOption(IString* protocolId) = 0;
     virtual ErrCode INTERFACE_FUNC getStreamingOptions(IList** streamingOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC setAsRoot() = 0;
 };
 /*!@}*/
 

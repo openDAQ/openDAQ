@@ -18,6 +18,7 @@
 
 #include <opendaq/instance_factory.h>
 #include <opendaq/context_factory.h>
+#include <opendaq/config_provider_factory.h>
 
 #include <opendaq/channel_ptr.h>
 #include <opendaq/function_block_ptr.h>
@@ -48,6 +49,8 @@
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/removable_ptr.h>
+#include <opendaq/component_status_container_ptr.h>
+#include <opendaq/component_status_container_private_ptr.h>
 
 #include <opendaq/data_descriptor_factory.h>
 

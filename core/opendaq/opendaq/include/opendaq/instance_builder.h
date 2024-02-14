@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/stringobject.h>
 #include <opendaq/instance.h>
+#include <opendaq/config_provider.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -72,6 +73,12 @@ BEGIN_NAMESPACE_OPENDAQ
  *   When configured, the `Default root device local ID` and `Default root device info` will be ignored.
  *
  * - **Sink log level:** The sink logger level of the default Instance logger. This level is ignored if a custom logger has been configured.
+ * 
+ * - **Config provider:** The config provider is expanding the local options of instance builder from json file or command lines.
+ *   If value was set before, provider will override this with new one.
+ * 
+ * - **Module options:** Local options dictionary of instance builder has `modules` key which contains custom values for modules.
+ *   By default this dictionary is empty, but can be populated from json file, env variables or command line arguments.
  */
 DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 {
@@ -80,6 +87,13 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * @param[out] instance The built Instance.
      */
     virtual ErrCode INTERFACE_FUNC build(IInstance** instance) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Populates internal options dictionary with values from set config provider
+     * @param sink The configuration provider
+     */
+    virtual ErrCode INTERFACE_FUNC addConfigProvider(IConfigProvider* configProvider) = 0;
 
     // [returnSelf]
     /*!
@@ -239,6 +253,13 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * @param defaultDevice The default device info of Instance. Returns nullptr, if default device info has not been set.
      */
     virtual ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo) = 0;
+
+    // [templateType(options, IString, IBaseObject)]
+    /*!
+     * @brief Gets the dictionary of instance options
+     * @param[out] options The dictionary of instance options
+     */
+    virtual ErrCode INTERFACE_FUNC getOptions(IDict** options) = 0;
 };
 /*!@}*/
 

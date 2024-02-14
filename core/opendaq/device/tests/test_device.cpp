@@ -204,7 +204,7 @@ TEST_F(DeviceTest, SerializeAndDeserialize)
 
     const auto deserializer = daq::JsonDeserializer();
 
-    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, "dev");
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "dev");
 
     const daq::DevicePtr newDev = deserializer.deserialize(str1, deserializeContext, nullptr);
 
@@ -213,4 +213,6 @@ TEST_F(DeviceTest, SerializeAndDeserialize)
     const auto str2 = serializer2.getOutput();
 
     ASSERT_EQ(str1, str2);
+
+    ASSERT_EQ(newDev.getDevices().getElementInterfaceId(), daq::IDevice::Id);
 }

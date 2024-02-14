@@ -38,10 +38,21 @@
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/tags_impl.h>
 #include <cctype>
+#include <opendaq/ids_parser.h>
+#include <opendaq/component_status_container_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
+
+// https://developercommunity.visualstudio.com/t/inline-static-destructors-are-called-multiple-time/1157794
+#ifdef _MSC_VER
+#if _MSC_VER <= 1927
+#define WORKAROUND_MEMBER_INLINE_VARIABLE
+#endif
+#endif
+
+#define COMPONENT_AVAILABLE_ATTRIBUTES {"Name", "Description", "Visible", "Active"}
 
 template <class Intf = IComponent, class ... Intfs>
 class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, IDeserializeComponent, Intfs ...>
@@ -54,6 +65,7 @@ public:
                   const StringPtr& localId,
                   const StringPtr& className = nullptr);
 
+    // IComponent
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getGlobalId(IString** globalId) override;
     ErrCode INTERFACE_FUNC getActive(Bool* active) override;
@@ -68,6 +80,8 @@ public:
     ErrCode INTERFACE_FUNC getVisible(Bool* visible) override;
     virtual ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
     ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) override;
+    ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
+    ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
@@ -77,6 +91,7 @@ public:
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
     ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) override;
 
+    // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
     ErrCode INTERFACE_FUNC isRemoved(Bool* removed) override;
 
@@ -110,12 +125,18 @@ protected:
     StringPtr globalId;
     EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
     
-    inline static std::unordered_set<std::string> componentAvailableAttributes = {"Name", "Description", "Visible", "Active"};
+#ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
+    static std::unordered_set<std::string> componentAvailableAttributes;
+#else
+    inline static std::unordered_set<std::string> componentAvailableAttributes = COMPONENT_AVAILABLE_ATTRIBUTES;
+#endif
+
     std::unordered_set<std::string> lockedAttributes;
     bool visible;
     bool active;
     StringPtr name;
     StringPtr description;
+    ComponentStatusContainerPtr statusContainer;
 
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
     virtual int getSerializeFlags();
@@ -137,10 +158,16 @@ protected:
                                               CreateComponentCallback&& createComponentCallback);
 
     virtual BaseObjectPtr getDeserializedParameter(const StringPtr& parameter);
+    ComponentPtr findComponentInternal(const ComponentPtr& component, const std::string& id);
 
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
 };
+
+#ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
+template <class Intf, class... Intfs>
+std::unordered_set<std::string> ComponentImpl<Intf, Intfs...>::componentAvailableAttributes = COMPONENT_AVAILABLE_ATTRIBUTES;
+#endif
 
 template <class Intf, class ... Intfs>
 ComponentImpl<Intf, Intfs...>::ComponentImpl(
@@ -165,6 +192,12 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
       , active(true)
       , name(localId)
       , description("")
+      , statusContainer(createWithImplementation<IComponentStatusContainer, ComponentStatusContainerImpl>(
+          [&](const CoreEventArgsPtr& args)
+          {
+              if (!this->coreEventMuted)
+                  triggerCoreEvent(args);
+          }))
 {
     if (!localId.assigned() || localId.toStdString().empty())
         throw GeneralErrorException("Local id not assigned");
@@ -245,7 +278,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-            core_event_ids::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Active"}, {"Active", this->active}}));
+            CoreEventId::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Active"}, {"Active", this->active}}));
         triggerCoreEvent(args);
     }
 
@@ -322,7 +355,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-            core_event_ids::AttributeChanged,
+            CoreEventId::AttributeChanged,
             Dict<IString, IBaseObject>({{"AttributeName", "Name"}, {"Name", this->name}}));
         triggerCoreEvent(args);
     }
@@ -370,7 +403,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-            core_event_ids::AttributeChanged,
+            CoreEventId::AttributeChanged,
             Dict<IString, IBaseObject>({{"AttributeName", "Description"}, {"Description", this->description}}));
         triggerCoreEvent(args);
     }
@@ -425,9 +458,19 @@ ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-            core_event_ids::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Visible"}, {"Visible", this->visible}}));
+            CoreEventId::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Visible"}, {"Visible", this->visible}}));
         triggerCoreEvent(args);
     }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getStatusContainer(IComponentStatusContainer** statusContainer)
+{
+    OPENDAQ_PARAM_NOT_NULL(statusContainer);
+
+    *statusContainer = this->statusContainer.addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -537,6 +580,21 @@ ErrCode ComponentImpl<Intf, Intfs...>::getOnComponentCoreEvent(IEvent** event)
     return OPENDAQ_SUCCESS;
 }
 
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::findComponent(IString* id, IComponent** outComponent)
+{
+    OPENDAQ_PARAM_NOT_NULL(outComponent);
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    return daqTry(
+        [&]()
+        {
+            *outComponent = findComponentInternal(this->template borrowPtr<ComponentPtr>(),StringPtr(id)).detach();
+
+            return *outComponent == nullptr ? OPENDAQ_NOTFOUND : OPENDAQ_SUCCESS;
+        });
+}
+
 template<class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs ...>::remove()
 {
@@ -589,7 +647,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
 
             if (!muted && this->coreEvent.assigned())
             {
-                const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(core_event_ids::ComponentUpdateEnd, Dict<IString, IBaseObject>());
+                const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::ComponentUpdateEnd, Dict<IString, IBaseObject>());
                 triggerCoreEvent(args);
                 propInternalPtr.enableCoreEventTrigger();
             }
@@ -844,12 +902,46 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         serializer.key("tags");
         tags.serialize(serializer);
     }
+
+    if (statusContainer.getStatuses().getCount() > 0)
+    {
+        serializer.key("statuses");
+        statusContainer.serialize(serializer);
+    }
 }
 
 template <class Intf, class... Intfs>
 BaseObjectPtr ComponentImpl<Intf, Intfs...>::getDeserializedParameter(const StringPtr&)
 {
     return {};
+}
+
+template <class Intf, class ... Intfs>
+ComponentPtr ComponentImpl<Intf, Intfs...>::findComponentInternal(const ComponentPtr& component, const std::string& id)
+{
+    if (id == "")
+        return component;
+
+    std::string startStr;
+    std::string restStr;
+    const bool hasSubComponentStr = IdsParser::splitRelativeId(id, startStr, restStr);
+    if (!hasSubComponentStr)
+        startStr = id;
+
+    const auto folder = component.asPtrOrNull<IFolder>(true);
+    if (!folder.assigned())
+        return nullptr;
+
+    if (folder.hasItem(startStr))
+    {
+        const auto subComponent = folder.getItem(startStr);
+        if (hasSubComponentStr)
+            return findComponentInternal(subComponent, restStr);
+
+        return subComponent;
+    }
+
+    return nullptr;
 }
 
 template <class Intf, class ... Intfs>
@@ -875,7 +967,7 @@ void ComponentImpl<Intf, Intfs...>::triggerCoreEvent(const CoreEventArgsPtr& arg
 template <class Intf, class ... Intfs>
 void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                                             const BaseObjectPtr& context,
-                                                            const FunctionPtr& factoryCallback)
+                                                            const FunctionPtr& /*factoryCallback*/)
 {
     if (serializedObject.hasKey("active"))
         active = serializedObject.readBool("active");
@@ -890,7 +982,60 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
         name = serializedObject.readString("name");
 
     if (serializedObject.hasKey("tags"))
-        tags = serializedObject.readObject("tags", context, factoryCallback);
+        tags = serializedObject.readObject(
+            "tags",
+            context,
+            [this](const StringPtr& typeId,
+                   const SerializedObjectPtr& object,
+                   const BaseObjectPtr& context,
+                   const FunctionPtr& factoryCallback) -> BaseObjectPtr
+            {
+                if (typeId == TagsImpl::SerializeId())
+                {
+                    ObjectPtr<ITagsPrivate> tags;
+                    auto errCode = createObject<ITagsPrivate, TagsImpl>(&tags,
+                        [this](const CoreEventArgsPtr& args)
+                        {
+                            if (!this->coreEventMuted)
+                                triggerCoreEvent(args);
+                        });
+                    if (OPENDAQ_FAILED(errCode))
+                        return errCode;
+
+                    const auto list = object.readList<IString>("list", context, factoryCallback);
+                    for (const auto& tag : list)
+                        tags->add(tag);
+
+                    return tags;
+                }
+                return nullptr;
+            });
+
+    if (serializedObject.hasKey("statuses"))
+        statusContainer = serializedObject.readObject(
+            "statuses",
+            context,
+            [this](const StringPtr& typeId,
+                   const SerializedObjectPtr& object,
+                   const BaseObjectPtr& context,
+                   const FunctionPtr& factoryCallback) -> BaseObjectPtr
+            {
+                if (typeId == ComponentStatusContainerImpl::SerializeId())
+                {
+                    auto container = createWithImplementation<IComponentStatusContainerPrivate, ComponentStatusContainerImpl>(
+                        [this](const CoreEventArgsPtr& args)
+                        {
+                            if (!this->coreEventMuted)
+                                triggerCoreEvent(args);
+                        });
+
+                    DictPtr<IString, IEnumeration> statuses = object.readObject("statuses", context, factoryCallback);
+                    for (const auto& [name, value] : statuses)
+                        container->addStatus(name, value);
+                    return container;
+                }
+                return nullptr;
+            });
 }
 
 using StandardComponent = ComponentImpl<>;

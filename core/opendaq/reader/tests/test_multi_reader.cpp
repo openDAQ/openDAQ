@@ -243,7 +243,7 @@ protected:
 
 static void zeroOutPacketData(const DataPacketPtr& packet)
 {
-    memset(packet.getData(), 0, packet.getSampleCount() * packet.getSampleMemSize());
+    memset(packet.getRawData(), 0, packet.getRawDataSize());
 }
 
 static DataPacketPtr createPacket(daq::SizeT numSamples, daq::Int offset, const ReadSignal& read)
@@ -337,7 +337,7 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0SkipSamples)
 
     SizeT skip = 100;
     multi.skipSamples(&skip);
-    ASSERT_EQ(skip, 100);
+    ASSERT_EQ(skip, 100u);
 
     available = multi.getAvailableCount();
     ASSERT_EQ(available, 346u);
@@ -367,10 +367,68 @@ TEST_F(MultiReaderTest, SignalStartDomainFrom0SkipSamples)
 
     skip = 1000;
     multi.skipSamples(&skip);
-    ASSERT_EQ(skip, 341);
+    ASSERT_EQ(skip, 341u);
 
     available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
+}
+
+TEST_F(MultiReaderTest, IsSynchronized)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(3);
+
+    auto& sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00"));
+    auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
+
+    auto multi = MultiReader(signalsToList());
+
+    ASSERT_FALSE(multi.getIsSynchronized());
+
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    ASSERT_FALSE(multi.getIsSynchronized());
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    sig0.createAndSendPacket(1);
+    sig1.createAndSendPacket(1);
+    sig2.createAndSendPacket(1);
+
+    sig0.createAndSendPacket(2);
+    sig1.createAndSendPacket(2);
+    sig2.createAndSendPacket(2);
+
+    ASSERT_FALSE(multi.getIsSynchronized());
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 446u);
+
+    ASSERT_TRUE(multi.getIsSynchronized());
+
+    constexpr const SizeT SAMPLES = 5u;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+
+    SizeT count{SAMPLES};
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    ASSERT_EQ(count, SAMPLES);
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 441u);
+
+    ASSERT_TRUE(multi.getIsSynchronized());
 }
 
 TEST_F(MultiReaderTest, SignalStartDomainFrom0Raw)
@@ -1423,4 +1481,50 @@ TEST_F(MultiReaderTest, ReuseReader)
 
     ASSERT_EQ(samples, 1u);
     ASSERT_THAT(values, ElementsAreArray(oldReaderNextValues));
+}
+
+TEST_F(MultiReaderTest, StartOnFullUnitOfDomain)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(3);
+
+    auto& sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00"));
+    auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
+
+    auto multi = MultiReaderEx(signalsToList(), ReadTimeoutType::All, true);
+
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    for (Int i = 0; i < 5; i++)
+    {
+        sig0.createAndSendPacket(i);
+        sig1.createAndSendPacket(i);
+        sig2.createAndSendPacket(i);
+    }
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 615u);
+
+    constexpr const SizeT SAMPLES = 5u;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+
+    SizeT count{SAMPLES};
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    ASSERT_EQ(count, SAMPLES);
+
+    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};
+    printData<std::chrono::microseconds>(SAMPLES, time, values, domain);
+
+    ASSERT_THAT(time[1], ElementsAreArray(time[0]));
+    ASSERT_THAT(time[2], ElementsAreArray(time[0]));
 }

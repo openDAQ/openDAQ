@@ -7,12 +7,12 @@ int main(int /*argc*/, const char* /*argv*/[])
 {
     using namespace std::chrono_literals;
 
-    const InstancePtr instance = Instance();
-
-    instance.setRootDevice("daqref://device1");
+    const StringPtr configPath = "/tmp/opendaq-config.json";
+    const ConfigProviderPtr configProvider = JsonConfigProvider(configPath);
+    const InstanceBuilderPtr instanceBuilder = InstanceBuilder().addConfigProvider(configProvider);
+    const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
 
     instance.addStandardServers();
-
 
     while (true)
     {

@@ -25,21 +25,22 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-namespace core_event_ids
+enum class CoreEventId : uint32_t
 {
-    constexpr Int PropertyValueChanged = 0;
-    constexpr Int PropertyObjectUpdateEnd = 10;
-    constexpr Int PropertyAdded = 20;
-    constexpr Int PropertyRemoved = 30;
-    constexpr Int ComponentAdded = 40;
-    constexpr Int ComponentRemoved = 50;
-    constexpr Int SignalConnected = 60;
-    constexpr Int SignalDisconnected = 70;
-    constexpr Int DataDescriptorChanged = 80;
-    constexpr Int ComponentUpdateEnd = 90;
-    constexpr Int AttributeChanged = 100;
-    constexpr Int TagsChanged = 110;
-}
+    PropertyValueChanged = 0,
+    PropertyObjectUpdateEnd = 10,
+    PropertyAdded = 20,
+    PropertyRemoved = 30,
+    ComponentAdded = 40,
+    ComponentRemoved = 50,
+    SignalConnected = 60,
+    SignalDisconnected = 70,
+    DataDescriptorChanged = 80,
+    ComponentUpdateEnd = 90,
+    AttributeChanged = 100,
+    TagsChanged = 110,
+    StatusChanged = 120
+};
 
 /*!@}*/
 

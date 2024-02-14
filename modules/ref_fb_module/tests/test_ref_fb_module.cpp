@@ -1,14 +1,14 @@
-#include <testutils/testutils.h>
-#include <ref_fb_module/module_dll.h>
-#include <ref_fb_module/version.h>
-#include <opendaq/search_filter_factory.h>
-#include <opendaq/module_ptr.h>
-#include <opendaq/signal_factory.h>
 #include <coretypes/common.h>
 #include <opendaq/context_factory.h>
+#include <opendaq/module_ptr.h>
 #include <opendaq/scheduler_factory.h>
-#include "testutils/memcheck_listener.h"
+#include <opendaq/search_filter_factory.h>
+#include <opendaq/signal_factory.h>
+#include <ref_fb_module/module_dll.h>
+#include <ref_fb_module/version.h>
+#include <testutils/testutils.h>
 #include <thread>
+#include "testutils/memcheck_listener.h"
 
 using RefFbModuleTest = testing::Test;
 using namespace daq;
@@ -101,7 +101,7 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IFunctionBlockType> functionBlockTypes;
     ASSERT_NO_THROW(functionBlockTypes = module.getAvailableFunctionBlockTypes());
     ASSERT_TRUE(functionBlockTypes.assigned());
-    ASSERT_EQ(functionBlockTypes.getCount(), 5u);
+    ASSERT_EQ(functionBlockTypes.getCount(), 6u);
 
     ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_renderer"));
     ASSERT_EQ("ref_fb_module_renderer", functionBlockTypes.get("ref_fb_module_renderer").getId());
@@ -117,6 +117,9 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
 
     ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_classifier"));
     ASSERT_EQ("ref_fb_module_classifier", functionBlockTypes.get("ref_fb_module_classifier").getId());
+
+    ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_trigger"));
+    ASSERT_EQ("ref_fb_module_trigger", functionBlockTypes.get("ref_fb_module_trigger").getId());
 }
 
 TEST_F(RefFbModuleTest, CreateFunctionBlockNotFound)
@@ -135,7 +138,7 @@ TEST_F(RefFbModuleTest, DISABLED_CreateFunctionBlockRenderer)
     auto fb = module.createFunctionBlock("ref_fb_module_renderer", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 
-//    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 }
 
 TEST_F(RefFbModuleTest, CreateFunctionBlockStatistics)
@@ -159,5 +162,13 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockClassifier)
     const auto module = CreateModule();
 
     auto fb = module.createFunctionBlock("ref_fb_module_classifier", nullptr, "id");
+    ASSERT_TRUE(fb.assigned());
+}
+
+TEST_F(RefFbModuleTest, createFunctionBlockTrigger)
+{
+    const auto module = CreateModule();
+
+    auto fb = module.createFunctionBlock("ref_fb_module_trigger", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
 }

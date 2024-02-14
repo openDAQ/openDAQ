@@ -162,6 +162,16 @@ public:
     {
         return OPENDAQ_SUCCESS;
     }
+
+    ErrCode INTERFACE_FUNC getSampleSize(SizeT* size) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSize) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
 };
 
 TEST_F(SignalTest, IsComponent)
@@ -450,10 +460,12 @@ TEST_F(SignalTest, SerializeAndDeserialize)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
     const auto domainSignal = Signal(NullContext(), nullptr, "domainSig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
 
     signal.setName("sig_name");
     signal.setDescription("sig_description");
     signal.setActive(false);
+    signal.setDescriptor(descriptor);
 
     domainSignal.setName("domainSig_name");
     domainSignal.setDescription("domainSig_description");
@@ -465,7 +477,7 @@ TEST_F(SignalTest, SerializeAndDeserialize)
     const auto str1 = serializer.getOutput();
 
     const auto deserializer = JsonDeserializer();
-    const auto deserializeContext = ComponentDeserializeContext(daq::NullContext(), nullptr, "sig");
+    const auto deserializeContext = ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "sig");
 
     const SignalConfigPtr newSignal = deserializer.deserialize(str1, deserializeContext, nullptr);
 
@@ -476,6 +488,7 @@ TEST_F(SignalTest, SerializeAndDeserialize)
     ASSERT_EQ(newSignal.getName(), signal.getName());
     ASSERT_EQ(newSignal.getDescription(), signal.getDescription());
     ASSERT_EQ(newSignal.getActive(), signal.getActive());
+    ASSERT_EQ(newSignal.getDescriptor(), signal.getDescriptor());
 
     const auto serializer2 = JsonSerializer(True);
     newSignal.serialize(serializer2);

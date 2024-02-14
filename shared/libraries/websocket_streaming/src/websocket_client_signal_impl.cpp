@@ -75,7 +75,7 @@ Bool WebsocketClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
     return True;
 }
 
-void WebsocketClientSignalImpl::assignDomainSignal(const DataDescriptorPtr& domainDescriptor)
+void WebsocketClientSignalImpl::createAndAssignDomainSignal(const DataDescriptorPtr& domainDescriptor)
 {
     std::scoped_lock lock(signalMutex);
 

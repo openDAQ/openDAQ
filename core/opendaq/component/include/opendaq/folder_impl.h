@@ -209,7 +209,7 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
     {
         const auto component = ComponentPtr::Borrow(item);
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::ComponentAdded,
+                CoreEventId::ComponentAdded,
                 Dict<IString, IBaseObject>({{"Component", component}}));
          this->triggerCoreEvent(args);
          component.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
@@ -244,7 +244,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItem(IComponent* item)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::ComponentRemoved,
+                CoreEventId::ComponentRemoved,
                 Dict<IString, IBaseObject>({{"Id", str}}));
         
         this->triggerCoreEvent(args);
@@ -279,7 +279,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalId(IString* localId)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::ComponentRemoved,
+                CoreEventId::ComponentRemoved,
                 Dict<IString, IBaseObject>({{"Id", str}}));
         
         this->triggerCoreEvent(args);
@@ -366,8 +366,28 @@ BaseObjectPtr FolderImpl<Intf, Intfs...>::DeserializeFolder(const SerializedObje
         factoryCallback,
         [](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
         {
-            return createWithImplementation<Interface, Implementation>(
-                deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className);
+            IntfID intfID;
+            const auto errCode = deserializeContext->getIntfID(&intfID);
+            if (errCode == OPENDAQ_SUCCESS)
+            {
+                return createWithImplementation<Interface, Implementation>(
+                    intfID,
+                    deserializeContext.getContext(),
+                    deserializeContext.getParent(),
+                    deserializeContext.getLocalId(),
+                    className);
+            }
+            if (errCode == OPENDAQ_NOTFOUND)
+            {
+                return createWithImplementation<Interface, Implementation>(
+                    deserializeContext.getContext(),
+                    deserializeContext.getParent(),
+                    deserializeContext.getLocalId(),
+                    className);
+            }
+            checkErrorInfo(errCode);
+
+            return typename InterfaceToSmartPtr<Interface>::SmartPtr();
         });
 }
 
@@ -383,7 +403,7 @@ void FolderImpl<Intf, Intfs...>::clearInternal()
         if (!this->coreEventMuted && this->coreEvent.assigned())
         {
             const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::ComponentRemoved,
+                CoreEventId::ComponentRemoved,
                 Dict<IString, IBaseObject>({{"Id", item.second.getLocalId()}}));
             
             this->triggerCoreEvent(args);
@@ -447,7 +467,7 @@ void FolderImpl<Intf, Intfs...>::deserializeCustomObjectValues(
         const auto keys = items.getKeys();
         for (const auto& key: keys)
         {
-            const auto newDeserializeContext = deserializeContext.clone(this->template borrowPtr<ComponentPtr>(), key);
+            const auto newDeserializeContext = deserializeContext.clone(this->template borrowPtr<ComponentPtr>(), key, nullptr);
             const auto item = items.readObject(key, newDeserializeContext, factoryCallback);
 
             const auto comp = item.template asPtr<IComponent>(true);

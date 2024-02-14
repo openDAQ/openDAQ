@@ -1,8 +1,10 @@
 set(MODULE_NAME native_streaming_protocol)
 set(TEST_APP test_${MODULE_NAME})
 
-set(TEST_SOURCES test_protocol.cpp
-                 test_types.cpp
+set(TEST_SOURCES test_types.cpp
+                 test_base.h
+                 test_config_packets.cpp
+                 test_streaming_protocol.cpp
 )
 
 add_executable(${TEST_APP} test_app.cpp
@@ -12,6 +14,7 @@ add_executable(${TEST_APP} test_app.cpp
 set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)
 
 target_link_libraries(${TEST_APP} PRIVATE ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
+                                          daq::config_protocol
                                           daq::test_utils
 					  daq::opendaq
 					  daq::opendaq_mocks

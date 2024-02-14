@@ -12,20 +12,34 @@ using namespace daq::opcua;
 
 template <class Impl>
 ErrCode TmsClientComponentBaseImpl<Impl>::getActive(Bool* active)
-{
-    return daqTry([&]() {
+{   
+    try
+    {
         *active = this->template readValue<IBoolean>("Active");
-        return OPENDAQ_SUCCESS;
-    });
+    }
+    catch(...)
+    {
+        *active = true;
+        auto loggerComponent = getLoggerComponent();
+        LOG_D("Failed to get active of component \"{}\". The default value was returned \"true\"", this->globalId);
+    }
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Impl>
 ErrCode TmsClientComponentBaseImpl<Impl>::setActive(Bool active)
 {
-    return daqTry([&]() {
+    try
+    {
         this->template writeValue<IBoolean>("Active", active);
         return OPENDAQ_SUCCESS;
-    });
+    }
+    catch(...)
+    {
+        auto loggerComponent = getLoggerComponent();
+        LOG_D("Failed to set active of component \"{}\"", this->globalId);
+    }
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>
@@ -38,13 +52,13 @@ void TmsClientComponentBaseImpl<Impl>::initComponent()
     }
     catch([[maybe_unused]] const std::exception& e)
     {
-        const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
-        LOG_W("OPC UA Component {} failed to initialize: {}", this->localId, e.what());
+        const auto loggerComponent = getLoggerComponent();
+        LOG_D("OpcUA Component {} failed to initialize: {}", this->globalId, e.what());
     }
     catch(...)
     {
-        const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
-        LOG_W("OPC UA Component {} failed to initialize", this->localId);
+        const auto loggerComponent = getLoggerComponent();
+        LOG_D("OpcUA Component {} failed to initialize", this->globalId);
     }
 }
 
@@ -53,12 +67,19 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
 
-    return daqTry([&]
+    StringPtr nameObj;
+    try
     {
-        StringPtr nameObj =this->client->readDisplayName(this->nodeId);
-        *name = nameObj.detach();
-        return OPENDAQ_SUCCESS;
-    });
+        nameObj = this->client->readDisplayName(this->nodeId);
+    }
+    catch(...)
+    {
+        nameObj = this->localId;
+        auto loggerComponent = getLoggerComponent();
+        LOG_D("Failed to get name of component \"{}\". The default value was returned \"{}\" (local id)", this->globalId, nameObj);
+    }
+    *name = nameObj.detach();
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Impl>
@@ -74,8 +95,8 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setName(IString* name)
     }
     catch(...)
     {
-        auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientComponent");
-        LOG_W("Failed to set name of component \"{}\"", this->localId);
+        auto loggerComponent = getLoggerComponent();
+        LOG_D("Failed to set name of component \"{}\"", this->globalId);
     }
 
     return OPENDAQ_IGNORED;
@@ -86,12 +107,18 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getDescription(IString** description)
 {
     OPENDAQ_PARAM_NOT_NULL(description);
 
-    return daqTry([&]
+    try
     {
         StringPtr descObj = this->client->readDescription(this->nodeId);
         *description = descObj.detach();
-        return OPENDAQ_SUCCESS;
-    });
+    }
+    catch(...)
+    {
+        *description = StringPtr("").detach();
+        auto loggerComponent = getLoggerComponent();
+        LOG_D("Failed to get description of component \"{}\". The default value was returned \"\"", this->globalId);
+    }
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Impl>
@@ -107,8 +134,8 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setDescription(IString* description)
     }
     catch(...)
     {
-        auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientComponent");
-        LOG_W("Failed to set description of component \"{}\"", this->localId);
+        auto loggerComponent = getLoggerComponent();
+        LOG_D("Failed to set description of component \"{}\"", this->globalId);
     }
 
     return OPENDAQ_IGNORED;
@@ -124,8 +151,8 @@ ErrCode TmsClientComponentBaseImpl<Impl>::getVisible(Bool* visible)
     catch(...)
     {
         *visible = true;
-        const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
-        LOG_D("OPC UA Component {} failed to fetch \"Visible\" state.", this->localId);
+        const auto loggerComponent = getLoggerComponent();
+        LOG_D("OpcUA Component {} failed to fetch \"Visible\" state. The default value was returned \"true\"", this->globalId);
     }
 
     return OPENDAQ_SUCCESS;
@@ -141,13 +168,18 @@ ErrCode TmsClientComponentBaseImpl<Impl>::setVisible(Bool visible)
     }
     catch (...)
     {
-        const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClient");
-        LOG_D("OPC UA Component {} failed to set \"Active\" state.", this->localId);
+        const auto loggerComponent = getLoggerComponent();
+        LOG_D("OpcUA Component {} failed to set \"Active\" state.", this->globalId);
     }
 
     return OPENDAQ_IGNORED;
 }
 
+template <class Impl>
+LoggerComponentPtr TmsClientComponentBaseImpl<Impl>::getLoggerComponent()
+{
+    return this->daqContext.getLogger().getOrAddComponent("OpcUaClientComponent"); 
+}
 template class TmsClientComponentBaseImpl<ComponentImpl<>>;
 template class TmsClientComponentBaseImpl<FolderImpl<IFolderConfig>>;
 template class TmsClientComponentBaseImpl<IoFolderImpl<>>;

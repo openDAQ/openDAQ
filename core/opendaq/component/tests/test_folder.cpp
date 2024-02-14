@@ -216,7 +216,7 @@ TEST_F(FolderTest, SerializeAndDeserialize)
 
     const auto deserializer = daq::JsonDeserializer();
 
-    const auto deserializeContext = daq::ComponentDeserializeContext(ctx, nullptr, "folder");
+    const auto deserializeContext = daq::ComponentDeserializeContext(ctx, nullptr, nullptr, "folder");
 
     const daq::FolderPtr newFolder = deserializer.deserialize(str1, deserializeContext, nullptr);
 
@@ -227,6 +227,8 @@ TEST_F(FolderTest, SerializeAndDeserialize)
     ASSERT_EQ(newFolder.getItems()[0].getName(), component.getName());
     ASSERT_EQ(newFolder.getItems()[0].getDescription(), component.getDescription());
     ASSERT_EQ(newFolder.getItems()[0].getTags(), component.getTags());
+
+    ASSERT_EQ(newFolder.getItems().getElementInterfaceId(), daq::IComponent::Id);
 
     const auto serializer2 = daq::JsonSerializer(daq::True);
     newFolder.serialize(serializer2);

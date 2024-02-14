@@ -41,8 +41,6 @@ public:
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
     ErrCode INTERFACE_FUNC getServers(IList** servers) override;
 
-    ErrCode INTERFACE_FUNC findComponent(IComponent* component, IString* id, IComponent** outComponent) override;
-
     ErrCode INTERFACE_FUNC getRootDevice(IDevice** rootDevice) override;
     ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString, IPropertyObject* config = nullptr) override;
 
@@ -96,6 +94,8 @@ public:
     ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
     ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) override;
+    ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
+    ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
 
     // IFolder
 
@@ -144,7 +144,6 @@ public:
 
 private:
     DevicePtr rootDevice;
-    DevicePtr defaultRootDevice;
     ContextPtr context;
     ModuleManagerPtr moduleManager;
     LoggerComponentPtr loggerComponent;
@@ -156,9 +155,6 @@ private:
 
     static std::string defineLocalId(const std::string& localId);
     void stopServers();
-
-    static ComponentPtr findComponentInternal(const ComponentPtr& component, const std::string& id);
-    bool isDefaultRootDevice();
 
     void connectInputPorts();
 

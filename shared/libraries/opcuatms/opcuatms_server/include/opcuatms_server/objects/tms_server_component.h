@@ -233,7 +233,7 @@ void TmsServerComponent<Ptr>::onCoreEvent(const CoreEventArgsPtr& args)
 {
     Super::onCoreEvent(args);
 
-    if (!selfChange && args.getEventId() == core_event_ids::AttributeChanged)
+    if (!selfChange && args.getEventId() == static_cast<int>(CoreEventId::AttributeChanged))
     {
         const StringPtr attrName = args.getParameters().get("AttributeName");
 

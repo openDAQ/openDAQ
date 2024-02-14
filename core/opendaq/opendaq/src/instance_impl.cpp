@@ -1,4 +1,3 @@
-#include <opendaq/client_private.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/context_internal_ptr.h>
 #include <opendaq/device_info_factory.h>
@@ -12,18 +11,17 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <opendaq/custom_log.h>
+#include <opendaq/device_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
     : context(std::move(context))
     , moduleManager(this->context.assigned() ? this->context.asPtr<IContextInternal>().moveModuleManager() : nullptr)
     , rootDeviceSet(false)
 {
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
-    defaultRootDevice = Client(this->context, instanceId);
-    defaultRootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
-    rootDevice = defaultRootDevice;
+    rootDevice = Client(this->context, instanceId);
+    rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
     loggerComponent = this->context.getLogger().addComponent("Instance");
 }
 
@@ -35,6 +33,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     auto scheduler = builderPtr.getScheduler();
     auto moduleManager = builderPtr.getModuleManager();
     auto typeManager = TypeManager();
+    auto modules = builderPtr.getOptions().get("modules");
 
     // Configure logger
     if (!logger.assigned()) 
@@ -61,7 +60,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     if (!moduleManager.assigned())
         moduleManager = ModuleManager(builderPtr.getModulePath());
 
-    return Context(scheduler, logger, typeManager, moduleManager);
+    return Context(scheduler, logger, typeManager, moduleManager, modules);
 }
 
 InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
@@ -73,16 +72,18 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     
     auto localId = builderPtr.getDefaultRootDeviceLocalId();
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
-    defaultRootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
 
     auto connectionString = builderPtr.getRootDevice();
     if (connectionString.assigned() && connectionString.getLength())
     {
         rootDevice = detail::createDevice(connectionString, nullptr, nullptr, moduleManager, loggerComponent);
+        const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
+        if (devicePrivate.assigned())
+            devicePrivate->setAsRoot();
         rootDeviceSet = true;
     }
     else
-        rootDevice = defaultRootDevice;
+        rootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
 
     loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
 }
@@ -105,42 +106,12 @@ InstanceImpl::~InstanceImpl()
 {
     stopServers();
     rootDevice.release();
-    defaultRootDevice.release();
 }
 
 void InstanceImpl::stopServers()
 {
     for (const auto& server : servers)
         server->stop();
-}
-
-ComponentPtr InstanceImpl::findComponentInternal(const ComponentPtr& component, const std::string& id)
-{
-    std::string startStr;
-    std::string restStr;
-    const bool hasSubComponentStr = IdsParser::splitRelativeId(id, startStr, restStr);
-    if (!hasSubComponentStr)
-        startStr = id;
-
-    const auto folder = component.asPtrOrNull<IFolder>(true);
-    if (!folder.assigned())
-        return nullptr;
-
-    if (folder.hasItem(startStr))
-    {
-        const auto subComponent = folder.getItem(startStr);
-        if (hasSubComponentStr)
-            return findComponentInternal(subComponent, restStr);
-
-        return subComponent;
-    }
-
-    return nullptr;
-}
-
-bool InstanceImpl::isDefaultRootDevice()
-{
-    return rootDevice == defaultRootDevice;
 }
 
 ErrCode InstanceImpl::getContext(IContext** context)
@@ -298,15 +269,15 @@ ErrCode InstanceImpl::getRootDevice(IDevice** rootDevice)
 
 ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* config)
 {
-    OPENDAQ_PARAM_NOT_NULL(rootDevice);
+    OPENDAQ_PARAM_NOT_NULL(connectionString);
 
     if (rootDeviceSet)
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Root device already set.");
 
-    if (defaultRootDevice.getFunctionBlocks().getCount() > 0)
+    if (rootDevice.getFunctionBlocks().getCount() > 0)
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if function blocks already added");
 
-    if (defaultRootDevice.getDevices().getCount() > 0)
+    if (rootDevice.getDevices().getCount() > 0)
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if devices are already added");
 
     if (!servers.empty())
@@ -314,12 +285,12 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
 
     const auto newRootDevice = detail::createDevice(connectionString, config, nullptr, moduleManager, loggerComponent);
 
-    auto errCode = defaultRootDevice.asPtr<IClientPrivate>(true)->setRootDevice(newRootDevice);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;
+
+    const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
+    if (devicePrivate.assigned())
+        devicePrivate->setAsRoot();
 
     this->rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
     return OPENDAQ_SUCCESS;
@@ -469,6 +440,11 @@ ErrCode InstanceImpl::getOnComponentCoreEvent(IEvent** event)
     return rootDevice->getOnComponentCoreEvent(event);
 }
 
+ErrCode InstanceImpl::getStatusContainer(IComponentStatusContainer** statusContainer)
+{
+    return rootDevice->getStatusContainer(statusContainer);
+}
+
 ErrCode InstanceImpl::getItems(IList** items, ISearchFilter* searchFilter)
 {
     return rootDevice->getItems(items, searchFilter);
@@ -489,22 +465,9 @@ ErrCode InstanceImpl::hasItem(IString* localId, Bool* value)
     return rootDevice->hasItem(localId, value);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::findComponent(IComponent* component, IString* id, IComponent** outComponent)
+ErrCode INTERFACE_FUNC InstanceImpl::findComponent(IString* id, IComponent** outComponent)
 {
-    OPENDAQ_PARAM_NOT_NULL(id);
-    OPENDAQ_PARAM_NOT_NULL(outComponent);
-
-    ComponentPtr componentPtr = component;
-    if (!componentPtr.assigned())
-        componentPtr = rootDevice;
-
-    return daqTry(
-        [&outComponent, &componentPtr, &id]()
-        {
-            *outComponent = findComponentInternal(componentPtr, StringPtr(id)).detach();
-
-            return *outComponent == nullptr ? OPENDAQ_NOTFOUND : OPENDAQ_SUCCESS;
-        });
+    return rootDevice->findComponent(id, outComponent);
 }
 
 ErrCode InstanceImpl::getAvailableDevices(IList** availableDevices)
@@ -534,113 +497,22 @@ ErrCode InstanceImpl::getDevices(IList** devices, ISearchFilter* searchFilter)
 
 ErrCode InstanceImpl::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {
-    if (isDefaultRootDevice())
-        return rootDevice->getAvailableFunctionBlockTypes(functionBlockTypes);
-
-    OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
-
-    DictPtr<IString, IFunctionBlockType> rootDeviceFbs;
-    auto errCode = rootDevice->getAvailableFunctionBlockTypes(&rootDeviceFbs);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        if (errCode == OPENDAQ_ERR_NOTIMPLEMENTED)
-            daqClearErrorInfo();
-        else
-            return errCode;
-    }
-
-    DictPtr<IString, IFunctionBlockType> daqClientFbs;
-    errCode = defaultRootDevice->getAvailableFunctionBlockTypes(&daqClientFbs);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        if (errCode == OPENDAQ_ERR_NOTIMPLEMENTED)
-            daqClearErrorInfo();
-        else
-            return errCode;
-    }
-
-    auto availableTypes = Dict<IString, IFunctionBlockType>();
-    for (const auto& [id, fbType] : rootDeviceFbs)
-        availableTypes.set(id, fbType);
-    for (const auto& [id, fbType] : daqClientFbs)
-        availableTypes.set(id, fbType);
-
-    *functionBlockTypes = availableTypes.detach();
-    return OPENDAQ_SUCCESS;
+    return rootDevice->getAvailableFunctionBlockTypes(functionBlockTypes);
 }
 
 ErrCode InstanceImpl::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config)
 {
-    if (isDefaultRootDevice())
-        return rootDevice->addFunctionBlock(functionBlock, typeId, config);
-
-    auto errCode = rootDevice->addFunctionBlock(functionBlock, typeId, config);
-    if (OPENDAQ_SUCCEEDED(errCode))
-    {
-        if (*functionBlock != nullptr)
-            return errCode; // success
-    }
-    else if (errCode != OPENDAQ_ERR_NOTFOUND && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
-        return errCode;
-
-    daqClearErrorInfo();
-
-    return defaultRootDevice->addFunctionBlock(functionBlock, typeId, config);
+    return rootDevice->addFunctionBlock(functionBlock, typeId, config);
 }
 
 ErrCode InstanceImpl::removeFunctionBlock(IFunctionBlock* functionBlock)
 {
-    if (isDefaultRootDevice())
-        return rootDevice->removeFunctionBlock(functionBlock);
-
-    auto errCode = rootDevice->removeFunctionBlock(functionBlock);
-    if (OPENDAQ_SUCCEEDED(errCode))
-        return errCode;
-
-    if (errCode != OPENDAQ_ERR_NOTFOUND && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
-        return errCode;
-
-    daqClearErrorInfo();
-
-    return defaultRootDevice->removeFunctionBlock(functionBlock);
+    return rootDevice->removeFunctionBlock(functionBlock);
 }
 
 ErrCode InstanceImpl::getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter)
 {
-    if (isDefaultRootDevice())
-        return rootDevice->getFunctionBlocks(functionBlocks, searchFilter);
-
-    OPENDAQ_PARAM_NOT_NULL(functionBlocks);
-
-    ListPtr<IFunctionBlock> rootDeviceFbs;
-    auto errCode = rootDevice->getFunctionBlocks(&rootDeviceFbs, searchFilter);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        if (errCode == OPENDAQ_ERR_NOTIMPLEMENTED)
-            daqClearErrorInfo();
-        else
-            return errCode;
-    }
-
-    ListPtr<IFunctionBlock> daqClientFbs;
-    errCode = defaultRootDevice->getFunctionBlocks(&daqClientFbs, searchFilter);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        if (errCode == OPENDAQ_ERR_NOTIMPLEMENTED)
-            daqClearErrorInfo();
-        else
-            return errCode;
-    }
-
-    auto list = List<IFunctionBlock>();
-    for (const auto& fb : rootDeviceFbs)
-        list.pushBack(fb);
-    for (const auto& fb : daqClientFbs)
-        list.pushBack(fb);
-
-    *functionBlocks = list.detach();
-
-    return OPENDAQ_SUCCESS;
+    return rootDevice->getFunctionBlocks(functionBlocks, searchFilter);
 }
 
 ErrCode InstanceImpl::getChannels(IList** channels, ISearchFilter* searchFilter)
@@ -870,7 +742,8 @@ void InstanceImpl::connectInputPorts()
 
                     if (!signalId.empty())
                     {
-                        const SignalPtr sig = findComponentInternal(rootDevice, signalId);
+                        ComponentPtr sig;
+                        this->findComponent(String(signalId), &sig);
                         if (sig.assigned())
                         {
                             try

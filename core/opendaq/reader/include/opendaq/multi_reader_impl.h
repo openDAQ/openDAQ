@@ -28,7 +28,8 @@ public:
                     SampleType valueReadType,
                     SampleType domainReadType,
                     ReadMode mode,
-                    ReadTimeoutType timeoutType);
+                    ReadTimeoutType timeoutType,
+                    bool startOnFullUnitOfDomain = false);
 
     MultiReaderImpl(MultiReaderImpl* old,
                     SampleType valueReadType,
@@ -70,6 +71,8 @@ public:
     ErrCode INTERFACE_FUNC getTickResolution(IRatio** resolution) override;
     ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
     ErrCode INTERFACE_FUNC getOffset(void* domainStart) override;
+
+    ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) override;
 
 private:
     using Clock = std::chrono::steady_clock;
@@ -117,6 +120,8 @@ private:
     std::vector<SignalReader> signals;
 
     LoggerComponentPtr loggerComponent;
+
+    bool startOnFullUnitOfDomain;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -16,18 +16,19 @@ NativeStreamingImpl::NativeStreamingImpl(
     const StringPtr& port,
     const StringPtr& path,
     const ContextPtr& context,
+    NativeStreamingClientHandlerPtr clientHandler,
     const ProcedurePtr& onDeviceSignalAvailableCallback,
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
     OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb)
     : Streaming(connectionString, context)
+    , clientHandler(clientHandler)
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
     , onDeviceReconnectionStatusChangedCb(onReconnectionStatusChangedCb)
     , reconnectionStatus(ClientReconnectionStatus::Connected)
     , ioContextPtr(std::make_shared<boost::asio::io_context>())
     , workGuard(ioContextPtr->get_executor())
-    , logger(context.getLogger())
-    , loggerComponent(logger.getOrAddComponent("NativeStreamingImpl"))
+    , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingImpl"))
 {
     prepareClientHandler();
     startAsyncOperations();
@@ -47,10 +48,7 @@ NativeStreamingImpl::~NativeStreamingImpl()
 }
 
 void NativeStreamingImpl::signalAvailableHandler(const StringPtr& signalStringId,
-                                                 const StringPtr& domainSignalStringId,
-                                                 const DataDescriptorPtr& signalDescriptor,
-                                                 const StringPtr& name,
-                                                 const StringPtr& description)
+                                                 const StringPtr& serializedSignal)
 {
     if (reconnectionStatus == ClientReconnectionStatus::Reconnecting)
     {
@@ -64,10 +62,7 @@ void NativeStreamingImpl::signalAvailableHandler(const StringPtr& signalStringId
     {
         ErrCode errCode = wrapHandler(onDeviceSignalAvailableCallback,
                                       signalStringId,
-                                      domainSignalStringId,
-                                      signalDescriptor,
-                                      name,
-                                      description);
+                                      serializedSignal);
         checkErrorInfo(errCode);
     }
 }
@@ -165,12 +160,9 @@ void NativeStreamingImpl::prepareClientHandler()
 {
     OnSignalAvailableCallback signalAvailableCb =
         [this](const StringPtr& signalStringId,
-               const StringPtr& domainSignalStringId,
-               const DataDescriptorPtr& signalDescriptor,
-               const StringPtr& name,
-               const StringPtr& description)
+               const StringPtr& serializedSignal)
     {
-        signalAvailableHandler(signalStringId, domainSignalStringId, signalDescriptor, name, description);
+        signalAvailableHandler(signalStringId, serializedSignal);
     };
     OnSignalUnavailableCallback signalUnavailableCb =
         [this](const StringPtr& signalStringId)
@@ -203,13 +195,12 @@ void NativeStreamingImpl::prepareClientHandler()
     {
         reconnectionStatusChangedHandler(status);
     };
-    clientHandler = std::make_shared<NativeStreamingClientHandler>(context,
-                                                                   ioContextPtr,
-                                                                   signalAvailableCb,
-                                                                   signalUnavailableCb,
-                                                                   onPacketCallback,
-                                                                   onSignalSubscriptionAckCallback,
-                                                                   onReconnectionStatusChangedCb);
+    clientHandler->setIoContext(ioContextPtr);
+    clientHandler->setSignalAvailableHandler(signalAvailableCb);
+    clientHandler->setSignalUnavailableHandler(signalUnavailableCb);
+    clientHandler->setPacketHandler(onPacketCallback);
+    clientHandler->setSignalSubscriptionAckCallback(onSignalSubscriptionAckCallback);
+    clientHandler->setReconnectionStatusChangedCb(onReconnectionStatusChangedCb);
 }
 
 void NativeStreamingImpl::onPacket(const StringPtr& signalStringId, const PacketPtr& packet)
@@ -266,6 +257,8 @@ void NativeStreamingImpl::onUnsubscribeSignal(const MirroredSignalConfigPtr& sig
 void NativeStreamingImpl::checkAndSubscribe(const MirroredSignalConfigPtr& signal)
 {
     auto signalStreamingId = getSignalStreamingId(signal);
+    if (auto it = streamingSignalsRefs.find(signalStreamingId); it == streamingSignalsRefs.end())
+        throw NotFoundException("Signal with id {} is not added to Native streaming", signal.getGlobalId());
 
     std::scoped_lock lock(availableSignalsSync);
     if (const auto it = availableSignals.find(signalStreamingId); it != availableSignals.end())
@@ -279,6 +272,8 @@ void NativeStreamingImpl::checkAndSubscribe(const MirroredSignalConfigPtr& signa
 void NativeStreamingImpl::checkAndUnsubscribe(const MirroredSignalConfigPtr& signal)
 {
     auto signalStreamingId = getSignalStreamingId(signal);
+    if (auto it = streamingSignalsRefs.find(signalStreamingId); it == streamingSignalsRefs.end())
+        throw NotFoundException("Signal with id {} is not added to Native streaming", signal.getGlobalId());
 
     std::scoped_lock lock(availableSignalsSync);
     if (const auto it = availableSignals.find(signalStreamingId);

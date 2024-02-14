@@ -27,8 +27,10 @@ public:
     ConfigProtocolDeserializeContextImpl(const ConfigProtocolClientCommPtr& clientComm,
                                          const std::string& remoteGlobalId,
                                          const ContextPtr& context,
+                                         const ComponentPtr& root,
                                          const ComponentPtr& parent,
-                                         const StringPtr& localId);
+                                         const StringPtr& localId,
+                                         IntfID* intfID);
 
 
     ConfigProtocolClientCommPtr getClientComm() override;
@@ -36,7 +38,8 @@ public:
 
     ErrCode INTERFACE_FUNC clone(IComponent* newParent,
                                  IString* newLocalId,
-                                 IComponentDeserializeContext** newComponentDeserializeContext) override;
+                                 IComponentDeserializeContext** newComponentDeserializeContext,
+                                 IntfID* newIntfID) override;
 
 private:
     ConfigProtocolClientCommPtr clientComm;

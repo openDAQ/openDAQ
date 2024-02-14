@@ -22,6 +22,9 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
+static const char* NativeStreamingPrefix = "daq.ns://";
+static const char* NativeStreamingID = "daq.ns";
+
 class NativeStreamingImpl : public Streaming
 {
 public:
@@ -31,6 +34,7 @@ public:
         const StringPtr& port,
         const StringPtr& path,
         const ContextPtr& context,
+        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr clientHandler,
         const ProcedurePtr& onDeviceSignalAvailableCallback,
         const ProcedurePtr& onDeviceSignalUnavailableCallback,
         opendaq_native_streaming_protocol::OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb);
@@ -49,10 +53,7 @@ protected:
     void checkAndUnsubscribe(const MirroredSignalConfigPtr& signal);
 
     void signalAvailableHandler(const StringPtr& signalStringId,
-                                const StringPtr& domainSignalStringId,
-                                const DataDescriptorPtr& signalDescriptor,
-                                const StringPtr& name,
-                                const StringPtr& description);
+                                const StringPtr& serializedSignal);
     void addToAvailableSignals(const StringPtr& signalStringId);
     void addToAvailableSignalsOnReconnection(const StringPtr& signalStringId);
 
@@ -70,7 +71,7 @@ protected:
     void startAsyncOperations();
     void stopAsyncOperations();
 
-    std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingClientHandler> clientHandler;
+    opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr clientHandler;
     ProcedurePtr onDeviceSignalAvailableCallback;
     ProcedurePtr onDeviceSignalUnavailableCallback;
     opendaq_native_streaming_protocol::OnReconnectionStatusChangedCallback onDeviceReconnectionStatusChangedCb;
@@ -82,7 +83,6 @@ protected:
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> workGuard;
     std::thread ioThread;
 
-    LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
 
     std::mutex availableSignalsSync;

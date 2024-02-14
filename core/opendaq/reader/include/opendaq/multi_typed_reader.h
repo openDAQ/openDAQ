@@ -66,6 +66,8 @@ public:
 
     virtual void getValue(void* start) const noexcept = 0;
 
+    virtual void roundUpOnUnitOfDomain() = 0;
+
 #if !defined(NDEBUG)
     virtual void print(std::ostream& os) const = 0;
     virtual std::string asTime() const = 0;
@@ -134,6 +136,18 @@ public:
         }
     }
 
+    void roundUpOnUnitOfDomain() override
+    {
+        const auto den = info.resolution.getDenominator() * info.multiplier.getNumerator();
+        const auto num = info.resolution.getNumerator() * info.multiplier.getDenominator();
+
+        if (den % num != 0)
+            throw NotSupportedException("Resolution must be aligned on full unit of domain");
+
+        value = (((value * num + den - 1) / den) * den) / num;
+    }
+
+
 #if !defined(NDEBUG)
     void print(std::ostream& os) const override
     {
@@ -198,6 +212,12 @@ public:
         throw NotSupportedException();
     }
 
+    void roundUpOnUnitOfDomain() override
+    {
+        throw NotSupportedException();
+    };
+
+
 #if !defined(NDEBUG)
     void print(std::ostream& os) const override
     {
@@ -235,6 +255,11 @@ public:
     {
         throw NotSupportedException();
     }
+
+    void roundUpOnUnitOfDomain() override
+    {
+        throw NotSupportedException();
+    };
 
 #if !defined(NDEBUG)
     void print(std::ostream& os) const override
@@ -285,6 +310,12 @@ public:
     {
         return value;
     }
+
+    void roundUpOnUnitOfDomain() override
+    {
+        throw NotSupportedException();
+    };
+
 
 #if !defined(NDEBUG)
     virtual void print(std::ostream& os) const override

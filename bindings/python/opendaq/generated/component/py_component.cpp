@@ -143,4 +143,20 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
         py::return_value_policy::take_ownership,
         "Gets the Core Event object that triggers whenever a change to this component happens within the openDAQ core structure.");
     */
+    cls.def_property_readonly("status_container",
+        [](daq::IComponent *object)
+        {
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            return objectPtr.getStatusContainer().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the container of Component statuses.");
+    cls.def("find_component",
+        [](daq::IComponent *object, const std::string& id)
+        {
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            return objectPtr.findComponent(id).detach();
+        },
+        py::arg("id"),
+        "Finds the component (signal/device/function block) with the specified (global) id.");
 }

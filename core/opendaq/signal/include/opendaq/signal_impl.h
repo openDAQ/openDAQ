@@ -96,7 +96,8 @@ protected:
     int getSerializeFlags() override;
 
     virtual EventPacketPtr createDataDescriptorChangedEventPacket();
-    virtual void onListenedStatusChanged(bool connected);
+    virtual void onListenedStatusChanged();
+    bool hasListeners();
 
     void removed() override;
     BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
@@ -106,11 +107,12 @@ protected:
 
     ErrCode lockAllAttributesInternal() override;
     
-    inline static std::unordered_set<std::string> signalAvailableAttributes = {"Public"};
+    inline static std::unordered_set<std::string> signalAvailableAttributes = {"Public", "DomainSignal", "RelatedSignals"};
+    DataDescriptorPtr dataDescriptor;
+
 private:
     StringPtr name;
     bool isPublic{};
-    DataDescriptorPtr dataDescriptor;
     std::vector<SignalPtr> relatedSignals;
     SignalPtr domainSignal;
     std::vector<ConnectionPtr> connections;
@@ -130,8 +132,8 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
                                       const StringPtr& localId,
                                       const StringPtr& className)
     : Super(context, parent, localId, className)
-    , isPublic(true)
     , dataDescriptor(std::move(descriptor))
+    , isPublic(true)
 {
 }
 
@@ -181,7 +183,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Public"}, {"Public", this->isPublic}}));
+                CoreEventId::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Public"}, {"Public", this->isPublic}}));
         
         this->triggerCoreEvent(args);
     }
@@ -211,7 +213,7 @@ EventPacketPtr SignalBase<TInterface, Interfaces...>::createDataDescriptorChange
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::onListenedStatusChanged(bool /*listened*/)
+void SignalBase<TInterface, Interfaces...>::onListenedStatusChanged()
 {
 }
 
@@ -255,7 +257,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::DataDescriptorChanged,
+                CoreEventId::DataDescriptorChanged,
                 Dict<IString, IBaseObject>({{"DataDescriptor", dataDescriptor}}));
         
         this->triggerCoreEvent(args);
@@ -282,6 +284,19 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDomainSignal(ISignal* signal)
 {
     {
         std::scoped_lock lock(this->sync);
+        
+        if (this->lockedAttributes.count("DomainSignal"))
+        {
+            if (this->context.assigned() && this->context.getLogger().assigned())
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("Domain Signal attribute of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
+        }
 
         if (signal == domainSignal)
             return OPENDAQ_IGNORED;
@@ -298,7 +313,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDomainSignal(ISignal* signal)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::AttributeChanged,
+                CoreEventId::AttributeChanged,
                 Dict<IString, IBaseObject>({{"AttributeName", "DomainSignal"}, {"DomainSignal", domainSignal}}));
         
         this->triggerCoreEvent(args);
@@ -328,6 +343,19 @@ ErrCode SignalBase<TInterface, Interfaces...>::setRelatedSignals(IList* signals)
     {
         std::scoped_lock lock(this->sync);
 
+        if (this->lockedAttributes.count("RelatedSignals"))
+        {
+            if (this->context.assigned() && this->context.getLogger().assigned())
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("Related Signals attribute of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
+        }
+
         const auto signalsPtr = ListPtr<ISignal>::Borrow(signals);
         relatedSignals.clear();
         for (const auto& sig : signalsPtr)
@@ -347,6 +375,20 @@ ErrCode SignalBase<TInterface, Interfaces...>::addRelatedSignal(ISignal* signal)
 
     {
         std::scoped_lock lock(this->sync);
+
+        if (this->lockedAttributes.count("RelatedSignals"))
+        {
+            if (this->context.assigned() && this->context.getLogger().assigned())
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("Related Signals attribute of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
+        }
+
         const auto it = std::find(relatedSignals.begin(), relatedSignals.end(), signalPtr);
         if (it != relatedSignals.end())
             return OPENDAQ_ERR_DUPLICATEITEM;
@@ -367,6 +409,20 @@ ErrCode SignalBase<TInterface, Interfaces...>::removeRelatedSignal(ISignal* sign
 
     {
         std::scoped_lock lock(this->sync);
+
+        if (this->lockedAttributes.count("RelatedSignals"))
+        {
+            if (this->context.assigned() && this->context.getLogger().assigned())
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("Related Signals attribute of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
+        }
+
         auto it = std::find(relatedSignals.begin(), relatedSignals.end(), signalPtr);
         if (it == relatedSignals.end())
             return OPENDAQ_ERR_NOTFOUND;
@@ -445,14 +501,20 @@ void SignalBase<TInterface, Interfaces...>::triggerRelatedSignalsChanged()
             sigs.pushBack(sig);
 
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                core_event_ids::AttributeChanged,
+                CoreEventId::AttributeChanged,
                 Dict<IString, IBaseObject>({{"AttributeName", "RelatedSignals"}, {"RelatedSignals", sigs}}));
         
         this->triggerCoreEvent(args);
     }
 }
 
-#include <opendaq/event_packet_params.h>
+template <typename TInterface, typename... Interfaces>
+bool SignalBase<TInterface, Interfaces...>::hasListeners()
+{
+    std::scoped_lock lock(this->sync);
+
+    return !connections.empty();
+}
 
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* connection)
@@ -460,23 +522,30 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* co
     OPENDAQ_PARAM_NOT_NULL(connection);
 
     const auto connectionPtr = ConnectionPtr::Borrow(connection);
+    bool triggerListenedStatusChange = false;
 
-    std::scoped_lock lock(this->sync);
-    auto it = std::find(connections.begin(), connections.end(), connectionPtr);
-    if (it != connections.end())
-        return OPENDAQ_ERR_DUPLICATEITEM;
-
-    if (connections.empty())
     {
-        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, true);
+        std::scoped_lock lock(this->sync);
+        auto it = std::find(connections.begin(), connections.end(), connectionPtr);
+        if (it != connections.end())
+            return OPENDAQ_ERR_DUPLICATEITEM;
+
+        if (connections.empty())
+            triggerListenedStatusChange = true;
+
+
+        connections.push_back(connectionPtr);
+
+        const auto packet = createDataDescriptorChangedEventPacket();
+        connectionPtr.enqueueOnThisThread(packet);
+    }
+
+    if (triggerListenedStatusChange)
+    {
+        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged);
         if (OPENDAQ_FAILED(errCode))
             return errCode;
     }
-
-    connections.push_back(connectionPtr);
-
-    const auto packet = createDataDescriptorChangedEventPacket();
-    connectionPtr.enqueueOnThisThread(packet);
 
     return OPENDAQ_SUCCESS;
 }
@@ -487,17 +556,23 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerDisconnected(IConnection*
     OPENDAQ_PARAM_NOT_NULL(connection);
 
     const auto connectionPtr = ObjectPtr<IConnection>::Borrow(connection);
+    bool triggerListenedStatusChange = false;
 
-    std::scoped_lock lock(this->sync);
-    auto it = std::find(connections.begin(), connections.end(), connectionPtr);
-    if (it == connections.end())
-        return OPENDAQ_ERR_NOTFOUND;
-
-    connections.erase(it);
-
-    if (connections.empty())
     {
-        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, false);
+        std::scoped_lock lock(this->sync);
+        auto it = std::find(connections.begin(), connections.end(), connectionPtr);
+        if (it == connections.end())
+            return OPENDAQ_ERR_NOTFOUND;
+
+        connections.erase(it);
+
+        if (connections.empty())
+            triggerListenedStatusChange = true;
+    }
+
+    if (triggerListenedStatusChange)
+    {
+        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged);
         if (OPENDAQ_FAILED(errCode))
             return errCode;
     }
@@ -604,6 +679,12 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
         serializer.writeString(domainSignalGlobalId);
     }
 
+    if (dataDescriptor.assigned())
+    {
+        serializer.key("dataDescriptor");
+        dataDescriptor.serialize(serializer);
+    }
+
     Super::serializeCustomObjectValues(serializer, forUpdate);
 }
 
@@ -669,6 +750,8 @@ void SignalBase<TInterface, Interfaces...>::deserializeCustomObjectValues(const 
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
     if (serializedObject.hasKey("domainSignalId"))
         deserializedDomainSignalId = serializedObject.readString("domainSignalId");
+    if (serializedObject.hasKey("dataDescriptor"))
+        dataDescriptor = serializedObject.readObject("dataDescriptor", context, factoryCallback);
 }
 
 template <typename TInterface, typename... Interfaces>

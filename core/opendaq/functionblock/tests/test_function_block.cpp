@@ -106,13 +106,17 @@ TEST_F(FunctionBlockTest, SerializeAndDeserialize)
 
     const auto deserializer = daq::JsonDeserializer();
 
-    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, "fb");
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "fb");
 
     const daq::FunctionBlockPtr newFb = deserializer.deserialize(str1, deserializeContext, nullptr);
 
     ASSERT_EQ(newFb.getName(), fb.getName());
     ASSERT_EQ(newFb.getDescription(), fb.getDescription());
     ASSERT_EQ(newFb.getTags(), fb.getTags());
+
+    ASSERT_EQ(newFb.getSignals().getElementInterfaceId(), daq::ISignal::Id);
+    ASSERT_EQ(newFb.getInputPorts().getElementInterfaceId(), daq::IInputPort::Id);
+    ASSERT_EQ(newFb.getFunctionBlocks().getElementInterfaceId(), daq::IFunctionBlock::Id);
 
     const auto serializer2 = daq::JsonSerializer(daq::True);
     newFb.serialize(serializer2);

@@ -13,19 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#include <opendaq/component.h>
+#include <opendaq/context_ptr.h>
+#include <opendaq/component_status_container_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*#
- * [interfaceLibrary(IComponent, "opendaq")]
+/*!
+ * @ingroup opendaq_component_status_container
+ * @addtogroup opendaq_component_status_container_factories Factories
+ * @{
  */
-DECLARE_OPENDAQ_INTERFACE(IComponentHolder, IBaseObject)
+
+/*!
+ * @brief Creates a Component status container
+ */
+inline ComponentStatusContainerPtr ComponentStatusContainer()
 {
-    virtual ErrCode INTERFACE_FUNC getLocalId(IString** localId) = 0;
-    virtual ErrCode INTERFACE_FUNC getComponent(IComponent** component) = 0;
-};
+    ComponentStatusContainerPtr obj(ComponentStatusContainer_Create());
+    return obj;
+}
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

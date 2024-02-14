@@ -35,6 +35,7 @@
 #include <opendaq/component_keys.h>
 #include <opendaq/core_opendaq_event_args_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/module_manager.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -89,6 +90,7 @@ public:
     ErrCode INTERFACE_FUNC addStreamingOption(IStreamingInfo* info) override;
     ErrCode INTERFACE_FUNC removeStreamingOption(IString* protocolId) override;
     ErrCode INTERFACE_FUNC getStreamingOptions(IList** streamingOptions) override;
+    ErrCode INTERFACE_FUNC setAsRoot() override;
 
     // Function block devices
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
@@ -124,10 +126,12 @@ protected:
     IoFolderConfigPtr ioFolder;
     std::vector<StreamingInfoPtr> streamingOptions;
     LoggerComponentPtr loggerComponent;
+    bool isRootDevice;
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
     void removeChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel);
+    bool hasChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel);
 
     void addSubDevice(const DevicePtr& device);
     void removeSubDevice(const DevicePtr& device);
@@ -156,6 +160,8 @@ private:
     ListPtr<IChannel> getChannelsRecursiveInternal(const SearchFilterPtr& searchFilter);
     ListPtr<IFunctionBlock> getFunctionBlocksRecursive(const SearchFilterPtr& searchFilter);
     ListPtr<IDevice> getDevicesRecursive(const SearchFilterPtr& searchFilter);
+
+    std::unordered_map<std::string, size_t> functionBlockCountMap;
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -166,6 +172,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     : Super(ctx, parent, localId, className)
     , loggerComponent(this->context.getLogger().assigned() ? this->context.getLogger().getOrAddComponent(this->globalId)
                                                            : throw ArgumentNullException("Logger must not be null"))
+    , isRootDevice(false)
 
 {
     this->defaultComponents.insert("Dev");
@@ -268,6 +275,15 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getStreamingOptions(IList** st
     ListPtr<IStreamingInfo> streamingOptionsPtr{this->streamingOptions};
     *streamingOptions = streamingOptionsPtr.detach();
 
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
+{
+    std::scoped_lock lock(this->sync);
+
+    this->isRootDevice = true;
     return OPENDAQ_SUCCESS;
 }
 
@@ -394,6 +410,18 @@ void GenericDevice<TInterface, Interfaces...>::removeChannel(const FolderConfigP
     }
     else
         parentFolder.removeItem(channel);
+}
+
+template <typename TInterface, typename... Interfaces>
+bool GenericDevice<TInterface, Interfaces...>::hasChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel)
+{
+    if (parentFolder == nullptr)
+    {
+        const auto folder = channel.getParent().asPtr<IFolderConfig>();
+        return folder.hasItem(channel);
+    }
+    else
+        return parentFolder.hasItem(channel);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -527,7 +555,55 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableFunctionBlockTypes
 template <typename TInterface, typename... Interfaces>
 DictPtr<IString, IFunctionBlockType> GenericDevice<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes()
 {
-    return Dict<IString, IFunctionBlockType>();
+    std::scoped_lock lock(this->sync);
+    auto availableTypes = Dict<IString, IFunctionBlockType>();
+
+    if (!this->isRootDevice)
+        return availableTypes;
+
+    ObjectPtr<IBaseObject> obj;
+    checkErrorInfo(this->context->getModuleManager(&obj));
+
+    if (obj == nullptr)
+        throw NotAssignedException{"Module Manager is not available in the Context."};
+
+    IModuleManager* manager;
+    obj->borrowInterface(IModuleManager::Id, reinterpret_cast<void**>(&manager));
+
+    ListPtr<IBaseObject> modules;
+    manager->getModules(&modules);
+
+
+    for (const auto& moduleObj : modules)
+    {
+        DictPtr<IString, IFunctionBlockType> moduleFbTypes;
+        IModule* module;
+        moduleObj->borrowInterface(IModule::Id, reinterpret_cast<void**>(&module));
+
+        DictPtr<IString, IFunctionBlockType> types;
+        ErrCode err = module->getAvailableFunctionBlockTypes(&types);
+        if (OPENDAQ_FAILED(err))
+        {
+            StringPtr moduleName;
+            module->getName(&moduleName);
+            if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
+            {
+                LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", moduleName)
+            }
+            else
+            {
+                LOG_W("{}: GetAvailableFunctionBlockTypes failed", moduleName)
+            }
+        }
+
+        if (!types.assigned())
+            continue;
+
+        for (const auto& [id, type] : types)
+            availableTypes.set(id, type);
+    }
+
+    return availableTypes.detach();
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -544,10 +620,71 @@ ErrCode GenericDevice<TInterface, Interfaces...>::addFunctionBlock(IFunctionBloc
 }
 
 template <typename TInterface, typename... Interfaces>
-FunctionBlockPtr GenericDevice<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& /*typeId*/,
-                                                                              const PropertyObjectPtr& /*config*/)
+FunctionBlockPtr GenericDevice<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& typeId,
+                                                                              const PropertyObjectPtr& config)
 {
-    return nullptr;
+    std::scoped_lock lock(this->sync);
+    if (!this->isRootDevice)
+        return nullptr;
+
+    ObjectPtr<IBaseObject> obj;
+    this->context->getModuleManager(&obj);
+
+    if (obj == nullptr)
+        throw NotAssignedException{"Module Manager is not available in the Context."};
+
+    IModuleManager* manager;
+    obj->borrowInterface(IModuleManager::Id, reinterpret_cast<void**>(&manager));
+
+    ListPtr<IBaseObject> modules;
+    manager->getModules(&modules);
+
+    for (const BaseObjectPtr& moduleObj : modules)
+    {
+        IModule* module;
+        moduleObj->borrowInterface(IModule::Id, reinterpret_cast<void**>(&module));
+
+        DictPtr<IString, IFunctionBlockType> types;
+        ErrCode err = module->getAvailableFunctionBlockTypes(&types);
+        if (OPENDAQ_FAILED(err))
+        {
+            StringPtr moduleName;
+            module->getName(&moduleName);
+            if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
+            {
+                LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", moduleName)
+            }
+            else
+            {
+                LOG_W("{}: GetAvailableFunctionBlockTypes failed", moduleName)
+            }
+        }
+
+        if (!types.assigned())
+            continue;
+        if (!types.hasKey(typeId))
+            continue;
+
+        std::string localId;
+        if (config.assigned() && config.hasProperty("LocalId"))
+        {
+            localId = static_cast<std::string>(config.getPropertyValue("LocalId"));
+        }
+        else
+        {
+            if (!functionBlockCountMap.count(typeId))
+                functionBlockCountMap.insert(std::pair<std::string, size_t>(typeId, 0));
+
+            localId = fmt::format("{}_{}", typeId, functionBlockCountMap[typeId]++);
+        }
+
+        FunctionBlockPtr fb;
+        module->createFunctionBlock(&fb, typeId, this->functionBlocks, String(localId), config);
+        this->functionBlocks.addItem(fb);
+        return fb;
+    }
+
+    throw NotFoundException{"Function block with given uid is not available."};
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -562,9 +699,12 @@ ErrCode GenericDevice<TInterface, Interfaces...>::removeFunctionBlock(IFunctionB
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& /*functionBlock*/)
+void GenericDevice<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
-    throw NotFoundException("Function block not found");
+    if (!this->isRootDevice)
+        throw NotFoundException("Function block not found");
+
+    this->functionBlocks.removeItem(functionBlock);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -991,8 +1131,21 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
-    this->deserializeFolder(serializedObject, context, factoryCallback, ioFolder, "IO");
-    this->deserializeFolder(serializedObject, context, factoryCallback, devices, "Dev");
+    this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");
+    this->template deserializeDefaultFolder<IDevice>(serializedObject, context, factoryCallback, devices, "Dev");
+
+    const auto keys = serializedObject.getKeys();
+    for (const auto& key : serializedObject.getKeys())
+    {
+        if (!this->defaultComponents.count(key) && serializedObject.getType(key) == ctObject)
+        {
+            const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
+            const auto newDeserializeContext = deserializeContext.clone(this->template borrowPtr<ComponentPtr>(), key, nullptr);
+            const BaseObjectPtr obj = serializedObject.readObject(key, newDeserializeContext, factoryCallback);
+            if (const auto component = obj.asPtrOrNull<IComponent>(); component.assigned())
+                this->addExistingComponent(component);
+        }
+    }
 }
 
 template <typename TInterface, typename... Interfaces>

@@ -41,16 +41,6 @@ ErrCode WebsocketClientSignalImpl::getDescriptor(IDataDescriptor** descriptor)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode WebsocketClientSignalImpl::getDomainSignal(ISignal** signal)
-{
-    OPENDAQ_PARAM_NOT_NULL(signal);
-
-    std::scoped_lock lock(signalMutex);
-
-    *signal = domainSignalArtificial.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
 Bool WebsocketClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
 {
     if (eventPacket.assigned() && eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
@@ -67,7 +57,7 @@ Bool WebsocketClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
 
         if (domainSignalArtificial.assigned() && newDomainDescriptor.assigned())
         {
-            domainSignalArtificial.setDescriptor(newDomainDescriptor);
+            domainSignalArtificial.asPtr<IWebsocketStreamingSignalPrivate>()->assignDescriptor(newDomainDescriptor);
         }
     }
 
@@ -79,10 +69,11 @@ void WebsocketClientSignalImpl::createAndAssignDomainSignal(const DataDescriptor
 {
     std::scoped_lock lock(signalMutex);
 
-    domainSignalArtificial = SignalWithDescriptor(this->context,
-                                                  domainDescriptor,
-                                                  this->parent.getRef(),
-                                                  CreateLocalId(streamingId+"_time_artificial"));
+    domainSignalArtificial = createWithImplementation<ISignal, WebsocketClientSignalImpl>(
+        this->context,
+        this->parent.getRef(),
+        CreateLocalId(streamingId+"_time_artificial"));
+    domainSignalArtificial.asPtr<IWebsocketStreamingSignalPrivate>()->assignDescriptor(domainDescriptor);
 }
 
 void WebsocketClientSignalImpl::assignDescriptor(const DataDescriptorPtr& descriptor)
@@ -90,6 +81,13 @@ void WebsocketClientSignalImpl::assignDescriptor(const DataDescriptorPtr& descri
     std::scoped_lock lock(signalMutex);
 
     mirroredDataDescriptor = descriptor;
+}
+
+SignalPtr WebsocketClientSignalImpl::onGetDomainSignal()
+{
+    std::scoped_lock lock(signalMutex);
+
+    return domainSignalArtificial;
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

@@ -29,19 +29,6 @@ TEST_F(MirroredSignalTest, RemotelId)
     ASSERT_EQ(signal.getRemoteId(), "signal");
 }
 
-TEST_F(MirroredSignalTest, MatchingId)
-{
-    auto signal = createMirroredSignal("321");
-
-    ASSERT_TRUE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("1"));
-    ASSERT_TRUE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("21"));
-    ASSERT_TRUE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("321"));
-
-    ASSERT_FALSE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("4321"));
-    ASSERT_FALSE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("123"));
-    ASSERT_FALSE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("12"));
-}
-
 TEST_F(MirroredSignalTest, GetActiveSourceNotAssigned)
 {
     auto signal = createMirroredSignal("signal");

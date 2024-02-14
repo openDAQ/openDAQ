@@ -57,7 +57,6 @@ public:
     Bool INTERFACE_FUNC triggerEvent(const EventPacketPtr& eventPacket) override;
     ErrCode INTERFACE_FUNC addStreamingSource(const StreamingPtr& streaming) override;
     ErrCode INTERFACE_FUNC removeStreamingSource(const StringPtr& streamingConnectionString) override;
-    Bool INTERFACE_FUNC hasMatchingId(const StringPtr& signalId) override;
     void INTERFACE_FUNC subscribeCompleted(const StringPtr& streamingConnectionString) override;
     void INTERFACE_FUNC unsubscribeCompleted(const StringPtr& streamingConnectionString) override;
     void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
@@ -76,7 +75,8 @@ public:
 
 protected:
     EventPacketPtr createDataDescriptorChangedEventPacket() override;
-    void onListenedStatusChanged() override;
+    void onListenedStatusChanged(bool listened) override;
+    void removed() override;
 
 private:
     ErrCode subscribeInternal();
@@ -88,8 +88,6 @@ private:
     bool streamed;
     EventEmitter<MirroredSignalConfigPtr, SubscriptionEventArgsPtr> onSubscribeCompleteEvent;
     EventEmitter<MirroredSignalConfigPtr, SubscriptionEventArgsPtr> onUnsubscribeCompleteEvent;
-
-    std::mutex mirroredSignalSync;
 };
 
 template <typename... Interfaces>
@@ -128,6 +126,12 @@ Bool MirroredSignalBase<Interfaces...>::triggerEvent(const EventPacketPtr& event
     return forwardEvent;
 }
 
+template <typename... Interfaces>
+void MirroredSignalBase<Interfaces...>::removed()
+{
+    // TODO unsubscribe and remove streaming sources
+    Super::removed();
+}
 
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::addStreamingSource(const StreamingPtr& streaming)
@@ -137,7 +141,7 @@ ErrCode MirroredSignalBase<Interfaces...>::addStreamingSource(const StreamingPtr
 
     const auto connectionString = streaming.getConnectionString();
 
-    std::scoped_lock lock(mirroredSignalSync);
+    std::scoped_lock lock(this->sync);
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
                            [&connectionString](const WeakRefPtr<IStreaming>& sourceRef)
@@ -161,7 +165,7 @@ ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(const StringPtr
     if (!streamingConnectionString.assigned())
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    std::scoped_lock lock(mirroredSignalSync);
+    std::scoped_lock lock(this->sync);
 
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
@@ -231,11 +235,8 @@ ErrCode MirroredSignalBase<Interfaces...>::clearRelatedSignals()
 }
 
 template <typename... Interfaces>
-void MirroredSignalBase<Interfaces...>::onListenedStatusChanged()
+void MirroredSignalBase<Interfaces...>::onListenedStatusChanged(bool listened)
 {
-    std::scoped_lock lock(mirroredSignalSync);
-
-    bool listened = this->hasListeners();
     if (this->listened == listened)
         return;
     this->listened = listened;
@@ -259,7 +260,7 @@ ErrCode MirroredSignalBase<Interfaces...>::getStreamingSources(IList** streaming
 
     auto stringsPtr = List<IString>();
 
-    std::scoped_lock lock(mirroredSignalSync);
+    std::scoped_lock lock(this->sync);
     for (const auto& streamingRef : streamingSourcesRefs)
     {
         auto streamingSource = streamingRef.getRef();
@@ -280,7 +281,7 @@ ErrCode MirroredSignalBase<Interfaces...>::setActiveStreamingSource(IString* str
     const auto connectionStringPtr = StringPtr::Borrow(streamingConnectionString);
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
 
-    std::scoped_lock lock(mirroredSignalSync);
+    std::scoped_lock lock(this->sync);
 
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned() &&
@@ -326,7 +327,7 @@ ErrCode MirroredSignalBase<Interfaces...>::getActiveStreamingSource(IString** st
 {
     OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
 
-    std::scoped_lock lock(mirroredSignalSync);
+    std::scoped_lock lock(this->sync);
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned())
         *streamingConnectionString = activeStreamingSource.getConnectionString().addRefAndReturn();
@@ -341,7 +342,7 @@ ErrCode MirroredSignalBase<Interfaces...>::deactivateStreaming()
 {
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
 
-    std::scoped_lock lock(mirroredSignalSync);
+    std::scoped_lock lock(this->sync);
 
     ErrCode errCode = OPENDAQ_SUCCESS;
     if (listened && streamed)
@@ -375,13 +376,13 @@ ErrCode MirroredSignalBase<Interfaces...>::getOnUnsubscribeComplete(IEvent** eve
 template <typename... Interfaces>
 EventPacketPtr MirroredSignalBase<Interfaces...>::createDataDescriptorChangedEventPacket()
 {
-    std::scoped_lock lock(mirroredSignalSync);
-
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned())
     {
-        auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
-        return activeStreamingSource.template asPtr<IStreamingPrivate>()->createDataDescriptorChangedEventPacket(thisPtr);
+        StringPtr signalRemoteId;
+        ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
+        checkErrorInfo(errCode);
+        return activeStreamingSource.template asPtr<IStreamingPrivate>()->createDataDescriptorChangedEventPacket(signalRemoteId);
     }
 
     return DataDescriptorChangedEventPacket(nullptr, nullptr);
@@ -393,8 +394,20 @@ ErrCode MirroredSignalBase<Interfaces...>::subscribeInternal()
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned())
     {
-        auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
-        return activeStreamingSource.template asPtr<IStreamingPrivate>()->subscribeSignal(thisPtr);
+        StringPtr signalRemoteId;
+        ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
+        SignalPtr domainSignal;
+        errCode = wrapHandlerReturn(this, &Self::onGetDomainSignal, domainSignal);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
+        StringPtr domainSignalRemoteId;
+        if (domainSignal.assigned())
+            domainSignalRemoteId = domainSignal.template asPtr<IMirroredSignalConfig>().getRemoteId();
+        return activeStreamingSource.template asPtr<IStreamingPrivate>()->subscribeSignal(signalRemoteId, domainSignalRemoteId);
     }
     else
     {
@@ -408,8 +421,20 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeInternal()
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned())
     {
-        auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
-        return activeStreamingSource.template asPtr<IStreamingPrivate>()->unsubscribeSignal(thisPtr);
+        StringPtr signalRemoteId;
+        ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
+        SignalPtr domainSignal;
+        errCode = wrapHandlerReturn(this, &Self::onGetDomainSignal, domainSignal);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
+        StringPtr domainSignalRemoteId;
+        if (domainSignal.assigned())
+            domainSignalRemoteId = domainSignal.template asPtr<IMirroredSignalConfig>().getRemoteId();
+        return activeStreamingSource.template asPtr<IStreamingPrivate>()->unsubscribeSignal(signalRemoteId, domainSignalRemoteId);
     }
     else
     {
@@ -422,7 +447,7 @@ ErrCode MirroredSignalBase<Interfaces...>::getStreamed(Bool* streamed)
 {
     OPENDAQ_PARAM_NOT_NULL(streamed);
 
-    std::scoped_lock lock(mirroredSignalSync);
+    std::scoped_lock lock(this->sync);
     *streamed = this->streamed;
     return OPENDAQ_SUCCESS;
 }
@@ -430,7 +455,7 @@ ErrCode MirroredSignalBase<Interfaces...>::getStreamed(Bool* streamed)
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::setStreamed(Bool streamed)
 {
-    std::scoped_lock lock(mirroredSignalSync);
+    std::scoped_lock lock(this->sync);
 
     if (static_cast<bool>(streamed) == this->streamed)
         return OPENDAQ_IGNORED;
@@ -452,21 +477,6 @@ ErrCode MirroredSignalBase<Interfaces...>::setStreamed(Bool streamed)
         return errCode;
 
     return OPENDAQ_SUCCESS;
-}
-
-template <typename... Interfaces>
-Bool MirroredSignalBase<Interfaces...>::hasMatchingId(const StringPtr& signalId)
-{
-    StringPtr signalRemoteId;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
-    checkErrorInfo(errCode);
-
-    if (signalId.getLength() > signalRemoteId.getLength())
-        return False;
-
-    std::string idEnding = signalId.toStdString();
-    std::string fullId = signalRemoteId.toStdString();
-    return std::equal(idEnding.rbegin(), idEnding.rend(), fullId.rbegin());
 }
 
 template <typename... Interfaces>

@@ -13,9 +13,14 @@ void MockStreamingImpl::onSetActive(bool /*active*/)
 
 }
 
-StringPtr MockStreamingImpl::onAddSignal(const MirroredSignalConfigPtr& signal)
+StringPtr MockStreamingImpl::onGetSignalStreamingId(const StringPtr& signalRemoteId)
 {
-    return signal.getRemoteId();
+    return signalRemoteId;
+}
+
+void MockStreamingImpl::onAddSignal(const MirroredSignalConfigPtr& /*signal*/)
+{
+
 }
 
 void MockStreamingImpl::onRemoveSignal(const MirroredSignalConfigPtr& /*signal*/)
@@ -23,17 +28,17 @@ void MockStreamingImpl::onRemoveSignal(const MirroredSignalConfigPtr& /*signal*/
 
 }
 
-void MockStreamingImpl::onSubscribeSignal(const MirroredSignalConfigPtr& /*signal*/)
+void MockStreamingImpl::onSubscribeSignal(const StringPtr& /*signalRemoteId*/, const StringPtr& /*domainSignalRemoteId*/)
 {
 
 }
 
-void MockStreamingImpl::onUnsubscribeSignal(const MirroredSignalConfigPtr& /*signal*/)
+void MockStreamingImpl::onUnsubscribeSignal(const StringPtr& /*signalRemoteId*/, const StringPtr& /*domainSignalRemoteId*/)
 {
 
 }
 
-EventPacketPtr MockStreamingImpl::onCreateDataDescriptorChangedEventPacket(const daq::MirroredSignalConfigPtr& /*signal*/)
+EventPacketPtr MockStreamingImpl::onCreateDataDescriptorChangedEventPacket(const StringPtr& /*signalRemoteId*/)
 {
     return DataDescriptorChangedEventPacket(nullptr, nullptr);
 }

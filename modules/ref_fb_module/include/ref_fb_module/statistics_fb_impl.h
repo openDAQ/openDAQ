@@ -15,11 +15,11 @@
  */
 
 #pragma once
-#include <ref_fb_module/common.h>
+#include <opendaq/data_packet_ptr.h>
 #include <opendaq/function_block_impl.h>
 #include <opendaq/input_port_config_ptr.h>
-#include <opendaq/data_packet_ptr.h>
 #include <opendaq/sample_type_traits.h>
+#include <ref_fb_module/common.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -57,7 +57,7 @@ enum class DomainSignalType
 class StatisticsFbImpl final : public FunctionBlock
 {
 public:
-    StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
     static FunctionBlockTypePtr CreateType();
 
 private:
@@ -89,10 +89,13 @@ private:
     size_t calcBufAllocatedSize;
     size_t sampleSize;
     size_t domainSampleSize;
+    Int start;
     Int inputDeltaTicks;
     Int outputDeltaTicks;
     Int nextExpectedDomainValue;
     bool valid;
+
+    PacketReadyNotification packetReadyNotification;
 
     void initProperties();
     void propertyChanged();

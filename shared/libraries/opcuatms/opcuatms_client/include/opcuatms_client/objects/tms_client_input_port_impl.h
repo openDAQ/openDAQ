@@ -20,7 +20,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-class TmsClientInputPortImpl : public TmsClientComponentBaseImpl<InputPortImpl>
+class TmsClientInputPortImpl : public TmsClientComponentBaseImpl<GenericInputPortImpl<ITmsClientComponent>>
 {
 public:
     explicit TmsClientInputPortImpl(const ContextPtr& ctx,

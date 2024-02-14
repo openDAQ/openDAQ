@@ -15,19 +15,17 @@
  */
 
 #pragma once
-#include "opcuatms_client/objects/tms_client_function_block_impl.h"
+#include <opcuatms/opcuatms.h>
+#include <opcuashared/opcuavariant.h>
+#include <property_object_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-class TmsClientChannelImpl : public TmsClientFunctionBlockBaseImpl<ChannelImpl<ITmsClientComponent>>
+class PropertyObjectConversionUtils
 {
-  public:
-    explicit TmsClientChannelImpl(
-        const ContextPtr& context,
-        const ComponentPtr& parent,
-        const StringPtr& localId,
-        const daq::opcua::tms::TmsClientContextPtr& clientContext,
-        const opcua::OpcUaNodeId& nodeId);
+public:
+    static OpcUaVariant ToDictVariant(const PropertyObjectPtr& obj);
+    static void ToPropertyObject(const OpcUaVariant& variant, PropertyObjectPtr& objOut);
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

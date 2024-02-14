@@ -44,7 +44,8 @@ set(SRC_Objects_Headers ${OBJECT_SRC_DIR}/tms_client_object_impl.h
 						
                         ${OBJECT_SRC_DIR}/tms_client_io_folder_impl.h
                         ${OBJECT_SRC_DIR}/tms_client_io_folder_factory.h
-						
+
+                        ${OBJECT_SRC_DIR}/tms_client_component.h
                         ${OBJECT_SRC_DIR}/tms_client_component_impl.h
                         ${OBJECT_SRC_DIR}/tms_client_component_factory.h
 

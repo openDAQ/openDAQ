@@ -5,7 +5,7 @@ void TmsServerObjectTest::SetUp()
     TmsObjectTest::SetUp();
 
     ctx = daq::NullContext();
-    tmsCtx = std::make_shared<daq::opcua::tms::TmsServerContext>(ctx);
+    tmsCtx = std::make_shared<daq::opcua::tms::TmsServerContext>(ctx, nullptr);
 }
 
 void TmsServerObjectTest::TearDown()

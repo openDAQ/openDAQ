@@ -23,7 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 // TmsClientSignalImpl
 
-class TmsClientSignalImpl final : public TmsClientComponentBaseImpl<MirroredSignal>
+class TmsClientSignalImpl final : public TmsClientComponentBaseImpl<MirroredSignalBase<ITmsClientComponent>>
 {
 public:
     explicit TmsClientSignalImpl(const ContextPtr& ctx,

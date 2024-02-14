@@ -174,7 +174,7 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
         std::this_thread::sleep_for(100ms);
         daq::SizeT count = 100;
         reader.read(samples, &count);
-        EXPECT_GT(count, 0) << "iteration " << i;
+        EXPECT_GT(count, 0u) << "iteration " << i;
     }
 }
 
@@ -217,7 +217,7 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
         std::this_thread::sleep_for(100ms);
         daq::SizeT count = 100;
         reader.read(samples, &count);
-        EXPECT_GT(count, 0) << "iteration " << i;
+        EXPECT_GT(count, 0u) << "iteration " << i;
     }
 }
 
@@ -271,11 +271,11 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
 
         daq::SizeT clientSamplesCount = 100;
         clientReader.read(clientSamples, &clientSamplesCount);
-        EXPECT_GT(clientSamplesCount, 0) << "iteration " << i;
+        EXPECT_GT(clientSamplesCount, 0u) << "iteration " << i;
 
         daq::SizeT gatewaySamplesCount = 100;
         gatewayReader.read(gatewaySamples, &gatewaySamplesCount);
-        EXPECT_GT(gatewaySamplesCount, 0) << "iteration " << i;
+        EXPECT_GT(gatewaySamplesCount, 0u) << "iteration " << i;
     }
 }
 

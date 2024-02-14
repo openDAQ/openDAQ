@@ -20,7 +20,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-template <class Impl = FolderImpl<IFolderConfig>>
+template <class Impl = FolderImpl<IFolderConfig, ITmsClientComponent>>
 class TmsClientFolderImpl : public TmsClientComponentBaseImpl<Impl>
 {
 public:

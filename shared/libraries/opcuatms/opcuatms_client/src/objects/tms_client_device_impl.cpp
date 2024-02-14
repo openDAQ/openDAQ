@@ -19,6 +19,8 @@
 #include <opendaq/custom_log.h>
 #include "opcuatms/core_types_utils.h"
 #include "opcuatms/exceptions.h"
+#include "opcuatms/converters/list_conversion_utils.h"
+#include "opcuatms/converters/property_object_conversion_utils.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 using namespace daq::opcua;
@@ -67,6 +69,9 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
                           : throw ArgumentNullException("Logger must not be null"))
 {
     clientContext->readObjectAttributes(nodeId);
+
+    if (isRootDevice)
+        clientContext->registerRootDevice(thisInterface());
 
     findAndCreateSubdevices();
     findAndCreateFunctionBlocks();
@@ -440,14 +445,84 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
         this->components.push_back(val);
 }
 
-FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)
+DictPtr<IString, IFunctionBlockType> TmsClientDeviceImpl::onGetAvailableFunctionBlockTypes()
 {
-    throw OpcUaClientCallNotAvailableException();
+    // todo: migrate to AvailableTypes folder node
+
+    const auto fbFolderNodeId = getNodeId("FB");
+    const auto methodNodeId = clientContext->getReferenceBrowser()->getChildNodeId(fbFolderNodeId, "_TmpGetAvailableFunctionBlockTypes");
+
+    auto request = OpcUaCallMethodRequest();
+    request->objectId = fbFolderNodeId.copyAndGetDetachedValue();
+    request->methodId = methodNodeId.copyAndGetDetachedValue();
+
+    const auto response = this->client->callMethod(request);
+
+    if (response->statusCode != UA_STATUSCODE_GOOD)
+        throw OpcUaException(response->statusCode, "Failed to get available function block types");
+
+    assert(response->outputArgumentsSize == 1);
+    const auto outvariant = OpcUaVariant(response->outputArguments[0]);
+    const auto typeList = ListConversionUtils::ExtensionObjectVariantToList<IFunctionBlockType>(outvariant);
+
+    auto dict = Dict<IString, IFunctionBlockType>();
+    for (const auto& type : typeList)
+        dict.set(type.getId(), type);
+
+    return dict;
 }
 
-void TmsClientDeviceImpl::onRemoveFunctionBlock(const FunctionBlockPtr& /*functionBlock*/)
+FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
 {
-    throw OpcUaClientCallNotAvailableException();
+    const auto fbFolderNodeId = getNodeId("FB");
+    const auto methodNodeId = clientContext->getReferenceBrowser()->getChildNodeId(fbFolderNodeId, "Add");
+
+    const auto typeIdVariant = OpcUaVariant(typeId.toStdString().c_str());
+    const auto configVariant = PropertyObjectConversionUtils::ToDictVariant(config);
+
+    auto request = OpcUaCallMethodRequest();
+    request->objectId = fbFolderNodeId.copyAndGetDetachedValue();
+    request->methodId = methodNodeId.copyAndGetDetachedValue();
+    request->inputArgumentsSize = 2;
+    request->inputArguments = (UA_Variant*) UA_Array_new(request->inputArgumentsSize, &UA_TYPES[UA_TYPES_VARIANT]);
+
+    request->inputArguments[0] = typeIdVariant.copyAndGetDetachedValue();
+    request->inputArguments[1] = configVariant.copyAndGetDetachedValue();
+
+    auto response = this->client->callMethod(request);
+
+    if (response->statusCode != UA_STATUSCODE_GOOD)
+        throw OpcUaException(response->statusCode, "Failed to add function block");
+
+    assert(response->outputArgumentsSize == 2);
+    const auto fbNodeId = OpcUaVariant(response->outputArguments[0]).toNodeId();
+    const auto localId = OpcUaVariant(response->outputArguments[1]).toString();
+
+    auto clientFunctionBlock = TmsClientFunctionBlock(context, this->functionBlocks, localId, clientContext, fbNodeId);
+    addNestedFunctionBlock(clientFunctionBlock);
+    return clientFunctionBlock;
+}
+
+void TmsClientDeviceImpl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    const auto fbFolderNodeId = getNodeId("FB");
+    const auto methodNodeId = clientContext->getReferenceBrowser()->getChildNodeId(fbFolderNodeId, "Remove");
+
+    const auto fbIdVariant = OpcUaVariant(functionBlock.getLocalId().toStdString().c_str());
+
+    auto request = OpcUaCallMethodRequest();
+    request->objectId = fbFolderNodeId.copyAndGetDetachedValue();
+    request->methodId = methodNodeId.copyAndGetDetachedValue();
+    request->inputArgumentsSize = 1;
+    request->inputArguments = (UA_Variant*) UA_Array_new(request->inputArgumentsSize, &UA_TYPES[UA_TYPES_VARIANT]);
+    request->inputArguments[0] = fbIdVariant.copyAndGetDetachedValue();
+
+    auto response = this->client->callMethod(request);
+
+    if (response->statusCode != UA_STATUSCODE_GOOD)
+        throw OpcUaException(response->statusCode, "Failed to remove function block");
+
+    removeNestedFunctionBlock(functionBlock);
 }
 
 void TmsClientDeviceImpl::setUpStreamings()

@@ -55,7 +55,7 @@ FunctionBlockPtr RefFbModule::onCreateFunctionBlock(const StringPtr& id,
     }
     if (id == Statistics::StatisticsFbImpl::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Statistics::StatisticsFbImpl>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Statistics::StatisticsFbImpl>(context, parent, localId, config);
         return fb;
     }
     if (id == Power::PowerFbImpl::CreateType().getId())

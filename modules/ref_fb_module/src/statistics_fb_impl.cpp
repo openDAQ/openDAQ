@@ -22,17 +22,10 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
     avgSignal.setDomainSignal(domainSignal);
     rmsSignal.setDomainSignal(domainSignal);
 
-    if (config.assigned() && config.hasProperty("UseMultiThreadedScheduler"))
-    {
-        if (config.getPropertyValue("UseMultiThreadedScheduler"))
-            packetReadyNotification = PacketReadyNotification::Scheduler;
-        else
-            packetReadyNotification = PacketReadyNotification::SameThread;
-    }
+    if (config.assigned() && config.hasProperty("UseMultiThreadedScheduler") && !config.getPropertyValue("UseMultiThreadedScheduler"))
+        packetReadyNotification = PacketReadyNotification::SameThread;
     else
-    {
         packetReadyNotification = PacketReadyNotification::Scheduler;
-    }
 
     createAndAddInputPort("input", packetReadyNotification);
 }

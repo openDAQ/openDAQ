@@ -25,11 +25,12 @@ public:
 
 protected:
     void onSetActive(bool active) override;
-    daq::StringPtr onAddSignal(const daq::MirroredSignalConfigPtr& signal) override;
+    daq::StringPtr onGetSignalStreamingId(const daq::StringPtr& signalRemoteId) override;
+    void onAddSignal(const daq::MirroredSignalConfigPtr& signal) override;
     void onRemoveSignal(const daq::MirroredSignalConfigPtr& signal) override;
-    void onSubscribeSignal(const daq::MirroredSignalConfigPtr& signal) override;
-    void onUnsubscribeSignal(const daq::MirroredSignalConfigPtr& signal) override;
-    daq::EventPacketPtr onCreateDataDescriptorChangedEventPacket(const daq::MirroredSignalConfigPtr& signal) override;
+    void onSubscribeSignal(const daq::StringPtr& signalRemoteId, const daq::StringPtr& domainSignalRemoteId) override;
+    void onUnsubscribeSignal(const daq::StringPtr& signalRemoteId, const daq::StringPtr& domainSignalRemoteId) override;
+    daq::EventPacketPtr onCreateDataDescriptorChangedEventPacket(const daq::StringPtr& signalRemoteId) override;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

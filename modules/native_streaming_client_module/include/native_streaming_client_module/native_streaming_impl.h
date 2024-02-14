@@ -43,14 +43,15 @@ public:
 
 protected:
     void onSetActive(bool active) override;
-    StringPtr onAddSignal(const MirroredSignalConfigPtr& signal) override;
+    StringPtr onGetSignalStreamingId(const StringPtr& signalRemoteId) override;
+    void onAddSignal(const MirroredSignalConfigPtr& signal) override;
     void onRemoveSignal(const MirroredSignalConfigPtr& signal) override;
-    void onSubscribeSignal(const MirroredSignalConfigPtr& signal) override;
-    void onUnsubscribeSignal(const MirroredSignalConfigPtr& signal) override;
-    EventPacketPtr onCreateDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal) override;
+    void onSubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
+    void onUnsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
+    EventPacketPtr onCreateDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId) override;
 
-    void checkAndSubscribe(const MirroredSignalConfigPtr& signal);
-    void checkAndUnsubscribe(const MirroredSignalConfigPtr& signal);
+    void checkAndSubscribe(const StringPtr& signalRemoteId);
+    void checkAndUnsubscribe(const StringPtr& signalRemoteId);
 
     void signalAvailableHandler(const StringPtr& signalStringId,
                                 const StringPtr& serializedSignal);
@@ -66,7 +67,6 @@ protected:
 
     void onPacket(const StringPtr& signalStringId, const PacketPtr& packet);
     void handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket);
-    StringPtr getSignalStreamingId(const MirroredSignalConfigPtr& signal);
 
     void startAsyncOperations();
     void stopAsyncOperations();

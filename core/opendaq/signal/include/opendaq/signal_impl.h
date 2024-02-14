@@ -105,8 +105,8 @@ protected:
     int getSerializeFlags() override;
 
     virtual EventPacketPtr createDataDescriptorChangedEventPacket();
-    virtual void onListenedStatusChanged();
-    bool hasListeners();
+    virtual void onListenedStatusChanged(bool listened);
+    virtual SignalPtr onGetDomainSignal();
 
     void removed() override;
     BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
@@ -232,7 +232,7 @@ EventPacketPtr SignalBase<TInterface, Interfaces...>::createDataDescriptorChange
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::onListenedStatusChanged()
+void SignalBase<TInterface, Interfaces...>::onListenedStatusChanged(bool /*listened*/)
 {
 }
 
@@ -294,7 +294,12 @@ ErrCode SignalBase<TInterface, Interfaces...>::getDomainSignal(ISignal** signal)
 
     std::scoped_lock lock(this->sync);
 
-    *signal = domainSignal.addRefAndReturn();
+    SignalPtr signalPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetDomainSignal, signalPtr);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    *signal = signalPtr.detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -528,11 +533,9 @@ void SignalBase<TInterface, Interfaces...>::triggerRelatedSignalsChanged()
 }
 
 template <typename TInterface, typename... Interfaces>
-bool SignalBase<TInterface, Interfaces...>::hasListeners()
+SignalPtr SignalBase<TInterface, Interfaces...>::onGetDomainSignal()
 {
-    std::scoped_lock lock(this->sync);
-
-    return !connections.empty();
+    return domainSignal;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -541,30 +544,23 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* co
     OPENDAQ_PARAM_NOT_NULL(connection);
 
     const auto connectionPtr = ConnectionPtr::Borrow(connection);
-    bool triggerListenedStatusChange = false;
 
+    std::scoped_lock lock(this->sync);
+    auto it = std::find(connections.begin(), connections.end(), connectionPtr);
+    if (it != connections.end())
+        return OPENDAQ_ERR_DUPLICATEITEM;
+
+    if (connections.empty())
     {
-        std::scoped_lock lock(this->sync);
-        auto it = std::find(connections.begin(), connections.end(), connectionPtr);
-        if (it != connections.end())
-            return OPENDAQ_ERR_DUPLICATEITEM;
-
-        if (connections.empty())
-            triggerListenedStatusChange = true;
-
-
-        connections.push_back(connectionPtr);
-
-        const auto packet = createDataDescriptorChangedEventPacket();
-        connectionPtr.enqueueOnThisThread(packet);
-    }
-
-    if (triggerListenedStatusChange)
-    {
-        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged);
+        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, true);
         if (OPENDAQ_FAILED(errCode))
             return errCode;
     }
+
+    connections.push_back(connectionPtr);
+
+    const auto packet = createDataDescriptorChangedEventPacket();
+    connectionPtr.enqueueOnThisThread(packet);
 
     return OPENDAQ_SUCCESS;
 }
@@ -575,23 +571,17 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerDisconnected(IConnection*
     OPENDAQ_PARAM_NOT_NULL(connection);
 
     const auto connectionPtr = ObjectPtr<IConnection>::Borrow(connection);
-    bool triggerListenedStatusChange = false;
 
+    std::scoped_lock lock(this->sync);
+    auto it = std::find(connections.begin(), connections.end(), connectionPtr);
+    if (it == connections.end())
+        return OPENDAQ_ERR_NOTFOUND;
+
+    connections.erase(it);
+
+    if (connections.empty())
     {
-        std::scoped_lock lock(this->sync);
-        auto it = std::find(connections.begin(), connections.end(), connectionPtr);
-        if (it == connections.end())
-            return OPENDAQ_ERR_NOTFOUND;
-
-        connections.erase(it);
-
-        if (connections.empty())
-            triggerListenedStatusChange = true;
-    }
-
-    if (triggerListenedStatusChange)
-    {
-        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged);
+        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, false);
         if (OPENDAQ_FAILED(errCode))
             return errCode;
     }

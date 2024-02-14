@@ -31,7 +31,6 @@ public:
 
     // ISignal
     ErrCode INTERFACE_FUNC getDescriptor(IDataDescriptor** descriptor) override;
-    ErrCode INTERFACE_FUNC getDomainSignal(ISignal** signal) override;
 
     StringPtr onGetRemoteId() const override;
     Bool onTriggerEvent(EventPacketPtr eventPacket) override;
@@ -46,6 +45,8 @@ protected:
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
+
+    SignalPtr onGetDomainSignal() override;
 
 private:
     static StringPtr createLocalId(const StringPtr& streamingId);

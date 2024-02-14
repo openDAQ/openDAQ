@@ -54,9 +54,9 @@ public:
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) const override;
 
     // IStreamingPrivate
-    ErrCode INTERFACE_FUNC subscribeSignal(const MirroredSignalConfigPtr& signal) override;
-    ErrCode INTERFACE_FUNC unsubscribeSignal(const MirroredSignalConfigPtr& signal) override;
-    EventPacketPtr INTERFACE_FUNC createDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal) override;
+    ErrCode INTERFACE_FUNC subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
+    ErrCode INTERFACE_FUNC unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
+    EventPacketPtr INTERFACE_FUNC createDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId) override;
 
 protected:
     /*!
@@ -66,11 +66,17 @@ protected:
     virtual void onSetActive(bool active) = 0;
 
     /*!
-     * @brief A function called when a signal is being added to the Streaming.
-     * @param signal The signal to be added to the Streaming.
+     * @brief A function used to get signal Id as it appears within the streaming.
+     * @param signalRemoteId The signal remote Id.
      * @returns The signal ID used as a key to store/access the signal within the Streaming.
      */
-    virtual StringPtr onAddSignal(const MirroredSignalConfigPtr& signal) = 0;
+    virtual StringPtr onGetSignalStreamingId(const StringPtr& signalRemoteId) = 0;
+
+    /*!
+     * @brief A function called when a signal is being added to the Streaming.
+     * @param signal The signal to be added to the Streaming.
+     */
+    virtual void onAddSignal(const MirroredSignalConfigPtr& signal) = 0;
 
     /*!
      * @brief A function is called when signal is being removed from the Streaming.
@@ -80,22 +86,24 @@ protected:
 
     /*!
      * @brief A function is called when signal is being subscribed within the Streaming.
-     * @param signal The signal to be subscribed within the Streaming.
+     * @param signalRemoteId The global remote ID of the signal to be subscribed.
+     * @param domainSignalRemoteId The global remote ID of the domain signal of the signal to be subscribed.
      */
-    virtual void onSubscribeSignal(const MirroredSignalConfigPtr& signal) = 0;
+    virtual void onSubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) = 0;
 
     /*!
      * @brief A function is called when signal is being unsubscribed within the Streaming.
-     * @param signal The signal to be unsubscribed within the Streaming.
+     * @param signalRemoteId The global remote ID of the signal to be unsubscribed.
+     * @param domainSignalRemoteId The global remote ID of the domain signal of the signal to be unsubscribed.
      */
-    virtual void onUnsubscribeSignal(const MirroredSignalConfigPtr& signal) = 0;
+    virtual void onUnsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) = 0;
 
     /*!
      * @brief A function is invoked on creation of an initial DataDescriptor Changed Event Packet.
-     * @param signal The signal for which the event packet is created.
+     * @param signalRemoteId The global remote ID of the signal for which the event is created.
      * @return The created DataDescriptor Changed Event Packet
      */
-    virtual EventPacketPtr onCreateDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal) = 0;
+    virtual EventPacketPtr onCreateDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId) = 0;
 
     void removeAllSignalsInternal();
 
@@ -120,7 +128,7 @@ StreamingImpl<Interfaces...>::~StreamingImpl()
 }
 
 template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::getActive(Bool *active)
+ErrCode StreamingImpl<Interfaces...>::getActive(Bool* active)
 {
     OPENDAQ_PARAM_NOT_NULL(active);
 
@@ -149,7 +157,7 @@ ErrCode StreamingImpl<Interfaces...>::setActive(Bool active)
 }
 
 template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::addSignals(IList *signals)
+ErrCode StreamingImpl<Interfaces...>::addSignals(IList* signals)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
 
@@ -195,7 +203,13 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList *signals)
         }
 
         StringPtr streamingSignalId;
-        ErrCode errCode = wrapHandlerReturn(this, &Self::onAddSignal, streamingSignalId, mirroredSignal);
+        ErrCode errCode = wrapHandlerReturn(this, &Self::onGetSignalStreamingId, streamingSignalId, mirroredSignal.getRemoteId());
+        if (OPENDAQ_FAILED(errCode))
+        {
+            return errCode;
+        }
+
+        errCode = wrapHandler(this, &Self::onAddSignal, mirroredSignal);
         if (OPENDAQ_FAILED(errCode))
         {
             return errCode;
@@ -227,7 +241,7 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList *signals)
 }
 
 template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::removeSignals(IList *signals)
+ErrCode StreamingImpl<Interfaces...>::removeSignals(IList* signals)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
 
@@ -296,8 +310,7 @@ ErrCode StreamingImpl<Interfaces...>::removeAllSignals()
     {
         if (mirroredSignalRef.assigned())
         {
-            auto mirroredSignal = mirroredSignalRef.getRef();
-            if (mirroredSignal.assigned())
+            if (auto mirroredSignal = mirroredSignalRef.getRef(); mirroredSignal.assigned())
             {
                 ErrCode errCode = wrapHandler(this, &Self::onRemoveSignal, mirroredSignal);
                 if (OPENDAQ_FAILED(errCode))
@@ -322,9 +335,9 @@ ErrCode StreamingImpl<Interfaces...>::getConnectionString(IString** connectionSt
 }
 
 template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::subscribeSignal(const MirroredSignalConfigPtr& signal)
+ErrCode StreamingImpl<Interfaces...>::subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId)
 {
-    ErrCode errCode = wrapHandler(this, &Self::onSubscribeSignal, signal);
+    ErrCode errCode = wrapHandler(this, &Self::onSubscribeSignal, signalRemoteId, domainSignalRemoteId);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -334,9 +347,9 @@ ErrCode StreamingImpl<Interfaces...>::subscribeSignal(const MirroredSignalConfig
 }
 
 template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::unsubscribeSignal(const MirroredSignalConfigPtr& signal)
+ErrCode StreamingImpl<Interfaces...>::unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId)
 {
-    ErrCode errCode = wrapHandler(this, &Self::onUnsubscribeSignal, signal);
+    ErrCode errCode = wrapHandler(this, &Self::onUnsubscribeSignal, signalRemoteId, domainSignalRemoteId);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -346,9 +359,9 @@ ErrCode StreamingImpl<Interfaces...>::unsubscribeSignal(const MirroredSignalConf
 }
 
 template <typename... Interfaces>
-EventPacketPtr StreamingImpl<Interfaces...>::createDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal)
+EventPacketPtr StreamingImpl<Interfaces...>::createDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId)
 {
-    return onCreateDataDescriptorChangedEventPacket(signal);
+    return onCreateDataDescriptorChangedEventPacket(signalRemoteId);
 }
 
 template <typename... Interfaces>
@@ -358,8 +371,7 @@ void StreamingImpl<Interfaces...>::removeAllSignalsInternal()
     {
         if (mirroredSignalRef.assigned())
         {
-            auto mirroredSignal = mirroredSignalRef.getRef();
-            if (mirroredSignal.assigned())
+            if (auto mirroredSignal = mirroredSignalRef.getRef(); mirroredSignal.assigned())
                 mirroredSignal.template asPtr<IMirroredSignalPrivate>()->removeStreamingSource(connectionString);
         }
     }

@@ -46,6 +46,14 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             return objectPtr.build().detach();
         },
         "Builds and returns an Instance object using the currently set values of the Builder.");
+    cls.def("add_config_provider",
+        [](daq::IInstanceBuilder *object, daq::IConfigProvider* configProvider)
+        {
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            objectPtr.addConfigProvider(configProvider);
+        },
+        py::arg("config_provider"),
+        "Populates internal options dictionary with values from set config provider");
     cls.def_property("logger",
         [](daq::IInstanceBuilder *object)
         {
@@ -198,4 +206,12 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
         },
         py::return_value_policy::take_ownership,
         "Gets the default device info of Instance / Sets the default device info of Instance. If device info has been set, method getInfo of Instance will return set device info if Root Device has not been set");
+    cls.def_property_readonly("options",
+        [](daq::IInstanceBuilder *object)
+        {
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            return objectPtr.getOptions().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the dictionary of instance options");
 }

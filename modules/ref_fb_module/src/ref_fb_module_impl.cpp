@@ -1,19 +1,20 @@
-#include <ref_fb_module/ref_fb_module_impl.h>
-#include <ref_fb_module/version.h>
-#include <ref_fb_module/renderer_fb_impl.h>
-#include <ref_fb_module/statistics_fb_impl.h>
-#include <ref_fb_module/power_fb_impl.h>
-#include <ref_fb_module/scaling_fb_impl.h>
-#include <ref_fb_module/classifier_fb_impl.h>
 #include <coretypes/version_info_factory.h>
 #include <opendaq/custom_log.h>
+#include <ref_fb_module/classifier_fb_impl.h>
+#include <ref_fb_module/power_fb_impl.h>
+#include <ref_fb_module/ref_fb_module_impl.h>
+#include <ref_fb_module/renderer_fb_impl.h>
+#include <ref_fb_module/scaling_fb_impl.h>
+#include <ref_fb_module/statistics_fb_impl.h>
+#include <ref_fb_module/trigger_fb_impl.h>
+#include <ref_fb_module/version.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 RefFbModule::RefFbModule(ContextPtr ctx)
     : Module("Reference function block module",
-            daq::VersionInfo(REF_FB_MODULE_MAJOR_VERSION, REF_FB_MODULE_MINOR_VERSION, REF_FB_MODULE_PATCH_VERSION),
-            std::move(ctx))
+             daq::VersionInfo(REF_FB_MODULE_MAJOR_VERSION, REF_FB_MODULE_MINOR_VERSION, REF_FB_MODULE_PATCH_VERSION),
+             std::move(ctx))
 {
 }
 
@@ -36,10 +37,16 @@ DictPtr<IString, IFunctionBlockType> RefFbModule::onGetAvailableFunctionBlockTyp
     auto typeClassifier = Classifier::ClassifierFbImpl::CreateType();
     types.set(typeClassifier.getId(), typeClassifier);
 
+    auto typeTrigger = Trigger::TriggerFbImpl::CreateType();
+    types.set(typeTrigger.getId(), typeTrigger);
+
     return types;
 }
 
-FunctionBlockPtr RefFbModule::onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
+FunctionBlockPtr RefFbModule::onCreateFunctionBlock(const StringPtr& id,
+                                                    const ComponentPtr& parent,
+                                                    const StringPtr& localId,
+                                                    const PropertyObjectPtr& config)
 {
     if (id == Renderer::RendererFbImpl::CreateType().getId())
     {
@@ -64,6 +71,11 @@ FunctionBlockPtr RefFbModule::onCreateFunctionBlock(const StringPtr& id, const C
     if (id == Classifier::ClassifierFbImpl::CreateType().getId())
     {
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Classifier::ClassifierFbImpl>(context, parent, localId);
+        return fb;
+    }
+    if (id == Trigger::TriggerFbImpl::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Trigger::TriggerFbImpl>(context, parent, localId, config);
         return fb;
     }
 

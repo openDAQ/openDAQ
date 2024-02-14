@@ -8,146 +8,24 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const DeviceInfoPtr& deviceInfo)
-    : DeviceBase<IClientPrivate>(ctx, nullptr, localId)
+    : DeviceBase<>(ctx, nullptr, localId)
     , manager(this->context.assigned() ? this->context.getModuleManager() : nullptr)
     , logger(ctx.getLogger())
     , loggerComponent( this->logger.assigned()
                           ? this->logger.getOrAddComponent("Client")
                           : throw ArgumentNullException("Logger must not be null"))
-    , rootDeviceSet(false)
 {
     if (deviceInfo.assigned())
         this->deviceInfo = deviceInfo;
     else
         this->deviceInfo = DeviceInfo("", "daq_client");
     this->deviceInfo.freeze();
+    this->isRootDevice = true;
 }
 
 DeviceInfoPtr ClientImpl::onGetInfo()
 {
     return this->deviceInfo;
-}
-
-DictPtr<IString, IFunctionBlockType> ClientImpl::onGetAvailableFunctionBlockTypes()
-{
-    std::scoped_lock lock(sync);
-    auto availableTypes = Dict<IString, IFunctionBlockType>();
-
-    for (const auto module : manager.getModules())
-    {
-        DictPtr<IString, IFunctionBlockType> moduleFbTypes;
-
-        try
-        {
-            moduleFbTypes = module.getAvailableFunctionBlockTypes();
-        }
-        catch (NotImplementedException&)
-        {
-            LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getName())
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getName(), e.what())
-        }
-
-        if (!moduleFbTypes.assigned())
-            continue;
-
-        for (const auto& [id, type] : moduleFbTypes)
-            availableTypes.set(id, type);
-    }
-
-    return availableTypes.detach();
-}
-
-ComponentPtr ClientImpl::getFunctionBlocksFolder()
-{
-    ComponentPtr functionBlocksFolder = functionBlocks;
-
-    if (rootDeviceSet)
-    {
-        auto rootDevicePtr = rootDevice.getRef();
-        if (rootDevicePtr.assigned() && rootDevicePtr.supportsInterface<IFolder>())
-        {
-            const auto folders = rootDevicePtr.asPtr<IFolder>(true);
-            try
-            {
-                functionBlocksFolder = folders.getItem("FB");
-            }
-            catch (NotFoundException&)
-            {
-                LOGP_E("Root device has no function blocks folder")
-            }
-        }
-    }
-
-    return functionBlocksFolder;
-}
-
-FunctionBlockPtr ClientImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
-{
-    for (const auto module : manager.getModules())
-    {
-        DictPtr<IString, IFunctionBlockType> types;
-
-        try
-        {
-            types = module.getAvailableFunctionBlockTypes();
-        }
-        catch (NotImplementedException&)
-        {
-            LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getName())
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getName(), e.what())
-        }
-
-        if (!types.assigned())
-            continue;
-        if (!types.hasKey(typeId))
-            continue;
-
-        const FolderConfigPtr fbFolder = getFunctionBlocksFolder();
-
-        std::string localId;
-        if (config.assigned() && config.hasProperty("LocalId"))
-        {
-            localId = static_cast<std::string>(config.getPropertyValue("LocalId"));
-
-            std::vector<std::string> splitStr;
-            boost::split(splitStr, localId, boost::is_any_of("_"));
-
-            if (!splitStr.empty())
-            {
-                size_t cnt = std::stoi(*(splitStr.end() - 1)) + 1;
-
-                if (!functionBlockCountMap.count(typeId))
-                    functionBlockCountMap.insert(std::pair<std::string, size_t>(typeId, cnt));
-                else
-                    functionBlockCountMap[typeId] = std::max(cnt, functionBlockCountMap[typeId]);
-            }
-        }
-        else
-        {
-            if (!functionBlockCountMap.count(typeId))
-                functionBlockCountMap.insert(std::pair<std::string, size_t>(typeId, 0));
-
-            localId = fmt::format("{}_{}", typeId, functionBlockCountMap[typeId]++);
-        }
-
-        auto fb = module.createFunctionBlock(typeId, fbFolder, localId, config);
-        fbFolder.addItem(fb);
-        return fb;
-    }
-
-    throw NotFoundException{"Function block with given uid is not available."};
-}
-
-void ClientImpl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
-{
-    const FolderConfigPtr fbFolder = getFunctionBlocksFolder();
-    fbFolder.removeItem(functionBlock);
 }
 
 ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
@@ -249,17 +127,6 @@ DevicePtr ClientImpl::onAddDevice(const StringPtr& connectionString, const Prope
 void ClientImpl::onRemoveDevice(const DevicePtr& device)
 {
     this->devices.removeItem(device);
-}
-
-ErrCode ClientImpl::setRootDevice(IComponent* rootDevice)
-{
-    if (rootDeviceSet)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Root device already set");
-
-    this->rootDevice = rootDevice;
-    rootDeviceSet = true;
-
-    return OPENDAQ_SUCCESS;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

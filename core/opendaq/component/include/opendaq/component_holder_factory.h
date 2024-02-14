@@ -15,16 +15,20 @@
  */
 
 #pragma once
-
-#include <coretypes/baseobject.h>
-#include <coretypes/stringobject.h>
-#include <opendaq/component.h>
+#include <opendaq/component_holder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-DECLARE_OPENDAQ_INTERFACE(IClientPrivate, IBaseObject)
+inline ComponentHolderPtr ComponentHolder(const StringPtr& id, const StringPtr& parentGlobalId, const ComponentPtr& component)
 {
-    virtual ErrCode INTERFACE_FUNC setRootDevice(IComponent* rootDevice) = 0;
-};
+    ComponentHolderPtr obj(ComponentHolderWithIds_Create(id, parentGlobalId, component));
+    return obj;
+}
+
+inline ComponentHolderPtr ComponentHolder(const ComponentPtr& component)
+{
+    ComponentHolderPtr obj(ComponentHolder_Create(component));
+    return obj;
+}
 
 END_NAMESPACE_OPENDAQ

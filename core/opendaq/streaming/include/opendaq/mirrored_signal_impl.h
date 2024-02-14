@@ -60,6 +60,7 @@ public:
     Bool INTERFACE_FUNC hasMatchingId(const StringPtr& signalId) override;
     void INTERFACE_FUNC subscribeCompleted(const StringPtr& streamingConnectionString) override;
     void INTERFACE_FUNC unsubscribeCompleted(const StringPtr& streamingConnectionString) override;
+    void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
 
     // ISignalConfig
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
@@ -75,7 +76,7 @@ public:
 
 protected:
     EventPacketPtr createDataDescriptorChangedEventPacket() override;
-    void onListenedStatusChanged(bool isConnected) override;
+    void onListenedStatusChanged() override;
 
 private:
     ErrCode subscribeInternal();
@@ -97,6 +98,7 @@ MirroredSignalBase<Interfaces...>::MirroredSignalBase(const ContextPtr& ctx,
                                                       const StringPtr& localId,
                                                       const StringPtr& className)
     : Super(ctx, nullptr, parent, localId, className)
+    , activeStreamingSourceRef(nullptr)
     , listened(false)
     , streamed(true)
 {
@@ -229,10 +231,11 @@ ErrCode MirroredSignalBase<Interfaces...>::clearRelatedSignals()
 }
 
 template <typename... Interfaces>
-void MirroredSignalBase<Interfaces...>::onListenedStatusChanged(bool listened)
+void MirroredSignalBase<Interfaces...>::onListenedStatusChanged()
 {
     std::scoped_lock lock(mirroredSignalSync);
 
+    bool listened = this->hasListeners();
     if (this->listened == listened)
         return;
     this->listened = listened;
@@ -490,6 +493,20 @@ void MirroredSignalBase<Interfaces...>::unsubscribeCompleted(const StringPtr& st
             SubscriptionEventArgs(streamingConnectionString, SubscriptionEventType::Unsubscribed)
         );
     }
+}
+
+template <typename... Interfaces>
+void MirroredSignalBase<Interfaces...>::assignDomainSignal(const SignalPtr& domainSignal)
+{
+    if (domainSignal.asPtrOrNull<IMirroredSignalConfig>() == nullptr)
+    {
+        throw NoInterfaceException(
+            fmt::format(R"(Domain signal "{}" does not implement IMirroredSignalConfig interface.)",
+                        domainSignal.getGlobalId()));
+    }
+
+    ErrCode errCode = Super::setDomainSignal(domainSignal);
+    checkErrorInfo(errCode);
 }
 
 END_NAMESPACE_OPENDAQ

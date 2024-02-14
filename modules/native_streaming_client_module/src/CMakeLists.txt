@@ -12,9 +12,7 @@ set(SRC_Include common.h
                 native_streaming_device_impl.h
                 native_streaming_signal_impl.h
                 native_streaming_impl.h
-                native_streaming_device_factory.h
-                native_streaming_signal_factory.h
-                native_streaming_factory.h
+                native_device_impl.h
 )
 
 set(SRC_Srcs module_dll.cpp
@@ -22,6 +20,7 @@ set(SRC_Srcs module_dll.cpp
              native_streaming_device_impl.cpp
              native_streaming_signal_impl.cpp
              native_streaming_impl.cpp
+             native_device_impl.cpp
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
@@ -33,17 +32,16 @@ source_group("module" FILES ${MODULE_HEADERS_DIR}/native_streaming_client_module
 )
 
 source_group("device" FILES ${MODULE_HEADERS_DIR}/native_streaming_device_impl.h
-                            ${MODULE_HEADERS_DIR}/native_streaming_device_factory.h
+                            ${MODULE_HEADERS_DIR}/native_device_impl.h
                             native_streaming_device_impl.cpp
+                            native_device_impl.cpp
 )
 
 source_group("signal" FILES ${MODULE_HEADERS_DIR}/native_streaming_signal_impl.h
-                            ${MODULE_HEADERS_DIR}/native_streaming_signal_factory.h
                             native_streaming_signal_impl.cpp
 )
 
 source_group("streaming" FILES ${MODULE_HEADERS_DIR}/native_streaming_impl.h
-                               ${MODULE_HEADERS_DIR}/native_streaming_factory.h
                                native_streaming_impl.cpp
 )
 
@@ -59,6 +57,7 @@ endif()
 target_link_libraries(${LIB_NAME} PUBLIC  daq::opendaq
                                   PRIVATE daq::discovery
                                           daq::native_streaming_protocol
+                                          daq::config_protocol
 )
 
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

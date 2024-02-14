@@ -31,17 +31,20 @@ public:
     GenericComponentDeserializeContextImpl(const ContextPtr& context,
                                            const ComponentPtr& root,
                                            const ComponentPtr& parent,
-                                           const StringPtr& localId);
+                                           const StringPtr& localId,
+                                           const IntfID* inftID);
 
 
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
     ErrCode INTERFACE_FUNC getRoot(IComponent** root) override;
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
+    ErrCode INTERFACE_FUNC getIntfID(IntfID* id) override;
 
     ErrCode INTERFACE_FUNC clone(IComponent* newParent,
                                  IString* newLocalId,
-                                 IComponentDeserializeContext** newComponentDeserializeContext) override;
+                                 IComponentDeserializeContext** newComponentDeserializeContext,
+                                 IntfID* newIntfID) override;
 
     ErrCode INTERFACE_FUNC queryInterface(const IntfID& intfID, void** obj) override;
     ErrCode INTERFACE_FUNC borrowInterface(const IntfID& intfID, void** obj) const override;
@@ -52,6 +55,7 @@ protected:
     ComponentPtr parent;
     StringPtr localId;
     TypeManagerPtr typeManager;
+    std::unique_ptr<IntfID> intfID;
 };
 
 using ComponentDeserializeContextImpl = GenericComponentDeserializeContextImpl<IComponentDeserializeContext>;
@@ -61,13 +65,16 @@ GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::GenericCom
     const ContextPtr& context,
     const ComponentPtr& root,
     const ComponentPtr& parent,
-    const StringPtr& localId)
+    const StringPtr& localId,
+    const IntfID* intfID)
     : context(context)
     , root(root)
     , parent(parent)
     , localId(localId)
     , typeManager(context.assigned() ? context.getTypeManager() : nullptr)
 {
+    if (intfID != nullptr)
+        this->intfID = std::make_unique<IntfID>(*intfID);
 }
 
 template <class MainInterface, class... Interfaces>
@@ -111,15 +118,28 @@ ErrCode GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::ge
 }
 
 template <class MainInterface, class ... Interfaces>
+ErrCode GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::getIntfID(IntfID* intfID)
+{
+    if (this->intfID)
+    {
+        *intfID = *(this->intfID.get());
+        return OPENDAQ_SUCCESS;
+    }
+
+    return OPENDAQ_NOTFOUND;
+}
+
+template <class MainInterface, class ... Interfaces>
 ErrCode GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::clone(
     IComponent* newParent,
     IString* newLocalId,
-    IComponentDeserializeContext** newComponentDeserializeContext)
+    IComponentDeserializeContext** newComponentDeserializeContext,
+    IntfID* newIntfID)
 {
     OPENDAQ_PARAM_NOT_NULL(newLocalId);
     OPENDAQ_PARAM_NOT_NULL(newComponentDeserializeContext);
 
-    return createComponentDeserializeContext(newComponentDeserializeContext, context, root, newParent, newLocalId);
+    return createComponentDeserializeContext(newComponentDeserializeContext, context, root, newParent, newLocalId, newIntfID);
 }
 
 template <class MainInterface, class... Interfaces>

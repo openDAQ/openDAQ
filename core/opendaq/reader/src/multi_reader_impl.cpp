@@ -20,7 +20,9 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
                                  ReadMode mode,
-                                 ReadTimeoutType timeoutType)
+                                 ReadTimeoutType timeoutType,
+                                 bool startOnFullUnitOfDomain)
+    : startOnFullUnitOfDomain(startOnFullUnitOfDomain)
 {    
     bool isSignal = CheckPreconditions(list);
 
@@ -51,6 +53,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
     std::scoped_lock lock(old->mutex);
     old->invalid = true;
     portBinder = old->portBinder;
+    startOnFullUnitOfDomain = old->startOnFullUnitOfDomain;
 
     CheckPreconditions(old->getSignals());
 
@@ -838,6 +841,12 @@ void MultiReaderImpl::readDomainStart()
 
     LOG_T("---");
     LOG_T("DomainStart: {}", *commonStart);
+
+    if (startOnFullUnitOfDomain)
+    {
+        commonStart->roundUpOnUnitOfDomain();
+        LOG_T("Rounded DomainStart: {}", *commonStart);
+    }
 }
 
 void MultiReaderImpl::sync()
@@ -885,7 +894,18 @@ ErrCode MultiReaderImpl::getOffset(void* domainStart)
     if (commonStart)
     {
         commonStart->getValue(domainStart);
+        return OPENDAQ_SUCCESS;
     }
+
+    return OPENDAQ_IGNORED;
+}
+
+ErrCode MultiReaderImpl::getIsSynchronized(Bool* isSynchronized)
+{
+    OPENDAQ_PARAM_NOT_NULL(isSynchronized);
+
+    *isSynchronized = static_cast<bool>(commonStart);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -958,6 +978,16 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     ReadMode, mode,
     ReadTimeoutType, timeoutType
 )
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
+    LIBRARY_FACTORY, MultiReaderImpl, IMultiReader, createMultiReaderEx,
+    IList*, signals,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode,
+    ReadTimeoutType, timeoutType,
+    bool, startOnFullUnitOfDomain)
+
 
 template <>
 struct ObjectCreator<IMultiReader>

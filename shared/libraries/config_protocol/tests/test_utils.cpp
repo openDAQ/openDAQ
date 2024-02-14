@@ -96,8 +96,12 @@ ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const Compon
 MockFb1Impl::MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId)
 {
-    createAndAddSignal("sig1");
-    createAndAddSignal("sig2");
+    const auto sig1 = createAndAddSignal("sig1");
+    const auto sig2 = createAndAddSignal("sig2");
+    const auto sigDomain = createAndAddSignal("sig_domain");
+    sig1.setDomainSignal(sigDomain);
+    sig2.setDomainSignal(sigDomain);
+
     createAndAddInputPort("ip", PacketReadyNotification::None);
 }
 
@@ -113,7 +117,9 @@ MockFb2Impl::MockFb2Impl(const ContextPtr& ctx, const ComponentPtr& parent, cons
 MockChannel1Impl::MockChannel1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : Channel(FunctionBlockType("ch", "", ""), ctx, parent, localId)
 {
-    createAndAddSignal("sig_ch");
+    const auto valueSig = createAndAddSignal("sig_ch");
+    const auto domainSig = createAndAddSignal("sig_ch_time");
+    valueSig.setDomainSignal(domainSig);
     const auto childFb = createWithImplementation<IFunctionBlock, MockFb1Impl>(ctx, this->functionBlocks, "childFb");
     addNestedFunctionBlock(childFb);
 }

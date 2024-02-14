@@ -45,6 +45,15 @@ BEGIN_NAMESPACE_OPENDAQ
 
 static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
 
+// https://developercommunity.visualstudio.com/t/inline-static-destructors-are-called-multiple-time/1157794
+#ifdef _MSC_VER
+#if _MSC_VER <= 1927
+#define WORKAROUND_MEMBER_INLINE_VARIABLE
+#endif
+#endif
+
+#define COMPONENT_AVAILABLE_ATTRIBUTES {"Name", "Description", "Visible", "Active"}
+
 template <class Intf = IComponent, class ... Intfs>
 class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, IDeserializeComponent, Intfs ...>
 {
@@ -116,7 +125,12 @@ protected:
     StringPtr globalId;
     EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
     
-    inline static std::unordered_set<std::string> componentAvailableAttributes = {"Name", "Description", "Visible", "Active"};
+#ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
+    static std::unordered_set<std::string> componentAvailableAttributes;
+#else
+    inline static std::unordered_set<std::string> componentAvailableAttributes = COMPONENT_AVAILABLE_ATTRIBUTES;
+#endif
+
     std::unordered_set<std::string> lockedAttributes;
     bool visible;
     bool active;
@@ -149,6 +163,11 @@ protected:
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
 };
+
+#ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
+template <class Intf, class... Intfs>
+std::unordered_set<std::string> ComponentImpl<Intf, Intfs...>::componentAvailableAttributes = COMPONENT_AVAILABLE_ATTRIBUTES;
+#endif
 
 template <class Intf, class ... Intfs>
 ComponentImpl<Intf, Intfs...>::ComponentImpl(

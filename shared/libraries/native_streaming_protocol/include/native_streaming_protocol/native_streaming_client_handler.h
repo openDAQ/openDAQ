@@ -39,25 +39,19 @@ enum class ClientReconnectionStatus
 };
 
 using OnSignalAvailableCallback = std::function<void(const StringPtr& signalStringId,
-                                                     const StringPtr& domainSignalStringId,
-                                                     const DataDescriptorPtr& signalDescriptor,
-                                                     const StringPtr& name,
-                                                     const StringPtr& description)>;
+                                                     const StringPtr& serializedSignal)>;
 using OnSignalUnavailableCallback = std::function<void(const StringPtr& signalStringId)>;
 using OnPacketCallback = std::function<void(const StringPtr& signalStringId, const PacketPtr& packet)>;
 using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
 using OnReconnectionStatusChangedCallback = std::function<void(ClientReconnectionStatus status)>;
 
+class NativeStreamingClientHandler;
+using NativeStreamingClientHandlerPtr = std::shared_ptr<NativeStreamingClientHandler>;
+
 class NativeStreamingClientHandler
 {
 public:
-    explicit NativeStreamingClientHandler(const ContextPtr& context,
-                                          std::shared_ptr<boost::asio::io_context> ioContextPtr,
-                                          OnSignalAvailableCallback signalAvailableHandler,
-                                          OnSignalUnavailableCallback signalUnavailableHandler,
-                                          OnPacketCallback packetHandler,
-                                          OnSignalSubscriptionAckCallback signalSubscriptionAckCallback,
-                                          OnReconnectionStatusChangedCallback reconnectionStatusChangedCb);
+    explicit NativeStreamingClientHandler(const ContextPtr& context);
 
     ~NativeStreamingClientHandler();
 
@@ -69,6 +63,16 @@ public:
     void unsubscribeSignal(const StringPtr& signalStringId);
     EventPacketPtr getDataDescriptorChangedEventPacket(const StringPtr& signalStringId);
 
+    void sendConfigRequest(const config_protocol::PacketBuffer& packet);
+
+    void setIoContext(const std::shared_ptr<boost::asio::io_context>& ioContextPtr);
+    void setSignalAvailableHandler(const OnSignalAvailableCallback& signalAvailableHandler);
+    void setSignalUnavailableHandler(const OnSignalUnavailableCallback& signalUnavailableHandler);
+    void setPacketHandler(const OnPacketCallback& packetHandler);
+    void setSignalSubscriptionAckCallback(const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback);
+    void setReconnectionStatusChangedCb(const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb);
+    void setConfigPacketHandler(const ConfigProtocolPacketCb& configPacketHandler);
+
 protected:
     void initClientSessionHandler(SessionPtr session);
     void initClient(std::string host,
@@ -78,10 +82,7 @@ protected:
     void handlePacket(const SignalNumericIdType& signalNumericId, const PacketPtr& packet);
     void handleSignal(const SignalNumericIdType& signalNumericId,
                       const StringPtr& signalStringId,
-                      const StringPtr& domainSignalStringId,
-                      const DataDescriptorPtr& signalDescriptor,
-                      const StringPtr& name,
-                      const StringPtr& description,
+                      const StringPtr& serializedSignal,
                       bool available);
 
     void checkReconnectionStatus(const boost::system::error_code& ec);
@@ -105,6 +106,7 @@ protected:
     OnPacketCallback packetHandler;
     OnSignalSubscriptionAckCallback signalSubscriptionAckCallback;
     OnReconnectionStatusChangedCallback reconnectionStatusChangedCb;
+    ConfigProtocolPacketCb configPacketHandler = [](const config_protocol::PacketBuffer& packet) {};
 
     std::shared_ptr<boost::asio::steady_timer> reconnectionTimer;
     std::shared_ptr<boost::asio::steady_timer> protocolInitTimer;

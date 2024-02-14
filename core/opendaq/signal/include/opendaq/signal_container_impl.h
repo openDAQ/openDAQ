@@ -92,7 +92,7 @@ protected:
 
     void serializeFolder(const SerializerPtr& serializer, const FolderConfigPtr& folder, const std::string& id, bool forUpdate);
 
-    template <class FolderPtr>
+    template <class Interface, class FolderPtr>
     void deserializeDefaultFolder(const SerializedObjectPtr& serializedObject,
                                   const BaseObjectPtr& context,
                                   const FunctionPtr& factoryCallback,
@@ -535,7 +535,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::swapComponent(Component& origCo
 }
 
 template <class Intf, class... Intfs>
-template <class FolderPtr>
+template <class Interface, class FolderPtr>
 void GenericSignalContainerImpl<Intf, Intfs...>::deserializeDefaultFolder(const SerializedObjectPtr& serializedObject,
                                                                           const BaseObjectPtr& context,
                                                                           const FunctionPtr& factoryCallback,
@@ -545,7 +545,8 @@ void GenericSignalContainerImpl<Intf, Intfs...>::deserializeDefaultFolder(const 
     if (serializedObject.hasKey(id))
     {
         const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
-        const auto newDeserializeContext = deserializeContext.clone(this->template borrowPtr<ComponentPtr>(), id);
+        IntfID intfID = Interface::Id;
+        const auto newDeserializeContext = deserializeContext.clone(this->template borrowPtr<ComponentPtr>(), id, &intfID);
         const FolderPtr newFolder = serializedObject.readObject(id, newDeserializeContext, factoryCallback);
         swapComponent(folder, newFolder);
     }
@@ -602,8 +603,8 @@ void GenericSignalContainerImpl<Intf, Intfs...>::deserializeCustomObjectValues(
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
-    deserializeDefaultFolder(serializedObject, context, factoryCallback, this->signals, "Sig");
-    deserializeDefaultFolder(serializedObject, context, factoryCallback, this->functionBlocks, "FB");
+    deserializeDefaultFolder<ISignal>(serializedObject, context, factoryCallback, this->signals, "Sig");
+    deserializeDefaultFolder<IFunctionBlock>(serializedObject, context, factoryCallback, this->functionBlocks, "FB");
 }
 
 template <class Intf, class ... Intfs>

@@ -118,8 +118,18 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
     /*!
      * @brief Gets the domain value (offset) from the aligned origin at the point the reader starts to provide synchronized samples.
      * @param domainStart The domain point at which the reader managed to synchronize all the signals.
+     * @return OPENDAQ_SUCCESS if the reader is synchronized,
+     *         OPENDAQ_IGNORED if the reader is not synchronized.
      */
     virtual ErrCode INTERFACE_FUNC getOffset(void* domainStart) = 0;
+
+    /*!
+     * @brief Gets the synchronization status of the reader
+     * @param isSynchronized True if reader is synchronized, False otherwise.
+     *
+     * Reader will try to synchronize the data from the signals when `getAvailableCount` or any of the read methods is called.
+     */
+    virtual ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) = 0;
 };
 
 /*!@}*/
@@ -132,6 +142,15 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     ReadMode, mode,
     ReadTimeoutType, timeoutType
 )
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, MultiReaderEx, IMultiReader,
+    IList*, signals,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode,
+    ReadTimeoutType, timeoutType,
+    bool, startOnFullUnitOfDomain)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, MultiReaderFromExisting, IMultiReader,

@@ -96,7 +96,8 @@ protected:
     int getSerializeFlags() override;
 
     virtual EventPacketPtr createDataDescriptorChangedEventPacket();
-    virtual void onListenedStatusChanged(bool connected);
+    virtual void onListenedStatusChanged();
+    bool hasListeners();
 
     void removed() override;
     BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
@@ -212,7 +213,7 @@ EventPacketPtr SignalBase<TInterface, Interfaces...>::createDataDescriptorChange
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::onListenedStatusChanged(bool /*listened*/)
+void SignalBase<TInterface, Interfaces...>::onListenedStatusChanged()
 {
 }
 
@@ -507,7 +508,13 @@ void SignalBase<TInterface, Interfaces...>::triggerRelatedSignalsChanged()
     }
 }
 
-#include <opendaq/event_packet_params.h>
+template <typename TInterface, typename... Interfaces>
+bool SignalBase<TInterface, Interfaces...>::hasListeners()
+{
+    std::scoped_lock lock(this->sync);
+
+    return !connections.empty();
+}
 
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* connection)
@@ -515,23 +522,30 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* co
     OPENDAQ_PARAM_NOT_NULL(connection);
 
     const auto connectionPtr = ConnectionPtr::Borrow(connection);
+    bool triggerListenedStatusChange = false;
 
-    std::scoped_lock lock(this->sync);
-    auto it = std::find(connections.begin(), connections.end(), connectionPtr);
-    if (it != connections.end())
-        return OPENDAQ_ERR_DUPLICATEITEM;
-
-    if (connections.empty())
     {
-        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, true);
+        std::scoped_lock lock(this->sync);
+        auto it = std::find(connections.begin(), connections.end(), connectionPtr);
+        if (it != connections.end())
+            return OPENDAQ_ERR_DUPLICATEITEM;
+
+        if (connections.empty())
+            triggerListenedStatusChange = true;
+
+
+        connections.push_back(connectionPtr);
+
+        const auto packet = createDataDescriptorChangedEventPacket();
+        connectionPtr.enqueueOnThisThread(packet);
+    }
+
+    if (triggerListenedStatusChange)
+    {
+        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged);
         if (OPENDAQ_FAILED(errCode))
             return errCode;
     }
-
-    connections.push_back(connectionPtr);
-
-    const auto packet = createDataDescriptorChangedEventPacket();
-    connectionPtr.enqueueOnThisThread(packet);
 
     return OPENDAQ_SUCCESS;
 }
@@ -542,17 +556,23 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerDisconnected(IConnection*
     OPENDAQ_PARAM_NOT_NULL(connection);
 
     const auto connectionPtr = ObjectPtr<IConnection>::Borrow(connection);
+    bool triggerListenedStatusChange = false;
 
-    std::scoped_lock lock(this->sync);
-    auto it = std::find(connections.begin(), connections.end(), connectionPtr);
-    if (it == connections.end())
-        return OPENDAQ_ERR_NOTFOUND;
-
-    connections.erase(it);
-
-    if (connections.empty())
     {
-        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, false);
+        std::scoped_lock lock(this->sync);
+        auto it = std::find(connections.begin(), connections.end(), connectionPtr);
+        if (it == connections.end())
+            return OPENDAQ_ERR_NOTFOUND;
+
+        connections.erase(it);
+
+        if (connections.empty())
+            triggerListenedStatusChange = true;
+    }
+
+    if (triggerListenedStatusChange)
+    {
+        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged);
         if (OPENDAQ_FAILED(errCode))
             return errCode;
     }
@@ -659,6 +679,12 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
         serializer.writeString(domainSignalGlobalId);
     }
 
+    if (dataDescriptor.assigned())
+    {
+        serializer.key("dataDescriptor");
+        dataDescriptor.serialize(serializer);
+    }
+
     Super::serializeCustomObjectValues(serializer, forUpdate);
 }
 
@@ -724,6 +750,8 @@ void SignalBase<TInterface, Interfaces...>::deserializeCustomObjectValues(const 
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
     if (serializedObject.hasKey("domainSignalId"))
         deserializedDomainSignalId = serializedObject.readString("domainSignalId");
+    if (serializedObject.hasKey("dataDescriptor"))
+        dataDescriptor = serializedObject.readObject("dataDescriptor", context, factoryCallback);
 }
 
 template <typename TInterface, typename... Interfaces>

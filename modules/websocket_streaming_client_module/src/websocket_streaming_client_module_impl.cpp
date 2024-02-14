@@ -23,14 +23,18 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
             daq::VersionInfo(WS_STREAM_CL_MODULE_MAJOR_VERSION, WS_STREAM_CL_MODULE_MINOR_VERSION, WS_STREAM_CL_MODULE_PATCH_VERSION),
             std::move(context))
     , deviceIndex(0)
-    , discoveryClient([](MdnsDiscoveredDevice discoveredDevice)
-                      {
-                          return fmt::format("daq.ws://{}:{}{}",
-                                             discoveredDevice.ipv4Address,
-                                             discoveredDevice.servicePort,
-                                             discoveredDevice.getPropertyOrDefault("path", "/"));
-                      },
-                      {"WS"})
+    , discoveryClient(
+        {
+            [](MdnsDiscoveredDevice discoveredDevice)
+            {
+                return fmt::format("daq.ws://{}:{}{}",
+                                   discoveredDevice.ipv4Address,
+                                   discoveredDevice.servicePort,
+                                   discoveredDevice.getPropertyOrDefault("path", "/"));
+            }
+        },
+        {"WS"}
+    )
 {
     discoveryClient.initMdnsClient("_streaming-ws._tcp.local.");
 }

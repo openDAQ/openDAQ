@@ -213,4 +213,6 @@ TEST_F(DeviceTest, SerializeAndDeserialize)
     const auto str2 = serializer2.getOutput();
 
     ASSERT_EQ(str1, str2);
+
+    ASSERT_EQ(newDev.getDevices().getElementInterfaceId(), daq::IDevice::Id);
 }

@@ -2,6 +2,7 @@
 #include <native_streaming/client.hpp>
 
 #include <opendaq/custom_log.h>
+#include <opendaq/packet_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -11,28 +12,10 @@ static std::chrono::seconds connectionTimeout = std::chrono::seconds(1);
 static std::chrono::seconds protocolInitTimeout = std::chrono::seconds(1);
 static std::chrono::seconds reconnectionPeriod = std::chrono::seconds(1);
 
-NativeStreamingClientHandler::NativeStreamingClientHandler(
-    const ContextPtr& context,
-    std::shared_ptr<boost::asio::io_context> ioContextPtr,
-    OnSignalAvailableCallback signalAvailableHandler,
-    OnSignalUnavailableCallback signalUnavailableHandler,
-    OnPacketCallback packetHandler,
-    OnSignalSubscriptionAckCallback signalSubscriptionAckCallback,
-    OnReconnectionStatusChangedCallback reconnectionStatusChangedCb)
+NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& context)
     : context(context)
-    , ioContextPtr(ioContextPtr)
-    , logger(context.getLogger())
-    , signalAvailableHandler(signalAvailableHandler)
-    , signalUnavailableHandler(signalUnavailableHandler)
-    , packetHandler(packetHandler)
-    , signalSubscriptionAckCallback(signalSubscriptionAckCallback)
-    , reconnectionStatusChangedCb(reconnectionStatusChangedCb)
-    , reconnectionTimer(std::make_shared<boost::asio::steady_timer>(*ioContextPtr.get()))
-    , protocolInitTimer(std::make_shared<boost::asio::steady_timer>(*ioContextPtr.get()))
+    , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
 {
-    if (!this->logger.assigned())
-        throw ArgumentNullException("Logger must not be null");
-    loggerComponent = this->logger.getOrAddComponent("NativeStreamingClientHandler");
 }
 
 NativeStreamingClientHandler::~NativeStreamingClientHandler()
@@ -55,6 +38,43 @@ void NativeStreamingClientHandler::checkProtocolInitializationStatus(const boost
 bool NativeStreamingClientHandler::isProtocolInitialized(std::chrono::seconds timeout)
 {
     return (protocolInitFuture.wait_for(timeout) == std::future_status::ready);
+}
+
+void NativeStreamingClientHandler::setConfigPacketHandler(const ConfigProtocolPacketCb& configPacketHandler)
+{
+    this->configPacketHandler = configPacketHandler;
+}
+
+void NativeStreamingClientHandler::setReconnectionStatusChangedCb(const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb)
+{
+    this->reconnectionStatusChangedCb = reconnectionStatusChangedCb;
+}
+
+void NativeStreamingClientHandler::setSignalSubscriptionAckCallback(const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback)
+{
+    this->signalSubscriptionAckCallback = signalSubscriptionAckCallback;
+}
+
+void NativeStreamingClientHandler::setPacketHandler(const OnPacketCallback& packetHandler)
+{
+    this->packetHandler = packetHandler;
+}
+
+void NativeStreamingClientHandler::setSignalUnavailableHandler(const OnSignalUnavailableCallback& signalUnavailableHandler)
+{
+    this->signalUnavailableHandler = signalUnavailableHandler;
+}
+
+void NativeStreamingClientHandler::setSignalAvailableHandler(const OnSignalAvailableCallback& signalAvailableHandler)
+{
+    this->signalAvailableHandler = signalAvailableHandler;
+}
+
+void NativeStreamingClientHandler::setIoContext(const std::shared_ptr<boost::asio::io_context>& ioContextPtr)
+{
+    this->ioContextPtr = ioContextPtr;
+    reconnectionTimer = std::make_shared<boost::asio::steady_timer>(*ioContextPtr.get());
+    protocolInitTimer = std::make_shared<boost::asio::steady_timer>(*ioContextPtr.get());
 }
 
 void NativeStreamingClientHandler::checkReconnectionStatus(const boost::system::error_code& ec)
@@ -146,7 +166,8 @@ void NativeStreamingClientHandler::subscribeSignal(const StringPtr& signalString
 
     if (it != std::end(signalIds))
     {
-        sessionHandler->sendSignalSubscribe(it->first, signalStringId.toStdString());
+        if (sessionHandler)
+            sessionHandler->sendSignalSubscribe(it->first, signalStringId.toStdString());
     }
 }
 
@@ -161,7 +182,8 @@ void NativeStreamingClientHandler::unsubscribeSignal(const StringPtr& signalStri
 
     if (it != std::end(signalIds))
     {
-        sessionHandler->sendSignalUnsubscribe(it->first, signalStringId.toStdString());
+        if (sessionHandler)
+            sessionHandler->sendSignalUnsubscribe(it->first, signalStringId.toStdString());
     }
 }
 
@@ -176,12 +198,21 @@ EventPacketPtr NativeStreamingClientHandler::getDataDescriptorChangedEventPacket
 
     if (it != std::end(signalIds))
     {
-        return sessionHandler->getDataDescriptorChangedEventPacket(it->first);
+        if (sessionHandler)
+            return sessionHandler->getDataDescriptorChangedEventPacket(it->first);
+        else
+            return DataDescriptorChangedEventPacket(nullptr, nullptr);
     }
     else
     {
         throw NativeStreamingProtocolException("Signal Id not found");
     }
+}
+
+void NativeStreamingClientHandler::sendConfigRequest(const config_protocol::PacketBuffer& packet)
+{
+    if (sessionHandler)
+        sessionHandler->sendConfigurationPacket(packet);
 }
 
 void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
@@ -215,13 +246,10 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
     OnSignalCallback signalReceivedHandler =
         [this](const SignalNumericIdType& signalNumericId,
                const StringPtr& signalStringId,
-               const StringPtr& domainSignalStringId,
-               const DataDescriptorPtr& signalDescriptor,
-               const StringPtr& name,
-               const StringPtr& description,
+               const StringPtr& serializedSignal,
                bool available)
     {
-        handleSignal(signalNumericId, signalStringId, domainSignalStringId, signalDescriptor, name, description, available);
+        handleSignal(signalNumericId, signalStringId, serializedSignal, available);
     };
 
     OnPacketReceivedCallback packetReceivedHandler =
@@ -250,6 +278,14 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
                                                             protocolInitDoneHandler,
                                                             subscriptionAckCallback,
                                                             errorHandler);
+
+    ConfigProtocolPacketCb configPacketReceivedHandler =
+        [this](const config_protocol::PacketBuffer& packet)
+    {
+        configPacketHandler(packet);
+    };
+    sessionHandler->setConfigPacketReceivedHandler(configPacketReceivedHandler);
+
     sessionHandler->startReading();
 
     connectedPromise.set_value(ConnectionResult::Connected);
@@ -308,16 +344,13 @@ void NativeStreamingClientHandler::handlePacket(const SignalNumericIdType& signa
 
 void NativeStreamingClientHandler::handleSignal(const SignalNumericIdType& signalNumericId,
                                                 const StringPtr& signalStringId,
-                                                const StringPtr& domainSignalStringId,
-                                                const DataDescriptorPtr& signalDescriptor,
-                                                const StringPtr& name,
-                                                const StringPtr& description,
+                                                const StringPtr& serializedSignal,
                                                 bool available)
 {
     if (available)
     {
         signalIds.insert({signalNumericId, signalStringId});
-        signalAvailableHandler(signalStringId, domainSignalStringId, signalDescriptor, name, description);
+        signalAvailableHandler(signalStringId, serializedSignal);
     }
     else
     {

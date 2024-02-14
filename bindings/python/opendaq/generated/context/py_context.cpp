@@ -81,4 +81,12 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
         py::return_value_policy::take_ownership,
         "Gets the Core Event object that triggers whenever a change happens within the openDAQ core structure.");
     */
+    cls.def_property_readonly("options",
+        [](daq::IContext *object)
+        {
+            const auto objectPtr = daq::ContextPtr::Borrow(object);
+            return objectPtr.getOptions().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the dictionary of module options");
 }

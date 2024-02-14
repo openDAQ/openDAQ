@@ -18,6 +18,7 @@
 
 #include <opendaq/instance_factory.h>
 #include <opendaq/context_factory.h>
+#include <opendaq/config_provider_factory.h>
 
 #include <opendaq/channel_ptr.h>
 #include <opendaq/function_block_ptr.h>

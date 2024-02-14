@@ -19,22 +19,32 @@
 #include <native_streaming_protocol/native_streaming_protocol_types.h>
 #include <native_streaming/session.hpp>
 
+#include <opendaq/context_ptr.h>
+
+#include <config_protocol/config_protocol.h>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 class BaseSessionHandler
 {
 public:
-    BaseSessionHandler(SessionPtr session,
+    BaseSessionHandler(const ContextPtr& daqContext,
+                       SessionPtr session,
                        boost::asio::io_context& ioContext,
-                       native_streaming::OnSessionErrorCallback errorHandler);
+                       native_streaming::OnSessionErrorCallback errorHandler,
+                       ConstCharPtr loggerComponentName);
     ~BaseSessionHandler();
 
     void startReading();
     const SessionPtr getSession() const;
+    void sendConfigurationPacket(const config_protocol::PacketBuffer& packet);
+
+    void setConfigPacketReceivedHandler(const ConfigProtocolPacketCb& configPacketReceivedHandler);
 
 protected:
     void initHeartbeat();
     virtual daq::native_streaming::ReadTask readHeader(const void* data, size_t size);
+    daq::native_streaming::ReadTask readConfigurationPacket(const void *data, size_t size);
 
     daq::native_streaming::ReadTask createReadHeaderTask();
     daq::native_streaming::ReadTask createReadStopTask();
@@ -57,7 +67,9 @@ protected:
     static std::string getStringFromData(const void *source, size_t stringSize, size_t sourceOffset, size_t sourceSize);
 
     SessionPtr session;
+    ConfigProtocolPacketCb configPacketReceivedHandler;
     native_streaming::OnSessionErrorCallback errorHandler;
     std::shared_ptr<boost::asio::steady_timer> heartbeatTimer;
+    LoggerComponentPtr loggerComponent;
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

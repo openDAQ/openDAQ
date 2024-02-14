@@ -17,8 +17,17 @@ void HowToDoc_MeasureSingleValue(daq::DevicePtr device)
     auto signal = device.getSignalsRecursive()[0];
     // ...and get a measurement value
     auto measurementValue = signal.getLastValue();
-    std::cout << "\tSingle measurement value: [" << measurementValue << "]" << std::endl;
+    std::cout << "Single measurement value: [" << measurementValue << "]" << std::endl;
 }
+----
+Python::
++
+[source,python]
+----
+def HowToDoc_MeasureSingleValue(device):
+    signal = device.signals_recursive[0]
+    measurementValue = signal.last_value
+    print ("Single measurement value: [",measurementValue,"]")
 ----
 ====
 

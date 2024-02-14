@@ -68,7 +68,7 @@ private:
 
     bool timeDomainFetched = false;
     RatioPtr resolution;
-    SizeT ticksSinceOrigin;
+    SizeT ticksSinceOrigin{};
     StringPtr origin;
     UnitPtr domainUnit;
     LoggerPtr logger;

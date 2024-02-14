@@ -22,7 +22,7 @@ TEST_F(CachedReferenceBrowserTest, ObjectsFolder)
     auto references = browser.browse(nodeId);
     ASSERT_GT(references.byNodeId.size(), 0u);
 
-    ASSERT_NO_THROW(browser.invalidate(nodeId));
+    ASSERT_NO_THROW(browser.invalidateRecursive(nodeId));
 }
 
 TEST_F(CachedReferenceBrowserTest, ServerStatus)

@@ -26,7 +26,7 @@ TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, 
 
 void TriggerFbImpl::initProperties()
 {
-    const auto thresholdProp = FloatProperty("Threshold", INITIAL_THRESHOLD);
+    const auto thresholdProp = FloatProperty("Threshold", 0.5);
     objPtr.addProperty(thresholdProp);
     objPtr.getOnPropertyValueWrite("Threshold") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
 

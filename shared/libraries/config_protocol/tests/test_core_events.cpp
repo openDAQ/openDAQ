@@ -151,7 +151,7 @@ TEST_F(ConfigCoreEventTest, PropertyObjectUpdateEnd)
                 case CoreEventId::PropertyObjectUpdateEnd:
                     updateCount++;
                     updated = args.getParameters().get("UpdatedProperties");
-                    ASSERT_EQ(updated.getCount(), 2);
+                    ASSERT_EQ(updated.getCount(), 2u);
                     ASSERT_EQ(args.getEventName(), "PropertyObjectUpdateEnd");
                     ASSERT_EQ(comp, args.getParameters().get("Owner"));
                     break;
@@ -200,7 +200,7 @@ TEST_F(ConfigCoreEventTest, PropertyObjectUpdateEndNested)
             ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::PropertyObjectUpdateEnd));
             updateCount++;
             updated = args.getParameters().get("UpdatedProperties");
-            ASSERT_EQ(updated.getCount(), 1);
+            ASSERT_EQ(updated.getCount(), 1u);
             ASSERT_EQ(args.getEventName(), "PropertyObjectUpdateEnd");
             if (updateCount == 1)
                 ASSERT_EQ(obj1, args.getParameters().get("Owner"));
@@ -464,7 +464,7 @@ TEST_F(ConfigCoreEventTest, CustomComponentRemoved)
             ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::ComponentRemoved));
             ASSERT_EQ(args.getEventName(), "ComponentRemoved");
             ASSERT_TRUE(args.getParameters().hasKey("Id"));
-            ASSERT_EQ(clientDevice.getCustomComponents().getCount(), 4 - removeCount);
+            ASSERT_EQ(static_cast<Int>(clientDevice.getCustomComponents().getCount()), 4 - removeCount);
             ASSERT_EQ(comp, clientDevice);
         };
 
@@ -657,7 +657,7 @@ TEST_F(ConfigCoreEventTest, RelatedSignalsAttributeChanged)
     sig.addRelatedSignal(relatedSig2);
     ASSERT_EQ(clientSig.getRelatedSignals()[1], clientRelatedSig2);
     sig.removeRelatedSignal(relatedSig2);
-    ASSERT_EQ(clientSig.getRelatedSignals().getCount(), 1);
+    ASSERT_EQ(clientSig.getRelatedSignals().getCount(), 1u);
     ASSERT_EQ(clientSig.getRelatedSignals()[0], clientRelatedSig1);
 
     sig.setRelatedSignals(List<ISignal>(relatedSig2));

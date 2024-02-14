@@ -22,6 +22,7 @@
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/struct_impl.h>
 #include <coretypes/struct_type_factory.h>
+#include <coreobjects/property_object_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -45,6 +46,8 @@ protected:
     StringPtr name;
     StringPtr description;
     FunctionPtr createDefaultConfigCallback;
+
+    void initCreateDefaultConfig(const FunctionPtr& createDefaultConfigCallback);
 };
 
 template <class Intf, class... Interfaces>
@@ -58,8 +61,25 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , id(id)
     , name(name)
     , description(description)
-    , createDefaultConfigCallback(createDefaultConfigCallback)
 {
+    initCreateDefaultConfig(createDefaultConfigCallback);
+}
+
+template <class Intf, class... Interfaces>
+void GenericComponentTypeImpl<Intf, Interfaces...>::initCreateDefaultConfig(const FunctionPtr& createDefaultConfigCallback)
+{
+    if (createDefaultConfigCallback.assigned())
+    {
+        this->createDefaultConfigCallback = createDefaultConfigCallback;
+        return;
+    }
+
+    this->createDefaultConfigCallback = [](IBaseObject* /*params*/, IBaseObject** result)
+    {
+        auto obj = PropertyObject();
+        *result = obj.detach();
+        return OPENDAQ_SUCCESS;
+    };
 }
 
 template <class Intf, class... Interfaces>

@@ -55,7 +55,7 @@ TEST_F(QuickStartTest, QuickStartAppReader)
         docs_test_helpers::waitForSamplesReady();
         daq::SizeT count = 100;
         reader.read(samples, &count);
-        ASSERT_GT(count, 0);
+        ASSERT_GT(count, 0u);
     }
 }
 
@@ -97,7 +97,7 @@ TEST_F(QuickStartTest, QuickStartAppStatistics)
 
         daq::SizeT count = 250;
         reader2.read(samples, &count);
-        ASSERT_GT(count, 0);
+        ASSERT_GT(count, 0u);
     }
 }
 
@@ -136,7 +136,7 @@ TEST_F(QuickStartTest, QuickStartAppReaderWebsocket)
         docs_test_helpers::waitForSamplesReady();
         daq::SizeT count = 100;
         reader.read(samples, &count);
-        ASSERT_GT(count, 0);
+        ASSERT_GT(count, 0u);
     }
 }
 #endif
@@ -176,7 +176,7 @@ TEST_F(QuickStartTest, QuickStartAppReaderNativePseudoDevice)
         docs_test_helpers::waitForSamplesReady();
         daq::SizeT count = 100;
         reader.read(samples, &count);
-        ASSERT_GT(count, 0);
+        ASSERT_GT(count, 0u);
     }
 }
 #endif

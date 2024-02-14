@@ -21,7 +21,7 @@ public:
                       vecvec<Int> expectedDomain,
                       SampleType sampleType,
                       vecvec<T> mockPackets,
-                      std::vector<Int> thresholdChangesAfterPackets,
+                      std::vector<Int> thresholdChangesAfterPackets = {},
                       vecvec<Int> mockDomainPackets = {},
                       std::vector<Float> newThresholds = {})
     {
@@ -104,14 +104,14 @@ private:
         }
         else
         {
+            Int delta = rule.getParameters().get("delta");
             for (size_t i = 0; i < mockPackets.size(); i++)
             {
                 // Linear creation of one domain packet
                 auto offset = 0;
                 for (size_t ii = 0; ii < i; ii++)
                 {
-                    Int delta = rule.getParameters().get("delta");
-                    offset = offset + mockPackets[ii].size() * delta;
+                    offset += mockPackets[ii].size() * delta;
                 }
 
                 auto domainPacket = DataPacket(domainSignalDescriptor, mockPackets[i].size(), offset);
@@ -163,7 +163,7 @@ private:
             signal.sendPacket(dataPacket);
 
             // Check if we should change the threshold after sending packet
-            auto foundAt = std::find(thresholdChangesAfterPackets.begin(), thresholdChangesAfterPackets.end(), i);
+            auto foundAt = std::find(thresholdChangesAfterPackets.begin(), thresholdChangesAfterPackets.end(), static_cast<Int>(i));
             if (foundAt != thresholdChangesAfterPackets.end())
             {
                 // Change the threshold if appropriate
@@ -202,9 +202,9 @@ private:
                 auto domainDataSample = domainData[0];
 
                 // Assert that packet has one sample
-                ASSERT_EQ(sampleCount, 1);
+                ASSERT_EQ(sampleCount, 1u);
                 // Assert that domain packet has one sample
-                ASSERT_EQ(domainSampleCount, 1);
+                ASSERT_EQ(domainSampleCount, 1u);
 
                 // Assert that first sample equals expected value
                 ASSERT_EQ(dataSample, expectedData[i][ii]);
@@ -233,8 +233,7 @@ TEST_F(TriggerTest, TriggerTestFloatLinear)
     vecvec<Bool> expectedData{{true, false, true}, {false, true}, {false}, {true}};
     vecvec<Int> expectedDomain{{9, 17, 23}, {31, 35}, {43}, {49}};
 
-    auto helper =
-        TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Float>::SampleType, mockPackets, {});
+    auto helper = TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Float>::SampleType, mockPackets);
     helper.run();
 }
 
@@ -285,7 +284,14 @@ TEST_F(TriggerTest, TriggerTestIntExplicit)
     vecvec<Int> expectedDomain{{9, 17, 23}, {31, 35}, {43}, {49}};
 
     auto helper = TriggerTestHelper(
-        ExplicitDataRule(), expectedData, expectedDomain, SampleTypeFromType<Int>::SampleType, mockPackets, {}, mockDomainPackets);
+        ExplicitDataRule(),
+        expectedData,
+        expectedDomain,
+        SampleTypeFromType<Int>::SampleType,
+        mockPackets,
+        {},
+        mockDomainPackets
+    );
     helper.run();
 }
 
@@ -315,8 +321,7 @@ TEST_F(TriggerTest, TriggerTestIntLinear)
     vecvec<Bool> expectedData{{true, false, true}, {false, true}, {false}, {true}};
     vecvec<Int> expectedDomain{{9, 17, 23}, {31, 35}, {43}, {49}};
 
-    auto helper =
-        TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Int>::SampleType, mockPackets, {});
+    auto helper = TriggerTestHelper(LinearDataRule(2, 3), expectedData, expectedDomain, SampleTypeFromType<Int>::SampleType, mockPackets);
     helper.run();
 }
 

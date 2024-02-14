@@ -15,19 +15,18 @@
  */
 
 #pragma once
-#include "opcuatms_client/objects/tms_client_function_block_impl.h"
+#include <coretypes/common.h>
+#include <coreobjects/property_object_ptr.h>
+#include <opendaq/function_block_type_ptr.h>
 
-BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
+BEGIN_NAMESPACE_OPENDAQ
 
-class TmsClientChannelImpl : public TmsClientFunctionBlockBaseImpl<ChannelImpl<ITmsClientComponent>>
+class TestComparators
 {
-  public:
-    explicit TmsClientChannelImpl(
-        const ContextPtr& context,
-        const ComponentPtr& parent,
-        const StringPtr& localId,
-        const daq::opcua::tms::TmsClientContextPtr& clientContext,
-        const opcua::OpcUaNodeId& nodeId);
+public:
+    static bool PropertyObjectEquals(const PropertyObjectPtr& a, const PropertyObjectPtr& b);
+    static bool FunctionBlockTypeEquals(const FunctionBlockTypePtr& a, const FunctionBlockTypePtr& b);
+    static bool FunctionBlockTypeDictEquals(const DictPtr<IString, IFunctionBlockType>& a, const DictPtr<IString, IFunctionBlockType>& b);
 };
 
-END_NAMESPACE_OPENDAQ_OPCUA_TMS
+END_NAMESPACE_OPENDAQ

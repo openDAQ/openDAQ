@@ -36,7 +36,6 @@ public:
 
     // ISignal
     ErrCode INTERFACE_FUNC getDescriptor(IDataDescriptor** descriptor) override;
-    ErrCode INTERFACE_FUNC getDomainSignal(ISignal** signal) override;
 
     StringPtr onGetRemoteId() const override;
     Bool onTriggerEvent(EventPacketPtr eventPacket) override;
@@ -45,12 +44,15 @@ public:
     void INTERFACE_FUNC createAndAssignDomainSignal(const DataDescriptorPtr& domainDescriptor) override;
     void INTERFACE_FUNC assignDescriptor(const DataDescriptorPtr& descriptor) override;
 
+protected:
+    SignalPtr onGetDomainSignal() override;
+
 private:
     static StringPtr CreateLocalId(const StringPtr& streamingId);
 
     StringPtr streamingId;
     DataDescriptorPtr mirroredDataDescriptor;
-    SignalConfigPtr domainSignalArtificial;
+    MirroredSignalConfigPtr domainSignalArtificial;
 
     std::mutex signalMutex;
 };

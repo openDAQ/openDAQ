@@ -12,13 +12,13 @@ namespace Trigger
 TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
+    state = false;
+
     if (config.assigned() && config.hasProperty("UseMultiThreadedScheduler") && !config.getPropertyValue("UseMultiThreadedScheduler"))
         packetReadyNotification = PacketReadyNotification::SameThread;
     else
         packetReadyNotification = PacketReadyNotification::Scheduler;
 
-    threshold = INITIAL_THRESHOLD;
-    state = INITIAL_STATE;
     createInputPorts();
     createSignals();
     initProperties();

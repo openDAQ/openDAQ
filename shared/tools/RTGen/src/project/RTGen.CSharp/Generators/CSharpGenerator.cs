@@ -61,6 +61,8 @@ namespace RTGen.CSharp.Generators
         private readonly Regex  _getDocHtmlTags                             = new Regex(@"</?[abceip](?(\s)\s.+?>|>)");
         private readonly Regex  _getDocReference                            = new Regex(@"(?<type>\w+?)\s""(?<display>.+?)""(?<rest>.*)$");
         private readonly Regex  _extractWordPlusRest                        = new Regex(@"(\W??)(?<word>\w+)\1(?<rest>\s|\W.*)$");
+        private readonly Regex  _argumentsSeparatorRegEx                    = new Regex(@",(?=(((?!\>).)*\<)|[^\<\>]*$)");   //find all commas NOT in template arguments (<x,y>)
+        private readonly Regex  _argumentSplitRegEx                         = new Regex(@"\s+(?=(((?!\>).)*\<)|[^\<\>]*$)"); //find all whitespace NOT in template arguments (<x,y>)
 
         private readonly VersionInfo _version = new VersionInfo()
         {
@@ -1419,7 +1421,11 @@ namespace RTGen.CSharp.Generators
                         string codeSnippet = Escape(tagElement.RawText)
                                              .Replace("@code", "<code>")
                                              .Replace("@endcode", "</code>")
-                                             .Replace(" *", "///");
+                                             .Replace(" *", "///"); //" *" is probably not consistently used
+
+                        if (!codeSnippet.Contains("/// </code>"))
+                            codeSnippet = codeSnippet.Replace("</code>", "/// </code>");
+
                         AppendDocText(csDocComment, codeSnippet);
                         csDocComment.Add(string.Empty);
                     }
@@ -1900,7 +1906,7 @@ namespace RTGen.CSharp.Generators
 
             if (_isFactory && _isBasedOnSampleReader)
             {
-                args = HandleSampleReaderFactoryArguments(args.Split(',').ToList());
+                args = HandleSampleReaderFactoryArguments(SplitArguments(args.Trim(), ',').ToList());
             }
 
             return args;
@@ -1917,7 +1923,10 @@ namespace RTGen.CSharp.Generators
                 for (int index = 0; index < argsList.Count; ++index)
                 {
                     string   arg            = argsList[index];
-                    string[] argTypeAndName = arg.TrimStart().Split(' ');
+                    string[] argTypeAndName = SplitArguments(arg.Trim(), ' ');
+
+                    if (argTypeAndName.Length > 2)
+                        continue; // no out/ref arguments
 
                     if (!_factoryArgumentDefaults.TryGetValue(argTypeAndName[0], out string defaultValue)
                         && ((argTypeAndName.Length >= 2) && !_factoryArgumentDefaults.TryGetValue(argTypeAndName[1], out defaultValue)))
@@ -1927,6 +1936,25 @@ namespace RTGen.CSharp.Generators
                 }
 
                 return string.Join(",", argsList);
+            }
+
+            string[] SplitArguments(string arguments,
+                                    char separator)
+            {
+                switch (separator)
+                {
+                    case ',':
+                        return _argumentsSeparatorRegEx.Replace(arguments, "#")
+                               .Split('#');
+
+                    case ' ':
+                        return _argumentSplitRegEx.Replace(arguments, "#")
+                               .Split('#');
+
+                    default:
+                        return arguments
+                               .Split(separator);
+                }
             }
         }
 
@@ -1968,8 +1996,6 @@ namespace RTGen.CSharp.Generators
                     typeName = enumTypeName;
                 }
             }
-            else
-                ;
 
             if (!dontGetGenericParameters)
             {

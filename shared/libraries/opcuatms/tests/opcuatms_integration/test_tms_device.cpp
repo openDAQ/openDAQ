@@ -218,6 +218,22 @@ TEST_F(TmsDeviceTest, DeviceInfo)
     ASSERT_EQ(clientDeviceInfo.getPropertyValue("custom_int"), 1);
 }
 
+TEST_F(TmsDeviceTest, DeviceGetTicksSinceOrigin)
+{
+    auto ctx = NullContext();
+    DevicePtr serverDevice = createDevice();
+
+    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
+    auto nodeId = serverTmsDevice.registerOpcUaNode();
+
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientSubDevices = clientDevice.getDevices();
+    auto clientSubDevice = clientSubDevices[1];
+
+    auto ticksSinceOrigin = clientSubDevice.asPtr<IDeviceDomain>(true).getTicksSinceOrigin();
+    ASSERT_EQ(ticksSinceOrigin, 789);
+}
+
 TEST_F(TmsDeviceTest, DeviceDomain)
 {
     auto ctx = NullContext();

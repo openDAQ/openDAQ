@@ -205,6 +205,9 @@ void TmsClientDeviceImpl::fetchTimeDomain()
                           ConvertToDaqCoreString(deviceDomain->unit.quantity));
     else
         domainUnit = Unit("");
+
+    ticksSinceOrigin = deviceDomain->ticksSinceOrigin;
+
     timeDomainFetched = true;
 }
 

@@ -3,8 +3,7 @@
 [#measure_single_value]
 == Measure a single value
 
-Sometimes you just want to get a single measurement value of a signal and do not need a streaming session.
-This can be easily done by using the getLastValue() method:
+OpenDAQ offers a variety of solutions for reading signal values, including readers. For developers requiring access to only the most recent value, the signal interface provides a method named "getLastValue."
 
 [tabs]
 ====
@@ -17,7 +16,7 @@ void HowToDoc_MeasureSingleValue(daq::DevicePtr device)
     // get 1st signal of device...
     auto signal = device.getSignalsRecursive()[0];
     // ...and get a measurement value
-    float measurementValue = signal.getLastValue();
+    auto measurementValue = signal.getLastValue();
     std::cout << "\tSingle measurement value: [" << measurementValue << "]" << std::endl;
 }
 ----

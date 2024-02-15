@@ -1,0 +1,33 @@
+= Measure a single value
+
+[#measure_single_value]
+== Measure a single value
+
+OpenDAQ offers a variety of solutions for reading signal values, including readers. For developers requiring access to only the most recent value, the signal interface provides a method named "getLastValue."
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+void HowToDoc_MeasureSingleValue(daq::DevicePtr device)
+{
+    // get 1st signal of device...
+    auto signal = device.getSignalsRecursive()[0];
+    // ...and get a measurement value
+    auto measurementValue = signal.getLastValue();
+    std::cout << "Single measurement value: [" << measurementValue << "]" << std::endl;
+}
+----
+Python::
++
+[source,python]
+----
+def HowToDoc_MeasureSingleValue(device):
+    signal = device.signals_recursive[0]
+    measurementValue = signal.last_value
+    print ("Single measurement value: [",measurementValue,"]")
+----
+====
+

@@ -5,6 +5,7 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/deserialize_component_ptr.h>
+#include <opendaq/component_status_container_private_ptr.h>
 
 #include <coretypes/function_factory.h>
 
@@ -32,6 +33,43 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
 
     createNativeStreaming(host, port, path);
     activateStreaming();
+    initStatuses(ctx);
+}
+
+void NativeStreamingDeviceImpl::initStatuses(const ContextPtr& ctx)
+{
+    const auto statusType = EnumerationType("ReconnectionStatusType", List<IString>("Connected",
+                                                                                    "Reconnecting",
+                                                                                    "Restored",
+                                                                                    "Unrecoverable"));
+    ctx.getTypeManager().addType(statusType);
+    const auto statusInitValue = Enumeration("ReconnectionStatusType", "Connected", this->context.getTypeManager());
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ReconnectionStatus", statusInitValue);
+}
+
+void NativeStreamingDeviceImpl::publishReconnectionStatus()
+{
+    auto newStatusValue = this->statusContainer.getStatus("ReconnectionStatus");
+
+    switch (reconnectionStatus)
+    {
+        case ClientReconnectionStatus::Connected:
+            newStatusValue = "Connected";
+            break;
+        case ClientReconnectionStatus::Reconnecting:
+            newStatusValue = "Reconnecting";
+            break;
+        case ClientReconnectionStatus::Restored:
+            newStatusValue = "Restored";
+            break;
+        case ClientReconnectionStatus::Unrecoverable:
+            newStatusValue = "Unrecoverable";
+            break;
+        default:
+            break;
+    }
+
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ReconnectionStatus", newStatusValue);
 }
 
 void NativeStreamingDeviceImpl::createNativeStreaming(const StringPtr& host,
@@ -103,7 +141,7 @@ SignalPtr NativeStreamingDeviceImpl::createSignal(const StringPtr& signalStringI
     const auto deserializer = JsonDeserializer();
     const auto deserializeContext = ComponentDeserializeContext(context, nullptr, this->signals, signalStringId);
 
-    return deserializer.deserialize(
+    auto signal = deserializer.deserialize(
         serializedSignal,
         deserializeContext,
         [](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback) -> BaseObjectPtr
@@ -114,6 +152,13 @@ SignalPtr NativeStreamingDeviceImpl::createSignal(const StringPtr& signalStringI
             checkErrorInfo(NativeStreamingSignalImpl::Deserialize(object, context, factoryCallback, &obj));
             return obj;
         });
+
+    if (nativeStreaming.assigned())
+    {
+        nativeStreaming.addSignals({signal});
+        signal.template asPtr<IMirroredSignalConfig>().setActiveStreamingSource(nativeStreaming.getConnectionString());
+    }
+    return signal;
 }
 
 void NativeStreamingDeviceImpl::addToDeviceSignals(const StringPtr& signalStringId,
@@ -147,8 +192,7 @@ void NativeStreamingDeviceImpl::addToDeviceSignals(const StringPtr& signalString
 void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr& signalStringId,
                                                                  const StringPtr& serializedSignal)
 {
-    SignalPtr signalToAdd = createSignal(signalStringId, serializedSignal);
-    StringPtr domainSignalStringId = signalToAdd.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+    SignalPtr signalToAdd;
 
     if (auto iter1 = deviceSignals.find(signalStringId); iter1 != deviceSignals.end())
     {
@@ -162,6 +206,8 @@ void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr
         else
             throw AlreadyExistsException("Signal with id {} already exists in native streaming device", signalStringId);
     }
+
+    StringPtr domainSignalStringId = signalToAdd.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
 
     // remove domain signal if it is no longer assigned after reconnection
     if (signalToAdd.getDomainSignal().assigned() && !domainSignalStringId.assigned())
@@ -212,7 +258,6 @@ void NativeStreamingDeviceImpl::signalUnavailableHandler(const StringPtr& signal
     // recreate signal -> domainSignal relations in the same way as on server
     for (const auto& item : deviceSignals)
     {
-        auto addedSignalId = item.first;
         auto [addedSignal, domainSignalId] = item.second;
         if (domainSignalId == signalStringId)
         {
@@ -245,6 +290,8 @@ void NativeStreamingDeviceImpl::reconnectionStatusChangedHandler(ClientReconnect
         deviceSignalsReconnection.clear();
     }
     reconnectionStatus = status;
+
+    publishReconnectionStatus();
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

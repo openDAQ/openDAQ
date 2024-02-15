@@ -74,12 +74,13 @@ Bool NativeStreamingSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
 
 void NativeStreamingSignalImpl::assignDomainSignal(const SignalPtr& domainSignal)
 {
-    if (domainSignal.asPtrOrNull<IMirroredSignalConfig>() == nullptr)
-    {
-        throw NoInterfaceException(
-            fmt::format(R"(Domain signal "{}" does not implement IMirroredSignalConfig interface.)",
-                        domainSignal.getGlobalId()));
-    }
+    if (domainSignal.assigned())
+        if (domainSignal.asPtrOrNull<IMirroredSignalConfig>() == nullptr)
+        {
+            throw NoInterfaceException(
+                fmt::format(R"(Domain signal "{}" does not implement IMirroredSignalConfig interface.)",
+                            domainSignal.getGlobalId()));
+        }
 
     std::scoped_lock lock(signalMutex);
 

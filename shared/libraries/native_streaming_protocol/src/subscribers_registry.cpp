@@ -76,18 +76,24 @@ void SubscribersRegistry::registerSignal(const SignalPtr& signal)
     }
 }
 
-void SubscribersRegistry::removeSignal(const SignalPtr& signal)
+bool SubscribersRegistry::removeSignal(const SignalPtr& signal)
 {
+    bool doSignalUnsubscribe = false;
     auto signalKey = signal.getGlobalId().toStdString();
-    auto iter = signalsSubscribers.find(signalKey);
-    if (iter != signalsSubscribers.end())
+    auto signalIter = signalsSubscribers.find(signalKey);
+    if (signalIter != signalsSubscribers.end())
     {
-        signalsSubscribers.erase(iter);
+        std::scoped_lock lock(sync);
+        auto& subscribers = signalIter->second;
+        if (!subscribers.empty())
+            doSignalUnsubscribe = true;
+        signalsSubscribers.erase(signalIter);
     }
     else
     {
         throw NativeStreamingProtocolException("Signal is not registered");
     }
+    return doSignalUnsubscribe;
 }
 
 void SubscribersRegistry::registerClient(std::shared_ptr<ServerSessionHandler> sessionHandler)

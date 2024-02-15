@@ -37,7 +37,7 @@ public:
     void sendToClient(SessionPtr session, SendToClientCallback sendCallback);
 
     void registerSignal(const SignalPtr& signal);
-    void removeSignal(const SignalPtr& signal);
+    bool removeSignal(const SignalPtr& signal);
 
     void registerClient(std::shared_ptr<ServerSessionHandler> sessionHandler);
     std::vector<std::string> unregisterClient(SessionPtr session);

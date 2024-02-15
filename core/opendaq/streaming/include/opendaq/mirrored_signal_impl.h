@@ -129,7 +129,21 @@ Bool MirroredSignalBase<Interfaces...>::triggerEvent(const EventPacketPtr& event
 template <typename... Interfaces>
 void MirroredSignalBase<Interfaces...>::removed()
 {
-    // TODO unsubscribe and remove streaming sources
+    if (listened && streamed)
+        unsubscribeInternal();
+    activeStreamingSourceRef = nullptr;
+
+    StringPtr signalRemoteId;
+    ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
+    if (OPENDAQ_SUCCEEDED(errCode) && signalRemoteId.assigned())
+    {
+        for (const auto& streamingRef : streamingSourcesRefs)
+        {
+            if (auto streamingSource = streamingRef.getRef(); streamingSource.assigned())
+                streamingSource.template asPtr<IStreamingPrivate>()->detachRemovedSignal(signalRemoteId);
+        }
+        streamingSourcesRefs.clear();
+    }
     Super::removed();
 }
 

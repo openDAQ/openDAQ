@@ -54,6 +54,13 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingPrivate, IBaseObject)
      * @return The created DataDescriptor Changed Event Packet
      */
     virtual EventPacketPtr INTERFACE_FUNC createDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId) = 0;
+
+    /*!
+     * @brief Removes added signal without removing the streaming source from it.
+     * @param signalRemoteId The global remote ID of the removed signal.
+     * @retval OPENDAQ_ERR_NOTFOUND if a signal with corresponding remote Id was not added to the Streaming.
+     */
+    virtual ErrCode INTERFACE_FUNC detachRemovedSignal(const StringPtr& signalRemoteId) = 0;
 };
 /*!@}*/
 

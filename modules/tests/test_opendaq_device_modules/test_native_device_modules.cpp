@@ -334,7 +334,7 @@ TEST_F(NativeDeviceModulesTest, AddFunctionBlock)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, DISABLED_RemoveFunctionBlock)
+TEST_F(NativeDeviceModulesTest, RemoveFunctionBlock)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -413,7 +413,7 @@ TEST_F(NativeDeviceModulesTest, AddChannel)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, DISABLED_RemoveChannel)
+TEST_F(NativeDeviceModulesTest, RemoveChannel)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -491,7 +491,7 @@ TEST_F(NativeDeviceModulesTest, AddDevice)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, DISABLED_RemoveDevice)
+TEST_F(NativeDeviceModulesTest, RemoveDevice)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();

@@ -39,7 +39,7 @@ using OnSignalCallback = std::function<void(const SignalNumericIdType& signalNum
                                             const StringPtr& serializedSignal,
                                             bool available)>;
 
-using OnSignalSubscriptionCallback = std::function<void(const SignalNumericIdType& signalNumericId,
+using OnSignalSubscriptionCallback = std::function<bool(const SignalNumericIdType& signalNumericId,
                                                         const std::string& signalStringId,
                                                         bool subscribed,
                                                         SessionPtr session)>;

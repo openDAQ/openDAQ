@@ -4,7 +4,6 @@
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/mirrored_signal_private.h>
 #include <opendaq/subscription_event_args_factory.h>
-#include <opendaq/ids_parser.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 

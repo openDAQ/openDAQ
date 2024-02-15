@@ -393,7 +393,36 @@ TEST_P(StreamingProtocolTest, RemoveSignal)
         ASSERT_EQ(clientSignalStringId, serverSignal.getGlobalId());
     }
 
-    serverHandler->removeSignal(serverSignal);
+    serverHandler->removeComponentSignals(serverSignal.getGlobalId());
+
+    for (auto& client : clients)
+    {
+        ASSERT_EQ(client.signalUnavailableFuture.wait_for(timeout), std::future_status::ready);
+        auto clientSignalStringId = client.signalUnavailableFuture.get();
+        ASSERT_EQ(clientSignalStringId, serverSignal.getGlobalId());
+    }
+}
+
+TEST_P(StreamingProtocolTest, RemoveSignalOfParent)
+{
+    const auto folder = Folder(serverContext, nullptr, "folder");
+    auto serverSignal =
+        SignalWithDescriptor(serverContext, DataDescriptorBuilder().setSampleType(SampleType::Undefined).build(), folder, "signal");
+
+    startServer(List<ISignal>(serverSignal));
+
+    for (auto& client : clients)
+    {
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+
+        ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
+        auto [clientSignalStringId, serializedSignal] =
+            client.signalAvailableFuture.get();
+        ASSERT_EQ(clientSignalStringId, serverSignal.getGlobalId());
+    }
+
+    serverHandler->removeComponentSignals(folder.getGlobalId());
 
     for (auto& client : clients)
     {
@@ -433,6 +462,34 @@ TEST_P(StreamingProtocolTest, SignalSubscribeUnsubscribe)
         ASSERT_EQ(client.unsubscribedAckFuture.wait_for(timeout), std::future_status::ready);
         ASSERT_EQ(client.unsubscribedAckFuture.get(), clientSignalStringId);
     }
+    ASSERT_EQ(signalUnsubscribedFuture.wait_for(timeout), std::future_status::ready);
+    ASSERT_EQ(signalUnsubscribedFuture.get(), serverSignal);
+}
+
+TEST_P(StreamingProtocolTest, RemoveSubscribedSignal)
+{
+    StringPtr clientSignalStringId, serializedSignal;
+    DataDescriptorPtr clientSignalDescriptor;
+
+    auto serverSignal =
+        SignalWithDescriptor(serverContext, DataDescriptorBuilder().setSampleType(SampleType::Undefined).build(), nullptr, "signal");
+    startServer(List<ISignal>(serverSignal));
+
+    for (auto& client : clients)
+    {
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+
+        ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
+        std::tie(clientSignalStringId, serializedSignal) = client.signalAvailableFuture.get();
+        client.clientHandler->subscribeSignal(clientSignalStringId);
+    }
+
+    ASSERT_EQ(signalSubscribedFuture.wait_for(timeout), std::future_status::ready);
+    ASSERT_EQ(signalSubscribedFuture.get(), serverSignal);
+
+    serverHandler->removeComponentSignals(serverSignal.getGlobalId());
+
     ASSERT_EQ(signalUnsubscribedFuture.wait_for(timeout), std::future_status::ready);
     ASSERT_EQ(signalUnsubscribedFuture.get(), serverSignal);
 }

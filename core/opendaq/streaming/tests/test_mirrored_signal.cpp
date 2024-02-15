@@ -196,4 +196,21 @@ TEST_F(MirroredSignalTest, SubscriptionEvents)
     ASSERT_EQ(unsubscribeEventArgs.getSubscriptionEventType(), SubscriptionEventType::Unsubscribed);
 }
 
+TEST_F(MirroredSignalTest, Remove)
+{
+    auto signal = createMirroredSignal("signal");
+    auto streaming = MockStreaming("connectionString");
+    streaming.addSignals({signal});
+    signal.setActiveStreamingSource("connectionString");
+
+    ASSERT_EQ(signal.getStreamingSources().getCount(), 1u);
+    ASSERT_EQ(signal.getActiveStreamingSource(), "connectionString");
+
+    signal.remove();
+
+    ASSERT_EQ(signal.getStreamingSources().getCount(), 0u);
+    ASSERT_EQ(signal.getActiveStreamingSource(), nullptr);
+    ASSERT_TRUE(signal.isRemoved());
+}
+
 END_NAMESPACE_OPENDAQ

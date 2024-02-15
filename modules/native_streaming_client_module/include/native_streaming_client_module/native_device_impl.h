@@ -55,7 +55,6 @@ private:
     void receiveConfigPacket(const config_protocol::PacketBuffer& packet);
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
-    void componentRemoved(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
     void addSignalsToStreaming(const ListPtr<ISignal>& signals);
 
     LoggerComponentPtr loggerComponent;

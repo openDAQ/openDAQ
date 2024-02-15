@@ -6,8 +6,6 @@
 #include <opendaq/mirrored_signal_private.h>
 #include <opendaq/subscription_event_args_factory.h>
 
-#include <opendaq/ids_parser.h>
-
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 using namespace opendaq_native_streaming_protocol;
@@ -109,17 +107,38 @@ void NativeStreamingImpl::signalUnavailableHandler(const StringPtr& signalString
     }
 }
 
+void NativeStreamingImpl::removeFromAddedSignals(const StringPtr& signalStringId)
+{
+    try
+    {
+        LOG_I("Signal with id {} is not available in streaming {} anymore, removing.", signalStringId, this->connectionString);
+        this->removeSignalById(signalStringId);
+    }
+    catch (const NotFoundException&)
+    {
+        LOG_I("Streaming {} was not used as source for signal.", this->connectionString);
+    }
+    catch (const std::exception& e)
+    {
+        LOG_W("Fail to remove signal: {}", e.what());
+    }
+}
+
 void NativeStreamingImpl::removeFromAvailableSignals(const StringPtr& signalStringId)
 {
-    std::scoped_lock lock(availableSignalsSync);
-    if (const auto it = availableSignals.find(signalStringId); it != availableSignals.end())
     {
-        availableSignals.erase(it);
+        std::scoped_lock lock(availableSignalsSync);
+        if (const auto it = availableSignals.find(signalStringId); it != availableSignals.end())
+        {
+            availableSignals.erase(it);
+        }
+        else
+        {
+            throw NotFoundException("Signal with id {} is not registered in native streaming", signalStringId);
+        }
     }
-    else
-    {
-        throw NotFoundException("Signal with id {} is not registered in native streaming", signalStringId);
-    }
+
+    removeFromAddedSignals(signalStringId);
 }
 
 void NativeStreamingImpl::reconnectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientReconnectionStatus status)
@@ -132,14 +151,20 @@ void NativeStreamingImpl::reconnectionStatusChangedHandler(opendaq_native_stream
         {
             const auto signalId = item.first;
             const auto signalSubscribersCount = item.second;
-            // re-subscribe signals
+
             if (auto it = availableSignalsReconnection.find(signalId); it != availableSignalsReconnection.end())
             {
+                // signal kept in available re-subscribe it
                 if (signalSubscribersCount > 0)
                 {
                     clientHandler->subscribeSignal(signalId);
                     it->second = signalSubscribersCount;
                 }
+            }
+            else
+            {
+                // signal no longer exists in available, also remove it from added
+                removeFromAddedSignals(signalId);
             }
         }
         availableSignals = availableSignalsReconnection;

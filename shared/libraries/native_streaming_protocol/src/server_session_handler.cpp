@@ -177,8 +177,8 @@ ReadTask ServerSessionHandler::readSignalSubscribe(const void *data, size_t size
         return createReadStopTask();
     }
 
-    signalSubscriptionHandler(signalNumericId, signalIdString, true, session);
-    sendSubscribingDone(signalNumericId);
+    if (signalSubscriptionHandler(signalNumericId, signalIdString, true, session))
+        sendSubscribingDone(signalNumericId);
     return createReadHeaderTask();
 }
 
@@ -207,8 +207,8 @@ ReadTask ServerSessionHandler::readSignalUnsubscribe(const void *data, size_t si
         return createReadStopTask();
     }
 
-    signalSubscriptionHandler(signalNumericId, signalIdString, false, session);
-    sendUnsubscribingDone(signalNumericId);
+    if (signalSubscriptionHandler(signalNumericId, signalIdString, false, session))
+        sendUnsubscribingDone(signalNumericId);
     return createReadHeaderTask();
 }
 

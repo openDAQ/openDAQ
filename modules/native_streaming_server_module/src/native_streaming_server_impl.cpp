@@ -88,6 +88,7 @@ void NativeStreamingServerImpl::componentRemoved(ComponentPtr& sender, CoreEvent
         return;
 
     LOG_I("Component: {}; is removed", removedComponentGlobalId);
+    serverHandler->removeComponentSignals(removedComponentGlobalId);
 }
 
 void NativeStreamingServerImpl::coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)

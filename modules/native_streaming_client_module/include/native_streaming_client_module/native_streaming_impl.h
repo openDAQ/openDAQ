@@ -61,6 +61,8 @@ protected:
     void signalUnavailableHandler(const StringPtr& signalStringId);
     void removeFromAvailableSignals(const StringPtr& signalStringId);
 
+    void removeFromAddedSignals(const StringPtr& signalStringId);
+
     void reconnectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientReconnectionStatus status);
 
     void prepareClientHandler();

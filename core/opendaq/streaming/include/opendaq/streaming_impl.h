@@ -26,6 +26,7 @@
 #include <coretypes/validation.h>
 #include <opendaq/streaming_private.h>
 #include <opendaq/mirrored_signal_private.h>
+#include <opendaq/ids_parser.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -57,6 +58,7 @@ public:
     ErrCode INTERFACE_FUNC subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
     ErrCode INTERFACE_FUNC unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
     EventPacketPtr INTERFACE_FUNC createDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId) override;
+    ErrCode INTERFACE_FUNC detachRemovedSignal(const StringPtr& signalRemoteId) override;
 
 protected:
     /*!
@@ -106,6 +108,7 @@ protected:
     virtual EventPacketPtr onCreateDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId) = 0;
 
     void removeAllSignalsInternal();
+    void removeSignalById(const StringPtr& streamingSignalId);
 
     std::mutex sync;
     StringPtr connectionString;
@@ -174,36 +177,27 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList* signals)
                                                    signal.getGlobalId()));
         }
 
-        auto it = std::find_if(
-            streamingSignalsRefs.begin(),
-            streamingSignalsRefs.end(),
-            [mirroredSignal](const std::pair<StringPtr, WeakRefPtr<IMirroredSignalConfig>>& element) -> bool
-            {
-                auto signalRef = element.second;
-                if (signalRef.assigned())
-                    return signalRef.getRef() == mirroredSignal;
-                else
-                    return false;
-            }
-        );
+        StringPtr streamingSignalId;
+        ErrCode errCode = wrapHandlerReturn(this, &Self::onGetSignalStreamingId, streamingSignalId, mirroredSignal.getRemoteId());
+        if (OPENDAQ_FAILED(errCode))
+        {
+            return errCode;
+        }
+
+        auto it = streamingSignalsRefs.find(streamingSignalId);
 
         if (it != streamingSignalsRefs.end())
         {
             return this->makeErrorInfo(
                 OPENDAQ_ERR_DUPLICATEITEM,
                 fmt::format(
-                    R"(Signal "{}" failed to add - signal already added to streaming "{}")",
-                    signal.getGlobalId(),
+                    R"(Signal with Ids (global /// remote /// streaming) "{}" /// "{}" /// "{}" failed to add - signal already added to streaming "{}")",
+                    mirroredSignal.getGlobalId(),
+                    mirroredSignal.getRemoteId(),
+                    streamingSignalId,
                     connectionString
                     )
                 );
-        }
-
-        StringPtr streamingSignalId;
-        ErrCode errCode = wrapHandlerReturn(this, &Self::onGetSignalStreamingId, streamingSignalId, mirroredSignal.getRemoteId());
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
         }
 
         errCode = wrapHandler(this, &Self::onAddSignal, mirroredSignal);
@@ -212,18 +206,6 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList* signals)
             return errCode;
         }
 
-        if (streamingSignalsRefs.find(streamingSignalId) != streamingSignalsRefs.end())
-        {
-            return this->makeErrorInfo(
-                OPENDAQ_ERR_DUPLICATEITEM,
-                fmt::format(
-                    R"(Signal "{}" failed to add - key Id "{}" duplicates existed in streaming "{}")",
-                    signal.getGlobalId(),
-                    streamingSignalId,
-                    connectionString
-                    )
-                );
-        }
         streamingSignalsRefs.insert({streamingSignalId, WeakRefPtr<IMirroredSignalConfig>(mirroredSignal)});
 
         auto thisPtr = this->template borrowPtr<StreamingPtr>();
@@ -242,8 +224,6 @@ ErrCode StreamingImpl<Interfaces...>::removeSignals(IList* signals)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
 
-    std::scoped_lock lock(sync);
-
     const auto signalsPtr = ListPtr<ISignal>::Borrow(signals);
     for (const auto& signal : signalsPtr)
     {
@@ -255,43 +235,30 @@ ErrCode StreamingImpl<Interfaces...>::removeSignals(IList* signals)
                                              signal.getGlobalId()));
         }
 
-        auto it = std::find_if(
-            streamingSignalsRefs.begin(),
-            streamingSignalsRefs.end(),
-            [mirroredSignal](const std::pair<StringPtr, WeakRefPtr<IMirroredSignalConfig>>& element) -> bool
-            {
-                auto signalRef = element.second;
-                if (signalRef.assigned())
-                    return signalRef.getRef() == mirroredSignal;
-                else
-                    return false;
-            }
-        );
-        if (it != streamingSignalsRefs.end())
+        StringPtr streamingSignalId;
+        ErrCode errCode = wrapHandlerReturn(this, &Self::onGetSignalStreamingId, streamingSignalId, mirroredSignal.getRemoteId());
+        if (OPENDAQ_FAILED(errCode))
         {
-            ErrCode errCode = wrapHandler(this, &Self::onRemoveSignal, mirroredSignal);
-            if (OPENDAQ_FAILED(errCode))
-            {
-                return errCode;
-            }
-            streamingSignalsRefs.erase(it);
-
-            errCode = mirroredSignal.template asPtr<IMirroredSignalPrivate>()->removeStreamingSource(connectionString);
-            if (OPENDAQ_FAILED(errCode))
-            {
-                return errCode;
-            }
+            return errCode;
         }
-        else
+
+        errCode = wrapHandler(this, &Self::removeSignalById, streamingSignalId);
+        if (errCode == OPENDAQ_ERR_NOTFOUND)
         {
             return this->makeErrorInfo(
                 OPENDAQ_ERR_NOTFOUND,
                 fmt::format(
-                    R"(Signal "{}" failed to remove - signal not found in streaming "{}" )",
-                    signal.getGlobalId(),
+                    R"(Signal with Ids (global /// remote /// streaming) "{}" /// "{}" /// "{}" failed to remove - signal not found in streaming "{}" )",
+                    mirroredSignal.getGlobalId(),
+                    mirroredSignal.getRemoteId(),
+                    streamingSignalId,
                     connectionString
                     )
                 );
+        }
+        else if (OPENDAQ_FAILED(errCode))
+        {
+            return errCode;
         }
     }
 
@@ -362,6 +329,39 @@ EventPacketPtr StreamingImpl<Interfaces...>::createDataDescriptorChangedEventPac
 }
 
 template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::detachRemovedSignal(const StringPtr& signalRemoteId)
+{
+    std::scoped_lock lock(sync);
+
+    auto it = std::find_if(
+        streamingSignalsRefs.begin(),
+        streamingSignalsRefs.end(),
+        [signalRemoteId](const std::pair<StringPtr, WeakRefPtr<IMirroredSignalConfig>>& item) -> bool
+        {
+            auto signalStreamingId = item.first;
+            return IdsParser::idEndsWith(signalRemoteId, signalStreamingId);
+        }
+    );
+    if (it != streamingSignalsRefs.end())
+    {
+        streamingSignalsRefs.erase(it);
+    }
+    else
+    {
+        return this->makeErrorInfo(
+            OPENDAQ_ERR_NOTFOUND,
+            fmt::format(
+                R"(Signal "{}" failed to remove - signal not found in streaming "{}" )",
+                signalRemoteId,
+                connectionString
+            )
+        );
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
 void StreamingImpl<Interfaces...>::removeAllSignalsInternal()
 {
     for (const auto& [_, mirroredSignalRef] : streamingSignalsRefs)
@@ -373,6 +373,30 @@ void StreamingImpl<Interfaces...>::removeAllSignalsInternal()
         }
     }
     streamingSignalsRefs.clear();
+}
+
+template <typename... Interfaces>
+void StreamingImpl<Interfaces...>::removeSignalById(const StringPtr& streamingSignalId)
+{
+    std::scoped_lock lock(sync);
+
+    auto it = streamingSignalsRefs.find(streamingSignalId);
+    if (it != streamingSignalsRefs.end())
+    {
+        auto mirroredsignalRef = it->second;
+        if (auto mirroredSignal = mirroredsignalRef.getRef(); mirroredSignal.assigned())
+        {
+            onRemoveSignal(mirroredSignal);
+            streamingSignalsRefs.erase(it);
+
+            ErrCode errCode = mirroredSignal.template asPtr<IMirroredSignalPrivate>()->removeStreamingSource(connectionString);
+            checkErrorInfo(errCode);
+        }
+    }
+    else
+    {
+        throw NotFoundException();
+    }
 }
 
 END_NAMESPACE_OPENDAQ

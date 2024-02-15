@@ -86,23 +86,6 @@ void NativeDeviceHelper::componentAdded(const ComponentPtr& sender, const CoreEv
     }
 }
 
-void NativeDeviceHelper::componentRemoved(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs)
-{
-    auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
-    if (!device.assigned())
-        return;
-
-    StringPtr removedComponentLocalId = eventArgs.getParameters().get("Id");
-
-    auto deviceGlobalId = device.getGlobalId().toStdString();
-    auto removedComponentGlobalId =
-        sender.getGlobalId().toStdString() + "/" + removedComponentLocalId.toStdString();
-    if (removedComponentGlobalId.find(deviceGlobalId) != 0)
-        return;
-
-    LOG_I("Component: {}; is removed", removedComponentGlobalId);
-}
-
 void NativeDeviceHelper::addSignalsToStreaming(const ListPtr<ISignal>& signals)
 {
     streaming.addSignals(signals);
@@ -119,9 +102,6 @@ void NativeDeviceHelper::coreEventCallback(ComponentPtr& sender, CoreEventArgsPt
     {
         case CoreEventId::ComponentAdded:
             componentAdded(sender, eventArgs);
-            break;
-        case CoreEventId::ComponentRemoved:
-            componentRemoved(sender, eventArgs);
             break;
         default:
             break;

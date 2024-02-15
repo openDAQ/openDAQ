@@ -157,6 +157,8 @@ bool NativeStreamingClientHandler::connect(std::string host,
 
 void NativeStreamingClientHandler::subscribeSignal(const StringPtr& signalStringId)
 {
+    std::scoped_lock lock(sync);
+
     const auto it = std::find_if(std::begin(signalIds),
                                  std::end(signalIds),
                                  [signalStringId](const auto& pair)
@@ -173,6 +175,8 @@ void NativeStreamingClientHandler::subscribeSignal(const StringPtr& signalString
 
 void NativeStreamingClientHandler::unsubscribeSignal(const StringPtr& signalStringId)
 {
+    std::scoped_lock lock(sync);
+
     const auto it = std::find_if(std::begin(signalIds),
                                  std::end(signalIds),
                                  [signalStringId](const auto& pair)
@@ -189,6 +193,8 @@ void NativeStreamingClientHandler::unsubscribeSignal(const StringPtr& signalStri
 
 EventPacketPtr NativeStreamingClientHandler::getDataDescriptorChangedEventPacket(const StringPtr& signalStringId)
 {
+    std::scoped_lock lock(sync);
+
     const auto it = std::find_if(std::begin(signalIds),
                                  std::end(signalIds),
                                  [signalStringId](const auto& pair)
@@ -200,13 +206,8 @@ EventPacketPtr NativeStreamingClientHandler::getDataDescriptorChangedEventPacket
     {
         if (sessionHandler)
             return sessionHandler->getDataDescriptorChangedEventPacket(it->first);
-        else
-            return DataDescriptorChangedEventPacket(nullptr, nullptr);
     }
-    else
-    {
-        throw NativeStreamingProtocolException("Signal Id not found");
-    }
+    return DataDescriptorChangedEventPacket(nullptr, nullptr);
 }
 
 void NativeStreamingClientHandler::sendConfigRequest(const config_protocol::PacketBuffer& packet)
@@ -347,16 +348,18 @@ void NativeStreamingClientHandler::handleSignal(const SignalNumericIdType& signa
                                                 const StringPtr& serializedSignal,
                                                 bool available)
 {
+    {
+        std::scoped_lock lock(sync);
+        if (available)
+            signalIds.insert({signalNumericId, signalStringId});
+        else
+            signalIds.erase(signalNumericId);
+    }
+
     if (available)
-    {
-        signalIds.insert({signalNumericId, signalStringId});
         signalAvailableHandler(signalStringId, serializedSignal);
-    }
     else
-    {
-        signalIds.erase(signalNumericId);
         signalUnavailableHandler(signalStringId);
-    }
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

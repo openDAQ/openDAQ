@@ -48,7 +48,7 @@ public:
     void stopServer();
 
     void addSignal(const SignalPtr& signal);
-    void removeSignal(const SignalPtr& signal);
+    void removeComponentSignals(const StringPtr& componentId);
 
     void sendPacket(const SignalPtr& signal, const PacketPtr& packet);
 
@@ -56,6 +56,12 @@ protected:
     void initSessionHandler(SessionPtr session);
     void setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void releaseSessionHandler(SessionPtr session);
+
+    void removeSignalInternal(const SignalPtr& signal);
+    bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,
+                                  const std::string& signalStringId,
+                                  bool subscribe,
+                                  SessionPtr session);
 
     SignalNumericIdType registerSignal(const SignalPtr& signal);
     void unregisterSignal(const SignalPtr& signal);
@@ -78,6 +84,8 @@ protected:
     OnSignalSubscribedCallback signalSubscribedHandler;
     OnSignalUnsubscribedCallback signalUnsubscribedHandler;
     SetUpConfigProtocolServerCb setUpConfigProtocolServerCb;
+
+    std::mutex sync;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

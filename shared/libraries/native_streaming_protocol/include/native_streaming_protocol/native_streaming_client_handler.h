@@ -119,6 +119,7 @@ protected:
     std::future<void> protocolInitFuture;
 
     std::unordered_map<SignalNumericIdType, StringPtr> signalIds;
+    std::mutex sync;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

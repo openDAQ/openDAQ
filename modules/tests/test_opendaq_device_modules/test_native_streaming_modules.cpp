@@ -56,7 +56,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(clientSignals[2].getDomainSignal(), clientSignals[3]);
     ASSERT_TRUE(!clientSignals[3].getDomainSignal().assigned());
 
-    for (size_t i = 0; i < serverSignals.getCount(); ++i)
+    for (size_t i = 0; i < clientSignals.getCount(); ++i)
     {
         auto serverDataDescriptor = serverSignals[i].getDescriptor();
         auto clientDataDescriptor = clientSignals[i].getDescriptor();
@@ -65,6 +65,10 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
 
         //ASSERT_EQ(serverSignals[i].getName(), clientSignals[i].getName());
         ASSERT_EQ(serverSignals[i].getDescription(), clientSignals[i].getDescription());
+
+        auto mirroredSignalPtr = clientSignals[i].asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0) << clientSignals[i].getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[i].getGlobalId();
     }
 
     ASSERT_EQ(serverSignals[0].getName(), clientSignals[0].getName());
@@ -150,17 +154,36 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
+    std::promise<StringPtr> reconnectionStatusPromise;
+    std::future<StringPtr> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+    client.getDevices()[0].getOnComponentCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
+        {
+            ASSERT_TRUE(args.getParameters().hasKey("ReconnectionStatus"));
+            reconnectionStatusPromise.set_value(args.getParameters().get("ReconnectionStatus").toString());
+        }
+    };
+
     auto clientSignalsBeforeDisconnection = client.getSignals(search::Recursive(search::Any()));
 
     // destroy server to emulate disconnection
     server.release();
-    // TODO check for disconnected status
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Reconnecting");
+
+    // reset future / promise
+    reconnectionStatusPromise = std::promise<StringPtr>();
+    reconnectionStatusFuture = reconnectionStatusPromise.get_future();
 
     // re-create server to enable reconnection
     server = CreateServerInstance();
     auto serverSignals = server.getSignals(search::Recursive(search::Any()));
 
-    // TODO check for reconnected status
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Restored");
 
     auto clientSignalsAfterReconnection = client.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(clientSignalsAfterReconnection.getCount(), clientSignalsBeforeDisconnection.getCount());
@@ -192,6 +215,19 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
+    std::promise<StringPtr> reconnectionStatusPromise;
+    std::future<StringPtr> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+    client.getDevices()[0].getOnComponentCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
+        {
+            ASSERT_TRUE(args.getParameters().hasKey("ReconnectionStatus"));
+            reconnectionStatusPromise.set_value(args.getParameters().get("ReconnectionStatus").toString());
+        }
+    };
+
     auto signal = client.getSignals(search::Recursive(search::Any()))[0].template asPtr<IMirroredSignalConfig>();
     auto domainSignal = signal.getDomainSignal().template asPtr<IMirroredSignalConfig>();
 
@@ -212,7 +248,12 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
 
     // destroy server to emulate disconnection
     server.release();
-    // TODO check for disconnected status
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Reconnecting");
+
+    // reset future / promise
+    reconnectionStatusPromise = std::promise<StringPtr>();
+    reconnectionStatusFuture = reconnectionStatusPromise.get_future();
 
     {
         double samples[1000];
@@ -235,12 +276,14 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
 
     // re-create server to enable reconnection
     server = CreateServerInstance();
+    auto serverSignals = server.getSignals(search::Recursive(search::Any()));
 
-    // TODO check for reconnected status
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Restored");
 
     // wait for new subscribe ack before further reading
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture, 5s));
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture, 5s));
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture));
 
     // read data received from server after reconnection
     for (int i = 0; i < 10; ++i)
@@ -251,4 +294,101 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
         reader.read(samples, &count);
         EXPECT_GT(count, 0u) << "iteration " << i;
     }
+}
+
+TEST_F(NativeStreamingModulesTest, AddSignals)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    size_t addedSignalsCount = 0;
+    std::promise<void> addSignalsPromise;
+    std::future<void> addSignalsFuture = addSignalsPromise.get_future();
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
+        {
+            ComponentPtr component = params.get("Component");
+            ASSERT_TRUE(component.asPtrOrNull<ISignal>().assigned());
+            addedSignalsCount++;
+            if (addedSignalsCount == 2)
+            {
+                addSignalsPromise.set_value();
+            }
+        }
+    };
+
+    auto serverRefDevice = server.getDevices()[0];
+    serverRefDevice.setPropertyValue("NumberOfChannels", 3);
+
+    ASSERT_TRUE(addSignalsFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+
+    auto serverSignals = server.getSignals(search::Recursive(search::Any()));
+    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+    ASSERT_EQ(clientSignals.getCount(), 6u);
+
+    ASSERT_EQ(clientSignals[4].getDomainSignal(), clientSignals[5]);
+    ASSERT_TRUE(!clientSignals[5].getDomainSignal().assigned());
+
+    for (size_t i = 0; i < clientSignals.getCount(); ++i)
+    {
+        auto serverDataDescriptor = serverSignals[i].getDescriptor();
+        auto clientDataDescriptor = clientSignals[i].getDescriptor();
+
+        ASSERT_EQ(clientDataDescriptor, serverDataDescriptor);
+
+        auto mirroredSignalPtr = clientSignals[i].asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0) << clientSignals[i].getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[i].getGlobalId();
+    }
+}
+
+TEST_F(NativeStreamingModulesTest, RemoveSignals)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+
+    size_t removedSignalsCount = 0;
+    std::promise<void> removedSignalsPromise;
+    std::future<void> removedSignalsFuture = removedSignalsPromise.get_future();
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentRemoved)
+        {
+            StringPtr id = params.get("Id");
+            ASSERT_TRUE((comp.getGlobalId() + "/" + id) == clientSignals[2].getGlobalId() ||
+                        (comp.getGlobalId() + "/" + id) == clientSignals[3].getGlobalId());
+            removedSignalsCount++;
+            if (removedSignalsCount == 2)
+            {
+                removedSignalsPromise.set_value();
+            }
+        }
+    };
+
+    auto serverRefDevice = server.getDevices()[0];
+    serverRefDevice.setPropertyValue("NumberOfChannels", 1);
+
+    ASSERT_TRUE(removedSignalsFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+
+    auto mirroredSignalPtr = clientSignals[2].asPtr<IMirroredSignalConfig>();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0) << clientSignals[2].getGlobalId();
+    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[2].getGlobalId();
+    ASSERT_TRUE(clientSignals[2].isRemoved());
+
+    mirroredSignalPtr = clientSignals[3].asPtr<IMirroredSignalConfig>();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0) << clientSignals[3].getGlobalId();
+    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[3].getGlobalId();
+    ASSERT_TRUE(clientSignals[3].isRemoved());
+
+    clientSignals = client.getSignals(search::Recursive(search::Any()));
+    ASSERT_EQ(clientSignals.getCount(), 2u);
 }

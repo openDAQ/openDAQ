@@ -522,12 +522,13 @@ void MirroredSignalBase<Interfaces...>::unsubscribeCompleted(const StringPtr& st
 template <typename... Interfaces>
 void MirroredSignalBase<Interfaces...>::assignDomainSignal(const SignalPtr& domainSignal)
 {
-    if (domainSignal.asPtrOrNull<IMirroredSignalConfig>() == nullptr)
-    {
-        throw NoInterfaceException(
-            fmt::format(R"(Domain signal "{}" does not implement IMirroredSignalConfig interface.)",
-                        domainSignal.getGlobalId()));
-    }
+    if (domainSignal.assigned())
+        if (domainSignal.asPtrOrNull<IMirroredSignalConfig>() == nullptr)
+        {
+            throw NoInterfaceException(
+                fmt::format(R"(Domain signal "{}" does not implement IMirroredSignalConfig interface.)",
+                            domainSignal.getGlobalId()));
+        }
 
     ErrCode errCode = Super::setDomainSignal(domainSignal);
     checkErrorInfo(errCode);

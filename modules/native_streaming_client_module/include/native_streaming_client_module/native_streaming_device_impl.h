@@ -42,6 +42,8 @@ protected:
     void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void signalUnavailableHandler(const StringPtr& signalStringId);
     void reconnectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientReconnectionStatus status);
+    void initStatuses(const ContextPtr& ctx);
+    void publishReconnectionStatus();
     void createNativeStreaming(const StringPtr& host, const StringPtr& port, const StringPtr& path);
     void activateStreaming();
     void addToDeviceSignals(const StringPtr& signalStringId, const StringPtr& serializedSignal);

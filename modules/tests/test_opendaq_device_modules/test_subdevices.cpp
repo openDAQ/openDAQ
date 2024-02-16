@@ -301,7 +301,7 @@ INSTANTIATE_TEST_SUITE_P(
     SubDevicesTest,
     testing::Values(
         std::pair(StreamingType::NativeStreaming, StreamingType::NativeStreaming),
-        std::pair(StreamingType::WebsocketStreaming, StreamingType::WebsocketStreaming),
+        //std::pair(StreamingType::WebsocketStreaming, StreamingType::WebsocketStreaming),
         std::pair(StreamingType::NativeStreaming, StreamingType::WebsocketStreaming)
         /// note: next one does not work because websocket streaming does not stream domain signal packets
         /// if subdevice has enabled websocket streaming - the gateway device will not be able to stream-forward

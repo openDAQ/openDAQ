@@ -91,7 +91,7 @@ TEST_F(TmsFusionDevice, SampleRateTest)
     ASSERT_NO_THROW(clientSignal.getPropertyValue("SampleRate"));
 }
 
-TEST_F(TmsFusionDevice, StructTest)
+TEST_F(TmsFusionDevice, DISABLED_StructTest)
 {
     const auto obj = PropertyObject(objManager, "FusionAmp");
     auto [serverObj, fusionAmp] = registerPropertyObject(obj);

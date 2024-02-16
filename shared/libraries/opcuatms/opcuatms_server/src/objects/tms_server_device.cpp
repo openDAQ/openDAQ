@@ -16,6 +16,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opcuatms/converters/property_object_conversion_utils.h>
 #include <opcuatms/converters/list_conversion_utils.h>
+#include <opcuatms_server/objects/tms_server_function_block_type.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -235,13 +236,32 @@ void TmsServerDevice::populateStreamingOptions()
     }
 }
 
-void TmsServerDevice::addFbMethodNodes()
+void TmsServerDevice::addFunctionBlockFolderNodes()
 {
     auto fbNodeId = getChildNodeId("FB");
 
-    createGetAvailableFunctionBlockTypesNode(fbNodeId);
+    createFunctionBlockTypesFolder(fbNodeId);
     createAddFunctionBlockNode(fbNodeId);
     createRemoveFunctionBlockNode(fbNodeId);
+}
+
+void TmsServerDevice::createFunctionBlockTypesFolder(const OpcUaNodeId& parentId)
+{
+    OpcUaNodeId nodeIdOut;
+    AddObjectNodeParams params(nodeIdOut, parentId);
+    params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
+    params.typeDefinition = OpcUaNodeId(UA_NS0ID_FOLDERTYPE);
+    params.setBrowseName("AvailableTypes");
+
+    const auto typesFolderId = server->addObjectNode(params);
+    const auto fbTypes = this->object.getAvailableFunctionBlockTypes().getValueList();
+
+    for (const auto& fbType : fbTypes)
+    {
+        auto tmsFbType = std::make_shared<TmsServerFunctionBlockType>(fbType, server, daqContext, tmsContext);
+        tmsFbType->registerOpcUaNode(typesFolderId);
+        functionBlockTypes.push_back(tmsFbType);
+    }
 }
 
 void TmsServerDevice::createAddFunctionBlockNode(const OpcUaNodeId& parentId)
@@ -309,40 +329,6 @@ void TmsServerDevice::createRemoveFunctionBlockNode(const OpcUaNodeId& parentId)
         try
         {
             this->onRemoveFunctionBlock(args);
-            return OPENDAQ_SUCCESS;
-        }
-        catch (const OpcUaException& e)
-        {
-            return e.getStatusCode();
-        }
-    };
-
-    addEvent(methodNodeId)->onMethodCall(callback);
-}
-
-void TmsServerDevice::createGetAvailableFunctionBlockTypesNode(const OpcUaNodeId& parentId)
-{
-    // todo: migrate to AvailableTypes folder node
-
-    OpcUaNodeId nodeIdOut;
-    AddMethodNodeParams params(nodeIdOut, parentId);
-    params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
-    params.setBrowseName("_TmpGetAvailableFunctionBlockTypes");
-    params.inputArgumentsSize = 0;
-    params.outputArgumentsSize = 1;
-    params.outputArguments = (UA_Argument*) UA_Array_new(params.outputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
-
-    params.outputArguments[0].name = UA_STRING_ALLOC("availableTypes");
-    params.outputArguments[0].dataType = UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_FUNCTIONBLOCKINFOSTRUCTURE].typeId;
-    params.outputArguments[0].valueRank = UA_VALUERANK_ONE_DIMENSION;
-
-    auto methodNodeId = server->addMethodNode(params);
-
-    auto callback = [this](NodeEventManager::MethodArgs args)
-    {
-        try
-        {
-            onGetAvailableFunctionBlockTypes(args);
             return OPENDAQ_SUCCESS;
         }
         catch (const OpcUaException& e)
@@ -498,7 +484,7 @@ void TmsServerDevice::addChildNodes()
         }
     }
 
-    addFbMethodNodes();
+    addFunctionBlockFolderNodes();
     Super::addChildNodes();
 }
 

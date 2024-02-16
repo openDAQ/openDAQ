@@ -26,6 +26,7 @@ class PropertyObjectConversionUtils
 public:
     static OpcUaVariant ToDictVariant(const PropertyObjectPtr& obj);
     static void ToPropertyObject(const OpcUaVariant& variant, PropertyObjectPtr& objOut);
+    static PropertyObjectPtr ClonePropertyObject(const PropertyObjectPtr& obj);
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

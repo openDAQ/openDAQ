@@ -294,7 +294,7 @@ void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescripto
     reader = createReaderForType(newDescriptor.getSampleType(), reader->getTransformFunction());
 }
 
-void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback, void* remainingSample, size_t remainingSize)
+void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback)
 {
     if (!eventPacket.assigned())
         return;
@@ -340,7 +340,7 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
     if (callChangeCallback && !invalid && changeCallback.assigned())
     {
         bool descriptorOk = false;
-        ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor, nullptr, 0);
+        ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor);
         invalid = !descriptorOk || OPENDAQ_FAILED(errCode);
 
         if (OPENDAQ_FAILED(errCode))
@@ -473,7 +473,7 @@ ErrCode StreamReaderImpl::readPackets()
                 auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
-                    errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket, true, nullptr, 0);
+                    errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket, true);
                     if (OPENDAQ_FAILED(errCode))
                     {
                         invalid = true;
@@ -505,7 +505,7 @@ ErrCode StreamReaderImpl::readPackets()
     return errCode;
 }
 
-ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs)
+ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(samples);
     OPENDAQ_PARAM_NOT_NULL(count);
@@ -536,7 +536,8 @@ ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs)
 ErrCode StreamReaderImpl::readWithDomain(void* samples,
                                          void* domain,
                                          SizeT* count,
-                                         SizeT timeoutMs)
+                                         SizeT timeoutMs,
+                                         IReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(samples);
     OPENDAQ_PARAM_NOT_NULL(domain);

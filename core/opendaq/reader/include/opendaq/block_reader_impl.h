@@ -113,13 +113,13 @@ public:
 
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
 
-    ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0) override;
-    ErrCode INTERFACE_FUNC readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0) override;
+    ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) override;
+    ErrCode INTERFACE_FUNC readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) override;
 
     ErrCode INTERFACE_FUNC getBlockSize(SizeT* size) override;
 
 private:
-    ErrCode readPackets();
+    ErrCode readPackets(IReaderStatus** status);
     ErrCode readPacketData();
 
     SizeT getAvailable() const;

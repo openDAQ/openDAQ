@@ -18,6 +18,7 @@
 #include <opendaq/sample_reader.h>
 #include <opendaq/signal.h>
 #include <opendaq/input_port_config.h>
+#include <opendaq/reader_status.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -47,7 +48,7 @@ DECLARE_OPENDAQ_INTERFACE(ITailReader, ISampleReader)
      * available the parameter value is set to the actual amount and only the available
      * samples are returned. The rest of the buffer is not modified or cleared.
      */
-    virtual ErrCode INTERFACE_FUNC read(void* values, SizeT* count) = 0;
+    virtual ErrCode INTERFACE_FUNC read(void* values, SizeT* count, IReaderStatus** status = nullptr) = 0;
 
     // [arrayArg(values, count), arrayArg(domain, count), arrayArg(count, 1)]
     /*!
@@ -61,7 +62,7 @@ DECLARE_OPENDAQ_INTERFACE(ITailReader, ISampleReader)
      * available the parameter value is set to the actual amount and only the available
      * samples are returned. The rest of the buffer is not modified or cleared.
      */
-    virtual ErrCode INTERFACE_FUNC readWithDomain(void* values, void* domain, SizeT* count) = 0;
+    virtual ErrCode INTERFACE_FUNC readWithDomain(void* values, void* domain, SizeT* count, IReaderStatus** status = nullptr) = 0;
 
     /*!
      * @brief The maximum amount of samples in history to keep.

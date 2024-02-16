@@ -72,12 +72,13 @@ public:
     ErrCode INTERFACE_FUNC getReadMode(ReadMode* mode) override;
 
     // StreamReader
-    ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs = 0) override;
+    ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) override;
 
     ErrCode INTERFACE_FUNC readWithDomain(void* samples,
                                           void* domain,
                                           SizeT* count,
-                                          SizeT timeoutMs = 0) override;
+                                          SizeT timeoutMs = 0,
+                                          IReaderStatus** status = nullptr) override;
 
     // IReaderConfig
     ErrCode INTERFACE_FUNC getOnDescriptorChanged(IFunction** callback) override;
@@ -101,7 +102,7 @@ private:
 
     void onPacketReady();
 
-    void handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback = true, void* remainingSample = nullptr, size_t remainingSize = 0);
+    void handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback = true);
 
     [[nodiscard]]
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket);

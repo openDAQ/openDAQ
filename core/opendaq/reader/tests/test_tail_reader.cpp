@@ -1022,7 +1022,7 @@ TEST_F(TailReaderTest, TailReaderFromExistingOnReadCallback)
         promise.set_value();
         return nullptr;
     });
-    reader.setOnDescriptorChanged([&] (const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor, void* remainingSample, size_t remainingSize){
+    reader.setOnDescriptorChanged([&] (const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor){
         newReader = TailReaderFromExisting(reader, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
         return false;
     });

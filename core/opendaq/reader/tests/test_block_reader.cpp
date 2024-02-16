@@ -608,7 +608,15 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
 
     count = 1;
     TypeParam sampleInt32[1 * BLOCK_SIZE]{};
-    ASSERT_NO_THROW(reader.read((TypeParam*) &sampleInt32, &count));
+    
+    {    
+        // read event packet
+        size_t tmpCount = 1;
+        auto status = reader.read((TypeParam*) &sampleInt32, &tmpCount);
+        ASSERT_TRUE(status.isEventEncountered());
+    }
+
+    reader.read((TypeParam*) &sampleInt32, &count);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -621,7 +629,7 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedCallbackNotConvertible)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::BlockReader<TypeParam, ClockRange>(this->signal, BLOCK_SIZE);
-    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor, void* remainingSample, size_t remainingSize)
+    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor)
     {
         return false;
     });
@@ -664,10 +672,8 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedCallbackNotConvertible)
 
     count = 2;
     TypeParam sampleInt32[2 * BLOCK_SIZE]{};
-    ErrCode errCode = reader->read((TypeParam*) &sampleInt32, &count);
-    ASSERT_EQ(errCode, OPENDAQ_ERR_INVALID_DATA);
-
-    ASSERT_THROW_MSG(checkErrorInfo(errCode), InvalidDataException, "Packet samples are no longer convertible to the read type")
+    auto status = reader.read((TypeParam*) &sampleInt32, &count);
+    ASSERT_TRUE(status.isEventEncountered());
 }
 
 TYPED_TEST(BlockReaderTest, DescriptorChangedNotConvertible)
@@ -688,10 +694,8 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedNotConvertible)
 
     SizeT count{1};
     std::int32_t samples[1 * BLOCK_SIZE];
-    ErrCode errCode = reader->read((std::int32_t*) &samples, &count);
-    ASSERT_EQ(errCode, OPENDAQ_ERR_INVALID_DATA);
-
-    ASSERT_THROW_MSG(checkErrorInfo(errCode), InvalidDataException, "Packet samples are no longer convertible to the read type")
+    auto status = reader.read((std::int32_t*) &samples, &count);
+    ASSERT_FALSE(status.isConvertable());
 }
 
 TYPED_TEST(BlockReaderTest, ReuseReader)
@@ -714,25 +718,24 @@ TYPED_TEST(BlockReaderTest, ReuseReader)
 
     SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE];
-    ErrCode errCode = reader->read((TypeParam*) &samples, &count);
+    {    
+        // read event packet
+        size_t tmpCount = 1;
+        auto status = reader.read((TypeParam*) &samples, &tmpCount);
+        ASSERT_TRUE(status.isEventEncountered());
+    }
 
-    ErrCode expected;
-    if (!IsTemplateOf<TypeParam, Complex_Number>::value)
-    {
-        expected = OPENDAQ_ERR_INVALID_DATA;
-    }
-    else
-    {
-        expected = OPENDAQ_SUCCESS;
-    }
-    ASSERT_EQ(errCode, expected);
+    auto status = reader.read((TypeParam*) &samples, &count);
+
+    Bool expected = IsTemplateOf<TypeParam, Complex_Number>::value;
+    ASSERT_EQ(status.isConvertable(), expected);
 
     auto newReader = daq::BlockReaderFromExisting<ComplexFloat32, ClockRange>(reader, reader.getBlockSize());
 
     SizeT complexCount{1};
     ComplexFloat32 complexSamples[1 * BLOCK_SIZE];
-    errCode = newReader->read((ComplexFloat32*) &complexSamples, &complexCount);
-    ASSERT_SUCCEEDED(errCode);
+    status = newReader.read((ComplexFloat32*) &complexSamples, &complexCount);
+    ASSERT_TRUE(status.isOk());
 
     ASSERT_EQ(complexCount, 1u);
 
@@ -784,6 +787,14 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomain)
 
     SizeT count{1};
     double samples[BLOCK_SIZE]{};
+
+    {    
+        // read event packet
+        size_t tmpCount = 1;
+        auto status = reader.read(&samples, &tmpCount);
+        ASSERT_TRUE(status.isEventEncountered());
+    }
+
     reader.read(&samples, &count);
 
     ASSERT_EQ(count, 1u);
@@ -906,6 +917,12 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPort)
     SizeT count{1};
     double samples[BLOCK_SIZE]{};
     RangeType64 domain[BLOCK_SIZE]{};
+    {    
+        // read event packet
+        size_t tmpCount = 1;
+        auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
+        ASSERT_TRUE(status.isEventEncountered());
+    }
     reader.readWithDomain(&samples, &domain, &count);
 
     ASSERT_EQ(count, 1u);
@@ -1018,28 +1035,23 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
 
     BlockReaderPtr reader = daq::BlockReader(this->signal, 1, SampleType::Float64, SampleType::RangeInt64);
     BlockReaderPtr newReader;
+    
     reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
         if (!newReader.assigned())
         {
-            try 
+            SizeT tmpCount = 1;
+            auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
+            if (status.isEventEncountered())
             {
-                size_t tmpCnt = 1;
-                reader.readWithDomain(&samples, &domain, &tmpCnt);
-            }
-            catch (...)
-            {
+                newReader = daq::BlockReaderFromExisting(reader, BLOCK_SIZE, SampleType::Float64, SampleType::RangeInt64);
             }
         }
-        if (newReader.assigned())
+        else
         {
             newReader.readWithDomain(&samples, &domain, &count);
             promise.set_value();
         }
         return nullptr;
-    });
-    reader.setOnDescriptorChanged([&] (const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor, void* remainingSample, size_t remainingSize) {
-        newReader = daq::BlockReaderFromExisting(reader, BLOCK_SIZE, SampleType::Float64, SampleType::RangeInt64);
-        return false;
     });
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));

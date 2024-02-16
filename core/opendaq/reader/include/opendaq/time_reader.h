@@ -22,6 +22,7 @@
 #include <opendaq/signal_exceptions.h>
 #include <opendaq/tail_reader_ptr.h>
 #include <opendaq/reader_utils.h>
+#include <opendaq/reader_status.h>
 
 #include <utility>
 
@@ -89,12 +90,12 @@ public:
      * segments are returned. The rest of the buffer is not modified or cleared.
      * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of samples before returning.
      */
-    void readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count, daq::SizeT timeoutMs = 0) const
+    void readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count, daq::SizeT timeoutMs = 0, IReaderStatus** status = nullptr) const
     {
         if (this->object == nullptr)
             throw daq::InvalidParameterException();
 
-        auto errCode = this->object->readWithDomain(values, domain, count, timeoutMs);
+        auto errCode = this->object->readWithDomain(values, domain, count, timeoutMs, status);
         daq::checkErrorInfo(errCode);
     }
 };
@@ -138,12 +139,12 @@ public:
      * available the parameter value is set to the actual amount and only the available
      * samples are returned. The rest of the buffer is not modified or cleared.
      */
-    void readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count) const
+    void readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count, IReaderStatus** status = nullptr) const
     {
         if (this->object == nullptr)
             throw daq::InvalidParameterException();
 
-        auto errCode = this->object->readWithDomain(values, domain, count);
+        auto errCode = this->object->readWithDomain(values, domain, count, status);
         daq::checkErrorInfo(errCode);
     }
 };

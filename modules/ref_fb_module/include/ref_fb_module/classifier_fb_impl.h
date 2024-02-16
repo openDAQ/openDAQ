@@ -86,9 +86,7 @@ private:
     void onPacketReceived(const InputPortPtr& port) override;
 
     bool processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
-                                        const DataDescriptorPtr& inputDomainDataDescriptor, 
-                                        void* remainingSample, 
-                                        size_t remainingSize);
+                                        const DataDescriptorPtr& inputDomainDataDescriptor);
 
     void configure();
 

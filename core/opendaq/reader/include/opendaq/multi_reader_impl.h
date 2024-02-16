@@ -52,8 +52,8 @@ public:
     ErrCode INTERFACE_FUNC getReadMode(ReadMode* mode) override;
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
-    ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs) override;
-    ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs) override;
+    ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status) override;
+    ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IReaderStatus** status) override;
     ErrCode INTERFACE_FUNC skipSamples(SizeT* count) override;
 
 

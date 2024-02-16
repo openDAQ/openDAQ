@@ -122,10 +122,7 @@ FunctionBlockTypePtr ClassifierFbImpl::CreateType()
     return FunctionBlockType("ref_fb_module_classifier", "Classifier", "Signal classifing");
 }
 
-bool ClassifierFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
-                                                        const DataDescriptorPtr& inputDomainDataDescriptor, 
-                                                        void* remainingSample, 
-                                                        size_t remainingSize)
+bool ClassifierFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor, const DataDescriptorPtr& inputDomainDataDescriptor)
 {
     if (inputDataDescriptor.assigned())
         this->inputDataDescriptor = inputDataDescriptor;
@@ -203,7 +200,6 @@ void ClassifierFbImpl::configure()
             if (!linearReader.assigned())
             {
                 linearReader = BlockReaderFromPort(inputPort, linearBlockCount, inputDataDescriptor.getSampleType(), inputDomainDataDescriptor.getSampleType());
-                linearReader.setOnDescriptorChanged(std::bind(&ClassifierFbImpl::processSignalDescriptorChanged, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
                 linearReader.setOnDataAvailable([this] {
                         SAMPLE_TYPE_DISPATCH(inputSampleType, processLinearDataPacket);
                         return 0;
@@ -274,6 +270,13 @@ void ClassifierFbImpl::onPacketReceived(const InputPortPtr& port)
     if (!connection.assigned())
         return;
 
+    packet = connection.peek();
+    if (packet.assigned() && packet.getType() == PacketType::Event)
+    {
+        processEventPacket(packet);
+        return;
+    }
+
     packet = connection.dequeue();
 
     while (packet.assigned())
@@ -302,7 +305,7 @@ void ClassifierFbImpl::processEventPacket(const EventPacketPtr& packet)
     {
         DataDescriptorPtr inputDataDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
         DataDescriptorPtr inputDomainDataDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-        processSignalDescriptorChanged(inputDataDescriptor, inputDomainDataDescriptor, nullptr, 0);
+        processSignalDescriptorChanged(inputDataDescriptor, inputDomainDataDescriptor);
     }
 }
 
@@ -368,10 +371,15 @@ void ClassifierFbImpl::processLinearDataPacket()
     auto inputData = std::make_unique<InputType[]>(linearBlockCount);
     auto inputDomainData = std::make_unique<InputDomainType[]>(linearBlockCount);
 
-    linearReader.readWithDomain(inputData.get(), inputDomainData.get(), &readBlock);
+    auto status = linearReader.readWithDomain(inputData.get(), inputDomainData.get(), &readBlock);
+    auto eventPacket = status.getEventPacket();
 
     if (readBlock == 0)
+    {
+        if (eventPacket.assigned())
+            processEventPacket(eventPacket);
         return;
+    }
 
     auto outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1);
     auto outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
@@ -392,6 +400,9 @@ void ClassifierFbImpl::processLinearDataPacket()
 
     outputSignal.sendPacket(outputPacket);
     outputDomainSignal.sendPacket(outputDomainPacket);
+
+    // if (eventPacket.assigned())
+    //     processEventPacket(eventPacket);
 }
 
 template <SampleType InputSampleType>

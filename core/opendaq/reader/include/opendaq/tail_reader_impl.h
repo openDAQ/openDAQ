@@ -58,8 +58,8 @@ public:
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC getHistorySize(SizeT* size) override;
 
-    ErrCode INTERFACE_FUNC read(void* values, SizeT* count) override;
-    ErrCode INTERFACE_FUNC readWithDomain(void* values, void* domain, SizeT* count) override;
+    ErrCode INTERFACE_FUNC read(void* values, SizeT* count, IReaderStatus** status) override;
+    ErrCode INTERFACE_FUNC readWithDomain(void* values, void* domain, SizeT* count, IReaderStatus** status) override;
 
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
 

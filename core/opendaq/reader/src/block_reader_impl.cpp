@@ -2,6 +2,7 @@
 #include <coretypes/impl.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/reader_errors.h>
+#include <opendaq/reader_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -53,6 +54,7 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , info(old->info)
 {
     this->internalAddRef();
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr), false);
     readDescriptorFromPort();
     notify.dataReady = false;
 }
@@ -168,11 +170,9 @@ ErrCode BlockReaderImpl::readPacketData()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode BlockReaderImpl::readPackets()
+ErrCode BlockReaderImpl::readPackets(IReaderStatus** status)
 {
     ErrCode errCode = OPENDAQ_SUCCESS;
-
-    size_t sampleToRead = info.remainingSamplesToRead;
 
     BlockReadInfo::Duration remainingTime = info.timeout;
     auto shouldReadMore = getAvailable() > 0 || remainingTime.count() > 0;
@@ -228,11 +228,10 @@ ErrCode BlockReaderImpl::readPackets()
                 auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
-                    handleDescriptorChanged(eventPacket, true, info.values, sampleToRead - info.remainingSamplesToRead);
-                    if (invalid)
-                    {
-                        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Packet samples are no longer convertible to the read type");
-                    }
+                    handleDescriptorChanged(eventPacket, true);
+                    if (status)
+                        *status = ReaderStatus(eventPacket, !invalid).detach();
+                    return errCode;
                 }
                 break;
             }
@@ -253,33 +252,51 @@ ErrCode BlockReaderImpl::readPackets()
     return errCode;
 }
 
-ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs)
+ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(blocks);
     OPENDAQ_PARAM_NOT_NULL(count);
 
     std::scoped_lock lock(mutex);
+    if (status)
+        *status = nullptr;
 
     if (invalid)
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Packet samples are no longer convertible to the read type", nullptr);
+    {
+        if (status)
+            *status = ReaderStatus(nullptr, !invalid).detach();
+        return OPENDAQ_IGNORED;
+    }
 
     SizeT samplesToRead = *count * blockSize;
     info.prepare(blocks, samplesToRead, milliseconds(timeoutMs));
 
-    ErrCode errCode = readPackets();
+    ErrCode errCode = readPackets(status);
+
+    if (status && *status == nullptr)
+        *status = ReaderStatus().detach();
 
     SizeT samplesRead = samplesToRead - info.remainingSamplesToRead;
     *count = samplesRead / blockSize;
     return errCode;
 }
 
-ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs)
+ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(dataBlocks);
     OPENDAQ_PARAM_NOT_NULL(domainBlocks);
     OPENDAQ_PARAM_NOT_NULL(count);
 
     std::scoped_lock lock(mutex);
+    if (status)
+        *status = nullptr;
+
+    if (invalid)
+    {
+        if (status)
+            *status = ReaderStatus(nullptr, !invalid).detach();
+        return OPENDAQ_IGNORED;
+    }
 
     if (invalid)
         return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Packet samples are no longer convertible to the read type.", nullptr);
@@ -287,7 +304,10 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
     SizeT samplesToRead = *count * blockSize;
     info.prepareWithDomain(dataBlocks, domainBlocks, samplesToRead, milliseconds(timeoutMs));
 
-    ErrCode errCode = readPackets();
+    ErrCode errCode = readPackets(status);
+
+    if (status && *status == nullptr)
+        *status = ReaderStatus().detach();
 
     SizeT samplesRead = samplesToRead - info.remainingSamplesToRead;
     *count = samplesRead / blockSize;

@@ -17,6 +17,7 @@
 #include <opendaq/sample_reader.h>
 #include <opendaq/signal.h>
 #include <opendaq/input_port_config.h>
+#include <opendaq/reader_status.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -52,7 +53,7 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReader, ISampleReader)
      * blocks are returned. The rest of the buffer is not modified or cleared.
      * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of blocks before returning.
      */
-    virtual ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0) = 0;
+    virtual ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
 
     // [arrayArg(dataBlocks, count), arrayArg(domainBlocks, count), arrayArg(count, 1)]
     /*!
@@ -67,7 +68,7 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReader, ISampleReader)
      * blocks are returned. The rest of the buffer is not modified or cleared.
      * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of blocks before returning.
      */
-    virtual ErrCode INTERFACE_FUNC readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0) = 0;
+    virtual ErrCode INTERFACE_FUNC readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
 
     /*!
      * @brief The amount of samples the reader considers as one block.

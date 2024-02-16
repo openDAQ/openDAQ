@@ -188,11 +188,11 @@ private:
         std::vector<ValueType> values(count * blockSize);
         if constexpr (ReaderHasReadWithTimeout<ReaderType, ValueType>::value)
         {
-            reader->read(values.data(), &count, timeoutMs);
+            reader->read(values.data(), &count, timeoutMs, nullptr);
         }
         else
         {
-            reader->read(values.data(), &count);
+            reader->read(values.data(), &count, nullptr);
         }
 
         values.resize(count * blockSize);
@@ -228,22 +228,22 @@ private:
             if constexpr (ReaderHasReadWithTimeout<ReaderType, ValueType>::value)
             {
                 reader->readWithDomain(
-                    values.data(), reinterpret_cast<std::chrono::system_clock::time_point*>(domain.data()), &count, timeoutMs);
+                    values.data(), reinterpret_cast<std::chrono::system_clock::time_point*>(domain.data()), &count, timeoutMs, nullptr);
             }
             else
             {
-                reader->readWithDomain(values.data(), reinterpret_cast<std::chrono::system_clock::time_point*>(domain.data()), &count);
+                reader->readWithDomain(values.data(), reinterpret_cast<std::chrono::system_clock::time_point*>(domain.data()), &count, nullptr);
             }
         }
         else
         {
             if constexpr (ReaderHasReadWithTimeout<ReaderType, ValueType>::value)
             {
-                reader->readWithDomain(values.data(), domain.data(), &count, timeoutMs);
+                reader->readWithDomain(values.data(), domain.data(), &count, timeoutMs, nullptr);
             }
             else
             {
-                reader->readWithDomain(values.data(), domain.data(), &count);
+                reader->readWithDomain(values.data(), domain.data(), &count, nullptr);
             }
         }
 

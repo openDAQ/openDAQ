@@ -569,7 +569,7 @@ TYPED_TEST(StreamReaderTest, DescriptorChangedCallbackNotConvertible)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
-    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor, void* remainingSample, size_t remainingSize)
+    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor)
     {
         return false;
     });
@@ -1026,7 +1026,7 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromExistingOnReadCallback)
         promise.set_value();
         return nullptr;
     });
-    reader.setOnDescriptorChanged([&] (const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor, void* remainingSample, size_t remainingSize) {
+    reader.setOnDescriptorChanged([&] (const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor) {
         newReader = daq::StreamReaderFromExisting(reader, SampleType::Undefined, SampleType::Undefined);
         return false;
     });

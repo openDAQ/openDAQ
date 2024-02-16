@@ -401,7 +401,7 @@ protected:
         }
     }
 
-    virtual void handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback = true, void* remainingSample = nullptr, size_t remainingSize = 0)
+    virtual void handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback = true)
     {
         if (!eventPacket.assigned())
             return;
@@ -443,15 +443,15 @@ protected:
 
         // If both value and domain are still convertible
         // check with the user if new state is valid for them
-        if (callChangeCallback && !invalid && changeCallback.assigned())
-        {
-            bool descriptorOk = false;
-            ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor, nullptr, 0);
-            invalid = !descriptorOk || OPENDAQ_FAILED(errCode);
+        // if (callChangeCallback && !invalid && changeCallback.assigned())
+        // {
+        //     bool descriptorOk = false;
+        //     ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor);
+        //     invalid = !descriptorOk || OPENDAQ_FAILED(errCode);
 
-            if (OPENDAQ_FAILED(errCode))
-                daqClearErrorInfo();
-        }
+        //     if (OPENDAQ_FAILED(errCode))
+        //         daqClearErrorInfo();
+        // }
     }
 
     void readDescriptorFromPort()

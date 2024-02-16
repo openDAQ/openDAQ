@@ -24,8 +24,14 @@
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/signal_ptr.h>
 #include <opendaq/input_port_config_ptr.h>
+#include <opendaq/reader_status_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool convertable = true)
+{
+    return ReaderStatus_Create(packet, convertable);
+}
 
 /*!
  * @brief Creates a reader that eases reading packets from the signal.

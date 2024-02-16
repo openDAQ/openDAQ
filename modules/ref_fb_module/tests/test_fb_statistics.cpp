@@ -1,3 +1,4 @@
+#include <opendaq/context_internal_ptr.h>
 #include <opendaq/instance_factory.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/opendaq.h>
@@ -33,12 +34,19 @@ public:
                          std::vector<Int> blockSizeChangesAfterPackets = {},
                          std::vector<size_t> newBlockSizes = {},
                          std::vector<Int> outputDomainChangesAfterPackets = {},
-                         std::vector<Int> newOutputDomain = {})
+                         std::vector<Int> newOutputDomain = {},
+                         std::vector<Int> triggerModeChangesAfterPackets = {},
+                         std::vector<Bool> newTriggerMode = {},
+                         vecvec<Float> mockTriggerPackets = {},
+                         vecvec<Float> mockTriggerDomainPackets = {})
     {
-        // Create logger, context and module
-        auto logger = Logger();
-        context = Context(Scheduler(logger), logger, nullptr, nullptr);
+        // Create logger, module manager, context and module
+        const auto logger = Logger();
+        moduleManager = ModuleManager("[[none]]");
+        context = Context(Scheduler(logger), logger, nullptr, moduleManager);
         createModule(&module, context);
+        moduleManager.addModule(module);
+        moduleManager = context.asPtr<IContextInternal>().moveModuleManager();
 
         this->rule = rule;
         this->initialOutputDomain = initialOutputDomain;
@@ -52,18 +60,22 @@ public:
         this->newBlockSizes = newBlockSizes;
         this->outputDomainChangesAfterPackets = outputDomainChangesAfterPackets;
         this->newOutputDomain = newOutputDomain;
+        this->triggerModeChangesAfterPackets = triggerModeChangesAfterPackets;
+        this->newTriggerMode = newTriggerMode;
+        this->mockTriggerPackets = mockTriggerPackets;
+        this->mockTriggerDomainPackets = mockTriggerDomainPackets;
     }
 
     void run()
     {
-        createDomainSignal();
+        createDomainSignals();
         createDomainPackets();
-        createSignal();
+        createSignals();
         createFunctionBlock();
         sendPacketsAndChangeProperties();
         receivePacketsAndCheckBoth();
 
-        // TODO Temporay fix so PacketReadyNotification::Scheduler works
+        // TODO Temporary fix so PacketReadyNotification::Scheduler works
         context.getScheduler().stop();
     }
 
@@ -83,17 +95,27 @@ private:
     std::vector<size_t> newBlockSizes;
     std::vector<Int> outputDomainChangesAfterPackets;
     std::vector<Int> newOutputDomain;
+    std::vector<Int> triggerModeChangesAfterPackets;
+    std::vector<Bool> newTriggerMode;
+    vecvec<Float> mockTriggerPackets;
+    vecvec<Float> mockTriggerDomainPackets;
+    ModuleManagerPtr moduleManager;
 
     DataDescriptorPtr domainSignalDescriptor;
+    DataDescriptorPtr triggerDomainSignalDescriptor;
     SignalConfigPtr domainSignal;
+    SignalConfigPtr triggerDomainSignal;
     std::vector<DataPacketPtr> domainPackets;
+    std::vector<DataPacketPtr> triggerDomainPackets;
     DataDescriptorPtr signalDescriptor;
+    DataDescriptorPtr triggerSignalDescriptor;
     SignalConfigPtr signal;
+    SignalConfigPtr triggerSignal;
     FunctionBlockPtr fb;
     PacketReaderPtr readerAvg;
     PacketReaderPtr readerRms;
 
-    void createDomainSignal()
+    void createDomainSignals()
     {
         // Create domain signal with descriptor
         auto domainSignalDescriptorBuilder = DataDescriptorBuilder();
@@ -104,6 +126,16 @@ private:
         domainSignalDescriptorBuilder.setTickResolution(Ratio(1, 1000));
         domainSignalDescriptor = domainSignalDescriptorBuilder.build();
         domainSignal = SignalWithDescriptor(context, domainSignalDescriptor, nullptr, "domain_signal");
+
+        // Similar, but for trigger
+        auto triggerDomainSignalDescriptorBuilder = DataDescriptorBuilder();
+        triggerDomainSignalDescriptorBuilder.setUnit(Unit("s", -1, "seconds", "Time"));
+        triggerDomainSignalDescriptorBuilder.setSampleType(SampleType::Int64);
+        triggerDomainSignalDescriptorBuilder.setRule(ExplicitDataRule());  // Always Explicit
+        triggerDomainSignalDescriptorBuilder.setOrigin("1970");
+        triggerDomainSignalDescriptorBuilder.setTickResolution(Ratio(1, 1000));
+        triggerDomainSignalDescriptor = triggerDomainSignalDescriptorBuilder.build();
+        triggerDomainSignal = SignalWithDescriptor(context, triggerDomainSignalDescriptor, nullptr, "trigger_domain_signal");
     }
 
     void createDomainPackets()
@@ -121,9 +153,19 @@ private:
             auto domainPacket = DataPacket(domainSignalDescriptor, mockPackets[i].size(), offset);
             domainPackets.push_back(domainPacket);
         }
+
+        // For trigger, it's Explicit
+        for (size_t i = 0; i < mockTriggerPackets.size(); i++)
+        {
+            auto domainPacket = DataPacket(triggerDomainSignalDescriptor, mockTriggerPackets[i].size());
+            auto domainPacketData = static_cast<Int*>(domainPacket.getData());
+            for (size_t ii = 0; ii < mockTriggerDomainPackets[i].size(); ii++)
+                *domainPacketData++ = static_cast<Int>(mockTriggerDomainPackets[i][ii]);
+            triggerDomainPackets.push_back(domainPacket);
+        }
     }
 
-    void createSignal()
+    void createSignals()
     {
         // Create signal with descriptor
         auto signalDescriptorBuilder = DataDescriptorBuilder();
@@ -135,6 +177,17 @@ private:
 
         // Set domain signal of signal
         signal.setDomainSignal(domainSignal);
+
+        // Create signal with descriptor for trigger
+        auto triggerSignalDescriptorBuilder = DataDescriptorBuilder();
+        triggerSignalDescriptorBuilder.setSampleType(SampleTypeFromType<Int>::SampleType);
+        triggerSignalDescriptorBuilder.setValueRange(Range(0, 300));
+        triggerSignalDescriptorBuilder.setRule(ExplicitDataRule());
+        triggerSignalDescriptor = triggerSignalDescriptorBuilder.build();
+        triggerSignal = SignalWithDescriptor(context, triggerSignalDescriptor, nullptr, "trigger_signal");
+
+        // Set domain signal of signal for trigger
+        triggerSignal.setDomainSignal(triggerDomainSignal);
     }
 
     void createFunctionBlock()
@@ -169,6 +222,27 @@ private:
             domainSignal.sendPacket(domainPackets[i]);
             signal.sendPacket(dataPacket);
 
+            if (mockTriggerPackets.size() > 0 && mockTriggerPackets[i].size() > 0)
+            {
+                // Create data packet for trigger
+                auto triggerDataPacket =
+                    DataPacketWithDomain(triggerDomainPackets[i], triggerSignalDescriptor, mockTriggerPackets[i].size());
+                auto triggerPacketData = static_cast<Float*>(triggerDataPacket.getData());  // TODO use templated type
+                for (size_t ii = 0; ii < mockTriggerPackets[i].size(); ii++)
+                    *triggerPacketData++ = static_cast<Float>(mockTriggerPackets[i][ii]);
+
+                auto fbs = fb.getFunctionBlocks();
+                if (fbs.getCount() > 0)  // TODO fix condition
+                {
+                    // Nested trigger connect signal
+                    fbs[0].getInputPorts()[0].connect(triggerSignal);
+
+                    // Send packet for trigger
+                    triggerDomainSignal.sendPacket(triggerDomainPackets[i]);
+                    triggerSignal.sendPacket(triggerDataPacket);
+                }
+            }
+
             // Check if we should change block size after sending packet
             auto blockSizeChangeFoundAt = std::find(blockSizeChangesAfterPackets.begin(), blockSizeChangesAfterPackets.end(), static_cast<Int>(i));
             if (blockSizeChangeFoundAt != blockSizeChangesAfterPackets.end())
@@ -184,6 +258,14 @@ private:
                 // Change domain signal type if appropriate
                 fb.setPropertyValue("DomainSignalType",
                                     newOutputDomain[domainSignalChangeFoundAt - outputDomainChangesAfterPackets.begin()]);
+            }
+
+            // Check if we should change trigger mode after sending packet
+            auto triggerModeChangeFoundAt = std::find(triggerModeChangesAfterPackets.begin(), triggerModeChangesAfterPackets.end(), i);
+            if (triggerModeChangeFoundAt != triggerModeChangesAfterPackets.end())
+            {
+                // Change trigger mode if appropriate
+                fb.setPropertyValue("TriggerMode", newTriggerMode[triggerModeChangeFoundAt - triggerModeChangesAfterPackets.begin()]);
             }
         }
     }
@@ -424,5 +506,44 @@ TEST_F(StatisticsTest, StatisticsTestChangingOutputDomain)
                                        {},
                                        outputDomainChangesAfterPackets,
                                        newOutputDomain);
+    helper.run();
+}
+
+TEST_F(StatisticsTest, StatisticsTestTriggerBasic)
+{
+    vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0},
+                              {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0}};
+    vecvec<Float> expectedAvg{{0.55}, {}, {2.55}, {}, {1.55}, {2.55}};
+    vecvec<Float> expectedRms{
+        {0.62048368229954287}, {1.5763882770434448}, {2.5661254840712679}, {}, {1.5763882770434448}, {2.5661254840712679}};
+    vecvec<Int> expectedDomain{{5}, {}, {45}, {}, {85}, {105}};
+    Int initialOutputDomain = 0;  // Implicit
+
+    std::vector<Int> triggerModeChangesAfterPackets{0, 4};
+    std::vector<Bool> newTriggerMode{true, false};  // TODO test true true, false false
+    vecvec<Float> mockTriggerPackets{
+        {}, {0.1, 0.6}, {0.1, 0.2}, {0.6, 0.8}, {0.1, 1.0}, {}};  // TODO test sending while TriggerMode = false
+    vecvec<Float> mockTriggerDomainPackets{{}, {8, 10}, {28, 30}, {48, 50}, {68, 70}, {}};
+
+    auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
+                                       initialOutputDomain,
+                                       expectedAvg,
+                                       expectedRms,
+                                       expectedDomain,
+                                       SampleTypeFromType<Float>::SampleType,
+                                       mockPackets,
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       triggerModeChangesAfterPackets,
+                                       newTriggerMode,
+                                       mockTriggerPackets,
+                                       mockTriggerDomainPackets);
     helper.run();
 }

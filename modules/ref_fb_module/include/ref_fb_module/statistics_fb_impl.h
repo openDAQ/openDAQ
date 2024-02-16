@@ -26,6 +26,33 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 namespace Statistics
 {
 
+// TODO
+class TriggerHistory
+{
+public:
+    void addElement(Bool value, Int domainValue)
+    {
+        values.push_back(value);
+        domainValues.push_back(domainValue);
+    }
+
+    void dropHistory(Int toExcludingDomainValue)
+    {
+        auto whereTo = std::find(values.begin(), values.end(), toExcludingDomainValue);
+        if (whereTo != values.end())
+        {
+            // int index = it - v.begin();
+
+            // values.erase();
+            // domainValues.erase(domainValues.begin(), whereTo);
+        }
+    }
+
+private:
+    std::vector<Bool> values;
+    std::vector<Int> domainValues;
+};
+
 template <SampleType T>
 struct AggSample
 {
@@ -70,7 +97,9 @@ private:
     };
 
     bool triggerMode;
+    bool doWork;
     FunctionBlockPtr nestedTriggerFunctionBlock;
+    InputPortPtr triggerOutput;
 
     size_t blockSize;
     DomainSignalType domainSignalType;
@@ -113,7 +142,8 @@ private:
     void resetCalcBuf();
     void getNextOutputDomainValue(const DataPacketPtr& domainPacket, NumberPtr& outputPacketStartDomainValue, bool& haveGap);
     void processSignalDescriptorChanged(const DataDescriptorPtr& valueDataDescriptor, const DataDescriptorPtr& domainDataDescriptor);
-    void processDataPacket(const DataPacketPtr& packet);
+    void processDataPacketTrigger(const DataPacketPtr& packet);
+    void processDataPacketInput(const DataPacketPtr& packet);
     NumberPtr addNumbers(const NumberPtr a, const NumberPtr& b);
 
     template <SampleType ST,
@@ -135,7 +165,8 @@ private:
     void calculate(uint8_t* data, int64_t firstTick, uint8_t* outAvgData, uint8_t* outRmsData, uint8_t* outDomainData, size_t avgCount);
 
     void onPacketReceived(const InputPortPtr& port) override;
-    void processPackets(const InputPortPtr& port);
+    void processTriggerPackets(const InputPortPtr& port);
+    void processInputPackets(const InputPortPtr& port);
 };
 
 }

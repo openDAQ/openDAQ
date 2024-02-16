@@ -3,6 +3,9 @@
 #include <opendaq/packet_factory.h>
 #include <ref_fb_module/statistics_fb_impl.h>
 
+// TODO remove unnecassary
+#include <opendaq/opendaq.h>
+
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace Statistics
@@ -28,12 +31,11 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
         packetReadyNotification = PacketReadyNotification::Scheduler;
 
     createAndAddInputPort("input", packetReadyNotification);
-    createAndAddInputPort("trigger", packetReadyNotification);
+    triggerOutput = createAndAddInputPort("trigger", packetReadyNotification);
 }
 
 FunctionBlockTypePtr StatisticsFbImpl::CreateType()
 {
-
     return FunctionBlockType("ref_fb_module_statistics",
                              "Statistics",
                              "Calculates statistics",
@@ -68,7 +70,6 @@ void StatisticsFbImpl::propertyChanged()
 {
     std::scoped_lock lock(sync);
     readProperties();
-
     configure();
 }
 
@@ -77,13 +78,27 @@ void StatisticsFbImpl::triggerModeChanged()
     std::scoped_lock lock(sync);
     if (triggerMode)
     {
-        nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("ref_fb_module_trigger", "nfbt");
-        // TODO check if not null
+        // Configure Trigger UseMultiThreadedScheduler according to Statistics UseMultiThreadedScheduler
+        ModuleManagerPtr moduleManager = context.getModuleManager();
+        auto triggerConfig =
+            moduleManager.getModules()[0].getAvailableFunctionBlockTypes().get("ref_fb_module_trigger").createDefaultConfig();  // TODO FIX
+
+        if (packetReadyNotification == PacketReadyNotification::SameThread)
+            triggerConfig.setPropertyValue("UseMultiThreadedScheduler", false);
+
+        // Use trigger, output signals depending on trigger
+        nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("ref_fb_module_trigger", "nfbt", triggerConfig);
+
+        // Connect trigger output
+        triggerOutput.connect(nestedTriggerFunctionBlock.getSignals()[0]);
+        // TODO test
     }
     else
     {
+        // Don't use trigger, output signals
+        triggerOutput.disconnect();
         removeNestedFunctionBlock(nestedTriggerFunctionBlock);
-        // TODO check if null
+        // TODO test
     }
 }
 
@@ -272,10 +287,27 @@ void StatisticsFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& v
     configure();
 }
 
-void StatisticsFbImpl::processDataPacket(const DataPacketPtr& packet)
+void StatisticsFbImpl::processDataPacketTrigger(const DataPacketPtr& packet)
+{
+    const auto domainPacket = packet.getDomainPacket();
+
+    auto data = static_cast<Bool*>(packet.getData());
+    auto triggerData = data[0];
+
+    // TODO Get domain info from Trigger
+    auto domainStamp = static_cast<Int*>(domainPacket.getData())[0];
+}
+
+void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
 {
     if (!valid)
         return;
+
+    // TODO update
+    if (triggerMode && !doWork)
+    {
+        return;
+    }
 
     const auto domainPacket = packet.getDomainPacket();
     if (!domainPacket.assigned())
@@ -531,10 +563,34 @@ void StatisticsFbImpl::calculate(
 
 void StatisticsFbImpl::onPacketReceived(const InputPortPtr& port)
 {
-    processPackets(port);
+    if (port.getLocalId() == "trigger")
+        processTriggerPackets(port);
+    else
+        processInputPackets(port);
 }
 
-void StatisticsFbImpl::processPackets(const InputPortPtr& port)
+void StatisticsFbImpl::processTriggerPackets(const InputPortPtr& port)
+{
+    std::scoped_lock lock(sync);
+
+    const auto conn = port.getConnection();
+    if (!conn.assigned())
+        return;
+
+    auto packet = conn.dequeue();
+    while (packet.assigned())
+    {
+        if (packet.getType() == PacketType::Data)
+        {
+            auto dataPacket = packet.asPtr<IDataPacket>();
+            processDataPacketTrigger(dataPacket);
+        }
+
+        packet = conn.dequeue();
+    }
+}
+
+void StatisticsFbImpl::processInputPackets(const InputPortPtr& port)
 {
     std::scoped_lock lock(sync);
 
@@ -560,13 +616,12 @@ void StatisticsFbImpl::processPackets(const InputPortPtr& port)
         else if (packetType == PacketType::Data)
         {
             auto dataPacket = packet.asPtr<IDataPacket>();
-            processDataPacket(dataPacket);
+            processDataPacketInput(dataPacket);
         }
 
         packet = conn.dequeue();
     }
 }
-
 }
 
 END_NAMESPACE_REF_FB_MODULE

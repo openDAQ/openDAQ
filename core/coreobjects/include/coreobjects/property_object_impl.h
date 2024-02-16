@@ -33,6 +33,7 @@
 #include <tsl/ordered_map.h>
 #include <utility>
 #include <map>
+#include <iostream>
 #include <coreobjects/property_internal_ptr.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
@@ -730,12 +731,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
     if (frozen)
         return OPENDAQ_ERR_FROZEN;
 
-
     try
     {
         auto propName = StringPtr::Borrow(name);
         auto valuePtr = BaseObjectPtr::Borrow(value);
-        
+
+        std::cout << "DEBUG 1 : GenericPropertyObjectImpl" << "propName:" << propName << std::endl;
+
         if (batch)
         {
             updatingPropsAndValues.emplace_back(std::make_pair(propName, UpdatingAction{true, protectedAccess, valuePtr}));
@@ -2362,6 +2364,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
     }
 
     BaseObjectPtr propValue;
+
     switch (serialized.getType(propName))
     {
         case ctBool:

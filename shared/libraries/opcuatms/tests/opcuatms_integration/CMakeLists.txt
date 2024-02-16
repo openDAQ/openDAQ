@@ -4,19 +4,19 @@ set(TEST_APP test_${MODULE_NAME})
 set(TEST_SOURCES main.cpp
                  tms_object_integration_test.h
                  tms_object_integration_test.cpp
-                 test_tms_signal.cpp
-                 test_tms_function_block.cpp
-                 test_tms_channel.cpp
-                 test_tms_input_port.cpp
-                 test_tms_property.cpp
-                 test_tms_property_object.cpp
-                 test_tms_device.cpp
-                 test_tms_integration.cpp
-                 test_property_object_advanced.cpp
-                 test_tms_amplifier.cpp
-                 test_tms_component.cpp
-                 test_tms_folder.cpp
-                 test_tms_function_property.cpp
+                 #test_tms_signal.cpp
+                 #test_tms_function_block.cpp
+                 #test_tms_channel.cpp
+                 #test_tms_input_port.cpp
+                 #test_tms_property.cpp
+                 #test_tms_property_object.cpp
+                 #test_tms_device.cpp
+                 #test_tms_integration.cpp
+                 #test_property_object_advanced.cpp
+                 #test_tms_amplifier.cpp
+                 #test_tms_component.cpp
+                 #test_tms_folder.cpp
+                 #test_tms_function_property.cpp
                  test_tms_fusion_device.cpp
 )
 

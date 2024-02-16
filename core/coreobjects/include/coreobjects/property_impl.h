@@ -269,11 +269,23 @@ public:
             throwExceptionFromErrorCode(err);
     }
 
-    // SparseSelectionProperty()
+    // StructProperty()
     PropertyImpl(const StringPtr& name, IStruct* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
         this->valueType = ctStruct;
+        this->selectionValues = BaseObjectPtr(selectionValues);
+
+        const auto err = validateDuringConstruction();
+        if (err != OPENDAQ_SUCCESS)
+            throwExceptionFromErrorCode(err);
+    }
+
+    // EnumerationProperty()
+    PropertyImpl(const StringPtr& name, IEnumeration* defaultValue, const BooleanPtr& visible)
+        : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
+    {
+        this->valueType = ctEnumeration;
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();

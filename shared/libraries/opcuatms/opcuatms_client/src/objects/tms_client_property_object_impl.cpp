@@ -251,6 +251,11 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
     {
         const auto typeId = OpcUaNodeId(ref->typeDefinition.nodeId);
         const auto propName = String(utils::ToStdString(ref->browseName.name));
+        std::cout << "DEBUG 5: propName: " << propName << std::endl;\
+        if ((propName == "ExcitationType") || (propName == "AdjustmentPoint"))
+        {
+            std::cout << "DEBUG 6: propName: " << propName << std::endl;
+        }
 
         Bool hasProp;
         daq::checkErrorInfo(Impl::hasProperty(propName, &hasProp));
@@ -283,7 +288,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
                     prop = TmsClientProperty(daqContext, clientContext, ref->nodeId.nodeId);
 
                 introspectionVariableIdMap.insert(std::pair(propName, childNodeId));
-            }                     
+            }
             catch(const std::exception& e)
             {
                 LOG_W("Failed to add {} property on OpcUa client property object: {}", propName, e.what());
@@ -450,8 +455,10 @@ void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
     std::vector<PropertyPtr> unorderedProperties;
     std::unordered_map<std::string, BaseObjectPtr> functionPropValues;
 
+    std::cout << "DEBUG 10: browseRawProperties" << std::endl;
+
     addProperties(nodeId, orderedProperties, unorderedProperties);
-    
+
     // TODO: Make sure that this is a DeviceType node
     if (hasReference("MethodSet"))
     {

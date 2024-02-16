@@ -24,6 +24,7 @@
 #include "open62541/daqhbk_nodeids.h"
 #include "open62541/nodeids.h"
 #include "opendaq/function_block_type_ptr.h"
+#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -92,6 +93,9 @@ namespace converters
                        {IStruct::Id,
                         [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
                         { return VariantConverter<IStruct>::ToVariant(object, targetType, ctx); }},
+                        {IEnumeration::Id,
+                        [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
+                        { return VariantConverter<IEnumeration>::ToVariant(object, targetType, ctx); }},
                        {IList::Id, [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx) {
                             return VariantConverter<IBaseObject>::ToArrayVariant(object, targetType, ctx);
                         }}};
@@ -142,6 +146,9 @@ namespace converters
                             {IStruct::Id,
                              [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
                              { return VariantConverter<IStruct>::ToArrayVariant(object, targetType, ctx); }},
+                            {IEnumeration::Id,
+                             [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
+                             { return VariantConverter<IEnumeration>::ToArrayVariant(object, targetType, ctx); }},
                             {IArgumentInfo::Id, [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx) {
                                  return VariantConverter<IArgumentInfo>::ToArrayVariant(object, targetType, ctx);
                              }}};
@@ -173,8 +180,6 @@ namespace converters
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IInteger>::ToDaqObject(var, context); }},
         {OpcUaNodeId(0, UA_NS0ID_STRING),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IString>::ToDaqObject(var, context); }},
-        {OpcUaNodeId(NAMESPACE_DAQHBK, UA_DAQHBKID_EXCITATIONTYPEENUMERATION),
-         [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IInteger>::ToDaqObject(var, context); }},
         {OpcUaNodeId(0, UA_NS0ID_LOCALIZEDTEXT),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IString>::ToDaqObject(var, context); }},
         {OpcUaNodeId(0, UA_NS0ID_QUALIFIEDNAME),
@@ -288,6 +293,9 @@ namespace converters
             return nullptr;
 
         const auto typeId = variant.getValue().type->typeId;
+        const auto typeKind = variant.getValue().type->typeKind;
+
+        std::cout << "DEBUG 1000 : convertToDaqObject typeKind: " << typeKind << std::endl;
         if (const auto it = uaTypeToDaqObject.find(OpcUaNodeId(typeId)); it != uaTypeToDaqObject.cend())
             return it->second(variant, context);
 

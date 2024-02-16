@@ -112,6 +112,14 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, Property,
+    IProperty, createEnumerationProperty,
+    IString*, name,
+    IEnumeration*, defaultValue,
+    IBoolean*, visible
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, Property,
     IProperty, createPropertyFromBuilder,
     IPropertyBuilder*, builder
 )

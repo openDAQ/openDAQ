@@ -7,6 +7,7 @@
 #include "opcuatms/converters/variant_converter.h"
 #include "open62541/daqbsp_nodeids.h"
 #include <coreobjects/unit_factory.h>
+#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -103,13 +104,16 @@ void TmsServerProperty::bindCallbacks()
 
 opcua::OpcUaNodeId TmsServerProperty::getTmsTypeId()
 {
+    std::cout << "DEBUG 3: TmsServerProperty::getTmsTypeId" << std::endl;
+
     if (objectInternal.getSelectionValuesUnresolved().assigned())
         return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_SELECTIONVARIABLETYPE);
 
     if (objectInternal.getReferencedPropertyUnresolved().assigned())
         return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_REFERENCEVARIABLETYPE);
-    
+
     const auto type = object.getValueType();
+    std::cout << "DEBUG 4: type = " << type << std::endl;
     switch (type)
     {
         case CoreType::ctInt:
@@ -117,6 +121,7 @@ opcua::OpcUaNodeId TmsServerProperty::getTmsTypeId()
             return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_NUMERICVARIABLETYPE);
         case CoreType::ctStruct:
             return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_STRUCTUREVARIABLETYPE);
+        case CoreType::ctEnumeration:
         default:
             break;
     }

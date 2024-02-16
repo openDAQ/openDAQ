@@ -7,6 +7,7 @@ set(TEST_SOURCES test_core_types_utils.cpp
                  test_variant_list_converter.cpp
                  test_extension_object.cpp
                  test_generic_struct_converter.cpp
+                 #TODO: test_generic_enum_converter
 )
 
 add_executable(${TEST_APP} testapp.cpp

@@ -7,6 +7,7 @@
 #include "open62541/types_di_generated.h"
 #include "open62541/types_daqesp_generated.h"
 #include "open62541/types_daqhbk_generated.h"
+#include <iostream>
 
 using namespace daq::opcua;
 using namespace daq;
@@ -236,6 +237,7 @@ OpcUaVariant UnwrapIfVariant(const OpcUaVariant& variant)
 
 const UA_DataType* GetUAStructureDataTypeByName(const std::string& structName)
 {
+    std::cout << "DEBUG 100 : GetUAStructureDataTypeByName structName:" << structName <<  std::endl;
     // TODO: Create static list, add any custom types added automatically.
     OpcUaDataTypeArrayList typeArr;
     typeArr.add(UA_TYPES_COUNT, UA_TYPES);
@@ -245,7 +247,7 @@ const UA_DataType* GetUAStructureDataTypeByName(const std::string& structName)
     typeArr.add(UA_TYPES_DAQDEVICE_COUNT, UA_TYPES_DAQDEVICE);
     typeArr.add(UA_TYPES_DAQESP_COUNT, UA_TYPES_DAQESP);
     typeArr.add(UA_TYPES_DAQHBK_COUNT, UA_TYPES_DAQHBK);
-    
+
     const UA_DataTypeArray* dataType = typeArr.getCustomDataTypes();
     while(dataType)
     {
@@ -255,6 +257,37 @@ const UA_DataType* GetUAStructureDataTypeByName(const std::string& structName)
             {
                 const auto typeKind = dataType->types[i].typeKind;
                 if (typeKind == UA_DATATYPEKIND_STRUCTURE || typeKind == UA_DATATYPEKIND_OPTSTRUCT)
+                    return &dataType->types[i];
+            }
+        }
+        dataType = dataType->next;
+    }
+
+    return nullptr;
+}
+
+const UA_DataType* GetUAEnumerationDataTypeByName(const std::string& enumerationName)
+{
+    std::cout << "DEBUG 101 : GetUAEnumerationDataTypeByName enumerationName:" << enumerationName <<  std::endl;
+    // TODO: Create static list, add any custom types added automatically.
+    OpcUaDataTypeArrayList typeArr;
+    typeArr.add(UA_TYPES_COUNT, UA_TYPES);
+    typeArr.add(UA_TYPES_DI_COUNT, UA_TYPES_DI);
+    typeArr.add(UA_TYPES_DAQBT_COUNT, UA_TYPES_DAQBT);
+    typeArr.add(UA_TYPES_DAQBSP_COUNT, UA_TYPES_DAQBSP);
+    typeArr.add(UA_TYPES_DAQDEVICE_COUNT, UA_TYPES_DAQDEVICE);
+    typeArr.add(UA_TYPES_DAQESP_COUNT, UA_TYPES_DAQESP);
+    typeArr.add(UA_TYPES_DAQHBK_COUNT, UA_TYPES_DAQHBK);
+
+    const UA_DataTypeArray* dataType = typeArr.getCustomDataTypes();
+    while(dataType)
+    {
+        for(size_t i = 0; i < dataType->typesSize; ++i)
+        {
+            if (dataType->types[i].typeName == enumerationName)
+            {
+                const auto typeKind = dataType->types[i].typeKind;
+                if (typeKind == UA_DATATYPEKIND_ENUM)
                     return &dataType->types[i];
             }
         }

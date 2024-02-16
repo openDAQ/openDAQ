@@ -58,7 +58,7 @@ Vagrant.configure("2") do |config|
     mv /tmp/pkg/opt/opendaq/lib/*.so /home/opendaq/opendaq/lib/
     mv /tmp/pkg/opt/opendaq/lib/modules/*server* /home/opendaq/opendaq/lib/modules/
     mv /tmp/pkg/opt/opendaq/lib/modules/*stream_srv* /home/opendaq/opendaq/lib/modules/
-    mv /tmp/pkg/opt/opendaq/lib/modules/*ref_device* /home/opendaq/opendaq/lib/modules/
+    mv /tmp/pkg/opt/opendaq/lib/modules/*ref_* /home/opendaq/opendaq/lib/modules/
     ls -Rhl /home/opendaq/opendaq
     SCRIPT
 
@@ -92,10 +92,10 @@ Vagrant.configure("2") do |config|
     SCRIPT
     config.vm.provision :shell, :inline => list_packages
 
-    # Install avahi daemon
+    # Install avahi daemon and fb module dependencies
     config.vm.provision :shell, :inline => <<-SCRIPT
     sudo apt-get update
-    sudo apt-get install avahi-daemon net-tools -y
+    sudo apt-get install -y --no-install-recommends avahi-daemon net-tools libxcursor-dev libxrandr-dev
     SCRIPT
 
     # Modify netplan to make VM export/import easier
@@ -112,6 +112,7 @@ Vagrant.configure("2") do |config|
 
     # Copy opendaq-config.json file 
     config.vm.provision "file", source: "opendaq-config.json", destination: "/tmp/opendaq-config.json"
+    config.vm.provision "shell", inline: "cp /tmp/opendaq-config.json /home/opendaq"
 
     # Reduce memory usage
     config.vm.provision :shell, :inline => <<-SCRIPT

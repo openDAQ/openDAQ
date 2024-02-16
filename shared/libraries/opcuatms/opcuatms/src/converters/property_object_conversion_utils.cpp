@@ -34,4 +34,15 @@ void PropertyObjectConversionUtils::ToPropertyObject(const OpcUaVariant& variant
         objOut.setPropertyValue(entry.first, entry.second);
 }
 
+PropertyObjectPtr PropertyObjectConversionUtils::ClonePropertyObject(const PropertyObjectPtr& obj)
+{
+    // This is a workaround until PropertyObject implemnts IClonable.
+
+    auto serializer = JsonSerializer();
+    auto deserializer = JsonDeserializer();
+    obj.serialize(serializer);
+    const auto clone = deserializer.deserialize(serializer.getOutput());
+    return clone;
+}
+
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

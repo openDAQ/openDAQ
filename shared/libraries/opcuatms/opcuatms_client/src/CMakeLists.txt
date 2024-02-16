@@ -24,6 +24,9 @@ set(SRC_Objects_Headers ${OBJECT_SRC_DIR}/tms_client_object_impl.h
                         ${OBJECT_SRC_DIR}/tms_client_function_block_impl.h
                         ${OBJECT_SRC_DIR}/tms_client_function_block_factory.h
 
+                        ${OBJECT_SRC_DIR}/tms_client_function_block_type_impl.h
+                        ${OBJECT_SRC_DIR}/tms_client_function_block_type_factory.h
+
                         ${OBJECT_SRC_DIR}/tms_client_channel_impl.h
                         ${OBJECT_SRC_DIR}/tms_client_channel_factory.h
 
@@ -78,6 +81,7 @@ set(SRC_Objects ${OBJECT_SRC_DIR}/tms_client_object_impl.cpp
                 ${OBJECT_SRC_DIR}/tms_client_function_impl.cpp
                 ${OBJECT_SRC_DIR}/tms_client_procedure_impl.cpp
                 ${OBJECT_SRC_DIR}/tms_client_tags_impl.cpp
+                ${OBJECT_SRC_DIR}/tms_client_function_block_type_impl.cpp
 )
 
 set(SRC_PublicHeaders ${SRC_PublicHeaders} ${SRC_Objects_Headers})

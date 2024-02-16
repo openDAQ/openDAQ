@@ -37,28 +37,11 @@ bool TestComparators::FunctionBlockTypeEquals(const FunctionBlockTypePtr& a, con
     if (a.getDescription() != b.getDescription())
         return false;
 
-    return true;
-}
+    const auto configA = a.createDefaultConfig();
+    const auto configB = b.createDefaultConfig();
 
-bool TestComparators::FunctionBlockTypeDictEquals(const DictPtr<IString, IFunctionBlockType>& a,
-                                                  const DictPtr<IString, IFunctionBlockType>& b)
-{
-    if (a.getCount() != b.getCount())
+    if (!PropertyObjectEquals(configA, configB))
         return false;
-
-    const auto keysA = a.getKeyList();
-
-    for (const auto& key : keysA)
-    {
-        if (!b.hasKey(key))
-            return false;
-
-        const auto valueA = a.get(key);
-        const auto valueB = b.get(key);
-
-        if (!BaseObjectPtr::Equals(valueA, valueB))
-            return false;
-    }
 
     return true;
 }

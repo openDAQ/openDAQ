@@ -221,12 +221,6 @@ namespace RTGen.CSharp.Generators
               //_genericTypeParameters.Add("IPropertyObject",      "TValue:BaseObject");
                 _genericTypeParameters.Add(SAMPLE_READER + "Base", "TValue:struct,TDomain:struct");
 
-                //specific arguments of factories, format ("<metodName>,<genericTypeName>,<argumentName>", "<C#TypeName>")
-                _genericTypeParameters.Add("createContext,IDictObject,option",       "StringObject,BaseObject");
-                _genericTypeParameters.Add("createLogger,IListObject,sink",          "LoggerSink");
-                _genericTypeParameters.Add("createMultiReader,IListObject,signal",   "Signal");
-                _genericTypeParameters.Add("createMultiReaderEx,IListObject,signal", "Signal");
-
                 _castOperatorTypes.Add("Boolean", "bool");
                 _castOperatorTypes.Add("Float",   "double");
                 _castOperatorTypes.Add("Integer", "long");
@@ -2156,8 +2150,8 @@ namespace RTGen.CSharp.Generators
             // b) to append to a listed generic type
 
             bool isBaseObject          = typeNameObject.Name.Equals("IBaseObject");
-            bool isListObject          = typeNameObject.Name.Equals("IListObject");
-            bool isDictObject          = typeNameObject.Name.Equals("IDictObject");
+          //bool isListObject          = typeNameObject.Name.Equals("IListObject");
+          //bool isDictObject          = typeNameObject.Name.Equals("IDictObject");
             bool isListedType          = _genericTypeParameters.ContainsKey(typeNameObject.Name);
             bool isBasedOnSampleReader = _isBasedOnSampleReader
                                          && typeNameObject.Name.Equals(_currentClassType.Name);
@@ -2180,13 +2174,9 @@ namespace RTGen.CSharp.Generators
                     argumentName = argumentName.TrimEnd('s');
             }
 
-            //known method argument?
-            bool isListedMethodArgument = _genericTypeParameters.TryGetValue($"{methodName},{typeNameObject.Name},{argumentName}",
-                                                                             out string listedGenericTypeParameter);
-
-            if (isListedMethodArgument || !GetGenericParameterFromClass(methodName, argumentName, out generics))
+            if (!GetGenericParameterFromClass(methodName, argumentName, out generics))
             {
-                if (!isListedType && !isListedMethodArgument)
+                if (!isListedType)
                 {
                     generics = null;
                     return false;
@@ -2194,18 +2184,11 @@ namespace RTGen.CSharp.Generators
 
                 string[] genericParameters;
 
-                if (isListedMethodArgument)
-                {
-                    genericParameters = listedGenericTypeParameter.Split(',');
-                }
-                else
-                {
-                    //Hack: use 'BaseObject' for each listed generic parameter
-                    genericParameters = _genericTypeParameters[typeNameObject.Name]
-                                            .Split(',')
-                                            .Select(p => "BaseObject") //replace all entries
-                                            .ToArray();
-                }
+                //Hack: use 'BaseObject' for each listed generic parameter
+                genericParameters = _genericTypeParameters[typeNameObject.Name]
+                                        .Split(',')
+                                        .Select(p => "BaseObject") //replace all entries
+                                        .ToArray();
 
                 generics = string.Join(", ", genericParameters);
             }

@@ -99,6 +99,8 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
  * @{
  */
 
+// [templateType(options, IStringObject, IBaseObject)]
+
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, Context,
     IScheduler*, Scheduler,

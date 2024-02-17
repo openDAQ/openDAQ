@@ -777,6 +777,8 @@ void RendererFbImpl::renderAxes(sf::RenderTarget& renderTarget, const sf::Font& 
 
         for (auto sigIt = signalContexts.begin(); sigIt != signalContexts.end() - 1; ++sigIt)
         {
+            if (!sigIt->valid)
+                continue;
             sigIt->topLeft = sf::Vector2f(75.0f, xAxisLabelHeight);
             sigIt->bottomRight = sf::Vector2f(bottomRight.x - 25.0f, bottomRight.y - xAxisLabelHeight);
             if (sigIt->min < yMinValue)
@@ -801,6 +803,8 @@ void RendererFbImpl::renderAxes(sf::RenderTarget& renderTarget, const sf::Font& 
         float curTop = 0.0f;
         for (auto sigIt = signalContexts.begin(); sigIt != signalContexts.end() - 1; ++sigIt)
         {
+            if (!sigIt->valid)
+                continue;
             sigIt->topLeft = sf::Vector2f(75.0f, curTop + xAxisLabelHeight);
             curTop += itemHeight;
             float bottom = curTop;

@@ -287,6 +287,7 @@ TEST_F(TmsIntegrationTest, AddFunctionBlockWitchConfig)
     auto clientDevice = tmsClient.connect();
 
     const auto clientFbTypes = clientDevice.getAvailableFunctionBlockTypes();
+    ASSERT_TRUE(clientFbTypes.hasKey("mock_fb_uid"));
 
     auto config = clientFbTypes.get("mock_fb_uid").createDefaultConfig();
     config.setPropertyValue("TestConfigString", "Hello Property!");

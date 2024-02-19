@@ -69,23 +69,23 @@ public:
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getGlobalId(IString** globalId) override;
     ErrCode INTERFACE_FUNC getActive(Bool* active) override;
-    virtual ErrCode INTERFACE_FUNC setActive(Bool active) override;
+    ErrCode INTERFACE_FUNC setActive(Bool active) override;
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
-    virtual ErrCode INTERFACE_FUNC setName(IString* name) override;
+    ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
-    virtual ErrCode INTERFACE_FUNC setDescription(IString* description) override;
+    ErrCode INTERFACE_FUNC setDescription(IString* description) override;
     ErrCode INTERFACE_FUNC getTags(ITags** tags) override;
     ErrCode INTERFACE_FUNC getVisible(Bool* visible) override;
-    virtual ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
+    ErrCode INTERFACE_FUNC setVisible(Bool visible) override;
     ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) override;
     ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
-    virtual ErrCode INTERFACE_FUNC lockAllAttributes() override;
+    ErrCode INTERFACE_FUNC lockAllAttributes() override;
     ErrCode INTERFACE_FUNC unlockAttributes(IList* attributes) override;
     ErrCode INTERFACE_FUNC unlockAllAttributes() override;
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
@@ -159,6 +159,8 @@ protected:
 
     virtual BaseObjectPtr getDeserializedParameter(const StringPtr& parameter);
     ComponentPtr findComponentInternal(const ComponentPtr& component, const std::string& id);
+
+    PropertyObjectPtr getPropertyObjectParent() override;
 
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
@@ -940,6 +942,15 @@ ComponentPtr ComponentImpl<Intf, Intfs...>::findComponentInternal(const Componen
 
         return subComponent;
     }
+
+    return nullptr;
+}
+
+template <class Intf, class ... Intfs>
+PropertyObjectPtr ComponentImpl<Intf, Intfs...>::getPropertyObjectParent()
+{
+    if (parent.assigned())
+        return parent.getRef();
 
     return nullptr;
 }

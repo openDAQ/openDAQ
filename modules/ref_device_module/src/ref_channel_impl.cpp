@@ -379,9 +379,9 @@ RatioPtr RefChannelImpl::getResolution()
     return Ratio(1, 1000000);
 }
 
-void RefChannelImpl::updatingValuesWrite(const UpdatingActions& propsAndValues)
+void RefChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating)
 {
-    ChannelImpl<IRefChannel>::updatingValuesWrite(propsAndValues);
+    ChannelImpl<IRefChannel>::endApplyProperties(propsAndValues, parentUpdating);
 
     if (needsSignalTypeChanged)
     {

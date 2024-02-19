@@ -147,6 +147,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::componentAdded(const CoreEventA
     checkErrorInfo(TDeviceBase::hasItem(comp.getLocalId(), &hasItem));
     if (!hasItem)
         this->addExistingComponent(comp);
+    this->clientComm->connectDomainSignals(comp);
 }
 
 template <class TDeviceBase>

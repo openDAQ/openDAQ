@@ -236,3 +236,28 @@ TEST_F(FolderTest, SerializeAndDeserialize)
 
     ASSERT_EQ(str1, str2);
 }
+
+TEST_F(FolderTest, BeginUpdateEndUpdate)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+    folder.addProperty(daq::StringPropertyBuilder("FolderProp", "-").build());
+
+    const auto component = daq::Component(ctx, folder, "component");
+
+    folder.addItem(component);
+    component.addProperty(daq::StringPropertyBuilder("ComponentProp", "-").build());
+
+    folder.beginUpdate();
+
+    folder.setPropertyValue("FolderProp", "s");
+    ASSERT_EQ(folder.getPropertyValue("FolderProp"), "-");
+
+    component.setPropertyValue("ComponentProp", "cs");
+    ASSERT_EQ(component.getPropertyValue("ComponentProp"), "-");
+
+    folder.endUpdate();
+
+    ASSERT_EQ(folder.getPropertyValue("FolderProp"), "s");
+    ASSERT_EQ(component.getPropertyValue("ComponentProp"), "cs");
+}

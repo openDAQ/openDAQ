@@ -1962,3 +1962,45 @@ TEST_F(PropertyObjectTest, ClonedClassObjectsSerialize)
 
     ASSERT_EQ(json, deserializedJson);
 }
+
+using BeginEndUpdatePropertyObjectTest = testing::Test;
+
+TEST_F(BeginEndUpdatePropertyObjectTest, Recursive)
+{
+    auto childPropObj = PropertyObject();
+    childPropObj.addProperty(StringPropertyBuilder("ChildStringProp", "-").build());
+
+    auto propObj = PropertyObject();
+    bool endUpdateCalled = false;
+    propObj.getOnEndUpdate() += [&endUpdateCalled](PropertyObjectPtr&, EndUpdateEventArgsPtr& args)
+    {
+        ASSERT_THAT(args.getProperties(), testing::ElementsAre("StringProp"));
+        endUpdateCalled = true;
+    };
+
+    propObj.addProperty(StringPropertyBuilder("StringProp", "-").build());
+    propObj.addProperty(ObjectPropertyBuilder("ObjProp", childPropObj).build());
+
+    childPropObj = propObj.getPropertyValue("ObjProp");
+    bool childEndUpdateCalled = false;
+    childPropObj.getOnEndUpdate() += [&childEndUpdateCalled](PropertyObjectPtr&, EndUpdateEventArgsPtr& args)
+    {
+        ASSERT_THAT(args.getProperties(), testing::ElementsAre("ChildStringProp"));
+        childEndUpdateCalled = true;
+    };
+
+    propObj.beginUpdate();
+
+    propObj.setPropertyValue("StringProp", "s");
+    ASSERT_EQ(propObj.getPropertyValue("StringProp"), "-");
+
+    childPropObj.setPropertyValue("ChildStringProp", "cs");
+    ASSERT_EQ(childPropObj.getPropertyValue("ChildStringProp"), "-");
+
+    propObj.endUpdate();
+
+    ASSERT_TRUE(childEndUpdateCalled);
+    ASSERT_TRUE(endUpdateCalled);
+    ASSERT_EQ(propObj.getPropertyValue("StringProp"), "s");
+    ASSERT_EQ(childPropObj.getPropertyValue("ChildStringProp"), "cs");
+}

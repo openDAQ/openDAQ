@@ -101,6 +101,9 @@ protected:
 
     virtual bool clearFunctionBlocksOnUpdate();
 
+    void callBeginUpdateOnChildren() override;
+    void callEndUpdateOnChildren() override;
+
 private:
     template <class Component>
     void swapComponent(Component& origComponent, const Component& newComponent);
@@ -611,6 +614,24 @@ template <class Intf, class ... Intfs>
 bool GenericSignalContainerImpl<Intf, Intfs...>::clearFunctionBlocksOnUpdate()
 {
     return false;
+}
+
+template <class Intf, class... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::callBeginUpdateOnChildren()
+{
+    Super::callBeginUpdateOnChildren();
+
+    for (const auto& comp : components)
+        comp.beginUpdate();
+}
+
+template <class Intf, class... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::callEndUpdateOnChildren()
+{
+    for (const auto& comp : components)
+        comp.endUpdate();
+
+    Super::callEndUpdateOnChildren();
 }
 
 template <class Intf, class... Intfs>

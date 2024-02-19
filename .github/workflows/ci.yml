@@ -405,7 +405,7 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }}-DCI_GIT_BRANCH=${{ github.head_ref }}  -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ${{ github.workspace }}
+          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ${{ github.workspace }}
 
       - name: Build
         working-directory: build
@@ -443,7 +443,7 @@ jobs:
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: x64
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DOPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY=ON
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DOPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY=ON -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
             cpack: NSIS
             cmake_preset: package
 

@@ -7,7 +7,8 @@ int main(int /*argc*/, const char* /*argv*/[])
 {
     using namespace std::chrono_literals;
 
-    const ConfigProviderPtr configProvider = JsonConfigProvider();
+    const StringPtr configPath = "/home/opendaq/opendaq/opendaq-config.json";
+    const ConfigProviderPtr configProvider = JsonConfigProvider(configPath);
     const InstanceBuilderPtr instanceBuilder = InstanceBuilder().addConfigProvider(configProvider);
     const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
 

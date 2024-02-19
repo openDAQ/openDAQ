@@ -91,14 +91,12 @@ void StatisticsFbImpl::triggerModeChanged()
 
         // Connect trigger output
         triggerOutput.connect(nestedTriggerFunctionBlock.getSignals()[0]);
-        // TODO test
     }
     else
     {
         // Don't use trigger, output signals
         triggerOutput.disconnect();
         removeNestedFunctionBlock(nestedTriggerFunctionBlock);
-        // TODO test
     }
 }
 
@@ -293,10 +291,10 @@ void StatisticsFbImpl::processDataPacketTrigger(const DataPacketPtr& packet)
 
     auto data = static_cast<Bool*>(packet.getData());
     auto triggerData = data[0];
-    doWork = triggerData;
 
-    // TODO Get domain info from Trigger
+    // Domain packet from trigger only holds one value by deisgn
     auto domainStamp = static_cast<Int*>(domainPacket.getData())[0];
+    triggerHistory.addElement(triggerData, domainStamp);
 }
 
 void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
@@ -304,15 +302,20 @@ void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
     if (!valid)
         return;
 
-    // Check trigger using trigger mode and if so if you should do work TODO update
-    if (triggerMode && !doWork)
+    const auto domainPacket = packet.getDomainPacket();
+    if (!domainPacket.assigned())
+        return;
+
+    // TODO what if trigger condition changes multiple times in one packet???
+    auto domainStamp = static_cast<Int*>(domainPacket.getData())[0];
+
+    // TODO Check trigger mode and if on, check trigger state at domain stamp
+    if (triggerMode && triggerHistory.getTriggerStateFromDomainValue(domainStamp))
     {
         return;
     }
 
-    const auto domainPacket = packet.getDomainPacket();
-    if (!domainPacket.assigned())
-        return;
+    // TODO Drop history where appropriate
 
     bool haveGap;
     NumberPtr outputPacketStartDomainValue = 0;

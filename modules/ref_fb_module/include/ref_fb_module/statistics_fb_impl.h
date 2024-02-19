@@ -26,7 +26,7 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 namespace Statistics
 {
 
-// TODO
+// TODO Test all methods
 class TriggerHistory
 {
 public:
@@ -36,16 +36,32 @@ public:
         domainValues.push_back(domainValue);
     }
 
-    void dropHistory(Int toExcludingDomainValue)
+    // TODO USE THIS
+    void dropHistory(Int dropToExcludingDomainValue)
     {
-        auto whereTo = std::find(values.begin(), values.end(), toExcludingDomainValue);
-        if (whereTo != values.end())
+        auto whereTo = std::find(domainValues.begin(), domainValues.end(), dropToExcludingDomainValue);
+        if (whereTo != domainValues.end())
         {
-            // int index = it - v.begin();
-
-            // values.erase();
-            // domainValues.erase(domainValues.begin(), whereTo);
+            auto index = whereTo - domainValues.begin();
+            //  [first last)
+            values.erase(values.begin(), values.begin() + index);
+            domainValues.erase(domainValues.begin(), domainValues.begin() + index);
         }
+    }
+    Bool getTriggerStateFromDomainValue(Int domainValue)
+    {
+        Int indexBefore = -1;
+        for (int i = 0; i < domainValues.size(); i++)
+        {
+            if (domainValues[i] <= domainValue)
+                indexBefore = i;
+            else
+                break;
+        }
+        if (indexBefore == -1)
+            return false;
+        else
+            return values[indexBefore];
     }
 
 private:
@@ -97,9 +113,9 @@ private:
     };
 
     bool triggerMode;
-    bool doWork;
     FunctionBlockPtr nestedTriggerFunctionBlock;
     InputPortPtr triggerOutput;
+    TriggerHistory triggerHistory;
 
     size_t blockSize;
     DomainSignalType domainSignalType;

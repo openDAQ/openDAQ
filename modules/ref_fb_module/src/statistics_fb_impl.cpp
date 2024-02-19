@@ -293,6 +293,7 @@ void StatisticsFbImpl::processDataPacketTrigger(const DataPacketPtr& packet)
 
     auto data = static_cast<Bool*>(packet.getData());
     auto triggerData = data[0];
+    doWork = triggerData;
 
     // TODO Get domain info from Trigger
     auto domainStamp = static_cast<Int*>(domainPacket.getData())[0];
@@ -303,7 +304,7 @@ void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
     if (!valid)
         return;
 
-    // TODO update
+    // Check trigger using trigger mode and if so if you should do work TODO update
     if (triggerMode && !doWork)
     {
         return;

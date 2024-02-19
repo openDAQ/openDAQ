@@ -38,7 +38,8 @@ public:
                          std::vector<Int> triggerModeChangesAfterPackets = {},
                          std::vector<Bool> newTriggerMode = {},
                          vecvec<Float> mockTriggerPackets = {},
-                         vecvec<Float> mockTriggerDomainPackets = {})
+                         vecvec<Float> mockTriggerDomainPackets = {},
+                         SampleType sampleTypeTrigger = SampleTypeFromType<Float>::SampleType)
     {
         // Create logger, module manager, context and module
         const auto logger = Logger();
@@ -64,6 +65,7 @@ public:
         this->newTriggerMode = newTriggerMode;
         this->mockTriggerPackets = mockTriggerPackets;
         this->mockTriggerDomainPackets = mockTriggerDomainPackets;
+        this->sampleTypeTrigger = sampleTypeTrigger;
     }
 
     void run()
@@ -99,6 +101,7 @@ private:
     std::vector<Bool> newTriggerMode;
     vecvec<Float> mockTriggerPackets;
     vecvec<Float> mockTriggerDomainPackets;
+    SampleType sampleTypeTrigger;
     ModuleManagerPtr moduleManager;
 
     DataDescriptorPtr domainSignalDescriptor;
@@ -180,7 +183,7 @@ private:
 
         // Create signal with descriptor for trigger
         auto triggerSignalDescriptorBuilder = DataDescriptorBuilder();
-        triggerSignalDescriptorBuilder.setSampleType(SampleTypeFromType<Int>::SampleType);
+        triggerSignalDescriptorBuilder.setSampleType(sampleTypeTrigger);
         triggerSignalDescriptorBuilder.setValueRange(Range(0, 300));
         triggerSignalDescriptorBuilder.setRule(ExplicitDataRule());
         triggerSignalDescriptor = triggerSignalDescriptorBuilder.build();
@@ -212,16 +215,7 @@ private:
         // For each packet
         for (size_t i = 0; i < mockPackets.size(); i++)
         {
-            // Create data packet
-            auto dataPacket = DataPacketWithDomain(domainPackets[i], signalDescriptor, mockPackets[i].size());
-            auto packetData = static_cast<T*>(dataPacket.getData());
-            for (size_t ii = 0; ii < mockPackets[i].size(); ii++)
-                *packetData++ = static_cast<T>(mockPackets[i][ii]);
-
-            // Send packet
-            domainSignal.sendPacket(domainPackets[i]);
-            signal.sendPacket(dataPacket);
-
+            // Handle trigger signal and domain
             if (mockTriggerPackets.size() > 0 && mockTriggerPackets[i].size() > 0)
             {
                 // Create data packet for trigger
@@ -242,6 +236,16 @@ private:
                     triggerSignal.sendPacket(triggerDataPacket);
                 }
             }
+
+            // Create data packet for statistics
+            auto dataPacket = DataPacketWithDomain(domainPackets[i], signalDescriptor, mockPackets[i].size());
+            auto packetData = static_cast<T*>(dataPacket.getData());
+            for (size_t ii = 0; ii < mockPackets[i].size(); ii++)
+                *packetData++ = static_cast<T>(mockPackets[i][ii]);
+
+            // Send packet for statistics
+            domainSignal.sendPacket(domainPackets[i]);
+            signal.sendPacket(dataPacket);
 
             // Check if we should change block size after sending packet
             auto blockSizeChangeFoundAt = std::find(blockSizeChangesAfterPackets.begin(), blockSizeChangesAfterPackets.end(), static_cast<Int>(i));
@@ -517,17 +521,16 @@ TEST_F(StatisticsTest, StatisticsTestTriggerBasic)
                               {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
                               {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
                               {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0}};
-    vecvec<Float> expectedAvg{{0.55}, {}, {2.55}, {}, {1.55}, {2.55}};
-    vecvec<Float> expectedRms{
-        {0.62048368229954287}, {1.5763882770434448}, {2.5661254840712679}, {}, {1.5763882770434448}, {2.5661254840712679}};
-    vecvec<Int> expectedDomain{{5}, {}, {45}, {}, {85}, {105}};
+    vecvec<Float> expectedAvg{{0.55}, {1.55}, {}, {0.55}, {}, {2.55}};
+    vecvec<Float> expectedRms{{0.62048368229954287}, {1.5763882770434448}, {}, {0.62048368229954287}, {}, {2.5661254840712679}};
+    vecvec<Int> expectedDomain{{5}, {25}, {}, {65}, {}, {105}};
     Int initialOutputDomain = 0;  // Implicit
 
     std::vector<Int> triggerModeChangesAfterPackets{0, 4};
     std::vector<Bool> newTriggerMode{true, false};  // TODO test true true, false false
     vecvec<Float> mockTriggerPackets{
-        {}, {0.1, 0.6}, {0.1, 0.2}, {0.6, 0.8}, {0.1, 1.0}, {}};  // TODO test sending while TriggerMode = false
-    vecvec<Float> mockTriggerDomainPackets{{}, {8, 10}, {28, 30}, {48, 50}, {68, 70}, {}};
+        {}, {0.1, 0.6}, {0.1, 0.2}, {0.6, 0.8}, {0.1, 0.1}, {}};  // TODO test sending while TriggerMode = false
+    vecvec<Float> mockTriggerDomainPackets{{}, {28, 30}, {48, 50}, {68, 70}, {88, 90}, {}};
 
     auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
                                        initialOutputDomain,

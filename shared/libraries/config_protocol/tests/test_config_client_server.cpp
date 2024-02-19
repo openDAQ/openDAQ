@@ -290,3 +290,15 @@ TEST_F(ConfigProtocolTest, GetTypeManager)
     EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
     const TypeManagerPtr typeManager = client->getClientComm()->sendCommand("GetTypeManager");
 }
+
+TEST_F(ConfigProtocolTest, BeginEndUpdate)
+{
+    device->addProperty(StringPropertyBuilder("PropName", "-").build());
+    ASSERT_EQ(device->getPropertyValue("PropName"), "-");
+
+    client->getClientComm()->sendComponentCommand("//root", "BeginUpdate");
+    client->getClientComm()->setPropertyValue("//root", "PropName", "val");
+    ASSERT_EQ(device->getPropertyValue("PropName"), "-");
+    client->getClientComm()->sendComponentCommand("//root", "EndUpdate");
+    ASSERT_EQ(device->getPropertyValue("PropName"), "val");
+}

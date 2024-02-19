@@ -56,11 +56,16 @@ public:
     ErrCode INTERFACE_FUNC getAllProperties(IList** properties) override;
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
 
+    ErrCode INTERFACE_FUNC beginUpdate() override;
+    ErrCode INTERFACE_FUNC endUpdate() override;
+
     ErrCode INTERFACE_FUNC complete() override;
 
     ErrCode INTERFACE_FUNC getRemoteGlobalId(IString** remoteGlobalId) override;
     ErrCode INTERFACE_FUNC setRemoteGlobalId(IString* remoteGlobalId) override;
     ErrCode INTERFACE_FUNC handleRemoteCoreEvent(IComponent* sender, ICoreEventArgs* args) override;
+
+
 
 protected:
     virtual void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args);
@@ -220,6 +225,24 @@ template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(IList* orderedPropertyNames)
 {
     return OPENDAQ_ERR_INVALID_OPERATION;
+}
+
+template <class Impl>
+ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::beginUpdate()
+{
+    return daqTry([this]()
+        {
+            clientComm->sendComponentCommand(remoteGlobalId, "BeginUpdate");
+        });
+}
+
+template <class Impl>
+inline ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdate()
+{
+    return daqTry([this]()
+        {
+            clientComm->sendComponentCommand(remoteGlobalId, "EndUpdate");
+        });
 }
 
 template <class Impl>

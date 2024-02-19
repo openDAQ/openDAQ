@@ -87,8 +87,7 @@ def show_selection(title, current_value, values: daq.IList):
 
 class App(tk.Tk):
 
-    # SECTION - INIT
-
+    # MARK: -- INIT
     def __init__(self, args):
         super().__init__()
 
@@ -113,10 +112,10 @@ class App(tk.Tk):
         main_frame_top.pack(fill=tk.constants.X)
         main_frame_top.configure(background='white')
 
-        search_button = tk.Button(
+        add_device_button = tk.Button(
             main_frame_top, text='Add device', command=self.handle_add_device_button_clicked)
-        search_button.pack(side=tk.constants.LEFT, padx=5,
-                           pady=5, fill=tk.constants.X)
+        add_device_button.pack(side=tk.constants.LEFT, padx=5,
+                               pady=5, fill=tk.constants.X)
 
         add_function_block_button = tk.Button(
             main_frame_top, text='Add function block', command=self.handle_add_function_block_button_clicked)
@@ -137,16 +136,16 @@ class App(tk.Tk):
             main_frame_top, text='Refresh', command=self.handle_refresh_button_clicked)
         refresh_button.pack(side=tk.constants.LEFT,
                             padx=5, pady=5, fill=tk.constants.X)
-        
+
         self.remove_button = tk.Button(
             main_frame_top, text='Remove', command=self.handle_remove_button_clicked, state='disabled')
         self.remove_button.pack(side=tk.constants.RIGHT,
-                            padx=5, pady=5, fill=tk.constants.X)
-        
+                                padx=5, pady=5, fill=tk.constants.X)
+
         self.connect_button = tk.Button(
             main_frame_top, text='Connect', command=self.handle_connect_button_clicked, state='disabled')
         self.connect_button.pack(side=tk.constants.RIGHT,
-                            padx=5, pady=5, fill=tk.constants.X)
+                                 padx=5, pady=5, fill=tk.constants.X)
 
         main_frame_bottom = tk.Frame(self)
         main_frame_bottom.pack(fill=tk.constants.BOTH, expand=True)
@@ -168,7 +167,7 @@ class App(tk.Tk):
         main_frame_navigator.pack(side=tk.LEFT, expand=1, fill=tk.BOTH)
 
         # High DPI workaround for now
-        ttk.Style().configure('Treeview', rowheight=40*self.ui_scaling_factor)
+        ttk.Style().configure('Treeview', rowheight=30*self.ui_scaling_factor)
 
         default_font = tkfont.nametofont("TkDefaultFont")
         default_font.configure(size=9*self.ui_scaling_factor)
@@ -182,8 +181,10 @@ class App(tk.Tk):
         self.instance = instance
 
         self.all_devices = {}
+        self.connected_devices = {}
 
         self.all_devices[self.instance.global_id] = dict()
+        self.connected_devices[self.instance.global_id] = dict()
 
         # TODO: remove this
         obj = daq.PropertyObject()
@@ -192,7 +193,7 @@ class App(tk.Tk):
         self.instance.add_property(
             daq.ObjectProperty(daq.String('object'), obj))
 
-        #add the first device if connection string is provided once on start
+        # add the first device if connection string is provided once on start
         if self.connection_string != None:
             self.add_first_available_device()  # also calls self.update_tree_widget()
 
@@ -211,13 +212,18 @@ class App(tk.Tk):
                 self.all_devices[parent_device.global_id][conn] = {
                     'device_info': device_info, 'enabled': False, 'device': None}
 
+        if daq.IDevice.can_cast_from(parent_device):
+            if parent_device.global_id not in self.all_devices:
+                self.all_devices[parent_device.global_id] = dict()
+
         for device_info in parent_device.available_devices:
             add_device(device_info)
 
     def add_first_available_device(self):
         device_info = DeviceInfoLocal(self.connection_string)
 
-        device_state = { 'device_info': device_info, 'enabled': False, 'device': None }
+        device_state = {'device_info': device_info,
+                        'enabled': False, 'device': None}
 
         self.all_devices[self.instance.global_id][device_info.connection_string] = device_state
 
@@ -232,13 +238,12 @@ class App(tk.Tk):
                 # multiple keys for the same device's state
                 self.all_devices[self.instance.global_id][device_info.connection_string] = device_state
                 self.all_devices[self.instance.global_id][device.global_id] = device_state
+                self.connected_devices[self.instance.global_id][device_info.connection_string] = device_state
         except RuntimeError as e:
             print(f'Error adding device {device_info.connection_string}: {e}')
         self.tree_update()
 
-    #!SECTION - INIT
-    # SECTION - Tree view
-
+    # MARK: - Tree view
     def tree_widget_create(self, parent_frame):
         frame = ttk.Frame(parent_frame)
 
@@ -269,7 +274,6 @@ class App(tk.Tk):
 
         popup = tk.Menu(tree, tearoff=0)
         popup.add_command(label="Remove")
-        # popup.add_command(label="Rename")
         popup.add_command(label="Connect")
         self.tree_popup = popup
 
@@ -289,14 +293,15 @@ class App(tk.Tk):
     def tree_traverse_components_recursive(self, component):
         if component is None:
             return
-        
-        folder = daq.IFolder.cast_from(component) if component and daq.IFolder.can_cast_from(component) else None
-        
-        #add item to tree if it is not a folder or non-empty folder
+
+        folder = daq.IFolder.cast_from(
+            component) if component and daq.IFolder.can_cast_from(component) else None
+
+        # add item to tree if it is not a folder or non-empty folder
         if folder is None or folder.items:
             self.tree_add_component(
                 '' if component.parent is None else component.parent.global_id, component)
-            
+
         if folder is not None:
             for item in folder.items:
                 self.tree_traverse_components_recursive(item)
@@ -341,15 +346,19 @@ class App(tk.Tk):
         else:
             node = None
         return node
-    
+
     def tree_update_conext_buttons_state(self):
         node = self.selected_node
-        node_is_function_block = node is not None and daq.IFunctionBlock.can_cast_from(node)
+        node_is_function_block = node is not None and daq.IFunctionBlock.can_cast_from(
+            node)
         node_is_device = node is not None and daq.IDevice.can_cast_from(node)
-        node_is_input_port = node is not None and daq.IInputPort.can_cast_from(node)
+        node_is_input_port = node is not None and daq.IInputPort.can_cast_from(
+            node)
 
-        self.connect_button.config(state='normal' if node_is_input_port else 'disabled')
-        self.remove_button.config(state='normal' if node_is_function_block or node_is_device and node != self.instance else 'disabled')
+        self.connect_button.config(
+            state='normal' if node_is_input_port else 'disabled')
+        self.remove_button.config(
+            state='normal' if node_is_function_block or node_is_device and node != self.instance else 'disabled')
 
     def tree_get_nearest_parent_in_tree(self, parent):
         while parent is not None:
@@ -358,9 +367,7 @@ class App(tk.Tk):
             parent = parent.parent
         return None
 
-    #!SECTION - Tree view
-    # SECTION - Properties view
-
+    # MARK: - Properties view
     def properties_widget_create(self, parent_frame):
         frame = tk.Frame()
         # define columns
@@ -454,9 +461,7 @@ class App(tk.Tk):
     def properties_clear(self):
         self.properties_tree.delete(*self.properties_tree.get_children())
 
-    #!SECTION - Properties view
-    # SECTION - Attributes view
-
+    # MARK: - Attributes view
     def attributes_widget_create(self, parent_frame):
         frame = tk.Frame()
         # define columns
@@ -550,66 +555,153 @@ class App(tk.Tk):
             self.attributes_tree.insert(
                 '', tk.END, iid=attr, text=attr, values=(value, locked))
 
-    #!SECTION - Attributes view
-
-    # SECTION - Handlers
-        # SECTION - Button handlers
-
-    def handle_add_device_button_clicked(self):
-        nearest_device = self.get_nearest_device(self.selected_node)
+    # MARK: - Add device dialog
+    def add_device_dialog_show(self):
+        self.dialog_parent_device = None
 
         window = tk.Toplevel(self)
-        window.title(f"Add device to {nearest_device.info.name}")
+        window.title('Add device')
         window.geometry('{}x{}'.format(
-            600*self.ui_scaling_factor, 400*self.ui_scaling_factor))
+            900*self.ui_scaling_factor, 400*self.ui_scaling_factor))
+        window.grid_rowconfigure(0, weight=1)
 
-        tree = ttk.Treeview(window, columns=('used', 'name', 'conn'), displaycolumns=(
+        # parent
+
+        parent_device_tree_frame = ttk.Frame(window)
+        parent_device_tree = ttk.Treeview(parent_device_tree_frame)
+
+        parent_device_scroll_bar = ttk.Scrollbar(
+            parent_device_tree_frame, orient="vertical", command=parent_device_tree.yview)
+        parent_device_tree.configure(
+            yscrollcommand=parent_device_scroll_bar.set)
+        parent_device_scroll_bar.pack(side="right", fill="y")
+
+        parent_device_tree.heading('#0', text='Parent device')
+
+        parent_device_tree.column(
+            '#0', anchor=tk.W, width=200, stretch=True)
+
+        parent_device_tree.bind('<<TreeviewSelect>>',
+                                self.handle_dialog_add_device_parent_device_selected)
+        parent_device_tree.pack(fill="both", expand=True)
+
+        parent_device_tree_frame.grid(row=0, column=0)
+        parent_device_tree_frame.grid_configure(sticky='nsew')
+
+        # device
+
+        device_tree_frame = ttk.Frame(window)
+        device_tree = ttk.Treeview(device_tree_frame, columns=('used', 'name', 'conn'), displaycolumns=(
             'used', 'name', 'conn'), show='tree headings', selectmode='browse')
-        scroll_bar = ttk.Scrollbar(
-            window, orient="vertical", command=tree.yview)
-        tree.configure(yscrollcommand=scroll_bar.set)
-        scroll_bar.pack(side="right", fill="y")
 
-        self.device_tree = tree
+        device_scroll_bar = ttk.Scrollbar(
+            device_tree_frame, orient="vertical", command=device_tree.yview)
+        device_tree.configure(yscrollcommand=device_scroll_bar.set)
+        device_scroll_bar.pack(side="right", fill="y")
 
-        # define headings
-        tree.heading('used', text='Used')
-        tree.heading('name', text='Name')
-        tree.heading('conn', text='Connection string')
+        self.dialog_device_tree = device_tree
+        self.parent_device_tree = parent_device_tree
 
-        # layout
-        tree.column('#0', anchor=tk.CENTER, width=0,   stretch=False)
-        tree.column('#1', anchor=tk.CENTER, width=80,  stretch=False)
-        tree.column('#2', anchor=tk.CENTER, width=200, stretch=True)
-        tree.column('#3', anchor=tk.CENTER, width=350, stretch=True)
+        device_tree.heading('used', text='Used')
+        device_tree.heading('name', text='Name')
+        device_tree.heading('conn', text='Connection string')
 
-        # bind double-click to editing
-        tree.bind('<Double-1>', self.handle_devices_tree_double_click)
+        device_tree.column('#0', anchor=tk.CENTER, width=0,   stretch=False)
+        device_tree.column('#1', anchor=tk.CENTER, width=50,  stretch=False)
+        device_tree.column('#2', anchor=tk.CENTER, width=200, stretch=True)
+        device_tree.column('#3', anchor=tk.CENTER, width=350, stretch=True)
 
-        tree.pack(fill="both", expand=True)
+        device_tree.bind(
+            '<Double-1>', self.handle_add_device_devices_tree_double_click)
 
-        self.scan_devices(nearest_device)
-        for conn in self.all_devices[nearest_device.global_id]:
-            device_info = self.all_devices[nearest_device.global_id][conn]['device_info']
+        device_tree.pack(fill="both", expand=True)
+
+        device_tree_frame.grid(row=0, column=1)
+        device_tree_frame.grid_configure(sticky='nsew')
+
+        window.columnconfigure(0, weight=1)
+        window.columnconfigure(1, weight=2)
+
+        # data
+
+        self.dialog_treeview_update_parent_devices(
+            parent_device_tree, '', self.instance)
+        show_modal(window)
+
+    def dialog_treeview_update_parent_devices(self, tree, parent_id, component):
+        tree.delete(*tree.get_children())
+
+        def traverse_devices_recursive(tree, parent_id, component):
+            if component is None:
+                return
+
+            if daq.IDevice.can_cast_from(component):
+                device = daq.IDevice.cast_from(component)
+                print(device.info.name)
+                tree.insert(parent_id, tk.END, text=device.info.name,
+                            iid=device.global_id, open=True)
+                parent_id = device.global_id
+
+            if daq.IFolder.can_cast_from(component):
+                folder = daq.IFolder.cast_from(component)
+                for item in folder.items:
+                    traverse_devices_recursive(tree, parent_id, item)
+
+        traverse_devices_recursive(tree, parent_id, component)
+
+    def dialog_treeview_update_child_devices(self, tree, parent_device: daq.IDevice):
+        tree.delete(*tree.get_children())
+
+        for conn in self.all_devices[parent_device.global_id]:
+            # not displaying dups of already connected devices
+            if conn in self.connected_devices[parent_device.global_id]:
+                continue
+
+            device_info = self.all_devices[parent_device.global_id][conn]['device_info']
             name = device_info.name
-            used = self.all_devices[nearest_device.global_id][conn]['enabled']
+            used = self.all_devices[parent_device.global_id][conn]['enabled']
             tree.insert('', tk.END, iid=conn, values=(
                 yes_no[used], name, conn))
 
-        show_modal(window)
-
-    def handle_add_function_block_button_clicked(self):
-        nearest_device = self.get_nearest_device(self.selected_node)
+    # MARK: - Add function block dialog
+    def add_function_block_dialog_show(self):
 
         window = tk.Toplevel(self)
-        window.title(f"Add function block to {nearest_device.info.name}")
+        window.title("Add function block")
         window.geometry('{}x{}'.format(
-            600*self.ui_scaling_factor, 400*self.ui_scaling_factor))
+            800*self.ui_scaling_factor, 400*self.ui_scaling_factor))
+        window.grid_rowconfigure(0, weight=1)
 
-        tree = ttk.Treeview(window, columns=('id', 'name'), displaycolumns=(
+        # parent
+
+        parent_device_tree_frame = ttk.Frame(window)
+        parent_device_tree = ttk.Treeview(parent_device_tree_frame)
+
+        parent_device_scroll_bar = ttk.Scrollbar(
+            parent_device_tree_frame, orient="vertical", command=parent_device_tree.yview)
+        parent_device_tree.configure(
+            yscrollcommand=parent_device_scroll_bar.set)
+        parent_device_scroll_bar.pack(side="right", fill="y")
+
+        parent_device_tree.heading('#0', text='Parent device')
+
+        parent_device_tree.column(
+            '#0', anchor=tk.W, width=200, stretch=True)
+
+        parent_device_tree.bind('<<TreeviewSelect>>',
+                                self.handle_dialog_add_fb_parent_device_selected)
+        parent_device_tree.pack(fill="both", expand=True)
+
+        parent_device_tree_frame.grid(row=0, column=0)
+        parent_device_tree_frame.grid_configure(sticky='nsew')
+
+        # child
+
+        tree_frame = ttk.Frame(window)
+        tree = ttk.Treeview(tree_frame, columns=('id', 'name'), displaycolumns=(
             'id', 'name'), show='tree headings', selectmode='browse')
         scroll_bar = ttk.Scrollbar(
-            window, orient="vertical", command=tree.yview)
+            tree_frame, orient="vertical", command=tree.yview)
         tree.configure(yscrollcommand=scroll_bar.set)
         scroll_bar.pack(side="right", fill="y")
 
@@ -626,16 +718,38 @@ class App(tk.Tk):
 
         # bind double-click to editing
         tree.bind('<Double-1>',
-                  lambda event: self.handle_add_function_block_tree_double_click(event, tree, window, nearest_device))
+                  lambda event: self.handle_add_function_block_tree_double_click(event, tree, window))
 
         tree.pack(fill="both", expand=True)
 
-        available_function_block_types = nearest_device.available_function_block_types
-        for function_block_id in available_function_block_types.keys():
-            tree.insert('', tk.END, iid=function_block_id, values=(
-                function_block_id, daq.IFunctionBlockType.cast_from(available_function_block_types[function_block_id]).name))
+        tree_frame.grid(row=0, column=1)
+        tree_frame.grid_configure(sticky='nsew')
+
+        self.dialog_device_tree = parent_device_tree
+        self.dialog_fb_tree = tree
+
+        window.columnconfigure(0, weight=1)
+        window.columnconfigure(1, weight=2)
+
+        self.dialog_treeview_update_parent_devices(
+            parent_device_tree, '', self.instance)
 
         show_modal(window)
+
+    def add_function_block_dialog_update_function_blocks(self):
+        self.dialog_fb_tree.delete(*self.dialog_fb_tree.get_children())
+
+        available_function_block_types = self.dialog_parent_device.available_function_block_types
+        for function_block_id in available_function_block_types:
+            self.dialog_fb_tree.insert('', tk.END, iid=function_block_id, values=(
+                function_block_id, daq.IFunctionBlockType.cast_from(available_function_block_types[function_block_id]).name))
+
+    # MARK: - Button handlers
+    def handle_add_device_button_clicked(self):
+        self.add_device_dialog_show()
+
+    def handle_add_function_block_button_clicked(self):
+        self.add_function_block_dialog_show()
 
     def handle_save_config_button_clicked(self):
         file = asksaveasfile(initialfile='config.json', title="Save configuration",
@@ -661,22 +775,22 @@ class App(tk.Tk):
 
     def handle_connect_button_clicked(self):
         node = self.selected_node
-        node_is_input_port = node is not None and daq.IInputPort.can_cast_from(node)
+        node_is_input_port = node is not None and daq.IInputPort.can_cast_from(
+            node)
         if node_is_input_port:
             self.handle_tree_menu_connect_input_port(None)
 
     def handle_remove_button_clicked(self):
         node = self.selected_node
-        node_is_function_block = node is not None and daq.IFunctionBlock.can_cast_from(node)
+        node_is_function_block = node is not None and daq.IFunctionBlock.can_cast_from(
+            node)
         node_is_device = node is not None and daq.IDevice.can_cast_from(node)
         if node_is_function_block:
             self.handle_tree_menu_remove_function_block(node)
         elif node_is_device:
             self.handle_tree_menu_remove_device(node)
 
-        #!SECTION - Button handlers
-        # SECTION - Tree view handlers
-
+    # MARK: - Tree view handlers
     def handle_tree_right_button(self, event):
         iid = event.widget.identify_row(event.y)
         if iid:
@@ -758,14 +872,17 @@ class App(tk.Tk):
 
             parent_device.remove_device(node)
 
-            #return initial state to connection mapped info
+            # return initial state to connection mapped info
             device_info_id_mapped = self.all_devices[parent_device.global_id][node.global_id]['device_info']
-            device_state_conn_mapped = self.all_devices[parent_device.global_id][device_info_id_mapped.connection_string]
+            device_state_conn_mapped = self.all_devices[
+                parent_device.global_id][device_info_id_mapped.connection_string]
             device_state_conn_mapped['enabled'] = False
             device_state_conn_mapped['device'] = None
 
-            #removing id mapped info
+            # removing id mapped info
             self.all_devices[parent_device.global_id].pop(node.global_id, None)
+            self.connected_devices[parent_device.global_id].pop(
+                node.global_id, None)
 
             self.selected_node = parent_device
         self.tree_update(self.selected_node)
@@ -834,9 +951,7 @@ class App(tk.Tk):
 
         self.tree_update(self.selected_node)
 
-        #!SECTION - Tree view handlers
-        # SECTION - Property view handlers
-
+    # MARK: - Property view handlers
     def handle_property_double_click(self, event):
         '''Fire a dialog to change the selected value after a double-click'''
 
@@ -901,9 +1016,7 @@ class App(tk.Tk):
         node.set_property_value(property_name, property_value)
         self.properties_update()
 
-        #!SECTION - Property view handlers
-        # SECTION - Attributes view handlers
-
+    # MARK: - Attributes view handlers
     def handle_attributes_double_click(self, event):
         node = self.selected_node
         if not node:
@@ -950,45 +1063,21 @@ class App(tk.Tk):
 
         self.tree_update(self.selected_node)
 
-        #!SECTION - Attributes view handlers
-        # SECTION - Handlers other
-
-    def handle_devices_tree_double_click(self, event):
-        nearest_device = self.get_nearest_device(self.selected_node)
-        selected_item = self.treeview_get_first_selection(self.device_tree)
+    # MARK: - Add function block dialog
+    def handle_dialog_add_fb_parent_device_selected(self, event):
+        selected_item = self.treeview_get_first_selection(
+            self.dialog_device_tree)
         if selected_item is None:
             return
-        item = self.device_tree.item(selected_item)
 
-        conn = item['values'][2]
-        if not conn in self.all_devices[nearest_device.global_id]:
-            print("Something is wrong, device not found")
-            return
+        parent_device = self.find_component(selected_item)
+        if parent_device is not None and daq.IDevice.can_cast_from(parent_device):
+            parent_device = daq.IDevice.cast_from(parent_device)
+            self.dialog_parent_device = parent_device
+            self.add_function_block_dialog_update_function_blocks()
 
-        device_state_conn_mapped = self.all_devices[nearest_device.global_id][conn]
-        will_be_enabled = not device_state_conn_mapped['enabled']
-        # will_be_enabled
-        if will_be_enabled:
-            try:
-                device = self.instance.add_device(conn)
-                
-                device_state_conn_mapped['device'] = device 
-                device_state_conn_mapped['enabled'] = True
-
-                device_info = device_state_conn_mapped['device_info']
-                if isinstance(device_info, DeviceInfoLocal):
-                    device_info.name = device.local_id
-                    device_info.serial_number = device.info.serial_number
-
-                self.all_devices[nearest_device.global_id][device.global_id] = device_state_conn_mapped
-
-            except RuntimeError as e:
-                print(f'Error adding device: {e}')
-                device_state_conn_mapped['device'] = None
-                device_state_conn_mapped['enabled'] = False
-        self.tree_update(self.selected_node)
-
-    def handle_add_function_block_tree_double_click(self, event, tree, window, device):
+    def handle_add_function_block_tree_double_click(self, event, tree, window):
+        device = self.dialog_parent_device
         selected_item = self.treeview_get_first_selection(tree)
         if selected_item is None:
             return
@@ -1002,10 +1091,63 @@ class App(tk.Tk):
 
         window.destroy()
 
-        #!SECTION - Handlers other
-    #!SECTION - Handlers
-    # SECTION - Other
+    # MARK: - Add device dialog
+    def handle_dialog_add_device_parent_device_selected(self, event):
+        selected_item = self.treeview_get_first_selection(
+            self.parent_device_tree)
+        if selected_item is None:
+            return
+        parent_device = self.find_component(selected_item)
+        if parent_device is not None and daq.IDevice.can_cast_from(parent_device):
+            parent_device = daq.IDevice.cast_from(parent_device)
+            self.dialog_parent_device = parent_device
+            self.scan_devices(parent_device)
+            self.dialog_treeview_update_child_devices(
+                self.dialog_device_tree, parent_device)
 
+    def handle_add_device_devices_tree_double_click(self, event):
+        nearest_device = self.dialog_parent_device
+        if nearest_device is None:
+            return
+        selected_item = self.treeview_get_first_selection(
+            self.dialog_device_tree)
+        if selected_item is None:
+            return
+        item = self.dialog_device_tree.item(selected_item)
+
+        conn = item['values'][2]
+        if not conn in self.all_devices[nearest_device.global_id]:
+            print("Something is wrong, device not found")
+            return
+
+        device_state_conn_mapped = self.all_devices[nearest_device.global_id][conn]
+        will_be_enabled = not device_state_conn_mapped['enabled']
+        # will_be_enabled
+        if will_be_enabled:
+            try:
+                device = nearest_device.add_device(conn)
+
+                device_state_conn_mapped['device'] = device
+                device_state_conn_mapped['enabled'] = True
+
+                device_info = device_state_conn_mapped['device_info']
+                if isinstance(device_info, DeviceInfoLocal):
+                    device_info.name = device.local_id
+                    device_info.serial_number = device.info.serial_number
+
+                self.all_devices[nearest_device.global_id][device.global_id] = device_state_conn_mapped
+                self.connected_devices[nearest_device.global_id][device.global_id] = device_state_conn_mapped
+
+            except RuntimeError as e:
+                print(f'Error adding device: {e}')
+                device_state_conn_mapped['device'] = None
+                device_state_conn_mapped['enabled'] = False
+        self.tree_update(self.selected_node)
+        self.dialog_treeview_update_parent_devices(
+            self.parent_device_tree, '', self.instance)
+        self.parent_device_tree.selection_set(nearest_device.global_id)
+
+    # MARK: - Other
     def find_component(self, id, parent=None, convert_id=True):
         parent = parent if parent else self.instance
         if convert_id:
@@ -1036,11 +1178,8 @@ class App(tk.Tk):
             component = component.parent
         return None
 
-    #!SECTION - Other
 
-# ANCHOR - Entry point
-
-
+# MARK: - Entry point
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Display openDAQ device configuration and plot values')

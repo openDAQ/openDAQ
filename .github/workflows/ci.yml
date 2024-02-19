@@ -11,6 +11,7 @@ env:
   test_path: ${{ github.workspace }}/junit_reports/
   build_path: ${{ github.workspace }}/build
   package_path: ${{ github.workspace }}/build/_packages/
+  dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
   python_version_build: 3.11
   python_versions: 3.8 3.9 3.10 3.11 3.12
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
@@ -96,8 +97,19 @@ jobs:
           }
 
       - name: Build
+        shell: pwsh
         working-directory: build
-        run: cmake --build . --config ${{ matrix.cmake_build_type }}
+        env:
+          dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
+        run: |
+          cmake --build . --config ${{ matrix.cmake_build_type }}
+          if (Test-Path -Path "${{ env.dotnetBuildPath }}") {
+            mkdir "${{ env.package_path }}"
+            Copy-Item "${{ env.dotnetBuildPath }}/*.nupkg" "${{ env.package_path }}"
+          } else {
+            Write-Output "*** '${{ env.dotnetBuildPath }}' not found, no .NET Bindings to copy"
+          }
+
 
       - name: Test
         working-directory: build

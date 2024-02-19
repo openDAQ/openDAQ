@@ -61,6 +61,9 @@ jobs:
 
       - name: Configure and build Wheels
         if: matrix.cmake_generator_platform != 'Win32'
+        shell: pwsh
+        env:
+          dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
           mkdir build
           cd build
@@ -83,11 +86,16 @@ jobs:
             deactivate
             Remove-Item venv -Recurse
           }
-          mkdir _packages
-          Copy-Item "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}/*.nupkg" _packages
+          if (Test-Path -Path "${{ env.dotnetBuildPath }}") {
+            mkdir "${{ env.package_path }}"
+            Copy-Item "${{ env.dotnetBuildPath }}/*.nupkg" "${{ env.package_path }}"
+          } else {
+            Write-Output "*** '${{ env.dotnetBuildPath }}' not found, no .NET Bindings to copy"
+          }
 
       - name: Configure and build without Wheels
         if: matrix.cmake_generator_platform == 'Win32'
+        shell: pwsh
         run: |
           mkdir build
           cd build
@@ -123,6 +131,7 @@ jobs:
         working-directory: ${{ env.package_path }}
         run: |
           Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
+          Get-ChildItem -Path .\* -Include *.nupkg | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
 
       - name: Rename wheels (main)
         if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'
@@ -137,6 +146,7 @@ jobs:
           }
 
       - name: Upload package to S3
+        shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
           Write-Output "# S3 listing"
@@ -144,7 +154,7 @@ jobs:
           Write-Output "# S3 remove '*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe'"
           aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe"
           Write-Output "# S3 copy '*.exe' from '${{ env.package_path }}'"
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive
+          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*.exe"
 
       - name: Upload Wheels to S3
         if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'
@@ -155,10 +165,11 @@ jobs:
 
       - name: Upload NuGet to S3
         if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'
+        shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
           Write-Output "# S3 listing"
-          aws s3 ls "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --human-readable
+          aws s3 ls "s3://${{ env.s3bucket }}/${{ env.s3dotnet_path }}/" --recursive --human-readable
           Write-Output "# S3 remove '*.nupkg'"
           aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3dotnet_path }}" --recursive --exclude '*' --include '*.nupkg'
           Write-Output "# S3 copy '*.nupkg' from '${{ env.package_path }}'"

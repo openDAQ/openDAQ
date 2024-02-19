@@ -264,3 +264,25 @@ TEST_F(ConfigProtocolIntegrationTest, DomainSignals)
     ASSERT_EQ(clientDevice.getDevices()[0].getChannels()[0].getSignals()[0].getDomainSignal(),
               clientDevice.getDevices()[0].getChannels()[0].getSignals()[1]);
 }
+
+TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdate)
+{
+    clientDevice.beginUpdate();
+    clientDevice.setPropertyValue("StrProp", "SomeValue");
+    ASSERT_EQ(clientDevice.getPropertyValue("StrProp"), "-");
+    ASSERT_EQ(serverDevice.getPropertyValue("StrProp"), "-");
+    clientDevice.endUpdate();
+    ASSERT_EQ(clientDevice.getPropertyValue("StrProp"), "SomeValue");
+    ASSERT_EQ(serverDevice.getPropertyValue("StrProp"), "SomeValue");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateRecursive)
+{
+    clientDevice.beginUpdate();
+    clientDevice.getChannels()[0].setPropertyValue("StrProp", "SomeValue");
+    ASSERT_EQ(clientDevice.getChannels()[0].getPropertyValue("StrProp"), "-");
+    ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), "-");
+    clientDevice.endUpdate();
+    ASSERT_EQ(clientDevice.getChannels()[0].getPropertyValue("StrProp"), "SomeValue");
+    ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), "SomeValue");
+}

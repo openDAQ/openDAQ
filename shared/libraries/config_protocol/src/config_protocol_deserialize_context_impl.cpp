@@ -26,10 +26,15 @@ std::string ConfigProtocolDeserializeContextImpl::getRemoteGlobalId()
     return remoteGlobalId;
 }
 
+void ConfigProtocolDeserializeContextImpl::setRemoteGlobalId(const std::string& remoteGlobalId)
+{
+    this->remoteGlobalId = remoteGlobalId;
+}
+
 ErrCode ConfigProtocolDeserializeContextImpl::clone(IComponent* newParent,
-    IString* newLocalId,
-    IComponentDeserializeContext** newComponentDeserializeContext,
-    IntfID* newIntfID)
+                                                    IString* newLocalId,
+                                                    IComponentDeserializeContext** newComponentDeserializeContext,
+                                                    IntfID* newIntfID)
 {
     OPENDAQ_PARAM_NOT_NULL(newLocalId);
     OPENDAQ_PARAM_NOT_NULL(newComponentDeserializeContext);

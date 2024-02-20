@@ -49,8 +49,9 @@ class CachedReferenceBrowser
 public:
     CachedReferenceBrowser(const OpcUaClientPtr& client, size_t maxNodesPerBrowse = 0);
 
-    const CachedReferences& browse(const OpcUaNodeId& nodeId, bool forceInvalidate = false);
+    const CachedReferences& browse(const OpcUaNodeId& nodeId);
     void invalidate(const OpcUaNodeId& nodeId);
+    void invalidateRecursive(const OpcUaNodeId& nodeId);
 
     bool isSubtypeOf(const OpcUaNodeId& typeId, const OpcUaNodeId& baseType);
     OpcUaNodeId getTypeDefinition(const OpcUaNodeId& nodeId);
@@ -59,6 +60,7 @@ public:
     CachedReferences browseFiltered(const OpcUaNodeId& nodeId, const BrowseFilter& filter);
 
 private:
+    void invalidate(const OpcUaNodeId& nodeId, bool recursive);
     bool isCached(const OpcUaNodeId& nodeId);
     void markAsCached(const OpcUaNodeId& nodeId);
     void browseMultiple(const std::vector<OpcUaNodeId>& nodes);

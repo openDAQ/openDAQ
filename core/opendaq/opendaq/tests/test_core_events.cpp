@@ -149,7 +149,7 @@ TEST_F(CoreEventTest, MultipleLevelNestedObjectPath)
     obj.beginUpdate();
     obj.endUpdate();
 
-    ASSERT_EQ(callCount, 4);
+    ASSERT_EQ(callCount, 3);
 }
 
 TEST_F(CoreEventTest, NestedAddAfterCoreEventEnable)
@@ -183,7 +183,7 @@ TEST_F(CoreEventTest, NestedAddAfterCoreEventEnable)
     obj.beginUpdate();
     obj.endUpdate();
 
-    ASSERT_EQ(callCount, 4);
+    ASSERT_EQ(callCount, 3);
 }
 
 TEST_F(CoreEventTest, NestedObjDisableTrigger)
@@ -1375,4 +1375,60 @@ TEST_F(CoreEventTest, StatusChangedMuted)
     statusContainer.setStatus("TestStatus", statusInitValue);
 
     ASSERT_EQ(changeCount, 1);
+}
+
+TEST_F(CoreEventTest, TypeAdded)
+{
+    const auto typeManager = instance.getContext().getTypeManager();
+
+    int addCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::TypeAdded));
+        ASSERT_TRUE(args.getParameters().hasKey("Type"));
+        ASSERT_FALSE(comp.assigned());
+        addCount++;
+    };
+
+    const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
+    typeManager.addType(statusType);
+    
+    const auto structType1 = StructType("StructType1", List<IString>("Field0"), List<IType>(SimpleType(ctString)));
+    typeManager.addType(structType1);
+
+    const auto structType2 = StructType("StructType2", List<IString>("Field0"), List<IType>(SimpleType(ctString)));
+    typeManager.addType(structType2);
+
+    ASSERT_EQ(addCount, 3);
+}
+
+TEST_F(CoreEventTest, TypeRemoved)
+{
+    const auto typeManager = instance.getContext().getTypeManager();
+    
+    const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
+    typeManager.addType(statusType);
+    
+    const auto structType1 = StructType("StructType1", List<IString>("Field0"), List<IType>(SimpleType(ctString)));
+    typeManager.addType(structType1);
+
+    const auto structType2 = StructType("StructType2", List<IString>("Field0"), List<IType>(SimpleType(ctString)));
+    typeManager.addType(structType2);
+
+    int removeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::TypeRemoved));
+        ASSERT_TRUE(args.getParameters().hasKey("TypeName"));
+        ASSERT_FALSE(comp.assigned());
+        removeCount++;
+    };
+
+    typeManager.removeType("StatusType");
+    typeManager.removeType("StructType1");
+    typeManager.removeType("StructType2");
+
+    ASSERT_EQ(removeCount, 3);
 }

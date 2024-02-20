@@ -115,6 +115,8 @@ DECLARE_OPENDAQ_INTERFACE(ILogger, IBaseObject)
 
 /*!@}*/
 
+// [templateType(sinks, ILoggerSink)]
+
 OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, Logger, IList*, sinks, LogLevel, level)
 
 END_NAMESPACE_OPENDAQ

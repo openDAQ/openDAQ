@@ -216,3 +216,25 @@ TEST_F(DeviceTest, SerializeAndDeserialize)
 
     ASSERT_EQ(newDev.getDevices().getElementInterfaceId(), daq::IDevice::Id);
 }
+
+TEST_F(DeviceTest, BeginUpdateEndUpdate)
+{
+    const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+    dev.addProperty(daq::StringPropertyBuilder("DevProp", "-").build());
+
+    const auto sig = dev.getSignals()[0];
+    sig.addProperty(daq::StringPropertyBuilder("SigProp", "-").build());
+
+    dev.beginUpdate();
+
+    dev.setPropertyValue("DevProp", "s");
+    ASSERT_EQ(dev.getPropertyValue("DevProp"), "-");
+
+    sig.setPropertyValue("SigProp", "cs");
+    ASSERT_EQ(sig.getPropertyValue("SigProp"), "-");
+
+    dev.endUpdate();
+
+    ASSERT_EQ(dev.getPropertyValue("DevProp"), "s");
+    ASSERT_EQ(sig.getPropertyValue("SigProp"), "cs");
+}

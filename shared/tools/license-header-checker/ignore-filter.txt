@@ -1,3 +1,8 @@
 build
 external
 crypt_blowfish.h
+RTGen
+obj
+BasicHowTo
+openDAQ.Net.Test
+openDAQDemo.Net

@@ -80,6 +80,9 @@ protected:
                                            const BaseObjectPtr& context,
                                            const FunctionPtr& factoryCallback);
 
+    void callBeginUpdateOnChildren() override;
+    void callEndUpdateOnChildren() override;
+
 private:
     bool removeItemWithLocalIdInternal(const std::string& str);
     void clearInternal();
@@ -473,6 +476,30 @@ void FolderImpl<Intf, Intfs...>::deserializeCustomObjectValues(
             const auto comp = item.template asPtr<IComponent>(true);
             addItemInternal(comp);
         }
+    }
+}
+
+template <class Intf, class... Intfs>
+void FolderImpl<Intf, Intfs...>::callBeginUpdateOnChildren()
+{
+    Super::callBeginUpdateOnChildren();
+
+    for (const auto& item : items)
+    {
+        const auto& comp = item.second;
+        comp.beginUpdate();
+    }
+}
+
+template <class Intf, class... Intfs>
+void FolderImpl<Intf, Intfs...>::callEndUpdateOnChildren()
+{
+    Super::callEndUpdateOnChildren();
+
+    for (const auto& item : items)
+    {
+        const auto& comp = item.second;
+        comp.endUpdate();
     }
 }
 

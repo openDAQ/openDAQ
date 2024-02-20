@@ -193,7 +193,7 @@ TEST_F(GenericStructConverterTest, TestStructWithArrays1)
 
     const auto rule = static_cast<UA_ListRuleDescriptionStructure*>(var->data);
     ASSERT_EQ(utils::ToStdString(rule->type), "list");
-    ASSERT_EQ(rule->elementsSize, 2);
+    ASSERT_EQ(rule->elementsSize, 2u);
     
     const StructPtr convertedStructure = VariantConverter<IStruct>::ToDaqObject(var, context);
     ASSERT_EQ(structure, convertedStructure);
@@ -211,7 +211,7 @@ TEST_F(GenericStructConverterTest, TestStructWithArrays2)
 
     const auto rule = static_cast<UA_CustomRuleDescriptionStructure*>(var->data);
     ASSERT_EQ(utils::ToStdString(rule->type), "list");
-    ASSERT_EQ(rule->parametersSize, 2);
+    ASSERT_EQ(rule->parametersSize, 2u);
 
     auto keyVariant = OpcUaVariant(rule->parameters[0].key);
     ASSERT_EQ(VariantConverter<IBaseObject>::ToDaqObject(keyVariant, context), "foo");

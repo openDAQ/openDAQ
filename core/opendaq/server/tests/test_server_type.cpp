@@ -12,7 +12,10 @@ TEST_F(ServerTypeTest, ServerTypeFactory)
     ServerTypePtr serverType;
     ASSERT_NO_THROW(serverType = ServerType("test_server_type", "", ""));
     ASSERT_EQ(serverType.getId(), "test_server_type");
-    ASSERT_FALSE(serverType.createDefaultConfig().assigned());
+
+    const auto config = serverType.createDefaultConfig();
+    ASSERT_TRUE(config.assigned());
+    ASSERT_EQ(config.getAllProperties().getCount(), 0);
 }
 
 TEST_F(ServerTypeTest, ServerTypeFactoryWithDefaultConfigCallback)

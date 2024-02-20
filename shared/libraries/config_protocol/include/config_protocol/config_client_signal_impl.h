@@ -101,6 +101,8 @@ inline void ConfigClientSignalImpl::handleRemoteCoreObjectInternal(const Compone
         case CoreEventId::ComponentAdded:
         case CoreEventId::ComponentRemoved:
         case CoreEventId::StatusChanged:
+        case CoreEventId::TypeAdded:
+        case CoreEventId::TypeRemoved:
         default:
             break;
     }

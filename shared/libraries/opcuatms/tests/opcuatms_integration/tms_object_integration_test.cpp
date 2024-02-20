@@ -21,7 +21,7 @@ void TmsObjectIntegrationTest::SetUp()
 
     ctx = daq::NullContext(logger);
     clientContext = std::make_shared<TmsClientContext>(client, ctx);
-    serverContext = std::make_shared<TmsServerContext>(ctx);
+    serverContext = std::make_shared<TmsServerContext>(ctx, nullptr);
 }
 
 LastMessageLoggerSinkPrivatePtr TmsObjectIntegrationTest::getPrivateSink()

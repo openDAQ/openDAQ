@@ -4,14 +4,16 @@
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/custom_log.h>
+#include <coretypes/type_manager_private.h>
+#include <coreobjects/core_event_args_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 ContextImpl::ContextImpl(SchedulerPtr scheduler,
-                             LoggerPtr logger,
-                             TypeManagerPtr typeManager,
-                             ModuleManagerPtr moduleManager,
-                             DictPtr<IString, IBaseObject> options)
+                         LoggerPtr logger,
+                         TypeManagerPtr typeManager,
+                         ModuleManagerPtr moduleManager,
+                         DictPtr<IString, IBaseObject> options)
     : logger(std::move(logger))
     , scheduler(std::move(scheduler))
     , moduleManager(std::move(moduleManager))
@@ -32,6 +34,24 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
         assert(this->getReferenceCount() >= 0);
     }
 
+    const ProcedurePtr typeManagerCallback = [&](const BaseObjectPtr& val)
+    {
+        if (val.supportsInterface(IString::Id))
+        {
+            auto args = CoreEventArgsTypeRemoved(val);
+            ComponentPtr ptr;
+            coreEvent.trigger(ptr, args);
+        }
+        else
+        {
+            auto args = CoreEventArgsTypeAdded(val);
+            ComponentPtr ptr;
+            coreEvent.trigger(ptr, args);
+        }
+    };
+
+    if (this->typeManager.assigned())
+        this->typeManager.asPtr<ITypeManagerPrivate>()->setCoreEventCallback(typeManagerCallback);
     Event(this->coreEvent) += event(&ContextImpl::componentCoreEventCallback);
 }
 
@@ -120,6 +140,9 @@ ErrCode ContextImpl::getOptions(IDict** options)
 
 void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
 {
+    if (!component.assigned())
+        return;
+
     try
     {
         component.asPtr<IComponentPrivate>()->triggerComponentCoreEvent(eventArgs);

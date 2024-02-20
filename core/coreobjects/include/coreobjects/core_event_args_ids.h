@@ -39,7 +39,9 @@ enum class CoreEventId : uint32_t
     ComponentUpdateEnd = 90,
     AttributeChanged = 100,
     TagsChanged = 110,
-    StatusChanged = 120
+    StatusChanged = 120,
+    TypeAdded = 130,
+    TypeRemoved = 140,
 };
 
 /*!@}*/

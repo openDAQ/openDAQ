@@ -142,6 +142,15 @@ TEST_F(ConfigCoreEventTest, PropertyObjectUpdateEnd)
     clientContext.getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
+            const auto params = args.getParameters();
+
+            if (comp != clientComponent)
+                return;
+
+            const StringPtr path = params.get("Path");
+            if (path.assigned() && path != "")
+                return;
+
             DictPtr<IString, IBaseObject> updated;
             switch (static_cast<CoreEventId>(args.getEventId()))
             {
@@ -150,10 +159,10 @@ TEST_F(ConfigCoreEventTest, PropertyObjectUpdateEnd)
                     break;
                 case CoreEventId::PropertyObjectUpdateEnd:
                     updateCount++;
-                    updated = args.getParameters().get("UpdatedProperties");
-                    ASSERT_EQ(updated.getCount(), 2);
+                    updated = params.get("UpdatedProperties");
+                    ASSERT_EQ(updated.getCount(), 2u);
                     ASSERT_EQ(args.getEventName(), "PropertyObjectUpdateEnd");
-                    ASSERT_EQ(comp, args.getParameters().get("Owner"));
+                    ASSERT_EQ(comp, params.get("Owner"));
                     break;
                 default:
                     otherCount++;
@@ -200,7 +209,7 @@ TEST_F(ConfigCoreEventTest, PropertyObjectUpdateEndNested)
             ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::PropertyObjectUpdateEnd));
             updateCount++;
             updated = args.getParameters().get("UpdatedProperties");
-            ASSERT_EQ(updated.getCount(), 1);
+            ASSERT_EQ(updated.getCount(), 1u);
             ASSERT_EQ(args.getEventName(), "PropertyObjectUpdateEnd");
             if (updateCount == 1)
                 ASSERT_EQ(obj1, args.getParameters().get("Owner"));
@@ -464,7 +473,7 @@ TEST_F(ConfigCoreEventTest, CustomComponentRemoved)
             ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::ComponentRemoved));
             ASSERT_EQ(args.getEventName(), "ComponentRemoved");
             ASSERT_TRUE(args.getParameters().hasKey("Id"));
-            ASSERT_EQ(clientDevice.getCustomComponents().getCount(), 4 - removeCount);
+            ASSERT_EQ(static_cast<Int>(clientDevice.getCustomComponents().getCount()), 4 - removeCount);
             ASSERT_EQ(comp, clientDevice);
         };
 
@@ -657,7 +666,7 @@ TEST_F(ConfigCoreEventTest, RelatedSignalsAttributeChanged)
     sig.addRelatedSignal(relatedSig2);
     ASSERT_EQ(clientSig.getRelatedSignals()[1], clientRelatedSig2);
     sig.removeRelatedSignal(relatedSig2);
-    ASSERT_EQ(clientSig.getRelatedSignals().getCount(), 1);
+    ASSERT_EQ(clientSig.getRelatedSignals().getCount(), 1u);
     ASSERT_EQ(clientSig.getRelatedSignals()[0], clientRelatedSig1);
 
     sig.setRelatedSignals(List<ISignal>(relatedSig2));
@@ -726,4 +735,71 @@ TEST_F(ConfigCoreEventTest, StatusChanged)
     statusContainer.setStatus("TestStatus", statusValue);
 
     ASSERT_EQ(changeCount, 3);
+}
+
+
+TEST_F(ConfigCoreEventTest, TypeAdded)
+{
+    const auto typeManager = serverDevice.getContext().getTypeManager();
+
+    int addCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::TypeAdded));
+        ASSERT_TRUE(args.getParameters().hasKey("Type"));
+        ASSERT_FALSE(comp.assigned());
+        addCount++;
+    };
+
+    const auto statusType = EnumerationType("StatusType1", List<IString>("Status0", "Status1"));
+    typeManager.addType(statusType);
+    
+    const auto structType1 = StructType("StructType1", List<IString>("Field0"), List<IType>(SimpleType(ctString)));
+    typeManager.addType(structType1);
+
+    const auto structType2 = StructType("StructType2", List<IString>("Field0"), List<IType>(SimpleType(ctString)));
+    typeManager.addType(structType2);
+
+    ASSERT_EQ(addCount, 3);
+
+    const auto clientTypeManager = clientContext.getTypeManager();
+    ASSERT_TRUE(clientTypeManager.hasType("StatusType1"));
+    ASSERT_TRUE(clientTypeManager.hasType("StructType1"));
+    ASSERT_TRUE(clientTypeManager.hasType("StructType2"));
+}
+
+TEST_F(ConfigCoreEventTest, TypeRemoved)
+{
+    const auto typeManager = serverDevice.getContext().getTypeManager();
+    
+    const auto statusType = EnumerationType("StatusType1", List<IString>("Status0", "Status1"));
+    typeManager.addType(statusType);
+    
+    const auto structType1 = StructType("StructType1", List<IString>("Field0"), List<IType>(SimpleType(ctString)));
+    typeManager.addType(structType1);
+
+    const auto structType2 = StructType("StructType2", List<IString>("Field0"), List<IType>(SimpleType(ctString)));
+    typeManager.addType(structType2);
+
+    int removeCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::TypeRemoved));
+        ASSERT_TRUE(args.getParameters().hasKey("TypeName"));
+        ASSERT_FALSE(comp.assigned());
+        removeCount++;
+    };
+
+    typeManager.removeType("StatusType1");
+    typeManager.removeType("StructType1");
+    typeManager.removeType("StructType2");
+
+    ASSERT_EQ(removeCount, 3);
+
+    const auto clientTypeManager = clientContext.getTypeManager();
+    ASSERT_FALSE(clientTypeManager.hasType("StatusType1"));
+    ASSERT_FALSE(clientTypeManager.hasType("StructType1"));
+    ASSERT_FALSE(clientTypeManager.hasType("StructType2"));
 }

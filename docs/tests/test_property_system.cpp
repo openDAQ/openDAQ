@@ -224,9 +224,9 @@ TEST_F(PropertySystemTest, ListingProps)
     propObj.addProperty(ReferenceProperty("FloatRef", EvalValue("%Float")));
     
     auto allProps = propObj.getAllProperties();
-    ASSERT_EQ(allProps.getCount(), 4);
+    ASSERT_EQ(allProps.getCount(), 4u);
     auto visibleProps = propObj.getVisibleProperties();
-    ASSERT_EQ(visibleProps.getCount(), 2);
+    ASSERT_EQ(visibleProps.getCount(), 2u);
 
     auto order = List<IString>("FloatRef", "Float", "Int", "String");
     propObj.setPropertyOrder(order);

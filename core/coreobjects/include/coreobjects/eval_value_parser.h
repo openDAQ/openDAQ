@@ -33,24 +33,48 @@ bool parseEvalValue(const std::string& str, ParseParams* params);
 
 class EvalValueParser
 {
+    enum OperatorPrecedence
+    {
+        MinPrecedence = 0,
+        Equality,
+        Logic,
+        Term,
+        Factor,
+        Prefix,
+    };
+
+    enum class Associativity
+    {
+        Left,
+        Right,
+    };
+
+    struct ParseRule
+    {
+        int precedence;
+        Associativity associativity;
+    };
 
 public:
     EvalValueParser(const std::vector<EvalValueToken>& aTokens, ParseParams* aParams);
 
-    // EvalValueParser is a recursive descent parser that parses the following
-    // grammar:
+    // [precedences]
+    //   equality: "==" | "!=" | "<" | "<=" | ">" | ">="
+    //   logic:    "||" | "&&"
+    //   term:     "+" | "-"
+    //   factor:   "*" | "/"
+    //   prefix:   "!" | "-" (unary)
     //
-    // expression : equality
-    // equality   : logic_op ( ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) logic_op )*
-    // logic_op   : term ( ( "||" | "&&" ) term )*
-    // term       : factor ( ( "+" | "-" ) factor )*
-    // factor     : unary ( ( "*" | "/" ) unary )*
-    // unary      : ( "!" | "-" ) unary
-    //            | literal
-    // literal    : FLOATVALUE
+    // [grammar]
+    // parse      : expression
+    // expression : infix
+    // infix      : prefix ( ( "==" | "!=" | "<" | "<=" | ">" | ">="  |  "||" | "&&"  |  "+" | "-"  |  "*" | "/" ) prefix )*
+    // prefix     : FLOATVALUE
     //            | INTVALUE
     //            | BOOLVALUE
     //            | STRINGVALUE
+    //            | "!" expression
+    //            | "-" expression
     //            | "[" ( expression ( "," expression )* )? "]"
     //            | "(" expression ")"
     //            | IF "(" expression "," expression "," expression ")"
@@ -59,7 +83,7 @@ public:
     //            | "%" propref
     //            | "{" INTVALUE "}" "." ( "$" valref | "%" propref )
     //            | IDENTIFIER
-    //            | UNIT "(" literal ( "," literal)? ( "," literal)? ( "," literal)? ")"
+    //            | UNIT "(" expression ( "," expression)? ( "," expression)? ( "," expression)? ")"
     // valref     : IDENTIFIER ( "[" INTVALUE "]" )?
     // propref    : IDENTIFIER ( ":" PROPERTYITEM )? ( "(" ")" )?
 
@@ -69,24 +93,24 @@ public:
     std::unique_ptr<std::unordered_set<std::string>> getPropertyReferences();
 
 private:
-    std::unique_ptr<daq::BaseNode> expression();
-    std::unique_ptr<daq::BaseNode> equality();
-    std::unique_ptr<daq::BaseNode> logicOp();
-    std::unique_ptr<daq::BaseNode> term();
-    std::unique_ptr<daq::BaseNode> factor();
-    std::unique_ptr<daq::BaseNode> unary();
-    std::unique_ptr<daq::BaseNode> literal();
+    std::unique_ptr<daq::BaseNode> expression(int precedence = OperatorPrecedence::MinPrecedence);
+    std::unique_ptr<daq::BaseNode> infix(const EvalValueToken& token, std::unique_ptr<daq::BaseNode> left, const ParseRule& rule);
+    std::unique_ptr<daq::BaseNode> prefix(const EvalValueToken& token, const ParseRule& rule);
     std::unique_ptr<daq::BaseNode> valref();
     std::unique_ptr<daq::BaseNode> propref();
 
+    void registerInfix(EvalValueToken::Type tokenType, int precedence, Associativity associativity = Associativity::Left);
+    void registerPrefix(EvalValueToken::Type tokenType, int precedence = OperatorPrecedence::Prefix);
+
+    int infixTokenPrecedence(EvalValueToken::Type tokenType) const;
     bool isAt(EvalValueToken::Type tokenType) const;
-    bool isAtEnd() const;
-    bool isAtAnyOf(std::initializer_list<EvalValueToken::Type> tokenTypes) const;
     void assertIsAt(EvalValueToken::Type tokenType) const;
     void consume(EvalValueToken::Type tokenType);
     EvalValueToken advance();
-    void undoAdvance();
     EvalValueToken peek() const;
+
+    std::unordered_map<EvalValueToken::Type, ParseRule> infixParseRules;
+    std::unordered_map<EvalValueToken::Type, ParseRule> prefixParseRules;
 
     std::vector<EvalValueToken> tokens;
     std::unordered_set<std::string> propertyReferences;

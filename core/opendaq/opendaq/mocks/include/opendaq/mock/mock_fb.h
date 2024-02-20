@@ -20,13 +20,18 @@
 class MockFunctionBlockImpl : public daq::FunctionBlock
 {
 public:
-    explicit MockFunctionBlockImpl(daq::FunctionBlockTypePtr type, daq::ContextPtr ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId);
+    explicit MockFunctionBlockImpl(daq::FunctionBlockTypePtr type,
+                                   daq::ContextPtr ctx,
+                                   const daq::ComponentPtr& parent,
+                                   const daq::StringPtr& localId,
+                                   const daq::PropertyObjectPtr& config);
 
 protected:
     void createFunctionBlocks();
     void createSignals();
     void createInputPorts();
     void createReferencedSignals();
+    void createTestConfigProperties();
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
@@ -35,4 +40,5 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     daq::IFunctionBlockType*, info,
     daq::IContext*, ctx,
     daq::IComponent*, parent,
-    daq::IString*, localId)
+    daq::IString*, localId,
+    daq::IPropertyObject*, config)

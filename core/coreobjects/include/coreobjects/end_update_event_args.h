@@ -28,11 +28,13 @@ DECLARE_OPENDAQ_INTERFACE(IEndUpdateEventArgs, IEventArgs)
 {
     // [elementType(properties, IString)]
     virtual ErrCode INTERFACE_FUNC getProperties(IList** properties) = 0;
+    virtual ErrCode INTERFACE_FUNC getIsParentUpdating(Bool* isParentUpdating) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, EndUpdateEventArgs,
-    IList*, properties
+    IList*, properties,
+    Bool, isParentUpdating
 )
 
 END_NAMESPACE_OPENDAQ

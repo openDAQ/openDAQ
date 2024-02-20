@@ -19,7 +19,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-class TmsClientChannelImpl : public TmsClientFunctionBlockBaseImpl<Channel>
+class TmsClientChannelImpl : public TmsClientFunctionBlockBaseImpl<ChannelImpl<ITmsClientComponent>>
 {
   public:
     explicit TmsClientChannelImpl(

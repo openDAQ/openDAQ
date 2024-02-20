@@ -103,6 +103,21 @@ TEST_F(EvalValueTest, TestPrecedence)
 
     r = EvalValue("1 * 2 + 3");
     ASSERT_EQ(r, 5LL);
+
+    Bool b = EvalValue("1 * 2 == 3 + -1");
+    ASSERT_EQ(b, True);
+}
+
+TEST_F(EvalValueTest, TestAssociativity)
+{
+    Int r = EvalValue("6 - 3 - 1");
+    ASSERT_EQ(r, 2LL);
+
+    r = EvalValue("16 / 4 / 2");
+    ASSERT_EQ(r, 2LL);
+
+    Bool b = EvalValue("3 == -3 == False");
+    ASSERT_EQ(b, True);
 }
 
 TEST_F(EvalValueTest, IntResultConversion)
@@ -454,6 +469,14 @@ TEST_F(EvalValueTest, ArgumentNonDefaultValueIndex)
 TEST_F(EvalValueTest, UnaryMinus)
 {
     int a = EvalValue("-1");
+
+    ASSERT_EQ(a, -1);
+
+    a = EvalValue("-3 + -2");
+
+    ASSERT_EQ(a, -5);
+
+    a = EvalValue("--3---4");
 
     ASSERT_EQ(a, -1);
 }

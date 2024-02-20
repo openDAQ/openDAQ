@@ -288,11 +288,10 @@ void StatisticsFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& v
 void StatisticsFbImpl::processDataPacketTrigger(const DataPacketPtr& packet)
 {
     const auto domainPacket = packet.getDomainPacket();
-
     auto data = static_cast<Bool*>(packet.getData());
-    // Domain packet from trigger only holds one value by design
+    // Data packet from trigger only holds one value by design
     auto triggerData = data[0];
-
+    // Domain packet from trigger only holds one value by design
     auto domainStamp = static_cast<Int*>(domainPacket.getData())[0];
     triggerHistory.addElement(triggerData, domainStamp);
 }

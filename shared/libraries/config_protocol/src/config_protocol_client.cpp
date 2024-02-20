@@ -192,6 +192,13 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
         return obj;
     }
 
+    if (typeId == "ComponentHolder")
+    {
+        const auto remoteContext = context.asPtrOrNull<IConfigProtocolDeserializeContext>();
+        if(serObj.hasKey("parentGlobalId") && context.assigned())
+            remoteContext->setRemoteGlobalId(serObj.readString("parentGlobalId"));
+    }
+
     if (typeId == "IoFolder")
     {
         BaseObjectPtr obj;

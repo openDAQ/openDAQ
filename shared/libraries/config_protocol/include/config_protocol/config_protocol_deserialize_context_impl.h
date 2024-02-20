@@ -35,6 +35,7 @@ public:
 
     ConfigProtocolClientCommPtr getClientComm() override;
     std::string getRemoteGlobalId() override;
+    void setRemoteGlobalId(const std::string& remoteGlobalId) override;
 
     ErrCode INTERFACE_FUNC clone(IComponent* newParent,
                                  IString* newLocalId,

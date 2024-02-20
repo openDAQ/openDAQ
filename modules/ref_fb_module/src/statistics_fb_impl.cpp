@@ -81,7 +81,7 @@ void StatisticsFbImpl::triggerModeChanged()
         // Configure Trigger UseMultiThreadedScheduler according to Statistics UseMultiThreadedScheduler
         ModuleManagerPtr moduleManager = context.getModuleManager();
         auto triggerConfig =
-            moduleManager.getModules()[0].getAvailableFunctionBlockTypes().get("ref_fb_module_trigger").createDefaultConfig();  // TODO FIX
+            moduleManager.getModules()[0].getAvailableFunctionBlockTypes().get("ref_fb_module_trigger").createDefaultConfig();  // TODO! FIX
 
         if (packetReadyNotification == PacketReadyNotification::SameThread)
             triggerConfig.setPropertyValue("UseMultiThreadedScheduler", false);
@@ -313,8 +313,6 @@ void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
     {
         return;
     }
-
-    // TODO Drop history where appropriate
 
     bool haveGap;
     NumberPtr outputPacketStartDomainValue = 0;

@@ -43,7 +43,7 @@ public:
     {
         // Create logger, module manager, context and module
         const auto logger = Logger();
-        moduleManager = ModuleManager("[[none]]");  // TODO check
+        moduleManager = ModuleManager("[[none]]");  // TODO! check
         context = Context(Scheduler(logger), logger, nullptr, moduleManager);
         createModule(&module, context);
         moduleManager.addModule(module);
@@ -226,7 +226,7 @@ private:
                     *triggerPacketData++ = static_cast<Float>(mockTriggerPackets[i][ii]);
 
                 auto fbs = fb.getFunctionBlocks();
-                if (fbs.getCount() > 0)  // TODO fix condition
+                if (fbs.getCount() > 0)  // TODO! fix condition
                 {
                     // Nested trigger connect signal
                     fbs[0].getInputPorts()[0].connect(triggerSignal);
@@ -304,9 +304,9 @@ private:
                 {
                     auto dataSample = data[ii];
 
-                    // Assert that packet has expected number of samples TODO ON
+                    // Assert that packet has expected number of samples
                     ASSERT_EQ(sampleCount, expectedData[i].size());
-                    // Assert that data sample equals expected value TODO ON
+                    // Assert that data sample equals expected value
                     ASSERT_DOUBLE_EQ(dataSample, expectedData[i][ii]);
 
                     auto domainPacket = dataPacket.getDomainPacket();
@@ -587,4 +587,4 @@ TEST_F(StatisticsTest, StatisticsTestTriggerDomainBeforeData)
     helper.run();
 }
 
-// TODO add more trigger as nested function block tests, test multiple tirgger condition changes in same packet
+// TODO add more trigger as nested function block tests, test multiple trigger condition changes in same packet

@@ -316,19 +316,37 @@ void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& componen
     const auto dev = getRootDevice();
     if (!dev.assigned())
         return;
+    const auto topComponent = component;
 
     forEachComponent(
         component,
-        [&dev](const ComponentPtr& component)
+        [&dev, &topComponent](const ComponentPtr& component)
         {
             const auto signal = component.asPtrOrNull<ISignal>(true);
             if (signal.assigned())
             {
-                const auto domainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+                const StringPtr domainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
                 if (domainSignalId.assigned())
                 {
-                    const auto domainSignal = findSignalByRemoteGlobalId(dev, domainSignalId);
-                    signal.asPtrOrNull<IMirroredSignalPrivate>(true)->assignDomainSignal(domainSignal);
+                    SignalPtr domainSignal;
+
+                    // try to find domain singal recursively starting from top component
+                    {
+                        const auto domainSingalRemoteId = domainSignalId.toStdString();
+                        StringPtr topComponentRemoteId;
+                        checkErrorInfo(topComponent.asPtr<IConfigClientObject>()->getRemoteGlobalId(&topComponentRemoteId));
+                        if (domainSingalRemoteId.find(topComponentRemoteId.toStdString() + "/") == 0)
+                        {
+                            auto restStr = domainSingalRemoteId.substr(topComponentRemoteId.toStdString().size() + 1);
+                            domainSignal = findSignalByRemoteGlobalIdWithComponent(topComponent, restStr);
+                        }
+                    }
+
+                    // try to find domain singal recursively starting from root device
+                    if (!domainSignal.assigned())
+                        domainSignal = findSignalByRemoteGlobalId(dev, domainSignalId);
+                    if (domainSignal.assigned())
+                        signal.asPtr<IConfigClientSignalPrivate>(true)->assignDomainSignal(domainSignal);
                 }
             }
         });

@@ -67,8 +67,6 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredSignalPrivate, IBaseObject)
      * the unsubscription for the signal.
      */
     virtual void INTERFACE_FUNC unsubscribeCompleted(const StringPtr& streamingConnectionString) = 0;
-
-    virtual void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) = 0;
 };
 /*!@}*/
 

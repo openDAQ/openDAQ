@@ -84,14 +84,11 @@ FunctionBlockPtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddFunctionBlock(
     FunctionBlockPtr fb = fbHolder.getComponent();
     if (!this->functionBlocks.hasItem(fb.getLocalId()))
     {
-        this->addNestedFunctionBlock(fb);
         this->clientComm->connectDomainSignals(fb);
+        this->addNestedFunctionBlock(fb);
         return fb;
     }
-
-    FunctionBlockPtr existingFb = this->functionBlocks.getItem(fb.getLocalId());
-    this->clientComm->connectDomainSignals(existingFb);
-    return existingFb;
+    return this->functionBlocks.getItem(fb.getLocalId());
 }
 
 template <class TDeviceBase>
@@ -146,8 +143,10 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::componentAdded(const CoreEventA
     Bool hasItem{false};
     checkErrorInfo(TDeviceBase::hasItem(comp.getLocalId(), &hasItem));
     if (!hasItem)
+    {
+        this->clientComm->connectDomainSignals(comp);
         this->addExistingComponent(comp);
-    this->clientComm->connectDomainSignals(comp);
+    }
 }
 
 template <class TDeviceBase>

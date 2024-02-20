@@ -272,7 +272,7 @@ void ConfigClientComponentBaseImpl<Impl>::tagsChanged(const CoreEventArgsPtr& ar
     TagsPtr tags;
     checkErrorInfo(Impl::getTags(&tags));
     const TagsPtr newTags = args.getParameters().get("Tags");
-    tags.asPtr<ITagsPrivate>().set(newTags.getList());
+    tags.asPtr<ITagsPrivate>().replace(newTags.getList());
 }
 
 template <class Impl>

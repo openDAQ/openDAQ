@@ -51,7 +51,7 @@ DECLARE_OPENDAQ_INTERFACE(ITagsPrivate, IBaseObject)
      * @brief Replaces all tags.
      * @param tags The new list of tags.
      */
-    virtual ErrCode INTERFACE_FUNC set(IList* tags) = 0;
+    virtual ErrCode INTERFACE_FUNC replace(IList* tags) = 0;
 };
 
 /*!@}*/

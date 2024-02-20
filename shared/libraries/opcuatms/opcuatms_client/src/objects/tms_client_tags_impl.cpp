@@ -23,7 +23,7 @@ ErrCode TmsClientTagsImpl::add(IString* name)
     return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
 }
 
-ErrCode TmsClientTagsImpl::set(IList* tags)
+ErrCode TmsClientTagsImpl::replace(IList* tags)
 {
     return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
 }

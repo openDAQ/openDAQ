@@ -177,11 +177,11 @@ void NativeStreamingDeviceImpl::addToDeviceSignals(const StringPtr& signalString
         auto [addedSignal, domainSignalId] = item.second;
         if (domainSignalId == signalStringId)
         {
-            addedSignal.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(signalToAdd);
+            addedSignal.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(signalToAdd);
         }
         if (domainSignalStringId == addedSignalId)
         {
-            signalToAdd.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(addedSignal);
+            signalToAdd.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(addedSignal);
         }
     }
 
@@ -212,7 +212,7 @@ void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr
     // remove domain signal if it is no longer assigned after reconnection
     if (signalToAdd.getDomainSignal().assigned() && !domainSignalStringId.assigned())
     {
-        signalToAdd.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(nullptr);
+        signalToAdd.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(nullptr);
     }
     // recreate signal -> domainSignal relations in the same way as on server
     for (const auto& item : deviceSignalsReconnection)
@@ -221,11 +221,11 @@ void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr
         auto [addedSignal, domainSignalId] = item.second;
         if (domainSignalId == signalStringId)
         {
-            addedSignal.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(signalToAdd);
+            addedSignal.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(signalToAdd);
         }
         if (domainSignalStringId == addedSignalId)
         {
-            signalToAdd.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(addedSignal);
+            signalToAdd.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(addedSignal);
         }
     }
 
@@ -261,7 +261,7 @@ void NativeStreamingDeviceImpl::signalUnavailableHandler(const StringPtr& signal
         auto [addedSignal, domainSignalId] = item.second;
         if (domainSignalId == signalStringId)
         {
-            addedSignal.asPtr<IMirroredSignalPrivate>()->assignDomainSignal(nullptr);
+            addedSignal.asPtr<INativeStreamingSignalPrivate>()->assignDomainSignal(nullptr);
         }
     }
 

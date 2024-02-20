@@ -59,7 +59,6 @@ public:
     ErrCode INTERFACE_FUNC removeStreamingSource(const StringPtr& streamingConnectionString) override;
     void INTERFACE_FUNC subscribeCompleted(const StringPtr& streamingConnectionString) override;
     void INTERFACE_FUNC unsubscribeCompleted(const StringPtr& streamingConnectionString) override;
-    void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
 
     // ISignalConfig
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
@@ -517,21 +516,6 @@ void MirroredSignalBase<Interfaces...>::unsubscribeCompleted(const StringPtr& st
             SubscriptionEventArgs(streamingConnectionString, SubscriptionEventType::Unsubscribed)
         );
     }
-}
-
-template <typename... Interfaces>
-void MirroredSignalBase<Interfaces...>::assignDomainSignal(const SignalPtr& domainSignal)
-{
-    if (domainSignal.assigned())
-        if (domainSignal.asPtrOrNull<IMirroredSignalConfig>() == nullptr)
-        {
-            throw NoInterfaceException(
-                fmt::format(R"(Domain signal "{}" does not implement IMirroredSignalConfig interface.)",
-                            domainSignal.getGlobalId()));
-        }
-
-    ErrCode errCode = Super::setDomainSignal(domainSignal);
-    checkErrorInfo(errCode);
 }
 
 END_NAMESPACE_OPENDAQ

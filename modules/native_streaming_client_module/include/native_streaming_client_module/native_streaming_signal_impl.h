@@ -21,10 +21,15 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
-class NativeStreamingSignalImpl final : public MirroredSignal
+DECLARE_OPENDAQ_INTERFACE(INativeStreamingSignalPrivate, IBaseObject)
+{
+    virtual void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) = 0;
+};
+
+class NativeStreamingSignalImpl final : public MirroredSignalBase<INativeStreamingSignalPrivate>
 {
 public:
-    using Super = MirroredSignal;
+    using Super = MirroredSignalBase<INativeStreamingSignalPrivate>;
     explicit NativeStreamingSignalImpl(const ContextPtr& ctx,
                                        const ComponentPtr& parent,
                                        const StringPtr& streamingId);
@@ -35,7 +40,7 @@ public:
     StringPtr onGetRemoteId() const override;
     Bool onTriggerEvent(EventPacketPtr eventPacket) override;
 
-    // IMirroredSignalPrivate
+    // INativeStreamingSignalPrivate
     void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
 
     // ISerializable

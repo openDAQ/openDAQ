@@ -111,6 +111,7 @@ private:
 
     template <class F>
     void forEachComponent(const ComponentPtr& component, const F& f);
+    [[maybe_unused]]
     void setRemoteGlobalIds(const ComponentPtr& component, const StringPtr& parentRemoteId);
 };
 
@@ -358,9 +359,6 @@ CoreEventArgsPtr ConfigProtocolClient<TRootDeviceImpl>::unpackCoreEvents(const C
     {
         const ComponentHolderPtr compHolder = dict.get("Component");
         const ComponentPtr comp = compHolder.getComponent();
-        StringPtr parentRemoteId;
-        comp.getParent().asPtr<IConfigClientObject>()->getRemoteGlobalId(&parentRemoteId);
-        clientComm->setRemoteGlobalIds(comp, parentRemoteId);
 
         dict.set("Component", comp);
     }

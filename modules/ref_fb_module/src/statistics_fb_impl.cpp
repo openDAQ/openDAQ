@@ -290,9 +290,9 @@ void StatisticsFbImpl::processDataPacketTrigger(const DataPacketPtr& packet)
     const auto domainPacket = packet.getDomainPacket();
 
     auto data = static_cast<Bool*>(packet.getData());
+    // Domain packet from trigger only holds one value by design
     auto triggerData = data[0];
 
-    // Domain packet from trigger only holds one value by deisgn
     auto domainStamp = static_cast<Int*>(domainPacket.getData())[0];
     triggerHistory.addElement(triggerData, domainStamp);
 }
@@ -310,7 +310,7 @@ void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
     auto domainStamp = static_cast<Int*>(domainPacket.getData())[0];
 
     // TODO Check trigger mode and if on, check trigger state at domain stamp
-    if (triggerMode && triggerHistory.getTriggerStateFromDomainValue(domainStamp))
+    if (triggerMode && !triggerHistory.getTriggerStateFromDomainValue(domainStamp))
     {
         return;
     }

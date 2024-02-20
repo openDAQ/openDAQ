@@ -304,9 +304,9 @@ private:
                 {
                     auto dataSample = data[ii];
 
-                    // Assert that packet has expected number of samples
+                    // Assert that packet has expected number of samples TODO ON
                     ASSERT_EQ(sampleCount, expectedData[i].size());
-                    // Assert that data sample equals expected value
+                    // Assert that data sample equals expected value TODO ON
                     ASSERT_DOUBLE_EQ(dataSample, expectedData[i][ii]);
 
                     auto domainPacket = dataPacket.getDomainPacket();
@@ -530,7 +530,7 @@ TEST_F(StatisticsTest, StatisticsTestTriggerBasic)
     std::vector<Bool> newTriggerMode{true, false};  // TODO test true true, false false
     vecvec<Float> mockTriggerPackets{
         {}, {0.1, 0.6}, {0.1, 0.2}, {0.6, 0.8}, {0.1, 0.1}, {}};  // TODO test sending while TriggerMode = false
-    vecvec<Float> mockTriggerDomainPackets{{}, {28, 30}, {48, 50}, {68, 70}, {88, 90}, {}};
+    vecvec<Float> mockTriggerDomainPackets{{}, {20, 22}, {40, 42}, {60, 62}, {80, 82}, {}};
 
     auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
                                        initialOutputDomain,
@@ -550,9 +550,7 @@ TEST_F(StatisticsTest, StatisticsTestTriggerBasic)
                                        mockTriggerDomainPackets);
     helper.run();
 }
-
-// TODO make out of order
-TEST_F(StatisticsTest, StatisticsTestTriggerOutOfOrder)
+TEST_F(StatisticsTest, StatisticsTestTriggerDomainBeforeData)
 {
     vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
                               {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
@@ -567,8 +565,8 @@ TEST_F(StatisticsTest, StatisticsTestTriggerOutOfOrder)
 
     std::vector<Int> triggerModeChangesAfterPackets{0, 4};
     std::vector<Bool> newTriggerMode{true, false};
-    vecvec<Float> mockTriggerPackets{{}, {0.1, 0.6}, {0.1, 0.2}, {0.6, 0.8}, {0.1, 0.1}, {}};
-    vecvec<Float> mockTriggerDomainPackets{{}, {28, 30}, {48, 50}, {68, 70}, {88, 90}, {}};
+    vecvec<Float> mockTriggerPackets{{}, {0.1, 0.6}, {0.1, 0.2, 0.6, 0.8}, {0.1, 0.1}, {}, {}};
+    vecvec<Float> mockTriggerDomainPackets{{}, {20, 22}, {40, 42, 60, 62}, {80, 82}, {}, {}};
 
     auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
                                        initialOutputDomain,

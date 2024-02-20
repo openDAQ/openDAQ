@@ -9,7 +9,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
     DimensionBuilderImpl::DimensionBuilderImpl()
-    : unit(nullptr)
+    : name("")
+    , unit(nullptr)
     , rule(nullptr)
 {
 }

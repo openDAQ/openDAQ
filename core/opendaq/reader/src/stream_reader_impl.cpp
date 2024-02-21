@@ -230,6 +230,15 @@ ErrCode StreamReaderImpl::markAsInvalid()
 
 void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader) const
 {
+    if (newDescriptor.isStructDescriptor())
+    {
+        if (newDescriptor.getRawSampleSize() != newDescriptor.getSampleSize())
+            throw InvalidParameterException("Cannot use the reader on implicit or scaled structs");
+
+        reader = createVoidReader();
+        return;
+    }
+
     reader = createReaderForType(newDescriptor.getSampleType(), reader->getTransformFunction());
 }
 

@@ -111,9 +111,12 @@ private:
     SizeT getOffsetToData(const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size) const;
 
     SizeT valuesPerSample{1};
+
+    SizeT sampleSize{0};
 };
 
 std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionPtr& transformFunction);
+std::unique_ptr<Reader> createVoidReader();
 
 extern template class TypedReader<SampleTypeToType<SampleType::Float32>::Type>;
 extern template class TypedReader<SampleTypeToType<SampleType::Float64>::Type>;
@@ -127,18 +130,6 @@ extern template class TypedReader<SampleTypeToType<SampleType::Int64>::Type>;
 extern template class TypedReader<SampleTypeToType<SampleType::RangeInt64>::Type>;
 extern template class TypedReader<SampleTypeToType<SampleType::ComplexFloat32>::Type>;
 extern template class TypedReader<SampleTypeToType<SampleType::ComplexFloat64>::Type>;
-
-extern template class TypedReader<SampleTypeToType<SampleType::Float32>::Type>;
-extern template class TypedReader<SampleTypeToType<SampleType::Float64>::Type>;
-extern template class TypedReader<SampleTypeToType<SampleType::UInt8>::Type>;
-extern template class TypedReader<SampleTypeToType<SampleType::Int8>::Type>;
-extern template class TypedReader<SampleTypeToType<SampleType::UInt16>::Type>;
-extern template class TypedReader<SampleTypeToType<SampleType::Int16>::Type>;
-extern template class TypedReader<SampleTypeToType<SampleType::UInt32>::Type>;
-extern template class TypedReader<SampleTypeToType<SampleType::Int32>::Type>;
-extern template class TypedReader<SampleTypeToType<SampleType::Int64>::Type>;
-extern template class TypedReader<SampleTypeToType<SampleType::RangeInt64>::Type>;
-extern template class TypedReader<SampleTypeToType<SampleType::ComplexFloat32>::Type>;
-extern template class TypedReader<SampleTypeToType<SampleType::ComplexFloat64>::Type>;
+extern template class TypedReader<void*>;
 
 END_NAMESPACE_OPENDAQ

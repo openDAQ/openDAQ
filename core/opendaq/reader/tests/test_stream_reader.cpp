@@ -8,6 +8,7 @@
 #include <opendaq/reader_errors.h>
 #include <opendaq/reader_exceptions.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/dimension_factory.h>
 
 using namespace daq;
 
@@ -846,4 +847,207 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithWithDomainFromPacket)
 
     // domain was read and updated from packet info
     ASSERT_EQ(reader.getDomainReadType(), SampleType::RangeInt64);
+}
+
+using StructStreamReaderTest = testing::Test;
+
+#pragma pack(push, 1)
+struct CANData
+{
+    uint32_t arbId;
+    uint8_t length;
+    uint8_t data[64];
+};
+#pragma pack(pop)
+
+TEST_F(StructStreamReaderTest, ReadStructData)
+{
+    const auto context = NullContext();
+    const auto valueSignal = daq::Signal(context, nullptr, "valuesig");
+    const auto domainSignal = daq::Signal(context, nullptr, "domainsig");
+    valueSignal.setDomainSignal(domainSignal);
+
+    const auto arbIdDescriptor =
+        DataDescriptorBuilder().setName("ArbId").setSampleType(SampleType::UInt32).setRule(ExplicitDataRule()).build();
+
+    const auto lengthDescriptor =
+        DataDescriptorBuilder().setName("Length").setSampleType(SampleType::UInt8).setRule(ExplicitDataRule()).build();
+
+    const auto dataDescriptor = DataDescriptorBuilder()
+                                    .setName("Data")
+                                    .setSampleType(SampleType::UInt8)
+                                    .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
+                                    .setRule(ExplicitDataRule())
+                                    .build();
+
+    const auto canMsgDescriptor =
+        DataDescriptorBuilder().setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor)).build();
+
+    const auto domainDescriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::UInt64).setRule(LinearDataRule(1, 0)).setTickResolution(Ratio(1, 1000)).build();
+
+    valueSignal.setDescriptor(canMsgDescriptor);
+    domainSignal.setDescriptor(domainDescriptor);
+
+    const auto streamReader = StreamReader<void*>(valueSignal);
+
+    const auto domainPacket1 = DataPacket(domainDescriptor, 2, 0);
+    const auto valuePacket1 = DataPacketWithDomain(domainPacket1, canMsgDescriptor, 2);
+    auto* canData = static_cast<CANData*>(valuePacket1.getRawData());
+
+    canData->arbId = 12;
+    canData->length = 2;
+    canData->data[0] = 1;
+    canData->data[1] = 2;
+    canData++;
+    canData->arbId = 15;
+    canData->length = 4;
+    canData->data[0] = 5;
+    canData->data[1] = 6;
+    canData->data[2] = 7;
+    canData->data[3] = 8;
+
+    valueSignal.sendPacket(valuePacket1);
+    domainSignal.sendPacket(domainPacket1);
+
+    const auto domainPacket2 = DataPacket(domainDescriptor, 1, 2);
+    const auto valuePacket2 = DataPacketWithDomain(domainPacket2, canMsgDescriptor, 1);
+    canData = static_cast<CANData*>(valuePacket2.getRawData());
+
+    canData->arbId = 14;
+    canData->length = 3;
+    canData->data[0] = 10;
+    canData->data[1] = 11;
+    canData->data[2] = 12;
+
+    valueSignal.sendPacket(valuePacket2);
+    domainSignal.sendPacket(domainPacket2);
+
+    CANData dataRead[3];
+
+    SizeT count = 0;
+    do
+    {
+        SizeT toRead = 3;
+        streamReader.read(&dataRead[count], &toRead, 10);
+        count += toRead;
+    } while (count < 3);
+
+    ASSERT_EQ(count, 3);
+
+    ASSERT_EQ(dataRead[0].arbId, 12);
+    ASSERT_EQ(dataRead[0].length, 2);
+    ASSERT_EQ(dataRead[0].data[0], 1);
+    ASSERT_EQ(dataRead[0].data[1], 2);
+    ASSERT_EQ(dataRead[1].arbId, 15);
+    ASSERT_EQ(dataRead[1].length, 4);
+    ASSERT_EQ(dataRead[1].data[0], 5);
+    ASSERT_EQ(dataRead[1].data[1], 6);
+    ASSERT_EQ(dataRead[1].data[2], 7);
+    ASSERT_EQ(dataRead[1].data[3], 8);
+    ASSERT_EQ(dataRead[2].arbId, 14);
+    ASSERT_EQ(dataRead[2].length, 3);
+    ASSERT_EQ(dataRead[2].data[0], 10);
+    ASSERT_EQ(dataRead[2].data[1], 11);
+    ASSERT_EQ(dataRead[2].data[2], 12);
+}
+
+TEST_F(StructStreamReaderTest, ReadStructDataWithDomain)
+{
+    const auto context = NullContext();
+    const auto valueSignal = daq::Signal(context, nullptr, "valuesig");
+    const auto domainSignal = daq::Signal(context, nullptr, "domainsig");
+    valueSignal.setDomainSignal(domainSignal);
+
+    const auto arbIdDescriptor =
+        DataDescriptorBuilder().setName("ArbId").setSampleType(SampleType::UInt32).setRule(ExplicitDataRule()).build();
+
+    const auto lengthDescriptor =
+        DataDescriptorBuilder().setName("Length").setSampleType(SampleType::UInt8).setRule(ExplicitDataRule()).build();
+
+    const auto dataDescriptor = DataDescriptorBuilder()
+                                    .setName("Data")
+                                    .setSampleType(SampleType::UInt8)
+                                    .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
+                                    .setRule(ExplicitDataRule())
+                                    .build();
+
+    const auto canMsgDescriptor =
+        DataDescriptorBuilder().setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor)).build();
+
+    const auto domainDescriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::UInt64).setTickResolution(Ratio(1, 1000)).build();
+
+    valueSignal.setDescriptor(canMsgDescriptor);
+    domainSignal.setDescriptor(domainDescriptor);
+
+    const auto streamReader = StreamReader<void*>(valueSignal);
+
+    const auto domainPacket1 = DataPacket(domainDescriptor, 2, 0);
+    const auto valuePacket1 = DataPacketWithDomain(domainPacket1, canMsgDescriptor, 2);
+    auto* canData = static_cast<CANData*>(valuePacket1.getRawData());
+    auto* timeData = static_cast<uint64_t*>(domainPacket1.getRawData());
+
+    canData->arbId = 12;
+    canData->length = 2;
+    canData->data[0] = 1;
+    canData++->data[1] = 2;
+    *timeData++ = 0;
+    canData->arbId = 15;
+    canData->length = 4;
+    canData->data[0] = 5;
+    canData->data[1] = 6;
+    canData->data[2] = 7;
+    canData->data[3] = 8;
+    *timeData++ = 3;
+
+    valueSignal.sendPacket(valuePacket1);
+    domainSignal.sendPacket(domainPacket1);
+
+    const auto domainPacket2 = DataPacket(domainDescriptor, 1, 5);
+    const auto valuePacket2 = DataPacketWithDomain(domainPacket2, canMsgDescriptor, 1);
+    canData = static_cast<CANData*>(valuePacket2.getRawData());
+    timeData = static_cast<uint64_t*>(domainPacket2.getRawData());
+
+    canData->arbId = 14;
+    canData->length = 3;
+    canData->data[0] = 10;
+    canData->data[1] = 11;
+    canData->data[2] = 12;
+    *timeData = 5;
+
+    valueSignal.sendPacket(valuePacket2);
+    domainSignal.sendPacket(domainPacket2);
+
+    CANData dataRead[3];
+    uint64_t timeRead[3];
+
+    SizeT count = 0;
+    do
+    {
+        SizeT toRead = 3;
+        streamReader.readWithDomain(&dataRead[count], &timeRead[count], &toRead, 10);
+        count += toRead;
+    } while (count < 3);
+
+    ASSERT_EQ(count, 3);
+
+    ASSERT_EQ(dataRead[0].arbId, 12);
+    ASSERT_EQ(dataRead[0].length, 2);
+    ASSERT_EQ(dataRead[0].data[0], 1);
+    ASSERT_EQ(dataRead[0].data[1], 2);
+    ASSERT_EQ(timeRead[0], 0);
+    ASSERT_EQ(dataRead[1].arbId, 15);
+    ASSERT_EQ(dataRead[1].length, 4);
+    ASSERT_EQ(dataRead[1].data[0], 5);
+    ASSERT_EQ(dataRead[1].data[1], 6);
+    ASSERT_EQ(dataRead[1].data[2], 7);
+    ASSERT_EQ(dataRead[1].data[3], 8);
+    ASSERT_EQ(timeRead[1], 3);
+    ASSERT_EQ(dataRead[2].arbId, 14);
+    ASSERT_EQ(dataRead[2].length, 3);
+    ASSERT_EQ(dataRead[2].data[0], 10);
+    ASSERT_EQ(dataRead[2].data[1], 11);
+    ASSERT_EQ(dataRead[2].data[2], 12);
+    ASSERT_EQ(timeRead[2], 5);
 }

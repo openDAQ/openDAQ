@@ -634,3 +634,42 @@ TEST_F(RefDeviceModuleTest, ReadCANChannel)
         canData++;
     }
 }
+
+TEST_F(RefDeviceModuleTest, ReadCANChannelWithStreamReader)
+{
+    const auto module = CreateModule();
+
+    const auto device = module.createDevice("daqref://device1", nullptr);
+
+    device.setPropertyValue("EnableCANChannel", True);
+
+    const ChannelPtr canCh = device.getInputsOutputsFolder().getItem("can").asPtr<IFolder>().getItems()[0];
+
+    const auto canSignal = canCh.getSignals()[0];
+    const auto canTimeSignal = canSignal.getDomainSignal();
+    const auto streamReader = StreamReader<void*>(canSignal);
+
+#pragma pack(push, 1)
+    struct CANData
+    {
+        uint32_t arbId;
+        uint8_t length;
+        uint8_t data[64];
+    };
+#pragma pack(pop)
+
+    CANData canData[10];
+    SizeT count = 0;
+    do
+    {
+        SizeT toRead = 2;
+        streamReader.read(&canData[count], &toRead, 10);
+        count += toRead;
+    } while (count < 2);
+
+    for (size_t i = 0; i < count; i++)
+    {
+        ASSERT_EQ(canData[i].arbId, 12u);
+        ASSERT_EQ(canData[i].length, 8u);
+    }
+}

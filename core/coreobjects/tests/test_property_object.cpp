@@ -318,6 +318,23 @@ TEST_F(PropertyObjectTest, DeserializeJsonSimpleWithLocalProperty)
     ASSERT_EQ(json, deserializedJson);
 }
 
+TEST_F(PropertyObjectTest, DISABLED_SerializeList)
+{
+    // Serializer fails to serialize default empty list property correctly.
+
+    auto obj = PropertyObject();
+    obj.addProperty(ListProperty("list", List<IInteger>()));
+    obj.setPropertyValue("list", List<IInteger>(1, 2, 3));
+
+    auto serializer = JsonSerializer();
+    auto deserializer = JsonDeserializer();
+    obj.serialize(serializer);
+    const PropertyObjectPtr clone = deserializer.deserialize(serializer.getOutput());
+    
+    ASSERT_TRUE(clone.hasProperty("list"));
+    ASSERT_TRUE(BaseObjectPtr::Equals(obj.getPropertyValue("list"), clone.getPropertyValue("list")));
+}
+
 TEST_F(PropertyObjectTest, SetNullPropertyPtr)
 {
     auto propObj = PropertyObject(objManager, "Test");

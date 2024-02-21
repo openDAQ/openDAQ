@@ -74,16 +74,3 @@ TEST_F(PropertyObjectConversionUtilsTest, Clone)
 
     ASSERT_TRUE(TestComparators::PropertyObjectEquals(obj, clone));
 }
-
-TEST_F(PropertyObjectConversionUtilsTest, DISABLED_CloneList)
-{
-    // Serializer fails to serialize default empty list property correctly.
-
-    auto obj = CreateTestPropertyObject();
-    obj.addProperty(ListProperty("list", List<IInteger>()));
-    obj.setPropertyValue("list", List<IInteger>(1, 2, 3));
-
-    auto clone = PropertyObjectConversionUtils::ClonePropertyObject(obj);
-
-    ASSERT_TRUE(TestComparators::PropertyObjectEquals(obj, clone));
-}

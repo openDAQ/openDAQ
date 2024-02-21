@@ -129,7 +129,8 @@ TEST_F(TmsIntegrationTest, GetSignals)
 
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = clientDevice.getSignals(search::Recursive(search::Visible())));
-    ASSERT_EQ(signals.getCount(), device.getSignals(search::Recursive(search::Visible())).getCount());
+    // one private signal in MockFunctionBlockImpl. and one in MockPhysicalDeviceImpl
+    ASSERT_EQ(signals.getCount(), device.getSignals(search::Recursive(search::Visible())).getCount() - 2);
 
     ASSERT_NO_THROW(signals = clientDevice.getSignals());
     ASSERT_EQ(signals.getCount(), 0u);

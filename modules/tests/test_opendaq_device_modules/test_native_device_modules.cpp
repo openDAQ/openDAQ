@@ -270,3 +270,26 @@ TEST_F(NativeDeviceModulesTest, DISABLED_RendererSimple)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
+
+TEST_F(NativeDeviceModulesTest, NotPublicSignals)
+{
+    auto server = InstanceBuilder().setDefaultRootDeviceLocalId("customLocal").build();
+    auto serverDevice = server.addDevice("daqref://device1");
+
+    auto serverChannels = serverDevice.getChannels();
+    ASSERT_TRUE(serverChannels.getCount() > 0);
+    for (const auto& signal : serverChannels[0].getSignals(search::Any()))
+        signal.setPublic(false);
+
+    server.addServer("openDAQ Native Streaming", nullptr);
+
+    auto client = CreateClientInstance();
+    auto clientDevice = client.getDevices()[0].getDevices()[0];
+
+    auto clientChannels = clientDevice.getChannels();
+    ASSERT_TRUE(clientChannels.getCount() > 0);
+    for (const auto & signal : clientChannels[0].getSignals(search::Any()))
+    {
+        ASSERT_FALSE(signal.getPublic());
+    }
+}

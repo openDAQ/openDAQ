@@ -464,8 +464,11 @@ void TmsServerDevice::addChildNodes()
     numberInList = 0;
     for (const auto& signal : object.getSignals(search::Any()))
     {
-        auto tmsSignal = registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal, numberInList++);
-        signals.push_back(std::move(tmsSignal));
+        if (signal.getPublic())
+        {
+            auto tmsSignal = registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal, numberInList++);
+            signals.push_back(std::move(tmsSignal));
+        }
     }
 
     auto inputsOutputsNodeId = getChildNodeId("IO");

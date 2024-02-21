@@ -704,12 +704,18 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
         dataDescriptor.serialize(serializer);
     }
 
+    serializer.key("public");
+    serializer.writeBool(isPublic);
+
     Super::serializeCustomObjectValues(serializer, forUpdate);
 }
 
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
 {
+    if (obj.hasKey("public"))
+        isPublic = obj.readBool("public");
+
     Super::updateObject(obj);
 }
 
@@ -771,6 +777,8 @@ void SignalBase<TInterface, Interfaces...>::deserializeCustomObjectValues(const 
         deserializedDomainSignalId = serializedObject.readString("domainSignalId");
     if (serializedObject.hasKey("dataDescriptor"))
         dataDescriptor = serializedObject.readObject("dataDescriptor", context, factoryCallback);
+    if (serializedObject.hasKey("public"))
+        isPublic = serializedObject.readBool("public");
 }
 
 template <typename TInterface, typename... Interfaces>

@@ -53,8 +53,11 @@ void TmsServerFunctionBlock<T>::addChildNodes()
     uint32_t numberInList = 0;
     for (const auto& signal : this->object.getSignals(search::Any()))
     {
-        auto tmsSignal = this->template registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal, numberInList++);
-        signals.push_back(std::move(tmsSignal));
+        if (signal.getPublic())
+        {
+            auto tmsSignal = this->template registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal, numberInList++);       
+            signals.push_back(std::move(tmsSignal));
+        }
     }
 
     auto inputPortsNodeId = this->getChildNodeId("IP");

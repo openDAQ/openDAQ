@@ -7,6 +7,8 @@
 
 #include <opendaq/ids_parser.h>
 
+#include <coreobjects/property_object_factory.h>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
@@ -189,14 +191,54 @@ void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
         session->close();
 }
 
+void NativeStreamingServerHandler::handleTransportLayerProps(const PropertyObjectPtr& propertyObject,
+                                                                   std::shared_ptr<ServerSessionHandler> sessionHandler)
+{
+    if (propertyObject.hasProperty("HeartbeatEnabled") &&
+        propertyObject.hasProperty("HeartbeatPeriod") &&
+        propertyObject.hasProperty("HeartbeatTimeout") &&
+        propertyObject.getProperty("HeartbeatEnabled").getValueType() == ctBool &&
+        propertyObject.getProperty("HeartbeatPeriod").getValueType() == ctInt &&
+        propertyObject.getProperty("HeartbeatTimeout").getValueType() == ctInt)
+    {
+        Bool heartbeatEnabled = propertyObject.getPropertyValue("HeartbeatEnabled");
+        Int heartbeatPeriod = propertyObject.getPropertyValue("HeartbeatPeriod");
+        Int heartbeatTimeout = propertyObject.getPropertyValue("HeartbeatTimeout");
+
+        LOG_I("Heartbeat {}, with period {} ms, and timeout {} ms",
+              heartbeatEnabled ? "enabled" : "disabled",
+              heartbeatPeriod,
+              heartbeatTimeout);
+
+        if (heartbeatEnabled)
+            sessionHandler->startHeartbeat(heartbeatPeriod, heartbeatTimeout);
+    }
+    else
+    {
+        LOG_W("Invalid transport layer properties");
+    }
+}
+
+void NativeStreamingServerHandler::setUpTransportLayerPropsCallback(std::shared_ptr<ServerSessionHandler> sessionHandler)
+{
+    auto sessionHandlerWeakPtr = std::weak_ptr<ServerSessionHandler>(sessionHandler);
+    OnTrasportLayerPropertiesCallback trasportLayerPropertiesCb =
+        [this, sessionHandlerWeakPtr](const PropertyObjectPtr& propertyObject)
+    {
+        if (auto sessionHandlerPtr = sessionHandlerWeakPtr.lock())
+            handleTransportLayerProps(propertyObject, sessionHandlerPtr);
+    };
+    sessionHandler->setTransportLayerPropsHandler(trasportLayerPropertiesCb);
+}
+
 void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler)
 {
-    auto sessionWeakPtr = std::weak_ptr<ServerSessionHandler>(sessionHandler);
+    auto sessionHandlerWeakPtr = std::weak_ptr<ServerSessionHandler>(sessionHandler);
     ConfigProtocolPacketCb sendConfigPacketCb =
-        [sessionWeakPtr](const config_protocol::PacketBuffer& packetBuffer)
+        [sessionHandlerWeakPtr](const config_protocol::PacketBuffer& packetBuffer)
     {
-        if (auto sessionPtr = sessionWeakPtr.lock())
-            sessionPtr->sendConfigurationPacket(packetBuffer);
+        if (auto sessionHandlerPtr = sessionHandlerWeakPtr.lock())
+            sessionHandlerPtr->sendConfigurationPacket(packetBuffer);
     };
     ConfigProtocolPacketCb receiveConfigPacketCb = setUpConfigProtocolServerCb(sendConfigPacketCb);
     sessionHandler->setConfigPacketReceivedHandler(receiveConfigPacketCb);
@@ -231,6 +273,7 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
                                                                  session,
                                                                  signalSubscriptionHandler,
                                                                  errorHandler);
+    setUpTransportLayerPropsCallback(sessionHandler);
     setUpConfigProtocolCallbacks(sessionHandler);
 
     // send sorted signals to newly connected client

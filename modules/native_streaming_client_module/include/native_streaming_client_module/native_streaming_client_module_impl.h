@@ -46,9 +46,14 @@ private:
     static DevicePtr createNativeDevice(const ContextPtr& context,
                                         const ComponentPtr& parent,
                                         const StringPtr& connectionString,
+                                        const PropertyObjectPtr& config,
                                         const StringPtr& host,
                                         const StringPtr& port,
                                         const StringPtr& path);
+    static PropertyObjectPtr createDeviceDefaultConfig();
+    static PropertyObjectPtr createTransportLayerDefaultConfig();
+    bool validateDeviceConfig(const PropertyObjectPtr& config);
+    bool validateTransportLayerConfig(const PropertyObjectPtr& config);
 
     std::mutex sync;
     size_t deviceIndex;

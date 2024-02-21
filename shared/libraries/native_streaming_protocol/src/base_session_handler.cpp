@@ -5,9 +5,6 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
 
-static std::chrono::milliseconds heartbeatPeriod = std::chrono::milliseconds(1000);
-static std::chrono::milliseconds heartbeatTimeout = std::chrono::milliseconds(1500);
-
 BaseSessionHandler::BaseSessionHandler(const ContextPtr& daqContext,
                                        SessionPtr session,
                                        boost::asio::io_context& ioContext,
@@ -19,12 +16,20 @@ BaseSessionHandler::BaseSessionHandler(const ContextPtr& daqContext,
     , heartbeatTimer(std::make_shared<boost::asio::steady_timer>(ioContext))
     , loggerComponent(daqContext.getLogger().getOrAddComponent(loggerComponentName))
 {
-    initHeartbeat();
 }
 
-void BaseSessionHandler::initHeartbeat()
+void BaseSessionHandler::startHeartbeat(Int period, Int timeout)
 {
-    OnHeartbeatCallback onHeartbeatCallback = [this]()
+    if (heartbeatStarted)
+    {
+        LOG_W("Heartbeat is already running");
+        return;
+    }
+
+    auto heartbeatTimeout = std::chrono::milliseconds(timeout);
+    auto heartbeatPeriod = std::chrono::milliseconds(period);
+
+    OnHeartbeatCallback onHeartbeatCallback = [this, heartbeatTimeout]()
     {
         heartbeatTimer->cancel();
         heartbeatTimer->expires_from_now(heartbeatTimeout);
@@ -38,6 +43,7 @@ void BaseSessionHandler::initHeartbeat()
         );
     };
     session->startHeartbeat(onHeartbeatCallback, heartbeatPeriod);
+    heartbeatStarted = true;
 }
 
 ReadTask BaseSessionHandler::readHeader(const void *data, size_t size)

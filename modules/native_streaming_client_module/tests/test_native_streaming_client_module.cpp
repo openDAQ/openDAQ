@@ -9,6 +9,7 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/streaming_info_factory.h>
 #include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_factory.h>
 
 using NativeStreamingClientModuleTest = testing::Test;
 using namespace daq;
@@ -144,6 +145,34 @@ TEST_F(NativeStreamingClientModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
     ASSERT_EQ(serverTypes.getCount(), 0u);
+}
+
+TEST_F(NativeStreamingClientModuleTest, DefaultDeviceConfig)
+{
+    const auto module = CreateModule();
+
+    DictPtr<IString, IDeviceType> deviceTypes;
+    ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
+    ASSERT_EQ(deviceTypes.getCount(), 2u);
+
+    ASSERT_TRUE(deviceTypes.hasKey("daq.nd"));
+    auto deviceConfig = deviceTypes.get("daq.nd").createDefaultConfig();
+    ASSERT_TRUE(deviceConfig.assigned());
+    ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://address", deviceConfig));
+
+    ASSERT_TRUE(deviceTypes.hasKey("daq.nsd"));
+    auto pseudoDeviceConfig = deviceTypes.get("daq.nsd").createDefaultConfig();
+    ASSERT_TRUE(pseudoDeviceConfig.assigned());
+    ASSERT_TRUE(module.acceptsConnectionParameters("daq.nsd://address", pseudoDeviceConfig));
+}
+
+TEST_F(NativeStreamingClientModuleTest, InvalidDeviceConfig)
+{
+    auto module = CreateModule();
+    auto config = PropertyObject();
+
+    ASSERT_FALSE(module.acceptsConnectionParameters("daq.nd://device8", config));
+    ASSERT_FALSE(module.acceptsConnectionParameters("daq.nsd://device8", config));
 }
 
 class ConnectionStringTest : public NativeStreamingClientModuleTest,

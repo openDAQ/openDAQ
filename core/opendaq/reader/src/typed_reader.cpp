@@ -140,14 +140,22 @@ static bool isSampleTypeConvertibleTo(SampleType sampleType)
 template <typename ReadType>
 std::unique_ptr<Comparable> TypedReader<ReadType>::readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo)
 {
-    ReadType startDomain{};
-    void* data = &startDomain;
+    if constexpr (std::is_same_v<void*, ReadType>)
+    {
+        // void reader should never be used to read domain info
+        return {};
+    }
+    else
+    {
+        ReadType startDomain{};
+        void* data = &startDomain;
 
-    setTransformIgnore(true);
-    readData(inputBuffer, offset, &data, 1);
-    setTransformIgnore(false);
+        setTransformIgnore(true);
+        readData(inputBuffer, offset, &data, 1);
+        setTransformIgnore(false);
 
-    return std::make_unique<ComparableValue<ReadType>>(startDomain, domainInfo);
+        return std::make_unique<ComparableValue<ReadType>>(startDomain, domainInfo);
+    }
 }
 
 template <typename ReadType>
@@ -185,7 +193,10 @@ ErrCode TypedReader<ReadType>::readData(void* inputBuffer, SizeT offset, void** 
         case SampleType::String:
             return readValues<SampleTypeToType<SampleType::String>::Type>(inputBuffer, offset, outputBuffer, count);
         case SampleType::Invalid:
-            return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.", nullptr);
+            if constexpr (std::is_same_v<void*, ReadType>)
+                return readValues<void*>(inputBuffer, offset, outputBuffer, count);
+            else
+                return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.", nullptr);
         case SampleType::_count:
             break;
     }
@@ -312,8 +323,19 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
 {
     if (!inputBuffer || !outputBuffer)
         return OPENDAQ_ERR_ARGUMENT_NULL;
+    if constexpr (std::is_same_v<TDataType, void*>)
+    {
+        if (!ignoreTransform && transformFunction.assigned())
+            throw InvalidStateException("Transform not supported for untyped read");
 
-    if constexpr (std::is_convertible_v<TDataType, TReadType>)
+        const auto dataStart = static_cast<void*>(static_cast<uint8_t*>(inputBuffer) + offset * sampleSize);
+        const auto toReadInBytes = sampleSize * toRead;
+        const auto dataOut = *outputBuffer;
+        std::memcpy(dataOut, dataStart, toReadInBytes);
+        *outputBuffer = static_cast<void*>(static_cast<uint8_t*>(dataOut) + toReadInBytes);
+        return OPENDAQ_SUCCESS;
+    }
+    else if constexpr (std::is_convertible_v<TDataType, TReadType>)
     {
         auto dataStart = static_cast<TDataType*>(inputBuffer) + (offset * valuesPerSample);
         auto dataOut = static_cast<TReadType*>(*outputBuffer);
@@ -389,27 +411,40 @@ bool TypedReader<ReadType>::handleDescriptorChanged(DataDescriptorPtr& descripto
     }
 
     bool valid = false;
-    if (descriptor.assigned() && !descriptor.isStructDescriptor())
+
+    if constexpr (std::is_same_v<void*, ReadType>)
     {
-        auto postScaling = descriptor.getPostScaling();
-        if (!postScaling.assigned() || readMode == ReadMode::Scaled)
+        if (descriptor.assigned())
         {
-            dataSampleType = descriptor.getSampleType();
+            sampleSize = descriptor.getSampleSize();
+            dataDescriptor = descriptor;
+            valid = true;
         }
-        else
+    }
+    else
+    {
+        if (descriptor.assigned() && !descriptor.isStructDescriptor())
         {
-            dataSampleType = postScaling.getInputSampleType();
+            auto postScaling = descriptor.getPostScaling();
+            if (!postScaling.assigned() || readMode == ReadMode::Scaled)
+            {
+                dataSampleType = descriptor.getSampleType();
+            }
+            else
+            {
+                dataSampleType = postScaling.getInputSampleType();
+            }
+
+            valid = isSampleTypeConvertibleTo<ReadType>(dataSampleType);
+
+            auto dimensions = descriptor.getDimensions();
+            if (dimensions.assigned() && dimensions.getCount() == 1)
+            {
+                valuesPerSample = dimensions[0].getSize();
+            }
+
+            dataDescriptor = descriptor;
         }
-
-        valid = isSampleTypeConvertibleTo<ReadType>(dataSampleType);
-
-        auto dimensions = descriptor.getDimensions();
-        if (dimensions.assigned() && dimensions.getCount() == 1)
-        {
-            valuesPerSample = dimensions[0].getSize();
-        }
-
-        dataDescriptor = descriptor;
     }
 
     return valid;
@@ -418,7 +453,10 @@ bool TypedReader<ReadType>::handleDescriptorChanged(DataDescriptorPtr& descripto
 template <typename ReadType>
 SampleType TypedReader<ReadType>::getReadType() const noexcept
 {
-    return SampleTypeFromType<ReadType>::SampleType;
+    if constexpr (std::is_same_v<ReadType, void*>)
+        return SampleType::Invalid;
+    else
+        return SampleTypeFromType<ReadType>::SampleType;
 }
 
 ////
@@ -491,6 +529,11 @@ std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionP
     throw NotSupportedException("The requested sample-type is unsupported or invalid.");
 }
 
+std::unique_ptr<Reader> createVoidReader()
+{
+    return std::make_unique<TypedReader<void*>>(nullptr);
+}
+
 template class TypedReader<SampleTypeToType<SampleType::Float32>::Type>;
 template class TypedReader<SampleTypeToType<SampleType::Float64>::Type>;
 template class TypedReader<SampleTypeToType<SampleType::UInt8>::Type>;
@@ -503,5 +546,6 @@ template class TypedReader<SampleTypeToType<SampleType::Int64>::Type>;
 template class TypedReader<SampleTypeToType<SampleType::RangeInt64>::Type>;
 template class TypedReader<SampleTypeToType<SampleType::ComplexFloat32>::Type>;
 template class TypedReader<SampleTypeToType<SampleType::ComplexFloat64>::Type>;
+template class TypedReader<void*>;
 
 END_NAMESPACE_OPENDAQ

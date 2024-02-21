@@ -452,8 +452,13 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
 DictPtr<IString, IFunctionBlockType> TmsClientDeviceImpl::onGetAvailableFunctionBlockTypes()
 {
     auto browser = clientContext->getReferenceBrowser();
+    auto types = Dict<IString, IFunctionBlockType>();
 
     const auto fbFolderNodeId = browser->getChildNodeId(nodeId, "FB");
+
+    if (!browser->hasReference(fbFolderNodeId, "AvailableTypes"))
+        return types;
+
     const auto availableTypesId = browser->getChildNodeId(fbFolderNodeId, "AvailableTypes");
 
     auto filter = BrowseFilter();
@@ -462,7 +467,6 @@ DictPtr<IString, IFunctionBlockType> TmsClientDeviceImpl::onGetAvailableFunction
     filter.nodeClass = UA_NODECLASS_VARIABLE;
 
     auto fbTypesReferences = browser->browseFiltered(availableTypesId, filter);
-    auto types = Dict<IString, IFunctionBlockType>();
 
     for (const auto& [refNodeId, ref] : fbTypesReferences.byNodeId)
     {

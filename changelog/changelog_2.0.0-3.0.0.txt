@@ -1,3 +1,47 @@
+21.02.2023
+Description:
+  - readers returns IReaderStatus
+  - Support creating readers with IInputPort
+  - Add callback on available packet for reader
+
++ [interface] IReaderStatus : public IBaseObject
++ [function] IReaderStatus::isOk(Bool* status)
++ [function] IReaderStatus::getEventPacket(IEventPacket** packet)
++ [function] IReaderStatus::isEventEncountered(Bool* status)
++ [function] IReaderStatus::isConvertable(Bool* status)
++ [factory] ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool convertable = true)
+
+-m [function] IBlockReader::read(void* blocks, SizeT* count, SizeT timeoutMs = 0)
++m [function] IBlockReader::read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr)
+-m [function] IBlockReader::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0)
++m [function] IBlockReader::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr)
+
+-m [function] IMultiReader::read(void* samples, SizeT* count, SizeT timeoutMs = 0)
++m [function] IMultiReader::read(void* samples, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr)
+-m [function] IMultiReader::readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0)
++m [function] IMultiReader::readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr)
+
+-m [function] IStreamReader::read(void* samples, SizeT* count, SizeT timeoutMs = 0)
++m [function] IStreamReader::read(void* samples, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr)
+-m [function] IStreamReader::readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0)
++m [function] IStreamReader::readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr)
+
+-m [function] IStreamReader::read(void* values, SizeT* count)
++m [function] IStreamReader::read(void* values, SizeT* count, IReaderStatus** status = nullptr)
+-m [function] IStreamReader::readWithDomain(void* values, void* domain, SizeT* count)
++m [function] IStreamReader::readWithDomain(void* values, void* domain, SizeT* count, IReaderStatus** status = nullptr)
+
++ [factory] PacketReaderPtr PacketReaderFromPort(InputPortConfigPtr port)
++ [factory] StreamReaderPtr StreamReaderFromPort(InputPortConfigPtr port, SampleType valueReadType, SampleType domainReadType, ReadMode mode, ReadTimeoutType timeoutType)
++ [factory] TailReaderPtr TailReaderFromPort(InputPortConfigPtr port, SizeT historySize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
++ [factory] BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
++ [factory] MultiReaderPtr MultiReaderFromPort(ListPtr<IInputPortConfig> ports, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType)
+
++ [function] IReader::setOnDataAvailable(IFunction* callback)
+
+- [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)
++ [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SizeT blockSize, SampleType valueReadType, SampleType domainReadType)
+
 12.02.2024
 Description:
   - Add module implementations for device based on the native config protocol
@@ -242,22 +286,6 @@ Description:
 
 -m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId)
 +m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo)
-
-18.12.2023
-Description:
-  - Support creating readers with IInputPort
-  - Add callback on available packet for reader
-
-+ [factory] PacketReaderPtr PacketReaderFromPort(InputPortConfigPtr port)
-+ [factory] StreamReaderPtr StreamReaderFromPort(InputPortConfigPtr port, SampleType valueReadType, SampleType domainReadType, ReadMode mode, ReadTimeoutType timeoutType)
-+ [factory] TailReaderPtr TailReaderFromPort(InputPortConfigPtr port, SizeT historySize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
-+ [factory] BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
-+ [factory] MultiReaderPtr MultiReaderFromPort(ListPtr<IInputPortConfig> ports, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType)
-
-+ [function] IReader::setOnDataAvailable(IFunction* callback)
-
-- [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)
-+ [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SizeT blockSize, SampleType valueReadType, SampleType domainReadType)
 
 13.12.2023
 Description:

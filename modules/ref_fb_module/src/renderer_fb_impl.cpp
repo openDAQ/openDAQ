@@ -1370,7 +1370,9 @@ void RendererFbImpl::setLastDomainStamp(SignalContext& signalContext, const Data
     }
     else
     {
-        NumberPtr offset = domainPacket.getOffset().assigned() ? domainPacket.getOffset() : 0;
+        NumberPtr offset = 0;
+        if (domainPacket.getOffset().assigned())
+            offset = domainPacket.getOffset();
         lastDomainStamp = static_cast<DestDomainType>(offset + domainPacket.getSampleCount() * signalContext.domainDelta +
                                                       signalContext.domainStart); 
     }

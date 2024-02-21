@@ -6,6 +6,7 @@
 #include <opendaq/reader_errors.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/ownable_ptr.h>
+#include <opendaq/reader_factory.h>
 
 #include <coretypes/validation.h>
 #include <coretypes/function.h>
@@ -213,18 +214,8 @@ void StreamReaderImpl::onPacketReady()
 {
     notify.condition.notify_one();
 
-    FunctionPtr callback = readCallback;
-    while (callback.assigned() && connection.getPacketCount())
-    {
-        auto packet = connection.peek();
-        if (packet.getType() == PacketType::Data)
-            callback();
-        else if (packet.getType() == PacketType::Event)
-            handleDescriptorChanged(connection.dequeue());
-        else
-            break;
-        callback = readCallback;
-    }
+    if (readCallback.assigned())
+        readCallback();
 }
 
 ErrCode StreamReaderImpl::getValueReadType(SampleType* sampleType)
@@ -299,7 +290,6 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
     if (!eventPacket.assigned())
         return;
 
-
     auto params = eventPacket.getParameters();
     DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
     DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
@@ -333,18 +323,6 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
         {
             invalid = !valid;
         }
-    }
-
-    // If both value and domain are still convertible
-    // check with the user if new state is valid for them
-    if (callChangeCallback && !invalid && changeCallback.assigned())
-    {
-        bool descriptorOk = false;
-        ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor);
-        invalid = !descriptorOk || OPENDAQ_FAILED(errCode);
-
-        if (OPENDAQ_FAILED(errCode))
-            daqClearErrorInfo();
     }
 }
 
@@ -418,7 +396,7 @@ ErrCode StreamReaderImpl::readPacketData()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode StreamReaderImpl::readPackets()
+ErrCode StreamReaderImpl::readPackets(IReaderStatus** status)
 {
     bool firstData = false;
     ErrCode errCode = OPENDAQ_SUCCESS;
@@ -484,13 +462,9 @@ ErrCode StreamReaderImpl::readPackets()
                         );
                     }
 
-                    if (invalid)
-                    {
-                        return this->makeErrorInfo(
-                            OPENDAQ_ERR_INVALID_DATA,
-                            "Packet samples are no longer convertible to the read type"
-                        );
-                    }
+                    if (status)
+                        *status = ReaderStatus(eventPacket, !invalid).detach();
+                    return errCode;
                 }
                 break;
             }
@@ -513,7 +487,14 @@ ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IRe
     std::scoped_lock lock(mutex);
 
     if (invalid)
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Packet samples are no longer convertible to the read type", nullptr);
+    {
+        if (status)
+            *status = ReaderStatus(nullptr, !invalid).detach();
+        return OPENDAQ_IGNORED;
+    }
+
+    if (status)
+        *status = nullptr;
 
     ErrCode errCode = OPENDAQ_SUCCESS;
 
@@ -527,7 +508,10 @@ ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IRe
                              && info.remainingToRead != *count;
 
     if (OPENDAQ_SUCCEEDED(errCode) && info.remainingToRead <= *count && !shouldReturnEarly)
-        errCode = readPackets();
+        errCode = readPackets(status);
+
+    if (status && *status == nullptr)
+        *status = ReaderStatus().detach();
 
     *count = *count - info.remainingToRead;
     return errCode;
@@ -560,7 +544,7 @@ ErrCode StreamReaderImpl::readWithDomain(void* samples,
                              && info.remainingToRead != *count;
 
     if (OPENDAQ_SUCCEEDED(errCode) && info.remainingToRead <= *count && !shouldReturnEarly)
-        errCode = readPackets();
+        errCode = readPackets(status);
 
     *count = *count - info.remainingToRead;
     return errCode;

@@ -671,58 +671,17 @@ TYPED_TEST(StreamReaderFromExistingTest, DescriptorChangedConvertible)
 
     count = 2;
     TypeParam sampleInt32[2]{};
+    {
+        size_t tempCnt = 1;
+        auto status = reader.read((TypeParam*) &sampleInt32, &tempCnt);
+        ASSERT_TRUE(status.isEventEncountered());
+    }
     ASSERT_NO_THROW(reader.read((void*) &sampleInt32, &count));
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     ASSERT_EQ(sampleInt32[0], TypeParam(3));
     ASSERT_EQ(sampleInt32[1], TypeParam(4));
-}
-
-TYPED_TEST(StreamReaderFromExistingTest, DescriptorChangedCallbackNotConvertible)
-{
-    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
-    auto oldReader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
-
-    auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
-    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor)
-    {
-        return false;
-    });
-
-    const SizeT NUM_SAMPLES = 2;
-    auto dataPacketDouble = DataPacket(this->signal.getDescriptor(), NUM_SAMPLES);
-    auto dataPtrDouble = static_cast<double*>(dataPacketDouble.getData());
-    dataPtrDouble[0] = 111.1;
-    dataPtrDouble[1] = 222.2;
-
-    this->sendPacket(dataPacketDouble);
-
-    ASSERT_EQ(reader.getAvailableCount(), 2u);
-
-    SizeT count{2};
-    TypeParam samplesDouble[2]{};
-    reader.read((void*) &samplesDouble, &count);
-
-    ASSERT_EQ(reader.getAvailableCount(), 0u);
-
-    // Change signal sample-type
-    this->signal.setDescriptor(setupDescriptor(SampleType::Int32));
-    auto dataPacketInt32 = DataPacket(this->signal.getDescriptor(), NUM_SAMPLES);
-    auto dataPtrInt32 = static_cast<int32_t*>(dataPacketInt32.getData());
-    dataPtrInt32[0] = 3;
-    dataPtrInt32[1] = 4;
-
-    this->sendPacket(dataPacketInt32);
-
-    ASSERT_EQ(reader.getAvailableCount(), 2u);
-
-    count = 2;
-    TypeParam sampleInt32[2]{};
-    ErrCode errCode = reader->read((void*) &sampleInt32, &count);
-    ASSERT_EQ(errCode, OPENDAQ_ERR_INVALID_DATA);
-
-    ASSERT_THROW_MSG(checkErrorInfo(errCode), InvalidDataException, "Packet samples are no longer convertible to the read type")
 }
 
 TYPED_TEST(StreamReaderFromExistingTest, DescriptorChangedNotConvertible)
@@ -743,10 +702,8 @@ TYPED_TEST(StreamReaderFromExistingTest, DescriptorChangedNotConvertible)
 
     SizeT count{1};
     std::int32_t samples[1];
-    ErrCode errCode = reader->read((void*) &samples, &count);
-    ASSERT_EQ(errCode, OPENDAQ_ERR_INVALID_DATA);
-
-    ASSERT_THROW_MSG(checkErrorInfo(errCode), InvalidDataException, "Packet samples are no longer convertible to the read type")
+    auto status = reader.read((void*) &samples, &count);
+    ASSERT_FALSE(status.isConvertable());
 }
 
 TYPED_TEST(StreamReaderFromExistingTest, ReadWithZeroAvailableAndTimeoutAny)
@@ -828,37 +785,21 @@ TYPED_TEST(StreamReaderFromExistingTest, StealConnection)
 
     SizeT count{1};
     TypeParam samples[1];
-    ErrCode errCode = reader->read((void*) &samples, &count);
+    auto status = reader.read((void*) &samples, &count);
 
-    ErrCode expected;
-    if (!IsTemplateOf<TypeParam, Complex_Number>::value)
-    {
-        expected = OPENDAQ_ERR_INVALID_DATA;
-    }
-    else
-    {
-        expected = OPENDAQ_SUCCESS;
-    }
-    ASSERT_EQ(errCode, expected);
+    bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
+    ASSERT_EQ(status.isConvertable(), convertable);
 
     auto newReader = daq::StreamReaderFromExisting<ComplexFloat32, ClockRange>(reader);
 
     SizeT complexCount{1};
     ComplexFloat32 complexSamples[1];
-    errCode = newReader->read((void*) &complexSamples, &complexCount);
-    ASSERT_SUCCEEDED(errCode);
+    status = newReader.read((void*) &complexSamples, &complexCount);
+    ASSERT_TRUE(status.isOk());
 
     ASSERT_EQ(complexCount, 1u);
 
-    ComplexFloat32 expectedSample;
-    if (!IsTemplateOf<TypeParam, Complex_Number>::value)
-    {
-        expectedSample = 111;
-    }
-    else
-    {
-        expectedSample = 222;
-    }
+    ComplexFloat32 expectedSample = 111;
     ASSERT_EQ(complexSamples[0], expectedSample);
 }
 

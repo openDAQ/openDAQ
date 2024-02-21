@@ -258,15 +258,16 @@ ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IRead
     OPENDAQ_PARAM_NOT_NULL(count);
 
     std::scoped_lock lock(mutex);
-    if (status)
-        *status = nullptr;
-
+    
     if (invalid)
     {
         if (status)
             *status = ReaderStatus(nullptr, !invalid).detach();
         return OPENDAQ_IGNORED;
     }
+
+    if (status)
+        *status = nullptr;
 
     SizeT samplesToRead = *count * blockSize;
     info.prepare(blocks, samplesToRead, milliseconds(timeoutMs));
@@ -288,9 +289,7 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
     OPENDAQ_PARAM_NOT_NULL(count);
 
     std::scoped_lock lock(mutex);
-    if (status)
-        *status = nullptr;
-
+    
     if (invalid)
     {
         if (status)
@@ -298,8 +297,8 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
         return OPENDAQ_IGNORED;
     }
 
-    if (invalid)
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Packet samples are no longer convertible to the read type.", nullptr);
+    if (status)
+        *status = nullptr;
 
     SizeT samplesToRead = *count * blockSize;
     info.prepareWithDomain(dataBlocks, domainBlocks, samplesToRead, milliseconds(timeoutMs));

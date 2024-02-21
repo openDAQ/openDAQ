@@ -624,58 +624,6 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
     ASSERT_EQ(sampleInt32[1], TypeParam(4));
 }
 
-TYPED_TEST(BlockReaderTest, DescriptorChangedCallbackNotConvertible)
-{
-    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
-
-    auto reader = daq::BlockReader<TypeParam, ClockRange>(this->signal, BLOCK_SIZE);
-    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor)
-    {
-        return false;
-    });
-
-    const SizeT NUM_SAMPLES = 5;
-    auto dataPacketDouble = DataPacket(this->signal.getDescriptor(), NUM_SAMPLES);
-    auto dataPtrDouble = static_cast<double*>(dataPacketDouble.getData());
-    dataPtrDouble[0] = 11.1;
-    dataPtrDouble[1] = 22.2;
-    dataPtrDouble[2] = 33.2;
-    dataPtrDouble[3] = 44.2;
-    dataPtrDouble[4] = 55.2;
-
-    this->sendPacket(dataPacketDouble);
-    this->scheduler.waitAll();
-
-    ASSERT_EQ(reader.getAvailableCount(), NUM_SAMPLES / BLOCK_SIZE);
-
-    SizeT count{2};
-    TypeParam samplesDouble[2 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samplesDouble, &count);
-
-    // 1 sample left in the reader but not enough for a block
-    ASSERT_EQ(reader.getAvailableCount(), 0u);
-
-    // Change signal sample-type
-    this->signal.setDescriptor(setupDescriptor(SampleType::Int32));
-    auto dataPacketInt32 = DataPacket(this->signal.getDescriptor(), NUM_SAMPLES);
-    auto dataPtrInt32 = static_cast<int32_t*>(dataPacketInt32.getData());
-    dataPtrInt32[0] = 6;
-    dataPtrInt32[1] = 7;
-    dataPtrInt32[2] = 8;
-    dataPtrInt32[3] = 9;
-    dataPtrInt32[4] = 10;
-
-    this->sendPacket(dataPacketInt32);
-    this->scheduler.waitAll();
-
-    ASSERT_EQ(reader.getAvailableCount(), 3u);
-
-    count = 2;
-    TypeParam sampleInt32[2 * BLOCK_SIZE]{};
-    auto status = reader.read((TypeParam*) &sampleInt32, &count);
-    ASSERT_TRUE(status.isEventEncountered());
-}
-
 TYPED_TEST(BlockReaderTest, DescriptorChangedNotConvertible)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Int32));
@@ -727,8 +675,8 @@ TYPED_TEST(BlockReaderTest, ReuseReader)
 
     auto status = reader.read((TypeParam*) &samples, &count);
 
-    Bool expected = IsTemplateOf<TypeParam, Complex_Number>::value;
-    ASSERT_EQ(status.isConvertable(), expected);
+    Bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
+    ASSERT_EQ(status.isConvertable(), convertable);
 
     auto newReader = daq::BlockReaderFromExisting<ComplexFloat32, ClockRange>(reader, reader.getBlockSize());
 
@@ -740,7 +688,7 @@ TYPED_TEST(BlockReaderTest, ReuseReader)
     ASSERT_EQ(complexCount, 1u);
 
     ComplexFloat32 expectedSample[BLOCK_SIZE]{};
-    if (!IsTemplateOf<TypeParam, Complex_Number>::value)
+    if (!convertable)
     {
         expectedSample[0] = 11;
         expectedSample[1] = 22;

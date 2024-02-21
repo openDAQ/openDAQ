@@ -170,7 +170,7 @@ ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
             }
             else 
                 it = packets.erase(it);
-            return OPENDAQ_SUCCESS;
+            return errCode;
         } 
         else
         {
@@ -189,7 +189,7 @@ ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
         *status = ReaderStatus().detach();
     }
 
-    return OPENDAQ_SUCCESS;
+    return errCode;
 }
 
 ErrCode TailReaderImpl::read(void* values, SizeT* count, IReaderStatus** status)

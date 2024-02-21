@@ -34,7 +34,7 @@ PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
     this->port.setListener(this->thisPtr<InputPortNotificationsPtr>());
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
 
-     if (this->port.getConnection().assigned())
+    if (this->port.getConnection().assigned())
         connection = this->port.getConnection();
 }
 
@@ -52,9 +52,7 @@ ErrCode PacketReaderImpl::getAvailableCount(SizeT* count)
 
 ErrCode PacketReaderImpl::setOnDescriptorChanged(IFunction* callback)
 {
-    OPENDAQ_PARAM_NOT_NULL(callback);
-
-    return  OPENDAQ_IGNORED;
+    return OPENDAQ_IGNORED;
 }
 
 ErrCode PacketReaderImpl::setOnDataAvailable(IFunction* callback)

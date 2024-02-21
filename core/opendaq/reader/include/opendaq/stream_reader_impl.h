@@ -107,7 +107,7 @@ private:
     [[nodiscard]]
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket);
 
-    ErrCode readPackets();
+    ErrCode readPackets(IReaderStatus** status);
     ErrCode readPacketData();
 
     ReadInfo info{};

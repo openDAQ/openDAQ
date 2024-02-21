@@ -23,7 +23,8 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
                                                      const StringPtr& connectionString,
                                                      const StringPtr& host,
                                                      const StringPtr& port,
-                                                     const StringPtr& path)
+                                                     const StringPtr& path,
+                                                     NativeStreamingClientHandlerPtr transportProtocolClient)
     : Device(ctx, parent, localId)
     , connectionString(connectionString)
     , reconnectionStatus(ClientReconnectionStatus::Connected)
@@ -31,7 +32,7 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     if (!this->connectionString.assigned())
         throw ArgumentNullException("connectionString cannot be null");
 
-    createNativeStreaming(host, port, path);
+    createNativeStreaming(transportProtocolClient, host, port, path);
     activateStreaming();
     initStatuses(ctx);
 }
@@ -72,7 +73,8 @@ void NativeStreamingDeviceImpl::publishReconnectionStatus()
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ReconnectionStatus", newStatusValue);
 }
 
-void NativeStreamingDeviceImpl::createNativeStreaming(const StringPtr& host,
+void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandlerPtr transportProtocolClient,
+                                                      const StringPtr& host,
                                                       const StringPtr& port,
                                                       const StringPtr& path)
 {
@@ -95,7 +97,6 @@ void NativeStreamingDeviceImpl::createNativeStreaming(const StringPtr& host,
             reconnectionStatusChangedHandler(status);
         };
 
-    auto clientHandler = std::make_shared<NativeStreamingClientHandler>(context);
     std::string streamingConnectionString = std::regex_replace(connectionString.toStdString(),
                                                                std::regex(NativeStreamingDevicePrefix),
                                                                NativeStreamingPrefix);
@@ -105,7 +106,7 @@ void NativeStreamingDeviceImpl::createNativeStreaming(const StringPtr& host,
                                                                   port,
                                                                   path,
                                                                   context,
-                                                                  clientHandler,
+                                                                  transportProtocolClient,
                                                                   onSignalAvailableCallback,
                                                                   onSignalUnavailableCallback,
                                                                   onReconnectionStatusChangedCallback);

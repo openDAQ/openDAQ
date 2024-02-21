@@ -20,6 +20,7 @@
 #include <native_streaming/session.hpp>
 
 #include <opendaq/context_ptr.h>
+#include <coreobjects/property_object_ptr.h>
 
 #include <config_protocol/config_protocol.h>
 
@@ -40,9 +41,9 @@ public:
     void sendConfigurationPacket(const config_protocol::PacketBuffer& packet);
 
     void setConfigPacketReceivedHandler(const ConfigProtocolPacketCb& configPacketReceivedHandler);
+    void startHeartbeat(Int period, Int timeout);
 
 protected:
-    void initHeartbeat();
     virtual daq::native_streaming::ReadTask readHeader(const void* data, size_t size);
     daq::native_streaming::ReadTask readConfigurationPacket(const void *data, size_t size);
 
@@ -71,5 +72,6 @@ protected:
     native_streaming::OnSessionErrorCallback errorHandler;
     std::shared_ptr<boost::asio::steady_timer> heartbeatTimer;
     LoggerComponentPtr loggerComponent;
+    bool heartbeatStarted{false};
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

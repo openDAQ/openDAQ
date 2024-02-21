@@ -34,7 +34,8 @@ public:
                                        const StringPtr& connectionString,
                                        const StringPtr& host,
                                        const StringPtr& port,
-                                       const StringPtr& path);
+                                       const StringPtr& path,
+                                       opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient);
 
 protected:
     DeviceInfoPtr onGetInfo() override;
@@ -44,7 +45,10 @@ protected:
     void reconnectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientReconnectionStatus status);
     void initStatuses(const ContextPtr& ctx);
     void publishReconnectionStatus();
-    void createNativeStreaming(const StringPtr& host, const StringPtr& port, const StringPtr& path);
+    void createNativeStreaming(opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
+                               const StringPtr& host,
+                               const StringPtr& port,
+                               const StringPtr& path);
     void activateStreaming();
     void addToDeviceSignals(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void addToDeviceSignalsOnReconnection(const StringPtr& signalStringId, const StringPtr& serializedSignal);

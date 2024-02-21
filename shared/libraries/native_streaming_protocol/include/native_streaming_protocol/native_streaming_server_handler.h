@@ -54,6 +54,8 @@ public:
 
 protected:
     void initSessionHandler(SessionPtr session);
+    void handleTransportLayerProps(const PropertyObjectPtr& propertyObject, std::shared_ptr<ServerSessionHandler> sessionHandler);
+    void setUpTransportLayerPropsCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void releaseSessionHandler(SessionPtr session);
 

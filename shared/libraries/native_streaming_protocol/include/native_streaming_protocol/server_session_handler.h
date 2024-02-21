@@ -43,17 +43,20 @@ public:
     void sendSubscribingDone(const SignalNumericIdType signalNumericId);
     void sendUnsubscribingDone(const SignalNumericIdType signalNumericId);
 
+    void setTransportLayerPropsHandler(const OnTrasportLayerPropertiesCallback& transportLayerPropsHandler);
+
 private:
     daq::native_streaming::ReadTask readHeader(const void* data, size_t size) override;
 
     daq::native_streaming::ReadTask readSignalSubscribe(const void* data, size_t size);
     daq::native_streaming::ReadTask readSignalUnsubscribe(const void* data, size_t size);
+    daq::native_streaming::ReadTask readTransportLayerProperties(const void* data, size_t size);
 
     void sendPacketBuffer(const packet_streaming::PacketBufferPtr& packetBuffer);
 
     OnSignalSubscriptionCallback signalSubscriptionHandler;
+    OnTrasportLayerPropertiesCallback transportLayerPropsHandler;
 
     packet_streaming::PacketStreamingServer packetStreamingServer;
-    SerializerPtr jsonSerializer;
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

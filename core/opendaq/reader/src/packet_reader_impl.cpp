@@ -50,11 +50,6 @@ ErrCode PacketReaderImpl::getAvailableCount(SizeT* count)
     return connection->getPacketCount(count);
 }
 
-ErrCode PacketReaderImpl::setOnDescriptorChanged(IFunction* callback)
-{
-    return OPENDAQ_IGNORED;
-}
-
 ErrCode PacketReaderImpl::setOnDataAvailable(IFunction* callback)
 {
     std::scoped_lock lock(mutex);

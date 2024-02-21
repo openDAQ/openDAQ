@@ -78,7 +78,7 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
 
     SignalInfo sigInfo {
         nullptr,
-        readerConfig.getOnDescriptorChanged(),
+        nullptr,
         readerConfig.getValueTransformFunction(),
         readerConfig.getDomainTransformFunction(),
         mode,

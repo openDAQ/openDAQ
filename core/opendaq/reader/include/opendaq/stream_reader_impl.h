@@ -59,7 +59,6 @@ public:
 
     // IReader
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
-    ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) override;
     ErrCode INTERFACE_FUNC setOnDataAvailable(IFunction* callback) override;
 
     // ISampleReader
@@ -81,7 +80,6 @@ public:
                                           IReaderStatus** status = nullptr) override;
 
     // IReaderConfig
-    ErrCode INTERFACE_FUNC getOnDescriptorChanged(IFunction** callback) override;
     ErrCode INTERFACE_FUNC getValueTransformFunction(IFunction** transform) override;
     ErrCode INTERFACE_FUNC getDomainTransformFunction(IFunction** transform) override;
     ErrCode INTERFACE_FUNC getInputPorts(IList** ports) override;
@@ -102,7 +100,7 @@ private:
 
     void onPacketReady();
 
-    void handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback = true);
+    void handleDescriptorChanged(const EventPacketPtr& eventPacket);
 
     [[nodiscard]]
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket);
@@ -126,7 +124,6 @@ private:
     bool invalid{};
 
     std::mutex mutex;
-    FunctionPtr changeCallback;
     FunctionPtr readCallback;
 };
 

@@ -54,7 +54,7 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , info(old->info)
 {
     this->internalAddRef();
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr), false);
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr));
     readDescriptorFromPort();
     notify.dataReady = false;
 }
@@ -228,7 +228,7 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status)
                 auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
-                    handleDescriptorChanged(eventPacket, true);
+                    handleDescriptorChanged(eventPacket);
                     if (status)
                         *status = ReaderStatus(eventPacket, !invalid).detach();
                     return errCode;

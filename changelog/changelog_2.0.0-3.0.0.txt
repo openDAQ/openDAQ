@@ -38,6 +38,11 @@ Description:
 + [factory] MultiReaderPtr MultiReaderFromPort(ListPtr<IInputPortConfig> ports, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType)
 
 + [function] IReader::setOnDataAvailable(IFunction* callback)
+- [function] IReader::setOnDescriptorChanged(IFunction* callback)
+- [function] IReaderConfig::getOnDescriptorChanged(IFunction** callback)
+
++ [function] MultiReaderPtr::setOnDescriptorChanged(IFunction* callback)
++ [function] MultiReaderPtr::getOnDescriptorChanged(IFunction** callback)
 
 - [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)
 + [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SizeT blockSize, SampleType valueReadType, SampleType domainReadType)

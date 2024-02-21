@@ -132,19 +132,6 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    /*!
-     * @brief Gets the user the option to invalidate the reader when the signal descriptor changes
-     * @param callback The callback to call when the descriptor changes. The callback takes a descriptor
-     * as a parameter and returns a boolean indicating whether the change is still acceptable.
-     */
-    ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) override
-    {
-        std::scoped_lock lock(mutex);
-
-        changeCallback = callback;
-        return OPENDAQ_SUCCESS;
-    }
-
     ErrCode INTERFACE_FUNC setOnDataAvailable(IFunction* callback) override
     {
         std::scoped_lock lock(mutex);
@@ -168,19 +155,6 @@ public:
     }
 
     // IReaderConfig
-
-    /*!
-     * @brief Gets the currently set callback to call when the signal descriptor changes if any.
-     * @param[out] callback The callback to call when the descriptor changes or @c nullptr if not set.
-     */
-    ErrCode INTERFACE_FUNC getOnDescriptorChanged(IFunction** callback) override
-    {
-        std::scoped_lock lock(mutex);
-
-        *callback = changeCallback.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
-    }
-
     /*!
      * @brief Gets the internally created input-ports if used.
      * @param[out] ports The internal Input-Ports if used by the reader.
@@ -350,7 +324,6 @@ protected:
         port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
 
         connection = old->connection;
-        changeCallback = old->changeCallback;
         readCallback = old->readCallback;
     }
 
@@ -371,7 +344,6 @@ protected:
         readerConfig.markAsInvalid();
 
         port = readerConfig.getInputPorts()[0];
-        changeCallback = readerConfig.getOnDescriptorChanged();
         connection = port.getConnection();
 
         valueReader = createReaderForType(valueReadType, readerConfig.getValueTransformFunction());
@@ -401,7 +373,7 @@ protected:
         }
     }
 
-    virtual void handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback = true)
+    virtual void handleDescriptorChanged(const EventPacketPtr& eventPacket)
     {
         if (!eventPacket.assigned())
             return;
@@ -440,18 +412,6 @@ protected:
                 invalid = !valid;
             }
         }
-
-        // If both value and domain are still convertible
-        // check with the user if new state is valid for them
-        // if (callChangeCallback && !invalid && changeCallback.assigned())
-        // {
-        //     bool descriptorOk = false;
-        //     ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor);
-        //     invalid = !descriptorOk || OPENDAQ_FAILED(errCode);
-
-        //     if (OPENDAQ_FAILED(errCode))
-        //         daqClearErrorInfo();
-        // }
     }
 
     void readDescriptorFromPort()
@@ -488,7 +448,7 @@ protected:
             }
         }
 
-        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr), false);
+        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr));
     }
 
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket)
@@ -531,7 +491,6 @@ protected:
     InputPortConfigPtr port;
     PropertyObjectPtr portBinder;
     ConnectionPtr connection;
-    FunctionPtr changeCallback;
     FunctionPtr readCallback;
     ReadTimeoutType timeoutType;
 

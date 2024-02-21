@@ -54,7 +54,7 @@ TailReaderImpl::TailReaderImpl(TailReaderImpl* old,
     , packets(old->packets)
     
 {
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr), false);
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr));
     readDescriptorFromPort();
 }
 

@@ -77,7 +77,6 @@ StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
 
     timeoutType = readerConfig.getReadTimeoutType();
     inputPort = readerConfig.getInputPorts()[0];
-    changeCallback = readerConfig.getOnDescriptorChanged();
 
     valueReader = createReaderForType(valueReadType, readerConfig.getValueTransformFunction());
     domainReader = createReaderForType(domainReadType, readerConfig.getDomainTransformFunction());
@@ -110,7 +109,6 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
 
     connection = inputPort.getConnection();
     readCallback = old->readCallback;
-    changeCallback = old->changeCallback;
 
     this->internalAddRef();
     readDescriptorFromPort();
@@ -156,7 +154,7 @@ void StreamReaderImpl::readDescriptorFromPort()
         }
     }
 
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr), false);
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr));
 }
 
 void StreamReaderImpl::connectSignal(const SignalPtr& signal)
@@ -285,7 +283,7 @@ void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescripto
     reader = createReaderForType(newDescriptor.getSampleType(), reader->getTransformFunction());
 }
 
-void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket, bool callChangeCallback)
+void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket)
 {
     if (!eventPacket.assigned())
         return;
@@ -451,7 +449,7 @@ ErrCode StreamReaderImpl::readPackets(IReaderStatus** status)
                 auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
-                    errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket, true);
+                    errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket);
                     if (OPENDAQ_FAILED(errCode))
                     {
                         invalid = true;
@@ -548,22 +546,6 @@ ErrCode StreamReaderImpl::readWithDomain(void* samples,
 
     *count = *count - info.remainingToRead;
     return errCode;
-}
-
-ErrCode StreamReaderImpl::getOnDescriptorChanged(IFunction** callback)
-{
-    std::scoped_lock lock(mutex);
-
-    *callback = changeCallback.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode StreamReaderImpl::setOnDescriptorChanged(IFunction* callback)
-{
-    std::scoped_lock lock(mutex);
-
-    changeCallback = callback;
-    return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamReaderImpl::setOnDataAvailable(IFunction* callback)

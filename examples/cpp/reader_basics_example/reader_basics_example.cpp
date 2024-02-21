@@ -146,25 +146,6 @@ void example4(const SignalConfigPtr& signal)
     assert(values[2] == 3.0);
     assert(values[3] == 4.0);
 
-    // Instal a custom callback that invalidates the reader if the new value sample-type is `Int64`
-    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor,
-                                     const DataDescriptorPtr& /*domainDescriptor*/, 
-                                     void* /*remainingSample*/, 
-                                     size_t /*remainingSize*/)
-    {
-        // If the value descriptor has changed
-        if (valueDescriptor.assigned())
-        {
-            // and the new sample type is `Int64`
-            if (valueDescriptor.getSampleType() == SampleType::Int64)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    });
-
     //
     // The value sample-type of the `signal` changes from `Int32` to `Int64`
     //
@@ -177,25 +158,12 @@ void example4(const SignalConfigPtr& signal)
     data3[1] = 4;
     signal.sendPacket(packet3);
 
-    [[maybe_unused]]
-    bool failed{true};
-    try
-    {
-        count = {2};
-        double newValues[2]{};
-
-        // Fails even if the new sample-type is convertible to `double` because
-        // the user callback invalidated the reader.
-        reader.read(newValues, &count);
-
-        failed = false;
-    }
-    catch (const InvalidDataException& e)
-    {
-        std::cerr << "Exception: " << e.what() << std::endl;
-    }
-
-    assert(failed);
+    count = {2};
+    double newValues[2]{};
+    
+    // if descriptor has changed, reader will return Reader status with that event
+    auto status = reader.read(newValues, &count);
+    assert(status.isEventEncountered());
 }
 
 /*
@@ -207,25 +175,6 @@ void example5(const SignalConfigPtr& signal)
     signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = StreamReader<double, Int>(signal);
-
-    // Instal a custom callback that invalidates the reader if the new value sample-type is `Int64`
-    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor,
-                                     const DataDescriptorPtr& /*domainDescriptor*/, 
-                                     void* /*remainingSample*/, 
-                                     size_t /*remainingSize*/)
-    {
-        // If the value descriptor has changed
-        if (valueDescriptor.assigned())
-        {
-            // and the new sample type is `Int64`
-            if (valueDescriptor.getSampleType() == SampleType::Int16)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    });
 
     //
     // The value sample-type of the `signal` changes from `Float64` to `Int16`
@@ -260,9 +209,6 @@ void example5(const SignalConfigPtr& signal)
     }
 
     assert(failed);
-
-    // Clear the user callback
-    reader.setOnDescriptorChanged(nullptr);
 
     // This will reuse the Reader's configuration and Connection but change read type
     // from to `Float64` to `Int64` and clear the `invalid` state.

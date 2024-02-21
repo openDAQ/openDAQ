@@ -525,12 +525,6 @@ protected:
         throw InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
     }
 
-    PacketPtr readFromConnection()
-    {
-        std::scoped_lock lock(mutex);
-        return connection.dequeue();
-    }
-
     bool invalid{};
     std::mutex mutex;
     ReadMode readMode;

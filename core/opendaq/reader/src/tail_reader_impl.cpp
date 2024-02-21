@@ -1,5 +1,6 @@
 #include <opendaq/reader_errors.h>
 #include <opendaq/tail_reader_impl.h>
+#include <opendaq/reader_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -49,8 +50,11 @@ TailReaderImpl::TailReaderImpl(TailReaderImpl* old,
                                SizeT historySize)
     : Super(old, valueReadType, domainReadType)
     , historySize(historySize)
-    , cachedSamples(0)
+    , cachedSamples(old->cachedSamples)
+    , packets(old->packets)
+    
 {
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr), false);
     readDescriptorFromPort();
 }
 
@@ -129,10 +133,11 @@ ErrCode TailReaderImpl::readPacket(TailReaderInfo& info, const DataPacketPtr& da
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode TailReaderImpl::readData(TailReaderInfo& info)
+ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
 {
     if (info.remainingToRead == 0)
     {
+        *status = ReaderStatus().detach();
         return OPENDAQ_SUCCESS;
     }
 
@@ -147,16 +152,44 @@ ErrCode TailReaderImpl::readData(TailReaderInfo& info)
         info.offset = cachedSamples - info.remainingToRead;
 
     ErrCode errCode = OPENDAQ_SUCCESS;
-    for (const auto& dataPacket : packets)
+    size_t readCachedSamples = 0;
+
+    for (auto it = packets.begin(); it != packets.end();)
     {
-        errCode = readPacket(info, dataPacket);
-        if (OPENDAQ_FAILED(errCode))
+        const auto & packet = *it;
+        if (packet.getType() == PacketType::Event)
         {
-            return errCode;
+            handleDescriptorChanged(packet);
+            if (status)
+                *status = ReaderStatus(packet, !invalid).detach();
+
+            if (invalid)
+            {
+                it = packets.erase(packets.begin(), it + 1);
+                cachedSamples -= readCachedSamples;
+            }
+            else 
+                it = packets.erase(it);
+            return OPENDAQ_SUCCESS;
+        } 
+        else
+        {
+            auto dataPacket = packet.asPtrOrNull<IDataPacket>();
+            if (dataPacket.assigned())
+            {
+                readCachedSamples += dataPacket.getSampleCount();
+                errCode = readPacket(info, packet);
+            }            
+            it++;
         }
     }
 
-    return errCode;
+    if (status)
+    {
+        *status = ReaderStatus().detach();
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode TailReaderImpl::read(void* values, SizeT* count, IReaderStatus** status)
@@ -166,7 +199,7 @@ ErrCode TailReaderImpl::read(void* values, SizeT* count, IReaderStatus** status)
 
     TailReaderInfo info{values, nullptr, *count};
 
-    ErrCode errCode = readData(info);
+    ErrCode errCode = readData(info, status);
     *count = *count - info.remainingToRead;
     return errCode;
 }
@@ -179,81 +212,76 @@ ErrCode TailReaderImpl::readWithDomain(void* values, void* domain, SizeT* count,
 
     TailReaderInfo info{values, domain, *count};
 
-    ErrCode errCode = readData(info);
+    ErrCode errCode = readData(info, status);
     *count = *count - info.remainingToRead;
     return errCode;
 }
 
-void TailReaderImpl::pushPacket(const PacketPtr& packet)
-{
-    std::unique_lock lock(mutex);
-    auto newPacket = packet.asPtrOrNull<IDataPacket>(true);
-    SizeT newPacketSampleCount = newPacket.getSampleCount();
-    if (cachedSamples < historySize)
-    {
-        packets.push_back(newPacket);
-        cachedSamples += newPacketSampleCount;
-    }
-    else
-    {
-        auto availableSamples = cachedSamples + newPacketSampleCount;
-        for (auto it = packets.begin(); it != packets.end();)
-        {
-            SizeT sampleCount = it->getSampleCount();
-            if (availableSamples - sampleCount >= historySize)
-            {
-                it = packets.erase(it);
-                availableSamples -= sampleCount;
-                continue;
-            }
-            else
-            {
-                break;
-            }
-            ++it;
-        }
-
-        packets.push_back(newPacket);
-        cachedSamples = availableSamples;
-    }
-}
-
 ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
 {
-    PacketPtr packet = readFromConnection();
+    std::unique_lock lock(mutex);
+    PacketPtr packet = connection.dequeue();
     while (packet.assigned())
     {
         switch (packet.getType())
         {
             case PacketType::Data:
             {
-                pushPacket(packet);
+                auto newPacket = packet.asPtrOrNull<IDataPacket>(true);
+                SizeT newPacketSampleCount = newPacket.getSampleCount();
+                if (cachedSamples < historySize)
+                {
+                    packets.push_back(packet);
+                    cachedSamples += newPacketSampleCount;
+                }
+                else
+                {
+                    auto availableSamples = cachedSamples + newPacketSampleCount;
+                    for (auto it = packets.begin(); it != packets.end();)
+                    {
+                        if (it->getType() == PacketType::Event)
+                        {
+                            ++it;
+                            continue;
+                        }
+                
+                        auto tmpPacket = it->asPtrOrNull<IDataPacket>(true);
+                        SizeT sampleCount = tmpPacket.getSampleCount();
+                        if (availableSamples - sampleCount >= historySize)
+                        {
+                            it = packets.erase(it);
+                            availableSamples -= sampleCount;
+                            continue;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                        ++it;
+                    }
+
+                    packets.push_back(newPacket);
+                    cachedSamples = availableSamples;
+                }
                 break;
             }
             case PacketType::Event:
             {
-                // Handle events
-                auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
-                if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-                {
-                    handleDescriptorChanged(eventPacket);
-                    if (invalid)
-                    {
-                        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Packet samples are no longer convertible to the read type");
-                    }
-                }
+                packets.push_back(packet);
                 break;
             }
             case PacketType::None:
                 break;
         }
 
-        packet = readFromConnection();
+        packet = connection.dequeue();
     }
 
     if (readCallback.assigned() && cachedSamples >= historySize)
+    {
+        lock.unlock();
         readCallback();
-
+    }
     return OPENDAQ_SUCCESS;
 }
 

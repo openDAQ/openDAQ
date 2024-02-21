@@ -64,15 +64,14 @@ public:
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
 
 private:
-    void pushPacket(const PacketPtr& packet);
     ErrCode readPacket(TailReaderInfo& info, const DataPacketPtr& packet);
-    ErrCode readData(TailReaderInfo& info);
+    ErrCode readData(TailReaderInfo& info, IReaderStatus** status);
 
 private:
     SizeT historySize;
 
     SizeT cachedSamples;
-    std::deque<DataPacketPtr> packets;
+    std::deque<PacketPtr> packets;
 };
 
 END_NAMESPACE_OPENDAQ

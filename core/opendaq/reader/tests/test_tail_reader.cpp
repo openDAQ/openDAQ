@@ -755,6 +755,12 @@ TEST_F(TailReaderTest, ReadUndefinedWithDomain)
 
     SizeT count{HISTORY_SIZE};
     double samples[HISTORY_SIZE]{};
+
+    {
+        size_t tmpCnt = 1;
+        auto status = reader.read(&samples, &tmpCnt);
+        ASSERT_TRUE(status.isEventEncountered());
+    }
     reader.read(&samples, &count);
 
     ASSERT_EQ(count, HISTORY_SIZE);
@@ -875,16 +881,21 @@ TEST_F(TailReaderTest, TailReaderWithNotConnectedInputPort)
 
     port.connect(this->signal);
 
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
-
     this->sendPacket(dataPacket);
 
     SizeT count{HISTORY_SIZE};
     double samples[HISTORY_SIZE]{};
     RangeType64 domain[HISTORY_SIZE]{};
-    reader.readWithDomain(&samples, &domain, &count);
 
+    {
+        size_t tmpCount = 1;
+        auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
+        ASSERT_TRUE(status.isEventEncountered());
+        ASSERT_TRUE(status.isConvertable());
+    }
+
+    auto status = reader.readWithDomain(&samples, &domain, &count);
+    
     ASSERT_EQ(count, HISTORY_SIZE);
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
 
@@ -916,7 +927,6 @@ TEST_F(TailReaderTest, TailReaderReuseInputPort)
 
     {
         auto reader1 = TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
-        printf("check\n");
     }
     ASSERT_NO_THROW(TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined));
 }
@@ -1017,14 +1027,22 @@ TEST_F(TailReaderTest, TailReaderFromExistingOnReadCallback)
 
     TailReaderPtr reader = daq::TailReader(this->signal, 1, SampleType::Undefined, SampleType::Undefined);
     TailReaderPtr newReader;
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
-        newReader.readWithDomain(&samples, &domain, &count);
-        promise.set_value();
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+        if (!newReader.assigned())
+        {
+            SizeT tmpCount = 1;
+            auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
+            if (status.isEventEncountered())
+            {
+                newReader = TailReaderFromExisting(reader, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+            }
+        }
+        if (newReader.assigned())
+        {
+            auto status = newReader.readWithDomain(&samples, &domain, &count);
+            promise.set_value();
+        }
         return nullptr;
-    });
-    reader.setOnDescriptorChanged([&] (const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor){
-        newReader = TailReaderFromExisting(reader, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
-        return false;
     });
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));

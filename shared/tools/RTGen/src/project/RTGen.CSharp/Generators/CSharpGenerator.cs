@@ -471,6 +471,7 @@ namespace RTGen.CSharp.Generators
         /// If the returned value is <c>null</c> it checks for a base variable if exists otherwise reports a warning.</remarks>
         protected override string GetMethodVariable(IMethod method, string variable)
         {
+            bool isReaderFunction = IsReaderFunction(method);
             var lastOutParam = method.GetLastByRefArgument();
 
             switch (variable)
@@ -524,6 +525,18 @@ namespace RTGen.CSharp.Generators
 
                 case "CSReturnValue":
                     return GetReturnValue();
+
+                case "CSNativeOutputArgument":
+                    return DoNativeOutputArgument();
+
+                case "CSReturnTheOutputValue":
+                    return DoReturnTheOutputValue();
+
+                case "CSReturnOrVoidCall":
+                    return (lastOutParam != null) ? "return " : string.Empty;
+
+                case "CSDefaultReturnValue":
+                    return DoDefaultReturnValue();
 
                 case "CSArgumentsWithoutLastOut":
                     return GetArgumentsWithoutLastOut();
@@ -677,7 +690,7 @@ namespace RTGen.CSharp.Generators
                 if (!isUnmanagedCall || _isFactory)
                     return argumentNames;
 
-                if (IsReaderFunction(method))
+                if (isReaderFunction)
                 {
                     //for SampleReaders: decorate the void pointer argument names with "ArrayPtr"
 
@@ -699,6 +712,64 @@ namespace RTGen.CSharp.Generators
                 return string.Concat("base.NativePointer", argumentNames);
             }
 
+            string DoNativeOutputArgument()
+            {
+                if (lastOutParam == null)
+                {
+                    return string.Empty;
+                }
+
+                string indentation                 = base.Indentation + base.Indentation;
+                string rawReturnTypePtrDeclaration = GetMethodVariable(method, "CSRawReturnTypePtrDeclaration");
+                string castArgumentObjects         = GetMethodVariable(method, "CSCastArgumentObjects");
+
+                StringBuilder codeLines = new StringBuilder();
+
+                codeLines.AppendLine();
+                codeLines.AppendLine(indentation + "//native output argument");
+                codeLines.AppendLine(indentation + rawReturnTypePtrDeclaration + castArgumentObjects);
+
+                codeLines.TrimTrailingNewLine();
+                return codeLines.ToString();
+            }
+
+            string DoReturnTheOutputValue()
+            {
+                if (lastOutParam == null)
+                {
+                    return string.Empty;
+                }
+
+                string indentation                = base.Indentation + base.Indentation;
+                string returnPointerValidation    = GetMethodVariable(method, "CSReturnPointerValidation");
+                string temporaryReturnValueObject = GetMethodVariable(method, "CSTemporaryReturnValueObject");
+                string returnValue                = GetMethodVariable(method, "CSReturnValue");
+
+                StringBuilder codeLines = new StringBuilder();
+
+                codeLines.AppendLine();
+                codeLines.AppendLine(returnPointerValidation + temporaryReturnValueObject); //might be empty
+                codeLines.AppendLine(indentation + $"return {returnValue};");
+
+                codeLines.TrimTrailingNewLine();
+                return codeLines.ToString();
+            }
+
+            string DoDefaultReturnValue()
+            {
+                if (lastOutParam == null)
+                {
+                    return string.Empty;
+                }
+
+                if (!_defaultArgumentValues.TryGetValue(lastOutParam.DefaultValue, out string defaultValue))
+                {
+                    defaultValue = lastOutParam.DefaultValue;
+                }
+
+                return $" {defaultValue}";
+            }
+
             bool DoHideDefaultMethod()
             {
                 return _defaultMethodsToHideWithNew.Contains(GetDotNetMethodName());
@@ -706,7 +777,7 @@ namespace RTGen.CSharp.Generators
 
             string GetReaderArguments(string arguments)
             {
-                if (!_isBasedOnSampleReader)
+                if (!isReaderFunction)
                 {
                     return arguments;
                 }
@@ -726,7 +797,7 @@ namespace RTGen.CSharp.Generators
 
             string GetReaderArgumentNames(string argumentNames)
             {
-                if (!_isBasedOnSampleReader)
+                if (!isReaderFunction)
                 {
                     return argumentNames;
                 }
@@ -739,6 +810,12 @@ namespace RTGen.CSharp.Generators
 
                 args.Insert(voidArgumentCount, " " + START_INDEX);
 
+                if (lastOutParam != null)
+                {
+                    //remove the (last) out argument
+                    args.RemoveAt(args.Count - 1);
+                }
+
                 argumentNames = string.Join(",", args);
 
                 return argumentNames;
@@ -748,7 +825,7 @@ namespace RTGen.CSharp.Generators
             {
                 string docComment = GetDocComment(method.Name, method.Documentation).TrimStart();
 
-                if (!_isBasedOnSampleReader)
+                if (!isReaderFunction)
                 {
                     return docComment;
                 }
@@ -769,7 +846,7 @@ namespace RTGen.CSharp.Generators
 
             string GetArrayLengthCode()
             {
-                if (!_isBasedOnSampleReader)
+                if (!isReaderFunction)
                 {
                     return string.Empty;
                 }
@@ -789,7 +866,7 @@ namespace RTGen.CSharp.Generators
 
             string GetCheckArrayTypeAndThrowCode()
             {
-                if (!_isBasedOnSampleReader)
+                if (!isReaderFunction)
                 {
                     return string.Empty;
                 }
@@ -803,7 +880,7 @@ namespace RTGen.CSharp.Generators
                 string[] voidArgNames = GetVoidArgumentNames(method).ToArray();
                 string indentation = base.Indentation + base.Indentation;
 
-                string[] checCodekLines = new string[] //array of format strings so escape '{' and '}' when needed
+                string[] checkCodeLines = new string[] //array of format strings so escape '{' and '}' when needed
                                           {
                                               "if (!OpenDAQFactory.CheckSampleType<{0}>(base.Get{1}ReadType(), out errorMsg))",
                                               "{{",
@@ -822,7 +899,7 @@ namespace RTGen.CSharp.Generators
                     string genericName      = genericParamName.Substring(1);
                     string voidArgName      = voidArgNames[index];
 
-                    foreach (string codeLine in checCodekLines)
+                    foreach (string codeLine in checkCodeLines)
                     {
                         codeLines.Add(indentation + string.Format(codeLine, genericParamName, genericName, voidArgName));
                     }
@@ -835,7 +912,7 @@ namespace RTGen.CSharp.Generators
 
             string GetFixedArrayCode()
             {
-                if (!_isBasedOnSampleReader)
+                if (!isReaderFunction)
                 {
                     return string.Empty;
                 }
@@ -945,7 +1022,7 @@ namespace RTGen.CSharp.Generators
                     argumentName = "ref " + argumentName;
                 }
             }
-            else if (hasDefaultValue)
+            else if (!_useArgumentPointers && hasDefaultValue)
             {
                 if (!_defaultArgumentValues.TryGetValue(argument.DefaultValue, out string defaultValue))
                 {
@@ -2328,17 +2405,17 @@ namespace RTGen.CSharp.Generators
                 string templatePath = Utility.GetTemplate(Options.Language + ".method.impl.template");
 
                 //special cases
-                if (hasRetVal)
+                if (isSampleReader)
+                {
+                    templatePath = Utility.GetTemplate(Options.Language + ".method.impl.samplereader.template");
+                }
+                else if (hasRetVal)
                 {
                     templatePath = Utility.GetTemplate(Options.Language + ".method.impl.ret.template");
                 }
                 else if (isIteratorMoveNext)
                 {
                     templatePath = Utility.GetTemplate(Options.Language + ".method.impl.boolret.template");
-                }
-                else if (isSampleReader)
-                {
-                    templatePath = Utility.GetTemplate(Options.Language + ".method.impl.samplereader.template");
                 }
 
                 string comment = GetDocComment(method.Name, method.Documentation);

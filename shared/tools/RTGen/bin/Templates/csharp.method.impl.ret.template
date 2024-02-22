@@ -1,7 +1,5 @@
 ﻿    public$CSHideDefault$ $ReturnTypePtr$ $Name$($Arguments$)
-    {
-        //native output argument
-        $CSRawReturnTypePtrDeclaration$$CSCastArgumentObjects$
+    {$CSNativeOutputArgument$
         unsafe //use native function pointer
         {
             //call native function
@@ -11,7 +9,5 @@
             {
                 throw new OpenDaqException($CSReturnVariable$);
             }
-        }
-$CSReturnPointerValidation$$CSTemporaryReturnValueObject$
-        return $CSReturnValue$;
+        }$CSReturnTheOutputValue$
     }

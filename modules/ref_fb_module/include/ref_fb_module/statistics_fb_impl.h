@@ -183,6 +183,7 @@ private:
     void onPacketReceived(const InputPortPtr& port) override;
     void processTriggerPackets(const InputPortPtr& port);
     void processInputPackets(const InputPortPtr& port);
+    void calculateAndSendPackets(const DataPacketPtr& domainPacket, const DataPacketPtr& packet);
 };
 
 }

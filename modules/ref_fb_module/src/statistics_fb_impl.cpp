@@ -296,24 +296,8 @@ void StatisticsFbImpl::processDataPacketTrigger(const DataPacketPtr& packet)
     triggerHistory.addElement(triggerData, domainStamp);
 }
 
-void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
+void StatisticsFbImpl::calculateAndSendPackets(const DataPacketPtr& domainPacket, const DataPacketPtr& packet)
 {
-    if (!valid)
-        return;
-
-    const auto domainPacket = packet.getDomainPacket();
-    if (!domainPacket.assigned())
-        return;
-
-    // TODO what if trigger condition changes multiple times in one packet???
-    auto domainStamp = static_cast<Int*>(domainPacket.getData())[0];
-
-    // TODO Check trigger mode and if on, check trigger state at domain stamp
-    if (triggerMode && !triggerHistory.getTriggerStateFromDomainValue(domainStamp))
-    {
-        return;
-    }
-
     bool haveGap;
     NumberPtr outputPacketStartDomainValue = 0;
     getNextOutputDomainValue(domainPacket, outputPacketStartDomainValue, haveGap);
@@ -369,6 +353,65 @@ void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
         rmsSignal.sendPacket(rmsDataPacket);
 
     domainSignal.sendPacket(outDomainPacket);
+}
+
+void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
+{
+    if (!valid)
+        return;
+
+    const auto domainPacket = packet.getDomainPacket();
+    if (!domainPacket.assigned())
+        return;
+
+    if (triggerMode)
+    {
+        const auto packetBuf = static_cast<uint8_t*>(packet.getData());
+        auto domainData = static_cast<Int*>(domainPacket.getData());
+
+        Int i = 0;
+        while (i < packet.getSampleCount())
+        {
+            // Go to where trigger state is true or end of packet
+            while (!triggerHistory.getTriggerStateFromDomainValue(domainData[i]) && i < packet.getSampleCount())
+                i++;
+
+            // Remember startedAt
+            auto startedAt = i;
+
+            // Go to where trigger state is false or end of packet and fill domain sub buffer
+            std::vector<Int> domainSubVec;
+            while (triggerHistory.getTriggerStateFromDomainValue(domainData[i]) && i < packet.getSampleCount())
+            {
+                domainSubVec.push_back(domainData[i]);
+                i++;
+            }
+
+            // Create domain sub packet
+            auto domainSubPacket = DataPacket(domainPacket.getDataDescriptor(), domainSubVec.size(), domainPacket.getOffset());
+            auto domainSubPacketData = static_cast<daq::Int*>(domainSubPacket.getData());
+
+            // Fill domain sub vector data
+            for (Int ii = 0; ii < domainSubVec.size(); ii++)
+                *domainSubPacketData++ = domainSubVec[ii];
+
+            // Get packet buffer
+            const auto packetBuf = static_cast<uint8_t*>(packet.getData());
+
+            // Create data sub packet
+            auto subPacket = DataPacket(packet.getDataDescriptor(), domainSubVec.size(), packet.getOffset());
+            auto subPacketBuf = static_cast<uint8_t*>(subPacket.getData());
+
+            // Fill sub packet buffer
+            std::memcpy(subPacketBuf, packetBuf + startedAt, domainSubVec.size() * sampleSize);
+
+            calculateAndSendPackets(domainSubPacket, subPacket);
+        }
+    }
+    else
+    {
+        calculateAndSendPackets(domainPacket, packet);
+    }
 }
 
 NumberPtr StatisticsFbImpl::addNumbers(const NumberPtr a, const NumberPtr& b)

@@ -22,7 +22,7 @@ JsonConfigProviderImpl::JsonConfigProviderImpl(const StringPtr& filename)
         this->filename = GetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", StringPtr());
 
     if (!this->filename.assigned())
-        this->filename = path_tool::ConcatenatePath(path_tool::GetExecutableDirectory(), "opendaq-config.json");
+        this->filename = PathTool::ConcatenatePath(PathTool::GetExecutableDirectory(), "opendaq-config.json");
 }
 
 std::string JsonConfigProviderImpl::ToLowerCase(const std::string &input) 

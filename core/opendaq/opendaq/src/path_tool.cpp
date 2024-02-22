@@ -9,7 +9,7 @@
     #include <mach-o/dyld.h>
 #endif
 
-namespace path_tool
+namespace PathTool
 {
     #ifdef _WIN32
         std::string GetExecutableDirectory()

@@ -276,8 +276,10 @@ void ClassifierFbImpl::onPacketReceived(const InputPortPtr& port)
     if (packet.assigned() && packet.getType() == PacketType::Event)
     {
         processEventPacket(packet);
-        return;
     }
+
+    if (linearReader.assigned())
+        return;
 
     packet = connection.dequeue();
 
@@ -403,8 +405,8 @@ void ClassifierFbImpl::processLinearDataPacket()
     outputSignal.sendPacket(outputPacket);
     outputDomainSignal.sendPacket(outputDomainPacket);
 
-    // if (eventPacket.assigned())
-    //     processEventPacket(eventPacket);
+    if (eventPacket.assigned())
+        processEventPacket(eventPacket);
 }
 
 template <SampleType InputSampleType>

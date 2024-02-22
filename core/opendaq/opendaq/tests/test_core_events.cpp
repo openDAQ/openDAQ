@@ -149,7 +149,7 @@ TEST_F(CoreEventTest, MultipleLevelNestedObjectPath)
     obj.beginUpdate();
     obj.endUpdate();
 
-    ASSERT_EQ(callCount, 4);
+    ASSERT_EQ(callCount, 3);
 }
 
 TEST_F(CoreEventTest, NestedAddAfterCoreEventEnable)
@@ -183,7 +183,7 @@ TEST_F(CoreEventTest, NestedAddAfterCoreEventEnable)
     obj.beginUpdate();
     obj.endUpdate();
 
-    ASSERT_EQ(callCount, 4);
+    ASSERT_EQ(callCount, 3);
 }
 
 TEST_F(CoreEventTest, NestedObjDisableTrigger)

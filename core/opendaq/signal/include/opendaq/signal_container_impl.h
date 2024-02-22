@@ -53,7 +53,7 @@ protected:
 
     LoggerComponentPtr signalContainerLoggerComponent;
 
-    SignalConfigPtr createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor = nullptr, bool visible = true);
+    SignalConfigPtr createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor = nullptr, bool visible = true, bool isPublic = true);
 
     void addSignal(const SignalPtr& signal);
     void removeSignal(const SignalConfigPtr& signal);
@@ -100,6 +100,9 @@ protected:
                                   const std::string& id);
 
     virtual bool clearFunctionBlocksOnUpdate();
+
+    void callBeginUpdateOnChildren() override;
+    void callEndUpdateOnChildren() override;
 
 private:
     template <class Component>
@@ -253,7 +256,7 @@ ErrCode SignalContainerImpl<Intf, Intfs...>::getItem(IString* localId, IComponen
 }
 
 template<class Intf, class ...Intfs>
-SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs ...>::createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor, bool visible)
+SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs ...>::createAndAddSignal(const std::string& localId, const DataDescriptorPtr& descriptor, bool visible, bool isPublic)
 {
     auto signal = Signal(this->context, signals, localId);
     if (descriptor.assigned())
@@ -265,6 +268,8 @@ SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs ...>::createAndAddSignal(
         signal.setVisible(visible);
         signal.template asPtr<IComponentPrivate>().lockAttributes(List<IString>("visible"));
     }
+
+    signal.setPublic(isPublic);
 
     addSignal(signal);
     return signal;
@@ -611,6 +616,24 @@ template <class Intf, class ... Intfs>
 bool GenericSignalContainerImpl<Intf, Intfs...>::clearFunctionBlocksOnUpdate()
 {
     return false;
+}
+
+template <class Intf, class... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::callBeginUpdateOnChildren()
+{
+    Super::callBeginUpdateOnChildren();
+
+    for (const auto& comp : components)
+        comp.beginUpdate();
+}
+
+template <class Intf, class... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::callEndUpdateOnChildren()
+{
+    for (const auto& comp : components)
+        comp.endUpdate();
+
+    Super::callEndUpdateOnChildren();
 }
 
 template <class Intf, class... Intfs>

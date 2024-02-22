@@ -301,6 +301,8 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * When the `setPropertyValue` is called on the object, the changes are not immediately applied to it. When `endUpdate`
      * is called, the property values set between the `beginUpdate` and `endUpdate` method calls are
      * applied. It triggers the ˙OnPropertyWriteEvent` for each property value set, and the `OnEndUpdate` event.
+     *
+     * `beginUpdate` is called recursively for each child property object.
      */
     virtual ErrCode INTERFACE_FUNC beginUpdate() = 0;
 
@@ -311,6 +313,8 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * When the `setPropertyValue` is called on the object, the changes are not immediately applied to it. When `endUpdate`
      * is called, the property values set between the `beginUpdate` and `endUpdate` method calls are
      * applied. It triggers the ˙OnPropertyWriteEvent` for each property value set, and the `OnEndUpdate` event.
+     *
+     * `endUpdate` is called recursively for each child property object.
      */
     virtual ErrCode INTERFACE_FUNC endUpdate() = 0;
 

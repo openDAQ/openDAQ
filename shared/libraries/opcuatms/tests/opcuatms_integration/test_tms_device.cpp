@@ -105,7 +105,8 @@ TEST_F(TmsDeviceTest, GetSignals)
     }
 
     ASSERT_NO_THROW(signals = clientDevice.getSignals(search::Recursive(search::Visible())));
-    ASSERT_EQ(signals.getCount(), serverDevice.getSignals(search::Recursive(search::Visible())).getCount());
+    // one private signal in MockFunctionBlockImpl. and one in MockPhysicalDeviceImpl
+    ASSERT_EQ(signals.getCount(), serverDevice.getSignals(search::Recursive(search::Visible())).getCount() - 2);
 }
 
 TEST_F(TmsDeviceTest, GetChannels)

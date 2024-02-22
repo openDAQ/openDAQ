@@ -21,6 +21,7 @@
 #include "opcuatms/exceptions.h"
 #include "opcuatms/converters/list_conversion_utils.h"
 #include "opcuatms/converters/property_object_conversion_utils.h"
+#include <opcuatms_client/objects/tms_client_function_block_type_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 using namespace daq::opcua;
@@ -450,29 +451,30 @@ void TmsClientDeviceImpl::findAndCreateCustomComponents()
 
 DictPtr<IString, IFunctionBlockType> TmsClientDeviceImpl::onGetAvailableFunctionBlockTypes()
 {
-    // todo: migrate to AvailableTypes folder node
+    auto browser = clientContext->getReferenceBrowser();
+    auto types = Dict<IString, IFunctionBlockType>();
 
-    const auto fbFolderNodeId = getNodeId("FB");
-    const auto methodNodeId = clientContext->getReferenceBrowser()->getChildNodeId(fbFolderNodeId, "_TmpGetAvailableFunctionBlockTypes");
+    const auto fbFolderNodeId = browser->getChildNodeId(nodeId, "FB");
 
-    auto request = OpcUaCallMethodRequest();
-    request->objectId = fbFolderNodeId.copyAndGetDetachedValue();
-    request->methodId = methodNodeId.copyAndGetDetachedValue();
+    if (!browser->hasReference(fbFolderNodeId, "AvailableTypes"))
+        return types;
 
-    const auto response = this->client->callMethod(request);
+    const auto availableTypesId = browser->getChildNodeId(fbFolderNodeId, "AvailableTypes");
 
-    if (response->statusCode != UA_STATUSCODE_GOOD)
-        throw OpcUaException(response->statusCode, "Failed to get available function block types");
+    auto filter = BrowseFilter();
+    filter.direction = UA_BROWSEDIRECTION_FORWARD;
+    filter.referenceTypeId = OpcUaNodeId(UA_NS0ID_HASPROPERTY);
+    filter.nodeClass = UA_NODECLASS_VARIABLE;
 
-    assert(response->outputArgumentsSize == 1);
-    const auto outvariant = OpcUaVariant(response->outputArguments[0]);
-    const auto typeList = ListConversionUtils::ExtensionObjectVariantToList<IFunctionBlockType>(outvariant);
+    auto fbTypesReferences = browser->browseFiltered(availableTypesId, filter);
 
-    auto dict = Dict<IString, IFunctionBlockType>();
-    for (const auto& type : typeList)
-        dict.set(type.getId(), type);
+    for (const auto& [refNodeId, ref] : fbTypesReferences.byNodeId)
+    {
+        auto tmsFbType = TmsClientFunctionBlockType(daqContext, clientContext, refNodeId);
+        types.set(tmsFbType.getId(), tmsFbType);
+    }
 
-    return dict;
+    return types;
 }
 
 FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)

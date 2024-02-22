@@ -129,7 +129,8 @@ TEST_F(TmsIntegrationTest, GetSignals)
 
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = clientDevice.getSignals(search::Recursive(search::Visible())));
-    ASSERT_EQ(signals.getCount(), device.getSignals(search::Recursive(search::Visible())).getCount());
+    // one private signal in MockFunctionBlockImpl. and one in MockPhysicalDeviceImpl
+    ASSERT_EQ(signals.getCount(), device.getSignals(search::Recursive(search::Visible())).getCount() - 2);
 
     ASSERT_NO_THROW(signals = clientDevice.getSignals());
     ASSERT_EQ(signals.getCount(), 0u);
@@ -250,8 +251,10 @@ TEST_F(TmsIntegrationTest, GetAvailableFunctionBlockTypes)
     auto clientDevice = tmsClient.connect();
 
     const auto clientFbTypes = clientDevice.getAvailableFunctionBlockTypes();
-    
-    ASSERT_TRUE(TestComparators::FunctionBlockTypeDictEquals(serverFbTypes, clientFbTypes));
+
+    ASSERT_EQ(serverFbTypes.getCount(), 1u);
+    ASSERT_EQ(serverFbTypes.getCount(), clientFbTypes.getCount());
+    ASSERT_TRUE(TestComparators::FunctionBlockTypeEquals(serverFbTypes.get("mock_fb_uid"), clientFbTypes.get("mock_fb_uid")));
 }
 
 TEST_F(TmsIntegrationTest, AddFunctionBlock)
@@ -274,10 +277,8 @@ TEST_F(TmsIntegrationTest, AddFunctionBlock)
     ASSERT_EQ(3, clientDevice.getFunctionBlocks().getCount());
 }
 
-TEST_F(TmsIntegrationTest, DISABLED_AddFunctionBlockWitchConfig)
+TEST_F(TmsIntegrationTest, AddFunctionBlockWitchConfig)
 {
-    // Work in progress
-
     InstancePtr device = createDevice();
     TmsServer tmsServer(device);
     tmsServer.start();
@@ -286,15 +287,15 @@ TEST_F(TmsIntegrationTest, DISABLED_AddFunctionBlockWitchConfig)
     auto clientDevice = tmsClient.connect();
 
     const auto clientFbTypes = clientDevice.getAvailableFunctionBlockTypes();
+    ASSERT_TRUE(clientFbTypes.hasKey("mock_fb_uid"));
 
     auto config = clientFbTypes.get("mock_fb_uid").createDefaultConfig();
-    config.setPropertyValue("TestConfigInt", 10);
     config.setPropertyValue("TestConfigString", "Hello Property!");
 
     auto fb = clientDevice.addFunctionBlock("mock_fb_uid", config);
 
     ASSERT_EQ(2, clientDevice.getFunctionBlocks().getCount());
-    ASSERT_EQ(fb.getPropertyValue("TestConfigInt"), 10);
+    ASSERT_EQ(fb.getPropertyValue("TestConfigInt"), 0);
     ASSERT_EQ(fb.getPropertyValue("TestConfigString"), "Hello Property!");
 }
 

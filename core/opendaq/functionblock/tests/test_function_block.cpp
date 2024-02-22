@@ -124,3 +124,26 @@ TEST_F(FunctionBlockTest, SerializeAndDeserialize)
 
     ASSERT_EQ(str1, str2);
 }
+
+
+TEST_F(FunctionBlockTest, BeginUpdateEndUpdate)
+{
+    const auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(daq::NullContext(), nullptr, "fb", false);
+    fb.addProperty(daq::StringPropertyBuilder("FbProp", "-").build());
+
+    const auto sig = fb.getSignals()[0];
+    sig.addProperty(daq::StringPropertyBuilder("SigProp", "-").build());
+
+    fb.beginUpdate();
+
+    fb.setPropertyValue("FbProp", "s");
+    ASSERT_EQ(fb.getPropertyValue("FbProp"), "-");
+
+    sig.setPropertyValue("SigProp", "cs");
+    ASSERT_EQ(sig.getPropertyValue("SigProp"), "-");
+
+    fb.endUpdate();
+
+    ASSERT_EQ(fb.getPropertyValue("FbProp"), "s");
+    ASSERT_EQ(sig.getPropertyValue("SigProp"), "cs");
+}

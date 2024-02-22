@@ -142,6 +142,15 @@ TEST_F(ConfigCoreEventTest, PropertyObjectUpdateEnd)
     clientContext.getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
+            const auto params = args.getParameters();
+
+            if (comp != clientComponent)
+                return;
+
+            const StringPtr path = params.get("Path");
+            if (path.assigned() && path != "")
+                return;
+
             DictPtr<IString, IBaseObject> updated;
             switch (static_cast<CoreEventId>(args.getEventId()))
             {
@@ -150,10 +159,10 @@ TEST_F(ConfigCoreEventTest, PropertyObjectUpdateEnd)
                     break;
                 case CoreEventId::PropertyObjectUpdateEnd:
                     updateCount++;
-                    updated = args.getParameters().get("UpdatedProperties");
+                    updated = params.get("UpdatedProperties");
                     ASSERT_EQ(updated.getCount(), 2u);
                     ASSERT_EQ(args.getEventName(), "PropertyObjectUpdateEnd");
-                    ASSERT_EQ(comp, args.getParameters().get("Owner"));
+                    ASSERT_EQ(comp, params.get("Owner"));
                     break;
                 default:
                     otherCount++;

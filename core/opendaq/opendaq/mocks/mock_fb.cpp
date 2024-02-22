@@ -52,6 +52,7 @@ void MockFunctionBlockImpl::createSignals()
     createAndAddSignal("UniqueId_2", createDescriptor("Signal2"));
     createAndAddSignal("UniqueId_3", createDescriptor("Signal3"));
     createAndAddSignal("UniqueId_4", createDescriptor("Signal4"));
+    createAndAddSignal("UniqueId_5", createDescriptor("Signal5"), true, false);
 }
 
 void MockFunctionBlockImpl::createReferencedSignals()

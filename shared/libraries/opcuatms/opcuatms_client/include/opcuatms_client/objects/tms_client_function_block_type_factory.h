@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#include <coretypes/common.h>
-#include <coreobjects/property_object_ptr.h>
-#include <opendaq/function_block_type_ptr.h>
+#include <opcuatms/opcuatms.h>
+#include <opcuatms_client/objects/tms_client_function_block_type_impl.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-class TestComparators
+inline FunctionBlockTypePtr TmsClientFunctionBlockType(const ContextPtr& context,
+                                                       const TmsClientContextPtr& tmsContext,
+                                                       const OpcUaNodeId& nodeId)
 {
-public:
-    static bool PropertyObjectEquals(const PropertyObjectPtr& a, const PropertyObjectPtr& b);
-    static bool FunctionBlockTypeEquals(const FunctionBlockTypePtr& a, const FunctionBlockTypePtr& b);
-};
+    FunctionBlockTypePtr obj(createWithImplementation<IFunctionBlockType, TmsClientFunctionBlockTypeImpl>(context, tmsContext, nodeId));
+    return obj;
+}
 
-END_NAMESPACE_OPENDAQ
+END_NAMESPACE_OPENDAQ_OPCUA_TMS

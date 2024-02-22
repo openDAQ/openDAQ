@@ -50,7 +50,8 @@ public:
     static std::string getEpoch();
     static RatioPtr getResolution();
 protected:
-    void updatingValuesWrite(const UpdatingActions& propsAndValues) override;
+    void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating) override;
+
 private:
     WaveformType waveformType;
     double freq;

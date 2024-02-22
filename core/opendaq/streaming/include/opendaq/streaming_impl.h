@@ -158,6 +158,9 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList *signals)
     const auto signalsPtr = ListPtr<ISignal>::Borrow(signals);
     for (const auto& signal : signalsPtr)
     {
+        if (!signal.getPublic())
+            continue;
+
         auto mirroredSignal = signal.asPtrOrNull<IMirroredSignalConfig>();
         if (mirroredSignal == nullptr)
         {

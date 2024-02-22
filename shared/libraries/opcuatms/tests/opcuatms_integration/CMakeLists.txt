@@ -18,6 +18,7 @@ set(TEST_SOURCES main.cpp
                  test_tms_folder.cpp
                  test_tms_function_property.cpp
                  test_tms_fusion_device.cpp
+                 test_tms_function_block_type.cpp
 )
 
 if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)

@@ -36,6 +36,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setCoreEventTrigger(IProcedure* trigger) = 0;
     virtual ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) = 0;
     virtual ErrCode INTERFACE_FUNC setPath(IString* path) = 0;
+    virtual ErrCode INTERFACE_FUNC isUpdating(Bool* updating) = 0;
 };
 
 /*!@}*/

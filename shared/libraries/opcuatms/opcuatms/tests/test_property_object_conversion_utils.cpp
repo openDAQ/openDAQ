@@ -53,3 +53,24 @@ TEST_F(PropertyObjectConversionUtilsTest, EmptyObject)
     PropertyObjectConversionUtils::ToPropertyObject(variant, objOut);
     ASSERT_TRUE(TestComparators::PropertyObjectEquals(obj, objOut));
 }
+
+TEST_F(PropertyObjectConversionUtilsTest, CloneDefault)
+{
+    auto obj = CreateTestPropertyObject();
+    auto clone = PropertyObjectConversionUtils::ClonePropertyObject(obj);
+
+    ASSERT_TRUE(TestComparators::PropertyObjectEquals(obj, clone));
+}
+
+TEST_F(PropertyObjectConversionUtilsTest, Clone)
+{
+    auto obj = CreateTestPropertyObject();
+    obj.setPropertyValue("name", "Jovanka");
+    obj.setPropertyValue("age", 99);
+    obj.setPropertyValue("weight", 60.5);
+    obj.setPropertyValue("isTheBest", true);
+
+    auto clone = PropertyObjectConversionUtils::ClonePropertyObject(obj);
+
+    ASSERT_TRUE(TestComparators::PropertyObjectEquals(obj, clone));
+}

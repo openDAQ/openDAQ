@@ -27,7 +27,7 @@ TEST_F(ExamplesTest, StreamReader)
         docs_test_helpers::waitForSamplesReady();
         SizeT count = 5000;
         reader.read(samples, &count);
-        ASSERT_GT(count, 0);
+        ASSERT_GT(count, 0u);
     }
 }
 
@@ -64,7 +64,7 @@ TEST_F(ExamplesTest, FunctionBlock)
 
         SizeT count = 5000;
         reader.read(samples, &count);
-        ASSERT_GT(count, 0);
+        ASSERT_GT(count, 0u);
     }
 }
 
@@ -100,7 +100,7 @@ TEST_F(ExamplesTest, Client)
         docs_test_helpers::waitForSamplesReady();
         SizeT count = 5000;
         reader.read(samples, &count);
-        ASSERT_GT(count, 0);
+        ASSERT_GT(count, 0u);
     }
 }
 

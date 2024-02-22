@@ -103,7 +103,7 @@ ErrCode NativeDeviceImpl::getInfo(IDeviceInfo** info)
 {
     OPENDAQ_PARAM_NOT_NULL(info);
 
-    *info =  deviceInfo.addRefAndReturn();
+    *info = deviceInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -120,8 +120,11 @@ void NativeDeviceImpl::attachNativeStreaming(const StreamingPtr& streaming)
 
     for (const auto& signal : signals)
     {
-        auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
-        mirroredSignalConfigPtr.setActiveStreamingSource(nativeStreaming.getConnectionString());
+        if (signal.getPublic())
+        {
+            auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
+            mirroredSignalConfigPtr.setActiveStreamingSource(nativeStreaming.getConnectionString());
+        }
     }
 }
 

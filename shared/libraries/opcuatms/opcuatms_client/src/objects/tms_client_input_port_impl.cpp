@@ -2,6 +2,8 @@
 #include "opcuatms/converters/variant_converter.h"
 #include "opcuatms_client/objects/tms_client_input_port_impl.h"
 #include "opcuatms/errors.h"
+#include <opendaq/device_ptr.h>
+#include <opcuatms/exceptions.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
     using namespace opcua;
@@ -58,44 +60,46 @@ ErrCode TmsClientInputPortImpl::acceptsSignal(ISignal* signal, Bool* accepts)
 
 ErrCode TmsClientInputPortImpl::connect(ISignal* signal)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
-    //return daqTry([&]() {
-    //    OpcUaNodeId methodId(NAMESPACE_DAQBSP, UA_DAQBSPID_INPUTPORTTYPE_CONNECTSIGNAL);
+    return daqTry([&]() {
+        if (!isChildComponent(signal))
+            throw NotFoundException();
 
-    //    auto signalNodeId = clientContext->getNodeId(signal);
-    //    OpcUaVariant inputArg;
-    //    inputArg.setScalar(*signalNodeId);
+        const SignalPtr signalPtr = signal;
+        const auto methodNodeId = getNodeId("Connect");
 
-    //    OpcUaCallMethodRequest callRequest(methodId, nodeId, 1, inputArg.get());
-    //    OpcUaObject<UA_CallMethodResult> result = client->callMethod(callRequest);
-    //    if (OPCUA_STATUSCODE_FAILED(result->statusCode))
-    //        return OPENDAQ_ERR_CALLFAILED;
-    //    else
-    //    {
-    //        referenceUtils.updateReferences(nodeId);
-    //        return OPENDAQ_SUCCESS;
-    //        
-    //    }
-    //});
+        StringPtr remoteId;
+        signalPtr.asPtr<ITmsClientComponent>()->getRemoteGlobalId(&remoteId);
+        const auto signalIdVariant = OpcUaVariant(remoteId.toStdString().c_str());
+
+        auto request = OpcUaCallMethodRequest();
+        request->objectId = nodeId.copyAndGetDetachedValue();
+        request->methodId = methodNodeId.copyAndGetDetachedValue();
+        request->inputArgumentsSize = 1;
+        request->inputArguments = (UA_Variant*) UA_Array_new(request->inputArgumentsSize, &UA_TYPES[UA_TYPES_VARIANT]);
+        request->inputArguments[0] = signalIdVariant.copyAndGetDetachedValue();
+
+        auto response = client->callMethod(request);
+
+        if (response->statusCode != UA_STATUSCODE_GOOD)
+            throw OpcUaGeneralException();
+    });
 }
 
 ErrCode TmsClientInputPortImpl::disconnect()
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return daqTry([&]() {
+        const auto methodNodeId = getNodeId("Disconnect");
 
-    //return daqTry([&]() {
-    //    OpcUaNodeId methodId(NAMESPACE_DAQBSP, UA_DAQBSPID_INPUTPORTTYPE_DISCONNECTSIGNAL);
+        auto request = OpcUaCallMethodRequest();
+        request->objectId = nodeId.copyAndGetDetachedValue();
+        request->methodId = methodNodeId.copyAndGetDetachedValue();
+        request->inputArgumentsSize = 0;
 
-    //    OpcUaCallMethodRequest callRequest(methodId, nodeId, 0, nullptr);
-    //    OpcUaObject<UA_CallMethodResult> result = client->callMethod(callRequest);
-    //    if (OPCUA_STATUSCODE_FAILED(result->statusCode))
-    //        return OPENDAQ_ERR_CALLFAILED;
-    //    else
-    //    {
-    //        referenceUtils.updateReferences(nodeId);
-    //        return OPENDAQ_SUCCESS;
-    //    }
-    //});
+        auto response = client->callMethod(request);
+
+        if (response->statusCode != UA_STATUSCODE_GOOD)
+            throw OpcUaGeneralException();
+    });
 }
 
 ErrCode TmsClientInputPortImpl::getSignal(ISignal** signal)
@@ -109,11 +113,14 @@ ErrCode TmsClientInputPortImpl::getSignal(ISignal** signal)
 
 SignalPtr TmsClientInputPortImpl::onGetSignal()
 {
+    auto browser = clientContext->getReferenceBrowser();
+
     auto filter = BrowseFilter();
     filter.referenceTypeId = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_CONNECTEDTOSIGNAL);
     filter.direction = UA_BROWSEDIRECTION_FORWARD;
 
-    const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);
+    browser->invalidate(nodeId);
+    const auto& references = browser->browseFiltered(nodeId, filter);
     assert(references.byNodeId.size() <= 1);
 
     if (!references.byNodeId.empty())

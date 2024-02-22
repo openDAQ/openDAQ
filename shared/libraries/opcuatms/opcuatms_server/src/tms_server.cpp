@@ -47,10 +47,12 @@ void TmsServer::start()
     server->setPort(opcUaPort);
     server->prepare();
 
-    tmsContext = std::make_shared<TmsServerContext>(context);
+    tmsContext = std::make_shared<TmsServerContext>(context, device);
+    auto signals = device.getSignals();
 
     tmsDevice = std::make_unique<TmsServerDevice>(device, server, context, tmsContext);
     tmsDevice->registerOpcUaNode(OpcUaNodeId(NAMESPACE_DI, UA_DIID_DEVICESET));
+
     if (!versionStr.empty())
     {
         OpcUaNodeId newNodeId(0);

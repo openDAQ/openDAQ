@@ -1,6 +1,8 @@
 #include <coretypes/type_manager_impl.h>
 #include <coretypes/type_ptr.h>
 #include <coretypes/type_manager_ptr.h>
+#include <coretypes/baseobject_factory.h>
+#include <coretypes/serialized_object_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -22,7 +24,16 @@ ErrCode TypeManagerImpl::addType(IType* type)
     if (types.hasKey(typeName))
         return OPENDAQ_ERR_ALREADYEXISTS;
     
-    return types->set(typeName, typePtr);
+    const ErrCode err = types->set(typeName, typePtr);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    return daqTry([&]()
+        {
+            if (coreEventCallback.assigned())
+                coreEventCallback(typePtr);
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 ErrCode TypeManagerImpl::removeType(IString* name)
@@ -33,8 +44,17 @@ ErrCode TypeManagerImpl::removeType(IString* name)
     if (!types.hasKey(name))
         return OPENDAQ_ERR_NOTFOUND;
 
-    types.remove(name);
-    return OPENDAQ_SUCCESS;
+    BaseObjectPtr obj;
+    const ErrCode err = types->remove(name, &obj);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    return daqTry([&]()
+        {
+            if (coreEventCallback.assigned())
+                coreEventCallback(name);
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 ErrCode TypeManagerImpl::getType(IString* name, IType** type)
@@ -64,6 +84,12 @@ ErrCode TypeManagerImpl::hasType(IString* typeName, Bool* hasType)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
     *hasType = types.hasKey(typeName);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode TypeManagerImpl::setCoreEventCallback(IProcedure* callback)
+{
+    this->coreEventCallback = callback;
     return OPENDAQ_SUCCESS;
 }
 

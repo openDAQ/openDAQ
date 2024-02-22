@@ -1,0 +1,34 @@
+﻿$CSFactoryDoc$    public static ErrorCode $Name$$CSClassGenericParams$($Arguments$)
+$CSClassGenericParamConstraints$    {
+        //initialize output argument
+        $CSInitReturnArg$
+
+        //native output argument
+        $CSRawReturnTypePtrDeclaration$$CSCastArgumentObjects$
+        //call native function
+        ErrorCode errorCode = $CSRawName$($ArgumentNames$);
+
+        if (Result.Succeeded(errorCode))
+        {
+            //create object
+            $CSReturnArgName$ = $CSReturnValue$;
+        }
+
+        return errorCode;
+    }
+
+$CSFactoryDocRetOut$    public static $ReturnTypePtr$ $Name$$CSClassGenericParams$($CSArgumentsWithoutLastOut$)
+$CSClassGenericParamConstraints$    {
+        //native output argument
+        $CSRawReturnTypePtrDeclaration$$CSCastArgumentObjects$
+        //call native function
+        ErrorCode errorCode = $CSRawName$($ArgumentNames$);
+
+        if (Result.Failed(errorCode))
+        {
+            throw new OpenDaqException($CSReturnVariable$);
+        }
+
+        //create and return object
+        return $CSReturnValue$;
+    }

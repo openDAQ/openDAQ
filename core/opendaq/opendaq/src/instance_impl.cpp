@@ -85,6 +85,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     else
         rootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
 
+    rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
     loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
 }
 

@@ -186,6 +186,8 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
 
 	objPtr.addProperty(StructPropertyBuilder("StructProp", defStructValue).build());
     
+    objPtr.addProperty(StringPropertyBuilder("StrProp", "-").build());
+
     const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
     ctx.getTypeManager().addType(statusType);
 

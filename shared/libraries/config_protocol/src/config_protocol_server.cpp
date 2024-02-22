@@ -132,6 +132,8 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("SetProtectedPropertyValue", &ConfigServerComponent::setProtectedPropertyValue);
     addHandler<ComponentPtr>("ClearPropertyValue", &ConfigServerComponent::clearPropertyValue);
     addHandler<ComponentPtr>("CallProperty", &ConfigServerComponent::callProperty);
+    addHandler<ComponentPtr>("BeginUpdate", &ConfigServerComponent::beginUpdate);
+    addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
 
     addHandler<DevicePtr>("GetAvailableFunctionBlockTypes", &ConfigServerDevice::getAvailableFunctionBlockTypes);
     addHandler<DevicePtr>("AddFunctionBlock", &ConfigServerDevice::addFunctionBlock);
@@ -304,7 +306,8 @@ void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventA
 
 ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
 {
-    auto packedEvent = List<IBaseObject>(component.getGlobalId());
+    const auto globalId = component.assigned() ? component.getGlobalId() : "";
+    auto packedEvent = List<IBaseObject>(globalId);
 
     switch (static_cast<CoreEventId>(args.getEventId()))
     {
@@ -323,6 +326,8 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::DataDescriptorChanged:
         case CoreEventId::ComponentUpdateEnd:
         case CoreEventId::StatusChanged:
+        case CoreEventId::TypeAdded:
+        case CoreEventId::TypeRemoved:
             packedEvent.pushBack(args);
     }
     

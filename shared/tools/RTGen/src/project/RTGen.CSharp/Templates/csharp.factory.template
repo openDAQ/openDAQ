@@ -1,0 +1,2 @@
+﻿    [DllImport($LibraryName$DllInfo.FileName, CallingConvention = CallingConvention.$CSCallingConvention$$CSCharSet$)]
+    private static extern ErrorCode $Name$($Arguments$);

@@ -22,6 +22,16 @@ const opcua::OpcUaClientPtr& TmsClientContext::getClient() const
     return client;
 }
 
+void TmsClientContext::registerRootDevice(const DevicePtr& rootDevice)
+{
+    this->rootDevice = rootDevice;
+}
+
+DevicePtr TmsClientContext::getRootDevice()
+{
+    return this->rootDevice.getRef();
+}
+
 void TmsClientContext::registerObject(const OpcUaNodeId& nodeId, const BaseObjectPtr& object)
 {
     std::lock_guard guard(mutex);

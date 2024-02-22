@@ -41,7 +41,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
 {
     /*!
      * @brief Builds and returns a Property object class using the currently set values of the Builder.
-     * @param[out] property The built Property object class.
+     * @param[out] propertyObjectClass The built Property object class.
      */
     virtual ErrCode INTERFACE_FUNC build(IPropertyObjectClass** propertyObjectClass) = 0;
 
@@ -84,8 +84,8 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClassBuilder, IBaseObject)
 
     // [templateType(properties, IString, IProperty)]
     /*!
-     * @brief Gets the dictonary of properties
-     * @param[out] properties dictonary of properties
+     * @brief Gets the dictionary of properties
+     * @param[out] properties dictionary of properties
      */
     virtual ErrCode INTERFACE_FUNC getProperties(IDict** properties) = 0;
     

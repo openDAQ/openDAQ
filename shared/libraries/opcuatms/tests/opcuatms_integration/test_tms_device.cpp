@@ -105,7 +105,8 @@ TEST_F(TmsDeviceTest, GetSignals)
     }
 
     ASSERT_NO_THROW(signals = clientDevice.getSignals(search::Recursive(search::Visible())));
-    ASSERT_EQ(signals.getCount(), serverDevice.getSignals(search::Recursive(search::Visible())).getCount());
+    // one private signal in MockFunctionBlockImpl. and one in MockPhysicalDeviceImpl
+    ASSERT_EQ(signals.getCount(), serverDevice.getSignals(search::Recursive(search::Visible())).getCount() - 2);
 }
 
 TEST_F(TmsDeviceTest, GetChannels)
@@ -216,6 +217,22 @@ TEST_F(TmsDeviceTest, DeviceInfo)
     ASSERT_EQ(clientDeviceInfo.getPropertyValue("custom_string"), "custom_string");
     ASSERT_EQ(clientDeviceInfo.getPropertyValue("custom_float"), 1.123);
     ASSERT_EQ(clientDeviceInfo.getPropertyValue("custom_int"), 1);
+}
+
+TEST_F(TmsDeviceTest, DeviceGetTicksSinceOrigin)
+{
+    auto ctx = NullContext();
+    DevicePtr serverDevice = createDevice();
+
+    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
+    auto nodeId = serverTmsDevice.registerOpcUaNode();
+
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+    auto clientSubDevices = clientDevice.getDevices();
+    auto clientSubDevice = clientSubDevices[1];
+
+    auto ticksSinceOrigin = clientSubDevice.asPtr<IDeviceDomain>(true).getTicksSinceOrigin();
+    ASSERT_EQ(ticksSinceOrigin, 789);
 }
 
 TEST_F(TmsDeviceTest, DeviceDomain)

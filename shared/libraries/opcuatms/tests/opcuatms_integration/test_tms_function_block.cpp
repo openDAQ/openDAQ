@@ -144,8 +144,18 @@ TEST_F(TmsFunctionBlockTest, SignalCheckGlobalId)
     ListPtr<ISignal> serverSignals = serverFunctionBlock.getSignals();
     ListPtr<ISignal> clientSignals = clientFunctionBlock.getSignals();
 
-    for (size_t i = 0; i < serverSignals.getCount(); i++)
-        ASSERT_EQ(serverSignals[i].getGlobalId(), clientSignals[i].getGlobalId());
+    // one private signal in MockPhysicalDeviceImpl
+    ASSERT_EQ(clientSignals.getCount(), serverSignals.getCount() - 1);
+
+    std::vector<std::string> serverSignalsName;
+    for (const auto & signal : serverSignals)
+        serverSignalsName.push_back(signal.getGlobalId());
+
+    for (const auto & signal : clientSignals)
+    {
+        auto it = find(serverSignalsName.begin(), serverSignalsName.end(), signal.getGlobalId().toStdString());
+        ASSERT_NE(it, serverSignalsName.end());
+    }
 }
 
 TEST_F(TmsFunctionBlockTest, MethodGetStatusSignal)
@@ -184,12 +194,16 @@ TEST_F(TmsFunctionBlockTest, Property)
     auto clientFunctionBlock = TmsClientFunctionBlock(NullContext(), nullptr, "mockfb", clientContext, nodeId);
 
     auto visibleProperties = clientFunctionBlock.getVisibleProperties();
-    ASSERT_EQ(visibleProperties.getCount(), 1u);
-    ASSERT_EQ(visibleProperties[0].getName(), "SampleRate");
+    ASSERT_EQ(visibleProperties.getCount(), 3u);
+    ASSERT_EQ(visibleProperties[0].getName(), "TestConfigInt");
+    ASSERT_EQ(visibleProperties[1].getName(), "TestConfigString");
+    ASSERT_EQ(visibleProperties[2].getName(), "SampleRate");
 
     auto properties = clientFunctionBlock.getAllProperties();
-    ASSERT_EQ(properties.getCount(), 1u);
-    ASSERT_EQ(properties[0].getName(), "SampleRate");
+    ASSERT_EQ(properties.getCount(), 3u);
+    ASSERT_EQ(properties[0].getName(), "TestConfigInt");
+    ASSERT_EQ(properties[1].getName(), "TestConfigString");
+    ASSERT_EQ(properties[2].getName(), "SampleRate");
 
     ASSERT_TRUE(clientFunctionBlock.hasProperty("SampleRate"));
     ASSERT_EQ(clientFunctionBlock.getPropertyValue("SampleRate"), 100.0);

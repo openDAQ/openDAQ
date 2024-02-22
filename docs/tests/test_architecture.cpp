@@ -14,7 +14,7 @@ TEST_F(ArchitectureTest, ClientModule)
     InstancePtr instance = daq::Instance();
     ModuleManagerPtr manager = instance.getModuleManager();
     ASSERT_TRUE(manager.assigned());
-    ASSERT_GT(manager.getModules().getCount(), 0);
+    ASSERT_GT(manager.getModules().getCount(), 0u);
 
     ModulePtr clientModule;
     for (auto mod : manager.getModules())
@@ -43,7 +43,7 @@ TEST_F(ArchitectureTest, AddDevice)
     InstancePtr instance = daq::Instance();
 
     DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
-    ASSERT_NE(device.getChannels().getCount(), 0);
+    ASSERT_NE(device.getChannels().getCount(), 0u);
 
     ASSERT_TRUE(device.asPtr<IPropertyObject>().assigned());
     ASSERT_TRUE(device.getChannels()[0].asPtr<IPropertyObject>().assigned());
@@ -64,8 +64,8 @@ TEST_F(ArchitectureTest, Statistics)
 
     FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
     ASSERT_TRUE(statistics.asPtr<IPropertyObject>().assigned());
-    ASSERT_GT(statistics.getInputPorts().getCount(), 0);
-    ASSERT_GT(statistics.getSignals().getCount(), 0);
+    ASSERT_GT(statistics.getInputPorts().getCount(), 0u);
+    ASSERT_GT(statistics.getSignals().getCount(), 0u);
 
     SignalPtr deviceOut = device.getSignalsRecursive()[0];
 
@@ -78,7 +78,7 @@ TEST_F(ArchitectureTest, Statistics)
     ASSERT_TRUE(statisticsOut.getDomainSignal().assigned());
 
     ASSERT_TRUE(statistics.getInputPorts()[0].getConnection().assigned());
-    ASSERT_GT(deviceOut.getConnections().getCount(), 0);
+    ASSERT_GT(deviceOut.getConnections().getCount(), 0u);
 }
 
 TEST_F(ArchitectureTest, DataRule)
@@ -120,7 +120,7 @@ TEST_F(ArchitectureTest, Readers)
     double data[1000];
     SizeT count = 1000;
     streamReader.read(data, &count);
-    ASSERT_GT(count, 0);
+    ASSERT_GT(count, 0u);
 }
 
 // Corresponding document : Antora/modules/background_info/pages/function_blocks.adoc
@@ -130,7 +130,7 @@ TEST_F(ArchitectureTest, GetChannels)
 
     DevicePtr device = instance.addDevice("daqref://device0");
     ListPtr<IChannel> channels  = device.getChannels();
-    ASSERT_GT(channels.getCount(), 0);
+    ASSERT_GT(channels.getCount(), 0u);
 }
 
 // Corresponding document : Antora/modules/background_info/pages/function_blocks.adoc

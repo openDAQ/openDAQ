@@ -1,0 +1,76 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.7.34031.279
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "openDAQ.Net", "openDAQ.Net\openDAQ.Net.csproj", "{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "openDAQ.Net.Test", "openDAQ.Net.Test\openDAQ.Net.Test.csproj", "{428DE5A1-874D-4F67-8FCE-FC46768F1B7F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C3C25B1F-F67F-4F57-8FCD-AFE81B5598BA}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		README.md = README.md
+		Thoughts-about-CSharp-Bindings.txt = Thoughts-about-CSharp-Bindings.txt
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BasicHowTo", "BasicHowTo\BasicHowTo.csproj", "{82164047-0558-43BB-8727-B9C0FF1E2551}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug_Build|x64 = Debug_Build|x64
+		Debug_Build|x86 = Debug_Build|x86
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release_Build|x64 = Release_Build|x64
+		Release_Build|x86 = Release_Build|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Debug_Build|x64.ActiveCfg = Debug|x64
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Debug_Build|x64.Build.0 = Debug|x64
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Debug_Build|x86.ActiveCfg = Debug|x86
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Debug_Build|x86.Build.0 = Debug|x86
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Debug|x64.ActiveCfg = Debug|x64
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Debug|x64.Build.0 = Debug|x64
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Debug|x86.ActiveCfg = Debug|x86
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Debug|x86.Build.0 = Debug|x86
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Release_Build|x64.ActiveCfg = Release|x64
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Release_Build|x64.Build.0 = Release|x64
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Release_Build|x86.ActiveCfg = Release|x86
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Release_Build|x86.Build.0 = Release|x86
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Release|x64.ActiveCfg = Release|x64
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Release|x64.Build.0 = Release|x64
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Release|x86.ActiveCfg = Release|x86
+		{3E09E8CB-4A4A-45C7-AF85-8B742B0BF8B8}.Release|x86.Build.0 = Release|x86
+		{428DE5A1-874D-4F67-8FCE-FC46768F1B7F}.Debug_Build|x64.ActiveCfg = Debug|x64
+		{428DE5A1-874D-4F67-8FCE-FC46768F1B7F}.Debug_Build|x86.ActiveCfg = Debug|x64
+		{428DE5A1-874D-4F67-8FCE-FC46768F1B7F}.Debug|x64.ActiveCfg = Debug|x64
+		{428DE5A1-874D-4F67-8FCE-FC46768F1B7F}.Debug|x64.Build.0 = Debug|x64
+		{428DE5A1-874D-4F67-8FCE-FC46768F1B7F}.Debug|x86.ActiveCfg = Debug|x64
+		{428DE5A1-874D-4F67-8FCE-FC46768F1B7F}.Release_Build|x64.ActiveCfg = Release|x64
+		{428DE5A1-874D-4F67-8FCE-FC46768F1B7F}.Release_Build|x86.ActiveCfg = Release|x64
+		{428DE5A1-874D-4F67-8FCE-FC46768F1B7F}.Release|x64.ActiveCfg = Release|x64
+		{428DE5A1-874D-4F67-8FCE-FC46768F1B7F}.Release|x64.Build.0 = Release|x64
+		{428DE5A1-874D-4F67-8FCE-FC46768F1B7F}.Release|x86.ActiveCfg = Release|x64
+		{82164047-0558-43BB-8727-B9C0FF1E2551}.Debug_Build|x64.ActiveCfg = Debug|x64
+		{82164047-0558-43BB-8727-B9C0FF1E2551}.Debug_Build|x86.ActiveCfg = Debug|x64
+		{82164047-0558-43BB-8727-B9C0FF1E2551}.Debug|x64.ActiveCfg = Debug|x64
+		{82164047-0558-43BB-8727-B9C0FF1E2551}.Debug|x64.Build.0 = Debug|x64
+		{82164047-0558-43BB-8727-B9C0FF1E2551}.Debug|x86.ActiveCfg = Debug|x64
+		{82164047-0558-43BB-8727-B9C0FF1E2551}.Release_Build|x64.ActiveCfg = Release|x64
+		{82164047-0558-43BB-8727-B9C0FF1E2551}.Release_Build|x86.ActiveCfg = Release|x64
+		{82164047-0558-43BB-8727-B9C0FF1E2551}.Release|x64.ActiveCfg = Release|x64
+		{82164047-0558-43BB-8727-B9C0FF1E2551}.Release|x64.Build.0 = Release|x64
+		{82164047-0558-43BB-8727-B9C0FF1E2551}.Release|x86.ActiveCfg = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1ACD5DFC-002B-415B-BB54-A971C7DD95D1}
+	EndGlobalSection
+EndGlobal

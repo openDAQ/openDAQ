@@ -22,7 +22,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-class TmsClientDeviceImpl : public TmsClientComponentBaseImpl<Device>
+class TmsClientDeviceImpl : public TmsClientComponentBaseImpl<DeviceBase<ITmsClientComponent>>
 {
 public:
     explicit TmsClientDeviceImpl(const ContextPtr& ctx,
@@ -46,6 +46,7 @@ protected:
     void findAndCreateSignals();
     void findAndCreateInputsOutputs();
     void findAndCreateCustomComponents();
+    DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 
@@ -67,7 +68,7 @@ private:
 
     bool timeDomainFetched = false;
     RatioPtr resolution;
-    SizeT ticksSinceOrigin;
+    SizeT ticksSinceOrigin{};
     StringPtr origin;
     UnitPtr domainUnit;
     LoggerPtr logger;

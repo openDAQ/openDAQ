@@ -55,6 +55,10 @@ namespace core_event_args_impl
                 return "TagsChanged";
             case CoreEventId::StatusChanged:
                 return "StatusChanged";
+            case CoreEventId::TypeAdded:
+                return "TypeAdded";
+            case CoreEventId::TypeRemoved:
+                return "TypeRemoved";
             default:
                 break;
         }
@@ -216,6 +220,10 @@ inline bool CoreEventArgsImpl::validateParameters() const
             return parameters.hasKey("AttributeName");
         case CoreEventId::TagsChanged:
             return parameters.hasKey("Tags");
+        case CoreEventId::TypeAdded:
+            return parameters.hasKey("Type");
+        case CoreEventId::TypeRemoved:
+            return parameters.hasKey("TypeName");
         default:
             break;
     }

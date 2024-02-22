@@ -9,7 +9,9 @@ on:
 env:
   cmake_preset: ci
   test_path: ${{ github.workspace }}/junit_reports/
+  build_path: ${{ github.workspace }}/build
   package_path: ${{ github.workspace }}/build/_packages/
+  dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
   python_version_build: 3.11
   python_versions: 3.8 3.9 3.10 3.11 3.12
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
@@ -95,8 +97,19 @@ jobs:
           }
 
       - name: Build
+        shell: pwsh
         working-directory: build
-        run: cmake --build . --config ${{ matrix.cmake_build_type }}
+        env:
+          dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
+        run: |
+          cmake --build . --config ${{ matrix.cmake_build_type }}
+          if (Test-Path -Path "${{ env.dotnetBuildPath }}") {
+            mkdir "${{ env.package_path }}"
+            Copy-Item "${{ env.dotnetBuildPath }}/*.nupkg" "${{ env.package_path }}"
+          } else {
+            Write-Output "*** '${{ env.dotnetBuildPath }}' not found, no .NET Bindings to copy"
+          }
+
 
       - name: Test
         working-directory: build
@@ -359,7 +372,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: PIP Package (${{ matrix.name }})
-          path: ${{ github.workspace }}/build/wheels/opendaq*.whl
+          path: ${{ env.build_path }}/wheels/opendaq*.whl
           retention-days: 7
 
   build_macos:
@@ -404,7 +417,7 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }}-DCI_GIT_BRANCH=${{ github.head_ref }}  -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ${{ github.workspace }}
+          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ${{ github.workspace }}
 
       - name: Build
         working-directory: build
@@ -442,7 +455,7 @@ jobs:
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: x64
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DOPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY=ON
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DOPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY=ON -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
             cpack: NSIS
             cmake_preset: package
 
@@ -493,7 +506,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: PIP Package (${{ matrix.name }})
-          path: ${{ github.workspace }}/build/wheels/*.whl
+          path: ${{ env.build_path }}/wheels/*.whl
           retention-days: 7
 
   # build_android:

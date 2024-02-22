@@ -318,6 +318,23 @@ TEST_F(PropertyObjectTest, DeserializeJsonSimpleWithLocalProperty)
     ASSERT_EQ(json, deserializedJson);
 }
 
+TEST_F(PropertyObjectTest, DISABLED_SerializeList)
+{
+    // Serializer fails to serialize default empty list property correctly.
+
+    auto obj = PropertyObject();
+    obj.addProperty(ListProperty("list", List<IInteger>()));
+    obj.setPropertyValue("list", List<IInteger>(1, 2, 3));
+
+    auto serializer = JsonSerializer();
+    auto deserializer = JsonDeserializer();
+    obj.serialize(serializer);
+    const PropertyObjectPtr clone = deserializer.deserialize(serializer.getOutput());
+    
+    ASSERT_TRUE(clone.hasProperty("list"));
+    ASSERT_TRUE(BaseObjectPtr::Equals(obj.getPropertyValue("list"), clone.getPropertyValue("list")));
+}
+
 TEST_F(PropertyObjectTest, SetNullPropertyPtr)
 {
     auto propObj = PropertyObject(objManager, "Test");
@@ -1961,4 +1978,46 @@ TEST_F(PropertyObjectTest, ClonedClassObjectsSerialize)
     const std::string deserializedJson = serializer2.getOutput().toStdString();
 
     ASSERT_EQ(json, deserializedJson);
+}
+
+using BeginEndUpdatePropertyObjectTest = testing::Test;
+
+TEST_F(BeginEndUpdatePropertyObjectTest, Recursive)
+{
+    auto childPropObj = PropertyObject();
+    childPropObj.addProperty(StringPropertyBuilder("ChildStringProp", "-").build());
+
+    auto propObj = PropertyObject();
+    bool endUpdateCalled = false;
+    propObj.getOnEndUpdate() += [&endUpdateCalled](PropertyObjectPtr&, EndUpdateEventArgsPtr& args)
+    {
+        ASSERT_THAT(args.getProperties(), testing::ElementsAre("StringProp"));
+        endUpdateCalled = true;
+    };
+
+    propObj.addProperty(StringPropertyBuilder("StringProp", "-").build());
+    propObj.addProperty(ObjectPropertyBuilder("ObjProp", childPropObj).build());
+
+    childPropObj = propObj.getPropertyValue("ObjProp");
+    bool childEndUpdateCalled = false;
+    childPropObj.getOnEndUpdate() += [&childEndUpdateCalled](PropertyObjectPtr&, EndUpdateEventArgsPtr& args)
+    {
+        ASSERT_THAT(args.getProperties(), testing::ElementsAre("ChildStringProp"));
+        childEndUpdateCalled = true;
+    };
+
+    propObj.beginUpdate();
+
+    propObj.setPropertyValue("StringProp", "s");
+    ASSERT_EQ(propObj.getPropertyValue("StringProp"), "-");
+
+    childPropObj.setPropertyValue("ChildStringProp", "cs");
+    ASSERT_EQ(childPropObj.getPropertyValue("ChildStringProp"), "-");
+
+    propObj.endUpdate();
+
+    ASSERT_TRUE(childEndUpdateCalled);
+    ASSERT_TRUE(endUpdateCalled);
+    ASSERT_EQ(propObj.getPropertyValue("StringProp"), "s");
+    ASSERT_EQ(childPropObj.getPropertyValue("ChildStringProp"), "cs");
 }

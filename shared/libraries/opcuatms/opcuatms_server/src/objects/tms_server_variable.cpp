@@ -1,6 +1,7 @@
 #include "opcuatms_server/objects/tms_server_variable.h"
 #include "coreobjects/eval_value_ptr.h"
 #include "open62541/server.h"
+#include "opendaq/function_block_type_ptr.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -34,7 +35,8 @@ opcua::OpcUaNodeId TmsServerVariable<CoreType>::createNode(const opcua::OpcUaNod
 template <class CoreType>
 void TmsServerVariable<CoreType>::configureVariableNodeAttributes(opcua::OpcUaObject<UA_VariableAttributes>& attr)
 {
-    const auto dataTypeId = this->server->readDataType(this->getTmsTypeId());
+    const auto tmsTypeId = this->getTmsTypeId();
+    const auto dataTypeId = this->server->readDataType(tmsTypeId);
 
     attr->dataType = *dataTypeId;
     attr->accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
@@ -44,5 +46,6 @@ void TmsServerVariable<CoreType>::configureVariableNodeAttributes(opcua::OpcUaOb
 template class TmsServerVariable<ListPtr<IFloat>>;
 template class TmsServerVariable<EvalValuePtr>;
 template class TmsServerVariable<PropertyPtr>;
+template class TmsServerVariable<FunctionBlockTypePtr>;
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

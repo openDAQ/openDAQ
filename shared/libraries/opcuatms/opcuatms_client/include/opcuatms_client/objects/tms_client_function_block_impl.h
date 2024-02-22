@@ -22,7 +22,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 template <typename Impl>
 class TmsClientFunctionBlockBaseImpl;
 
-using TmsClientFunctionBlockImpl = TmsClientFunctionBlockBaseImpl<daq::FunctionBlock>;
+using TmsClientFunctionBlockImpl = TmsClientFunctionBlockBaseImpl<daq::FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>>;
 
 template <typename Impl>
 class TmsClientFunctionBlockBaseImpl : public TmsClientComponentBaseImpl<Impl>

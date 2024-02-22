@@ -35,6 +35,15 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+// https://developercommunity.visualstudio.com/t/inline-static-destructors-are-called-multiple-time/1157794
+#ifdef _MSC_VER
+#if _MSC_VER <= 1927
+#define WORKAROUND_MEMBER_INLINE_VARIABLE
+#endif
+#endif
+
+#define SIGNAL_AVAILABLE_ATTRIBUTES {"Public", "DomainSignal", "RelatedSignals"}
+
 template <typename TInterface, typename... Interfaces>
 class SignalBase;
 
@@ -107,7 +116,12 @@ protected:
 
     ErrCode lockAllAttributesInternal() override;
     
-    inline static std::unordered_set<std::string> signalAvailableAttributes = {"Public", "DomainSignal", "RelatedSignals"};
+#ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
+    static std::unordered_set<std::string> signalAvailableAttributes;
+#else
+    inline static std::unordered_set<std::string> signalAvailableAttributes = SIGNAL_AVAILABLE_ATTRIBUTES;
+#endif
+
     DataDescriptorPtr dataDescriptor;
 
 private:
@@ -124,6 +138,11 @@ private:
     bool sendPacketInternal(const PacketPtr& packet, bool ignoreActive = false) const;
     void triggerRelatedSignalsChanged();
 };
+
+#ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
+template <typename TInterface, typename... Interfaces>
+std::unordered_set<std::string> SignalBase<TInterface, Interfaces...>::signalAvailableAttributes = SIGNAL_AVAILABLE_ATTRIBUTES;
+#endif
 
 template <typename TInterface, typename... Interfaces>
 SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
@@ -685,12 +704,18 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
         dataDescriptor.serialize(serializer);
     }
 
+    serializer.key("public");
+    serializer.writeBool(isPublic);
+
     Super::serializeCustomObjectValues(serializer, forUpdate);
 }
 
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
 {
+    if (obj.hasKey("public"))
+        isPublic = obj.readBool("public");
+
     Super::updateObject(obj);
 }
 
@@ -752,6 +777,8 @@ void SignalBase<TInterface, Interfaces...>::deserializeCustomObjectValues(const 
         deserializedDomainSignalId = serializedObject.readString("domainSignalId");
     if (serializedObject.hasKey("dataDescriptor"))
         dataDescriptor = serializedObject.readObject("dataDescriptor", context, factoryCallback);
+    if (serializedObject.hasKey("public"))
+        isPublic = serializedObject.readBool("public");
 }
 
 template <typename TInterface, typename... Interfaces>

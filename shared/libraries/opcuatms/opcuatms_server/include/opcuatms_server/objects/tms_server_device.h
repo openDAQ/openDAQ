@@ -21,6 +21,8 @@
 #include "opcuatms_server/objects/tms_server_folder.h"
 #include "opcuatms_server/objects/tms_server_component.h"
 #include "opcuatms_server/objects/tms_server_property_object.h"
+#include "opcuatms_server/objects/tms_server_function_block_type.h"
+
 #include <list>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -46,6 +48,16 @@ protected:
     opcua::OpcUaNodeId getTmsTypeId() override;
     void populateDeviceInfo();
     void populateStreamingOptions();
+    void addFunctionBlockFolderNodes();
+    void createFunctionBlockTypesFolder(const OpcUaNodeId& parentId);
+    void createAddFunctionBlockNode(const OpcUaNodeId& parentId);
+    void createRemoveFunctionBlockNode(const OpcUaNodeId& parentId);
+    void onGetAvailableFunctionBlockTypes(const NodeEventManager::MethodArgs& args);
+    void onAddFunctionBlock(const NodeEventManager::MethodArgs& args);
+    void onRemoveFunctionBlock(const NodeEventManager::MethodArgs& args);
+    TmsServerFunctionBlockPtr addFunctionBlock(const StringPtr& fbTypeId, const OpcUaVariant& configVariant);
+    TmsServerFunctionBlockPtr addFunctionBlock(const StringPtr& fbTypeId, const PropertyObjectPtr& config);
+    void removeFunctionBlock(const StringPtr& localId);
 
     // TODO we need following list to keep this because of handlers. Move handlers (TmsServerObject) to context and use UA_NodeTypeLifecycle
     // for deleting it
@@ -55,6 +67,7 @@ protected:
     std::list<TmsServerFolderPtr> folders;
     std::list<TmsServerComponentPtr> components;
     std::list<TmsServerPropertyObjectPtr> streamingOptions;
+    std::list<TmsServerFunctionBlockTypePtr> functionBlockTypes;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

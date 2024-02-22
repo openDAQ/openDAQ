@@ -280,7 +280,7 @@ TEST_F(TmsFunctionTest, UnsupportedArgumentInfo)
     obj.addProperty(FunctionProperty("proc8", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("undefined", ctUndefined)))));
     auto [serverObj, clientObj] = registerPropertyObject(obj);
 
-    ASSERT_EQ(clientObj.getAllProperties().getCount(), 0);
+    ASSERT_EQ(clientObj.getAllProperties().getCount(), 0u);
 }
 
 TEST_F(TmsFunctionTest, UnsupportedReturnType)
@@ -295,7 +295,7 @@ TEST_F(TmsFunctionTest, UnsupportedReturnType)
     obj.addProperty(FunctionProperty("func7", FunctionInfo(ctComplexNumber)));
     auto [serverObj, clientObj] = registerPropertyObject(obj);
 
-    ASSERT_EQ(clientObj.getAllProperties().getCount(), 0);
+    ASSERT_EQ(clientObj.getAllProperties().getCount(), 0u);
 }
 
 

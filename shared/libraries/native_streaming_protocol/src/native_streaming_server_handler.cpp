@@ -26,8 +26,11 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
 {
     for (const auto& signal : signalsList)
     {
-        registerSignal(signal);
-        subscribersRegistry.registerSignal(signal);
+        if (signal.getPublic())
+        {
+            registerSignal(signal);
+            subscribersRegistry.registerSignal(signal);
+        }
     }
 }
 
@@ -63,6 +66,9 @@ void NativeStreamingServerHandler::stopServer()
 
 void NativeStreamingServerHandler::addSignal(const SignalPtr& signal)
 {
+    if (!signal.getPublic())
+        return;
+
     auto signalNumericId = registerSignal(signal);
 
     subscribersRegistry.registerSignal(signal);

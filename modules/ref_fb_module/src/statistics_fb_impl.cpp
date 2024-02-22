@@ -1,14 +1,17 @@
-#include <ref_fb_module/statistics_fb_impl.h>
-#include <opendaq/packet_factory.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
+#include <opendaq/packet_factory.h>
+#include <ref_fb_module/statistics_fb_impl.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace Statistics
 {
 
-StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
+                                   const ComponentPtr& parent,
+                                   const StringPtr& localId,
+                                   const PropertyObjectPtr& config)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
     initProperties();
@@ -19,16 +22,25 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& pa
     avgSignal.setDomainSignal(domainSignal);
     rmsSignal.setDomainSignal(domainSignal);
 
-    createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    if (config.assigned() && config.hasProperty("UseMultiThreadedScheduler") && !config.getPropertyValue("UseMultiThreadedScheduler"))
+        packetReadyNotification = PacketReadyNotification::SameThread;
+    else
+        packetReadyNotification = PacketReadyNotification::Scheduler;
+
+    createAndAddInputPort("input", packetReadyNotification);
 }
 
 FunctionBlockTypePtr StatisticsFbImpl::CreateType()
 {
-    return FunctionBlockType(
-        "ref_fb_module_statistics",
-        "Statistics",
-        "Calculates statistics"
-    );
+    return FunctionBlockType("ref_fb_module_statistics",
+                             "Statistics",
+                             "Calculates statistics",
+                             []()
+                             {
+                                 const auto obj = PropertyObject();
+                                 obj.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
+                                 return obj;
+                             });
 }
 
 void StatisticsFbImpl::initProperties()
@@ -51,14 +63,12 @@ void StatisticsFbImpl::propertyChanged()
     configure();
 }
 
-
 void StatisticsFbImpl::readProperties()
 {
     blockSize = objPtr.getPropertyValue("BlockSize");
     domainSignalType = static_cast<DomainSignalType>(static_cast<Int>(objPtr.getPropertyValue("DomainSignalType")));
     LOG_D("Properties: BlockSize {}, DomainSignalType {}", blockSize, objPtr.getPropertySelectionValue("DomainSignalType").toString());
 }
-
 
 void StatisticsFbImpl::configure()
 {
@@ -83,7 +93,7 @@ void StatisticsFbImpl::configure()
     }
     const auto domainRuleParams = domainRule.getParameters();
 
-    const Int start = domainRuleParams.get("start");
+    start = domainRuleParams.get("start");
     inputDeltaTicks = domainRuleParams.get("delta");
     outputDeltaTicks = inputDeltaTicks * static_cast<Int>(blockSize);
 
@@ -122,8 +132,8 @@ void StatisticsFbImpl::configure()
     sampleSize = getSampleSize(sampleType);
 
     const auto outputAverageDataDescriptor = DataDescriptorBuilderCopy(inputValueDataDescriptor)
-                                                  .setName(static_cast<std::string>(inputValueDataDescriptor.getName() + "/Avg"))
-                                                  .setPostScaling(nullptr);
+                                                 .setName(static_cast<std::string>(inputValueDataDescriptor.getName() + "/Avg"))
+                                                 .setPostScaling(nullptr);
     this->outputAverageDataDescriptor = outputAverageDataDescriptor.build();
 
     avgSignal.setDescriptor(this->outputAverageDataDescriptor);
@@ -224,7 +234,7 @@ void StatisticsFbImpl::getNextOutputDomainValue(const DataPacketPtr& domainPacke
 }
 
 void StatisticsFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& valueDataDescriptor,
-                                                     const DataDescriptorPtr& domainDataDescriptor)
+                                                      const DataDescriptorPtr& domainDataDescriptor)
 {
     if (valueDataDescriptor.assigned())
         inputValueDataDescriptor = valueDataDescriptor;
@@ -334,13 +344,13 @@ void StatisticsFbImpl::calc(
         {
             if constexpr (DST == SampleType::Int64)
             {
-                *outDomainData++ = firstTick;
+                *outDomainData++ = firstTick + start;
                 firstTick += outputDeltaTicks;
             }
             else if constexpr (DST == SampleType::RangeInt64)
             {
-                outDomainData->start = firstTick;
-                outDomainData->end = firstTick + inputDeltaTicks * blockSize - 1;
+                outDomainData->start = firstTick + start;
+                outDomainData->end = outDomainData->start + inputDeltaTicks * blockSize - 1;
                 ++outDomainData;
                 firstTick += outputDeltaTicks;
             }

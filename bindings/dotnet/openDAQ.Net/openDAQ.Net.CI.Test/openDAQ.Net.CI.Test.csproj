@@ -1,0 +1,65 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>$(MSBuildProjectName.Replace(" ", "_").Replace(".CI", ""))</RootNamespace>
+    <Platforms>x64;x86</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\openDAQ.Net.Test\CoreTypesBaseObjectTests.cs" Link="CoreTypesBaseObjectTests.cs" />
+    <Compile Include="..\openDAQ.Net.Test\CoreTypesBoolTests.cs" Link="CoreTypesBoolTests.cs" />
+    <Compile Include="..\openDAQ.Net.Test\CoreTypesFloatTests.cs" Link="CoreTypesFloatTests.cs" />
+    <Compile Include="..\openDAQ.Net.Test\CoreTypesIntegerTests.cs" Link="CoreTypesIntegerTests.cs" />
+    <Compile Include="..\openDAQ.Net.Test\CoreTypesStringTests.cs" Link="CoreTypesStringTests.cs" />
+    <Compile Include="..\openDAQ.Net.Test\OpenDAQTestsBase.cs" Link="OpenDAQTestsBase.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JunitXml.TestLogger" Version="3.1.12" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="NUnit" Version="4.0.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+    <PackageReference Include="NUnit.Analyzers" Version="4.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="6.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NunitXml.TestLogger" Version="3.1.20" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\openDAQ.Net\openDAQ.Net.csproj" />
+  </ItemGroup>
+
+  <Target Name="MessageBeforeBuild" BeforeTargets="BeforeBuild">
+    <Message Importance="High" Text="+++++++++++++++++++++++ Building $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+  </Target>
+  <Target Name="MessageAfterBuild" BeforeTargets="AfterBuild">
+    <Message Importance="High" Text="+++++++++++++++++++++++ Build of $(MSBuildProjectFile) finished ++++++++++++++++++++++++++++++++++++" />
+  </Target>
+  <Target Name="MessageBeforeRebuild" BeforeTargets="BeforeRebuild">
+    <Message Importance="High" Text="+++++++++++++++++++++++ Re-building $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+  </Target>
+  <Target Name="MessageAfterRebuild" BeforeTargets="AfterRebuild">
+    <Message Importance="High" Text="+++++++++++++++++++++++ Re-build of $(MSBuildProjectFile) finished ++++++++++++++++++++++++++++++++++++" />
+  </Target>
+  <Target Name="MessageBeforeCompile" BeforeTargets="BeforeCompile">
+    <Message Importance="High" Text="+++++++++++++++++++++++ Compiling $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+  </Target>
+  <Target Name="MessageAfterCompile" BeforeTargets="AfterCompile">
+    <Message Importance="High" Text="+++++++++++++++++++++++ Compiling of $(MSBuildProjectFile) finished ++++++++++++++++++++++++++++++++++++" />
+  </Target>
+  <Target Name="MessageBeforePack" BeforeTargets="Pack">
+    <Message Importance="High" Text="+++++++++++++++++++++++ Packing $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+  </Target>
+
+</Project>

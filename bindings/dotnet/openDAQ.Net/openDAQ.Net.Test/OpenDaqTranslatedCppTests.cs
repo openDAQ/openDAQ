@@ -11,17 +11,18 @@ using Daq.Core.Types;
 namespace openDaq.Net.Test;
 
 
-public class OpenDaqTranslatedCppTests : CoreTypesTestsBase
+public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
 {
     private const string DAQ_OPCUA   = "daq.opcua://";
     private const string DAQ_WEBSOCK = "daq.ws://";
     private const string DAQ_REF     = "daqref://";
     private const string MODULE_PATH = ".";
 
-    //[SetUp]
-    //public void Setup()
-    //{
-    //}
+    [SetUp]
+    public void Setup()
+    {
+        base.DontWarn();
+    }
 
     //[TearDown]
     //public void TearDown()

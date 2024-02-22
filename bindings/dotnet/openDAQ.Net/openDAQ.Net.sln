@@ -13,10 +13,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
 		README.md = README.md
-		Thoughts-about-CSharp-Bindings.txt = Thoughts-about-CSharp-Bindings.txt
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BasicHowTo", "BasicHowTo\BasicHowTo.csproj", "{82164047-0558-43BB-8727-B9C0FF1E2551}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "openDAQDemo.Net", "openDAQDemo.Net\openDAQDemo.Net.csproj", "{5C47E1ED-4F0E-469A-B407-CFF27559C9A6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "openDAQ.Net.CI.Test", "openDAQ.Net.CI.Test\openDAQ.Net.CI.Test.csproj", "{19BBC771-4C59-4588-95BB-918C525572D3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -66,6 +69,28 @@ Global
 		{82164047-0558-43BB-8727-B9C0FF1E2551}.Release|x64.ActiveCfg = Release|x64
 		{82164047-0558-43BB-8727-B9C0FF1E2551}.Release|x64.Build.0 = Release|x64
 		{82164047-0558-43BB-8727-B9C0FF1E2551}.Release|x86.ActiveCfg = Release|x64
+		{5C47E1ED-4F0E-469A-B407-CFF27559C9A6}.Debug_Build|x64.ActiveCfg = Debug|x64
+		{5C47E1ED-4F0E-469A-B407-CFF27559C9A6}.Debug_Build|x86.ActiveCfg = Debug|x64
+		{5C47E1ED-4F0E-469A-B407-CFF27559C9A6}.Debug|x64.ActiveCfg = Debug|x64
+		{5C47E1ED-4F0E-469A-B407-CFF27559C9A6}.Debug|x64.Build.0 = Debug|x64
+		{5C47E1ED-4F0E-469A-B407-CFF27559C9A6}.Debug|x86.ActiveCfg = Debug|x64
+		{5C47E1ED-4F0E-469A-B407-CFF27559C9A6}.Release_Build|x64.ActiveCfg = Release|x64
+		{5C47E1ED-4F0E-469A-B407-CFF27559C9A6}.Release_Build|x86.ActiveCfg = Release|x64
+		{5C47E1ED-4F0E-469A-B407-CFF27559C9A6}.Release|x64.ActiveCfg = Release|x64
+		{5C47E1ED-4F0E-469A-B407-CFF27559C9A6}.Release|x64.Build.0 = Release|x64
+		{5C47E1ED-4F0E-469A-B407-CFF27559C9A6}.Release|x86.ActiveCfg = Release|x64
+		{19BBC771-4C59-4588-95BB-918C525572D3}.Debug_Build|x64.ActiveCfg = Debug|x64
+		{19BBC771-4C59-4588-95BB-918C525572D3}.Debug_Build|x64.Build.0 = Debug|x64
+		{19BBC771-4C59-4588-95BB-918C525572D3}.Debug_Build|x86.ActiveCfg = Debug|x86
+		{19BBC771-4C59-4588-95BB-918C525572D3}.Debug|x64.ActiveCfg = Debug|x64
+		{19BBC771-4C59-4588-95BB-918C525572D3}.Debug|x64.Build.0 = Debug|x64
+		{19BBC771-4C59-4588-95BB-918C525572D3}.Debug|x86.ActiveCfg = Debug|x86
+		{19BBC771-4C59-4588-95BB-918C525572D3}.Release_Build|x64.ActiveCfg = Release|x64
+		{19BBC771-4C59-4588-95BB-918C525572D3}.Release_Build|x64.Build.0 = Release|x64
+		{19BBC771-4C59-4588-95BB-918C525572D3}.Release_Build|x86.ActiveCfg = Release|x86
+		{19BBC771-4C59-4588-95BB-918C525572D3}.Release|x64.ActiveCfg = Release|x64
+		{19BBC771-4C59-4588-95BB-918C525572D3}.Release|x64.Build.0 = Release|x64
+		{19BBC771-4C59-4588-95BB-918C525572D3}.Release|x86.ActiveCfg = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

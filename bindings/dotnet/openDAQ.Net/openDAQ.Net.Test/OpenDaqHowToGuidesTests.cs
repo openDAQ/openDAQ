@@ -15,7 +15,7 @@ using Daq.Core.Types;
 namespace openDaq.Net.Test;
 
 
-public class OpenDaqHowToGuidesTests : CoreTypesTestsBase
+public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 {
     public const string SKIP_SETUP        = "SkipSetup";
     public const string SKIP_SETUP_DEVICE = "SkipSetupDevice";
@@ -48,6 +48,8 @@ public class OpenDaqHowToGuidesTests : CoreTypesTestsBase
     [SetUp]
     public void _SetUp()
     {
+        base.DontWarn();
+
         if (CheckForSkipSetup(SKIP_SETUP)) //ToDo: use [Category(SKIP_SETUP)] to mark a test for not running this method
         {
             Console.WriteLine($"* skipping Setup()");

@@ -17,7 +17,7 @@ using Daq.Core;
 namespace openDaq.Net.Test;
 
 
-public class OpenDaqTests : CoreTypesTestsBase
+public class OpenDaq_Tests : OpenDAQTestsBase
 {
     private const string ConnectionProtocolDaqRef  = "daqref://";
     private const string ConnectionProtocolOpcUa   = "daq.opcua://";
@@ -32,10 +32,11 @@ public class OpenDaqTests : CoreTypesTestsBase
         LocalHost
     }
 
-    //[SetUp]
-    //public void Setup()
-    //{
-    //}
+    [SetUp]
+    public void Setup()
+    {
+        base.DontWarn();
+    }
 
     //[TearDown]
     //public void TearDown()
@@ -757,7 +758,7 @@ public class OpenDaqTests : CoreTypesTestsBase
         //Assert.That(foundChannelNo, Is.GreaterThanOrEqualTo(1), "channel '{0}' not found", searchChannelName);
         if (foundChannelNo == 0)
         {
-            Assert.Warn("Test skipped: Channel '{0}' not found", searchChannelName);
+            Assert.Warn($"Test skipped: Channel '{searchChannelName}' not found");
             return;
         }
 
@@ -797,7 +798,7 @@ public class OpenDaqTests : CoreTypesTestsBase
         //Assert.That(foundSignalNo, Is.GreaterThanOrEqualTo(1), "channel '{0}' has no signal '{1}'", channelName, signalSearchName);
         if (foundSignalNo == 0)
         {
-            Assert.Warn("Test skipped: Channel '{0}' has no signal '{1}'", channelName, signalSearchName);
+            Assert.Warn($"Test skipped: Channel '{channelName}' has no signal '{signalSearchName}'");
             return;
         }
 

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// Ignore Spelling: Dont
 
 using Daq.Core.Types;
 
@@ -13,13 +9,15 @@ namespace openDaq.Net.Test;
 
 
 /// <summary>
-/// Base class for Daq.Core.Types tests to check for correct object disposal.
+/// Base class for openDAQ .NET Bindings tests which checks for correct object disposal.
 /// </summary>
 [TestFixture]
-public class CoreTypesTestsBase
+public class OpenDAQTestsBase
 {
     private ulong _trackedObjectCountOnSetup;
     private bool _doCollectAndFinalize;
+    private bool _doCheckAliveObjectCount;
+    private bool _doWarn;
 
     /// <summary>
     /// Set the TearDown function to not to collect and finalize managed objects which would be the default behavior.
@@ -27,22 +25,41 @@ public class CoreTypesTestsBase
     protected void DontCollectAndFinalize() => _doCollectAndFinalize = false;
 
     /// <summary>
+    /// Set the TearDown function to not to show the alive object count which would be the default behavior.
+    /// </summary>
+    protected void DontCheckAliveObjectCount() => _doCheckAliveObjectCount = false;
+
+    /// <summary>
+    /// Set the TearDown function to not to assert a warning for alive object handling which would be the default behavior.
+    /// </summary>
+    protected void DontWarn() => _doWarn = false;
+
+    /// <summary>
     /// Setup the test (prepare).
     /// </summary>
     [SetUp]
     public void BaseSetup()
     {
+        _doCollectAndFinalize    = true;
+        _doCheckAliveObjectCount = true;
+        _doWarn                  = true;
+
+        if (TestContext.CurrentContext.Test.Type?.Assembly.GetName().Name?.Contains(".CI.Test") ?? false)
+        {
+            DontCollectAndFinalize();
+            DontCheckAliveObjectCount();
+            DontWarn();
+        }
+
         //cleanup possible remnants from a hard test abortion
         CollectAndFinalize(doLog: false);
-
-        //set the following line to 'false' when the not finalized object count should be shown
-        _doCollectAndFinalize = true;
 
         if (CoreTypes.IsTrackingObjects()) //this generally checks if the SDK supports tracking (always true)
         {
             _trackedObjectCountOnSetup = CoreTypes.GetTrackedObjectCount();
         }
 
+        Console.WriteLine($"Executing '{TestContext.CurrentContext.Test.FullName}'");
         Console.WriteLine($"begin of test - {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         Console.WriteLine("-----------------------------------");
     }
@@ -53,8 +70,19 @@ public class CoreTypesTestsBase
     [TearDown]
     public void BaseTearDown()
     {
+        //wait just in case cleanup has been done in tests
+        GC.WaitForPendingFinalizers();
+
         Console.WriteLine("-----------------------------------");
         Console.WriteLine($"end of test - {DateTime.Now:yyyy-MM-dd HH:mm:ss}" + Environment.NewLine);
+
+        if (!_doCollectAndFinalize && !_doCheckAliveObjectCount)
+        {
+            //cleanup possible remnants from a hard test abortion
+            CollectAndFinalize(doLog: false);
+
+            return;
+        }
 
         ResultState outcome = TestContext.CurrentContext.Result.Outcome;
 
@@ -68,9 +96,11 @@ public class CoreTypesTestsBase
         Console.WriteLine("TearDown --------------------------");
 
         ulong aliveCount = 0ul;
-        if (CoreTypes.IsTrackingObjects()) //this generally checks if the SDK supports tracking (always true)
+        if (_doCheckAliveObjectCount
+            && CoreTypes.IsTrackingObjects()) //this generally checks if the SDK supports tracking (always true)
         {
-            aliveCount = CoreTypes.GetTrackedObjectCount() - _trackedObjectCountOnSetup;
+            ulong trackedObjectCount = CoreTypes.GetTrackedObjectCount();
+            aliveCount = (trackedObjectCount >= _trackedObjectCountOnSetup) ? trackedObjectCount - _trackedObjectCountOnSetup : 0ul;
             Console.WriteLine($"{aliveCount} objects still alive");
         }
 
@@ -80,23 +110,26 @@ public class CoreTypesTestsBase
             CollectAndFinalize();
         }
 
-        if (CoreTypes.IsTrackingObjects()) //this generally checks if the SDK supports tracking (always true)
+        if (_doCheckAliveObjectCount
+            && CoreTypes.IsTrackingObjects()) //this generally checks if the SDK supports tracking (always true)
         {
             Console.WriteLine("Checking:");
-            aliveCount = CoreTypes.GetTrackedObjectCount() - _trackedObjectCountOnSetup;
+            ulong trackedObjectCount = CoreTypes.GetTrackedObjectCount();
+            aliveCount = (trackedObjectCount >= _trackedObjectCountOnSetup) ? trackedObjectCount - _trackedObjectCountOnSetup : 0ul;
 
             string message = "OK";
 
             if (aliveCount > 0)
             {
                 message = $"{aliveCount} openDAQ objects are still alive";
-                Assert.Warn($"*** {message} ***");
+                if (_doWarn)
+                    Assert.Warn($"*** {message} ***");
             }
 
             Console.WriteLine("-> " + message);
         }
 
-        if (!_doCollectAndFinalize || (CoreTypes.IsTrackingObjects() && (aliveCount > 0)))
+        if (!_doCollectAndFinalize || (_doCheckAliveObjectCount && CoreTypes.IsTrackingObjects() && (aliveCount > 0)))
         {
             Console.Write(_doCollectAndFinalize ? "   " : "Just in case: ");
             CollectAndFinalize();

@@ -4,17 +4,24 @@ using Daq.Core.Types;
 namespace openDaq.Net.Test;
 
 
-public class CoreTypesBaseObjectTests : CoreTypesTestsBase
+public class CoreTypesBaseObjectTests : OpenDAQTestsBase
 {
-    //[SetUp]
-    //public void Setup()
-    //{
-    //}
+    [SetUp]
+    public void Setup()
+    {
+#if DEBUG
+        _isTrackingObjects = CoreTypes.IsTrackingObjects(); //returns if the SDK supports tracking generally (always true)
+#endif
+    }
 
     //[TearDown]
     //public void TearDown()
     //{
     //}
+
+
+    bool _isTrackingObjects = false;
+
 
     [Test]
     public void GuidTest()
@@ -32,8 +39,6 @@ public class CoreTypesBaseObjectTests : CoreTypesTestsBase
     [Test]
     public void CreateTest()
     {
-        bool isTrackingObjects = CoreTypes.IsTrackingObjects(); //returns if the SDK supports tracking generally (always true)
-
         ErrorCode errorCode = CoreTypesFactory.CreateBaseObject(out BaseObject testObject);
 
         Assert.Multiple(() =>
@@ -41,7 +46,7 @@ public class CoreTypesBaseObjectTests : CoreTypesTestsBase
             Assert.That(errorCode, Is.EqualTo(ErrorCode.OPENDAQ_SUCCESS));
             Assert.That(testObject, Is.Not.Null);
             Assert.That(testObject.IsDisposed, Is.False);
-            if (isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
+            if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
         });
 
         if (!testObject.IsDisposed) //not necessarily needed
@@ -50,20 +55,18 @@ public class CoreTypesBaseObjectTests : CoreTypesTestsBase
         Assert.Multiple(() =>
         {
             Assert.That(testObject.IsDisposed, Is.True);
-            if (isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(0));
+            if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(0));
         });
     }
 
     [Test]
     public void QueryInterfaceTest()
     {
-        bool isTrackingObjects = CoreTypes.IsTrackingObjects(); //returns if the SDK supports tracking generally (always true)
-
         ErrorCode errorCode = CoreTypesFactory.CreateBaseObject(out BaseObject testObject);
         Assert.Multiple(() =>
         {
             Assert.That(errorCode, Is.EqualTo(ErrorCode.OPENDAQ_SUCCESS));
-            if (isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
+            if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
         });
 
         BaseObject queriedObject = testObject.QueryInterface<BaseObject>();
@@ -71,30 +74,28 @@ public class CoreTypesBaseObjectTests : CoreTypesTestsBase
         Assert.Multiple(() =>
         {
             Assert.That(queriedObject, Is.Not.Null);
-            if (isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
+            if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
         });
 
         Assert.That(testObject.IsDisposed, Is.Not.True);
         testObject.Dispose();
 
-        if (isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1)); //because QueryInterface() increments refCount
+        if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1)); //because QueryInterface() increments refCount
 
         Assert.That(queriedObject.IsDisposed, Is.Not.True);
         queriedObject.Dispose();
 
-        if (isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(0));
+        if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(0));
     }
 
     [Test]
     public void BorrowInterfaceTest()
     {
-        bool isTrackingObjects = CoreTypes.IsTrackingObjects(); //returns if the SDK supports tracking generally (always true)
-
         ErrorCode errorCode = CoreTypesFactory.CreateBaseObject(out BaseObject testObject);
         Assert.Multiple(() =>
         {
             Assert.That(errorCode, Is.EqualTo(ErrorCode.OPENDAQ_SUCCESS));
-            if (isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
+            if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
         });
 
         //should just return the testObject since we don't "change" the type
@@ -104,18 +105,18 @@ public class CoreTypesBaseObjectTests : CoreTypesTestsBase
         {
             Assert.That(queriedObject, Is.Not.Null);
             Assert.That(queriedObject, Is.SameAs(testObject));
-            if (isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
+            if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(1));
         });
 
         Assert.That(testObject.IsDisposed, Is.Not.True);
         testObject.Dispose(); //also disposes of queriedObject since both point to the same object
 
-        if (isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(0)); //because BorrowInterface() doesn't increment refCount
+        if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(0)); //because BorrowInterface() doesn't increment refCount
 
         Assert.That(queriedObject.IsDisposed, Is.True);
         queriedObject.Dispose();
 
-        if (isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(0));
+        if (_isTrackingObjects) Assert.That(CoreTypes.GetTrackedObjectCount(), Is.EqualTo(0));
     }
 
     [Test]

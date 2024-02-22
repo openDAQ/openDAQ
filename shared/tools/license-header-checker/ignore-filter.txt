@@ -4,5 +4,6 @@ crypt_blowfish.h
 RTGen
 obj
 BasicHowTo
+openDAQ.Net.CI.Test
 openDAQ.Net.Test
 openDAQDemo.Net

@@ -11,6 +11,7 @@
 #include <coretypes/coretypes.h>
 #include <rapidjson/filereadstream.h> 
 #include <cctype>
+#include <opendaq/path_tool.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -18,7 +19,10 @@ JsonConfigProviderImpl::JsonConfigProviderImpl(const StringPtr& filename)
     :filename(filename)
 {
     if (!this->filename.assigned() || this->filename.getLength() == 0)
-        this->filename = GetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", "opendaq-config.json");
+        this->filename = GetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", StringPtr());
+
+    if (!this->filename.assigned())
+        this->filename = path_tool::ConcatenatePath(path_tool::GetExecutableDirectory(), "opendaq-config.json");
 }
 
 std::string JsonConfigProviderImpl::ToLowerCase(const std::string &input) 

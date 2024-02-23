@@ -112,11 +112,10 @@ private:
 
     SizeT valuesPerSample{1};
 
-    SizeT sampleSize{0};
+    SizeT rawSampleSize{0};
 };
 
 std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionPtr& transformFunction);
-std::unique_ptr<Reader> createVoidReader();
 
 extern template class TypedReader<SampleTypeToType<SampleType::Float32>::Type>;
 extern template class TypedReader<SampleTypeToType<SampleType::Float64>::Type>;
@@ -130,6 +129,6 @@ extern template class TypedReader<SampleTypeToType<SampleType::Int64>::Type>;
 extern template class TypedReader<SampleTypeToType<SampleType::RangeInt64>::Type>;
 extern template class TypedReader<SampleTypeToType<SampleType::ComplexFloat32>::Type>;
 extern template class TypedReader<SampleTypeToType<SampleType::ComplexFloat64>::Type>;
-extern template class TypedReader<void*>;
+extern template class TypedReader<SampleTypeToType<SampleType::Struct>::Type>;
 
 END_NAMESPACE_OPENDAQ

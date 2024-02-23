@@ -132,7 +132,7 @@ void ClassifierFbImpl::configure()
 
     try
     {
-        if (inputDataDescriptor.isStructDescriptor() || inputDataDescriptor.getDimensions().getCount() > 0)
+        if (inputDataDescriptor.getSampleType() == SampleType::Struct || inputDataDescriptor.getDimensions().getCount() > 0)
             throw std::runtime_error("Incompatible input value data descriptor");
 
         inputSampleType = inputDataDescriptor.getSampleType();

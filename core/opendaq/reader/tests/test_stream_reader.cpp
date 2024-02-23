@@ -825,7 +825,7 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithWithDomainFromPacket)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
-    auto reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined);
+    auto reader = daq::StreamReader<UndefinedType, UndefinedType>(this->signal);
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
     ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
@@ -849,7 +849,83 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithWithDomainFromPacket)
     ASSERT_EQ(reader.getDomainReadType(), SampleType::RangeInt64);
 }
 
-using StructStreamReaderTest = testing::Test;
+TYPED_TEST(StreamReaderTest, ReadVoid)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleTypeFromType<TypeParam>::SampleType));
+
+    auto reader = daq::StreamReader<void*, ClockRange>(this->signal);
+    ASSERT_EQ(reader.getValueReadType(), SampleType::Struct);
+
+    auto dataPacket = DataPacket(this->signal.getDescriptor(), 1);
+
+    // Set the first sample to
+    const auto dataPtr = static_cast<TypeParam*>(dataPacket.getData());
+    dataPtr[0] = static_cast<TypeParam>(123);
+
+    this->sendPacket(dataPacket);
+
+    SizeT count{1};
+    TypeParam samples[1]{};
+    reader.read(&samples, &count);
+
+    ASSERT_EQ(count, 1u);
+
+    if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
+    {
+        ASSERT_EQ(samples[0], TypeParam(typename TypeParam::Type(123)));
+    }
+    else
+    {
+        ASSERT_EQ(samples[0], TypeParam(123));
+    }
+
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+}
+
+class StructStreamReaderTest : public testing::Test
+{
+protected:
+    SignalConfigPtr valueSignal;
+    SignalConfigPtr domainSignal;
+    DataDescriptorPtr domainDescriptor;
+    DataDescriptorPtr canMsgDescriptor;
+
+    void SetUp() override
+    {
+        const auto context = NullContext();
+        valueSignal = daq::Signal(context, nullptr, "valuesig");
+        domainSignal = daq::Signal(context, nullptr, "domainsig");
+        valueSignal.setDomainSignal(domainSignal);
+
+        const auto arbIdDescriptor =
+            DataDescriptorBuilder().setName("ArbId").setSampleType(SampleType::UInt32).setRule(ExplicitDataRule()).build();
+
+        const auto lengthDescriptor =
+            DataDescriptorBuilder().setName("Length").setSampleType(SampleType::UInt8).setRule(ExplicitDataRule()).build();
+
+        const auto dataDescriptor = DataDescriptorBuilder()
+                                        .setName("Data")
+                                        .setSampleType(SampleType::UInt8)
+                                        .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
+                                        .setRule(ExplicitDataRule())
+                                        .build();
+
+        canMsgDescriptor = DataDescriptorBuilder()
+                                          .setSampleType(SampleType::Struct)
+                                          .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
+                                          .build();
+
+        domainDescriptor = DataDescriptorBuilder()
+                                          .setSampleType(SampleType::UInt64)
+                                          .setRule(LinearDataRule(1, 0))
+                                          .setTickResolution(Ratio(1, 1000))
+                                          .build();
+
+        valueSignal.setDescriptor(canMsgDescriptor);
+        domainSignal.setDescriptor(domainDescriptor);
+
+    }
+};
 
 #pragma pack(push, 1)
 struct CANData
@@ -862,33 +938,6 @@ struct CANData
 
 TEST_F(StructStreamReaderTest, ReadStructData)
 {
-    const auto context = NullContext();
-    const auto valueSignal = daq::Signal(context, nullptr, "valuesig");
-    const auto domainSignal = daq::Signal(context, nullptr, "domainsig");
-    valueSignal.setDomainSignal(domainSignal);
-
-    const auto arbIdDescriptor =
-        DataDescriptorBuilder().setName("ArbId").setSampleType(SampleType::UInt32).setRule(ExplicitDataRule()).build();
-
-    const auto lengthDescriptor =
-        DataDescriptorBuilder().setName("Length").setSampleType(SampleType::UInt8).setRule(ExplicitDataRule()).build();
-
-    const auto dataDescriptor = DataDescriptorBuilder()
-                                    .setName("Data")
-                                    .setSampleType(SampleType::UInt8)
-                                    .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
-                                    .setRule(ExplicitDataRule())
-                                    .build();
-
-    const auto canMsgDescriptor =
-        DataDescriptorBuilder().setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor)).build();
-
-    const auto domainDescriptor =
-        DataDescriptorBuilder().setSampleType(SampleType::UInt64).setRule(LinearDataRule(1, 0)).setTickResolution(Ratio(1, 1000)).build();
-
-    valueSignal.setDescriptor(canMsgDescriptor);
-    domainSignal.setDescriptor(domainDescriptor);
-
     const auto streamReader = StreamReader<void*>(valueSignal);
 
     const auto domainPacket1 = DataPacket(domainDescriptor, 2, 0);
@@ -952,36 +1001,20 @@ TEST_F(StructStreamReaderTest, ReadStructData)
     ASSERT_EQ(dataRead[2].data[2], 12);
 }
 
+TEST_F(StructStreamReaderTest, ReadStructDataInvalid)
+{
+    const auto streamReader = StreamReader<double>(valueSignal);
+
+    double dataRead[1];
+    SizeT count = 1;
+    ASSERT_THROW(streamReader.read(&dataRead[0], &count, 0), InvalidDataException);
+}
+
 TEST_F(StructStreamReaderTest, ReadStructDataWithDomain)
 {
-    const auto context = NullContext();
-    const auto valueSignal = daq::Signal(context, nullptr, "valuesig");
-    const auto domainSignal = daq::Signal(context, nullptr, "domainsig");
-    valueSignal.setDomainSignal(domainSignal);
-
-    const auto arbIdDescriptor =
-        DataDescriptorBuilder().setName("ArbId").setSampleType(SampleType::UInt32).setRule(ExplicitDataRule()).build();
-
-    const auto lengthDescriptor =
-        DataDescriptorBuilder().setName("Length").setSampleType(SampleType::UInt8).setRule(ExplicitDataRule()).build();
-
-    const auto dataDescriptor = DataDescriptorBuilder()
-                                    .setName("Data")
-                                    .setSampleType(SampleType::UInt8)
-                                    .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
-                                    .setRule(ExplicitDataRule())
-                                    .build();
-
-    const auto canMsgDescriptor =
-        DataDescriptorBuilder().setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor)).build();
-
-    const auto domainDescriptor =
-        DataDescriptorBuilder().setSampleType(SampleType::UInt64).setTickResolution(Ratio(1, 1000)).build();
-
-    valueSignal.setDescriptor(canMsgDescriptor);
-    domainSignal.setDescriptor(domainDescriptor);
-
     const auto streamReader = StreamReader<void*>(valueSignal);
+    const auto domainDescriptor = DataDescriptorBuilder().setSampleType(SampleType::UInt64).setTickResolution(Ratio(1, 1000)).build();
+    domainSignal.setDescriptor(domainDescriptor);
 
     const auto domainPacket1 = DataPacket(domainDescriptor, 2, 0);
     const auto valuePacket1 = DataPacketWithDomain(domainPacket1, canMsgDescriptor, 2);

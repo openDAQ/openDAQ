@@ -59,7 +59,7 @@ DataDescriptorPtr OutputSignal::getValueDescriptor()
     if (!dataDescriptor.assigned())
         throw InvalidParameterException("Signal descriptor not set.");
 
-    if (dataDescriptor.isStructDescriptor())
+    if (dataDescriptor.getSampleType() == daq::SampleType::Struct)
         throw InvalidParameterException("Signal cannot be a struct.");
 
     return dataDescriptor;
@@ -75,7 +75,7 @@ DataDescriptorPtr OutputSignal::getDomainDescriptor()
     if (!domainDataDescriptor.assigned())
         throw InvalidParameterException("Domain signal descriptor not set.");
 
-    if (domainDataDescriptor.isStructDescriptor())
+    if (domainDataDescriptor.getSampleType() == daq::SampleType::Struct)
         throw InvalidParameterException("Signal cannot be a struct.");
 
     return domainDataDescriptor;
@@ -148,6 +148,7 @@ void OutputSignal::createSignalStream()
         case daq::SampleType::Invalid:
         case daq::SampleType::String:
         case daq::SampleType::RangeInt64:
+        case daq::SampleType::Struct:
         default:
             throw InvalidTypeException();
     }

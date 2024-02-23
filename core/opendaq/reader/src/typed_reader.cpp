@@ -129,6 +129,7 @@ static bool isSampleTypeConvertibleTo(SampleType sampleType)
             return std::is_convertible_v<SampleTypeToType<SampleType::Binary>::Type, TReadType>;
         case SampleType::String:
             return std::is_convertible_v<SampleTypeToType<SampleType::String>::Type, TReadType>;
+        case SampleType::Struct:
         case SampleType::Invalid:
         case SampleType::_count:
             break;
@@ -192,11 +193,10 @@ ErrCode TypedReader<ReadType>::readData(void* inputBuffer, SizeT offset, void** 
         case SampleType::Binary:
         case SampleType::String:
             return readValues<SampleTypeToType<SampleType::String>::Type>(inputBuffer, offset, outputBuffer, count);
+        case SampleType::Struct:
+            return readValues<SampleTypeToType<SampleType::Struct>::Type>(inputBuffer, offset, outputBuffer, count);
         case SampleType::Invalid:
-            if constexpr (std::is_same_v<void*, ReadType>)
-                return readValues<void*>(inputBuffer, offset, outputBuffer, count);
-            else
-                return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.", nullptr);
+            return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.", nullptr);
         case SampleType::_count:
             break;
     }
@@ -238,6 +238,7 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
         case SampleType::ComplexFloat64:
         case SampleType::Binary:
         case SampleType::String:
+        case SampleType::Struct:
             return makeErrorInfo(
                 OPENDAQ_ERR_NOT_SUPPORTED,
                 fmt::format("Using the SampleType {} as a domain is not supported", dataSampleType),
@@ -323,13 +324,13 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
 {
     if (!inputBuffer || !outputBuffer)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-    if constexpr (std::is_same_v<TDataType, void*>)
+    if constexpr (std::is_same_v<TReadType, void*>)
     {
         if (!ignoreTransform && transformFunction.assigned())
-            throw InvalidStateException("Transform not supported for untyped read");
+            return makeErrorInfo(OPENDAQ_ERR_NOT_SUPPORTED, "Transform function for void reader not supported.", nullptr);
 
-        const auto dataStart = static_cast<void*>(static_cast<uint8_t*>(inputBuffer) + offset * sampleSize);
-        const auto toReadInBytes = sampleSize * toRead;
+        const auto dataStart = static_cast<void*>(static_cast<uint8_t*>(inputBuffer) + offset * rawSampleSize);
+        const auto toReadInBytes = rawSampleSize * toRead;
         const auto dataOut = *outputBuffer;
         std::memcpy(dataOut, dataStart, toReadInBytes);
         *outputBuffer = static_cast<void*>(static_cast<uint8_t*>(dataOut) + toReadInBytes);
@@ -412,39 +413,35 @@ bool TypedReader<ReadType>::handleDescriptorChanged(DataDescriptorPtr& descripto
 
     bool valid = false;
 
-    if constexpr (std::is_same_v<void*, ReadType>)
+    if (descriptor.assigned())
     {
-        if (descriptor.assigned())
+        const auto postScaling = descriptor.getPostScaling();
+        if (!postScaling.assigned() || readMode == ReadMode::Scaled)
         {
-            sampleSize = descriptor.getSampleSize();
-            dataDescriptor = descriptor;
+            dataSampleType = descriptor.getSampleType();
+        }
+        else
+        {
+            dataSampleType = postScaling.getInputSampleType();
+        }
+
+        if constexpr (std::is_same_v<ReadType, void*>)
+        {
             valid = true;
         }
-    }
-    else
-    {
-        if (descriptor.assigned() && !descriptor.isStructDescriptor())
+        else
         {
-            auto postScaling = descriptor.getPostScaling();
-            if (!postScaling.assigned() || readMode == ReadMode::Scaled)
-            {
-                dataSampleType = descriptor.getSampleType();
-            }
-            else
-            {
-                dataSampleType = postScaling.getInputSampleType();
-            }
-
             valid = isSampleTypeConvertibleTo<ReadType>(dataSampleType);
-
-            auto dimensions = descriptor.getDimensions();
-            if (dimensions.assigned() && dimensions.getCount() == 1)
-            {
-                valuesPerSample = dimensions[0].getSize();
-            }
-
-            dataDescriptor = descriptor;
         }
+
+        rawSampleSize = descriptor.getRawSampleSize();
+        auto dimensions = descriptor.getDimensions();
+        if (dimensions.assigned() && dimensions.getCount() == 1)
+        {
+            valuesPerSample = dimensions[0].getSize();
+        }
+
+        dataDescriptor = descriptor;
     }
 
     return valid;
@@ -453,10 +450,7 @@ bool TypedReader<ReadType>::handleDescriptorChanged(DataDescriptorPtr& descripto
 template <typename ReadType>
 SampleType TypedReader<ReadType>::getReadType() const noexcept
 {
-    if constexpr (std::is_same_v<ReadType, void*>)
-        return SampleType::Invalid;
-    else
-        return SampleTypeFromType<ReadType>::SampleType;
+    return SampleTypeFromType<ReadType>::SampleType;
 }
 
 ////
@@ -519,6 +513,8 @@ std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionP
             return std::make_unique<TypedReader<SampleTypeToType<SampleType::ComplexFloat32>::Type>>(transformFunction);
         case SampleType::ComplexFloat64:
             return std::make_unique<TypedReader<SampleTypeToType<SampleType::ComplexFloat64>::Type>>(transformFunction);
+        case SampleType::Struct:
+            return std::make_unique<TypedReader<SampleTypeToType<SampleType::Struct>::Type>>(transformFunction);
         case SampleType::Undefined:
             return std::make_unique<UndefinedReader>(transformFunction);
         case SampleType::Binary:
@@ -527,11 +523,6 @@ std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionP
             break;
     }
     throw NotSupportedException("The requested sample-type is unsupported or invalid.");
-}
-
-std::unique_ptr<Reader> createVoidReader()
-{
-    return std::make_unique<TypedReader<void*>>(nullptr);
 }
 
 template class TypedReader<SampleTypeToType<SampleType::Float32>::Type>;
@@ -546,6 +537,6 @@ template class TypedReader<SampleTypeToType<SampleType::Int64>::Type>;
 template class TypedReader<SampleTypeToType<SampleType::RangeInt64>::Type>;
 template class TypedReader<SampleTypeToType<SampleType::ComplexFloat32>::Type>;
 template class TypedReader<SampleTypeToType<SampleType::ComplexFloat64>::Type>;
-template class TypedReader<void*>;
+template class TypedReader<SampleTypeToType<SampleType::Struct>::Type>;
 
 END_NAMESPACE_OPENDAQ

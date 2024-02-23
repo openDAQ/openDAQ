@@ -138,7 +138,7 @@ DataDescriptorPtr StructConverter<IDataDescriptor, UA_StructDescriptorStructure>
     }
 
     const auto descriptor = DataDescriptorBuilder()
-                            .setSampleType(SampleType::Undefined)
+                            .setSampleType(SampleType::Struct)
                             .setName(ConvertToDaqCoreString(tmsStruct.name))
                             .setDimensions(ReadDimensions(tmsStruct.dimensions, tmsStruct.dimensionsSize))
                             .setMetadata(ReadMetadata(tmsStruct.metadata, tmsStruct.metadataSize))
@@ -273,7 +273,7 @@ OpcUaVariant VariantConverter<IDataDescriptor>::ToVariant(const DataDescriptorPt
 
     if (targetType ==nullptr || targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_BASEDATADESCRIPTORSTRUCTURE])
     {
-        if (object.isStructDescriptor())
+        if (object.getSampleType() == SampleType::Struct)
             variant.setScalar(*StructConverter<IDataDescriptor, UA_StructDescriptorStructure>::ToTmsType(object));
         else
             variant.setScalar(*StructConverter<IDataDescriptor, UA_DataDescriptorStructure>::ToTmsType(object));

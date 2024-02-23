@@ -38,6 +38,7 @@ enum class SampleType : EnumType
     ComplexFloat64,
     Binary,
     String,
+    Struct,
     // ReSharper disable once CppInconsistentNaming
     _count
 };

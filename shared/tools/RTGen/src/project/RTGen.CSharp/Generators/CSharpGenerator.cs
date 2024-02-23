@@ -1489,7 +1489,7 @@ namespace RTGen.CSharp.Generators
                     }
                     else
                     {
-                        string codeSnippet = Escape(tagElement.RawText)
+                        string codeSnippet = EscapeForXml(tagElement.RawText)
                                              .Replace("@code", "<code>")
                                              .Replace("@endcode", "</code>")
                                              .Replace(" *", "///"); //" *" is probably not consistently used
@@ -1569,13 +1569,13 @@ namespace RTGen.CSharp.Generators
 
                 case "":
                 case null:
-                    AppendDocText(csDocComment, Escape(rawText));
+                    AppendDocText(csDocComment, EscapeForXml(rawText));
                     break;
 
                 default:
                     LogWarning($"{nameof(CSharpGenerator)}.{nameof(ParseDocText)}() - unhandled {nameof(docTagName)}: {docTagName}");
                     System.Diagnostics.Debug.Print("+++> unknown tag '{0}'", docTagName);
-                    AppendDocText(csDocComment, Escape(rawText));
+                    AppendDocText(csDocComment, EscapeForXml(rawText));
                     break;
             }
         }
@@ -1588,11 +1588,11 @@ namespace RTGen.CSharp.Generators
             if (match.Success)
             {
                 string word = match.Groups["word"].Value;
-                string rest = Escape(match.Groups["rest"].Value);
+                string rest = EscapeForXml(match.Groups["rest"].Value);
                 AppendDocText(csDocComment, $"<{csTagName}>{word}</{csTagName}>{rest}");
             }
             else
-                AppendDocText(csDocComment, Escape(rawText));
+                AppendDocText(csDocComment, EscapeForXml(rawText));
         }
 
         private void ParseDocRefText(IList<string> csDocComment,
@@ -1603,7 +1603,7 @@ namespace RTGen.CSharp.Generators
             var matches = _getDocReference.Matches(rawText);
             if (matches.Count == 0)
             {
-                AppendDocText(csDocComment, Escape(rawText));
+                AppendDocText(csDocComment, EscapeForXml(rawText));
                 return;
             }
 
@@ -1625,9 +1625,9 @@ namespace RTGen.CSharp.Generators
             string GetReferenceFromMatch(Match match, out string trailingText)
             {
                 string type = match.Groups["type"].Value;
-                string display = Escape(match.Groups["display"].Value);
+                string display = EscapeForXml(match.Groups["display"].Value);
 
-                trailingText = Escape(match.Groups["rest"].Value);
+                trailingText = EscapeForXml(match.Groups["rest"].Value);
 
                 if (this.RtFile.AttributeInfo.TypeMappings.TryGet(type, out string mappedType))
                 {
@@ -1654,7 +1654,7 @@ namespace RTGen.CSharp.Generators
             if (match.Success)
             {
                 paramName = match.Groups["word"].Value;
-                rest = Escape(match.Groups["rest"].Value);
+                rest      = EscapeForXml(match.Groups["rest"].Value);
             }
 
             paramName = GetRenamedParameterName(_currentMethodName, paramName);
@@ -1665,25 +1665,19 @@ namespace RTGen.CSharp.Generators
                 AppendDocText(csDocComment, $"<c>{paramName}</c> {rest}");
         }
 
-        private string Escape(string text)
+        private string EscapeForXml(string text)
         {
-            //text = System.Security.SecurityElement.Escape(text); //no-go: also does @apos; and escapes HTML tags
             text = HandleTextBetweenMatches(_getDocHtmlTags.Matches(text));
             text = _replaceDocApostrophWithCodeTags.Replace(text, _replaceDocApostrophWithCodeTagsReplacement);
-            text = text.Replace("nullptr", "null") //.NET replacement
-                       .Replace("`s", "&apos;s")   //escapes
-                       .Replace("'s", "&apos;s")
-                       .Replace(" & ", " &amp; ")
-                       .Replace(" && ", " &amp;&amp; ")
-                     /*.Replace("\"", "&quot;")*/;
+            //text = text.Replace("nullptr", "null"); //.NET replacement
             return text;
 
 
             //=== local functions =================================================================
 
-            string EscapeLtGt(string rawText)
+            string DoEscape(string rawText)
             {
-                return rawText.Replace("<", "&lt;").Replace(">", "&gt;");
+                return System.Security.SecurityElement.Escape(rawText);
             }
 
             string HandleTextBetweenMatches(MatchCollection matches)
@@ -1691,21 +1685,21 @@ namespace RTGen.CSharp.Generators
                 string newText = string.Empty;
 
                 if (matches.Count == 0)
-                    newText = EscapeLtGt(text);
+                    newText = DoEscape(text);
                 else
                 {
                     int index = 0;
                     foreach (Match match in matches)
                     {
                         if (index < match.Index)
-                            newText += EscapeLtGt(text.Substring(index, match.Index - index));
+                            newText += DoEscape(text.Substring(index, match.Index - index));
 
                         newText += match.Value;
                         index = match.Index + match.Length;
                     }
 
                     if (index < text.Length)
-                        newText += EscapeLtGt(text.Substring(index));
+                        newText += DoEscape(text.Substring(index));
                 }
 
                 return newText;

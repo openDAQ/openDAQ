@@ -88,6 +88,10 @@ protected:
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
 
+    virtual ConnectionPtr createConnection(const SignalPtr& signal);
+
+    ConnectionPtr getConnectionNoLock();
+
 private:
     Bool requiresSignal;
     BaseObjectPtr customData;
@@ -183,7 +187,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
         if (!accepted)
             return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;
 
-        const auto connection = Connection(this->template thisPtr<InputPortPtr>(), signalPtr, this->context);
+        const auto connection = createConnection(signalPtr);
 
         InputPortNotificationsPtr inputPortListener;
         {
@@ -344,11 +348,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getConnection(IConnection** connect
 
     std::scoped_lock lock(this->sync);
 
-    if (!connectionRef.assigned())
-        *connection = nullptr;
-    else
-        *connection = connectionRef.getRef().detach();
-    return OPENDAQ_SUCCESS;
+    return daqTry([this, &connection] { *connection = getConnectionNoLock().detach(); });
 }
 
 template <class... Interfaces>
@@ -653,6 +653,22 @@ void GenericInputPortImpl<Interfaces...>::deserializeCustomObjectValues(const Se
         dummySignal = Signal(this->context, nullptr, "dummy");
         checkErrorInfo(connect(dummySignal));
     }
+}
+
+template <class ... Interfaces>
+ConnectionPtr GenericInputPortImpl<Interfaces...>::createConnection(const SignalPtr& signal)
+{
+    const auto connection = Connection(this->template thisPtr<InputPortPtr>(), signal, this->context);
+    return connection;
+}
+
+template <class ... Interfaces>
+ConnectionPtr GenericInputPortImpl<Interfaces...>::getConnectionNoLock()
+{
+    if (!connectionRef.assigned())
+        return nullptr;
+
+    return connectionRef.getRef();
 }
 
 template <class... Interfaces>

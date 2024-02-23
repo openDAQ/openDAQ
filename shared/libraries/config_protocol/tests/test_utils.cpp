@@ -138,13 +138,15 @@ MockDevice1Impl::MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& pare
     : Device(ctx, parent, localId)
     , ticksSinceOrigin(0)
 {
-    createAndAddSignal("sig_device");
+    const auto sig = createAndAddSignal("sig_device");
 
     auto aiIoFolder = this->addIoFolder("ai", ioFolder);
     createAndAddChannel<MockChannel1Impl>(aiIoFolder, "ch");
 
     const auto fb = createWithImplementation<IFunctionBlock, MockFb1Impl>(ctx, this->functionBlocks, "fb");
     addNestedFunctionBlock(fb);
+
+    fb.getInputPorts()[0].connect(sig);
 }
 
 DictPtr<IString, IFunctionBlockType> MockDevice1Impl::onGetAvailableFunctionBlockTypes()

@@ -125,6 +125,7 @@ void RefCANChannelImpl::buildSignalDescriptors()
                                     .build();
 
     const auto canMsgDescriptor = DataDescriptorBuilder()
+        .setSampleType(SampleType::Struct)
         .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
         .setName("CAN")
         .build();

@@ -297,6 +297,7 @@ daq::streaming_protocol::SampleType SignalDescriptorConverter::Convert(daq::Samp
             return daq::streaming_protocol::SampleType::SAMPLETYPE_U64;
             break;
         case daq::SampleType::Binary:
+        case daq::SampleType::Struct:
         case daq::SampleType::Invalid:
         case daq::SampleType::String:
         case daq::SampleType::RangeInt64:

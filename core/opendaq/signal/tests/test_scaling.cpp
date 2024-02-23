@@ -60,6 +60,7 @@ TEST_F(ScalingTest, InvalidInputDataType)
 {
     ASSERT_THROW(LinearScaling(10, 10, SampleType::ComplexFloat32), InvalidSampleTypeException);
     ASSERT_THROW(LinearScaling(10, 10, SampleType::Binary), InvalidSampleTypeException);
+    ASSERT_THROW(LinearScaling(10, 10, SampleType::Struct), InvalidSampleTypeException);
 }
 
 TEST_F(ScalingTest, LinearScalingSerializeDeserialize)

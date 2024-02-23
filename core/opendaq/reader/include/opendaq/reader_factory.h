@@ -26,6 +26,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+using UndefinedType = void;
+
 /*!
  * @brief Creates a reader that eases reading packets from the signal.
  * @param signal The signal to read the packets from.

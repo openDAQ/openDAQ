@@ -19,27 +19,27 @@ struct RangeData
     Int high;
 };
 
-template <typename T>
+template <typename T, typename TT = Float>
 class StatisticsTestHelper
 {
 public:
-    StatisticsTestHelper(DataRulePtr rule,
-                         Int initialOutputDomain,
-                         vecvec<Float> expectedAvg,
-                         vecvec<Float> expectedRms,
-                         vecvec<Int> expectedDomain,
-                         SampleType sampleType,
-                         vecvec<T> mockPackets,
-                         vecvec<Int> expectedDomainEnd = {},
-                         std::vector<Int> blockSizeChangesAfterPackets = {},
-                         std::vector<size_t> newBlockSizes = {},
-                         std::vector<Int> outputDomainChangesAfterPackets = {},
-                         std::vector<Int> newOutputDomain = {},
-                         std::vector<Int> triggerModeChangesAfterPackets = {},
-                         std::vector<Bool> newTriggerMode = {},
-                         vecvec<Float> mockTriggerPackets = {},
-                         vecvec<Float> mockTriggerDomainPackets = {},
-                         SampleType sampleTypeTrigger = SampleTypeFromType<Float>::SampleType)
+    StatisticsTestHelper(const DataRulePtr& rule,
+                         const Int& initialOutputDomain,
+                         const vecvec<Float>& expectedAvg,
+                         const vecvec<Float>& expectedRms,
+                         const vecvec<Int>& expectedDomain,
+                         const SampleType& sampleType,
+                         const vecvec<T>& mockPackets,
+                         const vecvec<Int>& expectedDomainEnd = {},
+                         const std::vector<Int>& blockSizeChangesAfterPackets = {},
+                         const std::vector<size_t>& newBlockSizes = {},
+                         const std::vector<Int>& outputDomainChangesAfterPackets = {},
+                         const std::vector<Int>& newOutputDomain = {},
+                         const std::vector<Int>& triggerModeChangesBeforePackets = {},
+                         const std::vector<Bool>& newTriggerMode = {},
+                         const vecvec<TT>& mockTriggerPackets = {},
+                         const vecvec<Int>& mockTriggerDomainPackets = {},
+                         const SampleType& sampleTypeTrigger = SampleTypeFromType<Float>::SampleType)
     {
         // Create logger, module manager, context and module
         const auto logger = Logger();
@@ -61,7 +61,7 @@ public:
         this->newBlockSizes = newBlockSizes;
         this->outputDomainChangesAfterPackets = outputDomainChangesAfterPackets;
         this->newOutputDomain = newOutputDomain;
-        this->triggerModeChangesAfterPackets = triggerModeChangesAfterPackets;
+        this->triggerModeChangesBeforePackets = triggerModeChangesBeforePackets;
         this->newTriggerMode = newTriggerMode;
         this->mockTriggerPackets = mockTriggerPackets;
         this->mockTriggerDomainPackets = mockTriggerDomainPackets;
@@ -97,10 +97,10 @@ private:
     std::vector<size_t> newBlockSizes;
     std::vector<Int> outputDomainChangesAfterPackets;
     std::vector<Int> newOutputDomain;
-    std::vector<Int> triggerModeChangesAfterPackets;
+    std::vector<Int> triggerModeChangesBeforePackets;
     std::vector<Bool> newTriggerMode;
     vecvec<Float> mockTriggerPackets;
-    vecvec<Float> mockTriggerDomainPackets;
+    vecvec<Int> mockTriggerDomainPackets;
     SampleType sampleTypeTrigger;
     ModuleManagerPtr moduleManager;
 
@@ -215,26 +215,41 @@ private:
         // For each packet
         for (size_t i = 0; i < mockPackets.size(); i++)
         {
-            // Handle trigger signal and domain
+            // Check if we should change trigger mode before sending packet
+            auto triggerModeChangeFoundAt = std::find(triggerModeChangesBeforePackets.begin(), triggerModeChangesBeforePackets.end(), i);
+            if (triggerModeChangeFoundAt != triggerModeChangesBeforePackets.end())
+            {
+                // Change trigger mode if appropriate
+                fb.setPropertyValue("TriggerMode", newTriggerMode[triggerModeChangeFoundAt - triggerModeChangesBeforePackets.begin()]);
+            }
+
+            // Create and send data packet for trigger
             if (mockTriggerPackets.size() > 0 && mockTriggerPackets[i].size() > 0)
             {
-                // Create data packet for trigger
+                // Prepare data packet for trigger
                 auto triggerDataPacket =
                     DataPacketWithDomain(triggerDomainPackets[i], triggerSignalDescriptor, mockTriggerPackets[i].size());
-                auto triggerPacketData = static_cast<Float*>(triggerDataPacket.getData());  // TODO use templated type
+                auto triggerPacketData = static_cast<TT*>(triggerDataPacket.getData());
                 for (size_t ii = 0; ii < mockTriggerPackets[i].size(); ii++)
-                    *triggerPacketData++ = static_cast<Float>(mockTriggerPackets[i][ii]);
+                    *triggerPacketData++ = static_cast<TT>(mockTriggerPackets[i][ii]);
 
-                auto fbs = fb.getFunctionBlocks();
-                if (fbs.getCount() > 0)  // TODO! fix condition
+                // Find nested trigger function block
+                const auto& fbs = fb.getFunctionBlocks();
+                FunctionBlockPtr triggerFb = nullptr;
+                for (const auto& nfb : fbs)
                 {
-                    // Nested trigger connect signal
-                    fbs[0].getInputPorts()[0].connect(triggerSignal);
-
-                    // Send packet for trigger
-                    triggerDomainSignal.sendPacket(triggerDomainPackets[i]);
-                    triggerSignal.sendPacket(triggerDataPacket);
+                    if (nfb.getLocalId() == "nfbt")
+                    {
+                        triggerFb = nfb;
+                    }
                 }
+
+                // Nested trigger connect signal
+                triggerFb.getInputPorts()[0].connect(triggerSignal);
+
+                // Send packet for trigger
+                triggerDomainSignal.sendPacket(triggerDomainPackets[i]);
+                triggerSignal.sendPacket(triggerDataPacket);
             }
 
             // Create data packet for statistics
@@ -262,14 +277,6 @@ private:
                 // Change domain signal type if appropriate
                 fb.setPropertyValue("DomainSignalType",
                                     newOutputDomain[domainSignalChangeFoundAt - outputDomainChangesAfterPackets.begin()]);
-            }
-
-            // Check if we should change trigger mode after sending packet
-            auto triggerModeChangeFoundAt = std::find(triggerModeChangesAfterPackets.begin(), triggerModeChangesAfterPackets.end(), i);
-            if (triggerModeChangeFoundAt != triggerModeChangesAfterPackets.end())
-            {
-                // Change trigger mode if appropriate
-                fb.setPropertyValue("TriggerMode", newTriggerMode[triggerModeChangeFoundAt - triggerModeChangesAfterPackets.begin()]);
             }
         }
     }
@@ -352,7 +359,6 @@ private:
         receivePacketsAndCheck(expectedRms, readerRms);
     }
 };
-
 TEST_F(StatisticsTest, StatisticsTestBasic)
 {
     vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
@@ -521,16 +527,15 @@ TEST_F(StatisticsTest, StatisticsTestTriggerBasic)
                               {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
                               {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
                               {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0}};
-    vecvec<Float> expectedAvg{{0.55}, {1.55}, {}, {0.55}, {}, {2.55}};
-    vecvec<Float> expectedRms{{0.62048368229954287}, {1.5763882770434448}, {}, {0.62048368229954287}, {}, {2.5661254840712679}};
-    vecvec<Int> expectedDomain{{5}, {25}, {}, {65}, {}, {105}};
+    vecvec<Float> expectedAvg{{}, {}, {2.35}, {0.95}, {}, {}};
+    vecvec<Float> expectedRms{{}, {}, {2.3674881203503428}, {1.3946325680981353}, {}, {}};
+    vecvec<Int> expectedDomain{{}, {}, {41}, {61}, {}, {}};
     Int initialOutputDomain = 0;  // Implicit
 
-    std::vector<Int> triggerModeChangesAfterPackets{0, 4};
-    std::vector<Bool> newTriggerMode{true, false};  // TODO test true true, false false
-    vecvec<Float> mockTriggerPackets{
-        {}, {0.1, 0.6}, {0.1, 0.2}, {0.6, 0.8}, {0.1, 0.1}, {}};  // TODO test sending while TriggerMode = false
-    vecvec<Float> mockTriggerDomainPackets{{}, {20, 22}, {40, 42}, {60, 62}, {80, 82}, {}};
+    std::vector<Int> triggerModeChangesBeforePackets{0};                     // TODO test multiple changes
+    std::vector<Bool> newTriggerMode{true};                                  // TODO test true true, false false
+    vecvec<Float> mockTriggerPackets{{0.1, 0.6, 0.1}, {}, {}, {}, {}, {}};   // TODO test sending while TriggerMode = false
+    vecvec<Int> mockTriggerDomainPackets{{26, 40, 90}, {}, {}, {}, {}, {}};  // TODO test sending trigger packets on time or later
 
     auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
                                        initialOutputDomain,
@@ -544,85 +549,11 @@ TEST_F(StatisticsTest, StatisticsTestTriggerBasic)
                                        {},
                                        {},
                                        {},
-                                       triggerModeChangesAfterPackets,
-                                       newTriggerMode,
-                                       mockTriggerPackets,
-                                       mockTriggerDomainPackets);
-    helper.run();
-}
-TEST_F(StatisticsTest, StatisticsTestTriggerDomainBeforeData)
-{
-    vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
-                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
-                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0},
-                              {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
-                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
-                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0}};
-    vecvec<Float> expectedAvg{{0.55}, {1.55}, {}, {0.55}, {}, {2.55}};
-    vecvec<Float> expectedRms{{0.62048368229954287}, {1.5763882770434448}, {}, {0.62048368229954287}, {}, {2.5661254840712679}};
-    vecvec<Int> expectedDomain{{5}, {25}, {}, {65}, {}, {105}};
-    Int initialOutputDomain = 0;  // Implicit
-
-    std::vector<Int> triggerModeChangesAfterPackets{0, 4};
-    std::vector<Bool> newTriggerMode{true, false};
-    vecvec<Float> mockTriggerPackets{{}, {0.1, 0.6}, {0.1, 0.2, 0.6, 0.8}, {0.1, 0.1}, {}, {}};
-    vecvec<Float> mockTriggerDomainPackets{{}, {20, 22}, {40, 42, 60, 62}, {80, 82}, {}, {}};
-
-    auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
-                                       initialOutputDomain,
-                                       expectedAvg,
-                                       expectedRms,
-                                       expectedDomain,
-                                       SampleTypeFromType<Float>::SampleType,
-                                       mockPackets,
-                                       {},
-                                       {},
-                                       {},
-                                       {},
-                                       {},
-                                       triggerModeChangesAfterPackets,
+                                       triggerModeChangesBeforePackets,
                                        newTriggerMode,
                                        mockTriggerPackets,
                                        mockTriggerDomainPackets);
     helper.run();
 }
 
-/* TODO
-TEST_F(StatisticsTest, StatisticsTestTriggerMultipleConditionChangesPerPacket)
-{
-    vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4},  // 0: 5-43
-                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},                                // 1: 45-63
-                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0},                                // 2: 65-83
-                              {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},                                // 3: 85-103
-                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},                                // 4: 105-123
-                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0}};                               // 5: 125-143
-    vecvec<Float> expectedAvg{{0.55, 4}, {1.55}, {}, {0.55}, {}, {2.55}};
-    vecvec<Float> expectedRms{{0.62048368229954287, 4}, {1.5763882770434448}, {}, {0.62048368229954287}, {}, {2.5661254840712679}};
-    vecvec<Int> expectedDomain{{5, 25}, {45}, {}, {85}, {}, {125}};
-    Int initialOutputDomain = 0;  // Implicit
-
-    std::vector<Int> triggerModeChangesAfterPackets{0, 4};
-    std::vector<Bool> newTriggerMode{true, false};
-    vecvec<Float> mockTriggerPackets{{}, {0.1, 0.6, 0.1, 0.6}, {0.1, 0.2, 0.6, 0.8}, {0.1, 0.1}, {}, {}};
-    vecvec<Float> mockTriggerDomainPackets{{}, {40, 42}, {60, 62, 80, 82}, {100, 102}, {}, {}};
-
-    auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
-                                       initialOutputDomain,
-                                       expectedAvg,
-                                       expectedRms,
-                                       expectedDomain,
-                                       SampleTypeFromType<Float>::SampleType,
-                                       mockPackets,
-                                       {},
-                                       {},
-                                       {},
-                                       {},
-                                       {},
-                                       triggerModeChangesAfterPackets,
-                                       newTriggerMode,
-                                       mockTriggerPackets,
-                                       mockTriggerDomainPackets);
-    helper.run();
-}
-*/
 // TODO add more trigger as nested function block tests, test multiple trigger condition changes in same packet

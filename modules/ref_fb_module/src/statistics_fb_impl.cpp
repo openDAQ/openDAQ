@@ -3,9 +3,6 @@
 #include <opendaq/packet_factory.h>
 #include <ref_fb_module/statistics_fb_impl.h>
 
-// TODO remove unnecassary
-#include <opendaq/opendaq.h>
-
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace Statistics
@@ -79,12 +76,11 @@ void StatisticsFbImpl::triggerModeChanged()
     if (triggerMode)
     {
         // Configure Trigger UseMultiThreadedScheduler according to Statistics UseMultiThreadedScheduler
-        ModuleManagerPtr moduleManager = context.getModuleManager();
-        auto triggerConfig =
-            moduleManager.getModules()[0].getAvailableFunctionBlockTypes().get("ref_fb_module_trigger").createDefaultConfig();  // TODO! FIX
-
+        auto triggerConfig = PropertyObject();
         if (packetReadyNotification == PacketReadyNotification::SameThread)
-            triggerConfig.setPropertyValue("UseMultiThreadedScheduler", false);
+            triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
+        else
+            triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
 
         // Use trigger, output signals depending on trigger
         nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("ref_fb_module_trigger", "nfbt", triggerConfig);
@@ -367,43 +363,41 @@ void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
     if (triggerMode)
     {
         const auto packetBuf = static_cast<uint8_t*>(packet.getData());
-        auto domainData = static_cast<Int*>(domainPacket.getData());
+        auto domainBuf = static_cast<Int*>(domainPacket.getData());
 
-        Int i = 0;
+        size_t i = 0;
         while (i < packet.getSampleCount())
         {
             // Go to where trigger state is true or end of packet
-            while (!triggerHistory.getTriggerStateFromDomainValue(domainData[i]) && i < packet.getSampleCount())
+            while (!triggerHistory.getTriggerStateFromDomainValue(domainBuf[i]) && i < packet.getSampleCount())
                 i++;
+
+            // Check if we reached the end of packet
+            if (i >= packet.getSampleCount())
+                break;
 
             // Remember startedAt
             auto startedAt = i;
 
-            // Go to where trigger state is false or end of packet and fill domain sub buffer
-            std::vector<Int> domainSubVec;
-            while (triggerHistory.getTriggerStateFromDomainValue(domainData[i]) && i < packet.getSampleCount())
+            // Go to where trigger state is false or end of packet
+            while (triggerHistory.getTriggerStateFromDomainValue(domainBuf[i]) && i < packet.getSampleCount())
             {
-                domainSubVec.push_back(domainData[i]);
                 i++;
             }
 
+            // Save packetSize
+            auto packetSize = i - startedAt;
+
             // Create domain sub packet
-            auto domainSubPacket = DataPacket(domainPacket.getDataDescriptor(), domainSubVec.size(), domainPacket.getOffset());
-            auto domainSubPacketData = static_cast<daq::Int*>(domainSubPacket.getData());
-
-            // Fill domain sub vector data
-            for (Int ii = 0; ii < domainSubVec.size(); ii++)
-                *domainSubPacketData++ = domainSubVec[ii];
-
-            // Get packet buffer
-            const auto packetBuf = static_cast<uint8_t*>(packet.getData());
+            auto domainSubPacket =
+                DataPacket(domainPacket.getDataDescriptor(), packetSize, domainPacket.getOffset() + startedAt * inputDeltaTicks);
 
             // Create data sub packet
-            auto subPacket = DataPacket(packet.getDataDescriptor(), domainSubVec.size(), packet.getOffset());
+            auto subPacket = DataPacket(packet.getDataDescriptor(), packetSize);
             auto subPacketBuf = static_cast<uint8_t*>(subPacket.getData());
 
             // Fill sub packet buffer
-            std::memcpy(subPacketBuf, packetBuf + startedAt, domainSubVec.size() * sampleSize);
+            std::memcpy(subPacketBuf, packetBuf + startedAt * sampleSize, packetSize * sampleSize);
 
             calculateAndSendPackets(domainSubPacket, subPacket);
         }

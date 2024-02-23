@@ -16,14 +16,14 @@ template <typename T>
 class TriggerTestHelper
 {
 public:
-    TriggerTestHelper(DataRulePtr rule,
-                      vecvec<Bool> expectedData,
-                      vecvec<Int> expectedDomain,
-                      SampleType sampleType,
-                      vecvec<T> mockPackets,
-                      std::vector<Int> thresholdChangesAfterPackets = {},
-                      vecvec<Int> mockDomainPackets = {},
-                      std::vector<Float> newThresholds = {})
+    TriggerTestHelper(const DataRulePtr& rule,
+                      const vecvec<Bool>& expectedData,
+                      const vecvec<Int>& expectedDomain,
+                      const SampleType& sampleType,
+                      const vecvec<T>& mockPackets,
+                      const std::vector<Int>& thresholdChangesAfterPackets = {},
+                      const vecvec<Int>& mockDomainPackets = {},
+                      const std::vector<Float>& newThresholds = {})
     {
         // Create logger, context and module
         auto logger = Logger();

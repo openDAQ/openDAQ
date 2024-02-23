@@ -17,11 +17,16 @@
 #include "opendaq/range_factory.h"
 #include "opendaq/sample_type_traits.h"
 #include <coreobjects/eval_value_factory.h>
+#include <opendaq/component_status_container_private_ptr.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace Scaling
 {
+
+static const char* InputDisconnected = "Disconnected";
+static const char* InputConnected = "Connected";
+static const char* InputInvalid = "Invalid";
 
 ScalingFbImpl::ScalingFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
@@ -29,6 +34,7 @@ ScalingFbImpl::ScalingFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, 
     createInputPorts();
     createSignals();
     initProperties();
+    initStatuses();
 }
 
 void ScalingFbImpl::initProperties()
@@ -110,7 +116,8 @@ void ScalingFbImpl::configure()
 {
     if (!inputDataDescriptor.assigned() || !inputDomainDataDescriptor.assigned())
     {
-        LOG_D("Incomplete signal descriptors")
+        setInputStatus(InputInvalid);
+        LOG_W("Incomplete signal descriptors")
         return;
     }
 
@@ -163,9 +170,12 @@ void ScalingFbImpl::configure()
     }
     catch (const std::exception& e)
     {
+        setInputStatus(InputInvalid);
         LOG_W("Failed to set descriptor for power signal: {}", e.what())
         outputSignal.setDescriptor(nullptr);
     }
+
+    setInputStatus(InputConnected);
 }
 
 
@@ -237,6 +247,33 @@ void ScalingFbImpl::createSignals()
     outputSignal = createAndAddSignal("output");
     outputDomainSignal = createAndAddSignal("output_domain", nullptr, false);
     outputSignal.setDomainSignal(outputDomainSignal);
+}
+
+void ScalingFbImpl::initStatuses()
+{
+    auto inputStatusType = EnumerationType("InputStatusType", List<IString>(InputDisconnected, InputConnected, InputInvalid));
+    this->context.getTypeManager().addType(inputStatusType);
+
+    auto thisStatusContainer = this->statusContainer.asPtr<IComponentStatusContainerPrivate>();
+
+    auto inputStatusValue = Enumeration("InputStatusType", InputDisconnected, context.getTypeManager());
+    thisStatusContainer.addStatus("InputStatus", inputStatusValue);
+}
+
+void ScalingFbImpl::setInputStatus(const StringPtr& value)
+{
+    auto thisStatusContainer = this->statusContainer.asPtr<IComponentStatusContainerPrivate>();
+
+    auto inputStatusValue = Enumeration("InputStatusType", value, context.getTypeManager());
+    thisStatusContainer.setStatus("InputStatus", inputStatusValue);
+}
+
+void ScalingFbImpl::onDisconnected(const InputPortPtr& inputPort)
+{
+    if (this->inputPort == inputPort)
+    {
+        setInputStatus(InputDisconnected);
+    }
 }
 
 }

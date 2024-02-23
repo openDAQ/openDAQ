@@ -105,6 +105,15 @@ DECLARE_OPENDAQ_INTERFACE(IConnection, IBaseObject)
      * @param[out] samples The total amount of same-type samples currently available in the stored packets.
      */
     virtual ErrCode INTERFACE_FUNC getSamplesUntilNextDescriptor(SizeT* samples) = 0;
+
+    /*!
+     * @brief Returns true if the type of connection is remote.
+     * @param[out] remote True if connection is remote.
+     *
+     * Remote connections do not pass any packets. They represent the connection between input ports and signals
+     * on remote devices.
+     */
+    virtual ErrCode INTERFACE_FUNC isRemote(Bool* remote) = 0;
 };
 /*!@}*/
 

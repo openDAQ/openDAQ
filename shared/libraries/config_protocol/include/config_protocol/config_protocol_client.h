@@ -68,6 +68,7 @@ public:
     DevicePtr getRootDevice() const;
 
     void connectDomainSignals(const ComponentPtr& component);
+    void connectInputPorts(const ComponentPtr& component);
 
 protected:
     BaseObjectPtr deserializeConfigComponent(const StringPtr& typeId,
@@ -109,7 +110,7 @@ private:
 
     static SignalPtr findSignalByRemoteGlobalIdWithComponent(const ComponentPtr& component, const std::string& remoteGlobalId);
 
-    template <class F>
+    template <class Interface, class F>
     void forEachComponent(const ComponentPtr& component, const F& f);
     [[maybe_unused]]
     void setRemoteGlobalIds(const ComponentPtr& component, const StringPtr& parentRemoteId);
@@ -224,6 +225,7 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
 
     clientComm->setRootDevice(device);
     clientComm->connectDomainSignals(device);
+    clientComm->connectInputPorts(device);
 
     clientComm->connected = true;
 

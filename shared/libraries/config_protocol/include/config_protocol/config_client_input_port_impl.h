@@ -17,14 +17,16 @@
 #pragma once
 #include <config_protocol/config_client_component_impl.h>
 #include <opendaq/input_port_impl.h>
+#include <config_protocol/config_client_connection_impl.h>
+#include <config_protocol/config_client_input_port.h>
 
 namespace daq::config_protocol
 {
 
-class ConfigClientInputPortImpl : public ConfigClientComponentBaseImpl<GenericInputPortImpl<IConfigClientObject>>
+class ConfigClientInputPortImpl : public ConfigClientComponentBaseImpl<GenericInputPortImpl<IConfigClientObject, IConfigClientInputPort>>
 {
 public:
-    using Super = ConfigClientComponentBaseImpl<GenericInputPortImpl<IConfigClientObject>>;
+    using Super = ConfigClientComponentBaseImpl<GenericInputPortImpl<IConfigClientObject, IConfigClientInputPort>>;
 
     ConfigClientInputPortImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                               const std::string& remoteGlobalId,
@@ -33,11 +35,17 @@ public:
                               const StringPtr& localId);
 
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
+    ErrCode INTERFACE_FUNC disconnect() override;
+
+    ErrCode INTERFACE_FUNC assignSignal(ISignal* signal) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+
+    ConnectionPtr createConnection(const SignalPtr& signal) override;
+    bool isConnected(const SignalPtr& signal);
 };
 
 inline ConfigClientInputPortImpl::ConfigClientInputPortImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
@@ -53,19 +61,62 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
-    return daqTry([this, &signal] {
-        const auto signalPtr = SignalPtr::Borrow(signal);
+    return daqTry(
+        [this, &signal]
+        {
+            if (!this->deserializationComplete)
+                return Super::connect(signal);
 
-        const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
-        if (!configObject.assigned())
-            throw InvalidParameterException("Not a remote signal");
+            const auto signalPtr = SignalPtr::Borrow(signal);
+            {
+                std::scoped_lock lock(this->sync);
 
-        StringPtr signalRemoteGlobalId;
-        checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+                if (isConnected(signalPtr))
+                    return OPENDAQ_IGNORED;
+            }
 
-        auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
-        clientComm->sendComponentCommand(remoteGlobalId, "ConnectSignal", params, nullptr);
-    });
+            const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
+            if (!configObject.assigned())
+                throw InvalidParameterException("Not a remote signal");
+
+             // TODO check that signal actually belongs to this device
+
+            StringPtr signalRemoteGlobalId;
+            checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+
+            auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
+
+            clientComm->sendComponentCommand(remoteGlobalId, "ConnectSignal", params, nullptr);
+            return Super::connect(signal);
+        });
+}
+
+inline ErrCode ConfigClientInputPortImpl::disconnect()
+{
+    return daqTry(
+        [this]
+        {
+            assert(this->deserializationComplete);
+
+            clientComm->sendComponentCommand(remoteGlobalId, "DisconnectSignal", nullptr);
+            return Super::disconnect();
+        });
+}
+
+inline ErrCode ConfigClientInputPortImpl::assignSignal(ISignal* signal)
+{
+    if (signal == nullptr)
+        return Super::disconnect();
+    return Super::connect(signal);
+}
+
+inline bool ConfigClientInputPortImpl::isConnected(const SignalPtr& signal)
+{
+    const auto conn = this->getConnectionNoLock();
+    if (conn.assigned() && conn.getSignal() == signal)
+        return true;
+
+    return false;
 }
 
 inline ErrCode ConfigClientInputPortImpl::Deserialize(ISerializedObject* serialized,
@@ -87,9 +138,13 @@ inline void ConfigClientInputPortImpl::handleRemoteCoreObjectInternal(const Comp
     switch (static_cast<CoreEventId>(args.getEventId()))
     {
         case CoreEventId::SignalConnected:
+            {
+                const SignalPtr signal = args.getParameters().get("Signal");
+                checkErrorInfo(this->assignSignal(signal));
+            }
+            break;
         case CoreEventId::SignalDisconnected:
-            if (!this->coreEventMuted && this->coreEvent.assigned())
-                this->triggerCoreEvent(args);
+            checkErrorInfo(this->assignSignal(nullptr));
             break;
         case CoreEventId::ComponentUpdateEnd:
         case CoreEventId::AttributeChanged:
@@ -108,6 +163,13 @@ inline void ConfigClientInputPortImpl::handleRemoteCoreObjectInternal(const Comp
             break;
     }
 
-    ConfigClientComponentBaseImpl<GenericInputPortImpl<IConfigClientObject>>::handleRemoteCoreObjectInternal(sender, args);
+    Super::handleRemoteCoreObjectInternal(sender, args);
 }
+
+inline ConnectionPtr ConfigClientInputPortImpl::createConnection(const SignalPtr& signal)
+{
+    const auto connection = createWithImplementation<IConnection, ConfigClientConnectionImpl>(this->template thisPtr<InputPortPtr>(), signal, this->context);
+    return connection;
+}
+
 }

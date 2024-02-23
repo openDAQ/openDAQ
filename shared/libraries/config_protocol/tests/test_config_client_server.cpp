@@ -335,6 +335,17 @@ TEST_F(ConfigProtocolTest, ConnectSignalToInputPort)
     client->getClientComm()->sendComponentCommand("/dev/comp/test", "ConnectSignal", params);
 }
 
+TEST_F(ConfigProtocolTest, DisconnectSignalFromInputPort)
+{
+    MockInputPort::Strict inputPort;
+    MockSignal::Strict signal;
+
+    EXPECT_CALL(getMockComponentFinder(), findComponent(_)).WillOnce(Return(inputPort.ptr.asPtr<IComponent>()));
+    EXPECT_CALL(inputPort.mock(), disconnect()).WillOnce(Return(OPENDAQ_SUCCESS));
+
+    client->getClientComm()->sendComponentCommand("/dev/comp/test", "DisconnectSignal");
+}
+
 TEST_F(ConfigProtocolTest, GetTypeManager)
 {
     EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));

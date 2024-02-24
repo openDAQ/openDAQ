@@ -186,13 +186,6 @@ class App(tk.Tk):
         self.all_devices[self.instance.global_id] = dict()
         self.connected_devices[self.instance.global_id] = dict()
 
-        # TODO: remove this
-        obj = daq.PropertyObject()
-        obj.add_property(daq.IntPropertyBuilder(
-            daq.String('test'), daq.Integer(1)).build())
-        self.instance.add_property(
-            daq.ObjectProperty(daq.String('object'), obj))
-
         # add the first device if connection string is provided once on start
         if self.connection_string != None:
             self.add_first_available_device()  # also calls self.update_tree_widget()

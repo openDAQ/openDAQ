@@ -415,8 +415,8 @@ class App(tk.Tk):
         properties_info = node.visible_properties
         sorted_properties_info = self.properties_sort(properties_info)
         for property_info in sorted_properties_info:
-            iid = id(property_info)
-            self.nodes_by_iids[str(iid)] = node
+            iid = property_info.name if parent == None else parent + "." + property_info.name
+            self.nodes_by_iids[iid] = node
 
             show_read_write = 'R/W'
             if property_info.read_only:
@@ -447,12 +447,12 @@ class App(tk.Tk):
 
     def properties_update(self):
         self.properties_clear()
-        self.nodes_by_iids = {}
         if (self.selected_node is not None):
             self.properties_list(self.selected_node)
 
     def properties_clear(self):
         self.properties_tree.delete(*self.properties_tree.get_children())
+        self.nodes_by_iids = {}
 
     # MARK: - Attributes view
     def attributes_widget_create(self, parent_frame):

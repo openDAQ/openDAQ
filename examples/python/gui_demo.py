@@ -322,7 +322,7 @@ class App(tk.Tk):
                 component_name = 'Inputs/Outputs'
 
         self.tree.insert(parent_node_id, tk.END, iid=component_node_id,
-                         text=component_name, open=True, values=(component_node_id))
+                         text=component_name, open=True, values=(component_node_id,))
         self.nodes[component_node_id] = component
 
     def tree_restore_selection(self, old_node=None):

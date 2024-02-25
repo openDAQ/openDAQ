@@ -170,6 +170,11 @@ FunctionBlockPtr MockDevice1Impl::onAddFunctionBlock(const StringPtr& typeId, co
     throw NotFoundException();
 }
 
+void MockDevice1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    removeNestedFunctionBlock(functionBlock);
+}
+
 DeviceInfoPtr MockDevice1Impl::onGetInfo()
 {
     const auto info = DeviceInfo("mock://dev1", "MockDevice1");

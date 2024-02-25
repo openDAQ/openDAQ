@@ -250,6 +250,46 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlockWithEvent)
     ASSERT_EQ(fb.getSignals()[0].getDomainSignal(), fb.getSignals()[2]);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, RemoveFunctionBlock)
+{
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 1);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 1);
+
+    ASSERT_NO_THROW(clientSubDevice.removeFunctionBlock(clientSubDevice.getFunctionBlocks()[0]));
+
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 0);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 0);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, RemoveFunctionBlockWithEvent)
+{
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 1);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 1);
+
+    ASSERT_NO_THROW(clientSubDevice.removeFunctionBlock(clientSubDevice.getFunctionBlocks()[0]));
+
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 0);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 0);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, RemoveFunctionBlockFromServer)
+{
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 1);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 1);
+
+    ASSERT_NO_THROW(serverSubDevice.removeFunctionBlock(clientSubDevice.getFunctionBlocks()[0]));
+
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 0);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 0);
+}
+
 TEST_F(ConfigProtocolIntegrationTest, GetInitialStructPropertyValue)
 {
     ASSERT_EQ(serverDevice.getPropertyValue("StructProp"), clientDevice.getPropertyValue("StructProp"));

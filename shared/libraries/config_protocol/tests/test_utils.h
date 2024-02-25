@@ -55,6 +55,7 @@ namespace daq::config_protocol::test_utils
         MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
         DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
         FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
+        void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
         DeviceInfoPtr onGetInfo() override;
     };
 

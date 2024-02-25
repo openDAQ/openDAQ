@@ -18,6 +18,7 @@
 #include <opendaq/device_ptr.h>
 #include <opendaq/component_holder_ptr.h>
 #include <opendaq/component_holder_factory.h>
+#include <opendaq/search_filter_factory.h>
 
 namespace daq::config_protocol
 {
@@ -51,6 +52,16 @@ inline BaseObjectPtr ConfigServerDevice::addFunctionBlock(const DevicePtr& devic
 
 inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params)
 {
+    const auto localId = params.get("LocalId");
+
+    const auto fbs = device.getFunctionBlocks(search::LocalId(localId));
+    if (fbs.getCount() == 0)
+        throw NotFoundException("Function block not found");
+
+    if (fbs.getCount() > 1)
+        throw InvalidStateException("Duplicate function block");
+
+    device.removeFunctionBlock(fbs[0]);
     return nullptr;
 }
 

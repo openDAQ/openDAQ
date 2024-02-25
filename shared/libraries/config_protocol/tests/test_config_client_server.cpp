@@ -283,6 +283,44 @@ TEST_F(ConfigProtocolTest, AddFunctionBlock)
     ASSERT_EQ(fbId, "fbId");
 }
 
+TEST_F(ConfigProtocolTest, RemoveFunctionBlock)
+{
+    MockFunctionBlock::Strict fb;
+    auto functionBlocks = List<IFunctionBlock>(fb.ptr);
+
+    EXPECT_CALL(fb.mock(), getLocalId(_)).WillRepeatedly(Get<StringPtr>(String("lid")));
+
+    EXPECT_CALL(device.mock(), getFunctionBlocks(_, _))
+        .WillRepeatedly([functionBlocks](IList** fbs, ISearchFilter* searchFilter)
+            {
+                auto outFbs = List<IFunctionBlock>();
+                const auto sf = SearchFilterPtr::Borrow(searchFilter);
+                for (const auto fb : functionBlocks)
+                    if (sf.acceptsComponent(fb))
+                        outFbs.pushBack(fb);
+                *fbs = outFbs.detach();
+                return OPENDAQ_SUCCESS;
+            });
+
+
+    EXPECT_CALL(device.mock(), removeFunctionBlock(_))
+        .WillRepeatedly(
+            [&functionBlocks](IFunctionBlock* functionBlock) -> ErrCode
+            {
+                const auto fb = FunctionBlockPtr::Borrow(functionBlock);
+                if (fb == functionBlocks[0])
+                    return OPENDAQ_SUCCESS;
+
+                return OPENDAQ_NOTFOUND;
+            });
+
+    auto params = Dict<IString, IBaseObject>({{"LocalId", "lid"}});
+    ASSERT_NO_THROW(client->getClientComm()->sendComponentCommand("//root", "RemoveFunctionBlock", params));
+
+    params = Dict<IString, IBaseObject>({{"LocalId", "invalid"}});
+    ASSERT_THROW(client->getClientComm()->sendComponentCommand("//root", "RemoveFunctionBlock", params), NotFoundException);
+}
+
 TEST_F(ConfigProtocolTest, ConnectSignalToInputPort)
 {
     MockInputPort::Strict inputPort;

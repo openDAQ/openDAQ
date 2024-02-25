@@ -46,6 +46,7 @@ public:
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
+    void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -92,6 +93,23 @@ FunctionBlockPtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddFunctionBlock(
     FunctionBlockPtr existingFb = this->functionBlocks.getItem(fb.getLocalId());
     this->clientComm->connectDomainSignals(existingFb);
     return existingFb;
+}
+
+template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    if (!functionBlock.assigned())
+        throw InvalidParameterException();
+
+    auto params = Dict<IString, IBaseObject>({{"LocalId", functionBlock.getLocalId()}});
+    this->clientComm->sendComponentCommand(this->remoteGlobalId, "RemoveFunctionBlock", params);
+
+    const DevicePtr thisPtr = this->template borrowPtr<DevicePtr>();
+
+    if (this->functionBlocks.hasItem(functionBlock.getLocalId()))
+    {
+        this->removeNestedFunctionBlock(functionBlock);
+    }
 }
 
 template <class TDeviceBase>

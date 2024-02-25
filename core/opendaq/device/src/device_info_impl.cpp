@@ -404,6 +404,43 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* 
     return Super::addProperty(property);
 }
 
+template <typename TInterface, typename... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSerializeId(ConstCharPtr* id) const
+{
+    *id = SerializeId();
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ConstCharPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::SerializeId()
+{
+    return "DeviceInfo";
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
+                                                                     IBaseObject* context,
+                                                                     IFunction* factoryCallback,
+                                                                     IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = Super::DeserializePropertyObject(
+                    serialized,
+                    context,
+                    factoryCallback,
+                       [](const SerializedObjectPtr& serialized, const BaseObjectPtr& context, const StringPtr& className)
+                       {
+                           const auto info = createWithImplementation<IDeviceInfo, DeviceInfoConfigBase>();
+                           return info;
+                       }).detach();
+        });
+}
+
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::createAndSetDefaultStringProperty(const StringPtr& name, const BaseObjectPtr& value)
 {

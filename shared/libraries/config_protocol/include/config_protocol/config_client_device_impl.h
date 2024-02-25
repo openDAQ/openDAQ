@@ -47,6 +47,7 @@ public:
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
+    uint64_t onGetTicksSinceOrigin() override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -110,6 +111,13 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveFunctionBlock(const Fun
     {
         this->removeNestedFunctionBlock(functionBlock);
     }
+}
+
+template <class TDeviceBase>
+uint64_t GenericConfigClientDeviceImpl<TDeviceBase>::onGetTicksSinceOrigin()
+{
+    uint64_t ticks = this->clientComm->sendComponentCommand(this->remoteGlobalId, "GetTicksSinceOrigin");
+    return ticks;
 }
 
 template <class TDeviceBase>

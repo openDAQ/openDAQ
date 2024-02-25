@@ -40,7 +40,8 @@ void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq:
     m.def("VisibleSearchFilter", &daq::VisibleSearchFilter_Create);
     m.def("RequiredTagsSearchFilter", &daq::RequiredTagsSearchFilter_Create);
     m.def("ExcludedTagsSearchFilter", &daq::ExcludedTagsSearchFilter_Create);
-    m.def("SearchIdSearchFilter", &daq::SearchIdSearchFilter_Create);
+    m.def("InterfaceIdSearchFilter", &daq::InterfaceIdSearchFilter_Create);
+    m.def("LocalIdSearchFilter", &daq::LocalIdSearchFilter_Create);
     m.def("AnySearchFilter", &daq::AnySearchFilter_Create);
     m.def("AndSearchFilter", &daq::AndSearchFilter_Create);
     m.def("OrSearchFilter", &daq::OrSearchFilter_Create);

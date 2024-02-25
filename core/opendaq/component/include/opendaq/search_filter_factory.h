@@ -60,11 +60,22 @@ inline SearchFilterPtr ExcludeTags(const ListPtr<IString>& excludedTags)
 /*!
  * @brief Creates a search filter that accepts components that implement the interface with the given interface ID. "Visit children"
  * always returns `true`.
- * @param searchId The interface ID that should be implemented by accepted components.
+ * @param intfId The interface ID that should be implemented by accepted components.
  */
-inline SearchFilterPtr SearchId(const IntfID searchId)
+inline SearchFilterPtr InterfaceId(const IntfID& intfId)
 {
-    SearchFilterPtr obj(SearchIdSearchFilter_Create(searchId));
+    SearchFilterPtr obj(InterfaceIdSearchFilter_Create(intfId));
+    return obj;
+}
+
+/*!
+ * @brief Creates a search filter that accepts components with the specified local ID. "Visit children"
+ * always returns `true`.
+ * @param localId The local ID of the accepted components.
+ */
+inline SearchFilterPtr LocalId(const StringPtr& localId)
+{
+    SearchFilterPtr obj(LocalIdSearchFilter_Create(localId));
     return obj;
 }
 

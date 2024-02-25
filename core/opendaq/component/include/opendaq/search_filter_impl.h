@@ -63,18 +63,32 @@ private:
     std::unordered_set<std::string> excludedTags;
 };
 
-// Filter by Search ID
+// Filter by interface ID
 
-class SearchIdSearchFilterImpl final : public ImplementationOf<ISearchFilter>
+class InterfaceIdSearchFilterImpl final : public ImplementationOf<ISearchFilter>
 {
 public:
-    explicit SearchIdSearchFilterImpl(IntfID id);
+    explicit InterfaceIdSearchFilterImpl(const IntfID& id);
 
     ErrCode INTERFACE_FUNC acceptsComponent(IComponent* component, Bool* accepts) override;
     ErrCode INTERFACE_FUNC visitChildren(IComponent* component, Bool* visit) override;
 
 private:
-    IntfID searchId;
+    IntfID intfId;
+};
+
+// Filter by local ID
+
+class LocalIdSearchFilterImpl final : public ImplementationOf<ISearchFilter>
+{
+public:
+    explicit LocalIdSearchFilterImpl(const StringPtr& localId);
+
+    ErrCode INTERFACE_FUNC acceptsComponent(IComponent* component, Bool* accepts) override;
+    ErrCode INTERFACE_FUNC visitChildren(IComponent* component, Bool* visit) override;
+
+private:
+    StringPtr localId;
 };
 
 // No filter

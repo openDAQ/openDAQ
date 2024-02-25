@@ -129,7 +129,7 @@ TEST_F(TreeTraversalTest, SubDevices)
     ASSERT_EQ(device.getDevices().getCount(), 1u);
     ASSERT_EQ(device.getDevices(Any()).getCount(), 2u);
     ASSERT_EQ(device.getDevices(Visible()).getCount(), 1u);
-    ASSERT_EQ(device.getItems(Recursive(SearchId(IDevice::Id))).getCount(), 2u);
+    ASSERT_EQ(device.getItems(Recursive(InterfaceId(IDevice::Id))).getCount(), 2u);
 }
 
 TEST_F(TreeTraversalTest, FunctionBlocks)
@@ -140,7 +140,7 @@ TEST_F(TreeTraversalTest, FunctionBlocks)
     ASSERT_EQ(device.getFunctionBlocks(Recursive(Visible())).getCount(), 2u);
     ASSERT_EQ(device.getFunctionBlocks(Recursive(Any())).getCount(), 6u);
     // 3 Devices, 2 FB per Device, 12 Ch per Device, 2 FB per Channel
-    ASSERT_EQ(device.getItems(Recursive(SearchId(IFunctionBlock::Id))).getCount(), 3u * (2 + 12 + 12 * 2));
+    ASSERT_EQ(device.getItems(Recursive(InterfaceId(IFunctionBlock::Id))).getCount(), 3u * (2 + 12 + 12 * 2));
 }
 
 TEST_F(TreeTraversalTest, Channels)
@@ -151,7 +151,7 @@ TEST_F(TreeTraversalTest, Channels)
     ASSERT_EQ(device.getChannels(Recursive(Visible())).getCount(), 4u);
     ASSERT_EQ(device.getChannelsRecursive().getCount(), 4u);
     ASSERT_EQ(device.getChannels(Recursive(Any())).getCount(), 36u);
-    ASSERT_EQ(device.getItems(Recursive(SearchId(IChannel::Id))).getCount(), 36u);
+    ASSERT_EQ(device.getItems(Recursive(InterfaceId(IChannel::Id))).getCount(), 36u);
 }
 
 TEST_F(TreeTraversalTest, Signals)
@@ -162,7 +162,8 @@ TEST_F(TreeTraversalTest, Signals)
     ASSERT_EQ(device.getSignalsRecursive().getCount(), 12u);
     ASSERT_EQ(device.getSignals(Recursive(Visible())).getCount(), 12u);
     ASSERT_EQ(device.getSignals(Recursive(Any())).getCount(), 234u);
-    ASSERT_EQ(device.getItems(Recursive(SearchId(ISignal::Id))).getCount(), 234u);
+    ASSERT_EQ(device.getItems(Recursive(InterfaceId(ISignal::Id))).getCount(), 234u);
+    ASSERT_EQ(device.getItems(Recursive(LocalId("sigVis"))).getCount(), 117u);
 }
 
 TEST_F(TreeTraversalTest, InputPorts)
@@ -170,5 +171,5 @@ TEST_F(TreeTraversalTest, InputPorts)
     auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
     auto fb = device.getFunctionBlocks()[0];
     ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
-    ASSERT_EQ(device.getItems(Recursive(SearchId(IInputPort::Id))).getCount(), 78u);
+    ASSERT_EQ(device.getItems(Recursive(InterfaceId(IInputPort::Id))).getCount(), 78u);
 }

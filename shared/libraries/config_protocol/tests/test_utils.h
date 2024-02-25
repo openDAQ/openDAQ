@@ -57,6 +57,13 @@ namespace daq::config_protocol::test_utils
         FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
         void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
         DeviceInfoPtr onGetInfo() override;
+        RatioPtr onGetResolution() override;
+        uint64_t onGetTicksSinceOrigin() override;
+        std::string onGetOrigin() override;
+        UnitPtr onGetDomainUnit() override;
+
+    private:
+        uint64_t ticksSinceOrigin;
     };
 
     class MockDevice2Impl final : public Device

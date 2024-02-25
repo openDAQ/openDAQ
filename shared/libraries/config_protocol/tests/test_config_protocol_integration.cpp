@@ -194,6 +194,15 @@ TEST_F(ConfigProtocolIntegrationTest, GetDeviceInfo)
     ASSERT_EQ(clientSubDevice.getInfo().getManufacturer(), "Testing");
 }
 
+TEST_F(ConfigProtocolIntegrationTest, DomainInfo)
+{
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+
+    ASSERT_EQ(clientSubDevice.getDomain().getOrigin(), "N/A");
+    ASSERT_EQ(clientSubDevice.getDomain().getTickResolution(), Ratio(1, 100));
+    ASSERT_EQ(clientSubDevice.getDomain().getUnit(), Unit("s", -1, "second", "time"));
+}
+
 TEST_F(ConfigProtocolIntegrationTest, GetAvailableFunctionBlockTypes)
 {
     const auto serverSubDevice = serverDevice.getDevices()[0];

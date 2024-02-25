@@ -241,8 +241,9 @@ inline void TimeReaderBase::readData(void* inputBuffer, std::chrono::system_cloc
         case SampleType::ComplexFloat64:
             throw NotSupportedException("Complex values as time domain are not supported.");
         case SampleType::Binary:
+        case SampleType::Struct:
         case SampleType::String:
-            throw NotSupportedException("String or binary values as time domain are not supported.");
+            throw NotSupportedException("Struct, string or binary values as time domain are not supported.");
         case SampleType::Invalid:
             throw InvalidStateException("Unknown raw data-type, conversion not possible.");
         case SampleType::_count:

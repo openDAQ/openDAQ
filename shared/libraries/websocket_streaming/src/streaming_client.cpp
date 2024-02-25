@@ -321,7 +321,7 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
     const auto& signalIter = signals.find(id);
     if (signalIter != signals.end() &&
         signalIter->second->hasDescriptors() &&
-        !signalIter->second->getSignalDescriptor().isStructDescriptor())
+        signalIter->second->getSignalDescriptor().getSampleType() != daq::SampleType::Struct)
     {
         auto packet = signalIter->second->createDataPacket(timeStamp, data, size);
         onPacketCallback(id, packet);

@@ -200,6 +200,15 @@ struct SampleTypeToType<SampleType::Binary>
 };
 
 template <>
+struct SampleTypeToType<SampleType::Struct>
+{
+    using Type = void*;
+    static constexpr daq::SampleType SampleType = daq::SampleType::Struct;
+
+    static constexpr bool IsScaledType = false;
+};
+
+template <>
 struct SampleTypeToType<SampleType::RangeInt64>
 {
     using Type = RangeType<int64_t>;
@@ -215,7 +224,12 @@ struct SampleTypeToType<SampleType::RangeInt64>
 /////////////////////////
 
 template <>
-struct SampleTypeFromType<void*> : SampleTypeToType<SampleType::Invalid>
+struct SampleTypeFromType<void> : SampleTypeToType<SampleType::Invalid>
+{
+};
+
+template <>
+struct SampleTypeFromType<void*> : SampleTypeToType<SampleType::Struct>
 {
 };
 
@@ -331,6 +345,8 @@ inline bool isScaledSampleType(SampleType sampleType)
             return SampleTypeToType<SampleType::String>::IsScaledType;
         case SampleType::Binary:
             return SampleTypeToType<SampleType::Binary>::IsScaledType;
+        case SampleType::Struct:
+            return SampleTypeToType<SampleType::Struct>::IsScaledType;
         case SampleType::RangeInt64:
             return SampleTypeToType<SampleType::RangeInt64>::IsScaledType;
         case SampleType::Invalid:
@@ -373,6 +389,7 @@ inline std::size_t getSampleSize(SampleType sampleType)
             return sizeof(SampleTypeToType<SampleType::ComplexFloat64>::Type);
         case SampleType::String:
         case SampleType::Binary:
+        case SampleType::Struct:
         case SampleType::Invalid:
         case SampleType::_count:
             break;
@@ -410,6 +427,7 @@ inline ScaledSampleType getDefaultScaledType(SampleType type)
         case SampleType::String:
         case SampleType::Binary:
         case SampleType::RangeInt64:
+        case SampleType::Struct:
         case SampleType::Invalid:
         case SampleType::_count:
             break;
@@ -467,6 +485,8 @@ inline std::string convertSampleTypeToString(SampleType type)
             return "String";
         case SampleType::Binary:
             return "Binary";
+        case SampleType::Struct:
+            return "Struct";
         case SampleType::Invalid:
         case SampleType::_count:
             break;

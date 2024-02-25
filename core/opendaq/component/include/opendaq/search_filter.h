@@ -84,9 +84,16 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, ExcludedTagsSearch
 /*!
  * @brief Creates a search filter that accepts components that implement the interface with the given interface ID. "Visit children"
  * always returns `true`.
- * @param searchId The interface ID that should be implemented by accepted components.
+ * @param intfId The interface ID that should be implemented by accepted components.
  */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, SearchIdSearchFilter, ISearchFilter, IntfID, searchId)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, InterfaceIdSearchFilter, ISearchFilter, const IntfID&, intfId)
+
+/*!
+ * @brief Creates a search filter that accepts components with the specified local ID. "Visit children"
+ * always returns `true`.
+ * @param localId The local ID of the accepted components.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, LocalIdSearchFilter, ISearchFilter, IString*, localId)
 
 /*!
  * @brief Creates a search filter that accepts all components. "Visit children" always returns `true`.

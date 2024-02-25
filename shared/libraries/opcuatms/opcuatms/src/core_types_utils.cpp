@@ -142,6 +142,8 @@ UA_SampleTypeEnumeration SampleTypeToTmsEnum(SampleType daqEnum)
             return UA_SAMPLETYPEENUMERATION_STRING;
         case SampleType::RangeInt64:
             return UA_SAMPLETYPEENUMERATION_RANGEINT64;
+        case SampleType::Struct:
+            return UA_SAMPLETYPEENUMERATION_INVALID;
         default:
             throw ConversionFailedException();
     }

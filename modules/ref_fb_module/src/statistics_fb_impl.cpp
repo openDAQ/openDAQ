@@ -116,7 +116,7 @@ void StatisticsFbImpl::configure()
 
     domainSignal.setDescriptor(this->outputDomainDataDescriptor);
 
-    if (inputValueDataDescriptor.isStructDescriptor() ||
+    if (inputValueDataDescriptor.getSampleType() == SampleType::Struct ||
         inputValueDataDescriptor.getDimensions().getCount() > 0)  // arrays not supported on the input
     {
         LOG_W("Incompatible input value data descriptor");

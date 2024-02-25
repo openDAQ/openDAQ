@@ -20,7 +20,7 @@ TEST_F(StructDescriptorTest, StructDescriptorSetGet)
     ListPtr<IDataDescriptor> structMembers = List<IDataDescriptor>(DataDescriptorBuilder().build(), DataDescriptorBuilder().build());
 
     auto descriptor = DataDescriptorBuilder()
-                      .setSampleType(SampleType::Float64)
+                      .setSampleType(SampleType::Struct)
                       .setDimensions(dimensions)
                       .setStructFields(structMembers)
                       .setName("testName")
@@ -41,7 +41,7 @@ TEST_F(StructDescriptorTest, StructDescriptorCopyFactory)
     ListPtr<IDataDescriptor> structMembers = List<IDataDescriptor>(DataDescriptorBuilder().build(), DataDescriptorBuilder().build());
 
     auto descriptor = DataDescriptorBuilder()
-                          .setSampleType(SampleType::Float64)
+                          .setSampleType(SampleType::Struct)
                           .setDimensions(dimensions)
                           .setStructFields(structMembers)
                           .setName("testName")
@@ -63,7 +63,7 @@ TEST_F(StructDescriptorTest, SerializeDeserialize)
     ListPtr<IDataDescriptor> structMembers = List<IDataDescriptor>(DataDescriptorBuilder().build(), DataDescriptorBuilder().build());
 
     auto descriptor = DataDescriptorBuilder()
-                          .setSampleType(SampleType::Float64)
+                          .setSampleType(SampleType::Struct)
                           .setDimensions(dimensions)
                           .setStructFields(structMembers)
                           .setName("testName")

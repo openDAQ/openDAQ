@@ -50,7 +50,6 @@ source_group("data_descriptor" FILES ${SDK_HEADERS_DIR}/data_descriptor.h
                                      ${SDK_HEADERS_DIR}/data_descriptor_builder.h
                                      ${SDK_HEADERS_DIR}/data_descriptor_builder_impl.h
                                      ${SDK_HEADERS_DIR}/data_descriptor_factory.h
-                                     ${SDK_HEADERS_DIR}/data_descriptor_ptr.custom.h
                                      data_descriptor_impl.cpp
                                      data_descriptor_builder_impl.cpp
 )
@@ -199,7 +198,6 @@ set(SRC_PublicHeaders
     deleter.h
     deleter_impl.h
     deleter_factory.h
-    data_descriptor_ptr.custom.h
     allocator.h
     malloc_allocator_factory.h
     external_allocator_factory.h

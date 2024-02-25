@@ -393,6 +393,7 @@ TEST_F(DataPacketTest, PacketWithStructSampleType)
         .build();
 
     const auto canMsgDescriptor = DataDescriptorBuilder()
+        .setSampleType(SampleType::Struct)
         .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
         .build();
 

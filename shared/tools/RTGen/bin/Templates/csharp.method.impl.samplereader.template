@@ -1,26 +1,26 @@
-﻿    public void $Name$($Arguments$)
+﻿    public $ReturnTypePtr$ $Name$($Arguments$)
     {
         //use full array
         nuint startIndex = 0;
 
-        $Name$Internal($CSArgumentNamesReader$);
+        $CSReturnOrVoidCall$$Name$Internal($CSArgumentNamesReader$);
     }
 
     $CSMethodDocReader$
-    public void $Name$($CSArgumentsReader$)
+    public $ReturnTypePtr$ $Name$($CSArgumentsReader$)
     {
-        //preset, will be adapted
+        //preset, will be adapted to the correct array length available
         count = nuint.MaxValue;
 
-        $Name$Internal($CSArgumentNamesReader$);
+        $CSReturnOrVoidCall$$Name$Internal($CSArgumentNamesReader$);
     }
 
     $CSMethodDocReader$
-    private void $Name$Internal($CSArgumentsReader$)
-    {
+    private $ReturnTypePtr$ $Name$Internal($CSArgumentsReader$)
+    {$CSNativeOutputArgument$
         if (count == 0)
         {
-            return;
+            return$CSDefaultReturnValue$;
             //ToDo: or throw exception?
         }
 
@@ -29,14 +29,14 @@
         if (arrayLength == 0)
         {
             count = 0;
-            return;
+            return$CSDefaultReturnValue$;
             //ToDo: or throw exception?
         }
 
         if (startIndex >= arrayLength)
         {
             count = 0;
-            return;
+            return$CSDefaultReturnValue$;
             //ToDo: or throw exception?
         }
 
@@ -63,5 +63,5 @@
                     throw new OpenDaqException($CSReturnVariable$);
                 }
             }
-        }
+        }$CSReturnTheOutputValue$
     }

@@ -103,7 +103,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
             throw NoMemoryException();
     }
 
-    if (descriptor.isStructDescriptor() && rawSampleSize != sampleSize)
+    if (descriptor.getSampleType() == SampleType::Struct && rawSampleSize != sampleSize)
         throw InvalidParameterException("Packets with struct implicit descriptor not supported");
 
     const auto ruleType = descriptor.getRule().getType();

@@ -1,4 +1,4 @@
-21.02.2023
+25.02.2023
 Description:
   - readers returns IReaderStatus
   - Support creating readers with IInputPort
@@ -46,6 +46,15 @@ Description:
 
 - [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)
 + [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SizeT blockSize, SampleType valueReadType, SampleType domainReadType)
+
+25.02.2024
+Description:
+  - rename search filter search::SearchId to search::InterfaceId
+  - add local ID search filter
+
+-m [factory] SearchFilterPtr SearchId(IntfID intfId)
++m [factory] SearchFilterPtr InterfaceId(const IntfID& intfId)
++ [factory] SearchFilterPtr LocalId(const StringPtr& localId)
 
 12.02.2024
 Description:

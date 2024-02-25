@@ -95,25 +95,49 @@ ErrCode ExcludedTagsSearchFilterImpl::visitChildren(IComponent* component, Bool*
     return OPENDAQ_SUCCESS;
 }
 
-SearchIdSearchFilterImpl::SearchIdSearchFilterImpl(const IntfID id)
-    : searchId(id)
+InterfaceIdSearchFilterImpl::InterfaceIdSearchFilterImpl(const IntfID& id)
+    : intfId(id)
 {
 }
 
-ErrCode SearchIdSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
+ErrCode InterfaceIdSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
 {
     OPENDAQ_PARAM_NOT_NULL(accepts);
     OPENDAQ_PARAM_NOT_NULL(component);
 
     const auto& componentPtr = ComponentPtr::Borrow(component);
     *accepts = true;
-    if (!componentPtr.supportsInterface(searchId))
+    if (!componentPtr.supportsInterface(intfId))
         *accepts = false;
 
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode SearchIdSearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
+ErrCode InterfaceIdSearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
+{
+    OPENDAQ_PARAM_NOT_NULL(visit);
+
+    *visit = true;
+    return OPENDAQ_SUCCESS;
+}
+
+LocalIdSearchFilterImpl::LocalIdSearchFilterImpl(const StringPtr& localId)
+    : localId(localId)
+{
+}
+
+ErrCode INTERFACE_FUNC LocalIdSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
+{
+    OPENDAQ_PARAM_NOT_NULL(accepts);
+    OPENDAQ_PARAM_NOT_NULL(component);
+
+    const auto& componentPtr = ComponentPtr::Borrow(component);
+    *accepts = componentPtr.getLocalId() == localId ? True : False;
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC LocalIdSearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
 {
     OPENDAQ_PARAM_NOT_NULL(visit);
 
@@ -289,13 +313,17 @@ ErrCode PUBLIC_EXPORT createExcludedTagsSearchFilter(ISearchFilter** objTmp, ILi
 }
 
 extern "C"
-ErrCode PUBLIC_EXPORT createSearchIdSearchFilter(ISearchFilter** objTmp, IntfID searchId)
+ErrCode PUBLIC_EXPORT createInterfaceIdSearchFilter(ISearchFilter** objTmp, const IntfID& intfId)
 {
-    return createObject<ISearchFilter, SearchIdSearchFilterImpl, IntfID>(objTmp, searchId);
+    return createObject<ISearchFilter, InterfaceIdSearchFilterImpl, IntfID>(objTmp, intfId);
 }
 
-extern "C"
-ErrCode PUBLIC_EXPORT createAnySearchFilter(ISearchFilter** objTmp)
+extern "C" ErrCode PUBLIC_EXPORT createLocalIdSearchFilter(ISearchFilter** objTmp, IString* localId)
+{
+    return createObject<ISearchFilter, LocalIdSearchFilterImpl>(objTmp, localId);
+}
+
+extern "C" ErrCode PUBLIC_EXPORT createAnySearchFilter(ISearchFilter** objTmp)
 {
     return createObject<ISearchFilter, AnySearchFilterImpl>(objTmp);
 }

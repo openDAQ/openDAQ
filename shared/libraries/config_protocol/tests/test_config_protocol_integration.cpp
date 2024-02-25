@@ -203,6 +203,14 @@ TEST_F(ConfigProtocolIntegrationTest, DomainInfo)
     ASSERT_EQ(clientSubDevice.getDomain().getUnit(), Unit("s", -1, "second", "time"));
 }
 
+TEST_F(ConfigProtocolIntegrationTest, GetTicksSinceOrigin)
+{
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 0);
+    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 1);
+    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 2);
+}
+
 TEST_F(ConfigProtocolIntegrationTest, GetAvailableFunctionBlockTypes)
 {
     const auto serverSubDevice = serverDevice.getDevices()[0];

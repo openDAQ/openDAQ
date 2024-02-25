@@ -37,6 +37,7 @@ public:
     using Super = GenericPropertyObjectImpl<TInterface, Interfaces...>;
 
     explicit DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString);
+    DeviceInfoConfigImpl() = default;
 
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
@@ -87,6 +88,11 @@ public:
 
     ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
 
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
 private:
     ErrCode createAndSetDefaultStringProperty(const StringPtr& name, const BaseObjectPtr& value);
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
@@ -98,5 +104,7 @@ private:
     std::unordered_set<std::string> defaultPropertyNames;
     DeviceTypePtr deviceType;
 };
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceInfoConfigBase)
 
 END_NAMESPACE_OPENDAQ

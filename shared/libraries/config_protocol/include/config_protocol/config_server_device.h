@@ -28,6 +28,7 @@ public:
     static BaseObjectPtr getAvailableFunctionBlockTypes(const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr addFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr removeFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getInfo(const DevicePtr& device, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const DevicePtr& device,
@@ -51,6 +52,11 @@ inline BaseObjectPtr ConfigServerDevice::addFunctionBlock(const DevicePtr& devic
 inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params)
 {
     return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerDevice::getInfo(const DevicePtr& device, const ParamsDictPtr& params)
+{
+    return device.getInfo();
 }
 
 }

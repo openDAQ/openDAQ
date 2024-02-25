@@ -249,6 +249,18 @@ TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
     ASSERT_EQ(fbTypes.get("id").createDefaultConfig().getPropertyValue("prop"), "value");
 }
 
+TEST_F(ConfigProtocolTest, GetDeviceInfo)
+{
+    const auto devInfo = DeviceInfo("connectionString", "name");
+
+    StringPtr fbId;
+    EXPECT_CALL(device.mock(), getInfo(_)).WillOnce(daq::Get<DeviceInfoPtr>(devInfo));
+
+    const DeviceInfoPtr newDevInfo = client->getClientComm()->sendComponentCommand("//root", "GetInfo");
+    ASSERT_EQ(newDevInfo.getConnectionString(), devInfo.getConnectionString());
+    ASSERT_EQ(newDevInfo.getName(), devInfo.getName());
+}
+
 TEST_F(ConfigProtocolTest, AddFunctionBlock)
 {
     StringPtr fbId;

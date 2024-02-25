@@ -124,7 +124,6 @@ TEST_F(ConfigProtocolIntegrationTest, GetInitialPropertyValue)
     ASSERT_EQ(serverDeviceSerialized, clientDeviceSerialized);
 }
 
-
 TEST_F(ConfigProtocolIntegrationTest, SetPropertyValue)
 {
     clientDevice.getChannels()[0].setPropertyValue("StrProp", "SomeValue");
@@ -186,6 +185,15 @@ TEST_F(ConfigProtocolIntegrationTest, CallProcProp)
     ASSERT_TRUE(called);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, GetDeviceInfo)
+{
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+
+    ASSERT_EQ(clientSubDevice.getInfo().getConnectionString(), "mock://dev1");
+    ASSERT_EQ(clientSubDevice.getInfo().getName(), "MockDevice1");
+    ASSERT_EQ(clientSubDevice.getInfo().getManufacturer(), "Testing");
+}
+
 TEST_F(ConfigProtocolIntegrationTest, GetAvailableFunctionBlockTypes)
 {
     const auto serverSubDevice = serverDevice.getDevices()[0];
@@ -202,6 +210,7 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlockNotFound)
 
     ASSERT_THROW(clientSubDevice.addFunctionBlock("someFb"), NotFoundException);
 }
+
 TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlock)
 {
     serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();

@@ -192,7 +192,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 template <typename TInterface, typename... Interfaces>
 DeviceInfoPtr GenericDevice<TInterface, Interfaces...>::onGetInfo()
 {
-    return nullptr;
+    return deviceInfo;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -207,13 +207,6 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 
     return errCode;
 }
-
-/*template <typename TInterface, typename... Interfaces>
-DeviceInfoPtr GenericDevice<TInterface, Interfaces...>::onGetInfo()
-{
-    return deviceInfo;
-}
-*/
 
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getDomain(IDeviceDomain** deviceDomain)
@@ -1052,6 +1045,17 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
                 component.serialize(serializer);
         }
     }
+
+    if (!forUpdate)
+    {
+        DeviceInfoPtr deviceInfo;
+        checkErrorInfo(this->getInfo(&deviceInfo));
+        if (deviceInfo.assigned())
+        {
+            serializer.key("deviceInfo");
+            deviceInfo.serialize(serializer);
+        }
+    }
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1130,6 +1134,9 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
                                                                              const FunctionPtr& factoryCallback)
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+
+    if (serializedObject.hasKey("deviceInfo"))
+        deviceInfo = serializedObject.readObject("deviceInfo");
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");
     this->template deserializeDefaultFolder<IDevice>(serializedObject, context, factoryCallback, devices, "Dev");

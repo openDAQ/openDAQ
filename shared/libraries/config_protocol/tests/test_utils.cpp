@@ -170,6 +170,13 @@ FunctionBlockPtr MockDevice1Impl::onAddFunctionBlock(const StringPtr& typeId, co
     throw NotFoundException();
 }
 
+DeviceInfoPtr MockDevice1Impl::onGetInfo()
+{
+    const auto info = DeviceInfo("mock://dev1", "MockDevice1");
+    info.setManufacturer("Testing");
+    return info;
+}
+
 MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : Device(ctx, parent, localId)
 {

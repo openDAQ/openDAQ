@@ -280,7 +280,7 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
     if (readCallback.assigned() && cachedSamples >= historySize)
     {
         lock.unlock();
-        readCallback();
+        return wrapHandler(readCallback);
     }
     return OPENDAQ_SUCCESS;
 }

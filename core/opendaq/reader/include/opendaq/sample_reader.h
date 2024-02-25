@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/reader.h>
+#include <coretypes/function.h>
 #include <opendaq/sample_type.h>
 
 BEGIN_NAMESPACE_OPENDAQ

@@ -328,7 +328,7 @@ ErrCode MultiReaderImpl::setOnDescriptorChanged(IFunction* callback)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::setOnDataAvailable(IFunction* callback)
+ErrCode MultiReaderImpl::setOnDataAvailable(IProcedure* callback)
 {
     std::scoped_lock lock(mutex);
 

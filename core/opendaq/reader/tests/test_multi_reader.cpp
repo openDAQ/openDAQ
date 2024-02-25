@@ -1680,11 +1680,10 @@ TEST_F(MultiReaderTest, MultiReaderOnReadCallback)
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
     auto reader = MultiReader(signalsToList());
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
         reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
         reader.setOnDataAvailable(nullptr); // trigger callback only once
         promise.set_value();
-        return nullptr;
     });
 
     auto available = reader.getAvailableCount();
@@ -1737,11 +1736,10 @@ TEST_F(MultiReaderTest, MultiReaderFromPortOnReadCallback)
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
     auto reader = MultiReaderFromPort(signalsToPortsList());
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
         reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
         reader.setOnDataAvailable(nullptr); // trigger callback only once
         promise.set_value();
-        return nullptr;
     });
 
     auto available = reader.getAvailableCount();

@@ -56,6 +56,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * available the parameter value is set to the actual amount and only the available
      * samples are returned. The rest of the buffer is not modified or cleared.
      * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of samples before returning.
+     * @param[out] status: The reading status indicates whether the reading process was successful or if an event packet was encountered while processing. 
+     * If an event packet was encountered, the reader can still convert data. Currently returns nothing
      */
     virtual ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
 
@@ -89,6 +91,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * available the parameter value is set to the actual amount and only the available
      * samples are returned. The rest of the buffer is not modified or cleared.
      * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of samples before returning.
+     * @param[out] status: The reading status indicates whether the reading process was successful or if an event packet was encountered while processing. 
+     * If an event packet was encountered, the reader can still convert data. Currently returns nothing
      */
     virtual ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
 

@@ -50,7 +50,7 @@ ErrCode PacketReaderImpl::getAvailableCount(SizeT* count)
     return connection->getPacketCount(count);
 }
 
-ErrCode PacketReaderImpl::setOnDataAvailable(IFunction* callback)
+ErrCode PacketReaderImpl::setOnDataAvailable(IProcedure* callback)
 {
     std::scoped_lock lock(mutex);
 
@@ -123,7 +123,7 @@ ErrCode PacketReaderImpl::packetReceived(IInputPort* port)
     SizeT count{0};
     connection->getPacketCount(&count);
     if (readCallback.assigned() && count)
-        readCallback();
+        return wrapHandler(readCallback);
 
     return OPENDAQ_SUCCESS;
 }

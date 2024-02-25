@@ -4,16 +4,16 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-ReaderStatusImpl::ReaderStatusImpl(const EventPacketPtr& eventPacket, Bool convertable)
+ReaderStatusImpl::ReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid)
     : eventPacket(eventPacket)
-    , convertable(convertable)
+    , valid(valid)
 {
 }
 
 ErrCode ReaderStatusImpl::isOk(Bool* status)
 {
     OPENDAQ_PARAM_NOT_NULL(status);
-    *status = !eventPacket.assigned() && convertable;
+    *status = !eventPacket.assigned() && valid;
     return OPENDAQ_SUCCESS;
 }
 
@@ -31,10 +31,10 @@ ErrCode ReaderStatusImpl::isEventEncountered(Bool* status)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ReaderStatusImpl::isConvertable(Bool* status)
+ErrCode ReaderStatusImpl::isValid(Bool* status)
 {
     OPENDAQ_PARAM_NOT_NULL(status);
-    *status = convertable;
+    *status = valid;
     return OPENDAQ_SUCCESS;
 }
 
@@ -42,7 +42,7 @@ ErrCode ReaderStatusImpl::isConvertable(Bool* status)
 OPENDAQ_DEFINE_CLASS_FACTORY (
     LIBRARY_FACTORY, ReaderStatus,
     IEventPacket*, eventPacket,
-    Bool, convertable
+    Bool, valid
 )
 
 END_NAMESPACE_OPENDAQ

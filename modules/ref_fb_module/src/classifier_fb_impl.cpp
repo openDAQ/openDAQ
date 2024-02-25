@@ -202,7 +202,6 @@ void ClassifierFbImpl::configure()
                 linearReader = BlockReaderFromPort(inputPort, linearBlockCount, inputDataDescriptor.getSampleType(), inputDomainDataDescriptor.getSampleType());
                 linearReader.setOnDataAvailable([this] {
                         SAMPLE_TYPE_DISPATCH(inputSampleType, processLinearDataPacket);
-                        return 0;
                     });
             }
             else

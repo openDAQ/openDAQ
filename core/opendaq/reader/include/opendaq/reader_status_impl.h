@@ -23,19 +23,19 @@ BEGIN_NAMESPACE_OPENDAQ
 class ReaderStatusImpl final : public ImplementationOf<IReaderStatus>
 {
 public:
-    explicit ReaderStatusImpl(const EventPacketPtr& eventPacket, Bool convertable);
+    explicit ReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid);
 
     ErrCode INTERFACE_FUNC isOk(Bool* status) override;
 
     ErrCode INTERFACE_FUNC getEventPacket(IEventPacket** packet) override;
 
-    ErrCode INTERFACE_FUNC isEventEncountered(Bool* status) override;;
+    ErrCode INTERFACE_FUNC isEventEncountered(Bool* status) override;
 
-    ErrCode INTERFACE_FUNC isConvertable(Bool* status) override;   
+    ErrCode INTERFACE_FUNC isValid(Bool* status) override;
 
 private:
     EventPacketPtr eventPacket;
-    Bool convertable;
+    Bool valid;
 };
 
 END_NAMESPACE_OPENDAQ

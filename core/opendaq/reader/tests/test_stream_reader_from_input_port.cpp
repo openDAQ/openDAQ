@@ -703,7 +703,7 @@ TYPED_TEST(StreamReaderFromExistingTest, DescriptorChangedNotConvertible)
     SizeT count{1};
     std::int32_t samples[1];
     auto status = reader.read((void*) &samples, &count);
-    ASSERT_FALSE(status.isConvertable());
+    ASSERT_FALSE(status.isValid());
 }
 
 TYPED_TEST(StreamReaderFromExistingTest, ReadWithZeroAvailableAndTimeoutAny)
@@ -788,7 +788,7 @@ TYPED_TEST(StreamReaderFromExistingTest, StealConnection)
     auto status = reader.read((void*) &samples, &count);
 
     bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
-    ASSERT_EQ(status.isConvertable(), convertable);
+    ASSERT_EQ(status.isValid(), convertable);
 
     auto newReader = daq::StreamReaderFromExisting<ComplexFloat32, ClockRange>(reader);
 

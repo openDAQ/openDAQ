@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <coretypes/function.h>
+#include <coretypes/procedure.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -57,7 +57,7 @@ DECLARE_OPENDAQ_INTERFACE(IReader, IBaseObject)
      * @param callback The callback to call when there are avaiable packets in reader or @c nullptr to unset it.
      * The callback takes no arguments
      */
-    virtual ErrCode INTERFACE_FUNC setOnDataAvailable(IFunction* callback) = 0;
+    virtual ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) = 0;
 };
 /*!@}*/
 

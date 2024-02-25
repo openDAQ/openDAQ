@@ -891,7 +891,7 @@ TEST_F(TailReaderTest, TailReaderWithNotConnectedInputPort)
         size_t tmpCount = 1;
         auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
         ASSERT_TRUE(status.isEventEncountered());
-        ASSERT_TRUE(status.isConvertable());
+        ASSERT_TRUE(status.isValid());
     }
 
     auto status = reader.readWithDomain(&samples, &domain, &count);
@@ -944,10 +944,9 @@ TEST_F(TailReaderTest, TailReaderOnReadCallback)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::TailReader(this->signal, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
-        return nullptr;
     });
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
@@ -986,10 +985,9 @@ TEST_F(TailReaderTest, TailReaderFromPortOnReadCallback)
     port.connect(this->signal);
 
     auto reader = daq::TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
-        return nullptr;
     });
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
@@ -1042,7 +1040,6 @@ TEST_F(TailReaderTest, TailReaderFromExistingOnReadCallback)
             auto status = newReader.readWithDomain(&samples, &domain, &count);
             promise.set_value();
         }
-        return nullptr;
     });
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));

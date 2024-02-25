@@ -47,6 +47,8 @@ DECLARE_OPENDAQ_INTERFACE(ITailReader, ISampleReader)
      * @param[in,out] count The maximum amount of samples to be read. If the `count` is less than
      * available the parameter value is set to the actual amount and only the available
      * samples are returned. The rest of the buffer is not modified or cleared.
+     * @param[out] status: The reading status indicates whether the reading process was successful or if an event packet was encountered while processing. 
+     * If an event packet was encountered, the reader can still convert data.
      */
     virtual ErrCode INTERFACE_FUNC read(void* values, SizeT* count, IReaderStatus** status = nullptr) = 0;
 
@@ -61,6 +63,8 @@ DECLARE_OPENDAQ_INTERFACE(ITailReader, ISampleReader)
      * @param[in,out] count The maximum amount of samples to be read. If the `count` is less than
      * available the parameter value is set to the actual amount and only the available
      * samples are returned. The rest of the buffer is not modified or cleared.
+     * @param[out] status: The reading status indicates whether the reading process was successful or if an event packet was encountered while processing. 
+     * If an event packet was encountered, the reader can still convert data.
      */
     virtual ErrCode INTERFACE_FUNC readWithDomain(void* values, void* domain, SizeT* count, IReaderStatus** status = nullptr) = 0;
 

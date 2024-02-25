@@ -643,7 +643,7 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedNotConvertible)
     SizeT count{1};
     std::int32_t samples[1 * BLOCK_SIZE];
     auto status = reader.read((std::int32_t*) &samples, &count);
-    ASSERT_FALSE(status.isConvertable());
+    ASSERT_FALSE(status.isValid());
 }
 
 TYPED_TEST(BlockReaderTest, ReuseReader)
@@ -676,7 +676,7 @@ TYPED_TEST(BlockReaderTest, ReuseReader)
     auto status = reader.read((TypeParam*) &samples, &count);
 
     Bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
-    ASSERT_EQ(status.isConvertable(), convertable);
+    ASSERT_EQ(status.isValid(), convertable);
 
     auto newReader = daq::BlockReaderFromExisting<ComplexFloat32, ClockRange>(reader, reader.getBlockSize());
 
@@ -912,10 +912,9 @@ TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallback)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::BlockReader(this->signal, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
-        return nullptr;
     });
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
@@ -948,10 +947,9 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromPortOnReadCallback)
     port.connect(this->signal);
 
     auto reader = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
-        return nullptr;
     });
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
@@ -984,7 +982,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
     BlockReaderPtr reader = daq::BlockReader(this->signal, 1, SampleType::Float64, SampleType::RangeInt64);
     BlockReaderPtr newReader;
     
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
         if (!newReader.assigned())
         {
             SizeT tmpCount = 1;
@@ -999,7 +997,6 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
             newReader.readWithDomain(&samples, &domain, &count);
             promise.set_value();
         }
-        return nullptr;
     });
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));

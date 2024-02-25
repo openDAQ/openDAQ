@@ -588,7 +588,7 @@ TYPED_TEST(StreamReaderTest, DescriptorChangedNotConvertible)
     std::int32_t samples[1];
     auto status = reader.read((std::int32_t*) &samples, &count);
     ASSERT_TRUE(status.isEventEncountered());
-    ASSERT_FALSE(status.isConvertable());
+    ASSERT_FALSE(status.isValid());
 }
 
 TYPED_TEST(StreamReaderTest, ReadWithZeroAvailableAndTimeoutAny)
@@ -672,7 +672,7 @@ TYPED_TEST(StreamReaderTest, ReuseReader)
 
     bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
     ASSERT_TRUE(status.isEventEncountered());
-    ASSERT_EQ(status.isConvertable(), convertable);
+    ASSERT_EQ(status.isValid(), convertable);
 
     auto newReader = daq::StreamReaderFromExisting<ComplexFloat32, ClockRange>(reader);
 
@@ -735,7 +735,7 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithDomain)
         size_t tempCnt = 1;
         auto status = reader.read(&samples, &tempCnt);
         ASSERT_TRUE(status.isEventEncountered());
-        ASSERT_TRUE(status.isConvertable());
+        ASSERT_TRUE(status.isValid());
     }
     reader.read(&samples, &count);
 
@@ -900,10 +900,9 @@ TYPED_TEST(StreamReaderTest, StreamReaderOnReadCallback)
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
     auto reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
-        return nullptr;
     });
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
@@ -940,10 +939,9 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromPortOnReadCallback)
     port.connect(this->signal);
 
     auto reader = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
         reader.readWithDomain(&samples, &domain, &count);
         promise.set_value();
-        return nullptr;
     });
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
@@ -980,7 +978,7 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromExistingOnReadCallback)
     StreamReaderPtr reader = daq::StreamReader(this->signal, SampleType::Undefined, SampleType::Undefined);
     StreamReaderPtr newReader;
 
-    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable  {
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
         if (!newReader.assigned())
         {
             SizeT tmpCount = 1;
@@ -995,7 +993,6 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromExistingOnReadCallback)
             newReader.readWithDomain(&samples, &domain, &count);
             promise.set_value();
         }
-        return nullptr;
     });
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));

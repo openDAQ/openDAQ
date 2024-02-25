@@ -50,7 +50,7 @@ void defineIReader(pybind11::module_ m, PyDaqIntf<daq::IReader, daq::IBaseObject
         "Gets the number of segments available to read");
     cls.def_property("on_available_packets",
         nullptr,
-        [](daq::IReader *object, daq::IFunction* callback)
+        [](daq::IReader *object, daq::IProcedure* callback)
         {
             const auto objectPtr = daq::ReaderPtr::Borrow(object);
             objectPtr.setOnDataAvailable(callback);

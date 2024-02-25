@@ -203,17 +203,16 @@ ErrCode StreamReaderImpl::disconnected(IInputPort* port)
 ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-
-    onPacketReady();
-    return OPENDAQ_SUCCESS;
+    return onPacketReady();
 }
 
-void StreamReaderImpl::onPacketReady()
+ErrCode StreamReaderImpl::onPacketReady()
 {
     notify.condition.notify_one();
 
     if (readCallback.assigned())
-        readCallback();
+        return wrapHandler(readCallback);
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamReaderImpl::getValueReadType(SampleType* sampleType)
@@ -548,7 +547,7 @@ ErrCode StreamReaderImpl::readWithDomain(void* samples,
     return errCode;
 }
 
-ErrCode StreamReaderImpl::setOnDataAvailable(IFunction* callback)
+ErrCode StreamReaderImpl::setOnDataAvailable(IProcedure* callback)
 {
     std::scoped_lock lock(mutex);
 

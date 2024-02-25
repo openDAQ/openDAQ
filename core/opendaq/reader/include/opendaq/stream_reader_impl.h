@@ -59,7 +59,7 @@ public:
 
     // IReader
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
-    ErrCode INTERFACE_FUNC setOnDataAvailable(IFunction* callback) override;
+    ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override;
 
     // ISampleReader
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
@@ -98,7 +98,7 @@ private:
     void connectSignal(const SignalPtr& signal);
     void inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader) const;
 
-    void onPacketReady();
+    ErrCode onPacketReady();
 
     void handleDescriptorChanged(const EventPacketPtr& eventPacket);
 
@@ -124,7 +124,7 @@ private:
     bool invalid{};
 
     std::mutex mutex;
-    FunctionPtr readCallback;
+    ProcedurePtr readCallback;
 };
 
 END_NAMESPACE_OPENDAQ

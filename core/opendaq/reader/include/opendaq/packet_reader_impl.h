@@ -27,7 +27,7 @@ public:
     ~PacketReaderImpl() override;
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
-    ErrCode INTERFACE_FUNC setOnDataAvailable(IFunction* callback) override;
+    ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override;
 
     ErrCode INTERFACE_FUNC read(IPacket** packet) override;
     ErrCode INTERFACE_FUNC readAll(IList** allPackets) override;
@@ -42,7 +42,7 @@ private:
     InputPortConfigPtr port;
     PropertyObjectPtr portBinder;
     ConnectionPtr connection;
-    FunctionPtr readCallback;
+    ProcedurePtr readCallback;
 };
 
 END_NAMESPACE_OPENDAQ

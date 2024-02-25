@@ -32,14 +32,14 @@ DECLARE_OPENDAQ_INTERFACE(IReaderStatus, IBaseObject)
 
     virtual ErrCode INTERFACE_FUNC isEventEncountered(Bool* status) = 0;
 
-    virtual ErrCode INTERFACE_FUNC isConvertable(Bool* status) = 0;   
+    virtual ErrCode INTERFACE_FUNC isValid(Bool* status) = 0;
 };
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY (
     LIBRARY_FACTORY, ReaderStatus,
     IEventPacket*, eventPacket,
-    Bool, convertable
+    Bool, valid
 )
 
 END_NAMESPACE_OPENDAQ

@@ -8,7 +8,7 @@ Description:
 + [function] IReaderStatus::isOk(Bool* status)
 + [function] IReaderStatus::getEventPacket(IEventPacket** packet)
 + [function] IReaderStatus::isEventEncountered(Bool* status)
-+ [function] IReaderStatus::isConvertable(Bool* status)
++ [function] IReaderStatus::isValid(Bool* status)
 + [factory] ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool convertable = true)
 
 -m [function] IBlockReader::read(void* blocks, SizeT* count, SizeT timeoutMs = 0)
@@ -37,7 +37,7 @@ Description:
 + [factory] BlockReaderPtr BlockReaderFromPort(InputPortConfigPtr port, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
 + [factory] MultiReaderPtr MultiReaderFromPort(ListPtr<IInputPortConfig> ports, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType)
 
-+ [function] IReader::setOnDataAvailable(IFunction* callback)
++ [function] IReader::setOnDataAvailable(IProcedure* callback)
 - [function] IReader::setOnDescriptorChanged(IFunction* callback)
 - [function] IReaderConfig::getOnDescriptorChanged(IFunction** callback)
 

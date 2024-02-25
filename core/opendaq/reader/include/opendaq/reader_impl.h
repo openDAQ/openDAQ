@@ -132,7 +132,7 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode INTERFACE_FUNC setOnDataAvailable(IFunction* callback) override
+    ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override
     {
         std::scoped_lock lock(mutex);
 
@@ -147,9 +147,8 @@ public:
     virtual ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override
     {
         OPENDAQ_PARAM_NOT_NULL(port);
-        auto callback = readCallback;
-        if (callback.assigned())
-            callback();
+        if (readCallback.assigned())
+            return wrapHandler(readCallback);
 
         return OPENDAQ_SUCCESS;
     }
@@ -491,7 +490,7 @@ protected:
     InputPortConfigPtr port;
     PropertyObjectPtr portBinder;
     ConnectionPtr connection;
-    FunctionPtr readCallback;
+    ProcedurePtr readCallback;
     ReadTimeoutType timeoutType;
 
     DataDescriptorPtr dataDescriptor;

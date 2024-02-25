@@ -61,11 +61,11 @@ void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq:
             return objectPtr.isEventEncountered();
         },
         "");
-    cls.def_property_readonly("convertable",
+    cls.def_property_readonly("valid",
         [](daq::IReaderStatus *object)
         {
             const auto objectPtr = daq::ReaderStatusPtr::Borrow(object);
-            return objectPtr.isConvertable();
+            return objectPtr.isValid();
         },
         "");
 }

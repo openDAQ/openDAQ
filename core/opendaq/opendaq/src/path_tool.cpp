@@ -49,14 +49,4 @@ namespace PathTool
             return "";
         }
     #endif
-
-    std::string ConcatenatePath(const std::string& directory, const std::string& file) 
-    {
-        std::string result = directory;
-        if (!result.empty() && result.back() != '/' && result.back() != '\\')
-            result += '/';
-
-        result += file;
-        return result;
-    }
 };

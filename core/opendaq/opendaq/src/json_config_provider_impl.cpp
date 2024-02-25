@@ -1,17 +1,19 @@
+#include <coretypes/validation.h>
+#include <coretypes/coretypes.h>
+#include <coretypes/ctutils.h>
 #include <coreobjects/errors.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/json_config_provider_impl.h>
-#include <coretypes/validation.h>
+#include <opendaq/path_tool.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <utility>
-#include <coretypes/ctutils.h>
-#include <rapidjson/error/en.h>
-#include <coretypes/coretypes.h>
-#include <rapidjson/filereadstream.h> 
+#include <filesystem>
 #include <cctype>
-#include <opendaq/path_tool.h>
+#include <boost/algorithm/string.hpp>
+#include <rapidjson/error/en.h>
+#include <rapidjson/filereadstream.h> 
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -22,16 +24,16 @@ JsonConfigProviderImpl::JsonConfigProviderImpl(const StringPtr& filename)
         this->filename = GetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", StringPtr());
 
     if (!this->filename.assigned())
-        this->filename = PathTool::ConcatenatePath(PathTool::GetExecutableDirectory(), "opendaq-config.json");
+    {
+        std::filesystem::path executableDirectory = PathTool::GetExecutableDirectory();
+        std::filesystem::path configPath = executableDirectory / "opendaq-config.json";
+        this->filename = configPath.string();
+    }
 }
 
 std::string JsonConfigProviderImpl::ToLowerCase(const std::string &input) 
 {
-    std::string result = input;
-    for (char &c : result)
-        c = std::tolower(static_cast<unsigned char>(c));
-
-    return result;
+    return boost::algorithm::to_lower_copy(input);
 }
 
 StringPtr JsonConfigProviderImpl::GetEnvironmentVariableValue(StringPtr variableName, StringPtr defaultValue)

@@ -28,6 +28,7 @@ source_group("instance" FILES ${SDK_HEADERS_DIR}/instance.h
                               ${SDK_HEADERS_DIR}/instance_builder_impl.h
                               ${SDK_HEADERS_DIR}/config_provider.h
                               ${SDK_HEADERS_DIR}/config_provider_factory.h
+                              ${SDK_HEADERS_DIR}/path_tool.h
                               ${SDK_HEADERS_DIR}/json_config_provider_impl.h
                               ${SDK_HEADERS_DIR}/base_config_provider_impl.h
                               ${SDK_HEADERS_DIR}/env_config_provider_impl.h
@@ -40,6 +41,8 @@ source_group("instance" FILES ${SDK_HEADERS_DIR}/instance.h
                               base_config_provider_impl.cpp
                               env_config_provider_impl.cpp
                               cmd_line_args_config_provider_impl.cpp
+                              path_tool.cpp
+                              
 )
 
 set(SRC_Cpp version.cpp
@@ -48,6 +51,7 @@ set(SRC_Cpp version.cpp
             opendaq_init.cpp
             create_device.cpp
             instance_builder_impl.cpp
+            path_tool.cpp
             json_config_provider_impl.cpp
             base_config_provider_impl.cpp
             env_config_provider_impl.cpp
@@ -67,6 +71,7 @@ set(SRC_PrivateHeaders instance_impl.h
                        opendaq_init.h
                        create_device.h
                        instance_builder_impl.h
+                       path_tool.h
                        json_config_provider_impl.h
                        base_config_provider_impl.h
                        env_config_provider_impl.h

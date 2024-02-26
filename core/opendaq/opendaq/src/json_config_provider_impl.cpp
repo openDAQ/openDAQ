@@ -9,11 +9,20 @@
 #include <sstream>
 #include <fstream>
 #include <utility>
-#include <filesystem>
 #include <cctype>
 #include <boost/algorithm/string.hpp>
 #include <rapidjson/error/en.h>
-#include <rapidjson/filereadstream.h> 
+#include <rapidjson/filereadstream.h>
+
+#if __has_include(<filesystem>)
+    #include <filesystem>
+    namespace fs = std::filesystem;
+#elif __has_include(<experimental/filesystem>)
+    #include <experimental/filesystem>
+    namespace fs = std::experimental::filesystem;
+#else
+    #error "Must have <filesystem> library"
+#endif
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -25,8 +34,8 @@ JsonConfigProviderImpl::JsonConfigProviderImpl(const StringPtr& filename)
 
     if (!this->filename.assigned())
     {
-        std::filesystem::path executableDirectory = PathTool::GetExecutableDirectory();
-        std::filesystem::path configPath = executableDirectory / "opendaq-config.json";
+        fs::path executableDirectory = PathTool::GetExecutableDirectory();
+        fs::path configPath = executableDirectory / "opendaq-config.json";
         this->filename = configPath.string();
     }
 }

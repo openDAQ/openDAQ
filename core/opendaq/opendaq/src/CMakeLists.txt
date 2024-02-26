@@ -162,6 +162,10 @@ set_target_properties(${LIB_NAME}
 set_source_files_properties(${ConfigHeader} PROPERTIES GENERATED TRUE)
 source_group("Generated\\Header Files" FILES ${ConfigHeader})
 
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(STDCFS_LIBS "stdc++fs")
+endif()
+
 if (MSVC)
     target_compile_options(${LIB_NAME} PRIVATE /wd4100 /bigobj)
 endif()

@@ -284,6 +284,8 @@ void StatisticsFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& v
 void StatisticsFbImpl::processDataPacketTrigger(const DataPacketPtr& packet)
 {
     const auto domainPacket = packet.getDomainPacket();
+    if (domainPacket.getSampleCount() == 0)
+        return;
     auto data = static_cast<Bool*>(packet.getData());
     // Data packet from trigger only holds one value by design
     auto triggerData = data[0];

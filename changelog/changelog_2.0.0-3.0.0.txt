@@ -1,3 +1,22 @@
+26.02.2024
+Description:
+  - Streaming framework refactoring
+
+- [function] IMirroredSignalPrivate::assignDomainSignal(const SignalPtr& domainSignal);
+- [function] IMirroredSignalPrivate::hasMatchingId(const StringPtr& signalId);
+
+-m [function] IStreamingPrivate::subscribeSignal(const MirroredSignalConfigPtr& signal);
++m [function] IStreamingPrivate::subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId);
+
+-m [function] IStreamingPrivate::unsubscribeSignal(const MirroredSignalConfigPtr& signal);
++m [function] IStreamingPrivate::unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId);
+
+-m [function] IStreamingPrivate::createDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal);
++m [function] IStreamingPrivate::createDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId);
+
++ [function] IStreamingPrivate::detachRemovedSignal(const StringPtr& signalRemoteId);
+
+
 25.02.2024
 Description:
   - rename search filter search::SearchId to search::InterfaceId

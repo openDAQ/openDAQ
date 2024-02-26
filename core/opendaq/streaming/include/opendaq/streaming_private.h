@@ -35,23 +35,32 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingPrivate, IBaseObject)
 {
     /*!
      * @brief Enables delivering packets from server to client for signal via the streaming
-     * @param signal The signal to be subscribed.
+     * @param signalRemoteId The global remote ID of the signal to be subscribed.
+     * @param domainSignalRemoteId The global remote ID of the domain signal of the signal to be subscribed.
      */
-    virtual ErrCode INTERFACE_FUNC subscribeSignal(const MirroredSignalConfigPtr& signal) = 0;
+    virtual ErrCode INTERFACE_FUNC subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) = 0;
 
     /*!
      * @brief Disables delivering packets from server to client for signal via the streaming
-     * @param signal The signal to be unsubscribed.
+     * @param signalRemoteId The global remote ID of the signal to be unsubscribed.
+     * @param domainSignalRemoteId The remote global ID of the domain signal of the signal to be unsubscribed.
      */
-    virtual ErrCode INTERFACE_FUNC unsubscribeSignal(const MirroredSignalConfigPtr& signal) = 0;
+    virtual ErrCode INTERFACE_FUNC unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) = 0;
 
     /*!
      * @brief Creates an initial DataDescriptor Changed Event Packet for a signal using data received
      * via the streaming.
-     * @param signal The signal for which the event packet should be created.
+     * @param signalRemoteId The global remote ID of the signal for which the event packet should be created.
      * @return The created DataDescriptor Changed Event Packet
      */
-    virtual EventPacketPtr INTERFACE_FUNC createDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal) = 0;
+    virtual EventPacketPtr INTERFACE_FUNC createDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId) = 0;
+
+    /*!
+     * @brief Removes added signal without removing the streaming source from it.
+     * @param signalRemoteId The global remote ID of the removed signal.
+     * @retval OPENDAQ_ERR_NOTFOUND if a signal with corresponding remote Id was not added to the Streaming.
+     */
+    virtual ErrCode INTERFACE_FUNC detachRemovedSignal(const StringPtr& signalRemoteId) = 0;
 };
 /*!@}*/
 

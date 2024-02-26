@@ -73,32 +73,26 @@ ErrCode TmsClientSignalImpl::setDescriptor(IDataDescriptor* /*descriptor*/)
     return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
 }
 
-ErrCode TmsClientSignalImpl::getDomainSignal(ISignal** signal)
-{
-    SignalPtr signalPtr;
-    ErrCode errCode = wrapHandlerReturn(this, &TmsClientSignalImpl::onGetDomainSignal, signalPtr);
-
-    *signal = signalPtr.detach();
-    if (OPENDAQ_FAILED(errCode))
-    {
-        LOG_W("Failed to get domain signal on OpcUA client signal \"{}\"", this->globalId);
-    }
-    return OPENDAQ_SUCCESS;
-}
-
 SignalPtr TmsClientSignalImpl::onGetDomainSignal()
 {
-    auto filter = BrowseFilter();
-    filter.referenceTypeId = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASDOMAINSIGNAL);
-    filter.direction = UA_BROWSEDIRECTION_FORWARD;
-
-    const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);
-    assert(references.byNodeId.size() <= 1);
-
-    if (!references.byNodeId.empty())
+    try
     {
-        auto domainSignalNodeId = references.byNodeId.begin().key();
-        return findSignal(domainSignalNodeId);
+        auto filter = BrowseFilter();
+        filter.referenceTypeId = OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASDOMAINSIGNAL);
+        filter.direction = UA_BROWSEDIRECTION_FORWARD;
+
+        const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, filter);
+        assert(references.byNodeId.size() <= 1);
+
+        if (!references.byNodeId.empty())
+        {
+            auto domainSignalNodeId = references.byNodeId.begin().key();
+            return findSignal(domainSignalNodeId);
+        }
+    }
+    catch (...)
+    {
+        LOG_W("Failed to get domain signal on OpcUA client signal \"{}\"", this->globalId);
     }
 
     return nullptr;

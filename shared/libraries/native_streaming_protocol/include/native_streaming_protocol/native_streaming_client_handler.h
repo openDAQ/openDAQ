@@ -51,7 +51,7 @@ using NativeStreamingClientHandlerPtr = std::shared_ptr<NativeStreamingClientHan
 class NativeStreamingClientHandler
 {
 public:
-    explicit NativeStreamingClientHandler(const ContextPtr& context);
+    explicit NativeStreamingClientHandler(const ContextPtr& context, const PropertyObjectPtr& transportLayerProperties);
 
     ~NativeStreamingClientHandler();
 
@@ -74,6 +74,7 @@ public:
     void setConfigPacketHandler(const ConfigProtocolPacketCb& configPacketHandler);
 
 protected:
+    void readTransportLayerProps();
     void initClientSessionHandler(SessionPtr session);
     void initClient(std::string host,
                     std::string port,
@@ -88,7 +89,7 @@ protected:
     void checkReconnectionStatus(const boost::system::error_code& ec);
     void checkProtocolInitializationStatus(const boost::system::error_code& ec);
     void tryReconnect();
-    bool isProtocolInitialized(std::chrono::seconds timeout = std::chrono::seconds(0));
+    bool isProtocolInitialized(std::chrono::milliseconds timeout = std::chrono::milliseconds(0));
 
     enum class ConnectionResult
     {
@@ -98,6 +99,7 @@ protected:
     };
 
     ContextPtr context;
+    PropertyObjectPtr transportLayerProperties;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
@@ -119,6 +121,14 @@ protected:
     std::future<void> protocolInitFuture;
 
     std::unordered_map<SignalNumericIdType, StringPtr> signalIds;
+    std::mutex sync;
+
+    bool heartbeatEnabled{false};
+    Int heartbeatPeriod;
+    Int heartbeatTimeout;
+    std::chrono::milliseconds connectionTimeout;
+    std::chrono::milliseconds streamingInitTimeout;
+    std::chrono::milliseconds reconnectionPeriod;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

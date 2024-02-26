@@ -38,8 +38,6 @@ public:
     ErrCode INTERFACE_FUNC getDescriptor(IDataDescriptor** descriptor) override;
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
 
-    ErrCode INTERFACE_FUNC getDomainSignal(ISignal** signal) override;
-    SignalPtr onGetDomainSignal();
     ErrCode INTERFACE_FUNC setDomainSignal(ISignal* signal) override;
 
     ErrCode INTERFACE_FUNC getRelatedSignals(IList** signals) override;
@@ -54,6 +52,8 @@ public:
     Bool onTriggerEvent(EventPacketPtr eventPacket) override;
 
 protected:
+    SignalPtr onGetDomainSignal() override;
+
     std::atomic<Bool> isPublic = true;
     std::string deviceSignalId;
 

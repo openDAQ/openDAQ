@@ -21,16 +21,24 @@
 namespace daq::config_protocol
 {
 
-class ConfigClientSignalImpl : public ConfigClientComponentBaseImpl<MirroredSignalBase<IConfigClientObject>>
+DECLARE_OPENDAQ_INTERFACE(IConfigClientSignalPrivate, IBaseObject)
+{
+    virtual void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) = 0;
+};
+
+class ConfigClientSignalImpl : public ConfigClientComponentBaseImpl<MirroredSignalBase<IConfigClientObject, IConfigClientSignalPrivate>>
 {
 public:
-    using Super = ConfigClientComponentBaseImpl<MirroredSignalBase<IConfigClientObject>>;
+    using Super = ConfigClientComponentBaseImpl<MirroredSignalBase<IConfigClientObject, IConfigClientSignalPrivate>>;
 
     ConfigClientSignalImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                            const std::string& remoteGlobalId,
                            const ContextPtr& ctx,
                            const ComponentPtr& parent,
                            const StringPtr& localId);
+
+    // IConfigClientSignalPrivate
+    void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
 
     StringPtr onGetRemoteId() const override;
     Bool onTriggerEvent(EventPacketPtr eventPacket) override;
@@ -107,7 +115,7 @@ inline void ConfigClientSignalImpl::handleRemoteCoreObjectInternal(const Compone
             break;
     }
 
-    ConfigClientComponentBaseImpl<MirroredSignalBase<IConfigClientObject>>::handleRemoteCoreObjectInternal(sender, args);
+    Super::handleRemoteCoreObjectInternal(sender, args);
 }
 
 inline void ConfigClientSignalImpl::descriptorChanged(const CoreEventArgsPtr& args)
@@ -115,6 +123,22 @@ inline void ConfigClientSignalImpl::descriptorChanged(const CoreEventArgsPtr& ar
     this->dataDescriptor = args.getParameters().get("DataDescriptor");
     if (!this->coreEventMuted && this->coreEvent.assigned())
         this->triggerCoreEvent(args);
+}
+
+inline void ConfigClientSignalImpl::assignDomainSignal(const SignalPtr& domainSignal)
+{
+    const bool relock = this->lockedAttributes.erase("DomainSignal");
+    const bool unmuteCoreEvent = !this->coreEventMuted;
+
+    this->coreEventMuted = true;
+
+    checkErrorInfo(SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject, IConfigClientSignalPrivate>::setDomainSignal(domainSignal));
+
+    if (relock)
+        this->lockedAttributes.insert("DomainSignal");
+
+    if (unmuteCoreEvent)
+        this->coreEventMuted = false;
 }
 
 inline void ConfigClientSignalImpl::attributeChanged(const CoreEventArgsPtr& args)
@@ -125,12 +149,12 @@ inline void ConfigClientSignalImpl::attributeChanged(const CoreEventArgsPtr& arg
     if (attrName == "RelatedSignals")
     {
         const ListPtr<ISignal> relatedSignals = args.getParameters().get("RelatedSignals");
-        checkErrorInfo(SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject>::setRelatedSignals(relatedSignals));
+        checkErrorInfo(SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject, IConfigClientSignalPrivate>::setRelatedSignals(relatedSignals));
     }
     else if (attrName == "DomainSignal")
     {
         const SignalPtr domainSignal = args.getParameters().get("DomainSignal");
-        checkErrorInfo(SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject>::setDomainSignal(domainSignal));
+        checkErrorInfo(SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject, IConfigClientSignalPrivate>::setDomainSignal(domainSignal));
     }
 
     if (relock)

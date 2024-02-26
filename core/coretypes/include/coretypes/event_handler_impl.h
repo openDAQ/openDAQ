@@ -44,7 +44,7 @@ public:
         }
         catch (const DaqException& e)
         {
-            return e.getErrCode();
+            return errorFromException(e);
         }
         catch (const std::exception&)
         {

@@ -35,6 +35,9 @@ ComponentPtr TmsServerContext::findComponent(const std::string& globalId)
 
 void TmsServerContext::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
 {
+    if (!component.assigned())
+        return;
+
     if (const auto it = idToObjMap.find(component.getGlobalId()); it != idToObjMap.end())
         if (const std::shared_ptr<tms::TmsServerObject> spt = it->second.lock())
             spt->onCoreEvent(eventArgs);

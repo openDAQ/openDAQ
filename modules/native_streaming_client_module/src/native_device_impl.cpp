@@ -4,6 +4,8 @@
 #include <opendaq/custom_log.h>
 #include <regex>
 
+#include <opendaq/ids_parser.h>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 using namespace opendaq_native_streaming_protocol;
@@ -31,7 +33,82 @@ NativeDeviceHelper::~NativeDeviceHelper()
 
 DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent)
 {
-    return configProtocolClient->connect(parent);
+    auto device = configProtocolClient->connect(parent);
+    deviceRef = device;
+    return device;
+}
+
+void NativeDeviceHelper::subscribeToCoreEvent(const ContextPtr& context)
+{
+    context.getOnCoreEvent() += event(this, &NativeDeviceHelper::coreEventCallback);
+}
+
+void NativeDeviceHelper::unsubscribeFromCoreEvent(const ContextPtr& context)
+{
+    context.getOnCoreEvent() -= event(this, &NativeDeviceHelper::coreEventCallback);
+}
+
+void NativeDeviceHelper::addStreaming(const StreamingPtr& streaming)
+{
+    this->streaming = streaming;
+}
+
+void NativeDeviceHelper::componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs)
+{
+    auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
+    if (!device.assigned())
+        return;
+
+    ComponentPtr addedComponent = eventArgs.getParameters().get("Component");
+
+    auto deviceGlobalId = device.getGlobalId().toStdString();
+    auto addedComponentGlobalId = addedComponent.getGlobalId().toStdString();
+    if (deviceGlobalId != addedComponentGlobalId && !IdsParser::isNestedComponentId(deviceGlobalId, addedComponentGlobalId))
+        return;
+
+    LOG_I("Added Component: {};", addedComponentGlobalId);
+
+    if (addedComponent.supportsInterface<ISignal>())
+    {
+        addSignalsToStreaming({addedComponent.asPtr<ISignal>()});
+    }
+    else if (addedComponent.supportsInterface<IFolder>())
+    {
+        auto nestedComponents = addedComponent.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
+        for (const auto& nestedComponent : nestedComponents)
+        {
+            if (nestedComponent.supportsInterface<ISignal>())
+            {
+                addSignalsToStreaming({nestedComponent.asPtr<ISignal>()});
+                LOG_I("Signal: {}; added to streaming", nestedComponent.getGlobalId());
+            }
+        }
+    }
+}
+
+void NativeDeviceHelper::addSignalsToStreaming(const ListPtr<ISignal>& signals)
+{
+    streaming.addSignals(signals);
+    for (const auto& signal : signals)
+    {
+        if (signal.getPublic())
+        {
+            auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
+            mirroredSignalConfigPtr.setActiveStreamingSource(streaming.getConnectionString());
+        }
+    }
+}
+
+void NativeDeviceHelper::coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
+{
+    switch (static_cast<CoreEventId>(eventArgs.getEventId()))
+    {
+        case CoreEventId::ComponentAdded:
+            componentAdded(sender, eventArgs);
+            break;
+        default:
+            break;
+    }
 }
 
 void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
@@ -97,6 +174,14 @@ NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCo
 {
 }
 
+NativeDeviceImpl::~NativeDeviceImpl()
+{
+    if (this->deviceHelper)
+    {
+        this->deviceHelper->unsubscribeFromCoreEvent(this->context);
+    }
+}
+
 // IDevice
 
 ErrCode NativeDeviceImpl::getInfo(IDeviceInfo** info)
@@ -108,25 +193,6 @@ ErrCode NativeDeviceImpl::getInfo(IDeviceInfo** info)
 }
 
 // INativeDevicePrivate
-
-void NativeDeviceImpl::attachNativeStreaming(const StreamingPtr& streaming)
-{
-    nativeStreaming = streaming;
-
-    auto self = this->borrowPtr<DevicePtr>();
-    const auto signals = self.getSignals(search::Recursive(search::Any()));
-    nativeStreaming.addSignals(signals);
-    nativeStreaming.setActive(true);
-
-    for (const auto& signal : signals)
-    {
-        if (signal.getPublic())
-        {
-            auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
-            mirroredSignalConfigPtr.setActiveStreamingSource(nativeStreaming.getConnectionString());
-        }
-    }
-}
 
 void NativeDeviceImpl::attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper)
 {

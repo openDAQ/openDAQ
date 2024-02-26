@@ -84,7 +84,9 @@ ErrCode EventImpl::trigger(IBaseObject* sender, IEventArgs* args)
     {
         if (!handler.muted)
         {
-            handler.eventHandler->handleEvent(sender, args);
+            const ErrCode errCode = handler.eventHandler->handleEvent(sender, args);
+            if (OPENDAQ_FAILED(errCode))
+                return errCode;
             continue;
         }
 

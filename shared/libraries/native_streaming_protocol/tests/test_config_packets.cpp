@@ -151,7 +151,8 @@ public:
 
     std::shared_ptr<NativeStreamingClientHandler> createClient(ConfigProtocolAttributes& client)
     {
-        auto clientHandler = std::make_shared<NativeStreamingClientHandler>(client.clientContext);
+        auto clientHandler = std::make_shared<NativeStreamingClientHandler>(
+            client.clientContext, ClientAttributesBase::createTransportLayerConfig());
 
         clientHandler->setIoContext(client.ioContextPtrClient);
         clientHandler->setSignalAvailableHandler([](const StringPtr&, const StringPtr&){});

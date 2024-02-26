@@ -110,7 +110,9 @@ private:
     static SignalPtr findSignalByRemoteGlobalIdWithComponent(const ComponentPtr& component, const std::string& remoteGlobalId);
 
     template <class F>
-    void forEachSignal(const ComponentPtr& component, const F& f);
+    void forEachComponent(const ComponentPtr& component, const F& f);
+    [[maybe_unused]]
+    void setRemoteGlobalIds(const ComponentPtr& component, const StringPtr& parentRemoteId);
 };
 
 using ConfigProtocolClientCommPtr = std::shared_ptr<ConfigProtocolClientComm>;
@@ -357,10 +359,7 @@ CoreEventArgsPtr ConfigProtocolClient<TRootDeviceImpl>::unpackCoreEvents(const C
     {
         const ComponentHolderPtr compHolder = dict.get("Component");
         const ComponentPtr comp = compHolder.getComponent();
-        StringPtr parentRemoteId;
-        comp.getParent().asPtr<IConfigClientObject>()->getRemoteGlobalId(&parentRemoteId);
 
-        comp.asPtr<IConfigClientObject>()->setRemoteGlobalId(parentRemoteId + "/" + comp.getLocalId());
         dict.set("Component", comp);
     }
 

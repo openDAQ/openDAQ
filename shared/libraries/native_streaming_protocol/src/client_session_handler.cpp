@@ -41,7 +41,7 @@ void ClientSessionHandler::sendSignalSubscribe(const SignalNumericIdType& signal
 
     // create write task for transport header
     size_t payloadSize = calculatePayloadSize(tasks);
-    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_COMMAND, payloadSize);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_SUBSCRIBE_COMMAND, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
     session->scheduleWrite(tasks);
@@ -59,7 +59,25 @@ void ClientSessionHandler::sendSignalUnsubscribe(const SignalNumericIdType& sign
 
     // create write task for transport header
     size_t payloadSize = calculatePayloadSize(tasks);
-    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_COMMAND, payloadSize);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNSUBSCRIBE_COMMAND, payloadSize);
+    tasks.insert(tasks.begin(), writeHeaderTask);
+
+    session->scheduleWrite(tasks);
+}
+
+void ClientSessionHandler::sendTransportLayerProperties(const PropertyObjectPtr& properties)
+{
+    std::vector<WriteTask> tasks;
+
+    auto jsonSerializer = JsonSerializer(False);
+    properties.serialize(jsonSerializer);
+    auto serializedProperties = jsonSerializer.getOutput();
+    LOG_T("Serialized properties:\n{}", serializedProperties);
+    tasks.push_back(createWriteStringTask(serializedProperties.toStdString()));
+
+    // create write task for transport header
+    size_t payloadSize = calculatePayloadSize(tasks);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_TRANSPORT_LAYER_PROPERTIES, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
     session->scheduleWrite(tasks);
@@ -264,7 +282,7 @@ ReadTask ClientSessionHandler::readHeader(const void* data, size_t size)
 
     LOG_T("Received header: type {}, size {}", convertPayloadTypeToString(payloadType), payloadSize);
 
-    if (payloadType == PayloadType::PAYLOAD_TYPE_SIGNAL_AVAILABLE)
+    if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_AVAILABLE)
     {
         return ReadTask(
             [this](const void* data, size_t size)
@@ -274,7 +292,7 @@ ReadTask ClientSessionHandler::readHeader(const void* data, size_t size)
             payloadSize
         );
     }
-    else if (payloadType == PayloadType::PAYLOAD_TYPE_SIGNAL_UNAVAILABLE)
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNAVAILABLE)
     {
         return ReadTask(
             [this](const void* data, size_t size)
@@ -284,7 +302,7 @@ ReadTask ClientSessionHandler::readHeader(const void* data, size_t size)
             payloadSize
         );
     }
-    else if (payloadType == PayloadType::PAYLOAD_TYPE_PACKET)
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_PACKET)
     {
         return ReadTask(
             [this](const void* data, size_t size)
@@ -294,12 +312,12 @@ ReadTask ClientSessionHandler::readHeader(const void* data, size_t size)
             payloadSize
         );
     }
-    else if (payloadType == PayloadType::PAYLOAD_TYPE_PROTOCOL_INIT_DONE)
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_DONE)
     {
         protocolInitDoneHandler();
         return createReadHeaderTask();
     }
-    else if (payloadType == PayloadType::PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_ACK)
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_SUBSCRIBE_ACK)
     {
         return ReadTask(
             [this](const void* data, size_t size)
@@ -309,7 +327,7 @@ ReadTask ClientSessionHandler::readHeader(const void* data, size_t size)
             payloadSize
         );
     }
-    else if (payloadType == PayloadType::PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK)
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNSUBSCRIBE_ACK)
     {
         return ReadTask(
             [this](const void* data, size_t size)

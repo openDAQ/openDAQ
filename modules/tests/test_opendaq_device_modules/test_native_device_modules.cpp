@@ -16,7 +16,7 @@ static InstancePtr CreateServerInstance()
     auto instance = InstanceCustom(context, "local");
 
     const auto statistics = instance.addFunctionBlock("ref_fb_module_statistics");
-    const auto refDevice = instance.addDevice("daqref://device1");
+    const auto refDevice = instance.addDevice("daqref://device0");
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
 
@@ -291,5 +291,241 @@ TEST_F(NativeDeviceModulesTest, NotPublicSignals)
     for (const auto & signal : clientChannels[0].getSignals(search::Any()))
     {
         ASSERT_FALSE(signal.getPublic());
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, AddFunctionBlock)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    std::promise<void> addFbPromise;
+    std::future<void> addFbFuture = addFbPromise.get_future();
+
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
+        {
+            ComponentPtr component = params.get("Component");
+            if (component.asPtrOrNull<IFunctionBlock>().assigned())
+            {
+                auto addedFb = component.asPtr<IFunctionBlock>();
+                if (addedFb.getFunctionBlockType().getId() == "ref_fb_module_statistics")
+                {
+                    addFbPromise.set_value();
+                }
+            }
+        }
+    };
+
+    const auto serverAddedFb = server.addFunctionBlock("ref_fb_module_statistics");
+    ASSERT_TRUE(addFbFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+
+    auto clientAddedFb = client.getDevices()[0].getFunctionBlocks()[1];
+    auto clientAddedFbSignals = clientAddedFb.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : clientAddedFbSignals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, RemoveFunctionBlock)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto serverFb = server.getFunctionBlocks()[0];
+    auto clientFb = client.getDevices()[0].getFunctionBlocks()[0];
+
+    StringPtr removedFbId = clientFb.getGlobalId();
+    std::promise<void> removeFbPromise;
+    std::future<void> removeFbFuture = removeFbPromise.get_future();
+
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentRemoved)
+        {
+            StringPtr id = params.get("Id");
+            if ((comp.getGlobalId() + "/" + id) == removedFbId)
+                removeFbPromise.set_value();
+        }
+    };
+
+    const auto clientFbSignals = clientFb.getSignals(search::Recursive(search::Any()));
+    server.removeFunctionBlock(serverFb);
+    ASSERT_TRUE(removeFbFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+
+    for (const auto& signal : clientFbSignals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getActiveStreamingSource(), nullptr) << signal.getGlobalId();
+        ASSERT_TRUE(signal.isRemoved());
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, AddChannel)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    std::promise<void> addChPromise;
+    std::future<void> addChFuture = addChPromise.get_future();
+
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
+        {
+            ComponentPtr component = params.get("Component");
+            if (component.asPtrOrNull<IChannel>().assigned())
+            {
+                auto addedCh = component.asPtr<IChannel>();
+                if (addedCh.getFunctionBlockType().getId() == "ref_channel")
+                {
+                    addChPromise.set_value();
+                }
+            }
+        }
+    };
+
+    auto refDevice = client.getDevices()[0].getDevices()[0];
+    refDevice.setPropertyValue("NumberOfChannels", 3);
+    ASSERT_TRUE(addChFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+
+    auto clientAddedCh = client.getDevices()[0].getDevices()[0].getChannels()[2];
+    auto clientAddedChSignals = clientAddedCh.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : clientAddedChSignals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, RemoveChannel)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto refDevice = client.getDevices()[0].getDevices()[0];
+    auto clientCh = refDevice.getChannels()[1];
+
+    StringPtr removedChId = clientCh.getGlobalId();
+    std::promise<void> removeChPromise;
+    std::future<void> removeChFuture = removeChPromise.get_future();
+
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentRemoved)
+        {
+            StringPtr id = params.get("Id");
+            if ((comp.getGlobalId() + "/" + id) == removedChId)
+                removeChPromise.set_value();
+        }
+    };
+
+    const auto clientChSignals = clientCh.getSignals(search::Recursive(search::Any()));
+    refDevice.setPropertyValue("NumberOfChannels", 1);
+    ASSERT_TRUE(removeChFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+
+    for (const auto& signal : clientChSignals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getActiveStreamingSource(), nullptr) << signal.getGlobalId();
+        ASSERT_TRUE(signal.isRemoved());
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, AddDevice)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    std::promise<void> addDevPromise;
+    std::future<void> addDevFuture = addDevPromise.get_future();
+
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
+        {
+            ComponentPtr component = params.get("Component");
+            if (component.asPtrOrNull<IDevice>().assigned())
+            {
+                auto addedDev = component.asPtr<IDevice>();
+                if (addedDev.getLocalId() == "ref_dev1")
+                {
+                    addDevPromise.set_value();
+                }
+            }
+        }
+    };
+
+    const auto serverAddedDev = server.addDevice("daqref://device1");
+    ASSERT_TRUE(addDevFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+
+    auto clientAddedDev = client.getDevices()[0].getDevices()[1];
+    auto clientAddedDevSignals = clientAddedDev.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : clientAddedDevSignals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, RemoveDevice)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto serverDevice = server.getDevices()[0];
+    auto clientDevice = client.getDevices()[0].getDevices()[0];
+    auto clientCh = clientDevice.getChannels()[1];
+
+    StringPtr removedDevId = clientDevice.getGlobalId();
+    std::promise<void> removeDevPromise;
+    std::future<void> removeDevFuture = removeDevPromise.get_future();
+
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentRemoved)
+        {
+            StringPtr id = params.get("Id");
+            if ((comp.getGlobalId() + "/" + id) == removedDevId)
+                removeDevPromise.set_value();
+        }
+    };
+
+    const auto clientDevSignals = clientDevice.getSignals(search::Recursive(search::Any()));
+    server.removeDevice(serverDevice);
+    ASSERT_TRUE(removeDevFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+
+    for (const auto& signal : clientDevSignals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getActiveStreamingSource(), nullptr) << signal.getGlobalId();
+        ASSERT_TRUE(signal.isRemoved());
     }
 }

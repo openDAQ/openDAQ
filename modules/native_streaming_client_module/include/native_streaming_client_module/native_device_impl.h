@@ -44,20 +44,29 @@ public:
 
     DevicePtr connectAndGetDevice(const ComponentPtr& parent);
 
+    void subscribeToCoreEvent(const ContextPtr& context);
+    void unsubscribeFromCoreEvent(const ContextPtr& context);
+
+    void addStreaming(const StreamingPtr& streaming);
+
 private:
     void setupProtocolClients(const ContextPtr& context);
     config_protocol::PacketBuffer doConfigRequest(const config_protocol::PacketBuffer& reqPacket);
     void receiveConfigPacket(const config_protocol::PacketBuffer& packet);
+    void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
+    void componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
+    void addSignalsToStreaming(const ListPtr<ISignal>& signals);
 
     LoggerComponentPtr loggerComponent;
     std::unique_ptr<config_protocol::ConfigProtocolClient<NativeDeviceImpl>> configProtocolClient;
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient;
     std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
+    StreamingPtr streaming;
+    WeakRefPtr<IDevice> deviceRef;
 };
 
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)
 {
-    virtual void INTERFACE_FUNC attachNativeStreaming(const StreamingPtr& streaming) = 0;
     virtual void INTERFACE_FUNC attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper) = 0;
     virtual void INTERFACE_FUNC setConnectionString(const StringPtr& connectionString) = 0;
 };
@@ -72,12 +81,12 @@ public:
                               const ContextPtr& ctx,
                               const ComponentPtr& parent,
                               const StringPtr& localId);
+    ~NativeDeviceImpl() override;
 
     // IDevice
     ErrCode INTERFACE_FUNC getInfo(IDeviceInfo** info) override;
 
     // INativeDevicePrivate
-    void INTERFACE_FUNC attachNativeStreaming(const StreamingPtr& streaming) override;
     void INTERFACE_FUNC attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper) override;
     void INTERFACE_FUNC setConnectionString(const StringPtr& connectionString) override;
 
@@ -85,7 +94,6 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 private:
-    StreamingPtr nativeStreaming;
     DeviceInfoConfigPtr deviceInfo;
     std::unique_ptr<NativeDeviceHelper> deviceHelper;
 };

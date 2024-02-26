@@ -43,16 +43,6 @@ ErrCode NativeStreamingSignalImpl::getDescriptor(IDataDescriptor** descriptor)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode NativeStreamingSignalImpl::getDomainSignal(ISignal** signal)
-{
-    OPENDAQ_PARAM_NOT_NULL(signal);
-
-    std::scoped_lock lock(signalMutex);
-
-    *signal = mirroredDomainSignal.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
 Bool NativeStreamingSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
 {
     if (!eventPacket.assigned())
@@ -84,12 +74,13 @@ Bool NativeStreamingSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
 
 void NativeStreamingSignalImpl::assignDomainSignal(const SignalPtr& domainSignal)
 {
-    if (domainSignal.asPtrOrNull<IMirroredSignalConfig>() == nullptr)
-    {
-        throw NoInterfaceException(
-            fmt::format(R"(Domain signal "{}" does not implement IMirroredSignalConfig interface.)",
-                        domainSignal.getGlobalId()));
-    }
+    if (domainSignal.assigned())
+        if (domainSignal.asPtrOrNull<IMirroredSignalConfig>() == nullptr)
+        {
+            throw NoInterfaceException(
+                fmt::format(R"(Domain signal "{}" does not implement IMirroredSignalConfig interface.)",
+                            domainSignal.getGlobalId()));
+        }
 
     std::scoped_lock lock(signalMutex);
 
@@ -123,6 +114,13 @@ void NativeStreamingSignalImpl::deserializeCustomObjectValues(const SerializedOb
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
     if (serializedObject.hasKey("dataDescriptor"))
         mirroredDataDescriptor = serializedObject.readObject("dataDescriptor", context, factoryCallback);
+}
+
+SignalPtr NativeStreamingSignalImpl::onGetDomainSignal()
+{
+    std::scoped_lock lock(signalMutex);
+
+    return mirroredDomainSignal;
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

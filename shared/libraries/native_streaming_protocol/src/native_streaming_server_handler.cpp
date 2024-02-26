@@ -5,6 +5,10 @@
 #include <opendaq/search_filter_factory.h>
 #include <config_protocol/config_protocol_server.h>
 
+#include <opendaq/ids_parser.h>
+
+#include <coreobjects/property_object_factory.h>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
@@ -69,23 +73,99 @@ void NativeStreamingServerHandler::addSignal(const SignalPtr& signal)
     if (!signal.getPublic())
         return;
 
+    std::scoped_lock lock(sync);
+
     auto signalNumericId = registerSignal(signal);
 
     subscribersRegistry.registerSignal(signal);
     subscribersRegistry.sendToClients([signalNumericId, signal](std::shared_ptr<ServerSessionHandler>& sessionHandler)
                                       {
                                           sessionHandler->sendSignalAvailable(signalNumericId, signal);
+
+                                          // create and send event packet to initialize packet streaming
+                                          sessionHandler->sendPacket(signalNumericId,
+                                                                     createDataDescriptorChangedEventPacket(signal));
                                       });
 }
 
-void NativeStreamingServerHandler::removeSignal(const SignalPtr& signal)
+void NativeStreamingServerHandler::removeComponentSignals(const StringPtr& componentId)
 {
+    std::scoped_lock lock(sync);
+
+    auto signalsToRemove = List<ISignal>();
+    auto removedComponentId = componentId.toStdString();
+
+    for (const auto& [signalIdKey, value] : signalRegistry)
+    {
+        // removed component is a signal, or signal is a descendant of removed component
+        if (signalIdKey == removedComponentId || IdsParser::isNestedComponentId(removedComponentId, signalIdKey))
+        {
+            signalsToRemove.pushBack(std::get<0>(value));
+        }
+    }
+
+    for (const auto& signal : signalsToRemove)
+    {
+        removeSignalInternal(signal);
+    }
+}
+
+void NativeStreamingServerHandler::removeSignalInternal(const SignalPtr& signal)
+{
+    if (subscribersRegistry.removeSignal(signal))
+        signalUnsubscribedHandler(signal);
     auto signalNumericId = findSignalNumericId(signal);
     subscribersRegistry.sendToClients([signalNumericId, signal](std::shared_ptr<ServerSessionHandler>& sessionHandler)
                                       {
                                           sessionHandler->sendSignalUnavailable(signalNumericId, signal);
                                       });
     unregisterSignal(signal);
+}
+
+bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericIdType& signalNumericId,
+                                                            const std::string& signalStringId,
+                                                            bool subscribe,
+                                                            SessionPtr session)
+{
+    std::scoped_lock lock(sync);
+
+    if (subscribe)
+    {
+        LOG_D("Server received subscribe command for signal: {}, numeric Id {}",
+              signalStringId, signalNumericId);
+        try
+        {
+            if (subscribersRegistry.registerSignalSubscriber(signalStringId, session))
+            {
+                signalSubscribedHandler(findRegisteredSignal(signalStringId));
+            }
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed subscribing of signal: {}, numeric Id {}; {}",
+                  signalStringId, signalNumericId, e.what());
+            return false;
+        }
+    }
+    else
+    {
+        LOG_D("Server received unsubscribe command for signal: {}, numeric Id {}",
+              signalStringId, signalNumericId);
+        try
+        {
+            if (subscribersRegistry.removeSignalSubscriber(signalStringId, session))
+            {
+                signalUnsubscribedHandler(findRegisteredSignal(signalStringId));
+            }
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed unsubscribing of signal: {}, numeric Id {}; {}",
+                  signalStringId, signalNumericId, e.what());
+            return false;
+        }
+    }
+    return true;
 }
 
 void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, const PacketPtr& packet)
@@ -111,14 +191,54 @@ void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
         session->close();
 }
 
+void NativeStreamingServerHandler::handleTransportLayerProps(const PropertyObjectPtr& propertyObject,
+                                                                   std::shared_ptr<ServerSessionHandler> sessionHandler)
+{
+    if (propertyObject.hasProperty("HeartbeatEnabled") &&
+        propertyObject.hasProperty("HeartbeatPeriod") &&
+        propertyObject.hasProperty("HeartbeatTimeout") &&
+        propertyObject.getProperty("HeartbeatEnabled").getValueType() == ctBool &&
+        propertyObject.getProperty("HeartbeatPeriod").getValueType() == ctInt &&
+        propertyObject.getProperty("HeartbeatTimeout").getValueType() == ctInt)
+    {
+        Bool heartbeatEnabled = propertyObject.getPropertyValue("HeartbeatEnabled");
+        Int heartbeatPeriod = propertyObject.getPropertyValue("HeartbeatPeriod");
+        Int heartbeatTimeout = propertyObject.getPropertyValue("HeartbeatTimeout");
+
+        LOG_I("Heartbeat {}, with period {} ms, and timeout {} ms",
+              heartbeatEnabled ? "enabled" : "disabled",
+              heartbeatPeriod,
+              heartbeatTimeout);
+
+        if (heartbeatEnabled)
+            sessionHandler->startHeartbeat(heartbeatPeriod, heartbeatTimeout);
+    }
+    else
+    {
+        LOG_W("Invalid transport layer properties");
+    }
+}
+
+void NativeStreamingServerHandler::setUpTransportLayerPropsCallback(std::shared_ptr<ServerSessionHandler> sessionHandler)
+{
+    auto sessionHandlerWeakPtr = std::weak_ptr<ServerSessionHandler>(sessionHandler);
+    OnTrasportLayerPropertiesCallback trasportLayerPropertiesCb =
+        [this, sessionHandlerWeakPtr](const PropertyObjectPtr& propertyObject)
+    {
+        if (auto sessionHandlerPtr = sessionHandlerWeakPtr.lock())
+            handleTransportLayerProps(propertyObject, sessionHandlerPtr);
+    };
+    sessionHandler->setTransportLayerPropsHandler(trasportLayerPropertiesCb);
+}
+
 void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler)
 {
-    auto sessionWeakPtr = std::weak_ptr<ServerSessionHandler>(sessionHandler);
+    auto sessionHandlerWeakPtr = std::weak_ptr<ServerSessionHandler>(sessionHandler);
     ConfigProtocolPacketCb sendConfigPacketCb =
-        [sessionWeakPtr](const config_protocol::PacketBuffer& packetBuffer)
+        [sessionHandlerWeakPtr](const config_protocol::PacketBuffer& packetBuffer)
     {
-        if (auto sessionPtr = sessionWeakPtr.lock())
-            sessionPtr->sendConfigurationPacket(packetBuffer);
+        if (auto sessionHandlerPtr = sessionHandlerWeakPtr.lock())
+            sessionHandlerPtr->sendConfigurationPacket(packetBuffer);
     };
     ConfigProtocolPacketCb receiveConfigPacketCb = setUpConfigProtocolServerCb(sendConfigPacketCb);
     sessionHandler->setConfigPacketReceivedHandler(receiveConfigPacketCb);
@@ -145,24 +265,7 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
                bool subscribe,
                SessionPtr session)
     {
-        if (subscribe)
-        {
-            LOG_I("Server received subscribe command for signal: {}, numeric Id {}",
-                  signalStringId, signalNumericId);
-            if (subscribersRegistry.registerSignalSubscriber(signalStringId, session))
-            {
-                signalSubscribedHandler(findRegisteredSignal(signalStringId));
-            }
-        }
-        else
-        {
-            LOG_I("Server received unsubscribe command for signal: {}, numeric Id {}",
-                  signalStringId, signalNumericId);
-            if (subscribersRegistry.removeSignalSubscriber(signalStringId, session))
-            {
-                signalUnsubscribedHandler(findRegisteredSignal(signalStringId));
-            }
-        }
+        return this->handleSignalSubscription(signalNumericId, signalStringId, subscribe, session);
     };
 
     auto sessionHandler = std::make_shared<ServerSessionHandler>(context,
@@ -170,6 +273,7 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
                                                                  session,
                                                                  signalSubscriptionHandler,
                                                                  errorHandler);
+    setUpTransportLayerPropsCallback(sessionHandler);
     setUpConfigProtocolCallbacks(sessionHandler);
 
     // send sorted signals to newly connected client

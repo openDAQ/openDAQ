@@ -180,7 +180,10 @@ void ConfigClientBaseFolderImpl<Impl>::componentAdded(const CoreEventArgsPtr& ar
     Bool hasItem{false};
     checkErrorInfo(Impl::hasItem(comp.getLocalId(), &hasItem));
     if (!hasItem)
+    {
+        this->clientComm->connectDomainSignals(comp);
         checkErrorInfo(Impl::addItem(comp));
+    }
 }
 
 template <class Impl>

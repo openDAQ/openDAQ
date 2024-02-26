@@ -34,17 +34,17 @@ public:
                                     const ContextPtr& context);
 protected:
     void onSetActive(bool active) override;
-    StringPtr onAddSignal(const MirroredSignalConfigPtr& signal) override;
+    StringPtr onGetSignalStreamingId(const StringPtr& signalRemoteId) override;
+    void onAddSignal(const MirroredSignalConfigPtr& signal) override;
     void onRemoveSignal(const MirroredSignalConfigPtr& signal) override;
-    void onSubscribeSignal(const MirroredSignalConfigPtr& signal) override;
-    void onUnsubscribeSignal(const MirroredSignalConfigPtr& signal) override;
-    EventPacketPtr onCreateDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal) override;
+    void onSubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
+    void onUnsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
+    EventPacketPtr onCreateDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId) override;
 
     void prepareStreamingClient();
     void handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket);
     void onPacket(const StringPtr& signalId, const PacketPtr& packet);
     void onAvailableSignals(const std::vector<std::string>& signalIds);
-    StringPtr getSignalStreamingId(const MirroredSignalConfigPtr& signal);
 
     daq::websocket_streaming::StreamingClientPtr streamingClient;
     std::vector<StringPtr> availableSignalIds;

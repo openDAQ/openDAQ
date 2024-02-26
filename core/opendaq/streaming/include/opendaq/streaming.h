@@ -81,6 +81,9 @@ DECLARE_OPENDAQ_INTERFACE(IStreaming, IBaseObject)
      * @brief Removes signals from the Streaming.
      * @param signals The list of signals to be removed.
      * @retval OPENDAQ_ERR_NOTFOUND if a signal on the list was not added to the Streaming.
+     *
+     * After a signal is removed from the Streaming, the Streaming is automatically excluded in the list of
+     * available streaming sources of a signal.
      */
     virtual ErrCode INTERFACE_FUNC removeSignals(IList* signals) = 0;
 

@@ -57,6 +57,20 @@ public:
         clientHandler.reset();
     }
 
+    static daq::PropertyObjectPtr createTransportLayerConfig()
+    {
+        auto config = daq::PropertyObject();
+
+        config.addProperty(daq::BoolProperty("HeartbeatEnabled", daq::True));
+        config.addProperty(daq::IntProperty("HeartbeatPeriod", 1000));
+        config.addProperty(daq::IntProperty("HeartbeatTimeout", 1500));
+        config.addProperty(daq::IntProperty("ConnectionTimeout", 1000));
+        config.addProperty(daq::IntProperty("StreamingInitTimeout", 1000));
+        config.addProperty(daq::IntProperty("ReconnectionPeriod", 1000));
+
+        return config;
+    }
+
 private:
     /// prevents boost::asio::io_context::run() from returning when there is no more async operations pending
     std::unique_ptr<WorkGuardType> workGuardClient;

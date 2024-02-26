@@ -17,8 +17,8 @@ ServerSessionHandler::ServerSessionHandler(const ContextPtr& daqContext,
                                            OnSessionErrorCallback errorHandler)
     : BaseSessionHandler(daqContext, session, ioContext, errorHandler, "NativeProtocolServerSessionHandler")
     , signalSubscriptionHandler(signalSubscriptionHandler)
+    , transportLayerPropsHandler(nullptr)
     , packetStreamingServer(10)
-    , jsonSerializer(JsonSerializer(False))
 {
 }
 
@@ -44,7 +44,7 @@ void ServerSessionHandler::sendSignalAvailable(const SignalNumericIdType& signal
     // create write task for signal string ID itself
     tasks.push_back(createWriteStringTask(signalStringId.toStdString()));
 
-    jsonSerializer.reset();
+    auto jsonSerializer = JsonSerializer(False);
     signal.serialize(jsonSerializer);
     auto serializedSignal = jsonSerializer.getOutput();
     LOG_T("Serialized signal:\n{}", serializedSignal);
@@ -52,7 +52,7 @@ void ServerSessionHandler::sendSignalAvailable(const SignalNumericIdType& signal
 
     // create write task for transport header
     size_t payloadSize = calculatePayloadSize(tasks);
-    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_SIGNAL_AVAILABLE, payloadSize);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_AVAILABLE, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
     session->scheduleWrite(tasks);
@@ -71,7 +71,7 @@ void ServerSessionHandler::sendSignalUnavailable(const SignalNumericIdType& sign
 
     // create write task for transport header
     size_t payloadSize = calculatePayloadSize(tasks);
-    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_SIGNAL_UNAVAILABLE, payloadSize);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNAVAILABLE, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
     session->scheduleWrite(tasks);
@@ -81,7 +81,7 @@ void ServerSessionHandler::sendInitializationDone()
 {
     std::vector<WriteTask> tasks;
 
-    tasks.push_back(createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_PROTOCOL_INIT_DONE, 0));
+    tasks.push_back(createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_DONE, 0));
 
     session->scheduleWrite(tasks);
 }
@@ -104,7 +104,7 @@ void ServerSessionHandler::sendSubscribingDone(const SignalNumericIdType signalN
 
     // create write task for transport header
     size_t payloadSize = calculatePayloadSize(tasks);
-    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_ACK, payloadSize);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_SUBSCRIBE_ACK, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
     session->scheduleWrite(tasks);
@@ -119,7 +119,7 @@ void ServerSessionHandler::sendUnsubscribingDone(const SignalNumericIdType signa
 
     // create write task for transport header
     size_t payloadSize = calculatePayloadSize(tasks);
-    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_ACK, payloadSize);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNSUBSCRIBE_ACK, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
     session->scheduleWrite(tasks);
@@ -146,7 +146,7 @@ void ServerSessionHandler::sendPacketBuffer(const PacketBufferPtr& packetBuffer)
 
     // create write task for transport header
     size_t payloadSize = calculatePayloadSize(tasks);
-    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_PACKET, payloadSize);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PACKET, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
     session->scheduleWrite(tasks);
@@ -177,8 +177,8 @@ ReadTask ServerSessionHandler::readSignalSubscribe(const void *data, size_t size
         return createReadStopTask();
     }
 
-    signalSubscriptionHandler(signalNumericId, signalIdString, true, session);
-    sendSubscribingDone(signalNumericId);
+    if (signalSubscriptionHandler(signalNumericId, signalIdString, true, session))
+        sendSubscribingDone(signalNumericId);
     return createReadHeaderTask();
 }
 
@@ -207,9 +207,46 @@ ReadTask ServerSessionHandler::readSignalUnsubscribe(const void *data, size_t si
         return createReadStopTask();
     }
 
-    signalSubscriptionHandler(signalNumericId, signalIdString, false, session);
-    sendUnsubscribingDone(signalNumericId);
+    if (signalSubscriptionHandler(signalNumericId, signalIdString, false, session))
+        sendUnsubscribingDone(signalNumericId);
     return createReadHeaderTask();
+}
+
+ReadTask ServerSessionHandler::readTransportLayerProperties(const void* data, size_t size)
+{
+    PropertyObjectPtr propertyObject;
+
+    try
+    {
+        // Get serialized properties from received buffer
+        auto serializedProperties = String(getStringFromData(data, size, 0, size));
+        LOG_D("Received properties:\n{}", serializedProperties);
+
+        try
+        {
+            const auto deserializer = JsonDeserializer();
+            propertyObject = deserializer.deserialize(serializedProperties, nullptr);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_E("Fail to deserialize property object: {}", e.what());
+        }
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("Protocol error: {}", e.what());
+        errorHandler(std::string("Protocol error - readTransportLayerProperties - ") + e.what(), session);
+        return createReadStopTask();
+    }
+
+    if (transportLayerPropsHandler && propertyObject.assigned())
+        transportLayerPropsHandler(propertyObject);
+    return createReadHeaderTask();
+}
+
+void ServerSessionHandler::setTransportLayerPropsHandler(const OnTrasportLayerPropertiesCallback& transportLayerPropsHandler)
+{
+    this->transportLayerPropsHandler = transportLayerPropsHandler;
 }
 
 ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
@@ -220,7 +257,7 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
 
     LOG_T("Received header: type {}, size {}", convertPayloadTypeToString(payloadType), payloadSize);
 
-    if (payloadType == PayloadType::PAYLOAD_TYPE_SIGNAL_SUBSCRIBE_COMMAND)
+    if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_SUBSCRIBE_COMMAND)
     {
         return ReadTask(
             [this](const void* data, size_t size)
@@ -230,7 +267,7 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
             payloadSize
         );
     }
-    else if (payloadType == PayloadType::PAYLOAD_TYPE_SIGNAL_UNSUBSCRIBE_COMMAND)
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNSUBSCRIBE_COMMAND)
     {
         return ReadTask(
             [this](const void* data, size_t size)
@@ -246,6 +283,16 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
             [this](const void* data, size_t size)
             {
                 return readConfigurationPacket(data, size);
+            },
+            payloadSize
+        );
+    }
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_TRANSPORT_LAYER_PROPERTIES)
+    {
+        return ReadTask(
+            [this](const void* data, size_t size)
+            {
+                return readTransportLayerProperties(data, size);
             },
             payloadSize
         );

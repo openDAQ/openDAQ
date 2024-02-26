@@ -121,7 +121,10 @@ void RefCANChannelImpl::buildSignalDescriptors()
     const auto dataDescriptor = DataDescriptorBuilder()
                                     .setName("Data")
                                     .setSampleType(SampleType::UInt8)
-                                    .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
+                                    .setDimensions(List<IDimension>(DimensionBuilder()
+                                                                        .setRule(LinearDimensionRule(0, 1, 64))
+                                                                        .setName("Dimension")
+                                                                        .build()))
                                     .build();
 
     const auto canMsgDescriptor = DataDescriptorBuilder()

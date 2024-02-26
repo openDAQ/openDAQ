@@ -395,15 +395,15 @@ protected:
 TEST_P(StreamingReconnectionTest, Reconnection)
 {
     auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
-    std::promise<StringPtr> subscribeCompletePromise[2];
-    std::future<StringPtr> subscribeCompleteFuture[2];
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture;
 
-    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise[0], subscribeCompleteFuture[0], mirroredSignalPtr);
+    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
 
     auto serverReader = createServerReader("ByteStep");
     auto clientReader = createClientReader("ByteStep");
 
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture[0]));
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
 
     // read client initial event packet
     auto clientReceivedPackets = tryReadPackets(clientReader, 1);
@@ -412,12 +412,13 @@ TEST_P(StreamingReconnectionTest, Reconnection)
     // remove streaming server to emulate disconnection
     removeStreamingServer();
     // TODO test disconnected status
-    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise[1], subscribeCompleteFuture[1], mirroredSignalPtr);
+    subscribeCompletePromise = std::promise<StringPtr>();
+    subscribeCompleteFuture = subscribeCompletePromise.get_future();
     // add streaming server back to enable reconnection
     restoreStreamingServer();
     // TODO test reconnected status
 
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture[1], 5s));
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture, 5s));
 
     const size_t packetsToGenerate = 10;
     // Expect to receive all data packets,

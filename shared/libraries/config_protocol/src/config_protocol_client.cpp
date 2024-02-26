@@ -192,6 +192,13 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
         return obj;
     }
 
+    if (typeId == "ComponentHolder")
+    {
+        const auto remoteContext = context.asPtrOrNull<IConfigProtocolDeserializeContext>();
+        if(serObj.hasKey("parentGlobalId") && context.assigned())
+            remoteContext->setRemoteGlobalId(serObj.readString("parentGlobalId"));
+    }
+
     if (typeId == "IoFolder")
     {
         BaseObjectPtr obj;
@@ -309,17 +316,52 @@ void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& componen
     const auto dev = getRootDevice();
     if (!dev.assigned())
         return;
+    const auto topComponent = component;
 
-    forEachSignal(component,
-                  [&dev](const SignalPtr& signal)
-                  {
-                      const auto domainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
-                      if (domainSignalId.assigned())
-                      {
-                          const auto domainSignal = findSignalByRemoteGlobalId(dev, domainSignalId);
-                          signal.asPtrOrNull<IMirroredSignalPrivate>(true)->assignDomainSignal(domainSignal);
-                      }
-                  });
+    forEachComponent(
+        component,
+        [&dev, &topComponent](const ComponentPtr& component)
+        {
+            const auto signal = component.asPtrOrNull<ISignal>(true);
+            if (signal.assigned())
+            {
+                const StringPtr domainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+                if (domainSignalId.assigned())
+                {
+                    SignalPtr domainSignal;
+
+                    // try to find domain singal recursively starting from top component
+                    {
+                        const auto domainSingalRemoteId = domainSignalId.toStdString();
+                        StringPtr topComponentRemoteId;
+                        checkErrorInfo(topComponent.asPtr<IConfigClientObject>()->getRemoteGlobalId(&topComponentRemoteId));
+                        if (domainSingalRemoteId.find(topComponentRemoteId.toStdString() + "/") == 0)
+                        {
+                            auto restStr = domainSingalRemoteId.substr(topComponentRemoteId.toStdString().size() + 1);
+                            domainSignal = findSignalByRemoteGlobalIdWithComponent(topComponent, restStr);
+                        }
+                    }
+
+                    // try to find domain singal recursively starting from root device
+                    if (!domainSignal.assigned())
+                        domainSignal = findSignalByRemoteGlobalId(dev, domainSignalId);
+                    if (domainSignal.assigned())
+                        signal.asPtr<IConfigClientSignalPrivate>(true)->assignDomainSignal(domainSignal);
+                }
+            }
+        });
+}
+
+void ConfigProtocolClientComm::setRemoteGlobalIds(const ComponentPtr& component, const StringPtr& parentRemoteId)
+{
+    forEachComponent(
+        component,
+        [&parentRemoteId](const ComponentPtr& comp)
+        {
+            StringPtr compRemoteId;
+            comp.asPtr<IConfigClientObject>()->getRemoteGlobalId(&compRemoteId);
+            comp.asPtr<IConfigClientObject>()->setRemoteGlobalId(parentRemoteId + compRemoteId);
+        });
 }
 
 BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const StringPtr& command,
@@ -345,20 +387,14 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Strin
 }
 
 template <class F>
-void ConfigProtocolClientComm::forEachSignal(const ComponentPtr& component, const F& f)
+void ConfigProtocolClientComm::forEachComponent(const ComponentPtr& component, const F& f)
 {
-    const auto signal = component.asPtrOrNull<ISignal>(true);
-    if (signal.assigned())
-    {
-        f(signal);
-        return;
-    }
-
+    f(component);
     const auto folder = component.asPtrOrNull<IFolder>(true);
     if (folder.assigned())
     {
-        for (const auto item : folder.getItems())
-            forEachSignal(item, f);
+        for (const auto& item : folder.getItems(search::Any()))
+            forEachComponent(item, f);
     }
 }
 

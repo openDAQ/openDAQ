@@ -26,7 +26,6 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 namespace Statistics
 {
 
-// TODO Test all methods
 class TriggerHistory
 {
 public:
@@ -35,17 +34,19 @@ public:
         values.push_back(value);
         domainValues.push_back(domainValue);
     }
-
-    // TODO USE THIS
     void dropHistory(Int dropToExcludingDomainValue)
     {
-        auto whereTo = std::find(domainValues.begin(), domainValues.end(), dropToExcludingDomainValue);
-        if (whereTo != domainValues.end())
+        while (true)
         {
-            auto index = whereTo - domainValues.begin();
-            //  [first last)
-            values.erase(values.begin(), values.begin() + index);
-            domainValues.erase(domainValues.begin(), domainValues.begin() + index);
+            if (values.size() > 2 && domainValues[0] < dropToExcludingDomainValue)
+            {
+                values.erase(values.begin());
+                domainValues.erase(domainValues.begin());
+            }
+            else
+            {
+                break;
+            }
         }
     }
     Bool getTriggerStateFromDomainValue(Int domainValue)

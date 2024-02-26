@@ -370,7 +370,11 @@ void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
         {
             // Go to where trigger state is true or end of packet
             while (!triggerHistory.getTriggerStateFromDomainValue(domainBuf[i]) && i < packet.getSampleCount())
+            {
+                // Drop trigger history
+                triggerHistory.dropHistory(domainBuf[i]);
                 i++;
+            }
 
             // Check if we reached the end of packet
             if (i >= packet.getSampleCount())
@@ -399,11 +403,13 @@ void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
             // Fill sub packet buffer
             std::memcpy(subPacketBuf, packetBuf + startedAt * sampleSize, packetSize * sampleSize);
 
+            // Calculate and send packets
             calculateAndSendPackets(domainSubPacket, subPacket);
         }
     }
     else
     {
+        // Calculate and send packets
         calculateAndSendPackets(domainPacket, packet);
     }
 }

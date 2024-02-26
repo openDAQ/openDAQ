@@ -556,4 +556,44 @@ TEST_F(StatisticsTest, StatisticsTestTriggerBasic)
     helper.run();
 }
 
+TEST_F(StatisticsTest, StatisticsTestTriggerMultipleChanges)
+{
+    vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0},
+                              {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0},
+                              {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0}};
+    vecvec<Float> expectedAvg{{}, {}, {2.35}, {}, {0.85}, {1.85}, {}, {}, {}};
+    vecvec<Float> expectedRms{{}, {}, {2.3674881203503428}, {}, {0.89721792224631802}, {1.8721645226849055}, {}, {}, {}};
+    vecvec<Int> expectedDomain{{}, {}, {41}, {}, {71}, {91}, {}, {}, {}};
+    Int initialOutputDomain = 0;  // Implicit
+
+    std::vector<Int> triggerModeChangesBeforePackets{0};
+    std::vector<Bool> newTriggerMode{true};
+    vecvec<Float> mockTriggerPackets{{0.6, 0.1, 0.6, 0.1}, {}, {}, {}, {}, {}, {}, {}, {}};
+    vecvec<Int> mockTriggerDomainPackets{{40, 62, 70, 126}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
+                                       initialOutputDomain,
+                                       expectedAvg,
+                                       expectedRms,
+                                       expectedDomain,
+                                       SampleTypeFromType<Float>::SampleType,
+                                       mockPackets,
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       triggerModeChangesBeforePackets,
+                                       newTriggerMode,
+                                       mockTriggerPackets,
+                                       mockTriggerDomainPackets);
+    helper.run();
+}
+
 // TODO add more trigger as nested function block tests, test multiple trigger condition changes in same packet

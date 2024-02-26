@@ -1,5 +1,11 @@
 26.02.2024
 Description:
+  - Integrating config provider options in modules
+
++ [function] IModule::getId(IString** id)
+
+26.02.2024
+Description:
   - Streaming framework refactoring
 
 - [function] IMirroredSignalPrivate::assignDomainSignal(const SignalPtr& domainSignal);

@@ -63,6 +63,18 @@ public:
     }
 
     /*!
+     * @brief Gets the module id.
+     * @param[out] id The module id.
+     */
+    ErrCode INTERFACE_FUNC getId(IString** moduleId) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(moduleId);
+
+        *moduleId = id.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    /*!
      * @brief Returns a list of known devices info.
      * The implementation can start discovery in background and only return the results in this function.
      * @param[out] availableDevices The list of known devices information.
@@ -373,6 +385,7 @@ public:
 
 protected:
     StringPtr name;
+    StringPtr id;
     VersionInfoPtr version;
 
     ContextPtr context;
@@ -380,8 +393,9 @@ protected:
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
 
-    Module(StringPtr name, VersionInfoPtr version, ContextPtr context)
+    Module(StringPtr name, StringPtr id, VersionInfoPtr version, ContextPtr context)
         : name(std::move(name))
+        , id (id)
         , version(std::move(version))
         , context(std::move(context))
         , logger(this->context.getLogger())

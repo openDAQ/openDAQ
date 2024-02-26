@@ -8,6 +8,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_SERVER_MODULE
 
 OpcUaServerModule::OpcUaServerModule(ContextPtr context)
     : Module("openDAQ OpcUa server module",
+            "OpcUaServer",
              daq::VersionInfo(OPCUA_SERVER_MODULE_MAJOR_VERSION, OPCUA_SERVER_MODULE_MINOR_VERSION, OPCUA_SERVER_MODULE_PATCH_VERSION),
              std::move(context))
 {

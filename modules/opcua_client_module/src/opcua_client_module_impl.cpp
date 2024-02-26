@@ -21,6 +21,7 @@ using namespace daq::opcua;
 
 OpcUaClientModule::OpcUaClientModule(ContextPtr context)
     : Module("openDAQ OpcUa client module",
+            "OpcUaClient",
             daq::VersionInfo(OPCUA_CLIENT_MODULE_MAJOR_VERSION, OPCUA_CLIENT_MODULE_MINOR_VERSION, OPCUA_CLIENT_MODULE_PATCH_VERSION),
             std::move(context))
     , discoveryClient(

@@ -14,9 +14,15 @@ MockFunctionBlockModuleImpl::MockFunctionBlockModuleImpl(daq::ContextPtr ctx)
     : ctx(std::move(ctx))
 {
 }
+
 ErrCode MockFunctionBlockModuleImpl::getName(IString** name)
 {
     return createString(name, "MockFunctionBlockModule");
+}
+
+ErrCode MockFunctionBlockModuleImpl::getId(IString** id)
+{
+    return createString(id, "MockFunctionBlock");
 }
 
 ErrCode MockFunctionBlockModuleImpl::getAvailableDevices(IList** availableDevices)

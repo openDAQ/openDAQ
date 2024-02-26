@@ -117,15 +117,21 @@ ErrCode PacketReaderImpl::disconnected(IInputPort* port)
 ErrCode PacketReaderImpl::packetReceived(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-    if (!readCallback.assigned())
-        return OPENDAQ_SUCCESS;
-
+    ProcedurePtr callback;
     SizeT count{0};
-    connection->getPacketCount(&count);
-    if (readCallback.assigned() && count)
-        return wrapHandler(readCallback);
 
-    return OPENDAQ_SUCCESS;
+    {
+        std::scoped_lock lock(mutex);
+        callback = readCallback;
+
+        if (!callback.assigned())
+            return OPENDAQ_SUCCESS;
+
+        connection->getPacketCount(&count);
+        if (!count)
+            return OPENDAQ_SUCCESS;
+    }
+    return wrapHandler(callback);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

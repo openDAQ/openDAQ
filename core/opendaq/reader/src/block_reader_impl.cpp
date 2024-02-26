@@ -113,8 +113,15 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
     notify.condition.notify_one();
 
     ErrCode errCode = OPENDAQ_SUCCESS;
-    while(readCallback.assigned() && getAvailable() && OPENDAQ_SUCCEEDED(errCode))
-        errCode = wrapHandler(readCallback);
+    std::unique_lock lock(mutex);
+    auto callback = readCallback;
+    while(callback.assigned() && getAvailable() && OPENDAQ_SUCCEEDED(errCode))
+    {
+        lock.unlock();
+        errCode = wrapHandler(callback);
+        lock.lock();
+        callback = readCallback;
+    }
 
     return errCode;
 }

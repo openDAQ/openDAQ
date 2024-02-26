@@ -147,9 +147,15 @@ public:
     virtual ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override
     {
         OPENDAQ_PARAM_NOT_NULL(port);
-        if (readCallback.assigned())
-            return wrapHandler(readCallback);
+        ProcedurePtr callback;
 
+        {
+            std::scoped_lock lock(mutex);
+            callback = readCallback;
+        }
+
+        if (callback.assigned())
+            return wrapHandler(callback);
         return OPENDAQ_SUCCESS;
     }
 

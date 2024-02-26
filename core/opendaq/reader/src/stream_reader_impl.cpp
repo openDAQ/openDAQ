@@ -209,9 +209,16 @@ ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
 ErrCode StreamReaderImpl::onPacketReady()
 {
     notify.condition.notify_one();
+    ProcedurePtr callback;
 
-    if (readCallback.assigned())
-        return wrapHandler(readCallback);
+    {
+        std::scoped_lock lock(mutex);
+        callback = readCallback;
+    }
+
+    if (callback.assigned())
+        return wrapHandler(callback);
+
     return OPENDAQ_SUCCESS;
 }
 

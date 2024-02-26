@@ -24,6 +24,14 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
+/*!
+ * @brief Represents the status of the reading process returned by the reader::read function.
+ *
+ * The `IReaderStatus` class provides information about the outcome of the reading operation,
+ * including the validity of the reader and the potential encounter of event packets during processing.
+ * Objects of this class are typically returned as a result of the `read` function of the Readers,
+ * allowing the client code to assess and respond to the status of the reading process.
+ */
 DECLARE_OPENDAQ_INTERFACE(IReaderStatus, IBaseObject)
 {
     /*!

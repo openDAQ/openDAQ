@@ -751,14 +751,19 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 
 ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 {
-    auto callback = readCallback;
-    if (!callback.assigned())
-        return OPENDAQ_SUCCESS;
+    ProcedurePtr callback;
+
+    {
+        std::scoped_lock lock(mutex);
+        callback = readCallback;
+        if (!callback.assigned())
+            return OPENDAQ_SUCCESS;
+    }
 
     SizeT count;
     getAvailableCount(&count);
     if (count)
-        callback();
+        return wrapHandler(callback);
 
     return OPENDAQ_SUCCESS;
 }

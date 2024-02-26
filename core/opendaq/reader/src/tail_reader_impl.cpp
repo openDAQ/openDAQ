@@ -277,10 +277,11 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
         packet = connection.dequeue();
     }
 
-    if (readCallback.assigned() && cachedSamples >= historySize)
+    auto callback = readCallback;
+    if (callback.assigned() && cachedSamples >= historySize)
     {
         lock.unlock();
-        return wrapHandler(readCallback);
+        return wrapHandler(callback);
     }
     return OPENDAQ_SUCCESS;
 }

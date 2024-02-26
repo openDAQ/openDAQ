@@ -85,6 +85,50 @@ Of note are the `IO` components that separate the Device and Channel Components.
 that is automatically created by the openDAQ(TM) Device in addition to the `FB` (Function Blocks) and `Sig` (Signals)
 folders. 
 
+== Component statuses
+
+Each component within the openDAQ(TM) tree may have one or more implementation-specific predefined statuses.
+Each status is uniquely named within the component's scope and is assigned an openDAQ(TM) enumeration type value.
+An example of such a status is the "InputStatus" of the xref:function_blocks.adoc#scaling_fb[Scaling Function Block]:
+
+[cols="1,3"]
+|===
+
+| **Status value**
+| **Description**
+
+| "Disconnected"
+| No xref:signals.adoc[Signal] is connected to the xref:function_blocks.adoc#input_port[Input Port] of the Function block
+
+| "Invalid"
+| A Signal is connected to the Input Port of Function block, but scaling is not possible because its xref:signals.adoc#data_descriptor[DataDescriptor]
+does not fulfill the scaling conditions, or the xref:signals.adoc#domain_signal[Domain Signal] is not assigned
+
+| "Connected"
+| The connected signal is valid and can be scaled
+
+|===
+
+This example code snippet showcases the addition of the Scaling Function Block and the printing of
+all its statuses names along with the current value of "InputStatus":
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+const auto scalingFb = instance.addFunctionBlock("ref_fb_module_scaling");
+std::cout << "The Scaling Function Block available statuses: ";
+for (const auto& [name, _] : scalingFb.getStatusContainer().getStatuses())
+    std::cout << "\"" << name << "\"; ";
+std::cout << std::endl
+          << "The Scaling Function Block \"InputStatus\" is "
+          << scalingFb.getStatusContainer().getStatus("InputStatus")
+          << std::endl;
+----
+====
+
 [#folder]
 == Folders
 

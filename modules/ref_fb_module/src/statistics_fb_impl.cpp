@@ -609,7 +609,7 @@ void StatisticsFbImpl::calculate(
 
 void StatisticsFbImpl::onPacketReceived(const InputPortPtr& port)
 {
-    if (port.getLocalId() == "trigger")
+    if (port == triggerOutput)
         processTriggerPackets(port);
     else
         processInputPackets(port);

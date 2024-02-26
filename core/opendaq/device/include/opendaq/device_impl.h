@@ -36,6 +36,7 @@
 #include <opendaq/core_opendaq_event_args_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/module_manager.h>
+#include <set>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -127,6 +128,9 @@ protected:
     std::vector<StreamingInfoPtr> streamingOptions;
     LoggerComponentPtr loggerComponent;
     bool isRootDevice;
+    UnitPtr domainUnit;
+    RatioPtr domainTickResolution;
+    StringPtr domainOrigin;
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
@@ -192,7 +196,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 template <typename TInterface, typename... Interfaces>
 DeviceInfoPtr GenericDevice<TInterface, Interfaces...>::onGetInfo()
 {
-    return nullptr;
+    return deviceInfo;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -207,13 +211,6 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 
     return errCode;
 }
-
-/*template <typename TInterface, typename... Interfaces>
-DeviceInfoPtr GenericDevice<TInterface, Interfaces...>::onGetInfo()
-{
-    return deviceInfo;
-}
-*/
 
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getDomain(IDeviceDomain** deviceDomain)
@@ -440,7 +437,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getTickResolution(IRatio** res
 template <typename TInterface, typename... Interfaces>
 RatioPtr GenericDevice<TInterface, Interfaces...>::onGetResolution()
 {
-    return nullptr;
+    return domainTickResolution;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -475,6 +472,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getOrigin(IString** origin)
 template <typename TInterface, typename... Interfaces>
 std::string GenericDevice<TInterface, Interfaces...>::onGetOrigin()
 {
+    if (domainOrigin.assigned())
+        return domainOrigin.toStdString();
+
     return {};
 }
 
@@ -537,7 +537,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::Deserialize(ISerializedObject*
 template <typename TInterface, typename... Interfaces>
 UnitPtr GenericDevice<TInterface, Interfaces...>::onGetDomainUnit()
 {
-    return nullptr;
+    return domainUnit;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1052,6 +1052,43 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
                 component.serialize(serializer);
         }
     }
+
+    if (!forUpdate)
+    {
+        DeviceInfoPtr deviceInfo;
+        checkErrorInfo(this->getInfo(&deviceInfo));
+        if (deviceInfo.assigned())
+        {
+            serializer.key("deviceInfo");
+            deviceInfo.serialize(serializer);
+        }
+
+        DeviceDomainPtr deviceDomain;
+        checkErrorInfo(this->getDomain(&deviceDomain));
+        if (deviceDomain.assigned())
+        {
+            const auto origin = deviceDomain.getOrigin();
+            if (origin.assigned())
+            {
+                serializer.key("domainOrigin");
+                serializer.writeString(deviceDomain.getOrigin());
+            }
+
+            const auto resolution = deviceDomain.getTickResolution();
+            if (resolution.assigned())
+            {
+                serializer.key("domainResolution");
+                resolution.serialize(serializer);
+            }
+
+            const auto unit = deviceDomain.getUnit();
+            if (unit.assigned())
+            {
+                serializer.key("domainUnit");
+                unit.serialize(serializer);
+            }
+        }
+    }
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1131,13 +1168,27 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
+    if (serializedObject.hasKey("deviceInfo"))
+        deviceInfo = serializedObject.readObject("deviceInfo");
+
+    if (serializedObject.hasKey("domainOrigin"))
+        domainOrigin = serializedObject.readString("domainOrigin");
+
+    if (serializedObject.hasKey("domainResolution"))
+        domainTickResolution = serializedObject.readObject("domainResolution");
+
+    if (serializedObject.hasKey("domainUnit"))
+        domainUnit = serializedObject.readObject("domainUnit");
+
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");
     this->template deserializeDefaultFolder<IDevice>(serializedObject, context, factoryCallback, devices, "Dev");
+
+    const std::set<std::string> ignoredKeys{"__type", "deviceInfo", "deviceDomain", "deviceUnit", "deviceResolution"};
 
     const auto keys = serializedObject.getKeys();
     for (const auto& key : serializedObject.getKeys())
     {
-        if (!this->defaultComponents.count(key) && serializedObject.getType(key) == ctObject)
+        if (!this->defaultComponents.count(key) && !ignoredKeys.count(key) && serializedObject.getType(key) == ctObject)
         {
             const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
             const auto newDeserializeContext = deserializeContext.clone(this->template borrowPtr<ComponentPtr>(), key, nullptr);

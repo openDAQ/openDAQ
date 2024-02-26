@@ -136,6 +136,7 @@ MockChannel2Impl::MockChannel2Impl(const ContextPtr& ctx, const ComponentPtr& pa
 
 MockDevice1Impl::MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : Device(ctx, parent, localId)
+    , ticksSinceOrigin(0)
 {
     createAndAddSignal("sig_device");
 
@@ -168,6 +169,38 @@ FunctionBlockPtr MockDevice1Impl::onAddFunctionBlock(const StringPtr& typeId, co
         return fb;
     }
     throw NotFoundException();
+}
+
+void MockDevice1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    removeNestedFunctionBlock(functionBlock);
+}
+
+DeviceInfoPtr MockDevice1Impl::onGetInfo()
+{
+    const auto info = DeviceInfo("mock://dev1", "MockDevice1");
+    info.setManufacturer("Testing");
+    return info;
+}
+
+RatioPtr MockDevice1Impl::onGetResolution()
+{
+    return Ratio(1, 100);
+}
+
+uint64_t MockDevice1Impl::onGetTicksSinceOrigin()
+{
+    return ticksSinceOrigin++;
+}
+
+std::string MockDevice1Impl::onGetOrigin()
+{
+    return "N/A";
+}
+
+UnitPtr MockDevice1Impl::onGetDomainUnit()
+{
+    return Unit("s", -1, "second", "time");
 }
 
 MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)

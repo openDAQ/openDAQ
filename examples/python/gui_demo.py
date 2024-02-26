@@ -186,13 +186,6 @@ class App(tk.Tk):
         self.all_devices[self.instance.global_id] = dict()
         self.connected_devices[self.instance.global_id] = dict()
 
-        # TODO: remove this
-        obj = daq.PropertyObject()
-        obj.add_property(daq.IntPropertyBuilder(
-            daq.String('test'), daq.Integer(1)).build())
-        self.instance.add_property(
-            daq.ObjectProperty(daq.String('object'), obj))
-
         # add the first device if connection string is provided once on start
         if self.connection_string != None:
             self.add_first_available_device()  # also calls self.update_tree_widget()
@@ -329,7 +322,7 @@ class App(tk.Tk):
                 component_name = 'Inputs/Outputs'
 
         self.tree.insert(parent_node_id, tk.END, iid=component_node_id,
-                         text=component_name, open=True, values=(component_node_id))
+                         text=component_name, open=True, values=(component_node_id,))
         self.nodes[component_node_id] = component
 
     def tree_restore_selection(self, old_node=None):
@@ -422,8 +415,8 @@ class App(tk.Tk):
         properties_info = node.visible_properties
         sorted_properties_info = self.properties_sort(properties_info)
         for property_info in sorted_properties_info:
-            iid = id(property_info)
-            self.nodes_by_iids[str(iid)] = node
+            iid = property_info.name if parent == None else parent + "." + property_info.name
+            self.nodes_by_iids[iid] = node
 
             show_read_write = 'R/W'
             if property_info.read_only:
@@ -454,12 +447,12 @@ class App(tk.Tk):
 
     def properties_update(self):
         self.properties_clear()
-        self.nodes_by_iids = {}
         if (self.selected_node is not None):
             self.properties_list(self.selected_node)
 
     def properties_clear(self):
         self.properties_tree.delete(*self.properties_tree.get_children())
+        self.nodes_by_iids = {}
 
     # MARK: - Attributes view
     def attributes_widget_create(self, parent_frame):

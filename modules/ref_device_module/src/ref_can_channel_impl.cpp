@@ -42,7 +42,7 @@ void RefCANChannelImpl::initProperties()
     objPtr.getOnPropertyValueWrite("UpperLimit") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propChanged(); };
 
-    const auto lowerLimitProp = IntPropertyBuilder("LowerLimit", 1000).setMaxValue(1).setMinValue(-10000000).build();
+    const auto lowerLimitProp = IntPropertyBuilder("LowerLimit", -1000).setMaxValue(1).setMinValue(-10000000).build();
     objPtr.addProperty(lowerLimitProp);
     objPtr.getOnPropertyValueWrite("LowerLimit") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propChanged(); };

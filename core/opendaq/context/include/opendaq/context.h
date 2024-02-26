@@ -86,10 +86,18 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
 
     // [templateType(options, IString, IBaseObject)]
     /*!
-     * @brief Gets the dictionary of module options 
-     * @param[out] options The dictionary of module options
+     * @brief Gets the dictionary of options 
+     * @param[out] options The dictionary of options
      */
     virtual ErrCode INTERFACE_FUNC getOptions(IDict** options) = 0;
+
+    // [templateType(options, IString, IBaseObject)]
+    /*!
+     * @brief Retrieves the options associated with the specified module ID.
+     * @param moduleId The identifier of the module for which options are requested.
+     * @param[out] options A dictionary containing the options associated with the specified module ID.
+     */
+    virtual ErrCode INTERFACE_FUNC getModuleOptions(IString* moduleId, IDict** options) = 0;
 };
 /*!@}*/
 

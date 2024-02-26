@@ -138,6 +138,32 @@ ErrCode ContextImpl::getOptions(IDict** options)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ContextImpl::getModuleOptions(IString* moduleId, IDict** options)
+{
+    OPENDAQ_PARAM_NOT_NULL(moduleId);
+    OPENDAQ_PARAM_NOT_NULL(options);
+
+    if (this->options.assigned())
+    {
+        DictPtr<IString, IBaseObject> modules = this->options.get("modules");
+        if (modules.assigned())
+        {
+            std::string name = StringPtr::Borrow(moduleId).toStdString();
+            std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+            DictPtr<IString, IBaseObject> moduleOptions = modules.get(name);
+            if (moduleOptions.assigned())
+            {
+                *options = moduleOptions.addRefAndReturn();
+                return OPENDAQ_SUCCESS;
+            }
+
+        }
+    }
+
+    *options = Dict<IString, IBaseObject>().detach();
+    return OPENDAQ_IGNORED;
+}
+
 void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
 {
     if (!component.assigned())

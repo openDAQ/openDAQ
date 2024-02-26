@@ -30,9 +30,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 using UndefinedType = void;
 
-inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool convertable = true)
+inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true)
 {
-    return ReaderStatus_Create(packet, convertable);
+    return ReaderStatus_Create(packet, valid);
 }
 
 /*!

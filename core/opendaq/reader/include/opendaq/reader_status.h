@@ -26,12 +26,28 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE(IReaderStatus, IBaseObject)
 {
+    /*!
+     * @brief Indicates whether the reading process was successful
+     * @param[out] status returns true, if IReaderStatus::isValid is true and IReaderStatus::isEventEncountered is false.
+     */
     virtual ErrCode INTERFACE_FUNC isOk(Bool* status) = 0;
 
+    /*!
+     * @brief Retrieves the event packet from the reading process.
+     * @param[out] packet The event packet from the reading process.
+     */
     virtual ErrCode INTERFACE_FUNC getEventPacket(IEventPacket** packet) = 0;
 
+    /*!
+     * @brief Checks if an event packet was encountered during the reading process.
+     * @param[out] status Boolean value indicating whether an event packet was encountered.
+     */
     virtual ErrCode INTERFACE_FUNC isEventEncountered(Bool* status) = 0;
 
+    /*!
+     * @brief Checks the validity of the reader.
+     * @param[out] status Boolean value indicating the validity of the reader
+     */
     virtual ErrCode INTERFACE_FUNC isValid(Bool* status) = 0;
 };
 /*!@}*/

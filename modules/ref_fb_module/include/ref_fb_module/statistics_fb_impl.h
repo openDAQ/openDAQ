@@ -57,7 +57,7 @@ public:
     Bool getTriggerStateFromDomainValue(Int domainValue)
     {
         Int indexBefore = -1;
-        for (int i = 0; i < domainValues.size(); i++)
+        for (size_t i = 0; i < domainValues.size(); i++)
         {
             if (domainValues[i] <= domainValue)
                 indexBefore = i;

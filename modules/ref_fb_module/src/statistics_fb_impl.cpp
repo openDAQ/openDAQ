@@ -54,11 +54,8 @@ void StatisticsFbImpl::initProperties()
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
 
     objPtr.addProperty(BoolProperty("TriggerMode", false));
-    objPtr.getOnPropertyValueWrite("TriggerMode") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
-    {
-        propertyChanged();
-        triggerModeChanged();
-    };
+    objPtr.getOnPropertyValueWrite("TriggerMode") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { triggerModeChanged(); };
 
     readProperties();
 }
@@ -72,29 +69,42 @@ void StatisticsFbImpl::propertyChanged()
 
 void StatisticsFbImpl::triggerModeChanged()
 {
+    sync.lock();
+
+    readProperties();
+
     if (triggerMode)
     {
-        {
-            std::scoped_lock lock(sync);
-            // Configure Trigger UseMultiThreadedScheduler according to Statistics UseMultiThreadedScheduler
-            auto triggerConfig = PropertyObject();
-            if (packetReadyNotification == PacketReadyNotification::SameThread)
-                triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
-            else
-                triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
+        // Configure Trigger UseMultiThreadedScheduler according to Statistics UseMultiThreadedScheduler
+        auto triggerConfig = PropertyObject();
+        if (packetReadyNotification == PacketReadyNotification::SameThread)
+            triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
+        else
+            triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
 
-            // Use trigger, output signals depending on trigger
-            nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("ref_fb_module_trigger", "nfbt", triggerConfig);
-        }
+        // Use trigger, output signals depending on trigger
+        nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("ref_fb_module_trigger", "nfbt", triggerConfig);
+
+        sync.unlock();
+
         // Connect trigger
         triggerInput.connect(nestedTriggerFunctionBlock.getSignals()[0]);
+
+        sync.lock();
+
+        configure();
+
+        sync.unlock();
     }
     else
     {
-        std::scoped_lock lock(sync);
         // Don't use trigger, output signals
         triggerInput.disconnect();
         removeNestedFunctionBlock(nestedTriggerFunctionBlock);
+
+        configure();
+
+        sync.unlock();
     }
 }
 

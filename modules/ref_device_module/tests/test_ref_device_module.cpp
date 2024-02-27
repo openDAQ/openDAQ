@@ -630,8 +630,8 @@ TEST_F(RefDeviceModuleTest, ReadCANChannel)
     auto* canData = reinterpret_cast<CANData*>(dataPacket.getData());
     for (size_t i = 0; i < sampleCount; i++)
     {
-        ASSERT_EQ(canData->arbId, 12u);
-        ASSERT_EQ(canData->length, 8u);
+        ASSERT_EQ(canData->arbId, (uint32_t) 12);
+        ASSERT_EQ(canData->length, (uint8_t) 8);
         canData++;
     }
 }
@@ -670,8 +670,8 @@ TEST_F(RefDeviceModuleTest, ReadCANChannelWithStreamReader)
 
     for (size_t i = 0; i < count; i++)
     {
-        ASSERT_EQ(canData[i].arbId, 12u);
-        ASSERT_EQ(canData[i].length, 8u);
+        ASSERT_EQ(canData[i].arbId, (uint32_t) 12);
+        ASSERT_EQ(canData[i].length, (uint8_t) 8);
     }
 }
 

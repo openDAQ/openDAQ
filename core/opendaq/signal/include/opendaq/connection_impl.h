@@ -49,6 +49,8 @@ public:
     ErrCode INTERFACE_FUNC getAvailableSamples(SizeT* samples) override;
     ErrCode INTERFACE_FUNC getSamplesUntilNextDescriptor(SizeT* samples) override;
 
+    ErrCode INTERFACE_FUNC isRemote(Bool* remote) override;
+
     [[nodiscard]] const std::deque<PacketPtr>& getPackets() const noexcept;
 
 #ifdef OPENDAQ_THREAD_SAFE

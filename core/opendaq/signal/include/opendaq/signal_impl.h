@@ -130,6 +130,7 @@ private:
     std::vector<SignalPtr> relatedSignals;
     SignalPtr domainSignal;
     std::vector<ConnectionPtr> connections;
+    std::vector<ConnectionPtr> remoteConnections;
     std::vector<WeakRefPtr<ISignalConfig>> domainSignalReferences;
     StringPtr deserializedDomainSignalId;
     bool keepLastPacket = true;
@@ -137,6 +138,8 @@ private:
 
     bool sendPacketInternal(const PacketPtr& packet, bool ignoreActive = false) const;
     void triggerRelatedSignalsChanged();
+    void disconnectInputPort(const ConnectionPtr& connection);
+    void clearConnections(std::vector<ConnectionPtr>& connections);
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
@@ -477,7 +480,12 @@ ErrCode SignalBase<TInterface, Interfaces...>::getConnections(IList** connection
 
     std::scoped_lock lock(this->sync);
 
-    ListPtr<IConnection> connectionsPtr{this->connections};
+    auto connectionsPtr = List<IConnection>();
+    for (const auto& conn : this->connections)
+        connectionsPtr.pushBack(conn);
+    for (const auto& conn : this->remoteConnections)
+        connectionsPtr.pushBack(conn);
+
     *connections = connectionsPtr.detach();
 
     return OPENDAQ_SUCCESS;
@@ -546,7 +554,18 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* co
     const auto connectionPtr = ConnectionPtr::Borrow(connection);
 
     std::scoped_lock lock(this->sync);
-    auto it = std::find(connections.begin(), connections.end(), connectionPtr);
+
+    if (connectionPtr.isRemote())
+    {
+        const auto it = std::find(remoteConnections.begin(), remoteConnections.end(), connectionPtr);
+        if (it != remoteConnections.end())
+            return OPENDAQ_ERR_DUPLICATEITEM;
+
+        remoteConnections.push_back(connectionPtr);
+        return OPENDAQ_SUCCESS;
+    }
+
+    const auto it = std::find(connections.begin(), connections.end(), connectionPtr);
     if (it != connections.end())
         return OPENDAQ_ERR_DUPLICATEITEM;
 
@@ -573,7 +592,18 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerDisconnected(IConnection*
     const auto connectionPtr = ObjectPtr<IConnection>::Borrow(connection);
 
     std::scoped_lock lock(this->sync);
-    auto it = std::find(connections.begin(), connections.end(), connectionPtr);
+
+    if (connectionPtr.isRemote())
+    {
+        const auto it = std::find(remoteConnections.begin(), remoteConnections.end(), connectionPtr);
+        if (it == remoteConnections.end())
+            return OPENDAQ_ERR_NOTFOUND;
+
+        remoteConnections.erase(it);
+        return OPENDAQ_SUCCESS;
+    }
+
+    const auto it = std::find(connections.begin(), connections.end(), connectionPtr);
     if (it == connections.end())
         return OPENDAQ_ERR_NOTFOUND;
 
@@ -716,21 +746,31 @@ int SignalBase<TInterface, Interfaces...>::getSerializeFlags()
     return ComponentSerializeFlag_SerializeActiveProp;
 }
 
+template <typename TInterface, typename ... Interfaces>
+void SignalBase<TInterface, Interfaces...>::disconnectInputPort(const ConnectionPtr& connection)
+{
+    const auto inputPort = connection.getInputPort();
+    if (inputPort.assigned())
+    {
+        const auto inputPortPrivate = inputPort.template asPtrOrNull<IInputPortPrivate>(true);
+        if (inputPortPrivate.assigned())
+            inputPortPrivate.disconnectWithoutSignalNotification();
+    }
+}
+
+template <typename TInterface, typename ... Interfaces>
+void SignalBase<TInterface, Interfaces...>::clearConnections(std::vector<ConnectionPtr>& connections)
+{
+    for (auto& connection : connections)
+        disconnectInputPort(connection);
+    connections.clear();
+}
+
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::removed()
 {
-    for (auto& connection : connections)
-    {
-        auto inputPort = connection.getInputPort();
-        if (inputPort.assigned())
-        {
-            auto inputPortPrivate = inputPort.template asPtrOrNull<IInputPortPrivate>(true);
-            if (inputPortPrivate.assigned())
-                inputPortPrivate.disconnectWithoutSignalNotification();
-        }
-    }
-
-    connections.clear();
+    clearConnections(connections);
+    clearConnections(remoteConnections);
 
     for (auto it = begin(domainSignalReferences); it != end(domainSignalReferences); ++it)
     {

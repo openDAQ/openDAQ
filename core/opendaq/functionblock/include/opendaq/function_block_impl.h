@@ -213,7 +213,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getInputPorts(IList** port
     {
         return daqTry([&]
         {
-            *ports = getSignalsRecursiveInternal(searchFilter).detach();
+            *ports = getInputPortsRecursiveInternal(searchFilter).detach();
             return OPENDAQ_SUCCESS;
         });
     }

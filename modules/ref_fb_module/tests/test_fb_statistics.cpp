@@ -43,7 +43,7 @@ public:
     {
         // Create logger, module manager, context and module
         const auto logger = Logger();
-        moduleManager = ModuleManager("[[none]]");  // TODO! check
+        moduleManager = ModuleManager("[[none]]");
         context = Context(Scheduler(logger), logger, nullptr, moduleManager);
         createModule(&module, context);
         moduleManager.addModule(module);
@@ -77,7 +77,7 @@ public:
         sendPacketsAndChangeProperties();
         receivePacketsAndCheckBoth();
 
-        // TODO Temporary fix so PacketReadyNotification::Scheduler works
+        // Fix so PacketReadyNotification::Scheduler works
         context.getScheduler().stop();
     }
 
@@ -195,7 +195,7 @@ private:
 
     void createFunctionBlock()
     {
-        // TODO Temporary fix
+        // Fix for race condition
         PropertyObjectPtr config = module.getAvailableFunctionBlockTypes().get("ref_fb_module_statistics").createDefaultConfig();
         config.setPropertyValue("UseMultiThreadedScheduler", false);
 
@@ -532,10 +532,84 @@ TEST_F(StatisticsTest, StatisticsTestTriggerBasic)
     vecvec<Int> expectedDomain{{}, {}, {41}, {61}, {}, {}};
     Int initialOutputDomain = 0;  // Implicit
 
-    std::vector<Int> triggerModeChangesBeforePackets{0};                     // TODO test multiple changes
-    std::vector<Bool> newTriggerMode{true};                                  // TODO test true true, false false
-    vecvec<Float> mockTriggerPackets{{0.1, 0.6, 0.1}, {}, {}, {}, {}, {}};   // TODO test sending while TriggerMode = false
-    vecvec<Int> mockTriggerDomainPackets{{26, 40, 90}, {}, {}, {}, {}, {}};  // TODO test sending trigger packets on time or later
+    std::vector<Int> triggerModeChangesBeforePackets{0};
+    std::vector<Bool> newTriggerMode{true};
+    vecvec<Float> mockTriggerPackets{{0.1, 0.6, 0.1}, {}, {}, {}, {}, {}};
+    vecvec<Int> mockTriggerDomainPackets{{26, 40, 90}, {}, {}, {}, {}, {}};
+
+    auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
+                                       initialOutputDomain,
+                                       expectedAvg,
+                                       expectedRms,
+                                       expectedDomain,
+                                       SampleTypeFromType<Float>::SampleType,
+                                       mockPackets,
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       triggerModeChangesBeforePackets,
+                                       newTriggerMode,
+                                       mockTriggerPackets,
+                                       mockTriggerDomainPackets);
+    helper.run();
+}
+
+TEST_F(StatisticsTest, StatisticsTestTriggerDropHistory)
+{
+    vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0},
+                              {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0}};
+    vecvec<Float> expectedAvg{{}, {}, {2.35}, {0.95}, {1.35}, {2.35}};
+    vecvec<Float> expectedRms{{}, {}, {2.3674881203503428}, {1.3946325680981353}, {1.3802173741842263}, {2.3674881203503428}};
+    vecvec<Int> expectedDomain{{}, {}, {41}, {61}, {81}, {101}};
+    Int initialOutputDomain = 0;  // Implicit
+
+    std::vector<Int> triggerModeChangesBeforePackets{0};
+    std::vector<Bool> newTriggerMode{true};
+    vecvec<Float> mockTriggerPackets{{0.6}, {}, {}, {}, {}, {}};
+    vecvec<Int> mockTriggerDomainPackets{{40}, {}, {}, {}, {}, {}};
+
+    auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
+                                       initialOutputDomain,
+                                       expectedAvg,
+                                       expectedRms,
+                                       expectedDomain,
+                                       SampleTypeFromType<Float>::SampleType,
+                                       mockPackets,
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       triggerModeChangesBeforePackets,
+                                       newTriggerMode,
+                                       mockTriggerPackets,
+                                       mockTriggerDomainPackets);
+    helper.run();
+}
+
+TEST_F(StatisticsTest, StatisticsTestTriggerTimely)
+{
+    vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0},
+                              {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0}};
+    vecvec<Float> expectedAvg{{}, {}, {2.35}, {0.95}, {}, {}};
+    vecvec<Float> expectedRms{{}, {}, {2.3674881203503428}, {1.3946325680981353}, {}, {}};
+    vecvec<Int> expectedDomain{{}, {}, {41}, {61}, {}, {}};
+    Int initialOutputDomain = 0;  // Implicit
+
+    std::vector<Int> triggerModeChangesBeforePackets{0};
+    std::vector<Bool> newTriggerMode{true};
+    vecvec<Float> mockTriggerPackets{{}, {0.1, 0.6}, {}, {}, {0.1}, {}};
+    vecvec<Int> mockTriggerDomainPackets{{}, {26, 40}, {}, {}, {90}, {}};
 
     auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
                                        initialOutputDomain,
@@ -596,4 +670,43 @@ TEST_F(StatisticsTest, StatisticsTestTriggerMultipleChanges)
     helper.run();
 }
 
-// TODO add more trigger as nested function block tests, test multiple trigger condition changes in same packet
+TEST_F(StatisticsTest, StatisticsTestTriggerMultipleChangesAndModeChanges)
+{
+    vecvec<Float> mockPackets{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0},
+                              {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0},
+                              {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
+                              {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+                              {2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0}};
+    vecvec<Float> expectedAvg{{}, {}, {2.35}, {}, {0.85}, {1.85}, {}, {1.55}, {2.55}};
+    vecvec<Float> expectedRms{
+        {}, {}, {2.3674881203503428}, {}, {0.89721792224631802}, {1.8721645226849055}, {}, {1.5763882770434448}, {2.5661254840712679}};
+    vecvec<Int> expectedDomain{{}, {}, {41}, {}, {71}, {91}, {}, {145}, {165}};
+    Int initialOutputDomain = 0;  // Implicit
+
+    std::vector<Int> triggerModeChangesBeforePackets{0, 1, 7, 8};
+    std::vector<Bool> newTriggerMode{true, true, false, false};
+    vecvec<Float> mockTriggerPackets{{0.6, 0.1, 0.6, 0.1}, {}, {}, {}, {}, {}, {}, {}, {}};
+    vecvec<Int> mockTriggerDomainPackets{{40, 62, 70, 126}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    auto helper = StatisticsTestHelper(LinearDataRule(2, 5),
+                                       initialOutputDomain,
+                                       expectedAvg,
+                                       expectedRms,
+                                       expectedDomain,
+                                       SampleTypeFromType<Float>::SampleType,
+                                       mockPackets,
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       {},
+                                       triggerModeChangesBeforePackets,
+                                       newTriggerMode,
+                                       mockTriggerPackets,
+                                       mockTriggerDomainPackets);
+    helper.run();
+}

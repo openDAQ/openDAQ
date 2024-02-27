@@ -34,11 +34,11 @@ public:
         values.push_back(value);
         domainValues.push_back(domainValue);
     }
-    void dropHistory(Int dropToExcludingDomainValue)
+    void dropHistoryTo(Int dropToExcludingDomainValue)
     {
         while (true)
         {
-            if (values.size() > 2 && domainValues[0] < dropToExcludingDomainValue)
+            if (values.size() > 0 && domainValues[0] < dropToExcludingDomainValue)
             {
                 values.erase(values.begin());
                 domainValues.erase(domainValues.begin());
@@ -48,6 +48,11 @@ public:
                 break;
             }
         }
+    }
+    void dropHistory()
+    {
+        values.clear();
+        domainValues.clear();
     }
     Bool getTriggerStateFromDomainValue(Int domainValue)
     {
@@ -158,6 +163,7 @@ private:
     void copyRemainingCalcBuf(size_t calculatedSampleCount);
     void resetCalcBuf();
     void getNextOutputDomainValue(const DataPacketPtr& domainPacket, NumberPtr& outputPacketStartDomainValue, bool& haveGap);
+    void validateTriggerDescriptors(const DataDescriptorPtr& valueDataDescriptor, const DataDescriptorPtr& domainDataDescriptor);
     void processSignalDescriptorChanged(const DataDescriptorPtr& valueDataDescriptor, const DataDescriptorPtr& domainDataDescriptor);
     void processDataPacketTrigger(const DataPacketPtr& packet);
     void processDataPacketInput(const DataPacketPtr& packet);

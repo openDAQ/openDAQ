@@ -49,7 +49,7 @@ public:
         sendPacketsAndChangeThreshold();
         receivePacketsAndCheck();
 
-        // TODO Temporary fix so PacketReadyNotification::Scheduler works
+        // Fix so PacketReadyNotification::Scheduler works
         context.getScheduler().stop();
     }
 
@@ -136,7 +136,7 @@ private:
 
     void createFunctionBlock()
     {
-        // TODO Temporary fix
+        // Fix for race condition
         auto config = module.getAvailableFunctionBlockTypes().get("ref_fb_module_trigger").createDefaultConfig();
         config.setPropertyValue("UseMultiThreadedScheduler", false);
         // Create function block

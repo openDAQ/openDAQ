@@ -68,6 +68,12 @@ public:
     {
         return OPENDAQ_SUCCESS;
     }
+
+    ErrCode INTERFACE_FUNC isRemote(Bool* remote) override
+    {
+        *remote = False;
+        return OPENDAQ_SUCCESS;
+    }
 };
 
 class PacketMockImpl : public ImplementationOf<IPacket>

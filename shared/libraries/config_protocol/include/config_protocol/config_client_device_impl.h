@@ -88,6 +88,7 @@ FunctionBlockPtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddFunctionBlock(
     {
         this->clientComm->connectDomainSignals(fb);
         this->addNestedFunctionBlock(fb);
+        this->clientComm->connectInputPorts(fb);
         return fb;
     }
     return this->functionBlocks.getItem(fb.getLocalId());

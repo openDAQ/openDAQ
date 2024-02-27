@@ -148,6 +148,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
                                  const SignalPtr signal = findComponent(signalId);
                                  return ConfigServerInputPort::connect(inputPort, signal);
                              });
+    addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)

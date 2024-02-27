@@ -69,6 +69,47 @@ TEST_F(ConfigProtocolIntegrationTest, Connect)
     ASSERT_EQ(serverDeviceSerialized, clientDeviceSerialized);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, InputPortConnected)
+{
+    ASSERT_EQ(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal(),
+              serverDevice.getDevices()[0].getSignals()[0]);
+
+    ASSERT_EQ(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal(),
+              clientDevice.getDevices()[0].getSignals()[0]);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, DisconnectAndConnectInputPortFromClient)
+{
+    ASSERT_TRUE(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    ASSERT_TRUE(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+
+    const auto clientSignal = clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal();
+
+    clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].disconnect();
+    ASSERT_FALSE(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    ASSERT_FALSE(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+
+    clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].connect(clientSignal);
+    ASSERT_TRUE(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    ASSERT_TRUE(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+}
+
+TEST_F(ConfigProtocolIntegrationTest, DisconnectAndConnectInputPortFromServer)
+{
+    ASSERT_TRUE(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    ASSERT_TRUE(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    const auto serverSignal = serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal();
+
+    serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].disconnect();
+
+    ASSERT_FALSE(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    ASSERT_FALSE(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+
+    serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].connect(serverSignal);
+    ASSERT_TRUE(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    ASSERT_TRUE(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+}
+
 TEST_F(ConfigProtocolIntegrationTest, RemoteGlobalIds)
 {
     const auto serverDeviceSerialized = serializeComponent(serverDevice);

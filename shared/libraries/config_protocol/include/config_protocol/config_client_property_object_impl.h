@@ -68,11 +68,10 @@ public:
 
 
 protected:
-    virtual void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args);
-
-private:
     bool deserializationComplete;
 
+    virtual void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args);
+private:
     BaseObjectPtr getValueFromServer(const StringPtr& propName, bool& setValue);
 
     void propertyValueChanged(const CoreEventArgsPtr& args);

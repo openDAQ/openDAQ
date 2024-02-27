@@ -201,7 +201,7 @@ As such, the Server can react to the Root Device changing.
 The openDAQ(TM) Server does not yet react to changes to the openDAQ(TM) structure it is advertising.
 As such, currently, any change such as adding / removing a Function Block will not be visible on the Server without restarting it.
 ====
-For information about Instance configuration, see the xref:howto_configure_instance.adoc[Configure Instance] guide. 
+For information about Instance configuration, see the xref:howto_guides:howto_configure_instance.adoc[Configure Instance] guide.
 
 
 // TODO: Add a link to openDAQ(TM) instance how-tos and background info once written.

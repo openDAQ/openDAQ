@@ -170,7 +170,7 @@ private:
             signal.sendPacket(dataPacket);
 
             // Check if we should change block size after sending packet
-            auto blockSizeChangeFoundAt = std::find(blockSizeChangesAfterPackets.begin(), blockSizeChangesAfterPackets.end(), i);
+            auto blockSizeChangeFoundAt = std::find(blockSizeChangesAfterPackets.begin(), blockSizeChangesAfterPackets.end(), static_cast<Int>(i));
             if (blockSizeChangeFoundAt != blockSizeChangesAfterPackets.end())
             {
                 // Change block size if appropriate
@@ -178,7 +178,7 @@ private:
             }
 
             // Check if we should change domain signal type after sending packet
-            auto domainSignalChangeFoundAt = std::find(outputDomainChangesAfterPackets.begin(), outputDomainChangesAfterPackets.end(), i);
+            auto domainSignalChangeFoundAt = std::find(outputDomainChangesAfterPackets.begin(), outputDomainChangesAfterPackets.end(), static_cast<Int>(i));
             if (domainSignalChangeFoundAt != outputDomainChangesAfterPackets.end())
             {
                 // Change domain signal type if appropriate

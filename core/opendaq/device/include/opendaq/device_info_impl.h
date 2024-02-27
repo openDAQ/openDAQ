@@ -36,7 +36,7 @@ class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, Interf
 public:
     using Super = GenericPropertyObjectImpl<TInterface, Interfaces...>;
 
-    explicit DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString);
+    explicit DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion = nullptr);
     DeviceInfoConfigImpl() = default;
 
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -62,6 +62,7 @@ public:
     ErrCode INTERFACE_FUNC getSystemType(IString** type) override;
     ErrCode INTERFACE_FUNC getSystemUuid(IString** uuid) override;
     ErrCode INTERFACE_FUNC getCustomInfoPropertyNames(IList** customInfoNames) override;
+    ErrCode INTERFACE_FUNC getSdkVersion(IString** version) override;
 
     ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC setConnectionString(IString* connectionString) override;

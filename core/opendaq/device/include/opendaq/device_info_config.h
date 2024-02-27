@@ -191,5 +191,6 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoConfig, IDeviceInfo)
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, DeviceInfoConfig, IDeviceInfoConfig, IString*, name, IString*, connectionString)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, DeviceInfoConfigWithCustomSdkVersion, IDeviceInfoConfig, IString*, name, IString*, connectionString, IString*, sdkVersion)
 
 END_NAMESPACE_OPENDAQ

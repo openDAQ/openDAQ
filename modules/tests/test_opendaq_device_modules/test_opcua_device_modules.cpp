@@ -437,14 +437,6 @@ TEST_F(OpcuaDeviceModulesTest, ProcedureProp)
     ASSERT_NO_THROW(proc());
 }
 
-TEST_F(OpcuaDeviceModulesTest, PackageVersion1)
-{
-    auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
-    auto info = client.getDevices()[0].getInfo();
-    ASSERT_EQ(info.getPropertyValue("OpenDaqPackageVersion"), OPENDAQ_PACKAGE_VERSION);
-}
-
 ////////
 // Tests defining future requirements
 ////////
@@ -497,6 +489,23 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlocksOnClient)
     auto client = CreateClientInstance();
 
     ASSERT_GT(client.getDevices()[0].getFunctionBlocks().getCount(), (SizeT) 0);
+}
+
+TEST_F(OpcuaDeviceModulesTest, SdkPackageVersion)
+{
+    auto instance = InstanceBuilder().setDefaultRootDeviceInfo(DeviceInfo("", "dev", "custom")).build();
+    instance.addServer("openDAQ OpcUa", nullptr);
+    auto client = CreateClientInstance();
+
+    ASSERT_EQ(client.getDevices()[0].getInfo().getSdkVersion(), "custom");
+}
+
+TEST_F(OpcuaDeviceModulesTest, SdkPackageVersion1)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto info = client.getDevices()[0].getInfo();
+    ASSERT_EQ(info.getPropertyValue("sdkVersion"), OPENDAQ_PACKAGE_VERSION);
 }
 
 // TODO: Add all examples of dynamic changes

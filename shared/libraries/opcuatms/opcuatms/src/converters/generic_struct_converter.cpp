@@ -166,7 +166,7 @@ OpcUaVariant VariantConverter<IStruct>::ToVariant(const StructPtr& object, const
             throw ConversionFailedException{};
         }
 
-        OpcUaVariant variant = VariantConverter<IBaseObject>::ToVariant(daqMember, memberType, context);            
+        OpcUaVariant variant = VariantConverter<IBaseObject>::ToVariant(daqMember, memberType, context);
         if (variant->type != memberType && !(variant->data == UA_EMPTY_ARRAY_SENTINEL && variant->arrayLength == 0))
             throw ConversionFailedException{};
 

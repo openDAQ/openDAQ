@@ -143,19 +143,19 @@ TEST_F(TmsFusionDevice, DISABLED_EnumTest)
     ASSERT_EQ(obj.getPropertyValue("ExcitationType"), Enumeration("ExcitationType", "ACVoltage", objManager));
 }
 
-//TEST_F(TmsFusionDevice, EnumTest2)
-//{
-//    const auto obj = PropertyObject(objManager, "FusionAmp");
-//    const auto logger = Logger();
-//    const auto context = Context(nullptr, logger, TypeManager(), nullptr);
-//    const auto serverProp =
-//        std::make_shared<TmsServerPropertyObject>(obj, server, context, std::make_shared<TmsServerContext>(context));
-//    const auto nodeId = serverProp->registerOpcUaNode();
-//    while(true){}
-//    //const auto clientProp = TmsClientPropertyObject(Context(nullptr, logger, TypeManager(), nullptr), clientContext, nodeId);
-//}
-
 TEST_F(TmsFusionDevice, EnumTest2)
+{
+    const auto obj = PropertyObject(objManager, "FusionAmp");
+    const auto logger = Logger();
+    const auto context = Context(nullptr, logger, TypeManager(), nullptr);
+    const auto serverProp =
+        std::make_shared<TmsServerPropertyObject>(obj, server, context, std::make_shared<TmsServerContext>(context));
+    const auto nodeId = serverProp->registerOpcUaNode();
+    while(true){}
+    //const auto clientProp = TmsClientPropertyObject(Context(nullptr, logger, TypeManager(), nullptr), clientContext, nodeId);
+}
+
+TEST_F(TmsFusionDevice, DISABLED_EnumTest3)
 {
     const auto obj = PropertyObject(objManager, "FusionAmp");
     auto [serverObj, fusionAmp] = registerPropertyObject(obj);

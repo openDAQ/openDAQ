@@ -251,8 +251,11 @@ void ScalingFbImpl::createSignals()
 
 void ScalingFbImpl::initStatuses()
 {
-    auto inputStatusType = EnumerationType("InputStatusType", List<IString>(InputDisconnected, InputConnected, InputInvalid));
-    this->context.getTypeManager().addType(inputStatusType);
+    if (!this->context.getTypeManager().hasType("InputStatusType"))
+    {
+        auto inputStatusType = EnumerationType("InputStatusType", List<IString>(InputDisconnected, InputConnected, InputInvalid));
+        this->context.getTypeManager().addType(inputStatusType);
+    }
 
     auto thisStatusContainer = this->statusContainer.asPtr<IComponentStatusContainerPrivate>();
 

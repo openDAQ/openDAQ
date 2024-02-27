@@ -703,6 +703,7 @@ TEST_F(RefDeviceModuleTest, ConfigureDeviceFromOptions)
         }
     }
     )";
+    CreateConfigFile(options);
 
     auto module = CreateModule();
 

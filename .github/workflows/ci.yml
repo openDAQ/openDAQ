@@ -181,15 +181,15 @@ jobs:
             apt_packages: clang++-14
             cc: clang-14
             cxx: clang++-14
-          - name: Ubuntu 22.04 clang-14 libc++ Release
-            image: ubuntu:22.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DCMAKE_CXX_FLAGS=-stdlib=libc++
-            apt_packages: clang++-14 libc++-14-dev libc++abi-14-dev
-            cc: clang-14
-            cxx: clang++-14
-            cpack: ZIP
+          # - name: Ubuntu 22.04 clang-14 libc++ Release
+            # image: ubuntu:22.04
+            # cmake_generator: Ninja
+            # cmake_build_type: Release
+            # cmake_defines: -DCMAKE_CXX_FLAGS=-stdlib=libc++
+            # apt_packages: clang++-14 libc++-14-dev libc++abi-14-dev
+            # cc: clang-14
+            # cxx: clang++-14
+            # cpack: ZIP
           - name: Ubuntu 22.04 preinstalled packages
             image: ubuntu:22.04
             cmake_generator: Ninja

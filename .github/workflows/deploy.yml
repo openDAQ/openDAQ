@@ -17,7 +17,7 @@ env:
   s3sdk_path: releases/${{ github.ref_name }}/SDK
   s3wheels_linux_x86_64_path: releases/${{ github.ref_name }}/Python Wheels (Linux x86_64)
   s3wheels_win_amd64_path: releases/${{ github.ref_name }}/Python Wheels (Windows amd64)
-  s3dotnet_path: releases/${{ github.ref_name }}/.NET Bindings
+  s3dotnet_path: releases/${{ github.ref_name }}/dotNET Bindings
   s3docpath: releases/${{ github.ref_name }}/Specifications and documentation
   s3simulatorpath: releases/${{ github.ref_name }}/Simulator
   vm_name: device_simulator

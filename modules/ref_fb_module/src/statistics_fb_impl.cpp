@@ -399,15 +399,19 @@ void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
         auto domainBuf = static_cast<Int*>(domainPacket.getData());
 
         size_t i = 0;
+        size_t dropToWhere = 0;
         while (i < packet.getSampleCount())
         {
             // Go to where trigger state is true or end of packet
             while (!triggerHistory.getTriggerStateFromDomainValue(domainBuf[i]) && i < packet.getSampleCount())
             {
-                // Drop trigger history
-                triggerHistory.dropHistoryTo(domainBuf[i]);
+                dropToWhere = i;
                 i++;
             }
+
+            // Drop trigger history
+            if (!triggerHistory.getTriggerStateFromDomainValue(domainBuf[dropToWhere]))
+                triggerHistory.dropHistoryTo(domainBuf[dropToWhere]);
 
             // Check if we reached the end of packet
             if (i >= packet.getSampleCount())

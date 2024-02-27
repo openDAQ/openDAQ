@@ -28,7 +28,7 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
         packetReadyNotification = PacketReadyNotification::Scheduler;
 
     createAndAddInputPort("input", packetReadyNotification);
-    triggerOutput = createAndAddInputPort("trigger", packetReadyNotification);
+    triggerInput = createAndAddInputPort("trigger", packetReadyNotification);
 }
 
 FunctionBlockTypePtr StatisticsFbImpl::CreateType()
@@ -86,14 +86,14 @@ void StatisticsFbImpl::triggerModeChanged()
             // Use trigger, output signals depending on trigger
             nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("ref_fb_module_trigger", "nfbt", triggerConfig);
         }
-        // Connect trigger output
-        triggerOutput.connect(nestedTriggerFunctionBlock.getSignals()[0]);
+        // Connect trigger
+        triggerInput.connect(nestedTriggerFunctionBlock.getSignals()[0]);
     }
     else
     {
         std::scoped_lock lock(sync);
         // Don't use trigger, output signals
-        triggerOutput.disconnect();
+        triggerInput.disconnect();
         removeNestedFunctionBlock(nestedTriggerFunctionBlock);
     }
 }
@@ -640,7 +640,7 @@ void StatisticsFbImpl::calculate(
 
 void StatisticsFbImpl::onPacketReceived(const InputPortPtr& port)
 {
-    if (port == triggerOutput)
+    if (port == triggerInput)
         processTriggerPackets(port);
     else
         processInputPackets(port);

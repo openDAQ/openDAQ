@@ -567,8 +567,7 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     auto server = CreateServerInstance();
     
     CreateConfigFile(options);
+    Finally final([] { RemoveConfigFile(); });
 
     ASSERT_NO_THROW(CreateClientInstance());
-
-    RemoveConfigFile();
 }

@@ -143,20 +143,22 @@ ErrCode ContextImpl::getModuleOptions(IString* moduleId, IDict** options)
     OPENDAQ_PARAM_NOT_NULL(moduleId);
     OPENDAQ_PARAM_NOT_NULL(options);
 
-    if (this->options.assigned())
+    if (this->options.assigned() && this->options.hasKey("modules"))
     {
         DictPtr<IString, IBaseObject> modules = this->options.get("modules");
         if (modules.assigned())
         {
             std::string name = StringPtr::Borrow(moduleId).toStdString();
             std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-            DictPtr<IString, IBaseObject> moduleOptions = modules.get(name);
-            if (moduleOptions.assigned())
+            if (modules.hasKey(name))
             {
-                *options = moduleOptions.addRefAndReturn();
-                return OPENDAQ_SUCCESS;
+                DictPtr<IString, IBaseObject> moduleOptions = modules.get(name);
+                if (moduleOptions.assigned())
+                {
+                    *options = moduleOptions.addRefAndReturn();
+                    return OPENDAQ_SUCCESS;
+                }
             }
-
         }
     }
 

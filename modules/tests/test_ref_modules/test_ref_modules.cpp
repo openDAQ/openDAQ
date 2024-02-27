@@ -7,6 +7,7 @@
 #include <testutils/testutils.h>
 #include <opendaq/search_filter_factory.h>
 #include <thread>
+#include <fstream>
 #include "classifier_test_helper.h"
 #include "testutils/memcheck_listener.h"
 using RefModulesTest = testing::Test;
@@ -1038,4 +1039,45 @@ TEST_F(RefModulesTest, ScalingFbStatuses)
     scalingFb.getInputPorts()[0].connect(signal);
     ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Invalid");
     scalingFb.getOnComponentCoreEvent() -= invalidStatusTest;
+}
+
+static void CreateConfigFile(const std::string& data)
+{
+    std::ofstream file;
+    file.open("opendaq-config.json");
+    if (!file.is_open()) 
+        throw std::runtime_error("can not open file for writing");
+
+    file << data;
+    file.close();
+}
+
+static void RemoveConfigFile()
+{
+    remove("opendaq-config.json");
+}
+
+TEST_F(RefModulesTest, ConfigureDeviceFromOptions)
+{
+    std::string options = R"(
+    {
+    "Modules": {
+        "RefDevice": {
+            "NumberOfChannels": 5,
+            "EnableCANChannel": false
+            }
+        }
+    }
+    )";
+    CreateConfigFile(options);
+    Finally final([] { RemoveConfigFile(); });
+
+    const auto instance = Instance();
+    const auto device = instance.addDevice("daqref://device1");
+
+    Int numChannels = device.getPropertyValue("NumberOfChannels");
+    ASSERT_EQ(numChannels, 5);
+
+    Bool canEnabled = device.getPropertyValue("EnableCANChannel");
+    ASSERT_EQ(canEnabled, false);
 }

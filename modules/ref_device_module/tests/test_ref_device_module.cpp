@@ -17,7 +17,6 @@
 #include <opendaq/event_packet_params.h>
 
 #include <thread>
-#include <fstream>
 
 using RefDeviceModuleTest = testing::Test;
 using namespace daq;
@@ -673,47 +672,4 @@ TEST_F(RefDeviceModuleTest, ReadCANChannelWithStreamReader)
         ASSERT_EQ(canData[i].arbId, (uint32_t) 12);
         ASSERT_EQ(canData[i].length, (uint8_t) 8);
     }
-}
-
-static void CreateConfigFile(const std::string& data)
-{
-    std::ofstream file;
-    file.open("opendaq-config.json");
-    if (!file.is_open()) 
-        throw std::runtime_error("can not open file for writing");
-
-    file << data;
-    file.close();
-}
-
-static void RemoveConfigFile()
-{
-    remove("opendaq-config.json");
-}
-
-TEST_F(RefDeviceModuleTest, ConfigureDeviceFromOptions)
-{
-    std::string options = R"(
-    {
-    "Modules": {
-        "RefDevice": {
-            "NumberOfChannels": 0,
-            "EnableCANChannel": true
-            }
-        }
-    }
-    )";
-    CreateConfigFile(options);
-
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
-
-    Int numChannels = device.getPropertyValue("NumberOfChannels");
-    ASSERT_EQ(numChannels, 0);
-
-    Bool canEnabled = device.getPropertyValue("EnableCANChannel");
-    ASSERT_EQ(canEnabled, true);
-
-    RemoveConfigFile();
 }

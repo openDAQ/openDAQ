@@ -10,6 +10,8 @@
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
   <PropertyGroup>
+    <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">2.1.0</OPENDAQ_PACKAGE_VERSION>
+    <_BuildNumber>13</_BuildNumber>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>x64</PlatformTarget>
     <Title>openDAQ SDK .Net-Bindings</Title>
@@ -17,13 +19,17 @@
     <Description>.Net bindings to the openDAQ SDK (open data-acquisition source-development-kit)</Description>
     <Company>Blueberry d.o.o., Slovenia</Company>
     <Copyright>2024 by Blueberry d.o.o.</Copyright>
-    <Version>2.0.0.12</Version>
-    <AssemblyVersion>2.0.0.12</AssemblyVersion>
-    <FileVersion>2.0.0.12</FileVersion>
-    <!--<InformationalVersion>2.0.0.12_982b0be1</InformationalVersion>-->
+    <!--<Version>2.0.0.12</Version>-->
+    <VersionPrefix>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</VersionPrefix>
+    <!-- the <VersionSuffix> is normally set externally -->
+    <VersionSuffix Condition="'$(VersionSuffix)' == ''">beta</VersionSuffix>
+    <!--<VersionSuffix Condition="'$(SHORT_SHA)' != ''">beta-$(SHORT_SHA)</VersionSuffix>-->
+    <!--<AssemblyVersion>2.0.0.12</AssemblyVersion>-->
+    <AssemblyVersion>9.9.9.9</AssemblyVersion>
+    <FileVersion>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</FileVersion>
     <PackageProjectUrl>https://opendaq.com/</PackageProjectUrl>
     <PackageTags>open;daq;sdk;bindings</PackageTags>
-    <GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">True</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">True</GeneratePackageOnBuild>
     <PackageIcon>openDAQ-logo-orange-blue-rgb64x18.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -45,10 +51,10 @@
     <_RuntimeIdentifier Condition="'$(_IsLinunx)' == 'true'">linux-$(Platform)</_RuntimeIdentifier>
     <_PackageRuntimesPath>runtimes\$(_RuntimeIdentifier)\native</_PackageRuntimesPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Platform)'=='x64'">
+  <PropertyGroup Condition="'$(Platform)' == 'x64'">
     <DefineConstants>$(DefineConstants);_X64</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Platform)'=='x86'">
+  <PropertyGroup Condition="'$(Platform)' == 'x86'">
     <DefineConstants>$(DefineConstants);_X86</DefineConstants>
   </PropertyGroup>
   <PropertyGroup>
@@ -110,6 +116,8 @@
 <!-- -->
   <Target Name="MessageBeforeBuild" BeforeTargets="BeforeBuild">
     <Message Importance="High" Text="+++++++++++++++++++++++ Building $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+    <Message Importance="High" Text="_SdkOutputPath                 = '$(_SdkOutputPath)'" />
+    <Message Importance="High" Text="CMAKE_RUNTIME_OUTPUT_DIRECTORY = '$(CMAKE_RUNTIME_OUTPUT_DIRECTORY)'" />
   </Target>
   <Target Name="MessageAfterBuild" BeforeTargets="AfterBuild">
     <Message Importance="High" Text="+++++++++++++++++++++++ Build of $(MSBuildProjectFile) finished ++++++++++++++++++++++++++++++++++++" />
@@ -128,6 +136,8 @@
   </Target>
   <Target Name="MessageBeforePack" BeforeTargets="Pack">
     <Message Importance="High" Text="+++++++++++++++++++++++ Packing $(MSBuildProjectFile) ++++++++++++++++++++++++++++++++++++" />
+    <Message Importance="High" Text="_SdkOutputPath                 = '$(_SdkOutputPath)'" />
+    <Message Importance="High" Text="CMAKE_RUNTIME_OUTPUT_DIRECTORY = '$(CMAKE_RUNTIME_OUTPUT_DIRECTORY)'" />
   </Target>
 <!-- -->
 </Project>

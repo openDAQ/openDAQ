@@ -59,12 +59,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Get short SHA
+        if: github.ref == 'refs/heads/main'
+        id: short-sha
+        uses: benjlevesque/short-sha@v2.2
+
       - name: Configure and build Wheels
         if: matrix.cmake_generator_platform != 'Win32'
         shell: pwsh
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
+          $env:SHORT_SHA = "${{ steps.short-sha.outputs.sha }}"
           mkdir build
           cd build
           mkdir wheels
@@ -112,11 +118,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Get short SHA
-        if: github.ref == 'refs/heads/main'
-        id: short-sha
-        uses: benjlevesque/short-sha@v2.2
 
       - name: Rename package
         shell: pwsh

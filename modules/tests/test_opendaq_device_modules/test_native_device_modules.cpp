@@ -534,3 +534,13 @@ TEST_F(NativeDeviceModulesTest, RemoveDevice)
         ASSERT_TRUE(signal.isRemoved());
     }
 }
+
+TEST_F(NativeDeviceModulesTest, SdkPackageVersion)
+{
+    SKIP_TEST_MAC_CI;
+    auto instance = InstanceBuilder().setDefaultRootDeviceInfo(DeviceInfo("", "dev", "custom")).build();
+    instance.addServer("openDAQ Native Streaming", nullptr);
+    auto client = CreateClientInstance();
+
+    ASSERT_EQ(client.getDevices()[0].getInfo().getSdkVersion(),  "custom");
+}

@@ -212,6 +212,9 @@ protected:
 
     virtual PropertyObjectPtr getPropertyObjectParent();
 
+    // Adds the value to the local list of values (`propValues`)
+    bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value);
+
 private:
 
     StringPtr className;
@@ -234,9 +237,6 @@ private:
     // Parses brackets, if the property is a list
     ErrCode readLocalValue(const StringPtr& name, BaseObjectPtr& value) const;
     PropertyNameInfo getPropertyNameInfo(const StringPtr& name) const;
-
-    // Adds the value to the local list of values (`propValues`)
-    bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value);
 
     // Checks if the value is a container type, or base `IPropertyObject`. Only such values can be set in `setProperty`
     ErrCode checkContainerType(const PropertyPtr& prop, const BaseObjectPtr& value);

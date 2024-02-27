@@ -984,21 +984,21 @@ TEST_F(StructStreamReaderTest, ReadStructData)
 
     ASSERT_EQ(count, 3);
 
-    ASSERT_EQ(dataRead[0].arbId, 12);
-    ASSERT_EQ(dataRead[0].length, 2);
-    ASSERT_EQ(dataRead[0].data[0], 1);
-    ASSERT_EQ(dataRead[0].data[1], 2);
-    ASSERT_EQ(dataRead[1].arbId, 15);
-    ASSERT_EQ(dataRead[1].length, 4);
-    ASSERT_EQ(dataRead[1].data[0], 5);
-    ASSERT_EQ(dataRead[1].data[1], 6);
-    ASSERT_EQ(dataRead[1].data[2], 7);
-    ASSERT_EQ(dataRead[1].data[3], 8);
-    ASSERT_EQ(dataRead[2].arbId, 14);
-    ASSERT_EQ(dataRead[2].length, 3);
-    ASSERT_EQ(dataRead[2].data[0], 10);
-    ASSERT_EQ(dataRead[2].data[1], 11);
-    ASSERT_EQ(dataRead[2].data[2], 12);
+    ASSERT_EQ(dataRead[0].arbId, (uint32_t)12);
+    ASSERT_EQ(dataRead[0].length, (uint8_t)2);
+    ASSERT_EQ(dataRead[0].data[0], (uint8_t)1);
+    ASSERT_EQ(dataRead[0].data[1], (uint8_t)2);
+    ASSERT_EQ(dataRead[1].arbId, (uint32_t)15);
+    ASSERT_EQ(dataRead[1].length, (uint8_t)4);
+    ASSERT_EQ(dataRead[1].data[0], (uint8_t)5);
+    ASSERT_EQ(dataRead[1].data[1], (uint8_t)6);
+    ASSERT_EQ(dataRead[1].data[2], (uint8_t)7);
+    ASSERT_EQ(dataRead[1].data[3], (uint8_t)8);
+    ASSERT_EQ(dataRead[2].arbId, (uint32_t)14);
+    ASSERT_EQ(dataRead[2].length, (uint8_t)3);
+    ASSERT_EQ(dataRead[2].data[0], (uint8_t)10);
+    ASSERT_EQ(dataRead[2].data[1], (uint8_t)11);
+    ASSERT_EQ(dataRead[2].data[2], (uint8_t)12);
 }
 
 TEST_F(StructStreamReaderTest, ReadStructDataInvalid)
@@ -1065,22 +1065,22 @@ TEST_F(StructStreamReaderTest, ReadStructDataWithDomain)
 
     ASSERT_EQ(count, 3);
 
-    ASSERT_EQ(dataRead[0].arbId, 12);
-    ASSERT_EQ(dataRead[0].length, 2);
-    ASSERT_EQ(dataRead[0].data[0], 1);
-    ASSERT_EQ(dataRead[0].data[1], 2);
-    ASSERT_EQ(timeRead[0], 0);
-    ASSERT_EQ(dataRead[1].arbId, 15);
-    ASSERT_EQ(dataRead[1].length, 4);
-    ASSERT_EQ(dataRead[1].data[0], 5);
-    ASSERT_EQ(dataRead[1].data[1], 6);
-    ASSERT_EQ(dataRead[1].data[2], 7);
-    ASSERT_EQ(dataRead[1].data[3], 8);
-    ASSERT_EQ(timeRead[1], 3);
-    ASSERT_EQ(dataRead[2].arbId, 14);
-    ASSERT_EQ(dataRead[2].length, 3);
-    ASSERT_EQ(dataRead[2].data[0], 10);
-    ASSERT_EQ(dataRead[2].data[1], 11);
-    ASSERT_EQ(dataRead[2].data[2], 12);
-    ASSERT_EQ(timeRead[2], 5);
+    ASSERT_EQ(dataRead[0].arbId, (uint32_t)12);
+    ASSERT_EQ(dataRead[0].length, (uint8_t)2);
+    ASSERT_EQ(dataRead[0].data[0], (uint8_t)1);
+    ASSERT_EQ(dataRead[0].data[1], (uint8_t)2);
+    ASSERT_EQ(timeRead[0], (uint64_t)0);
+    ASSERT_EQ(dataRead[1].arbId, (uint32_t)15);
+    ASSERT_EQ(dataRead[1].length, (uint8_t)4);
+    ASSERT_EQ(dataRead[1].data[0], (uint8_t)5);
+    ASSERT_EQ(dataRead[1].data[1], (uint8_t)6);
+    ASSERT_EQ(dataRead[1].data[2], (uint8_t)7);
+    ASSERT_EQ(dataRead[1].data[3], (uint8_t)8);
+    ASSERT_EQ(timeRead[1], (uint64_t)3);
+    ASSERT_EQ(dataRead[2].arbId, (uint32_t)14);
+    ASSERT_EQ(dataRead[2].length, (uint8_t)3);
+    ASSERT_EQ(dataRead[2].data[0], (uint8_t)10);
+    ASSERT_EQ(dataRead[2].data[1], (uint8_t)11);
+    ASSERT_EQ(dataRead[2].data[2], (uint8_t)12);
+    ASSERT_EQ(timeRead[2], (uint64_t)5);
 }

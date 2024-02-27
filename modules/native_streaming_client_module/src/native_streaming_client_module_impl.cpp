@@ -110,6 +110,57 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     return device;
 }
 
+void NativeStreamingClientModule::populateConfigFromContext(PropertyObjectPtr config)
+{
+    auto options = context.getModuleOptions(id);
+    if (options.getCount() == 0)
+        return;
+
+    PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
+
+    if (options.hasKey("heartbeatenabled"))
+    {
+        auto value = options.get("heartbeatenabled");
+        if (value.getCoreType() == CoreType::ctBool)
+            transportLayerConfig.setPropertyValue("HeartbeatEnabled", value);
+    }
+
+    if (options.hasKey("heartbeatperiod"))
+    {
+        auto value = options.get("heartbeatperiod");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("HeartbeatPeriod", value);
+    }
+
+    if (options.hasKey("heartbeattimeout"))
+    {
+        auto value = options.get("heartbeattimeout");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("HeartbeatTimeout", value);
+    }
+
+    if (options.hasKey("connectiontimeout"))
+    {
+        auto value = options.get("connectiontimeout");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("ConnectionTimeout", value);
+    }
+
+    if (options.hasKey("streaminginittimeout"))
+    {
+        auto value = options.get("streaminginittimeout");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("StreamingInitTimeout", value);
+    }
+
+    if (options.hasKey("reconnectionperiod"))
+    {
+        auto value = options.get("reconnectionperiod");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("ReconnectionPeriod", value);
+    }
+}
+
 DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
                                                       const ComponentPtr& parent,
                                                       const PropertyObjectPtr& config)
@@ -123,6 +174,8 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
 
     if (!onAcceptsConnectionParameters(connectionString, deviceConfig))
         throw InvalidParameterException();
+
+    populateConfigFromContext(deviceConfig);
 
     if (!context.assigned())
         throw InvalidParameterException("Context is not available.");

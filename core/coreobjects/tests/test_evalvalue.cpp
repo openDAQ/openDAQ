@@ -118,6 +118,18 @@ TEST_F(EvalValueTest, TestAssociativity)
 
     Bool b = EvalValue("3 == -3 == False");
     ASSERT_EQ(b, True);
+    
+    b = EvalValue("1 > 0 && 2 > 1");
+    ASSERT_EQ(b, True);
+
+    b = EvalValue("1 > 2 && 2 > 1");
+    ASSERT_EQ(b, False);
+
+    b = EvalValue("1 > 2 || 2 > 1");
+    ASSERT_EQ(b, True);
+
+    b = EvalValue("1 > 2 || 2 > 3");
+    ASSERT_EQ(b, False);
 }
 
 TEST_F(EvalValueTest, IntResultConversion)

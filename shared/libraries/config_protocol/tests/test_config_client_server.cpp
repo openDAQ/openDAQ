@@ -363,3 +363,28 @@ TEST_F(ConfigProtocolTest, BeginEndUpdate)
     client->getClientComm()->sendComponentCommand("//root", "EndUpdate");
     ASSERT_EQ(device->getPropertyValue("PropName"), "val");
 }
+
+TEST_F(ConfigProtocolTest, SetNameAndDescriptionAttribute)
+{
+    StringPtr deviceName;
+    StringPtr deviceDescription;
+
+    EXPECT_CALL(device.mock(), setName(_)).WillOnce([&](IString* name)
+    {
+        deviceName = name;
+        return OPENDAQ_SUCCESS;
+    });
+
+    EXPECT_CALL(device.mock(), setDescription(_))
+        .WillOnce(
+            [&](IString* description)
+            {
+                deviceDescription = description;
+                return OPENDAQ_SUCCESS;
+            });
+
+    client->getClientComm()->setAttributeValue("//root", "Name", "devName");
+    ASSERT_EQ(deviceName, "devName");
+    client->getClientComm()->setAttributeValue("//root", "Description", "devDescription");
+    ASSERT_EQ(deviceDescription, "devDescription");
+}

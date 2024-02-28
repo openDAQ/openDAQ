@@ -134,6 +134,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("CallProperty", &ConfigServerComponent::callProperty);
     addHandler<ComponentPtr>("BeginUpdate", &ConfigServerComponent::beginUpdate);
     addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
+    addHandler<ComponentPtr>("SetAttributeValue", &ConfigServerComponent::setAttributeValue);
 
     addHandler<DevicePtr>("GetInfo", &ConfigServerDevice::getInfo);
     addHandler<DevicePtr>("GetAvailableFunctionBlockTypes", &ConfigServerDevice::getAvailableFunctionBlockTypes);

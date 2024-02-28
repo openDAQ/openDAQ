@@ -1186,7 +1186,7 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");
     this->template deserializeDefaultFolder<IDevice>(serializedObject, context, factoryCallback, devices, "Dev");
 
-    const std::set<std::string> ignoredKeys{"__type", "deviceInfo", "deviceDomain", "deviceUnit", "deviceResolution"};
+    const std::set<std::string> ignoredKeys{"__type", "deviceInfo", "deviceDomain", "deviceUnit", "deviceResolution", "properties", "propValues"};
 
     const auto keys = serializedObject.getKeys();
     for (const auto& key : serializedObject.getKeys())

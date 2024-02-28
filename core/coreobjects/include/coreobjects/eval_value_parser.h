@@ -36,8 +36,8 @@ class EvalValueParser
     enum OperatorPrecedence
     {
         MinPrecedence = 0,
-        Equality,
         Logic,
+        Equality,
         Term,
         Factor,
         Prefix,
@@ -59,8 +59,8 @@ public:
     EvalValueParser(const std::vector<EvalValueToken>& aTokens, ParseParams* aParams);
 
     // [precedences]
-    //   equality: "==" | "!=" | "<" | "<=" | ">" | ">="
     //   logic:    "||" | "&&"
+    //   equality: "==" | "!=" | "<" | "<=" | ">" | ">="
     //   term:     "+" | "-"
     //   factor:   "*" | "/"
     //   prefix:   "!" | "-" (unary)
@@ -68,7 +68,7 @@ public:
     // [grammar]
     // parse      : expression
     // expression : infix
-    // infix      : prefix ( ( "==" | "!=" | "<" | "<=" | ">" | ">="  |  "||" | "&&"  |  "+" | "-"  |  "*" | "/" ) prefix )*
+    // infix      : prefix ( ("||" | "&&" | "==" | "!=" | "<" | "<=" | ">" | ">=" | "+" | "-" | "*" | "/" ) prefix )*
     // prefix     : FLOATVALUE
     //            | INTVALUE
     //            | BOOLVALUE

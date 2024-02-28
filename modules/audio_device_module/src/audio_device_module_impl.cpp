@@ -15,9 +15,9 @@ BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
 AudioDeviceModule::AudioDeviceModule(const ContextPtr& context)
     : Module("Audio device module",
-            "AudioDevice",
             daq::VersionInfo(AUDIO_DEVICE_MODULE_MAJOR_VERSION, AUDIO_DEVICE_MODULE_MINOR_VERSION, AUDIO_DEVICE_MODULE_PATCH_VERSION),
-            context)
+            context,
+            "AudioDevice")
     , maContext(std::make_shared<MiniaudioContext>())
     , deviceIndex(0)
 {

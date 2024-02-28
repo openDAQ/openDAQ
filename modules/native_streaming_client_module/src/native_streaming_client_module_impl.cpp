@@ -20,11 +20,11 @@ using namespace config_protocol;
 
 NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     : Module("openDAQ native streaming client module",
-            "NativeStreamingClient",
             VersionInfo(NATIVE_STREAM_CL_MODULE_MAJOR_VERSION,
                         NATIVE_STREAM_CL_MODULE_MINOR_VERSION,
                         NATIVE_STREAM_CL_MODULE_PATCH_VERSION),
-            std::move(context))
+            std::move(context),
+            "NativeStreamingClient")
     , deviceIndex(0)
     , discoveryClient(
         {

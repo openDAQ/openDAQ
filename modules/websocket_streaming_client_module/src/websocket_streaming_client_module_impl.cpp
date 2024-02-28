@@ -20,9 +20,9 @@ using namespace daq::websocket_streaming;
 
 WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr context)
     : Module("openDAQ websocket client module",
-            "WebsocketStreamingClient",
             daq::VersionInfo(WS_STREAM_CL_MODULE_MAJOR_VERSION, WS_STREAM_CL_MODULE_MINOR_VERSION, WS_STREAM_CL_MODULE_PATCH_VERSION),
-            std::move(context))
+            std::move(context),
+            "WebsocketStreamingClient")
     , deviceIndex(0)
     , discoveryClient(
         {

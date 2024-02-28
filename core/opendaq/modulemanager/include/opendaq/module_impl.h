@@ -393,9 +393,9 @@ protected:
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
 
-    Module(StringPtr name, StringPtr id, VersionInfoPtr version, ContextPtr context)
+    Module(StringPtr name, VersionInfoPtr version, ContextPtr context, StringPtr id = nullptr)
         : name(std::move(name))
-        , id (id)
+        , id (std::move(id))
         , version(std::move(version))
         , context(std::move(context))
         , logger(this->context.getLogger())

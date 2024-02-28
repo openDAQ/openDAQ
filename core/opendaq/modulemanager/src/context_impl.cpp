@@ -163,7 +163,7 @@ ErrCode ContextImpl::getModuleOptions(IString* moduleId, IDict** options)
     }
 
     *options = Dict<IString, IBaseObject>().detach();
-    return OPENDAQ_IGNORED;
+    return OPENDAQ_SUCCESS;
 }
 
 void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)

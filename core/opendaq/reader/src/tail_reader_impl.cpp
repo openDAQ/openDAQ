@@ -163,13 +163,8 @@ ErrCode TailReaderImpl::readData(TailReaderInfo& info, IReaderStatus** status)
             if (status)
                 *status = ReaderStatus(packet, !invalid).detach();
 
-            if (invalid)
-            {
-                it = packets.erase(packets.begin(), it + 1);
-                cachedSamples -= readCachedSamples;
-            }
-            else 
-                it = packets.erase(it);
+            it = packets.erase(packets.begin(), it + 1);
+            cachedSamples -= readCachedSamples;
             return errCode;
         } 
         else

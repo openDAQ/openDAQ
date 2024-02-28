@@ -120,9 +120,14 @@ TEST_F(NativeDeviceModulesTest, DeviceInfo)
     auto client = CreateClientInstance();
 
     auto info = client.getDevices()[0].getInfo();
+    auto subDeviceInfo = client.getDevices()[0].getDevices()[0].getInfo();
 
     ASSERT_TRUE(info.assigned());
     ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
+    ASSERT_EQ(subDeviceInfo.getName(), "Device 0");
+    ASSERT_EQ(subDeviceInfo.getConnectionString(), "daqref://device0");
+    ASSERT_EQ(subDeviceInfo.getModel(), "Reference Device");
+    ASSERT_EQ(subDeviceInfo.getSerialNumber(), "dev_ser_0");
 }
 
 TEST_F(NativeDeviceModulesTest, ChannelProps)

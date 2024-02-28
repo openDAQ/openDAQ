@@ -83,9 +83,6 @@ public:
                               const StringPtr& localId);
     ~NativeDeviceImpl() override;
 
-    // IDevice
-    ErrCode INTERFACE_FUNC getInfo(IDeviceInfo** info) override;
-
     // INativeDevicePrivate
     void INTERFACE_FUNC attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper) override;
     void INTERFACE_FUNC setConnectionString(const StringPtr& connectionString) override;
@@ -94,8 +91,8 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 private:
-    DeviceInfoConfigPtr deviceInfo;
     std::unique_ptr<NativeDeviceHelper> deviceHelper;
+    bool deviceInfoSet;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

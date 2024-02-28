@@ -69,7 +69,10 @@ If the data-reader determines that the read operations can't be performed for a 
 
 When re-using an existing Reader the initialization procedure is the same.
 The only difference is that the Input Port with its Connection is reused and event listening reassigned to the new Reader. After this a check is made if the packet on the top of the connection queue is a Data Descriptor Changed event otherwise it is read directly from the Signal. The old Reader is _invalidated_ after re-use if it wasn't already.
-
+[NOTE]
+====
+In typical scenarios, Readers with input ports are frequently employed in modules where ports are attached to the openDAQ component tree within an "Input ports" folder. This is especially common in function blocks or channels.
+====
 [#reader_invalidation]
 === Reader invalidation and reuse
 Once the Reader falls into *__invalid__* state, it can't be used to read data anymore and all attempts will result in an `OPENDAQ_ERR_INVALID_DATA` error code or the associated exception.
@@ -137,8 +140,9 @@ No additional processing is done except to advance the reading position if requi
 
 [#handling_on_data_available]
 === Handling Data Available
-When the Reader is notified about new packets, each packet follows its own logic to determine whether it should trigger the `onDataAvailable` function or not. Currently, the Stream reader, Packet reader, and Multi reader trigger the callback with any packet. The Tail reader triggers the callback if the total number of samples is not less than the history size. The Block reader will trigger the callback if there is an available amount of samples for one block. 
-The callback has no input arguments. Reader accepts callback of type IProcedure which has no input arguments and returns nothing.
+When the Reader is notified about new packets, each packet follows its own logic to determine whether it should trigger the `onDataAvailable` function or not. Currently, the Stream reader, Packet reader, and Multi reader trigger the callback when any packet arrives at the Reader's input port. 
+The Tail reader triggers the callback if the total number of samples is greater than the history size. 
+The Block reader will trigger the callback if there is enough available samples for one block.
 
 .The user callback signature
 [source,cpp]
@@ -153,7 +157,45 @@ Whenever the xref:background_info:signals.adoc[Signal] information changes, it s
 This event contains new xref:background_info:signals.adoc[Data Descriptor]s for both value and domain data.
 The processing of event packets in our system occurs dynamically through the reader, not immediately upon reception, but rather during the reading process.
 
-To illustrate, consider a scenario with a queue containing 10 packets. One of these is an event packet positioned in the middle, while the remaining packets are data packets, each containing two samples. In a user scenario where reading up to 10 packets is requested, the event packet will not be included in the processing list. However, if the user attempts to read more than 10 samples, the reader will return 10 samples, update the types of internal readers, and provide a reading status. This status will include information about the event packet, and whether the reader can convert new data or not.
+To illustrate, consider a scenario with a queue containing 10 packets. One of these is an event packet positioned in the middle, while the remaining packets are data packets, each containing two samples. In a user scenario where reading up to 5 packets is requested, the event packet will not be included in the processing list. However, if the user attempts to read more than 5 samples, the reader will return 5 samples, update the types of internal readers, and provide a reading status. This status will include information about the event packet, and whether the reader can convert new data or not.
+[source,cpp]
+----
+auto reader = StreamReader<double, Int>(signal);
+
+// Signal produces 5 samples { 1.0, 2.0, 3.0, 4.0, 5.0 }
+auto packet1 = createPacketForSignal(signal, 5);
+auto data1 = static_cast<double*>(packet1.getData());
+data1[0] = 1.0;
+data1[1] = 2.0;
+data1[2] = 3.0;
+data1[3] = 4.0;
+data1[4] = 5.0;
+
+signal.sendPacket(packet1);
+
+// change data type
+signal.setDescriptor(setupDescriptor(SampleType::Int64));
+
+auto packet2 = createPacketForSignal(signal, 5);
+auto data2 = static_cast<Int*>(packet2.getData());
+data2[0] = 6;
+data2[1] = 7;
+data2[2] = 8;
+data2[3] = 9;
+data2[4] = 10;
+
+signal.sendPacket(packet1);
+
+SizeT count{10};
+double values[10]{};
+ReaderStatusPtr status = reader.read(values, &count);  
+// count = 5, values = { 1.0, 2.0, 3.0, 4.0, 5.0 }
+// status.getReadStatus() == ReadStatus::Event
+
+// reading remaining data
+count = 5;
+reader.read(&values[5], &count);  
+----
 
 [NOTE]
 ====

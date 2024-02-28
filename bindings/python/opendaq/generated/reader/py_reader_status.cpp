@@ -39,13 +39,6 @@ void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq:
 
     m.def("ReaderStatus", &daq::ReaderStatus_Create);
 
-    cls.def_property_readonly("ok",
-        [](daq::IReaderStatus *object)
-        {
-            const auto objectPtr = daq::ReaderStatusPtr::Borrow(object);
-            return objectPtr.isOk();
-        },
-        "");
     cls.def_property_readonly("event_packet",
         [](daq::IReaderStatus *object)
         {
@@ -54,18 +47,11 @@ void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq:
         },
         py::return_value_policy::take_ownership,
         "");
-    cls.def_property_readonly("event_encountered",
-        [](daq::IReaderStatus *object)
-        {
-            const auto objectPtr = daq::ReaderStatusPtr::Borrow(object);
-            return objectPtr.isEventEncountered();
-        },
-        "");
     cls.def_property_readonly("valid",
         [](daq::IReaderStatus *object)
         {
             const auto objectPtr = daq::ReaderStatusPtr::Borrow(object);
-            return objectPtr.isValid();
+            return objectPtr.getValid();
         },
         "");
 }

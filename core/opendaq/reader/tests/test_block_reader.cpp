@@ -613,7 +613,7 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
         // read event packet
         size_t tmpCount = 1;
         auto status = reader.read((TypeParam*) &sampleInt32, &tmpCount);
-        ASSERT_TRUE(status.isEventEncountered());
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
     reader.read((TypeParam*) &sampleInt32, &count);
@@ -643,7 +643,7 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedNotConvertible)
     SizeT count{1};
     std::int32_t samples[1 * BLOCK_SIZE];
     auto status = reader.read((std::int32_t*) &samples, &count);
-    ASSERT_FALSE(status.isValid());
+    ASSERT_FALSE(status.getValid());
 }
 
 TYPED_TEST(BlockReaderTest, ReuseReader)
@@ -670,20 +670,20 @@ TYPED_TEST(BlockReaderTest, ReuseReader)
         // read event packet
         size_t tmpCount = 1;
         auto status = reader.read((TypeParam*) &samples, &tmpCount);
-        ASSERT_TRUE(status.isEventEncountered());
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
     auto status = reader.read((TypeParam*) &samples, &count);
 
     Bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
-    ASSERT_EQ(status.isValid(), convertable);
+    ASSERT_EQ(status.getValid(), convertable);
 
     auto newReader = daq::BlockReaderFromExisting<ComplexFloat32, ClockRange>(reader, reader.getBlockSize());
 
     SizeT complexCount{1};
     ComplexFloat32 complexSamples[1 * BLOCK_SIZE];
     status = newReader.read((ComplexFloat32*) &complexSamples, &complexCount);
-    ASSERT_TRUE(status.isOk());
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
 
     ASSERT_EQ(complexCount, 1u);
 
@@ -740,7 +740,7 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomain)
         // read event packet
         size_t tmpCount = 1;
         auto status = reader.read(&samples, &tmpCount);
-        ASSERT_TRUE(status.isEventEncountered());
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
     reader.read(&samples, &count);
@@ -869,7 +869,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPort)
         // read event packet
         size_t tmpCount = 1;
         auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
-        ASSERT_TRUE(status.isEventEncountered());
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
     reader.readWithDomain(&samples, &domain, &count);
 
@@ -987,7 +987,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
         {
             SizeT tmpCount = 1;
             auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
-            if (status.isEventEncountered())
+            if (status.getReadStatus() == ReadStatus::Event)
             {
                 newReader = daq::BlockReaderFromExisting(reader, BLOCK_SIZE, SampleType::Float64, SampleType::RangeInt64);
             }

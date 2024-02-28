@@ -560,7 +560,7 @@ TYPED_TEST(StreamReaderTest, DescriptorChangedConvertible)
     {
         size_t tempCnt = 1;
         auto status = reader.read((TypeParam*) &sampleInt32, &tempCnt);
-        ASSERT_TRUE(status.isEventEncountered());
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
     reader.read((TypeParam*) &sampleInt32, &count);
 
@@ -588,8 +588,8 @@ TYPED_TEST(StreamReaderTest, DescriptorChangedNotConvertible)
     SizeT count{1};
     std::int32_t samples[1];
     auto status = reader.read((std::int32_t*) &samples, &count);
-    ASSERT_TRUE(status.isEventEncountered());
-    ASSERT_FALSE(status.isValid());
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_FALSE(status.getValid());
 }
 
 TYPED_TEST(StreamReaderTest, ReadWithZeroAvailableAndTimeoutAny)
@@ -672,15 +672,15 @@ TYPED_TEST(StreamReaderTest, ReuseReader)
     auto status = reader.read((TypeParam*) &samples, &count);
 
     bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
-    ASSERT_TRUE(status.isEventEncountered());
-    ASSERT_EQ(status.isValid(), convertable);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_EQ(status.getValid(), convertable);
 
     auto newReader = daq::StreamReaderFromExisting<ComplexFloat32, ClockRange>(reader);
 
     SizeT complexCount{1};
     ComplexFloat32 complexSamples[1];
     status = newReader.read((ComplexFloat32*) &complexSamples, &complexCount);
-    ASSERT_TRUE(status.isOk());
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
 
     ASSERT_EQ(complexCount, 1u);
 
@@ -735,8 +735,8 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithDomain)
     {
         size_t tempCnt = 1;
         auto status = reader.read(&samples, &tempCnt);
-        ASSERT_TRUE(status.isEventEncountered());
-        ASSERT_TRUE(status.isValid());
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        ASSERT_TRUE(status.getValid());
     }
     reader.read(&samples, &count);
 
@@ -961,7 +961,7 @@ TEST_F(StructStreamReaderTest, ReadStructDataInvalid)
     double dataRead[1];
     SizeT count = 1;
     auto status = streamReader.read(&dataRead[0], &count, 0);
-    ASSERT_FALSE(status.isValid());
+    ASSERT_FALSE(status.getValid());
 }
 
 TEST_F(StructStreamReaderTest, ReadStructDataWithDomain)
@@ -1092,7 +1092,7 @@ TYPED_TEST(StreamReaderTest, StreamReaderWithNotConnectedInputPort)
     {
         size_t tempCnt = 1;
         auto status = reader.readWithDomain(&samples, &domain, &tempCnt);
-        ASSERT_TRUE(status.isEventEncountered());
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
     reader.readWithDomain(&samples, &domain, &count);
@@ -1221,7 +1221,7 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromExistingOnReadCallback)
         {
             SizeT tmpCount = 1;
             auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
-            if (status.isEventEncountered())
+            if (status.getReadStatus() == ReadStatus::Event)
             {
                 newReader = daq::StreamReaderFromExisting(reader, SampleType::Undefined, SampleType::Undefined);
             }

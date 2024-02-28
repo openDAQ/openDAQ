@@ -291,7 +291,7 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
         std::this_thread::sleep_for(100ms);
 
         daq::ReaderStatusPtr status = reader.read(&sample, &eventCount);
-        EXPECT_TRUE(status.isEventEncountered());
+        EXPECT_TRUE(status.getReadStatus() == ReadStatus::Event);
     }
 
     // read data received from server after reconnection

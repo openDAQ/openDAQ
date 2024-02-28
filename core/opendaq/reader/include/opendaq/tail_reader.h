@@ -48,9 +48,9 @@ DECLARE_OPENDAQ_INTERFACE(ITailReader, ISampleReader)
      * available the parameter value is set to the actual amount and only the available
      * samples are returned. The rest of the buffer is not modified or cleared.
      * @param[out] status: Represents the status of the reader.
-     * - If the reader is invalid, IReaderStatus::isValid returns false.
-     * - If an event packet was encountered during processing, IReaderStatus::isEventEncountered returns true.
-     * - If the reading process is successful, ReaderStatus::isOk returns true, indicating that IReaderStatus::isValid is true and IReaderStatus::isEventEncountered is false.
+     * - If the reader is invalid, IReaderStatus::getValid returns false.
+     * - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event
+     * - If the reading process is successful, IReaderStatus::getReadStatu returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
      */
     virtual ErrCode INTERFACE_FUNC read(void* values, SizeT* count, IReaderStatus** status = nullptr) = 0;
 
@@ -66,9 +66,9 @@ DECLARE_OPENDAQ_INTERFACE(ITailReader, ISampleReader)
      * available the parameter value is set to the actual amount and only the available
      * samples are returned. The rest of the buffer is not modified or cleared.
      * @param[out] status: Represents the status of the reader.
-     * - If the reader is invalid, IReaderStatus::isValid returns false.
-     * - If an event packet was encountered during processing, IReaderStatus::isEventEncountered returns true.
-     * - If the reading process is successful, ReaderStatus::isOk returns true, indicating that IReaderStatus::isValid is true and IReaderStatus::isEventEncountered is false.
+     * - If the reader is invalid, IReaderStatus::getValid returns false.
+     * - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event
+     * - If the reading process is successful, IReaderStatus::getReadStatu returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
      */
     virtual ErrCode INTERFACE_FUNC readWithDomain(void* values, void* domain, SizeT* count, IReaderStatus** status = nullptr) = 0;
 

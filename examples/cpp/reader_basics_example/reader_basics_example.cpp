@@ -163,7 +163,7 @@ void example4(const SignalConfigPtr& signal)
     
     // if descriptor has changed, reader will return Reader status with that event
     auto status = reader.read(newValues, &count);
-    assert(status.isEventEncountered());
+    assert(status.getReadStatus() == ReadStatus::Event);
 }
 
 /*

@@ -10,10 +10,16 @@ ReaderStatusImpl::ReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid
 {
 }
 
-ErrCode ReaderStatusImpl::isOk(Bool* status)
+ErrCode ReaderStatusImpl::getReadStatus(ReadStatus* status)
 {
     OPENDAQ_PARAM_NOT_NULL(status);
-    *status = !eventPacket.assigned() && valid;
+    if (valid && !eventPacket.assigned())
+        *status = ReadStatus::Ok;
+    else if (eventPacket.assigned())
+        *status = ReadStatus::Event;
+    else
+        *status = ReadStatus::Fail;
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -24,20 +30,12 @@ ErrCode ReaderStatusImpl::getEventPacket(IEventPacket** packet)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ReaderStatusImpl::isEventEncountered(Bool* status)
-{
-    OPENDAQ_PARAM_NOT_NULL(status);
-    *status = eventPacket.assigned();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode ReaderStatusImpl::isValid(Bool* status)
+ErrCode ReaderStatusImpl::getValid(Bool* status)
 {
     OPENDAQ_PARAM_NOT_NULL(status);
     *status = valid;
     return OPENDAQ_SUCCESS;
 }
-
 
 OPENDAQ_DEFINE_CLASS_FACTORY (
     LIBRARY_FACTORY, ReaderStatus,

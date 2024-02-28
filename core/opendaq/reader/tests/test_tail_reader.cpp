@@ -759,7 +759,7 @@ TEST_F(TailReaderTest, ReadUndefinedWithDomain)
     {
         size_t tmpCnt = 1;
         auto status = reader.read(&samples, &tmpCnt);
-        ASSERT_TRUE(status.isEventEncountered());
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
     reader.read(&samples, &count);
 
@@ -890,8 +890,8 @@ TEST_F(TailReaderTest, TailReaderWithNotConnectedInputPort)
     {
         size_t tmpCount = 1;
         auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
-        ASSERT_TRUE(status.isEventEncountered());
-        ASSERT_TRUE(status.isValid());
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        ASSERT_TRUE(status.getValid());
     }
 
     auto status = reader.readWithDomain(&samples, &domain, &count);
@@ -1030,7 +1030,7 @@ TEST_F(TailReaderTest, TailReaderFromExistingOnReadCallback)
         {
             SizeT tmpCount = 1;
             auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
-            if (status.isEventEncountered())
+            if (status.getReadStatus() == ReadStatus::Event)
             {
                 newReader = TailReaderFromExisting(reader, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
             }

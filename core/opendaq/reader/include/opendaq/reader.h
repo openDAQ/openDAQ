@@ -53,9 +53,9 @@ DECLARE_OPENDAQ_INTERFACE(IReader, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) = 0;
 
     /*!
-     * @brief Set callback which will be triggered if reader recieves packets
-     * @param callback The callback to call when there are avaiable packets in reader or @c nullptr to unset it.
-     * The callback takes no arguments
+     * @brief Sets the specified callback function to be called when there is available data in the reader.
+     * Pass @c nullptr to unset the callback. The callback should take no arguments.
+     * @param callback The callback function to be set or @c nullptr to unset it.
      */
     virtual ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) = 0;
 };

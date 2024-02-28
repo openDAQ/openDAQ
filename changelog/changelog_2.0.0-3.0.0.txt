@@ -5,10 +5,9 @@ Description:
   - Add callback on available packet for reader
 
 + [interface] IReaderStatus : public IBaseObject
-+ [function] IReaderStatus::isOk(Bool* status)
++ [function] IReaderStatus::getReadStatus(ReadStatus* status)
 + [function] IReaderStatus::getEventPacket(IEventPacket** packet)
-+ [function] IReaderStatus::isEventEncountered(Bool* status)
-+ [function] IReaderStatus::isValid(Bool* status)
++ [function] IReaderStatus::getValid(Bool* status)
 + [factory] ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool convertable = true)
 
 -m [function] IBlockReader::read(void* blocks, SizeT* count, SizeT timeoutMs = 0)

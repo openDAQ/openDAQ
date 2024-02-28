@@ -53,9 +53,9 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReader, ISampleReader)
      * blocks are returned. The rest of the buffer is not modified or cleared.
      * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of blocks before returning.
      * @param[out] status: Represents the status of the reader.
-     * - If the reader is invalid, IReaderStatus::isValid returns false.
+     * - If the reader is invalid, IReaderStatus::getValid returns false.
      * - If an event packet was encountered during processing, IReaderStatus::isEventEncountered returns true.
-     * - If the reading process is successful, ReaderStatus::isOk returns true, indicating that IReaderStatus::isValid is true and IReaderStatus::isEventEncountered is false.
+     * - If the reading process is successful, ReaderStatus::isOk returns true, indicating that IReaderStatus::getValid is true and IReaderStatus::isEventEncountered is false.
      */
     virtual ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
 
@@ -72,9 +72,9 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReader, ISampleReader)
      * blocks are returned. The rest of the buffer is not modified or cleared.
      * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of blocks before returning.
      * @param[out] status: Represents the status of the reader.
-     * - If the reader is invalid, IReaderStatus::isValid returns false.
+     * - If the reader is invalid, IReaderStatus::getValid returns false.
      * - If an event packet was encountered during processing, IReaderStatus::isEventEncountered returns true.
-     * - If the reading process is successful, ReaderStatus::isOk returns true, indicating that IReaderStatus::isValid is true and IReaderStatus::isEventEncountered is false.
+     * - If the reading process is successful, ReaderStatus::isOk returns true, indicating that IReaderStatus::getValid is true and IReaderStatus::isEventEncountered is false.
      */
     virtual ErrCode INTERFACE_FUNC readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
 

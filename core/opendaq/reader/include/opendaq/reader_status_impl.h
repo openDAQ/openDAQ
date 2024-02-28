@@ -25,13 +25,11 @@ class ReaderStatusImpl final : public ImplementationOf<IReaderStatus>
 public:
     explicit ReaderStatusImpl(const EventPacketPtr& eventPacket, Bool valid);
 
-    ErrCode INTERFACE_FUNC isOk(Bool* status) override;
+    ErrCode INTERFACE_FUNC getReadStatus(ReadStatus* status) override;
 
     ErrCode INTERFACE_FUNC getEventPacket(IEventPacket** packet) override;
 
-    ErrCode INTERFACE_FUNC isEventEncountered(Bool* status) override;
-
-    ErrCode INTERFACE_FUNC isValid(Bool* status) override;
+    ErrCode INTERFACE_FUNC getValid(Bool* status) override;
 
 private:
     EventPacketPtr eventPacket;

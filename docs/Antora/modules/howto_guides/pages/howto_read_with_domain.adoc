@@ -239,15 +239,15 @@ double newValues[2]{};
 
 // the Reader reads 0 values and returns status with new Event packet
 ReaderStatusPtr status = reader.read(newValues, &count);
-assert(status.isEventEncountered() == true);
-assert(status.isValid() == true);
+assert(status.getReadStatus() == ReadStatus::Event);
+assert(status.getValid() == true);
 assert(status.getEventPacket().assigned() == true);
 ----
 ====
 
 [#invalidation]
 == Reader invalidation and reuse
-Once the Reader falls into *__invalid__* state, it can't be used to read data anymore and all attempts will result the Reader status with isValid == false
+Once the Reader falls into *__invalid__* state, it can't be used to read data anymore and all attempts will result the Reader status with getValid == false
 The only way to resolve this is to pass the Reader to a new Reader instance with valid sample-types and settings.
 This enables the new reader to reuse the xref:background_info:data_path.adoc#connection[Connection] from the invalidated one and as such, provides the ability to losslessly continue reading.
 
@@ -273,7 +273,7 @@ auto reader = StreamReader<Int, Int>(signal);
 SizeT count{5};
 Int values[5]{};
 ReaderStatusPtr status = reader.read(values, &count);
-assert(status.isValid() == false);
+assert(status.getValid() == false);
 
 // This will reuse the Reader's configuration and Connection but change read type
 // from to `Float64` to `Int64` and clear the `invalid` state.
@@ -324,7 +324,7 @@ newReader.read(newValues, &count);  // count = 2, values = { 3, 4 }
 count = 2;
 Int oldValues[2]{};
 ReaderStatusPtr status = reader.read(oldValues, &count);
-assert(status.isValid() == false);
+assert(status.getValid() == false);
 ----
 ====
 
@@ -488,8 +488,8 @@ void example4(const SignalConfigPtr& signal)
     double values[5]{};
     
     auto status = reader.read(values, &eventPacketCount);
-    assert(status.isEventEncountered() == true);
-    assert(status.isValid() == true);
+    assert(status.getReadStatus() == ReadStatus::Event);
+    assert(status.getValid() == true);
     assert(status.getEventPacket().assigned() == true);
 
     reader.read(values, &count);
@@ -529,7 +529,7 @@ void example5(const SignalConfigPtr& signal)
     SizeT count{5};
     double values[5]{};
     auto status = reader.read(values, &count);
-    assert(status.isValid() == false);
+    assert(status.getValid() == false);
 
     // This will reuse the Reader's configuration and Connection but change read type
     // from to `Int64` to `ComplexFloat64` and clear the `invalid` state.
@@ -588,7 +588,7 @@ void example6(const SignalConfigPtr& signal)
     count = 2;
     Int oldValues[2]{};
     auto status = reader.read(oldValues, &count);
-    assert(status.isValid() == false);
+    assert(status.getValid() == false);
 }
 
 /*

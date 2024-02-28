@@ -24,6 +24,14 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
+enum class ReadStatus
+{
+    Ok = 0,
+    Event,
+    Fail,
+    Unknown = 99
+};
+
 /*!
  * @brief Represents the status of the reading process returned by the reader::read function.
  *
@@ -35,10 +43,11 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IReaderStatus, IBaseObject)
 {
     /*!
-     * @brief Indicates whether the reading process was successful
-     * @param[out] status returns true, if IReaderStatus::isValid is true and IReaderStatus::isEventEncountered is false.
+     * @brief Retrieves the current reading status, indicating whether the reading process is in an "Ok" state,
+     * has encountered an Event, has failed, or is in an Unknown state.
+     * @param[out] status  a ReadStatus enum variable where the current reading status will be stored.
      */
-    virtual ErrCode INTERFACE_FUNC isOk(Bool* status) = 0;
+    virtual ErrCode INTERFACE_FUNC getReadStatus(ReadStatus* status) = 0;
 
     /*!
      * @brief Retrieves the event packet from the reading process.
@@ -47,16 +56,10 @@ DECLARE_OPENDAQ_INTERFACE(IReaderStatus, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getEventPacket(IEventPacket** packet) = 0;
 
     /*!
-     * @brief Checks if an event packet was encountered during the reading process.
-     * @param[out] status Boolean value indicating whether an event packet was encountered.
-     */
-    virtual ErrCode INTERFACE_FUNC isEventEncountered(Bool* status) = 0;
-
-    /*!
      * @brief Checks the validity of the reader.
      * @param[out] status Boolean value indicating the validity of the reader
      */
-    virtual ErrCode INTERFACE_FUNC isValid(Bool* status) = 0;
+    virtual ErrCode INTERFACE_FUNC getValid(Bool* status) = 0;
 };
 /*!@}*/
 

@@ -3,6 +3,7 @@
 #include <opendaq/opendaq.h>
 
 using namespace daq;
+
 int main(int /*argc*/, const char* /*argv*/[])
 {
     using namespace std::chrono_literals;

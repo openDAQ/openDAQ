@@ -982,23 +982,23 @@ TEST_F(StructStreamReaderTest, ReadStructData)
         count += toRead;
     } while (count < 3);
 
-    ASSERT_EQ(count, 3);
+    ASSERT_EQ(count, 3u);
 
-    ASSERT_EQ(dataRead[0].arbId, (uint32_t)12);
-    ASSERT_EQ(dataRead[0].length, (uint8_t)2);
-    ASSERT_EQ(dataRead[0].data[0], (uint8_t)1);
-    ASSERT_EQ(dataRead[0].data[1], (uint8_t)2);
-    ASSERT_EQ(dataRead[1].arbId, (uint32_t)15);
-    ASSERT_EQ(dataRead[1].length, (uint8_t)4);
-    ASSERT_EQ(dataRead[1].data[0], (uint8_t)5);
-    ASSERT_EQ(dataRead[1].data[1], (uint8_t)6);
-    ASSERT_EQ(dataRead[1].data[2], (uint8_t)7);
-    ASSERT_EQ(dataRead[1].data[3], (uint8_t)8);
-    ASSERT_EQ(dataRead[2].arbId, (uint32_t)14);
-    ASSERT_EQ(dataRead[2].length, (uint8_t)3);
-    ASSERT_EQ(dataRead[2].data[0], (uint8_t)10);
-    ASSERT_EQ(dataRead[2].data[1], (uint8_t)11);
-    ASSERT_EQ(dataRead[2].data[2], (uint8_t)12);
+    ASSERT_EQ(dataRead[0].arbId,   (uint32_t) 12);
+    ASSERT_EQ(dataRead[0].length,  (uint8_t)   2);
+    ASSERT_EQ(dataRead[0].data[0], (uint8_t)   1);
+    ASSERT_EQ(dataRead[0].data[1], (uint8_t)   2);
+    ASSERT_EQ(dataRead[1].arbId,   (uint32_t) 15);
+    ASSERT_EQ(dataRead[1].length,  (uint8_t)   4);
+    ASSERT_EQ(dataRead[1].data[0], (uint8_t)   5);
+    ASSERT_EQ(dataRead[1].data[1], (uint8_t)   6);
+    ASSERT_EQ(dataRead[1].data[2], (uint8_t)   7);
+    ASSERT_EQ(dataRead[1].data[3], (uint8_t)   8);
+    ASSERT_EQ(dataRead[2].arbId,   (uint32_t) 14);
+    ASSERT_EQ(dataRead[2].length,  (uint8_t)   3);
+    ASSERT_EQ(dataRead[2].data[0], (uint8_t)  10);
+    ASSERT_EQ(dataRead[2].data[1], (uint8_t)  11);
+    ASSERT_EQ(dataRead[2].data[2], (uint8_t)  12);
 }
 
 TEST_F(StructStreamReaderTest, ReadStructDataInvalid)
@@ -1063,7 +1063,7 @@ TEST_F(StructStreamReaderTest, ReadStructDataWithDomain)
         count += toRead;
     } while (count < 3);
 
-    ASSERT_EQ(count, 3);
+    ASSERT_EQ(count, 3u);
 
     ASSERT_EQ(dataRead[0].arbId, (uint32_t)12);
     ASSERT_EQ(dataRead[0].length, (uint8_t)2);

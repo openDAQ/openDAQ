@@ -274,7 +274,7 @@ TEST_F(TmsIntegrationTest, AddFunctionBlock)
     ASSERT_TRUE(fb2.assigned());
     ASSERT_EQ("mock_fb_uid_2", fb2.getLocalId());
 
-    ASSERT_EQ(3, clientDevice.getFunctionBlocks().getCount());
+    ASSERT_EQ(3u, clientDevice.getFunctionBlocks().getCount());
 }
 
 TEST_F(TmsIntegrationTest, AddFunctionBlockWitchConfig)
@@ -294,7 +294,7 @@ TEST_F(TmsIntegrationTest, AddFunctionBlockWitchConfig)
 
     auto fb = clientDevice.addFunctionBlock("mock_fb_uid", config);
 
-    ASSERT_EQ(2, clientDevice.getFunctionBlocks().getCount());
+    ASSERT_EQ(2u, clientDevice.getFunctionBlocks().getCount());
     ASSERT_EQ(fb.getPropertyValue("TestConfigInt"), 0);
     ASSERT_EQ(fb.getPropertyValue("TestConfigString"), "Hello Property!");
 }
@@ -311,13 +311,13 @@ TEST_F(TmsIntegrationTest, RemoveFunctionBlock)
 
     auto fb1 = clientDevice.addFunctionBlock("mock_fb_uid");
     auto fb2 = clientDevice.addFunctionBlock("mock_fb_uid");
-    ASSERT_EQ(3, clientDevice.getFunctionBlocks().getCount());
+    ASSERT_EQ(3u, clientDevice.getFunctionBlocks().getCount());
 
     clientDevice.removeFunctionBlock(fb1);
-    ASSERT_EQ(2, clientDevice.getFunctionBlocks().getCount());
+    ASSERT_EQ(2u, clientDevice.getFunctionBlocks().getCount());
 
     clientDevice.removeFunctionBlock(fb2);
-    ASSERT_EQ(1, clientDevice.getFunctionBlocks().getCount());
+    ASSERT_EQ(1u, clientDevice.getFunctionBlocks().getCount());
 }
 
 TEST_F(TmsIntegrationTest, InputPortConnect)

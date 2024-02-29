@@ -152,7 +152,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     SampleType, domainReadType,
     ReadMode, mode,
     ReadTimeoutType, timeoutType,
-    bool, startOnFullUnitOfDomain)
+    Bool, startOnFullUnitOfDomain)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, MultiReaderFromExisting, IMultiReader,

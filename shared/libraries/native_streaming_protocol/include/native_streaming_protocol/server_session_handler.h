@@ -34,8 +34,6 @@ public:
                          OnSignalSubscriptionCallback signalSubscriptionHandler,
                          native_streaming::OnSessionErrorCallback errorHandler);
 
-    ~ServerSessionHandler();
-
     void sendSignalAvailable(const SignalNumericIdType& signalNumericId, const SignalPtr &signal);
     void sendSignalUnavailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
     void sendInitializationDone();

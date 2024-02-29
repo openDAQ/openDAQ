@@ -36,8 +36,6 @@ public:
                          OnSubscriptionAckCallback subscriptionAckHandler,
                          native_streaming::OnSessionErrorCallback errorHandler);
 
-    ~ClientSessionHandler();
-
     void sendSignalSubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId);
     void sendSignalUnsubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId);
     void sendTransportLayerProperties(const PropertyObjectPtr& properties);

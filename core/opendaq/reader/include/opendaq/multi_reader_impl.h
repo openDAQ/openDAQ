@@ -29,7 +29,7 @@ public:
                     SampleType domainReadType,
                     ReadMode mode,
                     ReadTimeoutType timeoutType,
-                    bool startOnFullUnitOfDomain = false);
+                    Bool startOnFullUnitOfDomain = false);
 
     MultiReaderImpl(MultiReaderImpl* old,
                     SampleType valueReadType,

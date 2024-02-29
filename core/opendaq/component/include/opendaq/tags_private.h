@@ -39,6 +39,7 @@ DECLARE_OPENDAQ_INTERFACE(ITagsPrivate, IBaseObject)
      * @retval OPENDAQ_IGNORED if a node with the `name` is already in the list of tags.
      */
     virtual ErrCode INTERFACE_FUNC add(IString* name) = 0;
+
     /*!
      * @brief Removes a new tag from the list.
      * @param name The name of the tag to be removed.

@@ -67,7 +67,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
         ASSERT_EQ(serverSignals[i].getDescription(), clientSignals[i].getDescription());
 
         auto mirroredSignalPtr = clientSignals[i].asPtr<IMirroredSignalConfig>();
-        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0) << clientSignals[i].getGlobalId();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[i].getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[i].getGlobalId();
     }
 
@@ -341,7 +341,7 @@ TEST_F(NativeStreamingModulesTest, AddSignals)
         ASSERT_EQ(clientDataDescriptor, serverDataDescriptor);
 
         auto mirroredSignalPtr = clientSignals[i].asPtr<IMirroredSignalConfig>();
-        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0) << clientSignals[i].getGlobalId();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[i].getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[i].getGlobalId();
     }
 }
@@ -380,12 +380,12 @@ TEST_F(NativeStreamingModulesTest, RemoveSignals)
     ASSERT_TRUE(removedSignalsFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
 
     auto mirroredSignalPtr = clientSignals[2].asPtr<IMirroredSignalConfig>();
-    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0) << clientSignals[2].getGlobalId();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[2].getGlobalId();
     ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[2].getGlobalId();
     ASSERT_TRUE(clientSignals[2].isRemoved());
 
     mirroredSignalPtr = clientSignals[3].asPtr<IMirroredSignalConfig>();
-    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0) << clientSignals[3].getGlobalId();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[3].getGlobalId();
     ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[3].getGlobalId();
     ASSERT_TRUE(clientSignals[3].isRemoved());
 

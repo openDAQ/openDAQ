@@ -22,10 +22,6 @@ ServerSessionHandler::ServerSessionHandler(const ContextPtr& daqContext,
 {
 }
 
-ServerSessionHandler::~ServerSessionHandler()
-{
-}
-
 void ServerSessionHandler::sendSignalAvailable(const SignalNumericIdType& signalNumericId,
                                                const SignalPtr& signal)
 {

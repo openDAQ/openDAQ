@@ -175,3 +175,41 @@ TEST_F(PropertyObjectClassTest, PropertyObjectClassCreateFactory)
     ASSERT_EQ(propertyObjectClass.getParentName(), "PropertyObjectClassParent");
     ASSERT_EQ(propertyObjectClass.getProperties(false), List<IProperty>(properties["Test"]));
 }
+
+TEST_F(PropertyObjectClassTest, Deserialize)
+{
+    auto serializer = JsonSerializer();
+    propObjClass.serialize(serializer);
+    const auto str = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+    const PropertyObjectClassPtr newPropObjClass = deserializer.deserialize(str);
+
+    serializer.reset();
+    newPropObjClass.serialize(serializer);
+    const auto newStr = serializer.getOutput();
+
+    ASSERT_EQ(str, newStr);
+}
+
+TEST_F(PropertyObjectClassTest, DeserializeWithParent)
+{
+    const auto childPropObjClassBuilder = PropertyObjectClassBuilder("ChildPropertyObject")
+                                              .setParentName("PropertyObject")
+                                              .addProperty(StringPropertyBuilder("ChildProp", "").build());
+
+    const auto childPropObjClass = childPropObjClassBuilder.build();
+
+    auto serializer = JsonSerializer();
+    childPropObjClass.serialize(serializer);
+    const auto str = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+    const PropertyObjectClassPtr newPropObjClass = deserializer.deserialize(str);
+
+    serializer.reset();
+    newPropObjClass.serialize(serializer);
+    const auto newStr = serializer.getOutput();
+
+    ASSERT_EQ(str, newStr);
+}

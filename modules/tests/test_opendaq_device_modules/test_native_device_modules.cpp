@@ -335,7 +335,7 @@ TEST_F(NativeDeviceModulesTest, AddFunctionBlock)
     for (const auto& signal : clientAddedFbSignals)
     {
         auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
-        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0) << signal.getGlobalId();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
     }
 }
@@ -372,7 +372,7 @@ TEST_F(NativeDeviceModulesTest, RemoveFunctionBlock)
     for (const auto& signal : clientFbSignals)
     {
         auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
         ASSERT_EQ(mirroredSignalPtr.getActiveStreamingSource(), nullptr) << signal.getGlobalId();
         ASSERT_TRUE(signal.isRemoved());
     }
@@ -414,7 +414,7 @@ TEST_F(NativeDeviceModulesTest, AddChannel)
     for (const auto& signal : clientAddedChSignals)
     {
         auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
-        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0) << signal.getGlobalId();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
     }
 }
@@ -451,7 +451,7 @@ TEST_F(NativeDeviceModulesTest, RemoveChannel)
     for (const auto& signal : clientChSignals)
     {
         auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
         ASSERT_EQ(mirroredSignalPtr.getActiveStreamingSource(), nullptr) << signal.getGlobalId();
         ASSERT_TRUE(signal.isRemoved());
     }
@@ -492,7 +492,7 @@ TEST_F(NativeDeviceModulesTest, AddDevice)
     for (const auto& signal : clientAddedDevSignals)
     {
         auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
-        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0) << signal.getGlobalId();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
     }
 }
@@ -530,7 +530,7 @@ TEST_F(NativeDeviceModulesTest, RemoveDevice)
     for (const auto& signal : clientDevSignals)
     {
         auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0) << signal.getGlobalId();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
         ASSERT_EQ(mirroredSignalPtr.getActiveStreamingSource(), nullptr) << signal.getGlobalId();
         ASSERT_TRUE(signal.isRemoved());
     }

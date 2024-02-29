@@ -88,5 +88,13 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
             return objectPtr.getOptions().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the dictionary of module options");
+        "Gets the dictionary of options");
+    cls.def("get_module_options",
+        [](daq::IContext *object, const std::string& moduleId)
+        {
+            const auto objectPtr = daq::ContextPtr::Borrow(object);
+            return objectPtr.getModuleOptions(moduleId).detach();
+        },
+        py::arg("module_id"),
+        "Retrieves the options associated with the specified module ID.");
 }

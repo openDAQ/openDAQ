@@ -37,7 +37,8 @@ public:
                                       const FunctionBlockTypePtr& functionBlockType,
                                       const ContextPtr& ctx,
                                       const ComponentPtr& parent,
-                                      const StringPtr& localId);
+                                      const StringPtr& localId,
+                                      const StringPtr& className);
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 };
@@ -49,8 +50,9 @@ ConfigClientBaseFunctionBlockImpl<Impl>::ConfigClientBaseFunctionBlockImpl(
     const FunctionBlockTypePtr& type,
     const ContextPtr& ctx,
     const ComponentPtr& parent,
-    const StringPtr& localId)
-    : ConfigClientComponentBaseImpl<Impl>(configProtocolClientComm, remoteGlobalId, type, ctx, parent, localId)
+    const StringPtr& localId,
+    const StringPtr& className)
+    : ConfigClientComponentBaseImpl<Impl>(configProtocolClientComm, remoteGlobalId, type, ctx, parent, localId, className)
 {
 }
 
@@ -85,7 +87,8 @@ ErrCode ConfigClientBaseFunctionBlockImpl<Impl>::Deserialize(ISerializedObject* 
                                 fbType,
                                 deserializeContext.getContext(),
                                 deserializeContext.getParent(),
-                                deserializeContext.getLocalId());
+                                deserializeContext.getLocalId(),
+                                className);
                        })
                        .detach();
         });

@@ -42,7 +42,7 @@ inline ConfigClientChannelImpl::ConfigClientChannelImpl(const ConfigProtocolClie
                                                         const ContextPtr& ctx,
                                                         const ComponentPtr& parent,
                                                         const StringPtr& localId)
-    : Super(configProtocolClientComm, remoteGlobalId, type, ctx, parent, localId)
+    : Super(configProtocolClientComm, remoteGlobalId, type, ctx, parent, localId, nullptr)
 {
 }
 

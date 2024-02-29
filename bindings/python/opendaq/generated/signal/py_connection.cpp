@@ -106,4 +106,11 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
             return objectPtr.getSamplesUntilNextDescriptor();
         },
         "Gets the number of same-type samples available in the queued packets. The returned value is up-to the next Sample-Descriptor-Changed packet if any.");
+    cls.def_property_readonly("remote",
+        [](daq::IConnection *object)
+        {
+            const auto objectPtr = daq::ConnectionPtr::Borrow(object);
+            return objectPtr.isRemote();
+        },
+        "Returns true if the type of connection is remote.");
 }

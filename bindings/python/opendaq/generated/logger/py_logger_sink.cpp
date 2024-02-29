@@ -54,6 +54,7 @@ void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBa
 #ifdef _WIN32
     m.def("WinDebugLoggerSink", &daq::WinDebugLoggerSink_Create);
 #endif
+    m.def("LastMessageLoggerSink", &daq::LastMessageLoggerSink_Create);
 
     cls.def_property("level",
         [](daq::ILoggerSink *object)

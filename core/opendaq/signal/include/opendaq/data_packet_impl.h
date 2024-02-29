@@ -15,14 +15,15 @@
  */
 
 #pragma once
-#include <opendaq/generic_data_packet_impl.h>
-#include <opendaq/data_descriptor_ptr.h>
-#include <opendaq/allocator_ptr.h>
 #include <coretypes/intfs.h>
-#include <opendaq/scaling_calc_private.h>
+#include <opendaq/allocator_ptr.h>
+#include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/data_rule_calc_private.h>
-#include <opendaq/signal_exceptions.h>
+#include <opendaq/generic_data_packet_impl.h>
+#include <opendaq/range_factory.h>
 #include <opendaq/sample_type_traits.h>
+#include <opendaq/scaling_calc_private.h>
+#include <opendaq/signal_exceptions.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,7 +33,11 @@ class DataPacketImpl : public GenericDataPacketImpl<TInterface>
 public:
     using Super = PacketImpl<TInterface>;
 
-    explicit DataPacketImpl(const DataPacketPtr& domainPacket, const DataDescriptorPtr& descriptor, SizeT sampleCount, const NumberPtr& offset, AllocatorPtr allocator);
+    explicit DataPacketImpl(const DataPacketPtr& domainPacket,
+                            const DataDescriptorPtr& descriptor,
+                            SizeT sampleCount,
+                            const NumberPtr& offset,
+                            AllocatorPtr allocator);
     explicit DataPacketImpl(const DataDescriptorPtr& descriptor, SizeT sampleCount, const NumberPtr& offset, AllocatorPtr allocator);
     ~DataPacketImpl() override;
 
@@ -43,6 +48,7 @@ public:
     ErrCode INTERFACE_FUNC getData(void** address) override;
     ErrCode INTERFACE_FUNC getDataSize(SizeT* dataSize) override;
     ErrCode INTERFACE_FUNC getRawDataSize(SizeT* rawDataSize) override;
+    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override;
 
@@ -83,7 +89,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
 {
     scaledData = nullptr;
     data = nullptr;
-    
+
     if (!descriptor.assigned())
         throw ArgumentNullException("Data descriptor in packet is null.");
 
@@ -197,19 +203,21 @@ ErrCode DataPacketImpl<TInterface>::getData(void** address)
         if (sampleCount == 0)
             *address = nullptr;
         else
-            daqTry([&]() {
-                if (hasScalingCalc)
+            daqTry(
+                [&]()
                 {
-                    scaledData = descriptor.asPtr<IScalingCalcPrivate>(false)->scaleData(data, sampleCount);
-                }
-                else if (hasDataRuleCalc)
-                {
-                    scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(offset, sampleCount);
-                }
+                    if (hasScalingCalc)
+                    {
+                        scaledData = descriptor.asPtr<IScalingCalcPrivate>(false)->scaleData(data, sampleCount);
+                    }
+                    else if (hasDataRuleCalc)
+                    {
+                        scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(offset, sampleCount);
+                    }
 
-                *address = scaledData;
-                return OPENDAQ_SUCCESS;
-            });
+                    *address = scaledData;
+                    return OPENDAQ_SUCCESS;
+                });
     }
 
     readLock.unlock();
@@ -244,32 +252,34 @@ ErrCode INTERFACE_FUNC DataPacketImpl<TInterface>::equals(IBaseObject* other, Bo
     if (other == nullptr)
         return OPENDAQ_SUCCESS;
 
-    return daqTry([this, &other, &equals]() {
-        ErrCode errCode = Super::equals(other, equals);
-        checkErrorInfo(errCode);
+    return daqTry(
+        [this, &other, &equals]()
+        {
+            ErrCode errCode = Super::equals(other, equals);
+            checkErrorInfo(errCode);
 
-        if (!(*equals))
-            return errCode;
+            if (!(*equals))
+                return errCode;
 
-        *equals = false;
-        const DataPacketPtr packetOther = BaseObjectPtr::Borrow(other).asPtrOrNull<IDataPacket>();
-        if (packetOther == nullptr)
-            return errCode;
+            *equals = false;
+            const DataPacketPtr packetOther = BaseObjectPtr::Borrow(other).asPtrOrNull<IDataPacket>();
+            if (packetOther == nullptr)
+                return errCode;
 
-        if (!BaseObjectPtr::Equals(this->domainPacket, packetOther.getDomainPacket()))
-            return errCode;
-        if (!BaseObjectPtr::Equals(this->descriptor, packetOther.getDataDescriptor()))
-            return errCode;
-        if (this->sampleCount != packetOther.getSampleCount())
-            return errCode;
-        if (this->offset != packetOther.getOffset())
-            return errCode;
-        if (!this->isDataEqual(packetOther))
-            return errCode;
+            if (!BaseObjectPtr::Equals(this->domainPacket, packetOther.getDomainPacket()))
+                return errCode;
+            if (!BaseObjectPtr::Equals(this->descriptor, packetOther.getDataDescriptor()))
+                return errCode;
+            if (this->sampleCount != packetOther.getSampleCount())
+                return errCode;
+            if (this->offset != packetOther.getOffset())
+                return errCode;
+            if (!this->isDataEqual(packetOther))
+                return errCode;
 
-        *equals = true;
-        return errCode;
-    });
+            *equals = true;
+            return errCode;
+        });
 }
 
 template <typename TInterface>
@@ -279,6 +289,97 @@ bool DataPacketImpl<TInterface>::isDataEqual(const DataPacketPtr& dataPacket) co
         throw InvalidSampleTypeException();
 
     return data == dataPacket.getRawData() || std::memcmp(data, dataPacket.getRawData(), rawDataSize) == 0;
+}
+
+template <typename TInterface>
+ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value)
+{
+    OPENDAQ_PARAM_NOT_NULL(value);
+
+    if (descriptor.getDimensions().getCount() != 0)
+        return OPENDAQ_IGNORED;
+
+    {
+        auto descriptorStructFields = descriptor.getStructFields();
+        if (descriptorStructFields.assigned() && !descriptorStructFields.empty())
+            return OPENDAQ_IGNORED;
+    }
+
+    void* addr;
+    ErrCode err = this->getData(&addr);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    auto idx = sampleCount - 1;
+
+    switch (descriptor.getSampleType())
+    {
+        case SampleType::Float32:
+        {
+            auto data = static_cast<float*>(addr);
+            *value = Floating(data[idx]).detach();
+            break;
+        }
+        case SampleType::Float64:
+        {
+            auto data = static_cast<double*>(addr);
+            *value = Floating(data[idx]).detach();
+            break;
+        }
+        case SampleType::Int8:
+        {
+            auto data = static_cast<int8_t*>(addr);
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        case SampleType::UInt8:
+        {
+            auto data = static_cast<uint8_t*>(addr);
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        case SampleType::Int16:
+        {
+            auto data = static_cast<int16_t*>(addr);
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        case SampleType::UInt16:
+        {
+            auto data = static_cast<uint16_t*>(addr);
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        case SampleType::Int32:
+        {
+            auto data = static_cast<int32_t*>(addr);
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        case SampleType::UInt32:
+        {
+            auto data = static_cast<uint32_t*>(addr);
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        case SampleType::Int64:
+        {
+            auto data = static_cast<int64_t*>(addr);
+            *value = Integer(data[idx]).detach();
+            break;
+        }
+        case SampleType::RangeInt64:
+        {
+            auto data = static_cast<int64_t*>(addr);
+            *value = Range(data[idx * 2], data[idx * 2 + 1]).detach();
+            break;
+        }
+        default:
+        {
+            return OPENDAQ_IGNORED;
+        }
+    };
+    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ

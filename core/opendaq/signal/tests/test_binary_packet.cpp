@@ -1,7 +1,7 @@
+#include <gtest/gtest.h>
 #include <opendaq/binary_data_packet_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/deleter_factory.h>
-#include <gtest/gtest.h>
 
 using BinaryPacketTest = testing::Test;
 
@@ -44,8 +44,7 @@ TEST_F(BinaryPacketTest, DataPacketTestGettersExternalMemory)
 {
     auto desc = setupDescriptor();
     void* data = std::malloc(16);
-    auto packet = daq::BinaryDataPacketWithExternalMemory(
-        nullptr, desc, 16, data, daq::Deleter([](void* address) { std::free(address); }));
+    auto packet = daq::BinaryDataPacketWithExternalMemory(nullptr, desc, 16, data, daq::Deleter([](void* address) { std::free(address); }));
 
     ASSERT_EQ(packet.getType(), daq::PacketType::Data);
     ASSERT_EQ(packet.getDataDescriptor(), desc);
@@ -55,4 +54,19 @@ TEST_F(BinaryPacketTest, DataPacketTestGettersExternalMemory)
     ASSERT_EQ(packet.getRawData(), data);
     ASSERT_EQ(packet.getDataSize(), 16u);
     ASSERT_EQ(packet.getRawDataSize(), 16u);
+}
+
+TEST_F(BinaryPacketTest, GetLastValue)
+{
+    auto desc = setupDescriptor();
+    auto packet = daq::BinaryDataPacket(nullptr, desc, 1);
+    auto data = static_cast<bool*>(packet.getData());
+    data[0] = false;
+
+    auto lastValuePacket = packet.getLastValue();
+    daq::BooleanPtr ptr;
+    ASSERT_NO_THROW(ptr = lastValuePacket.asPtr<daq::IBoolean>());
+    ASSERT_EQ(ptr, false);
+
+    // ASSERT_EQ(packet.getLastValue(), false);
 }

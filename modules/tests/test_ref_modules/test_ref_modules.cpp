@@ -6,6 +6,7 @@
 #include <opendaq/reader_factory.h>
 #include <testutils/testutils.h>
 #include <opendaq/search_filter_factory.h>
+#include <opendaq/config_provider_factory.h>
 #include <thread>
 #include <fstream>
 #include "classifier_test_helper.h"
@@ -1041,24 +1042,21 @@ TEST_F(RefModulesTest, ScalingFbStatuses)
     scalingFb.getOnComponentCoreEvent() -= invalidStatusTest;
 }
 
-static void CreateConfigFile(const std::string& data)
+static Finally CreateConfigFile(const std::string& configFilename, const std::string& data)
 {
     std::ofstream file;
-    file.open("opendaq-config.json");
+    file.open(configFilename);
     if (!file.is_open()) 
         throw std::runtime_error("can not open file for writing");
 
     file << data;
     file.close();
-}
-
-static void RemoveConfigFile()
-{
-    remove("opendaq-config.json");
+    return Finally([&configFilename] { remove(configFilename.c_str()); });
 }
 
 TEST_F(RefModulesTest, ConfigureDeviceFromOptions)
 {
+    std::string configFilename = "opendaq-config.json";
     std::string options = R"(
     {
     "Modules": {
@@ -1069,10 +1067,9 @@ TEST_F(RefModulesTest, ConfigureDeviceFromOptions)
         }
     }
     )";
-    CreateConfigFile(options);
-    Finally final([] { RemoveConfigFile(); });
+    auto finaly = CreateConfigFile(configFilename, options);
 
-    const auto instance = InstanceBuilder().enableStandardProviders(true).build();
+    const auto instance = InstanceBuilder().addConfigProvider(JsonConfigProvider(configFilename)).build();
     const auto device = instance.addDevice("daqref://device1");
 
     Int numChannels = device.getPropertyValue("NumberOfChannels");

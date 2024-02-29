@@ -211,9 +211,10 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
         const auto type = typeManager.getType(typeName);
         if (localTypeManager.hasType(type.getName()))
         {
-            const auto localType = localTypeManager.getType(type.getName());
+            // TODO: implement type comparison/equalTo for property object classes
+/*            const auto localType = localTypeManager.getType(type.getName());
             if (localType != type)
-                throw InvalidValueException("Remote type different than local");
+                throw InvalidValueException("Remote type different than local");*/
             continue;
         }
 

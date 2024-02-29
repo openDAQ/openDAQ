@@ -70,40 +70,70 @@ void StatisticsFbImpl::propertyChanged()
 void StatisticsFbImpl::triggerModeChanged()
 {
     sync.lock();
-
-    readProperties();
-
+    try
+    {
+        readProperties();
+    }
+    catch (const std::exception& e)
+    {
+        LOG_E("Reading properties when trigger mode changed failed: {}", e.what());
+        sync.unlock();
+        return;
+    }
     if (triggerMode)
     {
-        // Configure Trigger UseMultiThreadedScheduler according to Statistics UseMultiThreadedScheduler
-        auto triggerConfig = PropertyObject();
-        if (packetReadyNotification == PacketReadyNotification::SameThread)
-            triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
-        else
-            triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
+        try
+        {
+            // Configure Trigger UseMultiThreadedScheduler according to Statistics UseMultiThreadedScheduler
+            auto triggerConfig = PropertyObject();
+            if (packetReadyNotification == PacketReadyNotification::SameThread)
+                triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
+            else
+                triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
 
-        // Use trigger, output signals depending on trigger
-        nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("ref_fb_module_trigger", "nfbt", triggerConfig);
-
+            // Use trigger, output signals depending on trigger
+            nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("ref_fb_module_trigger", "nfbt", triggerConfig);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_E("Creating nested trigger function block when trigger mode changed failed: {}", e.what());
+            sync.unlock();
+            return;
+        }
         sync.unlock();
 
         // Connect trigger
         triggerInput.connect(nestedTriggerFunctionBlock.getSignals()[0]);
 
         sync.lock();
-
-        configure();
-
+        try
+        {
+            configure();
+        }
+        catch (const std::exception& e)
+        {
+            LOG_E("Configure when trigger mode changed failed: {}", e.what());
+            sync.unlock();
+            return;
+        }
         sync.unlock();
     }
     else
     {
-        // Don't use trigger, output signals
-        triggerInput.disconnect();
-        removeNestedFunctionBlock(nestedTriggerFunctionBlock);
+        try
+        {
+            // Don't use trigger, output signals
+            triggerInput.disconnect();
+            removeNestedFunctionBlock(nestedTriggerFunctionBlock);
 
-        configure();
-
+            configure();
+        }
+        catch (const std::exception& e)
+        {
+            LOG_E("Trigger mode changed failed: {}", e.what());
+            sync.unlock();
+            return;
+        }
         sync.unlock();
     }
 }

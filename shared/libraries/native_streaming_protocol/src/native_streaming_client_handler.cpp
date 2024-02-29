@@ -30,12 +30,12 @@ void NativeStreamingClientHandler::readTransportLayerProps()
     if (!transportLayerProperties.assigned())
         throw ArgumentNullException("Transport layer properties cannot be null");
 
-    if (!transportLayerProperties.hasProperty("HeartbeatEnabled"))
-        throw NotFoundException("Transport layer HeartbeatEnabled property not found");
+    if (!transportLayerProperties.hasProperty("MonitoringEnabled"))
+        throw NotFoundException("Transport layer MonitoringEnabled property not found");
     if (!transportLayerProperties.hasProperty("HeartbeatPeriod"))
         throw NotFoundException("Transport layer HeartbeatPeriod property not found");
-    if (!transportLayerProperties.hasProperty("HeartbeatTimeout"))
-        throw NotFoundException("Transport layer HeartbeatTimeout property not found");
+    if (!transportLayerProperties.hasProperty("InactivityTimeout"))
+        throw NotFoundException("Transport layer InactivityTimeout property not found");
     if (!transportLayerProperties.hasProperty("ConnectionTimeout"))
         throw NotFoundException("Transport layer ConnectionTimeout property not found");
     if (!transportLayerProperties.hasProperty("StreamingInitTimeout"))
@@ -43,12 +43,12 @@ void NativeStreamingClientHandler::readTransportLayerProps()
     if (!transportLayerProperties.hasProperty("ReconnectionPeriod"))
         throw NotFoundException("Transport layer ReconnectionPeriod property not found");
 
-    if (transportLayerProperties.getProperty("HeartbeatEnabled").getValueType() != ctBool)
-        throw NotFoundException("Transport layer HeartbeatEnabled property should be of Bool type");
+    if (transportLayerProperties.getProperty("MonitoringEnabled").getValueType() != ctBool)
+        throw NotFoundException("Transport layer MonitoringEnabled property should be of Bool type");
     if (transportLayerProperties.getProperty("HeartbeatPeriod").getValueType() != ctInt)
         throw NotFoundException("Transport layer HeartbeatPeriod property should be of Int type");
-    if (transportLayerProperties.getProperty("HeartbeatTimeout").getValueType() != ctInt)
-        throw NotFoundException("Transport layer HeartbeatTimeout property should be of Int type");
+    if (transportLayerProperties.getProperty("InactivityTimeout").getValueType() != ctInt)
+        throw NotFoundException("Transport layer InactivityTimeout property should be of Int type");
     if (transportLayerProperties.getProperty("ConnectionTimeout").getValueType() != ctInt)
         throw NotFoundException("Transport layer ConnectionTimeout property should be of Int type");
     if (transportLayerProperties.getProperty("StreamingInitTimeout").getValueType() != ctInt)
@@ -56,9 +56,9 @@ void NativeStreamingClientHandler::readTransportLayerProps()
     if (transportLayerProperties.getProperty("ReconnectionPeriod").getValueType() != ctInt)
         throw NotFoundException("Transport layer ReconnectionPeriod property should be of Int type");
 
-    heartbeatEnabled = transportLayerProperties.getPropertyValue("HeartbeatEnabled");
+    connectionMonitoringEnabled = transportLayerProperties.getPropertyValue("MonitoringEnabled");
     heartbeatPeriod = transportLayerProperties.getPropertyValue("HeartbeatPeriod");
-    heartbeatTimeout = transportLayerProperties.getPropertyValue("HeartbeatTimeout");
+    connectionInactivityTimeout = transportLayerProperties.getPropertyValue("InactivityTimeout");
     connectionTimeout = std::chrono::milliseconds(transportLayerProperties.getPropertyValue("ConnectionTimeout"));
     streamingInitTimeout = std::chrono::milliseconds(transportLayerProperties.getPropertyValue("StreamingInitTimeout"));
     reconnectionPeriod = std::chrono::milliseconds(transportLayerProperties.getPropertyValue("ReconnectionPeriod"));
@@ -328,8 +328,8 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
     sessionHandler->setConfigPacketReceivedHandler(configPacketReceivedHandler);
 
     sessionHandler->sendTransportLayerProperties(transportLayerProperties);
-    if (heartbeatEnabled)
-        sessionHandler->startHeartbeat(heartbeatPeriod, heartbeatTimeout);
+    if (connectionMonitoringEnabled)
+        sessionHandler->startConnectionActivityMonitoring(heartbeatPeriod, connectionInactivityTimeout);
 
     sessionHandler->startReading();
 

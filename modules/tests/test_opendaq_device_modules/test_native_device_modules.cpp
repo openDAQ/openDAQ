@@ -568,9 +568,9 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     {
     "Modules": {
         "NativeStreamingClient": {
-            "HeartbeatEnabled": true,
+            "MonitoringEnabled": true,
             "HeartbeatPeriod": 100,
-            "HeartbeatTimeout": 200,
+            "InactivityTimeout": 200,
             "ConnectionTimeout": 300,
             "StreamingInitTimeout": 400,
             "ReconnectionPeriod": 500
@@ -578,11 +578,32 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
         }
     }
     )";
-
-    auto server = CreateServerInstance();
     
     CreateConfigFile(options);
     Finally final([] { RemoveConfigFile(); });
 
-    ASSERT_NO_THROW(CreateClientInstance());
+    InstancePtr instance;
+    ASSERT_NO_THROW(instance = InstanceBuilder().addConfigProvider(JsonConfigProvider("opendaq-config.json")).build());
+
+    auto deviceConfig = instance.getAvailableDeviceTypes().get("daq.nd").createDefaultConfig();
+    ASSERT_TRUE(deviceConfig.hasProperty("TransportLayerConfig"));
+    PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
+
+    ASSERT_EQ(transportLayerConfig.getPropertyValue("MonitoringEnabled"), True);
+    ASSERT_EQ(transportLayerConfig.getPropertyValue("HeartbeatPeriod"), 100);
+    ASSERT_EQ(transportLayerConfig.getPropertyValue("InactivityTimeout"), 200);
+    ASSERT_EQ(transportLayerConfig.getPropertyValue("ConnectionTimeout"), 300);
+    ASSERT_EQ(transportLayerConfig.getPropertyValue("StreamingInitTimeout"), 400);
+    ASSERT_EQ(transportLayerConfig.getPropertyValue("ReconnectionPeriod"), 500);
+
+    auto pseudoDeviceConfig = instance.getAvailableDeviceTypes().get("daq.nsd").createDefaultConfig();
+    ASSERT_TRUE(pseudoDeviceConfig.hasProperty("TransportLayerConfig"));
+    transportLayerConfig = pseudoDeviceConfig.getPropertyValue("TransportLayerConfig");
+
+    ASSERT_EQ(transportLayerConfig.getPropertyValue("MonitoringEnabled"), True);
+    ASSERT_EQ(transportLayerConfig.getPropertyValue("HeartbeatPeriod"), 100);
+    ASSERT_EQ(transportLayerConfig.getPropertyValue("InactivityTimeout"), 200);
+    ASSERT_EQ(transportLayerConfig.getPropertyValue("ConnectionTimeout"), 300);
+    ASSERT_EQ(transportLayerConfig.getPropertyValue("StreamingInitTimeout"), 400);
+    ASSERT_EQ(transportLayerConfig.getPropertyValue("ReconnectionPeriod"), 500);
 }

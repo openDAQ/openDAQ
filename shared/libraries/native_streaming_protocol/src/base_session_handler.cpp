@@ -13,37 +13,37 @@ BaseSessionHandler::BaseSessionHandler(const ContextPtr& daqContext,
     : session(session)
     , configPacketReceivedHandler(nullptr)
     , errorHandler(errorHandler)
-    , heartbeatTimer(std::make_shared<boost::asio::steady_timer>(ioContext))
+    , connectionInactivityTimer(std::make_shared<boost::asio::steady_timer>(ioContext))
     , loggerComponent(daqContext.getLogger().getOrAddComponent(loggerComponentName))
 {
 }
 
-void BaseSessionHandler::startHeartbeat(Int period, Int timeout)
+void BaseSessionHandler::startConnectionActivityMonitoring(Int heartbeatPeriod, Int inactivityTimeout)
 {
-    if (heartbeatStarted)
+    if (connectionActivityMonitoringStarted)
     {
-        LOG_W("Heartbeat is already running");
+        LOG_W("Connection activity monitoring is already running");
         return;
     }
 
-    auto heartbeatTimeout = std::chrono::milliseconds(timeout);
-    auto heartbeatPeriod = std::chrono::milliseconds(period);
+    auto inactivityTimeoutMs = std::chrono::milliseconds(inactivityTimeout);
+    auto heartbeatPeriodMs = std::chrono::milliseconds(heartbeatPeriod);
 
-    OnHeartbeatCallback onHeartbeatCallback = [this, heartbeatTimeout]()
+    OnConnectionAliveCallback onConnectionAliveCallback = [this, inactivityTimeoutMs]()
     {
-        heartbeatTimer->cancel();
-        heartbeatTimer->expires_from_now(heartbeatTimeout);
-        heartbeatTimer->async_wait(
+        connectionInactivityTimer->cancel();
+        connectionInactivityTimer->expires_from_now(inactivityTimeoutMs);
+        connectionInactivityTimer->async_wait(
             [this](const boost::system::error_code& ec)
             {
                 if (ec)
                     return;
-                this->errorHandler("Heartbeat timeout error", session);
+                this->errorHandler("Connection activity timeout error", session);
             }
         );
     };
-    session->startHeartbeat(onHeartbeatCallback, heartbeatPeriod);
-    heartbeatStarted = true;
+    session->startConnectionActivityMonitoring(onConnectionAliveCallback, heartbeatPeriodMs);
+    connectionActivityMonitoringStarted = true;
 }
 
 ReadTask BaseSessionHandler::readHeader(const void *data, size_t size)
@@ -117,7 +117,7 @@ ReadTask BaseSessionHandler::readConfigurationPacket(const void* data, size_t si
 
 BaseSessionHandler::~BaseSessionHandler()
 {
-    heartbeatTimer->cancel();
+    connectionInactivityTimer->cancel();
 }
 
 ReadTask BaseSessionHandler::createReadHeaderTask()

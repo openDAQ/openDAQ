@@ -123,9 +123,9 @@ protected:
     std::unordered_map<SignalNumericIdType, StringPtr> signalIds;
     std::mutex sync;
 
-    bool heartbeatEnabled{false};
+    bool connectionMonitoringEnabled{false};
     Int heartbeatPeriod;
-    Int heartbeatTimeout;
+    Int connectionInactivityTimeout;
     std::chrono::milliseconds connectionTimeout;
     std::chrono::milliseconds streamingInitTimeout;
     std::chrono::milliseconds reconnectionPeriod;

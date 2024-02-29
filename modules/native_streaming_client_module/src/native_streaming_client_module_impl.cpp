@@ -110,19 +110,17 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     return device;
 }
 
-void NativeStreamingClientModule::populateConfigFromContext(PropertyObjectPtr config)
+void NativeStreamingClientModule::populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig)
 {
     auto options = context.getModuleOptions(id);
     if (options.getCount() == 0)
         return;
 
-    PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
-
-    if (options.hasKey("HeartbeatEnabled"))
+    if (options.hasKey("MonitoringEnabled"))
     {
-        auto value = options.get("HeartbeatEnabled");
+        auto value = options.get("MonitoringEnabled");
         if (value.getCoreType() == CoreType::ctBool)
-            transportLayerConfig.setPropertyValue("HeartbeatEnabled", value);
+            transportLayerConfig.setPropertyValue("MonitoringEnabled", value);
     }
 
     if (options.hasKey("HeartbeatPeriod"))
@@ -132,11 +130,11 @@ void NativeStreamingClientModule::populateConfigFromContext(PropertyObjectPtr co
             transportLayerConfig.setPropertyValue("HeartbeatPeriod", value);
     }
 
-    if (options.hasKey("HeartbeatTimeout"))
+    if (options.hasKey("InactivityTimeout"))
     {
-        auto value = options.get("HeartbeatTimeout");
+        auto value = options.get("InactivityTimeout");
         if (value.getCoreType() == CoreType::ctInt)
-            transportLayerConfig.setPropertyValue("HeartbeatTimeout", value);
+            transportLayerConfig.setPropertyValue("InactivityTimeout", value);
     }
 
     if (options.hasKey("ConnectionTimeout"))
@@ -175,8 +173,6 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     if (!onAcceptsConnectionParameters(connectionString, deviceConfig))
         throw InvalidParameterException();
 
-    populateConfigFromContext(deviceConfig);
-
     if (!context.assigned())
         throw InvalidParameterException("Context is not available.");
 
@@ -207,12 +203,14 @@ PropertyObjectPtr NativeStreamingClientModule::createTransportLayerDefaultConfig
 {
     auto transportLayerConfig = daq::PropertyObject();
 
-    transportLayerConfig.addProperty(daq::BoolProperty("HeartbeatEnabled", daq::False));
+    transportLayerConfig.addProperty(daq::BoolProperty("MonitoringEnabled", daq::False));
     transportLayerConfig.addProperty(daq::IntProperty("HeartbeatPeriod", 1000));
-    transportLayerConfig.addProperty(daq::IntProperty("HeartbeatTimeout", 1500));
+    transportLayerConfig.addProperty(daq::IntProperty("InactivityTimeout", 1500));
     transportLayerConfig.addProperty(daq::IntProperty("ConnectionTimeout", 1000));
     transportLayerConfig.addProperty(daq::IntProperty("StreamingInitTimeout", 1000));
     transportLayerConfig.addProperty(daq::IntProperty("ReconnectionPeriod", 1000));
+
+    populateTransportLayerConfigFromContext(transportLayerConfig);
 
     return transportLayerConfig;
 }
@@ -328,10 +326,10 @@ bool NativeStreamingClientModule::connectionStringHasPrefix(const StringPtr& con
 
 DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
 {
-    auto configurationCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
+    auto configurationCallback = [this](IBaseObject* input, IBaseObject** output) -> ErrCode
     {
         PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(&NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
+        ErrCode errCode = wrapHandlerReturn(this, &NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
         *output = propObjPtr.detach();
         return errCode;
     };
@@ -344,10 +342,10 @@ DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
 
 DeviceTypePtr NativeStreamingClientModule::createDeviceType()
 {
-    auto configurationCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
+    auto configurationCallback = [this](IBaseObject* input, IBaseObject** output) -> ErrCode
     {
         PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(&NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
+        ErrCode errCode = wrapHandlerReturn(this, &NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
         *output = propObjPtr.detach();
         return errCode;
     };
@@ -415,15 +413,15 @@ StringPtr NativeStreamingClientModule::getPath(const StringPtr& url)
 
 bool NativeStreamingClientModule::validateTransportLayerConfig(const PropertyObjectPtr& config)
 {
-    return config.hasProperty("HeartbeatEnabled") &&
+    return config.hasProperty("MonitoringEnabled") &&
            config.hasProperty("HeartbeatPeriod") &&
-           config.hasProperty("HeartbeatTimeout") &&
+           config.hasProperty("InactivityTimeout") &&
            config.hasProperty("ConnectionTimeout") &&
            config.hasProperty("StreamingInitTimeout") &&
            config.hasProperty("ReconnectionPeriod") &&
-           config.getProperty("HeartbeatEnabled").getValueType() == ctBool &&
+           config.getProperty("MonitoringEnabled").getValueType() == ctBool &&
            config.getProperty("HeartbeatPeriod").getValueType() == ctInt &&
-           config.getProperty("HeartbeatTimeout").getValueType() == ctInt &&
+           config.getProperty("InactivityTimeout").getValueType() == ctInt &&
            config.getProperty("ConnectionTimeout").getValueType() == ctInt &&
            config.getProperty("StreamingInitTimeout").getValueType() == ctInt &&
            config.getProperty("ReconnectionPeriod").getValueType() == ctInt;

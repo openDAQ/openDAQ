@@ -37,8 +37,8 @@ public:
 
 private:
     static bool connectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
-    static DeviceTypePtr createPseudoDeviceType();
-    static DeviceTypePtr createDeviceType();
+    DeviceTypePtr createPseudoDeviceType();
+    DeviceTypePtr createDeviceType();
     static StringPtr getHost(const StringPtr& url);
     static StringPtr getPort(const StringPtr& url);
     static StringPtr getPath(const StringPtr& url);
@@ -50,9 +50,9 @@ private:
                                         const StringPtr& host,
                                         const StringPtr& port,
                                         const StringPtr& path);
-    static PropertyObjectPtr createDeviceDefaultConfig();
-    void populateConfigFromContext(PropertyObjectPtr config);
-    static PropertyObjectPtr createTransportLayerDefaultConfig();
+    PropertyObjectPtr createDeviceDefaultConfig();
+    void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
+    PropertyObjectPtr createTransportLayerDefaultConfig();
     bool validateDeviceConfig(const PropertyObjectPtr& config);
     bool validateTransportLayerConfig(const PropertyObjectPtr& config);
 

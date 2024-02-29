@@ -194,24 +194,24 @@ void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
 void NativeStreamingServerHandler::handleTransportLayerProps(const PropertyObjectPtr& propertyObject,
                                                                    std::shared_ptr<ServerSessionHandler> sessionHandler)
 {
-    if (propertyObject.hasProperty("HeartbeatEnabled") &&
+    if (propertyObject.hasProperty("MonitoringEnabled") &&
         propertyObject.hasProperty("HeartbeatPeriod") &&
-        propertyObject.hasProperty("HeartbeatTimeout") &&
-        propertyObject.getProperty("HeartbeatEnabled").getValueType() == ctBool &&
+        propertyObject.hasProperty("InactivityTimeout") &&
+        propertyObject.getProperty("MonitoringEnabled").getValueType() == ctBool &&
         propertyObject.getProperty("HeartbeatPeriod").getValueType() == ctInt &&
-        propertyObject.getProperty("HeartbeatTimeout").getValueType() == ctInt)
+        propertyObject.getProperty("InactivityTimeout").getValueType() == ctInt)
     {
-        Bool heartbeatEnabled = propertyObject.getPropertyValue("HeartbeatEnabled");
+        Bool monitoringEnabled = propertyObject.getPropertyValue("MonitoringEnabled");
         Int heartbeatPeriod = propertyObject.getPropertyValue("HeartbeatPeriod");
-        Int heartbeatTimeout = propertyObject.getPropertyValue("HeartbeatTimeout");
+        Int inactivityTimeout = propertyObject.getPropertyValue("InactivityTimeout");
 
-        LOG_I("Heartbeat {}, with period {} ms, and timeout {} ms",
-              heartbeatEnabled ? "enabled" : "disabled",
+        LOG_I("Connection activity monitoring {}, with heartbeat period {} ms, and inactivity timeout {} ms",
+              monitoringEnabled ? "enabled" : "disabled",
               heartbeatPeriod,
-              heartbeatTimeout);
+              inactivityTimeout);
 
-        if (heartbeatEnabled)
-            sessionHandler->startHeartbeat(heartbeatPeriod, heartbeatTimeout);
+        if (monitoringEnabled)
+            sessionHandler->startConnectionActivityMonitoring(heartbeatPeriod, inactivityTimeout);
     }
     else
     {

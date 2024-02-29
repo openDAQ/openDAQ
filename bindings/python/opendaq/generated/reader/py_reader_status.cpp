@@ -30,15 +30,28 @@
 
 PyDaqIntf<daq::IReaderStatus, daq::IBaseObject> declareIReaderStatus(pybind11::module_ m)
 {
+    py::enum_<daq::ReadStatus>(m, "ReadStatus")
+        .value("Ok", daq::ReadStatus::Ok)
+        .value("Event", daq::ReadStatus::Event)
+        .value("Fail", daq::ReadStatus::Fail)
+        .value("Unknown", daq::ReadStatus::Unknown);
+
     return wrapInterface<daq::IReaderStatus, daq::IBaseObject>(m, "IReaderStatus");
 }
 
 void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq::IBaseObject> cls)
 {
-    cls.doc() = "";
+    cls.doc() = "Represents the status of the reading process returned by the reader::read function.";
 
     m.def("ReaderStatus", &daq::ReaderStatus_Create);
 
+    cls.def_property_readonly("read_status",
+        [](daq::IReaderStatus *object)
+        {
+            const auto objectPtr = daq::ReaderStatusPtr::Borrow(object);
+            return objectPtr.getReadStatus();
+        },
+        "Retrieves the current reading status, indicating whether the reading process is in an \"Ok\" state, has encountered an Event, has failed, or is in an Unknown state.");
     cls.def_property_readonly("event_packet",
         [](daq::IReaderStatus *object)
         {
@@ -46,12 +59,12 @@ void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq:
             return objectPtr.getEventPacket().detach();
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Retrieves the event packet from the reading process.");
     cls.def_property_readonly("valid",
         [](daq::IReaderStatus *object)
         {
             const auto objectPtr = daq::ReaderStatusPtr::Borrow(object);
             return objectPtr.getValid();
         },
-        "");
+        "Checks the validity of the reader.");
 }

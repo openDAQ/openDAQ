@@ -11,53 +11,53 @@ BEGIN_NAMESPACE_OPENDAQ
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 {
     return Dict<IString, IBaseObject>({
-        {"modulemanager", Dict<IString, IBaseObject>({
-                {"modulespath", ""}
+        {"ModuleManager", Dict<IString, IBaseObject>({
+                {"ModulesPath", ""}
             })},
-        {"scheduler", Dict<IString, IBaseObject>({
-                {"workersnum", 0}
+        {"Scheduler", Dict<IString, IBaseObject>({
+                {"WorkersNum", 0}
             })},
-        {"logging", Dict<IString, IBaseObject>({
-                {"globalloglevel", OPENDAQ_LOG_LEVEL_DEFAULT}
+        {"Logging", Dict<IString, IBaseObject>({
+                {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
             })},
-        {"rootdevice", Dict<IString, IBaseObject>({
-                {"defaultlocalid", ""},
-                {"connectionstring", ""}
+        {"RootDevice", Dict<IString, IBaseObject>({
+                {"DefaultLocalId", ""},
+                {"ConnectionString", ""}
             })},   
-        {"modules", Dict<IString, IBaseObject>()}
+        {"Modules", Dict<IString, IBaseObject>()}
     });
 }
 
 InstanceBuilderImpl::InstanceBuilderImpl()
     : componentsLogLevel(Dict<IString, LogLevel>())
-    , providers(List<IConfigProvider>(JsonConfigProvider()))
+    , providers(List<IConfigProvider>())
     , options(GetDefaultOptions())
 {
 }
 
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getModuleManagerOptions()
 {
-    return options.get("modulemanager");
+    return options.get("ModuleManager");
 }
 
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getSchedulerOptions()
 {
-    return options.get("scheduler");
+    return options.get("Scheduler");
 }
 
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getLoggingOptions()
 {
-    return options.get("logging");
+    return options.get("Logging");
 }
 
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getRootDevice()
 {
-    return options.get("rootdevice");
+    return options.get("RootDevice");
 }
 
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::getModules()
 {
-    return options.get("modules");
+    return options.get("Modules");
 }
 
 ErrCode InstanceBuilderImpl::build(IInstance** instance)
@@ -105,7 +105,7 @@ ErrCode InstanceBuilderImpl::getLogger(ILogger** logger)
 
 ErrCode InstanceBuilderImpl::setGlobalLogLevel(LogLevel logLevel)
 {
-    getLoggingOptions().set("globalloglevel", UInt(logLevel));
+    getLoggingOptions().set("GlobalLogLevel", UInt(logLevel));
     return OPENDAQ_SUCCESS;
 }
 
@@ -114,7 +114,7 @@ ErrCode InstanceBuilderImpl::getGlobalLogLevel(LogLevel* logLevel)
     if (logLevel == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *logLevel = LogLevel(getLoggingOptions()["globalloglevel"]);
+    *logLevel = LogLevel(getLoggingOptions()["GlobalLogLevel"]);
     return OPENDAQ_SUCCESS;
 }
 
@@ -173,7 +173,7 @@ ErrCode InstanceBuilderImpl::setModulePath(IString* path)
     if (path == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    getModuleManagerOptions().set("modulespath", path);
+    getModuleManagerOptions().set("ModulesPath", path);
     return OPENDAQ_SUCCESS;
 }
 
@@ -182,7 +182,7 @@ ErrCode InstanceBuilderImpl::getModulePath(IString** path)
     if (path == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *path = getModuleManagerOptions().get("modulespath").asPtr<IString>().addRefAndReturn();
+    *path = getModuleManagerOptions().get("ModulesPath").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -206,7 +206,7 @@ ErrCode InstanceBuilderImpl::getModuleManager(IModuleManager** moduleManager)
 
 ErrCode InstanceBuilderImpl::setSchedulerWorkerNum(SizeT numWorkers)
 {
-    getSchedulerOptions().set("workersnum", numWorkers);
+    getSchedulerOptions().set("WorkersNum", numWorkers);
     return OPENDAQ_SUCCESS;
 }
 
@@ -215,7 +215,7 @@ ErrCode InstanceBuilderImpl::getSchedulerWorkerNum(SizeT* numWorkers)
     if (numWorkers == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *numWorkers = getSchedulerOptions()["workersnum"];
+    *numWorkers = getSchedulerOptions()["WorkersNum"];
     return OPENDAQ_SUCCESS;
 }
 
@@ -243,7 +243,7 @@ ErrCode InstanceBuilderImpl::setDefaultRootDeviceLocalId(IString* localId)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
 
-    getRootDevice().set("defaultlocalid", localId);
+    getRootDevice().set("DefaultLocalId", localId);
     return OPENDAQ_SUCCESS;
 }
 
@@ -252,7 +252,7 @@ ErrCode InstanceBuilderImpl::getDefaultRootDeviceLocalId(IString** localId)
     if (localId == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    *localId = getRootDevice().get("defaultlocalid").asPtr<IString>().addRefAndReturn();
+    *localId = getRootDevice().get("DefaultLocalId").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -261,7 +261,7 @@ ErrCode InstanceBuilderImpl::setRootDevice(IString* connectionString)
     if (connectionString == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    getRootDevice().set("connectionstring", connectionString);
+    getRootDevice().set("ConnectionString", connectionString);
     return OPENDAQ_SUCCESS;
 }
 
@@ -270,7 +270,7 @@ ErrCode InstanceBuilderImpl::getRootDevice(IString** connectionString)
     if (connectionString == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
-    *connectionString = getRootDevice().get("connectionstring").asPtr<IString>().addRefAndReturn();
+    *connectionString = getRootDevice().get("ConnectionString").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -302,6 +302,22 @@ ErrCode InstanceBuilderImpl::getOptions(IDict** options)
         logger = Logger();
     auto loggerComponent = logger.getOrAddComponent("InstanceBuilder");
 
+    if (useStandardProviders)
+    {
+        try
+        {
+            auto provider = JsonConfigProvider();
+            provider.populateOptions(this->options);
+        }
+        catch (const DaqException& e)
+        {
+            LOG_I("Failed to populate instance builder options with given provider. Error message: {}", e.what());
+        }
+        catch (...)
+        {
+        }
+    }
+
     for (const auto& provider : providers)
     {
         try
@@ -318,6 +334,12 @@ ErrCode InstanceBuilderImpl::getOptions(IDict** options)
     }
     
     *options = this->options.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::enableStandardProviders(Bool flag)
+{
+    useStandardProviders = flag;
     return OPENDAQ_SUCCESS;
 }
 

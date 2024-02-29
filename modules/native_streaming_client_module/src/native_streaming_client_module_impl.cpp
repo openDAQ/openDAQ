@@ -118,44 +118,44 @@ void NativeStreamingClientModule::populateConfigFromContext(PropertyObjectPtr co
 
     PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
 
-    if (options.hasKey("heartbeatenabled"))
+    if (options.hasKey("HeartbeatEnabled"))
     {
-        auto value = options.get("heartbeatenabled");
+        auto value = options.get("HeartbeatEnabled");
         if (value.getCoreType() == CoreType::ctBool)
             transportLayerConfig.setPropertyValue("HeartbeatEnabled", value);
     }
 
-    if (options.hasKey("heartbeatperiod"))
+    if (options.hasKey("HeartbeatPeriod"))
     {
-        auto value = options.get("heartbeatperiod");
+        auto value = options.get("HeartbeatPeriod");
         if (value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("HeartbeatPeriod", value);
     }
 
-    if (options.hasKey("heartbeattimeout"))
+    if (options.hasKey("HeartbeatTimeout"))
     {
-        auto value = options.get("heartbeattimeout");
+        auto value = options.get("HeartbeatTimeout");
         if (value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("HeartbeatTimeout", value);
     }
 
-    if (options.hasKey("connectiontimeout"))
+    if (options.hasKey("ConnectionTimeout"))
     {
-        auto value = options.get("connectiontimeout");
+        auto value = options.get("ConnectionTimeout");
         if (value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("ConnectionTimeout", value);
     }
 
-    if (options.hasKey("streaminginittimeout"))
+    if (options.hasKey("StreamingInitTimeout"))
     {
-        auto value = options.get("streaminginittimeout");
+        auto value = options.get("StreamingInitTimeout");
         if (value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("StreamingInitTimeout", value);
     }
 
-    if (options.hasKey("reconnectionperiod"))
+    if (options.hasKey("ReconnectionPeriod"))
     {
-        auto value = options.get("reconnectionperiod");
+        auto value = options.get("ReconnectionPeriod");
         if (value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("ReconnectionPeriod", value);
     }

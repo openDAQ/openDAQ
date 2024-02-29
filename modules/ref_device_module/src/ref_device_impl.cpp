@@ -249,16 +249,16 @@ void RefDeviceImpl::initProperties()
     if (options.getCount() == 0)
         return;
 
-    if (options.hasKey("numberofchannels"))
+    if (options.hasKey("NumberOfChannels"))
     {
-        auto value = options.get("numberofchannels");
+        auto value = options.get("NumberOfChannels");
         if (value.getCoreType() == CoreType::ctInt)
             objPtr.setPropertyValue("NumberOfChannels", value);
     }
 
-    if (options.hasKey("enablecanchannel"))
+    if (options.hasKey("EnableCANChannel"))
     {
-        auto value = options.get("enablecanchannel");
+        auto value = options.get("EnableCANChannel");
         if (value.getCoreType() == CoreType::ctBool)
             objPtr.setPropertyValue("EnableCANChannel", value);
     }

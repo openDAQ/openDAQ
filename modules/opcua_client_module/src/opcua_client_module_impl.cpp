@@ -129,7 +129,7 @@ bool OpcUaClientModule::onAcceptsConnectionParameters(const StringPtr& connectio
     if (found != 0)
         return false;
 
-    if ( config.assigned() && !acceptDeviceProperties(config))
+    if (config.assigned() && !acceptDeviceProperties(config))
     {
         LOG_W("Connection string \"{}\" is accepted but config is incomplete", connectionString);
         return false;

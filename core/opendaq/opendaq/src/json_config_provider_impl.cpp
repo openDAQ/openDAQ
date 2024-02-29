@@ -10,7 +10,6 @@
 #include <fstream>
 #include <utility>
 #include <cctype>
-#include <boost/algorithm/string.hpp>
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
 
@@ -38,11 +37,6 @@ JsonConfigProviderImpl::JsonConfigProviderImpl(const StringPtr& filename)
         fs::path configPath = executableDirectory / "opendaq-config.json";
         this->filename = configPath.string();
     }
-}
-
-std::string JsonConfigProviderImpl::ToLowerCase(const std::string &input) 
-{
-    return boost::algorithm::to_lower_copy(input);
 }
 
 StringPtr JsonConfigProviderImpl::GetEnvironmentVariableValue(StringPtr variableName, StringPtr defaultValue)
@@ -186,7 +180,7 @@ void JsonConfigProviderImpl::HandleObject(const BaseObjectPtr& options, const ra
     
     for (auto & el : value.GetObject())
     {
-        auto optionName = ToLowerCase(el.name.GetString());
+        auto optionName = el.name.GetString();
         BaseObjectPtr optionValue;
         if (optionsPtr.hasKey(optionName))
             optionValue = optionsPtr.get(optionName);

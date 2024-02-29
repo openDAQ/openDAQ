@@ -67,6 +67,8 @@ public:
 
     ErrCode INTERFACE_FUNC getOptions(IDict** options) override;
 
+    ErrCode INTERFACE_FUNC enableStandardProviders(Bool flag) override;
+
 private:
     static DictPtr<IString, IBaseObject> GetDefaultOptions();
 
@@ -85,6 +87,7 @@ private:
     SchedulerPtr scheduler;
     ModuleManagerPtr moduleManager;
 
+    Bool useStandardProviders{false};
     ListPtr<IConfigProvider> providers;
     DictPtr<IString, IBaseObject> options;
 };

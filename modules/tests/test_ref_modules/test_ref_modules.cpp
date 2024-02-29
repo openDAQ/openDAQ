@@ -1072,7 +1072,7 @@ TEST_F(RefModulesTest, ConfigureDeviceFromOptions)
     CreateConfigFile(options);
     Finally final([] { RemoveConfigFile(); });
 
-    const auto instance = Instance();
+    const auto instance = InstanceBuilder().enableStandardProviders(true).build();
     const auto device = instance.addDevice("daqref://device1");
 
     Int numChannels = device.getPropertyValue("NumberOfChannels");

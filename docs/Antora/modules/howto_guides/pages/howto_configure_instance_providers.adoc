@@ -26,8 +26,8 @@ Json config provider is a *default provider* that tries to get configuration fro
     "ConnectionString": ""
   },
   "Modules": {
-    "SomeModule1": {
-        "option1": "value"
+    "RefDevice": {
+        "NumberOfChannels": 2
     },
     "SomeModule2": {
         "enableOption2": true,
@@ -84,18 +84,18 @@ Bash::
 [source,bash]
 []
 ----
-export OPENDAQ_CONFIG_MODULEMANAGER_MODULESPATH="/tmp/modules/"
-export OPENDAQ_CONFIG_LOGGING_GlobalLogLevel=1
+export OPENDAQ_CONFIG_ModuleManager_ModulesPath="/tmp/modules/"
+export OPENDAQ_CONFIG_Logging_GlobalLogLevel=1
 export OPENDAQ_CONFIG_Modules_SomeModule_EnableSomething=true
 export OPENDAQ_CONFIG_Modules_SomeModule_FloatValue=12.5
 ----
 ====
-The `OPENDAQ_CONFIG_` prefix is case-sensitive and indicates that the variable is part of the instance builder options. The rest of the environment key is not case-sensitive and is considered as nodes of a dictionary split by underscore (`_-_`). For example, `OPENDAQ_CONFIG_MODULEMANAGER_MODULESPATH="/tmp/modules/"` is represented as populating the instance builder options with the corresponding values. If a value was already set, it will be overridden with the new one in case the type of the new value matches the old one.
+The `OPENDAQ_CONFIG_` prefix is case-sensitive and indicates that the variable is part of the instance builder options. The rest of the environment key is case-sensitive and is considered as nodes of a dictionary split by underscore (`_-_`). For example, `OPENDAQ_CONFIG_ModuleManager_ModulesPath="/tmp/modules/"` is represented as populating the instance builder options with the corresponding values. If a value was already set, it will be overridden with the new one in case the type of the new value matches the old one.
 [source,json]
 ----
 {
-  "modulemanager": {
-    "modulespath": "/tmp/modules/"
+  "ModuleManager": {
+    "ModulesPath": "/tmp/modules/"
   }
 }
 ----
@@ -133,7 +133,7 @@ instance = instance_builder.build()
 
 == Instance Configuration with Command Line Arguments
 
-An instance can be configured from command line arguments. If `CmdLineArgsConfigProvider` is set to the builder, the provider will parse all command line arguments starting with `-C`. The structure of the command line arguments reflects the hierarchy of the configuration, with each level separated by a underscore (`_-_`). For example, `-Cmodulemanager_modulespath="./custom_modules"` would be recognized and parsed accordingly. Note that values are treated similarly to environment variables: if enclosed in quotes, they are recognized as string types; otherwise, the provider attempts to parse them as integer, float, and boolean types. If parsing fails, the value is considered as a string type.
+An instance can be configured from command line arguments. If `CmdLineArgsConfigProvider` is set to the builder, the provider will parse all command line arguments starting with `-C`. The structure of the command line arguments reflects the hierarchy of the configuration, with each level separated by a underscore (`_-_`). For example, `-CModuleManager_ModulesPath="./custom_modules"` would be recognized and parsed accordingly. Note that values are treated similarly to environment variables: if enclosed in quotes, they are recognized as string types; otherwise, the provider attempts to parse them as integer, float, and boolean types. If parsing fails, the value is considered as a string type.
 
 [tabs]
 ====
@@ -142,12 +142,12 @@ Bash::
 [source,bash]
 []
 ----
-./program -Cmodulemanager_modulespath="./custom_modules" -CLOGGING_GlobalLogLevel=1
+./program -CModuleManager_ModulesPath="./custom_modules" -CLogging_GlobalLogLevel=1
 -CModules_SomeModule_EnableSomething=true -CModules_SomeModule_FloatValue=12.5
 ----
 ====
 
-The `-C` prefix is case-sensitive and indicates that the argument is part of the instance builder options. The rest of the argument is not case-sensitive and is considered as nodes of a dictionary, similar to how environment variables are treated.
+The `-C` prefix is case-sensitive and indicates that the argument is part of the instance builder options. The rest of the argument is case-sensitive and is considered as nodes of a dictionary, similar to how environment variables are treated.
 
 If a value was already set in the configuration, it will be overridden by the value from the command line argument if the type of the new value matches the old one.
 

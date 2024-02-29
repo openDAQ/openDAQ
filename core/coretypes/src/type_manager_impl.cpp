@@ -23,6 +23,9 @@ ErrCode TypeManagerImpl::addType(IType* type)
     
     if (types.hasKey(typeName))
         return OPENDAQ_ERR_ALREADYEXISTS;
+
+    if(!daq::validateTypeName(typeName.getCharPtr()))
+        return OPENDAQ_ERR_VALIDATE_FAILED;
     
     const ErrCode err = types->set(typeName, typePtr);
     if (OPENDAQ_FAILED(err))

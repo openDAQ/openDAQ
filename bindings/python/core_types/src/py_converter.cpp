@@ -126,6 +126,16 @@ py::object baseObjectToPyObject(const daq::ObjectPtr<daq::IBaseObject>& baseObje
             py::object p = py::cast(static_cast<std::complex<double>>(number.getValue()));
             return p;
         }
+        case daq::ctStruct:
+        {
+            InterfaceWrapper<daq::IStruct> wrappedInterface(baseObject.asPtr<daq::IStruct>().addRefAndReturn());
+            return py::cast(wrappedInterface);
+        }
+        case daq::ctEnumeration:
+        {
+            InterfaceWrapper<daq::IEnumeration> wrappedInterface(baseObject.asPtr<daq::IEnumeration>().addRefAndReturn());
+            return py::cast(wrappedInterface);
+        }
         default:
         {
             InterfaceWrapper<daq::IBaseObject> wrappedInterface(baseObject.addRefAndReturn());

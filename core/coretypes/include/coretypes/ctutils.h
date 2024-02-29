@@ -18,6 +18,7 @@
 #include <functional>
 #include <coretypes/common.h>
 #include <coretypes/mem.h>
+#include <regex>
 #include <sstream>
 #include <utility>
 #include <coretypes/errorinfo.h>
@@ -434,6 +435,12 @@ TPtr callNotNull(TPtr ptr, TFunc func)
     }
 
     return std::invoke(func, std::forward<TPtr>(ptr));
+}
+
+inline bool validateTypeName(ConstCharPtr typeName)
+{
+    const std::regex validatorRegex("^[a-zA-Z_]+[a-zA-Z0-9_]*$");
+    return std::regex_match(typeName, validatorRegex);
 }
 
 END_NAMESPACE_OPENDAQ

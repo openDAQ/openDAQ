@@ -88,4 +88,41 @@ void defineIStruct(pybind11::module_ m, PyDaqIntf<daq::IStruct, daq::IBaseObject
         },
         py::arg("name"),
         "Checks whether a field with the given name exists in the Struct");
+    cls.def("__dir__",
+        [](daq::IStruct *object)
+        {
+            const auto objectPtr = daq::StructPtr::Borrow(object);
+            return baseObjectToPyObject(objectPtr.getFieldNames());
+        },
+        "Gets a list of all Struct field names.");
+    cls.def("__getattr__",
+        [](daq::IStruct *object, const std::string& name)
+        {
+            const auto objectPtr = daq::StructPtr::Borrow(object);
+            if(!objectPtr.hasField(name))
+                throw py::attribute_error("Attribute '" + name + "' not found");
+            return baseObjectToPyObject(objectPtr.get(name));
+        },
+        py::arg("name"),
+        "Gets the value of a field with the given name.");
+    cls.def("__setattr__",
+        [](daq::IStruct *object, const std::string& name, const py::object& value)
+        {
+            const auto objectPtr = daq::StructPtr::Borrow(object);
+            if(!objectPtr.hasField(name))
+                throw py::attribute_error("Attribute '" + name + "' not found");
+            throw py::attribute_error("Attribute '" + name + "' is read-only");
+        },
+        py::arg("name"), py::arg("value"),
+        "Sets the value of a field with the given name.");
+    cls.def("__delattr__",
+        [](daq::IStruct *object, const std::string& name)
+        {
+            const auto objectPtr = daq::StructPtr::Borrow(object);
+            if(!objectPtr.hasField(name))
+                throw py::attribute_error("Attribute '" + name + "' not found");
+            throw py::attribute_error("Attribute '" + name + "' is read-only");
+        },
+        py::arg("name"),
+        "Deletes the field with the given name.");
 }

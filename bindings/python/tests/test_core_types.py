@@ -433,5 +433,138 @@ class TestFunction(opendaq_test.TestCase):
 
         self.assertEqual(value, 10)
 
+class TestStruct(opendaq_test.TestCase):
+
+    def test_struct_types(self):
+        type_manager = daq.TypeManager()
+        
+        #nested struct
+        nested_names = daq.List()
+        nested_names.append(daq.String("string"))
+        nested_names.append(daq.String("int"))
+
+        nested_typeList = daq.List()
+        nested_typeList.append(daq.SimpleType(daq.CoreType.ctString))
+        nested_typeList.append(daq.SimpleType(daq.CoreType.ctInt))
+
+        nested_default_values = daq.List()
+        nested_default_values.append(daq.String('string'))
+        nested_default_values.append(daq.Integer(10))
+
+        nested_type = daq.StructType(daq.String("nested"), nested_names, nested_default_values, nested_typeList)
+        type_manager.add_type(nested_type)
+
+        #main struct
+        names = daq.List()
+        names.append('bool')
+        names.append('int')
+        names.append('float')
+        names.append('string')
+        names.append('list')
+        names.append('dict')
+        names.append('ratio')
+        names.append('complexnumber')
+        names.append('struct')
+        names.append('enumeration')
+        names.append('undefined')
+
+        typeList = daq.List()
+        typeList.append(daq.SimpleType(daq.CoreType.ctBool))
+        typeList.append(daq.SimpleType(daq.CoreType.ctInt))
+        typeList.append(daq.SimpleType(daq.CoreType.ctFloat))
+        typeList.append(daq.SimpleType(daq.CoreType.ctString))
+        typeList.append(daq.SimpleType(daq.CoreType.ctList))
+        typeList.append(daq.SimpleType(daq.CoreType.ctDict))
+        typeList.append(daq.SimpleType(daq.CoreType.ctRatio))
+        typeList.append(daq.SimpleType(daq.CoreType.ctComplexNumber))
+        typeList.append(nested_type)
+        typeList.append(daq.SimpleType(daq.CoreType.ctEnumeration))
+        typeList.append(daq.SimpleType(daq.CoreType.ctUndefined))
+
+        default_values = daq.List()
+        default_values.append(daq.Boolean(True))
+        default_values.append(daq.Integer(10))
+        default_values.append(daq.Float(10))
+        default_values.append(daq.String('string'))
+
+        vals_list = daq.List()
+        vals_list.append(daq.String('item0'))
+        vals_list.append(daq.String('item1'))
+        default_values.append(vals_list)
+
+        vals_dict = daq.Dict()
+        vals_dict[daq.String('key0')] = daq.String('val0')
+        vals_dict[daq.String('key1')] = daq.String('val1')
+        default_values.append(vals_dict)
+
+        default_values.append(daq.Ratio(1, 2))
+        default_values.append(daq.ComplexNumber(1.0, 1.0))
+
+        nested_struct = daq.Struct(daq.String('nested'), daq.Dict(), type_manager)
+        default_values.append(nested_struct)
+
+        enum_vals = daq.List()
+        enum_vals.append(daq.String('enum0'))
+        enum_vals.append(daq.String('enum1'))
+
+        enum_type = daq.EnumerationType(daq.String('enum'), enum_vals, 0)
+        type_manager.add_type(enum_type)
+
+        enum = daq.Enumeration(daq.String('enum'), daq.String('enum0'), type_manager)
+        default_values.append(enum)
+
+        default_values.append(None)
+
+        type = daq.StructType(daq.String("foo"), names, default_values, typeList)
+        type_manager.add_type(type)
+
+        bldr = daq.StructBuilder(daq.String('foo'), type_manager)
+        struct = bldr.build()
+
+        self.assertEqual(struct.bool, True)
+        self.assertEqual(struct.int, 10)
+        self.assertEqual(struct.float, 10)
+        self.assertEqual(struct.string, 'string')
+        self.assertEqual(struct.list[0], vals_list[0])
+        self.assertEqual(struct.dict['key0'], vals_dict['key0'])
+        self.assertEqual(struct.ratio.numerator, 1)
+        self.assertEqual(struct.complexnumber.real, 1.0)
+        self.assertEqual(struct.struct.string, 'string')
+        self.assertEqual(struct.enumeration.value, 'enum0')
+        self.assertIsNone(struct.undefined)
+
+    def test_typenames_validation(self):
+        type_manager = daq.TypeManager()
+        valid_names = daq.List()
+        valid_names.append('_')
+
+        typeList = daq.List()
+        typeList.append(daq.SimpleType(daq.CoreType.ctBool))
+        
+        default_values = daq.List()
+        default_values.append(daq.Boolean(True))
+
+        #check typename validation
+        type = daq.StructType(daq.String('invalid struct name'), valid_names, default_values, typeList)
+        with self.assertRaisesRegex(RuntimeError, 'Validate failed'):
+            type_manager.add_type(type)
+
+        #check field names validation
+        invalid_names = daq.List()
+        invalid_names.append('1_invalid')
+
+        with self.assertRaisesRegex(RuntimeError, '.*names.*incorrect.*'):
+            type = daq.StructType(daq.String('valid_struct_name'), invalid_names, default_values, typeList)
+            
+        invalid_names_1 = daq.List()
+        invalid_names_1.append('')
+
+        with self.assertRaisesRegex(RuntimeError, '.*names.*incorrect.*'):
+            type = daq.StructType(daq.String('valid_struct_name'), invalid_names_1, default_values, typeList)
+
+        #should be ok here
+        type = daq.StructType(daq.String('valid_struct_name'), valid_names, default_values, typeList)
+        type_manager.add_type(type)
+
 if __name__ == '__main__':
     unittest.main()

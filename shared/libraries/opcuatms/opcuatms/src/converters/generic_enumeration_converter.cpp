@@ -24,20 +24,21 @@ OpcUaVariant VariantConverter<IEnumeration>::ToVariant(const EnumerationPtr& obj
                                                        const UA_DataType* targetType,
                                                        const ContextPtr& context)
 {
-    const auto type = GetUAEnumerationDataTypeByName(object.getEnumerationType().getName());
+    const auto DataType = GetUAEnumerationDataTypeByName(object.getEnumerationType().getName());
     std::cout << "DEBUG 199 : object.getEnumerationType().getName(): " << object.getEnumerationType().getName() << std::endl;
-    std::cout << "DEBUG 200 : VariantConverter<IEnumeration>::ToVariant typeKind: " << type->typeKind << std::endl;
-    if (type == nullptr)
+    std::cout << "DEBUG 200 : VariantConverter<IEnumeration>::ToVariant typeKind: " << DataType->typeKind << std::endl;
+    if (DataType == nullptr)
         throw ConversionFailedException{};
 
-    std::cout << "DEBUG 201 : type->memSize: " << type->memSize << std::endl;
-    std::cout << "DEBUG 202 : type->typeId.identifier.numeric = " << type->typeId.identifier.numeric << std::endl;
+    std::cout << "DEBUG 201 : DataType->memSize: " << DataType->memSize << std::endl;
+    std::cout << "DEBUG 202 : DataType->typeId.identifier.numeric = " << DataType->typeId.identifier.numeric << std::endl;
 
-    void* data = UA_new(type); //Is this doing the same as int32?
+    void* data = UA_new(DataType); //Is this doing the same as int32?
+
     OpcUaVariant variant{};
-    UA_Variant_setScalar(&variant.getValue(), data, type);
+    UA_Variant_setScalar(&variant.getValue(), data, DataType);
 
-    std::cout << "DEBUG 203 : After Variant creation type->typeId.identifier.numeric =  " << variant.getValue().type->typeId.identifier.numeric << std::endl;
+    std::cout << "DEBUG 204 : After Variant creation type->typeId.identifier.numeric =  " << variant.getValue().type->typeId.identifier.numeric << std::endl;
     return variant;
 }
 

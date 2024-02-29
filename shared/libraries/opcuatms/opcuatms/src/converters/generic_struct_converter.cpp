@@ -150,6 +150,8 @@ OpcUaVariant VariantConverter<IStruct>::ToVariant(const StructPtr& object, const
         if (!daqMembers.hasKey(member->memberName))
             throw ConversionFailedException{};
 
+        std::cout << "DEBUG 300: member->memberName: " << member->memberName << std::endl;
+
         auto daqMember = daqMembers.get(member->memberName);
         dst += member->padding;
 

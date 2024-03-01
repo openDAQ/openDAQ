@@ -374,6 +374,18 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value)
             *value = Range(data[idx * 2], data[idx * 2 + 1]).detach();
             break;
         }
+        case SampleType::ComplexFloat32:
+        {
+            auto data = static_cast<float*>(addr);
+            *value = ComplexNumber(data[idx * 2], data[idx * 2 + 1]).detach();
+            break;
+        }
+        case SampleType::ComplexFloat64:
+        {
+            auto data = static_cast<double*>(addr);
+            *value = ComplexNumber(data[idx * 2], data[idx * 2 + 1]).detach();
+            break;
+        }
         default:
         {
             return OPENDAQ_IGNORED;

@@ -636,4 +636,58 @@ TEST_F(SignalTest, GetLastValueRange)
     ASSERT_EQ(rangePtr.getHighValue(), 9);
 }
 
+TEST_F(SignalTest, GetLastValueComplexFloat32)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::ComplexFloat32).build();
+
+    auto dataPacket = DataPacket(descriptor, 5);
+    auto data = static_cast<float*>(dataPacket.getData());
+    data[0] = 0.1;
+    data[1] = 1.1;
+    data[2] = 2.1;
+    data[3] = 3.1;
+    data[4] = 4.1;
+    data[5] = 5.1;
+    data[6] = 6.1;
+    data[7] = 7.1;
+    data[8] = 8.1;
+    data[9] = 9.1;
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValuePacket = signal.getLastValue();
+    ComplexNumberPtr complexPtr;
+    ASSERT_NO_THROW(complexPtr = lastValuePacket.asPtr<IComplexNumber>());
+    ASSERT_FLOAT_EQ(complexPtr.getReal(), 8.1);
+    ASSERT_FLOAT_EQ(complexPtr.getImaginary(), 9.1);
+}
+
+TEST_F(SignalTest, GetLastValueComplexFloat64)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::ComplexFloat64).build();
+
+    auto dataPacket = DataPacket(descriptor, 5);
+    auto data = static_cast<double*>(dataPacket.getData());
+    data[0] = 0.1;
+    data[1] = 1.1;
+    data[2] = 2.1;
+    data[3] = 3.1;
+    data[4] = 4.1;
+    data[5] = 5.1;
+    data[6] = 6.1;
+    data[7] = 7.1;
+    data[8] = 8.1;
+    data[9] = 9.1;
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValuePacket = signal.getLastValue();
+    ComplexNumberPtr complexPtr;
+    ASSERT_NO_THROW(complexPtr = lastValuePacket.asPtr<IComplexNumber>());
+    ASSERT_DOUBLE_EQ(complexPtr.getReal(), 8.1);
+    ASSERT_DOUBLE_EQ(complexPtr.getImaginary(), 9.1);
+}
+
 END_NAMESPACE_OPENDAQ

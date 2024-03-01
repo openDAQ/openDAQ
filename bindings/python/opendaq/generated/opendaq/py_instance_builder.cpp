@@ -214,4 +214,12 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
         },
         py::return_value_policy::take_ownership,
         "Gets the dictionary of instance options");
+    cls.def("enable_standard_providers",
+        [](daq::IInstanceBuilder *object, const bool flag)
+        {
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            objectPtr.enableStandardProviders(flag);
+        },
+        py::arg("flag"),
+        "Allows enabling or disabling standard configuration providers, including JsonConfigProvider, based on the specified flag.");
 }

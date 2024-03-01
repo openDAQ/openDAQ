@@ -106,7 +106,7 @@ void defineIStruct(pybind11::module_ m, PyDaqIntf<daq::IStruct, daq::IBaseObject
         py::arg("name"),
         "Gets the value of a field with the given name.");
     cls.def("__setattr__",
-        [](daq::IStruct *object, const std::string& name, const py::object& value)
+        [](daq::IStruct *object, const std::string& name, const py::object&)
         {
             const auto objectPtr = daq::StructPtr::Borrow(object);
             if(!objectPtr.hasField(name))

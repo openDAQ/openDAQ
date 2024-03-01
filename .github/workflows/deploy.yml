@@ -132,7 +132,6 @@ jobs:
         working-directory: ${{ env.package_path }}
         run: |
           Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
-          Get-ChildItem -Path .\* -Include *.nupkg | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
 
       - name: Rename wheels (main)
         if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'

@@ -455,3 +455,13 @@ TEST_F(TmsDeviceTest, CustomComponentOrder)
     for (SizeT i = 0; i < serverCmps.getCount(); ++i)
         ASSERT_EQ(serverCmps[i].getName(), clientCmps[i].getName());
 }
+
+TEST_F(TmsDeviceTest, SdkPackageVersion)
+{
+    auto serverDevice = createDevice();
+    auto tmsServerDevice = TmsServerDevice(serverDevice.getRootDevice(), this->getServer(), ctx, serverContext);
+    auto nodeId = tmsServerDevice.registerOpcUaNode();
+    DevicePtr clientDevice = TmsClientRootDevice(NullContext(), nullptr, "Dev", clientContext, nodeId, nullptr);
+
+    ASSERT_EQ(clientDevice.getInfo().getSdkVersion(), OPENDAQ_PACKAGE_VERSION);
+}

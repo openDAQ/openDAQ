@@ -6,7 +6,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 template <typename TInterface, typename... Interfaces>
-DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString)
+DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion)
     : Super()
 {
     createAndSetDefaultStringProperty("name", name);
@@ -30,6 +30,12 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     createAndSetDefaultStringProperty("systemType", "");
     createAndSetDefaultStringProperty("systemUuid", "");
     createAndSetDefaultStringProperty("connectionString", connectionString);
+    createAndSetDefaultStringProperty("sdkVersion", "");
+
+    if (customSdkVersion.assigned())
+        Super::setProtectedPropertyValue(String("sdkVersion"), customSdkVersion);
+    else
+        Super::setProtectedPropertyValue(String("sdkVersion"), String(OPENDAQ_PACKAGE_VERSION));
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -284,6 +290,17 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getCustomInfoPropertyNa
     return OPENDAQ_SUCCESS;
 }
 
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getSdkVersion(IString** version)
+{
+    OPENDAQ_PARAM_NOT_NULL(version);
+
+    return daqTry([&]() {
+        *version = getStringProperty("sdkVersion").detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setHardwareRevision(IString* hardwareRevision)
 {
@@ -487,14 +504,24 @@ Int DeviceInfoConfigImpl<TInterface, Interfaces...>::getIntProperty(const String
     return obj.getPropertyValue(name).template asPtr<IInteger>();
 }
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
-    LIBRARY_FACTORY,
-    DeviceInfoConfigImpl<>,
-    IDeviceInfoConfig,
-    createDeviceInfoConfig,
-    IString*,
-    name,
-    IString*,
-    connectionString)
+
+#if !defined(BUILDING_STATIC_LIBRARY)
+
+extern "C"
+ErrCode PUBLIC_EXPORT createDeviceInfoConfig(IDeviceInfoConfig** objTmp, IString* name, IString* connectionString)
+{
+    return createObject<IDeviceInfoConfig, DeviceInfoConfigImpl<>, IString*, IString*>(objTmp, name, connectionString);
+}
+
+extern "C"
+ErrCode PUBLIC_EXPORT createDeviceInfoConfigWithCustomSdkVersion(IDeviceInfoConfig** objTmp, IString* name, IString* connectionString, IString* sdkVersion)
+{
+    return createObject<IDeviceInfoConfig, DeviceInfoConfigImpl<>, IString*, IString*, IString*>(objTmp, name, connectionString, sdkVersion);
+}
+
+#endif
+
+
+
 
 END_NAMESPACE_OPENDAQ

@@ -182,6 +182,7 @@ DeviceInfoPtr MockDevice1Impl::onGetInfo()
 {
     const auto info = DeviceInfo("mock://dev1", "MockDevice1");
     info.setManufacturer("Testing");
+    info.freeze();
     return info;
 }
 

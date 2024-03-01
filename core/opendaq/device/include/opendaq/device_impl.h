@@ -1169,7 +1169,10 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
     if (serializedObject.hasKey("deviceInfo"))
+    {
         deviceInfo = serializedObject.readObject("deviceInfo");
+        deviceInfo.freeze();
+    }
 
     if (serializedObject.hasKey("domainOrigin"))
         domainOrigin = serializedObject.readString("domainOrigin");

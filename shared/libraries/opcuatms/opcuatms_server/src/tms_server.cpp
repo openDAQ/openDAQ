@@ -31,11 +31,6 @@ void TmsServer::setOpcUaPort(uint16_t port)
     this->opcUaPort = port;
 }
 
-void TmsServer::setOpendaqVersion(const std::string& version)
-{
-    this->versionStr = version;
-}
-
 void TmsServer::start()
 {
     if (!device.assigned())
@@ -52,19 +47,6 @@ void TmsServer::start()
 
     tmsDevice = std::make_unique<TmsServerDevice>(device, server, context, tmsContext);
     tmsDevice->registerOpcUaNode(OpcUaNodeId(NAMESPACE_DI, UA_DIID_DEVICESET));
-
-    if (!versionStr.empty())
-    {
-        OpcUaNodeId newNodeId(0);
-        AddVariableNodeParams params(newNodeId, tmsDevice->getNodeId());
-        params.setBrowseName("OpenDaqPackageVersion");
-        params.setDataType(OpcUaNodeId(UA_TYPES[UA_TYPES_STRING].typeId));
-        params.typeDefinition = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_PROPERTYTYPE));
-        const auto nodeId = server->addVariableNode(params);
-
-        server->writeValue(nodeId, OpcUaVariant(versionStr.c_str()));
-    }
-
     tmsDevice->createNonhierarchicalReferences();
 
     server->start();

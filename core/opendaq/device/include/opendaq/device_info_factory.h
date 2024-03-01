@@ -27,10 +27,11 @@ BEGIN_NAMESPACE_OPENDAQ
  * @brief Creates a DeviceInfoConfig with a connection string and optional name.
  * @param connectionString String used to connect to the device.
  * @param name The name of the device. Optional parameter.
+ * @param customSdkVersion Used when the device uses a custom SDK version. Optional parameter.
  */
-inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const StringPtr& name = "")
+inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const StringPtr& name = "", const StringPtr& customSdkVersion = nullptr)
 {
-    DeviceInfoConfigPtr obj(DeviceInfoConfig_Create(name, connectionString));
+    DeviceInfoConfigPtr obj(DeviceInfoConfigWithCustomSdkVersion_Create(name, connectionString, customSdkVersion));
     return obj;
 }
 /*!@}*/

@@ -17,7 +17,7 @@ env:
   s3sdk_path: releases/${{ github.ref_name }}/SDK
   s3wheels_linux_x86_64_path: releases/${{ github.ref_name }}/Python Wheels (Linux x86_64)
   s3wheels_win_amd64_path: releases/${{ github.ref_name }}/Python Wheels (Windows amd64)
-  s3dotnet_path: releases/${{ github.ref_name }}/.NET Bindings
+  s3dotnet_path: releases/${{ github.ref_name }}/dotNET Bindings
   s3docpath: releases/${{ github.ref_name }}/Specifications and documentation
   s3simulatorpath: releases/${{ github.ref_name }}/Simulator
   vm_name: device_simulator
@@ -59,12 +59,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Get short SHA
+        if: github.ref == 'refs/heads/main'
+        id: short-sha
+        uses: benjlevesque/short-sha@v2.2
+
       - name: Configure and build Wheels
         if: matrix.cmake_generator_platform != 'Win32'
         shell: pwsh
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
+          $env:SHORT_SHA = "${{ steps.short-sha.outputs.sha }}"
           mkdir build
           cd build
           mkdir wheels
@@ -112,11 +118,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Get short SHA
-        if: github.ref == 'refs/heads/main'
-        id: short-sha
-        uses: benjlevesque/short-sha@v2.2
 
       - name: Rename package
         shell: pwsh

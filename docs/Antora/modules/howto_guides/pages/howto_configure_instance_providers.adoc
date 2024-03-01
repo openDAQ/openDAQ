@@ -7,7 +7,7 @@ A Config Provider is an interface that enriches the input options dictionary wit
 - xref:howto_configure_instance.adoc#instance[Architecture - Instance]
 
 == Instance Configuration with JSON Provider
-Json config provider is a *default provider* that tries to get configuration from a path set in the `OPENDAQ_CONFIG_PATH` environment variable, otherwise, it reads `opendaq-config.json` from the same folder from which the file was run. An example of a JSON file is listed below. JSON keys are case-insensitive, so the keys "MODULEMANAGER", "modulemanager", and "ModuleManager" are recognized as the same key. If a value has the wrong type, or there are additional key-value pairs, they will be ignored. If a provider is overriding a list value, the old list items will be erased.
+Json config provider is a *default provider* that tries to get configuration from a path set in the `OPENDAQ_CONFIG_PATH` environment variable, otherwise, it reads `opendaq-config.json` from the same folder from which the file was run. An example of a JSON file is listed below. JSON keys are case-sensitive, so the keys "MODULEMANAGER", "modulemanager", and "ModuleManager" are recognized as different keys. Meantime provider expected keys in *PascalCase*. If a value has the wrong type, or there are additional key-value pairs, they will be ignored. If a provider is overriding a list value, the old list items will be erased.
 
 [source,json]
 ----
@@ -90,7 +90,7 @@ export OPENDAQ_CONFIG_Modules_SomeModule_EnableSomething=true
 export OPENDAQ_CONFIG_Modules_SomeModule_FloatValue=12.5
 ----
 ====
-The `OPENDAQ_CONFIG_` prefix is case-sensitive and indicates that the variable is part of the instance builder options. The rest of the environment key is case-sensitive and is considered as nodes of a dictionary split by underscore (`_-_`). For example, `OPENDAQ_CONFIG_ModuleManager_ModulesPath="/tmp/modules/"` is represented as populating the instance builder options with the corresponding values. If a value was already set, it will be overridden with the new one in case the type of the new value matches the old one.
+The `OPENDAQ_CONFIG_` prefix is case-sensitive and indicates that the variable is part of the instance builder options. The rest of the environment keys are written in PascalCase and are considered as nodes of a dictionary, split by underscores (`_-_`). For example, `OPENDAQ_CONFIG_ModuleManager_ModulesPath="/tmp/modules/"` is represented as populating the instance builder options with the corresponding values. If a value was already set, it will be overridden with the new one in case the type of the new value matches the old one.
 [source,json]
 ----
 {

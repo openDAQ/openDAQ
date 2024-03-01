@@ -16,14 +16,14 @@ template <typename T>
 class TriggerTestHelper
 {
 public:
-    TriggerTestHelper(DataRulePtr rule,
-                      vecvec<Bool> expectedData,
-                      vecvec<Int> expectedDomain,
-                      SampleType sampleType,
-                      vecvec<T> mockPackets,
-                      std::vector<Int> thresholdChangesAfterPackets = {},
-                      vecvec<Int> mockDomainPackets = {},
-                      std::vector<Float> newThresholds = {})
+    TriggerTestHelper(const DataRulePtr& rule,
+                      const vecvec<Bool>& expectedData,
+                      const vecvec<Int>& expectedDomain,
+                      const SampleType& sampleType,
+                      const vecvec<T>& mockPackets,
+                      const std::vector<Int>& thresholdChangesAfterPackets = {},
+                      const vecvec<Int>& mockDomainPackets = {},
+                      const std::vector<Float>& newThresholds = {})
     {
         // Create logger, context and module
         auto logger = Logger();
@@ -49,7 +49,7 @@ public:
         sendPacketsAndChangeThreshold();
         receivePacketsAndCheck();
 
-        // TODO Temporaray fix so PacketReadyNotification::Scheduler works
+        // Fix so PacketReadyNotification::Scheduler works
         context.getScheduler().stop();
     }
 
@@ -136,8 +136,8 @@ private:
 
     void createFunctionBlock()
     {
-        // TODO Temporary fix
-        PropertyObjectPtr config = module.getAvailableFunctionBlockTypes().get("ref_fb_module_trigger").createDefaultConfig();
+        // Fix for race condition
+        auto config = module.getAvailableFunctionBlockTypes().get("ref_fb_module_trigger").createDefaultConfig();
         config.setPropertyValue("UseMultiThreadedScheduler", false);
         // Create function block
         fb = module.createFunctionBlock("ref_fb_module_trigger", nullptr, "fb", config);
@@ -284,14 +284,7 @@ TEST_F(TriggerTest, TriggerTestIntExplicit)
     vecvec<Int> expectedDomain{{9, 17, 23}, {31, 35}, {43}, {49}};
 
     auto helper = TriggerTestHelper(
-        ExplicitDataRule(),
-        expectedData,
-        expectedDomain,
-        SampleTypeFromType<Int>::SampleType,
-        mockPackets,
-        {},
-        mockDomainPackets
-    );
+        ExplicitDataRule(), expectedData, expectedDomain, SampleTypeFromType<Int>::SampleType, mockPackets, {}, mockDomainPackets);
     helper.run();
 }
 

@@ -213,8 +213,8 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::beginUpdate()
     const auto beginUpdateId = getNodeId("BeginUpdate");
     OpcUaCallMethodRequest request;
     request->inputArgumentsSize = 0;
-    request->objectId = nodeId.getValue();
-    request->methodId = beginUpdateId.getValue();
+    request->objectId = nodeId.copyAndGetDetachedValue();
+    request->methodId = beginUpdateId.copyAndGetDetachedValue();
     client->callMethod(request);
     return OPENDAQ_SUCCESS;
 }
@@ -228,8 +228,8 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::endUpdate()
     const auto endUpdateId = getNodeId("EndUpdate");
     OpcUaCallMethodRequest request;
     request->inputArgumentsSize = 0;
-    request->objectId = nodeId.getValue();
-    request->methodId = endUpdateId.getValue();
+    request->objectId = nodeId.copyAndGetDetachedValue();
+    request->methodId = endUpdateId.copyAndGetDetachedValue();
     client->callMethod(request);
     return OPENDAQ_SUCCESS;
 }

@@ -389,3 +389,16 @@ TEST_F(TmsIntegrationTest, InputPortMultipleServers)
     ASSERT_THROW(inputPort1.connect(signal2), NotFoundException);
     ASSERT_THROW(inputPort2.connect(signal1), NotFoundException);
 }
+
+TEST_F(TmsIntegrationTest, BeginEndUpdateDevice)
+{
+    InstancePtr device = createDevice();
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    auto clientDevice = tmsClient.connect();
+
+    ASSERT_NO_THROW(clientDevice.beginUpdate());
+    ASSERT_NO_THROW(clientDevice.endUpdate());
+}

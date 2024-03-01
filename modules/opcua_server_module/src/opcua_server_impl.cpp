@@ -17,7 +17,6 @@ OpcUaServerImpl::OpcUaServerImpl(DevicePtr rootDevice, PropertyObjectPtr config,
 {
     const uint16_t port = config.getPropertyValue("Port");
 
-    server.setOpendaqVersion(OPENDAQ_PACKAGE_VERSION);
     server.setOpcUaPort(port);
     server.start();
 }

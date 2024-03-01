@@ -171,6 +171,7 @@ NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCo
                                    const ComponentPtr& parent,
                                    const StringPtr& localId)
     : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
+    , deviceInfoSet(false)
 {
 }
 
@@ -182,16 +183,6 @@ NativeDeviceImpl::~NativeDeviceImpl()
     }
 }
 
-// IDevice
-
-ErrCode NativeDeviceImpl::getInfo(IDeviceInfo** info)
-{
-    OPENDAQ_PARAM_NOT_NULL(info);
-
-    *info = deviceInfo.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
 // INativeDevicePrivate
 
 void NativeDeviceImpl::attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper)
@@ -201,11 +192,28 @@ void NativeDeviceImpl::attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> de
 
 void NativeDeviceImpl::setConnectionString(const StringPtr& connectionString)
 {
-    if (deviceInfo.assigned())
+    if (deviceInfoSet)
         return;
 
-    deviceInfo = DeviceInfo(connectionString, "NativeConfigDevice");
-    deviceInfo.freeze();
+    const auto newDeviceInfo = DeviceInfo(connectionString, deviceInfo.getName());
+
+    for (const auto& prop : deviceInfo.getAllProperties())
+    {
+        const auto propName = prop.getName();
+        if (!newDeviceInfo.hasProperty(propName))
+            newDeviceInfo.addProperty(prop);
+        if (propName != "connectionString" && propName != "name")
+        {
+            const auto propValue = deviceInfo.getPropertyValue(propName);
+            if (propValue.assigned())
+                newDeviceInfo.asPtrOrNull<IPropertyObjectProtected>(true).setProtectedPropertyValue(propName, propValue);
+        }
+    }
+
+    newDeviceInfo.freeze();
+
+    deviceInfo = newDeviceInfo;
+    deviceInfoSet = true;
 }
 
 ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,

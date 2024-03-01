@@ -26,6 +26,55 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 namespace Statistics
 {
 
+class TriggerHistory
+{
+public:
+    void addElement(Bool value, Int domainValue)
+    {
+        values.push_back(value);
+        domainValues.push_back(domainValue);
+    }
+    void dropHistoryTo(Int dropToExcludingDomainValue)
+    {
+        while (true)
+        {
+            if (values.size() > 0 && domainValues[0] < dropToExcludingDomainValue)
+            {
+                values.erase(values.begin());
+                domainValues.erase(domainValues.begin());
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    void dropHistory()
+    {
+        values.clear();
+        domainValues.clear();
+    }
+    Bool getTriggerStateFromDomainValue(Int domainValue)
+    {
+        Int indexBefore = -1;
+        for (size_t i = 0; i < domainValues.size(); i++)
+        {
+            if (domainValues[i] <= domainValue)
+                indexBefore = i;
+            else
+                break;
+        }
+        if (indexBefore == -1)
+            return false;
+        else
+            return values[indexBefore];
+    }
+
+private:
+    std::vector<Bool> values;
+    std::vector<Int> domainValues;
+};
+
 template <SampleType T>
 struct AggSample
 {
@@ -69,6 +118,11 @@ private:
         }
     };
 
+    bool triggerMode;
+    FunctionBlockPtr nestedTriggerFunctionBlock;
+    InputPortPtr triggerInput;
+    TriggerHistory triggerHistory;
+
     size_t blockSize;
     DomainSignalType domainSignalType;
 
@@ -99,6 +153,7 @@ private:
 
     void initProperties();
     void propertyChanged();
+    void triggerModeChanged();
     void configure();
     void readProperties();
 
@@ -108,8 +163,10 @@ private:
     void copyRemainingCalcBuf(size_t calculatedSampleCount);
     void resetCalcBuf();
     void getNextOutputDomainValue(const DataPacketPtr& domainPacket, NumberPtr& outputPacketStartDomainValue, bool& haveGap);
+    void validateTriggerDescriptors(const DataDescriptorPtr& valueDataDescriptor, const DataDescriptorPtr& domainDataDescriptor);
     void processSignalDescriptorChanged(const DataDescriptorPtr& valueDataDescriptor, const DataDescriptorPtr& domainDataDescriptor);
-    void processDataPacket(const DataPacketPtr& packet);
+    void processDataPacketTrigger(const DataPacketPtr& packet);
+    void processDataPacketInput(const DataPacketPtr& packet);
     NumberPtr addNumbers(const NumberPtr a, const NumberPtr& b);
 
     template <SampleType ST,
@@ -131,7 +188,9 @@ private:
     void calculate(uint8_t* data, int64_t firstTick, uint8_t* outAvgData, uint8_t* outRmsData, uint8_t* outDomainData, size_t avgCount);
 
     void onPacketReceived(const InputPortPtr& port) override;
-    void processPackets(const InputPortPtr& port);
+    void processTriggerPackets(const InputPortPtr& port);
+    void processInputPackets(const InputPortPtr& port);
+    void calculateAndSendPackets(const DataPacketPtr& domainPacket, const DataPacketPtr& packet);
 };
 
 }

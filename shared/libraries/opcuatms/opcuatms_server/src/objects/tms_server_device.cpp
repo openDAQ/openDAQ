@@ -52,7 +52,7 @@ namespace detail
         {"Platform", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getPlatform().getCharPtr()}; }},
         {"Position", [](const DeviceInfoPtr& info) { return OpcUaVariant{static_cast<uint16_t>(info.getPosition())}; }},
         {"SystemType", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemType().getCharPtr()}; }},
-        {"SystemUUID", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemUuid().getCharPtr()}; }}
+        {"SystemUUID", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemUuid().getCharPtr()}; }},
     };
 }
 
@@ -121,6 +121,7 @@ void TmsServerDevice::bindCallbacks()
 
 void TmsServerDevice::populateDeviceInfo()
 {
+
     auto createNode = [this](std::string name, CoreType type)
     {
         OpcUaNodeId newNodeId(0);
@@ -150,6 +151,8 @@ void TmsServerDevice::populateDeviceInfo()
 
     auto deviceInfo = object.getInfo();
 
+    createNode("OpenDaqPackageVersion", ctString);
+
     const auto customInfoNames = deviceInfo.getCustomInfoPropertyNames();
     std::unordered_set<std::string> customInfoNamesSet;
 
@@ -162,7 +165,6 @@ void TmsServerDevice::populateDeviceInfo()
         }
         catch(...)
         {
-            
         }
     }
 
@@ -179,6 +181,11 @@ void TmsServerDevice::populateDeviceInfo()
         if (detail::componentFieldToVariant.count(browseName))
         {
             auto v = detail::componentFieldToVariant[browseName](deviceInfo);
+            server->writeValue(reference.nodeId.nodeId, *v);
+        }
+        else if (browseName == "OpenDaqPackageVersion")
+        {
+            auto v = OpcUaVariant{deviceInfo.getSdkVersion().getCharPtr()};
             server->writeValue(reference.nodeId.nodeId, *v);
         }
         else if (customInfoNamesSet.count(browseName))

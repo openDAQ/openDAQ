@@ -37,7 +37,9 @@ namespace Daq.Core.Types;
 [Serializable]
 public class OpenDaqException : Exception
 {
-    private ErrorCode _errorCode = ErrorCode.OPENDAQ_ERR_GENERALERROR;
+    private ErrorCode _errorCode       = ErrorCode.OPENDAQ_ERR_GENERALERROR;
+    private ErrorInfo _errorInfo       = null;
+    private bool      _isErrorInfoRead = false;
 
     /// <inheritdoc/>
     public OpenDaqException() { }
@@ -48,38 +50,61 @@ public class OpenDaqException : Exception
     /// <inheritdoc/>
     protected OpenDaqException(System.Runtime.Serialization.SerializationInfo info,
                                System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
-    public OpenDaqException(ErrorCode errorCode) : this(errorCode, CoreTypesFactory.DaqGetErrorInfo()?.GetMessage() ?? "n/a", null) { }
+
+    //openDAQ specific constructors
+    public OpenDaqException(ErrorCode errorCode) : this(errorCode, null, null) { }
     public OpenDaqException(ErrorCode errorCode, string message) : this(errorCode, message, null) { }
     public OpenDaqException(ErrorCode errorCode, string message, Exception inner) : base(message, inner)
     {
         this._errorCode = errorCode;
+        GetErrorInfoInternal();
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// The message is of the format <c>'&lt;errorCode&gt;: &lt;message&gt;'</c>, where
+    /// <c>&lt;message&gt;</c> can have a text from the .NET Bindings or from the SDK
+    /// or it is just not given if neither has been provided.
+    /// </remarks>
     public override string Message => this.ToString();
 
     /// <inheritdoc/>
+    /// <remarks>See <see cref="Message"/> for the string format.</remarks>
     public override string ToString()
     {
-        if (string.IsNullOrWhiteSpace(base.Message))
-            return _errorCode.ToString();
+        if (!string.IsNullOrWhiteSpace(base.Message))
+        {
+            return $"{_errorCode}: {base.Message}";
+        }
 
-        return $"{_errorCode}: {base.Message}";
+        if (_errorInfo != null)
+        {
+            return $"{_errorCode}: {_errorInfo.GetMessage()}";
+        }
+
+        return _errorCode.ToString();
     }
 
-    /// <summary>
-    /// Gets the error code.
-    /// </summary>
-    /// <value>
-    /// The <see cref="Daq.Core.Types.ErrorCode"/>.
-    /// </value>
+    /// <summary>Gets the error code.</summary>
+    /// <value>The <see cref="Daq.Core.Types.ErrorCode"/>.</value>
     public ErrorCode ErrorCode => _errorCode;
 
-    /// <summary>
-    /// Gets the internal error information from the SDK.
-    /// </summary>
-    /// <value>
-    /// The error information or <c>null</c> if not available.
-    /// </value>
-    public ErrorInfo ErrorInfo => CoreTypesFactory.DaqGetErrorInfo();
+    /// <summary>Gets the internal error information from the SDK.</summary>
+    /// <value>The error information or <c>null</c> if not available.</value>
+    public ErrorInfo ErrorInfo => GetErrorInfoInternal();
+
+    /// <summary>Internally gets and stores the error information from the SDK.</summary>
+    /// <returns>The error information or <c>null</c> if not available.</returns>
+    private ErrorInfo GetErrorInfoInternal()
+    {
+        if (!_isErrorInfoRead)
+        {
+            _errorInfo = CoreTypesFactory.DaqGetErrorInfo();
+            CoreTypesFactory.DaqClearErrorInfo();
+
+            _isErrorInfoRead = true;
+        }
+
+        return _errorInfo;
+    }
 }

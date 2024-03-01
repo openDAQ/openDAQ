@@ -43,7 +43,7 @@ TEST_F(DeviceInfoTest, DefaultValues)
     ASSERT_EQ(deviceInfo.getSystemUuid(), "");
     ASSERT_FALSE(deviceInfo.getDeviceType().assigned());
 
-    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 21u);
+    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 22u);
 }
 
 TEST_F(DeviceInfoTest, SetGetProperties)

@@ -30,10 +30,10 @@ ErrCode ReaderStatusImpl::getEventPacket(IEventPacket** packet)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ReaderStatusImpl::getValid(Bool* status)
+ErrCode ReaderStatusImpl::getValid(Bool* valid)
 {
-    OPENDAQ_PARAM_NOT_NULL(status);
-    *status = valid;
+    OPENDAQ_PARAM_NOT_NULL(valid);
+    *valid = this->valid;
     return OPENDAQ_SUCCESS;
 }
 

@@ -24,12 +24,12 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-enum class ReadStatus
+enum class ReadStatus : uint32_t
 {
     Ok = 0,
     Event,
     Fail,
-    Unknown = 99
+    Unknown = 0xFFFF
 };
 
 /*!
@@ -59,7 +59,7 @@ DECLARE_OPENDAQ_INTERFACE(IReaderStatus, IBaseObject)
      * @brief Checks the validity of the reader.
      * @param[out] status Boolean value indicating the validity of the reader
      */
-    virtual ErrCode INTERFACE_FUNC getValid(Bool* status) = 0;
+    virtual ErrCode INTERFACE_FUNC getValid(Bool* valid) = 0;
 };
 /*!@}*/
 

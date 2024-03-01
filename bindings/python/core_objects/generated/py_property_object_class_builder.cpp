@@ -86,7 +86,7 @@ void defineIPropertyObjectClassBuilder(pybind11::module_ m, PyDaqIntf<daq::IProp
             return objectPtr.getProperties().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the dictonary of properties");
+        "Gets the dictionary of properties");
     cls.def("remove_property",
         [](daq::IPropertyObjectClassBuilder *object, const std::string& propertyName)
         {

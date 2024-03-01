@@ -29,7 +29,7 @@ public:
 
     ErrCode INTERFACE_FUNC getEventPacket(IEventPacket** packet) override;
 
-    ErrCode INTERFACE_FUNC getValid(Bool* status) override;
+    ErrCode INTERFACE_FUNC getValid(Bool* valid) override;
 
 private:
     EventPacketPtr eventPacket;

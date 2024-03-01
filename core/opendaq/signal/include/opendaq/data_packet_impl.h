@@ -368,6 +368,12 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value)
             *value = Integer(data[idx]).detach();
             break;
         }
+        case SampleType::UInt64:
+        {
+            auto data = static_cast<uint64_t*>(addr);
+            *value = Integer(data[idx]).detach();
+            break;
+        }
         case SampleType::RangeInt64:
         {
             auto data = static_cast<int64_t*>(addr);

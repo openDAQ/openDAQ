@@ -68,7 +68,8 @@ void TmsServerSignal::bindCallbacks()
                     [this]()
                     {
                         SampleType type = object.getDescriptor().getSampleType();
-                        if (type != SampleType::Float32 && type != SampleType::Float64 && type != SampleType::Int64 &&
+                        if (type != SampleType::Float32 && type != SampleType::Float64 && type != SampleType::Int8 &&
+                            type != SampleType::Int16 && type != SampleType::Int32 && type != SampleType::Int64 &&
                             type != SampleType::RangeInt64 && type != SampleType::ComplexFloat32 && type != SampleType::ComplexFloat64)
                             return OpcUaVariant();
 

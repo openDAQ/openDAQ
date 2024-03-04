@@ -15,6 +15,34 @@ EnumerationPtr VariantConverter<IEnumeration>::ToDaqObject(const OpcUaVariant& v
 {
     std::cout << "DEBUG 2000 : VariantConverter<IEnumeration>::ToDaqObject" << std::endl;
 
+    if (variant.isNull())
+        return nullptr;
+
+    if (!context.assigned() || !context.getTypeManager().assigned())
+        throw ConversionFailedException{"Generic numeration conversion requires the TypeManager."};
+
+    const auto typeManager = context.getTypeManager();
+
+    //const auto DataType = variant->type;
+
+    // Get UAEnumerationType by name
+    const auto DataType = GetUAEnumerationDataTypeByName(variant->type->typeName);
+    std::cout << "DEBUG 2001 : typekind = " << DataType->typeKind << std::endl;
+    std::cout << "DEBUG 2002 : typename = " << DataType->typeName << std::endl;
+    //std::cout << "DEBUG 2003 : NodeId = "   << DataType->typeId.identifier.numeric << std::endl;
+
+    // Add it to the TypeManager if not present already
+    if (!typeManager.hasType(DataType->typeName))
+    {
+        //Add Enumeration type to Type Manager
+        const auto enumExcitationType = EnumerationType("ExcitationTypeEnumeration", List<IString>("DoNotCare", "DCVoltage", "ACVoltage", "ACVoltageRectangle", "ACVoltageSinewave"));
+        typeManager.addType(enumExcitationType);
+    }
+        //typeManager.addType(StructType(DataType->typeName, daqMembers.getKeyList(), memberTypes));
+
+    // Create an Enumeration object and return it
+    //return Enumeration("ExcitationTypeEnumeration", "DCVoltage", typeManager);
+
     EnumerationPtr enumeration;
     return enumeration;
 }

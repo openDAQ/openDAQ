@@ -64,8 +64,8 @@ public:
     AddVariableNodeParams(const OpcUaNodeId& requestedNewNodeId, const OpcUaNodeId& parentNodeId);
 
     void setDataType(const OpcUaNodeId& dataTypeId);
-    
-    OpcUaNodeId typeDefinition = OpcUaNodeId(UA_NS0ID_BASEDATAVARIABLETYPE);
+
+    OpcUaNodeId typeDefinition = OpcUaNodeId(UA_NS0ID_BASEDATAVARIABLETYPE); //Investigate this!! DISCUSS WITH NILS !
 };
 
 class AddMethodNodeParams : public GenericAddNodeParams<UA_MethodAttributes>

@@ -634,6 +634,50 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndPropertyAddedRemoved)
     ASSERT_EQ(updateCount, 1);
 }
 
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndFbAdded)
+{
+    
+    const FolderConfigPtr clientFolder = clientDevice.getItem("FB");
+    const FolderConfigPtr serverFolder = serverDevice.getItem("FB");
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    const auto fb1 =
+        createWithImplementation<IFunctionBlock, test_utils::MockFb1Impl>(serverDevice.getContext(), serverFolder, "newFb1");
+    const auto fb2 =
+        createWithImplementation<IFunctionBlock, test_utils::MockFb1Impl>(serverDevice.getContext(), serverFolder, "newFb2");
+    const auto fb3 =
+        createWithImplementation<IFunctionBlock, test_utils::MockFb1Impl>(serverDevice.getContext(), serverFolder, "newFb3");
+
+    serverFolder.addItem(fb1);
+    serverFolder.addItem(fb2);
+    serverFolder.addItem(fb3);
+
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    
+    const auto serializer = JsonSerializer();
+    serverFolder.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverFolder, serializer.getOutput());
+
+    
+    ASSERT_NO_THROW(clientFolder.getItem("newFb1"));
+    ASSERT_NO_THROW(clientFolder.getItem("newFb2"));
+    ASSERT_NO_THROW(clientFolder.getItem("newFb3"));
+
+    ASSERT_EQ(updateCount, 1);
+}
 TEST_F(ConfigCoreEventTest, ComponentAttributeChanged)
 {
     int changeCount = 0;

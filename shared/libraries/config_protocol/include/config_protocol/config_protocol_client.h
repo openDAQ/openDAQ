@@ -71,7 +71,6 @@ public:
     void connectDomainSignals(const ComponentPtr& component);
     void connectInputPorts(const ComponentPtr& component);
 
-protected:
     BaseObjectPtr deserializeConfigComponent(const StringPtr& typeId,
                                              const SerializedObjectPtr& serObj,
                                              const BaseObjectPtr& context,

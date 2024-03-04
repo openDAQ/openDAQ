@@ -54,7 +54,7 @@ protected:
                                                     const FunctionPtr& factoryCallback);
 
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
-    void remoteUpdate(const SerializedObjectPtr& serialized) override;
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 
 private:
     void componentUpdateEnd(const CoreEventArgsPtr& args);
@@ -188,9 +188,9 @@ void ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(const C
 }
 
 template <class Impl>
-void ConfigClientComponentBaseImpl<Impl>::remoteUpdate(const SerializedObjectPtr& serialized)
+void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr& serialized)
 {
-    ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(serialized);
+    ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(serialized);
 }
 
 template <class Impl>
@@ -207,7 +207,7 @@ void ConfigClientComponentBaseImpl<Impl>::componentUpdateEnd(const CoreEventArgs
     
     this->deserializationComplete = false;
     const auto deserializer = JsonDeserializer();
-    deserializer.deserializeCustom([&](const SerializedObjectPtr& serialized) { remoteUpdate(serialized); }, str);
+    deserializer.deserializeCustom([&](const SerializedObjectPtr& serialized) { onRemoteUpdate(serialized); }, str);
     this->deserializationComplete = true;
 
     if (!muted && this->coreEvent.assigned())

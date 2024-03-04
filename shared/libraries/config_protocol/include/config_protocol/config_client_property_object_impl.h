@@ -64,12 +64,13 @@ public:
     ErrCode INTERFACE_FUNC getRemoteGlobalId(IString** remoteGlobalId) override;
     ErrCode INTERFACE_FUNC setRemoteGlobalId(IString* remoteGlobalId) override;
     ErrCode INTERFACE_FUNC handleRemoteCoreEvent(IComponent* sender, ICoreEventArgs* args) override;
+    ErrCode INTERFACE_FUNC remoteUpdate(ISerializedObject* serialized) override;
 
 protected:
     bool deserializationComplete;
 
     virtual void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args);
-    virtual void remoteUpdate(const SerializedObjectPtr& serialized);
+    virtual void onRemoteUpdate(const SerializedObjectPtr& serialized);
 
 private:
     BaseObjectPtr getValueFromServer(const StringPtr& propName, bool& setValue);
@@ -302,6 +303,17 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreEvent(ICompone
 }
 
 template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(ISerializedObject* serialized)
+{
+    return daqTry(
+        [&serialized, this]
+        {
+            onRemoteUpdate(serialized);
+            return OPENDAQ_SUCCESS;
+        });
+}
+
+template <class Impl>
 BaseObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getValueFromServer(const StringPtr& propName, bool& setValue)
 {
     const auto prop = Impl::getUnboundProperty(propName);
@@ -414,7 +426,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreObjectInternal(co
 }
 
 template <class Impl>
-void ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(const SerializedObjectPtr& serialized)
+void ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr& serialized)
 {
     updateProperties(serialized);
     updatePropertyValues(serialized);

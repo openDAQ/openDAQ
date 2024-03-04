@@ -20,6 +20,8 @@
 
 #include <opendaq/component_holder_ptr.h>
 
+#include "config_protocol_deserialize_context_impl.h"
+
 namespace daq::config_protocol
 {
 
@@ -60,6 +62,7 @@ protected:
 private:
     void componentAdded(const CoreEventArgsPtr& args);
     void componentRemoved(const CoreEventArgsPtr& args);
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override; 
 };
 
 template <class Impl>
@@ -194,5 +197,64 @@ void ConfigClientBaseFolderImpl<Impl>::componentRemoved(const CoreEventArgsPtr& 
     checkErrorInfo(Impl::hasItem(id, &hasItem));
     if (hasItem)
         checkErrorInfo(Impl::removeItemWithLocalId(id));
+}
+
+template <class Impl>
+void ConfigClientBaseFolderImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr& serialized)
+{
+    ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(serialized);
+
+    const auto keyStr = String("items");
+    const auto hasKey = serialized.hasKey(keyStr);
+
+    if (!IsTrue(hasKey))
+        return;
+    
+    const auto serItems = serialized.readSerializedObject(keyStr);
+    const auto keys = serItems.getKeys();
+
+    for (const auto& key : keys)
+    {
+        Bool hasItem;
+        this->hasItem(key, &hasItem);
+        const auto obj = serItems.readSerializedObject(key);
+        if (hasItem)
+        {
+            ComponentPtr child;
+            this->getItem(key, &child);
+            child.asPtr<IConfigClientObject>()->remoteUpdate(obj);
+        }
+        else
+        {
+            if (!obj.hasKey("__type"))
+                continue;
+
+            const StringPtr type = obj.readString("__type");
+            const auto thisPtr = this->template borrowPtr<ComponentPtr>();
+            const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
+                this->clientComm, this->remoteGlobalId, this->context, nullptr, thisPtr, key, nullptr);
+
+            const ComponentPtr deserializedObj = this->clientComm->deserializeConfigComponent(
+                type,
+                obj,
+                deserializeContext,
+                [&](const StringPtr& typeId,
+                    const SerializedObjectPtr& object,
+                    const BaseObjectPtr& context,
+                    const FunctionPtr& factoryCallback)
+                { return this->clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr); },
+                nullptr);
+            if (deserializedObj.assigned())
+                this->addItem(deserializedObj);
+        }
+    }
+
+    ListPtr<IComponent> itemsList = List<IComponent>();
+    this->getItems(&itemsList, search::Any());
+    for (const auto& item : itemsList)
+    {
+        if (!serItems.hasKey(item.getName()))
+            this->removeItem(item);
+    }
 }
 }

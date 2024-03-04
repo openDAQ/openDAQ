@@ -565,9 +565,73 @@ TEST_F(ConfigCoreEventTest, DataDescriptorChanged)
     ASSERT_EQ(changeCount, 3);
 }
 
-TEST_F(ConfigCoreEventTest, ComponentUpdateEnd)
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndValueChanged)
 {
+    serverDevice.addProperty(StringProperty("string", "foo"));
+    serverDevice.addProperty(IntProperty("int", 0));
+    serverDevice.addProperty(FloatProperty("float", 1.123));
     
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    serverDevice.setPropertyValue("string", "bar");
+    serverDevice.setPropertyValue("int", 1);
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    const auto serializer = JsonSerializer();
+    serverDevice.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    const auto str = serializer.getOutput();
+    deserializer.update(serverDevice, serializer.getOutput());
+
+    ASSERT_EQ(clientDevice.getPropertyValue("string"), serverDevice.getPropertyValue("string"));
+    ASSERT_EQ(clientDevice.getPropertyValue("int"), serverDevice.getPropertyValue("int"));
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndPropertyAddedRemoved)
+{
+    serverDevice.addProperty(FloatProperty("temp", 1.123));
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    serverDevice.addProperty(StringProperty("string", "foo"));
+    serverDevice.addProperty(IntProperty("int", 0));
+    serverDevice.addProperty(FloatProperty("float", 1.123));
+    serverDevice.removeProperty("temp");
+    
+    serverDevice.setPropertyValue("string", "bar");
+    serverDevice.setPropertyValue("int", 1);
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+
+    ASSERT_EQ(clientDevice.getPropertyValue("string"), serverDevice.getPropertyValue("string"));
+    ASSERT_EQ(clientDevice.getPropertyValue("int"), serverDevice.getPropertyValue("int"));
+    ASSERT_EQ(clientDevice.getPropertyValue("float"), serverDevice.getPropertyValue("float"));
+    ASSERT_FALSE(clientDevice.hasProperty("temp"));
+
+    ASSERT_EQ(updateCount, 1);
 }
 
 TEST_F(ConfigCoreEventTest, ComponentAttributeChanged)

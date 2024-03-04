@@ -260,6 +260,62 @@ ErrCode JsonDeserializerImpl::update(IUpdatable* updatable, IString* serialized)
     return updatable->update(jsonSerObj);
 }
 
+ErrCode JsonDeserializerImpl::deserializeCustom(IProcedure* customDeserialize, IString* serialized)
+{
+    if (serialized == nullptr || customDeserialize == nullptr)
+    {
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    }
+
+    SizeT length;
+    ErrCode err = serialized->getLength(&length);
+
+    if (!OPENDAQ_SUCCEEDED(err))
+    {
+        return err;
+    }
+
+    ConstCharPtr ptr;
+    err = serialized->getCharPtr(&ptr);
+    if (!OPENDAQ_SUCCEEDED(err))
+    {
+        return err;
+    }
+
+    std::unique_ptr<char[]> buffer(new(std::nothrow) char[length + 1]);
+    if (!buffer)
+    {
+        return OPENDAQ_ERR_NOMEMORY;
+    }
+
+    JsonDocument document;
+    strcpy(buffer.get(), ptr);
+
+    if (document.ParseInsitu(buffer.get()).HasParseError())
+    {
+        return OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR;
+    }
+
+    if (document.GetType() != rapidjson::kObjectType)
+    {
+        return OPENDAQ_ERR_INVALIDTYPE;
+    }
+
+    SerializedObjectPtr jsonSerObj;
+    ErrCode errCode = createObject<ISerializedObject, JsonSerializedObject>(&jsonSerObj, document.GetObject());
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+
+    const ProcedurePtr proc = ProcedurePtr::Borrow(customDeserialize);
+    return daqTry([&]
+    {
+        proc(jsonSerObj);
+        return OPENDAQ_SUCCESS;
+    });
+}
+
 ErrCode JsonDeserializerImpl::toString(CharPtr* str)
 {
     if (str == nullptr)

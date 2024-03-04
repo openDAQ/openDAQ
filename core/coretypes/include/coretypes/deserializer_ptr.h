@@ -20,6 +20,7 @@
 #include <coretypes/deserializer.h>
 #include <coretypes/updatable_ptr.h>
 #include <coretypes/function_ptr.h>
+#include <coretypes/procedure_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -54,6 +55,17 @@ public:
         }
 
         checkErrorInfo(object->update(updatable, serialized));
+    }
+
+
+    void deserializeCustom(const ProcedurePtr& customProc, const StringPtr& serialized) const
+    {
+        if (!object)
+        {
+            throw InvalidParameterException();
+        }
+
+        checkErrorInfo(object->deserializeCustom(customProc, serialized));
     }
 };
 

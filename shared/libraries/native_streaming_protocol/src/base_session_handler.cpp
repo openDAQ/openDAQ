@@ -51,7 +51,7 @@ ReadTask BaseSessionHandler::readHeader(const void *data, size_t size)
     return createReadStopTask();
 }
 
-void BaseSessionHandler::setConfigPacketReceivedHandler(const ConfigProtocolPacketCb& configPacketReceivedHandler)
+void BaseSessionHandler::setConfigPacketReceivedHandler(const ProcessConfigProtocolPacketCb& configPacketReceivedHandler)
 {
     this->configPacketReceivedHandler = configPacketReceivedHandler;
 }
@@ -110,7 +110,7 @@ ReadTask BaseSessionHandler::readConfigurationPacket(const void* data, size_t si
     );
 
     if (configPacketReceivedHandler)
-        configPacketReceivedHandler(packet);
+        configPacketReceivedHandler(std::move(packet));
 
     return createReadHeaderTask();
 }

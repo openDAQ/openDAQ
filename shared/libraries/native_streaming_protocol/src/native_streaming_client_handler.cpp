@@ -80,9 +80,19 @@ bool NativeStreamingClientHandler::isProtocolInitialized(std::chrono::millisecon
     return (protocolInitFuture.wait_for(timeout) == std::future_status::ready);
 }
 
-void NativeStreamingClientHandler::setConfigPacketHandler(const ConfigProtocolPacketCb& configPacketHandler)
+void NativeStreamingClientHandler::setConfigPacketHandler(const ProcessConfigProtocolPacketCb& configPacketHandler)
 {
     this->configPacketHandler = configPacketHandler;
+}
+
+void NativeStreamingClientHandler::setStreamingInitDoneCb(const OnStreamingProtocolInitDoneCallback& streamingInitDoneCb)
+{
+    this->streamingInitDoneCb = streamingInitDoneCb;
+}
+
+std::chrono::milliseconds NativeStreamingClientHandler::getStreamingInitTimeout()
+{
+    return streamingInitTimeout;
 }
 
 void NativeStreamingClientHandler::setReconnectionStatusChangedCb(const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb)
@@ -299,10 +309,11 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
         handlePacket(signalNumericId, packet);
     };
 
-    OnProtocolInitDoneCallback protocolInitDoneHandler =
+    OnStreamingProtocolInitDoneCallback protocolInitDoneHandler =
         [this]()
     {
         protocolInitPromise.set_value();
+        streamingInitDoneCb();
     };
 
     OnSubscriptionAckCallback subscriptionAckCallback =
@@ -320,10 +331,10 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
                                                             subscriptionAckCallback,
                                                             errorHandler);
 
-    ConfigProtocolPacketCb configPacketReceivedHandler =
-        [this](const config_protocol::PacketBuffer& packet)
+    ProcessConfigProtocolPacketCb configPacketReceivedHandler =
+        [this](config_protocol::PacketBuffer&& packet)
     {
-        configPacketHandler(packet);
+        configPacketHandler(std::move(packet));
     };
     sessionHandler->setConfigPacketReceivedHandler(configPacketReceivedHandler);
 

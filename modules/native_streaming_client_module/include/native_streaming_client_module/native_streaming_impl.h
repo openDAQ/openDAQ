@@ -35,6 +35,7 @@ public:
         const StringPtr& path,
         const ContextPtr& context,
         opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr clientHandler,
+        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
         const ProcedurePtr& onDeviceSignalAvailableCallback,
         const ProcedurePtr& onDeviceSignalUnavailableCallback,
         opendaq_native_streaming_protocol::OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb);
@@ -58,6 +59,8 @@ protected:
     void addToAvailableSignals(const StringPtr& signalStringId);
     void addToAvailableSignalsOnReconnection(const StringPtr& signalStringId);
 
+    void subscribeAckHandler(const StringPtr& signalStringId, bool subscribed);
+
     void signalUnavailableHandler(const StringPtr& signalStringId);
     void removeFromAvailableSignals(const StringPtr& signalStringId);
 
@@ -70,8 +73,8 @@ protected:
     void onPacket(const StringPtr& signalStringId, const PacketPtr& packet);
     void handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket);
 
-    void startAsyncOperations();
-    void stopAsyncOperations();
+    void startTransportOperations();
+    void stopTransportOperations();
 
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr clientHandler;
     ProcedurePtr onDeviceSignalAvailableCallback;
@@ -81,10 +84,14 @@ protected:
     std::map<StringPtr, SizeT> availableSignalsReconnection;
     opendaq_native_streaming_protocol::ClientReconnectionStatus reconnectionStatus;
 
-    std::shared_ptr<boost::asio::io_context> ioContextPtr;
-    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> workGuard;
-    std::thread ioThread;
+    std::shared_ptr<boost::asio::io_context> transportIOContextPtr;
+    std::thread transportIOThread;
 
+    std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
+    boost::asio::io_context::strand processingStrand;
+
+    std::promise<void> protocolInitPromise;
+    std::future<void> protocolInitFuture;
     LoggerComponentPtr loggerComponent;
 
     std::mutex availableSignalsSync;

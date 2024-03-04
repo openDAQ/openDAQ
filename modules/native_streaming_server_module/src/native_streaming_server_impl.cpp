@@ -13,21 +13,25 @@
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 #include <config_protocol/config_protocol_server.h>
 
+#include <boost/asio/dispatch.hpp>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
 using namespace daq;
 using namespace opendaq_native_streaming_protocol;
+using namespace config_protocol;
 
 NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
     : Server(config, rootDevice, context, nullptr)
     , readThreadActive(false)
     , readThreadSleepTime(std::chrono::milliseconds(20))
-    , ioContextPtr(std::make_shared<boost::asio::io_context>())
-    , workGuard(ioContextPtr->get_executor())
+    , transportIOContextPtr(std::make_shared<boost::asio::io_context>())
+    , processingStrand(processingIOContext)
     , logger(context.getLogger())
     , loggerComponent(logger.getOrAddComponent("NativeStreamingServerImpl"))
 {
-    startAsyncOperations();
+    startProcessingOperations();
+    startTransportOperations();
 
     prepareServerHandler();
     const uint16_t port = config.getPropertyValue("NativeStreamingPort");
@@ -47,7 +51,8 @@ NativeStreamingServerImpl::~NativeStreamingServerImpl()
 {
     this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
     stopReading();
-    stopAsyncOperations();
+    stopTransportOperations();
+    stopProcessingOperations();
 }
 
 void NativeStreamingServerImpl::componentAdded(ComponentPtr& /*sender*/, CoreEventArgsPtr& eventArgs)
@@ -106,22 +111,70 @@ void NativeStreamingServerImpl::coreEventCallback(ComponentPtr& sender, CoreEven
     }
 }
 
-void NativeStreamingServerImpl::startAsyncOperations()
+void NativeStreamingServerImpl::startTransportOperations()
 {
-    ioThread = std::thread([this]()
-                           {
-                               ioContextPtr->run();
-                               LOG_I("IO thread finished");
-                           });
+    transportThread = std::thread(
+        [this]()
+        {
+            using namespace boost::asio;
+            executor_work_guard<io_context::executor_type> workGuard(transportIOContextPtr->get_executor());
+            transportIOContextPtr->run();
+            LOG_I("Transport IO thread finished");
+        });
 }
 
-void NativeStreamingServerImpl::stopAsyncOperations()
+void NativeStreamingServerImpl::stopTransportOperations()
 {
-    ioContextPtr->stop();
-    if (ioThread.joinable())
+    transportIOContextPtr->stop();
+    if (transportThread.get_id() != std::this_thread::get_id())
     {
-        ioThread.join();
-        LOG_I("IO thread joined");
+        if (transportThread.joinable())
+        {
+            transportThread.join();
+            LOG_I("Transport IO thread joined");
+        }
+        else
+        {
+            LOG_W("Native server - transport IO thread is not joinable");
+        }
+    }
+    else
+    {
+        LOG_C("Native server - transport IO thread cannot join itself");
+    }
+}
+
+void NativeStreamingServerImpl::startProcessingOperations()
+{
+    processingThread = std::thread(
+        [this]()
+        {
+            using namespace boost::asio;
+            executor_work_guard<io_context::executor_type> workGuard(processingIOContext.get_executor());
+            processingIOContext.run();
+            LOG_I("Processing thread finished");
+        }
+    );
+}
+
+void NativeStreamingServerImpl::stopProcessingOperations()
+{
+    processingIOContext.stop();
+    if (processingThread.get_id() != std::this_thread::get_id())
+    {
+        if (processingThread.joinable())
+        {
+            processingThread.join();
+            LOG_I("Processing thread joined");
+        }
+        else
+        {
+            LOG_W("Native server - processing thread is not joinable");
+        }
+    }
+    else
+    {
+        LOG_C("Native server - processing thread cannot join itself");
     }
 }
 
@@ -141,20 +194,29 @@ void NativeStreamingServerImpl::prepareServerHandler()
     // The Callback establishes a new native configuration server for each connected client
     // and transfers ownership of the configuration server to the transport layer session
     SetUpConfigProtocolServerCb createConfigServerCb =
-        [rootDevice = rootDevice](ConfigProtocolPacketCb sendConfigPacketCb)
+        [this](SendConfigProtocolPacketCb sendConfigPacketCb)
     {
-        auto configServer = std::make_shared<config_protocol::ConfigProtocolServer>(rootDevice, sendConfigPacketCb);
-        ConfigProtocolPacketCb processConfigRequestCb =
-            [configServer, sendConfigPacketCb](const config_protocol::PacketBuffer& packetBuffer)
+        auto configServer = std::make_shared<ConfigProtocolServer>(rootDevice, sendConfigPacketCb);
+        ProcessConfigProtocolPacketCb processConfigRequestCb =
+            [this, configServer, sendConfigPacketCb](PacketBuffer&& packetBuffer)
         {
-            auto replyPacketBuffer = configServer->processRequestAndGetReply(packetBuffer);
-            sendConfigPacketCb(replyPacketBuffer);
+            auto packetBufferPtr = std::make_shared<PacketBuffer>(std::move(packetBuffer));
+            boost::asio::dispatch(
+                processingIOContext,
+                processingStrand.wrap(
+                    [configServer, sendConfigPacketCb, packetBufferPtr]()
+                    {
+                        auto replyPacketBuffer = configServer->processRequestAndGetReply(*packetBufferPtr);
+                        sendConfigPacketCb(replyPacketBuffer);
+                    }
+                )
+            );
         };
         return processConfigRequestCb;
     };
 
     serverHandler = std::make_shared<NativeStreamingServerHandler>(context,
-                                                                   ioContextPtr,
+                                                                   transportIOContextPtr,
                                                                    rootDevice.getSignals(search::Recursive(search::Any())),
                                                                    signalSubscribedHandler,
                                                                    signalUnsubscribedHandler,

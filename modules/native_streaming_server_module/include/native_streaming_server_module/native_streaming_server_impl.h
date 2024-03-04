@@ -47,8 +47,11 @@ protected:
     void addReader(SignalPtr signalToRead);
     void removeReader(SignalPtr signalToRead);
 
-    void startAsyncOperations();
-    void stopAsyncOperations();
+    void startTransportOperations();
+    void stopTransportOperations();
+
+    void startProcessingOperations();
+    void stopProcessingOperations();
 
     void componentAdded(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentRemoved(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
@@ -59,9 +62,12 @@ protected:
     std::chrono::milliseconds readThreadSleepTime;
     std::vector<std::pair<SignalPtr, PacketReaderPtr>> signalReaders;
 
-    std::shared_ptr<boost::asio::io_context> ioContextPtr;
-    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> workGuard;
-    std::thread ioThread;
+    std::shared_ptr<boost::asio::io_context> transportIOContextPtr;
+    std::thread transportThread;
+
+    boost::asio::io_context processingIOContext;
+    std::thread processingThread;
+    boost::asio::io_context::strand processingStrand;
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;

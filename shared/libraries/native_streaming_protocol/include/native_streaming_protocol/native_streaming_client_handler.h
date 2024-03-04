@@ -71,7 +71,10 @@ public:
     void setPacketHandler(const OnPacketCallback& packetHandler);
     void setSignalSubscriptionAckCallback(const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback);
     void setReconnectionStatusChangedCb(const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb);
-    void setConfigPacketHandler(const ConfigProtocolPacketCb& configPacketHandler);
+    void setConfigPacketHandler(const ProcessConfigProtocolPacketCb& configPacketHandler);
+    void setStreamingInitDoneCb(const OnStreamingProtocolInitDoneCallback& streamingInitDoneCb);
+
+    std::chrono::milliseconds getStreamingInitTimeout();
 
 protected:
     void readTransportLayerProps();
@@ -108,7 +111,8 @@ protected:
     OnPacketCallback packetHandler;
     OnSignalSubscriptionAckCallback signalSubscriptionAckCallback;
     OnReconnectionStatusChangedCallback reconnectionStatusChangedCb;
-    ConfigProtocolPacketCb configPacketHandler = [](const config_protocol::PacketBuffer& packet) {};
+    ProcessConfigProtocolPacketCb configPacketHandler = [](config_protocol::PacketBuffer&& packet) {};
+    OnStreamingProtocolInitDoneCallback streamingInitDoneCb;
 
     std::shared_ptr<boost::asio::steady_timer> reconnectionTimer;
     std::shared_ptr<boost::asio::steady_timer> protocolInitTimer;

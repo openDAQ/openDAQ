@@ -58,7 +58,23 @@ public:
         return serverSignal;
     }
 
-    void checkLastValueInt64(SignalPtr signal, int64_t trueValue)
+    void checkLastValueFloat32(SignalPtr signal, float trueValue)
+    {
+        auto lastValue = signal.getLastValue();
+        FloatPtr ptr = lastValue.asPtr<IFloat>();
+
+        ASSERT_FLOAT_EQ(ptr, trueValue);
+    }
+
+    void checkLastValueFloat64(SignalPtr signal, double trueValue)
+    {
+        auto lastValue = signal.getLastValue();
+        FloatPtr ptr = lastValue.asPtr<IFloat>();
+
+        ASSERT_DOUBLE_EQ(ptr, trueValue);
+    }
+
+    void checkLastValueInt64(SignalPtr signal, Int trueValue)
     {
         auto lastValue = signal.getLastValue();
         IntegerPtr ptr = lastValue.asPtr<IInteger>();
@@ -173,6 +189,56 @@ TEST_F(TmsSignalTest, AttrPublic)
     ASSERT_TRUE(clientSignal.getPublic());
 }
 
+TEST_F(TmsSignalTest, GetLastValueFloat32)
+{
+    auto daqServerSignal = Signal(NullContext(), nullptr, "id");
+
+    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
+    auto nodeId = serverSignal.registerOpcUaNode();
+
+    daqServerSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float32).build());
+
+    auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
+    auto data = static_cast<float*>(dataPacket.getData());
+    data[0] = 0.1f;
+    data[1] = 1.1f;
+    data[2] = 2.1f;
+    data[3] = 3.1f;
+    data[4] = 4.1f;
+
+    daqServerSignal.sendPacket(dataPacket);
+
+    auto clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
+
+    checkLastValueFloat32(clientSignal, 4.1f);
+    checkLastValueFloat32(daqServerSignal, 4.1f);
+}
+
+TEST_F(TmsSignalTest, GetLastValueFloat64)
+{
+    auto daqServerSignal = Signal(NullContext(), nullptr, "id");
+
+    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
+    auto nodeId = serverSignal.registerOpcUaNode();
+
+    daqServerSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
+
+    auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
+    auto data = static_cast<double*>(dataPacket.getData());
+    data[0] = 0.1;
+    data[1] = 1.1;
+    data[2] = 2.1;
+    data[3] = 3.1;
+    data[4] = 4.1;
+
+    daqServerSignal.sendPacket(dataPacket);
+
+    auto clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
+
+    checkLastValueFloat64(clientSignal, 4.1);
+    checkLastValueFloat64(daqServerSignal, 4.1);
+}
+
 TEST_F(TmsSignalTest, GetLastValueInt64)
 {
     auto daqServerSignal = Signal(NullContext(), nullptr, "id");
@@ -183,7 +249,7 @@ TEST_F(TmsSignalTest, GetLastValueInt64)
     daqServerSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Int64).build());
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
-    auto data = static_cast<int64_t*>(dataPacket.getData());
+    auto data = static_cast<Int*>(dataPacket.getData());
     data[0] = 0;
     data[1] = 1;
     data[2] = 2;
@@ -208,7 +274,7 @@ TEST_F(TmsSignalTest, GetLastValueRange)
     daqServerSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::RangeInt64).build());
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
-    auto data = static_cast<int64_t*>(dataPacket.getData());
+    auto data = static_cast<Int*>(dataPacket.getData());
     data[0] = 0;
     data[1] = 1;
     data[2] = 2;

@@ -22,7 +22,6 @@ NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& con
 NativeStreamingClientHandler::~NativeStreamingClientHandler()
 {
     reconnectionTimer->cancel();
-    protocolInitTimer->cancel();
 }
 
 void NativeStreamingClientHandler::readTransportLayerProps()
@@ -51,8 +50,6 @@ void NativeStreamingClientHandler::readTransportLayerProps()
         throw NotFoundException("Transport layer InactivityTimeout property should be of Int type");
     if (transportLayerProperties.getProperty("ConnectionTimeout").getValueType() != ctInt)
         throw NotFoundException("Transport layer ConnectionTimeout property should be of Int type");
-    if (transportLayerProperties.getProperty("StreamingInitTimeout").getValueType() != ctInt)
-        throw NotFoundException("Transport layer StreamingInitTimeout property should be of Int type");
     if (transportLayerProperties.getProperty("ReconnectionPeriod").getValueType() != ctInt)
         throw NotFoundException("Transport layer ReconnectionPeriod property should be of Int type");
 
@@ -60,24 +57,7 @@ void NativeStreamingClientHandler::readTransportLayerProps()
     heartbeatPeriod = transportLayerProperties.getPropertyValue("HeartbeatPeriod");
     connectionInactivityTimeout = transportLayerProperties.getPropertyValue("InactivityTimeout");
     connectionTimeout = std::chrono::milliseconds(transportLayerProperties.getPropertyValue("ConnectionTimeout"));
-    streamingInitTimeout = std::chrono::milliseconds(transportLayerProperties.getPropertyValue("StreamingInitTimeout"));
     reconnectionPeriod = std::chrono::milliseconds(transportLayerProperties.getPropertyValue("ReconnectionPeriod"));
-}
-
-void NativeStreamingClientHandler::checkProtocolInitializationStatus(const boost::system::error_code& ec)
-{
-    if (ec)
-        return;
-
-    if (isProtocolInitialized())
-        reconnectionStatusChangedCb(ClientReconnectionStatus::Restored);
-    else
-        reconnectionStatusChangedCb(ClientReconnectionStatus::Unrecoverable);
-}
-
-bool NativeStreamingClientHandler::isProtocolInitialized(std::chrono::milliseconds timeout)
-{
-    return (protocolInitFuture.wait_for(timeout) == std::future_status::ready);
 }
 
 void NativeStreamingClientHandler::setConfigPacketHandler(const ProcessConfigProtocolPacketCb& configPacketHandler)
@@ -85,14 +65,9 @@ void NativeStreamingClientHandler::setConfigPacketHandler(const ProcessConfigPro
     this->configPacketHandler = configPacketHandler;
 }
 
-void NativeStreamingClientHandler::setStreamingInitDoneCb(const OnStreamingProtocolInitDoneCallback& streamingInitDoneCb)
+void NativeStreamingClientHandler::setStreamingInitDoneCb(const OnStreamingInitDoneCallback& streamingInitDoneCb)
 {
     this->streamingInitDoneCb = streamingInitDoneCb;
-}
-
-std::chrono::milliseconds NativeStreamingClientHandler::getStreamingInitTimeout()
-{
-    return streamingInitTimeout;
 }
 
 void NativeStreamingClientHandler::setReconnectionStatusChangedCb(const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb)
@@ -124,7 +99,6 @@ void NativeStreamingClientHandler::setIoContext(const std::shared_ptr<boost::asi
 {
     this->ioContextPtr = ioContextPtr;
     reconnectionTimer = std::make_shared<boost::asio::steady_timer>(*ioContextPtr.get());
-    protocolInitTimer = std::make_shared<boost::asio::steady_timer>(*ioContextPtr.get());
 }
 
 void NativeStreamingClientHandler::checkReconnectionStatus(const boost::system::error_code& ec)
@@ -138,16 +112,7 @@ void NativeStreamingClientHandler::checkReconnectionStatus(const boost::system::
         ConnectionResult result = connectedFuture.get();
         if (result == ConnectionResult::Connected)
         {
-            if (isProtocolInitialized())
-            {
-                reconnectionStatusChangedCb(ClientReconnectionStatus::Restored);
-            }
-            else
-            {
-                protocolInitTimer->expires_from_now(streamingInitTimeout);
-                protocolInitTimer->async_wait(
-                    std::bind(&NativeStreamingClientHandler::checkProtocolInitializationStatus, this, std::placeholders::_1));
-            }
+            reconnectionStatusChangedCb(ClientReconnectionStatus::Restored);
         }
         else if (result == ConnectionResult::ServerUnsupported)
         {
@@ -171,12 +136,9 @@ void NativeStreamingClientHandler::tryReconnect()
     LOG_I("Try reconnect ...");
 
     reconnectionTimer->cancel();
-    protocolInitTimer->cancel();
 
     connectedPromise = std::promise<ConnectionResult>();
     connectedFuture = connectedPromise.get_future();
-    protocolInitPromise = std::promise<void>();
-    protocolInitFuture = protocolInitPromise.get_future();
 
     reconnectionTimer->expires_from_now(reconnectionPeriod);
     reconnectionTimer->async_wait(std::bind(&NativeStreamingClientHandler::checkReconnectionStatus, this, std::placeholders::_1));
@@ -190,16 +152,11 @@ bool NativeStreamingClientHandler::connect(std::string host,
 {
     initClient(host, port, path);
     connectedFuture = connectedPromise.get_future();
-    protocolInitFuture = protocolInitPromise.get_future();
     client->connect();
 
-    auto status = connectedFuture.wait_for(connectionTimeout);
-    if (status == std::future_status::ready)
-    {
-        if (connectedFuture.get() == ConnectionResult::Connected &&
-            isProtocolInitialized(streamingInitTimeout))
+    if (connectedFuture.wait_for(connectionTimeout) == std::future_status::ready &&
+        connectedFuture.get() == ConnectionResult::Connected)
             return true;
-    }
 
     client.reset();
     return false;
@@ -266,6 +223,12 @@ void NativeStreamingClientHandler::sendConfigRequest(const config_protocol::Pack
         sessionHandler->sendConfigurationPacket(packet);
 }
 
+void NativeStreamingClientHandler::sendStreamingRequest()
+{
+    if (sessionHandler)
+        sessionHandler->sendStreamingRequest();
+}
+
 void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
 {
     LOG_D("Client connected");
@@ -309,10 +272,9 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
         handlePacket(signalNumericId, packet);
     };
 
-    OnStreamingProtocolInitDoneCallback protocolInitDoneHandler =
+    OnStreamingInitDoneCallback protocolInitDoneHandler =
         [this]()
     {
-        protocolInitPromise.set_value();
         streamingInitDoneCb();
     };
 

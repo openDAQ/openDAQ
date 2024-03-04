@@ -58,6 +58,7 @@ protected:
     void setUpTransportLayerPropsCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void releaseSessionHandler(SessionPtr session);
+    void handleStreamingInit(SessionPtr session);
 
     void removeSignalInternal(const SignalPtr& signal);
     bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,

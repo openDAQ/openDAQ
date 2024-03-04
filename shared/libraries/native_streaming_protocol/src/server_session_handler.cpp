@@ -13,9 +13,11 @@ using namespace packet_streaming;
 ServerSessionHandler::ServerSessionHandler(const ContextPtr& daqContext,
                                            boost::asio::io_context& ioContext,
                                            SessionPtr session,
+                                           OnStreamingRequestCallback streamingInitHandler,
                                            OnSignalSubscriptionCallback signalSubscriptionHandler,
                                            OnSessionErrorCallback errorHandler)
     : BaseSessionHandler(daqContext, session, ioContext, errorHandler, "NativeProtocolServerSessionHandler")
+    , streamingInitHandler(streamingInitHandler)
     , signalSubscriptionHandler(signalSubscriptionHandler)
     , transportLayerPropsHandler(nullptr)
     , packetStreamingServer(10)
@@ -73,7 +75,7 @@ void ServerSessionHandler::sendSignalUnavailable(const SignalNumericIdType& sign
     session->scheduleWrite(tasks);
 }
 
-void ServerSessionHandler::sendInitializationDone()
+void ServerSessionHandler::sendStreamingInitDone()
 {
     std::vector<WriteTask> tasks;
 
@@ -292,6 +294,11 @@ ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
             },
             payloadSize
         );
+    }
+    else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST)
+    {
+        streamingInitHandler(session);
+        return createReadHeaderTask();
     }
     else
     {

@@ -45,7 +45,9 @@ using OnSignalSubscriptionCallback = std::function<bool(const SignalNumericIdTyp
                                                         bool subscribed,
                                                         SessionPtr session)>;
 
-using OnStreamingProtocolInitDoneCallback = std::function<void()>;
+using OnStreamingRequestCallback = std::function<void(SessionPtr session)>;
+
+using OnStreamingInitDoneCallback = std::function<void()>;
 
 using OnSubscriptionAckCallback = std::function<void(const SignalNumericIdType& signalNumericId,
                                                      bool subscribed)>;
@@ -69,7 +71,8 @@ enum class PayloadType
     PAYLOAD_TYPE_STREAMING_SIGNAL_SUBSCRIBE_ACK = 7,
     PAYLOAD_TYPE_STREAMING_SIGNAL_UNSUBSCRIBE_ACK = 8,
     PAYLOAD_TYPE_CONFIGURATION_PACKET = 9,
-    PAYLOAD_TYPE_TRANSPORT_LAYER_PROPERTIES = 10
+    PAYLOAD_TYPE_TRANSPORT_LAYER_PROPERTIES = 10,
+    PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST = 11
 };
 
 constexpr std::initializer_list<PayloadType> allPayloadTypes =
@@ -83,7 +86,8 @@ constexpr std::initializer_list<PayloadType> allPayloadTypes =
         PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_SUBSCRIBE_ACK,
         PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNSUBSCRIBE_ACK,
         PayloadType::PAYLOAD_TYPE_CONFIGURATION_PACKET,
-        PayloadType::PAYLOAD_TYPE_TRANSPORT_LAYER_PROPERTIES
+        PayloadType::PAYLOAD_TYPE_TRANSPORT_LAYER_PROPERTIES,
+        PayloadType::PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST
     };
 
 inline std::string convertPayloadTypeToString(PayloadType type)
@@ -110,6 +114,8 @@ inline std::string convertPayloadTypeToString(PayloadType type)
             return "PAYLOAD_TYPE_CONFIGURATION_PACKET";
         case PayloadType::PAYLOAD_TYPE_TRANSPORT_LAYER_PROPERTIES:
             return "PAYLOAD_TYPE_TRANSPORT_LAYER_PROPERTIES";
+        case PayloadType::PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST:
+            return "PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST";
     }
 
     return "PAYLOAD_TYPE_INVALID";

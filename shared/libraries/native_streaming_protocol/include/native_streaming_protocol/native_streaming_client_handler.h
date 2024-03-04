@@ -64,6 +64,7 @@ public:
     EventPacketPtr getDataDescriptorChangedEventPacket(const StringPtr& signalStringId);
 
     void sendConfigRequest(const config_protocol::PacketBuffer& packet);
+    void sendStreamingRequest();
 
     void setIoContext(const std::shared_ptr<boost::asio::io_context>& ioContextPtr);
     void setSignalAvailableHandler(const OnSignalAvailableCallback& signalAvailableHandler);
@@ -72,9 +73,7 @@ public:
     void setSignalSubscriptionAckCallback(const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback);
     void setReconnectionStatusChangedCb(const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb);
     void setConfigPacketHandler(const ProcessConfigProtocolPacketCb& configPacketHandler);
-    void setStreamingInitDoneCb(const OnStreamingProtocolInitDoneCallback& streamingInitDoneCb);
-
-    std::chrono::milliseconds getStreamingInitTimeout();
+    void setStreamingInitDoneCb(const OnStreamingInitDoneCallback& streamingInitDoneCb);
 
 protected:
     void readTransportLayerProps();
@@ -90,9 +89,7 @@ protected:
                       bool available);
 
     void checkReconnectionStatus(const boost::system::error_code& ec);
-    void checkProtocolInitializationStatus(const boost::system::error_code& ec);
     void tryReconnect();
-    bool isProtocolInitialized(std::chrono::milliseconds timeout = std::chrono::milliseconds(0));
 
     enum class ConnectionResult
     {
@@ -112,17 +109,14 @@ protected:
     OnSignalSubscriptionAckCallback signalSubscriptionAckCallback;
     OnReconnectionStatusChangedCallback reconnectionStatusChangedCb;
     ProcessConfigProtocolPacketCb configPacketHandler = [](config_protocol::PacketBuffer&& packet) {};
-    OnStreamingProtocolInitDoneCallback streamingInitDoneCb;
+    OnStreamingInitDoneCallback streamingInitDoneCb;
 
     std::shared_ptr<boost::asio::steady_timer> reconnectionTimer;
-    std::shared_ptr<boost::asio::steady_timer> protocolInitTimer;
 
     std::shared_ptr<daq::native_streaming::Client> client;
     std::shared_ptr<ClientSessionHandler> sessionHandler;
     std::promise<ConnectionResult> connectedPromise;
     std::future<ConnectionResult> connectedFuture;
-    std::promise<void> protocolInitPromise;
-    std::future<void> protocolInitFuture;
 
     std::unordered_map<SignalNumericIdType, StringPtr> signalIds;
     std::mutex sync;
@@ -131,7 +125,6 @@ protected:
     Int heartbeatPeriod;
     Int connectionInactivityTimeout;
     std::chrono::milliseconds connectionTimeout;
-    std::chrono::milliseconds streamingInitTimeout;
     std::chrono::milliseconds reconnectionPeriod;
 };
 

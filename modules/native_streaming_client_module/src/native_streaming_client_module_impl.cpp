@@ -130,15 +130,17 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     std::string streamingConnectionString = std::regex_replace(connectionString.toStdString(),
                                                                std::regex(NativeConfigurationDevicePrefix),
                                                                NativeStreamingPrefix);
-    auto transportProtocolClient =
-        std::make_shared<NativeStreamingClientHandler>(context, config.getPropertyValue("TransportLayerConfig"));
 
+    PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
+    auto transportProtocolClient = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig);
+    Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
     StreamingPtr nativeStreaming = createNativeStreaming(
         streamingConnectionString,
         host,
         port,
         path,
-        transportProtocolClient
+        transportProtocolClient,
+        initTimeout
     );
     nativeStreaming.setActive(true);
 
@@ -243,7 +245,9 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
 
         std::string localId = fmt::format("streaming_pseudo_device{}", pseudoDeviceIndex++);
 
-        auto clientHandler = std::make_shared<NativeStreamingClientHandler>(context, deviceConfig.getPropertyValue("TransportLayerConfig"));
+        PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
+        auto clientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig);
+        Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
         return createWithImplementation<IDevice, NativeStreamingDeviceImpl>(
             context,
             parent,
@@ -253,7 +257,9 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             port,
             path,
             clientHandler,
-            addStreamingProcessingContext(connectionString));
+            addStreamingProcessingContext(connectionString),
+            initTimeout
+        );
     }
     else if (connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
     {
@@ -354,9 +360,9 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
                                                                 const StringPtr& host,
                                                                 const StringPtr& port,
                                                                 const StringPtr& path,
-                                                                NativeStreamingClientHandlerPtr transportClientHandler)
+                                                                NativeStreamingClientHandlerPtr transportClientHandler,
+                                                                Int streamingInitTimeout)
 {
-
     return createWithImplementation<IStreaming, NativeStreamingImpl>(
         connectionString,
         host,
@@ -365,9 +371,11 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
         context,
         transportClientHandler,
         addStreamingProcessingContext(connectionString),
+        streamingInitTimeout,
         nullptr,
         nullptr,
-        nullptr);
+        nullptr
+    );
 }
 
 StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString,
@@ -375,6 +383,9 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
 {
     if (!onAcceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
+
+    auto transportLayerConfig = createTransportLayerDefaultConfig();
+    Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
     if (connectionString.assigned())
     {
@@ -386,7 +397,8 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
             host,
             port,
             path,
-            std::make_shared<NativeStreamingClientHandler>(context, createTransportLayerDefaultConfig())
+            std::make_shared<NativeStreamingClientHandler>(context, createTransportLayerDefaultConfig()),
+            initTimeout
         );
     }
     else if(config.assigned())
@@ -404,7 +416,8 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
             host,
             port,
             String("/"),
-            std::make_shared<NativeStreamingClientHandler>(context, createTransportLayerDefaultConfig())
+            std::make_shared<NativeStreamingClientHandler>(context, createTransportLayerDefaultConfig()),
+            initTimeout
         );
     }
     else

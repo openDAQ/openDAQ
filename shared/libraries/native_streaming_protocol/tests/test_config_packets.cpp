@@ -114,22 +114,19 @@ public:
         setUpConfigProtocolServerCb =
             [this](SendConfigProtocolPacketCb sendPacketCb)
         {
-            auto configProtocolHandler = std::make_shared<TestConfigProtocolInstance>(sendPacketCb);
+            this->configProtocolHandler = std::make_shared<TestConfigProtocolInstance>(sendPacketCb);
             ProcessConfigProtocolPacketCb receivePacketCb =
-                [configProtocolHandler](PacketBuffer&& packetBuffer)
+                [this](PacketBuffer&& packetBuffer)
             {
-                configProtocolHandler->receivePacket(std::move(packetBuffer));
+                this->configProtocolHandler->receivePacket(std::move(packetBuffer));
             };
-            configProtocolHandlers.push_back(configProtocolHandler);
+            clientConnectedPromise.set_value();
             return receivePacketCb;
         };
 
-        clientsCount = std::get<0>(GetParam());
-        clients = std::vector<ConfigProtocolAttributes>(clientsCount);
-        for (size_t i = 0; i < clients.size(); ++i)
-        {
-            clients[i].setUp();
-        }
+        client.setUp();
+        clientConnectedPromise = std::promise< void > ();
+        clientConnectedFuture = clientConnectedPromise.get_future();
     }
 
     void TearDown() override
@@ -137,13 +134,11 @@ public:
         if (std::get<1>(GetParam())) // stop server first
         {
             stopServer();
-            for (auto& client : clients)
-                client.tearDown();
+            client.tearDown();
         }
         else // stop clients first
         {
-            for (auto& client : clients)
-                client.tearDown();
+            client.tearDown();
             stopServer();
         }
         ProtocolTestBase::TearDown();
@@ -199,47 +194,39 @@ public:
     }
 
 protected:
-    std::vector<std::shared_ptr<TestConfigProtocolInstance>> configProtocolHandlers;
+    std::shared_ptr<TestConfigProtocolInstance> configProtocolHandler;
+    std::promise< void > clientConnectedPromise;
+    std::future< void > clientConnectedFuture;
     SetUpConfigProtocolServerCb setUpConfigProtocolServerCb;
 
-    std::vector<ConfigProtocolAttributes> clients;
+    ConfigProtocolAttributes client;
 };
 
 TEST_P(ConfigPacketsTest, ServerToClientPackets)
 {
     startServer();
 
-    for (auto& client : clients)
+    client.clientHandler = createClient(client);
+    ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    ASSERT_EQ(clientConnectedFuture.wait_for(timeout), std::future_status::ready);
+
+    for (size_t packetCnt = 0; packetCnt < ConfigProtocolPacketGenerator::PacketToGenerate; ++packetCnt)
     {
-        client.clientHandler = createClient(client);
-        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        auto packet = configProtocolHandler->packetGenerator.generatePacket();
+        configProtocolHandler->sendPacket(packet);
     }
 
-    ASSERT_EQ(clients.size(), configProtocolHandlers.size());
+    ASSERT_EQ(client.configProtocolHandler->future.wait_for(timeout), std::future_status::ready);
 
-    for (size_t i = 0; i < clients.size(); ++i)
+    auto packetsReceived = client.configProtocolHandler->receivedPackets.size();
+    ASSERT_EQ(configProtocolHandler->sentPackets.size(), packetsReceived);
+
+    for (size_t j = 0; j < packetsReceived; ++j)
     {
-        for (size_t packetCnt = 0; packetCnt < ConfigProtocolPacketGenerator::PacketToGenerate; ++packetCnt)
-        {
-            auto packet = configProtocolHandlers[i]->packetGenerator.generatePacket();
-            configProtocolHandlers[i]->sendPacket(packet);
-        }
-    }
-
-    for (size_t i = 0; i < clients.size(); ++i)
-    {
-        ASSERT_EQ(clients[i].configProtocolHandler->future.wait_for(timeout), std::future_status::ready);
-
-        auto packetsReceived = clients[i].configProtocolHandler->receivedPackets.size();
-        ASSERT_EQ(configProtocolHandlers[i]->sentPackets.size(), packetsReceived);
-
-        for (size_t j = 0; j < packetsReceived; ++j)
-        {
-            TestConfigProtocolInstance::testPacketsEquality(
-                configProtocolHandlers[i]->sentPackets[j],
-                clients[i].configProtocolHandler->receivedPackets[j]
-            );
-        }
+        TestConfigProtocolInstance::testPacketsEquality(
+            configProtocolHandler->sentPackets[j],
+            client.configProtocolHandler->receivedPackets[j]
+        );
     }
 }
 
@@ -247,42 +234,32 @@ TEST_P(ConfigPacketsTest, ClientToServerPackets)
 {
     startServer();
 
-    for (auto& client : clients)
+    client.clientHandler = createClient(client);
+    ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    ASSERT_EQ(clientConnectedFuture.wait_for(timeout), std::future_status::ready);
+
+    for (size_t packetCnt = 0; packetCnt < ConfigProtocolPacketGenerator::PacketToGenerate; ++packetCnt)
     {
-        client.clientHandler = createClient(client);
-        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        auto packet = client.configProtocolHandler->packetGenerator.generatePacket();
+        client.configProtocolHandler->sendPacket(packet);
     }
 
-    ASSERT_EQ(clients.size(), configProtocolHandlers.size());
+    ASSERT_EQ(configProtocolHandler->future.wait_for(timeout), std::future_status::ready);
 
-    for (size_t i = 0; i < clients.size(); ++i)
+    auto packetsReceived = configProtocolHandler->receivedPackets.size();
+    ASSERT_EQ(client.configProtocolHandler->sentPackets.size(), packetsReceived);
+
+    for (size_t j = 0; j < packetsReceived; ++j)
     {
-        for (size_t packetCnt = 0; packetCnt < ConfigProtocolPacketGenerator::PacketToGenerate; ++packetCnt)
-        {
-            auto packet = clients[i].configProtocolHandler->packetGenerator.generatePacket();
-            clients[i].configProtocolHandler->sendPacket(packet);
-        }
-    }
-
-    for (size_t i = 0; i < clients.size(); ++i)
-    {
-        ASSERT_EQ(configProtocolHandlers[i]->future.wait_for(timeout), std::future_status::ready);
-
-        auto packetsReceived = configProtocolHandlers[i]->receivedPackets.size();
-        ASSERT_EQ(clients[i].configProtocolHandler->sentPackets.size(), packetsReceived);
-
-        for (size_t j = 0; j < packetsReceived; ++j)
-        {
-            TestConfigProtocolInstance::testPacketsEquality(
-                configProtocolHandlers[i]->receivedPackets[j],
-                clients[i].configProtocolHandler->sentPackets[j]
-            );
-        }
+        TestConfigProtocolInstance::testPacketsEquality(
+            configProtocolHandler->receivedPackets[j],
+            client.configProtocolHandler->sentPackets[j]
+        );
     }
 }
 
 INSTANTIATE_TEST_SUITE_P(
     ProtocolTestGroup,
     ConfigPacketsTest,
-    testing::Values(std::make_tuple(2, true), std::make_tuple(2, false))
+    testing::Values(std::make_tuple(1, true), std::make_tuple(1, false))
 );

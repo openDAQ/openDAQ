@@ -42,7 +42,7 @@ public:
                                           OnSignalSubscribedCallback signalSubscribedHandler,
                                           OnSignalUnsubscribedCallback signalUnsubscribedHandler,
                                           SetUpConfigProtocolServerCb setUpConfigProtocolServerCb);
-    ~NativeStreamingServerHandler();
+    ~NativeStreamingServerHandler() = default;
 
     void startServer(uint16_t port);
     void stopServer();

@@ -216,7 +216,7 @@ private:
         for (size_t i = 0; i < mockPackets.size(); i++)
         {
             // Check if we should change trigger mode before sending packet
-            auto triggerModeChangeFoundAt = std::find(triggerModeChangesBeforePackets.begin(), triggerModeChangesBeforePackets.end(), i);
+            auto triggerModeChangeFoundAt = std::find(triggerModeChangesBeforePackets.begin(), triggerModeChangesBeforePackets.end(), static_cast<Int>(i));
             if (triggerModeChangeFoundAt != triggerModeChangesBeforePackets.end())
             {
                 // Change trigger mode if appropriate

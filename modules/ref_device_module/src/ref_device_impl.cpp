@@ -100,35 +100,7 @@ UnitPtr RefDeviceImpl::onGetDomainUnit()
 
 DevicePtr RefDeviceImpl::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    ModuleManagerPtr manager = context.getModuleManager().asPtr<IModuleManager>();
-    for (const auto module : manager.getModules())
-    {
-        bool accepted;
-        try
-        {
-            accepted = module.acceptsConnectionParameters(connectionString, config);
-        }
-        catch (NotImplementedException&)
-        {
-            LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
-            accepted = false;
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
-            accepted = false;
-        }
-
-        if (accepted)
-        {
-            auto device = module.createDevice(connectionString, devices, config);
-            addSubDevice(device);
-
-            return device;
-        }
-    }
-
-    return nullptr;
+    return createAndAddSubDevice(connectionString, config);
 }
 
 FunctionBlockPtr RefDeviceImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)

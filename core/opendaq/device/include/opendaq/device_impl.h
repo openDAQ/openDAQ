@@ -35,7 +35,7 @@
 #include <opendaq/component_keys.h>
 #include <opendaq/core_opendaq_event_args_factory.h>
 #include <coreobjects/property_object_factory.h>
-#include <opendaq/module_manager.h>
+#include <opendaq/module_manager_ptr.h>
 #include <set>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -139,6 +139,8 @@ protected:
 
     void addSubDevice(const DevicePtr& device);
     void removeSubDevice(const DevicePtr& device);
+
+    DevicePtr createAndAddSubDevice(const StringPtr& connectionString, const PropertyObjectPtr& config);
 
     IoFolderConfigPtr addIoFolder(const std::string& localId,
                                   const IoFolderConfigPtr& parent = nullptr);
@@ -984,6 +986,40 @@ ErrCode GenericDevice<TInterface, Interfaces...>::loadConfiguration(IString* con
 
             return OPENDAQ_SUCCESS;
         });
+}
+
+template <class TInterface, class... Interfaces>
+DevicePtr GenericDevice<TInterface, Interfaces...>::createAndAddSubDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
+{
+    ModuleManagerPtr manager = this->context.getModuleManager().template asPtr<IModuleManager>();
+    for (const auto module: manager.getModules())
+    {
+        bool accepted;
+        try
+        {
+            accepted = module.acceptsConnectionParameters(connectionString, config);
+        }
+        catch (NotImplementedException &)
+        {
+            LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
+            accepted = false;
+        }
+        catch (const std::exception &e)
+        {
+            LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
+            accepted = false;
+        }
+
+        if (accepted)
+        {
+            auto device = module.createDevice(connectionString, devices, config);
+            addSubDevice(device);
+
+            return device;
+        }
+    }
+
+    return nullptr;
 }
 
 template <class TInterface, class... Interfaces>

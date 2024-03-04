@@ -98,7 +98,7 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(deviceTypes);
 
-        DictPtr<IString, IFunctionBlockType> types;
+        DictPtr<IString, IDeviceType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
 
         *deviceTypes = types.detach();

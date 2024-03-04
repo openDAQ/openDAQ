@@ -37,11 +37,11 @@ public:
 
     ErrCode INTERFACE_FUNC getAvailableServerTypes(IDict** serverTypes) override;
     ErrCode INTERFACE_FUNC addServer(IString* serverTypeId, IPropertyObject* serverConfig, IServer** server) override;
-    ErrCode INTERFACE_FUNC addStandardServers(IList** servers) override;
+    ErrCode INTERFACE_FUNC addStandardServers(IList** standardServers) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
-    ErrCode INTERFACE_FUNC getServers(IList** servers) override;
+    ErrCode INTERFACE_FUNC getServers(IList** instanceServers) override;
 
-    ErrCode INTERFACE_FUNC getRootDevice(IDevice** rootDevice) override;
+    ErrCode INTERFACE_FUNC getRootDevice(IDevice** currentRootDevice) override;
     ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString, IPropertyObject* config = nullptr) override;
 
     // IDevice
@@ -153,10 +153,9 @@ private:
 
     bool rootDeviceSet;
 
-    static std::string defineLocalId(const std::string& localId);
     void stopServers();
-
     void connectInputPorts();
+    DevicePtr createDevice(const StringPtr& connectionString, const PropertyObjectPtr& config = nullptr);
 
     template<class F>
     void forEachComponent(const ComponentPtr& component, F&& callback);

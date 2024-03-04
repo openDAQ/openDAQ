@@ -25,7 +25,8 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
                                                      const StringPtr& port,
                                                      const StringPtr& path,
                                                      NativeStreamingClientHandlerPtr transportProtocolClient,
-                                                     std::shared_ptr<boost::asio::io_context> processingIOContextPtr)
+                                                     std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+                                                     Int initTimeout)
     : Device(ctx, parent, localId)
     , connectionString(connectionString)
     , reconnectionStatus(ClientReconnectionStatus::Connected)
@@ -33,7 +34,7 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     if (!this->connectionString.assigned())
         throw ArgumentNullException("connectionString cannot be null");
 
-    createNativeStreaming(transportProtocolClient, processingIOContextPtr, host, port, path);
+    createNativeStreaming(transportProtocolClient, processingIOContextPtr, host, port, path, initTimeout);
     activateStreaming();
     initStatuses(ctx);
 }
@@ -81,7 +82,8 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
                                                       std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                                       const StringPtr& host,
                                                       const StringPtr& port,
-                                                      const StringPtr& path)
+                                                      const StringPtr& path,
+                                                      Int initTimeout)
 {
     ProcedurePtr onSignalAvailableCallback =
         Procedure([this](const StringPtr& signalStringId,
@@ -113,6 +115,7 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
                                                                   context,
                                                                   transportProtocolClient,
                                                                   processingIOContextPtr,
+                                                                  initTimeout,
                                                                   onSignalAvailableCallback,
                                                                   onSignalUnavailableCallback,
                                                                   onReconnectionStatusChangedCallback);

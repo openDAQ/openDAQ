@@ -36,6 +36,7 @@ public:
         const ContextPtr& context,
         opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr clientHandler,
         std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+        Int streamingInitTimeout,
         const ProcedurePtr& onDeviceSignalAvailableCallback,
         const ProcedurePtr& onDeviceSignalUnavailableCallback,
         opendaq_native_streaming_protocol::OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb);
@@ -93,6 +94,9 @@ protected:
     std::promise<void> protocolInitPromise;
     std::future<void> protocolInitFuture;
     LoggerComponentPtr loggerComponent;
+
+    std::chrono::milliseconds streamingInitTimeout;
+    std::shared_ptr<boost::asio::steady_timer> protocolInitTimer;
 
     std::mutex availableSignalsSync;
 };

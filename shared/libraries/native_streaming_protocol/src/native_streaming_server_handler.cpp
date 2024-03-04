@@ -244,6 +244,32 @@ void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<
     sessionHandler->setConfigPacketReceivedHandler(receiveConfigPacketCb);
 }
 
+void NativeStreamingServerHandler::handleStreamingInit(SessionPtr session)
+{
+    subscribersRegistry.sendToClient(
+        session,
+        [this](std::shared_ptr<ServerSessionHandler>& sessionHandler)
+        {
+            // send sorted signals
+            std::map<SignalNumericIdType, SignalPtr> sortedSignals;
+            for (const auto& signalRegistryItem : signalRegistry)
+            {
+                sortedSignals.insert({std::get<1>(signalRegistryItem.second),
+                                      std::get<0>(signalRegistryItem.second)});
+            }
+            for (const auto& sortedSignalsItem : sortedSignals)
+            {
+                sessionHandler->sendSignalAvailable(sortedSignalsItem.first, sortedSignalsItem.second);
+
+                // create and send event packet to initialize packet streaming
+                sessionHandler->sendPacket(sortedSignalsItem.first,
+                                           createDataDescriptorChangedEventPacket(sortedSignalsItem.second));
+            }
+            sessionHandler->sendStreamingInitDone();
+        }
+    );
+}
+
 void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
 {
     LOG_I("New connection accepted by server");
@@ -259,6 +285,12 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
     // so connection closing is handled only on read failure and not handled on write failure
     session->setErrorHandlers([](const std::string&, SessionPtr) {}, errorHandler);
 
+    OnStreamingRequestCallback streamingInitHandler =
+        [this](SessionPtr session)
+    {
+        this->handleStreamingInit(session);
+    };
+
     OnSignalSubscriptionCallback signalSubscriptionHandler =
         [this](const SignalNumericIdType& signalNumericId,
                const std::string& signalStringId,
@@ -271,27 +303,12 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
     auto sessionHandler = std::make_shared<ServerSessionHandler>(context,
                                                                  *ioContextPtr.get(),
                                                                  session,
+                                                                 streamingInitHandler,
                                                                  signalSubscriptionHandler,
                                                                  errorHandler);
     setUpTransportLayerPropsCallback(sessionHandler);
     setUpConfigProtocolCallbacks(sessionHandler);
 
-    // send sorted signals to newly connected client
-    std::map<SignalNumericIdType, SignalPtr> sortedSignals;
-    for (const auto& signalRegistryItem : signalRegistry)
-    {
-        sortedSignals.insert({std::get<1>(signalRegistryItem.second),
-                              std::get<0>(signalRegistryItem.second)});
-    }
-    for (const auto& sortedSignalsItem : sortedSignals)
-    {
-        sessionHandler->sendSignalAvailable(sortedSignalsItem.first, sortedSignalsItem.second);
-
-        // create and send event packet to initialize packet streaming
-        sessionHandler->sendPacket(sortedSignalsItem.first,
-                                   createDataDescriptorChangedEventPacket(sortedSignalsItem.second));
-    }
-    sessionHandler->sendInitializationDone();
     subscribersRegistry.registerClient(sessionHandler);
     sessionHandler->startReading();
 }

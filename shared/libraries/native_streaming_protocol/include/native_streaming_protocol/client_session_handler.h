@@ -32,13 +32,14 @@ public:
                          SessionPtr session,
                          OnSignalCallback signalReceivedHandler,
                          OnPacketReceivedCallback packetReceivedHandler,
-                         OnStreamingProtocolInitDoneCallback protocolInitDoneHandler,
+                         OnStreamingInitDoneCallback protocolInitDoneHandler,
                          OnSubscriptionAckCallback subscriptionAckHandler,
                          native_streaming::OnSessionErrorCallback errorHandler);
 
     void sendSignalSubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId);
     void sendSignalUnsubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId);
     void sendTransportLayerProperties(const PropertyObjectPtr& properties);
+    void sendStreamingRequest();
 
     EventPacketPtr getDataDescriptorChangedEventPacket(const SignalNumericIdType& signalNumericId);
 
@@ -55,7 +56,7 @@ private:
 
     OnSignalCallback signalReceivedHandler;
     OnPacketReceivedCallback packetReceivedHandler;
-    OnStreamingProtocolInitDoneCallback protocolInitDoneHandler;
+    OnStreamingInitDoneCallback streamingInitDoneHandler;
     OnSubscriptionAckCallback subscriptionAckHandler;
 
     packet_streaming::PacketStreamingClient packetStreamingClient;

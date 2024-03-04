@@ -53,7 +53,8 @@ private:
                                        const StringPtr& host,
                                        const StringPtr& port,
                                        const StringPtr& path,
-                                       opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler);
+                                       opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
+                                       Int streamingInitTimeout);
 
     DevicePtr createNativeDevice(const ContextPtr& context,
                                  const ComponentPtr& parent,

@@ -19,6 +19,7 @@ NativeStreamingImpl::NativeStreamingImpl(const StringPtr& connectionString,
     const ContextPtr& context,
     NativeStreamingClientHandlerPtr clientHandler,
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+    Int streamingInitTimeout,
     const ProcedurePtr& onDeviceSignalAvailableCallback,
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
     OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb)
@@ -33,6 +34,8 @@ NativeStreamingImpl::NativeStreamingImpl(const StringPtr& connectionString,
     , processingStrand(*(this->processingIOContextPtr))
     , protocolInitFuture(protocolInitPromise.get_future())
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingImpl"))
+    , streamingInitTimeout(std::chrono::milliseconds(streamingInitTimeout))
+    , protocolInitTimer(std::make_shared<boost::asio::steady_timer>(*transportIOContextPtr.get()))
 {
     prepareClientHandler();
     startTransportOperations();
@@ -46,17 +49,20 @@ NativeStreamingImpl::NativeStreamingImpl(const StringPtr& connectionString,
                                 connectionString);
     }
 
-    if (protocolInitFuture.wait_for(clientHandler->getStreamingInitTimeout()) != std::future_status::ready)
+    this->clientHandler->sendStreamingRequest();
+
+    if (protocolInitFuture.wait_for(this->streamingInitTimeout) != std::future_status::ready)
     {
         stopTransportOperations();
         this->processingIOContextPtr->stop();
         throw GeneralErrorException("Streaming protocol intialization timed out; connection string: {}",
-                                connectionString);
+                                    connectionString);
     }
 }
 
 NativeStreamingImpl::~NativeStreamingImpl()
 {
+    protocolInitTimer->cancel();
     stopTransportOperations();
     processingIOContextPtr->stop();
 }
@@ -203,6 +209,8 @@ void NativeStreamingImpl::reconnectionStatusChangedHandler(opendaq_native_stream
     else if (status == ClientReconnectionStatus::Reconnecting)
     {
         availableSignalsReconnection.clear();
+        protocolInitPromise = std::promise<void>();
+        protocolInitFuture = protocolInitPromise.get_future();
     }
 
     reconnectionStatus = status;
@@ -278,22 +286,41 @@ void NativeStreamingImpl::prepareClientHandler()
             processingStrand.wrap(
                 [this, status]()
                 {
-                    reconnectionStatusChangedHandler(status);
+                    if (status == ClientReconnectionStatus::Restored)
+                    {
+                        this->clientHandler->sendStreamingRequest();
+                        protocolInitTimer->expires_from_now(streamingInitTimeout);
+                        protocolInitTimer->async_wait(
+                            [this, status](const boost::system::error_code& ec)
+                            {
+                                if (ec)
+                                {
+                                    LOG_E("Streaming initialization timer failed: {}", ec.message());
+                                }
+                                if (protocolInitFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+                                    reconnectionStatusChangedHandler(status);
+                                else
+                                    reconnectionStatusChangedHandler(ClientReconnectionStatus::Unrecoverable);
+                            }
+                        );
+                    }
+                    else
+                    {
+                        reconnectionStatusChangedHandler(status);
+                    }
                 }
             )
         );
     };
-    OnStreamingProtocolInitDoneCallback onStreamingInitDoneCb =
+    OnStreamingInitDoneCallback onStreamingInitDoneCb =
         [this]()
     {
-        // handle protocol initilization ack in processing thread
         dispatch(
             *processingIOContextPtr,
             processingStrand.wrap(
                 [this]()
                 {
-                    if (reconnectionStatus != ClientReconnectionStatus::Reconnecting)
-                        protocolInitPromise.set_value();
+                    protocolInitPromise.set_value();
                 }
             )
         );

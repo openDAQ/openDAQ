@@ -48,12 +48,12 @@ void defineIReader(pybind11::module_ m, PyDaqIntf<daq::IReader, daq::IBaseObject
             return objectPtr.getAvailableCount();
         },
         "Gets the number of segments available to read");
-    cls.def_property("on_descriptor_changed",
+    cls.def_property("on_data_available",
         nullptr,
-        [](daq::IReader *object, daq::IFunction* callback)
+        [](daq::IReader *object, daq::IProcedure* callback)
         {
             const auto objectPtr = daq::ReaderPtr::Borrow(object);
-            objectPtr.setOnDescriptorChanged(callback);
+            objectPtr.setOnDataAvailable(callback);
         },
-        "Gets the user the option to invalidate the reader when the signal descriptor changes.");
+        "Sets the specified callback function to be called when there is available data in the reader. Pass @c nullptr to unset the callback. The callback should take no arguments.");
 }

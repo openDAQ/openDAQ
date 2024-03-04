@@ -52,6 +52,7 @@ PyDaqIntf<daq::ISampleReader, daq::IReader> declareISampleReader(pybind11::modul
 PyDaqIntf<daq::IBlockReader, daq::ISampleReader> declareIBlockReader(pybind11::module_ m);
 PyDaqIntf<daq::IStreamReader, daq::ISampleReader> declareIStreamReader(pybind11::module_ m);
 PyDaqIntf<daq::ITailReader, daq::ISampleReader> declareITailReader(pybind11::module_ m);
+PyDaqIntf<daq::IReaderStatus, daq::IBaseObject> declareIReaderStatus(pybind11::module_ m);
 PyDaqIntf<daq::IAwaitable, daq::IBaseObject> declareIAwaitable(pybind11::module_ m);
 PyDaqIntf<daq::IGraphVisualization, daq::IBaseObject> declareIGraphVisualization(pybind11::module_ m);
 PyDaqIntf<daq::IScheduler, daq::IBaseObject> declareIScheduler(pybind11::module_ m);
@@ -131,6 +132,7 @@ void defineTimeStreamReader(pybind11::module_ m, py::class_<daq::TimeReader<daq:
 void defineTimeTailReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::TailReaderPtr>> cls);
 void defineTimeBlockReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::BlockReaderPtr>> cls);
 void defineITailReader(pybind11::module_ m, PyDaqIntf<daq::ITailReader, daq::ISampleReader> cls);
+void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq::IBaseObject> cls);
 void defineIAwaitable(pybind11::module_ m, PyDaqIntf<daq::IAwaitable, daq::IBaseObject> cls);
 void defineIGraphVisualization(pybind11::module_ m, PyDaqIntf<daq::IGraphVisualization, daq::IBaseObject> cls);
 void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBaseObject> cls);

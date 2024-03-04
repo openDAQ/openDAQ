@@ -37,6 +37,10 @@ reader = opendaq.StreamReader(
     signal, value_type=opendaq.SampleType.Float64, domain_type=opendaq.SampleType.Int64)
 ----
 ====
+[NOTE]
+====
+The constructor for the reader is designed to offer flexibility in its input parameters. It can accept either a signal or an input port, providing users with versatile options based on their specific requirements.
+====
 
 [NOTE]
 ====
@@ -197,8 +201,7 @@ Each time any of the Signal information changes, it creates an xref:glossary:glo
 The user can react to these changes by installing a callback as shown below.
 
 The event contains two Data Descriptors, for value and domain, each of which can be `null` if unchanged but not both.
-The Reader first forwards the descriptors to their respective internal data-readers to update their information and check if the data can still be converted to the requested sample-types.
-If all these internal checks pass, the user callback is called (if installed) with the event's descriptors to check if the change is still permissible to the user otherwise the Reader is _invalidated_.
+The Reader first forwards the descriptors to their respective internal data-readers to update their information and check if the data can still be converted to the requested sample-types. Then in returns the Reader Status with event packet and status of data conversation.
 
 .Reacting to a Data Descriptor changed event
 [tabs]
@@ -226,48 +229,25 @@ SizeT count{5};
 double values[5]{};
 reader.read(values, &count);
 
-// Instal a custom callback that invalidates the reader if the new value sample-type is `Int64`
-reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor,
-                                 const DataDescriptorPtr& /*domainDescriptor*/)
-{
-    // If the value descriptor has changed
-    if (valueDescriptor.assigned())
-    {
-        // and the new sample type is `Int64`
-        if (valueDescriptor.getSampleType() == SampleType::Int64)
-        {
-            return false;
-        }
-    }
-
-    return true;
-});
-
 //
 // The value sample-type of the `signal` changes from `Int32` to `Int64`
 //
 
 // Signal produces 2 samples { 5, 6 }
+count = {2};
+double newValues[2]{};
 
-try
-{
-    count = {2};
-    double newValues[2]{};
-
-    // Fails even if the new sample-type is convertible to `double` because
-    // the user callback invalidated the reader.
-    reader.read(newValues, &count);
-}
-catch (const InvalidDataException& e)
-{
-    std::cerr << "Exception: " << e.what() << std::endl;
-}
+// the Reader reads 0 values and returns status with new Event packet
+ReaderStatusPtr status = reader.read(newValues, &count);
+assert(status.getReadStatus() == ReadStatus::Event);
+assert(status.getValid() == true);
+assert(status.getEventPacket().assigned() == true);
 ----
 ====
 
 [#invalidation]
 == Reader invalidation and reuse
-Once the Reader falls into *__invalid__* state, it can't be used to read data anymore and all attempts will result in an `OPENDAQ_ERR_INVALID_DATA` error code or the associated exception.
+Once the Reader falls into *__invalid__* state, it can't be used to read data anymore and all attempts will result the Reader status with getValid == false
 The only way to resolve this is to pass the Reader to a new Reader instance with valid sample-types and settings.
 This enables the new reader to reuse the xref:background_info:data_path.adoc#connection[Connection] from the invalidated one and as such, provides the ability to losslessly continue reading.
 
@@ -280,57 +260,28 @@ Cpp::
 ----
 // Signal value sample-type is `Float64`
 
-auto reader = StreamReader<double, Int>(signal);
-
-// Instal a custom callback that invalidates the reader if the new value sample-type is `Int64`
-reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor,
-                                 const DataDescriptorPtr& /*domainDescriptor*/)
-{
-    // If the value descriptor has changed
-    if (valueDescriptor.assigned())
-    {
-        // and the new sample type is `Int64`
-        if (valueDescriptor.getSampleType() == SampleType::Int16)
-        {
-            return false;
-        }
-    }
-
-    return true;
-});
+auto reader = StreamReader<Int, Int>(signal);
 
 //
-// The value sample-type of the `signal` changes from `Float64` to `Int16`
+// The value sample-type of the `signal` changes from `Int64` to `ComplexFloat64`
 //
 
 //
-// Signal produces 2 samples { 1, 2 }
+// Signal produces 2 complex samples
 //
-
-try
-{
-    // Fails even if the new sample-type is convertible to `double` because
-    // the user callback invalidated the reader.
-
-    SizeT count{5};
-    double values[5]{};
-    reader.read(values, &count);
-}
-catch (const InvalidDataException& e)
-{
-    std::cerr << "Exception: " << e.what() << std::endl;
-}
-
-// Clear the user callback
-reader.setOnDescriptorChanged(nullptr);
-
-// This will reuse the Reader's configuration and Connection but change read type
-// from to `Float64` to `Int64` and clear the `invalid` state.
-auto newReader = StreamReaderFromExisting<Int, Int>(reader);
 
 SizeT count{5};
 Int values[5]{};
-newReader.read(values, &count); // count = 2, values = { 1, 2 }
+ReaderStatusPtr status = reader.read(values, &count);
+assert(status.getValid() == false);
+
+// This will reuse the Reader's configuration and Connection but change read type
+// from to `Float64` to `Int64` and clear the `invalid` state.
+auto newReader = StreamReaderFromExisting<ComplexFloat64, Int>(reader);
+
+SizeT count{5};
+ComplexFloat64 values[5]{};
+newReader.read(values, &count); // count = 2
 ----
 ====
 
@@ -369,18 +320,11 @@ count = 2;
 double newValues[2]{};
 newReader.read(newValues, &count);  // count = 2, values = { 3, 4 }
 
-try
-{
-    // The old reader has been invalidated when re-used by a new one
-
-    count = 2;
-    Int oldValues[2]{};
-    reader.read(oldValues, &count);
-}
-catch (const InvalidDataException& e)
-{
-    std::cerr << "Exception: " << e.what() << std::endl;
-}
+// The old reader has been invalidated when re-used by a new one
+count = 2;
+Int oldValues[2]{};
+ReaderStatusPtr status = reader.read(oldValues, &count);
+assert(status.getValid() == false);
 ----
 ====
 
@@ -539,8 +483,15 @@ void example4(const SignalConfigPtr& signal)
     // The call succeeds because `Int32` is convertible to `Float64`
     // and results in `4` samples { 1.1, 2.2, 3.0, 4.0 }
 
+    SizeT eventPacketCount{1};
     SizeT count{5};
     double values[5]{};
+    
+    auto status = reader.read(values, &eventPacketCount);
+    assert(status.getReadStatus() == ReadStatus::Event);
+    assert(status.getValid() == true);
+    assert(status.getEventPacket().assigned() == true);
+
     reader.read(values, &count);
 
     assert(count == 4u);
@@ -548,54 +499,6 @@ void example4(const SignalConfigPtr& signal)
     assert(values[1] == 2.2);
     assert(values[2] == 3.0);
     assert(values[3] == 4.0);
-
-    // Instal a custom callback that invalidates the reader if the new value sample-type is `Int64`
-    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor,
-                                     const DataDescriptorPtr& /*domainDescriptor*/)
-    {
-        // If the value descriptor has changed
-        if (valueDescriptor.assigned())
-        {
-            // and the new sample type is `Int64`
-            if (valueDescriptor.getSampleType() == SampleType::Int64)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    });
-
-    //
-    // The value sample-type of the `signal` changes from `Int32` to `Int64`
-    //
-    signal.setDescriptor(setupDescriptor(SampleType::Int64));
-
-    // Signal produces 2 samples { 5, 6 }
-    auto packet3 = createPacketForSignal(signal, 2);
-    auto data3 = static_cast<std::int64_t*>(packet3.getData());
-    data3[0] = 3;
-    data3[1] = 4;
-    signal.sendPacket(packet3);
-
-    bool failed{true};
-    try
-    {
-        count = {2};
-        double newValues[2]{};
-
-        // Fails even if the new sample-type is convertible to `double` because
-        // the user callback invalidated the reader.
-        reader.read(newValues, &count);
-
-        failed = false;
-    }
-    catch (const InvalidDataException& e)
-    {
-        std::cerr << "Exception: " << e.what() << std::endl;
-    }
-
-    assert(failed);
 }
 
 /*
@@ -603,73 +506,42 @@ void example4(const SignalConfigPtr& signal)
  */
 void example5(const SignalConfigPtr& signal)
 {
-    // Signal value sample-type is `Float64`
-    signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    // Signal value sample-type is `Int64`
+    signal.setDescriptor(setupDescriptor(SampleType::Int64));
 
-    auto reader = StreamReader<double, Int>(signal);
-
-    // Instal a custom callback that invalidates the reader if the new value sample-type is `Int64`
-    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor,
-                                     const DataDescriptorPtr& /*domainDescriptor*/)
-    {
-        // If the value descriptor has changed
-        if (valueDescriptor.assigned())
-        {
-            // and the new sample type is `Int64`
-            if (valueDescriptor.getSampleType() == SampleType::Int16)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    });
+    auto reader = StreamReader<Int, Int>(signal);
 
     //
-    // The value sample-type of the `signal` changes from `Float64` to `Int16`
+    // The value sample-type of the `signal` changes from `Int64` to `ComplexFloat64`
     //
-    signal.setDescriptor(setupDescriptor(SampleType::Int16));
+    signal.setDescriptor(setupDescriptor(SampleType::ComplexFloat64));
 
     //
-    // Signal produces 2 samples { 1, 2 }
+    // Signal produces 2 samples
     //
     auto packet = createPacketForSignal(signal, 2);
-    auto data = static_cast<std::int16_t*>(packet.getData());
-    data[0] = 1;
-    data[1] = 2;
+    auto data = static_cast<std::ComplexFloat64*>(packet.getData());
+    data[0] = ComplexFloat64(1, 0);
+    data[1] = ComplexFloat64(2, 0);
     signal.sendPacket(packet);
 
-    bool failed{true};
-
-    try
-    {
-        SizeT count{5};
-        double values[5]{};
-        reader.read(values, &count);
-
-        failed = false;
-    }
-    catch (const InvalidDataException& e)
-    {
-        std::cerr << "Exception: " << e.what() << std::endl;
-    }
-
-    assert(failed);
-
-    // Clear the user callback
-    reader.setOnDescriptorChanged(nullptr);
-
-    // This will reuse the Reader's configuration and Connection but change read type
-    // from to `Float64` to `Int64` and clear the `invalid` state.
-    auto newReader = StreamReaderFromExisting<Int, Int>(reader);
 
     SizeT count{5};
-    Int values[5]{};
-    newReader.read(values, &count); // count = 2, values = { 1, 2 }
+    double values[5]{};
+    auto status = reader.read(values, &count);
+    assert(status.getValid() == false);
+
+    // This will reuse the Reader's configuration and Connection but change read type
+    // from to `Int64` to `ComplexFloat64` and clear the `invalid` state.
+    auto newReader = StreamReaderFromExisting<ComplexFloat64, Int>(reader);
+
+    SizeT count{5};
+    ComplexFloat64 values[5]{};
+    newReader.read(values, &count); // count = 2, values = {(1, 0), (2, 0)}
 
     assert(count == 2u);
-    assert(values[0] == 1);
-    assert(values[1] == 2);
+    assert(values[0] == ComplexFloat64(1, 0));
+    assert(values[1] == ComplexFloat64(2, 0));
 }
 
 /*
@@ -711,24 +583,12 @@ void example6(const SignalConfigPtr& signal)
     assert(count == 2u);
     assert(newValues[0] == 3);
     assert(newValues[1] == 4);
+    // The old reader has been invalidated when reused by a new one
 
-    bool failed{true};
-    try
-    {
-        // The old reader has been invalidated when reused by a new one
-
-        count = 2;
-        Int oldValues[2]{};
-        reader.read(oldValues, &count);
-
-        failed = false;
-    }
-    catch (const InvalidDataException& e)
-    {
-        std::cerr << "Exception: " << e.what() << std::endl;
-    }
-
-    assert(failed);
+    count = 2;
+    Int oldValues[2]{};
+    auto status = reader.read(oldValues, &count);
+    assert(status.getValid() == false);
 }
 
 /*

@@ -701,7 +701,7 @@ TEST_F(RefModulesTest, ClassifierCheckSyncData)
 
     size_t blockCnt = 1;
     auto outputData = std::make_unique<outputSignalType[]>(21);
-    reader.read(outputData.get(), &blockCnt, 500);
+    auto status = reader.read(outputData.get(), &blockCnt, 500);
     // check that was read output packet
     ASSERT_EQ(blockCnt, 1u);
 

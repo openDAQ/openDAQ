@@ -12,7 +12,7 @@ Some of the most used ones are listed below:
 * xref:stream_reader[*Stream reader*] reads data as it were a stream of values, merging data packets into a continuous data buffer.
 * xref:tail_reader[*Tail reader*] always reads the latest _n_ values output by the signal.
 * xref:block_reader[*Block reader*] Reads the data in predefined block size and can't read less than a full block.
-* xref:multi_reader[*Multi reader*] Reads aligned data from multiple signals. (Not yet implemented)
+* xref:multi_reader[*Multi reader*] Reads aligned data from multiple signals. 
 
 [#common_behavior]
 == Common Behavior
@@ -25,8 +25,11 @@ As a parameter, they receive the xref:background_info:signals.adoc[Signal] to re
 .Constructing a reader
 [source,cpp,caption="Example {counter:example-nr:1.} "]
 ----
-// Standard factory signature
+// Standard factory signature with signal as input argument
 Reader(signal, SampleType::Float64, SampleType::Int64);
+
+// Standard factory signature with input port as input argument
+Reader(inputPort, SampleType::Float64, SampleType::Int64);
 
 // In C++ there is also a templated helper
 Reader<double, std::int64_t>(signal);
@@ -59,13 +62,17 @@ Type2 b = (Type2) a;
 
 As the Reader receives the xref:background_info:signals.adoc[Signal] as a parameter it must first establish a xref:background_info:data_path.adoc#connection[Connection] to it.
 To perform this, the Readers usually create an internal xref:glossary:glossary.adoc#input_port[Input Port] to which they connect the passed-in Signal to form a Connection and start to listen to the port events.
+A Reader can also be created with an existing input port. In this case, it won't create an internal input port but will instead use the existing one.
 This enables a Reader to receive xref:glossary:glossary.adoc#data_packet[Packets] and by definition the first packet sent after a new Connection is established is a xref:glossary:glossary.adoc#descriptor_changed[Data Descriptor Changed] event packet containing the descriptors for both value and domain data.
 These are then sent to the internal data-readers for value and domain to be able to read and convert data.
 If the data-reader determines that the read operations can't be performed for a certain reason (e.g. incompatible or inconvertible sample-types) the reader is __invalidated__.
 
 When re-using an existing Reader the initialization procedure is the same.
 The only difference is that the Input Port with its Connection is reused and event listening reassigned to the new Reader. After this a check is made if the packet on the top of the connection queue is a Data Descriptor Changed event otherwise it is read directly from the Signal. The old Reader is _invalidated_ after re-use if it wasn't already.
-
+[NOTE]
+====
+In typical scenarios, Readers with input ports are frequently employed in modules where ports are attached to the openDAQ component tree within an "Input ports" folder. This is especially common in function blocks or channels.
+====
 [#reader_invalidation]
 === Reader invalidation and reuse
 Once the Reader falls into *__invalid__* state, it can't be used to read data anymore and all attempts will result in an `OPENDAQ_ERR_INVALID_DATA` error code or the associated exception.
@@ -85,9 +92,9 @@ All the Readers expose at least two common operations:
 * `getAvailableCount()` reports how much of _something_ is still left to read. This _something_ can differ between the kinds of readers.
 In the case of xref:packet_reader[Packet Reader] this is the number of _packets_ ready and available in the xref:background_info:data_path.adoc#connection[Connection] queue, while for xref:stream_reader[Stream Reader] this is the number of _samples_ stored in the available packets.
 
-[#descriptor_changed_callback]
-* `setOnDescriptorChanged(callback)` assigns a callback function to be called when the Reader encounters a xref:glossary:glossary.adoc#descriptor_changed[Data Descriptor Changed] event packet.
-With this callback, the user can control whether the change is still permissible and perform any needed changes. How this is handled is described in more detail in the xref:handling_descriptor_changed[Handling a Descriptor Changed Event] section below.
+[#available_packets_callback]
+* `setOnDataAvailable(callback)` assigns a callback function to be called when the Reader has available data packets xref:glossary:glossary.adoc#on_data_available[On Data Available] event packet.
+With this callback, the user can automatically read data from reader. More details on how this is handled can be found in the xref:handling_on_data_available[Handling on Data Available] section below.
 
 In addition to these two operations, Readers also define their own methods to read data. These __read__ calls usually follow the <<example-read>> where two functions `read` and `readWithDomain` are defined.
 
@@ -95,11 +102,12 @@ In addition to these two operations, Readers also define their own methods to re
 .Read calls function signature
 [source,cpp,caption="Example {counter:example-nr:1.} "]
 ----
-read(void* values, std::size_t* count);
-readWithDomain(void* values, void* domain, std::size_t* count);
+ReaderStatusPtr read(void* values, std::size_t* count);
+ReaderStatusPtr readWithDomain(void* values, void* domain, std::size_t* count);
 ----
 The way to use the read calls is to have a memory buffer of a desired size and type pre-allocated.
 Then you pass it into the call where it will get filled with at maximum `count` elements.
+The Reader returns a ReaderStatusPtr object, indicating whether the reading process was successful or if there is an event packet that needs to be handled. Moreover, if the data type has changed, the Reader will include in the status whether the new type is convertible by the Reader or not.
 
 [CAUTION]
 The count / size parameter needs to be set _before_ the call to a desired maximum count and will be modified with the actual amount read _after_.
@@ -130,34 +138,64 @@ If there is a custom transform function assigned the corresponding value or doma
 No additional processing is done except to advance the reading position if required.
 ====
 
+[#handling_on_data_available]
+=== Handling Data Available
+When the Reader is notified about new packets, each packet follows its own logic to determine whether it should trigger the `onDataAvailable` function or not. Currently, the Stream reader, Packet reader, and Multi reader trigger the callback when any packet arrives at the Reader's input port. 
+The Tail reader triggers the callback if the total number of samples is greater than the history size. 
+The Block reader will trigger the callback if there is enough available samples for one block.
+
+.The user callback signature
+[source,cpp]
+----
+void callback()
+[optionalCapturedArguments]() -> void {}
+----
 
 [#handling_descriptor_changed]
 === Handling a Descriptor changed event
 Whenever the xref:background_info:signals.adoc[Signal] information changes, it sends an xref:glossary:glossary.adoc#event_packet[Event Packet] with and id of xref:background_info:packets.adoc#descriptor_changed[`"SIGNAL_DESCRIPTOR_CHANGED"`].
 This event contains new xref:background_info:signals.adoc[Data Descriptor]s for both value and domain data.
-The Reader first forwards the descriptors to their respective internal data-readers to update their information and check if the data can still be converted to the requested sample-types.
+The processing of event packets in our system occurs dynamically through the reader, not immediately upon reception, but rather during the reading process.
 
-If all these internal checks pass, the <<descriptor_changed_callback,user callback>> is called (if installed) with the event's descriptors to check if the change is still permissible to the user otherwise the Reader is _invalidated_.
-
-.The user callback signature
+To illustrate, consider a scenario with a queue containing 10 packets. One of these is an event packet positioned in the middle, while the remaining packets are data packets, each containing two samples. In a user scenario where reading up to 5 packets is requested, the event packet will not be included in the processing list. However, if the user attempts to read more than 5 samples, the reader will return 5 samples, update the types of internal readers, and provide a reading status. This status will include information about the event packet, and whether the reader can convert new data or not.
 [source,cpp]
 ----
-bool callback(SignalDesciptor valueDescriptor,
-              SignalDesciptor domainDescriptor)
+auto reader = StreamReader<double, Int>(signal);
+
+// Signal produces 5 samples { 1.0, 2.0, 3.0, 4.0, 5.0 }
+auto packet1 = createPacketForSignal(signal, 5);
+auto data1 = static_cast<double*>(packet1.getData());
+data1[0] = 1.0;
+data1[1] = 2.0;
+data1[2] = 3.0;
+data1[3] = 4.0;
+data1[4] = 5.0;
+
+signal.sendPacket(packet1);
+
+// change data type
+signal.setDescriptor(setupDescriptor(SampleType::Int64));
+
+auto packet2 = createPacketForSignal(signal, 5);
+auto data2 = static_cast<Int*>(packet2.getData());
+data2[0] = 6;
+data2[1] = 7;
+data2[2] = 8;
+data2[3] = 9;
+data2[4] = 10;
+
+signal.sendPacket(packet1);
+
+SizeT count{10};
+double values[10]{};
+ReaderStatusPtr status = reader.read(values, &count);  
+// count = 5, values = { 1.0, 2.0, 3.0, 4.0, 5.0 }
+// status.getReadStatus() == ReadStatus::Event
+
+// reading remaining data
+count = 5;
+reader.read(&values[5], &count);  
 ----
-
-// // Raw C-style IFunction.call
-// ErrCode call(IBaseObject* params,  // is an IList where
-//                                    // [0] - value descriptor
-//                                    // [1] - domain descriptor
-//              IBaseObject** result, // is an IBoolean
-//
-// // effectively becoming
-// ErrCode callback(IList* descriptors, // [0] - value descriptor
-//                                      // [1] - domain descriptor
-//                  IBoolean* valid)
-
-//* See xref:howto_guides:howto_custom_reader_signal_changed_callback[How-To 123]
 
 [NOTE]
 ====

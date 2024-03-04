@@ -71,6 +71,9 @@ public:
     ErrCode INTERFACE_FUNC remove() override;
     ErrCode INTERFACE_FUNC isRemoved(Bool* removed) override;
 
+    // IOwnable
+    ErrCode INTERFACE_FUNC setOwner(IPropertyObject* owner) override;
+
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
@@ -107,6 +110,8 @@ private:
 
     StringPtr serializedSignalId;
     SignalPtr dummySignal;
+
+    WeakRefPtr<IPropertyObject> owner;
 
     ErrCode canConnectSignal(ISignal* signal) const;
     void disconnectSignalInternal(bool notifyListener, bool notifySignal);
@@ -558,6 +563,19 @@ ErrCode GenericInputPortImpl<Interfaces...>::isRemoved(Bool* removed)
     std::scoped_lock lock(this->sync);
 
     *removed = this->isInputPortRemoved;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class... Interfaces>
+ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::setOwner(IPropertyObject* owner)
+{
+    if (this->owner.assigned())
+    {
+        auto ref = this->owner.getRef();
+        if (ref != nullptr && ref != owner)
+            return this->makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
+    }
+    this->owner = owner;
     return OPENDAQ_SUCCESS;
 }
 

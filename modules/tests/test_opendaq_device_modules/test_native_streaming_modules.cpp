@@ -285,6 +285,15 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture));
 
+    {
+        daq::SizeT eventCount = 1;
+        double sample;
+        std::this_thread::sleep_for(100ms);
+
+        daq::ReaderStatusPtr status = reader.read(&sample, &eventCount);
+        EXPECT_TRUE(status.getReadStatus() == ReadStatus::Event);
+    }
+
     // read data received from server after reconnection
     for (int i = 0; i < 10; ++i)
     {

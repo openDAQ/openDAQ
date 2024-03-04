@@ -21,6 +21,8 @@
 #include <opendaq/typed_reader.h>
 #include <opendaq/event_packet_params.h>
 #include <coretypes/validation.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/ownable_ptr.h>
 
 #include <mutex>
 #include <utility>
@@ -56,9 +58,33 @@ public:
         domainReader = createReaderForType(domainReadType, nullptr);
     }
 
+    explicit ReaderImpl(InputPortConfigPtr port,
+                        ReadMode mode,
+                        SampleType valueReadType,
+                        SampleType domainReadType)
+        : readMode(mode)
+        , portBinder(PropertyObject())
+        , timeoutType(ReadTimeoutType::All)
+    {
+        if (!port.assigned())
+            throw ArgumentNullException("Signal must not be null.");
+        
+        port.asPtr<IOwnable>().setOwner(portBinder);
+
+        this->internalAddRef();
+
+        this->port = port;
+        this->port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+
+        if (port.getConnection().assigned())
+            connection = this->port.getConnection();
+        valueReader = createReaderForType(valueReadType, nullptr);
+        domainReader = createReaderForType(domainReadType, nullptr);
+    }
+
     ~ReaderImpl() override
     {
-        if (port.assigned())
+        if (port.assigned() && !portBinder.assigned())
             port.remove();
     }
 
@@ -86,6 +112,10 @@ public:
     ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
+        
+        std::scoped_lock lock(mutex);
+        connection = InputPortConfigPtr::Borrow(inputPort).getConnection();
+        handleDescriptorChanged(connection.dequeue());
         return OPENDAQ_SUCCESS;
     }
 
@@ -96,19 +126,17 @@ public:
     ErrCode INTERFACE_FUNC disconnected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
+
+        std::scoped_lock lock(mutex);
+        connection = nullptr;
         return OPENDAQ_SUCCESS;
     }
 
-    /*!
-     * @brief Gets the user the option to invalidate the reader when the signal descriptor changes
-     * @param callback The callback to call when the descriptor changes. The callback takes a descriptor
-     * as a parameter and returns a boolean indicating whether the change is still acceptable.
-     */
-    ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) override
+    ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override
     {
         std::scoped_lock lock(mutex);
 
-        changeCallback = callback;
+        readCallback = callback;
         return OPENDAQ_SUCCESS;
     }
 
@@ -119,24 +147,19 @@ public:
     virtual ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override
     {
         OPENDAQ_PARAM_NOT_NULL(port);
+        ProcedurePtr callback;
 
+        {
+            std::scoped_lock lock(mutex);
+            callback = readCallback;
+        }
+
+        if (callback.assigned())
+            return wrapHandler(callback);
         return OPENDAQ_SUCCESS;
     }
 
     // IReaderConfig
-
-    /*!
-     * @brief Gets the currently set callback to call when the signal descriptor changes if any.
-     * @param[out] callback The callback to call when the descriptor changes or @c nullptr if not set.
-     */
-    ErrCode INTERFACE_FUNC getOnDescriptorChanged(IFunction** callback) override
-    {
-        std::scoped_lock lock(mutex);
-
-        *callback = changeCallback.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
-    }
-
     /*!
      * @brief Gets the internally created input-ports if used.
      * @param[out] ports The internal Input-Ports if used by the reader.
@@ -292,14 +315,21 @@ protected:
         , valueReader(daq::createReaderForType(valueReadType, old->valueReader->getTransformFunction()))
         , domainReader(daq::createReaderForType(domainReadType, old->domainReader->getTransformFunction()))
     {
-        std::unique_lock lock(old->mutex);
+        dataDescriptor = old->dataDescriptor;
         old->invalid = true;
 
         timeoutType = old->timeoutType;
 
+        portBinder = old->portBinder;
         port = old->port;
+        port.asPtr<IOwnable>().setOwner(portBinder);
+
+        this->internalAddRef();
+        
+        port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+
         connection = old->connection;
-        changeCallback = old->changeCallback;
+        readCallback = old->readCallback;
     }
 
     explicit ReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -319,7 +349,6 @@ protected:
         readerConfig.markAsInvalid();
 
         port = readerConfig.getInputPorts()[0];
-        changeCallback = readerConfig.getOnDescriptorChanged();
         connection = port.getConnection();
 
         valueReader = createReaderForType(valueReadType, readerConfig.getValueTransformFunction());
@@ -361,6 +390,7 @@ protected:
         // Check if value is stil convertible
         if (newValueDescriptor.assigned())
         {
+            dataDescriptor = newValueDescriptor;
             if (valueReader->isUndefined())
             {
                 inferReaderReadType(newValueDescriptor, valueReader);
@@ -387,18 +417,6 @@ protected:
                 invalid = !valid;
             }
         }
-
-        // If both value and domain are still convertible
-        // check with the user if new state is valid for them
-        if (!invalid && changeCallback.assigned())
-        {
-            bool descriptorOk = false;
-            ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor);
-            invalid = !descriptorOk || OPENDAQ_FAILED(errCode);
-
-            if (OPENDAQ_FAILED(errCode))
-                daqClearErrorInfo();
-        }
     }
 
     void readDescriptorFromPort()
@@ -420,18 +438,22 @@ protected:
             }
         }
 
-        const auto signal = port.getSignal();
-        if (!signal.assigned())
+        if (!dataDescriptor.assigned())
         {
-            throw InvalidStateException("Input port must already have a signal assigned");
+            const auto signal = port.getSignal();
+            if (!signal.assigned())
+            {
+                throw InvalidStateException("Input port must already have a signal assigned");
+            }
+
+            dataDescriptor = signal.getDescriptor();
+            if (!dataDescriptor.assigned())
+            {
+                throw InvalidStateException("Input port connected signal must have a descriptor assigned.");
+            }
         }
 
-        const auto descriptor = signal.getDescriptor();
-        if (!descriptor.assigned())
-        {
-            throw InvalidStateException("Input port connected signal must have a descriptor assigned.");
-        }
-        handleDescriptorChanged(DataDescriptorChangedEventPacket(descriptor, nullptr));
+        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr));
     }
 
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket)
@@ -472,9 +494,12 @@ protected:
     std::mutex mutex;
     ReadMode readMode;
     InputPortConfigPtr port;
+    PropertyObjectPtr portBinder;
     ConnectionPtr connection;
-    FunctionPtr changeCallback;
+    ProcedurePtr readCallback;
     ReadTimeoutType timeoutType;
+
+    DataDescriptorPtr dataDescriptor;
 
     std::unique_ptr<Reader> valueReader;
     std::unique_ptr<Reader> domainReader;

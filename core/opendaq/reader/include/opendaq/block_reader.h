@@ -16,6 +16,8 @@
 #pragma once
 #include <opendaq/sample_reader.h>
 #include <opendaq/signal.h>
+#include <opendaq/input_port_config.h>
+#include <opendaq/reader_status.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -50,8 +52,12 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReader, ISampleReader)
      * available the parameter value is set to the actual amount and only the available
      * blocks are returned. The rest of the buffer is not modified or cleared.
      * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of blocks before returning.
+     * @param[out] status: Represents the status of the reader.
+     * - If the reader is invalid, IReaderStatus::getValid returns false.
+     * - If an event packet was encountered during processing, IReaderStatus::isEventEncountered returns true.
+     * - If the reading process is successful, ReaderStatus::isOk returns true, indicating that IReaderStatus::getValid is true and IReaderStatus::isEventEncountered is false.
      */
-    virtual ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0) = 0;
+    virtual ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
 
     // [arrayArg(dataBlocks, count), arrayArg(domainBlocks, count), arrayArg(count, 1)]
     /*!
@@ -65,8 +71,12 @@ DECLARE_OPENDAQ_INTERFACE(IBlockReader, ISampleReader)
      * available the parameter value is set to the actual amount and only the available
      * blocks are returned. The rest of the buffer is not modified or cleared.
      * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of blocks before returning.
+     * @param[out] status: Represents the status of the reader.
+     * - If the reader is invalid, IReaderStatus::getValid returns false.
+     * - If an event packet was encountered during processing, IReaderStatus::isEventEncountered returns true.
+     * - If the reading process is successful, ReaderStatus::isOk returns true, indicating that IReaderStatus::getValid is true and IReaderStatus::isEventEncountered is false.
      */
-    virtual ErrCode INTERFACE_FUNC readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0) = 0;
+    virtual ErrCode INTERFACE_FUNC readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) = 0;
 
     /*!
      * @brief The amount of samples the reader considers as one block.
@@ -89,7 +99,17 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, BlockReaderFromExisting, IBlockReader,
     IBlockReader*, invalidatedReader,
     SampleType, valueReadType,
-    SampleType, domainReadType
+    SampleType, domainReadType,
+    SizeT, blockSize
+)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, BlockReaderFromPort, IBlockReader,
+    IInputPortConfig*, port,
+    SizeT, blockSize,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode
 )
 
 END_NAMESPACE_OPENDAQ

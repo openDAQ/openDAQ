@@ -2,6 +2,7 @@
 #include <coretypes/impl.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/reader_errors.h>
+#include <opendaq/reader_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -20,6 +21,19 @@ BlockReaderImpl::BlockReaderImpl(const SignalPtr& signal,
     BlockReaderImpl::handleDescriptorChanged(connection.dequeue());
 }
 
+BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
+                                 SizeT blockSize,
+                                 SampleType valueReadType,
+                                 SampleType domainReadType,
+                                 ReadMode mode)
+    : Super(InputPortConfigPtr(port), mode, valueReadType, domainReadType)
+    , blockSize(blockSize)
+{
+    this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+    if (connection.assigned())
+        BlockReaderImpl::handleDescriptorChanged(connection.dequeue());
+}
+
 BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
@@ -33,13 +47,14 @@ BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
 
 BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
                                  SampleType valueReadType,
-                                 SampleType domainReadType)
+                                 SampleType domainReadType,
+                                 SizeT blockSize)
     : Super(old, valueReadType, domainReadType)
-    , blockSize(old->blockSize)
+    , blockSize(blockSize)
     , info(old->info)
 {
     this->internalAddRef();
-
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr));
     readDescriptorFromPort();
     notify.dataReady = false;
 }
@@ -84,10 +99,10 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
     OPENDAQ_PARAM_NOT_NULL(inputPort);
 
     {
-        std::unique_lock lock(notify.mutex);
+        std::scoped_lock lock(notify.mutex);
 
         if (getAvailable() != 0)
-        {
+        {   
             notify.dataReady = true;
         }
         else
@@ -96,7 +111,19 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
         }
     }
     notify.condition.notify_one();
-    return OPENDAQ_SUCCESS;
+
+    ErrCode errCode = OPENDAQ_SUCCESS;
+    std::unique_lock lock(mutex);
+    auto callback = readCallback;
+    while(callback.assigned() && getAvailable() && OPENDAQ_SUCCEEDED(errCode))
+    {
+        lock.unlock();
+        errCode = wrapHandler(callback);
+        lock.lock();
+        callback = readCallback;
+    }
+
+    return errCode;
 }
 
 ErrCode BlockReaderImpl::readPacketData()
@@ -151,7 +178,7 @@ ErrCode BlockReaderImpl::readPacketData()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode BlockReaderImpl::readPackets()
+ErrCode BlockReaderImpl::readPackets(IReaderStatus** status)
 {
     ErrCode errCode = OPENDAQ_SUCCESS;
 
@@ -165,7 +192,7 @@ ErrCode BlockReaderImpl::readPackets()
         // if no partially-read packet and there are more blocks left in the connection
         if (getAvailable() > 0 && !packet.assigned())
         {
-            std::unique_lock lock(notify.mutex);
+            std::unique_lock notifyLock(notify.mutex);
 
             packet = connection.dequeue();
             notify.dataReady = false;
@@ -210,10 +237,9 @@ ErrCode BlockReaderImpl::readPackets()
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
                     handleDescriptorChanged(eventPacket);
-                    if (invalid)
-                    {
-                        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Packet samples are no longer convertible to the read type");
-                    }
+                    if (status)
+                        *status = ReaderStatus(eventPacket, !invalid).detach();
+                    return errCode;
                 }
                 break;
             }
@@ -234,41 +260,61 @@ ErrCode BlockReaderImpl::readPackets()
     return errCode;
 }
 
-ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs)
+ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(blocks);
     OPENDAQ_PARAM_NOT_NULL(count);
 
     std::scoped_lock lock(mutex);
-
+    
     if (invalid)
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Packet samples are no longer convertible to the read type", nullptr);
+    {
+        if (status)
+            *status = ReaderStatus(nullptr, !invalid).detach();
+        return OPENDAQ_IGNORED;
+    }
+
+    if (status)
+        *status = nullptr;
 
     SizeT samplesToRead = *count * blockSize;
     info.prepare(blocks, samplesToRead, milliseconds(timeoutMs));
 
-    ErrCode errCode = readPackets();
+    ErrCode errCode = readPackets(status);
+
+    if (status && *status == nullptr)
+        *status = ReaderStatus().detach();
 
     SizeT samplesRead = samplesToRead - info.remainingSamplesToRead;
     *count = samplesRead / blockSize;
     return errCode;
 }
 
-ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs)
+ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(dataBlocks);
     OPENDAQ_PARAM_NOT_NULL(domainBlocks);
     OPENDAQ_PARAM_NOT_NULL(count);
 
     std::scoped_lock lock(mutex);
-
+    
     if (invalid)
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Packet samples are no longer convertible to the read type.", nullptr);
+    {
+        if (status)
+            *status = ReaderStatus(nullptr, !invalid).detach();
+        return OPENDAQ_IGNORED;
+    }
+
+    if (status)
+        *status = nullptr;
 
     SizeT samplesToRead = *count * blockSize;
     info.prepareWithDomain(dataBlocks, domainBlocks, samplesToRead, milliseconds(timeoutMs));
 
-    ErrCode errCode = readPackets();
+    ErrCode errCode = readPackets(status);
+
+    if (status && *status == nullptr)
+        *status = ReaderStatus().detach();
 
     SizeT samplesRead = samplesToRead - info.remainingSamplesToRead;
     *count = samplesRead / blockSize;
@@ -290,7 +336,8 @@ struct ObjectCreator<IBlockReader>
     static ErrCode Create(IBlockReader** out,
                           IBlockReader* toCopy,
                           SampleType valueReadType,
-                          SampleType domainReadType
+                          SampleType domainReadType,
+                          SizeT blockSize
                          ) noexcept
     {
         OPENDAQ_PARAM_NOT_NULL(out);
@@ -306,11 +353,8 @@ struct ObjectCreator<IBlockReader>
         auto old = ReaderConfigPtr::Borrow(toCopy);
         auto impl = dynamic_cast<BlockReaderImpl*>(old.getObject());
 
-        SizeT blockSize;
-        checkErrorInfo(toCopy->getBlockSize(&blockSize));
-
         return impl != nullptr
-            ? createObject<IBlockReader, BlockReaderImpl>(out, impl, valueReadType, domainReadType)
+            ? createObject<IBlockReader, BlockReaderImpl>(out, impl, valueReadType, domainReadType, blockSize)
             : createObject<IBlockReader, BlockReaderImpl>(out, old, valueReadType, domainReadType, blockSize, mode);
     }
 };
@@ -319,7 +363,19 @@ OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     LIBRARY_FACTORY, IBlockReader, createBlockReaderFromExisting,
     IBlockReader*, invalidatedReader,
     SampleType, valueReadType,
-    SampleType, domainReadType
+    SampleType, domainReadType,
+    SizeT, blockSize
 )
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, BlockReader,
+    IBlockReader, createBlockReaderFromPort,
+    IInputPortConfig*, port,
+    SizeT, blockSize,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode
+)
+
 
 END_NAMESPACE_OPENDAQ

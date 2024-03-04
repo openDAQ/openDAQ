@@ -12,7 +12,7 @@ set(TEST_SOURCES test_factories.cpp
                  test_block_reader.cpp
                  test_time_reader.cpp
                  test_multi_reader.cpp
-                 test_stream_reade_from_input_port.cpp
+                 test_stream_reader_from_input_port.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

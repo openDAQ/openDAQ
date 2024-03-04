@@ -401,3 +401,25 @@ TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateRecursive)
     ASSERT_EQ(clientDevice.getChannels()[0].getPropertyValue("StrProp"), "SomeValue");
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), "SomeValue");
 }
+
+TEST_F(ConfigProtocolIntegrationTest, SetSignalNameAndDescriptionFromClient)
+{
+    const auto serverSignal = serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal();
+    const auto clientSignal = clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal();
+
+    clientSignal.setName("SigName");
+
+    ASSERT_EQ(clientSignal.getName(), "SigName");
+    ASSERT_EQ(serverSignal.getName(), "SigName");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, SetSignalNameAndDescriptionFromServer)
+{
+    const auto serverSignal = serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal();
+    const auto clientSignal = clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal();
+
+    serverSignal.setName("SigName");
+
+    ASSERT_EQ(clientSignal.getName(), "SigName");
+    ASSERT_EQ(serverSignal.getName(), "SigName");
+}

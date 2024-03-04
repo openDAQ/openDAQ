@@ -51,6 +51,7 @@ public:
     BaseObjectPtr getPropertyValue(const std::string& globalId, const std::string& propertyName);
     void clearPropertyValue(const std::string& globalId, const std::string& propertyName);
     BaseObjectPtr callProperty(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& params);
+    void setAttributeValue(const std::string& globalId, const std::string& attributeName, const BaseObjectPtr& attributeValue);
 
     bool getConnected() const;
     ContextPtr getDaqContext();
@@ -210,9 +211,10 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
         const auto type = typeManager.getType(typeName);
         if (localTypeManager.hasType(type.getName()))
         {
-            const auto localType = localTypeManager.getType(type.getName());
+            // TODO: implement type comparison/equalTo for property object classes
+/*            const auto localType = localTypeManager.getType(type.getName());
             if (localType != type)
-                throw InvalidValueException("Remote type different than local");
+                throw InvalidValueException("Remote type different than local");*/
             continue;
         }
 

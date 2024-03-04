@@ -1,5 +1,9 @@
-#include <opendaq/range_factory.h>
+#include <coreobjects/unit_factory.h>
+#include <opendaq/context_factory.h>
 #include <opendaq/data_descriptor_factory.h>
+#include <opendaq/data_rule_factory.h>
+#include <opendaq/range_factory.h>
+#include <opendaq/reader_factory.h>
 #include <opendaq/signal_factory.h>
 #include <opendaq/signal_ptr.h>
 #include "gtest/gtest.h"
@@ -8,11 +12,7 @@
 #include "opcuatms_client/objects/tms_client_signal_factory.h"
 #include "opcuatms_server/objects/tms_server_signal.h"
 #include "open62541/daqbsp_nodeids.h"
-#include <opendaq/context_factory.h>
-#include <coreobjects/unit_factory.h>
-#include <opendaq/data_rule_factory.h>
 #include "tms_object_integration_test.h"
-#include <opendaq/reader_factory.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -57,13 +57,53 @@ public:
 
         return serverSignal;
     }
+
+    void checkLastValueInt64(SignalPtr signal, int64_t trueValue)
+    {
+        auto lastValue = signal.getLastValue();
+        IntegerPtr ptr = lastValue.asPtr<IInteger>();
+
+        ASSERT_EQ(ptr, trueValue);
+    }
+
+    void checkLastValueRange(SignalPtr signal, Int trueLow, Int trueHigh)
+    {
+        auto lastValue = signal.getLastValue();
+        RangePtr ptr = lastValue.asPtr<IRange>();
+        auto low = ptr.getLowValue();
+        auto high = ptr.getHighValue();
+
+        ASSERT_EQ(low, trueLow);
+        ASSERT_EQ(high, trueHigh);
+    }
+
+    void checkLastValueComplex32(SignalPtr signal, float trueReal, float trueImaginary)
+    {
+        auto lastValue = signal.getLastValue();
+        ComplexNumberPtr ptr = lastValue.asPtr<IComplexNumber>();
+        auto real = ptr.getReal();
+        auto imaginary = ptr.getImaginary();
+
+        ASSERT_FLOAT_EQ(real, trueReal);
+        ASSERT_FLOAT_EQ(imaginary, trueImaginary);
+    }
+
+    void checkLastValueComplex64(SignalPtr signal, double trueReal, double trueImaginary)
+    {
+        auto lastValue = signal.getLastValue();
+        ComplexNumberPtr ptr = lastValue.asPtr<IComplexNumber>();
+        auto real = ptr.getReal();
+        auto imaginary = ptr.getImaginary();
+
+        ASSERT_DOUBLE_EQ(real, trueReal);
+        ASSERT_DOUBLE_EQ(imaginary, trueImaginary);
+    }
 };
 
 TEST_F(TmsSignalTest, Create)
 {
     SignalPtr signal = Signal(NullContext(), nullptr, "sig");
     auto tmsSignal = TmsServerSignal(signal, this->getServer(), ctx, serverContext);
-
 }
 
 TEST_F(TmsSignalTest, Register)
@@ -128,9 +168,124 @@ TEST_F(TmsSignalTest, AttrPublic)
     // client side change is reflected on client side (public is not transferred):
     clientSignal.setPublic(false);
     ASSERT_FALSE(clientSignal.getPublic());
-    
+
     clientSignal.setPublic(true);
     ASSERT_TRUE(clientSignal.getPublic());
+}
+
+TEST_F(TmsSignalTest, GetLastValueInt64)
+{
+    auto daqServerSignal = Signal(NullContext(), nullptr, "id");
+
+    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
+    auto nodeId = serverSignal.registerOpcUaNode();
+
+    daqServerSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Int64).build());
+
+    auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
+    auto data = static_cast<int64_t*>(dataPacket.getData());
+    data[0] = 0;
+    data[1] = 1;
+    data[2] = 2;
+    data[3] = 3;
+    data[4] = 4;
+
+    daqServerSignal.sendPacket(dataPacket);
+
+    auto clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
+
+    checkLastValueInt64(clientSignal, 4);
+    checkLastValueInt64(daqServerSignal, 4);
+}
+
+TEST_F(TmsSignalTest, GetLastValueRange)
+{
+    auto daqServerSignal = Signal(NullContext(), nullptr, "id");
+
+    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
+    auto nodeId = serverSignal.registerOpcUaNode();
+
+    daqServerSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::RangeInt64).build());
+
+    auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
+    auto data = static_cast<int64_t*>(dataPacket.getData());
+    data[0] = 0;
+    data[1] = 1;
+    data[2] = 2;
+    data[3] = 3;
+    data[4] = 4;
+    data[5] = 5;
+    data[6] = 6;
+    data[7] = 7;
+    data[8] = 8;
+    data[9] = 9;
+
+    daqServerSignal.sendPacket(dataPacket);
+
+    auto clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
+
+    checkLastValueRange(clientSignal, 8, 9);
+    checkLastValueRange(daqServerSignal, 8, 9);
+}
+
+TEST_F(TmsSignalTest, GetLastValueComplexFloat32)
+{
+    auto daqServerSignal = Signal(NullContext(), nullptr, "id");
+
+    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
+    auto nodeId = serverSignal.registerOpcUaNode();
+
+    daqServerSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build());
+
+    auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
+    auto data = static_cast<float*>(dataPacket.getData());
+    data[0] = 0.1f;
+    data[1] = 1.1f;
+    data[2] = 2.1f;
+    data[3] = 3.1f;
+    data[4] = 4.1f;
+    data[5] = 5.1f;
+    data[6] = 6.1f;
+    data[7] = 7.1f;
+    data[8] = 8.1f;
+    data[9] = 9.1f;
+
+    daqServerSignal.sendPacket(dataPacket);
+
+    auto clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
+
+    checkLastValueComplex32(clientSignal, 8.1f, 9.1f);
+    checkLastValueComplex32(daqServerSignal, 8.1f, 9.1f);
+}
+
+TEST_F(TmsSignalTest, GetLastValueComplexFloat64)
+{
+    auto daqServerSignal = Signal(NullContext(), nullptr, "id");
+
+    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
+    auto nodeId = serverSignal.registerOpcUaNode();
+
+    daqServerSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat64).build());
+
+    auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
+    auto data = static_cast<double*>(dataPacket.getData());
+    data[0] = 0.1;
+    data[1] = 1.1;
+    data[2] = 2.1;
+    data[3] = 3.1;
+    data[4] = 4.1;
+    data[5] = 5.1;
+    data[6] = 6.1;
+    data[7] = 7.1;
+    data[8] = 8.1;
+    data[9] = 9.1;
+
+    daqServerSignal.sendPacket(dataPacket);
+
+    auto clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
+
+    checkLastValueComplex64(clientSignal, 8.1, 9.1);
+    checkLastValueComplex64(daqServerSignal, 8.1, 9.1);
 }
 
 TEST_F(TmsSignalTest, AttrDescriptor)
@@ -140,7 +295,7 @@ TEST_F(TmsSignalTest, AttrDescriptor)
     {
         serverMetadata.set("Metadata" + std::to_string(i), "Value " + std::to_string(i));
     }
-    
+
     auto serverDataDescriptor = DataDescriptorBuilder()
                                     .setSampleType(SampleType::Float32)
                                     .setDimensions(List<IDimension>())
@@ -168,7 +323,7 @@ TEST_F(TmsSignalTest, AttrDescriptor)
 
     ASSERT_EQ(clientSignal.getActive(), serverSignal.getActive());
     // TODO: TMS signal should be implemented similar as fb, i.e. it needs to include property object
-    //ASSERT_EQ(clientSignal.getName(), "My signal");
+    // ASSERT_EQ(clientSignal.getName(), "My signal");
     // ASSERT_EQ(clientSignal.getDescription(), "My signal description");
     auto clientDataDescriptor = clientSignal.getDescriptor();
     ASSERT_EQ(clientDataDescriptor.getName(), "Signal Name");
@@ -201,7 +356,6 @@ TEST_F(TmsSignalTest, AttrDescriptor)
     auto v = clientValueList.getItemAt(0);
     ASSERT_EQ(clientValueList.getItemAt(0), 1.0);
 
-    
     auto clientUnit = clientDataDescriptor.getUnit();
     ASSERT_EQ(clientUnit.getQuantity(), "quantity");
     ASSERT_EQ(clientUnit.getName(), "name");
@@ -232,8 +386,7 @@ TEST_F(TmsSignalTest, AttrDomainSignal)
     getServer()->addReference(nodeId, referenceTypeId, domainNodeId);
     SignalPtr clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
 
-    [[maybe_unused]]
-    SignalPtr clientDomainSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, domainNodeId);
+    [[maybe_unused]] SignalPtr clientDomainSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, domainNodeId);
 
     SignalPtr domainSignal;
     EXPECT_NO_THROW(domainSignal = clientSignal.getDomainSignal());
@@ -289,13 +442,13 @@ TEST_F(TmsSignalTest, MethodGetConnections)
     auto serverSignal1 = TmsServerSignal(daqServerSignal1, this->getServer(), ctx, serverContext);
     auto nodeId1 = serverSignal1.registerOpcUaNode();
 
-    SignalPtr clientSignal1 = TmsClientSignal(NullContext(), nullptr, "sig",     clientContext, nodeId1);
+    SignalPtr clientSignal1 = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId1);
     ASSERT_EQ(clientSignal1.getConnections().getCount(), 0u);
 
-    //TODO: Implement more test when related signals actually can be returned
-   //ASSERT_EQ(relatedSignals1.getCount(), 2u);
-    //ASSERT_EQ(relatedSignals2.getCount(), 2u);
-    //ASSERT_EQ(relatedSignals3.getCount(), 2u);
+    // TODO: Implement more test when related signals actually can be returned
+    // ASSERT_EQ(relatedSignals1.getCount(), 2u);
+    // ASSERT_EQ(relatedSignals2.getCount(), 2u);
+    // ASSERT_EQ(relatedSignals3.getCount(), 2u);
 }
 
 TEST_F(TmsSignalTest, ComponentMethods)
@@ -347,7 +500,7 @@ TEST_F(TmsSignalTest, Visible)
     ASSERT_EQ(clientSignal.getVisible(), false);
 
     signal.asPtr<IComponentPrivate>().lockAllAttributes();
-    
+
     ASSERT_EQ(signal.getVisible(), clientSignal.getVisible());
     ASSERT_NO_THROW(clientSignal.setVisible(true));
     ASSERT_EQ(signal.getVisible(), false);
@@ -357,13 +510,13 @@ TEST_F(TmsSignalTest, Visible)
 TEST_F(TmsSignalTest, GetNoValue)
 {
     auto domainDescriptor = DataDescriptorBuilder()
-        .setName("domain stub")
-        .setSampleType(SampleType::UInt64)
-        .setOrigin("2024-01-08T00:02:03+00:00")
-        .setTickResolution(Ratio(1, 1000000))
-        .setRule(LinearDataRule(1000, 0))
-        .setUnit(Unit("s", -1, "seconds", "time"))
-        .build();
+                                .setName("domain stub")
+                                .setSampleType(SampleType::UInt64)
+                                .setOrigin("2024-01-08T00:02:03+00:00")
+                                .setTickResolution(Ratio(1, 1000000))
+                                .setRule(LinearDataRule(1000, 0))
+                                .setUnit(Unit("s", -1, "seconds", "time"))
+                                .build();
     const auto domainSignal = SignalWithDescriptor(NullContext(), domainDescriptor, nullptr, "domainSig");
 
     auto dataDescriptor = DataDescriptorBuilder().setName("stub").setSampleType(SampleType::Float64).build();
@@ -384,7 +537,7 @@ static void sendValueToSignal(const SignalConfigPtr& signal, const T& value)
         return;
 
     DataPacketPtr packet;
-    
+
     if (signal.getDomainSignal().assigned())
     {
         auto domainPacket = DataPacket(signal.getDomainSignal().getDescriptor(), 1);
@@ -397,19 +550,19 @@ static void sendValueToSignal(const SignalConfigPtr& signal, const T& value)
 
     auto dst = static_cast<T*>(packet.getData());
     *dst = value;
-    signal.sendPacket(packet);   
-} 
+    signal.sendPacket(packet);
+}
 
 TEST_F(TmsSignalTest, GetValue)
 {
     auto domainDescriptor = DataDescriptorBuilder()
-        .setName("domain stub")
-        .setSampleType(SampleType::UInt64)
-        .setOrigin("2024-01-08T00:02:03+00:00")
-        .setTickResolution(Ratio(1, 1000000))
-        .setRule(LinearDataRule(1000, 0))
-        .setUnit(Unit("s", -1, "seconds", "time"))
-        .build();
+                                .setName("domain stub")
+                                .setSampleType(SampleType::UInt64)
+                                .setOrigin("2024-01-08T00:02:03+00:00")
+                                .setTickResolution(Ratio(1, 1000000))
+                                .setRule(LinearDataRule(1000, 0))
+                                .setUnit(Unit("s", -1, "seconds", "time"))
+                                .build();
     const auto domainSignal = SignalWithDescriptor(NullContext(), domainDescriptor, nullptr, "domainSig");
 
     auto dataDescriptor = DataDescriptorBuilder().setName("stub").setSampleType(SampleType::Float64).build();

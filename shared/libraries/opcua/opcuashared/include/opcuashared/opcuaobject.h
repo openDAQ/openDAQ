@@ -40,11 +40,11 @@ inline constexpr const UA_DataType* GetUaDataType()
         constexpr static const UA_DataType* DataType = &UA_TYPES[TYPE_INDEX]; \
     };
 
-#define ADD_CUSTOM_TYPE_MAPPING(TYPE, DATA_TYPE)                              \
-    template <>                                                               \
-    struct TypeToUaDataType<TYPE>                                             \
-    {                                                                         \
-        constexpr static const UA_DataType* DataType = DATA_TYPE;             \
+#define ADD_CUSTOM_TYPE_MAPPING(TYPE, DATA_TYPE)                  \
+    template <>                                                   \
+    struct TypeToUaDataType<TYPE>                                 \
+    {                                                             \
+        constexpr static const UA_DataType* DataType = DATA_TYPE; \
     };
 
 #define ADD_STANDARD_TYPE_ALIAS_MAPPING(MAPPING_NAME, TYPE_INDEX)             \
@@ -204,7 +204,6 @@ UATYPE* OpcUaObject<UATYPE>::get() noexcept
     return &this->value;
 }
 
-
 template <typename UATYPE>
 const UATYPE* OpcUaObject<UATYPE>::operator->() const noexcept
 {
@@ -327,6 +326,8 @@ ADD_STANDARD_TYPE_MAPPING(UA_CreateSubscriptionResponse, UA_TYPES_CREATESUBSCRIP
 ADD_STANDARD_TYPE_MAPPING(UA_CallMethodRequest, UA_TYPES_CALLMETHODREQUEST)
 ADD_STANDARD_TYPE_MAPPING(UA_CallMethodResult, UA_TYPES_CALLMETHODRESULT)
 ADD_STANDARD_TYPE_MAPPING(UA_Range, UA_TYPES_RANGE)
+ADD_STANDARD_TYPE_MAPPING(UA_ComplexNumberType, UA_TYPES_COMPLEXNUMBERTYPE)
+ADD_STANDARD_TYPE_MAPPING(UA_DoubleComplexNumberType, UA_TYPES_DOUBLECOMPLEXNUMBERTYPE)
 ADD_STANDARD_TYPE_MAPPING(UA_KeyValuePair, UA_TYPES_KEYVALUEPAIR)
 ADD_STANDARD_TYPE_MAPPING(UA_ExtensionObject, UA_TYPES_EXTENSIONOBJECT)
 ADD_STANDARD_TYPE_MAPPING(UA_RationalNumber, UA_TYPES_RATIONALNUMBER)

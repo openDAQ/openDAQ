@@ -21,6 +21,7 @@
 #include <coretypes/serialized_list.h>
 #include <coretypes/updatable.h>
 #include <coretypes/function.h>
+#include <coretypes/procedure.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -36,6 +37,7 @@ DECLARE_OPENDAQ_INTERFACE(IDeserializer, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC deserialize(IString* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** object) = 0;
     virtual ErrCode INTERFACE_FUNC update(IUpdatable * updatable, IString * serialized) = 0;
+    virtual ErrCode INTERFACE_FUNC deserializeCustom(IProcedure* customDeserialize, IString* serialized) = 0;
 };
 
 /*!

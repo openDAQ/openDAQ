@@ -65,15 +65,17 @@ public:
     ErrCode INTERFACE_FUNC setRemoteGlobalId(IString* remoteGlobalId) override;
     ErrCode INTERFACE_FUNC handleRemoteCoreEvent(IComponent* sender, ICoreEventArgs* args) override;
 
-
-
 protected:
     bool deserializationComplete;
 
     virtual void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args);
+    virtual void remoteUpdate(const SerializedObjectPtr& serialized);
+
 private:
     BaseObjectPtr getValueFromServer(const StringPtr& propName, bool& setValue);
 
+    void updateProperties(const SerializedObjectPtr& serObj);
+    void updatePropertyValues(const SerializedObjectPtr& serObj);
     void propertyValueChanged(const CoreEventArgsPtr& args);
     void propertyObjectUpdateEnd(const CoreEventArgsPtr& args);
     void propertyAdded(const CoreEventArgsPtr& args);
@@ -317,6 +319,79 @@ BaseObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getValueFromServer(const
 }
 
 template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const SerializedObjectPtr& serObj)
+{
+    // Add/remove properties where needed
+
+    const auto keyStr = String("properties");
+    const auto hasKey = serObj.hasKey(keyStr);
+
+    if (!IsTrue(hasKey))
+        return;
+    
+    const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
+    const auto propertyList = serObj.readSerializedList(keyStr);
+    const TypeManagerPtr typeManager = this->context.getTypeManager();
+    std::unordered_set<std::string> serializedProps{};
+
+    for (SizeT i = 0; i < propertyList.getCount(); i++)
+    {
+        const PropertyPtr prop = propertyList.readObject(typeManager);
+
+        const auto propName = prop.getName();
+        serializedProps.insert(propName);
+
+        // TODO: Override addProperty to custom handle nested objects
+        if (!thisPtr.hasProperty(propName))
+            thisPtr.addProperty(prop);
+    }
+
+    for (const auto& prop : thisPtr.getAllProperties())
+    {
+        const auto propName = prop.getName();
+        if (!serializedProps.count(propName))
+            Impl::removeProperty(propName);
+    }
+}
+
+template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const SerializedObjectPtr& serObj)
+{
+    const auto hasKeyStr = String("propValues");
+    if (!serObj.hasKey(hasKeyStr))
+        return;
+    
+    const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
+    const TypeManagerPtr typeManager = this->context.getTypeManager();
+    const auto propValues = serObj.readSerializedObject("propValues");
+    const auto protectedPropObjPtr = thisPtr.asPtr<IPropertyObjectProtected>();
+
+    for (const auto& prop : thisPtr.getAllProperties())
+    {
+        const auto propName = prop.getName();
+
+        const auto propInternal = prop.asPtrOrNull<IPropertyInternal>(true);
+        if (propInternal.assigned())
+        {
+            if (propInternal.getReferencedPropertyUnresolved().assigned())
+                continue;
+            const auto valueTypeUnresolved = propInternal.getValueTypeUnresolved();
+            if (valueTypeUnresolved == ctFunc || valueTypeUnresolved == ctProc || valueTypeUnresolved == ctObject)
+                continue;
+        }
+
+        if (!propValues.hasKey(propName))
+        {
+            protectedPropObjPtr.clearProtectedPropertyValue(propName);
+            continue;
+        }
+        
+        const auto propValue = propValues.readObject(propName, typeManager);
+        protectedPropObjPtr.setProtectedPropertyValue(propName, propValue);
+    }
+}
+
+template <class Impl>
 void ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
 {
     switch (static_cast<CoreEventId>(args.getEventId()))
@@ -336,6 +411,13 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreObjectInternal(co
         default:
             break;
     }
+}
+
+template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(const SerializedObjectPtr& serialized)
+{
+    updateProperties(serialized);
+    updatePropertyValues(serialized);
 }
 
 template <class Impl>

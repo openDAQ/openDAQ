@@ -14,7 +14,7 @@ ClientSessionHandler::ClientSessionHandler(const ContextPtr& daqContext,
                                            SessionPtr session,
                                            OnSignalCallback signalReceivedHandler,
                                            OnPacketReceivedCallback packetReceivedHandler,
-                                           OnProtocolInitDoneCallback protocolInitDoneHandler,
+                                           OnStreamingProtocolInitDoneCallback protocolInitDoneHandler,
                                            OnSubscriptionAckCallback subscriptionAckHandler,
                                            OnSessionErrorCallback errorHandler)
     : BaseSessionHandler(daqContext, session, ioContext, errorHandler, "NativeProtocolClientSessionHandler")

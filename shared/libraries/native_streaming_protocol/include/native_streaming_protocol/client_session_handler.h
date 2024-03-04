@@ -32,7 +32,7 @@ public:
                          SessionPtr session,
                          OnSignalCallback signalReceivedHandler,
                          OnPacketReceivedCallback packetReceivedHandler,
-                         OnProtocolInitDoneCallback protocolInitDoneHandler,
+                         OnStreamingProtocolInitDoneCallback protocolInitDoneHandler,
                          OnSubscriptionAckCallback subscriptionAckHandler,
                          native_streaming::OnSessionErrorCallback errorHandler);
 
@@ -55,7 +55,7 @@ private:
 
     OnSignalCallback signalReceivedHandler;
     OnPacketReceivedCallback packetReceivedHandler;
-    OnProtocolInitDoneCallback protocolInitDoneHandler;
+    OnStreamingProtocolInitDoneCallback protocolInitDoneHandler;
     OnSubscriptionAckCallback subscriptionAckHandler;
 
     packet_streaming::PacketStreamingClient packetStreamingClient;

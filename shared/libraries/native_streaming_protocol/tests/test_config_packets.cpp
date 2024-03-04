@@ -48,15 +48,15 @@ private:
 class TestConfigProtocolInstance
 {
 public:
-    TestConfigProtocolInstance(ConfigProtocolPacketCb sendPacketCb)
+    TestConfigProtocolInstance(SendConfigProtocolPacketCb sendPacketCb)
         : promise(std::promise< void >())
         , future(promise.get_future())
         , sendPacketCb(sendPacketCb)
     {};
 
-    void receivePacket(const PacketBuffer& packetBuffer)
+    void receivePacket(PacketBuffer&& packetBuffer)
     {
-        receivedPackets.push_back(PacketBuffer(packetBuffer.getBuffer(), true));
+        receivedPackets.push_back(std::move(packetBuffer));
         if (receivedPackets.size() == ConfigProtocolPacketGenerator::PacketToGenerate)
             promise.set_value();
     };
@@ -85,14 +85,14 @@ public:
 
     std::promise< void > promise;
     std::future< void > future;
-    ConfigProtocolPacketCb sendPacketCb;
+    SendConfigProtocolPacketCb sendPacketCb;
 };
 
 class ConfigProtocolAttributes : public ClientAttributesBase
 {
 public:
     std::shared_ptr<TestConfigProtocolInstance> configProtocolHandler;
-    ConfigProtocolPacketCb configProtocolPacketHandler;
+    ProcessConfigProtocolPacketCb configProtocolPacketHandler;
 
     void setUp()
     {
@@ -112,13 +112,13 @@ public:
     {
         ProtocolTestBase::SetUp();
         setUpConfigProtocolServerCb =
-            [this](ConfigProtocolPacketCb sendPacketCb)
+            [this](SendConfigProtocolPacketCb sendPacketCb)
         {
             auto configProtocolHandler = std::make_shared<TestConfigProtocolInstance>(sendPacketCb);
-            ConfigProtocolPacketCb receivePacketCb =
-                [configProtocolHandler](const PacketBuffer& packetBuffer)
+            ProcessConfigProtocolPacketCb receivePacketCb =
+                [configProtocolHandler](PacketBuffer&& packetBuffer)
             {
-                configProtocolHandler->receivePacket(packetBuffer);
+                configProtocolHandler->receivePacket(std::move(packetBuffer));
             };
             configProtocolHandlers.push_back(configProtocolHandler);
             return receivePacketCb;
@@ -160,6 +160,7 @@ public:
         clientHandler->setPacketHandler([](const StringPtr&, const PacketPtr&){});
         clientHandler->setSignalSubscriptionAckCallback([](const StringPtr&, bool){});
         clientHandler->setReconnectionStatusChangedCb([](ClientReconnectionStatus){});
+        clientHandler->setStreamingInitDoneCb([](){});
 
         client.configProtocolHandler = std::make_shared<TestConfigProtocolInstance>(
             [clientHandler](const PacketBuffer& packetBuffer)
@@ -167,9 +168,9 @@ public:
                 clientHandler->sendConfigRequest(packetBuffer);
             }
         );
-        client.configProtocolPacketHandler = [&client](const PacketBuffer& packetBuffer)
+        client.configProtocolPacketHandler = [&client](PacketBuffer&& packetBuffer)
         {
-            (client.configProtocolHandler)->receivePacket(packetBuffer);
+            (client.configProtocolHandler)->receivePacket(std::move(packetBuffer));
         };
         clientHandler->setConfigPacketHandler(client.configProtocolPacketHandler);
 

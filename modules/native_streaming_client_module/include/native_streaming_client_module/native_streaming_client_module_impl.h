@@ -18,6 +18,9 @@
 #include <native_streaming_client_module/common.h>
 #include <opendaq/module_impl.h>
 #include <daq_discovery/daq_discovery_client.h>
+#include <native_streaming_protocol/native_streaming_client_handler.h>
+
+#include <boost/asio/io_context.hpp>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -25,6 +28,7 @@ class NativeStreamingClientModule final : public Module
 {
 public:
     explicit NativeStreamingClientModule(ContextPtr context);
+    ~NativeStreamingClientModule() override;
 
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
@@ -43,13 +47,21 @@ private:
     static StringPtr getPort(const StringPtr& url);
     static StringPtr getPath(const StringPtr& url);
     static bool validateConnectionString(const StringPtr& connectionString);
-    static DevicePtr createNativeDevice(const ContextPtr& context,
-                                        const ComponentPtr& parent,
-                                        const StringPtr& connectionString,
-                                        const PropertyObjectPtr& config,
-                                        const StringPtr& host,
-                                        const StringPtr& port,
-                                        const StringPtr& path);
+
+    std::shared_ptr<boost::asio::io_context> addStreamingProcessingContext(const StringPtr& connectionString);
+    StreamingPtr createNativeStreaming(const StringPtr& connectionString,
+                                       const StringPtr& host,
+                                       const StringPtr& port,
+                                       const StringPtr& path,
+                                       opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler);
+
+    DevicePtr createNativeDevice(const ContextPtr& context,
+                                 const ComponentPtr& parent,
+                                 const StringPtr& connectionString,
+                                 const PropertyObjectPtr& config,
+                                 const StringPtr& host,
+                                 const StringPtr& port,
+                                 const StringPtr& path);
     PropertyObjectPtr createDeviceDefaultConfig();
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
     PropertyObjectPtr createTransportLayerDefaultConfig();
@@ -57,8 +69,12 @@ private:
     bool validateTransportLayerConfig(const PropertyObjectPtr& config);
 
     std::mutex sync;
-    size_t deviceIndex;
+    size_t pseudoDeviceIndex;
     discovery::DiscoveryClient discoveryClient;
+
+    using ProcessingContext = std::tuple<StringPtr, std::thread, std::shared_ptr<boost::asio::io_context>>;
+    std::vector<ProcessingContext> configurationProcessingContextPool;
+    std::vector<ProcessingContext> streamingProcessingContextPool;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

@@ -45,7 +45,7 @@ using OnSignalSubscriptionCallback = std::function<bool(const SignalNumericIdTyp
                                                         bool subscribed,
                                                         SessionPtr session)>;
 
-using OnProtocolInitDoneCallback = std::function<void()>;
+using OnStreamingProtocolInitDoneCallback = std::function<void()>;
 
 using OnSubscriptionAckCallback = std::function<void(const SignalNumericIdType& signalNumericId,
                                                      bool subscribed)>;
@@ -53,7 +53,8 @@ using OnSubscriptionAckCallback = std::function<void(const SignalNumericIdType& 
 using OnPacketReceivedCallback = std::function<void(const SignalNumericIdType& signalNumericId,
                                                     const PacketPtr& packet)>;
 
-using ConfigProtocolPacketCb = std::function<void(const config_protocol::PacketBuffer& packetBuffer)>;
+using SendConfigProtocolPacketCb = std::function<void(const config_protocol::PacketBuffer& packetBuffer)>;
+using ProcessConfigProtocolPacketCb = std::function<void(config_protocol::PacketBuffer&& packetBuffer)>;
 
 using OnTrasportLayerPropertiesCallback = std::function<void(const PropertyObjectPtr& propertyObject)>;
 

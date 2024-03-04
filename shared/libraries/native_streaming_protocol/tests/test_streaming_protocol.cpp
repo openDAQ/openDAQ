@@ -146,9 +146,9 @@ public:
             signalUnsubscribedPromise.set_value(signal);
         };
 
-        setUpConfigProtocolServerCb = [](ConfigProtocolPacketCb sendPacketCb)
+        setUpConfigProtocolServerCb = [](SendConfigProtocolPacketCb sendPacketCb)
         {
-            return [](const config_protocol::PacketBuffer& packetBuffer) {};
+            return [](config_protocol::PacketBuffer&& packetBuffer) {};
         };
 
         clientsCount = std::get<0>(GetParam());
@@ -188,6 +188,7 @@ public:
         clientHandler->setPacketHandler(client.packetHandler);
         clientHandler->setSignalSubscriptionAckCallback(client.signalSubscriptionAckHandler);
         clientHandler->setReconnectionStatusChangedCb(client.reconnectionStatusChangedHandler);
+        clientHandler->setStreamingInitDoneCb([](){});
 
         return clientHandler;
     }

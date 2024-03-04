@@ -40,7 +40,7 @@ public:
     const SessionPtr getSession() const;
     void sendConfigurationPacket(const config_protocol::PacketBuffer& packet);
 
-    void setConfigPacketReceivedHandler(const ConfigProtocolPacketCb& configPacketReceivedHandler);
+    void setConfigPacketReceivedHandler(const ProcessConfigProtocolPacketCb& configPacketReceivedHandler);
     void startConnectionActivityMonitoring(Int period, Int timeout);
 
 protected:
@@ -68,7 +68,7 @@ protected:
     static std::string getStringFromData(const void *source, size_t stringSize, size_t sourceOffset, size_t sourceSize);
 
     SessionPtr session;
-    ConfigProtocolPacketCb configPacketReceivedHandler;
+    ProcessConfigProtocolPacketCb configPacketReceivedHandler;
     native_streaming::OnSessionErrorCallback errorHandler;
     std::shared_ptr<boost::asio::steady_timer> connectionInactivityTimer;
     LoggerComponentPtr loggerComponent;

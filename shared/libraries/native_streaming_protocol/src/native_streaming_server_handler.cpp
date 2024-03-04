@@ -234,13 +234,13 @@ void NativeStreamingServerHandler::setUpTransportLayerPropsCallback(std::shared_
 void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler)
 {
     auto sessionHandlerWeakPtr = std::weak_ptr<ServerSessionHandler>(sessionHandler);
-    ConfigProtocolPacketCb sendConfigPacketCb =
+    SendConfigProtocolPacketCb sendConfigPacketCb =
         [sessionHandlerWeakPtr](const config_protocol::PacketBuffer& packetBuffer)
     {
         if (auto sessionHandlerPtr = sessionHandlerWeakPtr.lock())
             sessionHandlerPtr->sendConfigurationPacket(packetBuffer);
     };
-    ConfigProtocolPacketCb receiveConfigPacketCb = setUpConfigProtocolServerCb(sendConfigPacketCb);
+    ProcessConfigProtocolPacketCb receiveConfigPacketCb = setUpConfigProtocolServerCb(sendConfigPacketCb);
     sessionHandler->setConfigPacketReceivedHandler(receiveConfigPacketCb);
 }
 

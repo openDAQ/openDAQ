@@ -6,17 +6,19 @@
 #include <opendaq/mirrored_signal_private.h>
 #include <opendaq/subscription_event_args_factory.h>
 
+#include <boost/asio/dispatch.hpp>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 using namespace opendaq_native_streaming_protocol;
 
-NativeStreamingImpl::NativeStreamingImpl(
-    const StringPtr& connectionString,
+NativeStreamingImpl::NativeStreamingImpl(const StringPtr& connectionString,
     const StringPtr& host,
     const StringPtr& port,
     const StringPtr& path,
     const ContextPtr& context,
     NativeStreamingClientHandlerPtr clientHandler,
+    std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
     const ProcedurePtr& onDeviceSignalAvailableCallback,
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
     OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb)
@@ -26,25 +28,37 @@ NativeStreamingImpl::NativeStreamingImpl(
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
     , onDeviceReconnectionStatusChangedCb(onReconnectionStatusChangedCb)
     , reconnectionStatus(ClientReconnectionStatus::Connected)
-    , ioContextPtr(std::make_shared<boost::asio::io_context>())
-    , workGuard(ioContextPtr->get_executor())
+    , transportIOContextPtr(std::make_shared<boost::asio::io_context>())
+    , processingIOContextPtr(processingIOContextPtr)
+    , processingStrand(*(this->processingIOContextPtr))
+    , protocolInitFuture(protocolInitPromise.get_future())
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingImpl"))
 {
     prepareClientHandler();
-    startAsyncOperations();
+    startTransportOperations();
 
     if (!this->clientHandler->connect(host.toStdString(), port.toStdString(), path.toStdString()))
     {
-        stopAsyncOperations();
+        stopTransportOperations();
+        this->processingIOContextPtr->stop();
         LOG_E("Failed to connect to native streaming server - host {} port {} path {}", host, port, path);
         throw NotFoundException("Failed to connect to native streaming server, connection string: {}",
+                                connectionString);
+    }
+
+    if (protocolInitFuture.wait_for(clientHandler->getStreamingInitTimeout()) != std::future_status::ready)
+    {
+        stopTransportOperations();
+        this->processingIOContextPtr->stop();
+        throw GeneralErrorException("Streaming protocol intialization timed out; connection string: {}",
                                 connectionString);
     }
 }
 
 NativeStreamingImpl::~NativeStreamingImpl()
 {
-    stopAsyncOperations();
+    stopTransportOperations();
+    processingIOContextPtr->stop();
 }
 
 void NativeStreamingImpl::signalAvailableHandler(const StringPtr& signalStringId,
@@ -89,6 +103,22 @@ void NativeStreamingImpl::addToAvailableSignalsOnReconnection(const StringPtr& s
     else
     {
         throw AlreadyExistsException("Signal with id {} already registered in native streaming", signalStringId);
+    }
+}
+
+void NativeStreamingImpl::subscribeAckHandler(const StringPtr& signalStringId, bool subscribed)
+{
+    if (auto it = streamingSignalsRefs.find(signalStringId); it != streamingSignalsRefs.end())
+    {
+        auto signalRef = it->second;
+        MirroredSignalConfigPtr signal = signalRef.assigned() ? signalRef.getRef() : nullptr;
+        if (signal.assigned())
+        {
+            if (subscribed)
+                signal.template asPtr<daq::IMirroredSignalPrivate>()->subscribeCompleted(connectionString);
+            else
+                signal.template asPtr<daq::IMirroredSignalPrivate>()->unsubscribeCompleted(connectionString);
+        }
     }
 }
 
@@ -185,49 +215,96 @@ void NativeStreamingImpl::reconnectionStatusChangedHandler(opendaq_native_stream
 
 void NativeStreamingImpl::prepareClientHandler()
 {
+    using namespace boost::asio;
+
     OnSignalAvailableCallback signalAvailableCb =
         [this](const StringPtr& signalStringId,
                const StringPtr& serializedSignal)
     {
-        signalAvailableHandler(signalStringId, serializedSignal);
+        dispatch(
+            *processingIOContextPtr,
+            processingStrand.wrap(
+                [this, signalStringId = signalStringId, serializedSignal = serializedSignal]()
+                {
+                    signalAvailableHandler(signalStringId, serializedSignal);
+                }
+            )
+        );
     };
     OnSignalUnavailableCallback signalUnavailableCb =
         [this](const StringPtr& signalStringId)
     {
-        signalUnavailableHandler(signalStringId);
+        dispatch(
+            *processingIOContextPtr,
+            processingStrand.wrap(
+                [this, signalStringId = signalStringId]()
+                {
+                    signalUnavailableHandler(signalStringId);
+                }
+            )
+        );
     };
     OnPacketCallback onPacketCallback =
         [this](const StringPtr& signalStringId, const PacketPtr& packet)
     {
-        onPacket(signalStringId, packet);
+        dispatch(
+            *processingIOContextPtr,
+            processingStrand.wrap(
+                [this, signalStringId = signalStringId, packet = packet]()
+                {
+                    onPacket(signalStringId, packet);
+                }
+            )
+        );
     };
     OnSignalSubscriptionAckCallback onSignalSubscriptionAckCallback =
         [this](const StringPtr& signalStringId, bool subscribed)
     {
-        if (auto it = streamingSignalsRefs.find(signalStringId); it != streamingSignalsRefs.end())
-        {
-            auto signalRef = it->second;
-            MirroredSignalConfigPtr signal = signalRef.assigned() ? signalRef.getRef() : nullptr;
-            if (signal.assigned())
-            {
-                if (subscribed)
-                    signal.template asPtr<daq::IMirroredSignalPrivate>()->subscribeCompleted(connectionString);
-                else
-                    signal.template asPtr<daq::IMirroredSignalPrivate>()->unsubscribeCompleted(connectionString);
-            }
-        }
+        dispatch(
+            *processingIOContextPtr,
+            processingStrand.wrap(
+                [this, signalStringId = signalStringId, subscribed]()
+                {
+                    subscribeAckHandler(signalStringId, subscribed);
+                }
+            )
+        );
     };
     OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb =
         [this](ClientReconnectionStatus status)
     {
-        reconnectionStatusChangedHandler(status);
+        dispatch(
+            *processingIOContextPtr,
+            processingStrand.wrap(
+                [this, status]()
+                {
+                    reconnectionStatusChangedHandler(status);
+                }
+            )
+        );
     };
-    clientHandler->setIoContext(ioContextPtr);
+    OnStreamingProtocolInitDoneCallback onStreamingInitDoneCb =
+        [this]()
+    {
+        // handle protocol initilization ack in processing thread
+        dispatch(
+            *processingIOContextPtr,
+            processingStrand.wrap(
+                [this]()
+                {
+                    if (reconnectionStatus != ClientReconnectionStatus::Reconnecting)
+                        protocolInitPromise.set_value();
+                }
+            )
+        );
+    };
+    clientHandler->setIoContext(transportIOContextPtr);
     clientHandler->setSignalAvailableHandler(signalAvailableCb);
     clientHandler->setSignalUnavailableHandler(signalUnavailableCb);
     clientHandler->setPacketHandler(onPacketCallback);
     clientHandler->setSignalSubscriptionAckCallback(onSignalSubscriptionAckCallback);
     clientHandler->setReconnectionStatusChangedCb(onReconnectionStatusChangedCb);
+    clientHandler->setStreamingInitDoneCb(onStreamingInitDoneCb);
 }
 
 void NativeStreamingImpl::onPacket(const StringPtr& signalStringId, const PacketPtr& packet)
@@ -340,22 +417,36 @@ StringPtr NativeStreamingImpl::onGetSignalStreamingId(const StringPtr& signalRem
         throw NotFoundException("Signal with id {} is not available in Native streaming", signalRemoteId);
 }
 
-void NativeStreamingImpl::startAsyncOperations()
+void NativeStreamingImpl::startTransportOperations()
 {
-    ioThread = std::thread([this]()
-                           {
-                               ioContextPtr->run();
-                               LOG_I("IO thread finished");
-                           });
+    transportIOThread =
+        std::thread([this]()
+                    {
+                        using namespace boost::asio;
+                        executor_work_guard<io_context::executor_type> workGuard(transportIOContextPtr->get_executor());
+                        transportIOContextPtr->run();
+                        LOG_I("IO thread finished");
+                    });
 }
 
-void NativeStreamingImpl::stopAsyncOperations()
+void NativeStreamingImpl::stopTransportOperations()
 {
-    ioContextPtr->stop();
-    if (ioThread.joinable())
+    transportIOContextPtr->stop();
+    if (transportIOThread.get_id() != std::this_thread::get_id())
     {
-        ioThread.join();
-        LOG_I("IO thread joined");
+        if (transportIOThread.joinable())
+        {
+            transportIOThread.join();
+            LOG_I("IO thread joined");
+        }
+        else
+        {
+            LOG_W("Native Streaming - transport IO thread is not joinable");
+        }
+    }
+    else
+    {
+        LOG_C("Native Streaming - transport IO thread cannot join itself");
     }
 }
 

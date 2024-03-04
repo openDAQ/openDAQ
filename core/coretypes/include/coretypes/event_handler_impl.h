@@ -37,14 +37,14 @@ public:
     {
         try
         {
-            auto obj = TSenderPtr::Borrow(sender);
-            auto args = TEventArgsPtr::Borrow(eventArgs);
+            auto obj = sender != nullptr ? TSenderPtr::Borrow(sender) : TSenderPtr{};
+            auto args = eventArgs != nullptr ? TEventArgsPtr::Borrow(eventArgs) : TEventArgsPtr{};
 
             subscription(obj, args);
         }
         catch (const DaqException& e)
         {
-            return e.getErrCode();
+            return errorFromException(e);
         }
         catch (const std::exception&)
         {

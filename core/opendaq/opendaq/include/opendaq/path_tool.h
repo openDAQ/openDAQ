@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-Bool isStructDescriptor() const
-{
-    if (this->object == nullptr)
-        throw InvalidParameterException();
+#pragma once
 
-	ListPtr<IDataDescriptor> members;
-    auto errCode = this->object->getStructFields(&members);
-    checkErrorInfo(errCode);
-	
-	return members.assigned() && members.getCount() > 0;
-}
+#include <string>
+
+namespace PathTool
+{
+    std::string GetExecutableDirectory();
+};

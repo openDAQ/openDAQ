@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
@@ -783,7 +784,19 @@ namespace RTGen.Cpp.Parser {
                 TypeName argType = GetTypeNameFromFactoryContext(args[i].macroArgValue().type());
                 string argName = args[i + 1].GetText();
 
-                factoryArgs.Add(new Argument(argType, argName));
+                Attributes.Next.Method.Arguments.TryGet(argName, out IArgumentInfo argInfo);
+
+                IArgument arg = new Argument(
+                    argType,
+                    argName
+                );
+
+                if (argInfo?.ElementTypes != null)
+                {
+                    arg.Type.GenericArguments = argInfo.ElementTypes;
+                }
+
+                factoryArgs.Add(arg);
             }
 
             return factoryArgs;

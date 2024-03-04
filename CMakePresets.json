@@ -115,6 +115,7 @@
                 "OPENDAQ_ENABLE_TESTS": false,
                 "OPENDAQ_ALWAYS_FETCH_BOOST": false,
                 "OPENDAQ_GENERATE_PYTHON_BINDINGS": false,
+                "OPENDAQ_GENERATE_CSHARP_BINDINGS": false,
                 "DAQMODULES_REF_DEVICE_MODULE": true,
                 "DAQMODULES_REF_FB_MODULE": true,
                 "DAQMODULES_AUDIO_DEVICE_MODULE": false,
@@ -132,6 +133,7 @@
             "cacheVariables": {
                 "OPENDAQ_ENABLE_TESTS": false,
                 "OPENDAQ_GENERATE_PYTHON_BINDINGS": true,
+                "OPENDAQ_GENERATE_CSHARP_BINDINGS": true,
                 "DAQMODULES_REF_DEVICE_MODULE": true,
                 "DAQMODULES_REF_FB_MODULE": true,
                 "DAQMODULES_AUDIO_DEVICE_MODULE": true,
@@ -153,6 +155,7 @@
                 "OPENDAQ_DEBUG_WARNINGS_AS_ERRORS": true,
                 "OPENDAQ_ALWAYS_FETCH_BOOST": false,
                 "OPENDAQ_GENERATE_PYTHON_BINDINGS": true,
+                "OPENDAQ_GENERATE_CSHARP_BINDINGS": true,
                 "APP_ENABLE_AUDIO_APP": true,
                 "APP_ENABLE_EXAMPLE_APPS": true,
                 "DAQSIMULATOR_ENABLE_SIMULATOR_APP": true

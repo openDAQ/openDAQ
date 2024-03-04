@@ -6,6 +6,7 @@
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/tags_private_ptr.h>
+#include <coreobjects/property_object_class_factory.h>
 
 using FunctionBlockTest = testing::Test;
 
@@ -79,15 +80,15 @@ TEST_F(FunctionBlockTest, HasItem)
 class MockFbImpl final : public daq::FunctionBlock
 {
 public:
-    MockFbImpl(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId, bool nested)
-        : daq::FunctionBlock(daq::FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId)
+    MockFbImpl(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId, const daq::StringPtr& className, bool nested)
+        : daq::FunctionBlock(daq::FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId, className)
     {
         createAndAddSignal("sig1");
         createAndAddInputPort("ip1", daq::PacketReadyNotification::None);
         if (!nested)
         {
             const auto nestedFb =
-                daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "nestedFb", true);
+                daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "nestedFb", className, true);
             addNestedFunctionBlock(nestedFb);
         }
     }
@@ -95,7 +96,7 @@ public:
 
 TEST_F(FunctionBlockTest, SerializeAndDeserialize)
 {
-    const auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(daq::NullContext(), nullptr, "fb", false);
+    const auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(daq::NullContext(), nullptr, "fb", nullptr, false);
     fb.setName("fb_name");
     fb.setDescription("fb_desc");
     fb.getTags().asPtr<daq::ITagsPrivate>().add("fld_tag");
@@ -123,4 +124,66 @@ TEST_F(FunctionBlockTest, SerializeAndDeserialize)
     const auto str2 = serializer2.getOutput();
 
     ASSERT_EQ(str1, str2);
+}
+
+TEST_F(FunctionBlockTest, SerializeAndDeserializeWithClassName)
+{
+    const auto ctx = daq::NullContext();
+
+    const auto fbClass =
+        daq::PropertyObjectClassBuilder("FBClass").addProperty(daq::StringPropertyBuilder("StringProp", "-").build()).build();
+
+    ctx.getTypeManager().addType(fbClass);
+
+    const auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(ctx, nullptr, "fb", "FBClass", false);
+    fb.setName("fb_name");
+    fb.setDescription("fb_desc");
+    fb.getTags().asPtr<daq::ITagsPrivate>().add("fld_tag");
+    fb.setPropertyValue("StringProp", "Value");
+
+    const auto serializer = daq::JsonSerializer(daq::True);
+    fb.serialize(serializer);
+    const auto str1 = serializer.getOutput();
+
+    const auto deserializer = daq::JsonDeserializer();
+
+    const auto deserializeContext = daq::ComponentDeserializeContext(ctx, nullptr, nullptr, "fb");
+
+    const daq::FunctionBlockPtr newFb = deserializer.deserialize(str1, deserializeContext, nullptr);
+
+    ASSERT_EQ(newFb.getName(), fb.getName());
+    ASSERT_EQ(newFb.getDescription(), fb.getDescription());
+    ASSERT_EQ(newFb.getTags(), fb.getTags());
+
+    ASSERT_EQ(newFb.getSignals().getElementInterfaceId(), daq::ISignal::Id);
+    ASSERT_EQ(newFb.getInputPorts().getElementInterfaceId(), daq::IInputPort::Id);
+    ASSERT_EQ(newFb.getFunctionBlocks().getElementInterfaceId(), daq::IFunctionBlock::Id);
+
+    const auto serializer2 = daq::JsonSerializer(daq::True);
+    newFb.serialize(serializer2);
+    const auto str2 = serializer2.getOutput();
+
+    ASSERT_EQ(str1, str2);
+}
+
+TEST_F(FunctionBlockTest, BeginUpdateEndUpdate)
+{
+    const auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(daq::NullContext(), nullptr, "fb", nullptr, false);
+    fb.addProperty(daq::StringPropertyBuilder("FbProp", "-").build());
+
+    const auto sig = fb.getSignals()[0];
+    sig.addProperty(daq::StringPropertyBuilder("SigProp", "-").build());
+
+    fb.beginUpdate();
+
+    fb.setPropertyValue("FbProp", "s");
+    ASSERT_EQ(fb.getPropertyValue("FbProp"), "-");
+
+    sig.setPropertyValue("SigProp", "cs");
+    ASSERT_EQ(sig.getPropertyValue("SigProp"), "-");
+
+    fb.endUpdate();
+
+    ASSERT_EQ(fb.getPropertyValue("FbProp"), "s");
+    ASSERT_EQ(sig.getPropertyValue("SigProp"), "cs");
 }

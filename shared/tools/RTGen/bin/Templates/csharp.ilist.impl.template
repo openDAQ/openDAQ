@@ -1,0 +1,138 @@
+﻿
+    #region IListObject<$CSGenericClassParameters$> implementation
+
+    /// <inheritdoc/>
+    bool IListObject<$CSGenericClassParameters$>.IsDisposed()
+    {
+        return this.IsDisposed;
+    }
+
+    #endregion IListObject<$CSGenericClassParameters$> implementation
+
+    #region IList<$CSGenericClassParameters$> implementation
+
+    /// <inheritdoc/>
+    $CSGenericClassParameters$ IList<$CSGenericClassParameters$>.this[int index]
+    {
+        get => this.GetItemAt((nuint)index);
+        set => this.SetItemAt((nuint)index, value);
+    }
+
+    /// <inheritdoc/>
+    int IList<$CSGenericClassParameters$>.IndexOf($CSGenericClassParameters$ item)
+    {
+        int index = -1;
+
+        // iterate through all elements
+        using var iterator = this.CreateStartIterator();
+
+        while (iterator.MoveNext())
+        {
+            index++;
+
+            // return the index when 'item' found
+            using $CSGenericClassParameters$ current = iterator.Current;
+            if (current.Equals(item))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <inheritdoc/>
+    void IList<$CSGenericClassParameters$>.Insert(int index, $CSGenericClassParameters$ item)
+    {
+        this.InsertAt((nuint)index, item);
+    }
+
+    /// <inheritdoc/>
+    void IList<$CSGenericClassParameters$>.RemoveAt(int index)
+    {
+        this.DeleteAt((nuint)index); //delete not remove (deleted when reference count goes to 0)
+    }
+
+    #endregion IList<$CSGenericClassParameters$> implementation
+
+    #region ICollection<$CSGenericClassParameters$> implementation
+
+    /// <inheritdoc/>
+    int ICollection<$CSGenericClassParameters$>.Count => (int)this.GetCount();
+
+    /// <inheritdoc/>
+    bool ICollection<$CSGenericClassParameters$>.IsReadOnly => false;
+
+    /// <inheritdoc/>
+    void ICollection<$CSGenericClassParameters$>.Add($CSGenericClassParameters$ item)
+    {
+        this.PushBack(item);
+    }
+
+    /// <inheritdoc/>
+    void ICollection<$CSGenericClassParameters$>.Clear()
+    {
+        unsafe //use native method pointer
+        {
+            //call native method
+            ErrorCode errorCode = (ErrorCode)_rawListObject.Clear(base.NativePointer);
+
+            if (Result.Failed(errorCode))
+            {
+                throw new OpenDaqException(errorCode);
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    bool ICollection<$CSGenericClassParameters$>.Contains($CSGenericClassParameters$ item)
+    {
+        return ((IList<$CSGenericClassParameters$>)this).IndexOf(item) >= 0;
+    }
+
+    /// <inheritdoc/>
+    void ICollection<$CSGenericClassParameters$>.CopyTo($CSGenericClassParameters$[] array, int arrayIndex)
+    {
+        //no checks to be made since .NET will throw the appropriate exceptions
+        foreach ($CSGenericClassParameters$ item in this)
+        {
+            array[arrayIndex++] = item;
+        }
+    }
+
+    /// <inheritdoc/>
+    bool ICollection<$CSGenericClassParameters$>.Remove($CSGenericClassParameters$ item)
+    {
+        int index = ((IList<$CSGenericClassParameters$>)this).IndexOf(item);
+
+        if (index < 0)
+        {
+            return false;
+        }
+
+        ((IList<$CSGenericClassParameters$>)this).RemoveAt(index);
+
+        return true;
+    }
+
+    #endregion ICollection<$CSGenericClassParameters$> implementation
+
+    #region IEnumerable<$CSGenericClassParameters$> implementation
+
+    /// <inheritdoc/>
+    IEnumerator<$CSGenericClassParameters$> IEnumerable<$CSGenericClassParameters$>.GetEnumerator()
+    {
+        return this.CreateStartIterator();
+    }
+
+    #endregion IEnumerable<$CSGenericClassParameters$> implementation
+
+    #region IEnumerable implementation
+
+    /// <inheritdoc/>
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return ((IEnumerable<$CSGenericClassParameters$>)this).GetEnumerator();
+    }
+
+    #endregion IEnumerable implementation

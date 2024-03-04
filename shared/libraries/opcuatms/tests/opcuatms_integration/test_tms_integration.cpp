@@ -7,6 +7,7 @@
 #include <opendaq/search_filter_factory.h>
 #include <chrono>
 #include <thread>
+#include <testutils/test_comparators.h>
 
 using namespace daq;
 using namespace daq::opcua;
@@ -128,7 +129,8 @@ TEST_F(TmsIntegrationTest, GetSignals)
 
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = clientDevice.getSignals(search::Recursive(search::Visible())));
-    ASSERT_EQ(signals.getCount(), device.getSignals(search::Recursive(search::Visible())).getCount());
+    // one private signal in MockFunctionBlockImpl. and one in MockPhysicalDeviceImpl
+    ASSERT_EQ(signals.getCount(), device.getSignals(search::Recursive(search::Visible())).getCount() - 2);
 
     ASSERT_NO_THROW(signals = clientDevice.getSignals());
     ASSERT_EQ(signals.getCount(), 0u);
@@ -159,7 +161,7 @@ TEST_F(TmsIntegrationTest, InputsOutputs)
     ASSERT_EQ(device1.getChannels().getCount(), 0u);
     auto device1IoFolder = device1.getInputsOutputsFolder();     // io
     ASSERT_TRUE(device1IoFolder.assigned());
-    ASSERT_EQ(device1IoFolder.getItems().getCount(), 0);
+    ASSERT_EQ(device1IoFolder.getItems().getCount(), 0u);
 
 
     auto device2 = devices.getItemAt(1);                   // device 2: 4 channels
@@ -168,7 +170,7 @@ TEST_F(TmsIntegrationTest, InputsOutputs)
     auto device2IoFolder = device2.getInputsOutputsFolder();    // io: 1 channnel, 2 folders
     ASSERT_TRUE(device2IoFolder.assigned());
     auto ioItems = device2IoFolder.getItems();
-    ASSERT_EQ(ioItems.getCount(), 3);
+    ASSERT_EQ(ioItems.getCount(), 3u);
     ASSERT_EQ(ioItems[0].getName(), "mockch1");                             // io/mockch1
     ASSERT_TRUE(ioItems[0].asPtrOrNull<IFolder>().assigned());
     ASSERT_TRUE(ioItems[0].asPtrOrNull<IChannel>().assigned());
@@ -178,7 +180,7 @@ TEST_F(TmsIntegrationTest, InputsOutputs)
     ASSERT_FALSE(ioItems[1].asPtrOrNull<IChannel>().assigned());
 
     auto mockFolderAItems = ioItems[1].asPtr<IFolder>().getItems();
-    ASSERT_EQ(mockFolderAItems.getCount(), 1);
+    ASSERT_EQ(mockFolderAItems.getCount(), 1u);
 
     ASSERT_EQ(mockFolderAItems[0].getName(), "mockchA1");                   // io/mockfolderA/mockchA1
     ASSERT_TRUE(mockFolderAItems[0].asPtrOrNull<IFolder>().assigned());
@@ -190,7 +192,7 @@ TEST_F(TmsIntegrationTest, InputsOutputs)
     ASSERT_FALSE(ioItems[2].asPtrOrNull<IChannel>().assigned());
 
     auto mockFolderBItems = ioItems[2].asPtr<IFolder>().getItems();
-    ASSERT_EQ(mockFolderBItems.getCount(), 2);
+    ASSERT_EQ(mockFolderBItems.getCount(), 2u);
 
     ASSERT_EQ(mockFolderBItems[0].getName(), "mockchB1");                   // io/mockfolderB/mockchB1
     ASSERT_TRUE(mockFolderBItems[0].asPtrOrNull<IFolder>().assigned());
@@ -207,11 +209,11 @@ TEST_F(TmsIntegrationTest, CustomComponents)
     auto devices = instance.getDevices();
     ASSERT_EQ(devices.getCount(), 2u);
 
-    auto device2 = devices.getItemAt(1);
+    auto device2 = devices.getItemAt(1u);
     ASSERT_EQ(device2.getCustomComponents().getCount(), 2u);
 
     FolderPtr componentA = device2.getCustomComponents()[0];
-    ASSERT_EQ(componentA.getItems().getCount(), 1);
+    ASSERT_EQ(componentA.getItems().getCount(), 1u);
 }
 
 TEST_F(TmsIntegrationTest, GetDomainSignal)
@@ -235,4 +237,168 @@ TEST_F(TmsIntegrationTest, GetDomainSignal)
     SignalPtr domainSignal;
     ASSERT_NO_THROW(domainSignal = byteStepSignal.getDomainSignal());
     ASSERT_TRUE(domainSignal.assigned());
+}
+
+TEST_F(TmsIntegrationTest, GetAvailableFunctionBlockTypes)
+{
+    InstancePtr device = createDevice();
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    auto serverFbTypes = device.getAvailableFunctionBlockTypes();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    auto clientDevice = tmsClient.connect();
+
+    const auto clientFbTypes = clientDevice.getAvailableFunctionBlockTypes();
+
+    ASSERT_EQ(serverFbTypes.getCount(), 1u);
+    ASSERT_EQ(serverFbTypes.getCount(), clientFbTypes.getCount());
+    ASSERT_TRUE(TestComparators::FunctionBlockTypeEquals(serverFbTypes.get("mock_fb_uid"), clientFbTypes.get("mock_fb_uid")));
+}
+
+TEST_F(TmsIntegrationTest, AddFunctionBlock)
+{
+    InstancePtr device = createDevice();
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    auto clientDevice = tmsClient.connect();
+
+    auto fb1 = clientDevice.addFunctionBlock("mock_fb_uid");
+    ASSERT_TRUE(fb1.assigned());
+    ASSERT_EQ("mock_fb_uid_1", fb1.getLocalId());
+
+    auto fb2 = clientDevice.addFunctionBlock("mock_fb_uid");
+    ASSERT_TRUE(fb2.assigned());
+    ASSERT_EQ("mock_fb_uid_2", fb2.getLocalId());
+
+    ASSERT_EQ(3, clientDevice.getFunctionBlocks().getCount());
+}
+
+TEST_F(TmsIntegrationTest, AddFunctionBlockWitchConfig)
+{
+    InstancePtr device = createDevice();
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    auto clientDevice = tmsClient.connect();
+
+    const auto clientFbTypes = clientDevice.getAvailableFunctionBlockTypes();
+    ASSERT_TRUE(clientFbTypes.hasKey("mock_fb_uid"));
+
+    auto config = clientFbTypes.get("mock_fb_uid").createDefaultConfig();
+    config.setPropertyValue("TestConfigString", "Hello Property!");
+
+    auto fb = clientDevice.addFunctionBlock("mock_fb_uid", config);
+
+    ASSERT_EQ(2, clientDevice.getFunctionBlocks().getCount());
+    ASSERT_EQ(fb.getPropertyValue("TestConfigInt"), 0);
+    ASSERT_EQ(fb.getPropertyValue("TestConfigString"), "Hello Property!");
+}
+
+
+TEST_F(TmsIntegrationTest, RemoveFunctionBlock)
+{
+    InstancePtr device = createDevice();
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    auto clientDevice = tmsClient.connect();
+
+    auto fb1 = clientDevice.addFunctionBlock("mock_fb_uid");
+    auto fb2 = clientDevice.addFunctionBlock("mock_fb_uid");
+    ASSERT_EQ(3, clientDevice.getFunctionBlocks().getCount());
+
+    clientDevice.removeFunctionBlock(fb1);
+    ASSERT_EQ(2, clientDevice.getFunctionBlocks().getCount());
+
+    clientDevice.removeFunctionBlock(fb2);
+    ASSERT_EQ(1, clientDevice.getFunctionBlocks().getCount());
+}
+
+TEST_F(TmsIntegrationTest, InputPortConnect)
+{
+    InstancePtr device = createDevice();
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    auto clientDevice = tmsClient.connect();
+
+    auto inputPort = clientDevice.getChannelsRecursive().getItemAt(0).getInputPorts().getItemAt(0);
+    auto signal1 = clientDevice.getSignalsRecursive().getItemAt(0);
+    auto signal2 = clientDevice.getSignalsRecursive().getItemAt(1);
+
+    SignalPtr portSignal = inputPort.getSignal();
+    ASSERT_FALSE(portSignal.assigned());
+
+    ASSERT_NO_THROW(inputPort.disconnect());
+
+    inputPort.connect(signal1);
+    portSignal = inputPort.getSignal();
+    ASSERT_TRUE(portSignal.assigned());
+    ASSERT_EQ(portSignal, signal1);
+
+    inputPort.connect(signal2);
+    portSignal = inputPort.getSignal();
+    ASSERT_TRUE(portSignal.assigned());
+    ASSERT_EQ(portSignal, signal2);
+
+    inputPort.disconnect();
+    portSignal = inputPort.getSignal();
+    ASSERT_FALSE(portSignal.assigned());
+}
+
+TEST_F(TmsIntegrationTest, InputPortMultipleServers)
+{
+    auto StartServerDevice = [&](const InstancePtr& device, uint16_t port)
+    {
+        auto tmsServer = std::make_shared<TmsServer>(device);
+        tmsServer->setOpcUaPort(port);
+        tmsServer->start();
+        return tmsServer;
+    };
+
+    InstancePtr device1 = createDevice();
+    InstancePtr device2 = createDevice();
+    auto server1 = StartServerDevice(device1, 4001);
+    auto server2 = StartServerDevice(device1, 4002);
+    
+    InstancePtr instance = Instance();
+    auto clientDevice1 = instance.addDevice("daq.opcua://127.0.0.1:4001");
+    auto clientDevice2 = instance.addDevice("daq.opcua://127.0.0.1:4002");
+
+    auto inputPort1 = clientDevice1.getChannelsRecursive().getItemAt(0).getInputPorts().getItemAt(0);
+    auto inputPort2 = clientDevice2.getChannelsRecursive().getItemAt(0).getInputPorts().getItemAt(0);
+    auto signal1 = clientDevice1.getSignalsRecursive().getItemAt(0);
+    auto signal2 = clientDevice2.getSignalsRecursive().getItemAt(0);
+    SignalPtr portSignal;
+
+    ASSERT_NO_THROW(inputPort1.connect(signal1));
+    portSignal = inputPort1.getSignal();
+    ASSERT_EQ(portSignal, signal1);
+
+    ASSERT_NO_THROW(inputPort2.connect(signal2));
+    portSignal = inputPort2.getSignal();
+    ASSERT_EQ(portSignal, signal2);
+
+    ASSERT_THROW(inputPort1.connect(signal2), NotFoundException);
+    ASSERT_THROW(inputPort2.connect(signal1), NotFoundException);
+}
+
+TEST_F(TmsIntegrationTest, BeginEndUpdateDevice)
+{
+    InstancePtr device = createDevice();
+    TmsServer tmsServer(device);
+    tmsServer.start();
+
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    auto clientDevice = tmsClient.connect();
+
+    ASSERT_NO_THROW(clientDevice.beginUpdate());
+    ASSERT_NO_THROW(clientDevice.endUpdate());
 }

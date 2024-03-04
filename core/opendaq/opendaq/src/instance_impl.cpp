@@ -33,7 +33,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     auto scheduler = builderPtr.getScheduler();
     auto moduleManager = builderPtr.getModuleManager();
     auto typeManager = TypeManager();
-    auto modules = builderPtr.getOptions().get("modules");
+    auto options = builderPtr.getOptions();
 
     // Configure logger
     if (!logger.assigned()) 
@@ -60,7 +60,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     if (!moduleManager.assigned())
         moduleManager = ModuleManager(builderPtr.getModulePath());
 
-    return Context(scheduler, logger, typeManager, moduleManager, modules);
+    return Context(scheduler, logger, typeManager, moduleManager, options);
 }
 
 InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
@@ -69,6 +69,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     , rootDeviceSet(false)
 {
     const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
+    loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
     
     auto localId = builderPtr.getDefaultRootDeviceLocalId();
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
@@ -80,12 +81,13 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
         const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
         if (devicePrivate.assigned())
             devicePrivate->setAsRoot();
+        LOG_I("Root device set to {}", connectionString)
         rootDeviceSet = true;
     }
     else
         rootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
 
-    loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
+    rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
 }
 
 std::string InstanceImpl::defineLocalId(const std::string& localId)
@@ -271,6 +273,8 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
 {
     OPENDAQ_PARAM_NOT_NULL(connectionString);
 
+    const auto connectionStringPtr = StringPtr::Borrow(connectionString);
+
     if (rootDeviceSet)
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Root device already set.");
 
@@ -283,7 +287,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     if (!servers.empty())
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
-    const auto newRootDevice = detail::createDevice(connectionString, config, nullptr, moduleManager, loggerComponent);
+    const auto newRootDevice = detail::createDevice(connectionStringPtr, config, nullptr, moduleManager, loggerComponent);
 
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;
@@ -291,6 +295,8 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
     if (devicePrivate.assigned())
         devicePrivate->setAsRoot();
+
+    LOG_I("Root device explicitly set to {}", connectionStringPtr.toStdString());
 
     this->rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
     return OPENDAQ_SUCCESS;

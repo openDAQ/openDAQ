@@ -91,6 +91,7 @@ protected:
     void addReadCallback(const opcua::OpcUaNodeId& nodeId, ReadVariantCallback readFunc);
     void addWriteCallback(const opcua::OpcUaNodeId& nodeId, WriteVariantCallback writeFunc);
     void addReference(const opcua::OpcUaNodeId& targetNodeId, const opcua::OpcUaNodeId& referenceTypeId);
+    void deleteReferencesOfType(const opcua::OpcUaNodeId& referenceTypeId);
     void bindReadWriteCallbacks();
     void browseReferences();
     bool hasChildNode(const std::string& nodeName) const;
@@ -145,13 +146,13 @@ protected:
     ContextPtr daqContext;
     uint32_t numberInList;
     TmsServerContextPtr tmsContext;
+    std::unordered_map<std::string, opcua::OpcUaObject<UA_ReferenceDescription>> references;
 
 private:
     void bindCallbacksInternal();
 
     std::unordered_map<opcua::OpcUaNodeId, ReadVariantCallback> readCallbacks;
     std::unordered_map<opcua::OpcUaNodeId, WriteVariantCallback> writeCallbacks;
-    std::unordered_map<std::string, opcua::OpcUaObject<UA_ReferenceDescription>> references;
     std::unordered_map<opcua::OpcUaNodeId, opcua::NodeEventManagerPtr> eventManagers;
 };
 

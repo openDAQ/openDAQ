@@ -30,7 +30,6 @@ public:
 private:
     static StringPtr GetEnvironmentVariableValue(StringPtr variableName, StringPtr defaultValue);
     static StringPtr GetDataFromFile(const StringPtr& filename);
-    static std::string ToLowerCase(const std::string& input);
 
     static BaseObjectPtr HandleNumber(const rapidjson::Value& value);
     static BaseObjectPtr HandlePrimitive(const rapidjson::Value& value);

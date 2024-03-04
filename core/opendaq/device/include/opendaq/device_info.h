@@ -228,6 +228,13 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
      * @param[out] customInfoNames The list of names of custom properties.
      */
     virtual ErrCode INTERFACE_FUNC getCustomInfoPropertyNames(IList** customInfoNames) = 0;
+
+    /*!
+     * @brief Gets the version of the SDK used to build said device. Can be empty if the device does not use
+     * the SDK as its firmware/is implemented at a protocol-level.
+     * @param[out] version The SDK version.
+     */
+    virtual ErrCode INTERFACE_FUNC getSdkVersion(IString** version) = 0;
 };
 /*!@}*/
 

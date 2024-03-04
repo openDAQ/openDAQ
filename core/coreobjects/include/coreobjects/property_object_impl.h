@@ -93,13 +93,14 @@ public:
     virtual ErrCode INTERFACE_FUNC getOnEndUpdate(IEvent** event) override;
 
     // IPropertyObjectInternal
-    ErrCode INTERFACE_FUNC checkForReferences(IProperty* property, Bool* isReferenced) override;
+    virtual ErrCode INTERFACE_FUNC checkForReferences(IProperty* property, Bool* isReferenced) override;
     virtual ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
     virtual ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
-    ErrCode INTERFACE_FUNC getCoreEventTrigger(IProcedure** trigger) override;
-    ErrCode INTERFACE_FUNC setCoreEventTrigger(IProcedure* trigger) override;
-    ErrCode INTERFACE_FUNC clone(IPropertyObject** clonedPropertyObject) override;
-    ErrCode INTERFACE_FUNC setPath(IString* path) override;
+    virtual ErrCode INTERFACE_FUNC getCoreEventTrigger(IProcedure** trigger) override;
+    virtual ErrCode INTERFACE_FUNC setCoreEventTrigger(IProcedure* trigger) override;
+    virtual ErrCode INTERFACE_FUNC clone(IPropertyObject** clonedPropertyObject) override;
+    virtual ErrCode INTERFACE_FUNC setPath(IString* path) override;
+    virtual ErrCode INTERFACE_FUNC isUpdating(Bool* updating) override;
 
     // IUpdatable
     virtual ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
@@ -190,8 +191,11 @@ protected:
                                       const PropertyObjectPtr& propObj,
                                       const SerializedObjectPtr& serialized);
 
-    virtual void updatingValuesWrite(const UpdatingActions& propsAndValues);
-    virtual void applyUpdate();
+    virtual void endApplyUpdate();
+    virtual void beginApplyUpdate();
+    virtual void beginApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
+    virtual void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
+    bool isParentUpdating();
 
     template <class F>
     static PropertyObjectPtr DeserializePropertyObject(
@@ -203,6 +207,14 @@ protected:
     // Does not bind property to object and does not look up reference property
     PropertyPtr getUnboundProperty(const StringPtr& name);
     PropertyPtr getUnboundPropertyOrNull(const StringPtr& name) const;
+
+    virtual void callBeginUpdateOnChildren();
+    virtual void callEndUpdateOnChildren();
+
+    virtual PropertyObjectPtr getPropertyObjectParent();
+
+    // Adds the value to the local list of values (`propValues`)
+    bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value);
 
 private:
 
@@ -226,9 +238,6 @@ private:
     // Parses brackets, if the property is a list
     ErrCode readLocalValue(const StringPtr& name, BaseObjectPtr& value) const;
     PropertyNameInfo getPropertyNameInfo(const StringPtr& name) const;
-
-    // Adds the value to the local list of values (`propValues`)
-    bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value);
 
     // Checks if the value is a container type, or base `IPropertyObject`. Only such values can be set in `setProperty`
     ErrCode checkContainerType(const PropertyPtr& prop, const BaseObjectPtr& value);
@@ -1747,11 +1756,61 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginUpdate(
 
     updateCount++;
 
-    return OPENDAQ_SUCCESS;
+    return daqTry([this] { callBeginUpdateOnChildren(); });
 }
 
 template <typename PropObjInterface, typename... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::applyUpdate()
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callBeginUpdateOnChildren()
+{
+    for (const auto& item : propValues)
+    {
+        const auto value = item.second;
+        if (value.assigned())
+        {
+            const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
+            if (propObj.assigned())
+            {
+                propObj.beginUpdate();
+            }
+        }
+    }
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callEndUpdateOnChildren()
+{
+    for (const auto& item : propValues)
+    {
+        const auto value = item.second;
+        if (value.assigned())
+        {
+            const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
+            if (propObj.assigned())
+            {
+                propObj.endUpdate();
+            }
+        }
+    }
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+PropertyObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyObjectParent()
+{
+    if (owner.assigned())
+        return owner.getRef();
+
+    return nullptr;
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginApplyUpdate()
+{
+    beginApplyProperties(updatingPropsAndValues, isParentUpdating());
+}
+
+
+template <typename PropObjInterface, typename... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate()
 {
     auto ignoredProps = List<IString>();
     for (auto& item : updatingPropsAndValues)
@@ -1790,8 +1849,21 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::applyUpdate()
             updatingPropsAndValues.erase(it);
     }
 
-    updatingValuesWrite(updatingPropsAndValues);
+    endApplyProperties(updatingPropsAndValues, isParentUpdating());
     updatingPropsAndValues.clear();
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isParentUpdating()
+{
+    bool parentUpdating;
+    const auto parent = getPropertyObjectParent();
+    if (parent.assigned())
+        parentUpdating = parent.template asPtr<IPropertyObjectInternal>(true).isUpdating();
+    else
+        parentUpdating = false;
+
+    return parentUpdating;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1800,12 +1872,30 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdate()
     if (updateCount == 0)
         return OPENDAQ_ERR_INVALIDSTATE;
 
-    if (--updateCount == 0)
+    const auto newUpdateCount = --updateCount;
+
+    if (newUpdateCount == 0)
+    {
+        const auto errCode = daqTry(
+            [this]
+            {
+                beginApplyUpdate();
+                return OPENDAQ_SUCCESS;
+            });
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+
+    const auto errCode = daqTry([this] { callEndUpdateOnChildren(); });
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    if (newUpdateCount == 0)
     {
         return daqTry(
             [this]
             {
-                applyUpdate();
+                endApplyUpdate();
                 return OPENDAQ_SUCCESS;
             });
     }
@@ -1992,6 +2082,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPath(IStr
     else
         return OPENDAQ_IGNORED;
 
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isUpdating(Bool* updating)
+{
+    OPENDAQ_PARAM_NOT_NULL(updating);
+
+    *updating = updateCount > 0 ? True : False;
     return OPENDAQ_SUCCESS;
 }
 
@@ -2401,7 +2500,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updatingValuesWrite(const UpdatingActions& propsAndValues)
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating)
 {
     auto list = List<IString>();
     auto dict = Dict<IString, IBaseObject>();
@@ -2413,12 +2512,18 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updatingValuesW
 
     if (endUpdateEvent.hasListeners())
     {
-        auto args = EndUpdateEventArgs(list);
+        auto args = EndUpdateEventArgs(list, parentUpdating);
         endUpdateEvent(objPtr, args);
     }
 
-    if(!coreEventMuted && triggerCoreEvent.assigned())
+    if(!coreEventMuted && triggerCoreEvent.assigned() && dict.getCount() > 0)
         triggerCoreEvent(CoreEventArgsPropertyObjectUpdateEnd(objPtr, dict, path));
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginApplyProperties(const UpdatingActions& /* propsAndValues */,
+                                                                                      bool /* parentUpdating */)
+{
 }
 
 template <class PropObjInterface, class... Interfaces>

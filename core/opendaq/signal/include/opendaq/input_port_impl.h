@@ -71,6 +71,9 @@ public:
     ErrCode INTERFACE_FUNC remove() override;
     ErrCode INTERFACE_FUNC isRemoved(Bool* removed) override;
 
+    // IOwnable
+    ErrCode INTERFACE_FUNC setOwner(IPropertyObject* owner) override;
+
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
@@ -88,6 +91,10 @@ protected:
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
 
+    virtual ConnectionPtr createConnection(const SignalPtr& signal);
+
+    ConnectionPtr getConnectionNoLock();
+
 private:
     Bool requiresSignal;
     BaseObjectPtr customData;
@@ -103,6 +110,8 @@ private:
 
     StringPtr serializedSignalId;
     SignalPtr dummySignal;
+
+    WeakRefPtr<IPropertyObject> owner;
 
     ErrCode canConnectSignal(ISignal* signal) const;
     void disconnectSignalInternal(bool notifyListener, bool notifySignal);
@@ -183,7 +192,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
         if (!accepted)
             return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;
 
-        const auto connection = Connection(this->template thisPtr<InputPortPtr>(), signalPtr, this->context);
+        const auto connection = createConnection(signalPtr);
 
         InputPortNotificationsPtr inputPortListener;
         {
@@ -344,11 +353,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getConnection(IConnection** connect
 
     std::scoped_lock lock(this->sync);
 
-    if (!connectionRef.assigned())
-        *connection = nullptr;
-    else
-        *connection = connectionRef.getRef().detach();
-    return OPENDAQ_SUCCESS;
+    return daqTry([this, &connection] { *connection = getConnectionNoLock().detach(); });
 }
 
 template <class... Interfaces>
@@ -562,6 +567,19 @@ ErrCode GenericInputPortImpl<Interfaces...>::isRemoved(Bool* removed)
 }
 
 template <class... Interfaces>
+ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::setOwner(IPropertyObject* owner)
+{
+    if (this->owner.assigned())
+    {
+        auto ref = this->owner.getRef();
+        if (ref != nullptr && ref != owner)
+            return this->makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
+    }
+    this->owner = owner;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class... Interfaces>
 ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);
@@ -653,6 +671,22 @@ void GenericInputPortImpl<Interfaces...>::deserializeCustomObjectValues(const Se
         dummySignal = Signal(this->context, nullptr, "dummy");
         checkErrorInfo(connect(dummySignal));
     }
+}
+
+template <class ... Interfaces>
+ConnectionPtr GenericInputPortImpl<Interfaces...>::createConnection(const SignalPtr& signal)
+{
+    const auto connection = Connection(this->template thisPtr<InputPortPtr>(), signal, this->context);
+    return connection;
+}
+
+template <class ... Interfaces>
+ConnectionPtr GenericInputPortImpl<Interfaces...>::getConnectionNoLock()
+{
+    if (!connectionRef.assigned())
+        return nullptr;
+
+    return connectionRef.getRef();
 }
 
 template <class... Interfaces>

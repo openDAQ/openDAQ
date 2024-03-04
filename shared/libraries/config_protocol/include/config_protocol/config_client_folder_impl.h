@@ -164,6 +164,8 @@ void ConfigClientBaseFolderImpl<Impl>::handleRemoteCoreObjectInternal(const Comp
         case CoreEventId::AttributeChanged:
         case CoreEventId::TagsChanged:
         case CoreEventId::StatusChanged:
+        case CoreEventId::TypeAdded:
+        case CoreEventId::TypeRemoved:
         default:
             break;
     }
@@ -178,7 +180,10 @@ void ConfigClientBaseFolderImpl<Impl>::componentAdded(const CoreEventArgsPtr& ar
     Bool hasItem{false};
     checkErrorInfo(Impl::hasItem(comp.getLocalId(), &hasItem));
     if (!hasItem)
+    {
+        this->clientComm->connectDomainSignals(comp);
         checkErrorInfo(Impl::addItem(comp));
+    }
 }
 
 template <class Impl>

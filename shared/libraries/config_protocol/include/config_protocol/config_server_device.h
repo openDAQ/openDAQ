@@ -18,6 +18,7 @@
 #include <opendaq/device_ptr.h>
 #include <opendaq/component_holder_ptr.h>
 #include <opendaq/component_holder_factory.h>
+#include <opendaq/search_filter_factory.h>
 
 namespace daq::config_protocol
 {
@@ -28,6 +29,8 @@ public:
     static BaseObjectPtr getAvailableFunctionBlockTypes(const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr addFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr removeFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getInfo(const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getTicksSinceOrigin(const DevicePtr& device, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const DevicePtr& device,
@@ -50,7 +53,27 @@ inline BaseObjectPtr ConfigServerDevice::addFunctionBlock(const DevicePtr& devic
 
 inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params)
 {
+    const auto localId = params.get("LocalId");
+
+    const auto fbs = device.getFunctionBlocks(search::LocalId(localId));
+    if (fbs.getCount() == 0)
+        throw NotFoundException("Function block not found");
+
+    if (fbs.getCount() > 1)
+        throw InvalidStateException("Duplicate function block");
+
+    device.removeFunctionBlock(fbs[0]);
     return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerDevice::getInfo(const DevicePtr& device, const ParamsDictPtr& params)
+{
+    return device.getInfo();
+}
+
+inline BaseObjectPtr ConfigServerDevice::getTicksSinceOrigin(const DevicePtr& device, const ParamsDictPtr& params)
+{
+    return device.getDomain().getTicksSinceOrigin();
 }
 
 }

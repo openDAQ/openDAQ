@@ -136,14 +136,17 @@ MockChannel2Impl::MockChannel2Impl(const ContextPtr& ctx, const ComponentPtr& pa
 
 MockDevice1Impl::MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : Device(ctx, parent, localId)
+    , ticksSinceOrigin(0)
 {
-    createAndAddSignal("sig_device");
+    const auto sig = createAndAddSignal("sig_device");
 
     auto aiIoFolder = this->addIoFolder("ai", ioFolder);
     createAndAddChannel<MockChannel1Impl>(aiIoFolder, "ch");
 
     const auto fb = createWithImplementation<IFunctionBlock, MockFb1Impl>(ctx, this->functionBlocks, "fb");
     addNestedFunctionBlock(fb);
+
+    fb.getInputPorts()[0].connect(sig);
 }
 
 DictPtr<IString, IFunctionBlockType> MockDevice1Impl::onGetAvailableFunctionBlockTypes()
@@ -170,6 +173,39 @@ FunctionBlockPtr MockDevice1Impl::onAddFunctionBlock(const StringPtr& typeId, co
     throw NotFoundException();
 }
 
+void MockDevice1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    removeNestedFunctionBlock(functionBlock);
+}
+
+DeviceInfoPtr MockDevice1Impl::onGetInfo()
+{
+    const auto info = DeviceInfo("mock://dev1", "MockDevice1");
+    info.setManufacturer("Testing");
+    info.freeze();
+    return info;
+}
+
+RatioPtr MockDevice1Impl::onGetResolution()
+{
+    return Ratio(1, 100);
+}
+
+uint64_t MockDevice1Impl::onGetTicksSinceOrigin()
+{
+    return ticksSinceOrigin++;
+}
+
+std::string MockDevice1Impl::onGetOrigin()
+{
+    return "N/A";
+}
+
+UnitPtr MockDevice1Impl::onGetDomainUnit()
+{
+    return Unit("s", -1, "second", "time");
+}
+
 MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : Device(ctx, parent, localId)
 {
@@ -186,6 +222,8 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
 
 	objPtr.addProperty(StructPropertyBuilder("StructProp", defStructValue).build());
     
+    objPtr.addProperty(StringPropertyBuilder("StrProp", "-").build());
+
     const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
     ctx.getTypeManager().addType(statusType);
 

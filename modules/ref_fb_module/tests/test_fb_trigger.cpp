@@ -16,14 +16,14 @@ template <typename T>
 class TriggerTestHelper
 {
 public:
-    TriggerTestHelper(DataRulePtr rule,
-                      vecvec<Bool> expectedData,
-                      vecvec<Int> expectedDomain,
-                      SampleType sampleType,
-                      vecvec<T> mockPackets,
-                      std::vector<Int> thresholdChangesAfterPackets = {},
-                      vecvec<Int> mockDomainPackets = {},
-                      std::vector<Float> newThresholds = {})
+    TriggerTestHelper(const DataRulePtr& rule,
+                      const vecvec<Bool>& expectedData,
+                      const vecvec<Int>& expectedDomain,
+                      const SampleType& sampleType,
+                      const vecvec<T>& mockPackets,
+                      const std::vector<Int>& thresholdChangesAfterPackets = {},
+                      const vecvec<Int>& mockDomainPackets = {},
+                      const std::vector<Float>& newThresholds = {})
     {
         // Create logger, context and module
         auto logger = Logger();
@@ -49,7 +49,7 @@ public:
         sendPacketsAndChangeThreshold();
         receivePacketsAndCheck();
 
-        // TODO Temporaray fix so PacketReadyNotification::Scheduler works
+        // Fix so PacketReadyNotification::Scheduler works
         context.getScheduler().stop();
     }
 
@@ -136,8 +136,8 @@ private:
 
     void createFunctionBlock()
     {
-        // TODO Temporary fix
-        PropertyObjectPtr config = module.getAvailableFunctionBlockTypes().get("ref_fb_module_trigger").createDefaultConfig();
+        // Fix for race condition
+        auto config = module.getAvailableFunctionBlockTypes().get("ref_fb_module_trigger").createDefaultConfig();
         config.setPropertyValue("UseMultiThreadedScheduler", false);
         // Create function block
         fb = module.createFunctionBlock("ref_fb_module_trigger", nullptr, "fb", config);
@@ -163,7 +163,7 @@ private:
             signal.sendPacket(dataPacket);
 
             // Check if we should change the threshold after sending packet
-            auto foundAt = std::find(thresholdChangesAfterPackets.begin(), thresholdChangesAfterPackets.end(), i);
+            auto foundAt = std::find(thresholdChangesAfterPackets.begin(), thresholdChangesAfterPackets.end(), static_cast<Int>(i));
             if (foundAt != thresholdChangesAfterPackets.end())
             {
                 // Change the threshold if appropriate
@@ -202,9 +202,9 @@ private:
                 auto domainDataSample = domainData[0];
 
                 // Assert that packet has one sample
-                ASSERT_EQ(sampleCount, 1);
+                ASSERT_EQ(sampleCount, 1u);
                 // Assert that domain packet has one sample
-                ASSERT_EQ(domainSampleCount, 1);
+                ASSERT_EQ(domainSampleCount, 1u);
 
                 // Assert that first sample equals expected value
                 ASSERT_EQ(dataSample, expectedData[i][ii]);

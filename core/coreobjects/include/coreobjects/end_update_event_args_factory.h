@@ -20,9 +20,9 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline EndUpdateEventArgsPtr EndUpdateEventArgs(const ListPtr<IString>& properties)
+inline EndUpdateEventArgsPtr EndUpdateEventArgs(const ListPtr<IString>& properties, bool parentUpdating)
 {
-    return EndUpdateEventArgsPtr(EndUpdateEventArgs_Create(properties));
+    return EndUpdateEventArgsPtr(EndUpdateEventArgs_Create(properties, parentUpdating));
 }
 
 END_NAMESPACE_OPENDAQ

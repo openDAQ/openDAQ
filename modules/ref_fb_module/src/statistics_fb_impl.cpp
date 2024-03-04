@@ -1,14 +1,17 @@
-#include <ref_fb_module/statistics_fb_impl.h>
-#include <opendaq/packet_factory.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
+#include <opendaq/packet_factory.h>
+#include <ref_fb_module/statistics_fb_impl.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace Statistics
 {
 
-StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
+                                   const ComponentPtr& parent,
+                                   const StringPtr& localId,
+                                   const PropertyObjectPtr& config)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
     initProperties();
@@ -19,16 +22,26 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& pa
     avgSignal.setDomainSignal(domainSignal);
     rmsSignal.setDomainSignal(domainSignal);
 
-    createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    if (config.assigned() && config.hasProperty("UseMultiThreadedScheduler") && !config.getPropertyValue("UseMultiThreadedScheduler"))
+        packetReadyNotification = PacketReadyNotification::SameThread;
+    else
+        packetReadyNotification = PacketReadyNotification::Scheduler;
+
+    createAndAddInputPort("input", packetReadyNotification);
+    triggerInput = createAndAddInputPort("trigger", packetReadyNotification);
 }
 
 FunctionBlockTypePtr StatisticsFbImpl::CreateType()
 {
-    return FunctionBlockType(
-        "ref_fb_module_statistics",
-        "Statistics",
-        "Calculates statistics"
-    );
+    return FunctionBlockType("ref_fb_module_statistics",
+                             "Statistics",
+                             "Calculates statistics",
+                             []()
+                             {
+                                 const auto obj = PropertyObject();
+                                 obj.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
+                                 return obj;
+                             });
 }
 
 void StatisticsFbImpl::initProperties()
@@ -40,6 +53,10 @@ void StatisticsFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("DomainSignalType") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
 
+    objPtr.addProperty(BoolProperty("TriggerMode", false));
+    objPtr.getOnPropertyValueWrite("TriggerMode") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { triggerModeChanged(); };
+
     readProperties();
 }
 
@@ -47,18 +64,90 @@ void StatisticsFbImpl::propertyChanged()
 {
     std::scoped_lock lock(sync);
     readProperties();
-
     configure();
 }
 
+void StatisticsFbImpl::triggerModeChanged()
+{
+    sync.lock();
+    try
+    {
+        readProperties();
+    }
+    catch (const std::exception& e)
+    {
+        LOG_E("Reading properties when trigger mode changed failed: {}", e.what());
+        sync.unlock();
+        return;
+    }
+    if (triggerMode)
+    {
+        try
+        {
+            // Configure Trigger UseMultiThreadedScheduler according to Statistics UseMultiThreadedScheduler
+            auto triggerConfig = PropertyObject();
+            if (packetReadyNotification == PacketReadyNotification::SameThread)
+                triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
+            else
+                triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
+
+            // Use trigger, output signals depending on trigger
+            nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("ref_fb_module_trigger", "nfbt", triggerConfig);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_E("Creating nested trigger function block when trigger mode changed failed: {}", e.what());
+            sync.unlock();
+            return;
+        }
+        sync.unlock();
+
+        // Connect trigger
+        triggerInput.connect(nestedTriggerFunctionBlock.getSignals()[0]);
+
+        sync.lock();
+        try
+        {
+            configure();
+        }
+        catch (const std::exception& e)
+        {
+            LOG_E("Configure when trigger mode changed failed: {}", e.what());
+            sync.unlock();
+            return;
+        }
+        sync.unlock();
+    }
+    else
+    {
+        try
+        {
+            // Don't use trigger, output signals
+            triggerInput.disconnect();
+            removeNestedFunctionBlock(nestedTriggerFunctionBlock);
+
+            configure();
+        }
+        catch (const std::exception& e)
+        {
+            LOG_E("Trigger mode changed failed: {}", e.what());
+            sync.unlock();
+            return;
+        }
+        sync.unlock();
+    }
+}
 
 void StatisticsFbImpl::readProperties()
 {
     blockSize = objPtr.getPropertyValue("BlockSize");
     domainSignalType = static_cast<DomainSignalType>(static_cast<Int>(objPtr.getPropertyValue("DomainSignalType")));
-    LOG_D("Properties: BlockSize {}, DomainSignalType {}", blockSize, objPtr.getPropertySelectionValue("DomainSignalType").toString());
+    triggerMode = objPtr.getPropertyValue("TriggerMode");
+    LOG_D("Properties: BlockSize {}, DomainSignalType {}, TriggerMode {}",
+          blockSize,
+          objPtr.getPropertySelectionValue("DomainSignalType").toString(),
+          triggerMode);
 }
-
 
 void StatisticsFbImpl::configure()
 {
@@ -83,7 +172,7 @@ void StatisticsFbImpl::configure()
     }
     const auto domainRuleParams = domainRule.getParameters();
 
-    const Int start = domainRuleParams.get("start");
+    start = domainRuleParams.get("start");
     inputDeltaTicks = domainRuleParams.get("delta");
     outputDeltaTicks = inputDeltaTicks * static_cast<Int>(blockSize);
 
@@ -106,7 +195,7 @@ void StatisticsFbImpl::configure()
 
     domainSignal.setDescriptor(this->outputDomainDataDescriptor);
 
-    if (inputValueDataDescriptor.isStructDescriptor() ||
+    if (inputValueDataDescriptor.getSampleType() == SampleType::Struct ||
         inputValueDataDescriptor.getDimensions().getCount() > 0)  // arrays not supported on the input
     {
         LOG_W("Incompatible input value data descriptor");
@@ -122,8 +211,8 @@ void StatisticsFbImpl::configure()
     sampleSize = getSampleSize(sampleType);
 
     const auto outputAverageDataDescriptor = DataDescriptorBuilderCopy(inputValueDataDescriptor)
-                                                  .setName(static_cast<std::string>(inputValueDataDescriptor.getName() + "/Avg"))
-                                                  .setPostScaling(nullptr);
+                                                 .setName(static_cast<std::string>(inputValueDataDescriptor.getName() + "/Avg"))
+                                                 .setPostScaling(nullptr);
     this->outputAverageDataDescriptor = outputAverageDataDescriptor.build();
 
     avgSignal.setDescriptor(this->outputAverageDataDescriptor);
@@ -137,6 +226,7 @@ void StatisticsFbImpl::configure()
     rmsSignal.setDescriptor(this->outputRmsDataDescriptor);
 
     resetCalcBuf();
+    triggerHistory.dropHistory();
     nextExpectedDomainValue = std::numeric_limits<Int>::max();
     valid = true;
 
@@ -223,8 +313,36 @@ void StatisticsFbImpl::getNextOutputDomainValue(const DataPacketPtr& domainPacke
     nextExpectedDomainValue = addNumbers(packetStartDomainValue, static_cast<Int>(sampleCount) * inputDeltaTicks);
 }
 
+void StatisticsFbImpl::validateTriggerDescriptors(const DataDescriptorPtr& valueDataDescriptor,
+                                                  const DataDescriptorPtr& domainDataDescriptor)
+{
+    valid = false;
+
+    if (valueDataDescriptor.assigned())
+    {
+        const auto type = valueDataDescriptor.getSampleType();
+        if (type != SampleType::Float64 && type != SampleType::Float32 && type != SampleType::Int8 && type != SampleType::Int16 &&
+            type != SampleType::Int32 && type != SampleType::Int64 && type != SampleType::UInt8 && type != SampleType::UInt16 &&
+            type != SampleType::UInt32 && type != SampleType::UInt64)
+        {
+            LOG_W("Invalid nested trigger value sample type!");
+            return;
+        }
+    }
+    if (domainDataDescriptor.assigned())
+    {
+        if (domainDataDescriptor.getSampleType() != SampleType::Int64)
+        {
+            LOG_W("Invalid nested trigger domain sample type!");
+            return;
+        }
+    }
+
+    valid = true;
+}
+
 void StatisticsFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& valueDataDescriptor,
-                                                     const DataDescriptorPtr& domainDataDescriptor)
+                                                      const DataDescriptorPtr& domainDataDescriptor)
 {
     if (valueDataDescriptor.assigned())
         inputValueDataDescriptor = valueDataDescriptor;
@@ -234,15 +352,21 @@ void StatisticsFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& v
     configure();
 }
 
-void StatisticsFbImpl::processDataPacket(const DataPacketPtr& packet)
+void StatisticsFbImpl::processDataPacketTrigger(const DataPacketPtr& packet)
 {
-    if (!valid)
-        return;
-
     const auto domainPacket = packet.getDomainPacket();
-    if (!domainPacket.assigned())
+    if (domainPacket.getSampleCount() == 0)
         return;
+    auto data = static_cast<Bool*>(packet.getData());
+    // Data packet from trigger only holds one value by design
+    auto triggerData = data[0];
+    // Domain packet from trigger only holds one value by design
+    auto domainStamp = static_cast<Int*>(domainPacket.getData())[0];
+    triggerHistory.addElement(triggerData, domainStamp);
+}
 
+void StatisticsFbImpl::calculateAndSendPackets(const DataPacketPtr& domainPacket, const DataPacketPtr& packet)
+{
     bool haveGap;
     NumberPtr outputPacketStartDomainValue = 0;
     getNextOutputDomainValue(domainPacket, outputPacketStartDomainValue, haveGap);
@@ -300,6 +424,73 @@ void StatisticsFbImpl::processDataPacket(const DataPacketPtr& packet)
     domainSignal.sendPacket(outDomainPacket);
 }
 
+void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
+{
+    if (!valid)
+        return;
+
+    const auto domainPacket = packet.getDomainPacket();
+    if (!domainPacket.assigned())
+        return;
+
+    if (triggerMode)
+    {
+        const auto packetBuf = static_cast<uint8_t*>(packet.getData());
+        auto domainBuf = static_cast<Int*>(domainPacket.getData());
+
+        size_t i = 0;
+        size_t dropToWhere = 0;
+        while (i < packet.getSampleCount())
+        {
+            // Go to where trigger state is true or end of packet
+            while (!triggerHistory.getTriggerStateFromDomainValue(domainBuf[i]) && i < packet.getSampleCount())
+            {
+                dropToWhere = i;
+                i++;
+            }
+
+            // Drop trigger history
+            if (!triggerHistory.getTriggerStateFromDomainValue(domainBuf[dropToWhere]))
+                triggerHistory.dropHistoryTo(domainBuf[dropToWhere]);
+
+            // Check if we reached the end of packet
+            if (i >= packet.getSampleCount())
+                break;
+
+            // Remember started at
+            auto startedAt = i;
+
+            // Go to where trigger state is false or end of packet
+            while (triggerHistory.getTriggerStateFromDomainValue(domainBuf[i]) && i < packet.getSampleCount())
+            {
+                i++;
+            }
+
+            // Save packet size
+            auto packetSize = i - startedAt;
+
+            // Create domain sub packet
+            auto domainSubPacket =
+                DataPacket(domainPacket.getDataDescriptor(), packetSize, domainPacket.getOffset() + startedAt * inputDeltaTicks);
+
+            // Create data sub packet
+            auto subPacket = DataPacket(packet.getDataDescriptor(), packetSize);
+            auto subPacketBuf = static_cast<uint8_t*>(subPacket.getData());
+
+            // Fill sub packet buffer
+            std::memcpy(subPacketBuf, packetBuf + startedAt * sampleSize, packetSize * sampleSize);
+
+            // Calculate and send packets
+            calculateAndSendPackets(domainSubPacket, subPacket);
+        }
+    }
+    else
+    {
+        // Calculate and send packets
+        calculateAndSendPackets(domainPacket, packet);
+    }
+}
+
 NumberPtr StatisticsFbImpl::addNumbers(const NumberPtr a, const NumberPtr& b)
 {
     if (a.getCoreType() == CoreType::ctFloat)
@@ -334,13 +525,13 @@ void StatisticsFbImpl::calc(
         {
             if constexpr (DST == SampleType::Int64)
             {
-                *outDomainData++ = firstTick;
+                *outDomainData++ = firstTick + start;
                 firstTick += outputDeltaTicks;
             }
             else if constexpr (DST == SampleType::RangeInt64)
             {
-                outDomainData->start = firstTick;
-                outDomainData->end = firstTick + inputDeltaTicks * blockSize - 1;
+                outDomainData->start = firstTick + start;
+                outDomainData->end = outDomainData->start + inputDeltaTicks * blockSize - 1;
                 ++outDomainData;
                 firstTick += outputDeltaTicks;
             }
@@ -493,10 +684,46 @@ void StatisticsFbImpl::calculate(
 
 void StatisticsFbImpl::onPacketReceived(const InputPortPtr& port)
 {
-    processPackets(port);
+    if (port == triggerInput)
+        processTriggerPackets(port);
+    else
+        processInputPackets(port);
 }
 
-void StatisticsFbImpl::processPackets(const InputPortPtr& port)
+void StatisticsFbImpl::processTriggerPackets(const InputPortPtr& port)
+{
+    std::scoped_lock lock(sync);
+
+    const auto conn = port.getConnection();
+    if (!conn.assigned())
+        return;
+
+    auto packet = conn.dequeue();
+    while (packet.assigned())
+    {
+        const auto packetType = packet.getType();
+        if (packetType == PacketType::Event)
+        {
+            auto eventPacket = packet.asPtr<IEventPacket>(true);
+            LOG_T("Processing {} event", eventPacket.getEventId())
+            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            {
+                DataDescriptorPtr valueSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                DataDescriptorPtr domainSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+                validateTriggerDescriptors(valueSignalDescriptor, domainSignalDescriptor);
+            }
+        }
+        else if (packetType == PacketType::Data)
+        {
+            auto dataPacket = packet.asPtr<IDataPacket>();
+            processDataPacketTrigger(dataPacket);
+        }
+
+        packet = conn.dequeue();
+    }
+}
+
+void StatisticsFbImpl::processInputPackets(const InputPortPtr& port)
 {
     std::scoped_lock lock(sync);
 
@@ -522,13 +749,12 @@ void StatisticsFbImpl::processPackets(const InputPortPtr& port)
         else if (packetType == PacketType::Data)
         {
             auto dataPacket = packet.asPtr<IDataPacket>();
-            processDataPacket(dataPacket);
+            processDataPacketInput(dataPacket);
         }
 
         packet = conn.dequeue();
     }
 }
-
 }
 
 END_NAMESPACE_REF_FB_MODULE

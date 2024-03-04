@@ -4,6 +4,9 @@
 #include <opendaq/event_packet_params.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/ownable_ptr.h>
+#include <opendaq/reader_factory.h>
 
 #include <coretypes/validation.h>
 #include <coretypes/function.h>
@@ -31,6 +34,36 @@ StreamReaderImpl::StreamReaderImpl(const SignalPtr& signal,
     connectSignal(signal);
 }
 
+StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
+                                   SampleType valueReadType,
+                                   SampleType domainReadType,
+                                   ReadMode mode,
+                                   ReadTimeoutType timeoutType)
+    : readMode(mode)
+    , timeoutType(timeoutType)
+    , portBinder(PropertyObject())
+{
+    if (!port)
+        throw ArgumentNullException("Input port must not be null.");
+    
+    inputPort = port;
+    inputPort.asPtr<IOwnable>().setOwner(portBinder);
+
+    valueReader = createReaderForType(valueReadType, nullptr);
+    domainReader = createReaderForType(domainReadType, nullptr);
+
+    this->internalAddRef();
+
+    inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
+    inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
+
+    if (inputPort.getConnection().assigned())
+    {
+        connection = inputPort.getConnection();
+        handleDescriptorChanged(connection.dequeue());
+    }
+}
+
 StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
                                    SampleType valueReadType,
                                    SampleType domainReadType,
@@ -44,7 +77,6 @@ StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
 
     timeoutType = readerConfig.getReadTimeoutType();
     inputPort = readerConfig.getInputPorts()[0];
-    changeCallback = readerConfig.getOnDescriptorChanged();
 
     valueReader = createReaderForType(valueReadType, readerConfig.getValueTransformFunction());
     domainReader = createReaderForType(domainReadType, readerConfig.getDomainTransformFunction());
@@ -62,6 +94,7 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     , timeoutType(ReadTimeoutType::All)
 {
     std::scoped_lock lock(old->mutex);
+    dataDescriptor = old->dataDescriptor;
     old->invalid = true;
 
     info = old->info;
@@ -70,9 +103,12 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     valueReader = createReaderForType(valueReadType, old->valueReader->getTransformFunction());
     domainReader = createReaderForType(domainReadType, old->domainReader->getTransformFunction());
 
+    old->portBinder = PropertyObject();
     inputPort = old->inputPort;
+    inputPort.asPtr<IOwnable>().setOwner(portBinder);
+
     connection = inputPort.getConnection();
-    changeCallback = old->changeCallback;
+    readCallback = old->readCallback;
 
     this->internalAddRef();
     readDescriptorFromPort();
@@ -80,7 +116,7 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
 
 StreamReaderImpl::~StreamReaderImpl()
 {
-    if (inputPort.assigned())
+    if (inputPort.assigned() && !portBinder.assigned())
         inputPort.remove();
 }
 
@@ -103,18 +139,22 @@ void StreamReaderImpl::readDescriptorFromPort()
         }
     }
 
-    const auto signal = inputPort.getSignal();
-    if (!signal.assigned())
+    if (!dataDescriptor.assigned())
     {
-        throw InvalidStateException("Input port must already have a signal assigned");
+        const auto signal = inputPort.getSignal();
+        if (!signal.assigned())
+        {
+            throw InvalidStateException("Input port must already have a signal assigned");
+        }
+
+        dataDescriptor = signal.getDescriptor();
+        if (!dataDescriptor.assigned())
+        {
+            throw InvalidStateException("Input port connected signal must have a descriptor assigned.");
+        }
     }
 
-    const auto descriptor = signal.getDescriptor();
-    if (!descriptor.assigned())
-    {
-        throw InvalidStateException("Input port connected signal must have a descriptor assigned.");
-    }
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(descriptor, nullptr));
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr));
 }
 
 void StreamReaderImpl::connectSignal(const SignalPtr& signal)
@@ -143,6 +183,11 @@ ErrCode StreamReaderImpl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
+    std::scoped_lock lock(this->mutex);
+    connection = InputPortConfigPtr::Borrow(port).getConnection();
+    if (connection.assigned())
+        handleDescriptorChanged(connection.dequeue());
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -150,20 +195,23 @@ ErrCode StreamReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
+    std::scoped_lock lock(this->mutex);
+    connection = nullptr;
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-
-    onPacketReady();
-    return OPENDAQ_SUCCESS;
+    return onPacketReady();
 }
 
-void StreamReaderImpl::onPacketReady()
+ErrCode StreamReaderImpl::onPacketReady()
 {
     notify.condition.notify_one();
+    if (readCallback.assigned())
+        return wrapHandler(readCallback);
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamReaderImpl::getValueReadType(SampleType* sampleType)
@@ -238,7 +286,6 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
     if (!eventPacket.assigned())
         return;
 
-
     auto params = eventPacket.getParameters();
     DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
     DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
@@ -246,6 +293,7 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
     // Check if value is stil convertible
     if (newValueDescriptor.assigned())
     {
+        dataDescriptor = newValueDescriptor;
         if (valueReader->isUndefined())
         {
             inferReaderReadType(newValueDescriptor, valueReader);
@@ -271,18 +319,6 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
         {
             invalid = !valid;
         }
-    }
-
-    // If both value and domain are still convertible
-    // check with the user if new state is valid for them
-    if (!invalid && changeCallback.assigned())
-    {
-        bool descriptorOk = false;
-        ErrCode errCode = wrapHandlerReturn(changeCallback, descriptorOk, newValueDescriptor, newDomainDescriptor);
-        invalid = !descriptorOk || OPENDAQ_FAILED(errCode);
-
-        if (OPENDAQ_FAILED(errCode))
-            daqClearErrorInfo();
     }
 }
 
@@ -356,7 +392,7 @@ ErrCode StreamReaderImpl::readPacketData()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode StreamReaderImpl::readPackets()
+ErrCode StreamReaderImpl::readPackets(IReaderStatus** status)
 {
     bool firstData = false;
     ErrCode errCode = OPENDAQ_SUCCESS;
@@ -422,13 +458,9 @@ ErrCode StreamReaderImpl::readPackets()
                         );
                     }
 
-                    if (invalid)
-                    {
-                        return this->makeErrorInfo(
-                            OPENDAQ_ERR_INVALID_DATA,
-                            "Packet samples are no longer convertible to the read type"
-                        );
-                    }
+                    if (status)
+                        *status = ReaderStatus(eventPacket, !invalid).detach();
+                    return errCode;
                 }
                 break;
             }
@@ -443,7 +475,7 @@ ErrCode StreamReaderImpl::readPackets()
     return errCode;
 }
 
-ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs)
+ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(samples);
     OPENDAQ_PARAM_NOT_NULL(count);
@@ -451,7 +483,14 @@ ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs)
     std::scoped_lock lock(mutex);
 
     if (invalid)
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Packet samples are no longer convertible to the read type", nullptr);
+    {
+        if (status)
+            *status = ReaderStatus(nullptr, !invalid).detach();
+        return OPENDAQ_IGNORED;
+    }
+
+    if (status)
+        *status = nullptr;
 
     ErrCode errCode = OPENDAQ_SUCCESS;
 
@@ -465,7 +504,10 @@ ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs)
                              && info.remainingToRead != *count;
 
     if (OPENDAQ_SUCCEEDED(errCode) && info.remainingToRead <= *count && !shouldReturnEarly)
-        errCode = readPackets();
+        errCode = readPackets(status);
+
+    if (status && *status == nullptr)
+        *status = ReaderStatus().detach();
 
     *count = *count - info.remainingToRead;
     return errCode;
@@ -474,7 +516,8 @@ ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs)
 ErrCode StreamReaderImpl::readWithDomain(void* samples,
                                          void* domain,
                                          SizeT* count,
-                                         SizeT timeoutMs)
+                                         SizeT timeoutMs,
+                                         IReaderStatus** status)
 {
     OPENDAQ_PARAM_NOT_NULL(samples);
     OPENDAQ_PARAM_NOT_NULL(domain);
@@ -497,25 +540,17 @@ ErrCode StreamReaderImpl::readWithDomain(void* samples,
                              && info.remainingToRead != *count;
 
     if (OPENDAQ_SUCCEEDED(errCode) && info.remainingToRead <= *count && !shouldReturnEarly)
-        errCode = readPackets();
+        errCode = readPackets(status);
 
     *count = *count - info.remainingToRead;
     return errCode;
 }
 
-ErrCode StreamReaderImpl::getOnDescriptorChanged(IFunction** callback)
+ErrCode StreamReaderImpl::setOnDataAvailable(IProcedure* callback)
 {
     std::scoped_lock lock(mutex);
 
-    *callback = changeCallback.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode StreamReaderImpl::setOnDescriptorChanged(IFunction* callback)
-{
-    std::scoped_lock lock(mutex);
-
-    changeCallback = callback;
+    readCallback = callback;
     return OPENDAQ_SUCCESS;
 }
 
@@ -590,6 +625,16 @@ struct ObjectCreator<IStreamReader>
 OPENDAQ_DEFINE_CLASS_FACTORY(
     LIBRARY_FACTORY, StreamReader,
     ISignal*, signal,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, readMode,
+    ReadTimeoutType, timeoutType
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, StreamReader,
+    IStreamReader, createStreamReaderFromPort,
+    IInputPortConfig*, port,
     SampleType, valueReadType,
     SampleType, domainReadType,
     ReadMode, readMode,

@@ -14,7 +14,8 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 RefFbModule::RefFbModule(ContextPtr ctx)
     : Module("Reference function block module",
              daq::VersionInfo(REF_FB_MODULE_MAJOR_VERSION, REF_FB_MODULE_MINOR_VERSION, REF_FB_MODULE_PATCH_VERSION),
-             std::move(ctx))
+             std::move(ctx),
+             "ReferenceFunctionBlock")
 {
 }
 
@@ -55,7 +56,7 @@ FunctionBlockPtr RefFbModule::onCreateFunctionBlock(const StringPtr& id,
     }
     if (id == Statistics::StatisticsFbImpl::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Statistics::StatisticsFbImpl>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Statistics::StatisticsFbImpl>(context, parent, localId, config);
         return fb;
     }
     if (id == Power::PowerFbImpl::CreateType().getId())

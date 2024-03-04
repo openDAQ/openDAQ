@@ -20,6 +20,7 @@
 #include <opendaq/data_packet_ptr.h>
 
 #include <condition_variable>
+#include <deque>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -91,6 +92,12 @@ public:
                              SampleType domainReadType,
                              ReadMode readMode);
 
+    explicit BlockReaderImpl(IInputPortConfig* port,
+                             SizeT blockSize,
+                             SampleType valueReadType,
+                             SampleType domainReadType,
+                             ReadMode readMode);
+
     BlockReaderImpl(const ReaderConfigPtr& readerConfig,
                     SampleType valueReadType,
                     SampleType domainReadType,
@@ -99,19 +106,20 @@ public:
 
     BlockReaderImpl(BlockReaderImpl* old,
                     SampleType valueReadType,
-                    SampleType domainReadType);
+                    SampleType domainReadType,
+                    SizeT blockSize);
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
 
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
 
-    ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0) override;
-    ErrCode INTERFACE_FUNC readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0) override;
+    ErrCode INTERFACE_FUNC read(void* blocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) override;
+    ErrCode INTERFACE_FUNC readWithDomain(void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) override;
 
     ErrCode INTERFACE_FUNC getBlockSize(SizeT* size) override;
 
 private:
-    ErrCode readPackets();
+    ErrCode readPackets(IReaderStatus** status);
     ErrCode readPacketData();
 
     SizeT getAvailable() const;

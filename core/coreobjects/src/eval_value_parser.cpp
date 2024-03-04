@@ -17,7 +17,7 @@
 #include <coreobjects/eval_value_parser.h>
 #include <memory>
 
- 
+
 using TokenType = EvalValueToken::Type;
 
 
@@ -46,6 +46,35 @@ EvalValueParser::EvalValueParser(const std::vector<EvalValueToken>& aTokens, Par
     , params(aParams)
 {
     assert(!aTokens.empty() && aTokens.back().type == TokenType::End);
+
+    registerPrefix(TokenType::FloatValue);
+    registerPrefix(TokenType::IntValue);
+    registerPrefix(TokenType::BoolValue);
+    registerPrefix(TokenType::StringValue);
+    registerPrefix(TokenType::Exclamation);
+    registerPrefix(TokenType::Minus);
+    registerPrefix(TokenType::OpenParen);
+    registerPrefix(TokenType::OpenBracket);
+    registerPrefix(TokenType::If);
+    registerPrefix(TokenType::Switch);
+    registerPrefix(TokenType::Unit);
+    registerPrefix(TokenType::Dollar);
+    registerPrefix(TokenType::Percent);
+    registerPrefix(TokenType::OpenCurly);
+    registerPrefix(TokenType::Identifier);
+
+    registerInfix(TokenType::EqEq,      OperatorPrecedence::Equality);
+    registerInfix(TokenType::NotEq,     OperatorPrecedence::Equality);
+    registerInfix(TokenType::Less,      OperatorPrecedence::Equality);
+    registerInfix(TokenType::LessEq,    OperatorPrecedence::Equality);
+    registerInfix(TokenType::Greater,   OperatorPrecedence::Equality);
+    registerInfix(TokenType::GreaterEq, OperatorPrecedence::Equality);
+    registerInfix(TokenType::AndAnd,    OperatorPrecedence::Logic);
+    registerInfix(TokenType::OrOr,      OperatorPrecedence::Logic);
+    registerInfix(TokenType::Plus,      OperatorPrecedence::Term);
+    registerInfix(TokenType::Minus,     OperatorPrecedence::Term);
+    registerInfix(TokenType::Star,      OperatorPrecedence::Factor);
+    registerInfix(TokenType::Slash,     OperatorPrecedence::Factor);
 }
 
 std::unique_ptr<daq::BaseNode> EvalValueParser::parse()
@@ -58,119 +87,64 @@ std::unique_ptr<std::unordered_set<std::string>> EvalValueParser::getPropertyRef
     return std::make_unique<std::unordered_set<std::string>>(std::move(propertyReferences));
 }
 
-
-std::unique_ptr<daq::BaseNode> EvalValueParser::expression()
+std::unique_ptr<daq::BaseNode> EvalValueParser::expression(int precedence)
 {
-    return equality();
-}
-
-std::unique_ptr<daq::BaseNode> EvalValueParser::equality()
-{
-    auto expr = logicOp();
-    while (isAtAnyOf({TokenType::EqEq, TokenType::NotEq,
-                      TokenType::Less, TokenType::LessEq,
-                      TokenType::Greater, TokenType::GreaterEq}))
+    auto token = advance();
+    if (token.type == TokenType::End || prefixParseRules.find(token.type) == prefixParseRules.end())
+        throw daq::ParseFailedException("Unexpected end of expression");
+    auto left = prefix(token, prefixParseRules[token.type]);
+    while (precedence < infixTokenPrecedence(peek().type))
     {
-        std::unique_ptr<daq::BinaryNode> node;
-        switch (advance().type)
-        {
-            case TokenType::EqEq:      node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::equals>>(); break;
-            case TokenType::NotEq:     node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::notEquals>>(); break;
-            case TokenType::Less:      node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::less>>(); break;
-            case TokenType::LessEq:    node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::lessOrEqual>>(); break;
-            case TokenType::Greater:   node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::greater>>(); break;
-            case TokenType::GreaterEq: node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::greaterOrEqual>>(); break;
-            default: assert(false);
-        }
-        node->leftNode = std::move(expr);
-        node->rightNode = logicOp();
-        expr = std::move(node);
+        token = advance();
+        left = infix(token, std::move(left), infixParseRules[token.type]);
     }
-    return expr;
+    return left;
 }
 
-std::unique_ptr<daq::BaseNode> EvalValueParser::logicOp()
+std::unique_ptr<daq::BaseNode> EvalValueParser::infix(const EvalValueToken& token, std::unique_ptr<daq::BaseNode> left, const ParseRule& rule)
 {
-    auto expr = term();
-    while (isAtAnyOf({TokenType::OrOr, TokenType::AndAnd}))
+    std::unique_ptr<daq::BinaryNode> node;
+    switch (token.type)
     {
-        std::unique_ptr<daq::BinaryNode> node;
-        switch (advance().type)
-        {
-            case TokenType::OrOr:   node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::logOr>>(); break;
-            case TokenType::AndAnd: node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::logAnd>>(); break;
-            default: assert(false);
-        }
-        node->leftNode = std::move(expr);
-        node->rightNode = term();
-        expr = std::move(node);
-    }
-    return expr;
-}
-
-std::unique_ptr<daq::BaseNode> EvalValueParser::term()
-{
-    auto expr = factor();
-    while(isAtAnyOf({TokenType::Plus, TokenType::Minus}))
-    {
-        std::unique_ptr<daq::BinaryNode> node;
-        switch (advance().type)
-        {
-            case TokenType::Plus:  node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::add>>(); break;
-            case TokenType::Minus: node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::sub>>(); break;
-            default: assert(false);
-        }
-        node->leftNode = std::move(expr);
-        node->rightNode = factor();
-        expr = std::move(node);
-    }
-    return expr;
-}
-
-std::unique_ptr<daq::BaseNode> EvalValueParser::factor()
-{
-    auto expr = unary();
-    while (isAtAnyOf({TokenType::Star, TokenType::Slash}))
-    {
-        std::unique_ptr<daq::BinaryNode> node;
-        switch (advance().type)
-        {
-            case TokenType::Star:  node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::mul>>(); break;
-            case TokenType::Slash: node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::div>>(); break;
-            default: assert(false);
-        }
-        node->leftNode = std::move(expr);
-        node->rightNode = unary();
-        expr = std::move(node);
-    }
-    return expr;
-}
-
-std::unique_ptr<daq::BaseNode> EvalValueParser::unary()
-{
-    if (!isAtAnyOf({TokenType::Exclamation, TokenType::Minus}))
-        return literal();
-
-    std::unique_ptr<daq::UnaryNode> node;
-    switch (advance().type)
-    {
-        case TokenType::Exclamation: node = std::make_unique<daq::UnaryOpNode<daq::UnaryOperationType::LogNegate>>(); break;
-        case TokenType::Minus:       node = std::make_unique<daq::UnaryOpNode<daq::UnaryOperationType::Negate>>(); break;
+        case TokenType::EqEq:      node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::equals>>(); break;
+        case TokenType::NotEq:     node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::notEquals>>(); break;
+        case TokenType::Less:      node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::less>>(); break;
+        case TokenType::LessEq:    node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::lessOrEqual>>(); break;
+        case TokenType::Greater:   node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::greater>>(); break;
+        case TokenType::GreaterEq: node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::greaterOrEqual>>(); break;
+        case TokenType::OrOr:      node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::logOr>>(); break;
+        case TokenType::AndAnd:    node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::logAnd>>(); break;
+        case TokenType::Plus:      node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::add>>(); break;
+        case TokenType::Minus:     node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::sub>>(); break;
+        case TokenType::Star:      node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::mul>>(); break;
+        case TokenType::Slash:     node = std::make_unique<daq::BinaryOpNode<daq::BinOperationType::div>>(); break;
         default: assert(false);
     }
-    node->expNode = unary();
+    node->leftNode = std::move(left);
+    node->rightNode = expression(rule.precedence - (rule.associativity == Associativity::Right ? 1 : 0));
     return node;
 }
 
-std::unique_ptr<daq::BaseNode> EvalValueParser::literal()
+std::unique_ptr<daq::BaseNode> EvalValueParser::prefix(const EvalValueToken& token, const ParseRule& rule)
 {
-    EvalValueToken token = advance();
     switch (token.type)
     {
         case TokenType::FloatValue:  return std::make_unique<daq::FloatConstNode>(std::get<double>(token.value));
         case TokenType::IntValue:    return std::make_unique<daq::IntConstNode>(std::get<int64_t>(token.value));
         case TokenType::BoolValue:   return std::make_unique<daq::BoolConstNode>(std::get<bool>(token.value));
         case TokenType::StringValue: return std::make_unique<daq::StringConstNode>(std::get<std::string>(token.value));
+        case TokenType::Exclamation:
+            {
+                auto node = std::make_unique<daq::UnaryOpNode<daq::UnaryOperationType::LogNegate>>();
+                node->expNode = expression(rule.precedence);
+                return node;
+            }
+        case TokenType::Minus:
+            {
+                auto node = std::make_unique<daq::UnaryOpNode<daq::UnaryOperationType::Negate>>();
+                node->expNode = expression(rule.precedence);
+                return node;
+            }
         case TokenType::OpenParen:
             {
                 auto expr = expression();
@@ -217,27 +191,27 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::literal()
                 return std::make_unique<daq::SwitchNode>(std::move(varNode), std::move(valueNodes));
             }
         case TokenType::Unit:
-        {
-            consume(TokenType::OpenParen);
-
-            auto unitParams = std::make_unique<std::vector<std::unique_ptr<daq::BaseNode>>>();
-            while(!isAt(TokenType::CloseParen))
             {
-                if (unitParams->size() > 3)
-                    throw daq::ParseFailedException("Unit literal accepts up to 4 arguments");
+                consume(TokenType::OpenParen);
 
-                unitParams->push_back(literal());
-                if (!isAt(TokenType::CloseParen))
-                    consume(TokenType::Comma);
+                auto unitParams = std::make_unique<std::vector<std::unique_ptr<daq::BaseNode>>>();
+                while(!isAt(TokenType::CloseParen))
+                {
+                    if (unitParams->size() > 3)
+                        throw daq::ParseFailedException("Unit literal accepts up to 4 arguments");
+
+                    unitParams->push_back(expression());
+                    if (!isAt(TokenType::CloseParen))
+                        consume(TokenType::Comma);
+                }
+                consume(TokenType::CloseParen);
+
+                if (unitParams->empty())
+                    throw daq::ParseFailedException("Unit literal must have at least one argument (symbol)");
+
+                auto unitNode = std::make_unique<daq::UnitNode>(std::move(unitParams));
+                return unitNode;
             }
-            consume(TokenType::CloseParen);
-
-            if (unitParams->empty())
-                throw daq::ParseFailedException("Unit literal must have at least one argument (symbol)");
-
-            auto unitNode = std::make_unique<daq::UnitNode>(std::move(unitParams));
-            return unitNode;
-        }
         case TokenType::Dollar: return valref();
         case TokenType::Percent: return propref();
         case TokenType::OpenCurly:
@@ -269,9 +243,8 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::literal()
                 return node;
             }
         default:
-            undoAdvance();
+            throw daq::ParseFailedException("syntax error");
     }
-    throw daq::ParseFailedException("syntax error");
 }
 
 std::unique_ptr<daq::BaseNode> EvalValueParser::valref()
@@ -331,21 +304,27 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::propref()
 }
 
 
+void EvalValueParser::registerPrefix(TokenType type, int precedence)
+{
+    prefixParseRules[type] = {precedence};
+}
+
+void EvalValueParser::registerInfix(TokenType type, int precedence, Associativity associativity)
+{
+    infixParseRules[type] = {precedence, associativity};
+}
+
+
+int EvalValueParser::infixTokenPrecedence(EvalValueToken::Type tokenType) const
+{
+    if (tokenType == TokenType::End || infixParseRules.find(tokenType) == infixParseRules.end())
+        return OperatorPrecedence::MinPrecedence;
+    return infixParseRules.at(tokenType).precedence;
+}
+
 bool EvalValueParser::isAt(TokenType tokenType) const
 {
-    if (isAtEnd())
-        return false;
     return peek().type == tokenType;
-}
-
-bool EvalValueParser::isAtEnd() const
-{
-    return peek().type == TokenType::End;
-}
-
-bool EvalValueParser::isAtAnyOf(std::initializer_list<TokenType> tokenTypes) const
-{
-    return std::find(tokenTypes.begin(), tokenTypes.end(), peek().type) != tokenTypes.end();
 }
 
 void EvalValueParser::assertIsAt(TokenType tokenType) const
@@ -363,15 +342,9 @@ void EvalValueParser::consume(TokenType tokenType)
 EvalValueToken EvalValueParser::advance()
 {
     auto prevToken = peek();
-    if (!isAtEnd())
+    if (prevToken.type != TokenType::End)
         current++;
     return prevToken;
-}
-
-void EvalValueParser::undoAdvance()
-{
-    if (current > 0)
-        current--;
 }
 
 EvalValueToken EvalValueParser::peek() const

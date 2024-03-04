@@ -13,14 +13,12 @@ TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, 
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
     state = false;
-    if (config.assigned() && config.hasProperty("UseMultiThreadedScheduler") && config.getPropertyValue("UseMultiThreadedScheduler"))
-    {
-        packetReadyNotification = PacketReadyNotification::Scheduler;
-    }
-    else
-    {
+
+    if (config.assigned() && config.hasProperty("UseMultiThreadedScheduler") && !config.getPropertyValue("UseMultiThreadedScheduler"))
         packetReadyNotification = PacketReadyNotification::SameThread;
-    }
+    else
+        packetReadyNotification = PacketReadyNotification::Scheduler;
+
     createInputPorts();
     createSignals();
     initProperties();

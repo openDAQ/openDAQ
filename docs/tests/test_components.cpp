@@ -43,4 +43,16 @@ TEST_F(ComponentsTest, DeviceFolderTypes)
     ASSERT_EQ(inOut.asPtrOrNull<IIoFolderConfig>().assigned(), true);
 }
 
+// Corresponding document: Antora/modules/background_info/pages/components.adoc
+TEST_F(ComponentsTest, ComponentStatuses)
+{
+    auto instance = docs_test_helpers::setupInstance();
+    const auto scalingFb = instance.addFunctionBlock("ref_fb_module_scaling");
+    auto statuses = scalingFb.getStatusContainer().getStatuses();
+
+    ASSERT_GT(statuses.getCount(), 0u);
+    ASSERT_TRUE(statuses.hasKey("InputStatus"));
+    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Disconnected");
+}
+
 END_NAMESPACE_OPENDAQ

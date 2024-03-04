@@ -187,7 +187,7 @@ TEST_F(VariantListConverterTest, DataDescriptor)
     auto id = DataDescriptorBuilder().setSampleType(SampleType::Int32).setName("id").build();
     auto data = DataDescriptorBuilder().setSampleType(SampleType::UInt8).setName("data").build();
     auto can = DataDescriptorBuilder()
-                   .setSampleType(SampleType::Undefined)
+                   .setSampleType(SampleType::Struct)
                    .setName("CAN message")
                    .setStructFields(List<IDataDescriptor>(id, data))
                    .build();

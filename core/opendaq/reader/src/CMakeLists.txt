@@ -7,6 +7,7 @@ set(RTGEN_HEADERS_DIR ${SDK_HEADERS_DIR})
 set(RTGEN_OUTPUT_DIR ${GENERATED_HEADERS_DIR})
 set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
+rtgen(SRC_ReaderStatus reader_status.h)
 rtgen(SRC_Reader reader.h)
 rtgen(SRC_SampleReader sample_reader.h)
 rtgen(SRC_ReaderConfig reader_config.h)
@@ -16,7 +17,8 @@ rtgen(SRC_TailReader tail_reader.h)
 rtgen(SRC_PacketReader packet_reader.h)
 rtgen(SRC_MultiReader multi_reader.h)
 
-source_group("reader" FILES ${SDK_HEADERS_DIR}/reader.h
+source_group("reader" FILES ${SDK_HEADERS_DIR}/reader_status.h
+                            ${SDK_HEADERS_DIR}/reader.h
                             ${SDK_HEADERS_DIR}/sample_reader.h
                             ${SDK_HEADERS_DIR}/reader_config.h
                             ${SDK_HEADERS_DIR}/reader_errors.h
@@ -26,6 +28,8 @@ source_group("reader" FILES ${SDK_HEADERS_DIR}/reader.h
                             ${SDK_HEADERS_DIR}/typed_reader.h
                             ${SDK_HEADERS_DIR}/reader_impl.h
                             reader_impl.cpp
+                            ${SDK_HEADERS_DIR}/reader_status_impl.h
+                            reader_status_impl.cpp
                             typed_reader.cpp
 )
 
@@ -63,6 +67,7 @@ set(SRC_Cpp stream_reader_impl.cpp
             block_reader_impl.cpp
             tail_reader_impl.cpp
             packet_reader_impl.cpp
+            reader_status_impl.cpp
             reader_impl.cpp
             typed_reader.cpp
             multi_reader_impl.cpp
@@ -86,6 +91,7 @@ set(SRC_PrivateHeaders stream_reader_impl.h
                        multi_reader_impl.h
                        multi_typed_reader.h
                        signal_reader.h
+                       reader_status_impl.h
                        reader_impl.h
 )
 
@@ -102,7 +108,8 @@ list(APPEND SRC_Cpp ${SRC_Reader_Cpp}
                     ${SRC_MultiReader_Cpp}
 )
 
-list(APPEND SRC_PublicHeaders ${SRC_Reader_PublicHeaders}
+list(APPEND SRC_PublicHeaders ${SRC_ReaderStatus_PublicHeaders}
+                              ${SRC_Reader_PublicHeaders}
                               ${SRC_SampleReader_PublicHeaders}
                               ${SRC_ReaderConfig_PublicHeaders}
                               ${SRC_StreamReader_PublicHeaders}
@@ -113,7 +120,8 @@ list(APPEND SRC_PublicHeaders ${SRC_Reader_PublicHeaders}
                               reader.natvis
 )
 
-list(APPEND SRC_PrivateHeaders ${SRC_Reader_PrivateHeaders}
+list(APPEND SRC_PrivateHeaders ${SRC_ReaderStatus_PrivateHeaders}
+                               ${SRC_Reader_PrivateHeaders}
                                ${SRC_SampleReader_PrivateHeaders}
                                ${SRC_ReaderConfig_PrivateHeaders}
                                ${SRC_StreamReader_PrivateHeaders}

@@ -4,10 +4,12 @@ set(SRC_Headers bb_memcheck_listener.h
                 testutils.h
                 memcheck_listener.h
                 ut_logging.h
+                test_comparators.h
 )
 
 set(SRC_Cpp bb_memcheck_listener.cpp
             memcheck_listener.cpp
+            test_comparators.cpp
 )
 
 prepend_include(testutils SRC_Headers)
@@ -27,6 +29,8 @@ target_compile_definitions(${MODULE_NAME} PUBLIC ${OPENDAQ_TEST_COMPILE_DEFINES}
 target_compile_features(${MODULE_NAME} INTERFACE cxx_std_17)
 
 target_link_libraries(${MODULE_NAME} PUBLIC daq::coretypes
+                                            daq::coreobjects
+                                            daq::opendaq
                                             testlibs
 )
 

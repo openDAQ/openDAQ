@@ -59,6 +59,7 @@ of the change.
 
 Other metadata of a Signal is accessible through its Data Descriptor
 
+[#data_descriptor]
 == Data Descriptor
 
 The Data Descriptor defines the sort of data that is sent by Signals. It allows anyone

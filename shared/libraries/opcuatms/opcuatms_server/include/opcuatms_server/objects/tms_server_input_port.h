@@ -31,11 +31,16 @@ public:
     TmsServerInputPort(const InputPortPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
 
     opcua::OpcUaNodeId getReferenceType() override;
+    void addChildNodes() override;
     void bindCallbacks() override;
     void createNonhierarchicalReferences() override;
 
 protected:
     opcua::OpcUaNodeId getTmsTypeId() override;
+    void createConnectMethodNode();
+    void createDisconnectMethodNode();
+    void onConnectSignal(NodeEventManager::MethodArgs args);
+    void onDisconenctSignal(NodeEventManager::MethodArgs args);
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

@@ -13,6 +13,11 @@ ErrCode MockModuleImpl::getName(IString** name)
     return createString(name, "MockModule");
 }
 
+ErrCode MockModuleImpl::getId(IString** id)
+{
+    return createString(id, "Mock");
+}
+
 ErrCode MockModuleImpl::getAvailableDevices(IList** availableDevices)
 {
     OPENDAQ_PARAM_NOT_NULL(availableDevices);

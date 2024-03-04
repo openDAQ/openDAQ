@@ -11,6 +11,12 @@
 #include <opendaq/device_private.h>
 #include <opendaq/streaming_info_ptr.h>
 #include <opendaq/search_filter_factory.h>
+#include <open62541/types_daqesp_generated.h>
+#include <opcuatms/converters/variant_converter.h>
+#include <coreobjects/property_object_factory.h>
+#include <opcuatms/converters/property_object_conversion_utils.h>
+#include <opcuatms/converters/list_conversion_utils.h>
+#include <opcuatms_server/objects/tms_server_function_block_type.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -46,7 +52,7 @@ namespace detail
         {"Platform", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getPlatform().getCharPtr()}; }},
         {"Position", [](const DeviceInfoPtr& info) { return OpcUaVariant{static_cast<uint16_t>(info.getPosition())}; }},
         {"SystemType", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemType().getCharPtr()}; }},
-        {"SystemUUID", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemUuid().getCharPtr()}; }}
+        {"SystemUUID", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemUuid().getCharPtr()}; }},
     };
 }
 
@@ -115,6 +121,7 @@ void TmsServerDevice::bindCallbacks()
 
 void TmsServerDevice::populateDeviceInfo()
 {
+
     auto createNode = [this](std::string name, CoreType type)
     {
         OpcUaNodeId newNodeId(0);
@@ -144,6 +151,8 @@ void TmsServerDevice::populateDeviceInfo()
 
     auto deviceInfo = object.getInfo();
 
+    createNode("OpenDaqPackageVersion", ctString);
+
     const auto customInfoNames = deviceInfo.getCustomInfoPropertyNames();
     std::unordered_set<std::string> customInfoNamesSet;
 
@@ -156,7 +165,6 @@ void TmsServerDevice::populateDeviceInfo()
         }
         catch(...)
         {
-            
         }
     }
 
@@ -173,6 +181,11 @@ void TmsServerDevice::populateDeviceInfo()
         if (detail::componentFieldToVariant.count(browseName))
         {
             auto v = detail::componentFieldToVariant[browseName](deviceInfo);
+            server->writeValue(reference.nodeId.nodeId, *v);
+        }
+        else if (browseName == "OpenDaqPackageVersion")
+        {
+            auto v = OpcUaVariant{deviceInfo.getSdkVersion().getCharPtr()};
             server->writeValue(reference.nodeId.nodeId, *v);
         }
         else if (customInfoNamesSet.count(browseName))
@@ -230,6 +243,192 @@ void TmsServerDevice::populateStreamingOptions()
     }
 }
 
+void TmsServerDevice::addFunctionBlockFolderNodes()
+{
+    auto fbNodeId = getChildNodeId("FB");
+
+    createFunctionBlockTypesFolder(fbNodeId);
+    createAddFunctionBlockNode(fbNodeId);
+    createRemoveFunctionBlockNode(fbNodeId);
+}
+
+void TmsServerDevice::createFunctionBlockTypesFolder(const OpcUaNodeId& parentId)
+{
+    OpcUaNodeId nodeIdOut;
+    AddObjectNodeParams params(nodeIdOut, parentId);
+    params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
+    params.typeDefinition = OpcUaNodeId(UA_NS0ID_FOLDERTYPE);
+    params.setBrowseName("AvailableTypes");
+
+    const auto typesFolderId = server->addObjectNode(params);
+    const auto fbTypes = this->object.getAvailableFunctionBlockTypes().getValueList();
+
+    for (const auto& fbType : fbTypes)
+    {
+        auto tmsFbType = std::make_shared<TmsServerFunctionBlockType>(fbType, server, daqContext, tmsContext);
+        tmsFbType->registerOpcUaNode(typesFolderId);
+        functionBlockTypes.push_back(tmsFbType);
+    }
+}
+
+void TmsServerDevice::createAddFunctionBlockNode(const OpcUaNodeId& parentId)
+{
+    OpcUaNodeId nodeIdOut;
+    AddMethodNodeParams params(nodeIdOut, parentId);
+    params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
+    params.setBrowseName("Add");
+    params.outputArgumentsSize = 2;
+    params.outputArguments = (UA_Argument*) UA_Array_new(params.outputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
+    params.inputArgumentsSize = 2;
+    params.inputArguments = (UA_Argument*) UA_Array_new(params.inputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
+
+    params.outputArguments[0].name = UA_STRING_ALLOC("nodeId");
+    params.outputArguments[0].dataType = UA_TYPES[UA_TYPES_NODEID].typeId;
+    params.outputArguments[0].valueRank = UA_VALUERANK_SCALAR;
+
+    params.outputArguments[1].name = UA_STRING_ALLOC("localId");
+    params.outputArguments[1].dataType = UA_TYPES[UA_TYPES_STRING].typeId;
+    params.outputArguments[1].valueRank = UA_VALUERANK_SCALAR;
+
+    params.inputArguments[0].name = UA_STRING_ALLOC("typeId");
+    params.inputArguments[0].dataType = UA_TYPES[UA_TYPES_STRING].typeId;
+    params.inputArguments[0].valueRank = UA_VALUERANK_SCALAR;
+
+    params.inputArguments[1].name = UA_STRING_ALLOC("config");
+    params.inputArguments[1].dataType = UA_TYPES_DAQBT[UA_TYPES_DAQBT_DAQKEYVALUEPAIR].typeId;
+    params.inputArguments[1].valueRank = UA_VALUERANK_ONE_DIMENSION;
+
+    auto methodNodeId = server->addMethodNode(params);
+
+    auto callback = [this](NodeEventManager::MethodArgs args)
+    {
+        try
+        {
+            this->onAddFunctionBlock(args);
+            return OPENDAQ_SUCCESS;
+        }
+        catch (const OpcUaException& e)
+        {
+            return e.getStatusCode();
+        }
+    };
+
+    addEvent(methodNodeId)->onMethodCall(callback);
+}
+
+void TmsServerDevice::createRemoveFunctionBlockNode(const OpcUaNodeId& parentId)
+{
+    OpcUaNodeId nodeIdOut;
+    AddMethodNodeParams params(nodeIdOut, parentId);
+    params.referenceTypeId = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT));
+    params.setBrowseName("Remove");
+    params.inputArgumentsSize = 1;
+    params.inputArguments = (UA_Argument*) UA_Array_new(params.inputArgumentsSize, &UA_TYPES[UA_TYPES_ARGUMENT]);
+
+    params.inputArguments[0].name = UA_STRING_ALLOC("localId");
+    params.inputArguments[0].dataType = UA_TYPES[UA_TYPES_STRING].typeId;
+    params.inputArguments[0].valueRank = UA_VALUERANK_SCALAR;
+
+    auto methodNodeId = server->addMethodNode(params);
+
+    auto callback = [this](NodeEventManager::MethodArgs args)
+    {
+        try
+        {
+            this->onRemoveFunctionBlock(args);
+            return OPENDAQ_SUCCESS;
+        }
+        catch (const OpcUaException& e)
+        {
+            return e.getStatusCode();
+        }
+    };
+
+    addEvent(methodNodeId)->onMethodCall(callback);
+}
+
+void TmsServerDevice::onGetAvailableFunctionBlockTypes(const NodeEventManager::MethodArgs& args)
+{
+    assert(args.outputSize == 1);
+
+    const auto fbTypes = object.getAvailableFunctionBlockTypes().getValueList();
+    const auto variant = ListConversionUtils::ToArrayVariant<IFunctionBlockType, UA_FunctionBlockInfoStructure>(fbTypes);
+    args.output[0] = variant.copyAndGetDetachedValue();
+}
+
+void TmsServerDevice::onAddFunctionBlock(const NodeEventManager::MethodArgs& args)
+{
+    assert(args.inputSize == 2);
+    assert(args.outputSize == 2);
+
+    const auto fbTypeId = OpcUaVariant(args.input[0]).toString();
+    const auto configVariant = OpcUaVariant(args.input[1]);
+
+    auto tmsFunctionBlock = addFunctionBlock(fbTypeId, configVariant);
+
+    auto nodeIdOut = OpcUaVariant(tmsFunctionBlock->getNodeId());
+    auto localIdOut = OpcUaVariant(tmsFunctionBlock->getBrowseName().c_str());
+    args.output[0] = nodeIdOut.copyAndGetDetachedValue();
+    args.output[1] = localIdOut.copyAndGetDetachedValue();
+}
+
+void TmsServerDevice::onRemoveFunctionBlock(const NodeEventManager::MethodArgs& args)
+{
+    assert(args.inputSize == 1);
+
+    const auto fbLocalId = OpcUaVariant(args.input[0]).toString();
+    removeFunctionBlock(fbLocalId);
+}
+
+
+TmsServerFunctionBlockPtr TmsServerDevice::addFunctionBlock(const StringPtr& fbTypeId, const OpcUaVariant& configVariant)
+{
+    const auto fbTypes = object.getAvailableFunctionBlockTypes();
+
+    if (!fbTypes.hasKey(fbTypeId))
+        throw OpcUaException(UA_STATUSCODE_BADNOTFOUND, "Function block type not found");
+
+    auto config = fbTypes.get(fbTypeId).createDefaultConfig();
+    PropertyObjectConversionUtils::ToPropertyObject(configVariant, config);
+    return addFunctionBlock(fbTypeId, config);
+}
+
+TmsServerFunctionBlockPtr TmsServerDevice::addFunctionBlock(const StringPtr& fbTypeId, const PropertyObjectPtr& config)
+{
+    const auto fbFolderNodeId = getChildNodeId("FB");
+
+    auto functionBlock = object.addFunctionBlock(fbTypeId, config);
+    auto tmsFunctionBlock = registerTmsObjectOrAddReference<TmsServerFunctionBlock<>>(fbFolderNodeId, functionBlock, functionBlocks.size());
+    functionBlocks.push_back(tmsFunctionBlock);
+    return tmsFunctionBlock;
+}
+
+void TmsServerDevice::removeFunctionBlock(const StringPtr& localId)
+{
+    for (auto it = functionBlocks.begin(); it != functionBlocks.end(); ++it)
+    {
+        auto fb = *it;
+
+        if (fb->getBrowseName() == localId)
+        {
+            server->deleteNode(fb->getNodeId());
+            functionBlocks.erase(it);
+            break;
+        }
+    }
+
+    const auto objFunctionBlocks = this->object.getFunctionBlocks(search::Any());
+
+    for (const auto& fb : objFunctionBlocks)
+    {
+        if (fb.getLocalId() == localId)
+        {
+            this->object.removeFunctionBlock(fb);
+            break;
+        }
+    }
+}
+
 void TmsServerDevice::addChildNodes()
 {
     populateDeviceInfo();
@@ -258,8 +457,11 @@ void TmsServerDevice::addChildNodes()
     numberInList = 0;
     for (const auto& signal : object.getSignals(search::Any()))
     {
-        auto tmsSignal = registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal, numberInList++);
-        signals.push_back(std::move(tmsSignal));
+        if (signal.getPublic())
+        {
+            auto tmsSignal = registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal, numberInList++);
+            signals.push_back(std::move(tmsSignal));
+        }
     }
 
     auto inputsOutputsNodeId = getChildNodeId("IO");
@@ -289,6 +491,7 @@ void TmsServerDevice::addChildNodes()
         }
     }
 
+    addFunctionBlockFolderNodes();
     Super::addChildNodes();
 }
 

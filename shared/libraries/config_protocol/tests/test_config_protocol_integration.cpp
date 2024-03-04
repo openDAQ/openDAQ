@@ -69,6 +69,47 @@ TEST_F(ConfigProtocolIntegrationTest, Connect)
     ASSERT_EQ(serverDeviceSerialized, clientDeviceSerialized);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, InputPortConnected)
+{
+    ASSERT_EQ(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal(),
+              serverDevice.getDevices()[0].getSignals()[0]);
+
+    ASSERT_EQ(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal(),
+              clientDevice.getDevices()[0].getSignals()[0]);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, DisconnectAndConnectInputPortFromClient)
+{
+    ASSERT_TRUE(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    ASSERT_TRUE(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+
+    const auto clientSignal = clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal();
+
+    clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].disconnect();
+    ASSERT_FALSE(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    ASSERT_FALSE(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+
+    clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].connect(clientSignal);
+    ASSERT_TRUE(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    ASSERT_TRUE(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+}
+
+TEST_F(ConfigProtocolIntegrationTest, DisconnectAndConnectInputPortFromServer)
+{
+    ASSERT_TRUE(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    ASSERT_TRUE(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    const auto serverSignal = serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal();
+
+    serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].disconnect();
+
+    ASSERT_FALSE(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    ASSERT_FALSE(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+
+    serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].connect(serverSignal);
+    ASSERT_TRUE(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+    ASSERT_TRUE(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal().assigned());
+}
+
 TEST_F(ConfigProtocolIntegrationTest, RemoteGlobalIds)
 {
     const auto serverDeviceSerialized = serializeComponent(serverDevice);
@@ -123,7 +164,6 @@ TEST_F(ConfigProtocolIntegrationTest, GetInitialPropertyValue)
     const auto clientDeviceSerialized = serializeComponent(clientDevice);
     ASSERT_EQ(serverDeviceSerialized, clientDeviceSerialized);
 }
-
 
 TEST_F(ConfigProtocolIntegrationTest, SetPropertyValue)
 {
@@ -186,6 +226,32 @@ TEST_F(ConfigProtocolIntegrationTest, CallProcProp)
     ASSERT_TRUE(called);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, GetDeviceInfo)
+{
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+
+    ASSERT_EQ(clientSubDevice.getInfo().getConnectionString(), "mock://dev1");
+    ASSERT_EQ(clientSubDevice.getInfo().getName(), "MockDevice1");
+    ASSERT_EQ(clientSubDevice.getInfo().getManufacturer(), "Testing");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, DomainInfo)
+{
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+
+    ASSERT_EQ(clientSubDevice.getDomain().getOrigin(), "N/A");
+    ASSERT_EQ(clientSubDevice.getDomain().getTickResolution(), Ratio(1, 100));
+    ASSERT_EQ(clientSubDevice.getDomain().getUnit(), Unit("s", -1, "second", "time"));
+}
+
+TEST_F(ConfigProtocolIntegrationTest, GetTicksSinceOrigin)
+{
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 0);
+    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 1);
+    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 2);
+}
+
 TEST_F(ConfigProtocolIntegrationTest, GetAvailableFunctionBlockTypes)
 {
     const auto serverSubDevice = serverDevice.getDevices()[0];
@@ -202,6 +268,7 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlockNotFound)
 
     ASSERT_THROW(clientSubDevice.addFunctionBlock("someFb"), NotFoundException);
 }
+
 TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlock)
 {
     serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
@@ -219,6 +286,10 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlock)
     ASSERT_EQ(fb, clientSubDevice.getFunctionBlocks()[1]);
 
     ASSERT_EQ(fb.asPtr<IConfigClientObject>().getRemoteGlobalId(), serverSubDevice.getFunctionBlocks()[1].getGlobalId());
+    ASSERT_EQ(fb.getSignals()[0].asPtr<IConfigClientObject>().getRemoteGlobalId(),
+              serverSubDevice.getFunctionBlocks()[1].getSignals()[0].getGlobalId());
+    ASSERT_EQ(fb.getSignals()[2].asPtr<IConfigClientObject>().getRemoteGlobalId(),
+              serverSubDevice.getFunctionBlocks()[1].getSignals()[2].getGlobalId());
     ASSERT_EQ(fb.getSignals()[0].getDomainSignal(), fb.getSignals()[2]);
 }
 
@@ -238,7 +309,51 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlockWithEvent)
     ASSERT_EQ(fb, clientSubDevice.getFunctionBlocks()[1]);
 
     ASSERT_EQ(fb.asPtr<IConfigClientObject>().getRemoteGlobalId(), serverSubDevice.getFunctionBlocks()[1].getGlobalId());
+    ASSERT_EQ(fb.getSignals()[0].asPtr<IConfigClientObject>().getRemoteGlobalId(),
+              serverSubDevice.getFunctionBlocks()[1].getSignals()[0].getGlobalId());
+    ASSERT_EQ(fb.getSignals()[2].asPtr<IConfigClientObject>().getRemoteGlobalId(),
+              serverSubDevice.getFunctionBlocks()[1].getSignals()[2].getGlobalId());
     ASSERT_EQ(fb.getSignals()[0].getDomainSignal(), fb.getSignals()[2]);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, RemoveFunctionBlock)
+{
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 1);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 1);
+
+    ASSERT_NO_THROW(clientSubDevice.removeFunctionBlock(clientSubDevice.getFunctionBlocks()[0]));
+
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 0);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 0);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, RemoveFunctionBlockWithEvent)
+{
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 1);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 1);
+
+    ASSERT_NO_THROW(clientSubDevice.removeFunctionBlock(clientSubDevice.getFunctionBlocks()[0]));
+
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 0);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 0);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, RemoveFunctionBlockFromServer)
+{
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 1);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 1);
+
+    ASSERT_NO_THROW(serverSubDevice.removeFunctionBlock(clientSubDevice.getFunctionBlocks()[0]));
+
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 0);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 0);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetInitialStructPropertyValue)
@@ -263,4 +378,48 @@ TEST_F(ConfigProtocolIntegrationTest, DomainSignals)
 
     ASSERT_EQ(clientDevice.getDevices()[0].getChannels()[0].getSignals()[0].getDomainSignal(),
               clientDevice.getDevices()[0].getChannels()[0].getSignals()[1]);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdate)
+{
+    clientDevice.beginUpdate();
+    clientDevice.setPropertyValue("StrProp", "SomeValue");
+    ASSERT_EQ(clientDevice.getPropertyValue("StrProp"), "-");
+    ASSERT_EQ(serverDevice.getPropertyValue("StrProp"), "-");
+    clientDevice.endUpdate();
+    ASSERT_EQ(clientDevice.getPropertyValue("StrProp"), "SomeValue");
+    ASSERT_EQ(serverDevice.getPropertyValue("StrProp"), "SomeValue");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateRecursive)
+{
+    clientDevice.beginUpdate();
+    clientDevice.getChannels()[0].setPropertyValue("StrProp", "SomeValue");
+    ASSERT_EQ(clientDevice.getChannels()[0].getPropertyValue("StrProp"), "-");
+    ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), "-");
+    clientDevice.endUpdate();
+    ASSERT_EQ(clientDevice.getChannels()[0].getPropertyValue("StrProp"), "SomeValue");
+    ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), "SomeValue");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, SetSignalNameAndDescriptionFromClient)
+{
+    const auto serverSignal = serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal();
+    const auto clientSignal = clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal();
+
+    clientSignal.setName("SigName");
+
+    ASSERT_EQ(clientSignal.getName(), "SigName");
+    ASSERT_EQ(serverSignal.getName(), "SigName");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, SetSignalNameAndDescriptionFromServer)
+{
+    const auto serverSignal = serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal();
+    const auto clientSignal = clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal();
+
+    serverSignal.setName("SigName");
+
+    ASSERT_EQ(clientSignal.getName(), "SigName");
+    ASSERT_EQ(serverSignal.getName(), "SigName");
 }

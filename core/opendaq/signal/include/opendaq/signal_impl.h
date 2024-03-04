@@ -35,6 +35,15 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+// https://developercommunity.visualstudio.com/t/inline-static-destructors-are-called-multiple-time/1157794
+#ifdef _MSC_VER
+#if _MSC_VER <= 1927
+#define WORKAROUND_MEMBER_INLINE_VARIABLE
+#endif
+#endif
+
+#define SIGNAL_AVAILABLE_ATTRIBUTES {"Public", "DomainSignal", "RelatedSignals"}
+
 template <typename TInterface, typename... Interfaces>
 class SignalBase;
 
@@ -96,8 +105,8 @@ protected:
     int getSerializeFlags() override;
 
     virtual EventPacketPtr createDataDescriptorChangedEventPacket();
-    virtual void onListenedStatusChanged();
-    bool hasListeners();
+    virtual void onListenedStatusChanged(bool listened);
+    virtual SignalPtr onGetDomainSignal();
 
     void removed() override;
     BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
@@ -107,7 +116,12 @@ protected:
 
     ErrCode lockAllAttributesInternal() override;
     
-    inline static std::unordered_set<std::string> signalAvailableAttributes = {"Public", "DomainSignal", "RelatedSignals"};
+#ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
+    static std::unordered_set<std::string> signalAvailableAttributes;
+#else
+    inline static std::unordered_set<std::string> signalAvailableAttributes = SIGNAL_AVAILABLE_ATTRIBUTES;
+#endif
+
     DataDescriptorPtr dataDescriptor;
 
 private:
@@ -116,6 +130,7 @@ private:
     std::vector<SignalPtr> relatedSignals;
     SignalPtr domainSignal;
     std::vector<ConnectionPtr> connections;
+    std::vector<ConnectionPtr> remoteConnections;
     std::vector<WeakRefPtr<ISignalConfig>> domainSignalReferences;
     StringPtr deserializedDomainSignalId;
     bool keepLastPacket = true;
@@ -123,7 +138,14 @@ private:
 
     bool sendPacketInternal(const PacketPtr& packet, bool ignoreActive = false) const;
     void triggerRelatedSignalsChanged();
+    void disconnectInputPort(const ConnectionPtr& connection);
+    void clearConnections(std::vector<ConnectionPtr>& connections);
 };
+
+#ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
+template <typename TInterface, typename... Interfaces>
+std::unordered_set<std::string> SignalBase<TInterface, Interfaces...>::signalAvailableAttributes = SIGNAL_AVAILABLE_ATTRIBUTES;
+#endif
 
 template <typename TInterface, typename... Interfaces>
 SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
@@ -213,7 +235,7 @@ EventPacketPtr SignalBase<TInterface, Interfaces...>::createDataDescriptorChange
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::onListenedStatusChanged()
+void SignalBase<TInterface, Interfaces...>::onListenedStatusChanged(bool /*listened*/)
 {
 }
 
@@ -275,7 +297,12 @@ ErrCode SignalBase<TInterface, Interfaces...>::getDomainSignal(ISignal** signal)
 
     std::scoped_lock lock(this->sync);
 
-    *signal = domainSignal.addRefAndReturn();
+    SignalPtr signalPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetDomainSignal, signalPtr);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    *signal = signalPtr.detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -453,7 +480,12 @@ ErrCode SignalBase<TInterface, Interfaces...>::getConnections(IList** connection
 
     std::scoped_lock lock(this->sync);
 
-    ListPtr<IConnection> connectionsPtr{this->connections};
+    auto connectionsPtr = List<IConnection>();
+    for (const auto& conn : this->connections)
+        connectionsPtr.pushBack(conn);
+    for (const auto& conn : this->remoteConnections)
+        connectionsPtr.pushBack(conn);
+
     *connections = connectionsPtr.detach();
 
     return OPENDAQ_SUCCESS;
@@ -509,11 +541,9 @@ void SignalBase<TInterface, Interfaces...>::triggerRelatedSignalsChanged()
 }
 
 template <typename TInterface, typename... Interfaces>
-bool SignalBase<TInterface, Interfaces...>::hasListeners()
+SignalPtr SignalBase<TInterface, Interfaces...>::onGetDomainSignal()
 {
-    std::scoped_lock lock(this->sync);
-
-    return !connections.empty();
+    return domainSignal;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -522,30 +552,34 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* co
     OPENDAQ_PARAM_NOT_NULL(connection);
 
     const auto connectionPtr = ConnectionPtr::Borrow(connection);
-    bool triggerListenedStatusChange = false;
 
+    std::scoped_lock lock(this->sync);
+
+    if (connectionPtr.isRemote())
     {
-        std::scoped_lock lock(this->sync);
-        auto it = std::find(connections.begin(), connections.end(), connectionPtr);
-        if (it != connections.end())
+        const auto it = std::find(remoteConnections.begin(), remoteConnections.end(), connectionPtr);
+        if (it != remoteConnections.end())
             return OPENDAQ_ERR_DUPLICATEITEM;
 
-        if (connections.empty())
-            triggerListenedStatusChange = true;
-
-
-        connections.push_back(connectionPtr);
-
-        const auto packet = createDataDescriptorChangedEventPacket();
-        connectionPtr.enqueueOnThisThread(packet);
+        remoteConnections.push_back(connectionPtr);
+        return OPENDAQ_SUCCESS;
     }
 
-    if (triggerListenedStatusChange)
+    const auto it = std::find(connections.begin(), connections.end(), connectionPtr);
+    if (it != connections.end())
+        return OPENDAQ_ERR_DUPLICATEITEM;
+
+    if (connections.empty())
     {
-        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged);
+        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, true);
         if (OPENDAQ_FAILED(errCode))
             return errCode;
     }
+
+    connections.push_back(connectionPtr);
+
+    const auto packet = createDataDescriptorChangedEventPacket();
+    connectionPtr.enqueueOnThisThread(packet);
 
     return OPENDAQ_SUCCESS;
 }
@@ -556,23 +590,28 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerDisconnected(IConnection*
     OPENDAQ_PARAM_NOT_NULL(connection);
 
     const auto connectionPtr = ObjectPtr<IConnection>::Borrow(connection);
-    bool triggerListenedStatusChange = false;
 
+    std::scoped_lock lock(this->sync);
+
+    if (connectionPtr.isRemote())
     {
-        std::scoped_lock lock(this->sync);
-        auto it = std::find(connections.begin(), connections.end(), connectionPtr);
-        if (it == connections.end())
+        const auto it = std::find(remoteConnections.begin(), remoteConnections.end(), connectionPtr);
+        if (it == remoteConnections.end())
             return OPENDAQ_ERR_NOTFOUND;
 
-        connections.erase(it);
-
-        if (connections.empty())
-            triggerListenedStatusChange = true;
+        remoteConnections.erase(it);
+        return OPENDAQ_SUCCESS;
     }
 
-    if (triggerListenedStatusChange)
+    const auto it = std::find(connections.begin(), connections.end(), connectionPtr);
+    if (it == connections.end())
+        return OPENDAQ_ERR_NOTFOUND;
+
+    connections.erase(it);
+
+    if (connections.empty())
     {
-        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged);
+        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, false);
         if (OPENDAQ_FAILED(errCode))
             return errCode;
     }
@@ -685,12 +724,18 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
         dataDescriptor.serialize(serializer);
     }
 
+    serializer.key("public");
+    serializer.writeBool(isPublic);
+
     Super::serializeCustomObjectValues(serializer, forUpdate);
 }
 
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
 {
+    if (obj.hasKey("public"))
+        isPublic = obj.readBool("public");
+
     Super::updateObject(obj);
 }
 
@@ -701,21 +746,31 @@ int SignalBase<TInterface, Interfaces...>::getSerializeFlags()
     return ComponentSerializeFlag_SerializeActiveProp;
 }
 
+template <typename TInterface, typename ... Interfaces>
+void SignalBase<TInterface, Interfaces...>::disconnectInputPort(const ConnectionPtr& connection)
+{
+    const auto inputPort = connection.getInputPort();
+    if (inputPort.assigned())
+    {
+        const auto inputPortPrivate = inputPort.template asPtrOrNull<IInputPortPrivate>(true);
+        if (inputPortPrivate.assigned())
+            inputPortPrivate.disconnectWithoutSignalNotification();
+    }
+}
+
+template <typename TInterface, typename ... Interfaces>
+void SignalBase<TInterface, Interfaces...>::clearConnections(std::vector<ConnectionPtr>& connections)
+{
+    for (auto& connection : connections)
+        disconnectInputPort(connection);
+    connections.clear();
+}
+
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::removed()
 {
-    for (auto& connection : connections)
-    {
-        auto inputPort = connection.getInputPort();
-        if (inputPort.assigned())
-        {
-            auto inputPortPrivate = inputPort.template asPtrOrNull<IInputPortPrivate>(true);
-            if (inputPortPrivate.assigned())
-                inputPortPrivate.disconnectWithoutSignalNotification();
-        }
-    }
-
-    connections.clear();
+    clearConnections(connections);
+    clearConnections(remoteConnections);
 
     for (auto it = begin(domainSignalReferences); it != end(domainSignalReferences); ++it)
     {
@@ -752,6 +807,8 @@ void SignalBase<TInterface, Interfaces...>::deserializeCustomObjectValues(const 
         deserializedDomainSignalId = serializedObject.readString("domainSignalId");
     if (serializedObject.hasKey("dataDescriptor"))
         dataDescriptor = serializedObject.readObject("dataDescriptor", context, factoryCallback);
+    if (serializedObject.hasKey("public"))
+        isPublic = serializedObject.readBool("public");
 }
 
 template <typename TInterface, typename... Interfaces>

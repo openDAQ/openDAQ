@@ -29,19 +29,6 @@ TEST_F(MirroredSignalTest, RemotelId)
     ASSERT_EQ(signal.getRemoteId(), "signal");
 }
 
-TEST_F(MirroredSignalTest, MatchingId)
-{
-    auto signal = createMirroredSignal("321");
-
-    ASSERT_TRUE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("1"));
-    ASSERT_TRUE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("21"));
-    ASSERT_TRUE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("321"));
-
-    ASSERT_FALSE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("4321"));
-    ASSERT_FALSE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("123"));
-    ASSERT_FALSE(signal.template asPtr<IMirroredSignalPrivate>()->hasMatchingId("12"));
-}
-
 TEST_F(MirroredSignalTest, GetActiveSourceNotAssigned)
 {
     auto signal = createMirroredSignal("signal");
@@ -207,6 +194,23 @@ TEST_F(MirroredSignalTest, SubscriptionEvents)
     signal.template asPtr<IMirroredSignalPrivate>()->unsubscribeCompleted("TestStreaming");
     ASSERT_EQ(unsubscribeEventArgs.getStreamingConnectionString(), "TestStreaming");
     ASSERT_EQ(unsubscribeEventArgs.getSubscriptionEventType(), SubscriptionEventType::Unsubscribed);
+}
+
+TEST_F(MirroredSignalTest, Remove)
+{
+    auto signal = createMirroredSignal("signal");
+    auto streaming = MockStreaming("connectionString");
+    streaming.addSignals({signal});
+    signal.setActiveStreamingSource("connectionString");
+
+    ASSERT_EQ(signal.getStreamingSources().getCount(), 1u);
+    ASSERT_EQ(signal.getActiveStreamingSource(), "connectionString");
+
+    signal.remove();
+
+    ASSERT_EQ(signal.getStreamingSources().getCount(), 0u);
+    ASSERT_EQ(signal.getActiveStreamingSource(), nullptr);
+    ASSERT_TRUE(signal.isRemoved());
 }
 
 END_NAMESPACE_OPENDAQ

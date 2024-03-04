@@ -1,0 +1,67 @@
+﻿    public $ReturnTypePtr$ $Name$($Arguments$)
+    {
+        //use full array
+        nuint startIndex = 0;
+
+        $CSReturnOrVoidCall$$Name$Internal($CSArgumentNamesReader$);
+    }
+
+    $CSMethodDocReader$
+    public $ReturnTypePtr$ $Name$($CSArgumentsReader$)
+    {
+        //preset, will be adapted to the correct array length available
+        count = nuint.MaxValue;
+
+        $CSReturnOrVoidCall$$Name$Internal($CSArgumentNamesReader$);
+    }
+
+    $CSMethodDocReader$
+    private $ReturnTypePtr$ $Name$Internal($CSArgumentsReader$)
+    {$CSNativeOutputArgument$
+        if (count == 0)
+        {
+            return$CSDefaultReturnValue$;
+            //ToDo: or throw exception?
+        }
+
+        nuint arrayLength = $CSArrayLength$;
+
+        if (arrayLength == 0)
+        {
+            count = 0;
+            return$CSDefaultReturnValue$;
+            //ToDo: or throw exception?
+        }
+
+        if (startIndex >= arrayLength)
+        {
+            count = 0;
+            return$CSDefaultReturnValue$;
+            //ToDo: or throw exception?
+        }
+
+        nuint maxReadCount = arrayLength - startIndex;
+
+        if (count > maxReadCount)
+        {
+            //adapt
+            count = maxReadCount;
+        }
+
+        $CSCheckArrayTypeAndThrow$
+        unsafe //use native method pointer
+        {
+#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
+            $CSFixedArrays$
+#pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
+            {
+                //call native method
+                $ReturnType$ $CSReturnVariable$ = ($ReturnType$)_raw$NonInterfaceType$.$CSRawMethodName$($ArgumentNames$);
+
+                if (Result.Failed($CSReturnVariable$))
+                {
+                    throw new OpenDaqException($CSReturnVariable$);
+                }
+            }
+        }$CSReturnTheOutputValue$
+    }

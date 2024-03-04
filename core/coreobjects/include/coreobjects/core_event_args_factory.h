@@ -94,6 +94,30 @@ inline CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& pr
     return obj;
 }
 
+/*!
+ * @brief Creates Core event args that are passed as argument when a type is added to the type manager.
+ * @param type The type that was added.
+ *
+ * The ID of the event is 130, and the event name is "TypeAdded".
+ */
+inline CoreEventArgsPtr CoreEventArgsTypeAdded(const TypePtr& type)
+{
+    CoreEventArgsPtr obj(CoreEventArgsTypeAdded_Create(type));
+    return obj;
+}
+
+/*!
+ * @brief Creates Core event args that are passed as argument when a type is removed from the type manager.
+ * @param typeName The name of the removed type
+ *
+ * The ID of the event is 140, and the event name is "TypeRemoved".
+ */
+inline CoreEventArgsPtr CoreEventArgsTypeRemoved(const StringPtr& typeName)
+{
+    CoreEventArgsPtr obj(CoreEventArgsTypeRemoved_Create(typeName));
+    return obj;
+}
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

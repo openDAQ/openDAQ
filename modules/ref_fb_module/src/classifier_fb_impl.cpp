@@ -15,6 +15,7 @@
 #include <opendaq/sample_type_traits.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/dimension_factory.h>
+#include <opendaq/reader_factory.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -47,7 +48,7 @@ void ClassifierFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("BlockSize") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    auto classCountProp = IntPropertyBuilder("ClassCount", 1).setVisible(EvalValue("!$UseCustomClasses")).build();
+    auto classCountProp = FloatPropertyBuilder("ClassCount", 1).setVisible(EvalValue("!$UseCustomClasses")).build();
     objPtr.addProperty(classCountProp);
     objPtr.getOnPropertyValueWrite("ClassCount") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
@@ -97,7 +98,23 @@ void ClassifierFbImpl::readProperties()
     assert(blockSize > 0);
     if (!useCustomClasses)
         assert(classCount > 0);
-
+    else if (customClassList.empty())
+    {
+        LOG_W("ClassifierFb: CustomClassList is empty");
+    }
+    else
+    {
+        Float lastValue = customClassList[0];
+        for (const auto& el : customClassList)
+        {
+            if (static_cast<Float>(el) <= lastValue)
+            {
+                LOG_W("ClassifierFb: CustomClassList is not incremental");
+                break;
+            }
+            lastValue = el;
+        }
+    }
 }
 
 FunctionBlockTypePtr ClassifierFbImpl::CreateType()
@@ -105,15 +122,18 @@ FunctionBlockTypePtr ClassifierFbImpl::CreateType()
     return FunctionBlockType("ref_fb_module_classifier", "Classifier", "Signal classifing");
 }
 
-void ClassifierFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
-                                                   const DataDescriptorPtr& inputDomainDataDescriptor)
+bool ClassifierFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor, const DataDescriptorPtr& inputDomainDataDescriptor)
 {
     if (inputDataDescriptor.assigned())
         this->inputDataDescriptor = inputDataDescriptor;
     if (inputDomainDataDescriptor.assigned())
         this->inputDomainDataDescriptor = inputDomainDataDescriptor;
 
+    if (!inputDataDescriptor.assigned() && !inputDomainDataDescriptor.assigned())
+        return false;
+
     configure();
+    return true;
 }
 
 void ClassifierFbImpl::configure()
@@ -132,7 +152,7 @@ void ClassifierFbImpl::configure()
 
     try
     {
-        if (inputDataDescriptor.isStructDescriptor() || inputDataDescriptor.getDimensions().getCount() > 0)
+        if (inputDataDescriptor.getSampleType() == SampleType::Struct || inputDataDescriptor.getDimensions().getCount() > 0)
             throw std::runtime_error("Incompatible input value data descriptor");
 
         inputSampleType = inputDataDescriptor.getSampleType();
@@ -176,6 +196,18 @@ void ClassifierFbImpl::configure()
             linearBlockCount = inputResolution / inputDeltaTicks;
             // packets per BlockSize
             linearBlockCount = blockSize * linearBlockCount / 1000;
+
+            if (!linearReader.assigned())
+            {
+                linearReader = BlockReaderFromPort(inputPort, linearBlockCount, inputDataDescriptor.getSampleType(), inputDomainDataDescriptor.getSampleType());
+                linearReader.setOnDataAvailable([this] {
+                        SAMPLE_TYPE_DISPATCH(inputSampleType, processLinearDataPacket);
+                    });
+            }
+            else
+            {
+                linearReader = BlockReaderFromExisting(linearReader, linearBlockCount, inputDataDescriptor.getSampleType(), inputDomainDataDescriptor.getSampleType());
+            }
         }
 
         auto outputDataDescriptorBuilder = DataDescriptorBuilder().setSampleType(SampleType::Float64);
@@ -194,7 +226,9 @@ void ClassifierFbImpl::configure()
             }
 
             size_t rangeSize = inputHighValue - inputLowValue;
-            rangeSize = (rangeSize / classCount) + (rangeSize % classCount != 0) + 1;
+            Float offset = rangeSize / classCount;
+            offset = offset != std::round(offset);
+            rangeSize = (rangeSize / classCount) + offset + 1;
             dimensions.pushBack(Dimension(LinearDimensionRule(classCount, (Int)inputLowValue, rangeSize)));
         }
         outputDataDescriptorBuilder.setDimensions(dimensions);
@@ -237,6 +271,15 @@ void ClassifierFbImpl::onPacketReceived(const InputPortPtr& port)
     if (!connection.assigned())
         return;
 
+    packet = connection.peek();
+    if (packet.assigned() && packet.getType() == PacketType::Event)
+    {
+        processEventPacket(packet);
+    }
+
+    if (linearReader.assigned())
+        return;
+
     packet = connection.dequeue();
 
     while (packet.assigned())
@@ -248,14 +291,7 @@ void ClassifierFbImpl::onPacketReceived(const InputPortPtr& port)
                 break;
 
             case PacketType::Data:
-                if (domainLinear)
-                {
-                    SAMPLE_TYPE_DISPATCH(inputSampleType, processLinearDataPacket, packet);
-                }
-                else
-                {
-                    SAMPLE_TYPE_DISPATCH(inputSampleType, processDataPacket, packet);
-                }
+                SAMPLE_TYPE_DISPATCH(inputSampleType, processDataPacket, packet);
                 break;
 
             default:
@@ -318,9 +354,10 @@ Int ClassifierFbImpl::binarySearch(float value, const ListPtr<IBaseObject>& labe
 }
 
 template <SampleType InputSampleType>
-void ClassifierFbImpl::processLinearDataPacket(const DataPacketPtr& packet)
+void ClassifierFbImpl::processLinearDataPacket()
 {
     using InputType = typename SampleTypeToType<InputSampleType>::Type;
+    using InputDomainType = UInt;
     using OutputType = Float;
     
     if (linearBlockCount == 0)
@@ -329,86 +366,46 @@ void ClassifierFbImpl::processLinearDataPacket(const DataPacketPtr& packet)
         return;
     }
 
-    // if packet does not have samples - ignore
-    if (packet.getSampleCount() == 0)
-        return;
-
-    packets.push_back(packet);
-    samplesInPacketList += packet.getSampleCount();
-
-    // initialize members
-    if (packetStarted == UInt{})
-    {
-        auto inputDomainData = static_cast<UInt*>(packet.getDomainPacket().getData());
-        packetStarted = inputDomainData[0];
-        lastReadSampleInBlock = 0;
-    }
-
-    size_t outputPackets = samplesInPacketList / linearBlockCount;
-    if (!outputPackets)
-        return;
-
     auto labels = outputDataDescriptor.getDimensions()[0].getLabels();
     if (labels.getCount() == 0) 
         return;
 
-    DataPacketPtr outputDomainPacket {};
+    SizeT readBlock = 1;
+    auto inputData = std::make_unique<InputType[]>(linearBlockCount);
+    auto inputDomainData = std::make_unique<InputDomainType[]>(linearBlockCount);
 
-    DataPacketPtr outputPacket {};
-    OutputType* outputData {};
+    auto status = linearReader.readWithDomain(inputData.get(), inputDomainData.get(), &readBlock);
+    auto eventPacket = status.getEventPacket();
 
-    size_t packetValueCount = 0;
-
-    while (samplesInPacketList >= linearBlockCount) 
+    if (readBlock == 0)
     {
-        auto listPacket = packets.front();
-
-        auto sampleCnt = listPacket.getSampleCount();
-        auto inputData = static_cast<InputType*>(listPacket.getData());
-       
-        // reset array for new package
-        if (packetValueCount == 0)
-        {
-            outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1, packetStarted);
-
-            outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
-            outputData = static_cast<OutputType*>(outputPacket.getData());
-            memset(outputData, 0, labels.getCount() * sizeof(OutputType));
-        }
-
-        size_t sampleIdx = lastReadSampleInBlock;
-        for (; sampleIdx < sampleCnt; sampleIdx++) 
-        {
-            if (packetValueCount == linearBlockCount)
-                break;
-    
-            packetValueCount++;
-
-            auto& rawData = inputData[sampleIdx];
-
-            auto idx = binarySearch(static_cast<Float>(rawData), labels);
-            if (idx != -1)
-                outputData[idx] += 1;
-        }
-
-        if (packetValueCount != linearBlockCount) 
-        {
-            lastReadSampleInBlock = 0;
-            packets.pop_front();
-        } 
-        else 
-        {
-            for (size_t i = 0; i < labels.getCount(); i++) 
-                outputData[i] /= packetValueCount;
-
-            outputSignal.sendPacket(outputPacket);
-            outputDomainSignal.sendPacket(outputDomainPacket);
-
-            lastReadSampleInBlock = sampleIdx;
-            packetValueCount = 0;
-            samplesInPacketList -= linearBlockCount;
-        }
+        if (eventPacket.assigned())
+            processEventPacket(eventPacket);
+        return;
     }
+
+    auto outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1);
+    auto outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
+    auto outputData = static_cast<OutputType*>(outputPacket.getData());
+    memset(outputData, 0, outputPacket.getRawDataSize());
+
+    for (size_t sampleIdx = 0; sampleIdx < linearBlockCount; sampleIdx++) 
+    {
+        auto& rawData = inputData[sampleIdx];
+
+        auto idx = binarySearch(static_cast<Float>(rawData), labels);
+        if (idx != -1)
+            outputData[idx] += 1;
+    }
+
+    for (size_t i = 0; i < labels.getCount(); i++) 
+        outputData[i] /= linearBlockCount;
+
+    outputSignal.sendPacket(outputPacket);
+    outputDomainSignal.sendPacket(outputDomainPacket);
+
+    if (eventPacket.assigned())
+        processEventPacket(eventPacket);
 }
 
 template <SampleType InputSampleType>
@@ -521,7 +518,7 @@ void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
 
 void ClassifierFbImpl::createInputPorts()
 {
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);   
 }
 
 void ClassifierFbImpl::createSignals()

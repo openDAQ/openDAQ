@@ -6,7 +6,9 @@
 #include <opendaq/reader_factory.h>
 #include <testutils/testutils.h>
 #include <opendaq/search_filter_factory.h>
+#include <opendaq/config_provider_factory.h>
 #include <thread>
+#include <fstream>
 #include "classifier_test_helper.h"
 #include "testutils/memcheck_listener.h"
 using RefModulesTest = testing::Test;
@@ -575,7 +577,7 @@ TEST_F(RefModulesTest, ClassifierGeneralDescriptor)
     ASSERT_EQ(classifierSignalDescription.getSampleType(), SampleType::Float64);
 
     // Dimension of classifier's output signal have to be 1 (vector)
-    ASSERT_EQ(classifierSignalDescription.getDimensions().getCount(), 1);
+    ASSERT_EQ(classifierSignalDescription.getDimensions().getCount(), 1u);
 
     // Classifier returns values in range [0, 1]
     ASSERT_EQ(classifierSignalDescription.getValueRange(), Range(0, 1));
@@ -701,9 +703,9 @@ TEST_F(RefModulesTest, ClassifierCheckSyncData)
 
     size_t blockCnt = 1;
     auto outputData = std::make_unique<outputSignalType[]>(21);
-    reader.read(outputData.get(), &blockCnt, 500);
+    auto status = reader.read(outputData.get(), &blockCnt, 500);
     // check that was read output packet
-    ASSERT_EQ(blockCnt, 1);
+    ASSERT_EQ(blockCnt, 1u);
 
     // check that sum of output values is eqauled to 1
     outputSignalType valuesSum = 0;
@@ -757,13 +759,13 @@ TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
     auto firstOutputData = std::make_unique<outputSignalType[]>(5);
     size_t firstBlockCnt = 1;
     reader.read(firstOutputData.get(), &firstBlockCnt, 500);
-    ASSERT_EQ(firstBlockCnt, 1);
+    ASSERT_EQ(firstBlockCnt, 1u);
 
     // reading second output block
     auto secondOutputData = std::make_unique<outputSignalType[]>(5);
     size_t secondBlockCnt = 1;
     reader.read(secondOutputData.get(), &secondBlockCnt, 500);
-    ASSERT_EQ(secondBlockCnt, 1);
+    ASSERT_EQ(secondBlockCnt, 1u);
 
     // check that values are in expected intervals for first result
     ASSERT_EQ(firstOutputData[0], 0.2);
@@ -812,7 +814,7 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClass)
     reader.read(outputData.get(), &blockCnt, 500);
 
     // check that was read output packet
-    ASSERT_EQ(blockCnt, 1);
+    ASSERT_EQ(blockCnt, 1u);
 
     // check that sum of output values is eqauled to 1
     outputSignalType valuesSum = 0;
@@ -860,7 +862,7 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
     auto outputData = std::make_unique<outputSignalType[]>(4);
     reader.read(outputData.get(), &blockCnt, 500);
     // check that was read output packet
-    ASSERT_EQ(blockCnt, 1);
+    ASSERT_EQ(blockCnt, 1u);
 
     // check that sum of output values is eqauled to 1
     outputSignalType valuesSum = 0;
@@ -904,7 +906,7 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     auto outputData = std::make_unique<outputSignalType[]>(4);
     reader.read(outputData.get(), &blockCnt, 500);
     // check that was read output packet
-    ASSERT_EQ(blockCnt, 1);
+    ASSERT_EQ(blockCnt, 1u);
 
     // check that sum of output values is eqauled to 1
     outputSignalType valuesSum = 0;
@@ -956,13 +958,13 @@ TEST_F(RefModulesTest, ClassifierCheckAsyncMultiData)
     auto firstOutputData = std::make_unique<outputSignalType[]>(5);
     size_t firstBlockCnt = 1;
     reader.read(firstOutputData.get(), &firstBlockCnt, 200);
-    ASSERT_EQ(firstBlockCnt, 1);
+    ASSERT_EQ(firstBlockCnt, 1u);
 
     // reading second output block
     auto secondOutputData = std::make_unique<outputSignalType[]>(5);
     size_t secondBlockCnt = 1;
     reader.read(secondOutputData.get(), &secondBlockCnt, 200);
-    ASSERT_EQ(secondBlockCnt, 1);
+    ASSERT_EQ(secondBlockCnt, 1u);
 
     // check that values are in expected intervals for first result
     ASSERT_EQ(firstOutputData[0], 0.2);
@@ -977,4 +979,102 @@ TEST_F(RefModulesTest, ClassifierCheckAsyncMultiData)
     ASSERT_EQ(secondOutputData[2], 0.2);
     ASSERT_EQ(secondOutputData[3], 0.2);
     ASSERT_EQ(secondOutputData[4], 0.2);
+}
+
+TEST_F(RefModulesTest, ScalingFbStatuses)
+{
+    const auto instance = Instance();
+
+    const auto signal =
+        SignalWithDescriptor(instance.getContext(),
+                             DataDescriptorBuilder()
+                                 .setSampleType(SampleType::Float64)
+                                 .setValueRange(Range(-1.0, 1.0))
+                                 .build(),
+                             nullptr,
+                             "sig");
+    const auto domainSignal =
+        SignalWithDescriptor(instance.getContext(),
+                             DataDescriptorBuilder().setSampleType(SampleType::Float64).build(),
+                             nullptr,
+                             "domain_sig");
+
+    const auto scalingFb = instance.addFunctionBlock("ref_fb_module_scaling");
+    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Disconnected");
+
+    auto statusTest = [](const char* expectedValue)
+    {
+        return [expectedValue](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(static_cast<CoreEventId>(args.getEventId()), CoreEventId::StatusChanged);
+            ASSERT_TRUE(args.getParameters().hasKey("InputStatus"));
+            ASSERT_EQ(args.getParameters().get("InputStatus"), expectedValue);
+        };
+    };
+
+    auto connectedStatusTest = statusTest("Connected");
+    auto disconnectedStatusTest = statusTest("Disconnected");
+    auto invalidStatusTest = statusTest("Invalid");
+
+    // incomplete descriptors - domain signal not assigned
+    scalingFb.getOnComponentCoreEvent() += invalidStatusTest;
+    scalingFb.getInputPorts()[0].connect(signal);
+    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Invalid");
+    scalingFb.getOnComponentCoreEvent() -= invalidStatusTest;
+
+    // complete descriptors, valid signal
+    signal.setDomainSignal(domainSignal);
+    scalingFb.getOnComponentCoreEvent() += connectedStatusTest;
+    scalingFb.getInputPorts()[0].connect(signal);
+    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Connected");
+    scalingFb.getOnComponentCoreEvent() -= connectedStatusTest;
+
+    scalingFb.getOnComponentCoreEvent() += disconnectedStatusTest;
+    scalingFb.getInputPorts()[0].disconnect();
+    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Disconnected");
+    scalingFb.getOnComponentCoreEvent() -= disconnectedStatusTest;
+
+    // complete descriptors, wrong sample type
+    signal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Binary).build());
+    scalingFb.getOnComponentCoreEvent() += invalidStatusTest;
+    scalingFb.getInputPorts()[0].connect(signal);
+    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Invalid");
+    scalingFb.getOnComponentCoreEvent() -= invalidStatusTest;
+}
+
+static Finally CreateConfigFile(const std::string& configFilename, const std::string& data)
+{
+    std::ofstream file;
+    file.open(configFilename);
+    if (!file.is_open()) 
+        throw std::runtime_error("can not open file for writing");
+
+    file << data;
+    file.close();
+    return Finally([&configFilename] { remove(configFilename.c_str()); });
+}
+
+TEST_F(RefModulesTest, ConfigureDeviceFromOptions)
+{
+    std::string configFilename = "opendaq-config.json";
+    std::string options = R"(
+    {
+    "Modules": {
+        "RefDevice": {
+            "NumberOfChannels": 5,
+            "EnableCANChannel": false
+            }
+        }
+    }
+    )";
+    auto finaly = CreateConfigFile(configFilename, options);
+
+    const auto instance = InstanceBuilder().addConfigProvider(JsonConfigProvider(configFilename)).build();
+    const auto device = instance.addDevice("daqref://device1");
+
+    Int numChannels = device.getPropertyValue("NumberOfChannels");
+    ASSERT_EQ(numChannels, 5);
+
+    Bool canEnabled = device.getPropertyValue("EnableCANChannel");
+    ASSERT_EQ(canEnabled, false);
 }

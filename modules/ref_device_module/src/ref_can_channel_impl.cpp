@@ -42,7 +42,7 @@ void RefCANChannelImpl::initProperties()
     objPtr.getOnPropertyValueWrite("UpperLimit") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propChanged(); };
 
-    const auto lowerLimitProp = IntPropertyBuilder("LowerLimit", 1000).setMaxValue(1).setMinValue(-10000000).build();
+    const auto lowerLimitProp = IntPropertyBuilder("LowerLimit", -1000).setMaxValue(1).setMinValue(-10000000).build();
     objPtr.addProperty(lowerLimitProp);
     objPtr.getOnPropertyValueWrite("LowerLimit") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propChanged(); };
@@ -121,10 +121,14 @@ void RefCANChannelImpl::buildSignalDescriptors()
     const auto dataDescriptor = DataDescriptorBuilder()
                                     .setName("Data")
                                     .setSampleType(SampleType::UInt8)
-                                    .setDimensions(List<IDimension>(DimensionBuilder().setRule(LinearDimensionRule(0, 1, 64)).build()))
+                                    .setDimensions(List<IDimension>(DimensionBuilder()
+                                                                        .setRule(LinearDimensionRule(0, 1, 64))
+                                                                        .setName("Dimension")
+                                                                        .build()))
                                     .build();
 
     const auto canMsgDescriptor = DataDescriptorBuilder()
+        .setSampleType(SampleType::Struct)
         .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
         .setName("CAN")
         .build();

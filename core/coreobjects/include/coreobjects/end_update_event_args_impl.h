@@ -26,11 +26,13 @@ BEGIN_NAMESPACE_OPENDAQ
 class EndUpdateEventArgsImpl : public EventArgsBase<IEndUpdateEventArgs>
 {
 public:
-    explicit EndUpdateEventArgsImpl(const ListPtr<IString>& properties);
+    explicit EndUpdateEventArgsImpl(const ListPtr<IString>& properties, Bool isParentUpdating);
 
     ErrCode INTERFACE_FUNC getProperties(IList** properties) override;
+    ErrCode INTERFACE_FUNC getIsParentUpdating(Bool* isParentUpdating) override;
 private:
     ListPtr<IString> properties;
+    Bool isParentUpdating;
 };
 
 END_NAMESPACE_OPENDAQ

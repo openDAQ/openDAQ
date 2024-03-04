@@ -8,6 +8,8 @@
 #include <opendaq/reader_errors.h>
 #include <opendaq/reader_exceptions.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/input_port_factory.h>
+#include <future>
 
 using namespace daq;
 
@@ -606,66 +608,20 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
 
     count = 1;
     TypeParam sampleInt32[1 * BLOCK_SIZE]{};
-    ASSERT_NO_THROW(reader.read((TypeParam*) &sampleInt32, &count));
+    
+    {    
+        // read event packet
+        size_t tmpCount = 1;
+        auto status = reader.read((TypeParam*) &sampleInt32, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
+    reader.read((TypeParam*) &sampleInt32, &count);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     ASSERT_EQ(sampleInt32[0], TypeParam(3));
     ASSERT_EQ(sampleInt32[1], TypeParam(4));
-}
-
-TYPED_TEST(BlockReaderTest, DescriptorChangedCallbackNotConvertible)
-{
-    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
-
-    auto reader = daq::BlockReader<TypeParam, ClockRange>(this->signal, BLOCK_SIZE);
-    reader.setOnDescriptorChanged([](const DataDescriptorPtr& valueDescriptor, const DataDescriptorPtr& domainDescriptor)
-    {
-        return false;
-    });
-
-    const SizeT NUM_SAMPLES = 5;
-    auto dataPacketDouble = DataPacket(this->signal.getDescriptor(), NUM_SAMPLES);
-    auto dataPtrDouble = static_cast<double*>(dataPacketDouble.getData());
-    dataPtrDouble[0] = 11.1;
-    dataPtrDouble[1] = 22.2;
-    dataPtrDouble[2] = 33.2;
-    dataPtrDouble[3] = 44.2;
-    dataPtrDouble[4] = 55.2;
-
-    this->sendPacket(dataPacketDouble);
-    this->scheduler.waitAll();
-
-    ASSERT_EQ(reader.getAvailableCount(), NUM_SAMPLES / BLOCK_SIZE);
-
-    SizeT count{2};
-    TypeParam samplesDouble[2 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samplesDouble, &count);
-
-    // 1 sample left in the reader but not enough for a block
-    ASSERT_EQ(reader.getAvailableCount(), 0u);
-
-    // Change signal sample-type
-    this->signal.setDescriptor(setupDescriptor(SampleType::Int32));
-    auto dataPacketInt32 = DataPacket(this->signal.getDescriptor(), NUM_SAMPLES);
-    auto dataPtrInt32 = static_cast<int32_t*>(dataPacketInt32.getData());
-    dataPtrInt32[0] = 6;
-    dataPtrInt32[1] = 7;
-    dataPtrInt32[2] = 8;
-    dataPtrInt32[3] = 9;
-    dataPtrInt32[4] = 10;
-
-    this->sendPacket(dataPacketInt32);
-    this->scheduler.waitAll();
-
-    ASSERT_EQ(reader.getAvailableCount(), 3u);
-
-    count = 2;
-    TypeParam sampleInt32[2 * BLOCK_SIZE]{};
-    ErrCode errCode = reader->read((TypeParam*) &sampleInt32, &count);
-    ASSERT_EQ(errCode, OPENDAQ_ERR_INVALID_DATA);
-
-    ASSERT_THROW_MSG(checkErrorInfo(errCode), InvalidDataException, "Packet samples are no longer convertible to the read type")
 }
 
 TYPED_TEST(BlockReaderTest, DescriptorChangedNotConvertible)
@@ -686,10 +642,8 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedNotConvertible)
 
     SizeT count{1};
     std::int32_t samples[1 * BLOCK_SIZE];
-    ErrCode errCode = reader->read((std::int32_t*) &samples, &count);
-    ASSERT_EQ(errCode, OPENDAQ_ERR_INVALID_DATA);
-
-    ASSERT_THROW_MSG(checkErrorInfo(errCode), InvalidDataException, "Packet samples are no longer convertible to the read type")
+    auto status = reader.read((std::int32_t*) &samples, &count);
+    ASSERT_FALSE(status.getValid());
 }
 
 TYPED_TEST(BlockReaderTest, ReuseReader)
@@ -712,30 +666,29 @@ TYPED_TEST(BlockReaderTest, ReuseReader)
 
     SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE];
-    ErrCode errCode = reader->read((TypeParam*) &samples, &count);
-
-    ErrCode expected;
-    if (!IsTemplateOf<TypeParam, Complex_Number>::value)
-    {
-        expected = OPENDAQ_ERR_INVALID_DATA;
+    {    
+        // read event packet
+        size_t tmpCount = 1;
+        auto status = reader.read((TypeParam*) &samples, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
-    else
-    {
-        expected = OPENDAQ_SUCCESS;
-    }
-    ASSERT_EQ(errCode, expected);
 
-    auto newReader = daq::BlockReaderFromExisting<ComplexFloat32, ClockRange>(reader);
+    auto status = reader.read((TypeParam*) &samples, &count);
+
+    Bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
+    ASSERT_EQ(status.getValid(), convertable);
+
+    auto newReader = daq::BlockReaderFromExisting<ComplexFloat32, ClockRange>(reader, reader.getBlockSize());
 
     SizeT complexCount{1};
     ComplexFloat32 complexSamples[1 * BLOCK_SIZE];
-    errCode = newReader->read((ComplexFloat32*) &complexSamples, &complexCount);
-    ASSERT_SUCCEEDED(errCode);
+    status = newReader.read((ComplexFloat32*) &complexSamples, &complexCount);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
 
     ASSERT_EQ(complexCount, 1u);
 
     ComplexFloat32 expectedSample[BLOCK_SIZE]{};
-    if (!IsTemplateOf<TypeParam, Complex_Number>::value)
+    if (!convertable)
     {
         expectedSample[0] = 11;
         expectedSample[1] = 22;
@@ -782,6 +735,14 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomain)
 
     SizeT count{1};
     double samples[BLOCK_SIZE]{};
+
+    {    
+        // read event packet
+        size_t tmpCount = 1;
+        auto status = reader.read(&samples, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
     reader.read(&samples, &count);
 
     ASSERT_EQ(count, 1u);
@@ -857,4 +818,200 @@ TYPED_TEST(BlockReaderTest, ToString)
 
     ASSERT_STREQ(str, "daq::IBlockReader");
     daqFreeMemory(str);
+}
+
+TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+    auto reader = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 111.1;
+    dataPtr[1] = 222.2;
+
+    this->sendPacket(dataPacket);
+
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+    RangeType64 domain[BLOCK_SIZE]{};
+    reader.readWithDomain(&samples, &domain, &count);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(samples[0], dataPtr[0]);
+    ASSERT_EQ(samples[1], dataPtr[1]);
+}
+
+TYPED_TEST(BlockReaderTest, BlockReaderWithNotConnectedInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    auto reader = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 111.1;
+    dataPtr[1] = 222.2;
+
+    port.connect(this->signal);
+    this->sendPacket(dataPacket);
+
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+    RangeType64 domain[BLOCK_SIZE]{};
+    {    
+        // read event packet
+        size_t tmpCount = 1;
+        auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+    reader.readWithDomain(&samples, &domain, &count);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(samples[0], dataPtr[0]);
+    ASSERT_EQ(samples[1], dataPtr[1]);
+}
+
+TYPED_TEST(BlockReaderTest, MultipleBlockReaderToInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+    auto reader1 = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    ASSERT_THROW(daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined), AlreadyExistsException);
+}
+
+TYPED_TEST(BlockReaderTest, BlockReaderReuseInputPort)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+    {
+        auto reader1 = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    }
+    ASSERT_NO_THROW(daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined));
+}
+
+TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallback)
+{
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+    RangeType64 domain[BLOCK_SIZE]{};
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::BlockReader(this->signal, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+        reader.readWithDomain(&samples, &domain, &count);
+        promise.set_value();
+    });
+
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 111.1;
+    dataPtr[1] = 222.2;
+
+    this->sendPacket(dataPacket);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(samples[0], dataPtr[0]);
+    ASSERT_EQ(samples[1], dataPtr[1]);
+}
+
+TYPED_TEST(BlockReaderTest, BlockReaderFromPortOnReadCallback)
+{
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+    RangeType64 domain[BLOCK_SIZE]{};
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+
+    auto reader = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+        reader.readWithDomain(&samples, &domain, &count);
+        promise.set_value();
+    });
+
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 111.1;
+    dataPtr[1] = 222.2;
+
+    this->sendPacket(dataPacket);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(samples[0], dataPtr[0]);
+    ASSERT_EQ(samples[1], dataPtr[1]);
+}
+
+TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
+{
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+    RangeType64 domain[BLOCK_SIZE]{};
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Int64));
+
+    BlockReaderPtr reader = daq::BlockReader(this->signal, 1, SampleType::Float64, SampleType::RangeInt64);
+    BlockReaderPtr newReader;
+    
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+        if (!newReader.assigned())
+        {
+            SizeT tmpCount = 1;
+            auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
+            if (status.getReadStatus() == ReadStatus::Event)
+            {
+                newReader = daq::BlockReaderFromExisting(reader, BLOCK_SIZE, SampleType::Float64, SampleType::RangeInt64);
+            }
+        }
+        else
+        {
+            newReader.readWithDomain(&samples, &domain, &count);
+            promise.set_value();
+        }
+    });
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 111.1;
+    dataPtr[1] = 222.2;
+
+    this->sendPacket(dataPacket);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(samples[0], dataPtr[0]);
+    ASSERT_EQ(samples[1], dataPtr[1]);
 }

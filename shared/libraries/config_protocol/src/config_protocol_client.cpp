@@ -103,6 +103,21 @@ BaseObjectPtr ConfigProtocolClientComm::callProperty(const std::string& globalId
     return result;
 }
 
+void ConfigProtocolClientComm::setAttributeValue(const std::string& globalId,
+    const std::string& attributeName,
+    const BaseObjectPtr& attributeValue)
+{
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    dict.set("AttributeName", String(attributeName));
+    dict.set("AttributeValue", String(attributeValue));
+    auto setAttributeValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "SetAttributeValue", dict);
+    const auto setAttributeValueRpcReplyPacketBuffer = sendRequestCallback(setAttributeValueRpcRequestPacketBuffer);
+
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    parseRpcReplyPacketBuffer(setAttributeValueRpcReplyPacketBuffer);
+}
+
 BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const
 {
     auto obj = Dict<IString, IBaseObject>();
@@ -190,6 +205,13 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
         BaseObjectPtr obj;
         checkErrorInfo(ConfigClientComponentImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
+    }
+
+    if (typeId == "ComponentHolder")
+    {
+        const auto remoteContext = context.asPtrOrNull<IConfigProtocolDeserializeContext>();
+        if(serObj.hasKey("parentGlobalId") && context.assigned())
+            remoteContext->setRemoteGlobalId(serObj.readString("parentGlobalId"));
     }
 
     if (typeId == "IoFolder")
@@ -309,15 +331,65 @@ void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& componen
     const auto dev = getRootDevice();
     if (!dev.assigned())
         return;
+    const auto topComponent = component;
 
-    forEachSignal(component,
-                  [&dev](const SignalPtr& signal)
+    forEachComponent<ISignal>(
+        component,
+        [&dev, &topComponent](const SignalPtr& signal)
+        {
+            const StringPtr domainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
+            if (domainSignalId.assigned())
+            {
+                SignalPtr domainSignal;
+
+                // try to find domain singal recursively starting from top component
+                {
+                    const auto domainSingalRemoteId = domainSignalId.toStdString();
+                    StringPtr topComponentRemoteId;
+                    checkErrorInfo(topComponent.asPtr<IConfigClientObject>()->getRemoteGlobalId(&topComponentRemoteId));
+                    if (domainSingalRemoteId.find(topComponentRemoteId.toStdString() + "/") == 0)
+                    {
+                        auto restStr = domainSingalRemoteId.substr(topComponentRemoteId.toStdString().size() + 1);
+                        domainSignal = findSignalByRemoteGlobalIdWithComponent(topComponent, restStr);
+                    }
+                }
+
+                // try to find domain singal recursively starting from root device
+                if (!domainSignal.assigned())
+                    domainSignal = findSignalByRemoteGlobalId(dev, domainSignalId);
+                if (domainSignal.assigned())
+                    signal.asPtr<IConfigClientSignalPrivate>(true)->assignDomainSignal(domainSignal);
+            }
+        });
+}
+
+void ConfigProtocolClientComm::setRemoteGlobalIds(const ComponentPtr& component, const StringPtr& parentRemoteId)
+{
+    forEachComponent<IComponent>(
+        component,
+        [&parentRemoteId](const ComponentPtr& comp)
+        {
+            StringPtr compRemoteId;
+            comp.asPtr<IConfigClientObject>()->getRemoteGlobalId(&compRemoteId);
+            comp.asPtr<IConfigClientObject>()->setRemoteGlobalId(parentRemoteId + compRemoteId);
+        });
+}
+
+void ConfigProtocolClientComm::connectInputPorts(const ComponentPtr& component)
+{
+    const auto dev = getRootDevice();
+    if (!dev.assigned())
+        return;
+
+    forEachComponent<IInputPort>(component,
+                  [&dev](const InputPortPtr& inputPort)
                   {
-                      const auto domainSignalId = signal.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
-                      if (domainSignalId.assigned())
+                      const auto signalId = inputPort.asPtr<IDeserializeComponent>(true).getDeserializedParameter("signalId");
+                      if (signalId.assigned())
                       {
-                          const auto domainSignal = findSignalByRemoteGlobalId(dev, domainSignalId);
-                          signal.asPtrOrNull<IMirroredSignalPrivate>(true)->assignDomainSignal(domainSignal);
+                          const auto signal = findSignalByRemoteGlobalId(dev, signalId);
+                          const auto configClientInputPort = inputPort.asPtr<IConfigClientInputPort>(true);
+                          checkErrorInfo(configClientInputPort->assignSignal(signal));
                       }
                   });
 }
@@ -344,21 +416,18 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Strin
     return parseRpcReplyPacketBuffer(sendCommandRpcReplyPacketBuffer, deserializeContext, isGetRootDeviceCommand);
 }
 
-template <class F>
-void ConfigProtocolClientComm::forEachSignal(const ComponentPtr& component, const F& f)
+template <class Interface, class F>
+void ConfigProtocolClientComm::forEachComponent(const ComponentPtr& component, const F& f)
 {
-    const auto signal = component.asPtrOrNull<ISignal>(true);
-    if (signal.assigned())
-    {
-        f(signal);
-        return;
-    }
+    const auto comp = component.asPtrOrNull<Interface>(true);
+    if (comp.assigned())
+        f(comp);
 
     const auto folder = component.asPtrOrNull<IFolder>(true);
     if (folder.assigned())
     {
         for (const auto item : folder.getItems())
-            forEachSignal(item, f);
+            forEachComponent<Interface>(item, f);
     }
 }
 

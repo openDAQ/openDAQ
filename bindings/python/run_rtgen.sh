@@ -93,6 +93,7 @@ run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        
 run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        reader
 #run_rtgen opendaq opendaq/reader       opendaq opendaq/generated/reader        stream_reader
 #run_rtgen opendaq opendaq/reader       opendaq opendaq/generated/reader        tail_reader
+run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        reader_status
 run_rtgen opendaq opendaq/scheduler     opendaq opendaq/generated/scheduler     awaitable
 run_rtgen opendaq opendaq/scheduler     opendaq opendaq/generated/scheduler     graph_visualization
 run_rtgen opendaq opendaq/scheduler     opendaq opendaq/generated/scheduler     scheduler

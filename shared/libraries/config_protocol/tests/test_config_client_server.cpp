@@ -249,6 +249,18 @@ TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
     ASSERT_EQ(fbTypes.get("id").createDefaultConfig().getPropertyValue("prop"), "value");
 }
 
+TEST_F(ConfigProtocolTest, GetDeviceInfo)
+{
+    const auto devInfo = DeviceInfo("connectionString", "name");
+
+    StringPtr fbId;
+    EXPECT_CALL(device.mock(), getInfo(_)).WillOnce(daq::Get<DeviceInfoPtr>(devInfo));
+
+    const DeviceInfoPtr newDevInfo = client->getClientComm()->sendComponentCommand("//root", "GetInfo");
+    ASSERT_EQ(newDevInfo.getConnectionString(), devInfo.getConnectionString());
+    ASSERT_EQ(newDevInfo.getName(), devInfo.getName());
+}
+
 TEST_F(ConfigProtocolTest, AddFunctionBlock)
 {
     StringPtr fbId;
@@ -271,6 +283,44 @@ TEST_F(ConfigProtocolTest, AddFunctionBlock)
     ASSERT_EQ(fbId, "fbId");
 }
 
+TEST_F(ConfigProtocolTest, RemoveFunctionBlock)
+{
+    MockFunctionBlock::Strict fb;
+    auto functionBlocks = List<IFunctionBlock>(fb.ptr);
+
+    EXPECT_CALL(fb.mock(), getLocalId(_)).WillRepeatedly(Get<StringPtr>(String("lid")));
+
+    EXPECT_CALL(device.mock(), getFunctionBlocks(_, _))
+        .WillRepeatedly([functionBlocks](IList** fbs, ISearchFilter* searchFilter)
+            {
+                auto outFbs = List<IFunctionBlock>();
+                const auto sf = SearchFilterPtr::Borrow(searchFilter);
+                for (const auto fb : functionBlocks)
+                    if (sf.acceptsComponent(fb))
+                        outFbs.pushBack(fb);
+                *fbs = outFbs.detach();
+                return OPENDAQ_SUCCESS;
+            });
+
+
+    EXPECT_CALL(device.mock(), removeFunctionBlock(_))
+        .WillRepeatedly(
+            [&functionBlocks](IFunctionBlock* functionBlock) -> ErrCode
+            {
+                const auto fb = FunctionBlockPtr::Borrow(functionBlock);
+                if (fb == functionBlocks[0])
+                    return OPENDAQ_SUCCESS;
+
+                return OPENDAQ_NOTFOUND;
+            });
+
+    auto params = Dict<IString, IBaseObject>({{"LocalId", "lid"}});
+    ASSERT_NO_THROW(client->getClientComm()->sendComponentCommand("//root", "RemoveFunctionBlock", params));
+
+    params = Dict<IString, IBaseObject>({{"LocalId", "invalid"}});
+    ASSERT_THROW(client->getClientComm()->sendComponentCommand("//root", "RemoveFunctionBlock", params), NotFoundException);
+}
+
 TEST_F(ConfigProtocolTest, ConnectSignalToInputPort)
 {
     MockInputPort::Strict inputPort;
@@ -285,8 +335,56 @@ TEST_F(ConfigProtocolTest, ConnectSignalToInputPort)
     client->getClientComm()->sendComponentCommand("/dev/comp/test", "ConnectSignal", params);
 }
 
+TEST_F(ConfigProtocolTest, DisconnectSignalFromInputPort)
+{
+    MockInputPort::Strict inputPort;
+    MockSignal::Strict signal;
+
+    EXPECT_CALL(getMockComponentFinder(), findComponent(_)).WillOnce(Return(inputPort.ptr.asPtr<IComponent>()));
+    EXPECT_CALL(inputPort.mock(), disconnect()).WillOnce(Return(OPENDAQ_SUCCESS));
+
+    client->getClientComm()->sendComponentCommand("/dev/comp/test", "DisconnectSignal");
+}
+
 TEST_F(ConfigProtocolTest, GetTypeManager)
 {
     EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
     const TypeManagerPtr typeManager = client->getClientComm()->sendCommand("GetTypeManager");
+}
+
+TEST_F(ConfigProtocolTest, BeginEndUpdate)
+{
+    device->addProperty(StringPropertyBuilder("PropName", "-").build());
+    ASSERT_EQ(device->getPropertyValue("PropName"), "-");
+
+    client->getClientComm()->sendComponentCommand("//root", "BeginUpdate");
+    client->getClientComm()->setPropertyValue("//root", "PropName", "val");
+    ASSERT_EQ(device->getPropertyValue("PropName"), "-");
+    client->getClientComm()->sendComponentCommand("//root", "EndUpdate");
+    ASSERT_EQ(device->getPropertyValue("PropName"), "val");
+}
+
+TEST_F(ConfigProtocolTest, SetNameAndDescriptionAttribute)
+{
+    StringPtr deviceName;
+    StringPtr deviceDescription;
+
+    EXPECT_CALL(device.mock(), setName(_)).WillOnce([&](IString* name)
+    {
+        deviceName = name;
+        return OPENDAQ_SUCCESS;
+    });
+
+    EXPECT_CALL(device.mock(), setDescription(_))
+        .WillOnce(
+            [&](IString* description)
+            {
+                deviceDescription = description;
+                return OPENDAQ_SUCCESS;
+            });
+
+    client->getClientComm()->setAttributeValue("//root", "Name", "devName");
+    ASSERT_EQ(deviceName, "devName");
+    client->getClientComm()->setAttributeValue("//root", "Description", "devDescription");
+    ASSERT_EQ(deviceDescription, "devDescription");
 }

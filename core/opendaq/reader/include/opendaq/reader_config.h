@@ -36,12 +36,6 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IReaderConfig, IBaseObject)
 {
     /*!
-     * @brief Gets the currently set callback to call when the signal descriptor changes if any.
-     * @param[out] callback The callback to call when the descriptor changes or @c nullptr if not set.
-     */
-    virtual ErrCode INTERFACE_FUNC getOnDescriptorChanged(IFunction** callback) = 0;
-
-    /*!
      * @brief Gets the transform function that will be called with the read value-data and currently valid Signal-Descriptor
      * giving the user the chance add a custom post-processing step.
      * @param[out] transform The function performing the post-processing or @c nullptr if not assigned.

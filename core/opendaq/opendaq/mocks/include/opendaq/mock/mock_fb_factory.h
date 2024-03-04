@@ -24,10 +24,11 @@ inline FunctionBlockPtr MockFunctionBlock(
     const FunctionBlockTypePtr& type,
     const daq::ContextPtr& ctx,
     const ComponentPtr& parent,
-    const StringPtr& localId
+    const StringPtr& localId,
+    const PropertyObjectPtr& config = nullptr
     )
 {
-    FunctionBlockPtr obj(MockFunctionBlock_Create(type, ctx, parent, localId));
+    FunctionBlockPtr obj(MockFunctionBlock_Create(type, ctx, parent, localId, config));
     return obj;
 }
 

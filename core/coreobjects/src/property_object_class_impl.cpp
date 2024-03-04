@@ -5,9 +5,9 @@
 #include <coreobjects/property_internal_ptr.h>
 
 #include "property_object_class_ptr.h"
+#include "coreobjects/property_object_class_factory.h"
 
 BEGIN_NAMESPACE_OPENDAQ
-
 PropertyObjectClassImpl::PropertyObjectClassImpl(IPropertyObjectClassBuilder* builder)
 {
     const auto builderPtr = PropertyObjectClassBuilderPtr::Borrow(builder);
@@ -362,83 +362,31 @@ ErrCode PropertyObjectClassImpl::Deserialize(ISerializedObject* serialized,
                                              IFunction* factoryCallback,
                                              IBaseObject** obj)
 {
-    StringPtr name;
-    ErrCode errCode = serialized->readString(String("name"), &name);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
-
-    IPropertyObjectClassBuilder* propClassObj;
-    errCode = createPropertyObjectClassBuilder(&propClassObj, name);
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
-    
-
-    StringPtr parent;
-    errCode = serialized->readString(String("parent"), &parent);
-
-    if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
-
-    if (errCode != OPENDAQ_ERR_NOTFOUND)
-    {
-        propClassObj->setParentName(parent);
-    }
-
-    SerializedObjectPtr properties;
-    errCode = serialized->readSerializedObject(String("properties"), &properties);
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
-
-    ListPtr<IString> keys;
-    errCode = properties->getKeys(&keys);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
-
-    for (const auto& key : keys)
-    {
-        IString* propName;
-        errCode = key->borrowInterface(IString::Id, reinterpret_cast<void**>(&propName));
-
-        if (OPENDAQ_FAILED(errCode))
+    return daqTry(
+        [&serialized, &context, &factoryCallback, &obj]
         {
-            return errCode;
-        }
+            const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
 
-        BaseObjectPtr baseProp;
-        errCode = properties->readObject(propName, context, factoryCallback, &baseProp);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+            const auto name = serializedPtr.readString("name");
+            PropertyObjectClassBuilderPtr builder = PropertyObjectClassBuilder(name);
 
-        IProperty* prop;
-        errCode = baseProp->borrowInterface(IProperty::Id, reinterpret_cast<void**>(&prop));
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+            if (serializedPtr.hasKey("parent"))
+            {
+                const auto parent = serializedPtr.readString("parent");
+                builder.setParentName(parent);
+            }
 
-        errCode = propClassObj->addProperty(prop);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
-    }
+            const auto properties = serializedPtr.readSerializedObject("properties");
+            const auto keys = properties.getKeys();
 
-    *obj = propClassObj;
-    return OPENDAQ_SUCCESS;
+            for (const auto& key : keys)
+            {
+                const PropertyPtr prop = properties.readObject(key, context, factoryCallback);
+                builder.addProperty(prop);
+            }
+
+            *obj = builder.build().detach();
+        });
 }
 
 ErrCode PropertyObjectClassImpl::getSerializeId(ConstCharPtr* id) const

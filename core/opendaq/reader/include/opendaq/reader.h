@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <coretypes/function.h>
+#include <coretypes/procedure.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -53,16 +53,11 @@ DECLARE_OPENDAQ_INTERFACE(IReader, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) = 0;
 
     /*!
-     * @brief Gets the user the option to invalidate the reader when the signal descriptor changes.
-     * @param callback The callback to call when the descriptor changes or @c nullptr to unset it.
-     * The callback takes a value and domain Signal descriptors as a parameters and returns a boolean indicating
-     * whether the change is still acceptable. In the case the value or domain descriptor did not change
-     * it will be @c nullptr. So either of the descriptors can be @c nullptr but not both.
-     *
-     * If the callback is not assigned or is set to @c nullptr the reader will just check if the new sample-type
-     * is still implicitly convertible to the read type and invalidate itself if that is not the case.
+     * @brief Sets the specified callback function to be called when there is available data in the reader.
+     * Pass @c nullptr to unset the callback. The callback should take no arguments.
+     * @param callback The callback function to be set or @c nullptr to unset it.
      */
-    virtual ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) = 0;
+    virtual ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) = 0;
 };
 /*!@}*/
 

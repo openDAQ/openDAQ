@@ -244,6 +244,24 @@ void RefDeviceImpl::initProperties()
     objPtr.addProperty(BoolProperty("EnableCANChannel", False));
     objPtr.getOnPropertyValueWrite("EnableCANChannel") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { enableCANChannel(); };
+
+    auto options = context.getModuleOptions("RefDevice");
+    if (options.getCount() == 0)
+        return;
+
+    if (options.hasKey("NumberOfChannels"))
+    {
+        auto value = options.get("NumberOfChannels");
+        if (value.getCoreType() == CoreType::ctInt)
+            objPtr.setPropertyValue("NumberOfChannels", value);
+    }
+
+    if (options.hasKey("EnableCANChannel"))
+    {
+        auto value = options.get("EnableCANChannel");
+        if (value.getCoreType() == CoreType::ctBool)
+            objPtr.setPropertyValue("EnableCANChannel", value);
+    }
 }
 
 void RefDeviceImpl::updateNumberOfChannels()

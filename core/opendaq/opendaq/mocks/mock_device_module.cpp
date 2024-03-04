@@ -14,9 +14,15 @@ MockDeviceModuleImpl::MockDeviceModuleImpl(daq::ContextPtr ctx)
     : ctx(std::move(ctx))
 {
 }
+
 ErrCode MockDeviceModuleImpl::getName(IString** name)
 {
     return createString(name, "MockDeviceModule");
+}
+
+ErrCode MockDeviceModuleImpl::getId(IString** id)
+{
+    return createString(id, "MockDevice");
 }
 
 ErrCode MockDeviceModuleImpl::getAvailableDevices(IList** availableDevices)

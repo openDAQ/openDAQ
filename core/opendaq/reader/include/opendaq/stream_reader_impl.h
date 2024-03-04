@@ -24,6 +24,7 @@
 #include <opendaq/typed_reader.h>
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/read_info.h>
+#include <coreobjects/property_object_factory.h>
 
 #include <condition_variable>
 
@@ -38,6 +39,12 @@ public:
                               SampleType domainReadType,
                               ReadMode mode,
                               ReadTimeoutType timeoutType);
+    
+    explicit StreamReaderImpl(IInputPortConfig* port,
+                              SampleType valueReadType,
+                              SampleType domainReadType,
+                              ReadMode mode,
+                              ReadTimeoutType timeoutType);
 
     explicit StreamReaderImpl(const ReaderConfigPtr& readerConfig,
                               SampleType valueReadType,
@@ -47,12 +54,12 @@ public:
     explicit StreamReaderImpl(StreamReaderImpl* old,
                               SampleType valueReadType,
                               SampleType domainReadType);
-
+    
     ~StreamReaderImpl() override;
 
     // IReader
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
-    ErrCode INTERFACE_FUNC setOnDescriptorChanged(IFunction* callback) override;
+    ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override;
 
     // ISampleReader
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
@@ -64,15 +71,15 @@ public:
     ErrCode INTERFACE_FUNC getReadMode(ReadMode* mode) override;
 
     // StreamReader
-    ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs = 0) override;
+    ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs = 0, IReaderStatus** status = nullptr) override;
 
     ErrCode INTERFACE_FUNC readWithDomain(void* samples,
                                           void* domain,
                                           SizeT* count,
-                                          SizeT timeoutMs = 0) override;
+                                          SizeT timeoutMs = 0,
+                                          IReaderStatus** status = nullptr) override;
 
     // IReaderConfig
-    ErrCode INTERFACE_FUNC getOnDescriptorChanged(IFunction** callback) override;
     ErrCode INTERFACE_FUNC getValueTransformFunction(IFunction** transform) override;
     ErrCode INTERFACE_FUNC getDomainTransformFunction(IFunction** transform) override;
     ErrCode INTERFACE_FUNC getInputPorts(IList** ports) override;
@@ -91,14 +98,14 @@ private:
     void connectSignal(const SignalPtr& signal);
     void inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader) const;
 
-    void onPacketReady();
+    ErrCode onPacketReady();
 
     void handleDescriptorChanged(const EventPacketPtr& eventPacket);
 
     [[nodiscard]]
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket);
 
-    ErrCode readPackets();
+    ErrCode readPackets(IReaderStatus** status);
     ErrCode readPacketData();
 
     ReadInfo info{};
@@ -106,15 +113,18 @@ private:
     std::unique_ptr<Reader> valueReader;
     std::unique_ptr<Reader> domainReader;
 
+    DataDescriptorPtr dataDescriptor;
+
     ReadMode readMode;
     ReadTimeoutType timeoutType;
     InputPortConfigPtr inputPort;
+    PropertyObjectPtr portBinder;
     ConnectionPtr connection;
 
     bool invalid{};
 
     std::mutex mutex;
-    FunctionPtr changeCallback;
+    ProcedurePtr readCallback;
 };
 
 END_NAMESPACE_OPENDAQ

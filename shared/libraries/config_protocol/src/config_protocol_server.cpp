@@ -132,10 +132,15 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("SetProtectedPropertyValue", &ConfigServerComponent::setProtectedPropertyValue);
     addHandler<ComponentPtr>("ClearPropertyValue", &ConfigServerComponent::clearPropertyValue);
     addHandler<ComponentPtr>("CallProperty", &ConfigServerComponent::callProperty);
+    addHandler<ComponentPtr>("BeginUpdate", &ConfigServerComponent::beginUpdate);
+    addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
+    addHandler<ComponentPtr>("SetAttributeValue", &ConfigServerComponent::setAttributeValue);
 
+    addHandler<DevicePtr>("GetInfo", &ConfigServerDevice::getInfo);
     addHandler<DevicePtr>("GetAvailableFunctionBlockTypes", &ConfigServerDevice::getAvailableFunctionBlockTypes);
     addHandler<DevicePtr>("AddFunctionBlock", &ConfigServerDevice::addFunctionBlock);
     addHandler<DevicePtr>("RemoveFunctionBlock", &ConfigServerDevice::removeFunctionBlock);
+    addHandler<DevicePtr>("GetTicksSinceOrigin", &ConfigServerDevice::getTicksSinceOrigin);
 
     addHandler<InputPortPtr>("ConnectSignal",
                              [this](const InputPortPtr& inputPort, const ParamsDictPtr& params)
@@ -144,6 +149,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
                                  const SignalPtr signal = findComponent(signalId);
                                  return ConfigServerInputPort::connect(inputPort, signal);
                              });
+    addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)
@@ -304,7 +310,8 @@ void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventA
 
 ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
 {
-    auto packedEvent = List<IBaseObject>(component.getGlobalId());
+    const auto globalId = component.assigned() ? component.getGlobalId() : "";
+    auto packedEvent = List<IBaseObject>(globalId);
 
     switch (static_cast<CoreEventId>(args.getEventId()))
     {
@@ -323,6 +330,8 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::DataDescriptorChanged:
         case CoreEventId::ComponentUpdateEnd:
         case CoreEventId::StatusChanged:
+        case CoreEventId::TypeAdded:
+        case CoreEventId::TypeRemoved:
             packedEvent.pushBack(args);
     }
     

@@ -43,7 +43,7 @@ TEST_F(DeviceInfoTest, DefaultValues)
     ASSERT_EQ(deviceInfo.getSystemUuid(), "");
     ASSERT_FALSE(deviceInfo.getDeviceType().assigned());
 
-    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 21u);
+    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 22u);
 }
 
 TEST_F(DeviceInfoTest, SetGetProperties)
@@ -188,6 +188,38 @@ TEST_F(DeviceInfoTest, CustomProperties)
     ASSERT_NO_THROW(info.addProperty(BoolProperty("IsAsleep", true)));
 
     ASSERT_EQ(info.getCustomInfoPropertyNames().getCount(), 4u);
+}
+
+TEST_F(DeviceInfoTest, SerializeDeserialize)
+{
+    DeviceInfoConfigPtr info = DeviceInfo("", "");
+
+    info.setName("name");
+    info.setConnectionString("connection_string");
+    info.setManufacturer("manufacturer");
+    info.setManufacturerUri("manufacturer_uri");
+    info.setModel("model");
+    info.setProductCode("product_code");
+    info.setHardwareRevision("hardware_revision");
+    info.setSoftwareRevision("software_revision");
+    info.setDeviceManual("device_manual");
+    info.setDeviceClass("device_class");
+    info.setSerialNumber("serial_number");
+    info.setProductInstanceUri("product_instance_uri");
+    info.setRevisionCounter(1);
+
+    const auto serializer = JsonSerializer();
+    info.serialize(serializer);
+    const auto serializedDeviceInfo = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const DeviceInfoPtr newDeviceInfo = deserializer.deserialize(serializedDeviceInfo, nullptr, nullptr);
+    serializer.reset();
+    newDeviceInfo.serialize(serializer);
+    const auto newSerializedDeviceInfo = serializer.getOutput();
+
+    ASSERT_EQ(serializedDeviceInfo, newSerializedDeviceInfo);
 }
 
 END_NAMESPACE_OPENDAQ

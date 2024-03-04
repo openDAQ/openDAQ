@@ -60,14 +60,14 @@ static DataDescriptorBuilderPtr CreateTestStructDescriptorBuilder()
                 .build();
 
     auto meta = DataDescriptorBuilder()
-                    .setSampleType(SampleType::Undefined)
+                    .setSampleType(SampleType::Struct)
                     .setName("meta")
                     .setDimensions(CreateTestDimensions())
                     .setStructFields(List<IDataDescriptor>(desc))
                     .build();
 
     auto can = DataDescriptorBuilder()
-                   .setSampleType(SampleType::Undefined)
+                   .setSampleType(SampleType::Struct)
                    .setName("CAN message")
                    .setStructFields(List<IDataDescriptor>(id, data, meta));
 

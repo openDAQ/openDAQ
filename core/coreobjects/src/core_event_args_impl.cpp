@@ -35,6 +35,20 @@ ErrCode PUBLIC_EXPORT createCoreEventArgsPropertyRemoved(ICoreEventArgs** objTmp
     return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, CoreEventId, IDict*>(objTmp, CoreEventId::PropertyRemoved, dict);
 }
 
+extern "C"
+ErrCode PUBLIC_EXPORT createCoreEventArgsTypeAdded(ICoreEventArgs** objTmp, IType* type)
+{
+    const auto dict = Dict<IString, IBaseObject>({{"Type", type}});
+    return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, CoreEventId, IDict*>(objTmp, CoreEventId::TypeAdded, dict);
+}
+
+extern "C"
+ErrCode PUBLIC_EXPORT createCoreEventArgsTypeRemoved(ICoreEventArgs** objTmp, IString* typeName)
+{
+    const auto dict = Dict<IString, IBaseObject>({{"TypeName", typeName}});
+    return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, CoreEventId, IDict*>(objTmp, CoreEventId::TypeRemoved, dict);
+}
+
 #endif
 
 END_NAMESPACE_OPENDAQ

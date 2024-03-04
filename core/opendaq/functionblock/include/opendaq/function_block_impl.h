@@ -24,6 +24,7 @@
 #include <opendaq/signal_config_ptr.h>
 #include <opendaq/signal_container_impl.h>
 #include <opendaq/search_filter_factory.h>
+#include <coreobjects/property_object_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -43,7 +44,8 @@ public:
                       const ContextPtr& context,
                       const ComponentPtr& parent,
                       const StringPtr& localId,
-                      const StringPtr& className = nullptr);
+                      const StringPtr& className = nullptr,
+                      const PropertyObjectPtr& config = nullptr);
 
     ErrCode INTERFACE_FUNC getFunctionBlockType(IFunctionBlockType** type) override;
 
@@ -78,6 +80,7 @@ protected:
     FunctionBlockTypePtr type;
     LoggerComponentPtr loggerComponent;
     FolderConfigPtr inputPorts;
+    PropertyObjectPtr config;
 
     InputPortConfigPtr createAndAddInputPort(const std::string& localId,
                                              PacketReadyNotification notificationMethod,
@@ -96,6 +99,7 @@ protected:
                                        const FunctionPtr& factoryCallback) override;
 
     void updateObject(const SerializedObjectPtr& obj) override;
+    void initConfigObject(const daq::PropertyObjectPtr& userConfig);
 
     template <class Impl>
     static BaseObjectPtr DeserializeFunctionBlock(const SerializedObjectPtr& serialized,
@@ -114,12 +118,15 @@ FunctionBlockImpl<TInterface, Interfaces...>::FunctionBlockImpl(const FunctionBl
                                                                 const ContextPtr& context,
                                                                 const ComponentPtr& parent,
                                                                 const StringPtr& localId,
-                                                                const StringPtr& className)
+                                                                const StringPtr& className,
+                                                                const PropertyObjectPtr& config)
     : Super(context, parent, localId, className)
     , type(type)
     , loggerComponent(this->context.getLogger().assigned() ? this->context.getLogger().getOrAddComponent(this->globalId)
                                                            : throw ArgumentNullException("Logger must not be null"))
 {
+    initConfigObject(config);
+
     this->defaultComponents.insert("IP");
     inputPorts = this->template addFolder<IInputPort>("IP", nullptr);
     inputPorts.asPtr<IComponentPrivate>().lockAllAttributes();
@@ -206,7 +213,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getInputPorts(IList** port
     {
         return daqTry([&]
         {
-            *ports = getSignalsRecursiveInternal(searchFilter).detach();
+            *ports = getInputPortsRecursiveInternal(searchFilter).detach();
             return OPENDAQ_SUCCESS;
         });
     }
@@ -262,6 +269,29 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const Serialized
     }
 
     return Super::updateObject(obj);
+}
+
+template <typename TInterface, typename... Interfaces>
+void FunctionBlockImpl<TInterface, Interfaces...>::initConfigObject(const daq::PropertyObjectPtr& userConfig)
+{
+    if (!type.assigned())
+    {
+        config = PropertyObject();
+        return;
+    }
+
+    config = type.createDefaultConfig();
+
+    if (!userConfig.assigned())
+        return;
+
+    for (const auto& prop : config.getAllProperties())
+    {
+        const auto name = prop.getName();
+
+        if (userConfig.hasProperty(name))
+            config.setPropertyValue(name, userConfig.getPropertyValue(name));
+    }
 }
 
 template <class Intf, class... Intfs>

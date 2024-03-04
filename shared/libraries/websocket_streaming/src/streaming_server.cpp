@@ -136,7 +136,10 @@ void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
 
     auto outputSignals = std::unordered_map<std::string, OutputSignalPtr>();
     for (const auto& signal : signals)
-    {
+    {   
+        if (!signal.getPublic())
+            continue;
+
         // TODO: We skip domain signals for now.
         if (!signal.getDomainSignal().assigned())
             continue;

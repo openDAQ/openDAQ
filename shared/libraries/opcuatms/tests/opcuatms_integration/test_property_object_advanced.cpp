@@ -176,7 +176,7 @@ public:
     {
         const auto context = Context(nullptr, logger, manager, nullptr);
         const auto serverProp =
-            std::make_shared<TmsServerPropertyObject>(prop, server, context, std::make_shared<TmsServerContext>(context));
+            std::make_shared<TmsServerPropertyObject>(prop, server, context, std::make_shared<TmsServerContext>(context, nullptr));
         const auto nodeId = serverProp->registerOpcUaNode();
         const auto clientProp = TmsClientPropertyObject(Context(nullptr, logger, manager,nullptr), clientContext, nodeId);
         return {serverProp, clientProp};

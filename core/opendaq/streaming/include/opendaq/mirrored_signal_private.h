@@ -55,13 +55,6 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredSignalPrivate, IBaseObject)
     virtual ErrCode INTERFACE_FUNC removeStreamingSource(const StringPtr& streamingConnectionString) = 0;
 
     /*!
-     * @brief Checks whether the specified 'signalId' matches the ID of the mirrored signal.
-     * @param signalId The ID to be checked.
-     * @returns True if the 'signalId' matches the ID of the mirrored signal; False otherwise.
-     */
-    virtual Bool INTERFACE_FUNC hasMatchingId(const StringPtr& signalId) = 0;
-
-    /*!
      * @brief Handles the completion of subscription acknowledged by the specified streaming source.
      * @param streamingConnectionString The connection string of the streaming source that completed
      * the subscription for the signal.
@@ -74,8 +67,6 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredSignalPrivate, IBaseObject)
      * the unsubscription for the signal.
      */
     virtual void INTERFACE_FUNC unsubscribeCompleted(const StringPtr& streamingConnectionString) = 0;
-
-    virtual void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) = 0;
 };
 /*!@}*/
 

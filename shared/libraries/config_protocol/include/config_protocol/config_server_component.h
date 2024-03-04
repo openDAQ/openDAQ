@@ -29,6 +29,9 @@ public:
     static BaseObjectPtr setProtectedPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr clearPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr callProperty(const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr beginUpdate(const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr endUpdate(const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr setAttributeValue(const ComponentPtr& component, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerComponent::getPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params)
@@ -94,6 +97,33 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const ComponentPtr& com
     }
 
     throw InvalidPropertyException("Property not callable");
+}
+
+inline BaseObjectPtr ConfigServerComponent::beginUpdate(const ComponentPtr& component, const ParamsDictPtr& params)
+{
+    component.beginUpdate();
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerComponent::endUpdate(const ComponentPtr& component, const ParamsDictPtr& params)
+{
+    component.endUpdate();
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const ComponentPtr& component, const ParamsDictPtr& params)
+{
+    const auto attributeName = static_cast<std::string>(params["AttributeName"]);
+    const auto attributeValue = static_cast<std::string>(params["AttributeValue"]);
+
+    if (attributeName == "Name")
+        component.setName(attributeValue);
+    else if (attributeName == "Description")
+        component.setDescription(attributeValue);
+    else
+        throw InvalidParameterException("Attribute not available or not supported via native config protocol");
+
+    return nullptr;
 }
 
 }

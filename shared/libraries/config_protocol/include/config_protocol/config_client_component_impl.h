@@ -98,7 +98,7 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getName(IString** name)
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setName(IString* name)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return daqTry([this, &name] { this->clientComm->setAttributeValue(this->remoteGlobalId, "Name", name); });
 }
 
 template <class Impl>
@@ -110,7 +110,7 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getDescription(IString** descriptio
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setDescription(IString* description)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return daqTry([this, &description] { this->clientComm->setAttributeValue(this->remoteGlobalId, "Description", description); });
 }
 
 template <class Impl>
@@ -177,6 +177,8 @@ void ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(const C
         case CoreEventId::DataDescriptorChanged:
         case CoreEventId::ComponentAdded:
         case CoreEventId::ComponentRemoved:
+        case CoreEventId::TypeAdded:
+        case CoreEventId::TypeRemoved:
         default:
             break;
     }

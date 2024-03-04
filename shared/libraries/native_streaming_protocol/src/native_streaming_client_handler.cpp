@@ -4,24 +4,64 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/packet_factory.h>
 
+#include <coreobjects/property_object_factory.h>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
 
-static std::chrono::seconds connectionTimeout = std::chrono::seconds(1);
-static std::chrono::seconds protocolInitTimeout = std::chrono::seconds(1);
-static std::chrono::seconds reconnectionPeriod = std::chrono::seconds(1);
-
-NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& context)
+NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& context,
+                                                           const PropertyObjectPtr& transportLayerProperties)
     : context(context)
+    , transportLayerProperties(transportLayerProperties)
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
 {
+    readTransportLayerProps();
 }
 
 NativeStreamingClientHandler::~NativeStreamingClientHandler()
 {
     reconnectionTimer->cancel();
     protocolInitTimer->cancel();
+}
+
+void NativeStreamingClientHandler::readTransportLayerProps()
+{
+    if (!transportLayerProperties.assigned())
+        throw ArgumentNullException("Transport layer properties cannot be null");
+
+    if (!transportLayerProperties.hasProperty("HeartbeatEnabled"))
+        throw NotFoundException("Transport layer HeartbeatEnabled property not found");
+    if (!transportLayerProperties.hasProperty("HeartbeatPeriod"))
+        throw NotFoundException("Transport layer HeartbeatPeriod property not found");
+    if (!transportLayerProperties.hasProperty("HeartbeatTimeout"))
+        throw NotFoundException("Transport layer HeartbeatTimeout property not found");
+    if (!transportLayerProperties.hasProperty("ConnectionTimeout"))
+        throw NotFoundException("Transport layer ConnectionTimeout property not found");
+    if (!transportLayerProperties.hasProperty("StreamingInitTimeout"))
+        throw NotFoundException("Transport layer StreamingInitTimeout property not found");
+    if (!transportLayerProperties.hasProperty("ReconnectionPeriod"))
+        throw NotFoundException("Transport layer ReconnectionPeriod property not found");
+
+    if (transportLayerProperties.getProperty("HeartbeatEnabled").getValueType() != ctBool)
+        throw NotFoundException("Transport layer HeartbeatEnabled property should be of Bool type");
+    if (transportLayerProperties.getProperty("HeartbeatPeriod").getValueType() != ctInt)
+        throw NotFoundException("Transport layer HeartbeatPeriod property should be of Int type");
+    if (transportLayerProperties.getProperty("HeartbeatTimeout").getValueType() != ctInt)
+        throw NotFoundException("Transport layer HeartbeatTimeout property should be of Int type");
+    if (transportLayerProperties.getProperty("ConnectionTimeout").getValueType() != ctInt)
+        throw NotFoundException("Transport layer ConnectionTimeout property should be of Int type");
+    if (transportLayerProperties.getProperty("StreamingInitTimeout").getValueType() != ctInt)
+        throw NotFoundException("Transport layer StreamingInitTimeout property should be of Int type");
+    if (transportLayerProperties.getProperty("ReconnectionPeriod").getValueType() != ctInt)
+        throw NotFoundException("Transport layer ReconnectionPeriod property should be of Int type");
+
+    heartbeatEnabled = transportLayerProperties.getPropertyValue("HeartbeatEnabled");
+    heartbeatPeriod = transportLayerProperties.getPropertyValue("HeartbeatPeriod");
+    heartbeatTimeout = transportLayerProperties.getPropertyValue("HeartbeatTimeout");
+    connectionTimeout = std::chrono::milliseconds(transportLayerProperties.getPropertyValue("ConnectionTimeout"));
+    streamingInitTimeout = std::chrono::milliseconds(transportLayerProperties.getPropertyValue("StreamingInitTimeout"));
+    reconnectionPeriod = std::chrono::milliseconds(transportLayerProperties.getPropertyValue("ReconnectionPeriod"));
 }
 
 void NativeStreamingClientHandler::checkProtocolInitializationStatus(const boost::system::error_code& ec)
@@ -35,7 +75,7 @@ void NativeStreamingClientHandler::checkProtocolInitializationStatus(const boost
         reconnectionStatusChangedCb(ClientReconnectionStatus::Unrecoverable);
 }
 
-bool NativeStreamingClientHandler::isProtocolInitialized(std::chrono::seconds timeout)
+bool NativeStreamingClientHandler::isProtocolInitialized(std::chrono::milliseconds timeout)
 {
     return (protocolInitFuture.wait_for(timeout) == std::future_status::ready);
 }
@@ -94,7 +134,7 @@ void NativeStreamingClientHandler::checkReconnectionStatus(const boost::system::
             }
             else
             {
-                protocolInitTimer->expires_from_now(protocolInitTimeout);
+                protocolInitTimer->expires_from_now(streamingInitTimeout);
                 protocolInitTimer->async_wait(
                     std::bind(&NativeStreamingClientHandler::checkProtocolInitializationStatus, this, std::placeholders::_1));
             }
@@ -147,7 +187,7 @@ bool NativeStreamingClientHandler::connect(std::string host,
     if (status == std::future_status::ready)
     {
         if (connectedFuture.get() == ConnectionResult::Connected &&
-            isProtocolInitialized(protocolInitTimeout))
+            isProtocolInitialized(streamingInitTimeout))
             return true;
     }
 
@@ -157,6 +197,8 @@ bool NativeStreamingClientHandler::connect(std::string host,
 
 void NativeStreamingClientHandler::subscribeSignal(const StringPtr& signalStringId)
 {
+    std::scoped_lock lock(sync);
+
     const auto it = std::find_if(std::begin(signalIds),
                                  std::end(signalIds),
                                  [signalStringId](const auto& pair)
@@ -173,6 +215,8 @@ void NativeStreamingClientHandler::subscribeSignal(const StringPtr& signalString
 
 void NativeStreamingClientHandler::unsubscribeSignal(const StringPtr& signalStringId)
 {
+    std::scoped_lock lock(sync);
+
     const auto it = std::find_if(std::begin(signalIds),
                                  std::end(signalIds),
                                  [signalStringId](const auto& pair)
@@ -189,6 +233,8 @@ void NativeStreamingClientHandler::unsubscribeSignal(const StringPtr& signalStri
 
 EventPacketPtr NativeStreamingClientHandler::getDataDescriptorChangedEventPacket(const StringPtr& signalStringId)
 {
+    std::scoped_lock lock(sync);
+
     const auto it = std::find_if(std::begin(signalIds),
                                  std::end(signalIds),
                                  [signalStringId](const auto& pair)
@@ -200,13 +246,8 @@ EventPacketPtr NativeStreamingClientHandler::getDataDescriptorChangedEventPacket
     {
         if (sessionHandler)
             return sessionHandler->getDataDescriptorChangedEventPacket(it->first);
-        else
-            return DataDescriptorChangedEventPacket(nullptr, nullptr);
     }
-    else
-    {
-        throw NativeStreamingProtocolException("Signal Id not found");
-    }
+    return DataDescriptorChangedEventPacket(nullptr, nullptr);
 }
 
 void NativeStreamingClientHandler::sendConfigRequest(const config_protocol::PacketBuffer& packet)
@@ -286,6 +327,10 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
     };
     sessionHandler->setConfigPacketReceivedHandler(configPacketReceivedHandler);
 
+    sessionHandler->sendTransportLayerProperties(transportLayerProperties);
+    if (heartbeatEnabled)
+        sessionHandler->startHeartbeat(heartbeatPeriod, heartbeatTimeout);
+
     sessionHandler->startReading();
 
     connectedPromise.set_value(ConnectionResult::Connected);
@@ -347,16 +392,18 @@ void NativeStreamingClientHandler::handleSignal(const SignalNumericIdType& signa
                                                 const StringPtr& serializedSignal,
                                                 bool available)
 {
+    {
+        std::scoped_lock lock(sync);
+        if (available)
+            signalIds.insert({signalNumericId, signalStringId});
+        else
+            signalIds.erase(signalNumericId);
+    }
+
     if (available)
-    {
-        signalIds.insert({signalNumericId, signalStringId});
         signalAvailableHandler(signalStringId, serializedSignal);
-    }
     else
-    {
-        signalIds.erase(signalNumericId);
         signalUnavailableHandler(signalStringId);
-    }
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

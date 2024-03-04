@@ -210,7 +210,8 @@ ErrCode DataDescriptorImpl::validate()
     {
         if (structFields.assigned() && structFields.getCount() != 0)
         {
-            auto valid = dataRule.getType() != DataRuleType::Explicit ? false : true;
+            auto valid = sampleType == SampleType::Struct;
+            valid = dataRule.getType() != DataRuleType::Explicit ? false : valid;
             valid = scaling.assigned() ? false : valid;
             valid = unit.assigned() ? false : valid;
             valid = valueRange.assigned() ? false : valid;
@@ -222,7 +223,7 @@ ErrCode DataDescriptorImpl::validate()
             {
                 return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE,
                                      "A Data descriptor with struct members can only have the name and dimensions configured. Its rule "
-                                     "type must be explicit and Sample type set to Invalid");
+                                     "type must be explicit and Sample type set to Struct");
             }
 
             structFields.freeze();

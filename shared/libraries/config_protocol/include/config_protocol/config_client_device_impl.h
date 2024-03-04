@@ -46,6 +46,8 @@ public:
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
+    void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
+    uint64_t onGetTicksSinceOrigin() override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -84,14 +86,36 @@ FunctionBlockPtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddFunctionBlock(
     FunctionBlockPtr fb = fbHolder.getComponent();
     if (!this->functionBlocks.hasItem(fb.getLocalId()))
     {
-        this->addNestedFunctionBlock(fb);
         this->clientComm->connectDomainSignals(fb);
+        this->addNestedFunctionBlock(fb);
+        this->clientComm->connectInputPorts(fb);
         return fb;
     }
+    return this->functionBlocks.getItem(fb.getLocalId());
+}
 
-    FunctionBlockPtr existingFb = this->functionBlocks.getItem(fb.getLocalId());
-    this->clientComm->connectDomainSignals(existingFb);
-    return existingFb;
+template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    if (!functionBlock.assigned())
+        throw InvalidParameterException();
+
+    auto params = Dict<IString, IBaseObject>({{"LocalId", functionBlock.getLocalId()}});
+    this->clientComm->sendComponentCommand(this->remoteGlobalId, "RemoveFunctionBlock", params);
+
+    const DevicePtr thisPtr = this->template borrowPtr<DevicePtr>();
+
+    if (this->functionBlocks.hasItem(functionBlock.getLocalId()))
+    {
+        this->removeNestedFunctionBlock(functionBlock);
+    }
+}
+
+template <class TDeviceBase>
+uint64_t GenericConfigClientDeviceImpl<TDeviceBase>::onGetTicksSinceOrigin()
+{
+    uint64_t ticks = this->clientComm->sendComponentCommand(this->remoteGlobalId, "GetTicksSinceOrigin");
+    return ticks;
 }
 
 template <class TDeviceBase>
@@ -130,6 +154,8 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
         case CoreEventId::AttributeChanged:
         case CoreEventId::TagsChanged:
         case CoreEventId::StatusChanged:
+        case CoreEventId::TypeAdded:
+        case CoreEventId::TypeRemoved:
         default:
             break;
     }
@@ -144,7 +170,10 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::componentAdded(const CoreEventA
     Bool hasItem{false};
     checkErrorInfo(TDeviceBase::hasItem(comp.getLocalId(), &hasItem));
     if (!hasItem)
+    {
+        this->clientComm->connectDomainSignals(comp);
         this->addExistingComponent(comp);
+    }
 }
 
 template <class TDeviceBase>

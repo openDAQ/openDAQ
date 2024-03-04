@@ -1,16 +1,27 @@
+#include <coretypes/validation.h>
+#include <coretypes/coretypes.h>
+#include <coretypes/ctutils.h>
 #include <coreobjects/errors.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/json_config_provider_impl.h>
-#include <coretypes/validation.h>
+#include <opendaq/path_tool.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <utility>
-#include <coretypes/ctutils.h>
-#include <rapidjson/error/en.h>
-#include <coretypes/coretypes.h>
-#include <rapidjson/filereadstream.h> 
 #include <cctype>
+#include <rapidjson/error/en.h>
+#include <rapidjson/filereadstream.h>
+
+#if __has_include(<filesystem>)
+    #include <filesystem>
+    namespace fs = std::filesystem;
+#elif __has_include(<experimental/filesystem>)
+    #include <experimental/filesystem>
+    namespace fs = std::experimental::filesystem;
+#else
+    #error "Must have <filesystem> library"
+#endif
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -18,16 +29,14 @@ JsonConfigProviderImpl::JsonConfigProviderImpl(const StringPtr& filename)
     :filename(filename)
 {
     if (!this->filename.assigned() || this->filename.getLength() == 0)
-        this->filename = GetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", "opendaq-config.json");
-}
+        this->filename = GetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", StringPtr());
 
-std::string JsonConfigProviderImpl::ToLowerCase(const std::string &input) 
-{
-    std::string result = input;
-    for (char &c : result)
-        c = std::tolower(static_cast<unsigned char>(c));
-
-    return result;
+    if (!this->filename.assigned())
+    {
+        fs::path executableDirectory = PathTool::GetExecutableDirectory();
+        fs::path configPath = executableDirectory / "opendaq-config.json";
+        this->filename = configPath.string();
+    }
 }
 
 StringPtr JsonConfigProviderImpl::GetEnvironmentVariableValue(StringPtr variableName, StringPtr defaultValue)
@@ -171,7 +180,7 @@ void JsonConfigProviderImpl::HandleObject(const BaseObjectPtr& options, const ra
     
     for (auto & el : value.GetObject())
     {
-        auto optionName = ToLowerCase(el.name.GetString());
+        auto optionName = el.name.GetString();
         BaseObjectPtr optionValue;
         if (optionsPtr.hasKey(optionName))
             optionValue = optionsPtr.get(optionName);

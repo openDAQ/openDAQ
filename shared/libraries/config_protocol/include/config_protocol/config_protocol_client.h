@@ -28,6 +28,8 @@
 #include <coretypes/cloneable.h>
 #include <coreobjects/core_event_args_factory.h>
 
+#include "opendaq/custom_log.h"
+
 namespace daq::config_protocol
 {
 
@@ -49,6 +51,7 @@ public:
     BaseObjectPtr getPropertyValue(const std::string& globalId, const std::string& propertyName);
     void clearPropertyValue(const std::string& globalId, const std::string& propertyName);
     BaseObjectPtr callProperty(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& params);
+    void setAttributeValue(const std::string& globalId, const std::string& attributeName, const BaseObjectPtr& attributeValue);
 
     bool getConnected() const;
     ContextPtr getDaqContext();
@@ -66,6 +69,7 @@ public:
     DevicePtr getRootDevice() const;
 
     void connectDomainSignals(const ComponentPtr& component);
+    void connectInputPorts(const ComponentPtr& component);
 
 protected:
     BaseObjectPtr deserializeConfigComponent(const StringPtr& typeId,
@@ -107,8 +111,10 @@ private:
 
     static SignalPtr findSignalByRemoteGlobalIdWithComponent(const ComponentPtr& component, const std::string& remoteGlobalId);
 
-    template <class F>
-    void forEachSignal(const ComponentPtr& component, const F& f);
+    template <class Interface, class F>
+    void forEachComponent(const ComponentPtr& component, const F& f);
+    [[maybe_unused]]
+    void setRemoteGlobalIds(const ComponentPtr& component, const StringPtr& parentRemoteId);
 };
 
 using ConfigProtocolClientCommPtr = std::shared_ptr<ConfigProtocolClientComm>;
@@ -151,6 +157,7 @@ private:
     // this should handle server component updates
     void triggerNotificationObject(const BaseObjectPtr& object);
     CoreEventArgsPtr unpackCoreEvents(const CoreEventArgsPtr& args);
+    void handleNonComponentEvent(const CoreEventArgsPtr& args) const;
 };
 
 template<class TRootDeviceImpl>
@@ -204,9 +211,10 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
         const auto type = typeManager.getType(typeName);
         if (localTypeManager.hasType(type.getName()))
         {
-            const auto localType = localTypeManager.getType(type.getName());
+            // TODO: implement type comparison/equalTo for property object classes
+/*            const auto localType = localTypeManager.getType(type.getName());
             if (localType != type)
-                throw InvalidValueException("Remote type different than local");
+                throw InvalidValueException("Remote type different than local");*/
             continue;
         }
 
@@ -219,6 +227,7 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
 
     clientComm->setRootDevice(device);
     clientComm->connectDomainSignals(device);
+    clientComm->connectInputPorts(device);
 
     clientComm->connected = true;
 
@@ -262,6 +271,9 @@ ComponentPtr ConfigProtocolClient<TRootDeviceImpl>::findComponent(std::string gl
     if (!rootDevice.assigned())
         throw NotAssignedException{"Root device is not assigned."};
 
+    if (globalId.empty())
+        return nullptr;
+
     globalId.erase(globalId.begin(), globalId.begin() + rootDevice.getLocalId().getLength() + 1);
     if (globalId.find_first_of('/') == 0)
         globalId.erase(globalId.begin(), globalId.begin() + 1);
@@ -277,10 +289,45 @@ void ConfigProtocolClient<TRootDeviceImpl>::triggerNotificationObject(const Base
         return;
 
     const ComponentPtr component = findComponent(packedEvent[0]);
+    const CoreEventArgsPtr argsPtr = unpackCoreEvents(packedEvent[1]);
+
     if (component.assigned())
     {
-        CoreEventArgsPtr argsPtr = unpackCoreEvents(packedEvent[1]);
         component.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(component, argsPtr);
+    }
+    else
+    {
+        try
+        {
+            handleNonComponentEvent(argsPtr);
+        }
+        catch([[maybe_unused]] const std::exception& e)
+        {
+            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+            LOG_D("Failed to handle non-component event {}: {}", argsPtr.getEventName(), e.what());
+        }
+        catch(...)
+        {
+            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+            LOG_D("Failed to handle non-component event {}", argsPtr.getEventName());
+        }
+    }
+}
+
+template <class TRootDeviceImpl>
+void ConfigProtocolClient<TRootDeviceImpl>::handleNonComponentEvent(const CoreEventArgsPtr& args) const
+{
+    const auto params = args.getParameters();
+    switch (static_cast<CoreEventId>(args.getEventId()))
+    {
+        case CoreEventId::TypeAdded:
+            daqContext.getTypeManager().addType(params.get("Type"));
+            break;
+        case CoreEventId::TypeRemoved:
+            daqContext.getTypeManager().removeType(params.get("TypeName"));
+            break;
+        default:
+            break;
     }
 }
 
@@ -316,10 +363,7 @@ CoreEventArgsPtr ConfigProtocolClient<TRootDeviceImpl>::unpackCoreEvents(const C
     {
         const ComponentHolderPtr compHolder = dict.get("Component");
         const ComponentPtr comp = compHolder.getComponent();
-        StringPtr parentRemoteId;
-        comp.getParent().asPtr<IConfigClientObject>()->getRemoteGlobalId(&parentRemoteId);
 
-        comp.asPtr<IConfigClientObject>()->setRemoteGlobalId(parentRemoteId + "/" + comp.getLocalId());
         dict.set("Component", comp);
     }
 

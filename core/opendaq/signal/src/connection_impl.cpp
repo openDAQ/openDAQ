@@ -145,6 +145,14 @@ ErrCode ConnectionImpl::getSamplesUntilNextDescriptor(SizeT* samples)
     });
 }
 
+ErrCode ConnectionImpl::isRemote(Bool* remote)
+{
+    OPENDAQ_PARAM_NOT_NULL(remote);
+
+    *remote = False;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode ConnectionImpl::getSignal(ISignal** signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);

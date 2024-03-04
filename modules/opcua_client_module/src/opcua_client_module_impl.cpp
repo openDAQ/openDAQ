@@ -22,7 +22,8 @@ using namespace daq::opcua;
 OpcUaClientModule::OpcUaClientModule(ContextPtr context)
     : Module("openDAQ OpcUa client module",
             daq::VersionInfo(OPCUA_CLIENT_MODULE_MAJOR_VERSION, OPCUA_CLIENT_MODULE_MINOR_VERSION, OPCUA_CLIENT_MODULE_PATCH_VERSION),
-            std::move(context))
+            std::move(context),
+            "OpcUaClient")
     , discoveryClient(
         {
             [](const MdnsDiscoveredDevice& discoveredDevice)
@@ -128,7 +129,7 @@ bool OpcUaClientModule::onAcceptsConnectionParameters(const StringPtr& connectio
     if (found != 0)
         return false;
 
-    if ( config.assigned() && !acceptDeviceProperties(config))
+    if (config.assigned() && !acceptDeviceProperties(config))
     {
         LOG_W("Connection string \"{}\" is accepted but config is incomplete", connectionString);
         return false;

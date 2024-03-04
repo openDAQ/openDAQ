@@ -213,8 +213,8 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::beginUpdate()
     const auto beginUpdateId = getNodeId("BeginUpdate");
     OpcUaCallMethodRequest request;
     request->inputArgumentsSize = 0;
-    request->objectId = nodeId.getValue();
-    request->methodId = beginUpdateId.getValue();
+    request->objectId = nodeId.copyAndGetDetachedValue();
+    request->methodId = beginUpdateId.copyAndGetDetachedValue();
     client->callMethod(request);
     return OPENDAQ_SUCCESS;
 }
@@ -228,8 +228,8 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::endUpdate()
     const auto endUpdateId = getNodeId("EndUpdate");
     OpcUaCallMethodRequest request;
     request->inputArgumentsSize = 0;
-    request->objectId = nodeId.getValue();
-    request->methodId = endUpdateId.getValue();
+    request->objectId = nodeId.copyAndGetDetachedValue();
+    request->methodId = endUpdateId.copyAndGetDetachedValue();
     client->callMethod(request);
     return OPENDAQ_SUCCESS;
 }
@@ -486,14 +486,14 @@ bool TmsClientPropertyObjectBaseImpl<Impl>::isIgnoredMethodPeoperty(const std::s
 }
 
 template class TmsClientPropertyObjectBaseImpl<PropertyObjectImpl>;
-template class TmsClientPropertyObjectBaseImpl<ComponentImpl<>>;
-template class TmsClientPropertyObjectBaseImpl<FolderImpl<IFolderConfig>>;
-template class TmsClientPropertyObjectBaseImpl<IoFolderImpl<>>;
-template class TmsClientPropertyObjectBaseImpl<Device>;
-template class TmsClientPropertyObjectBaseImpl<FunctionBlock>;
-template class TmsClientPropertyObjectBaseImpl<Channel>;
-template class TmsClientPropertyObjectBaseImpl<MirroredSignal>;
-template class TmsClientPropertyObjectBaseImpl<InputPortImpl>;
+template class TmsClientPropertyObjectBaseImpl<ComponentImpl<IComponent,ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<FolderImpl<IFolderConfig, ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<IoFolderImpl<ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<DeviceBase<ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<ChannelImpl<ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<MirroredSignalBase<ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<GenericInputPortImpl<ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<StreamingInfoConfigImpl>;
 
 

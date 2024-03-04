@@ -52,6 +52,13 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
             return objectPtr.getName().toStdString();
         },
         "Gets the module name.");
+    cls.def_property_readonly("id",
+        [](daq::IModule *object)
+        {
+            const auto objectPtr = daq::ModulePtr::Borrow(object);
+            return objectPtr.getId().toStdString();
+        },
+        "Gets the module id.");
     cls.def_property_readonly("available_devices",
         [](daq::IModule *object)
         {

@@ -260,6 +260,13 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * @param[out] options The dictionary of instance options
      */
     virtual ErrCode INTERFACE_FUNC getOptions(IDict** options) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Allows enabling or disabling standard configuration providers, including JsonConfigProvider, based on the specified flag.
+     * @param flag Boolean flag indicating whether to enable (true) or disable (false) standard config providers.
+     */
+    virtual ErrCode INTERFACE_FUNC enableStandardProviders(Bool flag) = 0;
 };
 /*!@}*/
 

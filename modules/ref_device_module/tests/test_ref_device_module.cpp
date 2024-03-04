@@ -598,7 +598,7 @@ TEST_F(RefDeviceModuleTest, ReadCANChannel)
     const auto canTimeSignal = canSignal.getDomainSignal();
     const auto packetReader = PacketReader(canSignal);
 
-    while (packetReader.getAvailableCount() < 2)
+    while (packetReader.getAvailableCount() < 2u)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     EventPacketPtr eventPacket = packetReader.read();
@@ -609,13 +609,13 @@ TEST_F(RefDeviceModuleTest, ReadCANChannel)
     ASSERT_EQ(dataDesc, canSignal.getDescriptor());
     ASSERT_EQ(domainDesc, canTimeSignal.getDescriptor());
 
-    ASSERT_GT(dataDesc.getStructFields().getCount(), 0);
+    ASSERT_GT(dataDesc.getStructFields().getCount(), 0u);
 
     DataPacketPtr dataPacket = packetReader.read();
     ASSERT_EQ(dataPacket.getDataDescriptor(), dataDesc);
 
     const auto sampleCount = dataPacket.getSampleCount();
-    ASSERT_GE(sampleCount, 1);
+    ASSERT_GE(sampleCount, 1u);
 
 #pragma pack(push, 1)
     struct CANData
@@ -629,8 +629,47 @@ TEST_F(RefDeviceModuleTest, ReadCANChannel)
     auto* canData = reinterpret_cast<CANData*>(dataPacket.getData());
     for (size_t i = 0; i < sampleCount; i++)
     {
-        ASSERT_EQ(canData->arbId, 12);
-        ASSERT_EQ(canData->length, 8);
+        ASSERT_EQ(canData->arbId, (uint32_t) 12);
+        ASSERT_EQ(canData->length, (uint8_t) 8);
         canData++;
+    }
+}
+
+TEST_F(RefDeviceModuleTest, ReadCANChannelWithStreamReader)
+{
+    const auto module = CreateModule();
+
+    const auto device = module.createDevice("daqref://device1", nullptr);
+
+    device.setPropertyValue("EnableCANChannel", True);
+
+    const ChannelPtr canCh = device.getInputsOutputsFolder().getItem("can").asPtr<IFolder>().getItems()[0];
+
+    const auto canSignal = canCh.getSignals()[0];
+    const auto canTimeSignal = canSignal.getDomainSignal();
+    const auto streamReader = StreamReader<void*>(canSignal);
+
+#pragma pack(push, 1)
+    struct CANData
+    {
+        uint32_t arbId;
+        uint8_t length;
+        uint8_t data[64];
+    };
+#pragma pack(pop)
+
+    CANData canData[10];
+    SizeT count = 0;
+    do
+    {
+        SizeT toRead = 2;
+        streamReader.read(&canData[count], &toRead, 10);
+        count += toRead;
+    } while (count < 2);
+
+    for (size_t i = 0; i < count; i++)
+    {
+        ASSERT_EQ(canData[i].arbId, (uint32_t) 12);
+        ASSERT_EQ(canData[i].length, (uint8_t) 8);
     }
 }

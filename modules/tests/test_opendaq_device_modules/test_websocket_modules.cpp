@@ -126,7 +126,7 @@ TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
         std::this_thread::sleep_for(100ms);
         daq::SizeT count = 100;
         reader.read(samples, &count);
-        EXPECT_GT(count, 0) << "iteration " << i;
+        EXPECT_GT(count, 0u) << "iteration " << i;
     }
 
     reader.release();

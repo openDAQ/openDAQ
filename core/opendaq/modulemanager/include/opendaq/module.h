@@ -56,6 +56,12 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
 
     /*!
+     * @brief Gets the module id.
+     * @param[out] id The module id.
+     */
+    virtual ErrCode INTERFACE_FUNC getId(IString** id) = 0;
+
+    /*!
      * @brief Returns a list of known devices info.
      * The implementation can start discovery in background and only return the results in this function.
      * @param[out] availableDevices The list of known devices information.

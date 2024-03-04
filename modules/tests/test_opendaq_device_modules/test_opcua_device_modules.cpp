@@ -1,6 +1,7 @@
 #include <opcuatms/exceptions.h>
 #include <opendaq/logger_sink_ptr.h>
 #include <opendaq/logger_sink_last_message_private_ptr.h>
+#include <opcuashared/opcuaexception.h>
 #include "test_helpers.h"
 
 using OpcuaDeviceModulesTest = testing::Test;
@@ -172,7 +173,7 @@ TEST_F(OpcuaDeviceModulesTest, DeviceDynamicFeatures)
     auto daqDevice = client.getDevices()[0];
 
     ASSERT_EQ(daqDevice.getAvailableDevices().getCount(), 0u);
-    ASSERT_EQ(daqDevice.getAvailableFunctionBlockTypes().getCount(), 0u);
+    ASSERT_EQ(daqDevice.getAvailableFunctionBlockTypes().getCount(), 7u);
     ASSERT_THROW(daqDevice.addDevice("daqref://device0"),
                  opcua::OpcUaClientCallNotAvailableException);  // Are these the correct errors to return?
 
@@ -180,8 +181,12 @@ TEST_F(OpcuaDeviceModulesTest, DeviceDynamicFeatures)
     ASSERT_THROW(daqDevice.removeDevice(refDevice), opcua::OpcUaClientCallNotAvailableException);
 
     auto refFb = daqDevice.getFunctionBlocks()[0];
-    ASSERT_THROW(daqDevice.addFunctionBlock("test_fb"), opcua::OpcUaClientCallNotAvailableException);
-    ASSERT_THROW(daqDevice.removeFunctionBlock(refFb), opcua::OpcUaClientCallNotAvailableException);
+    ASSERT_THROW(daqDevice.addFunctionBlock("test_fb"), daq::GeneralErrorException);
+
+    auto scalingFb = daqDevice.addFunctionBlock("ref_fb_module_scaling");
+    ASSERT_TRUE(scalingFb.assigned());
+
+    ASSERT_NO_THROW(daqDevice.removeFunctionBlock(refFb));
 }
 
 TEST_F(OpcuaDeviceModulesTest, DISABLED_Signal)
@@ -432,14 +437,6 @@ TEST_F(OpcuaDeviceModulesTest, ProcedureProp)
     ASSERT_NO_THROW(proc());
 }
 
-TEST_F(OpcuaDeviceModulesTest, PackageVersion1)
-{
-    auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
-    auto info = client.getDevices()[0].getInfo();
-    ASSERT_EQ(info.getPropertyValue("OpenDaqPackageVersion"), OPENDAQ_PACKAGE_VERSION);
-}
-
 ////////
 // Tests defining future requirements
 ////////
@@ -492,6 +489,23 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlocksOnClient)
     auto client = CreateClientInstance();
 
     ASSERT_GT(client.getDevices()[0].getFunctionBlocks().getCount(), (SizeT) 0);
+}
+
+TEST_F(OpcuaDeviceModulesTest, SdkPackageVersion)
+{
+    auto instance = InstanceBuilder().setDefaultRootDeviceInfo(DeviceInfo("", "dev", "custom")).build();
+    instance.addServer("openDAQ OpcUa", nullptr);
+    auto client = CreateClientInstance();
+
+    ASSERT_EQ(client.getDevices()[0].getInfo().getSdkVersion(), "custom");
+}
+
+TEST_F(OpcuaDeviceModulesTest, SdkPackageVersion1)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto info = client.getDevices()[0].getInfo();
+    ASSERT_EQ(info.getPropertyValue("sdkVersion"), OPENDAQ_PACKAGE_VERSION);
 }
 
 // TODO: Add all examples of dynamic changes

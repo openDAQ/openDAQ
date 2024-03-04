@@ -16,16 +16,16 @@
 
 #pragma once
 #include <coretypes/type_manager.h>
+#include <coretypes/type_manager_private.h>
 #include <coretypes/type_ptr.h>
 #include <coretypes/dictobject_factory.h>
 #include <coretypes/weakrefobj.h>
-#include <coretypes/string_ptr.h>
-#include <coretypes/serialized_object_ptr.h>
 #include <coretypes/deserializer.h>
+#include <coretypes/procedure_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class TypeManagerImpl : public ImplementationOfWeak<ITypeManager, ISerializable>
+class TypeManagerImpl : public ImplementationOfWeak<ITypeManager, ITypeManagerPrivate, ISerializable>
 {
 public:
     TypeManagerImpl();
@@ -35,6 +35,8 @@ public:
     ErrCode INTERFACE_FUNC getType(IString* typeName, IType** type) override;
     ErrCode INTERFACE_FUNC getTypes(IList** types) override;
     ErrCode INTERFACE_FUNC hasType(IString* typeName, Bool* hasType) override;
+
+    ErrCode INTERFACE_FUNC setCoreEventCallback(IProcedure* callback) override;
     
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -45,6 +47,7 @@ public:
 
 private:
     DictPtr<IString, IType> types;
+    ProcedurePtr coreEventCallback;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(TypeManagerImpl)

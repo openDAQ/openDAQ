@@ -50,9 +50,11 @@ inline ContextPtr Context(const SchedulerPtr& scheduler,
  * @param logger The logger the context has access to.
  * @param typeManager The type manager.
  */
-inline ContextPtr NullContext(const LoggerPtr& logger = Logger(), const TypeManagerPtr& typeManager = TypeManager())
+inline ContextPtr NullContext(const LoggerPtr& logger = Logger(), 
+                              const TypeManagerPtr& typeManager = TypeManager(),
+                              const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>())
 {
-    ContextPtr obj(Context_Create(nullptr, logger, typeManager, nullptr, Dict<IString, IBaseObject>()));
+    ContextPtr obj(Context_Create(nullptr, logger, typeManager, nullptr, options));
     return obj;
 }
 

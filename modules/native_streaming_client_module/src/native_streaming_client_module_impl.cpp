@@ -23,7 +23,8 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
             VersionInfo(NATIVE_STREAM_CL_MODULE_MAJOR_VERSION,
                         NATIVE_STREAM_CL_MODULE_MINOR_VERSION,
                         NATIVE_STREAM_CL_MODULE_PATCH_VERSION),
-            std::move(context))
+            std::move(context),
+            "NativeStreamingClient")
     , deviceIndex(0)
     , discoveryClient(
         {
@@ -74,6 +75,7 @@ DictPtr<IString, IDeviceType> NativeStreamingClientModule::onGetAvailableDeviceT
 DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& context,
                                                           const ComponentPtr& parent,
                                                           const StringPtr& connectionString,
+                                                          const PropertyObjectPtr& config,
                                                           const StringPtr& host,
                                                           const StringPtr& port,
                                                           const StringPtr& path)
@@ -82,7 +84,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                                std::regex(NativeConfigurationDevicePrefix),
                                                                NativeStreamingPrefix);
     auto transportProtocolClient =
-        std::make_shared<NativeStreamingClientHandler>(context);
+        std::make_shared<NativeStreamingClientHandler>(context, config.getPropertyValue("TransportLayerConfig"));
     StreamingPtr nativeStreaming =
         createWithImplementation<IStreaming, NativeStreamingImpl>(streamingConnectionString,
                                                                   host,
@@ -93,25 +95,87 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                                   nullptr,
                                                                   nullptr,
                                                                   nullptr);
+    nativeStreaming.setActive(true);
+
     auto deviceHelper = std::make_unique<NativeDeviceHelper>(context, transportProtocolClient);
     auto device = deviceHelper->connectAndGetDevice(parent);
 
-    device.asPtr<INativeDevicePrivate>()->attachNativeStreaming(nativeStreaming);
+    deviceHelper->addStreaming(nativeStreaming);
+    // TODO check streaming options recursively and add optional streamings
+    deviceHelper->subscribeToCoreEvent(context);
+
     device.asPtr<INativeDevicePrivate>()->attachDeviceHelper(std::move(deviceHelper));
     device.asPtr<INativeDevicePrivate>()->setConnectionString(connectionString);
 
     return device;
 }
 
+void NativeStreamingClientModule::populateConfigFromContext(PropertyObjectPtr config)
+{
+    auto options = context.getModuleOptions(id);
+    if (options.getCount() == 0)
+        return;
+
+    PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
+
+    if (options.hasKey("HeartbeatEnabled"))
+    {
+        auto value = options.get("HeartbeatEnabled");
+        if (value.getCoreType() == CoreType::ctBool)
+            transportLayerConfig.setPropertyValue("HeartbeatEnabled", value);
+    }
+
+    if (options.hasKey("HeartbeatPeriod"))
+    {
+        auto value = options.get("HeartbeatPeriod");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("HeartbeatPeriod", value);
+    }
+
+    if (options.hasKey("HeartbeatTimeout"))
+    {
+        auto value = options.get("HeartbeatTimeout");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("HeartbeatTimeout", value);
+    }
+
+    if (options.hasKey("ConnectionTimeout"))
+    {
+        auto value = options.get("ConnectionTimeout");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("ConnectionTimeout", value);
+    }
+
+    if (options.hasKey("StreamingInitTimeout"))
+    {
+        auto value = options.get("StreamingInitTimeout");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("StreamingInitTimeout", value);
+    }
+
+    if (options.hasKey("ReconnectionPeriod"))
+    {
+        auto value = options.get("ReconnectionPeriod");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("ReconnectionPeriod", value);
+    }
+}
+
 DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
-                                                const ComponentPtr& parent,
-                                                const PropertyObjectPtr& config)
+                                                      const ComponentPtr& parent,
+                                                      const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned())
         throw ArgumentNullException();
 
-    if (!onAcceptsConnectionParameters(connectionString, config))
+    PropertyObjectPtr deviceConfig = config;
+    if (!deviceConfig.assigned())
+        deviceConfig = createDeviceDefaultConfig();
+
+    if (!onAcceptsConnectionParameters(connectionString, deviceConfig))
         throw InvalidParameterException();
+
+    populateConfigFromContext(deviceConfig);
 
     if (!context.assigned())
         throw InvalidParameterException("Context is not available.");
@@ -125,11 +189,13 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         std::scoped_lock lock(sync);
 
         std::string localId = fmt::format("streaming_pseudo_device{}", deviceIndex++);
-        return createWithImplementation<IDevice, NativeStreamingDeviceImpl>(context, parent, localId, connectionString, host, port, path);
+
+        auto clientHandler = std::make_shared<NativeStreamingClientHandler>(context, deviceConfig.getPropertyValue("TransportLayerConfig"));
+        return createWithImplementation<IDevice, NativeStreamingDeviceImpl>(context, parent, localId, connectionString, host, port, path, clientHandler);
     }
     else if (connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
     {
-        return createNativeDevice(context, parent, connectionString, host, port, path);
+        return createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path);
     }
     else
     {
@@ -137,13 +203,51 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     }
 }
 
+PropertyObjectPtr NativeStreamingClientModule::createTransportLayerDefaultConfig()
+{
+    auto transportLayerConfig = daq::PropertyObject();
+
+    transportLayerConfig.addProperty(daq::BoolProperty("HeartbeatEnabled", daq::False));
+    transportLayerConfig.addProperty(daq::IntProperty("HeartbeatPeriod", 1000));
+    transportLayerConfig.addProperty(daq::IntProperty("HeartbeatTimeout", 1500));
+    transportLayerConfig.addProperty(daq::IntProperty("ConnectionTimeout", 1000));
+    transportLayerConfig.addProperty(daq::IntProperty("StreamingInitTimeout", 1000));
+    transportLayerConfig.addProperty(daq::IntProperty("ReconnectionPeriod", 1000));
+
+    return transportLayerConfig;
+}
+
+PropertyObjectPtr NativeStreamingClientModule::createDeviceDefaultConfig()
+{
+    auto defaultConfig = PropertyObject();
+
+    defaultConfig.addProperty(ObjectProperty("TransportLayerConfig", createTransportLayerDefaultConfig()));
+
+    return defaultConfig;
+}
+
 bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr& connectionString,
-                                                          const PropertyObjectPtr& /*config*/)
+                                                                const PropertyObjectPtr& config)
 {
     std::string connStr = connectionString;
     auto pseudoDevicePrefixFound = connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix);
     auto devicePrefixFound = connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix);
-    return (devicePrefixFound || pseudoDevicePrefixFound) && validateConnectionString(connectionString);
+
+    if ((!devicePrefixFound && !pseudoDevicePrefixFound) ||
+        !validateConnectionString(connectionString))
+    {
+        return false;
+    }
+
+    if ( config.assigned() && !validateDeviceConfig(config))
+    {
+        LOG_W("Connection string \"{}\" is accepted but config is incomplete", connectionString);
+        return false;
+    }
+    else
+    {
+        return true;
+    }
 }
 
 bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString,
@@ -182,7 +286,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
             port,
             path,
             context,
-            std::make_shared<opendaq_native_streaming_protocol::NativeStreamingClientHandler>(context),
+            std::make_shared<opendaq_native_streaming_protocol::NativeStreamingClientHandler>(context, createTransportLayerDefaultConfig()),
             nullptr,
             nullptr,
             nullptr);
@@ -203,7 +307,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
             port,
             String("/"),
             context,
-            std::make_shared<opendaq_native_streaming_protocol::NativeStreamingClientHandler>(context),
+            std::make_shared<opendaq_native_streaming_protocol::NativeStreamingClientHandler>(context, createTransportLayerDefaultConfig()),
             nullptr,
             nullptr,
             nullptr);
@@ -224,16 +328,34 @@ bool NativeStreamingClientModule::connectionStringHasPrefix(const StringPtr& con
 
 DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
 {
+    auto configurationCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
+    {
+        PropertyObjectPtr propObjPtr;
+        ErrCode errCode = wrapHandlerReturn(&NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
+        *output = propObjPtr.detach();
+        return errCode;
+    };
+
     return DeviceType(NativeStreamingDeviceTypeId,
                       "PseudoDevice",
-                      "Pseudo device, provides only signals of the remote device as flat list");
+                      "Pseudo device, provides only signals of the remote device as flat list",
+                      configurationCallback);
 }
 
 DeviceTypePtr NativeStreamingClientModule::createDeviceType()
 {
+    auto configurationCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
+    {
+        PropertyObjectPtr propObjPtr;
+        ErrCode errCode = wrapHandlerReturn(&NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
+        *output = propObjPtr.detach();
+        return errCode;
+    };
+
     return DeviceType(NativeConfigurationDeviceTypeId,
                       "Device",
-                      "Network device connected over Native configuration protocol");
+                      "Network device connected over Native configuration protocol",
+                      configurationCallback);
 }
 
 StringPtr NativeStreamingClientModule::getHost(const StringPtr& url)
@@ -289,6 +411,29 @@ StringPtr NativeStreamingClientModule::getPath(const StringPtr& url)
     {
         return String("/");
     }
+}
+
+bool NativeStreamingClientModule::validateTransportLayerConfig(const PropertyObjectPtr& config)
+{
+    return config.hasProperty("HeartbeatEnabled") &&
+           config.hasProperty("HeartbeatPeriod") &&
+           config.hasProperty("HeartbeatTimeout") &&
+           config.hasProperty("ConnectionTimeout") &&
+           config.hasProperty("StreamingInitTimeout") &&
+           config.hasProperty("ReconnectionPeriod") &&
+           config.getProperty("HeartbeatEnabled").getValueType() == ctBool &&
+           config.getProperty("HeartbeatPeriod").getValueType() == ctInt &&
+           config.getProperty("HeartbeatTimeout").getValueType() == ctInt &&
+           config.getProperty("ConnectionTimeout").getValueType() == ctInt &&
+           config.getProperty("StreamingInitTimeout").getValueType() == ctInt &&
+           config.getProperty("ReconnectionPeriod").getValueType() == ctInt;
+}
+
+bool NativeStreamingClientModule::validateDeviceConfig(const PropertyObjectPtr& config)
+{
+    return config.hasProperty("TransportLayerConfig") &&
+           config.getPropertyValue("TransportLayerConfig").supportsInterface<IPropertyObject>() &&
+           validateTransportLayerConfig(config.getPropertyValue("TransportLayerConfig"));
 }
 
 bool NativeStreamingClientModule::validateConnectionString(const StringPtr& connectionString)

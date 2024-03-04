@@ -24,7 +24,7 @@ class ConfigServerInputPort
 {
 public:
     static BaseObjectPtr connect(const InputPortPtr& inputPort, const SignalPtr& signal);
-    static BaseObjectPtr disconnect(const InputPortPtr& inputPort);
+    static BaseObjectPtr disconnect(const InputPortPtr& inputPort, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerInputPort::connect(const InputPortPtr& inputPort, const SignalPtr& signal)
@@ -35,7 +35,7 @@ inline BaseObjectPtr ConfigServerInputPort::connect(const InputPortPtr& inputPor
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerInputPort::disconnect(const InputPortPtr& inputPort)
+inline BaseObjectPtr ConfigServerInputPort::disconnect(const InputPortPtr& inputPort, const ParamsDictPtr& params)
 {
     inputPort.disconnect();
     return nullptr;

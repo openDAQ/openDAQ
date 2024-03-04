@@ -13,6 +13,9 @@ Some examples of Function Blocks include:
 * *A File Writer*, which writes all input data received through its Input Port into a file.
 * *A Signal Generator*, which generates sine waves, and outputs them as Signals.
 
+[#scaling_fb]
+* *A Scaling Function Block*, which scales input data received through its Input Port and produces a scaled Signal as output.
+
 Combining Function Blocks to form extended xref:background_info:data_path.adoc[Data Path] chains is the core 
 of Signal processing in openDAQ. It allows users to create sequences of Function Blocks to perform data analysis.
 

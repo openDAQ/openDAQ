@@ -38,10 +38,6 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
     }
 }
 
-NativeStreamingServerHandler::~NativeStreamingServerHandler()
-{
-}
-
 void NativeStreamingServerHandler::startServer(uint16_t port)
 {
     OnNewSessionCallback onNewSessionCallback = [this](std::shared_ptr<Session> session)

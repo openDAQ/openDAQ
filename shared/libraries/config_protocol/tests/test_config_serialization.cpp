@@ -22,6 +22,7 @@
 #include <coreobjects/callable_info_factory.h>
 #include <coreobjects/argument_info_factory.h>
 #include <config_protocol/config_client_device_impl.h>
+#include <coreobjects/property_object_class_factory.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -443,15 +444,15 @@ TEST_F(ConfigProtocolSerializationTest, Signal)
 class MockFbImpl final : public FunctionBlock
 {
 public:
-    MockFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, bool nested)
-        : FunctionBlock(FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId)
+    MockFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& className, bool nested)
+        : FunctionBlock(FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId, className)
     {
         createAndAddSignal("sig1");
         createAndAddInputPort("ip1", PacketReadyNotification::None);
         if (!nested)
         {
             const auto nestedFb =
-                createWithImplementation<IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "nestedFb", true);
+                createWithImplementation<IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "nestedFb", className, true);
             addNestedFunctionBlock(nestedFb);
         }
     }
@@ -459,7 +460,7 @@ public:
 
 TEST_F(ConfigProtocolSerializationTest, FunctionBlock)
 {
-    const auto fb = createWithImplementation<IFunctionBlock, MockFbImpl>(NullContext(), nullptr, "fb", false);
+    const auto fb = createWithImplementation<IFunctionBlock, MockFbImpl>(NullContext(), nullptr, "fb", nullptr, false);
     fb.setName("fb_name");
     fb.setDescription("fb_desc");
     fb.getTags().asPtr<ITagsPrivate>().add("fld_tag");
@@ -474,6 +475,90 @@ TEST_F(ConfigProtocolSerializationTest, FunctionBlock)
 
     const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
         clientComm, std::string {} , NullContext(), nullptr, nullptr, "fb", nullptr);
+
+    int configComponentInstantiated = 0;
+    const FunctionBlockPtr newFunctionBlock =
+        deserializer.deserialize(str1,
+                                 deserializeContext,
+                                 [&configComponentInstantiated](const StringPtr& typeId,
+                                                                const SerializedObjectPtr& serObj,
+                                                                const BaseObjectPtr& context,
+                                                                const FunctionPtr& factoryCallback) -> BaseObjectPtr
+                                 {
+                                     if (typeId == "Folder")
+                                     {
+                                         BaseObjectPtr obj;
+                                         checkErrorInfo(ConfigClientFolderImpl::Deserialize(serObj, context, factoryCallback, &obj));
+                                         configComponentInstantiated++;
+                                         return obj;
+                                     }
+
+                                     if (typeId == "InputPort")
+                                     {
+                                         BaseObjectPtr obj;
+                                         checkErrorInfo(ConfigClientInputPortImpl::Deserialize(serObj, context, factoryCallback, &obj));
+                                         configComponentInstantiated++;
+                                         return obj;
+                                     }
+
+                                     if (typeId == "Signal")
+                                     {
+                                         BaseObjectPtr obj;
+                                         checkErrorInfo(ConfigClientSignalImpl::Deserialize(serObj, context, factoryCallback, &obj));
+                                         configComponentInstantiated++;
+                                         return obj;
+                                     }
+
+                                     if (typeId == "FunctionBlock")
+                                     {
+                                         BaseObjectPtr obj;
+                                         checkErrorInfo(ConfigClientFunctionBlockImpl::Deserialize(serObj, context, factoryCallback, &obj));
+                                         configComponentInstantiated++;
+                                         return obj;
+                                     }
+
+                                     return nullptr;
+                                 });
+
+    const FunctionBlockPtr newFb = deserializer.deserialize(str1, deserializeContext, nullptr);
+
+    ASSERT_EQ(configComponentInstantiated, 12);
+    ASSERT_EQ(newFb.getName(), fb.getName());
+    ASSERT_EQ(newFb.getDescription(), fb.getDescription());
+    ASSERT_EQ(newFb.getTags(), fb.getTags());
+
+    const auto serializer2 = JsonSerializer(True);
+    newFb.serialize(serializer2);
+    const auto str2 = serializer2.getOutput();
+
+    ASSERT_EQ(str1, str2);
+}
+
+TEST_F(ConfigProtocolSerializationTest, FunctionBlockWithClassName)
+{
+    const auto ctx = daq::NullContext();
+
+    const auto fbClass =
+        daq::PropertyObjectClassBuilder("FBClass").addProperty(daq::StringPropertyBuilder("StringProp", "-").build()).build();
+
+    ctx.getTypeManager().addType(fbClass);
+
+    const auto fb = createWithImplementation<IFunctionBlock, MockFbImpl>(ctx, nullptr, "fb", "FBClass", false);
+    fb.setName("fb_name");
+    fb.setDescription("fb_desc");
+    fb.getTags().asPtr<ITagsPrivate>().add("fld_tag");
+    fb.setPropertyValue("StringProp", "Value");
+
+    const auto serializer = JsonSerializer(True);
+    fb.serialize(serializer);
+    const auto str1 = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    auto clientComm = std::make_shared<ConfigProtocolClientComm>(ctx, nullptr, nullptr);
+
+    const auto deserializeContext = createWithImplementation<IConfigProtocolDeserializeContext, ConfigProtocolDeserializeContextImpl>(
+        clientComm, std::string{}, ctx, nullptr, nullptr, "fb", nullptr);
 
     int configComponentInstantiated = 0;
     const FunctionBlockPtr newFunctionBlock =
@@ -620,7 +705,7 @@ public:
         auto aiIoFolder = this->addIoFolder("ai", ioFolder);
         createAndAddChannel<MockChannel>(aiIoFolder, "ch");
 
-        const auto fb = createWithImplementation<IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "fb", true);
+        const auto fb = createWithImplementation<IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "fb", nullptr, true);
         addNestedFunctionBlock(fb);
     }
 };

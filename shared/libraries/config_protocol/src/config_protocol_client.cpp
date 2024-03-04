@@ -103,6 +103,21 @@ BaseObjectPtr ConfigProtocolClientComm::callProperty(const std::string& globalId
     return result;
 }
 
+void ConfigProtocolClientComm::setAttributeValue(const std::string& globalId,
+    const std::string& attributeName,
+    const BaseObjectPtr& attributeValue)
+{
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    dict.set("AttributeName", String(attributeName));
+    dict.set("AttributeValue", String(attributeValue));
+    auto setAttributeValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "SetAttributeValue", dict);
+    const auto setAttributeValueRpcReplyPacketBuffer = sendRequestCallback(setAttributeValueRpcRequestPacketBuffer);
+
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    parseRpcReplyPacketBuffer(setAttributeValueRpcReplyPacketBuffer);
+}
+
 BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const
 {
     auto obj = Dict<IString, IBaseObject>();

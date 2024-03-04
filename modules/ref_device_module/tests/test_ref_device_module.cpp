@@ -673,3 +673,46 @@ TEST_F(RefDeviceModuleTest, ReadCANChannelWithStreamReader)
         ASSERT_EQ(canData[i].length, (uint8_t) 8);
     }
 }
+
+TEST_F(RefDeviceModuleTest, ReadAIChannelWithFixedPacketSize)
+{
+    const auto module = CreateModule();
+
+    constexpr SizeT packetSize = 1000;
+
+    const auto device = module.createDevice("daqref://device1", nullptr);
+    device.setPropertyValue("GlobalSampleRate", 1000);
+
+    const auto channel = device.getChannels()[0];
+    channel.setPropertyValue("FixedPacketSize", True);
+    channel.setPropertyValue("PacketSize", packetSize);
+
+    const auto signal = channel.getSignals()[0];
+    const auto domainSignal = signal.getDomainSignal();
+    const auto packetReader = PacketReader(signal);
+
+    while (packetReader.getAvailableCount() < 1u)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    const EventPacketPtr eventPacket = packetReader.read();
+    ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+
+    const DataDescriptorPtr dataDesc = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+    const DataDescriptorPtr domainDesc = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+    ASSERT_EQ(dataDesc, signal.getDescriptor());
+    ASSERT_EQ(domainDesc, domainSignal.getDescriptor());
+
+    // there might be old packets in the signal path, so exit when we encounter the first with packet size
+    for (;;)
+    {
+        while (packetReader.getAvailableCount() < 1u)
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+        const DataPacketPtr dataPacket = packetReader.read();
+        ASSERT_EQ(dataPacket.getDataDescriptor(), dataDesc);
+
+        const auto sampleCount = dataPacket.getSampleCount();
+        if (sampleCount == packetSize)
+            break;
+    };
+}

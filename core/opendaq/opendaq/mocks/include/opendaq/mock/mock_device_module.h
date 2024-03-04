@@ -26,6 +26,7 @@ public:
 
     daq::ErrCode INTERFACE_FUNC getVersionInfo(daq::IVersionInfo** version) override;
     daq::ErrCode INTERFACE_FUNC getName(daq::IString** name) override;
+    daq::ErrCode INTERFACE_FUNC getId(daq::IString** id) override;
 
     daq::ErrCode INTERFACE_FUNC getAvailableDevices(daq::IList** availableDevices) override;
     daq::ErrCode INTERFACE_FUNC getAvailableDeviceTypes(daq::IDict** deviceTypes) override;

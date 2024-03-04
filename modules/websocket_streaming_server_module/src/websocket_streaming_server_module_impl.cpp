@@ -10,7 +10,8 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE
 WebsocketStreamingServerModule::WebsocketStreamingServerModule(ContextPtr context)
     : Module("openDAQ Websocket streaming server module",
              daq::VersionInfo(WS_STREAM_SRV_MODULE_MAJOR_VERSION, WS_STREAM_SRV_MODULE_MINOR_VERSION, WS_STREAM_SRV_MODULE_PATCH_VERSION),
-             std::move(context))
+             std::move(context),
+             "WebsockerStreamingServer")
 {
 }
 

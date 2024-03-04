@@ -12,7 +12,8 @@ NativeStreamingServerModule::NativeStreamingServerModule(ContextPtr context)
              daq::VersionInfo(NATIVE_STREAM_SRV_MODULE_MAJOR_VERSION,
                               NATIVE_STREAM_SRV_MODULE_MINOR_VERSION,
                               NATIVE_STREAM_SRV_MODULE_PATCH_VERSION),
-             std::move(context))
+             std::move(context),
+             "NativeStreamingServer")
 {
 }
 

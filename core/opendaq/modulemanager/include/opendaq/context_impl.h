@@ -41,6 +41,7 @@ public:
     ErrCode INTERFACE_FUNC getOnCoreEvent(IEvent** event) override;
     ErrCode INTERFACE_FUNC moveModuleManager(IModuleManager** manager) override;
     ErrCode INTERFACE_FUNC getOptions(IDict** options) override;
+    ErrCode INTERFACE_FUNC getModuleOptions(IString* moduleId, IDict** options) override;
 
 private:
     void componentCoreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs);

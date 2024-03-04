@@ -42,12 +42,12 @@ ListPtr<IString> BaseConfigProviderImpl::SplitKey(const std::string& envKey, con
 
     while (end != std::string::npos) 
     {
-        result.pushBack(ToLowerCase(envKey.substr(start, end - start)));
+        result.pushBack(envKey.substr(start, end - start));
         start = end + 1;
         end = envKey.find(delimiter, start);
     }
 
-    result.pushBack(ToLowerCase(envKey.substr(start, end)));
+    result.pushBack(envKey.substr(start, end));
     return result;
 }
 

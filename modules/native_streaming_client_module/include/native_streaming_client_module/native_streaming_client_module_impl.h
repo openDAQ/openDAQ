@@ -51,6 +51,7 @@ private:
                                         const StringPtr& port,
                                         const StringPtr& path);
     static PropertyObjectPtr createDeviceDefaultConfig();
+    void populateConfigFromContext(PropertyObjectPtr config);
     static PropertyObjectPtr createTransportLayerDefaultConfig();
     bool validateDeviceConfig(const PropertyObjectPtr& config);
     bool validateTransportLayerConfig(const PropertyObjectPtr& config);

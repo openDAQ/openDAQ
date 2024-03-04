@@ -23,7 +23,8 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
             VersionInfo(NATIVE_STREAM_CL_MODULE_MAJOR_VERSION,
                         NATIVE_STREAM_CL_MODULE_MINOR_VERSION,
                         NATIVE_STREAM_CL_MODULE_PATCH_VERSION),
-            std::move(context))
+            std::move(context),
+            "NativeStreamingClient")
     , deviceIndex(0)
     , discoveryClient(
         {
@@ -109,6 +110,57 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     return device;
 }
 
+void NativeStreamingClientModule::populateConfigFromContext(PropertyObjectPtr config)
+{
+    auto options = context.getModuleOptions(id);
+    if (options.getCount() == 0)
+        return;
+
+    PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
+
+    if (options.hasKey("HeartbeatEnabled"))
+    {
+        auto value = options.get("HeartbeatEnabled");
+        if (value.getCoreType() == CoreType::ctBool)
+            transportLayerConfig.setPropertyValue("HeartbeatEnabled", value);
+    }
+
+    if (options.hasKey("HeartbeatPeriod"))
+    {
+        auto value = options.get("HeartbeatPeriod");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("HeartbeatPeriod", value);
+    }
+
+    if (options.hasKey("HeartbeatTimeout"))
+    {
+        auto value = options.get("HeartbeatTimeout");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("HeartbeatTimeout", value);
+    }
+
+    if (options.hasKey("ConnectionTimeout"))
+    {
+        auto value = options.get("ConnectionTimeout");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("ConnectionTimeout", value);
+    }
+
+    if (options.hasKey("StreamingInitTimeout"))
+    {
+        auto value = options.get("StreamingInitTimeout");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("StreamingInitTimeout", value);
+    }
+
+    if (options.hasKey("ReconnectionPeriod"))
+    {
+        auto value = options.get("ReconnectionPeriod");
+        if (value.getCoreType() == CoreType::ctInt)
+            transportLayerConfig.setPropertyValue("ReconnectionPeriod", value);
+    }
+}
+
 DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
                                                       const ComponentPtr& parent,
                                                       const PropertyObjectPtr& config)
@@ -122,6 +174,8 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
 
     if (!onAcceptsConnectionParameters(connectionString, deviceConfig))
         throw InvalidParameterException();
+
+    populateConfigFromContext(deviceConfig);
 
     if (!context.assigned())
         throw InvalidParameterException("Context is not available.");

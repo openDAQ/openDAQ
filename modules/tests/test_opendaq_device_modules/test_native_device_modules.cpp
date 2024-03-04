@@ -1,5 +1,6 @@
 #include <opcuatms/exceptions.h>
 #include "test_helpers.h"
+#include <fstream>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -543,4 +544,45 @@ TEST_F(NativeDeviceModulesTest, SdkPackageVersion)
     auto client = CreateClientInstance();
 
     ASSERT_EQ(client.getDevices()[0].getInfo().getSdkVersion(),  "custom");
+}
+
+static void CreateConfigFile(const std::string& data)
+{
+    std::ofstream file;
+    file.open("opendaq-config.json");
+    if (!file.is_open()) 
+        throw std::runtime_error("can not open file for writing");
+
+    file << data;
+    file.close();
+}
+
+static void RemoveConfigFile()
+{
+    remove("opendaq-config.json");
+}
+
+TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
+{
+    std::string options = R"(
+    {
+    "Modules": {
+        "NativeStreamingClient": {
+            "HeartbeatEnabled": true,
+            "HeartbeatPeriod": 100,
+            "HeartbeatTimeout": 200,
+            "ConnectionTimeout": 300,
+            "StreamingInitTimeout": 400,
+            "ReconnectionPeriod": 500
+            }
+        }
+    }
+    )";
+
+    auto server = CreateServerInstance();
+    
+    CreateConfigFile(options);
+    Finally final([] { RemoveConfigFile(); });
+
+    ASSERT_NO_THROW(CreateClientInstance());
 }

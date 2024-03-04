@@ -14,7 +14,8 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 RefFbModule::RefFbModule(ContextPtr ctx)
     : Module("Reference function block module",
              daq::VersionInfo(REF_FB_MODULE_MAJOR_VERSION, REF_FB_MODULE_MINOR_VERSION, REF_FB_MODULE_PATCH_VERSION),
-             std::move(ctx))
+             std::move(ctx),
+             "ReferenceFunctionBlock")
 {
 }
 

@@ -22,6 +22,11 @@ ErrCode MockServerModuleImpl::getName(IString** name)
     return createString(name, "MockServerModule");
 }
 
+ErrCode MockServerModuleImpl::getId(IString** id)
+{
+    return createString(id, "MockServer");
+}
+
 ErrCode MockServerModuleImpl::getAvailableDevices(IList** availableDevices)
 {
     *availableDevices = List<IDeviceInfo>().detach();

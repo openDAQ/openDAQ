@@ -138,6 +138,29 @@ ErrCode ContextImpl::getOptions(IDict** options)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ContextImpl::getModuleOptions(IString* moduleId, IDict** options)
+{
+    OPENDAQ_PARAM_NOT_NULL(moduleId);
+    OPENDAQ_PARAM_NOT_NULL(options);
+
+    if (this->options.assigned() && this->options.hasKey("Modules"))
+    {
+        DictPtr<IString, IBaseObject> modules = this->options.get("Modules");
+        if (modules.assigned() && modules.hasKey(moduleId))
+        {
+            DictPtr<IString, IBaseObject> moduleOptions = modules.get(moduleId);
+            if (moduleOptions.assigned())
+            {
+                *options = moduleOptions.addRefAndReturn();
+                return OPENDAQ_SUCCESS;
+            }
+        }
+    }
+
+    *options = Dict<IString, IBaseObject>().detach();
+    return OPENDAQ_SUCCESS;
+}
+
 void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
 {
     if (!component.assigned())

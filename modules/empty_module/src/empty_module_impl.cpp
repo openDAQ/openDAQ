@@ -10,7 +10,8 @@ BEGIN_NAMESPACE_EMPTY_MODULE
 EmptyModule::EmptyModule(ContextPtr context)
     : Module("Empty module",
             daq::VersionInfo(EMPTY_MODULE_MAJOR_VERSION, EMPTY_MODULE_MINOR_VERSION, EMPTY_MODULE_PATCH_VERSION),
-            std::move(context)
+            std::move(context),
+            "EmptyModule"
     )
 {
 }

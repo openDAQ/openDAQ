@@ -58,30 +58,21 @@ public:
         return serverSignal;
     }
 
-    template <typename T>
-    void checkLastValueComplex(const SignalPtr& signal, const SampleType& sampleType, const T& realValue, const T& imaginaryValue)
+    void checkLastValueComplex(const SignalPtr& signal, const double& realValue, const double& imaginaryValue)
     {
         ComplexNumberPtr ptr = signal.getLastValue().asPtr<IComplexNumber>();
         auto real = ptr.getReal();
         auto imaginary = ptr.getImaginary();
 
-        if (sampleType == SampleType::ComplexFloat32)
-        {
-            ASSERT_FLOAT_EQ(real, realValue);
-            ASSERT_FLOAT_EQ(imaginary, imaginaryValue);
-        }
-        else
-        {
-            ASSERT_DOUBLE_EQ(real, realValue);
-            ASSERT_DOUBLE_EQ(imaginary, imaginaryValue);
-        }
+        ASSERT_DOUBLE_EQ(real, realValue);
+        ASSERT_DOUBLE_EQ(imaginary, imaginaryValue);
     }
 
     void checkLastValueRange(const SignalPtr& signal, const int64_t& lowValue, const int64_t& highValue)
     {
         RangePtr ptr = signal.getLastValue().asPtr<IRange>();
-        auto low = ptr.getLowValue();
-        auto high = ptr.getHighValue();
+        auto low = ptr.getLowValue().getIntValue();
+        auto high = ptr.getHighValue().getIntValue();
 
         ASSERT_EQ(low, lowValue);
         ASSERT_EQ(high, highValue);
@@ -105,28 +96,15 @@ public:
 
         auto clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
 
-        if (sampleType == SampleType::Float32)
+        if (sampleType == SampleType::Float32 || sampleType == SampleType::Float64)
         {
-            ASSERT_FLOAT_EQ(clientSignal.getLastValue(), value);
-            ASSERT_FLOAT_EQ(daqServerSignal.getLastValue(), value);
-        }
-        else if (sampleType == SampleType::Float64)
-        {
-            ASSERT_DOUBLE_EQ(clientSignal.getLastValue(), value);
-            ASSERT_DOUBLE_EQ(daqServerSignal.getLastValue(), value);
-        }
-        else if (sampleType == SampleType::UInt8)
-        {
-            uint16_t clientLastVal = clientSignal.getLastValue();
-            uint16_t serverLastVal = daqServerSignal.getLastValue();
-
-            ASSERT_EQ(static_cast<uint8_t>(clientLastVal), value);
-            ASSERT_EQ(static_cast<uint8_t>(serverLastVal), value);
+            ASSERT_DOUBLE_EQ(clientSignal.getLastValue(), static_cast<double>(value));
+            ASSERT_DOUBLE_EQ(daqServerSignal.getLastValue(), static_cast<double>(value));
         }
         else
         {
-            ASSERT_EQ(clientSignal.getLastValue(), value);
-            ASSERT_EQ(daqServerSignal.getLastValue(), value);
+            ASSERT_EQ(clientSignal.getLastValue(), static_cast<int64_t>(value));
+            ASSERT_EQ(daqServerSignal.getLastValue(), static_cast<int64_t>(value));
         }
     }
 
@@ -149,8 +127,8 @@ public:
 
         auto clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
 
-        checkLastValueComplex(clientSignal, sampleType, realValue, imaginaryValue);
-        checkLastValueComplex(daqServerSignal, sampleType, realValue, imaginaryValue);
+        checkLastValueComplex(clientSignal, realValue, imaginaryValue);
+        checkLastValueComplex(daqServerSignal, realValue, imaginaryValue);
     }
 };
 

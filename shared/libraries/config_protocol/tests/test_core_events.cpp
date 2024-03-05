@@ -1253,3 +1253,89 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndFolderIPConnectDisconnect)
 
     ASSERT_EQ(updateCount, 1);
 }
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndDomainSignalChanged)
+{
+    const FolderConfigPtr serverSigFolder = serverDevice.getItem("Sig");
+    const FolderConfigPtr clientSigFolder = clientDevice.getItem("Sig");
+
+    const SignalConfigPtr serverDeviceSig = serverSigFolder.getItem("sig_device");
+    const SignalConfigPtr serverDeviceTimeSig = Signal(serverDevice.getContext(), serverSigFolder, "sig_device_time");
+    const SignalConfigPtr serverSubDeviceSig = serverDevice.getDevices()[0].getItem("Sig").asPtr<IFolder>().getItem("sig_device");
+    
+    serverSigFolder.addItem(serverDeviceTimeSig);
+    serverDeviceSig.setDomainSignal(serverDeviceTimeSig);
+
+    const SignalPtr clientDeviceSig = clientSigFolder.getItem("sig_device");
+    const SignalPtr clientDeviceTimeSig = clientSigFolder.getItem("sig_device_time");
+    const SignalPtr clientSubDeviceSig = clientDevice.getDevices()[0].getItem("Sig").asPtr<IFolder>().getItem("sig_device");
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    serverDeviceSig.setDomainSignal(nullptr);
+    serverSubDeviceSig.setDomainSignal(serverDeviceTimeSig);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_EQ(clientDeviceSig.getDomainSignal(), clientDeviceTimeSig);
+    ASSERT_EQ(clientSubDeviceSig.getDomainSignal(), nullptr);
+
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+    
+    ASSERT_EQ(clientSubDeviceSig.getDomainSignal(), clientDeviceTimeSig);
+    ASSERT_EQ(clientDeviceSig.getDomainSignal(), nullptr);
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndDescriptorChanged)
+{
+    const FolderConfigPtr serverSigFolder = serverDevice.getItem("Sig");
+    const FolderConfigPtr clientSigFolder = clientDevice.getItem("Sig");
+
+    const SignalConfigPtr serverDeviceSig = serverDevice.getItem("Sig").asPtr<IFolder>().getItem("sig_device");
+    const SignalPtr clientDeviceSig = clientDevice.getItem("Sig").asPtr<IFolder>().getItem("sig_device");
+
+    auto serverDesc = serverDeviceSig.getDescriptor();
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    const auto newDesc = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat64).setName("Foo").build();
+    serverDeviceSig.setDescriptor(newDesc);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_EQ(clientDeviceSig.getDescriptor(), serverDesc);
+
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+    
+    ASSERT_EQ(clientDeviceSig.getDescriptor(), newDesc);
+
+    ASSERT_EQ(updateCount, 1);
+}

@@ -47,6 +47,7 @@ public:
 
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 
 private:
     void descriptorChanged(const CoreEventArgsPtr& args);
@@ -116,6 +117,19 @@ inline void ConfigClientSignalImpl::handleRemoteCoreObjectInternal(const Compone
     }
 
     Super::handleRemoteCoreObjectInternal(sender, args);
+}
+
+inline void ConfigClientSignalImpl::onRemoteUpdate(const SerializedObjectPtr& serialized)
+{
+    ConfigClientComponentBaseImpl::onRemoteUpdate(serialized);
+
+    if (serialized.hasKey("domainSignalId"))
+        deserializedDomainSignalId = serialized.readString("domainSignalId");
+    else
+        deserializedDomainSignalId.release();
+
+    if (serialized.hasKey("dataDescriptor"))
+        this->dataDescriptor = serialized.readObject("dataDescriptor");
 }
 
 inline void ConfigClientSignalImpl::descriptorChanged(const CoreEventArgsPtr& args)

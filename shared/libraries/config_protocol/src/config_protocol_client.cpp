@@ -359,6 +359,12 @@ void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& componen
                     domainSignal = findSignalByRemoteGlobalId(dev, domainSignalId);
                 if (domainSignal.assigned())
                     signal.asPtr<IConfigClientSignalPrivate>(true)->assignDomainSignal(domainSignal);
+                else
+                    signal.asPtr<IConfigClientSignalPrivate>(true)->assignDomainSignal(nullptr);
+            }
+            else
+            {
+                signal.asPtr<IConfigClientSignalPrivate>(true)->assignDomainSignal(nullptr);
             }
         });
 }

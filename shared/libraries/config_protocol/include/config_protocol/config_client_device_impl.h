@@ -188,6 +188,9 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
 
     for (const auto& key : serialized.getKeys())
     {
+        if (this->defaultComponents.count(key))
+            continue;
+
         if (serialized.getType(key) != ctObject)
             continue;
         

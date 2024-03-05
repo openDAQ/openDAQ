@@ -41,6 +41,9 @@ public:
                                       const StringPtr& className);
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+protected:
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 };
 
 template <class Impl>
@@ -94,4 +97,19 @@ ErrCode ConfigClientBaseFunctionBlockImpl<Impl>::Deserialize(ISerializedObject* 
         });
 }
 
+template <class Impl>
+void ConfigClientBaseFunctionBlockImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr& serialized)
+{
+    ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(serialized);
+
+    for (const auto& comp : this->components)
+    {
+        const auto id = comp.getLocalId();
+        if (serialized.hasKey(id))
+        {
+            const auto serObj = serialized.readSerializedObject(id);
+            comp.template asPtr<IConfigClientObject>()->remoteUpdate(serObj);
+        }
+    }
+}
 }

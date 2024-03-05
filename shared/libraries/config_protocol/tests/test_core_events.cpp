@@ -1061,3 +1061,67 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceCustomCompModified)
 
     ASSERT_EQ(updateCount, 1);
 }
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndFBSubFbSignalIPModified)
+{
+    const auto serverFB = serverDevice.getFunctionBlocks(search::Recursive(search::Any()))[0];
+    const auto clientFB = clientDevice.getFunctionBlocks(search::Recursive(search::Any()))[0];
+
+    const FolderConfigPtr serverFBFolder = serverFB.getItem("FB");
+    const FolderConfigPtr serverSigFolder = serverFB.getItem("Sig");
+    const FolderConfigPtr serverIPFolder = serverFB.getItem("IP");
+
+    const FolderConfigPtr clientFBFolder = clientFB.getItem("FB");
+    const FolderConfigPtr clientSigFolder = clientFB.getItem("Sig");
+    const FolderConfigPtr clientIPFolder = clientFB.getItem("IP");
+    
+    const auto fb = createWithImplementation<IFunctionBlock, test_utils::MockFb1Impl>(serverDevice.getContext(), serverFBFolder, "fb");
+    serverFBFolder.addItem(fb);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    serverFBFolder.removeItemWithLocalId("fb");
+    serverSigFolder.removeItemWithLocalId("sig1");
+    serverIPFolder.removeItemWithLocalId("ip");
+
+    const auto fbNew = createWithImplementation<IFunctionBlock, test_utils::MockFb2Impl>(serverDevice.getContext(), serverFBFolder, "new_fb");
+    const auto ipNew = InputPort(serverDevice.getContext(), serverIPFolder, "new_ip");
+    const auto sigNew = Signal(serverDevice.getContext(), serverSigFolder, "new_sig");
+
+    serverFBFolder.addItem(fbNew);
+    serverIPFolder.addItem(ipNew);
+    serverSigFolder.addItem(sigNew);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+    
+    ASSERT_TRUE(clientFBFolder.hasItem("fb"));
+    ASSERT_FALSE(clientFBFolder.hasItem("new_fb"));
+    ASSERT_TRUE(clientSigFolder.hasItem("sig1"));
+    ASSERT_FALSE(clientSigFolder.hasItem("new_sig"));
+    ASSERT_TRUE(clientIPFolder.hasItem("ip"));
+    ASSERT_FALSE(clientIPFolder.hasItem("new_ip"));
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+        
+
+    ASSERT_FALSE(clientFBFolder.hasItem("fb"));
+    ASSERT_TRUE(clientFBFolder.hasItem("new_fb"));
+    ASSERT_FALSE(clientSigFolder.hasItem("sig1"));
+    ASSERT_TRUE(clientSigFolder.hasItem("new_sig"));
+    ASSERT_FALSE(clientIPFolder.hasItem("ip"));
+    ASSERT_TRUE(clientIPFolder.hasItem("new_ip"));
+
+    ASSERT_EQ(updateCount, 1);
+}

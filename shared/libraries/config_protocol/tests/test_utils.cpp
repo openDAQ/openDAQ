@@ -225,7 +225,8 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     objPtr.addProperty(StringPropertyBuilder("StrProp", "-").build());
 
     const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
-    ctx.getTypeManager().addType(statusType);
+    if (!ctx.getTypeManager().hasType(statusType.getName()))
+        ctx.getTypeManager().addType(statusType);
 
     const auto statusInitValue = Enumeration("StatusType", "Status0", ctx.getTypeManager());
     statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusInitValue);

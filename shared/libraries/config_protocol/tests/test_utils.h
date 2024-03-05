@@ -62,6 +62,12 @@ namespace daq::config_protocol::test_utils
         std::string onGetOrigin() override;
         UnitPtr onGetDomainUnit() override;
 
+    protected:
+        bool clearFunctionBlocksOnUpdate() override
+        {
+            return false;
+        }
+
     private:
         uint64_t ticksSinceOrigin;
     };
@@ -79,6 +85,12 @@ namespace daq::config_protocol::test_utils
         void removeComponentHelper(const std::string& id)
         {
             removeComponentById(id);
+        }
+
+    protected:
+        bool clearFunctionBlocksOnUpdate() override
+        {
+            return false;
         }
     };
 

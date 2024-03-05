@@ -125,7 +125,6 @@ protected:
     DataDescriptorPtr dataDescriptor;
 
 private:
-    StringPtr name;
     bool isPublic{};
     std::vector<SignalPtr> relatedSignals;
     SignalPtr domainSignal;

@@ -36,17 +36,6 @@ DECLARE_OPENDAQ_INTERFACE(IInputPortPrivate, IBaseObject)
      * @brief Disconnects the signal without notification to the signal.
      */
     virtual ErrCode INTERFACE_FUNC disconnectWithoutSignalNotification() = 0;
-
-    /*!
-     * @brief Returns the ID of the signal after the input port has been deserialized.
-     * serializedSignalId The ID of the signal after the input port has been deserialized.
-     */
-    virtual ErrCode INTERFACE_FUNC getSerializedSignalId(IString** serializedSignalId) = 0;
-
-    /*!
-     * @brief Called when update from serialized string is done.
-     */
-    virtual ErrCode INTERFACE_FUNC finishUpdate() = 0;
 };
 /*!@}*/
 

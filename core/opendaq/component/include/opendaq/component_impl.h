@@ -144,6 +144,7 @@ protected:
     std::unordered_map<std::string, SerializedObjectPtr> getSerializedItems(const SerializedObjectPtr& object);
 
     virtual void updateObject(const SerializedObjectPtr& obj);
+    void onComponentUpdateEnd() override;
     virtual void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate);
     void triggerCoreEvent(const CoreEventArgsPtr& args);
 
@@ -591,7 +592,19 @@ ErrCode ComponentImpl<Intf, Intfs...>::findComponent(IString* id, IComponent** o
     return daqTry(
         [&]()
         {
-            *outComponent = findComponentInternal(this->template borrowPtr<ComponentPtr>(),StringPtr(id)).detach();
+            
+            std::string str = StringPtr(id);
+            if (str != "" && str[0] == '/')
+            {
+                str.erase(str.begin(), str.begin() + 1);
+                std::string startStr;
+                std::string restStr;
+                IdsParser::splitRelativeId(str, startStr, restStr);
+                if (startStr == localId)
+                    str = restStr;
+            }
+
+            *outComponent = findComponentInternal(this->template borrowPtr<ComponentPtr>(), str).detach();
 
             return *outComponent == nullptr ? OPENDAQ_NOTFOUND : OPENDAQ_SUCCESS;
         });
@@ -646,6 +659,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
             const auto err = Super::update(objPtr);
 
             updateObject(objPtr);
+            onComponentUpdateEnd();
 
             if (!muted && this->coreEvent.assigned())
             {
@@ -868,6 +882,11 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
 
     if (obj.hasKey("name"))
         name = obj.readString("name");
+}
+
+template <class Intf, class ... Intfs>
+void ComponentImpl<Intf, Intfs...>::onComponentUpdateEnd()
+{
 }
 
 template <class Intf, class... Intfs>

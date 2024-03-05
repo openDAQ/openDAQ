@@ -8,6 +8,13 @@ BEGIN_NAMESPACE_OPENDAQ
 
 JsonSerializedObject::JsonSerializedObject(const JsonObject& obj)
     : object(obj)
+    , root(false)
+{
+}
+
+JsonSerializedObject::JsonSerializedObject(const JsonObject& obj, bool isRoot)
+    : object(obj)
+    , root(isRoot)
 {
 }
 
@@ -211,6 +218,17 @@ ErrCode JsonSerializedObject::getType(IString* key, CoreType* type)
     }
 
     *type = JsonDeserializerImpl::GetCoreType(iter->value);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode JsonSerializedObject::isRoot(Bool* isRoot)
+{
+    if (isRoot == nullptr)
+    {
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    }
+
+    *isRoot = root;
     return OPENDAQ_SUCCESS;
 }
 

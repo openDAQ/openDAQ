@@ -382,16 +382,21 @@ void ConfigProtocolClientComm::connectInputPorts(const ComponentPtr& component)
         return;
 
     forEachComponent<IInputPort>(component,
-                  [&dev](const InputPortPtr& inputPort)
-                  {
-                      const auto signalId = inputPort.asPtr<IDeserializeComponent>(true).getDeserializedParameter("signalId");
-                      if (signalId.assigned())
-                      {
-                          const auto signal = findSignalByRemoteGlobalId(dev, signalId);
-                          const auto configClientInputPort = inputPort.asPtr<IConfigClientInputPort>(true);
-                          checkErrorInfo(configClientInputPort->assignSignal(signal));
-                      }
-                  });
+                                 [&dev](const InputPortPtr& inputPort)
+                                 {
+                                     const auto signalId = inputPort.asPtr<IDeserializeComponent>(true).
+                                                                     getDeserializedParameter("signalId");
+                                     const auto configClientInputPort = inputPort.asPtr<IConfigClientInputPort>(true);
+                                     if (signalId.assigned())
+                                     {
+                                         const auto signal = findSignalByRemoteGlobalId(dev, signalId);
+                                         checkErrorInfo(configClientInputPort->assignSignal(signal));
+                                     }
+                                     else
+                                     {
+                                         configClientInputPort->assignSignal(nullptr);
+                                     }
+                                 });
 }
 
 BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const StringPtr& command,

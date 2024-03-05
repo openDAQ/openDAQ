@@ -218,8 +218,11 @@ void ConfigClientComponentBaseImpl<Impl>::componentUpdateEnd(const CoreEventArgs
         propInternalPtr.disableCoreEventTrigger();
     
     this->deserializationComplete = false;
+
     const auto deserializer = JsonDeserializer();
     deserializer.deserializeCustom([&](const SerializedObjectPtr& serialized) { onRemoteUpdate(serialized); }, str);
+    this->clientComm->connectInputPorts(thisPtr);
+
     this->deserializationComplete = true;
 
     if (!muted && this->coreEvent.assigned())

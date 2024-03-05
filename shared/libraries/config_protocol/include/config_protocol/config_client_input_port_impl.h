@@ -43,6 +43,7 @@ public:
 
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 
     ConnectionPtr createConnection(const SignalPtr& signal) override;
     bool isConnected(const SignalPtr& signal);
@@ -164,6 +165,17 @@ inline void ConfigClientInputPortImpl::handleRemoteCoreObjectInternal(const Comp
     }
 
     Super::handleRemoteCoreObjectInternal(sender, args);
+}
+
+inline void ConfigClientInputPortImpl::onRemoteUpdate(const SerializedObjectPtr& serialized)
+{
+    ConfigClientComponentBaseImpl::onRemoteUpdate(serialized);
+    if (serialized.hasKey("signalId"))
+    {
+        serializedSignalId = serialized.readString("signalId");
+    }
+    else
+        serializedSignalId.release();
 }
 
 inline ConnectionPtr ConfigClientInputPortImpl::createConnection(const SignalPtr& signal)

@@ -20,7 +20,10 @@ target_link_libraries(${TEST_APP} PRIVATE
     ${SDK_TARGET_NAMESPACE}::test_utils
     daq::opendaq
     daq::opendaq_mocks
-    GTest::GTest GTest::gmock
+)
+
+add_dependencies(${TEST_APP} daq::ref_device_module
+                             daq::ref_fb_module
 )
 
 add_dependencies(${TEST_APP} ${SDK_TARGET_NAMESPACE}::ref_device_module

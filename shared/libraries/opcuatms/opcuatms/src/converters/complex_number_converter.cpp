@@ -14,14 +14,14 @@ template class VariantConverter<IComplexNumber>;
 
 template <>
 ComplexNumberPtr StructConverter<IComplexNumber, UA_DoubleComplexNumberType>::ToDaqObject(const UA_DoubleComplexNumberType& tmsStruct,
-                                                                                    const ContextPtr& /*context*/)
+                                                                                          const ContextPtr& /*context*/)
 {
     return ComplexNumber(tmsStruct.real, tmsStruct.imaginary);
 }
 
 template <>
-OpcUaObject<UA_DoubleComplexNumberType> StructConverter<IComplexNumber, UA_DoubleComplexNumberType>::ToTmsType(const ComplexNumberPtr& object,
-                                                                                                   const ContextPtr& /*context*/)
+OpcUaObject<UA_DoubleComplexNumberType> StructConverter<IComplexNumber, UA_DoubleComplexNumberType>::ToTmsType(
+    const ComplexNumberPtr& object, const ContextPtr& /*context*/)
 {
     OpcUaObject<UA_DoubleComplexNumberType> complex;
     complex->real = object.getReal();
@@ -39,7 +39,8 @@ ComplexNumberPtr VariantConverter<IComplexNumber>::ToDaqObject(const OpcUaVarian
     if (!decodedVariant.isType<UA_DoubleComplexNumberType>())
         throw ConversionFailedException();
 
-    return StructConverter<IComplexNumber, UA_DoubleComplexNumberType>::ToDaqObject(*static_cast<UA_DoubleComplexNumberType*>(decodedVariant->data));
+    return StructConverter<IComplexNumber, UA_DoubleComplexNumberType>::ToDaqObject(
+        *static_cast<UA_DoubleComplexNumberType*>(decodedVariant->data));
 }
 
 template <>

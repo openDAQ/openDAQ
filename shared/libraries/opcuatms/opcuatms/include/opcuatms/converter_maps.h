@@ -206,6 +206,8 @@ static std::unordered_map<OpcUaNodeId, std::function<BaseObjectPtr(const OpcUaVa
      [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IArgumentInfo>::ToDaqObject(var, context); }},
     {OpcUaNodeId(0, UA_NS0ID_RANGE),
      [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IRange>::ToDaqObject(var, context); }},
+    {OpcUaNodeId(0, UA_NS0ID_COMPLEXNUMBERTYPE),
+     [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IComplexNumber>::ToDaqObject(var, context); }},
     {OpcUaNodeId(0, UA_NS0ID_DOUBLECOMPLEXNUMBERTYPE),
      [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IComplexNumber>::ToDaqObject(var, context); }}};
 
@@ -262,6 +264,8 @@ static std::unordered_map<OpcUaNodeId, std::function<ListPtr<IBaseObject>(const 
      [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IArgumentInfo>::ToDaqList(var, context); }},
     {OpcUaNodeId(0, UA_NS0ID_RANGE),
      [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IRange>::ToDaqList(var, context); }},
+    {OpcUaNodeId(0, UA_NS0ID_COMPLEXNUMBERTYPE),
+     [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IComplexNumber>::ToDaqList(var, context); }},
     {OpcUaNodeId(0, UA_NS0ID_DOUBLECOMPLEXNUMBERTYPE),
      [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IComplexNumber>::ToDaqList(var, context); }}};
 

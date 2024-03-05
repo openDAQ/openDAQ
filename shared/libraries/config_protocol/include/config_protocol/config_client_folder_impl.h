@@ -17,10 +17,8 @@
 #pragma once
 #include <config_protocol/config_client_component_impl.h>
 #include <opendaq/folder_impl.h>
-
 #include <opendaq/component_holder_ptr.h>
-
-#include "config_protocol_deserialize_context_impl.h"
+#include <config_protocol/config_protocol_deserialize_context_impl.h>
 
 namespace daq::config_protocol
 {
@@ -208,7 +206,14 @@ void ConfigClientBaseFolderImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr&
     const auto hasKey = serialized.hasKey(keyStr);
 
     if (!IsTrue(hasKey))
+    {
+        ListPtr<IComponent> itemsList = List<IComponent>();
+        this->getItems(&itemsList, search::Any());
+        for (const auto& item : itemsList)
+            this->removeItem(item);
+
         return;
+    }
     
     const auto serItems = serialized.readSerializedObject(keyStr);
     const auto keys = serItems.getKeys();
@@ -242,8 +247,11 @@ void ConfigClientBaseFolderImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr&
                     const SerializedObjectPtr& object,
                     const BaseObjectPtr& context,
                     const FunctionPtr& factoryCallback)
-                { return this->clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr); },
+                {
+                    return this->clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
+                },
                 nullptr);
+
             if (deserializedObj.assigned())
                 this->addItem(deserializedObj);
         }

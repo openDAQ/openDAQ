@@ -191,6 +191,18 @@ template <class Impl>
 void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr& serialized)
 {
     ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(serialized);
+
+    if (serialized.hasKey("active"))
+        this->active = serialized.readBool("active");
+
+    if (serialized.hasKey("visible"))
+        this->visible = serialized.readBool("visible");
+
+    if (serialized.hasKey("description"))
+        this->description = serialized.readString("description");
+
+    if (serialized.hasKey("name"))
+       this->name = serialized.readString("name");
 }
 
 template <class Impl>

@@ -56,17 +56,3 @@ TEST_F(BinaryPacketTest, DataPacketTestGettersExternalMemory)
     ASSERT_EQ(packet.getRawDataSize(), 16u);
 }
 
-TEST_F(BinaryPacketTest, GetLastValue)
-{
-    auto desc = setupDescriptor();
-    auto packet = daq::BinaryDataPacket(nullptr, desc, 1);
-    auto data = static_cast<bool*>(packet.getData());
-    data[0] = false;
-
-    auto lastValuePacket = packet.getLastValue();
-    daq::BooleanPtr ptr;
-    ASSERT_NO_THROW(ptr = lastValuePacket.asPtr<daq::IBoolean>());
-    ASSERT_EQ(ptr, false);
-
-    // ASSERT_EQ(packet.getLastValue(), false);
-}

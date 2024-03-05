@@ -189,24 +189,9 @@ inline ErrCode INTERFACE_FUNC BinaryDataPacketImpl<ExternalMemory>::getLastValue
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    if (dataDescriptor.getDimensions().getCount() != 0 || dataDescriptor.getSampleType() != SampleType::Binary)
-        return OPENDAQ_IGNORED;
+    *value = nullptr;
 
-    {
-        auto descriptorStructFields = dataDescriptor.getStructFields();
-        if (descriptorStructFields.assigned() && !descriptorStructFields.empty())
-            return OPENDAQ_IGNORED;
-    }
-
-    void* addr;
-    ErrCode err = this->getData(&addr);
-    if (OPENDAQ_FAILED(err))
-        return err;
-
-    auto data = static_cast<bool*>(addr);
-    *value = Boolean(data[0]).detach();
-
-    return OPENDAQ_SUCCESS;
+    return OPENDAQ_IGNORED;
 }
 
 template <bool ExternalMemory>

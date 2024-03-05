@@ -1114,7 +1114,6 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndFBSubFbSignalIPModified)
 
     const auto deserializer = JsonDeserializer();
     deserializer.update(serverDevice, serializer.getOutput());
-        
 
     ASSERT_FALSE(clientFBFolder.hasItem("fb"));
     ASSERT_TRUE(clientFBFolder.hasItem("new_fb"));
@@ -1122,6 +1121,135 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndFBSubFbSignalIPModified)
     ASSERT_TRUE(clientSigFolder.hasItem("new_sig"));
     ASSERT_FALSE(clientIPFolder.hasItem("ip"));
     ASSERT_TRUE(clientIPFolder.hasItem("new_ip"));
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceIPConnectDisconnect)
+{
+    const FolderConfigPtr serverFolder = serverDevice.getFunctionBlocks(search::Recursive(search::Any()))[0].getItem("IP");
+    const FolderConfigPtr clientFolder = clientDevice.getFunctionBlocks(search::Recursive(search::Any()))[0].getItem("IP");
+    
+    const auto serverIpNew = InputPort(serverDevice.getContext(), serverFolder, "new_ip");
+    const auto serverIp = serverFolder.getItem("ip").asPtr<IInputPortConfig>();
+
+    serverFolder.addItem(serverIpNew);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    serverIp.disconnect();
+    serverIpNew.connect(serverDevice.getSignals()[0]);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_FALSE(clientFolder.getItem("new_ip").asPtr<IInputPort>().getConnection().assigned());
+    ASSERT_TRUE(clientFolder.getItem("ip").asPtr<IInputPort>().getConnection().assigned());
+
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+    
+    ASSERT_TRUE(clientFolder.getItem("new_ip").asPtr<IInputPort>().getConnection().assigned());
+    ASSERT_FALSE(clientFolder.getItem("ip").asPtr<IInputPort>().getConnection().assigned());
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndFBIPConnectDisconnect)
+{
+    const auto serverFB = serverDevice.getFunctionBlocks(search::Recursive(search::Any()))[0];
+    const auto clientFB = clientDevice.getFunctionBlocks(search::Recursive(search::Any()))[0];
+
+    const FolderConfigPtr serverFolder = serverFB.getItem("IP");
+    const FolderConfigPtr clientFolder = clientFB.getItem("IP");
+    
+    const auto serverIpNew = InputPort(serverDevice.getContext(), serverFolder, "new_ip");
+    const auto serverIp = serverFolder.getItem("ip").asPtr<IInputPortConfig>();
+
+    serverFolder.addItem(serverIpNew);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    serverIp.disconnect();
+    serverIpNew.connect(serverDevice.getSignals()[0]);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_FALSE(clientFolder.getItem("new_ip").asPtr<IInputPort>().getConnection().assigned());
+    ASSERT_TRUE(clientFolder.getItem("ip").asPtr<IInputPort>().getConnection().assigned());
+
+    const auto serializer = JsonSerializer();
+    serverFB.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverFB, serializer.getOutput());
+    
+    ASSERT_TRUE(clientFolder.getItem("new_ip").asPtr<IInputPort>().getConnection().assigned());
+    ASSERT_FALSE(clientFolder.getItem("ip").asPtr<IInputPort>().getConnection().assigned());
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndFolderIPConnectDisconnect)
+{
+    const auto serverDevFolder = serverDevice.getItem("Dev");
+    const auto clientDevFolder = clientDevice.getItem("Dev");
+
+    const FolderConfigPtr serverFolder = serverDevice.getFunctionBlocks(search::Recursive(search::Any()))[0].getItem("IP");
+    const FolderConfigPtr clientFolder = clientDevice.getFunctionBlocks(search::Recursive(search::Any()))[0].getItem("IP");
+    
+    const auto serverIpNew = InputPort(serverDevice.getContext(), serverFolder, "new_ip");
+    const auto serverIp = serverFolder.getItem("ip").asPtr<IInputPortConfig>();
+
+    serverFolder.addItem(serverIpNew);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    serverIp.disconnect();
+    serverIpNew.connect(serverDevice.getSignals()[0]);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_FALSE(clientFolder.getItem("new_ip").asPtr<IInputPort>().getConnection().assigned());
+    ASSERT_TRUE(clientFolder.getItem("ip").asPtr<IInputPort>().getConnection().assigned());
+
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+    
+    ASSERT_TRUE(clientFolder.getItem("new_ip").asPtr<IInputPort>().getConnection().assigned());
+    ASSERT_FALSE(clientFolder.getItem("ip").asPtr<IInputPort>().getConnection().assigned());
 
     ASSERT_EQ(updateCount, 1);
 }

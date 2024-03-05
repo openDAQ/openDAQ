@@ -104,6 +104,7 @@ public:
     // IUpdatable
     virtual ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
     virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
+    virtual ErrCode INTERFACE_FUNC updateEnded() override;
 
     // ISerializable
     virtual ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
@@ -195,6 +196,7 @@ protected:
     virtual void beginApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
     virtual void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
     bool isParentUpdating();
+    virtual void onComponentUpdateEnd();
 
     template <class F>
     static PropertyObjectPtr DeserializePropertyObject(
@@ -1864,6 +1866,11 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isParentUpdatin
     return parentUpdating;
 }
 
+template <typename PropObjInterface, typename ... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::onComponentUpdateEnd()
+{
+}
+
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdate()
 {
@@ -2635,6 +2642,29 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeFor
     }
 
     serializer->endObject();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateEnded()
+{
+    try
+    {
+        onComponentUpdateEnd();
+    }
+    catch (const DaqException& e)
+    {
+        return errorFromException(e);
+    }
+    catch (const std::exception& e)
+    {
+        return this->makeErrorInfo(OPENDAQ_ERR_GENERALERROR, e.what());
+    }
+    catch (...)
+    {
+        return OPENDAQ_ERR_GENERALERROR;
+    }
+
     return OPENDAQ_SUCCESS;
 }
 

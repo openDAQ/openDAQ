@@ -251,7 +251,7 @@ ErrCode JsonDeserializerImpl::update(IUpdatable* updatable, IString* serialized)
     }
 
     SerializedObjectPtr jsonSerObj;
-    ErrCode errCode = createObject<ISerializedObject, JsonSerializedObject>(&jsonSerObj, document.GetObject());
+    ErrCode errCode = createObject<ISerializedObject, JsonSerializedObject>(&jsonSerObj, document.GetObject(), true);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
@@ -302,11 +302,12 @@ ErrCode JsonDeserializerImpl::deserializeCustom(IProcedure* customDeserialize, I
     }
 
     SerializedObjectPtr jsonSerObj;
-    ErrCode errCode = createObject<ISerializedObject, JsonSerializedObject>(&jsonSerObj, document.GetObject());
+    ErrCode errCode = createObject<ISerializedObject, JsonSerializedObject>(&jsonSerObj, document.GetObject(), true);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;
     }
+    
 
     const ProcedurePtr proc = ProcedurePtr::Borrow(customDeserialize);
     return daqTry([&]

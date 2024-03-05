@@ -130,7 +130,6 @@ public:
     ErrCode INTERFACE_FUNC endUpdate() override;
     ErrCode INTERFACE_FUNC getOnEndUpdate(IEvent** event) override;
 
-
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -141,6 +140,7 @@ public:
     // IUpdatable
     ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
     ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC updateEnded() override;
 
 private:
     DevicePtr rootDevice;
@@ -155,8 +155,6 @@ private:
 
     static std::string defineLocalId(const std::string& localId);
     void stopServers();
-
-    void connectInputPorts();
 
     template<class F>
     void forEachComponent(const ComponentPtr& component, F&& callback);

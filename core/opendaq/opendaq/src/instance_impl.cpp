@@ -702,10 +702,13 @@ ErrCode INTERFACE_FUNC InstanceImpl::update(ISerializedObject* obj)
             auto rootDeviceUpdatable = this->rootDevice.asPtr<IUpdatable>(true);
             rootDeviceUpdatable.update(rootDevicePtr);
 
-            connectInputPorts();
-
             return OPENDAQ_SUCCESS;
         });
+}
+
+ErrCode InstanceImpl::updateEnded()
+{
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode InstanceImpl::serializeForUpdate(ISerializer* serializer)
@@ -726,53 +729,6 @@ ErrCode InstanceImpl::serializeForUpdate(ISerializer* serializer)
     serializer->endObject();
 
     return OPENDAQ_SUCCESS;
-}
-
-
-void InstanceImpl::connectInputPorts()
-{
-    forEachComponent(rootDevice, [this](const ComponentPtr& component)
-        {
-            if (component.supportsInterface<IFolder>() && component.getLocalId() == "ip")
-                return false;
-
-            if (component.supportsInterface<IFunctionBlock>())
-            {
-                const auto fb = component.asPtr<IFunctionBlock>();
-                const auto inputPorts = fb.getInputPorts();
-                for (const auto& inputPort: inputPorts)
-                {
-                    const auto inputPortPrivate = inputPort.asPtr<IInputPortPrivate>(true);
-                    auto str = inputPortPrivate.getSerializedSignalId();
-                    const std::string signalId = str.assigned() ? str.toStdString() : std::string {};
-
-                    if (!signalId.empty())
-                    {
-                        ComponentPtr sig;
-                        this->findComponent(String(signalId), &sig);
-                        if (sig.assigned())
-                        {
-                            try
-                            {
-                                inputPort.connect(sig);
-                            }
-                            catch (const DaqException&)
-                            {
-                                LOG_W("Failed to connect signal: {}", signalId);
-                            }
-                        }
-                        else
-                        {
-                            LOG_W("Signal not found: {}", signalId);
-                        }
-                    }
-
-                    inputPortPrivate.finishUpdate();
-                }
-            }
-
-            return true;
-        });
 }
 
 template <class F>

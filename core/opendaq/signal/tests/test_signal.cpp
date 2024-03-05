@@ -528,10 +528,6 @@ TEST_F(SignalTest, GetLastValue)
 
     auto dataPacket = DataPacket(descriptor, 5);
     int64_t* data = static_cast<int64_t*>(dataPacket.getData());
-    data[0] = 0;
-    data[1] = 1;
-    data[2] = 2;
-    data[3] = 3;
     data[4] = 4;
 
     signal.sendPacket(dataPacket);
@@ -616,14 +612,6 @@ TEST_F(SignalTest, GetLastValueRange)
 
     auto dataPacket = DataPacket(descriptor, 5);
     auto data = static_cast<int64_t*>(dataPacket.getData());
-    data[0] = 0;
-    data[1] = 1;
-    data[2] = 2;
-    data[3] = 3;
-    data[4] = 4;
-    data[5] = 5;
-    data[6] = 6;
-    data[7] = 7;
     data[8] = 8;
     data[9] = 9;
 
@@ -643,24 +631,16 @@ TEST_F(SignalTest, GetLastValueComplexFloat32)
 
     auto dataPacket = DataPacket(descriptor, 5);
     auto data = static_cast<float*>(dataPacket.getData());
-    data[0] = 0.1;
-    data[1] = 1.1;
-    data[2] = 2.1;
-    data[3] = 3.1;
-    data[4] = 4.1;
-    data[5] = 5.1;
-    data[6] = 6.1;
-    data[7] = 7.1;
-    data[8] = 8.1;
-    data[9] = 9.1;
+    data[8] = 8.1f;
+    data[9] = 9.1f;
 
     signal.sendPacket(dataPacket);
 
     auto lastValuePacket = signal.getLastValue();
     ComplexNumberPtr complexPtr;
     ASSERT_NO_THROW(complexPtr = lastValuePacket.asPtr<IComplexNumber>());
-    ASSERT_FLOAT_EQ(complexPtr.getReal(), 8.1);
-    ASSERT_FLOAT_EQ(complexPtr.getImaginary(), 9.1);
+    ASSERT_FLOAT_EQ(complexPtr.getReal(), 8.1f);
+    ASSERT_FLOAT_EQ(complexPtr.getImaginary(), 9.1f);
 }
 
 TEST_F(SignalTest, GetLastValueComplexFloat64)
@@ -670,14 +650,6 @@ TEST_F(SignalTest, GetLastValueComplexFloat64)
 
     auto dataPacket = DataPacket(descriptor, 5);
     auto data = static_cast<double*>(dataPacket.getData());
-    data[0] = 0.1;
-    data[1] = 1.1;
-    data[2] = 2.1;
-    data[3] = 3.1;
-    data[4] = 4.1;
-    data[5] = 5.1;
-    data[6] = 6.1;
-    data[7] = 7.1;
     data[8] = 8.1;
     data[9] = 9.1;
 

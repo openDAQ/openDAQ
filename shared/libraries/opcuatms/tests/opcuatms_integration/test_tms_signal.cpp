@@ -173,10 +173,6 @@ TEST_F(TmsSignalTest, GetLastValueFloat32)
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
     auto data = static_cast<float*>(dataPacket.getData());
-    data[0] = 0.1f;
-    data[1] = 1.1f;
-    data[2] = 2.1f;
-    data[3] = 3.1f;
     data[4] = 4.1f;
 
     daqServerSignal.sendPacket(dataPacket);
@@ -198,10 +194,6 @@ TEST_F(TmsSignalTest, GetLastValueFloat64)
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
     auto data = static_cast<double*>(dataPacket.getData());
-    data[0] = 0.1;
-    data[1] = 1.1;
-    data[2] = 2.1;
-    data[3] = 3.1;
     data[4] = 4.1;
 
     daqServerSignal.sendPacket(dataPacket);
@@ -223,10 +215,6 @@ TEST_F(TmsSignalTest, GetLastValueInt8)
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
     auto data = static_cast<int8_t*>(dataPacket.getData());
-    data[0] = 0;
-    data[1] = 1;
-    data[2] = 2;
-    data[3] = 3;
     data[4] = 4;
 
     daqServerSignal.sendPacket(dataPacket);
@@ -248,10 +236,6 @@ TEST_F(TmsSignalTest, GetLastValueInt16)
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
     auto data = static_cast<int16_t*>(dataPacket.getData());
-    data[0] = 0;
-    data[1] = 1;
-    data[2] = 2;
-    data[3] = 3;
     data[4] = 4;
 
     daqServerSignal.sendPacket(dataPacket);
@@ -273,10 +257,6 @@ TEST_F(TmsSignalTest, GetLastValueInt32)
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
     auto data = static_cast<int32_t*>(dataPacket.getData());
-    data[0] = 0;
-    data[1] = 1;
-    data[2] = 2;
-    data[3] = 3;
     data[4] = 4;
 
     daqServerSignal.sendPacket(dataPacket);
@@ -297,10 +277,6 @@ TEST_F(TmsSignalTest, GetLastValueInt64)
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
     auto data = static_cast<int64_t*>(dataPacket.getData());
-    data[0] = 0;
-    data[1] = 1;
-    data[2] = 2;
-    data[3] = 3;
     data[4] = 4;
 
     daqServerSignal.sendPacket(dataPacket);
@@ -322,10 +298,6 @@ TEST_F(TmsSignalTest, GetLastValueUInt8)
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
     auto data = static_cast<uint8_t*>(dataPacket.getData());
-    data[0] = 0u;
-    data[1] = 1u;
-    data[2] = 2u;
-    data[3] = 3u;
     data[4] = 4u;
 
     daqServerSignal.sendPacket(dataPacket);
@@ -350,10 +322,6 @@ TEST_F(TmsSignalTest, GetLastValueUInt16)
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
     auto data = static_cast<uint16_t*>(dataPacket.getData());
-    data[0] = 0u;
-    data[1] = 1u;
-    data[2] = 2u;
-    data[3] = 3u;
     data[4] = 4u;
 
     daqServerSignal.sendPacket(dataPacket);
@@ -375,10 +343,6 @@ TEST_F(TmsSignalTest, GetLastValueUInt32)
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
     auto data = static_cast<uint32_t*>(dataPacket.getData());
-    data[0] = 0u;
-    data[1] = 1u;
-    data[2] = 2u;
-    data[3] = 3u;
     data[4] = 4u;
 
     daqServerSignal.sendPacket(dataPacket);
@@ -399,10 +363,6 @@ TEST_F(TmsSignalTest, GetLastValueUInt64)
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
     auto data = static_cast<uint64_t*>(dataPacket.getData());
-    data[0] = 0u;
-    data[1] = 1u;
-    data[2] = 2u;
-    data[3] = 3u;
     data[4] = 4u;
 
     daqServerSignal.sendPacket(dataPacket);
@@ -424,14 +384,6 @@ TEST_F(TmsSignalTest, GetLastValueRange)
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
     auto data = static_cast<int64_t*>(dataPacket.getData());
-    data[0] = 0;
-    data[1] = 1;
-    data[2] = 2;
-    data[3] = 3;
-    data[4] = 4;
-    data[5] = 5;
-    data[6] = 6;
-    data[7] = 7;
     data[8] = 8;
     data[9] = 9;
 
@@ -454,14 +406,6 @@ TEST_F(TmsSignalTest, GetLastValueComplexFloat32)
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
     auto data = static_cast<float*>(dataPacket.getData());
-    data[0] = 0.1f;
-    data[1] = 1.1f;
-    data[2] = 2.1f;
-    data[3] = 3.1f;
-    data[4] = 4.1f;
-    data[5] = 5.1f;
-    data[6] = 6.1f;
-    data[7] = 7.1f;
     data[8] = 8.1f;
     data[9] = 9.1f;
 
@@ -484,14 +428,6 @@ TEST_F(TmsSignalTest, GetLastValueComplexFloat64)
 
     auto dataPacket = DataPacket(daqServerSignal.getDescriptor(), 5);
     auto data = static_cast<double*>(dataPacket.getData());
-    data[0] = 0.1;
-    data[1] = 1.1;
-    data[2] = 2.1;
-    data[3] = 3.1;
-    data[4] = 4.1;
-    data[5] = 5.1;
-    data[6] = 6.1;
-    data[7] = 7.1;
     data[8] = 8.1;
     data[9] = 9.1;
 

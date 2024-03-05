@@ -222,6 +222,7 @@ void ConfigClientComponentBaseImpl<Impl>::componentUpdateEnd(const CoreEventArgs
     const auto deserializer = JsonDeserializer();
     deserializer.deserializeCustom([&](const SerializedObjectPtr& serialized) { onRemoteUpdate(serialized); }, str);
     this->clientComm->connectInputPorts(thisPtr);
+    this->clientComm->connectDomainSignals(thisPtr);
 
     this->deserializationComplete = true;
 

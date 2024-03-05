@@ -140,6 +140,7 @@ option(OPENDAQ_LINK_3RD_PARTY_LIBS_STATICALY "Link the 3rd party libraries stati
 
 # Testing and coverage
 option(OPENDAQ_ENABLE_TESTS "Enable testing" ON)
+option(OPENDAQ_ENABLE_TEST_UTILS "Enable testing utils library" ON)
 option(OPENDAQ_ENABLE_OPTIONAL_TESTS "Enable optional (debugging) tests" OFF)
 option(OPENDAQ_ENABLE_COVERAGE "Enable code coverage in testing" OFF)
 
@@ -157,14 +158,19 @@ if (NOT APPLE AND UNIX)
     cmake_dependent_option(OPENDAQ_ENABLE_WS_SIGGEN_INTEGRATION_TESTS "Enable websocket streaming integration tests" ON "OPENDAQ_ENABLE_TESTS;OPENDAQ_ENABLE_WEBSOCKET_STREAMING" OFF)
 endif()
 
-#modules
+if (OPENDAQ_ENABLE_TESTS)
+    set(OPENDAQ_ENABLE_TEST_UTILS ON)
+endif()
+
+# Optional Modules
 option(DAQMODULES_OPENDAQ_CLIENT_MODULE "Building of ${SDK_NAME} client modules" OFF)
 option(DAQMODULES_OPENDAQ_SERVER_MODULE "Building of ${SDK_NAME} server modules" OFF)
 option(DAQMODULES_EMPTY_MODULE "Building of demo module" OFF)
+option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
 option(DAQMODULES_REF_DEVICE_MODULE "Building of reference device module" OFF)
 option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OFF)
+
 cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)
-option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
 
 # logging
 
@@ -272,6 +278,7 @@ if (OPENDAQ_ENABLE_COVERAGE)
 endif()
 
 if (OPENDAQ_ENABLE_TESTS)
+    message(STATUS "Unit tests are ENABLED")
     enable_testing()
 
     if (NOT gtest IN_LIST TESTING_LIBS)
@@ -295,6 +302,8 @@ if (OPENDAQ_ENABLE_TESTS)
             message(FATAL_ERROR "Delphi bindings only available in Windows")
         endif()
     endif()
+else()
+    message(STATUS "Unit tests are DISABLED")
 endif()
 
 set(CMAKE_CXX_STANDARD 17)

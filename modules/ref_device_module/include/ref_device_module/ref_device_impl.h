@@ -29,7 +29,7 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 class RefDeviceImpl final : public Device
 {
 public:
-    explicit RefDeviceImpl(size_t id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~RefDeviceImpl() override;
 
     static DeviceInfoPtr CreateDeviceInfo(size_t id);
@@ -49,7 +49,7 @@ private:
     void initClock();
     void initIoFolder();
     void initSyncComponent();
-    void initProperties();
+    void initProperties(const PropertyObjectPtr& config);
     void acqLoop();
     void updateNumberOfChannels();
     void enableCANChannel();

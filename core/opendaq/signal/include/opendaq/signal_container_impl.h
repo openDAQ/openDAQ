@@ -608,7 +608,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::onComponentUpdateEnd()
 
     for (const auto& comp : components)
     {
-        const auto updatable = comp.asPtrOrNull<IUpdatable>();
+        const auto updatable = comp.template asPtrOrNull<IUpdatable>();
         if (updatable.assigned())
             updatable.updateEnded();
     }

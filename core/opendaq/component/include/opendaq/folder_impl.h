@@ -511,7 +511,7 @@ void FolderImpl<Intf, Intfs...>::onComponentUpdateEnd()
 
     for (const auto& item : items)
     {
-        const auto updatable = item.second.asPtrOrNull<IUpdatable>();
+        const auto updatable = item.second.template asPtrOrNull<IUpdatable>();
         if (updatable.assigned())
             updatable.updateEnded();
     }

@@ -170,6 +170,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
 {
     ConfigClientComponentBaseImpl<TDeviceBase>::onRemoteUpdate(serialized);
 
+    std::vector<std::string> toRemove;
     for (const auto& comp : this->components)
     {
         const auto id = comp.getLocalId();
@@ -177,7 +178,8 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         {
             if (this->defaultComponents.count(id))
                 throw InvalidOperationException{"Serialized remote object does not contain default device component: " + id};
-            this->removeComponentById(id);
+            
+            toRemove.push_back(id);
         }
         else
         {
@@ -185,6 +187,9 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
             comp.template asPtr<IConfigClientObject>()->remoteUpdate(serObj);
         }
     }
+
+    for (const auto& id : toRemove)
+        this->removeComponentById(id);
 
     for (const auto& key : serialized.getKeys())
     {

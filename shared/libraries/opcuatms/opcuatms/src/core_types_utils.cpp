@@ -2,37 +2,35 @@
 
 #include "opcuashared/opcuadatatypearraylist.h"
 #include "opcuatms/extension_object.h"
-#include "open62541/nodeids.h"
 #include "open62541/daqbt_nodeids.h"
-#include "open62541/types_di_generated.h"
+#include "open62541/nodeids.h"
 #include "open62541/types_daqesp_generated.h"
 #include "open62541/types_daqhbk_generated.h"
+#include "open62541/types_di_generated.h"
 
 using namespace daq::opcua;
 using namespace daq;
-using namespace daq::opcua;
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
 namespace details
 {
-    static std::unordered_map<OpcUaNodeId, CoreType> nodeIdToCoreTypeMap = {
-        {OpcUaNodeId(0, UA_NS0ID_BOOLEAN), ctBool},
-        {OpcUaNodeId(0, UA_NS0ID_FLOAT), ctFloat},
-        {OpcUaNodeId(0, UA_NS0ID_DOUBLE), ctFloat},
-        {OpcUaNodeId(0, UA_NS0ID_SBYTE), ctInt},
-        {OpcUaNodeId(0, UA_NS0ID_BYTE), ctInt},
-        {OpcUaNodeId(0, UA_NS0ID_INT16), ctInt},
-        {OpcUaNodeId(0, UA_NS0ID_UINT16), ctInt},
-        {OpcUaNodeId(0, UA_NS0ID_INT32), ctInt},
-        {OpcUaNodeId(0, UA_NS0ID_UINT32), ctInt},
-        {OpcUaNodeId(0, UA_NS0ID_INT64), ctInt},
-        {OpcUaNodeId(0, UA_NS0ID_UINT64), ctInt},
-        {OpcUaNodeId(0, UA_NS0ID_STRING), ctString},
-        {OpcUaNodeId(0, UA_NS0ID_RATIONALNUMBER), ctRatio},
-        {OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_RATIONALNUMBER64), ctRatio},
-        {OpcUaNodeId(0, UA_DAQBTID_RATIONALNUMBER64), ctRatio}
-    };
+static std::unordered_map<OpcUaNodeId, CoreType> nodeIdToCoreTypeMap = {
+    {OpcUaNodeId(0, UA_NS0ID_BOOLEAN), ctBool},
+    {OpcUaNodeId(0, UA_NS0ID_FLOAT), ctFloat},
+    {OpcUaNodeId(0, UA_NS0ID_DOUBLE), ctFloat},
+    {OpcUaNodeId(0, UA_NS0ID_SBYTE), ctInt},
+    {OpcUaNodeId(0, UA_NS0ID_BYTE), ctInt},
+    {OpcUaNodeId(0, UA_NS0ID_INT16), ctInt},
+    {OpcUaNodeId(0, UA_NS0ID_UINT16), ctInt},
+    {OpcUaNodeId(0, UA_NS0ID_INT32), ctInt},
+    {OpcUaNodeId(0, UA_NS0ID_UINT32), ctInt},
+    {OpcUaNodeId(0, UA_NS0ID_INT64), ctInt},
+    {OpcUaNodeId(0, UA_NS0ID_UINT64), ctInt},
+    {OpcUaNodeId(0, UA_NS0ID_STRING), ctString},
+    {OpcUaNodeId(0, UA_NS0ID_RATIONALNUMBER), ctRatio},
+    {OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_RATIONALNUMBER64), ctRatio},
+    {OpcUaNodeId(0, UA_DAQBTID_RATIONALNUMBER64), ctRatio}};
 }
 
 StringPtr ConvertToDaqCoreString(const UA_String& uaString)
@@ -149,7 +147,6 @@ UA_SampleTypeEnumeration SampleTypeToTmsEnum(SampleType daqEnum)
     }
 }
 
-
 ScaledSampleType ScaledSampleTypeFromTmsEnum(UA_SampleTypeEnumeration tmsEnum)
 {
     switch (tmsEnum)
@@ -178,7 +175,7 @@ UA_SampleTypeEnumeration ScaledSampleTypeToTmsEnum(ScaledSampleType daqEnum)
 
 OpcUaNodeId CoreTypeToUANodeID(CoreType type)
 {
-    switch(type)
+    switch (type)
     {
         case ctBool:
             return OpcUaNodeId(0, UA_NS0ID_BOOLEAN);
@@ -247,11 +244,11 @@ const UA_DataType* GetUAStructureDataTypeByName(const std::string& structName)
     typeArr.add(UA_TYPES_DAQDEVICE_COUNT, UA_TYPES_DAQDEVICE);
     typeArr.add(UA_TYPES_DAQESP_COUNT, UA_TYPES_DAQESP);
     typeArr.add(UA_TYPES_DAQHBK_COUNT, UA_TYPES_DAQHBK);
-    
+
     const UA_DataTypeArray* dataType = typeArr.getCustomDataTypes();
-    while(dataType)
+    while (dataType)
     {
-        for(size_t i = 0; i < dataType->typesSize; ++i)
+        for (size_t i = 0; i < dataType->typesSize; ++i)
         {
             if (dataType->types[i].typeName == structName)
             {

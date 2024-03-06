@@ -6,7 +6,6 @@ using CoreTypesUtilsTest = testing::Test;
 
 using namespace daq;
 using namespace daq::opcua;
-using namespace daq::opcua;
 
 TEST_F(CoreTypesUtilsTest, ConvertToDaqCoreString)
 {

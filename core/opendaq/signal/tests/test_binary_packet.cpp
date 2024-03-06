@@ -1,7 +1,7 @@
+#include <gtest/gtest.h>
 #include <opendaq/binary_data_packet_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/deleter_factory.h>
-#include <gtest/gtest.h>
 
 using BinaryPacketTest = testing::Test;
 
@@ -44,8 +44,7 @@ TEST_F(BinaryPacketTest, DataPacketTestGettersExternalMemory)
 {
     auto desc = setupDescriptor();
     void* data = std::malloc(16);
-    auto packet = daq::BinaryDataPacketWithExternalMemory(
-        nullptr, desc, 16, data, daq::Deleter([](void* address) { std::free(address); }));
+    auto packet = daq::BinaryDataPacketWithExternalMemory(nullptr, desc, 16, data, daq::Deleter([](void* address) { std::free(address); }));
 
     ASSERT_EQ(packet.getType(), daq::PacketType::Data);
     ASSERT_EQ(packet.getDataDescriptor(), desc);
@@ -56,3 +55,4 @@ TEST_F(BinaryPacketTest, DataPacketTestGettersExternalMemory)
     ASSERT_EQ(packet.getDataSize(), 16u);
     ASSERT_EQ(packet.getRawDataSize(), 16u);
 }
+

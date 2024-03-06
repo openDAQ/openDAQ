@@ -30,7 +30,9 @@ DeviceInfoPtr ClientImpl::onGetInfo()
 
 ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
 {
+    std::scoped_lock lock(sync);
     auto availableDevices = List<IDeviceInfo>();
+    groupedDevices = Dict<IString, IDeviceInfo>();
 
     using AsyncEnumerationResult = std::future<ListPtr<IDeviceInfo>>;
     std::vector<std::pair<AsyncEnumerationResult, ModulePtr>> enumerationResults;
@@ -76,7 +78,24 @@ ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
             continue;
 
         for (const auto& deviceInfo : moduleAvailableDevices)
+        {
+            StringPtr id = "daq://" + deviceInfo.getManufacturer() + "_" + deviceInfo.getSerialNumber();
+            if (groupedDevices.hasKey(id))
+            {
+                DeviceInfoPtr value = groupedDevices.get(id);
+                for (const auto & capability : deviceInfo.getDeviceCapabilities())
+                    value.addDeviceCapability(capability);
+            }
+            else
+            {
+                if (auto deviceConfig = deviceInfo.asPtrOrNull<IDeviceInfoConfig>(); deviceConfig.assigned())
+                {
+                    deviceConfig.setConnectionString(id);
+                }
+                groupedDevices.set(id, deviceInfo);
+            }
             availableDevices.pushBack(deviceInfo);
+        }
     }
 
     return availableDevices.detach();
@@ -116,9 +135,35 @@ DictPtr<IString, IDeviceType> ClientImpl::onGetAvailableDeviceTypes()
 
 DevicePtr ClientImpl::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    std::scoped_lock lock(sync);
+    std::unique_lock lock(sync);
+    if (!groupedDevices.assigned())
+    {
+        lock.unlock();
+        onGetAvailableDevices();
+        lock.lock();
+    }
+    DeviceInfoPtr deviceInfo;
+    if (connectionString.toStdString().find("daq://") == 0)
+    {
+        if (groupedDevices.hasKey(connectionString))
+            deviceInfo = groupedDevices.get(connectionString);
+    } 
+    else
+    {
+        for (const auto & [_, info] : groupedDevices)
+        {
+            for(const auto & capability : info.getDeviceCapabilities())
+            {
+                if (capability.getConnectionString() == connectionString)
+                {
+                    deviceInfo = info;
+                    break;
+                }
+            }
+        }
+    }
 
-    auto device = detail::createDevice(connectionString, config, devices, manager, loggerComponent);
+    auto device = detail::createDevice(connectionString, config, devices, manager, loggerComponent, deviceInfo);
     devices.addItem(device);
 
     return device;

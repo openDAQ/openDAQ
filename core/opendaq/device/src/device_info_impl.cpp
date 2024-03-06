@@ -8,6 +8,7 @@ BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface, typename... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion)
     : Super()
+    , deviceCapabilities(List<IDeviceCapability>())
 {
     createAndSetDefaultStringProperty("name", name);
     createAndSetDefaultStringProperty("manufacturer", "");
@@ -502,6 +503,22 @@ Int DeviceInfoConfigImpl<TInterface, Interfaces...>::getIntProperty(const String
 {
     const auto obj = this->template borrowPtr<PropertyObjectPtr>();
     return obj.getPropertyValue(name).template asPtr<IInteger>();
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addDeviceCapability(IDeviceCapability* deviceCapability)
+{
+    if (deviceCapability)
+        deviceCapabilities.pushBack(deviceCapability);
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceCapabilities(IList** deviceCapabilities)
+{
+    if (deviceCapabilities)
+        *deviceCapabilities = this->deviceCapabilities.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 

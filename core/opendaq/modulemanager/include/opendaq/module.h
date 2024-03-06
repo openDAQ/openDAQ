@@ -95,7 +95,7 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
      * @param parent The parent component/device to which the device attaches.
      * @param config A configuration object that contains parameters used to configure a device in the form of key-value pairs.
      */
-    virtual ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config = nullptr, IDeviceInfo* deviceInfo = nullptr) = 0;
 
     /*!
      * @brief Returns a dictionary of known and available function block types this module can create.

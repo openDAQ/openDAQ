@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <opendaq/device_info_config_ptr.h>
+#include <opendaq/device_capability_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 /*!
@@ -32,6 +33,18 @@ BEGIN_NAMESPACE_OPENDAQ
 inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const StringPtr& name = "", const StringPtr& customSdkVersion = nullptr)
 {
     DeviceInfoConfigPtr obj(DeviceInfoConfigWithCustomSdkVersion_Create(name, connectionString, customSdkVersion));
+    return obj;
+}
+
+
+inline DeviceCapabilityPtr DeviceCapability(ProtocolType protocolType, 
+                                    ConnectionType connectionType, 
+                                    const StringPtr& connectionStringPrefix, 
+                                    const StringPtr& host, 
+                                    Int port = -1,
+                                    const StringPtr& path = "")
+{
+    DeviceCapabilityPtr obj(DeviceCapability_Create(protocolType, connectionType, connectionStringPrefix, host, port, path));
     return obj;
 }
 /*!@}*/

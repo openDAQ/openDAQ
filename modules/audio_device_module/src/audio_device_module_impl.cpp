@@ -46,6 +46,15 @@ ListPtr<IDeviceInfo> AudioDeviceModule::onGetAvailableDevices()
     for (size_t i = 0; i < captureDeviceCount; i++)
     {
         auto info = AudioDeviceImpl::CreateDeviceInfo(maContext, pCaptureDeviceInfos[i]);
+        std::string prefix = "miniaudio://";
+        auto address = info.getConnectionString().toStdString().substr(prefix.size(), std::string::npos);
+
+        auto capability = DeviceCapability(ProtocolType::Unknown,
+                                    ConnectionType::Unknown,
+                                    prefix, 
+                                    address);
+        info.addDeviceCapability(capability);
+        
         availableDevices.pushBack(info);
     }
 
@@ -68,7 +77,8 @@ DictPtr<IString, IDeviceType> AudioDeviceModule::onGetAvailableDeviceTypes()
 
 DevicePtr AudioDeviceModule::onCreateDevice(const StringPtr& connectionString,
                                             const ComponentPtr& parent,
-                                            const PropertyObjectPtr& /*config*/)
+                                            const PropertyObjectPtr& /*config*/,
+                                            const DeviceInfoPtr& /*deviceInfo*/)
 {
     auto id = AudioDeviceImpl::getIdFromConnectionString(connectionString);
 

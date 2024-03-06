@@ -28,7 +28,8 @@ DevicePtr createDevice(const StringPtr& connectionString,
                        const PropertyObjectPtr& config,
                        const ComponentPtr& parent,
                        const ModuleManagerPtr& manager,
-                       const LoggerComponentPtr& loggerComponent);
+                       const LoggerComponentPtr& loggerComponent,
+                       const DeviceInfoPtr& deviceInfo);
 }
 
 END_NAMESPACE_OPENDAQ

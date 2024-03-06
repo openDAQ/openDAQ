@@ -84,12 +84,12 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
         py::arg("connection_string"), py::arg("config") = nullptr,
         "Checks if connection string can be used to connect to devices supported by this module and if the configuration object provided to this module is valid.");
     cls.def("create_device",
-        [](daq::IModule *object, const std::string& connectionString, daq::IComponent* parent, daq::IPropertyObject* config)
+        [](daq::IModule *object, const std::string& connectionString, daq::IComponent* parent, daq::IPropertyObject* config, daq::IDeviceInfo* deviceInfo)
         {
             const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.createDevice(connectionString, parent, config).detach();
+            return objectPtr.createDevice(connectionString, parent, config, deviceInfo).detach();
         },
-        py::arg("connection_string"), py::arg("parent"), py::arg("config") = nullptr,
+        py::arg("connection_string"), py::arg("parent"), py::arg("config") = nullptr, py::arg("device_info") = nullptr,
         "Creates a device object that can communicate with the device described in the specified connection string. The device object is not automatically added as a sub-device of the caller, but only returned by reference.");
     cls.def_property_readonly("available_function_block_types",
         [](daq::IModule *object)

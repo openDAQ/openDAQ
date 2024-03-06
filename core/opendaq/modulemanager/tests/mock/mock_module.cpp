@@ -42,7 +42,7 @@ ErrCode MockModuleImpl::acceptsConnectionParameters(Bool* accepted, IString* con
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockModuleImpl::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
+ErrCode MockModuleImpl::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config, IDeviceInfo* deviceInfo)
 {
     return OPENDAQ_ERR_NOTFOUND;
 }

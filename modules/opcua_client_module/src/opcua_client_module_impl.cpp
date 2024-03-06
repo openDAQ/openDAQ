@@ -42,6 +42,11 @@ ListPtr<IDeviceInfo> OpcUaClientModule::onGetAvailableDevices()
     auto availableDevices = discoveryClient.discoverDevices();
     for (auto device : availableDevices)
     {
+        auto capability = DeviceCapability(ProtocolType::Structure,
+                                        ConnectionType::Ipv4, 
+                                        DaqOpcUaDevicePrefix,
+                                        GetUrlFromConnectionString(device.getConnectionString()));
+        device.addDeviceCapability(capability);
         device.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
     }
     return availableDevices;
@@ -59,7 +64,8 @@ DictPtr<IString, IDeviceType> OpcUaClientModule::onGetAvailableDeviceTypes()
 
 DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                                             const ComponentPtr& parent,
-                                            const PropertyObjectPtr& config)
+                                            const PropertyObjectPtr& config,
+                                            const DeviceInfoPtr& /*deviceInfo*/)
 {
     if (!connectionString.assigned())
         throw ArgumentNullException();

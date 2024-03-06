@@ -20,6 +20,12 @@ ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
     for (size_t i = 0; i < devices.size(); i++)
     {
         auto info = RefDeviceImpl::CreateDeviceInfo(i);
+        auto id = getIdFromConnectionString(info.getConnectionString());
+        auto capability = DeviceCapability(ProtocolType::Unknown,
+                                        ConnectionType::Unknown, 
+                                        "daqref://",
+                                        "device" + std::to_string(id));
+        info.addDeviceCapability(capability);
         availableDevices.pushBack(info);
     }
     return availableDevices;
@@ -37,7 +43,8 @@ DictPtr<IString, IDeviceType> RefDeviceModule::onGetAvailableDeviceTypes()
 
 DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
                                           const ComponentPtr& parent,
-                                          const PropertyObjectPtr& /*config*/)
+                                          const PropertyObjectPtr& /*config*/,
+                                          const DeviceInfoPtr& /*deviceInfo*/)
 {
     auto id = getIdFromConnectionString(connectionString);
 

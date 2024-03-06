@@ -9,6 +9,7 @@
 #include <native_streaming_client_module/native_device_impl.h>
 
 #include <regex>
+#include <string>
 
 #include <config_protocol/config_protocol_client.h>
 
@@ -54,6 +55,26 @@ ListPtr<IDeviceInfo> NativeStreamingClientModule::onGetAvailableDevices()
     auto availableDevices = discoveryClient.discoverDevices();
     for (const auto& device : availableDevices)
     {
+        ProtocolType protocolType = ProtocolType::Unknown;
+        StringPtr devicePrefix = "";
+        if (connectionStringHasPrefix(device.getConnectionString(), NativeConfigurationDevicePrefix))
+        {
+            protocolType = ProtocolType::Structure;
+            devicePrefix = NativeConfigurationDevicePrefix;
+        }
+        else if (connectionStringHasPrefix(device.getConnectionString(), NativeStreamingDevicePrefix))
+        {
+            protocolType = ProtocolType::Streaming;
+            devicePrefix = NativeStreamingDevicePrefix;
+        }
+
+        auto capability = DeviceCapability(protocolType,
+                                        ConnectionType::Ipv4, 
+                                        devicePrefix,
+                                        getHost(device.getConnectionString()),
+                                        std::stoi(getPort(device.getConnectionString()).toStdString()),
+                                        getPath(device.getConnectionString()));
+        device.addDeviceCapability(capability);
         device.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
     }
     return availableDevices;
@@ -163,7 +184,8 @@ void NativeStreamingClientModule::populateConfigFromContext(PropertyObjectPtr co
 
 DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectionString,
                                                       const ComponentPtr& parent,
-                                                      const PropertyObjectPtr& config)
+                                                      const PropertyObjectPtr& config,
+                                                      const DeviceInfoPtr& /*deviceInfo*/)
 {
     if (!connectionString.assigned())
         throw ArgumentNullException();

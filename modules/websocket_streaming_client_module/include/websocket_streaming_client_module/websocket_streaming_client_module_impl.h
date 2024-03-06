@@ -30,7 +30,8 @@ public:
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
     DevicePtr onCreateDevice(const StringPtr& connectionString,
                              const ComponentPtr& parent,
-                             const PropertyObjectPtr& config) override;
+                             const PropertyObjectPtr& config,
+                             const DeviceInfoPtr& deviceInfo) override;
     bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const StreamingInfoPtr& config) override;
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const StreamingInfoPtr& config) override;

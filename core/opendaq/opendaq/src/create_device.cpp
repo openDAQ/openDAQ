@@ -10,7 +10,8 @@ DevicePtr createDevice(const StringPtr& connectionString,
                        const PropertyObjectPtr& config,
                        const ComponentPtr& parent,
                        const ModuleManagerPtr& manager,
-                       const LoggerComponentPtr& loggerComponent)
+                       const LoggerComponentPtr& loggerComponent,
+                       const DeviceInfoPtr& deviceInfo)
 {
     for (const auto module : manager.getModules())
     {
@@ -32,7 +33,7 @@ DevicePtr createDevice(const StringPtr& connectionString,
 
         if (accepted)
         {
-            auto device = module.createDevice(connectionString, parent, config);
+            auto device = module.createDevice(connectionString, parent, config, deviceInfo);
             return device;
         }
     }

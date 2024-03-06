@@ -10,6 +10,7 @@ set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 rtgen(SRC_Device device.h)
 rtgen(SRC_DeviceDomain device_domain.h)
 rtgen(SRC_DeviceInfo device_info.h)
+rtgen(SRC_DeviceCapability device_capability.h)
 rtgen(SRC_DeviceInfoConfig device_info_config.h)
 rtgen(SRC_IoFolderConfig io_folder_config.h)
 rtgen(SRC_DeviceType device_type.h)
@@ -22,7 +23,10 @@ source_group("device" FILES ${SDK_HEADERS_DIR}/device.h
                             ${SDK_HEADERS_DIR}/device_info_impl.h
                             ${SDK_HEADERS_DIR}/device_info_factory.h
                             ${SDK_HEADERS_DIR}/device_private.h
+                            ${SDK_HEADERS_DIR}/device_capability.h
+                            ${SDK_HEADERS_DIR}/device_capability_impl.h
                             device_info_impl.cpp
+                            device_capability_impl.cpp
 )
 
 source_group("device_type" FILES ${SDK_HEADERS_DIR}/device_type.h
@@ -47,6 +51,7 @@ set(SRC_Cpp device_info_impl.cpp
             io_folder_impl.cpp
             device_type_impl.cpp
             core_opendaq_event_args_impl.cpp
+            device_capability_impl.cpp
 )
 
 set(SRC_PublicHeaders device_info_factory.h
@@ -59,6 +64,8 @@ set(SRC_PublicHeaders device_info_factory.h
                       device_private.h
                       core_opendaq_event_args_factory.h
                       core_opendaq_event_args.h
+                      device_capability.h
+                      device_capability_impl.h
 )
 
 set(SRC_PrivateHeaders device_info_impl.h

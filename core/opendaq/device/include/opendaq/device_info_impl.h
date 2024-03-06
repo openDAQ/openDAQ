@@ -94,6 +94,9 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
+    ErrCode INTERFACE_FUNC addDeviceCapability(IDeviceCapability* deviceCapability) override;
+    ErrCode INTERFACE_FUNC getDeviceCapabilities(IList** deviceCapabilities) override;
+
 private:
     ErrCode createAndSetDefaultStringProperty(const StringPtr& name, const BaseObjectPtr& value);
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
@@ -104,6 +107,7 @@ private:
 
     std::unordered_set<std::string> defaultPropertyNames;
     DeviceTypePtr deviceType;
+    ListPtr<IDeviceCapability> deviceCapabilities;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceInfoConfigBase)

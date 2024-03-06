@@ -130,13 +130,13 @@ public:
      * @param parent The parent component/device to which the device attaches.
      * @param[out] device The device object created to communicate with and control the device.
      */
-    ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config) override
+    ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config, IDeviceInfo* deviceInfo) override
     {
         OPENDAQ_PARAM_NOT_NULL(connectionString);
         OPENDAQ_PARAM_NOT_NULL(device);
 
         DevicePtr createdDevice;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateDevice, createdDevice, connectionString, parent, config);
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateDevice, createdDevice, connectionString, parent, config, deviceInfo);
 
         *device = createdDevice.detach();
         return errCode;
@@ -303,7 +303,7 @@ public:
      * @param config A configuration object that contains parameters used to configure a device in the form of key-value pairs.
      * @returns The device object created to communicate with and control the device.
      */
-    virtual DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config)
+    virtual DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config, const DeviceInfoPtr& deviceInfo)
     {
         return nullptr;
     }

@@ -45,6 +45,7 @@ private:
     LoggerComponentPtr loggerComponent;
 
     std::unordered_map<std::string, size_t> functionBlockCountMap;
+    DictPtr<IString, IDeviceInfo> groupedDevices;
 };
 
 END_NAMESPACE_OPENDAQ

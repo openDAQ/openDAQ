@@ -379,7 +379,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyObjectUpdateEnd(const Cor
     }
     else
     {
-        checkErrorInfo(Impl::beginUpdate());
+        checkErrorInfo(Impl::beginUpdateInternal(false));
 
         for (const auto& val : updatedProperties)
         {
@@ -389,7 +389,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyObjectUpdateEnd(const Cor
                 checkErrorInfo(Impl::clearProtectedPropertyValue(val.first));
         }
 
-        checkErrorInfo(Impl::endUpdate());
+        checkErrorInfo(Impl::endUpdateInternal(false));
     }
 
 }

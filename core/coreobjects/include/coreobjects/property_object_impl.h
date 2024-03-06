@@ -215,6 +215,9 @@ protected:
     // Adds the value to the local list of values (`propValues`)
     bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value);
 
+    ErrCode beginUpdateInternal(bool deep);
+    ErrCode endUpdateInternal(bool deep);
+
 private:
 
     StringPtr className;
@@ -1749,12 +1752,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnPropert
 template <typename PropObjInterface, typename ... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginUpdate()
 {
-    if (frozen)
-        return OPENDAQ_ERR_FROZEN;
-
-    updateCount++;
-
-    return daqTry([this] { callBeginUpdateOnChildren(); });
+    return beginUpdateInternal(true);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1798,6 +1796,60 @@ PropertyObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::ge
         return owner.getRef();
 
     return nullptr;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginUpdateInternal(bool deep)
+{
+    if (frozen)
+        return OPENDAQ_ERR_FROZEN;
+
+    updateCount++;
+
+    if (deep)
+        return daqTry([this] { callBeginUpdateOnChildren(); });
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdateInternal(bool deep)
+{
+    if (updateCount == 0)
+        return OPENDAQ_ERR_INVALIDSTATE;
+
+    const auto newUpdateCount = --updateCount;
+
+    if (newUpdateCount == 0)
+    {
+        const auto errCode = daqTry(
+            [this]
+            {
+                beginApplyUpdate();
+                return OPENDAQ_SUCCESS;
+            });
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+
+    if (deep)
+    {
+        const auto errCode = daqTry([this] { callEndUpdateOnChildren(); });
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+
+    if (newUpdateCount == 0)
+    {
+        return daqTry(
+            [this]
+            {
+                endApplyUpdate();
+                return OPENDAQ_SUCCESS;
+            });
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1867,38 +1919,7 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isParentUpdatin
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdate()
 {
-    if (updateCount == 0)
-        return OPENDAQ_ERR_INVALIDSTATE;
-
-    const auto newUpdateCount = --updateCount;
-
-    if (newUpdateCount == 0)
-    {
-        const auto errCode = daqTry(
-            [this]
-            {
-                beginApplyUpdate();
-                return OPENDAQ_SUCCESS;
-            });
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
-    }
-
-    const auto errCode = daqTry([this] { callEndUpdateOnChildren(); });
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-
-    if (newUpdateCount == 0)
-    {
-        return daqTry(
-            [this]
-            {
-                endApplyUpdate();
-                return OPENDAQ_SUCCESS;
-            });
-    }
-
-    return OPENDAQ_SUCCESS;
+    return endUpdateInternal(true);
 }
 
 template <typename PropObjInterface, typename ... Interfaces>

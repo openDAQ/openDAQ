@@ -22,6 +22,10 @@ target_link_libraries(${TEST_APP} PRIVATE
     GTest::GTest GTest::gmock
 )
 
+add_dependencies(${TEST_APP} ${SDK_TARGET_NAMESPACE}::ref_device_module
+                             ${SDK_TARGET_NAMESPACE}::ref_fb_module
+)
+
 set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)
 
 add_test(NAME ${TEST_APP}

@@ -43,55 +43,10 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
 
 ListPtr<IDeviceInfo> WebsocketStreamingClientModule::onGetAvailableDevices()
 {
-    auto getHost = [] (const StringPtr& url) -> std::string {
-        std::string urlString = url.toStdString();
-
-        auto regexHostname = std::regex("^.*:\\/\\/([^:\\/\\s]+)");
-        std::smatch match;
-
-        if (std::regex_search(urlString, match, regexHostname))
-            return match[1];
-        else
-            throw InvalidParameterException("Host name not found in url: {}", url);
-    };
-
-    auto getPort = [&getHost] (const StringPtr& url) {
-        std::string urlString = url.toStdString();
-
-        auto regexPort = std::regex(":(\\d+)");
-        std::smatch match;
-
-        std::string host = getHost(url);
-        std::string suffix = urlString.substr(urlString.find(host) + host.size());
-
-        if (std::regex_search(suffix, match, regexPort))
-            return std::stoi(match[1]);
-        else
-            return -1;
-    };
-
-    auto getPath = [&getHost] (const StringPtr& url) -> std::string{
-        std::string urlString = url.toStdString();
-
-        std::string host = getHost(url);
-        std::string suffix = urlString.substr(urlString.find(host) + host.size());
-        auto pos = suffix.find("/");
-
-        if (pos != std::string::npos)
-            return suffix.substr(pos);
-        else
-            return "/";
-    };
-
     auto availableDevices = discoveryClient.discoverDevices();
     for (auto device : availableDevices)
     {
-        auto capability = DeviceCapability(ProtocolType::Streaming,
-                                        ConnectionType::Ipv4, 
-                                        WebsocketDevicePrefix,
-                                        getHost(device.getConnectionString()),
-                                        getPort(device.getConnectionString()),
-                                        getPath(device.getConnectionString()));
+        auto capability = DeviceCapability(device.getConnectionString(), "openDAQ WebsocketTcp Streaming", ProtocolType::Streaming, ConnectionType::Ipv4);
         device.addDeviceCapability(capability);
         device.asPtr<IDeviceInfoConfig>().setDeviceType(createWebsocketDeviceType());
     }

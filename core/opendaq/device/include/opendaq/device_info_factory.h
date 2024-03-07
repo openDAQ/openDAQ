@@ -36,15 +36,13 @@ inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const S
     return obj;
 }
 
-
-inline DeviceCapabilityPtr DeviceCapability(ProtocolType protocolType, 
-                                    ConnectionType connectionType, 
-                                    const StringPtr& connectionStringPrefix, 
-                                    const StringPtr& host, 
-                                    Int port = -1,
-                                    const StringPtr& path = "")
+inline DeviceCapabilityPtr DeviceCapability(const StringPtr& connectionString,
+                                            const StringPtr& protocolName = "Unknown",
+                                            ProtocolType protocolType = ProtocolType::Unknown, 
+                                            ConnectionType connectionType = ConnectionType::Unknown
+                                            )
 {
-    DeviceCapabilityPtr obj(DeviceCapability_Create(protocolType, connectionType, connectionStringPrefix, host, port, path));
+    DeviceCapabilityPtr obj(DeviceCapability_Create(connectionString, protocolName, protocolType, connectionType));
     return obj;
 }
 /*!@}*/

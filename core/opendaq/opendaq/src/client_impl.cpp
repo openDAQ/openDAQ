@@ -88,6 +88,10 @@ ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
             }
             else
             {
+                if (deviceInfo.getDeviceCapabilities().getCount() == 0)
+                {
+                    deviceInfo.addDeviceCapability(DeviceCapability(deviceInfo.getConnectionString()));
+                }
                 if (auto deviceConfig = deviceInfo.asPtrOrNull<IDeviceInfoConfig>(); deviceConfig.assigned())
                 {
                     deviceConfig.setConnectionString(id);
@@ -142,11 +146,45 @@ DevicePtr ClientImpl::onAddDevice(const StringPtr& connectionString, const Prope
         onGetAvailableDevices();
         lock.lock();
     }
+
+    StringPtr internalConnectionString = connectionString;
     DeviceInfoPtr deviceInfo;
+    
     if (connectionString.toStdString().find("daq://") == 0)
     {
         if (groupedDevices.hasKey(connectionString))
             deviceInfo = groupedDevices.get(connectionString);
+        
+        if (!deviceInfo.assigned())
+            throw NotFoundException(fmt::format("device with connection string \"{}\" not found", connectionString));
+
+        if (deviceInfo.getDeviceCapabilities().getCount() == 0)
+            throw NotFoundException(fmt::format("device with connection string \"{}\" has now available protocols", connectionString));
+
+        if (deviceInfo.getDeviceCapabilities().getCount() == 1)
+        {
+            internalConnectionString = deviceInfo.getDeviceCapabilities()[0].getConnectionString();
+        }
+        else
+        {
+            auto findProtocol = [] (const ListPtr<IDeviceCapability>& capabilities, const StringPtr& protocolName) -> DeviceCapabilityPtr
+            {
+                for (const auto & capability : capabilities)
+                {
+                    if (capability.getProtocolName() == protocolName)
+                        return capability;
+                }
+                return nullptr; 
+            };
+
+            auto capability = findProtocol(deviceInfo.getDeviceCapabilities(), "openDAQ Native Streaming");
+            if (!capability.assigned())
+                capability = findProtocol(deviceInfo.getDeviceCapabilities(), "openDAQ OpcUa");
+            else if (!capability.assigned())
+                capability = deviceInfo.getDeviceCapabilities()[0];
+
+            internalConnectionString = capability.getConnectionString();
+        }
     } 
     else
     {
@@ -163,7 +201,7 @@ DevicePtr ClientImpl::onAddDevice(const StringPtr& connectionString, const Prope
         }
     }
 
-    auto device = detail::createDevice(connectionString, config, devices, manager, loggerComponent, deviceInfo);
+    auto device = detail::createDevice(internalConnectionString, config, devices, manager, loggerComponent, deviceInfo);
     devices.addItem(device);
 
     return device;

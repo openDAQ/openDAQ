@@ -46,13 +46,8 @@ ListPtr<IDeviceInfo> AudioDeviceModule::onGetAvailableDevices()
     for (size_t i = 0; i < captureDeviceCount; i++)
     {
         auto info = AudioDeviceImpl::CreateDeviceInfo(maContext, pCaptureDeviceInfos[i]);
-        std::string prefix = "miniaudio://";
-        auto address = info.getConnectionString().toStdString().substr(prefix.size(), std::string::npos);
 
-        auto capability = DeviceCapability(ProtocolType::Unknown,
-                                    ConnectionType::Unknown,
-                                    prefix, 
-                                    address);
+        auto capability = DeviceCapability(info.getConnectionString(), "openDAQ Audio device", ProtocolType::Unknown, ConnectionType::Unknown);
         info.addDeviceCapability(capability);
         
         availableDevices.pushBack(info);

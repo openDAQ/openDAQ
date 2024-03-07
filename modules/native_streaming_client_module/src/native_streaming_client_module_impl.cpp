@@ -56,24 +56,12 @@ ListPtr<IDeviceInfo> NativeStreamingClientModule::onGetAvailableDevices()
     for (const auto& device : availableDevices)
     {
         ProtocolType protocolType = ProtocolType::Unknown;
-        StringPtr devicePrefix = "";
         if (connectionStringHasPrefix(device.getConnectionString(), NativeConfigurationDevicePrefix))
-        {
             protocolType = ProtocolType::Structure;
-            devicePrefix = NativeConfigurationDevicePrefix;
-        }
         else if (connectionStringHasPrefix(device.getConnectionString(), NativeStreamingDevicePrefix))
-        {
             protocolType = ProtocolType::Streaming;
-            devicePrefix = NativeStreamingDevicePrefix;
-        }
 
-        auto capability = DeviceCapability(protocolType,
-                                        ConnectionType::Ipv4, 
-                                        devicePrefix,
-                                        getHost(device.getConnectionString()),
-                                        std::stoi(getPort(device.getConnectionString()).toStdString()),
-                                        getPath(device.getConnectionString()));
+        auto capability = DeviceCapability(device.getConnectionString(), "openDAQ Native Streaming", protocolType, ConnectionType::Ipv4);
         device.addDeviceCapability(capability);
         device.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
     }

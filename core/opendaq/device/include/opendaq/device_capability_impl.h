@@ -26,28 +26,21 @@ class DeviceCapabilityImpl : public ImplementationOf<IDeviceCapability>
 {
 public:
 
-    explicit DeviceCapabilityImpl(  ProtocolType protocolType, 
-                                    ConnectionType connectionType, 
-                                    const StringPtr& connectionStringPrefix, 
-                                    const StringPtr& host, 
-                                    Int port,
-                                    const StringPtr& path);
-
+    explicit DeviceCapabilityImpl(const StringPtr& connectionString,
+                                  const StringPtr& protocolName, 
+                                  ProtocolType protocolType, 
+                                  ConnectionType connectionType);
+    
+    ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
+    ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) override;
     ErrCode INTERFACE_FUNC getProtocolType(ProtocolType* type) override;
     ErrCode INTERFACE_FUNC getConnectionType(ConnectionType* type) override;
-    ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** connectionStringPrefix) override;
-    ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
-    ErrCode INTERFACE_FUNC getHost(IString** host) override;
-    ErrCode INTERFACE_FUNC getPort(Int* port) override;
-    ErrCode INTERFACE_FUNC getPath(IString** path) override;
-
+    
 private:
+    StringPtr connectionString;
+    StringPtr protocolName;
     ProtocolType protocolType;
     ConnectionType connectionType;
-    StringPtr connectionStringPrefix;
-    StringPtr host;
-    Int port;
-    StringPtr path;
 };
 
 END_NAMESPACE_OPENDAQ

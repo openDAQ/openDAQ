@@ -20,11 +20,7 @@ ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
     for (size_t i = 0; i < devices.size(); i++)
     {
         auto info = RefDeviceImpl::CreateDeviceInfo(i);
-        auto id = getIdFromConnectionString(info.getConnectionString());
-        auto capability = DeviceCapability(ProtocolType::Unknown,
-                                        ConnectionType::Unknown, 
-                                        "daqref://",
-                                        "device" + std::to_string(id));
+        auto capability = DeviceCapability(info.getConnectionString(), "openDAQ Reference device", ProtocolType::Unknown, ConnectionType::Unknown);
         info.addDeviceCapability(capability);
         availableDevices.pushBack(info);
     }

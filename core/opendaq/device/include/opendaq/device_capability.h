@@ -37,51 +37,35 @@ enum class ConnectionType : uint32_t
 DECLARE_OPENDAQ_INTERFACE(IDeviceCapability, IBaseObject)
 {
     /*!
-     * @brief Gets type of protocol
+     * @brief Gets the connection string of device with current protocol
+     * @param[out] connectionString The connection string of device
+     */
+    virtual ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) = 0;
+
+    /*!
+     * @brief Gets the name of protocol
+     * @param[out] protocolName The name of protocol
+     */
+    virtual ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) = 0;
+
+    /*!
+     * @brief Gets the type of protocol
      * @param[out] type The type of protocol
      */
     virtual ErrCode INTERFACE_FUNC getProtocolType(ProtocolType* type) = 0;
 
     /*!
-     * @brief Gets type of connection
+     * @brief Gets the type of connection
      * @param[out] type The type of connection
      */
     virtual ErrCode INTERFACE_FUNC getConnectionType(ConnectionType* type) = 0;
-
-
-    /*!
-     * @brief Gets the connection string prefix
-     * @param[out] connectionStringPrefix The connection string prefix
-     */
-    virtual ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** connectionStringPrefix) = 0;
-
-    virtual ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) = 0;
-
-    /*!
-     * @brief Gets the host address
-     * @param[address] type The host address
-     */
-    virtual ErrCode INTERFACE_FUNC getHost(IString** host) = 0;
-
-    /*!
-     * @brief Gets the address path
-     * @param[address] type The address path
-     */
-    virtual ErrCode INTERFACE_FUNC getPath(IString** path) = 0;
-
-    /*!
-     * @brief Gets the port
-     * @param[out] port The port
-     */
-    virtual ErrCode INTERFACE_FUNC getPort(Int* port) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, DeviceCapability, IDeviceCapability,
+    IString*, connectionString,
+    IString*, protocolName,
     ProtocolType, protocolType, 
-    ConnectionType, connectionType, 
-    IString*, connectionStringPrefix, 
-    IString*, host, 
-    Int, port,
-    IString*, path)
+    ConnectionType, connectionType
+    )
 
 END_NAMESPACE_OPENDAQ

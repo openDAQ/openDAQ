@@ -84,18 +84,16 @@ ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
             {
                 DeviceInfoPtr value = groupedDevices.get(id);
                 for (const auto & capability : deviceInfo.getDeviceCapabilities())
-                    value.addDeviceCapability(capability);
+                    value.asPtr<IDeviceInfoConfig>().addDeviceCapability(capability);
             }
             else
             {
                 if (deviceInfo.getDeviceCapabilities().getCount() == 0)
                 {
-                    deviceInfo.addDeviceCapability(DeviceCapability(deviceInfo.getConnectionString()));
+                    deviceInfo.asPtr<IDeviceInfoConfig>().addDeviceCapability(DeviceCapability(deviceInfo.getConnectionString()));
                 }
-                if (auto deviceConfig = deviceInfo.asPtrOrNull<IDeviceInfoConfig>(); deviceConfig.assigned())
-                {
-                    deviceConfig.setConnectionString(id);
-                }
+
+                deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
                 groupedDevices.set(id, deviceInfo);
             }
             availableDevices.pushBack(deviceInfo);

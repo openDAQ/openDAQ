@@ -237,12 +237,6 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
      */
     virtual ErrCode INTERFACE_FUNC getSdkVersion(IString** version) = 0;
 
-    /*!
-     * @brief Add supported protocol 
-     * @param deviceCapability The supported protocol.
-     */
-    virtual ErrCode INTERFACE_FUNC addDeviceCapability(IDeviceCapability* deviceCapability) = 0;
-
     // [elementType(deviceCapabilities, IDeviceCapability)]
     /*!
      * @brief Gets the list of device supported protocols

@@ -21,7 +21,7 @@ ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
     {
         auto info = RefDeviceImpl::CreateDeviceInfo(i);
         auto capability = DeviceCapability(info.getConnectionString(), "openDAQ Reference device", ProtocolType::Unknown, ConnectionType::Unknown);
-        info.addDeviceCapability(capability);
+        info.asPtr<IDeviceInfoConfig>().addDeviceCapability(capability);
         availableDevices.pushBack(info);
     }
     return availableDevices;

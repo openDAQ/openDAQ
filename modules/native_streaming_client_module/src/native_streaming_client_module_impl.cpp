@@ -62,7 +62,7 @@ ListPtr<IDeviceInfo> NativeStreamingClientModule::onGetAvailableDevices()
             protocolType = ProtocolType::Streaming;
 
         auto capability = DeviceCapability(device.getConnectionString(), "openDAQ Native Streaming", protocolType, ConnectionType::Ipv4);
-        device.addDeviceCapability(capability);
+        device.asPtr<IDeviceInfoConfig>().addDeviceCapability(capability);
         device.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
     }
     return availableDevices;

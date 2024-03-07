@@ -48,7 +48,7 @@ ListPtr<IDeviceInfo> AudioDeviceModule::onGetAvailableDevices()
         auto info = AudioDeviceImpl::CreateDeviceInfo(maContext, pCaptureDeviceInfos[i]);
 
         auto capability = DeviceCapability(info.getConnectionString(), "openDAQ Audio device", ProtocolType::Unknown, ConnectionType::Unknown);
-        info.addDeviceCapability(capability);
+        info.asPtr<IDeviceInfoConfig>().addDeviceCapability(capability);
         
         availableDevices.pushBack(info);
     }

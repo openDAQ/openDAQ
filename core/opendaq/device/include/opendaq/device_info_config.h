@@ -187,6 +187,12 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoConfig, IDeviceInfo)
      * @param uuid The unique ID of a system.
      */
     virtual ErrCode INTERFACE_FUNC setSystemUuid(IString* uuid) = 0;
+
+    /*!
+     * @brief Add supported protocol 
+     * @param deviceCapability The supported protocol.
+     */
+    virtual ErrCode INTERFACE_FUNC addDeviceCapability(IDeviceCapability* deviceCapability) = 0;
 };
 /*!@}*/
 

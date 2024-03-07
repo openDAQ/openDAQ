@@ -505,7 +505,7 @@ Int DeviceInfoConfigImpl<TInterface, Interfaces...>::getIntProperty(const String
     return obj.getPropertyValue(name).template asPtr<IInteger>();
 }
 
-template <typename TInterface, typename ... Interfaces>
+template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addDeviceCapability(IDeviceCapability* deviceCapability)
 {
     if (deviceCapability)

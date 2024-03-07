@@ -24,7 +24,7 @@ ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
 {
 }
 
-size_t ConfigProtocolClientComm::generateId()
+uint64_t ConfigProtocolClientComm::generateId()
 {
     return id++;
 }
@@ -136,7 +136,7 @@ StringPtr ConfigProtocolClientComm::createRpcRequestJson(const StringPtr& name, 
     return serializer.getOutput();
 }
 
-PacketBuffer ConfigProtocolClientComm::createRpcRequestPacketBuffer(const size_t id,
+PacketBuffer ConfigProtocolClientComm::createRpcRequestPacketBuffer(const uint64_t id,
                                                                     const StringPtr& name,
                                                                     const ParamsDictPtr& params)
 {

@@ -165,7 +165,7 @@ TEST_F(ConfigPacketTest, ServerNotification)
 
     const PacketBuffer packetBuffer(packetBufferSource.getBuffer(), false);
 
-    ASSERT_EQ(packetBuffer.getId(), std::numeric_limits<size_t>::max());
+    ASSERT_EQ(packetBuffer.getId(), std::numeric_limits<uint64_t>::max());
     const auto json1 = packetBuffer.parseServerNotification();
 
     ASSERT_EQ(json1, json);

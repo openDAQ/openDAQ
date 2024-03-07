@@ -190,9 +190,9 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoConfig, IDeviceInfo)
 
     /*!
      * @brief Add supported protocol 
-     * @param deviceCapability The supported protocol.
+     * @param serverCapability The supported protocol.
      */
-    virtual ErrCode INTERFACE_FUNC addDeviceCapability(IDeviceCapability* deviceCapability) = 0;
+    virtual ErrCode INTERFACE_FUNC addServerCapability(IServerCapability* serverCapability) = 0;
 };
 /*!@}*/
 

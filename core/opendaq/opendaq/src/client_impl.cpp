@@ -84,16 +84,13 @@ ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
             {
                 DeviceInfoPtr value = groupedDevices.get(id);
                 for (const auto & capability : deviceInfo.getDeviceCapabilities())
-                    value.asPtr<IDeviceInfoConfig>().addDeviceCapability(capability);
+                    value.asPtr<IDeviceInfoConfig>().addServerCapability(capability);
             }
             else
             {
-                if (deviceInfo.getDeviceCapabilities().getCount() == 0)
-                {
-                    deviceInfo.asPtr<IDeviceInfoConfig>().addDeviceCapability(DeviceCapability(deviceInfo.getConnectionString()));
-                }
+                if (deviceInfo.getDeviceCapabilities().getCount() != 0)
+                    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
 
-                deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
                 groupedDevices.set(id, deviceInfo);
             }
             availableDevices.pushBack(deviceInfo);
@@ -156,16 +153,13 @@ DevicePtr ClientImpl::onAddDevice(const StringPtr& connectionString, const Prope
         if (!deviceInfo.assigned())
             throw NotFoundException(fmt::format("device with connection string \"{}\" not found", connectionString));
 
-        if (deviceInfo.getDeviceCapabilities().getCount() == 0)
-            throw NotFoundException(fmt::format("device with connection string \"{}\" has now available protocols", connectionString));
-
         if (deviceInfo.getDeviceCapabilities().getCount() == 1)
         {
             internalConnectionString = deviceInfo.getDeviceCapabilities()[0].getConnectionString();
         }
         else
         {
-            auto findProtocol = [] (const ListPtr<IDeviceCapability>& capabilities, const StringPtr& protocolName) -> DeviceCapabilityPtr
+            auto findProtocol = [] (const ListPtr<IServerCapability>& capabilities, const StringPtr& protocolName) -> ServerCapabilityPtr
             {
                 for (const auto & capability : capabilities)
                 {
@@ -188,12 +182,23 @@ DevicePtr ClientImpl::onAddDevice(const StringPtr& connectionString, const Prope
     {
         for (const auto & [_, info] : groupedDevices)
         {
-            for(const auto & capability : info.getDeviceCapabilities())
+            if (info.getDeviceCapabilities().getCount() == 0)
             {
-                if (capability.getConnectionString() == connectionString)
+                if (info.getConnectionString() == connectionString)
                 {
                     deviceInfo = info;
                     break;
+                }
+            }
+            else
+            {
+                for(const auto & capability : info.getDeviceCapabilities())
+                {
+                    if (capability.getConnectionString() == connectionString)
+                    {
+                        deviceInfo = info;
+                        break;
+                    }
                 }
             }
         }

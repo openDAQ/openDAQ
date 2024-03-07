@@ -15,32 +15,38 @@
  */
 
 #pragma once
-#include <opendaq/device_capability.h>
+#include <opendaq/server_capability.h>
 #include <coretypes/validation.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
+#include <coretypes/type_manager_ptr.h>
+#include <coretypes/enumeration_type_ptr.h>
+#include <coretypes/enumeration_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class DeviceCapabilityImpl : public ImplementationOf<IDeviceCapability>
+class ServerCapabilityImpl : public ImplementationOf<IServerCapability>
 {
 public:
 
-    explicit DeviceCapabilityImpl(const StringPtr& connectionString,
+    explicit ServerCapabilityImpl(const StringPtr& connectionString,
                                   const StringPtr& protocolName, 
-                                  ProtocolType protocolType, 
-                                  ConnectionType connectionType);
+                                  const StringPtr& protocolType, 
+                                  const StringPtr& connectionType);
     
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
     ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) override;
-    ErrCode INTERFACE_FUNC getProtocolType(ProtocolType* type) override;
-    ErrCode INTERFACE_FUNC getConnectionType(ConnectionType* type) override;
+    ErrCode INTERFACE_FUNC getProtocolType(IEnumeration** type) override;
+    ErrCode INTERFACE_FUNC getConnectionType(IString** type) override;
     
 private:
+    static TypeManagerPtr getTypeManager();
+    static EnumerationTypePtr GetProtocolTypeEnumeration();
+
     StringPtr connectionString;
     StringPtr protocolName;
-    ProtocolType protocolType;
-    ConnectionType connectionType;
+    EnumerationPtr protocolType;
+    StringPtr connectionType;
 };
 
 END_NAMESPACE_OPENDAQ

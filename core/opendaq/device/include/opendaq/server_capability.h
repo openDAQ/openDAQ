@@ -16,25 +16,15 @@
 #pragma once
 #include <coretypes/common.h>
 #include <coretypes/stringobject.h>
+#include <coretypes/enumeration.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-enum class ProtocolType : uint32_t
-{
-    Streaming = 0,
-    Structure,
-    Both,
-    Unknown = 0xffff
-};
+/*#
+ * [interfaceSmartPtr(IEnumeration, EnumerationPtr, "<coretypes/enumeration_ptr.h>")]
+ */
 
-enum class ConnectionType : uint32_t
-{
-    Ipv4 = 0,
-    Ipv6,
-    Unknown = 0xffff
-};
-
-DECLARE_OPENDAQ_INTERFACE(IDeviceCapability, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IServerCapability, IBaseObject)
 {
     /*!
      * @brief Gets the connection string of device with current protocol
@@ -52,20 +42,20 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceCapability, IBaseObject)
      * @brief Gets the type of protocol
      * @param[out] type The type of protocol
      */
-    virtual ErrCode INTERFACE_FUNC getProtocolType(ProtocolType* type) = 0;
+    virtual ErrCode INTERFACE_FUNC getProtocolType(IEnumeration** type) = 0;
 
     /*!
      * @brief Gets the type of connection
      * @param[out] type The type of connection
      */
-    virtual ErrCode INTERFACE_FUNC getConnectionType(ConnectionType* type) = 0;
+    virtual ErrCode INTERFACE_FUNC getConnectionType(IString** type) = 0;
 };
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, DeviceCapability, IDeviceCapability,
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, ServerCapability, IServerCapability,
     IString*, connectionString,
     IString*, protocolName,
-    ProtocolType, protocolType, 
-    ConnectionType, connectionType
+    IString*, protocolType, 
+    IString*, connectionType
     )
 
 END_NAMESPACE_OPENDAQ

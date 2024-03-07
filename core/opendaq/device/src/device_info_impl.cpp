@@ -8,7 +8,7 @@ BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface, typename... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion)
     : Super()
-    , deviceCapabilities(List<IDeviceCapability>())
+    , deviceCapabilities(List<IServerCapability>())
 {
     createAndSetDefaultStringProperty("name", name);
     createAndSetDefaultStringProperty("manufacturer", "");
@@ -506,10 +506,10 @@ Int DeviceInfoConfigImpl<TInterface, Interfaces...>::getIntProperty(const String
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addDeviceCapability(IDeviceCapability* deviceCapability)
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(IServerCapability* serverCapability)
 {
-    if (deviceCapability)
-        deviceCapabilities.pushBack(deviceCapability);
+    if (serverCapability)
+        deviceCapabilities.pushBack(serverCapability);
     return OPENDAQ_SUCCESS;
 }
 

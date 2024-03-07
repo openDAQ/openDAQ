@@ -216,12 +216,12 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
             objectPtr.setSystemUuid(uuid);
         },
         "Sets the system UUID that represents a unique ID of a system. All devices in a system share this UUID.");
-    cls.def("add_device_capability",
-        [](daq::IDeviceInfoConfig *object, daq::IDeviceCapability* deviceCapability)
+    cls.def("add_server_capability",
+        [](daq::IDeviceInfoConfig *object, daq::IServerCapability* serverCapability)
         {
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
-            objectPtr.addDeviceCapability(deviceCapability);
+            objectPtr.addServerCapability(serverCapability);
         },
-        py::arg("device_capability"),
+        py::arg("server_capability"),
         "Add supported protocol");
 }

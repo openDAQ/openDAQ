@@ -55,14 +55,14 @@ ListPtr<IDeviceInfo> NativeStreamingClientModule::onGetAvailableDevices()
     auto availableDevices = discoveryClient.discoverDevices();
     for (const auto& device : availableDevices)
     {
-        ProtocolType protocolType = ProtocolType::Unknown;
+        StringPtr protocolType = "Unknown";
         if (connectionStringHasPrefix(device.getConnectionString(), NativeConfigurationDevicePrefix))
-            protocolType = ProtocolType::Structure;
+            protocolType = "Structure";
         else if (connectionStringHasPrefix(device.getConnectionString(), NativeStreamingDevicePrefix))
-            protocolType = ProtocolType::Streaming;
+            protocolType = "Streaming";
 
-        auto capability = DeviceCapability(device.getConnectionString(), "openDAQ Native Streaming", protocolType, ConnectionType::Ipv4);
-        device.asPtr<IDeviceInfoConfig>().addDeviceCapability(capability);
+        auto capability = ServerCapability(device.getConnectionString(), "openDAQ Native Streaming", protocolType, "Ipv4");
+        device.asPtr<IDeviceInfoConfig>().addServerCapability(capability);
         device.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
     }
     return availableDevices;

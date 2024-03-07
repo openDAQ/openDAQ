@@ -42,8 +42,8 @@ ListPtr<IDeviceInfo> OpcUaClientModule::onGetAvailableDevices()
     auto availableDevices = discoveryClient.discoverDevices();
     for (auto device : availableDevices)
     {
-        auto capability = DeviceCapability(device.getConnectionString(), "openDAQ OpcUa", ProtocolType::Structure, ConnectionType::Ipv4);
-        device.asPtr<IDeviceInfoConfig>().addDeviceCapability(capability);
+        auto capability = ServerCapability(device.getConnectionString(), "openDAQ OpcUa", "Structure", "Ipv4");
+        device.asPtr<IDeviceInfoConfig>().addServerCapability(capability);
         device.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
     }
     return availableDevices;

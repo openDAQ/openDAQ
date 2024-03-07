@@ -15,7 +15,7 @@
  */
 #pragma once
 #include <opendaq/device_info_config_ptr.h>
-#include <opendaq/device_capability_ptr.h>
+#include <opendaq/server_capability_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 /*!
@@ -36,13 +36,13 @@ inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const S
     return obj;
 }
 
-inline DeviceCapabilityPtr DeviceCapability(const StringPtr& connectionString,
-                                            const StringPtr& protocolName = "Unknown",
-                                            ProtocolType protocolType = ProtocolType::Unknown, 
-                                            ConnectionType connectionType = ConnectionType::Unknown
+inline ServerCapabilityPtr ServerCapability(const StringPtr& connectionString,
+                                            const StringPtr& protocolName,
+                                            const StringPtr& protocolType, 
+                                            const StringPtr& connectionType
                                             )
 {
-    DeviceCapabilityPtr obj(DeviceCapability_Create(connectionString, protocolName, protocolType, connectionType));
+    ServerCapabilityPtr obj(ServerCapability_Create(connectionString, protocolName, protocolType, connectionType));
     return obj;
 }
 /*!@}*/

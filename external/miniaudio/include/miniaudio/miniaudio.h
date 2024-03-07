@@ -3610,7 +3610,7 @@ Some backends have some nuance details you may want to be aware of.
     <Package ...>
         ...
         <Capabilities>
-            <DeviceCapability Name="microphone" />
+            <ServerCapability Name="microphone" />
         </Capabilities>
     </Package>
     ```

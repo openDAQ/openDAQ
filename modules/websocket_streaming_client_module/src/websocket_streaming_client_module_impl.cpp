@@ -46,8 +46,8 @@ ListPtr<IDeviceInfo> WebsocketStreamingClientModule::onGetAvailableDevices()
     auto availableDevices = discoveryClient.discoverDevices();
     for (auto device : availableDevices)
     {
-        auto capability = DeviceCapability(device.getConnectionString(), "openDAQ WebsocketTcp Streaming", ProtocolType::Streaming, ConnectionType::Ipv4);
-        device.asPtr<IDeviceInfoConfig>().addDeviceCapability(capability);
+        auto capability = ServerCapability(device.getConnectionString(), "openDAQ WebsocketTcp Streaming", "Streaming", "Ipv4");
+        device.asPtr<IDeviceInfoConfig>().addServerCapability(capability);
         device.asPtr<IDeviceInfoConfig>().setDeviceType(createWebsocketDeviceType());
     }
     return availableDevices;

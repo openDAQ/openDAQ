@@ -37,15 +37,6 @@ public:
     {
         manager = TypeManager();
 
-        try
-        {
-            PropertyObjectClassPtr findPropClass = manager.getType(ClassName);
-            return;
-        }
-        catch (const NotFoundException&)
-        {
-        }
-
         auto prop = PropertyBuilder(ValueObjectProp)
                     .setValueType(ctObject)
                     .setDefaultValue(TestValueObject(0))

@@ -9,10 +9,12 @@ ConfigProtocolDeserializeContextImpl::ConfigProtocolDeserializeContextImpl(const
                                                                            const ComponentPtr& root,
                                                                            const ComponentPtr& parent,
                                                                            const StringPtr& localId,
-                                                                           IntfID* inftID)
+                                                                           IntfID* inftID,
+                                                                           const TypeManagerPtr& typeManager)
     : GenericComponentDeserializeContextImpl(context, root, parent, localId, inftID)
     , clientComm(clientComm)
     , remoteGlobalId(remoteGlobalId)
+    , typeManager(typeManager)
 {
 }
 
@@ -29,6 +31,15 @@ std::string ConfigProtocolDeserializeContextImpl::getRemoteGlobalId()
 void ConfigProtocolDeserializeContextImpl::setRemoteGlobalId(const std::string& remoteGlobalId)
 {
     this->remoteGlobalId = remoteGlobalId;
+}
+
+TypeManagerPtr ConfigProtocolDeserializeContextImpl::getTypeManager()
+{
+    if (typeManager.assigned())
+        return typeManager;
+    if (context.assigned())
+        return context.getTypeManager();
+    return nullptr;
 }
 
 ErrCode ConfigProtocolDeserializeContextImpl::clone(IComponent* newParent,

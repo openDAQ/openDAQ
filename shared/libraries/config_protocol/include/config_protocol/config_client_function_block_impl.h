@@ -38,7 +38,7 @@ public:
                                       const ContextPtr& ctx,
                                       const ComponentPtr& parent,
                                       const StringPtr& localId,
-                                      const StringPtr& className);
+                                      const StringPtr& className = nullptr);
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 

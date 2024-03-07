@@ -378,10 +378,9 @@ of the default value. This cloned object is not frozen, allowing for the any Pro
 the child Property Object to be modified. The same behaviour is applied when a Property Object 
 is created from a Property Object Class - all Object-type properties of the class are cloned.
 
-Notably, by default, all Object properties are read-only. Read-only object-type properties
-cannot be wholly replaced, but the child property values of the object can still be modified.
-The "Clear property value" method will work on object-type properties, even if the object
-is read-only.
+Notably, a object-type property cannot be replaced via `set property value` (unless using `set protected property value`), but calling
+`clear property value` will reset all of its properties to their default values. `clear property value`
+cannot be called of the object-type property is read-only.
 
 .Object Properties example
 

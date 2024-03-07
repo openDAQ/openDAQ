@@ -32,7 +32,8 @@ public:
                               const std::string& remoteGlobalId,
                               const ContextPtr& ctx,
                               const ComponentPtr& parent,
-                              const StringPtr& localId);
+                              const StringPtr& localId,
+                              const StringPtr& className = nullptr);
 
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
     ErrCode INTERFACE_FUNC disconnect() override;
@@ -53,8 +54,9 @@ inline ConfigClientInputPortImpl::ConfigClientInputPortImpl(const ConfigProtocol
                                                             const std::string& remoteGlobalId,
                                                             const ContextPtr& ctx,
                                                             const ComponentPtr& parent,
-                                                            const StringPtr& localId)
-    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
+                                                            const StringPtr& localId,
+                                                            const StringPtr& className)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
 {
 }
 

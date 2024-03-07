@@ -106,6 +106,17 @@ public:
         return value;
     }
 
+    SmartPtr setProtected(SmartPtr const& value)
+    {
+        PropertyObjectProtectedPtr protectedObj;
+        propObj->queryInterface(IPropertyObjectProtected::Id, reinterpret_cast<void**>(&protectedObj));
+
+        ErrCode errCode = protectedObj->setProtectedPropertyValue(propName, value);
+        checkErrorInfo(errCode);
+
+        return value;
+    }
+
     void clear() const
     {
         ErrCode errCode = propObj->clearPropertyValue(propName);

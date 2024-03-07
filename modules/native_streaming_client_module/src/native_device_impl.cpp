@@ -169,8 +169,9 @@ NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCo
                                    const std::string& remoteGlobalId,
                                    const ContextPtr& ctx,
                                    const ComponentPtr& parent,
-                                   const StringPtr& localId)
-    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
+                                   const StringPtr& localId,
+                                   const StringPtr& className)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
     , deviceInfoSet(false)
 {
 }

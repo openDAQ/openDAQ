@@ -134,15 +134,16 @@ ConstCharPtr TypeManagerImpl::SerializeId()
 
 ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
-    BaseObjectPtr types;
-    ErrCode errCode = ser->readObject("types"_daq, context, factoryCallback, &types);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-
     try
     {
         TypeManagerPtr typeManagerPtr;
         createTypeManager(&typeManagerPtr);
+
+        BaseObjectPtr types;
+        ErrCode errCode = ser->readObject("types"_daq, typeManagerPtr.asPtr<IBaseObject>(), factoryCallback, &types);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
         for (const auto& type : types.asPtr<IDict>().getValues())
             typeManagerPtr.addType(type);
 

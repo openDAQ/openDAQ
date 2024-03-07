@@ -259,6 +259,13 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
         return obj;
     }
 
+    if (typeId == "PropertyObject")
+    {
+        BaseObjectPtr obj;
+        checkErrorInfo(ConfigClientPropertyObjectImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        return obj;
+    }
+
     return nullptr;
 }
 

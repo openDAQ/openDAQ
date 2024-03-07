@@ -768,6 +768,8 @@ TEST_F(ConfigCoreEventTest, TypeRemoved)
 {
     const auto typeManager = serverDevice.getContext().getTypeManager();
     
+    const auto clientTypeManager = clientContext.getTypeManager();
+
     const auto statusType = EnumerationType("StatusType1", List<IString>("Status0", "Status1"));
     typeManager.addType(statusType);
     
@@ -793,7 +795,6 @@ TEST_F(ConfigCoreEventTest, TypeRemoved)
 
     ASSERT_EQ(removeCount, 3);
 
-    const auto clientTypeManager = clientContext.getTypeManager();
     ASSERT_FALSE(clientTypeManager.hasType("StatusType1"));
     ASSERT_FALSE(clientTypeManager.hasType("StructType1"));
     ASSERT_FALSE(clientTypeManager.hasType("StructType2"));

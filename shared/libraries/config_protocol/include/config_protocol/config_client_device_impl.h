@@ -43,7 +43,8 @@ public:
                                            const std::string& remoteGlobalId,
                                            const ContextPtr& ctx,
                                            const ComponentPtr& parent,
-                                           const StringPtr& localId);
+                                           const StringPtr& localId,
+                                           const StringPtr& className = nullptr);
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
@@ -66,8 +67,9 @@ GenericConfigClientDeviceImpl<TDeviceBase>::GenericConfigClientDeviceImpl(const 
                                                                           const std::string& remoteGlobalId,
                                                                           const ContextPtr& ctx,
                                                                           const ComponentPtr& parent,
-                                                                          const StringPtr& localId)
-    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
+                                                                          const StringPtr& localId,
+                                                                          const StringPtr& className)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
 {
 }
 

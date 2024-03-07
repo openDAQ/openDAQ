@@ -148,7 +148,8 @@ BaseObjectPtr ConfigClientComponentBaseImpl<Impl>::DeserializeConfigComponent(co
                 ctx->getRemoteGlobalId(),
                 deserializeContext.getContext(),
                 deserializeContext.getParent(),
-                deserializeContext.getLocalId());
+                deserializeContext.getLocalId(),
+                className);
         });
 }
 

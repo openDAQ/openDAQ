@@ -44,6 +44,11 @@ public:
         valueObject = value;
         return OPENDAQ_SUCCESS;
     }
+    ErrCode INTERFACE_FUNC setValueObjectProtected(ITestValueObject* value) override
+    {
+        valueObject.setProtected(value);
+        return OPENDAQ_SUCCESS;
+    }
 
 protected:
     PropertyValue<ITestValueObject> valueObject;

@@ -21,15 +21,17 @@
 template <>
 struct fmt::formatter<daq::StringPtr> : fmt::formatter<std::string_view>
 {
+    using Base = fmt::formatter<std::string_view>;
+
     template <typename FormatContext>
-    auto format(const daq::StringPtr c, FormatContext& ctx)
+    auto format(const daq::StringPtr& c, FormatContext& ctx) const
     {
         if (!c.assigned())
         {
-            return formatter<std::string_view>::format("<empty>", ctx);
+            return Base::format("<empty>", ctx);
         }
 
-        return formatter<std::string_view>::format(c.toView(), ctx);
+        return Base::format(c.toView(), ctx);
     }
 };
 
@@ -37,7 +39,7 @@ template <typename T>
 struct fmt::formatter<daq::ObjectPtr<T>> : fmt::formatter<std::string>
 {
     template <typename FormatContext>
-    auto format(const daq::ObjectPtr<T> c, FormatContext& ctx)
+    auto format(const daq::ObjectPtr<T> c, FormatContext& ctx) const
     {
         if (!c.assigned())
         {

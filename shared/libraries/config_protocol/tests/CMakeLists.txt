@@ -22,10 +22,6 @@ target_link_libraries(${TEST_APP} PRIVATE
     daq::opendaq_mocks
 )
 
-add_dependencies(${TEST_APP} daq::ref_device_module
-                             daq::ref_fb_module
-)
-
 add_dependencies(${TEST_APP} ${SDK_TARGET_NAMESPACE}::ref_device_module
                              ${SDK_TARGET_NAMESPACE}::ref_fb_module
 )

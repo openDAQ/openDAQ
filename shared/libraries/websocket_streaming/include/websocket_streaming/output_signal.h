@@ -62,6 +62,7 @@ protected:
     SignalStreamPtr stream;
     size_t sampleSize;
     bool subscribed;
+    bool writeStartDomainValue{false};
     std::mutex subscribedSync;
     daq::streaming_protocol::LogCallback logCallback;
 };

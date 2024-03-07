@@ -31,7 +31,8 @@ public:
                             const FunctionBlockTypePtr& type,
                             const ContextPtr& ctx,
                             const ComponentPtr& parent,
-                            const StringPtr& localId);
+                            const StringPtr& localId,
+                            const StringPtr& className = nullptr);
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 };
@@ -41,8 +42,9 @@ inline ConfigClientChannelImpl::ConfigClientChannelImpl(const ConfigProtocolClie
                                                         const FunctionBlockTypePtr& type,
                                                         const ContextPtr& ctx,
                                                         const ComponentPtr& parent,
-                                                        const StringPtr& localId)
-    : Super(configProtocolClientComm, remoteGlobalId, type, ctx, parent, localId, nullptr)
+                                                        const StringPtr& localId,
+                                                        const StringPtr& className)
+    : Super(configProtocolClientComm, remoteGlobalId, type, ctx, parent, localId, className)
 {
 }
 
@@ -76,7 +78,8 @@ inline ErrCode ConfigClientChannelImpl::Deserialize(ISerializedObject* serialize
                                                        fbType,
                                                        deserializeContext.getContext(),
                                                        deserializeContext.getParent(),
-                                                       deserializeContext.getLocalId());
+                                                       deserializeContext.getLocalId(),
+                                                       className);
                                                })
                        .detach();
         });

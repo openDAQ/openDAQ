@@ -35,7 +35,8 @@ public:
                            const std::string& remoteGlobalId,
                            const ContextPtr& ctx,
                            const ComponentPtr& parent,
-                           const StringPtr& localId);
+                           const StringPtr& localId,
+                           const StringPtr& className = nullptr);
 
     // IConfigClientSignalPrivate
     void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
@@ -59,8 +60,9 @@ inline ConfigClientSignalImpl::ConfigClientSignalImpl(const ConfigProtocolClient
                                                       const std::string& remoteGlobalId,
                                                       const ContextPtr& ctx,
                                                       const ComponentPtr& parent,
-                                                      const StringPtr& localId)
-    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
+                                                      const StringPtr& localId,
+                                                      const StringPtr& className)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
 {
 }
 

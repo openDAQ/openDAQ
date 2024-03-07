@@ -12,7 +12,19 @@ namespace daq::config_protocol::test_utils
 
 DevicePtr createServerDevice()
 {
-    const auto serverDevice = createWithImplementation<IDevice, MockDevice2Impl>(NullContext(), nullptr, "root_dev");
+    const auto context = NullContext();
+    const auto typeManager = context.getTypeManager();
+
+    const auto obj = PropertyObject();
+    obj.addProperty(StringProperty("NestedStringProperty", "string"));
+    const auto mockClass = PropertyObjectClassBuilder("MockClass")
+                               .addProperty(StringProperty("MockString", "string"))
+                               .addProperty(ObjectProperty("MockChild", obj))
+                               .build();
+
+    typeManager.addType(mockClass);
+
+    const auto serverDevice = createWithImplementation<IDevice, MockDevice2Impl>(context, nullptr, "root_dev");
     serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     return serverDevice;
 }
@@ -94,7 +106,7 @@ ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const Compon
 }
 
 MockFb1Impl::MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId)
+    : FunctionBlock(FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId, "MockClass")
 {
     const auto sig1 = createAndAddSignal("sig1");
     const auto sig2 = createAndAddSignal("sig2");
@@ -106,7 +118,7 @@ MockFb1Impl::MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, cons
 }
 
 MockFb2Impl::MockFb2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId)
+    : FunctionBlock(FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId, "MockClass")
 {
     createAndAddSignal("sig");
     createAndAddInputPort("ip", PacketReadyNotification::None);
@@ -115,7 +127,7 @@ MockFb2Impl::MockFb2Impl(const ContextPtr& ctx, const ComponentPtr& parent, cons
 }
 
 MockChannel1Impl::MockChannel1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : Channel(FunctionBlockType("ch", "", ""), ctx, parent, localId)
+    : Channel(FunctionBlockType("ch", "", ""), ctx, parent, localId, "MockClass")
 {
     const auto valueSig = createAndAddSignal("sig_ch");
     const auto domainSig = createAndAddSignal("sig_ch_time");
@@ -125,7 +137,7 @@ MockChannel1Impl::MockChannel1Impl(const ContextPtr& ctx, const ComponentPtr& pa
 }
 
 MockChannel2Impl::MockChannel2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : Channel(FunctionBlockType("ch", "", ""), ctx, parent, localId)
+    : Channel(FunctionBlockType("ch", "", ""), ctx, parent, localId, "MockClass")
 {
     createAndAddSignal("sig_ch");
     createAndAddInputPort("ip", PacketReadyNotification::None);
@@ -135,7 +147,7 @@ MockChannel2Impl::MockChannel2Impl(const ContextPtr& ctx, const ComponentPtr& pa
 }
 
 MockDevice1Impl::MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : Device(ctx, parent, localId)
+    : Device(ctx, parent, localId, "MockClass")
     , ticksSinceOrigin(0)
 {
     const auto sig = createAndAddSignal("sig_device");
@@ -207,7 +219,7 @@ UnitPtr MockDevice1Impl::onGetDomainUnit()
 }
 
 MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : Device(ctx, parent, localId)
+    : Device(ctx, parent, localId, "MockClass")
 {
     createAndAddSignal("sig_device");
 

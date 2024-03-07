@@ -26,6 +26,7 @@ DECLARE_OPENDAQ_INTERFACE(IConfigProtocolDeserializeContext, IComponentDeseriali
     virtual ConfigProtocolClientCommPtr getClientComm() = 0;
     virtual std::string getRemoteGlobalId() = 0;
     virtual void setRemoteGlobalId(const std::string& remoteGlobalId) = 0;
+    virtual TypeManagerPtr getTypeManager() = 0;
 };
 
 }

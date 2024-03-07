@@ -423,3 +423,25 @@ TEST_F(ConfigProtocolIntegrationTest, SetSignalNameAndDescriptionFromServer)
     ASSERT_EQ(clientSignal.getName(), "SigName");
     ASSERT_EQ(serverSignal.getName(), "SigName");
 }
+
+static void testMockPropertyObjectClass(const PropertyObjectPtr& obj)
+{
+    const auto className = obj.getClassName();
+    ASSERT_EQ(className, "MockClass");
+    ASSERT_TRUE(obj.hasProperty("MockString"));
+    ASSERT_EQ(obj.getPropertyValue("MockString"), "string");
+
+    ASSERT_TRUE(obj.hasProperty("MockChild"));
+    const PropertyObjectPtr mockChild = obj.getPropertyValue("MockChild");
+    ASSERT_TRUE(mockChild.hasProperty("NestedStringProperty"));
+    ASSERT_EQ(mockChild.getPropertyValue("NestedStringProperty"), "string");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, TestPropertyObjectClasses)
+{
+    testMockPropertyObjectClass(clientDevice);
+    testMockPropertyObjectClass(clientDevice.getChannels()[0]);
+    testMockPropertyObjectClass(clientDevice.getDevices()[0]);
+    testMockPropertyObjectClass(clientDevice.getDevices()[0].getFunctionBlocks()[0]);
+    testMockPropertyObjectClass(clientDevice.getDevices()[0].getChannels()[0]);
+}

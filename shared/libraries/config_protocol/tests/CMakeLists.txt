@@ -10,6 +10,7 @@ add_executable(${TEST_APP}
     test_ref_modules.cpp
     test_app.cpp
     test_core_events.cpp
+    test_nested_property_objects.cpp
     test_utils.h
     test_utils.cpp
 )

@@ -25,13 +25,15 @@ class ConfigClientProcedureImpl : public ImplementationOf<ICoreType, IProcedure>
 {
 public:
     ConfigClientProcedureImpl(const ConfigProtocolClientCommPtr& clientComm,
-                             const StringPtr& path,
-                             const StringPtr& name);
+                              const StringPtr& globalId,
+                              const StringPtr& path,
+                              const StringPtr& name);
 
     ErrCode INTERFACE_FUNC dispatch(IBaseObject* args) override;
     ErrCode INTERFACE_FUNC getCoreType(CoreType* coreType) override;
 
 private:
+    StringPtr globalId;
     StringPtr path;
     StringPtr name;
     ConfigProtocolClientCommPtr clientComm;
@@ -39,9 +41,11 @@ private:
 
 inline ConfigClientProcedureImpl::ConfigClientProcedureImpl(
     const ConfigProtocolClientCommPtr& clientComm,
+    const StringPtr& globalId,
     const StringPtr& path,
     const StringPtr& name)
-    : path(path)
+    : globalId(globalId)
+    , path(path)
     , name(name)
     , clientComm(clientComm)
 {
@@ -51,7 +55,10 @@ inline ErrCode ConfigClientProcedureImpl::dispatch(IBaseObject* args)
 {
     return daqTry([this, &args]
     {
-        clientComm->callProperty(path, name, args);
+        auto propName = name.toStdString();
+        if (path.assigned() && path != "")
+            propName = propName + "." + path.toStdString();
+        clientComm->callProperty(globalId, propName, args);
     });
 }
 

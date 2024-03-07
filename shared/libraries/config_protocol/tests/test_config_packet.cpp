@@ -9,13 +9,13 @@ using ConfigPacketTest = testing::Test;
 
 TEST_F(ConfigPacketTest, PacketBufferMove)
 {
-    PacketBuffer packetBufferSource(PacketType::getProtocolInfo, 1, nullptr, 0);
+    PacketBuffer packetBufferSource(PacketType::GetProtocolInfo, 1, nullptr, 0);
     PacketBuffer packetBuffer(std::move(packetBufferSource));
 }
 
 TEST_F(ConfigPacketTest, PacketBufferMoveWithDeleter)
 {
-    PacketBuffer packetBufferSource(PacketType::getProtocolInfo, 1, nullptr, 0);
+    PacketBuffer packetBufferSource(PacketType::GetProtocolInfo, 1, nullptr, 0);
     PacketBuffer packetBufferSource1(packetBufferSource.detach(), DeleterCallback([](void* ptr) { PacketBuffer::deallocateMem(ptr); }));
     PacketBuffer packetBuffer(std::move(packetBufferSource1));
 }
@@ -24,9 +24,9 @@ TEST_F(ConfigPacketTest, PacketBuffer)
 {
     const std::vector<uint8_t> buf = {0, 1, 2, 3, 4, 5, 6, 7};
 
-    const PacketBuffer packetBuffer(PacketType::getProtocolInfo, 1, buf.data(), 8);
+    const PacketBuffer packetBuffer(PacketType::GetProtocolInfo, 1, buf.data(), 8);
 
-    ASSERT_EQ(packetBuffer.getPacketType(), PacketType::getProtocolInfo);
+    ASSERT_EQ(packetBuffer.getPacketType(), PacketType::GetProtocolInfo);
     ASSERT_EQ(packetBuffer.getId(), 1u);
 
     std::vector<uint8_t> buf1;
@@ -41,11 +41,11 @@ TEST_P(ConfigPacketFromParamTest, PacketBufferFromMemoryCopy)
 {
     const std::vector<uint8_t> buf = {0, 1, 2, 3, 4, 5, 6, 7};
 
-    const PacketBuffer packetBufferSource(PacketType::getProtocolInfo, 1, buf.data(), 8);
+    const PacketBuffer packetBufferSource(PacketType::GetProtocolInfo, 1, buf.data(), 8);
 
     const PacketBuffer packetBuffer(packetBufferSource.getBuffer(), GetParam());
 
-    ASSERT_EQ(packetBuffer.getPacketType(), PacketType::getProtocolInfo);
+    ASSERT_EQ(packetBuffer.getPacketType(), PacketType::GetProtocolInfo);
     ASSERT_EQ(packetBuffer.getId(), 1u);
 
     std::vector<uint8_t> buf1;
@@ -66,7 +66,7 @@ TEST_F(ConfigPacketTest, PacketBufferWithDeleter)
 {
     const std::vector<uint8_t> buf = {0, 1, 2, 3, 4, 5, 6, 7};
 
-    PacketBuffer packetBufferSource(PacketType::getProtocolInfo, 1, buf.data(), 8);
+    PacketBuffer packetBufferSource(PacketType::GetProtocolInfo, 1, buf.data(), 8);
 
     const auto mem = packetBufferSource.detach();
 
@@ -75,7 +75,7 @@ TEST_F(ConfigPacketTest, PacketBufferWithDeleter)
         PacketBuffer::deallocateMem(ptr);
     }));
 
-    ASSERT_EQ(packetBuffer.getPacketType(), PacketType::getProtocolInfo);
+    ASSERT_EQ(packetBuffer.getPacketType(), PacketType::GetProtocolInfo);
     ASSERT_EQ(packetBuffer.getId(), 1u);
 
     std::vector<uint8_t> buf1;

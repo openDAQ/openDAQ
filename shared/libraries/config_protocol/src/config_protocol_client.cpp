@@ -142,7 +142,7 @@ PacketBuffer ConfigProtocolClientComm::createRpcRequestPacketBuffer(const uint64
 {
     const auto jsonStr = createRpcRequestJson(name, params);
 
-    auto packetBuffer = PacketBuffer(PacketType::rpc, id, jsonStr.getCharPtr(), jsonStr.getLength());
+    auto packetBuffer = PacketBuffer(PacketType::Rpc, id, jsonStr.getCharPtr(), jsonStr.getLength());
     return packetBuffer;
 }
 

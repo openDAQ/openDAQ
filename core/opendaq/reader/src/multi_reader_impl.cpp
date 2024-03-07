@@ -14,6 +14,11 @@ using namespace std::chrono;
 
 using Milliseconds = duration<double, std::milli>;
 
+template <>
+struct fmt::formatter<daq::Comparable> : ostream_formatter
+{
+};
+
 BEGIN_NAMESPACE_OPENDAQ
 
 MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,

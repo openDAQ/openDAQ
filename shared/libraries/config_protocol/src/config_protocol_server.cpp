@@ -206,20 +206,20 @@ PacketBuffer ConfigProtocolServer::processPacket(const PacketBuffer& packetBuffe
     const auto requestId = packetBuffer.getId();
     switch (packetBuffer.getPacketType())
     {
-        case PacketType::getProtocolInfo:
+        case PacketType::GetProtocolInfo:
             {
                 packetBuffer.parseProtocolInfoRequest();
                 auto reply = PacketBuffer::createGetProtocolInfoReply(requestId, 0, {0});
                 return reply;
             }
-        case PacketType::upgradeProtocol:
+        case PacketType::UpgradeProtocol:
             {
                 uint16_t version;
                 packetBuffer.parseProtocolUpgradeRequest(version);
                 auto reply = PacketBuffer::createUpgradeProtocolReply(requestId, version == 0);
                 return reply;
             }
-        case PacketType::rpc:
+        case PacketType::Rpc:
             {
                 std::unique_ptr<char[]> json;
 

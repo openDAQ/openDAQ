@@ -59,11 +59,6 @@ endif()
 if (DAQMODULES_OPENDAQ_CLIENT_MODULE)
     message(STATUS "Client modules:")
 
-    if (NOT OPENDAQ_ENABLE_OPCUA)
-        message(NOTICE "Client module requires OPENDAQ_ENABLE_OPCUA. Force enabling setting.")
-        set(OPENDAQ_ENABLE_OPCUA ON CACHE BOOL "" FORCE)
-    endif()
-
     if (OPENDAQ_ENABLE_OPCUA)
         message(STATUS "    - OpcUa client module")
         add_subdirectory(opcua_client_module)
@@ -82,11 +77,6 @@ endif()
 
 if (DAQMODULES_OPENDAQ_SERVER_MODULE)
     message(STATUS "Server modules:")
-
-    if (NOT OPENDAQ_ENABLE_OPCUA)
-        message(NOTICE "Server module requires OPENDAQ_ENABLE_OPCUA. Force enabling setting.")
-        set(OPENDAQ_ENABLE_OPCUA ON CACHE BOOL "" FORCE)
-    endif()
 
     if (OPENDAQ_ENABLE_OPCUA)
         message(STATUS "    - OpcUa server module")

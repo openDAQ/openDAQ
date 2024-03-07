@@ -55,6 +55,8 @@ public:
 private:
     bool isDataEqual(const DataPacketPtr& dataPacket) const;
 
+    StructTypePtr createStructTypeFromDescriptor(DataDescriptorPtr dataDescriptor) const;
+
     AllocatorPtr allocator;
     DataDescriptorPtr descriptor;
     SizeT sampleCount;
@@ -292,6 +294,21 @@ bool DataPacketImpl<TInterface>::isDataEqual(const DataPacketPtr& dataPacket) co
 }
 
 template <typename TInterface>
+inline StructTypePtr DataPacketImpl<TInterface>::createStructTypeFromDescriptor(DataDescriptorPtr dataDescriptor) const
+{
+    auto fields = dataDescriptor.getStructFields();
+    auto fieldNames = List<IString>();
+    auto fieldTypes = List<IType>();
+    for (auto field& : fields)
+    {
+    }
+
+    StructTypePtr structType = StructType(dataDescriptor.getName(), fieldNames, fieldTypes);
+
+    return StructTypePtr();
+}
+
+template <typename TInterface>
 ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
@@ -390,6 +407,14 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value)
         {
             auto data = static_cast<double*>(addr);
             *value = ComplexNumber(data[idx * 2], data[idx * 2 + 1]).detach();
+            break;
+        }
+        case SampleType::Struct:
+        {
+            const auto typeManager = TypeManager();
+            // const auto structType = createStructTypeFromDescriptor();
+            // typeManager.addType(structType);
+
             break;
         }
         default:

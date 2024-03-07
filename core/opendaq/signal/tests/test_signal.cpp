@@ -705,4 +705,30 @@ TEST_F(SignalTest, TestInputPortActiveSendPacket)
     ASSERT_EQ(ip.getConnection().getPacketCount(), 3);
 }
 
+TEST_F(SignalTest, GetLastValueStruct)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Struct).build();
+
+    StructPtr ptr =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int").setSampleType(SampleType::Int64).build(),
+                                                     DataDescriptorBuilder().setName("Float").setSampleType(SampleType::Float64).build()))
+            .build();
+
+    auto dataPacket = DataPacket(descriptor, 5);
+    auto data = static_cast<StructPtr*>(dataPacket.getData());
+    data[4] = ptr;
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValuePacket = signal.getLastValue();
+    ComplexNumberPtr complexPtr;
+    ASSERT_NO_THROW(complexPtr = lastValuePacket.asPtr<IStructType>());
+    /* ASSERT_DOUBLE_EQ(complexPtr.getReal(), 8.1);
+    ASSERT_DOUBLE_EQ(complexPtr.getImaginary(), 9.1);*/
+}
+
 END_NAMESPACE_OPENDAQ

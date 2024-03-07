@@ -53,14 +53,27 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
             return objectPtr.getProtocolName().toStdString();
         },
         "Gets the name of protocol");
-    cls.def_property_readonly("protocol_type",
+    cls.def_property("supported_protocol_type",
+        nullptr,
+        [](daq::IServerCapability *object, const std::string& type)
+        {
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            objectPtr.setSupportedProtocolType(type);
+        },
+        "Sets the supported type of protocol");
+    cls.def_property("protocol_type",
         [](daq::IServerCapability *object)
         {
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
             return objectPtr.getProtocolType().detach();
         },
+        [](daq::IServerCapability *object, const std::string& type)
+        {
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            objectPtr.setProtocolType(type);
+        },
         py::return_value_policy::take_ownership,
-        "Gets the type of protocol");
+        "Gets the type of protocol / Sets the type of protocol");
     cls.def_property_readonly("connection_type",
         [](daq::IServerCapability *object)
         {

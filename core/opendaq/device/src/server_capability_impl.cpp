@@ -67,6 +67,18 @@ ErrCode ServerCapabilityImpl::getConnectionType(IString** type)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ServerCapabilityImpl::setSupportedProtocolType(IString* type)
+{
+    OPENDAQ_PARAM_NOT_NULL(type);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ServerCapabilityImpl::setProtocolType(IString* type)
+{
+    OPENDAQ_PARAM_NOT_NULL(type);
+    return OPENDAQ_SUCCESS;
+}
+
 extern "C" ErrCode PUBLIC_EXPORT createServerCapability(IServerCapability** objTmp, 
                                             IString* connectionString,
                                             IString* protocolName,

@@ -38,6 +38,9 @@ public:
     ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) override;
     ErrCode INTERFACE_FUNC getProtocolType(IEnumeration** type) override;
     ErrCode INTERFACE_FUNC getConnectionType(IString** type) override;
+
+    ErrCode INTERFACE_FUNC setSupportedProtocolType(IString* type) override;
+    ErrCode INTERFACE_FUNC setProtocolType(IString* type) override;
     
 private:
     static TypeManagerPtr getTypeManager();

@@ -24,6 +24,7 @@ set(SRC_Cpp
     generated/device/py_device_domain.cpp
     generated/device/py_device_info.cpp
     generated/device/py_device_info_config.cpp
+    generated/device/py_server_capability.cpp
     generated/device/py_device_type.cpp
     generated/functionblock/py_channel.cpp
     generated/functionblock/py_function_block.cpp

@@ -39,6 +39,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIDeviceDomain = declareIDeviceDomain(m);
     auto classIDeviceInfo = declareIDeviceInfo(m);
     auto classIDeviceInfoConfig = declareIDeviceInfoConfig(m);
+    auto classIServerCapability = declareIServerCapability(m);
     auto classIDeviceType = declareIDeviceType(m);
     auto classIFunctionBlock = declareIFunctionBlock(m);
     auto classIChannel = declareIChannel(m);
@@ -115,6 +116,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIDeviceDomain(m, classIDeviceDomain);
     defineIDeviceInfo(m, classIDeviceInfo);
     defineIDeviceInfoConfig(m, classIDeviceInfoConfig);
+    defineIServerCapability(m, classIServerCapability);
     defineIDeviceType(m, classIDeviceType);
     defineIFunctionBlock(m, classIFunctionBlock);
     defineIChannel(m, classIChannel);

@@ -491,6 +491,11 @@ ErrCode INTERFACE_FUNC InstanceImpl::findComponent(IString* id, IComponent** out
     return rootDevice->findComponent(id, outComponent);
 }
 
+ErrCode INTERFACE_FUNC InstanceImpl::getPermissionManager(IPermissionManager** permissionManager)
+{
+    return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
 ErrCode InstanceImpl::getAvailableDevices(IList** availableDevices)
 {
     return rootDevice->getAvailableDevices(availableDevices);

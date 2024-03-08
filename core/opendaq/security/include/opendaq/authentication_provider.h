@@ -1,0 +1,54 @@
+/*
+ * Copyright 2022-2023 Blueberry d.o.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+#include <coretypes/common.h>
+#include <coretypes/baseobject.h>
+#include <coretypes/stringobject.h>
+#include <opendaq/user.h>
+
+BEGIN_NAMESPACE_OPENDAQ
+
+/*!
+ * @ingroup opendaq_security
+ * @addtogroup opendaq_security_authentication_provider AuthenticationProvider
+ * @{
+ */
+
+/*!
+ * @brief A class which is responsible for authenticating a user. The authentication is usually done by verifying
+ * the username and password. An authenticator implementation might use external services for achieving that. It might
+ * make a call to an external databse, do a lookup to a json file with defined users or it might simply check the
+ * password against a hardcoded one.
+ */
+DECLARE_OPENDAQ_INTERFACE(IAuthenticationProvider, IBaseObject)
+{
+    /*!
+     * @brief Authenticate user using username and password. If authentication is successful, a User instance is returned.
+     * Otherwise an exception is thrown.
+     * 
+     * @param username The username.
+     * @param password The password in plain text.
+     * @param user[out] And instance of successfully authenticated user. If authentication is not successful, an exception is thrown.
+     */
+    virtual ErrCode INTERFACE_FUNC authenticate(IString* usernanme, IString* password, IUser** user) = 0;
+};
+
+/*!@}*/
+
+OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, AuthenticationProvider)
+
+END_NAMESPACE_OPENDAQ

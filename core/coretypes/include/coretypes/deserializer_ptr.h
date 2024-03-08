@@ -58,14 +58,14 @@ public:
     }
 
 
-    void deserializeCustom(const ProcedurePtr& customProc, const StringPtr& serialized) const
+    void callCustomProc(const ProcedurePtr& customProc, const StringPtr& serialized) const
     {
         if (!object)
         {
             throw InvalidParameterException();
         }
 
-        checkErrorInfo(object->deserializeCustom(customProc, serialized));
+        checkErrorInfo(object->callCustomProc(customProc, serialized));
     }
 };
 

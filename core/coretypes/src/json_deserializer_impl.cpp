@@ -260,7 +260,7 @@ ErrCode JsonDeserializerImpl::update(IUpdatable* updatable, IString* serialized)
     return updatable->update(jsonSerObj);
 }
 
-ErrCode JsonDeserializerImpl::deserializeCustom(IProcedure* customDeserialize, IString* serialized)
+ErrCode JsonDeserializerImpl::callCustomProc(IProcedure* customDeserialize, IString* serialized)
 {
     if (serialized == nullptr || customDeserialize == nullptr)
     {

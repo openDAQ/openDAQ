@@ -221,7 +221,7 @@ void ConfigClientComponentBaseImpl<Impl>::componentUpdateEnd(const CoreEventArgs
     this->deserializationComplete = false;
 
     const auto deserializer = JsonDeserializer();
-    deserializer.deserializeCustom([&](const SerializedObjectPtr& serialized) { onRemoteUpdate(serialized); }, str);
+    deserializer.callCustomProc([&](const SerializedObjectPtr& serialized) { onRemoteUpdate(serialized); }, str);
     this->clientComm->connectInputPorts(thisPtr);
     this->clientComm->connectDomainSignals(thisPtr);
 

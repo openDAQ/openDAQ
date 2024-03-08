@@ -45,6 +45,7 @@ DECLARE_OPENDAQ_INTERFACE(ISerializedObject, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getKeys(IList** list) = 0;
     virtual ErrCode INTERFACE_FUNC getType(IString* key, CoreType* type) = 0;
     virtual ErrCode INTERFACE_FUNC isRoot(Bool* isRoot) = 0;
+    virtual ErrCode INTERFACE_FUNC toJson(IString** jsonString) = 0;
 };
 
 /*!

@@ -204,6 +204,16 @@ public:
         checkErrorInfo(object->isRoot(&isRoot));
         return isRoot;
     }
+
+    StringPtr toJson() const
+    {
+        if (!object)
+            throw InvalidParameterException();
+        
+        StringPtr jsonString;
+        checkErrorInfo(object->toJson(&jsonString));
+        return jsonString;
+    }
 };
 
 /*!

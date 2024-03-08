@@ -3,9 +3,10 @@
 #include <coretypes/json_deserializer_impl.h>
 #include <coretypes/json_serialized_list.h>
 #include <coretypes/serialization.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 JsonSerializedObject::JsonSerializedObject(const JsonObject& obj)
     : object(obj)
     , root(false)
@@ -232,12 +233,30 @@ ErrCode JsonSerializedObject::isRoot(Bool* isRoot)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode JsonSerializedObject::toJson(IString** jsonString)
+{
+    if (jsonString == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *jsonString = objToJson(object).detach();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode JsonSerializedObject::toString(CharPtr* str)
 {
     if (str == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
     return daqDuplicateCharPtr("JsonSerializedObject", str);
+}
+
+StringPtr JsonSerializedObject::objToJson(const rapidjson::Value& val)
+{
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    val.Accept(writer);
+    std::string s = sb.GetString();
+    return s;
 }
 
 ErrCode JsonSerializedObject::hasKey(IString* key, Bool* hasKey)

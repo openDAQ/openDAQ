@@ -1530,7 +1530,7 @@ TEST_F(MultiReaderTest, MultiReaderWithInputPort)
     ASSERT_EQ(available, 446u);
 
     available = multi.getAvailableCount();
-    ASSERT_EQ(available, 446);
+    ASSERT_EQ(available, 446u);
 
     constexpr const SizeT SAMPLES = 5u;
 
@@ -1592,7 +1592,7 @@ TEST_F(MultiReaderTest, MultiReaderWithNotConnectedInputPort)
     ASSERT_EQ(available, 446u);
 
     available = multi.getAvailableCount();
-    ASSERT_EQ(available, 446);
+    ASSERT_EQ(available, 446u);
 
     constexpr const SizeT SAMPLES = 5u;
 

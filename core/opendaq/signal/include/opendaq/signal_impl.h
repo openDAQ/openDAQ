@@ -123,16 +123,15 @@ protected:
 #endif
 
     DataDescriptorPtr dataDescriptor;
+    StringPtr deserializedDomainSignalId;
 
 private:
-    StringPtr name;
     bool isPublic{};
     std::vector<SignalPtr> relatedSignals;
     SignalPtr domainSignal;
     std::vector<ConnectionPtr> connections;
     std::vector<ConnectionPtr> remoteConnections;
     std::vector<WeakRefPtr<ISignalConfig>> domainSignalReferences;
-    StringPtr deserializedDomainSignalId;
     bool keepLastPacket = true;
     DataPacketPtr lastDataPacket;
 

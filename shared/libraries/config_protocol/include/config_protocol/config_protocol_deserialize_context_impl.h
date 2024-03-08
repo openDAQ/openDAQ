@@ -30,12 +30,14 @@ public:
                                          const ComponentPtr& root,
                                          const ComponentPtr& parent,
                                          const StringPtr& localId,
-                                         IntfID* intfID);
+                                         IntfID* intfID,
+                                         const TypeManagerPtr& typeManager = nullptr);
 
 
     ConfigProtocolClientCommPtr getClientComm() override;
     std::string getRemoteGlobalId() override;
     void setRemoteGlobalId(const std::string& remoteGlobalId) override;
+    TypeManagerPtr getTypeManager() override;
 
     ErrCode INTERFACE_FUNC clone(IComponent* newParent,
                                  IString* newLocalId,
@@ -45,6 +47,7 @@ public:
 private:
     ConfigProtocolClientCommPtr clientComm;
     std::string remoteGlobalId;
+    TypeManagerPtr typeManager;
 };
 
 }

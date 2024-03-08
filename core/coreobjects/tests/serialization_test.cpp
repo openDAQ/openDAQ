@@ -68,7 +68,7 @@ TEST_F(SerializationTest, ChildObject)
     auto childObject = PropertyObject(manager,"ChildClass");
     childObject.setPropertyValue("Name", "IamChild");
 
-    parentObject.setPropertyValue("Child", childObject);
+    parentObject.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Child", childObject);
 
     auto serializer = JsonSerializer();
     parentObject.serialize(serializer);

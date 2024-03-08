@@ -71,7 +71,6 @@ public:
     void connectDomainSignals(const ComponentPtr& component);
     void connectInputPorts(const ComponentPtr& component);
 
-protected:
     BaseObjectPtr deserializeConfigComponent(const StringPtr& typeId,
                                              const SerializedObjectPtr& serObj,
                                              const BaseObjectPtr& context,
@@ -80,7 +79,7 @@ protected:
 
 private:
     ContextPtr daqContext;
-    size_t id;
+    uint64_t id;
     SendRequestCallback sendRequestCallback;
     ComponentDeserializeCallback rootDeviceDeserializeCallback;
     SerializerPtr serializer;
@@ -96,11 +95,11 @@ private:
                                                             IntfID* intfID);
     BaseObjectPtr createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const;
     StringPtr createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params);
-    PacketBuffer createRpcRequestPacketBuffer(size_t id, const StringPtr& name, const ParamsDictPtr& params);
+    PacketBuffer createRpcRequestPacketBuffer(uint64_t id, const StringPtr& name, const ParamsDictPtr& params);
     BaseObjectPtr parseRpcReplyPacketBuffer(const PacketBuffer& packetBuffer,
                                             const ComponentDeserializeContextPtr& context = nullptr,
                                             bool isGetRootDeviceReply = false);
-    size_t generateId();
+    uint64_t generateId();
 
     BaseObjectPtr sendComponentCommandInternal(const StringPtr& command,
                                                const ParamsDictPtr& params,

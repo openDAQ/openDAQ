@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/device_impl.h>
 #include <config_protocol/config_client_component_impl.h>
+#include <config_protocol/config_protocol_deserialize_context_impl.h>
 #include <opendaq/component_holder_ptr.h>
 
 namespace daq::config_protocol
@@ -42,7 +43,8 @@ public:
                                            const std::string& remoteGlobalId,
                                            const ContextPtr& ctx,
                                            const ComponentPtr& parent,
-                                           const StringPtr& localId);
+                                           const StringPtr& localId,
+                                           const StringPtr& className = nullptr);
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
@@ -53,6 +55,7 @@ public:
 
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 
 private:
     void componentAdded(const CoreEventArgsPtr& args);
@@ -64,8 +67,9 @@ GenericConfigClientDeviceImpl<TDeviceBase>::GenericConfigClientDeviceImpl(const 
                                                                           const std::string& remoteGlobalId,
                                                                           const ContextPtr& ctx,
                                                                           const ComponentPtr& parent,
-                                                                          const StringPtr& localId)
-    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
+                                                                          const StringPtr& localId,
+                                                                          const StringPtr& className)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
 {
 }
 
@@ -161,6 +165,74 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
     }
 
     Super::handleRemoteCoreObjectInternal(sender, args);
+}
+
+template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const SerializedObjectPtr& serialized)
+{
+    ConfigClientComponentBaseImpl<TDeviceBase>::onRemoteUpdate(serialized);
+
+    std::vector<std::string> toRemove;
+    for (const auto& comp : this->components)
+    {
+        const auto id = comp.getLocalId();
+        if (!serialized.hasKey(id))
+        {
+            if (this->defaultComponents.count(id))
+                throw InvalidOperationException{"Serialized remote object does not contain default device component: " + id};
+            
+            toRemove.push_back(id);
+        }
+        else
+        {
+            const auto serObj = serialized.readSerializedObject(id);
+            comp.template asPtr<IConfigClientObject>()->remoteUpdate(serObj);
+        }
+    }
+
+    for (const auto& id : toRemove)
+        this->removeComponentById(id);
+    
+    const std::set<std::string> ignoredKeys{"__type", "deviceInfo", "deviceDomain", "deviceUnit", "deviceResolution", "properties", "propValues"};
+
+    for (const auto& key : serialized.getKeys())
+    {
+        if (this->defaultComponents.count(key) || ignoredKeys.count(key) || serialized.getType(key) != ctObject)
+            continue;
+        
+        const auto obj = serialized.readSerializedObject(key);
+        auto compIterator = std::find_if(this->components.begin(), this->components.end(), [&key](const ComponentPtr& comp) { return comp.getLocalId() == key; });
+        if (compIterator != this->components.end())
+        {
+            compIterator->template asPtr<IConfigClientObject>()->remoteUpdate(obj);
+        }
+        else
+        {
+            if (!obj.hasKey("__type"))
+                continue;
+
+            const StringPtr type = obj.readString("__type");
+            const auto thisPtr = this->template borrowPtr<ComponentPtr>();
+            const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
+                this->clientComm, this->remoteGlobalId, this->context, nullptr, thisPtr, key, nullptr);
+
+            const ComponentPtr deserializedObj = this->clientComm->deserializeConfigComponent(
+                type,
+                obj,
+                deserializeContext,
+                [&](const StringPtr& typeId,
+                    const SerializedObjectPtr& object,
+                    const BaseObjectPtr& context,
+                    const FunctionPtr& factoryCallback)
+                {
+                    return this->clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
+                },
+                nullptr);
+
+            if (deserializedObj.assigned())
+                this->addExistingComponent(deserializedObj);
+        }
+    }
 }
 
 template <class TDeviceBase>

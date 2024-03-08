@@ -34,7 +34,7 @@ public:
                        boost::asio::io_context& ioContext,
                        native_streaming::OnSessionErrorCallback errorHandler,
                        ConstCharPtr loggerComponentName);
-    ~BaseSessionHandler();
+    virtual ~BaseSessionHandler();
 
     void startReading();
     const SessionPtr getSession() const;

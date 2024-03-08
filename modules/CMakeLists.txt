@@ -8,13 +8,6 @@ if (POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW)
 endif()
 
-option(DAQMODULES_OPENDAQ_CLIENT_MODULE "Building of ${SDK_NAME} client modules" OFF)
-option(DAQMODULES_OPENDAQ_SERVER_MODULE "Building of ${SDK_NAME} server modules" OFF)
-option(DAQMODULES_EMPTY_MODULE "Building of demo module" OFF)
-option(DAQMODULES_REF_DEVICE_MODULE "Building of reference device module" OFF)
-option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OFF)
-option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
-
 # Force enable reference modules if example apps are enabled
 if (APP_ENABLE_EXAMPLE_APPS AND NOT DAQMODULES_REF_DEVICE_MODULE)
     message(NOTICE "Example applications require DAQMODULES_REF_DEVICE_MODULE. Force enabling setting.")

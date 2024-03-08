@@ -100,6 +100,16 @@ public:
         auto errCode = this->object->serializeForUpdate(serializer);
         daq::checkErrorInfo(errCode);
     }
+
+    void updateEnded() const
+    {
+        if (this->object == nullptr)
+            throw daq::InvalidParameterException();
+
+        auto errCode = this->object->updateEnded();
+        daq::checkErrorInfo(errCode);
+    }
+
 };
 
 /*!

@@ -25,10 +25,6 @@ ClientSessionHandler::ClientSessionHandler(const ContextPtr& daqContext,
 {
 }
 
-ClientSessionHandler::~ClientSessionHandler()
-{
-}
-
 void ClientSessionHandler::sendSignalSubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId)
 {
     std::vector<WriteTask> tasks;

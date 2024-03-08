@@ -64,8 +64,6 @@ public:
 
     // IInputPortPrivate
     ErrCode INTERFACE_FUNC disconnectWithoutSignalNotification() override;
-    ErrCode INTERFACE_FUNC getSerializedSignalId(IString** serializedSignalId) override;
-    ErrCode INTERFACE_FUNC finishUpdate() override;
 
     // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
@@ -84,6 +82,8 @@ protected:
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
 
     void updateObject(const SerializedObjectPtr& obj) override;
+    void onUpdatableUpdateEnd() override;
+    ComponentPtr getRootComponent(const ComponentPtr& curComponent);
 
     BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
 
@@ -94,6 +94,8 @@ protected:
     virtual ConnectionPtr createConnection(const SignalPtr& signal);
 
     ConnectionPtr getConnectionNoLock();
+    
+    StringPtr serializedSignalId;
 
 private:
     Bool requiresSignal;
@@ -108,7 +110,6 @@ private:
     LoggerComponentPtr loggerComponent;
     SchedulerPtr scheduler;
 
-    StringPtr serializedSignalId;
     SignalPtr dummySignal;
 
     WeakRefPtr<IPropertyObject> owner;
@@ -117,6 +118,7 @@ private:
     void disconnectSignalInternal(bool notifyListener, bool notifySignal);
     void notifyPacketEnqueuedSameThread();
     void notifyPacketEnqueuedScheduler();
+    void finishUpdate();
 
     SignalPtr getSignalNoLock();
 };
@@ -509,22 +511,10 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnectWithoutSignalNotification
 }
 
 template <class... Interfaces>
-ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::getSerializedSignalId(IString** serializedSignalId)
-{
-    OPENDAQ_PARAM_NOT_NULL(serializedSignalId);
-    std::scoped_lock lock(this->sync);
-
-    *serializedSignalId = this->serializedSignalId.addRefAndReturn();
-
-    return OPENDAQ_SUCCESS;
-}
-
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::finishUpdate()
+void GenericInputPortImpl<Interfaces...>::finishUpdate()
 {
     dummySignal.release();
     serializedSignalId.release();
-    return OPENDAQ_SUCCESS;
 }
 
 template <class... Interfaces>
@@ -647,6 +637,46 @@ void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr
     }
     else
         serializedSignalId.release();
+}
+
+template <class ... Interfaces>
+void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd()
+{
+    Super::onUpdatableUpdateEnd();
+
+    if (serializedSignalId.assigned() && serializedSignalId != "")
+    {
+        const auto thisPtr = this->template borrowPtr<InputPortPtr>();
+        const auto root = this->getRootComponent(thisPtr);
+        ComponentPtr sig;
+        root->findComponent(serializedSignalId, &sig);
+        if (sig.assigned())
+        {
+            try
+            {
+                thisPtr.connect(sig);
+            }
+            catch (const DaqException&)
+            {
+                LOG_W("Failed to connect signal: {}", serializedSignalId);
+            }
+        }
+        else
+        {
+            LOG_W("Signal not found: {}", serializedSignalId);
+        }
+    }
+    
+    finishUpdate();
+}
+
+template <class ... Interfaces>
+ComponentPtr GenericInputPortImpl<Interfaces...>::getRootComponent(const ComponentPtr& curComponent)
+{
+    const auto parent = curComponent.getParent();
+    if (!parent.assigned())
+        return curComponent;
+    return getRootComponent(parent);
 }
 
 template <class... Interfaces>

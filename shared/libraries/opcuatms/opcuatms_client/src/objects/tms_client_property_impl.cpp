@@ -161,20 +161,17 @@ void TmsClientPropertyImpl::configurePropertyFields()
                             // devices working which are deliviering not a default value via the opc-ua interface.
                             // Afterwards, the workaround needs to be rolled back.
 
-                            try
+                            auto value = reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE);
+                            if(value.isNull())
                             {
-                                const auto value = reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE);
-                                this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);
-                            }
-                            catch (const std::exception& e)
-                            {
-                                const auto value = reader->getValue(nodeId, UA_ATTRIBUTEID_VALUE);
+                                value = reader->getValue(nodeId, UA_ATTRIBUTEID_VALUE);
                                 this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);
                                 LOG_W(
-                                    "Failed to read default value of property {} on OpcUa client. Detault value is set to the value at connection time. {}",
-                                    this->name,
-                                    e.what());
+                                    "Failed to read default value of property {} on OpcUa client. Detault value is set to the value at connection time.",
+                                    this->name);
                             }
+                            this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);
+                            
 
                             if (this->defaultValue.assigned() && this->defaultValue.asPtrOrNull<IFreezable>().assigned())
                                 this->defaultValue.freeze();

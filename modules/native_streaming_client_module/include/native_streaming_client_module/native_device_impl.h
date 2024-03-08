@@ -80,7 +80,8 @@ public:
                               const std::string& remoteGlobalId,
                               const ContextPtr& ctx,
                               const ComponentPtr& parent,
-                              const StringPtr& localId);
+                              const StringPtr& localId,
+                              const StringPtr& className = nullptr);
     ~NativeDeviceImpl() override;
 
     // INativeDevicePrivate

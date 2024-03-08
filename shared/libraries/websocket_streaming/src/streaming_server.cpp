@@ -141,15 +141,16 @@ void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
         if (!signal.getPublic())
             continue;
 
+        filteredSignals.pushBack(signal);
+
         // TODO: We skip domain signals for now.
         if (!signal.getDomainSignal().assigned())
             continue;
-
+        
         try
         {
             const auto outputSignal = std::make_shared<OutputSignal>(writer, signal, logCallback);
             outputSignals.insert({signal.getGlobalId(), outputSignal});
-            filteredSignals.pushBack(signal);
         }
         catch (const DaqException&)
         {

@@ -29,25 +29,34 @@ ServerCapabilityImpl::ServerCapabilityImpl( const StringPtr& connectionString,
                                             const StringPtr& protocolType,
                                             const StringPtr& connectionType
                                             )
-    : connectionString(connectionString)
-    , protocolName(protocolName)
+    : Super()
     , protocolType(Enumeration(EnumerationName, protocolType, getTypeManager()))
-    , connectionType(connectionType)
 {
+    Super::addProperty(StringPropertyBuilder("connectionString", connectionString).setReadOnly(true).build());
+    Super::addProperty(StringPropertyBuilder("protocolName", protocolName).setReadOnly(true).build());
+    Super::addProperty(StringPropertyBuilder("connectionType", connectionType).setReadOnly(true).build());
+}
+
+StringPtr ServerCapabilityImpl::getStringProperty(const StringPtr& name)
+{
+    const auto obj = this->template borrowPtr<PropertyObjectPtr>();
+    return obj.getPropertyValue(name).template asPtr<IString>();
 }
 
 ErrCode ServerCapabilityImpl::getConnectionString(IString** connectionString)
 {
-    OPENDAQ_PARAM_NOT_NULL(connectionString);
-    *connectionString = this->connectionString.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+    return daqTry([&]() {
+        *connectionString = getStringProperty("connectionString").detach();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode ServerCapabilityImpl::getProtocolName(IString** protocolName)
 {
-    OPENDAQ_PARAM_NOT_NULL(protocolName);
-    *protocolName = this->protocolName.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+    return daqTry([&]() {
+        *protocolName = getStringProperty("protocolName").detach();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode ServerCapabilityImpl::getProtocolType(IEnumeration** type)
@@ -59,9 +68,10 @@ ErrCode ServerCapabilityImpl::getProtocolType(IEnumeration** type)
 
 ErrCode ServerCapabilityImpl::getConnectionType(IString** type)
 {
-    OPENDAQ_PARAM_NOT_NULL(type);
-    *type = connectionType.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+    return daqTry([&]() {
+        *type = getStringProperty("connectionType").detach();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 extern "C" ErrCode PUBLIC_EXPORT createServerCapability(IServerCapability** objTmp, 

@@ -17,14 +17,17 @@
 #include <coretypes/common.h>
 #include <coretypes/stringobject.h>
 #include <coretypes/enumeration.h>
+#include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceSmartPtr(IEnumeration, EnumerationPtr, "<coretypes/enumeration_ptr.h>")]
+ * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
  */
 
-DECLARE_OPENDAQ_INTERFACE(IServerCapability, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
 {
     /*!
      * @brief Gets the connection string of device with current protocol

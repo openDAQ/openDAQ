@@ -22,12 +22,14 @@
 #include <coretypes/type_manager_ptr.h>
 #include <coretypes/enumeration_type_ptr.h>
 #include <coretypes/enumeration_ptr.h>
+#include <coreobjects/property_object_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ServerCapabilityImpl : public ImplementationOf<IServerCapability>
+class ServerCapabilityImpl : public GenericPropertyObjectImpl<IServerCapability>
 {
 public:
+    using Super = GenericPropertyObjectImpl<IServerCapability>;
 
     explicit ServerCapabilityImpl(const StringPtr& connectionString,
                                   const StringPtr& protocolName, 
@@ -40,12 +42,10 @@ public:
     ErrCode INTERFACE_FUNC getConnectionType(IString** type) override;
     
 private:
+    StringPtr getStringProperty(const StringPtr& name);
     static TypeManagerPtr getTypeManager();
 
-    StringPtr connectionString;
-    StringPtr protocolName;
     EnumerationPtr protocolType;
-    StringPtr connectionType;
 };
 
 END_NAMESPACE_OPENDAQ

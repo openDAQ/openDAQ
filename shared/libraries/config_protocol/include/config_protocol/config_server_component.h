@@ -32,6 +32,7 @@ public:
     static BaseObjectPtr beginUpdate(const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr endUpdate(const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setAttributeValue(const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr update(const ComponentPtr& component, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerComponent::getPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params)
@@ -126,4 +127,20 @@ inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const ComponentPtr
     return nullptr;
 }
 
+inline BaseObjectPtr ConfigServerComponent::update(const ComponentPtr& component, const ParamsDictPtr& params)
+{
+    const auto serializedString = static_cast<std::string>(params["Serialized"]);
+    const auto path = static_cast<std::string>(params["Path"]);
+
+    UpdatablePtr updatable;
+    if (!path.empty())
+        updatable = component.getPropertyValue(path);
+    else
+        updatable = component;
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(updatable, serializedString);
+
+    return nullptr;
+}
 }

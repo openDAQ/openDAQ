@@ -40,6 +40,7 @@
 #include <cctype>
 #include <opendaq/ids_parser.h>
 #include <opendaq/component_status_container_impl.h>
+#include <opendaq/permission_manager_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -82,6 +83,7 @@ public:
     ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) override;
     ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
+    ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
@@ -166,6 +168,7 @@ protected:
 
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
+    PermissionManagerPtr permissionManager;
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
@@ -202,6 +205,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
               if (!this->coreEventMuted)
                   triggerCoreEvent(args);
           }))
+    , permissionManager(PermissionManager())
 {
     if (!localId.assigned() || localId.toStdString().empty())
         throw GeneralErrorException("Local id not assigned");
@@ -609,6 +613,15 @@ ErrCode ComponentImpl<Intf, Intfs...>::findComponent(IString* id, IComponent** o
 
             return *outComponent == nullptr ? OPENDAQ_NOTFOUND : OPENDAQ_SUCCESS;
         });
+}
+
+template <class Intf, class... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getPermissionManager(IPermissionManager** permissionManager)
+{
+    OPENDAQ_PARAM_NOT_NULL(permissionManager);
+
+    *permissionManager = this->permissionManager.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template<class Intf, class ... Intfs>

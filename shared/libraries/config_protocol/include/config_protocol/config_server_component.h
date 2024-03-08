@@ -45,7 +45,7 @@ inline BaseObjectPtr ConfigServerComponent::getPropertyValue(const ComponentPtr&
 inline BaseObjectPtr ConfigServerComponent::setPropertyValue(const ComponentPtr& component, const ParamsDictPtr& params)
 {
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
-    const auto propertyValue = static_cast<std::string>(params["PropertyValue"]);
+    const auto propertyValue = params["PropertyValue"];
 
     component.setPropertyValue(propertyName, propertyValue);
 

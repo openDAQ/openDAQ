@@ -95,7 +95,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
     ErrCode INTERFACE_FUNC addServerCapability(IServerCapability* serverCapability) override;
-    ErrCode INTERFACE_FUNC getDeviceCapabilities(IList** deviceCapabilities) override;
+    ErrCode INTERFACE_FUNC getServerCapabilities(IList** deviceCapabilities) override;
 
 private:
     ErrCode createAndSetDefaultStringProperty(const StringPtr& name, const BaseObjectPtr& value);

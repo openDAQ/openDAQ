@@ -31,17 +31,19 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
         {
             [](MdnsDiscoveredDevice discoveredDevice)
             {
-                return fmt::format("daq.nsd://{}:{}{}",
+                auto connectionString = fmt::format("daq.nsd://{}:{}{}",
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
+                return ServerCapability(connectionString, "openDAQ Native Streaming", "Streaming", "Ipv4");
             },
             [](MdnsDiscoveredDevice discoveredDevice)
             {
-                return fmt::format("daq.nd://{}:{}{}",
+                auto connectionString = fmt::format("daq.nd://{}:{}{}",
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
+                return ServerCapability(connectionString, "openDAQ Native Streaming", "Both", "Ipv4");
             }
         },
         {"OPENDAQ_NS"}
@@ -55,14 +57,6 @@ ListPtr<IDeviceInfo> NativeStreamingClientModule::onGetAvailableDevices()
     auto availableDevices = discoveryClient.discoverDevices();
     for (const auto& device : availableDevices)
     {
-        StringPtr protocolType = "Unknown";
-        if (connectionStringHasPrefix(device.getConnectionString(), NativeConfigurationDevicePrefix))
-            protocolType = "Structure";
-        else if (connectionStringHasPrefix(device.getConnectionString(), NativeStreamingDevicePrefix))
-            protocolType = "Streaming";
-
-        auto capability = ServerCapability(device.getConnectionString(), "openDAQ Native Streaming", protocolType, "Ipv4");
-        device.asPtr<IDeviceInfoConfig>().addServerCapability(capability);
         device.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
     }
     return availableDevices;

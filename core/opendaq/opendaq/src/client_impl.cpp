@@ -79,18 +79,15 @@ ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
 
         for (const auto& deviceInfo : moduleAvailableDevices)
         {
-            StringPtr id = "daq://" + deviceInfo.getManufacturer() + "_" + deviceInfo.getSerialNumber();
+            StringPtr id = deviceInfo.getConnectionString();
             if (groupedDevices.hasKey(id))
             {
                 DeviceInfoPtr value = groupedDevices.get(id);
-                for (const auto & capability : deviceInfo.getDeviceCapabilities())
+                for (const auto & capability : deviceInfo.getServerCapabilities())
                     value.asPtr<IDeviceInfoConfig>().addServerCapability(capability);
             }
             else
             {
-                if (deviceInfo.getDeviceCapabilities().getCount() != 0)
-                    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
-
                 groupedDevices.set(id, deviceInfo);
             }
             availableDevices.pushBack(deviceInfo);
@@ -153,36 +150,24 @@ DevicePtr ClientImpl::onAddDevice(const StringPtr& connectionString, const Prope
         if (!deviceInfo.assigned())
             throw NotFoundException(fmt::format("device with connection string \"{}\" not found", connectionString));
 
-        if (deviceInfo.getDeviceCapabilities().getCount() == 1)
+        if (deviceInfo.getServerCapabilities().getCount() == 0)
+            throw NotFoundException(fmt::format("device with connection string \"{}\" has no availble server capabilites", connectionString));
+
+        Int priorityLevel = INT64_MAX;
+        for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            internalConnectionString = deviceInfo.getDeviceCapabilities()[0].getConnectionString();
-        }
-        else
-        {
-            auto findProtocol = [] (const ListPtr<IServerCapability>& capabilities, const StringPtr& protocolName) -> ServerCapabilityPtr
+            if (capability.getProtocolType().getIntValue() < priorityLevel)
             {
-                for (const auto & capability : capabilities)
-                {
-                    if (capability.getProtocolName() == protocolName)
-                        return capability;
-                }
-                return nullptr; 
-            };
-
-            auto capability = findProtocol(deviceInfo.getDeviceCapabilities(), "openDAQ Native Streaming");
-            if (!capability.assigned())
-                capability = findProtocol(deviceInfo.getDeviceCapabilities(), "openDAQ OpcUa");
-            else if (!capability.assigned())
-                capability = deviceInfo.getDeviceCapabilities()[0];
-
-            internalConnectionString = capability.getConnectionString();
+                internalConnectionString = capability.getConnectionString();
+                priorityLevel = capability.getProtocolType().getIntValue();
+            }
         }
     } 
     else
     {
         for (const auto & [_, info] : groupedDevices)
         {
-            if (info.getDeviceCapabilities().getCount() == 0)
+            if (info.getServerCapabilities().getCount() == 0)
             {
                 if (info.getConnectionString() == connectionString)
                 {
@@ -192,7 +177,7 @@ DevicePtr ClientImpl::onAddDevice(const StringPtr& connectionString, const Prope
             }
             else
             {
-                for(const auto & capability : info.getDeviceCapabilities())
+                for(const auto & capability : info.getServerCapabilities())
                 {
                     if (capability.getConnectionString() == connectionString)
                     {

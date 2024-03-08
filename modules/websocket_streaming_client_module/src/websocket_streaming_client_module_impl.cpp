@@ -29,10 +29,11 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
         {
             [](MdnsDiscoveredDevice discoveredDevice)
             {
-                return fmt::format("daq.ws://{}:{}{}",
+                auto connectionString = fmt::format("daq.ws://{}:{}{}",
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
+                return ServerCapability(connectionString, "openDAQ WebsocketTcp Streaming", "Streaming", "Ipv4");
             }
         },
         {"WS"}
@@ -46,8 +47,6 @@ ListPtr<IDeviceInfo> WebsocketStreamingClientModule::onGetAvailableDevices()
     auto availableDevices = discoveryClient.discoverDevices();
     for (auto device : availableDevices)
     {
-        auto capability = ServerCapability(device.getConnectionString(), "openDAQ WebsocketTcp Streaming", "Streaming", "Ipv4");
-        device.asPtr<IDeviceInfoConfig>().addServerCapability(capability);
         device.asPtr<IDeviceInfoConfig>().setDeviceType(createWebsocketDeviceType());
     }
     return availableDevices;

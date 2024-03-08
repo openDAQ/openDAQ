@@ -211,7 +211,7 @@ void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPr
         [](daq::IDeviceInfo *object)
         {
             const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
-            return objectPtr.getDeviceCapabilities().detach();
+            return objectPtr.getServerCapabilities().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the list of device supported protocols");

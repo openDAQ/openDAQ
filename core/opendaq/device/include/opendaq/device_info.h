@@ -242,7 +242,7 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
      * @brief Gets the list of device supported protocols
      * @param[out] deviceCapabilities The list of device supported protocols
      */
-    virtual ErrCode INTERFACE_FUNC getDeviceCapabilities(IList** deviceCapabilities) = 0;
+    virtual ErrCode INTERFACE_FUNC getServerCapabilities(IList** deviceCapabilities) = 0;
 };
 /*!@}*/
 

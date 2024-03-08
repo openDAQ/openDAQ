@@ -38,20 +38,6 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) = 0;
 
-    // [returnSelf]
-    /*!
-     * @brief Sets the supported type of protocol
-     * @param type The supported type of protocol
-     */
-    virtual ErrCode INTERFACE_FUNC setSupportedProtocolType(IString* type) = 0;
-
-    // [returnSelf]
-    /*!
-     * @brief Sets the type of protocol
-     * @param type The type of protocol
-     */
-    virtual ErrCode INTERFACE_FUNC setProtocolType(IString* type) = 0;
-
     /*!
      * @brief Gets the type of protocol
      * @param[out] type The type of protocol

@@ -5,11 +5,11 @@
 
 BEGIN_NAMESPACE_DISCOVERY
 
-DiscoveryClient::DiscoveryClient(std::vector<ConnectionStringFormatCb> connectionStringFormatCbs,
+DiscoveryClient::DiscoveryClient(std::vector<ServerCapabilityCb> serverCapabilityCbs,
                                  std::unordered_set<std::string> requiredCaps)
     : discoveredDevices(List<IDeviceInfo>())
     , requiredCaps(std::move(requiredCaps))
-    , connectionStringFormatCbs(std::move(connectionStringFormatCbs))
+    , serverCapabilityCbs(std::move(serverCapabilityCbs))
 {
 }
 
@@ -52,10 +52,14 @@ void DiscoveryClient::discoverMdnsDevices()
 
     for (const auto& device : mdnsDevices)
     {
-        for (const auto& connectionStringFormatCb : connectionStringFormatCbs)
+        DeviceInfoPtr deviceInfo = createDeviceInfo(device);
+        if (deviceInfo.assigned())
         {
-            if (auto deviceInfo = createDeviceInfo(device, connectionStringFormatCb); deviceInfo.assigned())
-                discoveredDevices.pushBack(deviceInfo);
+            for (const auto& connectionStringFormatCb : serverCapabilityCbs)
+            {
+                deviceInfo.asPtr<IDeviceInfoConfig>().addServerCapability(connectionStringFormatCb(device));
+            }
+            discoveredDevices.pushBack(deviceInfo);
         }
     }
 }
@@ -104,8 +108,7 @@ void addInfoProperty(DeviceInfoConfigPtr& info, std::string propName, T propValu
     }
 }
 
-DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredDevice,
-                                                ConnectionStringFormatCb connectionStringFormatCb) const
+DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredDevice) const
 {
     if (discoveredDevice.ipv4Address.empty())
         return nullptr;
@@ -128,7 +131,7 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
     if (!requiredCapsCopy.empty())
         return nullptr;
 
-    DeviceInfoConfigPtr deviceInfo = DeviceInfo(connectionStringFormatCb(discoveredDevice));
+    DeviceInfoConfigPtr deviceInfo = DeviceInfo("daq://device");
 
     addInfoProperty(deviceInfo, "canonicalName", discoveredDevice.canonicalName);
     addInfoProperty(deviceInfo, "serviceWeight", discoveredDevice.serviceWeight);
@@ -141,6 +144,8 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
         addInfoProperty(deviceInfo, prop.first, prop.second);
     }
 
+    StringPtr connectionString = "daq://" + deviceInfo.getManufacturer() + "_" + deviceInfo.getSerialNumber();
+    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(connectionString);
     return deviceInfo;
 }
 

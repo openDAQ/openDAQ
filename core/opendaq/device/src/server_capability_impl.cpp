@@ -6,18 +6,16 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-const char* EnumerationName = "ProtocolType";
+const char* EnumerationName = "ProtocolType_v1";
 
 TypeManagerPtr ServerCapabilityImpl::getTypeManager()
 {
     static auto typeManager = TypeManager();
-    return typeManager;
-}
-EnumerationTypePtr ServerCapabilityImpl::GetProtocolTypeEnumeration()
-{
-    bool enumerationAdded = false;
-    auto typeManager = getTypeManager();
-    static auto enumeration = EnumerationType(EnumerationName, List<IString>("Unknown", "Streaming", "Structure", "Both"));
+    // NOTE: values are set based on priority
+    // NOTE: please update version of EnumerationName if you are changing list of values in EnumerationType
+    static auto enumeration = EnumerationType(EnumerationName, List<IString>("Both", "Streaming", "Structure", "Unknown"));
+
+    static bool enumerationAdded = false;
     if (!enumerationAdded)
     {
         typeManager.addType(enumeration);
@@ -33,10 +31,9 @@ ServerCapabilityImpl::ServerCapabilityImpl( const StringPtr& connectionString,
                                             )
     : connectionString(connectionString)
     , protocolName(protocolName)
+    , protocolType(Enumeration(EnumerationName, protocolType, getTypeManager()))
     , connectionType(connectionType)
 {
-    GetProtocolTypeEnumeration();
-    this->protocolType = Enumeration(EnumerationName, protocolType, getTypeManager());
 }
 
 ErrCode ServerCapabilityImpl::getConnectionString(IString** connectionString)
@@ -64,18 +61,6 @@ ErrCode ServerCapabilityImpl::getConnectionType(IString** type)
 {
     OPENDAQ_PARAM_NOT_NULL(type);
     *type = connectionType.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode ServerCapabilityImpl::setSupportedProtocolType(IString* type)
-{
-    OPENDAQ_PARAM_NOT_NULL(type);
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode ServerCapabilityImpl::setProtocolType(IString* type)
-{
-    OPENDAQ_PARAM_NOT_NULL(type);
     return OPENDAQ_SUCCESS;
 }
 

@@ -514,7 +514,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(ISe
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getDeviceCapabilities(IList** deviceCapabilities)
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(IList** deviceCapabilities)
 {
     if (deviceCapabilities)
         *deviceCapabilities = this->deviceCapabilities.addRefAndReturn();

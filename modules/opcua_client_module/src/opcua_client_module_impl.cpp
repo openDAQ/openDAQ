@@ -28,7 +28,8 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
         {
             [](const MdnsDiscoveredDevice& discoveredDevice)
             {
-                return DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
+                auto connectionString = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
+                return ServerCapability(connectionString, "openDAQ OpcUa", "Structure", "Ipv4");
             }
         },
         {"OPENDAQ"}
@@ -42,8 +43,6 @@ ListPtr<IDeviceInfo> OpcUaClientModule::onGetAvailableDevices()
     auto availableDevices = discoveryClient.discoverDevices();
     for (auto device : availableDevices)
     {
-        auto capability = ServerCapability(device.getConnectionString(), "openDAQ OpcUa", "Structure", "Ipv4");
-        device.asPtr<IDeviceInfoConfig>().addServerCapability(capability);
         device.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
     }
     return availableDevices;

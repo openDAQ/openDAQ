@@ -28,12 +28,12 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
-PyDaqIntf<daq::IServerCapability, daq::IBaseObject> declareIServerCapability(pybind11::module_ m)
+PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> declareIServerCapability(pybind11::module_ m)
 {
-    return wrapInterface<daq::IServerCapability, daq::IBaseObject>(m, "IServerCapability");
+    return wrapInterface<daq::IServerCapability, daq::IPropertyObject>(m, "IServerCapability");
 }
 
-void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapability, daq::IBaseObject> cls)
+void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> cls)
 {
     cls.doc() = "";
 

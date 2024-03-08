@@ -189,7 +189,7 @@ public:
     }
 
     /*!
-     * @brief Gets the value of a field with the given name.
+     * @brief Sets the value of a field with the given name.
      * @param name The name of the queried field.
      * @param field The value of the field.
      */

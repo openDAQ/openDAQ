@@ -97,7 +97,7 @@ public:
     virtual ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
     virtual ErrCode INTERFACE_FUNC getCoreEventTrigger(IProcedure** trigger) override;
     virtual ErrCode INTERFACE_FUNC setCoreEventTrigger(IProcedure* trigger) override;
-    virtual ErrCode INTERFACE_FUNC clone(IPropertyObject** clonedPropertyObject) override;
+    virtual ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
     virtual ErrCode INTERFACE_FUNC setPath(IString* path) override;
     virtual ErrCode INTERFACE_FUNC isUpdating(Bool* updating) override;
 
@@ -790,8 +790,16 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
                 return err;
             }
 
-            const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
-            childPropAsPropertyObject.setPropertyValue(subName, valuePtr);
+            if (protectedAccess)
+            {
+                const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObjectProtected>(true);
+                childPropAsPropertyObject.setProtectedPropertyValue(subName, valuePtr);
+            }
+            else
+            {
+                const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
+                childPropAsPropertyObject.setPropertyValue(subName, valuePtr);
+            }
         }
         else
         {
@@ -1020,10 +1028,10 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneAndSetChil
     if (propPtrInternal.assigned() && propPtrInternal.getValueTypeUnresolved() == ctObject && prop.getDefaultValue().assigned())
     {
         const auto propName = prop.getName();
-        const auto defaultValueObjInternal = prop.getDefaultValue().asPtrOrNull<IPropertyObjectInternal>();
-        if (!defaultValueObjInternal.assigned())
+        const auto cloneable = prop.getDefaultValue().asPtrOrNull<IPropertyObjectInternal>();
+        if (!cloneable.assigned())
             return;
-        const auto cloned = defaultValueObjInternal.clone();
+        const PropertyObjectPtr cloned = cloneable.clone();
         writeLocalValue(propName, cloned);
         configureClonedObj(propName, cloned);
     }
@@ -1357,8 +1365,40 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
     this->endUpdateEvent = endUpdateEvent;
     this->triggerCoreEvent = triggerCoreEvent;
     this->localProperties = localProperties;
-    this->propValues = propValues;
     this->customOrder = customOrder;
+
+    for (const auto& val : propValues)
+    {
+        const auto ct = val.second.getCoreType();
+        if (ct == ctList || ct == ctDict)
+        {
+            if (const auto cloneable = val.second.asPtrOrNull<ICloneable>(); cloneable.assigned())
+            {
+                BaseObjectPtr obj;
+                const ErrCode err = cloneable->clone(&obj);
+                if (OPENDAQ_FAILED(err) || !obj.assigned())
+                    continue;
+                
+                this->propValues.insert(std::make_pair(val.first, obj));
+            }
+        }
+        else if (ct == ctObject)
+        {
+            if (const auto cloneable = val.second.asPtrOrNull<IPropertyObjectInternal>(); cloneable.assigned())
+            {
+                PropertyObjectPtr obj;
+                const ErrCode err = cloneable->clone(&obj);
+                if (OPENDAQ_FAILED(err) || !obj.assigned())
+                    continue;
+                
+                this->propValues.insert(std::make_pair(val.first, obj));
+            }
+        }
+        else
+        {
+            this->propValues.insert(val);
+        }
+    }
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -1420,9 +1460,17 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             {
                 return err;
             }
-
-            const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
-            childPropAsPropertyObject.clearPropertyValue(subName);
+            
+            if (protectedAccess)
+            {
+                const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObjectProtected>(true);
+                childPropAsPropertyObject.clearProtectedPropertyValue(subName);
+            }
+            else
+            {
+                const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
+                childPropAsPropertyObject.clearPropertyValue(subName);
+            }
         }
         else
         {
@@ -2073,24 +2121,28 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setCoreEvent
 }
 
 template <typename PropObjInterface, typename... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPropertyObject** clonedPropertyObject)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPropertyObject** cloned)
 {
-    OPENDAQ_PARAM_NOT_NULL(clonedPropertyObject);
+    OPENDAQ_PARAM_NOT_NULL(cloned);
 
     const auto managerRef = manager.assigned() ? manager.getRef() : nullptr; 
     PropertyObjectPtr obj = createWithImplementation<IPropertyObject, PropertyObjectImpl>(managerRef, this->className);
 
-    auto implPtr = static_cast<PropertyObjectImpl*>(obj.getObject());
-    implPtr->configureClonedMembers(valueWriteEvents,
-                                    valueReadEvents,
-                                    endUpdateEvent,
-                                    triggerCoreEvent,
-                                    localProperties,
-                                    propValues,
-                                    customOrder);
+    return daqTry([this, &obj, &cloned]()
+    {
+        auto implPtr = static_cast<PropertyObjectImpl*>(obj.getObject());
+        implPtr->configureClonedMembers(valueWriteEvents,
+                                        valueReadEvents,
+                                        endUpdateEvent,
+                                        triggerCoreEvent,
+                                        localProperties,
+                                        propValues,
+                                        customOrder);
 
-    *clonedPropertyObject = obj.detach();
-    return OPENDAQ_SUCCESS;
+        *cloned = obj.detach();
+        return OPENDAQ_SUCCESS;
+    });
+
 }
 
 template <typename PropObjInterface, typename ... Interfaces>

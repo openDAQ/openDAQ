@@ -105,6 +105,58 @@ ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const Compon
     return component;
 }
 
+static PropertyObjectPtr createMockNestedPropertyObject()
+{
+    PropertyObjectPtr parent = PropertyObject();
+    PropertyObjectPtr child1 = PropertyObject();
+    PropertyObjectPtr child2 = PropertyObject();
+    PropertyObjectPtr child1_1 = PropertyObject();
+    PropertyObjectPtr child1_2 = PropertyObject();
+    PropertyObjectPtr child1_2_1 = PropertyObject();
+    PropertyObjectPtr child2_1 = PropertyObject();
+    
+    auto functionProp = FunctionProperty(
+        "Function", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("int", ctInt))));
+    auto procedureProp = FunctionProperty(
+        "Procedure", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("int", ctInt))));
+
+    FunctionPtr funcCallback = Function(
+        [](const IntegerPtr& intVal)
+        {
+            return intVal;
+        });
+
+    ProcedurePtr procCallback = Procedure(
+        [&](const IntegerPtr& intVal) {
+            if (intVal < Integer(1))
+                throw InvalidParameterException{};
+        });
+
+    child1_2_1.addProperty(StringProperty("String", "string"));
+    child1_2_1.addProperty(StringPropertyBuilder("ReadOnlyString", "string").setReadOnly(true).build());
+    child1_2_1.addProperty(functionProp);
+    child1_2_1.addProperty(procedureProp);
+    child1_2_1.setPropertyValue("Function", funcCallback);
+    child1_2_1.setPropertyValue("Procedure", procCallback);
+
+    child1_2.addProperty(ObjectProperty("child1_2_1", child1_2_1));
+    child1_2.addProperty(IntProperty("Int", 1));
+
+    child1_1.addProperty(FloatProperty("Float", 1.1));
+
+    child1.addProperty(ObjectProperty("child1_1", child1_1));
+    child1.addProperty(ObjectProperty("child1_2", child1_2));
+
+    child2_1.addProperty(RatioProperty("Ratio", Ratio(1, 2)));
+
+    child2.addProperty(ObjectProperty("child2_1", child2_1));
+
+    parent.addProperty(ObjectProperty("child1", child1));
+    parent.addProperty(ObjectProperty("child2", child2));
+
+    return parent;
+}
+
 MockFb1Impl::MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId, "MockClass")
 {
@@ -242,6 +294,8 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
 
     const auto statusInitValue = Enumeration("StatusType", "Status0", ctx.getTypeManager());
     statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusInitValue);
+
+    this->objPtr.addProperty(ObjectProperty("ObjectProperty", createMockNestedPropertyObject()));
 }
 
 }

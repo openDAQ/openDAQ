@@ -57,7 +57,7 @@ inline ErrCode ConfigClientProcedureImpl::dispatch(IBaseObject* args)
     {
         auto propName = name.toStdString();
         if (path.assigned() && path != "")
-            propName = propName + "." + path.toStdString();
+            propName = path.toStdString() + "." + propName;
         clientComm->callProperty(globalId, propName, args);
     });
 }

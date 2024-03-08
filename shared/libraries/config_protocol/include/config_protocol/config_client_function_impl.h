@@ -58,7 +58,7 @@ inline ErrCode ConfigClientFunctionImpl::call(IBaseObject* args, IBaseObject** r
         {
             auto propName = name.toStdString();
             if (path.assigned() && path != "")
-                propName = propName + "." + path.toStdString();
+                propName = path.toStdString() + "." + propName;
 
             *result = clientComm->callProperty(globalId, propName, args).detach();
         });

@@ -132,7 +132,7 @@ ConstCharPtr TypeManagerImpl::SerializeId()
     return "TypeManager";
 }
 
-ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*context*/, IFunction* factoryCallback, IBaseObject** obj)
 {
     try
     {

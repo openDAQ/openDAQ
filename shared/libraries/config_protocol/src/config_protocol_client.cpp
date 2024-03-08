@@ -37,7 +37,7 @@ void ConfigProtocolClientComm::setPropertyValue(
     auto dict = Dict<IString, IBaseObject>();
     dict.set("ComponentGlobalId", String(globalId));
     dict.set("PropertyName", String(propertyName));
-    dict.set("PropertyValue", String(propertyValue));
+    dict.set("PropertyValue", propertyValue);
     auto setPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "SetPropertyValue", dict);
     const auto setPropertyValueRpcReplyPacketBuffer = sendRequestCallback(setPropertyValueRpcRequestPacketBuffer);
 

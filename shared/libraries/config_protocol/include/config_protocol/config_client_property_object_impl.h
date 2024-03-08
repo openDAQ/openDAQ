@@ -118,6 +118,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
     bool remoteUpdating;
+    void unfreeze();
 };
 
 template <class Impl>
@@ -367,7 +368,8 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(ISerializedObject
 template <class Impl>
 BaseObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getValueFromServer(const StringPtr& propName, bool& setValue)
 {
-    const auto prop = Impl::getUnboundProperty(propName);
+    PropertyPtr prop;
+    Impl::getProperty(propName, &prop);
     setValue = false;
     switch (const auto vt = prop.getValueType())
     {
@@ -530,7 +532,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
                                      {
                                          return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
                                      });
-
+        
+        const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(clientPropObj.getObject());
+        impl->unfreeze();
         this->writeLocalValue(propName, clientPropObj);
         this->configureClonedObj(propName, clientPropObj);
     }
@@ -840,4 +844,8 @@ inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* se
         });
 }
 
+inline void ConfigClientPropertyObjectImpl::unfreeze()
+{
+    this->frozen = false;
+}
 }

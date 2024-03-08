@@ -144,7 +144,7 @@ protected:
     std::unordered_map<std::string, SerializedObjectPtr> getSerializedItems(const SerializedObjectPtr& object);
 
     virtual void updateObject(const SerializedObjectPtr& obj);
-    void onComponentUpdateEnd() override;
+    void onUpdatableUpdateEnd() override;
     virtual void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate);
     void triggerCoreEvent(const CoreEventArgsPtr& args);
 
@@ -659,7 +659,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
             const auto err = Super::update(objPtr);
 
             updateObject(objPtr);
-            onComponentUpdateEnd();
+            onUpdatableUpdateEnd();
 
             if (!muted && this->coreEvent.assigned())
             {
@@ -885,7 +885,7 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
 }
 
 template <class Intf, class ... Intfs>
-void ComponentImpl<Intf, Intfs...>::onComponentUpdateEnd()
+void ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd()
 {
 }
 

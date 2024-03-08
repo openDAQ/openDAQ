@@ -198,7 +198,7 @@ protected:
     virtual void beginApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
     virtual void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
     bool isParentUpdating();
-    virtual void onComponentUpdateEnd();
+    virtual void onUpdatableUpdateEnd();
 
     template <class F>
     static PropertyObjectPtr DeserializePropertyObject(
@@ -1917,7 +1917,7 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isParentUpdatin
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::onComponentUpdateEnd()
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::onUpdatableUpdateEnd()
 {
 }
 
@@ -2695,24 +2695,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeFor
 template <typename PropObjInterface, typename ... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateEnded()
 {
-    try
-    {
-        onComponentUpdateEnd();
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (const std::exception& e)
-    {
-        return this->makeErrorInfo(OPENDAQ_ERR_GENERALERROR, e.what());
-    }
-    catch (...)
-    {
-        return OPENDAQ_ERR_GENERALERROR;
-    }
-
-    return OPENDAQ_SUCCESS;
+    return daqTry([this] { onUpdatableUpdateEnd(); });
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(PropertyObjectImpl)

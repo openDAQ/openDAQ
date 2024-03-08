@@ -82,7 +82,7 @@ protected:
 
     void callBeginUpdateOnChildren() override;
     void callEndUpdateOnChildren() override;
-    void onComponentUpdateEnd() override;
+    void onUpdatableUpdateEnd() override;
 
 private:
     bool removeItemWithLocalIdInternal(const std::string& str);
@@ -505,9 +505,9 @@ void FolderImpl<Intf, Intfs...>::callEndUpdateOnChildren()
 }
 
 template <class Intf, class ... Intfs>
-void FolderImpl<Intf, Intfs...>::onComponentUpdateEnd()
+void FolderImpl<Intf, Intfs...>::onUpdatableUpdateEnd()
 {
-    ComponentImpl<Intf, Intfs...>::onComponentUpdateEnd();
+    ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd();
 
     for (const auto& item : items)
     {

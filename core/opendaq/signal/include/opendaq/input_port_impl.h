@@ -82,7 +82,7 @@ protected:
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
 
     void updateObject(const SerializedObjectPtr& obj) override;
-    void onComponentUpdateEnd() override;
+    void onUpdatableUpdateEnd() override;
     ComponentPtr getRootComponent(const ComponentPtr& curComponent);
 
     BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
@@ -640,9 +640,9 @@ void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr
 }
 
 template <class ... Interfaces>
-void GenericInputPortImpl<Interfaces...>::onComponentUpdateEnd()
+void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd()
 {
-    Super::onComponentUpdateEnd();
+    Super::onUpdatableUpdateEnd();
 
     if (serializedSignalId.assigned() && serializedSignalId != "")
     {

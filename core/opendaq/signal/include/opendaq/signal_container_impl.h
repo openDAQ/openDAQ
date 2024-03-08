@@ -85,7 +85,7 @@ protected:
     void updateFolder(const SerializedObjectPtr& obj, const std::string& folderType, const std::string& itemType, F&& f);
 
     void updateObject(const SerializedObjectPtr& obj) override;
-    void onComponentUpdateEnd() override;
+    void onUpdatableUpdateEnd() override;
 
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
@@ -602,9 +602,9 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
 }
 
 template <class Intf, class ... Intfs>
-void GenericSignalContainerImpl<Intf, Intfs...>::onComponentUpdateEnd()
+void GenericSignalContainerImpl<Intf, Intfs...>::onUpdatableUpdateEnd()
 {
-    ComponentImpl<Intf, Intfs...>::onComponentUpdateEnd();
+    ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd();
 
     for (const auto& comp : components)
     {

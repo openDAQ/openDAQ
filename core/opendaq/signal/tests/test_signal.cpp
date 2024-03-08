@@ -708,26 +708,46 @@ TEST_F(SignalTest, TestInputPortActiveSendPacket)
 TEST_F(SignalTest, GetLastValueStruct)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Struct).build();
+    // auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Struct).build(); // TODO
 
-    StructPtr ptr =
-        DataDescriptorBuilder()
-            .setName("MyTestStructType")
-            .setSampleType(SampleType::Struct)
-            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int").setSampleType(SampleType::Int64).build(),
-                                                     DataDescriptorBuilder().setName("Float").setSampleType(SampleType::Float64).build()))
-            .build();
+    const auto descriptor = DataDescriptorBuilder()
+                                .setName("MyTestStructType")
+                                .setSampleType(SampleType::Struct)
+                                .setStructFields(List<DataDescriptorPtr>(
+                                    DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build(),
+                                    DataDescriptorBuilder().setName("Float64").setSampleType(SampleType::Float64).build(),
+                                    DataDescriptorBuilder()
+                                        .setName("Special")
+                                        .setSampleType(SampleType::Struct)
+                                        .setStructFields(List<DataDescriptorPtr>(
+                                            DataDescriptorBuilder().setName("NestedInt64").setSampleType(SampleType::Int64).build()))
+                                        .build()))
+                                .build();
 
-    auto dataPacket = DataPacket(descriptor, 5);
-    auto data = static_cast<StructPtr*>(dataPacket.getData());
-    data[4] = ptr;
+    auto sizeInBytes = sizeof(int32_t) + sizeof(double) + sizeof(int64_t);
+    const auto dataPacket = DataPacket(descriptor, 5);
+    auto data = dataPacket.getData();
+
+    auto start = static_cast<char*>(data);
+
+    void* a = start + sizeInBytes * 4;
+    auto A = static_cast<int32_t*>(a);
+    *A = 12;
+
+    void* b = start + sizeInBytes * 4 + sizeof(int32_t);
+    auto B = static_cast<double*>(b);
+    *B = 15.1;
+
+    void* c = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(double);
+    auto C = static_cast<int64_t*>(c);
+    *C = 42;
 
     signal.sendPacket(dataPacket);
 
     auto lastValuePacket = signal.getLastValue();
     ComplexNumberPtr complexPtr;
     ASSERT_NO_THROW(complexPtr = lastValuePacket.asPtr<IStructType>());
-    /* ASSERT_DOUBLE_EQ(complexPtr.getReal(), 8.1);
+    /* ASSERT_DOUBLE_EQ(complexPtr.getReal(), 8.1); // TODO
     ASSERT_DOUBLE_EQ(complexPtr.getImaginary(), 9.1);*/
 }
 

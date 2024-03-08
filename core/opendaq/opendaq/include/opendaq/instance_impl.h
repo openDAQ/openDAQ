@@ -93,6 +93,7 @@ public:
     ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) override;
     ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
+    ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) override;
 
     // IFolder
 

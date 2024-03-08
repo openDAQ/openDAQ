@@ -2557,8 +2557,17 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
         case ctRatio:
         case ctStruct:
         case ctObject:
+        {
+            const auto obj = propObj.getPropertyValue(propName);
+            if (const auto updatable = obj.asPtrOrNull<IUpdatable>(); updatable.assigned())
+            {
+                const auto serializedNestedObj = serialized.readSerializedObject(propName);
+                return updatable->update(serializedNestedObj);
+            }
+            
             propValue = serialized.readObject(propName);
             break;
+        }
         case ctProc:
         case ctBinaryData:
         case ctFunc:

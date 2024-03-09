@@ -1,6 +1,5 @@
 #include <coretypes/enumeration_impl.h>
 #include <coretypes/validation.h>
-#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -12,16 +11,7 @@ EnumerationImpl::EnumerationImpl(const StringPtr& name,
         throw InvalidParameterException("Type manager must be assigned on Enumeration object creation.");
 
     if (!typeManager.hasType(name))
-    {
-        std::cout << "DEBUG: List of types :" << std::endl;
-        int i = 0;
-        for (const auto& item : typeManager.getTypes())
-        {
-            std::cout << "\t" << i << " : " << item << std::endl;
-            i++;
-        }
         throw InvalidParameterException("Enumeration type {} is not registered in TypeManager.", name.toStdString());
-    }
 
     if (!value.assigned() || value.toStdString().empty())
         throw InvalidParameterException("Enumeration object value is not assigned.");

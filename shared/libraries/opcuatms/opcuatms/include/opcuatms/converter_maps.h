@@ -24,7 +24,6 @@
 #include "open62541/daqhbk_nodeids.h"
 #include "open62541/nodeids.h"
 #include "opendaq/function_block_type_ptr.h"
-#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

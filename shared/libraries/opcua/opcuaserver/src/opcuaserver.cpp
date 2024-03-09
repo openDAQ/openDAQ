@@ -5,7 +5,6 @@
 #include <open62541/server_config_default.h>
 #include <open62541/plugin/log_stdout.h>
 #include <cassert>
-#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 

@@ -7,7 +7,6 @@
 #include "open62541/types_di_generated.h"
 #include "open62541/types_daqesp_generated.h"
 #include "open62541/types_daqhbk_generated.h"
-#include <iostream>
 
 using namespace daq::opcua;
 using namespace daq;

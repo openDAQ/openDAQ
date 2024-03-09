@@ -8,7 +8,6 @@
 #include "opcuatms/converters/variant_converter.h"
 #include "open62541/daqbsp_nodeids.h"
 #include <coreobjects/unit_factory.h>
-#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

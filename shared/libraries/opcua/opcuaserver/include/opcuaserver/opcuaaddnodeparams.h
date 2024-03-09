@@ -65,7 +65,7 @@ public:
 
     void setDataType(const OpcUaNodeId& dataTypeId);
 
-    OpcUaNodeId typeDefinition = OpcUaNodeId(UA_NS0ID_BASEDATAVARIABLETYPE); //Investigate this!! DISCUSS WITH NILS !
+    OpcUaNodeId typeDefinition = OpcUaNodeId(UA_NS0ID_BASEDATAVARIABLETYPE);
 };
 
 class AddMethodNodeParams : public GenericAddNodeParams<UA_MethodAttributes>

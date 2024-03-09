@@ -1,7 +1,6 @@
 #include "coretypes/enumeration_factory.h"
 #include "coretypes/enumeration_type_factory.h"
 #include "coretypes/simple_type_factory.h"
-#include "iostream"
 #include "opcuatms/converters/list_conversion_utils.h"
 #include "opcuatms/converters/struct_converter.h"
 #include "opcuatms/converters/variant_converter.h"

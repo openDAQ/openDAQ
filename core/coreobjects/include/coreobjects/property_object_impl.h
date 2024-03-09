@@ -33,7 +33,6 @@
 #include <tsl/ordered_map.h>
 #include <utility>
 #include <map>
-#include <iostream>
 #include <coreobjects/property_internal_ptr.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>

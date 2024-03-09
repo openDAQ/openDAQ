@@ -2,7 +2,6 @@
 #include "coreobjects/eval_value_ptr.h"
 #include "open62541/server.h"
 #include "opendaq/function_block_type_ptr.h"
-#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

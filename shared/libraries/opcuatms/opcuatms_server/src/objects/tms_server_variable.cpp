@@ -2,6 +2,7 @@
 #include "coreobjects/eval_value_ptr.h"
 #include "open62541/server.h"
 #include "opendaq/function_block_type_ptr.h"
+#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -33,12 +34,15 @@ opcua::OpcUaNodeId TmsServerVariable<CoreType>::createNode(const opcua::OpcUaNod
 }
 
 template <class CoreType>
+opcua::OpcUaNodeId TmsServerVariable<CoreType>::getDataTypeId()
+{
+    return OpcUaNodeId(0, UA_NS0ID_BASEDATATYPE);
+}
+
+template <class CoreType>
 void TmsServerVariable<CoreType>::configureVariableNodeAttributes(opcua::OpcUaObject<UA_VariableAttributes>& attr)
 {
-    const auto tmsTypeId = this->getTmsTypeId();
-    const auto dataTypeId = this->server->readDataType(tmsTypeId);
-
-    attr->dataType = *dataTypeId;
+    attr->dataType = this->getDataTypeId().getValue();
     attr->accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
     attr->writeMask |= UA_WRITEMASK_DISPLAYNAME | UA_WRITEMASK_DESCRIPTION;
 }

@@ -35,6 +35,7 @@ public:
     daq::DevicePtr connect();
 
 protected:
+    void AddEnumerationTypesToTypeManager();
     void getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string& browseNameOut);
 
     tms::TmsClientContextPtr tmsClientContext;

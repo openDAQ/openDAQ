@@ -239,7 +239,6 @@ OpcUaVariant UnwrapIfVariant(const OpcUaVariant& variant)
 
 const UA_DataType* GetUAStructureDataTypeByName(const std::string& structName)
 {
-    std::cout << "DEBUG 100 : GetUAStructureDataTypeByName structName:" << structName <<  std::endl;
     // TODO: Create static list, add any custom types added automatically.
     OpcUaDataTypeArrayList typeArr;
     typeArr.add(UA_TYPES_COUNT, UA_TYPES);
@@ -270,7 +269,6 @@ const UA_DataType* GetUAStructureDataTypeByName(const std::string& structName)
 
 const UA_DataType* GetUAEnumerationDataTypeByName(const std::string& enumerationName)
 {
-    std::cout << "DEBUG 101 : GetUAEnumerationDataTypeByName enumerationName:" << enumerationName <<  std::endl;
     // TODO: Create static list, add any custom types added automatically.
     OpcUaDataTypeArrayList typeArr;
     typeArr.add(UA_TYPES_COUNT, UA_TYPES);

@@ -13,8 +13,6 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 template <>
 EnumerationPtr VariantConverter<IEnumeration>::ToDaqObject(const OpcUaVariant& variant, const ContextPtr& context)
 {
-    std::cout << "DEBUG 2000 : VariantConverter<IEnumeration>::ToDaqObject" << std::endl;
-
     if (variant.isNull())
         return nullptr;
 
@@ -23,28 +21,30 @@ EnumerationPtr VariantConverter<IEnumeration>::ToDaqObject(const OpcUaVariant& v
 
     const auto typeManager = context.getTypeManager();
 
-    //const auto DataType = variant->type;
-
     // Get UAEnumerationType by name
     const auto DataType = GetUAEnumerationDataTypeByName(variant->type->typeName);
-    std::cout << "DEBUG 2001 : typekind = " << DataType->typeKind << std::endl;
-    std::cout << "DEBUG 2002 : typename = " << DataType->typeName << std::endl;
-    //std::cout << "DEBUG 2003 : NodeId = "   << DataType->typeId.identifier.numeric << std::endl;
 
-    // Add it to the TypeManager if not present already
-    if (!typeManager.hasType(DataType->typeName))
+    EnumerationTypePtr Type;
+
+    if (typeManager.hasType(DataType->typeName))
+        Type = typeManager.getType(DataType->typeName);
+    else
+        throw ConversionFailedException{"EnumerationType is not present in Type Manager."};
+
+    DictPtr<IString, IInteger> dictEnumValues = Type.getAsDictionary();
+
+    auto listKeyword = dictEnumValues.getKeyList();
+    auto listValues = dictEnumValues.getValueList();
+    StringPtr keyword;
+    auto data = variant.toInteger();
+
+    for(int i = 0; i < static_cast<int>(listKeyword.getCount()); i++)
     {
-        //Add Enumeration type to Type Manager
-        const auto enumExcitationType = EnumerationType("ExcitationTypeEnumeration", List<IString>("DoNotCare", "DCVoltage", "ACVoltage", "ACVoltageRectangle", "ACVoltageSinewave"));
-        typeManager.addType(enumExcitationType);
+        if(listValues[i] == data)
+            keyword = listKeyword[i];
     }
-        //typeManager.addType(StructType(DataType->typeName, daqMembers.getKeyList(), memberTypes));
 
-    // Create an Enumeration object and return it
-    //return Enumeration("ExcitationTypeEnumeration", "DCVoltage", typeManager);
-
-    EnumerationPtr enumeration;
-    return enumeration;
+    return Enumeration(DataType->typeName, keyword, typeManager);
 }
 
 template <>
@@ -52,21 +52,9 @@ OpcUaVariant VariantConverter<IEnumeration>::ToVariant(const EnumerationPtr& obj
                                                        const UA_DataType* targetType,
                                                        const ContextPtr& context)
 {
-    const auto DataType = GetUAEnumerationDataTypeByName(object.getEnumerationType().getName());
-    std::cout << "DEBUG 199 : object.getEnumerationType().getName(): " << object.getEnumerationType().getName() << std::endl;
-    std::cout << "DEBUG 200 : VariantConverter<IEnumeration>::ToVariant typeKind: " << DataType->typeKind << std::endl;
-    if (DataType == nullptr)
-        throw ConversionFailedException{};
+    auto variant = OpcUaVariant();
+    variant.setScalar(static_cast<Int>(object));
 
-    std::cout << "DEBUG 201 : DataType->memSize: " << DataType->memSize << std::endl;
-    std::cout << "DEBUG 202 : DataType->typeId.identifier.numeric = " << DataType->typeId.identifier.numeric << std::endl;
-
-    void* data = UA_new(DataType); //Is this doing the same as int32?
-
-    OpcUaVariant variant{};
-    UA_Variant_setScalar(&variant.getValue(), data, DataType);
-
-    std::cout << "DEBUG 204 : After Variant creation type->typeId.identifier.numeric =  " << variant.getValue().type->typeId.identifier.numeric << std::endl;
     return variant;
 }
 

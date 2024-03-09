@@ -312,22 +312,15 @@ OpcUaNodeId OpcUaServer::addVariableNode(const AddVariableNodeParams& params)
     eventManager->onCreateOptionalNode(params.addOptionalNodeCallback);
     UA_NodeId outNodeId;
 
-    //Debug here. Params seems to be wrong. *params.typeDefinition should be the same as when you print in the genericenumration converter
-    //std::cout << "DEBUG: *params.browseName  = " << static_cast<UA_QualifiedName> (*params.browseName).name << std::endl;
-
     auto status = UA_Server_addVariableNode(server,
                                             *params.requestedNewNodeId,
                                             *params.parentNodeId,
                                             *params.referenceTypeId,
                                             *params.browseName,
                                             *params.typeDefinition,
-                                            //UA_NODEID_NUMERIC(7, 3025),
                                             *params.attr,
                                             params.nodeContext,
                                             &outNodeId);
-
-
-    //std::cout << "DEBUG 100: typeDefinition identifier Type: " << *params.typeDefinition. << std::endl;
 
     CheckStatusCodeException(status);
     return outNodeId;

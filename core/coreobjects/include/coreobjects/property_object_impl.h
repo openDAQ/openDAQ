@@ -745,8 +745,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
         auto propName = StringPtr::Borrow(name);
         auto valuePtr = BaseObjectPtr::Borrow(value);
 
-        std::cout << "DEBUG 1 : GenericPropertyObjectImpl" << "propName:" << propName << std::endl;
-
         if (batch)
         {
             updatingPropsAndValues.emplace_back(std::make_pair(propName, UpdatingAction{true, protectedAccess, valuePtr}));

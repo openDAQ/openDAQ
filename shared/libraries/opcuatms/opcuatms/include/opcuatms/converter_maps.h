@@ -93,7 +93,7 @@ namespace converters
                        {IStruct::Id,
                         [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
                         { return VariantConverter<IStruct>::ToVariant(object, targetType, ctx); }},
-                        {IEnumeration::Id,
+                       {IEnumeration::Id,
                         [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
                         { return VariantConverter<IEnumeration>::ToVariant(object, targetType, ctx); }},
                        {IList::Id, [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx) {
@@ -295,7 +295,6 @@ namespace converters
         const auto typeId = variant.getValue().type->typeId;
         const auto typeKind = variant.getValue().type->typeKind;
 
-        std::cout << "DEBUG 1000 : convertToDaqObject typeKind: " << typeKind << std::endl;
         if (const auto it = uaTypeToDaqObject.find(OpcUaNodeId(typeId)); it != uaTypeToDaqObject.cend())
             return it->second(variant, context);
 

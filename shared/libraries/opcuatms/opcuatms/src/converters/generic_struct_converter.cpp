@@ -25,8 +25,6 @@ namespace detail
 template <>
 StructPtr VariantConverter<IStruct>::ToDaqObject(const OpcUaVariant& variant, const ContextPtr& context)
 {
-    std::cout << "DEBUG 2 : VariantConverter<IStruct>::ToDaqObject" << std::endl;
-
     if (variant.isNull())
         return nullptr;
 
@@ -149,8 +147,6 @@ OpcUaVariant VariantConverter<IStruct>::ToVariant(const StructPtr& object, const
 
         if (!daqMembers.hasKey(member->memberName))
             throw ConversionFailedException{};
-
-        std::cout << "DEBUG 300: member->memberName: " << member->memberName << std::endl;
 
         auto daqMember = daqMembers.get(member->memberName);
         dst += member->padding;

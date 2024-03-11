@@ -39,10 +39,11 @@ inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const S
 inline ServerCapabilityPtr ServerCapability(const StringPtr& connectionString,
                                             const StringPtr& protocolName,
                                             const StringPtr& protocolType, 
-                                            const StringPtr& connectionType
+                                            const StringPtr& connectionType,
+                                            ClientUpdateMethod updateMethod = ClientUpdateMethod::Unknown
                                             )
 {
-    ServerCapabilityPtr obj(ServerCapability_Create(connectionString, protocolName, protocolType, connectionType));
+    ServerCapabilityPtr obj(ServerCapability_Create(connectionString, protocolName, protocolType, connectionType, updateMethod));
     return obj;
 }
 /*!@}*/

@@ -13,7 +13,7 @@ TypeManagerPtr ServerCapabilityImpl::getTypeManager()
     static auto typeManager = TypeManager();
     // NOTE: values are set based on priority
     // NOTE: please update version of EnumerationName if you are changing list of values in EnumerationType
-    static auto enumeration = EnumerationType(EnumerationName, List<IString>("Both", "Streaming", "Structure", "Unknown"));
+    static auto enumeration = EnumerationType(EnumerationName, List<IString>("Structure&Streaming", "Streaming", "Structure", "Unknown"));
 
     static bool enumerationAdded = false;
     if (!enumerationAdded)
@@ -27,7 +27,8 @@ TypeManagerPtr ServerCapabilityImpl::getTypeManager()
 ServerCapabilityImpl::ServerCapabilityImpl( const StringPtr& connectionString,
                                             const StringPtr& protocolName,
                                             const StringPtr& protocolType,
-                                            const StringPtr& connectionType
+                                            const StringPtr& connectionType,
+                                            ClientUpdateMethod updateMethod
                                             )
     : Super()
     , protocolType(Enumeration(EnumerationName, protocolType, getTypeManager()))
@@ -35,18 +36,20 @@ ServerCapabilityImpl::ServerCapabilityImpl( const StringPtr& connectionString,
     Super::addProperty(StringPropertyBuilder("connectionString", connectionString).setReadOnly(true).build());
     Super::addProperty(StringPropertyBuilder("protocolName", protocolName).setReadOnly(true).build());
     Super::addProperty(StringPropertyBuilder("connectionType", connectionType).setReadOnly(true).build());
+    Super::addProperty(IntPropertyBuilder("updateMethod", (Int)updateMethod).setReadOnly(true).build());
 }
 
-StringPtr ServerCapabilityImpl::getStringProperty(const StringPtr& name)
+template <typename T>
+typename InterfaceToSmartPtr<T>::SmartPtr ServerCapabilityImpl::getTypedProperty(const StringPtr& name)
 {
     const auto obj = this->template borrowPtr<PropertyObjectPtr>();
-    return obj.getPropertyValue(name).template asPtr<IString>();
+    return obj.getPropertyValue(name).template asPtr<T>();
 }
 
 ErrCode ServerCapabilityImpl::getConnectionString(IString** connectionString)
 {
     return daqTry([&]() {
-        *connectionString = getStringProperty("connectionString").detach();
+        *connectionString = getTypedProperty<IString>("connectionString").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -54,7 +57,7 @@ ErrCode ServerCapabilityImpl::getConnectionString(IString** connectionString)
 ErrCode ServerCapabilityImpl::getProtocolName(IString** protocolName)
 {
     return daqTry([&]() {
-        *protocolName = getStringProperty("protocolName").detach();
+        *protocolName = getTypedProperty<IString>("protocolName").detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -69,7 +72,15 @@ ErrCode ServerCapabilityImpl::getProtocolType(IEnumeration** type)
 ErrCode ServerCapabilityImpl::getConnectionType(IString** type)
 {
     return daqTry([&]() {
-        *type = getStringProperty("connectionType").detach();
+        *type = getTypedProperty<IString>("connectionType").detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ServerCapabilityImpl::getUpdateMethod(ClientUpdateMethod* method)
+{
+    return daqTry([&]() {
+        *method = ClientUpdateMethod(getTypedProperty<IInteger>("updateMethod"));
         return OPENDAQ_SUCCESS;
     });
 }
@@ -78,9 +89,10 @@ extern "C" ErrCode PUBLIC_EXPORT createServerCapability(IServerCapability** objT
                                             IString* connectionString,
                                             IString* protocolName,
                                             IString* protocolType, 
-                                            IString* connectionType)
+                                            IString* connectionType,
+                                            ClientUpdateMethod updateMethod)
 {
-    return daq::createObject<IServerCapability, ServerCapabilityImpl>(objTmp, connectionString, protocolName, protocolType, connectionType);
+    return daq::createObject<IServerCapability, ServerCapabilityImpl>(objTmp, connectionString, protocolName, protocolType, connectionType, updateMethod);
 }
 
 END_NAMESPACE_OPENDAQ

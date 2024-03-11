@@ -34,15 +34,18 @@ public:
     explicit ServerCapabilityImpl(const StringPtr& connectionString,
                                   const StringPtr& protocolName, 
                                   const StringPtr& protocolType, 
-                                  const StringPtr& connectionType);
+                                  const StringPtr& connectionType,
+                                  ClientUpdateMethod updateMethod);
     
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
     ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) override;
     ErrCode INTERFACE_FUNC getProtocolType(IEnumeration** type) override;
     ErrCode INTERFACE_FUNC getConnectionType(IString** type) override;
+    ErrCode INTERFACE_FUNC getUpdateMethod(ClientUpdateMethod* method) override;
     
 private:
-    StringPtr getStringProperty(const StringPtr& name);
+    template <typename T>
+    typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
     static TypeManagerPtr getTypeManager();
 
     EnumerationPtr protocolType;

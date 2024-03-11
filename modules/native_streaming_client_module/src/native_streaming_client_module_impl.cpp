@@ -43,7 +43,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                return ServerCapability(connectionString, "openDAQ Native Streaming", "Both", "Ipv4");
+                return ServerCapability(connectionString, "openDAQ Native Streaming", "Structure&Streaming", "Ipv4", ClientUpdateMethod::Broadcast);
             }
         },
         {"OPENDAQ_NS"}

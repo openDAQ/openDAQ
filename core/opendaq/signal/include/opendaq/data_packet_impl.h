@@ -397,6 +397,7 @@ TypePtr createTypeFromDescriptor(DataDescriptorPtr descriptor)
                 type = SimpleType(CoreType::ctComplexNumber);
                 break;
             case SampleType::Struct:
+                // Recursion
                 type = createTypeFromDescriptor(field);
                 break;
             default:

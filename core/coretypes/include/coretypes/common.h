@@ -66,7 +66,7 @@ typedef char* CharPtr;
 typedef const char* ConstCharPtr;
 typedef void* VoidPtr;
 typedef size_t SizeT;
-typedef uint32_t EnumType;
+typedef int32_t EnumType;
 
 const Bool True = 1;
 const Bool False = 0;

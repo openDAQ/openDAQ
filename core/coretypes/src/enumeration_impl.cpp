@@ -122,6 +122,12 @@ ErrCode EnumerationImpl::toInt(Int* val)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode EnumerationImpl::toEnumType(EnumType* val)
+{
+    OPENDAQ_PARAM_NOT_NULL(val);
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode EnumerationImpl::toBool(Bool* val)
 {
     OPENDAQ_PARAM_NOT_NULL(val);

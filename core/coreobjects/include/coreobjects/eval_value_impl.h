@@ -74,6 +74,8 @@ public:
     ErrCode INTERFACE_FUNC toFloat(Float* val) override;
     ErrCode INTERFACE_FUNC toInt(Int* val) override;
     ErrCode INTERFACE_FUNC toBool(Bool* val) override;
+    ErrCode INTERFACE_FUNC toEnumType(EnumType* val) override;
+
 
     // IList
     ErrCode INTERFACE_FUNC getItemAt(SizeT index, IBaseObject** obj) override;

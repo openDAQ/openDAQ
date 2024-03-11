@@ -97,6 +97,25 @@ ErrCode RatioImpl::toInt(Int* val)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode RatioImpl::toEnumType(EnumType* val)
+{
+    if (val == nullptr)
+    {
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    }
+
+    Float realValue = -1;
+    ErrCode err = toFloat(&realValue);
+
+    if (OPENDAQ_FAILED(err))
+    {
+        return err;
+    }
+
+    *val = static_cast<EnumType>(round(realValue));
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode RatioImpl::toBool(Bool* val)
 {
     if (val == nullptr)

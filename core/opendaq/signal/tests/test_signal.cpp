@@ -663,6 +663,7 @@ TEST_F(SignalTest, GetLastValueComplexFloat64)
     ASSERT_DOUBLE_EQ(complexPtr.getImaginary(), 9.1);
 }
 
+
 TEST_F(SignalTest, TestSignalActiveSendPacket)
 {
     const auto context = NullContext();
@@ -707,8 +708,61 @@ TEST_F(SignalTest, TestInputPortActiveSendPacket)
 
 TEST_F(SignalTest, GetLastValueStruct)
 {
+    // Create signal
     const auto signal = Signal(NullContext(), nullptr, "sig");
 
+    // Create DataDescriptor
+    const auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build(),
+                                                     DataDescriptorBuilder().setName("Float64").setSampleType(SampleType::Float64).build()))
+            .build();
+
+    // Prepare data packet
+    auto sizeInBytes = sizeof(int32_t) + sizeof(double);
+    const auto dataPacket = DataPacket(descriptor, 5);
+    auto data = dataPacket.getData();
+
+    // Start points to beggining of data
+    auto start = static_cast<char*>(data);
+
+    // First member of data is int32_t
+    void* a = start + sizeInBytes * 4;
+    auto A = static_cast<int32_t*>(a);
+    *A = 12;
+
+    // Second member of data is double
+    void* b = start + sizeInBytes * 4 + sizeof(int32_t);
+    auto B = static_cast<double*>(b);
+    *B = 15.1;
+
+    // Send our packet
+    signal.sendPacket(dataPacket);
+
+    // Call getLastValue
+    auto lastValuePacket = signal.getLastValue();
+
+    // Create data structure
+    StructPtr structPtr;
+
+    // Cast lastValuePacket to our data structure and ASSERT_NO_THROW
+    ASSERT_NO_THROW(structPtr = lastValuePacket.asPtr<IStruct>());
+
+    // Check first member
+    ASSERT_EQ(structPtr.get("Int32"), 12);
+
+    // Check second member
+    ASSERT_DOUBLE_EQ(structPtr.get("Float64"), 15.1);
+}
+
+TEST_F(SignalTest, GetLastValueStructNested)
+{
+    // Create signal
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // Create DataDescriptor
     const auto descriptor = DataDescriptorBuilder()
                                 .setName("MyTestStructType")
                                 .setSampleType(SampleType::Struct)
@@ -723,33 +777,147 @@ TEST_F(SignalTest, GetLastValueStruct)
                                         .build()))
                                 .build();
 
+    // Prepare data packet
     auto sizeInBytes = sizeof(int32_t) + sizeof(double) + sizeof(int64_t);
     const auto dataPacket = DataPacket(descriptor, 5);
     auto data = dataPacket.getData();
 
+    // Start points to beggining of data
     auto start = static_cast<char*>(data);
 
+    // First member of data is int32_t
     void* a = start + sizeInBytes * 4;
     auto A = static_cast<int32_t*>(a);
     *A = 12;
 
+    // Second member of data is double
     void* b = start + sizeInBytes * 4 + sizeof(int32_t);
     auto B = static_cast<double*>(b);
     *B = 15.1;
 
+    // Third member is nested within Struct and is int64_t
     void* c = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(double);
     auto C = static_cast<int64_t*>(c);
     *C = 42;
 
+    // Send our packet
     signal.sendPacket(dataPacket);
 
+    // Call getLastValue
     auto lastValuePacket = signal.getLastValue();
+
+    // Create data structure
     StructPtr structPtr;
+
+    // Cast lastValuePacket to our data structure and ASSERT_NO_THROW
     ASSERT_NO_THROW(structPtr = lastValuePacket.asPtr<IStruct>());
+
+    // Check first member
     ASSERT_EQ(structPtr.get("Int32"), 12);
+
+    // Check second member
     ASSERT_DOUBLE_EQ(structPtr.get("Float64"), 15.1);
+
+    // Get nested Struct
     StructPtr nestedPtr = structPtr.get("Special").asPtr<IStruct>();
+
+    // Check third (nested) member
     ASSERT_EQ(nestedPtr.get("NestedInt64"), 42);
+}
+
+TEST_F(SignalTest, GetLastValueStructDoublyNested)
+{
+    // Create signal
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // Create DataDescriptor
+    const auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(
+                DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build(),
+                DataDescriptorBuilder().setName("Float64").setSampleType(SampleType::Float64).build(),
+                DataDescriptorBuilder()
+                    .setName("Special1")
+                    .setSampleType(SampleType::Struct)
+                    .setStructFields(List<DataDescriptorPtr>(
+                        DataDescriptorBuilder().setName("NestedInt64").setSampleType(SampleType::Int64).build(),
+                        DataDescriptorBuilder().setName("NestedInt32").setSampleType(SampleType::Int32).build(),
+                        DataDescriptorBuilder()
+                            .setName("Special2")
+                            .setSampleType(SampleType::Struct)
+                            .setStructFields(List<DataDescriptorPtr>(
+                                DataDescriptorBuilder().setName("DoublyNestedFloat32").setSampleType(SampleType::Float32).build()))
+                            .build()))
+                    .build()))
+            .build();
+
+    // Prepare data packet
+    auto sizeInBytes = sizeof(int32_t) + sizeof(double) + sizeof(int64_t) + sizeof(int32_t) + sizeof(float);
+    const auto dataPacket = DataPacket(descriptor, 5);
+    auto data = dataPacket.getData();
+
+    // Start points to beggining of data
+    auto start = static_cast<char*>(data);
+
+    // First member of data is int32_t
+    void* a = start + sizeInBytes * 4;
+    auto A = static_cast<int32_t*>(a);
+    *A = 12;
+
+    // Second member of data is double
+    void* b = start + sizeInBytes * 4 + sizeof(int32_t);
+    auto B = static_cast<double*>(b);
+    *B = 15.1;
+
+    // Third member is nested within Struct and is int64_t
+    void* c = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(double);
+    auto C = static_cast<int64_t*>(c);
+    *C = 42;
+
+    // Fouth member of data is int32_t
+    void* d = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(double) + sizeof(int64_t);
+    auto D = static_cast<int32_t*>(d);
+    *D = 33;
+
+    // Fifth member of data is doubly nested withing Stuct and is double
+    void* e = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(double) + sizeof(int64_t) + sizeof(int32_t);
+    auto E = static_cast<float*>(e);
+    *E = 6.66f;
+
+    // Send our packet
+    signal.sendPacket(dataPacket);
+
+    // Call getLastValue
+    auto lastValuePacket = signal.getLastValue();
+
+    // Create data structure
+    StructPtr structPtr;
+
+    // Cast lastValuePacket to our data structure and ASSERT_NO_THROW
+    ASSERT_NO_THROW(structPtr = lastValuePacket.asPtr<IStruct>());
+
+    // Check first member
+    ASSERT_EQ(structPtr.get("Int32"), 12);
+
+    // Check second member
+    ASSERT_DOUBLE_EQ(structPtr.get("Float64"), 15.1);
+
+    // Get nested Struct
+    StructPtr nestedPtr = structPtr.get("Special1").asPtr<IStruct>();
+
+    // Check third (nested) member
+    ASSERT_EQ(nestedPtr.get("NestedInt64"), 42);
+
+    // Check fourth (nested) member
+    ASSERT_EQ(nestedPtr.get("NestedInt32"), 33);
+
+    // Get doubly nested Struct
+    StructPtr doublyNestedPtr = nestedPtr.get("Special2").asPtr<IStruct>();
+
+    // Check fifth (doubly nested) member
+    ASSERT_FLOAT_EQ(doublyNestedPtr.get("DoublyNestedFloat32"), 6.66f);
 }
 
 END_NAMESPACE_OPENDAQ

@@ -52,7 +52,7 @@ OpcUaVariant VariantConverter<IEnumeration>::ToVariant(const EnumerationPtr& obj
                                                        const ContextPtr& context)
 {
     auto variant = OpcUaVariant();
-    variant.setScalar(static_cast<Int>(object));
+    variant.setScalar(static_cast<int32_t>(object));
 
     return variant;
 }

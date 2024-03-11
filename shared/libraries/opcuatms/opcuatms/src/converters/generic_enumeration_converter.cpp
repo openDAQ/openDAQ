@@ -51,8 +51,11 @@ OpcUaVariant VariantConverter<IEnumeration>::ToVariant(const EnumerationPtr& obj
                                                        const UA_DataType* targetType,
                                                        const ContextPtr& context)
 {
-    auto variant = OpcUaVariant();
-    variant.setScalar(static_cast<int32_t>(object));
+    const auto DataType = GetUAEnumerationDataTypeByName(object.getEnumerationType().getName());
+    void* data = UA_new(DataType);
+
+    OpcUaVariant variant{};
+    UA_Variant_setScalar(&variant.getValue(), data, DataType);
 
     return variant;
 }

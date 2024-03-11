@@ -360,6 +360,10 @@ BaseObjectPtr dataToObj(void* addr, SampleType type)
             auto data = static_cast<double*>(addr);
             return ComplexNumber(data[0], data[1]);
         }
+        default:
+        {
+            return BaseObject();
+        }
     }
 }
 

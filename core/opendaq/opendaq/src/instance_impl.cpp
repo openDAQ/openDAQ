@@ -11,6 +11,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_private.h>
+#include <opendaq/create_device.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -42,7 +43,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     auto connectionString = builderPtr.getRootDevice();
     if (connectionString.assigned() && connectionString.getLength())
     {
-        rootDevice = createDevice(connectionString);
+        rootDevice = detail::createDevice(connectionString, nullptr, nullptr, moduleManager, loggerComponent);
         const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
         if (devicePrivate.assigned())
             devicePrivate->setAsRoot();
@@ -83,7 +84,7 @@ static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     auto scheduler = builderPtr.getScheduler();
     auto moduleManager = builderPtr.getModuleManager();
     auto typeManager = TypeManager();
-    auto modules = builderPtr.getOptions().get("modules");
+    auto options = builderPtr.getOptions();
 
     // Configure logger
     if (!logger.assigned())
@@ -110,7 +111,7 @@ static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     if (!moduleManager.assigned())
         moduleManager = ModuleManager(builderPtr.getModulePath());
 
-    return Context(scheduler, logger, typeManager, moduleManager, modules);
+    return Context(scheduler, logger, typeManager, moduleManager, options);
 }
 
 void InstanceImpl::stopServers()
@@ -290,7 +291,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     if (!servers.empty())
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
-    const auto newRootDevice = createDevice(connectionStringPtr, config);
+    const auto newRootDevice = detail::createDevice(connectionStringPtr, config, nullptr, moduleManager, loggerComponent);
 
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;
@@ -303,35 +304,6 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
 
     this->rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
     return OPENDAQ_SUCCESS;
-}
-
-DevicePtr InstanceImpl::createDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
-{
-    for (const auto module: moduleManager.getModules())
-    {
-        bool accepted;
-        try
-        {
-            accepted = module.acceptsConnectionParameters(connectionString, config);
-        }
-        catch (NotImplementedException &)
-        {
-            LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
-            accepted = false;
-        }
-        catch (const std::exception &e)
-        {
-            LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
-            accepted = false;
-        }
-
-        if (accepted)
-        {
-            return module.createDevice(connectionString, config, nullptr);
-        }
-    }
-
-    return nullptr;
 }
 
 // IDevice

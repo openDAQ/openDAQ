@@ -1,6 +1,7 @@
 #include <opendaq/client_impl.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_info_factory.h>
+#include <opendaq/create_device.h>
 #include <boost/algorithm/string.hpp>
 #include <future>
 
@@ -116,7 +117,11 @@ DictPtr<IString, IDeviceType> ClientImpl::onGetAvailableDeviceTypes()
 DevicePtr ClientImpl::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     std::scoped_lock lock(sync);
-    return createAndAddSubDevice(connectionString, config);
+
+    auto device = detail::createDevice(connectionString, config, devices, manager, loggerComponent);
+    devices.addItem(device);
+
+    return device;
 }
 
 void ClientImpl::onRemoveDevice(const DevicePtr& device)

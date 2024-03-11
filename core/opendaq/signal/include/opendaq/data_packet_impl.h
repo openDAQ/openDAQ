@@ -448,7 +448,7 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value)
 
     const auto sampleType = descriptor.getSampleType();
 
-    addr = (char*) addr + (sampleCount - 1) * descriptor.getRawSampleSize();
+    addr = static_cast<char*>(addr) + (sampleCount - 1) * descriptor.getRawSampleSize();
 
     if (sampleType == SampleType::Struct)
     {

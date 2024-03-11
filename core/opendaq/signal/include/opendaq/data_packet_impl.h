@@ -404,20 +404,14 @@ TypePtr createTypeFromDescriptor(DataDescriptorPtr descriptor)
     return StructType(descriptor.getName(), fieldNames, fieldTypes);
 }
 
-void builderSetAndAdvance(void*& addr, StructBuilderPtr& builder, StringPtr& fieldName, SampleType sampleType)
+StructPtr buildStructFromPacket(void*& addr, DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager)
 {
-    auto obj = dataToObj(addr, sampleType);
-    builder.set(fieldName, obj);
-    auto temp = static_cast<char*>(addr);
-    addr = temp + getSampleSize(sampleType);
-}
+    const StructTypePtr structType = createTypeFromDescriptor(descriptor);
+    typeManager.addType(structType);
+    auto builder = StructBuilder(structType.getName(), typeManager);
 
-void buildStructFromPacket(
-    void*& addr, DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager, StructTypePtr& structType, StructBuilderPtr& builder)
-{
     const auto fields = descriptor.getStructFields();
     const auto fieldNames = structType.getFieldNames();
-    const auto fieldTypes = structType.getFieldTypes();
 
     for (size_t i = 0; i < fieldNames.getCount(); i++)
     {
@@ -425,14 +419,18 @@ void buildStructFromPacket(
 
         if (sampleType == SampleType::Struct)
         {
-            auto nestedBuilder = StructBuilder(fieldNames[i], typeManager);
-            buildStructFromPacket(addr, fields[i], typeManager, static_cast<StructTypePtr>(fieldTypes[i]), nestedBuilder);
-            auto structPtr = nestedBuilder.build();
+            auto structPtr = buildStructFromPacket(addr, fields[i], typeManager);
             builder.set(fieldNames[i], structPtr);
         }
         else
-            builderSetAndAdvance(addr, builder, fieldNames[i], sampleType);
+        {
+            auto obj = dataToObj(addr, sampleType);
+            builder.set(fieldNames[i], obj);
+            auto temp = static_cast<char*>(addr);
+            addr = temp + getSampleSize(sampleType);
+        }
     }
+    return builder.build();
 }
 
 template <typename TInterface>
@@ -448,30 +446,19 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value)
     if (OPENDAQ_FAILED(err))
         return err;
 
-    const auto idx = sampleCount - 1;
     const auto sampleType = descriptor.getSampleType();
 
-    const auto sampleMemSize = descriptor.getRawSampleSize();
+    addr = (char*) addr + (sampleCount - 1) * descriptor.getRawSampleSize();
 
-    addr = (char*) addr + idx * sampleMemSize;
-
-    switch (sampleType)
+    if (sampleType == SampleType::Struct)
     {
-        case SampleType::Struct:
-        {
-            const auto typeManager = TypeManager();
-            const auto type = createTypeFromDescriptor(descriptor);
-            typeManager.addType(type);
-            auto builder = StructBuilder(type.getName(), typeManager);
-            buildStructFromPacket(addr, descriptor, typeManager, static_cast<StructTypePtr>(type), builder);
-            auto structPtr = builder.build();
-            *value = structPtr.detach();
-            break;
-        }
-        default:
-        {
-            *value = dataToObj(addr, sampleType).detach();
-        }
+        const auto typeManager = TypeManager();
+        auto structPtr = buildStructFromPacket(addr, descriptor, typeManager);
+        *value = structPtr.detach();
+    }
+    else
+    {
+        *value = dataToObj(addr, sampleType).detach();
     }
 
     return OPENDAQ_SUCCESS;

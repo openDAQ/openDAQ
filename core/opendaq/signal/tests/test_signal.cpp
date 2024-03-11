@@ -745,8 +745,8 @@ TEST_F(SignalTest, GetLastValueStruct)
     signal.sendPacket(dataPacket);
 
     auto lastValuePacket = signal.getLastValue();
-    ComplexNumberPtr complexPtr;
-    ASSERT_NO_THROW(complexPtr = lastValuePacket.asPtr<IStructType>());
+    StructPtr structPtr;
+    ASSERT_NO_THROW(structPtr = lastValuePacket.asPtr<IStruct>());
     /* ASSERT_DOUBLE_EQ(complexPtr.getReal(), 8.1); // TODO
     ASSERT_DOUBLE_EQ(complexPtr.getImaginary(), 9.1);*/
 }

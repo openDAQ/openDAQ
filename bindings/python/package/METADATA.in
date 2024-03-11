@@ -45,7 +45,7 @@ The package is available as binary wheels for Python 3.8-3.12. It has been built
 On supported systems you can install it with:
 
 ```bash
-pip install opendaq
+$ pip install opendaq
 ```
 
 Quick-start
@@ -75,3 +75,14 @@ Name: Device 1 Connection string: daqref://device1
 ```
 
 More examples can be found under https://docs.opendaq.com/manual/.
+
+GUI
+---
+
+Python openDAQ(TM) package comes with a reference Tk GUI implementation, allowing you to quickly connect to any
+openDAQ(TM) device and inspect or configure it.
+
+To run the GUI, invoke the package from the command line using `-m` flag:
+```bash
+$ python -m opendaq
+```

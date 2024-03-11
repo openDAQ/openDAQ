@@ -28,7 +28,10 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
         packetReadyNotification = PacketReadyNotification::Scheduler;
 
     createAndAddInputPort("input", packetReadyNotification);
-    triggerInput = createAndAddInputPort("trigger", packetReadyNotification);
+
+    triggerInput = InputPort(context, inputPorts, "trigger");
+    triggerInput.setListener(this->template borrowPtr<InputPortNotificationsPtr>());
+    triggerInput.setNotificationMethod(packetReadyNotification);
 }
 
 FunctionBlockTypePtr StatisticsFbImpl::CreateType()

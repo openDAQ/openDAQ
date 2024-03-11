@@ -291,7 +291,7 @@ bool DataPacketImpl<TInterface>::isDataEqual(const DataPacketPtr& dataPacket) co
     return data == dataPacket.getRawData() || std::memcmp(data, dataPacket.getRawData(), rawDataSize) == 0;
 }
 
-BaseObjectPtr dataToObj(void* addr, SampleType type)
+BaseObjectPtr dataToObj(void*& addr, const SampleType& type)
 {
     switch (type)
     {
@@ -367,7 +367,7 @@ BaseObjectPtr dataToObj(void* addr, SampleType type)
     }
 }
 
-TypePtr createTypeFromDescriptor(DataDescriptorPtr descriptor)
+TypePtr createTypeFromDescriptor(const DataDescriptorPtr& descriptor)
 {
     const auto fields = descriptor.getStructFields();
     auto fieldNames = List<IString>();

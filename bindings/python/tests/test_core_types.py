@@ -530,7 +530,7 @@ class TestStruct(opendaq_test.TestCase):
         self.assertEqual(struct.ratio.numerator, 1)
         self.assertEqual(struct.complexnumber.real, 1.0)
         self.assertEqual(struct.struct.string, 'string')
-        self.assertEqual(struct.enumeration.value, 'enum0')
+        self.assertEqual(struct.enumeration.name, 'enum0')
         self.assertIsNone(struct.undefined)
 
     def test_typenames_validation(self):
@@ -565,6 +565,42 @@ class TestStruct(opendaq_test.TestCase):
         #should be ok here
         type = daq.StructType(daq.String('valid_struct_name'), valid_names, default_values, typeList)
         type_manager.add_type(type)
+
+class TestEnumerations(opendaq_test.TestCase):
+
+    def test_enumeration(self):
+
+        type_manager = daq.TypeManager()
+
+        color_list = daq.List()
+        color_list.append(daq.String('RED'))
+        color_list.append(daq.String('GREEN'))
+        color_list.append(daq.String('BLUE'))
+
+        enum_type = daq.EnumerationType(daq.String('Color'), color_list, 0)
+
+        #unregistered type has no type manager inside
+        with self.assertRaises(AttributeError):
+            e = enum_type.RED
+        type_manager.add_type(enum_type)
+
+        with self.assertRaises(AttributeError):
+            e = enum_type.WHITE
+        with self.assertRaises(KeyError):
+            e = enum_type['WHITE']
+
+        enum_type_1 = type_manager.get_type('Color')
+
+        self.assertEqual(enum_type.RED, enum_type_1.RED)
+        self.assertNotEqual(enum_type.RED, enum_type.BLUE)
+        self.assertEqual(enum_type.RED.value, 0)
+        self.assertEqual(enum_type(0), enum_type.RED)
+        self.assertEqual(enum_type(0).name, 'RED')
+        self.assertEqual(enum_type['RED'], enum_type.RED)
+        self.assertEqual(enum_type['RED'].value, 0)
+        self.assertEqual(enum_type['RED'].name, 'RED')
+        unknown = int(enum_type.RED) + 10
+        self.assertEqual(unknown, 10)
 
 if __name__ == '__main__':
     unittest.main()

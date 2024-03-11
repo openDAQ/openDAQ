@@ -292,7 +292,6 @@ namespace converters
             return nullptr;
 
         const auto typeId = variant.getValue().type->typeId;
-        const auto typeKind = variant.getValue().type->typeKind;
 
         if (const auto it = uaTypeToDaqObject.find(OpcUaNodeId(typeId)); it != uaTypeToDaqObject.cend())
             return it->second(variant, context);

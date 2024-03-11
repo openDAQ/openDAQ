@@ -409,7 +409,7 @@ TypePtr createTypeFromDescriptor(const DataDescriptorPtr& descriptor)
     return StructType(descriptor.getName(), fieldNames, fieldTypes);
 }
 
-StructPtr buildStructFromPacket(void*& addr, DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager)
+StructPtr buildStructFromPacket(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager)
 {
     const StructTypePtr structType = createTypeFromDescriptor(descriptor);
     typeManager.addType(structType);
@@ -420,18 +420,19 @@ StructPtr buildStructFromPacket(void*& addr, DataDescriptorPtr& descriptor, cons
 
     for (size_t i = 0; i < fieldNames.getCount(); i++)
     {
-        const auto sampleType = fields[i].getSampleType();
+        const auto field = fields[i];
+        const auto sampleType = field.getSampleType();
 
         if (sampleType == SampleType::Struct)
         {
-            auto structPtr = buildStructFromPacket(addr, fields[i], typeManager);
+            const auto structPtr = buildStructFromPacket(addr, field, typeManager);
             builder.set(fieldNames[i], structPtr);
         }
         else
         {
-            auto obj = dataToObj(addr, sampleType);
+            const auto obj = dataToObj(addr, sampleType);
             builder.set(fieldNames[i], obj);
-            auto temp = static_cast<char*>(addr);
+            const auto temp = static_cast<char*>(addr);
             addr = temp + getSampleSize(sampleType);
         }
     }

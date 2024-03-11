@@ -1027,8 +1027,13 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneAndSetChil
     const auto propPtrInternal = prop.asPtr<IPropertyInternal>();
     if (propPtrInternal.assigned() && propPtrInternal.getValueTypeUnresolved() == ctObject && prop.getDefaultValue().assigned())
     {
+        const auto defaultValue = prop.getDefaultValue();
+        const auto inspect = defaultValue.asPtrOrNull<IInspectable>();
+        if (inspect.assigned() && !inspect.getInterfaceIds().empty() && !(inspect.getInterfaceIds()[0] == IPropertyObject::Id))
+            throw InvalidTypeException{"Only base Property Object object-type values are allowed"};
+
         const auto propName = prop.getName();
-        const auto cloneable = prop.getDefaultValue().asPtrOrNull<IPropertyObjectInternal>();
+        const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
         if (!cloneable.assigned())
             return;
         const PropertyObjectPtr cloned = cloneable.clone();

@@ -164,7 +164,10 @@ TEST_F(WebsocketClientDeviceTest, DeviceWithMultipleSignals)
 
     // There should not be any difference if we get signals recursively or not,
     // since client device doesn't know anything about hierarchy
-    const size_t expectedSignalCount = serverInstance.getSignals(search::Recursive(search::Visible())).getCount();
+    size_t expectedSignalCount = 0;
+    for (const auto& signal : serverInstance.getSignals(search::Recursive(search::Visible())))
+        expectedSignalCount += signal.getPublic();
+
     ListPtr<ISignal> signals;
     ASSERT_NO_THROW(signals = clientDevice.getSignals());
     ASSERT_EQ(signals.getCount(), expectedSignalCount);

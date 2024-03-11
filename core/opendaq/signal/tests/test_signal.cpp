@@ -708,7 +708,6 @@ TEST_F(SignalTest, TestInputPortActiveSendPacket)
 TEST_F(SignalTest, GetLastValueStruct)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
-    // auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Struct).build(); // TODO
 
     const auto descriptor = DataDescriptorBuilder()
                                 .setName("MyTestStructType")
@@ -747,8 +746,10 @@ TEST_F(SignalTest, GetLastValueStruct)
     auto lastValuePacket = signal.getLastValue();
     StructPtr structPtr;
     ASSERT_NO_THROW(structPtr = lastValuePacket.asPtr<IStruct>());
-    /* ASSERT_DOUBLE_EQ(complexPtr.getReal(), 8.1); // TODO
-    ASSERT_DOUBLE_EQ(complexPtr.getImaginary(), 9.1);*/
+    ASSERT_EQ(structPtr.get("Int32"), 12);
+    ASSERT_DOUBLE_EQ(structPtr.get("Float64"), 15.1);
+    StructPtr nestedPtr = structPtr.get("Special").asPtr<IStruct>();
+    ASSERT_EQ(nestedPtr.get("NestedInt64"), 42);
 }
 
 END_NAMESPACE_OPENDAQ

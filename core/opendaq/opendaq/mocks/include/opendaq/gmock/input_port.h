@@ -54,5 +54,11 @@ struct MockInputPort : daq::MockGenericComponent<MockInputPort, daq::IInputPortC
             .WillRepeatedly(DoAll(
                 Return(OPENDAQ_SUCCESS)
             ));
+
+        EXPECT_CALL(*this, getActive)
+            .Times(AnyNumber())
+            .WillRepeatedly(DoAll(
+                Return(OPENDAQ_SUCCESS)
+            ));
     }
 };

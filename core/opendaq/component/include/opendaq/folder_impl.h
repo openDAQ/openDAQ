@@ -41,6 +41,9 @@ public:
                const StringPtr& localId,
                const StringPtr& className = nullptr);
 
+    // IComponent
+    ErrCode INTERFACE_FUNC setActive(Bool active) override;
+
     // IFolder
     ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getItem(IString* localId, IComponent** item) override;
@@ -109,6 +112,23 @@ FolderImpl<Intf, Intfs...>::FolderImpl(const ContextPtr& context,
                                        const StringPtr& className)
     : FolderImpl(IComponent::Id, context, parent, localId, className)
 {
+}
+
+template <class Intf, class ... Intfs>
+ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
+{
+    const ErrCode err = Super::setActive(active);
+    if (OPENDAQ_FAILED(err) || err == OPENDAQ_IGNORED)
+        return err;
+
+    return daqTry([&]
+    {
+        std::vector<ComponentPtr> itemsVec;
+        for (const auto& item : this->items)
+            itemsVec.emplace_back(item.second);
+        this->setActiveRecursive(itemsVec, active);
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <class Intf, class... Intfs>

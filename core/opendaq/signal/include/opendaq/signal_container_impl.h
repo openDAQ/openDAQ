@@ -121,6 +121,9 @@ public:
                         const ComponentPtr& parent,
                         const StringPtr& localId,
                         const StringPtr& className = nullptr);
+    
+    // IComponent
+    ErrCode INTERFACE_FUNC setActive(Bool active) override;
 
     virtual ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter) override;
     ErrCode INTERFACE_FUNC getItem(IString* localId, IComponent** item) override;
@@ -147,6 +150,8 @@ GenericSignalContainerImpl<Intf, Intfs...>::GenericSignalContainerImpl(const Con
 
     signals.asPtr<IComponentPrivate>().lockAllAttributes();
     functionBlocks.asPtr<IComponentPrivate>().lockAllAttributes();
+    signals.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
+    functionBlocks.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
 }
 
 template <class Intf, class ... Intfs>
@@ -182,6 +187,20 @@ SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& conte
                                                          const StringPtr& className)
     : Super(context, parent, localId, className)
 {
+}
+
+template <class Intf, class ... Intfs>
+ErrCode SignalContainerImpl<Intf, Intfs...>::setActive(Bool active)
+{
+    const ErrCode err = Super::setActive(active);
+    if (OPENDAQ_FAILED(err) || err == OPENDAQ_IGNORED)
+        return err;
+
+    return daqTry([&]
+    {
+        this->setActiveRecursive(this->components, active);
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <class Intf, class ... Intfs>

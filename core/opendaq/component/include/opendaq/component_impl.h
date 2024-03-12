@@ -69,7 +69,7 @@ public:
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getGlobalId(IString** globalId) override;
     ErrCode INTERFACE_FUNC getActive(Bool* active) override;
-    ErrCode INTERFACE_FUNC setActive(Bool active) override;
+    virtual ErrCode INTERFACE_FUNC setActive(Bool active) override;
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -114,6 +114,7 @@ protected:
     virtual void removed();
     virtual ErrCode lockAllAttributesInternal();
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
+    void setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active);
 
     std::mutex sync;
     ContextPtr context;
@@ -823,6 +824,21 @@ ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilte
         childList.pushBack(signal);
 
     return childList.detach();
+}
+
+template <class Intf, class ... Intfs>
+void ComponentImpl<Intf, Intfs...>::setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active)
+{
+    const bool muted = this->coreEventMuted;
+    const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
+    if (!muted)
+        propInternalPtr.disableCoreEventTrigger();
+
+    for (const auto& item : items)
+        item.setActive(active);
+    
+    if (!muted)
+        propInternalPtr.enableCoreEventTrigger();
 }
 
 template <class Intf, class... Intfs>

@@ -54,6 +54,9 @@ public:
 
 private:
     bool isDataEqual(const DataPacketPtr& dataPacket) const;
+    BaseObjectPtr dataToObj(void*& addr, const SampleType& type) const;
+    TypePtr createTypeFromDescriptor(const DataDescriptorPtr& descriptor) const;
+    StructPtr buildStructFromPacket(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager) const;
 
     AllocatorPtr allocator;
     DataDescriptorPtr descriptor;
@@ -291,7 +294,8 @@ bool DataPacketImpl<TInterface>::isDataEqual(const DataPacketPtr& dataPacket) co
     return data == dataPacket.getRawData() || std::memcmp(data, dataPacket.getRawData(), rawDataSize) == 0;
 }
 
-BaseObjectPtr dataToObj(void*& addr, const SampleType& type)
+template <typename TInterface>
+inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObj(void*& addr, const SampleType& type) const
 {
     switch (type)
     {
@@ -367,7 +371,9 @@ BaseObjectPtr dataToObj(void*& addr, const SampleType& type)
     }
 }
 
-TypePtr createTypeFromDescriptor(const DataDescriptorPtr& descriptor)
+// TODO Delete this?
+template <typename TInterface>
+inline TypePtr DataPacketImpl<TInterface>::createTypeFromDescriptor(const DataDescriptorPtr& descriptor) const
 {
     const auto fields = descriptor.getStructFields();
     auto fieldNames = List<IString>();
@@ -402,6 +408,7 @@ TypePtr createTypeFromDescriptor(const DataDescriptorPtr& descriptor)
                 break;
             default:
                 type = SimpleType(CoreType::ctUndefined);
+                // TODO support string, list? + test
         }
         fieldNames.pushBack(field.getName());
         fieldTypes.pushBack(type);
@@ -409,7 +416,10 @@ TypePtr createTypeFromDescriptor(const DataDescriptorPtr& descriptor)
     return StructType(descriptor.getName(), fieldNames, fieldTypes);
 }
 
-StructPtr buildStructFromPacket(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager)
+template <typename TInterface>
+inline StructPtr DataPacketImpl<TInterface>::buildStructFromPacket(void*& addr,
+                                                                   const DataDescriptorPtr& descriptor,
+                                                                   const TypeManagerPtr& typeManager) const
 {
     const StructTypePtr structType = createTypeFromDescriptor(descriptor);
     typeManager.addType(structType);

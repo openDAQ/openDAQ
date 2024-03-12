@@ -600,6 +600,32 @@ TEST_F(ConfigCoreEventTest, ComponentAttributeChanged)
     ASSERT_EQ(changeCount, 8);
 }
 
+TEST_F(ConfigCoreEventTest, ComponentActiveChangedRecursive)
+{
+    int changeCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::AttributeChanged));
+            ASSERT_EQ(args.getEventName(), "AttributeChanged");
+            changeCount++;
+        };
+
+    serverDevice.asPtr<IComponentPrivate>().unlockAllAttributes();
+
+    const auto components = clientDevice.getItems(search::Recursive(search::Any()));
+
+    serverDevice.setActive(false);
+    for (const auto& comp : components)
+        ASSERT_FALSE(comp.getActive());
+
+    serverDevice.setActive(true);
+    for (const auto& comp : components)
+        ASSERT_TRUE(comp.getActive());
+
+    ASSERT_EQ(changeCount, 2);
+}
+
 TEST_F(ConfigCoreEventTest, DomainSignalAttributeChanged)
 {
     const FolderConfigPtr serverSigFolder = serverDevice.getItem("Sig");

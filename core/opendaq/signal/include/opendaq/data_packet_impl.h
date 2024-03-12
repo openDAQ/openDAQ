@@ -301,67 +301,67 @@ inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObj(void*& addr, const Sa
     {
         case SampleType::Float32:
         {
-            auto data = static_cast<float*>(addr);
+            const auto data = static_cast<float*>(addr);
             return Floating(*data);
         }
         case SampleType::Float64:
         {
-            auto data = static_cast<double*>(addr);
+            const auto data = static_cast<double*>(addr);
             return Floating(*data);
         }
         case SampleType::Int8:
         {
-            auto data = static_cast<int8_t*>(addr);
+            const auto data = static_cast<int8_t*>(addr);
             return Integer(*data);
         }
         case SampleType::UInt8:
         {
-            auto data = static_cast<uint8_t*>(addr);
+            const auto data = static_cast<uint8_t*>(addr);
             return Integer(*data);
         }
         case SampleType::Int16:
         {
-            auto data = static_cast<int16_t*>(addr);
+            const auto data = static_cast<int16_t*>(addr);
             return Integer(*data);
         }
         case SampleType::UInt16:
         {
-            auto data = static_cast<uint16_t*>(addr);
+            const auto data = static_cast<uint16_t*>(addr);
             return Integer(*data);
         }
         case SampleType::Int32:
         {
-            auto data = static_cast<int32_t*>(addr);
+            const auto data = static_cast<int32_t*>(addr);
             return Integer(*data);
         }
         case SampleType::UInt32:
         {
-            auto data = static_cast<uint32_t*>(addr);
+            const auto data = static_cast<uint32_t*>(addr);
             return Integer(*data);
         }
         case SampleType::Int64:
         {
-            auto data = static_cast<int64_t*>(addr);
+            const auto data = static_cast<int64_t*>(addr);
             return Integer(*data);
         }
         case SampleType::UInt64:
         {
-            auto data = static_cast<uint64_t*>(addr);
+            const auto data = static_cast<uint64_t*>(addr);
             return Integer(*data);
         }
         case SampleType::RangeInt64:
         {
-            auto data = static_cast<int64_t*>(addr);
+            const auto data = static_cast<int64_t*>(addr);
             return Range(data[0], data[1]);
         }
         case SampleType::ComplexFloat32:
         {
-            auto data = static_cast<float*>(addr);
+            const auto data = static_cast<float*>(addr);
             return ComplexNumber(data[0], data[1]);
         }
         case SampleType::ComplexFloat64:
         {
-            auto data = static_cast<double*>(addr);
+            const auto data = static_cast<double*>(addr);
             return ComplexNumber(data[0], data[1]);
         }
         default:

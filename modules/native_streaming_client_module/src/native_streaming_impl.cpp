@@ -12,48 +12,36 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 using namespace opendaq_native_streaming_protocol;
 
-NativeStreamingImpl::NativeStreamingImpl(const StringPtr& connectionString,
-    const StringPtr& host,
-    const StringPtr& port,
-    const StringPtr& path,
+NativeStreamingImpl::NativeStreamingImpl(
+    const StringPtr& connectionString,
     const ContextPtr& context,
-    NativeStreamingClientHandlerPtr clientHandler,
+    NativeStreamingClientHandlerPtr transportClientHandler,
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
     Int streamingInitTimeout,
     const ProcedurePtr& onDeviceSignalAvailableCallback,
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
     OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb)
     : Streaming(connectionString, context)
-    , clientHandler(clientHandler)
+    , transportClientHandler(transportClientHandler)
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
     , onDeviceReconnectionStatusChangedCb(onReconnectionStatusChangedCb)
     , reconnectionStatus(ClientReconnectionStatus::Connected)
-    , transportIOContextPtr(std::make_shared<boost::asio::io_context>())
     , processingIOContextPtr(processingIOContextPtr)
     , processingStrand(*(this->processingIOContextPtr))
     , protocolInitFuture(protocolInitPromise.get_future())
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingImpl"))
     , streamingInitTimeout(std::chrono::milliseconds(streamingInitTimeout))
-    , protocolInitTimer(std::make_shared<boost::asio::steady_timer>(*transportIOContextPtr.get()))
+    , timerContextPtr(transportClientHandler->getIoContext())
+    , protocolInitTimer(
+          std::make_shared<boost::asio::steady_timer>(*timerContextPtr)
+    )
 {
     prepareClientHandler();
-    startTransportOperations();
-
-    if (!this->clientHandler->connect(host.toStdString(), port.toStdString(), path.toStdString()))
-    {
-        stopTransportOperations();
-        this->processingIOContextPtr->stop();
-        LOG_E("Failed to connect to native streaming server - host {} port {} path {}", host, port, path);
-        throw NotFoundException("Failed to connect to native streaming server, connection string: {}",
-                                connectionString);
-    }
-
-    this->clientHandler->sendStreamingRequest();
+    this->transportClientHandler->sendStreamingRequest();
 
     if (protocolInitFuture.wait_for(this->streamingInitTimeout) != std::future_status::ready)
     {
-        stopTransportOperations();
         this->processingIOContextPtr->stop();
         throw GeneralErrorException("Streaming protocol intialization timed out; connection string: {}",
                                     connectionString);
@@ -63,7 +51,7 @@ NativeStreamingImpl::NativeStreamingImpl(const StringPtr& connectionString,
 NativeStreamingImpl::~NativeStreamingImpl()
 {
     protocolInitTimer->cancel();
-    stopTransportOperations();
+    transportClientHandler->resetStreamingHandlers();
     processingIOContextPtr->stop();
 }
 
@@ -193,7 +181,7 @@ void NativeStreamingImpl::reconnectionStatusChangedHandler(opendaq_native_stream
                 // signal kept in available re-subscribe it
                 if (signalSubscribersCount > 0)
                 {
-                    clientHandler->subscribeSignal(signalId);
+                    transportClientHandler->subscribeSignal(signalId);
                     it->second = signalSubscribersCount;
                 }
             }
@@ -209,8 +197,6 @@ void NativeStreamingImpl::reconnectionStatusChangedHandler(opendaq_native_stream
     else if (status == ClientReconnectionStatus::Reconnecting)
     {
         availableSignalsReconnection.clear();
-        protocolInitPromise = std::promise<void>();
-        protocolInitFuture = protocolInitPromise.get_future();
     }
 
     reconnectionStatus = status;
@@ -288,17 +274,18 @@ void NativeStreamingImpl::prepareClientHandler()
                 {
                     if (status == ClientReconnectionStatus::Restored)
                     {
-                        this->clientHandler->sendStreamingRequest();
+                        this->transportClientHandler->sendStreamingRequest();
+                        protocolInitPromise = std::promise<void>();
+                        protocolInitFuture = protocolInitPromise.get_future();
                         protocolInitTimer->expires_from_now(streamingInitTimeout);
                         protocolInitTimer->async_wait(
-                            [this, status](const boost::system::error_code& ec)
+                            [this](const boost::system::error_code& ec)
                             {
                                 if (ec)
-                                {
-                                    LOG_E("Streaming initialization timer failed: {}", ec.message());
-                                }
+                                    return;
+
                                 if (protocolInitFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
-                                    reconnectionStatusChangedHandler(status);
+                                    reconnectionStatusChangedHandler(ClientReconnectionStatus::Restored);
                                 else
                                     reconnectionStatusChangedHandler(ClientReconnectionStatus::Unrecoverable);
                             }
@@ -325,13 +312,13 @@ void NativeStreamingImpl::prepareClientHandler()
             )
         );
     };
-    clientHandler->setIoContext(transportIOContextPtr);
-    clientHandler->setSignalAvailableHandler(signalAvailableCb);
-    clientHandler->setSignalUnavailableHandler(signalUnavailableCb);
-    clientHandler->setPacketHandler(onPacketCallback);
-    clientHandler->setSignalSubscriptionAckCallback(onSignalSubscriptionAckCallback);
-    clientHandler->setReconnectionStatusChangedCb(onReconnectionStatusChangedCb);
-    clientHandler->setStreamingInitDoneCb(onStreamingInitDoneCb);
+
+    transportClientHandler->setStreamingHandlers(signalAvailableCb,
+                                                 signalUnavailableCb,
+                                                 onPacketCallback,
+                                                 onSignalSubscriptionAckCallback,
+                                                 onReconnectionStatusChangedCb,
+                                                 onStreamingInitDoneCb);
 }
 
 void NativeStreamingImpl::onPacket(const StringPtr& signalStringId, const PacketPtr& packet)
@@ -392,7 +379,7 @@ void NativeStreamingImpl::checkAndSubscribe(const StringPtr& signalRemoteId)
     if (const auto it = availableSignals.find(signalStreamingId); it != availableSignals.end())
     {
         if (it->second == 0)
-            clientHandler->subscribeSignal(signalStreamingId);
+            transportClientHandler->subscribeSignal(signalStreamingId);
         it->second++;
     }
 }
@@ -409,14 +396,14 @@ void NativeStreamingImpl::checkAndUnsubscribe(const StringPtr& signalRemoteId)
     {
         it->second--;
         if (it->second == 0)
-            clientHandler->unsubscribeSignal(signalStreamingId);
+            transportClientHandler->unsubscribeSignal(signalStreamingId);
     }
 }
 
 EventPacketPtr NativeStreamingImpl::onCreateDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId)
 {
     StringPtr signalStreamingId = onGetSignalStreamingId(signalRemoteId);
-    return clientHandler->getDataDescriptorChangedEventPacket(signalStreamingId);
+    return transportClientHandler->getDataDescriptorChangedEventPacket(signalStreamingId);
 }
 
 void NativeStreamingImpl::handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket)
@@ -442,39 +429,6 @@ StringPtr NativeStreamingImpl::onGetSignalStreamingId(const StringPtr& signalRem
         return it->first;
     else
         throw NotFoundException("Signal with id {} is not available in Native streaming", signalRemoteId);
-}
-
-void NativeStreamingImpl::startTransportOperations()
-{
-    transportIOThread =
-        std::thread([this]()
-                    {
-                        using namespace boost::asio;
-                        executor_work_guard<io_context::executor_type> workGuard(transportIOContextPtr->get_executor());
-                        transportIOContextPtr->run();
-                        LOG_I("IO thread finished");
-                    });
-}
-
-void NativeStreamingImpl::stopTransportOperations()
-{
-    transportIOContextPtr->stop();
-    if (transportIOThread.get_id() != std::this_thread::get_id())
-    {
-        if (transportIOThread.joinable())
-        {
-            transportIOThread.join();
-            LOG_I("IO thread joined");
-        }
-        else
-        {
-            LOG_W("Native Streaming - transport IO thread is not joinable");
-        }
-    }
-    else
-    {
-        LOG_C("Native Streaming - transport IO thread cannot join itself");
-    }
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

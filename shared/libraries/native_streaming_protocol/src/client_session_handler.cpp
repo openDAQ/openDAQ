@@ -10,14 +10,14 @@ using namespace daq::native_streaming;
 using namespace packet_streaming;
 
 ClientSessionHandler::ClientSessionHandler(const ContextPtr& daqContext,
-                                           boost::asio::io_context& ioContext,
+                                           const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                                            SessionPtr session,
                                            OnSignalCallback signalReceivedHandler,
                                            OnPacketReceivedCallback packetReceivedHandler,
                                            OnStreamingInitDoneCallback protocolInitDoneHandler,
                                            OnSubscriptionAckCallback subscriptionAckHandler,
                                            OnSessionErrorCallback errorHandler)
-    : BaseSessionHandler(daqContext, session, ioContext, errorHandler, "NativeProtocolClientSessionHandler")
+    : BaseSessionHandler(daqContext, session, ioContextPtr, errorHandler, "NativeProtocolClientSessionHandler")
     , signalReceivedHandler(signalReceivedHandler)
     , packetReceivedHandler(packetReceivedHandler)
     , streamingInitDoneHandler(protocolInitDoneHandler)

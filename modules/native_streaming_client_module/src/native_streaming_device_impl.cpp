@@ -21,9 +21,6 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
                                                      const ComponentPtr& parent,
                                                      const StringPtr& localId,
                                                      const StringPtr& connectionString,
-                                                     const StringPtr& host,
-                                                     const StringPtr& port,
-                                                     const StringPtr& path,
                                                      NativeStreamingClientHandlerPtr transportProtocolClient,
                                                      std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                                      Int initTimeout)
@@ -34,9 +31,9 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     if (!this->connectionString.assigned())
         throw ArgumentNullException("connectionString cannot be null");
 
-    createNativeStreaming(transportProtocolClient, processingIOContextPtr, host, port, path, initTimeout);
-    activateStreaming();
     initStatuses(ctx);
+    createNativeStreaming(transportProtocolClient, processingIOContextPtr, initTimeout);
+    activateStreaming();
 }
 
 void NativeStreamingDeviceImpl::initStatuses(const ContextPtr& ctx)
@@ -80,9 +77,6 @@ void NativeStreamingDeviceImpl::publishReconnectionStatus()
 
 void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandlerPtr transportProtocolClient,
                                                       std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
-                                                      const StringPtr& host,
-                                                      const StringPtr& port,
-                                                      const StringPtr& path,
                                                       Int initTimeout)
 {
     ProcedurePtr onSignalAvailableCallback =
@@ -98,8 +92,8 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
                       signalUnavailableHandler(signalStringId);
                   });
 
-    opendaq_native_streaming_protocol::OnReconnectionStatusChangedCallback onReconnectionStatusChangedCallback =
-        [this](opendaq_native_streaming_protocol::ClientReconnectionStatus status)
+    OnReconnectionStatusChangedCallback onReconnectionStatusChangedCallback =
+        [this](ClientReconnectionStatus status)
         {
             reconnectionStatusChangedHandler(status);
         };
@@ -109,9 +103,6 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
                                                                NativeStreamingPrefix);
     nativeStreaming =
         createWithImplementation<IStreaming, NativeStreamingImpl>(streamingConnectionString,
-                                                                  host,
-                                                                  port,
-                                                                  path,
                                                                   context,
                                                                   transportProtocolClient,
                                                                   processingIOContextPtr,

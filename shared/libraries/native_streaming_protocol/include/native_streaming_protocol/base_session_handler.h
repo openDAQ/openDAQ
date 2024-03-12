@@ -31,7 +31,7 @@ class BaseSessionHandler
 public:
     BaseSessionHandler(const ContextPtr& daqContext,
                        SessionPtr session,
-                       boost::asio::io_context& ioContext,
+                       const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                        native_streaming::OnSessionErrorCallback errorHandler,
                        ConstCharPtr loggerComponentName);
     virtual ~BaseSessionHandler();
@@ -70,6 +70,7 @@ protected:
     SessionPtr session;
     ProcessConfigProtocolPacketCb configPacketReceivedHandler;
     native_streaming::OnSessionErrorCallback errorHandler;
+    std::shared_ptr<boost::asio::io_context> ioContextPtr;
     std::shared_ptr<boost::asio::steady_timer> connectionInactivityTimer;
     LoggerComponentPtr loggerComponent;
     bool connectionActivityMonitoringStarted{false};

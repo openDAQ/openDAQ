@@ -63,7 +63,7 @@ private:
 
     LoggerComponentPtr loggerComponent;
     std::unique_ptr<config_protocol::ConfigProtocolClient<NativeDeviceImpl>> configProtocolClient;
-    opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient;
+    opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
     std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
     StreamingPtr streaming;
     WeakRefPtr<IDevice> deviceRef;

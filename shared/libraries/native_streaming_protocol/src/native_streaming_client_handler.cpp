@@ -14,14 +14,20 @@ NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& con
                                                            const PropertyObjectPtr& transportLayerProperties)
     : context(context)
     , transportLayerProperties(transportLayerProperties)
+    , ioContextPtr(std::make_shared<boost::asio::io_context>())
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
+    , reconnectionTimer(std::make_shared<boost::asio::steady_timer>(*ioContextPtr))
 {
     readTransportLayerProps();
+    resetStreamingHandlers();
+    resetConfigHandlers();
+    startTransportOperations();
 }
 
 NativeStreamingClientHandler::~NativeStreamingClientHandler()
 {
     reconnectionTimer->cancel();
+    stopTransportOperations();
 }
 
 void NativeStreamingClientHandler::readTransportLayerProps()
@@ -60,45 +66,42 @@ void NativeStreamingClientHandler::readTransportLayerProps()
     reconnectionPeriod = std::chrono::milliseconds(transportLayerProperties.getPropertyValue("ReconnectionPeriod"));
 }
 
-void NativeStreamingClientHandler::setConfigPacketHandler(const ProcessConfigProtocolPacketCb& configPacketHandler)
+void NativeStreamingClientHandler::resetStreamingHandlers()
 {
-    this->configPacketHandler = configPacketHandler;
+    this->signalAvailableHandler = [](const StringPtr&, const StringPtr&) {};
+    this->signalUnavailableHandler = [](const StringPtr&) {};
+    this->packetHandler = [](const StringPtr&, const PacketPtr&) {};
+    this->signalSubscriptionAckCallback = [](const StringPtr&, bool) {};
+    this->reconnectionStatusChangedStreamingCb = [](ClientReconnectionStatus) {};
+    this->streamingInitDoneCb = []() {};
 }
 
-void NativeStreamingClientHandler::setStreamingInitDoneCb(const OnStreamingInitDoneCallback& streamingInitDoneCb)
+void NativeStreamingClientHandler::setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
+                                                        const OnSignalUnavailableCallback& signalUnavailableHandler,
+                                                        const OnPacketCallback& packetHandler,
+                                                        const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback,
+                                                        const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb,
+                                                        const OnStreamingInitDoneCallback& streamingInitDoneCb)
 {
     this->streamingInitDoneCb = streamingInitDoneCb;
-}
-
-void NativeStreamingClientHandler::setReconnectionStatusChangedCb(const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb)
-{
-    this->reconnectionStatusChangedCb = reconnectionStatusChangedCb;
-}
-
-void NativeStreamingClientHandler::setSignalSubscriptionAckCallback(const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback)
-{
+    this->reconnectionStatusChangedStreamingCb = reconnectionStatusChangedCb;
     this->signalSubscriptionAckCallback = signalSubscriptionAckCallback;
-}
-
-void NativeStreamingClientHandler::setPacketHandler(const OnPacketCallback& packetHandler)
-{
     this->packetHandler = packetHandler;
-}
-
-void NativeStreamingClientHandler::setSignalUnavailableHandler(const OnSignalUnavailableCallback& signalUnavailableHandler)
-{
     this->signalUnavailableHandler = signalUnavailableHandler;
-}
-
-void NativeStreamingClientHandler::setSignalAvailableHandler(const OnSignalAvailableCallback& signalAvailableHandler)
-{
     this->signalAvailableHandler = signalAvailableHandler;
 }
 
-void NativeStreamingClientHandler::setIoContext(const std::shared_ptr<boost::asio::io_context>& ioContextPtr)
+void NativeStreamingClientHandler::resetConfigHandlers()
 {
-    this->ioContextPtr = ioContextPtr;
-    reconnectionTimer = std::make_shared<boost::asio::steady_timer>(*ioContextPtr.get());
+    this->reconnectionStatusChangedConfigCb = [](ClientReconnectionStatus) {};
+    this->configPacketHandler = [](config_protocol::PacketBuffer&&) {};
+}
+
+void NativeStreamingClientHandler::setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
+                                                     const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb)
+{
+    this->configPacketHandler = configPacketHandler;
+    this->reconnectionStatusChangedConfigCb = reconnectionStatusChangedCb;
 }
 
 void NativeStreamingClientHandler::checkReconnectionStatus(const boost::system::error_code& ec)
@@ -112,11 +115,11 @@ void NativeStreamingClientHandler::checkReconnectionStatus(const boost::system::
         ConnectionResult result = connectedFuture.get();
         if (result == ConnectionResult::Connected)
         {
-            reconnectionStatusChangedCb(ClientReconnectionStatus::Restored);
+            reconnectionStatusChanged(ClientReconnectionStatus::Restored);
         }
         else if (result == ConnectionResult::ServerUnsupported)
         {
-            reconnectionStatusChangedCb(ClientReconnectionStatus::Unrecoverable);
+            reconnectionStatusChanged(ClientReconnectionStatus::Unrecoverable);
         }
         else
         {
@@ -144,6 +147,12 @@ void NativeStreamingClientHandler::tryReconnect()
     reconnectionTimer->async_wait(std::bind(&NativeStreamingClientHandler::checkReconnectionStatus, this, std::placeholders::_1));
 
     client->connect();
+}
+
+void NativeStreamingClientHandler::reconnectionStatusChanged(ClientReconnectionStatus status)
+{
+    reconnectionStatusChangedStreamingCb(status);
+    reconnectionStatusChangedConfigCb(status);
 }
 
 bool NativeStreamingClientHandler::connect(std::string host,
@@ -229,6 +238,11 @@ void NativeStreamingClientHandler::sendStreamingRequest()
         sessionHandler->sendStreamingRequest();
 }
 
+std::shared_ptr<boost::asio::io_context> NativeStreamingClientHandler::getIoContext()
+{
+    return ioContextPtr;
+}
+
 void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
 {
     LOG_D("Client connected");
@@ -242,13 +256,13 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
             session->close(
                 [this](const boost::system::error_code&)
                 {
-                    reconnectionStatusChangedCb(ClientReconnectionStatus::Reconnecting);
+                    reconnectionStatusChanged(ClientReconnectionStatus::Reconnecting);
                     tryReconnect();
                 });
         }
         else
         {
-            reconnectionStatusChangedCb(ClientReconnectionStatus::Reconnecting);
+            reconnectionStatusChanged(ClientReconnectionStatus::Reconnecting);
             tryReconnect();
         }
     };
@@ -285,7 +299,7 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
     };
 
     sessionHandler = std::make_shared<ClientSessionHandler>(context,
-                                                            *ioContextPtr.get(),
+                                                            ioContextPtr,
                                                             session,
                                                             signalReceivedHandler,
                                                             packetReceivedHandler,
@@ -377,6 +391,39 @@ void NativeStreamingClientHandler::handleSignal(const SignalNumericIdType& signa
         signalAvailableHandler(signalStringId, serializedSignal);
     else
         signalUnavailableHandler(signalStringId);
+}
+
+void NativeStreamingClientHandler::startTransportOperations()
+{
+    ioThread =
+        std::thread([this]()
+                    {
+                        using namespace boost::asio;
+                        executor_work_guard<io_context::executor_type> workGuard(ioContextPtr->get_executor());
+                        ioContextPtr->run();
+                        LOG_I("Native transport IO thread finished");
+                    });
+}
+
+void NativeStreamingClientHandler::stopTransportOperations()
+{
+    ioContextPtr->stop();
+    if (ioThread.get_id() != std::this_thread::get_id())
+    {
+        if (ioThread.joinable())
+        {
+            ioThread.join();
+            LOG_I("Native transport IO thread joined");
+        }
+        else
+        {
+            LOG_W("Native transport IO thread is not joinable");
+        }
+    }
+    else
+    {
+        LOG_C("Native transport IO thread cannot join itself");
+    }
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

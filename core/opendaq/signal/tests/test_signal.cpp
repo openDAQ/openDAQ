@@ -12,6 +12,7 @@
 #include <opendaq/signal_factory.h>
 #include <opendaq/signal_private_ptr.h>
 #include <opendaq/tags_factory.h>
+#include <opendaq/input_port_factory.h>
 
 using SignalTest = testing::Test;
 
@@ -660,6 +661,48 @@ TEST_F(SignalTest, GetLastValueComplexFloat64)
     ASSERT_NO_THROW(complexPtr = lastValuePacket.asPtr<IComplexNumber>());
     ASSERT_DOUBLE_EQ(complexPtr.getReal(), 8.1);
     ASSERT_DOUBLE_EQ(complexPtr.getImaginary(), 9.1);
+}
+
+TEST_F(SignalTest, TestSignalActiveSendPacket)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Float64).build();
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    auto dataPacket = DataPacket(descriptor, 1);
+    signal.sendPacket(dataPacket);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 2);
+
+    signal.setActive(false);
+    signal.sendPacket(dataPacket);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 2);
+
+    auto descriptor1 = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int16).build();
+    signal.setDescriptor(descriptor1);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 3);
+}
+
+TEST_F(SignalTest, TestInputPortActiveSendPacket)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Float64).build();
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    auto dataPacket = DataPacket(descriptor, 1);
+    signal.sendPacket(dataPacket);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 2);
+
+    ip.setActive(false);
+    signal.sendPacket(dataPacket);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 2);
+
+    auto descriptor1 = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int16).build();
+    signal.setDescriptor(descriptor1);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 3);
 }
 
 END_NAMESPACE_OPENDAQ

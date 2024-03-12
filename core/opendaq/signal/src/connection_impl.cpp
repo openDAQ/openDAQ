@@ -16,6 +16,13 @@ ErrCode ConnectionImpl::enqueue(IPacket* packet)
 {
     OPENDAQ_PARAM_NOT_NULL(packet);
 
+    if (!port.getActive())
+    {
+        void* intf;
+        if (OPENDAQ_FAILED(packet->borrowInterface(IEventPacket::Id, &intf)))
+            return OPENDAQ_IGNORED;
+    }
+
     withLock([&packet, this]()
     {
         packets.emplace_back(packet);
@@ -28,6 +35,13 @@ ErrCode ConnectionImpl::enqueue(IPacket* packet)
 ErrCode INTERFACE_FUNC ConnectionImpl::enqueueOnThisThread(IPacket* packet)
 {
     OPENDAQ_PARAM_NOT_NULL(packet);
+    
+    if (!port.getActive())
+    {
+        void* intf;
+        if (OPENDAQ_FAILED(packet->borrowInterface(IEventPacket::Id, &intf)))
+            return OPENDAQ_IGNORED;
+    }
 
     withLock([&packet, this]()
     {

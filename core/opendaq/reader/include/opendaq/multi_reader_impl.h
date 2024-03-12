@@ -83,6 +83,7 @@ private:
     template <typename T>
     static bool ListElementsHaveSameType(const ListPtr<IBaseObject>& list);
     static bool CheckPreconditions(const ListPtr<IBaseObject>& list);
+    void updateCommonSampleRateAndDividers();
     ListPtr<ISignal> getSignals() const;
 
     void setStartInfo();
@@ -121,6 +122,8 @@ private:
     StringPtr readOrigin;
     RatioPtr readResolution;
     std::unique_ptr<Comparable> commonStart;
+    std::int64_t commonSampleRate = -1;
+    std::int32_t sampleRateDividerLcm = 1;
 
     std::vector<SignalReader> signals;
     PropertyObjectPtr portBinder;

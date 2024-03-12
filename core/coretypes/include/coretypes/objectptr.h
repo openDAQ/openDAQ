@@ -2145,8 +2145,8 @@ ObjectPtr<IBaseObject> ObjectPtr<T>::convertTo(CoreType ct) const
         }
         case ctEnumeration:
         {
-            EnumType val;
-            checkErrorInfo(convObj->toEnumType(&val));
+            Int val;
+            checkErrorInfo(convObj->toInt(&val));
             return ObjectPtr<IBaseObject>(val);
         }
         default:

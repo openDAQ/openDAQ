@@ -129,15 +129,6 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::toBool(Bool* val)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC ComplexNumberImpl::toEnumType(EnumType* val)
-{
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    *val = EnumType(value.real);
-    return OPENDAQ_SUCCESS;
-}
-
 // ICoreType
 
 ErrCode INTERFACE_FUNC ComplexNumberImpl::getCoreType(CoreType* coreType)

@@ -68,14 +68,6 @@ DECLARE_OPENDAQ_INTERFACE(IConvertible, IBaseObject)
      * @retval OPENDAQ_ERR_CONVERSIONFAILED Conversion has failed
      */
     virtual ErrCode INTERFACE_FUNC toBool(Bool * val) = 0;
-
-    /*!
-     * @brief Converts the object to Enum type.
-     * @param[out] val Enum value
-     * @retval OPENDAQ_ERR_CONVERSIONFAILED Conversion has failed
-     */
-    virtual ErrCode INTERFACE_FUNC toEnumType(EnumType* val) = 0;
-
 };
 
 /*!@}*/

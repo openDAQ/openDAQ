@@ -43,7 +43,6 @@ public:
     ErrCode INTERFACE_FUNC toFloat(Float* val) override;
     ErrCode INTERFACE_FUNC toInt(Int* val) override;
     ErrCode INTERFACE_FUNC toBool(Bool* val) override;
-    ErrCode INTERFACE_FUNC toEnumType(EnumType* val) override;
 
     // ICoreType
     ErrCode INTERFACE_FUNC getCoreType(CoreType* coreType) override;

@@ -43,7 +43,6 @@ public:
     // IConvertible
     ErrCode INTERFACE_FUNC toFloat(Float* val) override;
     ErrCode INTERFACE_FUNC toInt(Int* val) override;
-    ErrCode INTERFACE_FUNC toEnumType(EnumType* val) override;
     ErrCode INTERFACE_FUNC toBool(Bool* val) override;
 
     // ICoreType
@@ -159,16 +158,6 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::toInt(Int* val)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
     *val = static_cast<Int>(value);
-    return OPENDAQ_SUCCESS;
-}
-
-template <class V, class Intf, class ... Intfs>
-ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::toEnumType(EnumType* val)
-{
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    *val = static_cast<EnumType>(value);
     return OPENDAQ_SUCCESS;
 }
 

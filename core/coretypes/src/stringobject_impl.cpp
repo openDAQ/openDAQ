@@ -153,19 +153,6 @@ ErrCode StringImpl::toInt(Int* val)
     }
 }
 
-ErrCode StringImpl::toEnumType(EnumType* val)
-{
-    try
-    {
-        *val = std::stoll(std::string(str));
-        return OPENDAQ_SUCCESS;
-    }
-    catch (const std::exception&)
-    {
-        return OPENDAQ_ERR_CONVERSIONFAILED;
-    }
-}
-
 ErrCode StringImpl::toBool(Bool* val)
 {
     if (str == nullptr || strlen(str) == 0)

@@ -423,14 +423,6 @@ ErrCode EvalValueImpl::toInt(Int* val)
     return getValueInternal<Int>(*val);
 }
 
-ErrCode EvalValueImpl::toEnumType(EnumType* val)
-{
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    return getValueInternal<EnumType>(*val);
-}
-
 ErrCode EvalValueImpl::toBool(Bool* val)
 {
     if (val == nullptr)

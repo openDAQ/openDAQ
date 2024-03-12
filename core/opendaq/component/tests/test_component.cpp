@@ -217,3 +217,12 @@ TEST_F(ComponentTest, StatusContainer)
 
     ASSERT_TRUE(componentStatusContainer.assigned());
 }
+
+TEST_F(ComponentTest, NonPropertyObjectObjectTypeProperty)
+{
+    const auto obj = PropertyObject();
+    const auto component = Component(NullContext(), nullptr, "temp");
+    auto prop = ObjectProperty("Object1", component);
+
+    ASSERT_THROW(obj.addProperty(prop), InvalidTypeException);
+}

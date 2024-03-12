@@ -11,12 +11,12 @@ using namespace daq::native_streaming;
 using namespace packet_streaming;
 
 ServerSessionHandler::ServerSessionHandler(const ContextPtr& daqContext,
-                                           boost::asio::io_context& ioContext,
+                                           const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                                            SessionPtr session,
                                            OnStreamingRequestCallback streamingInitHandler,
                                            OnSignalSubscriptionCallback signalSubscriptionHandler,
                                            OnSessionErrorCallback errorHandler)
-    : BaseSessionHandler(daqContext, session, ioContext, errorHandler, "NativeProtocolServerSessionHandler")
+    : BaseSessionHandler(daqContext, session, ioContextPtr, errorHandler, "NativeProtocolServerSessionHandler")
     , streamingInitHandler(streamingInitHandler)
     , signalSubscriptionHandler(signalSubscriptionHandler)
     , transportLayerPropsHandler(nullptr)

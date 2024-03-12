@@ -29,7 +29,7 @@ class ServerSessionHandler : public BaseSessionHandler
 {
 public:
     ServerSessionHandler(const ContextPtr& daqContext,
-                         boost::asio::io_context& ioContext,
+                         const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                          SessionPtr session,
                          OnStreamingRequestCallback streamingInitHandler,
                          OnSignalSubscriptionCallback signalSubscriptionHandler,

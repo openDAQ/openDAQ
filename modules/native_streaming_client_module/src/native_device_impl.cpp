@@ -20,19 +20,14 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     : processingIOContextPtr(processingIOContextPtr)
     , processingStrand(*(this->processingIOContextPtr))
     , loggerComponent(context.getLogger().getOrAddComponent("NativeDevice"))
-    , transportProtocolClient(transportProtocolClient)
+    , transportClientHandler(transportProtocolClient)
 {
     setupProtocolClients(context);
 }
 
 NativeDeviceHelper::~NativeDeviceHelper()
 {
-    // reset transport protocol handler of received config packets
-    if (transportProtocolClient)
-    {
-        auto receiveConfigPacketCb = [](PacketBuffer&& packet) {};
-        transportProtocolClient->setConfigPacketHandler(receiveConfigPacketCb);
-    }
+    transportClientHandler->resetConfigHandlers();
     processingIOContextPtr->stop();
 }
 
@@ -136,7 +131,8 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
             }));
 
     };
-    transportProtocolClient->setConfigPacketHandler(receiveConfigPacketCb);
+    transportClientHandler->setConfigHandlers(receiveConfigPacketCb,
+                                              [](ClientReconnectionStatus) {});
 }
 
 PacketBuffer NativeDeviceHelper::doConfigRequest(const PacketBuffer& reqPacket)
@@ -145,7 +141,7 @@ PacketBuffer NativeDeviceHelper::doConfigRequest(const PacketBuffer& reqPacket)
     auto reqId = reqPacket.getId();
     replyPackets.insert({reqId, std::promise<PacketBuffer>()});
     std::future<PacketBuffer> future = replyPackets.at(reqId).get_future();
-    transportProtocolClient->sendConfigRequest(reqPacket);
+    transportClientHandler->sendConfigRequest(reqPacket);
 
     if (future.wait_for(requestTimeout) == std::future_status::ready)
     {

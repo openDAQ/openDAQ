@@ -194,13 +194,12 @@ public:
         auto clientHandler = std::make_shared<NativeStreamingClientHandler>(
             client.clientContext, ClientAttributesBase::createTransportLayerConfig());
 
-        clientHandler->setIoContext(client.ioContextPtrClient);
-        clientHandler->setSignalAvailableHandler(signalAvailableHandler);
-        clientHandler->setSignalUnavailableHandler(client.signalUnavailableHandler);
-        clientHandler->setPacketHandler(client.packetHandler);
-        clientHandler->setSignalSubscriptionAckCallback(client.signalSubscriptionAckHandler);
-        clientHandler->setReconnectionStatusChangedCb(client.reconnectionStatusChangedHandler);
-        clientHandler->setStreamingInitDoneCb(client.streamingInitDoneHandler);
+        clientHandler->setStreamingHandlers(signalAvailableHandler,
+                                            client.signalUnavailableHandler,
+                                            client.packetHandler,
+                                            client.signalSubscriptionAckHandler,
+                                            client.reconnectionStatusChangedHandler,
+                                            client.streamingInitDoneHandler);
 
         return clientHandler;
     }

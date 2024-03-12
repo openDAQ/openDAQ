@@ -297,7 +297,7 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
     };
 
     auto sessionHandler = std::make_shared<ServerSessionHandler>(context,
-                                                                 *ioContextPtr.get(),
+                                                                 ioContextPtr,
                                                                  session,
                                                                  streamingInitHandler,
                                                                  signalSubscriptionHandler,

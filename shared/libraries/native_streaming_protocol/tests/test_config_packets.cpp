@@ -93,10 +93,39 @@ class ConfigProtocolAttributes : public ClientAttributesBase
 public:
     std::shared_ptr<TestConfigProtocolInstance> configProtocolHandler;
     ProcessConfigProtocolPacketCb configProtocolPacketHandler;
+    OnReconnectionStatusChangedCallback reconnectionStatusChangedHandler;
+
+    std::promise< ClientReconnectionStatus > reconnectionStatusPromise;
+    std::future< ClientReconnectionStatus > reconnectionStatusFuture;
 
     void setUp()
     {
         ClientAttributesBase::setUp();
+
+        clientHandler = std::make_shared<NativeStreamingClientHandler>(
+            clientContext, ClientAttributesBase::createTransportLayerConfig());
+
+        configProtocolHandler = std::make_shared<TestConfigProtocolInstance>(
+            [this](const PacketBuffer& packetBuffer)
+            {
+                clientHandler->sendConfigRequest(packetBuffer);
+            }
+        );
+
+        configProtocolPacketHandler = [this](PacketBuffer&& packetBuffer)
+        {
+            configProtocolHandler->receivePacket(std::move(packetBuffer));
+        };
+
+        reconnectionStatusPromise = std::promise< ClientReconnectionStatus >();
+        reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+        reconnectionStatusChangedHandler = [this](ClientReconnectionStatus status)
+        {
+            reconnectionStatusPromise.set_value(status);
+        };
+
+        clientHandler->setConfigHandlers(configProtocolPacketHandler,
+                                         reconnectionStatusChangedHandler);
     }
 
     void tearDown()
@@ -144,34 +173,6 @@ public:
         ProtocolTestBase::TearDown();
     }
 
-    std::shared_ptr<NativeStreamingClientHandler> createClient(ConfigProtocolAttributes& client)
-    {
-        auto clientHandler = std::make_shared<NativeStreamingClientHandler>(
-            client.clientContext, ClientAttributesBase::createTransportLayerConfig());
-
-        clientHandler->setIoContext(client.ioContextPtrClient);
-        clientHandler->setSignalAvailableHandler([](const StringPtr&, const StringPtr&){});
-        clientHandler->setSignalUnavailableHandler([](const StringPtr&){});
-        clientHandler->setPacketHandler([](const StringPtr&, const PacketPtr&){});
-        clientHandler->setSignalSubscriptionAckCallback([](const StringPtr&, bool){});
-        clientHandler->setReconnectionStatusChangedCb([](ClientReconnectionStatus){});
-        clientHandler->setStreamingInitDoneCb([](){});
-
-        client.configProtocolHandler = std::make_shared<TestConfigProtocolInstance>(
-            [clientHandler](const PacketBuffer& packetBuffer)
-            {
-                clientHandler->sendConfigRequest(packetBuffer);
-            }
-        );
-        client.configProtocolPacketHandler = [&client](PacketBuffer&& packetBuffer)
-        {
-            (client.configProtocolHandler)->receivePacket(std::move(packetBuffer));
-        };
-        clientHandler->setConfigPacketHandler(client.configProtocolPacketHandler);
-
-        return clientHandler;
-    }
-
     void startServer()
     {
         startIoOperations();
@@ -202,11 +203,38 @@ protected:
     ConfigProtocolAttributes client;
 };
 
+TEST_P(ConfigPacketsTest, Reconnection)
+{
+    startServer();
+
+    ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    ASSERT_EQ(clientConnectedFuture.wait_for(timeout), std::future_status::ready);
+
+    stopServer();
+
+    ASSERT_EQ(client.reconnectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
+    ASSERT_EQ(client.reconnectionStatusFuture.get(), ClientReconnectionStatus::Reconnecting);
+
+    client.reconnectionStatusPromise = std::promise< ClientReconnectionStatus >();
+    client.reconnectionStatusFuture = client.reconnectionStatusPromise.get_future();
+
+    clientConnectedPromise = std::promise< void > ();
+    clientConnectedFuture = clientConnectedPromise.get_future();
+
+    startServer();
+
+    ASSERT_EQ(client.reconnectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
+    ASSERT_EQ(client.reconnectionStatusFuture.get(), ClientReconnectionStatus::Restored);
+    ASSERT_EQ(clientConnectedFuture.wait_for(timeout), std::future_status::ready);
+
+    client.reconnectionStatusPromise = std::promise< ClientReconnectionStatus >();
+    client.reconnectionStatusFuture = client.reconnectionStatusPromise.get_future();
+}
+
 TEST_P(ConfigPacketsTest, ServerToClientPackets)
 {
     startServer();
 
-    client.clientHandler = createClient(client);
     ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
     ASSERT_EQ(clientConnectedFuture.wait_for(timeout), std::future_status::ready);
 
@@ -234,7 +262,6 @@ TEST_P(ConfigPacketsTest, ClientToServerPackets)
 {
     startServer();
 
-    client.clientHandler = createClient(client);
     ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
     ASSERT_EQ(clientConnectedFuture.wait_for(timeout), std::future_status::ready);
 

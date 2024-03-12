@@ -28,7 +28,7 @@ class ClientSessionHandler : public BaseSessionHandler
 {
 public:
     ClientSessionHandler(const ContextPtr& daqContext,
-                         boost::asio::io_context& ioContext,
+                         const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                          SessionPtr session,
                          OnSignalCallback signalReceivedHandler,
                          OnPacketReceivedCallback packetReceivedHandler,

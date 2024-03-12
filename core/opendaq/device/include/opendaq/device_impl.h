@@ -191,6 +191,9 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     devices.asPtr<IComponentPrivate>().lockAllAttributes();
     ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();
 
+    devices.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
+    ioFolder.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
+
     this->addProperty(StringProperty("UserName", ""));
     this->addProperty(StringProperty("Location", ""));
 }

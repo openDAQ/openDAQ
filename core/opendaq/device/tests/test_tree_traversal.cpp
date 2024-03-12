@@ -173,3 +173,17 @@ TEST_F(TreeTraversalTest, InputPorts)
     ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
     ASSERT_EQ(device.getItems(Recursive(InterfaceId(IInputPort::Id))).getCount(), 78u);
 }
+
+TEST_F(TreeTraversalTest, SetActive)
+{
+    auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
+    const auto components = device.getItems(Recursive(Any()));
+
+    device.setActive(false);
+    for (const auto& comp : components)
+        ASSERT_FALSE(comp.getActive());
+    
+    device.setActive(true);
+    for (const auto& comp : components)
+        ASSERT_TRUE(comp.getActive());
+}

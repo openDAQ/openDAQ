@@ -77,7 +77,8 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC getActive(Bool* active) = 0;
 
     /*!
-     * @brief Sets the component to be either active or inactive.
+     * @brief Sets the component to be either active or inactive. Also recursively sets the `active` field
+     * of all child components if component is a folder.
      * @param active The new active state of the component.
      * @retval OPENDAQ_IGNORED if "Active" is part of the component's list of locked attributes,
      * or if the new active value is equal to the previous.

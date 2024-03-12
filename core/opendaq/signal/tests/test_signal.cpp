@@ -323,6 +323,54 @@ TEST_F(SignalTest, SignalDescriptor)
     ASSERT_EQ(signal.getDescriptor(), dataDescriptor);
 }
 
+TEST_F(SignalTest, SignalDescriptorStruct)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    const auto descriptor = DataDescriptorBuilder()
+                                .setName("MyTestStructType")
+                                .setSampleType(SampleType::Struct)
+                                .setStructFields(List<DataDescriptorPtr>(
+                                    DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build(),
+                                    DataDescriptorBuilder().setName("Float64").setSampleType(SampleType::Float64).build(),
+                                    DataDescriptorBuilder()
+                                        .setName("Special1")
+                                        .setSampleType(SampleType::Struct)
+                                        .setStructFields(List<DataDescriptorPtr>(
+                                            DataDescriptorBuilder().setName("NestedInt64").setSampleType(SampleType::Int64).build()))
+                                        .build()))
+                                .build();
+
+    signal.setDescriptor(descriptor);
+
+    ASSERT_EQ(signal.getDescriptor(), descriptor);
+
+    auto fieldNames = List<IString>();
+    auto fieldTypes = List<IType>();
+
+    fieldNames.pushBack("Int32");
+    fieldNames.pushBack("Float64");
+
+    fieldTypes.pushBack(SimpleType(CoreType::ctInt));
+    fieldTypes.pushBack(SimpleType(CoreType::ctFloat));
+
+    auto nestedFieldNames = List<IString>();
+    auto nestedFieldTypes = List<IType>();
+
+    nestedFieldNames.pushBack("NestedInt64");
+    nestedFieldTypes.pushBack(SimpleType(CoreType::ctInt));
+
+    auto nestedStruct = StructType("Special1", nestedFieldNames, nestedFieldTypes);
+
+    fieldNames.pushBack("Special1");
+    fieldTypes.pushBack(nestedStruct);
+
+    const auto type = signal.getContext().getTypeManager().getType("MyTestStructType");
+    const auto realType = StructType("MyTestStructType", fieldNames, fieldTypes);
+
+    ASSERT_EQ(type, realType);
+}
+
 TEST_F(SignalTest, SendNullPacket)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");

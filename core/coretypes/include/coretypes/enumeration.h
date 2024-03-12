@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/common.h>
 #include <coretypes/stringobject.h>
+#include <coretypes/integer.h>
 #include <coretypes/coretype.h>
 #include <coretypes/type_manager.h>
 #include <coretypes/enumeration_type.h>
@@ -74,6 +75,13 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, Enumeration,
     IString*, name,
     IString*, value,
+    ITypeManager*, typeManager
+)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, EnumerationWithIntValue, IEnumeration,
+    IString*, name,
+    IInteger*, value,
     ITypeManager*, typeManager
 )
 

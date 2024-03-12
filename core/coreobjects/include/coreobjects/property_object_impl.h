@@ -39,6 +39,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <coretypes/validation.h>
 #include <coreobjects/core_event_args_factory.h>
+#include <coretypes/enumeration_factory.h>
 #include <coretypes/validation.h>
 #include <coretypes/cloneable.h>
 
@@ -882,7 +883,20 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
         const auto valueCoreType = value.getCoreType();
 
         if (propCoreType != valueCoreType)
-            value = value.convertTo(propCoreType);
+        {
+            if (propCoreType == ctEnumeration)
+            {
+                const EnumerationPtr enumVal = prop.getDefaultValue();
+                if (!enumVal.assigned())
+                    return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Default value of enumeration property {} is not assigned)", prop.getName()));
+
+                const auto type = enumVal.getEnumerationType();
+                const Int intVal= value.convertTo(ctInt);
+                value = EnumerationWithIntValue(type.getName(), intVal, this->manager.getRef());
+            }
+            else
+                value = value.convertTo(propCoreType);
+        }
     }
     catch (const DaqException& e)
     {

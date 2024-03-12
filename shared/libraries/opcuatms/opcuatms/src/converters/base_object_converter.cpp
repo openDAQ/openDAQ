@@ -88,16 +88,17 @@ BaseObjectPtr VariantConverter<IBaseObject>::ToDaqObject(const OpcUaVariant& var
     if (unwrapped.isNull())
         return nullptr;
 
+    const auto typeKind = unwrapped.getValue().type->typeKind;
+    if (typeKind == UA_DATATYPEKIND_ENUM )
+        return VariantConverter<IEnumeration>::ToDaqObject(unwrapped, context);
+
     const auto obj = converters::convertToDaqObject(unwrapped, context);
     if (obj.assigned())
         return obj;
 
-    const auto typeKind = unwrapped.getValue().type->typeKind;
     if (typeKind == UA_DATATYPEKIND_STRUCTURE || typeKind == UA_DATATYPEKIND_OPTSTRUCT)
         return VariantConverter<IStruct>::ToDaqObject(unwrapped, context);
-    //Enumerations are handled generically
-    if (typeKind == UA_DATATYPEKIND_ENUM )
-        return VariantConverter<IEnumeration>::ToDaqObject(unwrapped, context);
+
 
     throw ConversionFailedException();
 }

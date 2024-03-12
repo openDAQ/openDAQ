@@ -48,14 +48,15 @@ EnumerationPtr VariantConverter<IEnumeration>::ToDaqObject(const OpcUaVariant& v
 
 template <>
 OpcUaVariant VariantConverter<IEnumeration>::ToVariant(const EnumerationPtr& object,
-                                                       const UA_DataType* targetType,
-                                                       const ContextPtr& context)
+                                                       const UA_DataType* /*targetType*/,
+                                                       const ContextPtr& /*context*/)
 {
-    const auto DataType = GetUAEnumerationDataTypeByName(object.getEnumerationType().getName());
-    void* data = UA_new(DataType);
+    const auto dataType = GetUAEnumerationDataTypeByName(object.getEnumerationType().getName());
+    assert(dataType->memSize == sizeof(uint32_t));
 
+    const auto intVariant = VariantConverter<IInteger>::ToVariant(object.getIntValue(), &UA_TYPES[UA_TYPES_UINT32]);
     OpcUaVariant variant{};
-    UA_Variant_setScalar(&variant.getValue(), data, DataType);
+    UA_Variant_setScalarCopy(&variant.getValue(), intVariant->data, dataType);
 
     return variant;
 }

@@ -4,7 +4,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 EnumerationImpl::EnumerationImpl(const StringPtr& name,
-                                 const StringPtr& value,
+                                 const BaseObjectPtr& value,
                                  const TypeManagerPtr& typeManager)
 {
     if (!typeManager.assigned())
@@ -13,19 +13,37 @@ EnumerationImpl::EnumerationImpl(const StringPtr& name,
     if (!typeManager.hasType(name))
         throw InvalidParameterException("Enumeration type {} is not registered in TypeManager.", name.toStdString());
 
-    if (!value.assigned() || value.toStdString().empty())
+    if (!value.assigned())
         throw InvalidParameterException("Enumeration object value is not assigned.");
+    
+    if (const auto strValue = value.asPtrOrNull<IString>(); strValue.assigned())
+    {
+        if (strValue.toStdString().empty())
+            throw InvalidParameterException("Enumeration object value is not assigned.");
 
-    this->enumerationType = typeManager.getType(name);
-    if (!this->enumerationType.getAsDictionary().hasKey(value))
-        throw InvalidParameterException(
-            fmt::format(R"(Enumeration value "{}" is not part of the Enumeration type "{}")",
-                        value.toStdString(),
-                        name.toStdString()
-            )
-        );
+        this->enumerationType = typeManager.getType(name);
+        if (!this->enumerationType.getAsDictionary().hasKey(strValue))
+            throw InvalidParameterException(
+                fmt::format(R"(Enumeration value "{}" is not part of the Enumeration type "{}")",
+                            strValue.toStdString(),
+                            name.toStdString()
+                )
+            );
 
-    this->value = value;
+        this->value = value;
+    }
+    else if (const auto intValue = value.asPtrOrNull<IInteger>(); intValue.assigned())
+    {
+        this->enumerationType = typeManager.getType(name);
+        for (const auto& fieldName: this->enumerationType.getEnumeratorNames())
+            if (this->enumerationType.getEnumeratorIntValue(fieldName) == intValue)
+            {
+                this->value = fieldName;
+                break;
+            }
+    }
+    else
+        throw InvalidParameterException{"Enumeration value must be a string or integer."};
 }
 
 EnumerationImpl::EnumerationImpl(const EnumerationTypePtr& type, const StringPtr& value)
@@ -206,12 +224,27 @@ ErrCode EnumerationImpl::Deserialize(ISerializedObject* ser, IBaseObject* contex
     return OPENDAQ_SUCCESS;
 }
 
-OPENDAQ_DEFINE_CLASS_FACTORY(
-    LIBRARY_FACTORY, Enumeration,
-    IString*, name,
-    IString*, value,
-    ITypeManager*, typeManager
-)
+#if !defined(BUILDING_STATIC_LIBRARY)
+
+extern "C"
+ErrCode PUBLIC_EXPORT createEnumeration(IEnumeration** objTmp,
+                                        IString* name,
+                                        IString* value,
+                                        ITypeManager* typeManager)
+{
+    return createObject<IEnumeration, EnumerationImpl, IString*, IString*, ITypeManager*>(objTmp, name, value, typeManager);
+}
+
+extern "C"
+ErrCode PUBLIC_EXPORT createEnumerationWithIntValue(IEnumeration** objTmp,
+                                              IString* name,
+                                              IInteger* value,
+                                              ITypeManager* typeManager)
+{
+    return createObject<IEnumeration, EnumerationImpl, IString*, IInteger*, ITypeManager*>(objTmp, name, value, typeManager);
+}
+
+#endif
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, Enumeration,

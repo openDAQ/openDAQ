@@ -1814,3 +1814,67 @@ TEST_F(MultiReaderTest, StartOnFullUnitOfDomain)
     ASSERT_THAT(time[1], ElementsAreArray(time[0]));
     ASSERT_THAT(time[2], ElementsAreArray(time[0]));
 }
+
+TEST_F(MultiReaderTest, SampleRateDivider)
+{ 
+    constexpr const auto NUM_SIGNALS = 3;
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(3);
+
+    std::array<std::int32_t, NUM_SIGNALS> dividers = { 1, 2, 5 };
+
+    auto& sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00", nullptr, LinearDataRule(dividers[0], 0)));     // 1000 Hz
+    auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", nullptr, LinearDataRule(dividers[1], 0)));     // 500 Hz
+    auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.125+00:00", nullptr, LinearDataRule(dividers[2], 0))); // 200 Hz
+
+    auto multi = MultiReader(signalsToList());
+    auto available = multi.getAvailableCount();
+    
+    ASSERT_EQ(available, 0u);
+
+    for (Int i = 0; i < 5; i++)
+    {
+        sig0.createAndSendPacket(i);
+        sig1.createAndSendPacket(i);
+        sig2.createAndSendPacket(i);
+    }
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 1480u);
+
+    constexpr const SizeT SAMPLES = 52u;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+
+    SizeT count{SAMPLES};
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    ASSERT_EQ(count, SAMPLES - 2);
+
+    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};
+    printData<std::chrono::microseconds>(SAMPLES, time, values, domain);
+
+    std::array<ClockTick, NUM_SIGNALS> lastTimeStamp;
+
+    for (SizeT i = 0; i < dividers.size(); i++)
+    {
+        const SizeT numberOfSamples = count / dividers[i];
+
+        ASSERT_EQ(time[i][0], time[0][0]);
+        lastTimeStamp[i] = domain[i][numberOfSamples - 1];
+
+        for (SizeT j = 1; j < numberOfSamples; j++)
+            ASSERT_EQ(domain[i][j] - domain[i][j - 1], dividers[i]);
+    }
+
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+    
+    for (SizeT i = 0; i < dividers.size(); i++)
+    {
+        ASSERT_EQ(domain[i][0] - lastTimeStamp[i], dividers[i]);
+    }
+}

@@ -43,6 +43,9 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
         portBinder = PropertyObject();
         connectPorts(list, valueReadType, domainReadType, mode);
     }
+	
+	updateCommonSampleRateAndDividers();
+	
     SizeT min{};
     SyncStatus syncStatus{};
     ErrCode errCode = synchronize(min, syncStatus);
@@ -61,6 +64,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
     startOnFullUnitOfDomain = old->startOnFullUnitOfDomain;
 
     CheckPreconditions(old->getSignals());
+    commonSampleRate = old->commonSampleRate;
 
     this->internalAddRef();
     auto listener = this->thisPtr<InputPortNotificationsPtr>();
@@ -69,6 +73,8 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
     {
         signals.emplace_back(signal, listener, valueReadType, domainReadType);
     }
+
+    updateCommonSampleRateAndDividers();
 }
 
 MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -94,11 +100,20 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
     auto listener = this->thisPtr<InputPortNotificationsPtr>();
 
     auto ports = readerConfig.getInputPorts();
+
+    ListPtr<ISignal> signalList = List<ISignal>();
+    for (const auto& port : ports)
+        signalList.pushBack(port.getSignal());
+
+    CheckPreconditions(signalList);
+  
     for (const auto& port : ports)
     {
         sigInfo.port = port;
         signals.emplace_back(sigInfo, listener, valueReadType, domainReadType);
     }
+
+    updateCommonSampleRateAndDividers();
 }
 
 MultiReaderImpl::~MultiReaderImpl()
@@ -180,24 +195,25 @@ static void checkSameDomain(const ListPtr<ISignal>& list)
     }
 }
 
-static void checkSameSampleRate(const ListPtr<ISignal>& list)
+void MultiReaderImpl::updateCommonSampleRateAndDividers()
 {
-    std::int64_t sampleRate = -1;
+    commonSampleRate = 1;
 
-    for (const auto& signal : list)
+    for (const auto& signal : signals)
     {
-        auto domain = signal.getDomainSignal();
+        commonSampleRate = std::lcm<std::int64_t>(signal.sampleRate, commonSampleRate);
+    }
 
-        auto dataDescriptor = domain.getDescriptor();
-        int64_t signalSampleRate = reader::getSampleRate(dataDescriptor);
-        if (sampleRate == -1)
-        {
-            sampleRate = signalSampleRate;
-        }
-        else if (sampleRate != signalSampleRate)
-        {
-            throw InvalidStateException("Signal sample-rate must match");
-        }
+    for (auto& signal : signals)
+    {
+        signal.setCommonSampleRate(commonSampleRate);
+    }
+
+    sampleRateDividerLcm = 1;
+
+    for (const auto& signal : signals)
+    {
+        sampleRateDividerLcm = std::lcm(signal.sampleRateDivider, sampleRateDividerLcm);
     }
 }
 
@@ -241,7 +257,6 @@ bool MultiReaderImpl::CheckPreconditions(const ListPtr<IBaseObject>& list)
     }
 
     checkSameDomain(signals);
-    checkSameSampleRate(signals);
     return isSignal;
 }
 
@@ -421,6 +436,8 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
         ? min
         : 0;
 
+    *count = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -434,7 +451,7 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IRea
     if (invalid)
         return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, errorMessage, nullptr);
 
-    SizeT samplesToRead = *count;
+    SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
     prepare((void**)samples, samplesToRead, milliseconds(timeoutMs));
 
     ErrCode errCode = readPackets();
@@ -455,7 +472,7 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
     if (invalid)
         return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, errorMessage, nullptr);
 
-    SizeT samplesToRead = *count;
+    SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
     prepareWithDomain((void**)samples, (void**)domain, samplesToRead, milliseconds(timeoutMs));
 
     ErrCode errCode = readPackets();
@@ -724,8 +741,10 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
             if (signal.assigned())
                 signalList.pushBack(signal);
         }
+
         checkSameDomain(signalList);
-        checkSameSampleRate(signalList);
+
+        updateCommonSampleRateAndDividers();
 
         SizeT min{};
         SyncStatus syncStatus{};
@@ -785,11 +804,13 @@ void MultiReaderImpl::prepare(void** outValues, SizeT count, std::chrono::millis
     timeout = std::chrono::duration_cast<Duration>(timeoutTime);
     startTime = std::chrono::steady_clock::now();
 
+    const SizeT alignedCount = (count / sampleRateDividerLcm) * sampleRateDividerLcm;
+
     const auto signalsNum = signals.size();
     for (SizeT i = 0u; i < signalsNum; ++i)
     {
         const auto outPtr = outValues != nullptr ? outValues[i] : nullptr;
-        signals[i].prepare(outPtr, count, timeoutTime);
+        signals[i].prepare(outPtr, alignedCount, timeoutTime);
     }
 }
 
@@ -803,10 +824,12 @@ void MultiReaderImpl::prepareWithDomain(void** outValues, void** domain, SizeT c
     timeout = std::chrono::duration_cast<Duration>(timeoutTime);
     startTime = std::chrono::steady_clock::now();
 
+    const SizeT alignedCount = (count / sampleRateDividerLcm) * sampleRateDividerLcm;
+
     auto signalsNum = signals.size();
     for (SizeT i = 0u; i < signalsNum; ++i)
     {
-        signals[i].prepareWithDomain(outValues[i], domain[i], count, timeoutTime);
+        signals[i].prepareWithDomain(outValues[i], domain[i], alignedCount, timeoutTime);
     }
 }
 
@@ -820,7 +843,7 @@ void MultiReaderImpl::readSamples(SizeT samples)
     auto signalsNum = signals.size();
     for (SizeT i = 0u; i < signalsNum; ++i)
     {
-        signals[i].info.remainingToRead = samples;
+        signals[i].info.remainingToRead = samples / signals[i].sampleRateDivider;
         signals[i].readPackets();
     }
 
@@ -856,6 +879,12 @@ void MultiReaderImpl::readDomainStart()
     {
         commonStart->roundUpOnUnitOfDomain();
         LOG_T("Rounded DomainStart: {}", *commonStart);
+    }
+    else
+    {
+        const RatioPtr interval = Ratio(sampleRateDividerLcm, commonSampleRate).simplify();
+        commonStart->roundUpOnDomainInterval(interval);
+        LOG_T("Aligned DomainStart: {}", *commonStart);
     }
 }
 

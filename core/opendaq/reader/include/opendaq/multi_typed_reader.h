@@ -68,6 +68,8 @@ public:
 
     virtual void roundUpOnUnitOfDomain() = 0;
 
+    virtual void roundUpOnDomainInterval(const RatioPtr interval) = 0;
+
 #if !defined(NDEBUG)
     virtual std::string asTime() const = 0;
 #endif
@@ -148,6 +150,18 @@ public:
         value = (((value * num + den - 1) / den) * den) / num;
     }
 
+    void roundUpOnDomainInterval(const RatioPtr interval) override
+    {
+        const auto den = info.resolution.getDenominator() * info.multiplier.getNumerator() * interval.getNumerator();
+        const auto num = info.resolution.getNumerator() * info.multiplier.getDenominator() * interval.getDenominator();
+
+        if (den % num != 0)
+            throw NotSupportedException("Resolution must be aligned on full unit of domain");
+
+        value = (((value * num + den - 1) / den) * den) / num;
+    }
+
+
 
 
     void print(std::ostream& os) const override
@@ -222,8 +236,12 @@ public:
     void roundUpOnUnitOfDomain() override
     {
         throw NotSupportedException();
-    };
+    }
 
+    void roundUpOnDomainInterval(const RatioPtr interval) override
+    {
+        throw NotSupportedException();
+    }
 
     void print(std::ostream& os) const override
     {
@@ -266,7 +284,12 @@ public:
     void roundUpOnUnitOfDomain() override
     {
         throw NotSupportedException();
-    };
+    }
+
+    void roundUpOnDomainInterval(const RatioPtr interval) override
+    {
+        throw NotSupportedException();
+    }
 
     void print(std::ostream& os) const override
     {
@@ -321,7 +344,12 @@ public:
     void roundUpOnUnitOfDomain() override
     {
         throw NotSupportedException();
-    };
+    }
+
+    void roundUpOnDomainInterval(const RatioPtr interval) override
+    {
+        throw NotSupportedException();
+    }
 
 
     virtual void print(std::ostream& os) const override

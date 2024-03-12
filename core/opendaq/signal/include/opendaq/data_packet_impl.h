@@ -423,7 +423,7 @@ inline StructPtr DataPacketImpl<TInterface>::buildStructFromPacket(void*& addr,
 {
     const StructTypePtr structType = createTypeFromDescriptor(descriptor);
     typeManager.addType(structType);
-    auto builder = StructBuilder(structType.getName(), typeManager);
+    const auto builder = StructBuilder(structType.getName(), typeManager);
 
     const auto fields = descriptor.getStructFields();
     const auto fieldNames = structType.getFieldNames();

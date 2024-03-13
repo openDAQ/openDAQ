@@ -77,7 +77,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     auto connectionString = builderPtr.getRootDevice();
     if (connectionString.assigned() && connectionString.getLength())
     {
-        rootDevice = detail::createDevice(connectionString, nullptr, nullptr, moduleManager, loggerComponent, nullptr);
+        rootDevice = moduleManager.getDevice(connectionString, nullptr, nullptr, loggerComponent);
         const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
         if (devicePrivate.assigned())
             devicePrivate->setAsRoot();
@@ -287,7 +287,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     if (!servers.empty())
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
-    const auto newRootDevice = detail::createDevice(connectionStringPtr, config, nullptr, moduleManager, loggerComponent, nullptr);
+    const auto newRootDevice =  moduleManager.getDevice(connectionString, nullptr, nullptr, loggerComponent);
 
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;

@@ -190,6 +190,11 @@ ErrCode ModuleManagerImpl::getDevice(IString* connectionString, IPropertyObject*
     
     if (connectionStringPtr.toStdString().find("daq://") == 0)
     {
+        if (!availableDevicesGroup.assigned())
+        {
+            getAvailableDevices(&ListPtr<IDeviceInfo>());
+        }
+        
         if (availableDevicesGroup.hasKey(connectionStringPtr))
             deviceInfo = availableDevicesGroup.get(connectionStringPtr);
         
@@ -210,7 +215,7 @@ ErrCode ModuleManagerImpl::getDevice(IString* connectionString, IPropertyObject*
                 internalServerCapability = capability;
         }
     } 
-    else
+    else if (availableDevicesGroup.assigned())
     {
         for (const auto & [_, info] : availableDevicesGroup)
         {

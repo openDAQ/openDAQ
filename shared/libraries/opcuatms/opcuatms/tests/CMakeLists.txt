@@ -7,7 +7,6 @@ set(TEST_SOURCES test_core_types_utils.cpp
                  test_variant_list_converter.cpp
                  test_extension_object.cpp
                  test_generic_struct_converter.cpp
-                 #TODO: test_generic_enum_converter
                  test_property_object_conversion_utils.cpp
 )
 

@@ -48,18 +48,22 @@ void defineIEnumeration(pybind11::module_ m, PyDaqIntf<daq::IEnumeration, daq::I
         },
         py::return_value_policy::take_ownership,
         "Gets the Enumeration's type.");
-    cls.def_property_readonly("value",
+    cls.def_property_readonly("name",
         [](daq::IEnumeration *object)
         {
             const auto objectPtr = daq::EnumerationPtr::Borrow(object);
             return objectPtr.getValue().toStdString();
         },
         "Gets the Enumeration value as String containing the name of the enumerator constant.");
-    cls.def_property_readonly("int_value",
+    cls.def_property_readonly("value",
         [](daq::IEnumeration *object)
         {
             const auto objectPtr = daq::EnumerationPtr::Borrow(object);
             return objectPtr.getIntValue();
         },
         "Gets the Enumeration value as Integer enumerator constant.");
+    cls.def("__str__", [](daq::IEnumeration *object) { 
+        const auto objectPtr = daq::EnumerationPtr::Borrow(object);
+        return baseObjectToPyObject(objectPtr.getEnumerationType().getName() + "." + objectPtr.getValue());
+    });
 }

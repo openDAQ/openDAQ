@@ -40,8 +40,8 @@ public:
     const SessionPtr getSession() const;
     void sendConfigurationPacket(const config_protocol::PacketBuffer& packet);
 
-    void setConfigPacketReceivedHandler(const ConfigProtocolPacketCb& configPacketReceivedHandler);
-    void startHeartbeat(Int period, Int timeout);
+    void setConfigPacketReceivedHandler(const ProcessConfigProtocolPacketCb& configPacketReceivedHandler);
+    void startConnectionActivityMonitoring(Int period, Int timeout);
 
 protected:
     virtual daq::native_streaming::ReadTask readHeader(const void* data, size_t size);
@@ -68,10 +68,10 @@ protected:
     static std::string getStringFromData(const void *source, size_t stringSize, size_t sourceOffset, size_t sourceSize);
 
     SessionPtr session;
-    ConfigProtocolPacketCb configPacketReceivedHandler;
+    ProcessConfigProtocolPacketCb configPacketReceivedHandler;
     native_streaming::OnSessionErrorCallback errorHandler;
-    std::shared_ptr<boost::asio::steady_timer> heartbeatTimer;
+    std::shared_ptr<boost::asio::steady_timer> connectionInactivityTimer;
     LoggerComponentPtr loggerComponent;
-    bool heartbeatStarted{false};
+    bool connectionActivityMonitoringStarted{false};
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

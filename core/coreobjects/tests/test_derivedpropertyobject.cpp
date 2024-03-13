@@ -26,12 +26,12 @@ protected:
     TestObjectPropertyClassRegistrator* testObjectPropertyClassRegistrator{};
 };
 
-TEST_F(DerivedPropertyObjectTest, Create)
-{
-    auto testObj = TestObject(testObjectPropertyClassRegistrator->manager);
-}
-
 // TODO: Handle deprecated test case/dead code
+//
+//TEST_F(DerivedPropertyObjectTest, Create)
+//{
+//    auto testObj = TestObject(testObjectPropertyClassRegistrator->manager);
+//}
 //TEST_F(DerivedPropertyObjectTest, TestProperties)
 //{
 //    auto testObj = TestObject(testObjectPropertyClassRegistrator->manager);

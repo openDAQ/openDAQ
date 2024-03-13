@@ -14,13 +14,13 @@ ClientSessionHandler::ClientSessionHandler(const ContextPtr& daqContext,
                                            SessionPtr session,
                                            OnSignalCallback signalReceivedHandler,
                                            OnPacketReceivedCallback packetReceivedHandler,
-                                           OnProtocolInitDoneCallback protocolInitDoneHandler,
+                                           OnStreamingInitDoneCallback protocolInitDoneHandler,
                                            OnSubscriptionAckCallback subscriptionAckHandler,
                                            OnSessionErrorCallback errorHandler)
     : BaseSessionHandler(daqContext, session, ioContext, errorHandler, "NativeProtocolClientSessionHandler")
     , signalReceivedHandler(signalReceivedHandler)
     , packetReceivedHandler(packetReceivedHandler)
-    , protocolInitDoneHandler(protocolInitDoneHandler)
+    , streamingInitDoneHandler(protocolInitDoneHandler)
     , subscriptionAckHandler(subscriptionAckHandler)
 {
 }
@@ -75,6 +75,15 @@ void ClientSessionHandler::sendTransportLayerProperties(const PropertyObjectPtr&
     size_t payloadSize = calculatePayloadSize(tasks);
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_TRANSPORT_LAYER_PROPERTIES, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
+
+    session->scheduleWrite(tasks);
+}
+
+void ClientSessionHandler::sendStreamingRequest()
+{
+    std::vector<WriteTask> tasks;
+
+    tasks.push_back(createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST, 0));
 
     session->scheduleWrite(tasks);
 }
@@ -310,7 +319,7 @@ ReadTask ClientSessionHandler::readHeader(const void* data, size_t size)
     }
     else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_DONE)
     {
-        protocolInitDoneHandler();
+        streamingInitDoneHandler();
         return createReadHeaderTask();
     }
     else if (payloadType == PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_SUBSCRIBE_ACK)

@@ -62,6 +62,8 @@ add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${MODULE_NAME})
 
 if (MSVC)
     target_compile_options(${MODULE_NAME} PRIVATE /bigobj)
+elseif (MINGW AND CMAKE_COMPILER_IS_GNUCXX)
+    target_compile_options(${MODULE_NAME} PRIVATE -Wa,-mbig-obj)
 endif()
 
 target_include_directories(${MODULE_NAME} PUBLIC 

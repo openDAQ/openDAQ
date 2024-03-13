@@ -190,6 +190,9 @@ void TmsClientDeviceImpl::fetchTimeDomain()
     UA_DeviceDomainStructure* deviceDomain;
     deviceDomain = (UA_DeviceDomainStructure*) variant.getValue().data;
 
+    if (deviceDomain == nullptr)
+        throw OpcUaException(UA_STATUSCODE_BADNOTREADABLE, "deviceDomain is not initialized");
+
     auto numerator = deviceDomain->resolution.numerator;
     auto denominator = deviceDomain->resolution.denominator;
     if (denominator == 0)

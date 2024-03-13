@@ -192,6 +192,7 @@ public:
 
         const auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "fb");
         addNestedFunctionBlock(fb);
+        onSetDeviceInfo();
     }
 };
 

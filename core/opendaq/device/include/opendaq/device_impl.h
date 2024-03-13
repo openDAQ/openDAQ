@@ -198,6 +198,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onSetDeviceInfo()
 {
+    deviceInfo.freeze();
 }
 
 template <typename TInterface, typename... Interfaces>

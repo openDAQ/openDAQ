@@ -24,12 +24,13 @@ public:
         auto parentFolder = this->addFolder("Folder1");
         this->addFolder("Folder2", parentFolder);
         this->addComponent("Component1");
+        onSetDeviceInfo();
     }
 
-    daq::DeviceInfoPtr onGetInfo() override
+    void onSetDeviceInfo() override
     {
-        auto devInfo = daq::DeviceInfo("conn");
-        return devInfo;
+        deviceInfo = daq::DeviceInfo("conn");
+        deviceInfo.freeze();
     }
 };
 

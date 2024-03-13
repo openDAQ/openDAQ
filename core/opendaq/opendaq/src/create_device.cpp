@@ -1,5 +1,6 @@
 #include <opendaq/create_device.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/device_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -33,7 +34,8 @@ DevicePtr createDevice(const StringPtr& connectionString,
 
         if (accepted)
         {
-            auto device = module.createDevice(connectionString, parent, config, deviceInfo);
+            auto device = module.createDevice(connectionString, parent, config);
+            device.asPtr<IDevicePrivate>()->setDeviceInfo(deviceInfo);
             return device;
         }
     }

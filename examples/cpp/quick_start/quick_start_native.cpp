@@ -13,10 +13,13 @@ int main(int /*argc*/, const char* /*argv*/[])
     daq::DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        if (deviceInfo.getConnectionString().toStdString().find("daq.nsd://") != std::string::npos)
+        for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            device = instance.addDevice(deviceInfo.getConnectionString());
-            break;
+            if (capability.getProtocolType() == "Structure&Streaming" && capability.getProtocolName() == "openDAQ Native Streaming")
+            {
+                device = instance.addDevice(capability.getConnectionString());
+                break;
+            }
         }
     }
 

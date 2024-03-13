@@ -60,8 +60,7 @@ DictPtr<IString, IDeviceType> OpcUaClientModule::onGetAvailableDeviceTypes()
 
 DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                                             const ComponentPtr& parent,
-                                            const PropertyObjectPtr& config,
-                                            const DeviceInfoPtr& /*deviceInfo*/)
+                                            const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned())
         throw ArgumentNullException();

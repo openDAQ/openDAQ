@@ -68,8 +68,7 @@ DictPtr<IString, IDeviceType> AudioDeviceModule::onGetAvailableDeviceTypes()
 
 DevicePtr AudioDeviceModule::onCreateDevice(const StringPtr& connectionString,
                                             const ComponentPtr& parent,
-                                            const PropertyObjectPtr& /*config*/,
-                                            const DeviceInfoPtr& /*deviceInfo*/)
+                                            const PropertyObjectPtr& /*config*/)
 {
     auto id = AudioDeviceImpl::getIdFromConnectionString(connectionString);
 

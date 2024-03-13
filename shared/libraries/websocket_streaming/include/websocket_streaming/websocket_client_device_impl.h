@@ -31,7 +31,7 @@ public:
                                        const StringPtr& connectionString);
 
 protected:
-    DeviceInfoPtr onGetInfo() override;
+    void onSetDeviceInfo() override;
     void createWebsocketStreaming();
     void activateStreaming();
     void updateSignalProperties(const SignalPtr& signal, const SubscribedSignalInfo& sInfo);
@@ -40,7 +40,6 @@ protected:
     void onDomainDescriptor(const StringPtr& signalId, const DataDescriptorPtr& domainDescriptor);
     void createDeviceSignals(const std::vector<std::string>& signalIds);
 
-    DeviceInfoConfigPtr deviceInfo;
     std::map<StringPtr, SignalPtr> deviceSignals;
     StreamingPtr websocketStreaming;
     StringPtr connectionString;

@@ -19,6 +19,7 @@
 #include <opendaq/context_ptr.h>
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
+#include <opendaq/device_info_ptr.h>
 #include <coretypes/string_ptr.h>
 #include <vector>
 
@@ -35,6 +36,8 @@ public:
     ErrCode INTERFACE_FUNC getModules(IList** availableModules) override;
     ErrCode INTERFACE_FUNC addModule(IModule* module) override;
     ErrCode INTERFACE_FUNC loadModules(IContext* context) override;
+    ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
+    ErrCode INTERFACE_FUNC getDevice(IString* connectionString, IPropertyObject* config, IComponent* parent, ILoggerComponent* logger, IDevice** device) override;
 
 private:
     bool modulesLoaded;
@@ -42,6 +45,7 @@ private:
     std::vector<ModuleLibrary> libraries;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+    DictPtr<IString, IDeviceInfo> availableDevicesGroup;
 };
 
 END_NAMESPACE_OPENDAQ

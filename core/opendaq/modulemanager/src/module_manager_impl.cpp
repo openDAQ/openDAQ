@@ -1,11 +1,16 @@
 #include <opendaq/module_manager_impl.h>
+#include <opendaq/module_manager_ptr.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/module_manager_exceptions.h>
 #include <opendaq/module_library.h>
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <opendaq/orphaned_modules.h>
+#include <opendaq/device_info_config_ptr.h>
+#include <coretypes/validation.h>
+#include <opendaq/device_private.h>
 #include <string>
+#include <future>
 #include <boost/algorithm/string/predicate.hpp>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -92,6 +97,178 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         modulesLoaded = true;
         return OPENDAQ_SUCCESS;
     });
+}
+
+ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
+{
+    OPENDAQ_PARAM_NOT_NULL(availableDevices);
+
+    using AsyncEnumerationResult = std::future<ListPtr<IDeviceInfo>>;
+    std::vector<std::pair<AsyncEnumerationResult, ModulePtr>> enumerationResults;
+
+    for (const auto module : this->borrowPtr<ModuleManagerPtr>().getModules())
+    {
+        try
+        {
+            // Parallelize the process of each module enumerating/discovering available devices,
+            // as it may be time-consuming
+            AsyncEnumerationResult deviceListFuture =
+                std::async([module = module]()
+                           {
+                               return module.getAvailableDevices();
+                           });
+            enumerationResults.push_back(std::make_pair(std::move(deviceListFuture), module));
+        }
+        catch (const std::exception& e)
+        {
+            LOG_E("Failed to run device enumeration asynchronously within the module: {}. Result {}",
+                  module.getName(), e.what())
+        }
+    }
+
+    auto groupedDevices = Dict<IString, IDeviceInfo>();
+    for (auto& enumerationResult : enumerationResults)
+    {
+        ListPtr<IDeviceInfo> moduleAvailableDevices;
+        auto module = enumerationResult.second;
+        try
+        {
+            moduleAvailableDevices = enumerationResult.first.get();
+        }
+        catch (NotImplementedException&)
+        {
+            LOG_I("{}: GetAvailableDevices not implemented", module.getName())
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("{}: GetAvailableDevices failed: {}", module.getName(), e.what())
+        }
+
+        if (!moduleAvailableDevices.assigned())
+            continue;
+
+        for (const auto& deviceInfo : moduleAvailableDevices)
+        {
+            StringPtr id = deviceInfo.getConnectionString();
+            if (groupedDevices.hasKey(id))
+            {
+                DeviceInfoPtr value = groupedDevices.get(id);
+                for (const auto & capability : deviceInfo.getServerCapabilities())
+                    value.asPtr<IDeviceInfoConfig>().addServerCapability(capability);
+            }
+            else
+            {
+                groupedDevices.set(id, deviceInfo);
+            }
+        }
+    }
+
+    auto availableDevicesList = List<IDeviceInfo>();
+    for (const auto & [_, deviceInfo] : groupedDevices)
+        availableDevicesList.pushBack(deviceInfo);
+
+    *availableDevices = availableDevicesList.detach();
+
+    availableDevicesGroup = groupedDevices;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::getDevice(IString* connectionString, IPropertyObject* config, IComponent* parent, ILoggerComponent* logger, IDevice** device)
+{
+    OPENDAQ_PARAM_NOT_NULL(connectionString);
+    OPENDAQ_PARAM_NOT_NULL(device);
+    *device = nullptr;
+
+    auto loggerComponent = LoggerComponentPtr::Borrow(logger);
+
+    auto connectionStringPtr = StringPtr::Borrow(connectionString);
+    if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
+        return OPENDAQ_SUCCESS;
+
+    DeviceInfoPtr deviceInfo;
+    ServerCapabilityPtr internalServerCapability;
+    
+    if (connectionStringPtr.toStdString().find("daq://") == 0)
+    {
+        if (availableDevicesGroup.hasKey(connectionStringPtr))
+            deviceInfo = availableDevicesGroup.get(connectionStringPtr);
+        
+        if (!deviceInfo.assigned())
+        {
+            throw NotFoundException(fmt::format("Device with connection string \"{}\" not found", connectionStringPtr));
+        }
+
+        if (deviceInfo.getServerCapabilities().getCount() == 0)
+        {
+            throw NotFoundException(fmt::format("Device with connection string \"{}\" has no availble server capabilites", connectionStringPtr));
+        }
+
+        internalServerCapability = deviceInfo.getServerCapabilities()[0];
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolType().getIntValue() < internalServerCapability.getProtocolType().getIntValue())
+                internalServerCapability = capability;
+        }
+    } 
+    else
+    {
+        for (const auto & [_, info] : availableDevicesGroup)
+        {
+            if (info.getServerCapabilities().getCount() == 0)
+            {
+                if (info.getConnectionString() == connectionStringPtr)
+                {
+                    deviceInfo = info;
+                    break;
+                }
+            }
+            else
+            {
+                for(const auto & capability : info.getServerCapabilities())
+                {
+                    if (capability.getConnectionString() == connectionStringPtr)
+                    {
+                        internalServerCapability = capability;
+                        deviceInfo = info;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if (internalServerCapability.assigned())
+        connectionStringPtr = internalServerCapability.getConnectionString();
+    
+    for (const auto module : this->borrowPtr<ModuleManagerPtr>().getModules())
+    {
+        bool accepted{};
+        try
+        {
+            accepted = module.acceptsConnectionParameters(connectionStringPtr, config);
+        }
+        catch (NotImplementedException&)
+        {
+            if (loggerComponent.assigned())
+                LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
+            accepted = false;
+        }
+        catch (const std::exception& e)
+        {
+            if (loggerComponent.assigned())
+                LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
+            accepted = false;
+        }
+
+        if (accepted)
+        {
+            auto createdDevice = module.createDevice(connectionStringPtr, parent, config);
+            createdDevice.asPtr<IDevicePrivate>()->setDeviceInfo(deviceInfo);
+            *device = createdDevice.detach();
+            return OPENDAQ_SUCCESS;
+        }
+    }
+    throw NotFoundException("Device with given uid is not available.");
 }
 
 std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComponent, std::string searchFolder, IContext* context)

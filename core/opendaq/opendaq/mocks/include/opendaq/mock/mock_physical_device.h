@@ -28,8 +28,8 @@ class MockPhysicalDeviceImpl : public Device
 public:
     MockPhysicalDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~MockPhysicalDeviceImpl();
-     
-    daq::DeviceInfoPtr onGetInfo() override;
+
+    void onSetDeviceInfo() override;
     daq::RatioPtr onGetResolution() override;
     uint64_t onGetTicksSinceOrigin() override;
     std::string onGetOrigin() override;

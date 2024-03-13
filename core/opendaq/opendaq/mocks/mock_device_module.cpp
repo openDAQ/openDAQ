@@ -67,8 +67,7 @@ ErrCode MockDeviceModuleImpl::acceptsConnectionParameters(Bool* accepted, IStrin
 ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
                                            IString* connectionString,
                                            IComponent* parent,
-                                           IPropertyObject* /*config*/,
-                                           IDeviceInfo* /*deviceInfo*/)
+                                           IPropertyObject* /*config*/)
 {
     StringPtr connStr = connectionString;
     if (connStr == "daq_client_device")

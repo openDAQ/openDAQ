@@ -31,6 +31,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const ContextPtr& ctx, const ComponentPt
     enableCANChannel();
     updateAcqLoopTime();
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
+    onSetDeviceInfo();
 }
 
 RefDeviceImpl::~RefDeviceImpl()
@@ -62,9 +63,14 @@ DeviceTypePtr RefDeviceImpl::CreateType()
                       "Reference device");
 }
 
-DeviceInfoPtr RefDeviceImpl::onGetInfo()
+void RefDeviceImpl::onSetDeviceInfo()
 {
-    return RefDeviceImpl::CreateDeviceInfo(id);
+    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(fmt::format("daqref://device{}", id));
+    deviceInfo.asPtr<IDeviceInfoConfig>().setName(fmt::format("Device {}", id));
+    deviceInfo.asPtr<IDeviceInfoConfig>().setModel("Reference Device");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setSerialNumber(fmt::format("dev_ser_{}", id));
+    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(CreateType());
+    deviceInfo.freeze();
 }
 
 RatioPtr RefDeviceImpl::onGetResolution()

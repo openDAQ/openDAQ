@@ -28,6 +28,7 @@ AudioDeviceImpl::AudioDeviceImpl(const std::shared_ptr<MiniaudioContext>& maCont
     createAudioChannel();
 
     start();
+    onSetDeviceInfo();
 }
 
 AudioDeviceImpl::~AudioDeviceImpl()
@@ -44,7 +45,7 @@ DeviceInfoPtr AudioDeviceImpl::CreateDeviceInfo(const std::shared_ptr<MiniaudioC
     return devInfo;
 }
 
-DeviceInfoPtr AudioDeviceImpl::onGetInfo()
+void AudioDeviceImpl::onSetDeviceInfo()
 {
     ma_result result;
     ma_device_info info;
@@ -53,7 +54,11 @@ DeviceInfoPtr AudioDeviceImpl::onGetInfo()
     {
         LOG_W("Miniaudio get device information failed: {}", ma_result_description(result));
     }
-    return CreateDeviceInfo(maContext, info);
+
+    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(getConnectionStringFromId(maContext->getPtr()->backend, info.id));
+    deviceInfo.asPtr<IDeviceInfoConfig>().setName(info.name);
+    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createType());
+    deviceInfo.freeze();
 }
 
 RatioPtr AudioDeviceImpl::onGetResolution()

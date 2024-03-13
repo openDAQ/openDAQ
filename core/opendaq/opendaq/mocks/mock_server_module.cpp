@@ -50,8 +50,7 @@ ErrCode MockServerModuleImpl::acceptsConnectionParameters(Bool* accepted, IStrin
 ErrCode MockServerModuleImpl::createDevice(IDevice** device,
                                            IString* /*connectionString*/,
                                            IComponent* /*parent*/,
-                                           IPropertyObject* /*config*/,
-                                           IDeviceInfo* /*deviceInfo*/)
+                                           IPropertyObject* /*config*/)
 {
     *device = nullptr;
     return OPENDAQ_SUCCESS;

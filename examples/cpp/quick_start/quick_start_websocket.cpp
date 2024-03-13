@@ -18,19 +18,13 @@ int main(int /*argc*/, const char* /*argv*/[])
     daq::DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        auto view = deviceInfo.getConnectionString().toView();
-        if (view.find("daq://") != std::string::npos)
+        for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            view.remove_prefix(6);
-
-            std::string ws = "daq.ws://" + std::string(view);
-            device = instance.addDevice(ws);
-            break;
-        }
-        if (deviceInfo.getConnectionString().toStdString().find("daq.ws://") != std::string::npos)
-        {
-            device = instance.addDevice(deviceInfo.getConnectionString());
-            break;
+            if (capability.getProtocolName() == "openDAQ WebsocketTcp Streaming")
+            {
+                device = instance.addDevice(capability.getConnectionString());
+                break;
+            }
         }
     }
 

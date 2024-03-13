@@ -30,6 +30,11 @@
 
 PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> declareIServerCapability(pybind11::module_ m)
 {
+    py::enum_<daq::ClientUpdateMethod>(m, "ClientUpdateMethod")
+        .value("RequestResponce", daq::ClientUpdateMethod::RequestResponce)
+        .value("Broadcast", daq::ClientUpdateMethod::Broadcast)
+        .value("Unknown", daq::ClientUpdateMethod::Unknown);
+
     return wrapInterface<daq::IServerCapability, daq::IPropertyObject>(m, "IServerCapability");
 }
 
@@ -68,4 +73,11 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
             return objectPtr.getConnectionType().toStdString();
         },
         "Gets the type of connection");
+    cls.def_property_readonly("update_method",
+        [](daq::IServerCapability *object)
+        {
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            return objectPtr.getUpdateMethod();
+        },
+        "Gets the client update method");
 }

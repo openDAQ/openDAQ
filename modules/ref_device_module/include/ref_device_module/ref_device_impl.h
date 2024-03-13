@@ -36,7 +36,7 @@ public:
     static DeviceTypePtr CreateType();
 
     // IDevice
-    DeviceInfoPtr onGetInfo() override;
+    void onSetDeviceInfo() override;
     DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
 

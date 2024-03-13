@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/module.h>
 #include <coretypes/listobject.h>
+#include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -24,6 +25,11 @@ BEGIN_NAMESPACE_OPENDAQ
  * @ingroup opendaq_modules
  * @addtogroup opendaq_module_manager Module manager
  * @{
+ */
+
+
+/*#
+ * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_object.h>")]
  */
 
 /*!
@@ -52,6 +58,24 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManager, IBaseObject)
      * @param context The Context containing the Logger, Scheduler, Property Object Class Manager and Module Manager
      */
     virtual ErrCode INTERFACE_FUNC loadModules(IContext* context) = 0;
+
+    // [elementType(availableDevices, IDeviceInfo)]
+    /*!
+     * @brief Returns a list of known devices info.
+     * The implementation can start discovery in background and only return the results in this function.
+     * @param[out] availableDevices The list of known devices information.
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) = 0;
+
+    /*!
+     * @brief Returns the device for specific connection string
+     * @param connectionString the connection string
+     * @param config the config
+     * @param parent the parent component
+     * @param logger the logger Component
+     * @param[out] device the device
+     */
+    virtual ErrCode INTERFACE_FUNC getDevice(IString* connectionString, IPropertyObject* config, IComponent* parent, ILoggerComponent* logger, IDevice** device) = 0;
 };
 /*!@}*/
 

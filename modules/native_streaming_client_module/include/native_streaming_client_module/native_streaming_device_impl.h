@@ -38,7 +38,7 @@ public:
                                        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient);
 
 protected:
-    DeviceInfoPtr onGetInfo() override;
+    void onSetDeviceInfo() override;
 
     void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void signalUnavailableHandler(const StringPtr& signalStringId);

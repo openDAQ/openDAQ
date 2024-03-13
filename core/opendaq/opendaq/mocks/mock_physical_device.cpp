@@ -59,6 +59,7 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx, con
     const PropertyObjectPtr thisPtr = this->borrowPtr<PropertyObjectPtr>();
     thisPtr.addProperty(StringProperty("TestProperty", "Test").detach());
     this->tags.add("phys_device");
+    onSetDeviceInfo();
 }
 
 MockPhysicalDeviceImpl::~MockPhysicalDeviceImpl()
@@ -66,30 +67,26 @@ MockPhysicalDeviceImpl::~MockPhysicalDeviceImpl()
     stopAcq();
 }
 
-DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
-{
-    if (deviceInfo != nullptr)
-        return deviceInfo;
+void MockPhysicalDeviceImpl::onSetDeviceInfo()
+{    
+    deviceInfo.asPtr<IDeviceInfoConfig>().setName("MockPhysicalDevice");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString("connection_string");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setManufacturer("manufacturer");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setManufacturerUri("manufacturer_uri");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setModel("model");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setProductCode("product_code");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setHardwareRevision("hardware_revision");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setSoftwareRevision("software_revision");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceManual("device_manual");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceClass("device_class");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setSerialNumber("serial_number");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setProductInstanceUri("product_instance_uri");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setRevisionCounter(123);
+    deviceInfo.asPtr<IDeviceInfoConfig>().addProperty(StringProperty("custom_string", "custom_string"));
+    deviceInfo.asPtr<IDeviceInfoConfig>().addProperty(IntProperty("custom_int", 1));
+    deviceInfo.asPtr<IDeviceInfoConfig>().addProperty(FloatProperty("custom_float", 1.123));
 
-    deviceInfo = DeviceInfo("");
-    deviceInfo.setName("MockPhysicalDevice");
-    deviceInfo.setConnectionString("connection_string");
-    deviceInfo.setManufacturer("manufacturer");
-    deviceInfo.setManufacturerUri("manufacturer_uri");
-    deviceInfo.setModel("model");
-    deviceInfo.setProductCode("product_code");
-    deviceInfo.setHardwareRevision("hardware_revision");
-    deviceInfo.setSoftwareRevision("software_revision");
-    deviceInfo.setDeviceManual("device_manual");
-    deviceInfo.setDeviceClass("device_class");
-    deviceInfo.setSerialNumber("serial_number");
-    deviceInfo.setProductInstanceUri("product_instance_uri");
-    deviceInfo.setRevisionCounter(123);
-    deviceInfo.addProperty(StringProperty("custom_string", "custom_string"));
-    deviceInfo.addProperty(IntProperty("custom_int", 1));
-    deviceInfo.addProperty(FloatProperty("custom_float", 1.123));
     deviceInfo.freeze();
-    return deviceInfo;
 }
 
 RatioPtr MockPhysicalDeviceImpl::onGetResolution()

@@ -38,7 +38,7 @@ public:
     static DeviceTypePtr createType();
 
     // IDevice
-    DeviceInfoPtr onGetInfo() override;
+    void onSetDeviceInfo() override;
 
     // IDeviceDomain
     RatioPtr onGetResolution() override;

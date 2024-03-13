@@ -37,8 +37,7 @@ DictPtr<IString, IDeviceType> RefDeviceModule::onGetAvailableDeviceTypes()
 
 DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
                                           const ComponentPtr& parent,
-                                          const PropertyObjectPtr& /*config*/,
-                                          const DeviceInfoPtr& /*deviceInfo*/)
+                                          const PropertyObjectPtr& /*config*/)
 {
     auto id = getIdFromConnectionString(connectionString);
 

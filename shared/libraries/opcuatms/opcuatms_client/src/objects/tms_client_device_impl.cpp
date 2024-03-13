@@ -84,6 +84,7 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
     findAndCreateStreamingOptions();
     connectToStreamings();
     setUpStreamings();
+    onSetDeviceInfo();
 }
 
 void TmsClientDeviceImpl::findAndCreateSubdevices()
@@ -128,13 +129,9 @@ void TmsClientDeviceImpl::onRemoveDevice(const DevicePtr& /*device*/)
     throw OpcUaClientCallNotAvailableException();
 }
 
-DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
+void TmsClientDeviceImpl::onSetDeviceInfo()
 {
-    if (deviceInfo.assigned())
-        return deviceInfo;
-
-    deviceInfo = DeviceInfo("");
-
+    deviceInfo.asPtr<IDeviceInfoConfig>().setName("OpcUaClient");
     auto browseFilter = BrowseFilter();
     browseFilter.nodeClass = UA_NODECLASS_VARIABLE;
     const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, browseFilter);
@@ -181,7 +178,6 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
     }
 
     deviceInfo.freeze();
-    return deviceInfo;
 }
 
 void TmsClientDeviceImpl::fetchTimeDomain()

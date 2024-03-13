@@ -15,86 +15,21 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
                           ? this->logger.getOrAddComponent("Client")
                           : throw ArgumentNullException("Logger must not be null"))
 {
-    if (deviceInfo.assigned())
-        this->deviceInfo = deviceInfo;
-    else
-        this->deviceInfo = DeviceInfo("", "daq_client");
-    this->deviceInfo.freeze();
+    onSetDeviceInfo();
     this->isRootDevice = true;
 }
 
-DeviceInfoPtr ClientImpl::onGetInfo()
+void ClientImpl::onSetDeviceInfo()
 {
-    return this->deviceInfo;
+    if (!deviceInfo.getName().assigned() || deviceInfo.getName().getLength() == 0)
+        deviceInfo.asPtr<IDeviceInfoConfig>().setName("daq_client");
+    deviceInfo.freeze();
 }
 
 ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
 {
     std::scoped_lock lock(sync);
-    auto availableDevices = List<IDeviceInfo>();
-    groupedDevices = Dict<IString, IDeviceInfo>();
-
-    using AsyncEnumerationResult = std::future<ListPtr<IDeviceInfo>>;
-    std::vector<std::pair<AsyncEnumerationResult, ModulePtr>> enumerationResults;
-
-    for (const auto module : manager.getModules())
-    {
-        try
-        {
-            // Parallelize the process of each module enumerating/discovering available devices,
-            // as it may be time-consuming
-            AsyncEnumerationResult deviceListFuture =
-                std::async([module = module]()
-                           {
-                               return module.getAvailableDevices();
-                           });
-            enumerationResults.push_back(std::make_pair(std::move(deviceListFuture), module));
-        }
-        catch (const std::exception& e)
-        {
-            LOG_E("Failed to run device enumeration asynchronously within the module: {}. Result {}",
-                  module.getName(), e.what())
-        }
-    }
-
-    for (auto& enumerationResult : enumerationResults)
-    {
-        ListPtr<IDeviceInfo> moduleAvailableDevices;
-        auto module = enumerationResult.second;
-        try
-        {
-            moduleAvailableDevices = enumerationResult.first.get();
-        }
-        catch (NotImplementedException&)
-        {
-            LOG_I("{}: GetAvailableDevices not implemented", module.getName())
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("{}: GetAvailableDevices failed: {}", module.getName(), e.what())
-        }
-
-        if (!moduleAvailableDevices.assigned())
-            continue;
-
-        for (const auto& deviceInfo : moduleAvailableDevices)
-        {
-            StringPtr id = deviceInfo.getConnectionString();
-            if (groupedDevices.hasKey(id))
-            {
-                DeviceInfoPtr value = groupedDevices.get(id);
-                for (const auto & capability : deviceInfo.getServerCapabilities())
-                    value.asPtr<IDeviceInfoConfig>().addServerCapability(capability);
-            }
-            else
-            {
-                groupedDevices.set(id, deviceInfo);
-            }
-            availableDevices.pushBack(deviceInfo);
-        }
-    }
-
-    return availableDevices.detach();
+    return manager.getAvailableDevices().detach();
 }
 
 DictPtr<IString, IDeviceType> ClientImpl::onGetAvailableDeviceTypes()
@@ -131,68 +66,11 @@ DictPtr<IString, IDeviceType> ClientImpl::onGetAvailableDeviceTypes()
 
 DevicePtr ClientImpl::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    std::unique_lock lock(sync);
-    if (!groupedDevices.assigned())
-    {
-        lock.unlock();
-        onGetAvailableDevices();
-        lock.lock();
-    }
-
-    StringPtr internalConnectionString = connectionString;
-    DeviceInfoPtr deviceInfo;
-    
-    if (connectionString.toStdString().find("daq://") == 0)
-    {
-        if (groupedDevices.hasKey(connectionString))
-            deviceInfo = groupedDevices.get(connectionString);
-        
-        if (!deviceInfo.assigned())
-            throw NotFoundException(fmt::format("device with connection string \"{}\" not found", connectionString));
-
-        if (deviceInfo.getServerCapabilities().getCount() == 0)
-            throw NotFoundException(fmt::format("device with connection string \"{}\" has no availble server capabilites", connectionString));
-
-        Int priorityLevel = INT64_MAX;
-        for (const auto & capability : deviceInfo.getServerCapabilities())
-        {
-            if (capability.getProtocolType().getIntValue() < priorityLevel)
-            {
-                internalConnectionString = capability.getConnectionString();
-                priorityLevel = capability.getProtocolType().getIntValue();
-            }
-        }
-    } 
-    else
-    {
-        for (const auto & [_, info] : groupedDevices)
-        {
-            if (info.getServerCapabilities().getCount() == 0)
-            {
-                if (info.getConnectionString() == connectionString)
-                {
-                    deviceInfo = info;
-                    break;
-                }
-            }
-            else
-            {
-                for(const auto & capability : info.getServerCapabilities())
-                {
-                    if (capability.getConnectionString() == connectionString)
-                    {
-                        deviceInfo = info;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    auto device = detail::createDevice(internalConnectionString, config, devices, manager, loggerComponent, deviceInfo);
-    devices.addItem(device);
-
-    return device;
+    std::scoped_lock lock(sync);
+    auto device = manager.getDevice(connectionString, config, devices, loggerComponent);
+    if (device.assigned())
+        devices.addItem(device);
+    return device.addRefAndReturn();
 }
 
 void ClientImpl::onRemoveDevice(const DevicePtr& device)

@@ -114,12 +114,13 @@ public:
 
         this->ioFolder.addItem(createWithImplementation<IIoFolderConfig, TestIOFolder>(context, this->ioFolder, "ioVis", true));
         this->ioFolder.addItem(createWithImplementation<IIoFolderConfig, TestIOFolder>(context, this->ioFolder, "ioInvis", false));
+        onSetDeviceInfo();
     }
 
-    DeviceInfoPtr onGetInfo() override
+    void onSetDeviceInfo() override
     {
-        auto devInfo = DeviceInfo("conn");
-        return devInfo;
+        deviceInfo = DeviceInfo("conn");
+        deviceInfo.freeze();
     }
 };
 

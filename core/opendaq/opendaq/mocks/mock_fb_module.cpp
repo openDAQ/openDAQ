@@ -49,8 +49,7 @@ ErrCode MockFunctionBlockModuleImpl::acceptsConnectionParameters(Bool* accepted,
 ErrCode MockFunctionBlockModuleImpl::createDevice(IDevice** device,
                                                   IString* /*connectionString*/,
                                                   IComponent* /*parent*/,
-                                                  IPropertyObject* /*config*/,
-                                                  IDeviceInfo* /*deviceInfo*/)
+                                                  IPropertyObject* /*config*/)
 {
     *device = nullptr;
     return OPENDAQ_SUCCESS;

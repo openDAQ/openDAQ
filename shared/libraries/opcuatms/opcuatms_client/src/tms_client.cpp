@@ -108,6 +108,10 @@ void TmsClient::AddEnumerationTypesToTypeManager()
 
     for (auto [browseName, ref] : references.byBrowseName)
     {
+        //If type already exists, skip
+        if(typeManager.hasType(browseName))
+            continue;
+
         const auto& references1 = tmsClientContext->getReferenceBrowser()->browse(ref->nodeId.nodeId);
         for (auto [childBrowseName, ChildRef] : references1.byBrowseName)
         {

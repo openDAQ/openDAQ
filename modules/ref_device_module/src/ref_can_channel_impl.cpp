@@ -68,7 +68,10 @@ void RefCANChannelImpl::collectSamples(std::chrono::microseconds curTime)
     const auto duration = static_cast<int64_t>(curTime.count() - lastCollectTime.count());
 
     if (duration > 0 && valueSignal.getActive())
-        generateSamples(static_cast<int64_t>(lastCollectTime.count()), duration, 2);
+    {
+        const auto time = static_cast<int64_t>(lastCollectTime.count()) + static_cast<int64_t>(microSecondsFromEpochToStartTime.count());
+        generateSamples(time, duration, 2);
+    }
 
     lastCollectTime = curTime;
 }

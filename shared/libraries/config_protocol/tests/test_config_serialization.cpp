@@ -707,6 +707,7 @@ public:
 
         const auto fb = createWithImplementation<IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "fb", nullptr, true);
         addNestedFunctionBlock(fb);
+        onSetDeviceInfo();
     }
 };
 

@@ -297,6 +297,7 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusInitValue);
 
     this->objPtr.addProperty(ObjectProperty("ObjectProperty", createMockNestedPropertyObject()));
+    onSetDeviceInfo();
 }
 
 }

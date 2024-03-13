@@ -45,6 +45,8 @@ protected:
 
 };
 
+#if defined(OPENDAQ_TEST_WITH_REF_MODULES)
+
 TEST_F(ConfigProtocolRefModulesTest, Test)
 {
     const auto instance = Instance();
@@ -72,3 +74,5 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
 
     clientInputPort.connect(clientSignal);
 }
+
+#endif

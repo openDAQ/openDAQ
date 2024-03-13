@@ -162,8 +162,7 @@ TEST_F(TmsFusionDevice, DISABLED_DebugServerPublishingTest)
     }
 }
 
-// Test is failing because writing of EnumerationType Node id is not working
-TEST_F(TmsFusionDevice, EnumTest3)
+TEST_F(TmsFusionDevice, EnumPropertyTest)
 {
     const auto obj = PropertyObject(objManager, "FusionAmp");
     auto [serverObj, fusionAmp] = registerPropertyObject(obj);

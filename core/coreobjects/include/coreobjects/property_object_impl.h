@@ -723,13 +723,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkEnumera
         return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value is not an enumeration");
 
     EnumerationTypePtr valueEnumerationType = enumerationPtr.getEnumerationType();
-    auto lstEnumerationValues = enumerationPtr.getEnumerationType().getEnumeratorNames();
+    EnumerationTypePtr propEnumerationType = prop.getDefaultValue().asPtrOrNull<IEnumeration>().getEnumerationType();
 
-    //Check if property's default value is in the list of possible enumeration values
-    auto defaultValue = prop.getDefaultValue();
-    bool isDefaultValueInEnumeration = std::find(lstEnumerationValues.begin(), lstEnumerationValues.end(), defaultValue) != lstEnumerationValues.end();
-
-    if (!isDefaultValueInEnumeration)
+    if (propEnumerationType != valueEnumerationType)
         return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value EnumerationType is different from the default.");
 
     return OPENDAQ_SUCCESS;

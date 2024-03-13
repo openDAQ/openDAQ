@@ -723,8 +723,6 @@ public:
         if (structType == nullptr)
             return OPENDAQ_ERR_ARGUMENT_NULL;
 
-       
-
         return daqTry(
             [&]()
             {
@@ -744,7 +742,7 @@ public:
                 return OPENDAQ_SUCCESS;
             });
     }
-    
+
     ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IEvent** event) override
     {
         if (event == nullptr)
@@ -766,8 +764,8 @@ public:
         *event = onValueRead.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
-    
-    ErrCode INTERFACE_FUNC validate() 
+
+    ErrCode INTERFACE_FUNC validate()
     {
         if (!name.assigned() || name == "opendaq_unassigned")
         {
@@ -901,6 +899,17 @@ public:
                 return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Structure property {} has invalid metadata.)", name));
         }
 
+        if (valueType == ctEnumeration)
+        {
+            bool valid = !selectionValues.assigned() && !suggestedValues.assigned();
+            valid = valid && !coercer.assigned() && !validator.assigned();
+            valid = valid && !maxValue.assigned() && !minValue.assigned();
+            valid = valid && !unit.assigned() && !callableInfo.assigned();
+
+            if (!valid)
+                return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Enumeration property {} has invalid metadata.)", name));
+        }
+
         // TODO: Make callable info serializable
         // if ((valueType == ctProc || valueType == ctFunc) && !callableInfo.assigned())
         //{
@@ -910,7 +919,7 @@ public:
 
         return OPENDAQ_SUCCESS;
     }
-    
+
     ErrCode INTERFACE_FUNC toString(CharPtr* str) override
     {
         if (str == nullptr)

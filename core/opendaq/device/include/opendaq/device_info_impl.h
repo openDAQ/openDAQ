@@ -79,7 +79,7 @@ public:
     ErrCode INTERFACE_FUNC setSerialNumber(IString* serialNumber) override;
     ErrCode INTERFACE_FUNC setProductInstanceUri(IString* productInstanceUri) override;
     ErrCode INTERFACE_FUNC setRevisionCounter(Int revisionCounter) override;
-    ErrCode INTERFACE_FUNC setAssetId(IString* id) override;;
+    ErrCode INTERFACE_FUNC setAssetId(IString* id) override;
     ErrCode INTERFACE_FUNC setMacAddress(IString* macAddress) override;
     ErrCode INTERFACE_FUNC setParentMacAddress(IString* macAddress) override;
     ErrCode INTERFACE_FUNC setPlatform(IString* platform) override;

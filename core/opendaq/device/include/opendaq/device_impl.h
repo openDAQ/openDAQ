@@ -207,7 +207,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 
     *info = deviceInfo.addRefAndReturn();
 
-    return OPENDAQ_SUCCESS;;
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>

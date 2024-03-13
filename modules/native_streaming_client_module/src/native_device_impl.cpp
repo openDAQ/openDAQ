@@ -3,6 +3,7 @@
 
 #include <opendaq/custom_log.h>
 #include <regex>
+#include <boost/asio/dispatch.hpp>
 
 #include <opendaq/ids_parser.h>
 
@@ -14,8 +15,11 @@ using namespace config_protocol;
 static std::chrono::milliseconds requestTimeout = std::chrono::milliseconds(10000);
 
 NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
-                                       NativeStreamingClientHandlerPtr transportProtocolClient)
-    : loggerComponent(context.getLogger().getOrAddComponent("NativeDevice"))
+                                       NativeStreamingClientHandlerPtr transportProtocolClient,
+                                       std::shared_ptr<boost::asio::io_context> processingIOContextPtr)
+    : processingIOContextPtr(processingIOContextPtr)
+    , processingStrand(*(this->processingIOContextPtr))
+    , loggerComponent(context.getLogger().getOrAddComponent("NativeDevice"))
     , transportProtocolClient(transportProtocolClient)
 {
     setupProtocolClients(context);
@@ -26,9 +30,10 @@ NativeDeviceHelper::~NativeDeviceHelper()
     // reset transport protocol handler of received config packets
     if (transportProtocolClient)
     {
-        auto receiveConfigPacketCb = [](const PacketBuffer& packet) {};
+        auto receiveConfigPacketCb = [](PacketBuffer&& packet) {};
         transportProtocolClient->setConfigPacketHandler(receiveConfigPacketCb);
     }
+    processingIOContextPtr->stop();
 }
 
 DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent)
@@ -114,16 +119,22 @@ void NativeDeviceHelper::coreEventCallback(ComponentPtr& sender, CoreEventArgsPt
 void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
 {
     SendRequestCallback sendRequestCallback =
-        [this](PacketBuffer& packet)
+        [this](const PacketBuffer& packet)
     {
         return this->doConfigRequest(packet);
     };
     configProtocolClient = std::make_unique<ConfigProtocolClient<NativeDeviceImpl>>(context, sendRequestCallback, nullptr);
 
-    auto receiveConfigPacketCb =
-        [this](const PacketBuffer& packet)
+    ProcessConfigProtocolPacketCb receiveConfigPacketCb =
+        [this](PacketBuffer&& packetBuffer)
     {
-        return this->receiveConfigPacket(packet);
+        auto packetBufferPtr = std::make_shared<PacketBuffer>(std::move(packetBuffer));
+        boost::asio::dispatch(*processingIOContextPtr, processingStrand.wrap(
+            [this, packetBufferPtr]()
+            {
+                this->processConfigPacket(std::move(*packetBufferPtr));
+            }));
+
     };
     transportProtocolClient->setConfigPacketHandler(receiveConfigPacketCb);
 }
@@ -149,7 +160,7 @@ PacketBuffer NativeDeviceHelper::doConfigRequest(const PacketBuffer& reqPacket)
     }
 }
 
-void NativeDeviceHelper::receiveConfigPacket(const PacketBuffer& packet)
+void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
 {
     if (packet.getPacketType() == serverNotification)
     {
@@ -157,7 +168,7 @@ void NativeDeviceHelper::receiveConfigPacket(const PacketBuffer& packet)
     }
     else if(auto it = replyPackets.find(packet.getId()); it != replyPackets.end())
     {
-        it->second.set_value(PacketBuffer(packet.getBuffer(), true));
+        it->second.set_value(std::move(packet));
     }
     else
     {
@@ -169,8 +180,9 @@ NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCo
                                    const std::string& remoteGlobalId,
                                    const ContextPtr& ctx,
                                    const ComponentPtr& parent,
-                                   const StringPtr& localId)
-    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
+                                   const StringPtr& localId,
+                                   const StringPtr& className)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
     , deviceInfoSet(false)
 {
 }

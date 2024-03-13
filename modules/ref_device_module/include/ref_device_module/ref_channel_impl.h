@@ -74,8 +74,12 @@ private:
     SignalConfigPtr valueSignal;
     SignalConfigPtr timeSignal;
     bool needsSignalTypeChanged;
+    bool fixedPacketSize;
+    uint64_t packetSize;
 
     void initProperties();
+    void packetSizeChangedInternal();
+    void packetSizeChanged();
     void waveformChanged();
     void waveformChangedInternal();
     void updateSamplesGenerated();

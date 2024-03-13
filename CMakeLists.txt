@@ -157,6 +157,15 @@ if (NOT APPLE AND UNIX)
     cmake_dependent_option(OPENDAQ_ENABLE_WS_SIGGEN_INTEGRATION_TESTS "Enable websocket streaming integration tests" ON "OPENDAQ_ENABLE_TESTS;OPENDAQ_ENABLE_WEBSOCKET_STREAMING" OFF)
 endif()
 
+#modules
+option(DAQMODULES_OPENDAQ_CLIENT_MODULE "Building of ${SDK_NAME} client modules" OFF)
+option(DAQMODULES_OPENDAQ_SERVER_MODULE "Building of ${SDK_NAME} server modules" OFF)
+option(DAQMODULES_EMPTY_MODULE "Building of demo module" OFF)
+option(DAQMODULES_REF_DEVICE_MODULE "Building of reference device module" OFF)
+option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OFF)
+cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)
+option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
+
 # logging
 
 include(openDAQLogging)
@@ -588,14 +597,12 @@ endif()
 
 if (OPENDAQ_ENABLE_PARAMETER_VALIDATION)
     message(STATUS "Parameter validation enabled")
-    add_compile_definitions(OPENDAQ_ENABLE_PARAMETER_VALIDATION)
 else()
     message(STATUS "Parameter validation disabled")
 endif()
 
 if (OPENDAQ_THREAD_SAFE)
     message(STATUS "Thread-safe implementations enabled")
-    add_compile_definitions(OPENDAQ_THREAD_SAFE)
 else()
     message(STATUS "Thread-safe implementations disabled")
 endif()

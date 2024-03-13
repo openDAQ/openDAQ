@@ -120,7 +120,7 @@ private:
 
     bool triggerMode;
     FunctionBlockPtr nestedTriggerFunctionBlock;
-    InputPortPtr triggerInput;
+    InputPortConfigPtr triggerInput;
     TriggerHistory triggerHistory;
 
     size_t blockSize;

@@ -25,7 +25,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                         NATIVE_STREAM_CL_MODULE_PATCH_VERSION),
             std::move(context),
             "NativeStreamingClient")
-    , deviceIndex(0)
+    , pseudoDeviceIndex(0)
     , discoveryClient(
         {
             [](MdnsDiscoveredDevice discoveredDevice)
@@ -47,6 +47,53 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     )
 {
     discoveryClient.initMdnsClient("_opendaq-streaming-native._tcp.local.");
+}
+
+NativeStreamingClientModule::~NativeStreamingClientModule()
+{
+    for (auto& [deviceId, processingThread, processingIOContextPtr] : configurationProcessingContextPool)
+    {
+        if (!processingIOContextPtr->stopped())
+            processingIOContextPtr->stop();
+        if (processingThread.get_id() != std::this_thread::get_id())
+        {
+            if (processingThread.joinable())
+            {
+                processingThread.join();
+                LOG_I("Native device {} - configuration processing thread joined", deviceId);
+            }
+            else
+            {
+                LOG_W("Native device {} - configuration processing thread is not joinable", deviceId);
+            }
+        }
+        else
+        {
+            LOG_C("Native device {} - configuration processing thread cannot join itself", deviceId);
+        }
+    }
+
+    for (auto& [streamingConnectionString, processingThread, processingIOContextPtr] : streamingProcessingContextPool)
+    {
+        if (!processingIOContextPtr->stopped())
+            processingIOContextPtr->stop();
+        if (processingThread.get_id() != std::this_thread::get_id())
+        {
+            if (processingThread.joinable())
+            {
+                processingThread.join();
+                LOG_I("Native streaming {} - processing thread joined", streamingConnectionString);
+            }
+            else
+            {
+                LOG_W("Native streaming {} - processing thread is not joinable", streamingConnectionString);
+            }
+        }
+        else
+        {
+            LOG_C("Native streaming {} - processing thread cannot join itself", streamingConnectionString);
+        }
+    }
 }
 
 ListPtr<IDeviceInfo> NativeStreamingClientModule::onGetAvailableDevices()
@@ -83,21 +130,31 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     std::string streamingConnectionString = std::regex_replace(connectionString.toStdString(),
                                                                std::regex(NativeConfigurationDevicePrefix),
                                                                NativeStreamingPrefix);
-    auto transportProtocolClient =
-        std::make_shared<NativeStreamingClientHandler>(context, config.getPropertyValue("TransportLayerConfig"));
-    StreamingPtr nativeStreaming =
-        createWithImplementation<IStreaming, NativeStreamingImpl>(streamingConnectionString,
-                                                                  host,
-                                                                  port,
-                                                                  path,
-                                                                  context,
-                                                                  transportProtocolClient,
-                                                                  nullptr,
-                                                                  nullptr,
-                                                                  nullptr);
+
+    PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
+    auto transportProtocolClient = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig);
+    Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
+    StreamingPtr nativeStreaming = createNativeStreaming(
+        streamingConnectionString,
+        host,
+        port,
+        path,
+        transportProtocolClient,
+        initTimeout
+    );
     nativeStreaming.setActive(true);
 
-    auto deviceHelper = std::make_unique<NativeDeviceHelper>(context, transportProtocolClient);
+    auto processingIOContextPtr = std::make_shared<boost::asio::io_context>();
+    auto processingThread = std::thread(
+        [this, processingIOContextPtr]()
+        {
+            using namespace boost::asio;
+            executor_work_guard<io_context::executor_type> workGuard(processingIOContextPtr->get_executor());
+            processingIOContextPtr->run();
+            LOG_I("Native device processing thread finished");
+        }
+    );
+    auto deviceHelper = std::make_unique<NativeDeviceHelper>(context, transportProtocolClient, processingIOContextPtr);
     auto device = deviceHelper->connectAndGetDevice(parent);
 
     deviceHelper->addStreaming(nativeStreaming);
@@ -107,22 +164,22 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     device.asPtr<INativeDevicePrivate>()->attachDeviceHelper(std::move(deviceHelper));
     device.asPtr<INativeDevicePrivate>()->setConnectionString(connectionString);
 
+    configurationProcessingContextPool.emplace_back(device.getGlobalId(), std::move(processingThread), processingIOContextPtr);
+
     return device;
 }
 
-void NativeStreamingClientModule::populateConfigFromContext(PropertyObjectPtr config)
+void NativeStreamingClientModule::populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig)
 {
     auto options = context.getModuleOptions(id);
     if (options.getCount() == 0)
         return;
 
-    PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
-
-    if (options.hasKey("HeartbeatEnabled"))
+    if (options.hasKey("MonitoringEnabled"))
     {
-        auto value = options.get("HeartbeatEnabled");
+        auto value = options.get("MonitoringEnabled");
         if (value.getCoreType() == CoreType::ctBool)
-            transportLayerConfig.setPropertyValue("HeartbeatEnabled", value);
+            transportLayerConfig.setPropertyValue("MonitoringEnabled", value);
     }
 
     if (options.hasKey("HeartbeatPeriod"))
@@ -132,11 +189,11 @@ void NativeStreamingClientModule::populateConfigFromContext(PropertyObjectPtr co
             transportLayerConfig.setPropertyValue("HeartbeatPeriod", value);
     }
 
-    if (options.hasKey("HeartbeatTimeout"))
+    if (options.hasKey("InactivityTimeout"))
     {
-        auto value = options.get("HeartbeatTimeout");
+        auto value = options.get("InactivityTimeout");
         if (value.getCoreType() == CoreType::ctInt)
-            transportLayerConfig.setPropertyValue("HeartbeatTimeout", value);
+            transportLayerConfig.setPropertyValue("InactivityTimeout", value);
     }
 
     if (options.hasKey("ConnectionTimeout"))
@@ -175,8 +232,6 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     if (!onAcceptsConnectionParameters(connectionString, deviceConfig))
         throw InvalidParameterException();
 
-    populateConfigFromContext(deviceConfig);
-
     if (!context.assigned())
         throw InvalidParameterException("Context is not available.");
 
@@ -188,10 +243,23 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     {
         std::scoped_lock lock(sync);
 
-        std::string localId = fmt::format("streaming_pseudo_device{}", deviceIndex++);
+        std::string localId = fmt::format("streaming_pseudo_device{}", pseudoDeviceIndex++);
 
-        auto clientHandler = std::make_shared<NativeStreamingClientHandler>(context, deviceConfig.getPropertyValue("TransportLayerConfig"));
-        return createWithImplementation<IDevice, NativeStreamingDeviceImpl>(context, parent, localId, connectionString, host, port, path, clientHandler);
+        PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
+        auto clientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig);
+        Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
+        return createWithImplementation<IDevice, NativeStreamingDeviceImpl>(
+            context,
+            parent,
+            localId,
+            connectionString,
+            host,
+            port,
+            path,
+            clientHandler,
+            addStreamingProcessingContext(connectionString),
+            initTimeout
+        );
     }
     else if (connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
     {
@@ -207,12 +275,14 @@ PropertyObjectPtr NativeStreamingClientModule::createTransportLayerDefaultConfig
 {
     auto transportLayerConfig = daq::PropertyObject();
 
-    transportLayerConfig.addProperty(daq::BoolProperty("HeartbeatEnabled", daq::False));
+    transportLayerConfig.addProperty(daq::BoolProperty("MonitoringEnabled", daq::False));
     transportLayerConfig.addProperty(daq::IntProperty("HeartbeatPeriod", 1000));
-    transportLayerConfig.addProperty(daq::IntProperty("HeartbeatTimeout", 1500));
+    transportLayerConfig.addProperty(daq::IntProperty("InactivityTimeout", 1500));
     transportLayerConfig.addProperty(daq::IntProperty("ConnectionTimeout", 1000));
     transportLayerConfig.addProperty(daq::IntProperty("StreamingInitTimeout", 1000));
     transportLayerConfig.addProperty(daq::IntProperty("ReconnectionPeriod", 1000));
+
+    populateTransportLayerConfigFromContext(transportLayerConfig);
 
     return transportLayerConfig;
 }
@@ -269,27 +339,67 @@ bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const S
     return false;
 }
 
+std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreamingProcessingContext(const StringPtr& connectionString)
+{
+    auto processingIOContextPtr = std::make_shared<boost::asio::io_context>();
+    auto processingThread = std::thread(
+        [this, processingIOContextPtr, connectionString]()
+        {
+            using namespace boost::asio;
+            executor_work_guard<io_context::executor_type> workGuard(processingIOContextPtr->get_executor());
+            processingIOContextPtr->run();
+            LOG_I("Streaming {}: processing thread finished", connectionString);
+        }
+    );
+    streamingProcessingContextPool.emplace_back(connectionString, std::move(processingThread), processingIOContextPtr);
+
+    return processingIOContextPtr;
+}
+
+StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr& connectionString,
+                                                                const StringPtr& host,
+                                                                const StringPtr& port,
+                                                                const StringPtr& path,
+                                                                NativeStreamingClientHandlerPtr transportClientHandler,
+                                                                Int streamingInitTimeout)
+{
+    return createWithImplementation<IStreaming, NativeStreamingImpl>(
+        connectionString,
+        host,
+        port,
+        path,
+        context,
+        transportClientHandler,
+        addStreamingProcessingContext(connectionString),
+        streamingInitTimeout,
+        nullptr,
+        nullptr,
+        nullptr
+    );
+}
+
 StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString,
-                                                      const StreamingInfoPtr& config)
+                                                            const StreamingInfoPtr& config)
 {
     if (!onAcceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
+
+    auto transportLayerConfig = createTransportLayerDefaultConfig();
+    Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
 
     if (connectionString.assigned())
     {
         auto host = getHost(connectionString);
         auto port = getPort(connectionString);
         auto path = getPath(connectionString);
-        return createWithImplementation<IStreaming, NativeStreamingImpl>(
+        return createNativeStreaming(
             connectionString,
             host,
             port,
             path,
-            context,
-            std::make_shared<opendaq_native_streaming_protocol::NativeStreamingClientHandler>(context, createTransportLayerDefaultConfig()),
-            nullptr,
-            nullptr,
-            nullptr);
+            std::make_shared<NativeStreamingClientHandler>(context, createTransportLayerDefaultConfig()),
+            initTimeout
+        );
     }
     else if(config.assigned())
     {
@@ -301,16 +411,14 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
         auto port = String(fmt::format("{}", portNumber));
 
         auto generatedConnectionString = String(fmt::format("{}{}:{}", NativeStreamingPrefix, host, portNumber));
-        return createWithImplementation<IStreaming, NativeStreamingImpl>(
+        return createNativeStreaming(
             generatedConnectionString,
             host,
             port,
             String("/"),
-            context,
-            std::make_shared<opendaq_native_streaming_protocol::NativeStreamingClientHandler>(context, createTransportLayerDefaultConfig()),
-            nullptr,
-            nullptr,
-            nullptr);
+            std::make_shared<NativeStreamingClientHandler>(context, createTransportLayerDefaultConfig()),
+            initTimeout
+        );
     }
     else
     {
@@ -328,10 +436,10 @@ bool NativeStreamingClientModule::connectionStringHasPrefix(const StringPtr& con
 
 DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
 {
-    auto configurationCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
+    auto configurationCallback = [this](IBaseObject* input, IBaseObject** output) -> ErrCode
     {
         PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(&NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
+        ErrCode errCode = wrapHandlerReturn(this, &NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
         *output = propObjPtr.detach();
         return errCode;
     };
@@ -344,10 +452,10 @@ DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
 
 DeviceTypePtr NativeStreamingClientModule::createDeviceType()
 {
-    auto configurationCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
+    auto configurationCallback = [this](IBaseObject* input, IBaseObject** output) -> ErrCode
     {
         PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(&NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
+        ErrCode errCode = wrapHandlerReturn(this, &NativeStreamingClientModule::createDeviceDefaultConfig, propObjPtr);
         *output = propObjPtr.detach();
         return errCode;
     };
@@ -415,15 +523,15 @@ StringPtr NativeStreamingClientModule::getPath(const StringPtr& url)
 
 bool NativeStreamingClientModule::validateTransportLayerConfig(const PropertyObjectPtr& config)
 {
-    return config.hasProperty("HeartbeatEnabled") &&
+    return config.hasProperty("MonitoringEnabled") &&
            config.hasProperty("HeartbeatPeriod") &&
-           config.hasProperty("HeartbeatTimeout") &&
+           config.hasProperty("InactivityTimeout") &&
            config.hasProperty("ConnectionTimeout") &&
            config.hasProperty("StreamingInitTimeout") &&
            config.hasProperty("ReconnectionPeriod") &&
-           config.getProperty("HeartbeatEnabled").getValueType() == ctBool &&
+           config.getProperty("MonitoringEnabled").getValueType() == ctBool &&
            config.getProperty("HeartbeatPeriod").getValueType() == ctInt &&
-           config.getProperty("HeartbeatTimeout").getValueType() == ctInt &&
+           config.getProperty("InactivityTimeout").getValueType() == ctInt &&
            config.getProperty("ConnectionTimeout").getValueType() == ctInt &&
            config.getProperty("StreamingInitTimeout").getValueType() == ctInt &&
            config.getProperty("ReconnectionPeriod").getValueType() == ctInt;

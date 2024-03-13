@@ -25,6 +25,7 @@ DECLARE_OPENDAQ_INTERFACE(ITestObject, IPropertyObject)
 {
     virtual ErrCode INTERFACE_FUNC getValueObject(ITestValueObject** value) = 0;
     virtual ErrCode INTERFACE_FUNC setValueObject(ITestValueObject* value) = 0;
+    virtual ErrCode INTERFACE_FUNC setValueObjectProtected(ITestValueObject* value) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY(INTERNAL_FACTORY, TestObject, ITypeManager*, manager)

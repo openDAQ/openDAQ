@@ -12,6 +12,7 @@ env:
   build_path: ${{ github.workspace }}/build
   package_path: ${{ github.workspace }}/build/_packages/
   dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
+  dotnet_test_path: ${{ github.workspace }}/build/bindings/CSharp/test_results
   python_version_build: 3.11
   python_versions: 3.8 3.9 3.10 3.11 3.12
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
@@ -36,7 +37,7 @@ jobs:
             cmake_generator: "Visual Studio 16 2019"
             cmake_generator_platform: x64
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
             cpack: NSIS
           - name: Windows VS 2022 x64 Release
             runner: windows-2022
@@ -57,13 +58,13 @@ jobs:
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: Win32
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
             cpack: NSIS
           - name: Windows Clang Release
             runner: windows-2022
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+            cmake_defines: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
             cpack: NSIS
 
     steps:
@@ -77,6 +78,7 @@ jobs:
           version: 1.10.2
 
       - name: Install Python dependencies
+        shell: pwsh
         run: |
           foreach($version in "${{ env.python_versions }}".split(" ")) {
             Write-Output "Installing numpy for Python $version"
@@ -84,6 +86,7 @@ jobs:
           }
 
       - name: Configure
+        shell: pwsh
         run: |
           mkdir build
           cd build
@@ -104,7 +107,7 @@ jobs:
         run: |
           cmake --build . --config ${{ matrix.cmake_build_type }}
           if (Test-Path -Path "${{ env.dotnetBuildPath }}") {
-            mkdir "${{ env.package_path }}"
+            if (! (Test-Path -Path "${{ env.package_path }}")) { mkdir "${{ env.package_path }}" }
             Copy-Item "${{ env.dotnetBuildPath }}/*.nupkg" "${{ env.package_path }}"
           } else {
             Write-Output "*** '${{ env.dotnetBuildPath }}' not found, no .NET Bindings to copy"
@@ -112,10 +115,18 @@ jobs:
 
 
       - name: Test
+        shell: pwsh
         working-directory: build
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
-        run: ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
+        run: |
+          ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
+          if (Test-Path -Path "${{ env.dotnet_test_path }}") {
+            if (! (Test-Path -Path "${{ env.test_path }}")) { mkdir "${{ env.test_path }}" }
+            Copy-Item "${{ env.dotnet_test_path }}/*.*" "${{ env.test_path }}"
+          } else {
+            Write-Output "*** '${{ env.dotnet_test_path }}' not found, no .NET Bindings tests to copy"
+          }
 
       - name: Upload test results
         if: always()

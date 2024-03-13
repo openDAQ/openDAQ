@@ -32,7 +32,8 @@ public:
                               const std::string& remoteGlobalId,
                               const ContextPtr& ctx,
                               const ComponentPtr& parent,
-                              const StringPtr& localId);
+                              const StringPtr& localId,
+                              const StringPtr& className = nullptr);
 
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
     ErrCode INTERFACE_FUNC disconnect() override;
@@ -43,6 +44,7 @@ public:
 
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 
     ConnectionPtr createConnection(const SignalPtr& signal) override;
     bool isConnected(const SignalPtr& signal);
@@ -52,8 +54,9 @@ inline ConfigClientInputPortImpl::ConfigClientInputPortImpl(const ConfigProtocol
                                                             const std::string& remoteGlobalId,
                                                             const ContextPtr& ctx,
                                                             const ComponentPtr& parent,
-                                                            const StringPtr& localId)
-    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
+                                                            const StringPtr& localId,
+                                                            const StringPtr& className)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
 {
 }
 
@@ -164,6 +167,17 @@ inline void ConfigClientInputPortImpl::handleRemoteCoreObjectInternal(const Comp
     }
 
     Super::handleRemoteCoreObjectInternal(sender, args);
+}
+
+inline void ConfigClientInputPortImpl::onRemoteUpdate(const SerializedObjectPtr& serialized)
+{
+    ConfigClientComponentBaseImpl::onRemoteUpdate(serialized);
+    if (serialized.hasKey("signalId"))
+    {
+        serializedSignalId = serialized.readString("signalId");
+    }
+    else
+        serializedSignalId.release();
 }
 
 inline ConnectionPtr ConfigClientInputPortImpl::createConnection(const SignalPtr& signal)

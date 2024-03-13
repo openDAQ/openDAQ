@@ -4,7 +4,7 @@ using Daq.Core.Types;
 namespace openDaq.Net.Test;
 
 
-public class CoreTypesStringTests : CoreTypesTestsBase
+public class CoreTypesStringTests : OpenDAQTestsBase
 {
     //[SetUp]
     //public void Setup()

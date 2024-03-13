@@ -41,14 +41,17 @@ inline auto ParamsDict(std::initializer_list<std::pair<const StringPtr, ObjectPt
 
 enum PacketType: uint8_t { getProtocolInfo = 0x80, upgradeProtocol = 0x81, rpc = 0x82, serverNotification = 0x83, invalidRequest = 0x84 };
 
+#pragma pack(push, 1)
 struct PacketHeader
 {
     uint8_t headerSize;
     PacketType type;
     char unused[2];
     uint32_t payloadSize;
-    size_t id;
+    uint64_t id;
 };
+#pragma pack(pop)
+static_assert(sizeof(PacketHeader) == 16);
 
 using DeleterCallback = std::function<void(void*)>;
 
@@ -60,7 +63,7 @@ public:
     PacketBuffer(PacketBuffer&& packetBuffer) noexcept;
 
     // create a packet that copies payload
-    PacketBuffer(PacketType packetType, size_t id, const void* payload, size_t payloadSize);
+    PacketBuffer(PacketType packetType, uint64_t id, const void* payload, size_t payloadSize);
     // create a packet that either copies packet or just takes a pointer
     PacketBuffer(void* mem, bool copy);
     // create a packet that takes ownership of memory, no copy
@@ -84,33 +87,33 @@ public:
     void setPacketType(PacketType packetType);
     PacketType getPacketType() const;
 
-    void setId(size_t id);
-    size_t getId() const;
+    void setId(uint64_t id);
+    uint64_t getId() const;
 
     void setPayloadSize(size_t payloadSize);
     size_t getPayloadSize() const;
 
     void* getPayload() const;
 
-    static PacketBuffer createGetProtocolInfoRequest(size_t id);
+    static PacketBuffer createGetProtocolInfoRequest(uint64_t id);
     void parseProtocolInfoRequest() const;
 
-    static PacketBuffer createGetProtocolInfoReply(size_t id, uint16_t currentVersion, const std::vector<uint16_t>& supportedVersions);
+    static PacketBuffer createGetProtocolInfoReply(uint64_t id, uint16_t currentVersion, const std::vector<uint16_t>& supportedVersions);
     void parseProtocolInfoReply(uint16_t& currentVersion, std::vector<uint16_t>& supportedVersions) const;
 
-    static PacketBuffer createUpgradeProtocolRequest(size_t id, uint16_t version);
+    static PacketBuffer createUpgradeProtocolRequest(uint64_t id, uint16_t version);
     void parseProtocolUpgradeRequest(uint16_t& version) const;
 
-    static PacketBuffer createUpgradeProtocolReply(size_t id, bool success);
+    static PacketBuffer createUpgradeProtocolReply(uint64_t id, bool success);
     void parseProtocolUpgradeReply(bool& success) const;
 
-    static PacketBuffer createRpcRequestOrReply(size_t id, const char* json, size_t jsonSize);
+    static PacketBuffer createRpcRequestOrReply(uint64_t id, const char* json, size_t jsonSize);
     StringPtr parseRpcRequestOrReply() const;
 
     static PacketBuffer createServerNotification(const char* json, size_t jsonSize);
     StringPtr parseServerNotification() const;
 
-    static PacketBuffer createInvalidRequestReply(size_t id);
+    static PacketBuffer createInvalidRequestReply(uint64_t id);
     void parseInvalidRequestReply() const;
 
 private:

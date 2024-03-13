@@ -24,7 +24,7 @@ ConfigProtocolClientComm::ConfigProtocolClientComm(const ContextPtr& daqContext,
 {
 }
 
-size_t ConfigProtocolClientComm::generateId()
+uint64_t ConfigProtocolClientComm::generateId()
 {
     return id++;
 }
@@ -37,7 +37,7 @@ void ConfigProtocolClientComm::setPropertyValue(
     auto dict = Dict<IString, IBaseObject>();
     dict.set("ComponentGlobalId", String(globalId));
     dict.set("PropertyName", String(propertyName));
-    dict.set("PropertyValue", String(propertyValue));
+    dict.set("PropertyValue", propertyValue);
     auto setPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "SetPropertyValue", dict);
     const auto setPropertyValueRpcReplyPacketBuffer = sendRequestCallback(setPropertyValueRpcRequestPacketBuffer);
 
@@ -136,7 +136,7 @@ StringPtr ConfigProtocolClientComm::createRpcRequestJson(const StringPtr& name, 
     return serializer.getOutput();
 }
 
-PacketBuffer ConfigProtocolClientComm::createRpcRequestPacketBuffer(const size_t id,
+PacketBuffer ConfigProtocolClientComm::createRpcRequestPacketBuffer(const uint64_t id,
                                                                     const StringPtr& name,
                                                                     const ParamsDictPtr& params)
 {
@@ -259,6 +259,13 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
         return obj;
     }
 
+    if (typeId == "PropertyObject")
+    {
+        BaseObjectPtr obj;
+        checkErrorInfo(ConfigClientPropertyObjectImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        return obj;
+    }
+
     return nullptr;
 }
 
@@ -359,6 +366,12 @@ void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& componen
                     domainSignal = findSignalByRemoteGlobalId(dev, domainSignalId);
                 if (domainSignal.assigned())
                     signal.asPtr<IConfigClientSignalPrivate>(true)->assignDomainSignal(domainSignal);
+                else
+                    signal.asPtr<IConfigClientSignalPrivate>(true)->assignDomainSignal(nullptr);
+            }
+            else
+            {
+                signal.asPtr<IConfigClientSignalPrivate>(true)->assignDomainSignal(nullptr);
             }
         });
 }
@@ -382,16 +395,21 @@ void ConfigProtocolClientComm::connectInputPorts(const ComponentPtr& component)
         return;
 
     forEachComponent<IInputPort>(component,
-                  [&dev](const InputPortPtr& inputPort)
-                  {
-                      const auto signalId = inputPort.asPtr<IDeserializeComponent>(true).getDeserializedParameter("signalId");
-                      if (signalId.assigned())
-                      {
-                          const auto signal = findSignalByRemoteGlobalId(dev, signalId);
-                          const auto configClientInputPort = inputPort.asPtr<IConfigClientInputPort>(true);
-                          checkErrorInfo(configClientInputPort->assignSignal(signal));
-                      }
-                  });
+                                 [&dev](const InputPortPtr& inputPort)
+                                 {
+                                     const auto signalId = inputPort.asPtr<IDeserializeComponent>(true).
+                                                                     getDeserializedParameter("signalId");
+                                     const auto configClientInputPort = inputPort.asPtr<IConfigClientInputPort>(true);
+                                     if (signalId.assigned())
+                                     {
+                                         const auto signal = findSignalByRemoteGlobalId(dev, signalId);
+                                         checkErrorInfo(configClientInputPort->assignSignal(signal));
+                                     }
+                                     else
+                                     {
+                                         configClientInputPort->assignSignal(nullptr);
+                                     }
+                                 });
 }
 
 BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const StringPtr& command,

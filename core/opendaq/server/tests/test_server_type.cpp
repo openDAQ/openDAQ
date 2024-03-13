@@ -15,7 +15,7 @@ TEST_F(ServerTypeTest, ServerTypeFactory)
 
     const auto config = serverType.createDefaultConfig();
     ASSERT_TRUE(config.assigned());
-    ASSERT_EQ(config.getAllProperties().getCount(), 0);
+    ASSERT_EQ(config.getAllProperties().getCount(), 0u);
 }
 
 TEST_F(ServerTypeTest, ServerTypeFactoryWithDefaultConfigCallback)

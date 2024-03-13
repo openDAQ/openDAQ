@@ -1,26 +1,26 @@
-#include <opendaq/signal_exceptions.h>
-#include <opendaq/signal_factory.h>
-#include <opendaq/data_descriptor_factory.h>
-#include <opendaq/signal_events.h>
-#include <opendaq/signal_private_ptr.h>
-#include <opendaq/context_factory.h>
-#include <opendaq/removable_ptr.h>
-#include <opendaq/packet_factory.h>
 #include <coreobjects/property_object_class_factory.h>
 #include <gtest/gtest.h>
 #include <opendaq/component_deserialize_context_factory.h>
-#include <opendaq/deserialize_component_ptr.h>
 #include <opendaq/component_private_ptr.h>
+#include <opendaq/context_factory.h>
+#include <opendaq/data_descriptor_factory.h>
+#include <opendaq/deserialize_component_ptr.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/removable_ptr.h>
+#include <opendaq/signal_events.h>
+#include <opendaq/signal_exceptions.h>
+#include <opendaq/signal_factory.h>
+#include <opendaq/signal_private_ptr.h>
 #include <opendaq/tags_factory.h>
 
 using SignalTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ConnectionMockImpl: public ImplementationOf<IConnection>
+class ConnectionMockImpl : public ImplementationOf<IConnection>
 {
 public:
-    bool packetEnqueued{ false };
+    bool packetEnqueued{false};
 
     ErrCode INTERFACE_FUNC enqueue(IPacket* packet) override
     {
@@ -110,10 +110,9 @@ PacketPtr PacketMock()
     return intf;
 }
 
-class DataDescriptorMockImpl: public ImplementationOf<IDataDescriptor>
+class DataDescriptorMockImpl : public ImplementationOf<IDataDescriptor>
 {
 public:
-
     ErrCode INTERFACE_FUNC getName(IString** name) override
     {
         return OPENDAQ_SUCCESS;
@@ -203,7 +202,7 @@ TEST_F(SignalTest, SignalConnections)
     ASSERT_EQ(connections.getCount(), 2u);
 
     ASSERT_THROW(checkErrorInfo(signal.asPtr<ISignalEvents>()->listenerConnected(conn2)), DuplicateItemException);
-    
+
     checkErrorInfo(signal.asPtr<ISignalEvents>()->listenerDisconnected(conn2));
     connections = signal.getConnections();
     ASSERT_EQ(connections.getCount(), 1u);
@@ -379,7 +378,6 @@ TEST_F(SignalTest, SetDomainDescriptorWithConnection)
     ASSERT_TRUE(connImpl->packetEnqueued);
 }
 
-
 TEST_F(SignalTest, SetSharedDomainDescriptor)
 {
     auto signal1 = Signal(NullContext(), nullptr, "sig");
@@ -503,7 +501,6 @@ TEST_F(SignalTest, SerializeAndDeserialize)
     ASSERT_EQ(str1, str2);
 }
 
-
 TEST_F(SignalTest, LockedAttributes)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
@@ -513,7 +510,7 @@ TEST_F(SignalTest, LockedAttributes)
     ASSERT_EQ(signal.getPublic(), false);
 
     signal.asPtr<IComponentPrivate>().lockAllAttributes();
-    
+
     ASSERT_NO_THROW(signal.setPublic(false));
     ASSERT_EQ(signal.getPublic(), false);
 }
@@ -528,13 +525,9 @@ TEST_F(SignalTest, GetLastValue)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
     auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-    
+
     auto dataPacket = DataPacket(descriptor, 5);
     int64_t* data = static_cast<int64_t*>(dataPacket.getData());
-    data[0] = 0;
-    data[1] = 1;
-    data[2] = 2;
-    data[3] = 3;
     data[4] = 4;
 
     signal.sendPacket(dataPacket);
@@ -549,7 +542,7 @@ TEST_F(SignalTest, GetLastValueAfterMultipleSend)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
     auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-    
+
     {
         auto dataPacket = DataPacket(descriptor, 1);
         int64_t* data = static_cast<int64_t*>(dataPacket.getData());
@@ -574,7 +567,7 @@ TEST_F(SignalTest, GetLastValueAfterEmptyPacket)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
     auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-    
+
     {
         auto dataPacket = DataPacket(descriptor, 1);
         int64_t* data = static_cast<int64_t*>(dataPacket.getData());
@@ -601,7 +594,7 @@ TEST_F(SignalTest, GetLastValueDisabled)
     privateSignal.enableKeepLastValue(false);
 
     auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-    
+
     {
         auto dataPacket = DataPacket(descriptor, 1);
         int64_t* data = static_cast<int64_t*>(dataPacket.getData());
@@ -610,6 +603,63 @@ TEST_F(SignalTest, GetLastValueDisabled)
     }
 
     ASSERT_FALSE(signal.getLastValue().assigned());
+}
+
+TEST_F(SignalTest, GetLastValueRange)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::RangeInt64).build();
+
+    auto dataPacket = DataPacket(descriptor, 5);
+    auto data = static_cast<int64_t*>(dataPacket.getData());
+    data[8] = 8;
+    data[9] = 9;
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValuePacket = signal.getLastValue();
+    RangePtr rangePtr;
+    ASSERT_NO_THROW(rangePtr = lastValuePacket.asPtr<IRange>());
+    ASSERT_EQ(rangePtr.getLowValue(), 8);
+    ASSERT_EQ(rangePtr.getHighValue(), 9);
+}
+
+TEST_F(SignalTest, GetLastValueComplexFloat32)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::ComplexFloat32).build();
+
+    auto dataPacket = DataPacket(descriptor, 5);
+    auto data = static_cast<float*>(dataPacket.getData());
+    data[8] = 8.1f;
+    data[9] = 9.1f;
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValuePacket = signal.getLastValue();
+    ComplexNumberPtr complexPtr;
+    ASSERT_NO_THROW(complexPtr = lastValuePacket.asPtr<IComplexNumber>());
+    ASSERT_FLOAT_EQ(complexPtr.getReal(), 8.1f);
+    ASSERT_FLOAT_EQ(complexPtr.getImaginary(), 9.1f);
+}
+
+TEST_F(SignalTest, GetLastValueComplexFloat64)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::ComplexFloat64).build();
+
+    auto dataPacket = DataPacket(descriptor, 5);
+    auto data = static_cast<double*>(dataPacket.getData());
+    data[8] = 8.1;
+    data[9] = 9.1;
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValuePacket = signal.getLastValue();
+    ComplexNumberPtr complexPtr;
+    ASSERT_NO_THROW(complexPtr = lastValuePacket.asPtr<IComplexNumber>());
+    ASSERT_DOUBLE_EQ(complexPtr.getReal(), 8.1);
+    ASSERT_DOUBLE_EQ(complexPtr.getImaginary(), 9.1);
 }
 
 END_NAMESPACE_OPENDAQ

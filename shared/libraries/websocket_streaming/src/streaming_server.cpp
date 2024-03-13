@@ -131,6 +131,7 @@ void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
     writeInit(writer);
 
     auto signals = List<ISignal>();
+    auto filteredSignals = List<ISignal>();
     if (onAcceptCallback)
         signals = onAcceptCallback(writer);
 
@@ -140,10 +141,12 @@ void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
         if (!signal.getPublic())
             continue;
 
+        filteredSignals.pushBack(signal);
+
         // TODO: We skip domain signals for now.
         if (!signal.getDomainSignal().assigned())
             continue;
-
+        
         try
         {
             const auto outputSignal = std::make_shared<OutputSignal>(writer, signal, logCallback);
@@ -158,7 +161,7 @@ void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
     LOG_I("New client connected. Stream Id: {}", writer->id());
     clients.insert({writer->id(), {writer, outputSignals}});
 
-    writeSignalsAvailable(writer, signals);
+    writeSignalsAvailable(writer, filteredSignals);
 }
 
 int StreamingServer::onControlCommand(const std::string& streamId,

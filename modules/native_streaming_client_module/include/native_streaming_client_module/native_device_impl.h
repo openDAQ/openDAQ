@@ -39,7 +39,8 @@ class NativeDeviceHelper
 {
 public:
     explicit NativeDeviceHelper(const ContextPtr& context,
-                                opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient);
+                                opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
+                                std::shared_ptr<boost::asio::io_context> processingIOContextPtr);
     ~NativeDeviceHelper();
 
     DevicePtr connectAndGetDevice(const ComponentPtr& parent);
@@ -52,10 +53,13 @@ public:
 private:
     void setupProtocolClients(const ContextPtr& context);
     config_protocol::PacketBuffer doConfigRequest(const config_protocol::PacketBuffer& reqPacket);
-    void receiveConfigPacket(const config_protocol::PacketBuffer& packet);
+    void processConfigPacket(config_protocol::PacketBuffer&& packet);
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
     void addSignalsToStreaming(const ListPtr<ISignal>& signals);
+
+    std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
+    boost::asio::io_context::strand processingStrand;
 
     LoggerComponentPtr loggerComponent;
     std::unique_ptr<config_protocol::ConfigProtocolClient<NativeDeviceImpl>> configProtocolClient;
@@ -80,7 +84,8 @@ public:
                               const std::string& remoteGlobalId,
                               const ContextPtr& ctx,
                               const ComponentPtr& parent,
-                              const StringPtr& localId);
+                              const StringPtr& localId,
+                              const StringPtr& className = nullptr);
     ~NativeDeviceImpl() override;
 
     // INativeDevicePrivate

@@ -190,8 +190,13 @@ void OutputSignal::writeEventPacket(const EventPacketPtr& packet)
 void OutputSignal::writeDataPacket(const DataPacketPtr& packet)
 {
     const auto domainPacket = packet.getDomainPacket();
-    if (domainPacket.assigned())
-        stream->setTimeStart(domainPacket.getOffset());
+    if (writeStartDomainValue)
+    {
+        if (domainPacket.assigned())
+            stream->setTimeStart(domainPacket.getOffset());
+
+        writeStartDomainValue = false;
+    }
 
     stream->addData(packet.getRawData(), packet.getSampleCount());
 }
@@ -263,9 +268,14 @@ void OutputSignal::setSubscribed(bool subscribed)
 
         this->subscribed = subscribed;
         if (subscribed)
+        {
             stream->subscribe();
+            writeStartDomainValue = true;
+        }
         else
+        {
             stream->unsubscribe();
+        }
     }
 }
 

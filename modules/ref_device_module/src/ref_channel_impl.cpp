@@ -39,6 +39,7 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
     initProperties();
     waveformChangedInternal();
     signalTypeChangedInternal();
+    packetSizeChangedInternal();
     resetCounter();
     createSignals();
     buildSignalDescriptors();
@@ -150,6 +151,27 @@ void RefChannelImpl::initProperties()
     objPtr.addProperty(StructPropertyBuilder("CustomRange", defaultCustomRange).build());
     objPtr.getOnPropertyValueWrite("CustomRange") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChangedIfNotUpdating(args); };
+
+    objPtr.addProperty(BoolPropertyBuilder("FixedPacketSize", False).build());
+    objPtr.getOnPropertyValueWrite("FixedPacketSize") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { packetSizeChanged(); };
+
+    objPtr.addProperty(IntPropertyBuilder("PacketSize", 1000).setVisible(EvalValue("$FixedPacketSize")).build());
+    objPtr.getOnPropertyValueWrite("PacketSize") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { packetSizeChanged(); };
+}
+
+void RefChannelImpl::packetSizeChangedInternal()
+{
+    fixedPacketSize = objPtr.getPropertyValue("FixedPacketSize");
+    packetSize = objPtr.getPropertyValue("PacketSize");
+}
+
+void RefChannelImpl::packetSizeChanged()
+{
+    std::scoped_lock lock(sync);
+
+    packetSizeChangedInternal();
 }
 
 void RefChannelImpl::waveformChangedInternal()
@@ -213,15 +235,30 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
     std::scoped_lock lock(sync);
     const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
-    const auto newSamples = samplesSinceStart - samplesGenerated;
+    auto newSamples = samplesSinceStart - samplesGenerated;
 
     if (newSamples > 0 && valueSignal.getActive())
     {
-        auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
-        generateSamples(packetTime, samplesGenerated, newSamples);
+        if (!fixedPacketSize)
+        {
+            const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
+            generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
+            samplesGenerated = samplesSinceStart;
+        }
+        else
+        {
+            while (newSamples >= packetSize)
+            {
+                const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
+                generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, packetSize);
+
+                samplesGenerated += packetSize;
+                newSamples -= packetSize;
+                
+            }
+        }
     }
 
-    samplesGenerated = samplesSinceStart;
     lastCollectTime = curTime;
 }
 

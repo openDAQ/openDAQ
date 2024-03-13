@@ -31,6 +31,7 @@ DECLARE_OPENDAQ_INTERFACE(IUpdatable, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC update(ISerializedObject* update) = 0;
     virtual ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) = 0;
+    virtual ErrCode INTERFACE_FUNC updateEnded() = 0;
 };
 
 /*!

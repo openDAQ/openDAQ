@@ -195,6 +195,15 @@ public:
             throw InvalidTypeException(fmt::format("Object not of ""{}"" type", objectType));
     }
 
+    Bool isRoot() const
+    {
+        if (!object)
+            throw InvalidParameterException();
+        
+        Bool isRoot;
+        checkErrorInfo(object->isRoot(&isRoot));
+        return isRoot;
+    }
 };
 
 /*!

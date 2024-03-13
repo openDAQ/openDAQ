@@ -34,7 +34,7 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
         assert(this->getReferenceCount() >= 0);
     }
 
-    const ProcedurePtr typeManagerCallback = [&](const BaseObjectPtr& val)
+    const ProcedurePtr typeManagerCallback = [this](const BaseObjectPtr& val)
     {
         if (val.supportsInterface(IString::Id))
         {

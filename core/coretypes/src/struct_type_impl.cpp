@@ -22,6 +22,12 @@ StructTypeImpl::StructTypeImpl(StringPtr name, ListPtr<IString> names, ListPtr<I
     if (this->names.getCount() != this->defaultValues.getCount() || this->names.getCount() != this->types.getCount())
         throw InvalidParameterException{"StructType parameters are of different sizes."};
 
+    for(const StringPtr& fieldName : this->names)
+    {
+        if (!daq::validateTypeName(fieldName.getCharPtr()))
+            throw InvalidParameterException{"Struct field names contain some incorrect ones."};
+    }
+
     for (const TypePtr& type: this->types)
     {
         if (!detail::structAcceptedCoreTypes.count(type.getCoreType()))
@@ -42,6 +48,12 @@ StructTypeImpl::StructTypeImpl(StringPtr name, ListPtr<IString> names, ListPtr<I
 
     if (this->names.getCount() != this->types.getCount())
         throw InvalidParameterException{"StructType parameters are of different sizes."};
+
+    for(const StringPtr& fieldName : this->names)
+    {
+        if (!daq::validateTypeName(fieldName.getCharPtr()))
+            throw InvalidParameterException{"Struct field names contain some incorrect ones."};
+    }
 
     for (const TypePtr& type: this->types)
     {

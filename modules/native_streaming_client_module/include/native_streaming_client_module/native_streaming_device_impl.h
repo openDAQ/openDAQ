@@ -35,7 +35,9 @@ public:
                                        const StringPtr& host,
                                        const StringPtr& port,
                                        const StringPtr& path,
-                                       opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient);
+                                       opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
+                                       std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+                                       Int initTimeout);
 
 protected:
     DeviceInfoPtr onGetInfo() override;
@@ -46,9 +48,11 @@ protected:
     void initStatuses(const ContextPtr& ctx);
     void publishReconnectionStatus();
     void createNativeStreaming(opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
+                               std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                const StringPtr& host,
                                const StringPtr& port,
-                               const StringPtr& path);
+                               const StringPtr& path,
+                               Int initTimeout);
     void activateStreaming();
     void addToDeviceSignals(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void addToDeviceSignalsOnReconnection(const StringPtr& signalStringId, const StringPtr& serializedSignal);

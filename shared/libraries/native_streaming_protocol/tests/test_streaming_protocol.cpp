@@ -49,12 +49,16 @@ public:
     std::promise< ClientReconnectionStatus > reconnectionStatusPromise;
     std::future< ClientReconnectionStatus > reconnectionStatusFuture;
 
+    std::promise< void > streamingInitPromise;
+    std::future< void > streamingInitFuture;
+
     OnSignalAvailableCallback signalAvailableHandler;
     OnSignalAvailableCallback signalWithDomainAvailableHandler;
     OnSignalUnavailableCallback signalUnavailableHandler;
     OnPacketCallback packetHandler;
     OnSignalSubscriptionAckCallback signalSubscriptionAckHandler;
     OnReconnectionStatusChangedCallback reconnectionStatusChangedHandler;
+    OnStreamingInitDoneCallback streamingInitDoneHandler;
 
     void setUp()
     {
@@ -80,6 +84,14 @@ public:
 
         reconnectionStatusPromise = std::promise< ClientReconnectionStatus >();
         reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+
+        streamingInitPromise = std::promise< void >();
+        streamingInitFuture = streamingInitPromise.get_future();
+
+        streamingInitDoneHandler = [this]()
+        {
+            streamingInitPromise.set_value();
+        };
 
         signalAvailableHandler = [this](const StringPtr& signalStringId,
                                         const StringPtr& serializedSignal)
@@ -146,9 +158,9 @@ public:
             signalUnsubscribedPromise.set_value(signal);
         };
 
-        setUpConfigProtocolServerCb = [](ConfigProtocolPacketCb sendPacketCb)
+        setUpConfigProtocolServerCb = [](SendConfigProtocolPacketCb sendPacketCb)
         {
-            return [](const config_protocol::PacketBuffer& packetBuffer) {};
+            return [](config_protocol::PacketBuffer&& packetBuffer) {};
         };
 
         clientsCount = std::get<0>(GetParam());
@@ -188,6 +200,7 @@ public:
         clientHandler->setPacketHandler(client.packetHandler);
         clientHandler->setSignalSubscriptionAckCallback(client.signalSubscriptionAckHandler);
         clientHandler->setReconnectionStatusChangedCb(client.reconnectionStatusChangedHandler);
+        clientHandler->setStreamingInitDoneCb(client.streamingInitDoneHandler);
 
         return clientHandler;
     }
@@ -260,6 +273,8 @@ TEST_P(StreamingProtocolTest, ConnectDisconnectNoSignals)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
     }
 }
 
@@ -308,6 +323,8 @@ TEST_P(StreamingProtocolTest, ConnectDisconnectWithSignalDomainUnassigned)
     {
         client.clientHandler = createClient(client, client.signalWithDomainAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
         ASSERT_EQ(client.signalWithDomainAvailableFuture.wait_for(timeout), std::future_status::ready);
         auto [clientSignalStringId, serializedSignal] = client.signalWithDomainAvailableFuture.get();
@@ -336,6 +353,8 @@ TEST_P(StreamingProtocolTest, ConnectDisconnectWithSignalDomainAssigned)
     {
         client.clientHandler = createClient(client, client.signalWithDomainAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
         ASSERT_EQ(client.signalWithDomainAvailableFuture.wait_for(timeout), std::future_status::ready);
         auto [clientSignalStringId, serializedSignal] = client.signalWithDomainAvailableFuture.get();
@@ -356,6 +375,8 @@ TEST_P(StreamingProtocolTest, AddSignal)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
     }
 
     auto serverSignal =
@@ -387,6 +408,8 @@ TEST_P(StreamingProtocolTest, RemoveSignal)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
         auto [clientSignalStringId, serializedSignal] =
@@ -416,6 +439,8 @@ TEST_P(StreamingProtocolTest, RemoveSignalOfParent)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
         auto [clientSignalStringId, serializedSignal] =
@@ -446,6 +471,8 @@ TEST_P(StreamingProtocolTest, SignalSubscribeUnsubscribe)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
         std::tie(clientSignalStringId, serializedSignal) = client.signalAvailableFuture.get();
@@ -480,6 +507,8 @@ TEST_P(StreamingProtocolTest, RemoveSubscribedSignal)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
         std::tie(clientSignalStringId, serializedSignal) = client.signalAvailableFuture.get();
@@ -507,6 +536,8 @@ TEST_P(StreamingProtocolTest, InitialEventPacket)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
         ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
         auto [signalId, packet] = client.packetReceivedFuture.get();
@@ -527,6 +558,8 @@ TEST_P(StreamingProtocolTest, SendEventPacket)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
         auto [clientSignalStringId, serializedSignal] =
@@ -568,6 +601,8 @@ TEST_P(StreamingProtocolTest, SendPacketsNoSubscribers)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
         // wait for initial event packet
         ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
@@ -602,6 +637,8 @@ TEST_P(StreamingProtocolTest, SendDataPacket)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
         auto [clientSignalStringId, serializedSignal] =
@@ -638,6 +675,8 @@ TEST_P(StreamingProtocolTest, AddNotPublicSignal)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
     }
 
     auto serverSignal =
@@ -667,6 +706,8 @@ TEST_P(StreamingProtocolTest, AddNotPublicSignalInConstructor)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
         ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(std::chrono::milliseconds(100)), std::future_status::timeout);
     }

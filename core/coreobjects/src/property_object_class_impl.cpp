@@ -381,7 +381,7 @@ ErrCode PropertyObjectClassImpl::Deserialize(ISerializedObject* serialized,
 
             for (const auto& key : keys)
             {
-                const PropertyPtr prop = properties.readObject(key, context, factoryCallback);
+                const PropertyPtr prop = properties.readObject(key, context);
                 builder.addProperty(prop);
             }
 

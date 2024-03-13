@@ -98,6 +98,9 @@ void AsyncPacketReader::stopReadSignal(const SignalPtr& signal)
 
 void AsyncPacketReader::addReader(SignalPtr signalToRead)
 {
+    if (!signalToRead.getPublic())
+        return;
+
     auto it = std::find_if(signalReaders.begin(),
                            signalReaders.end(),
                            [&signalToRead](const std::pair<SignalPtr, PacketReaderPtr>& element)

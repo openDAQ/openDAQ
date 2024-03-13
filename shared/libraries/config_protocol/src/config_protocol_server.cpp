@@ -325,10 +325,12 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::AttributeChanged:
             packedEvent.pushBack(processCoreEventArgs(args));
             break;
+        case CoreEventId::ComponentUpdateEnd:
+            packedEvent.pushBack(processUpdateEndCoreEvent(component, args));
+            break;
         case CoreEventId::ComponentRemoved:
         case CoreEventId::SignalDisconnected:
         case CoreEventId::DataDescriptorChanged:
-        case CoreEventId::ComponentUpdateEnd:
         case CoreEventId::StatusChanged:
         case CoreEventId::TypeAdded:
         case CoreEventId::TypeRemoved:
@@ -375,6 +377,18 @@ CoreEventArgsPtr ConfigProtocolServer::processCoreEventArgs(const CoreEventArgsP
     }
 
     return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), cloned);
+}
+
+CoreEventArgsPtr ConfigProtocolServer::processUpdateEndCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
+{
+    std::scoped_lock lock(notificationSerializerLock);
+    auto dict = Dict<IString, IBaseObject>();
+
+    notificationSerializer.reset();
+    component.serialize(notificationSerializer);
+    dict.set("SerializedComponent", notificationSerializer.getOutput());
+
+    return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), dict);
 }
 
 BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) const

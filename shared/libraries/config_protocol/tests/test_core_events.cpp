@@ -565,11 +565,6 @@ TEST_F(ConfigCoreEventTest, DataDescriptorChanged)
     ASSERT_EQ(changeCount, 3);
 }
 
-TEST_F(ConfigCoreEventTest, ComponentUpdateEnd)
-{
-    
-}
-
 TEST_F(ConfigCoreEventTest, ComponentAttributeChanged)
 {
     int changeCount = 0;
@@ -773,6 +768,8 @@ TEST_F(ConfigCoreEventTest, TypeRemoved)
 {
     const auto typeManager = serverDevice.getContext().getTypeManager();
     
+    const auto clientTypeManager = clientContext.getTypeManager();
+
     const auto statusType = EnumerationType("StatusType1", List<IString>("Status0", "Status1"));
     typeManager.addType(statusType);
     
@@ -798,8 +795,548 @@ TEST_F(ConfigCoreEventTest, TypeRemoved)
 
     ASSERT_EQ(removeCount, 3);
 
-    const auto clientTypeManager = clientContext.getTypeManager();
     ASSERT_FALSE(clientTypeManager.hasType("StatusType1"));
     ASSERT_FALSE(clientTypeManager.hasType("StructType1"));
     ASSERT_FALSE(clientTypeManager.hasType("StructType2"));
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndValueChanged)
+{
+    serverDevice.addProperty(StringProperty("string", "foo"));
+    serverDevice.addProperty(IntProperty("int", 0));
+    serverDevice.addProperty(FloatProperty("float", 1.123));
+    
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    serverDevice.setPropertyValue("string", "bar");
+    serverDevice.setPropertyValue("int", 1);
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    const auto serializer = JsonSerializer();
+    serverDevice.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    const auto str = serializer.getOutput();
+    deserializer.update(serverDevice, serializer.getOutput());
+
+    ASSERT_EQ(clientDevice.getPropertyValue("string"), serverDevice.getPropertyValue("string"));
+    ASSERT_EQ(clientDevice.getPropertyValue("int"), serverDevice.getPropertyValue("int"));
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndPropertyAddedRemoved)
+{
+    serverDevice.addProperty(FloatProperty("temp", 1.123));
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    serverDevice.addProperty(StringProperty("string", "foo"));
+    serverDevice.addProperty(IntProperty("int", 0));
+    serverDevice.addProperty(FloatProperty("float", 1.123));
+    serverDevice.removeProperty("temp");
+    
+    serverDevice.setPropertyValue("string", "bar");
+    serverDevice.setPropertyValue("int", 1);
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+
+    ASSERT_EQ(clientDevice.getPropertyValue("string"), serverDevice.getPropertyValue("string"));
+    ASSERT_EQ(clientDevice.getPropertyValue("int"), serverDevice.getPropertyValue("int"));
+    ASSERT_EQ(clientDevice.getPropertyValue("float"), serverDevice.getPropertyValue("float"));
+    ASSERT_FALSE(clientDevice.hasProperty("temp"));
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndFbAdded)
+{
+    
+    const FolderConfigPtr clientFolder = clientDevice.getItem("FB");
+    const FolderConfigPtr serverFolder = serverDevice.getItem("FB");
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    const auto fb1 =
+        createWithImplementation<IFunctionBlock, test_utils::MockFb1Impl>(serverDevice.getContext(), serverFolder, "newFb1");
+    const auto fb2 =
+        createWithImplementation<IFunctionBlock, test_utils::MockFb1Impl>(serverDevice.getContext(), serverFolder, "newFb2");
+    const auto fb3 =
+        createWithImplementation<IFunctionBlock, test_utils::MockFb1Impl>(serverDevice.getContext(), serverFolder, "newFb3");
+
+    serverFolder.addItem(fb1);
+    serverFolder.addItem(fb2);
+    serverFolder.addItem(fb3);
+
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    
+    const auto serializer = JsonSerializer();
+    serverFolder.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverFolder, serializer.getOutput());
+
+    
+    ASSERT_NO_THROW(clientFolder.getItem("newFb1"));
+    ASSERT_NO_THROW(clientFolder.getItem("newFb2"));
+    ASSERT_NO_THROW(clientFolder.getItem("newFb3"));
+
+    ASSERT_TRUE(clientFolder.getItem("newFb1").supportsInterface(IFunctionBlock::Id));
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceFBModified)
+{
+    const FolderConfigPtr serverFolder1 = serverDevice.getItem("FB");
+    const FolderConfigPtr clientFolder1 = clientDevice.getItem("FB");
+    const FolderConfigPtr serverFolder2 = serverDevice.getDevices()[0].getItem("FB");
+    const FolderConfigPtr clientFolder2 = clientDevice.getDevices()[0].getItem("FB");
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    serverFolder2.removeItemWithLocalId("fb");
+    const auto fb1 =
+        createWithImplementation<IFunctionBlock, test_utils::MockFb1Impl>(serverDevice.getContext(), serverFolder1, "newFb1");
+    serverFolder1.addItem(fb1);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    
+    ASSERT_FALSE(clientFolder1.hasItem("newFb1"));
+    ASSERT_TRUE(clientFolder2.hasItem("fb"));
+
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+
+    ASSERT_TRUE(clientFolder1.hasItem("newFb1"));
+    ASSERT_FALSE(clientFolder2.hasItem("fb"));
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceSubDeviceChannelSignalModified)
+{
+    const FolderConfigPtr serverDeviceFolder = serverDevice.getItem("Dev");
+    const FolderConfigPtr serverSigFolder = serverDevice.getItem("Sig");
+    const FolderConfigPtr serverIOFolder = serverDevice.getItem("IO");
+
+    const FolderConfigPtr clientDeviceFolder = clientDevice.getItem("Dev");
+    const FolderConfigPtr clientSigFolder = clientDevice.getItem("Sig");
+    const FolderConfigPtr clientIOFolder = clientDevice.getItem("IO");
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    
+    serverDeviceFolder.removeItemWithLocalId("dev");
+    serverSigFolder.removeItemWithLocalId("sig_device");
+    serverIOFolder.removeItemWithLocalId("ai");
+    
+    const auto dev = createWithImplementation<IDevice, test_utils::MockDevice2Impl>(serverDevice.getContext(), serverDeviceFolder, "new_dev");
+    const auto io = IoFolder(serverDevice.getContext(), serverIOFolder, "new_io");
+    const auto sig = Signal(serverDevice.getContext(), serverSigFolder, "new_sig");
+
+    serverDeviceFolder.addItem(dev);
+    serverIOFolder.addItem(io);
+    serverSigFolder.addItem(sig);
+
+    const auto ch = createWithImplementation<IChannel, test_utils::MockChannel2Impl>(serverDevice.getContext(), io, "new_ch");
+    io.addItem(ch);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    
+    ASSERT_TRUE(clientDeviceFolder.hasItem("dev"));
+    ASSERT_FALSE(clientDeviceFolder.hasItem("new_dev"));
+    ASSERT_TRUE(clientSigFolder.hasItem("sig_device"));
+    ASSERT_FALSE(clientSigFolder.hasItem("new_sig"));
+    ASSERT_TRUE(clientIOFolder.hasItem("ai"));
+    ASSERT_FALSE(clientIOFolder.hasItem("new_io"));
+
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+        
+    ASSERT_FALSE(clientDeviceFolder.hasItem("dev"));
+    ASSERT_TRUE(clientDeviceFolder.hasItem("new_dev"));
+    ASSERT_FALSE(clientSigFolder.hasItem("sig_device"));
+    ASSERT_TRUE(clientSigFolder.hasItem("new_sig"));
+    ASSERT_FALSE(clientIOFolder.hasItem("ai"));
+    ASSERT_TRUE(clientIOFolder.hasItem("new_io"));
+    ASSERT_TRUE(clientIOFolder.getItem("new_io").asPtr<IFolder>().hasItem("new_ch"));
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceCustomCompModified)
+{
+    auto mock = dynamic_cast<test_utils::MockDevice2Impl*>(serverDevice.getObject());
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    mock->removeComponentHelper("AdvancedPropertiesComponent");
+
+    const auto comp = Component(serverDevice.getContext(), serverDevice, "new_comp");
+    const auto folder = Folder(serverDevice.getContext(), serverDevice, "new_folder");
+    const auto childComp = Component(serverDevice.getContext(), folder, "new_child_comp");
+    folder.addItem(childComp);
+
+    mock->addComponentHelper(comp);
+    mock->addComponentHelper(folder);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_TRUE(clientDevice.hasItem("AdvancedPropertiesComponent"));
+    ASSERT_FALSE(clientDevice.hasItem("new_comp"));
+    ASSERT_FALSE(clientDevice.hasItem("new_folder"));
+
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+    
+    ASSERT_FALSE(clientDevice.hasItem("AdvancedPropertiesComponent"));
+    ASSERT_TRUE(clientDevice.hasItem("new_comp"));
+    ASSERT_TRUE(clientDevice.hasItem("new_folder"));
+    ASSERT_TRUE(clientDevice.getItem("new_folder").asPtr<IFolder>().hasItem("new_child_comp"));
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndFBSubFbSignalIPModified)
+{
+    const auto serverFB = serverDevice.getFunctionBlocks(search::Recursive(search::Any()))[0];
+    const auto clientFB = clientDevice.getFunctionBlocks(search::Recursive(search::Any()))[0];
+
+    const FolderConfigPtr serverFBFolder = serverFB.getItem("FB");
+    const FolderConfigPtr serverSigFolder = serverFB.getItem("Sig");
+    const FolderConfigPtr serverIPFolder = serverFB.getItem("IP");
+
+    const FolderConfigPtr clientFBFolder = clientFB.getItem("FB");
+    const FolderConfigPtr clientSigFolder = clientFB.getItem("Sig");
+    const FolderConfigPtr clientIPFolder = clientFB.getItem("IP");
+    
+    const auto fb = createWithImplementation<IFunctionBlock, test_utils::MockFb1Impl>(serverDevice.getContext(), serverFBFolder, "fb");
+    serverFBFolder.addItem(fb);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    serverFBFolder.removeItemWithLocalId("fb");
+    serverSigFolder.removeItemWithLocalId("sig1");
+    serverIPFolder.removeItemWithLocalId("ip");
+
+    const auto fbNew = createWithImplementation<IFunctionBlock, test_utils::MockFb2Impl>(serverDevice.getContext(), serverFBFolder, "new_fb");
+    const auto ipNew = InputPort(serverDevice.getContext(), serverIPFolder, "new_ip");
+    const auto sigNew = Signal(serverDevice.getContext(), serverSigFolder, "new_sig");
+
+    serverFBFolder.addItem(fbNew);
+    serverIPFolder.addItem(ipNew);
+    serverSigFolder.addItem(sigNew);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+    
+    ASSERT_TRUE(clientFBFolder.hasItem("fb"));
+    ASSERT_FALSE(clientFBFolder.hasItem("new_fb"));
+    ASSERT_TRUE(clientSigFolder.hasItem("sig1"));
+    ASSERT_FALSE(clientSigFolder.hasItem("new_sig"));
+    ASSERT_TRUE(clientIPFolder.hasItem("ip"));
+    ASSERT_FALSE(clientIPFolder.hasItem("new_ip"));
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+
+    ASSERT_FALSE(clientFBFolder.hasItem("fb"));
+    ASSERT_TRUE(clientFBFolder.hasItem("new_fb"));
+    ASSERT_FALSE(clientSigFolder.hasItem("sig1"));
+    ASSERT_TRUE(clientSigFolder.hasItem("new_sig"));
+    ASSERT_FALSE(clientIPFolder.hasItem("ip"));
+    ASSERT_TRUE(clientIPFolder.hasItem("new_ip"));
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceIPConnectDisconnect)
+{
+    const FolderConfigPtr serverFolder = serverDevice.getFunctionBlocks(search::Recursive(search::Any()))[0].getItem("IP");
+    const FolderConfigPtr clientFolder = clientDevice.getFunctionBlocks(search::Recursive(search::Any()))[0].getItem("IP");
+    
+    const auto serverIpNew = InputPort(serverDevice.getContext(), serverFolder, "new_ip");
+    const auto serverIp = serverFolder.getItem("ip").asPtr<IInputPortConfig>();
+
+    serverFolder.addItem(serverIpNew);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    serverIp.disconnect();
+    serverIpNew.connect(serverDevice.getSignals()[0]);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_FALSE(clientFolder.getItem("new_ip").asPtr<IInputPort>().getConnection().assigned());
+    ASSERT_TRUE(clientFolder.getItem("ip").asPtr<IInputPort>().getConnection().assigned());
+
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+    
+    ASSERT_TRUE(clientFolder.getItem("new_ip").asPtr<IInputPort>().getConnection().assigned());
+    ASSERT_FALSE(clientFolder.getItem("ip").asPtr<IInputPort>().getConnection().assigned());
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndFBIPConnectDisconnect)
+{
+    const auto serverFB = serverDevice.getFunctionBlocks(search::Recursive(search::Any()))[0];
+    const auto clientFB = clientDevice.getFunctionBlocks(search::Recursive(search::Any()))[0];
+
+    const FolderConfigPtr serverFolder = serverFB.getItem("IP");
+    const FolderConfigPtr clientFolder = clientFB.getItem("IP");
+    
+    const auto serverIpNew = InputPort(serverDevice.getContext(), serverFolder, "new_ip");
+    const auto serverIp = serverFolder.getItem("ip").asPtr<IInputPortConfig>();
+
+    serverFolder.addItem(serverIpNew);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    serverIp.disconnect();
+    serverIpNew.connect(serverDevice.getSignals()[0]);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_FALSE(clientFolder.getItem("new_ip").asPtr<IInputPort>().getConnection().assigned());
+    ASSERT_TRUE(clientFolder.getItem("ip").asPtr<IInputPort>().getConnection().assigned());
+
+    const auto serializer = JsonSerializer();
+    serverFB.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverFB, serializer.getOutput());
+    
+    ASSERT_TRUE(clientFolder.getItem("new_ip").asPtr<IInputPort>().getConnection().assigned());
+    ASSERT_FALSE(clientFolder.getItem("ip").asPtr<IInputPort>().getConnection().assigned());
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndFolderIPConnectDisconnect)
+{
+    const auto serverDevFolder = serverDevice.getItem("Dev");
+    const auto clientDevFolder = clientDevice.getItem("Dev");
+
+    const FolderConfigPtr serverFolder = serverDevice.getFunctionBlocks(search::Recursive(search::Any()))[0].getItem("IP");
+    const FolderConfigPtr clientFolder = clientDevice.getFunctionBlocks(search::Recursive(search::Any()))[0].getItem("IP");
+    
+    const auto serverIpNew = InputPort(serverDevice.getContext(), serverFolder, "new_ip");
+    const auto serverIp = serverFolder.getItem("ip").asPtr<IInputPortConfig>();
+
+    serverFolder.addItem(serverIpNew);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    serverIp.disconnect();
+    serverIpNew.connect(serverDevice.getSignals()[0]);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_FALSE(clientFolder.getItem("new_ip").asPtr<IInputPort>().getConnection().assigned());
+    ASSERT_TRUE(clientFolder.getItem("ip").asPtr<IInputPort>().getConnection().assigned());
+
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+    
+    ASSERT_TRUE(clientFolder.getItem("new_ip").asPtr<IInputPort>().getConnection().assigned());
+    ASSERT_FALSE(clientFolder.getItem("ip").asPtr<IInputPort>().getConnection().assigned());
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndDomainSignalChanged)
+{
+    const FolderConfigPtr serverSigFolder = serverDevice.getItem("Sig");
+    const FolderConfigPtr clientSigFolder = clientDevice.getItem("Sig");
+
+    const SignalConfigPtr serverDeviceSig = serverSigFolder.getItem("sig_device");
+    const SignalConfigPtr serverDeviceTimeSig = Signal(serverDevice.getContext(), serverSigFolder, "sig_device_time");
+    const SignalConfigPtr serverSubDeviceSig = serverDevice.getDevices()[0].getItem("Sig").asPtr<IFolder>().getItem("sig_device");
+    
+    serverSigFolder.addItem(serverDeviceTimeSig);
+    serverDeviceSig.setDomainSignal(serverDeviceTimeSig);
+
+    const SignalPtr clientDeviceSig = clientSigFolder.getItem("sig_device");
+    const SignalPtr clientDeviceTimeSig = clientSigFolder.getItem("sig_device_time");
+    const SignalPtr clientSubDeviceSig = clientDevice.getDevices()[0].getItem("Sig").asPtr<IFolder>().getItem("sig_device");
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    serverDeviceSig.setDomainSignal(nullptr);
+    serverSubDeviceSig.setDomainSignal(serverDeviceTimeSig);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_EQ(clientDeviceSig.getDomainSignal(), clientDeviceTimeSig);
+    ASSERT_EQ(clientSubDeviceSig.getDomainSignal(), nullptr);
+
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+    
+    ASSERT_EQ(clientSubDeviceSig.getDomainSignal(), clientDeviceTimeSig);
+    ASSERT_EQ(clientDeviceSig.getDomainSignal(), nullptr);
+
+    ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentUpdateEndDescriptorChanged)
+{
+    const FolderConfigPtr serverSigFolder = serverDevice.getItem("Sig");
+    const FolderConfigPtr clientSigFolder = clientDevice.getItem("Sig");
+
+    const SignalConfigPtr serverDeviceSig = serverDevice.getItem("Sig").asPtr<IFolder>().getItem("sig_device");
+    const SignalPtr clientDeviceSig = clientDevice.getItem("Sig").asPtr<IFolder>().getItem("sig_device");
+
+    auto serverDesc = serverDeviceSig.getDescriptor();
+
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+
+    const auto newDesc = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat64).setName("Foo").build();
+    serverDeviceSig.setDescriptor(newDesc);
+
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    ASSERT_EQ(clientDeviceSig.getDescriptor(), serverDesc);
+
+    const auto serializer = JsonSerializer();
+    serverDevice.serialize(serializer);
+    const auto out = serializer.getOutput();
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+            updateCount++;
+        };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(serverDevice, serializer.getOutput());
+    
+    ASSERT_EQ(clientDeviceSig.getDescriptor(), newDesc);
+
+    ASSERT_EQ(updateCount, 1);
 }

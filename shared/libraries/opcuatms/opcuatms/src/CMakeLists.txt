@@ -28,6 +28,7 @@ set(SRC_Converters_Headers ${CONVERTERS_SRC_DIR}/struct_converter.h
 
 set(SRC_Converters ${CONVERTERS_SRC_DIR}/range_converter.cpp
                    ${CONVERTERS_SRC_DIR}/unit_converter.cpp
+                   ${CONVERTERS_SRC_DIR}/complex_number_converter.cpp
                    ${CONVERTERS_SRC_DIR}/number_converter.cpp
                    ${CONVERTERS_SRC_DIR}/data_rule_converter.cpp
                    ${CONVERTERS_SRC_DIR}/dimension_rule_converter.cpp

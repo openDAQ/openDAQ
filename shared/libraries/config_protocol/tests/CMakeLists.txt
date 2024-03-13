@@ -10,6 +10,7 @@ add_executable(${TEST_APP}
     test_ref_modules.cpp
     test_app.cpp
     test_core_events.cpp
+    test_nested_property_objects.cpp
     test_utils.h
     test_utils.cpp
 )
@@ -20,6 +21,10 @@ target_link_libraries(${TEST_APP} PRIVATE
     daq::opendaq
     daq::opendaq_mocks
     GTest::GTest GTest::gmock
+)
+
+add_dependencies(${TEST_APP} ${SDK_TARGET_NAMESPACE}::ref_device_module
+                             ${SDK_TARGET_NAMESPACE}::ref_fb_module
 )
 
 set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)

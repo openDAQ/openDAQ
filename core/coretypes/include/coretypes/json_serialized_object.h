@@ -27,6 +27,7 @@ public:
     using JsonObject = rapidjson::GenericObject<false, rapidjson::Value>;
 
     explicit JsonSerializedObject(const JsonObject& obj);
+    explicit JsonSerializedObject(const JsonObject& obj, bool isRoot);
 
     ErrCode INTERFACE_FUNC readSerializedObject(IString* key, ISerializedObject** plainObj) override;
     ErrCode INTERFACE_FUNC readSerializedList(IString* key, ISerializedList** list) override;
@@ -40,10 +41,12 @@ public:
 
     ErrCode INTERFACE_FUNC getKeys(IList** list) override;
     ErrCode INTERFACE_FUNC getType(IString* key, CoreType* type) override;
+    ErrCode INTERFACE_FUNC isRoot(Bool* isRoot) override;
 
     ErrCode INTERFACE_FUNC toString(CharPtr* str) override;
 private:
     const JsonObject object;
+    Bool root;
 };
 
 END_NAMESPACE_OPENDAQ

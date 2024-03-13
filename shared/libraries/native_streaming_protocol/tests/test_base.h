@@ -61,9 +61,9 @@ public:
     {
         auto config = daq::PropertyObject();
 
-        config.addProperty(daq::BoolProperty("HeartbeatEnabled", daq::True));
+        config.addProperty(daq::BoolProperty("MonitoringEnabled", daq::True));
         config.addProperty(daq::IntProperty("HeartbeatPeriod", 1000));
-        config.addProperty(daq::IntProperty("HeartbeatTimeout", 1500));
+        config.addProperty(daq::IntProperty("InactivityTimeout", 1500));
         config.addProperty(daq::IntProperty("ConnectionTimeout", 1000));
         config.addProperty(daq::IntProperty("StreamingInitTimeout", 1000));
         config.addProperty(daq::IntProperty("ReconnectionPeriod", 1000));

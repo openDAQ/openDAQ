@@ -23,6 +23,9 @@ ErrCode TypeManagerImpl::addType(IType* type)
     
     if (types.hasKey(typeName))
         return OPENDAQ_ERR_ALREADYEXISTS;
+
+    if(!daq::validateTypeName(typeName.getCharPtr()))
+        return OPENDAQ_ERR_VALIDATE_FAILED;
     
     const ErrCode err = types->set(typeName, typePtr);
     if (OPENDAQ_FAILED(err))
@@ -129,17 +132,18 @@ ConstCharPtr TypeManagerImpl::SerializeId()
     return "TypeManager";
 }
 
-ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*context*/, IFunction* factoryCallback, IBaseObject** obj)
 {
-    BaseObjectPtr types;
-    ErrCode errCode = ser->readObject("types"_daq, context, factoryCallback, &types);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-
     try
     {
         TypeManagerPtr typeManagerPtr;
         createTypeManager(&typeManagerPtr);
+
+        BaseObjectPtr types;
+        ErrCode errCode = ser->readObject("types"_daq, typeManagerPtr.asPtr<IBaseObject>(), factoryCallback, &types);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
         for (const auto& type : types.asPtr<IDict>().getValues())
             typeManagerPtr.addType(type);
 

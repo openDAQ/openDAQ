@@ -3,7 +3,9 @@
 #include <ref_fb_module/classifier_fb_impl.h>
 #include <ref_fb_module/power_fb_impl.h>
 #include <ref_fb_module/ref_fb_module_impl.h>
+#ifdef OPENDAQ_ENABLE_RENDERER
 #include <ref_fb_module/renderer_fb_impl.h>
+#endif
 #include <ref_fb_module/scaling_fb_impl.h>
 #include <ref_fb_module/statistics_fb_impl.h>
 #include <ref_fb_module/trigger_fb_impl.h>
@@ -23,8 +25,10 @@ DictPtr<IString, IFunctionBlockType> RefFbModule::onGetAvailableFunctionBlockTyp
 {
     auto types = Dict<IString, IFunctionBlockType>();
 
+#ifdef OPENDAQ_ENABLE_RENDERER
     auto typeRenderer = Renderer::RendererFbImpl::CreateType();
     types.set(typeRenderer.getId(), typeRenderer);
+#endif
 
     auto typeStatistics = Statistics::StatisticsFbImpl::CreateType();
     types.set(typeStatistics.getId(), typeStatistics);
@@ -49,11 +53,13 @@ FunctionBlockPtr RefFbModule::onCreateFunctionBlock(const StringPtr& id,
                                                     const StringPtr& localId,
                                                     const PropertyObjectPtr& config)
 {
+#ifdef OPENDAQ_ENABLE_RENDERER
     if (id == Renderer::RendererFbImpl::CreateType().getId())
     {
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Renderer::RendererFbImpl>(context, parent, localId);
         return fb;
     }
+#endif
     if (id == Statistics::StatisticsFbImpl::CreateType().getId())
     {
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Statistics::StatisticsFbImpl>(context, parent, localId, config);

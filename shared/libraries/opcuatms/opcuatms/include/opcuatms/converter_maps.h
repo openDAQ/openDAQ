@@ -89,6 +89,9 @@ namespace converters
                        {IRange::Id,
                         [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
                         { return VariantConverter<IRange>::ToVariant(object, targetType, ctx); }},
+                       {IComplexNumber::Id,
+                        [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
+                        { return VariantConverter<IComplexNumber>::ToVariant(object, targetType, ctx); }},
                        {IStruct::Id,
                         [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
                         { return VariantConverter<IStruct>::ToVariant(object, targetType, ctx); }},
@@ -142,6 +145,9 @@ namespace converters
                             {IRange::Id,
                              [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
                              { return VariantConverter<IRange>::ToArrayVariant(object, targetType, ctx); }},
+                            {IComplexNumber::Id,
+                             [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
+                             { return VariantConverter<IComplexNumber>::ToArrayVariant(object, targetType, ctx); }},
                             {IStruct::Id,
                              [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
                              { return VariantConverter<IStruct>::ToArrayVariant(object, targetType, ctx); }},
@@ -207,7 +213,11 @@ namespace converters
         {OpcUaNodeId(0, UA_NS0ID_ARGUMENT),
          [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IArgumentInfo>::ToDaqObject(var, context); }},
         {OpcUaNodeId(0, UA_NS0ID_RANGE),
-         [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IRange>::ToDaqObject(var, context); }}};
+         [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IRange>::ToDaqObject(var, context); }},
+        {OpcUaNodeId(0, UA_NS0ID_COMPLEXNUMBERTYPE),
+         [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IComplexNumber>::ToDaqObject(var, context); }},
+        {OpcUaNodeId(0, UA_NS0ID_DOUBLECOMPLEXNUMBERTYPE),
+         [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IComplexNumber>::ToDaqObject(var, context); }}};
 
     static std::unordered_map<OpcUaNodeId, std::function<ListPtr<IBaseObject>(const OpcUaVariant&, const ContextPtr& context)>>
         uaTypeToDaqList{
@@ -262,7 +272,11 @@ namespace converters
             {OpcUaNodeId(0, UA_NS0ID_ARGUMENT),
              [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IArgumentInfo>::ToDaqList(var, context); }},
             {OpcUaNodeId(0, UA_NS0ID_RANGE),
-             [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IRange>::ToDaqList(var, context); }}};
+             [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IRange>::ToDaqList(var, context); }},
+            {OpcUaNodeId(0, UA_NS0ID_COMPLEXNUMBERTYPE),
+             [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IComplexNumber>::ToDaqList(var, context); }},
+            {OpcUaNodeId(0, UA_NS0ID_DOUBLECOMPLEXNUMBERTYPE),
+             [](const OpcUaVariant& var, const ContextPtr& context) { return VariantConverter<IComplexNumber>::ToDaqList(var, context); }}};
 
     static OpcUaVariant convertToVariant(IntfID interfaceId,
                                          const BaseObjectPtr& object,

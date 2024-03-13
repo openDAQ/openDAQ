@@ -35,7 +35,8 @@ public:
                            const std::string& remoteGlobalId,
                            const ContextPtr& ctx,
                            const ComponentPtr& parent,
-                           const StringPtr& localId);
+                           const StringPtr& localId,
+                           const StringPtr& className = nullptr);
 
     // IConfigClientSignalPrivate
     void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
@@ -47,6 +48,7 @@ public:
 
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 
 private:
     void descriptorChanged(const CoreEventArgsPtr& args);
@@ -58,8 +60,9 @@ inline ConfigClientSignalImpl::ConfigClientSignalImpl(const ConfigProtocolClient
                                                       const std::string& remoteGlobalId,
                                                       const ContextPtr& ctx,
                                                       const ComponentPtr& parent,
-                                                      const StringPtr& localId)
-    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
+                                                      const StringPtr& localId,
+                                                      const StringPtr& className)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
 {
 }
 
@@ -116,6 +119,19 @@ inline void ConfigClientSignalImpl::handleRemoteCoreObjectInternal(const Compone
     }
 
     Super::handleRemoteCoreObjectInternal(sender, args);
+}
+
+inline void ConfigClientSignalImpl::onRemoteUpdate(const SerializedObjectPtr& serialized)
+{
+    ConfigClientComponentBaseImpl::onRemoteUpdate(serialized);
+
+    if (serialized.hasKey("domainSignalId"))
+        deserializedDomainSignalId = serialized.readString("domainSignalId");
+    else
+        deserializedDomainSignalId.release();
+
+    if (serialized.hasKey("dataDescriptor"))
+        this->dataDescriptor = serialized.readObject("dataDescriptor");
 }
 
 inline void ConfigClientSignalImpl::descriptorChanged(const CoreEventArgsPtr& args)

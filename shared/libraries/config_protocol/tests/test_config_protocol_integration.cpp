@@ -247,9 +247,9 @@ TEST_F(ConfigProtocolIntegrationTest, DomainInfo)
 TEST_F(ConfigProtocolIntegrationTest, GetTicksSinceOrigin)
 {
     const auto clientSubDevice = clientDevice.getDevices()[0];
-    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 0);
-    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 1);
-    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 2);
+    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 0u);
+    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 1u);
+    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 2u);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetAvailableFunctionBlockTypes)
@@ -321,39 +321,39 @@ TEST_F(ConfigProtocolIntegrationTest, RemoveFunctionBlock)
     serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
     const auto serverSubDevice = serverDevice.getDevices()[0];
     const auto clientSubDevice = clientDevice.getDevices()[0];
-    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 1);
-    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 1);
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 1u);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 1u);
 
     ASSERT_NO_THROW(clientSubDevice.removeFunctionBlock(clientSubDevice.getFunctionBlocks()[0]));
 
-    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 0);
-    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 0);
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 0u);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 0u);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, RemoveFunctionBlockWithEvent)
 {
     const auto serverSubDevice = serverDevice.getDevices()[0];
     const auto clientSubDevice = clientDevice.getDevices()[0];
-    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 1);
-    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 1);
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 1u);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 1u);
 
     ASSERT_NO_THROW(clientSubDevice.removeFunctionBlock(clientSubDevice.getFunctionBlocks()[0]));
 
-    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 0);
-    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 0);
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 0u);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 0u);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, RemoveFunctionBlockFromServer)
 {
     const auto serverSubDevice = serverDevice.getDevices()[0];
     const auto clientSubDevice = clientDevice.getDevices()[0];
-    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 1);
-    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 1);
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 1u);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 1u);
 
     ASSERT_NO_THROW(serverSubDevice.removeFunctionBlock(clientSubDevice.getFunctionBlocks()[0]));
 
-    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 0);
-    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 0);
+    ASSERT_EQ(serverSubDevice.getFunctionBlocks().getCount(), 0u);
+    ASSERT_EQ(clientSubDevice.getFunctionBlocks().getCount(), 0u);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetInitialStructPropertyValue)
@@ -422,4 +422,26 @@ TEST_F(ConfigProtocolIntegrationTest, SetSignalNameAndDescriptionFromServer)
 
     ASSERT_EQ(clientSignal.getName(), "SigName");
     ASSERT_EQ(serverSignal.getName(), "SigName");
+}
+
+static void testMockPropertyObjectClass(const PropertyObjectPtr& obj)
+{
+    const auto className = obj.getClassName();
+    ASSERT_EQ(className, "MockClass");
+    ASSERT_TRUE(obj.hasProperty("MockString"));
+    ASSERT_EQ(obj.getPropertyValue("MockString"), "string");
+
+    ASSERT_TRUE(obj.hasProperty("MockChild"));
+    const PropertyObjectPtr mockChild = obj.getPropertyValue("MockChild");
+    ASSERT_TRUE(mockChild.hasProperty("NestedStringProperty"));
+    ASSERT_EQ(mockChild.getPropertyValue("NestedStringProperty"), "string");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, TestPropertyObjectClasses)
+{
+    testMockPropertyObjectClass(clientDevice);
+    testMockPropertyObjectClass(clientDevice.getChannels()[0]);
+    testMockPropertyObjectClass(clientDevice.getDevices()[0]);
+    testMockPropertyObjectClass(clientDevice.getDevices()[0].getFunctionBlocks()[0]);
+    testMockPropertyObjectClass(clientDevice.getDevices()[0].getChannels()[0]);
 }

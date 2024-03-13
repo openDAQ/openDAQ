@@ -1,20 +1,23 @@
 #include "opcuatms_server/objects/tms_server_signal.h"
 #include "opcuatms/converters/variant_converter.h"
-#include "open62541/statuscodes.h"
 #include "open62541/daqbsp_nodeids.h"
+#include "open62541/statuscodes.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 using namespace opcua;
 
-TmsServerSignal::TmsServerSignal(const SignalPtr& object, const OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext)
+TmsServerSignal::TmsServerSignal(const SignalPtr& object,
+                                 const OpcUaServerPtr& server,
+                                 const ContextPtr& context,
+                                 const TmsServerContextPtr& tmsContext)
     : Super(object, server, context, tmsContext)
 {
 }
 
 OpcUaNodeId TmsServerSignal::getReferenceType()
 {
-    //TODO UA_DAQBSPID_HASSTATUSSIGNAL 
+    // TODO UA_DAQBSPID_HASSTATUSSIGNAL
     return OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_HASVALUESIGNAL);
 }
 
@@ -38,36 +41,46 @@ void TmsServerSignal::bindCallbacks()
         if (browseName == "DataDescriptor")
         {
             OpcUaNodeId descriptorId{reference.nodeId.nodeId};
-            addReadCallback(descriptorId, [this]() {
-                DataDescriptorPtr descriptor = object.getDescriptor();
-                if (descriptor != nullptr)
-                    return VariantConverter<IBaseObject>::ToVariant(descriptor, nullptr, daqContext);
-                else
-                    return OpcUaVariant();
-            });
+            addReadCallback(descriptorId,
+                            [this]()
+                            {
+                                DataDescriptorPtr descriptor = object.getDescriptor();
+                                if (descriptor != nullptr)
+                                    return VariantConverter<IBaseObject>::ToVariant(descriptor, nullptr, daqContext);
+                                else
+                                    return OpcUaVariant();
+                            });
         }
     }
 
-    addReadCallback(valueId, [this]() {
-        ObjectPtr lastValue = object.getLastValue();
-        if (lastValue != nullptr)
-            return VariantConverter<IBaseObject>::ToVariant(lastValue, nullptr, daqContext);
+    addReadCallback(valueId,
+                    [this]()
+                    {
+                        ObjectPtr lastValue = object.getLastValue();
+                        if (lastValue != nullptr)
+                            return VariantConverter<IBaseObject>::ToVariant(lastValue, nullptr, daqContext);
 
-        return OpcUaVariant();
-    });
+                        return OpcUaVariant();
+                    });
 
     auto analogValueId = getChildNodeId("AnalogValue");
-    addReadCallback(analogValueId, [this]() {
-        SampleType type = object.getDescriptor().getSampleType();
-        if (type != SampleType::Float64 && type != SampleType::Int64)
-            return OpcUaVariant();
+    addReadCallback(analogValueId,
+                    [this]()
+                    {
+                        SampleType type = object.getDescriptor().getSampleType();
+                        if (type != SampleType::Float32 && type != SampleType::Float64 && type != SampleType::Int8 &&
+                            type != SampleType::Int16 && type != SampleType::Int32 && type != SampleType::Int64 &&
+                            type != SampleType::UInt8 && type != SampleType::UInt16 && type != SampleType::UInt32 &&
+                            type != SampleType::UInt64 && type != SampleType::RangeInt64 && type != SampleType::ComplexFloat32 &&
+                            type != SampleType::ComplexFloat64)
+                            return OpcUaVariant();
 
-        ObjectPtr lastValue = object.getLastValue();
-        if (lastValue != nullptr)
-            return VariantConverter<IBaseObject>::ToVariant(lastValue, nullptr, daqContext);
+                        ObjectPtr lastValue = object.getLastValue();
+                        if (lastValue != nullptr)
+                            return VariantConverter<IBaseObject>::ToVariant(lastValue, nullptr, daqContext);
 
-        return OpcUaVariant();
-    });
+                        return OpcUaVariant();
+                    });
 
     // TODO: Value, AnalogValue, Status
     Super::bindCallbacks();
@@ -101,7 +114,6 @@ void TmsServerSignal::createNonhierarchicalReferences()
                 if (ex.getStatusCode() != UA_STATUSCODE_BADDUPLICATEREFERENCENOTALLOWED)
                     throw;
             }
-            
         }
     }
 }

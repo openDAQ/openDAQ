@@ -5,7 +5,7 @@
 namespace daq::config_protocol
 {
 
-PacketBuffer::PacketBuffer(PacketType packetType, size_t id, const void* payload, size_t payloadSize)
+PacketBuffer::PacketBuffer(PacketType packetType, uint64_t id, const void* payload, size_t payloadSize)
     : captured(false)
 {
     buffer = allocateHeaderAndPayload(payloadSize);
@@ -148,12 +148,12 @@ PacketType PacketBuffer::getPacketType() const
     return buffer->type;
 }
 
-void PacketBuffer::setId(size_t id)
+void PacketBuffer::setId(uint64_t id)
 {
     buffer->id = id;
 }
 
-size_t PacketBuffer::getId() const
+uint64_t PacketBuffer::getId() const
 {
     return buffer->id;
 }
@@ -173,13 +173,13 @@ void* PacketBuffer::getPayload() const
     return static_cast<void*>(buffer + 1);
 }
 
-PacketBuffer PacketBuffer::createGetProtocolInfoRequest(size_t id)
+PacketBuffer PacketBuffer::createGetProtocolInfoRequest(uint64_t id)
 {
     auto packetBuffer = PacketBuffer(PacketType::getProtocolInfo, id, nullptr, 0);
     return packetBuffer;
 }
 
-PacketBuffer PacketBuffer::createGetProtocolInfoReply(size_t id, uint16_t currentVersion, const std::vector<uint16_t>& supportedVersions)
+PacketBuffer PacketBuffer::createGetProtocolInfoReply(uint64_t id, uint16_t currentVersion, const std::vector<uint16_t>& supportedVersions)
 {
     const auto payloadSize = sizeof(uint16_t) + sizeof(uint16_t) +
                              supportedVersions.size() * sizeof(uint16_t);
@@ -219,7 +219,7 @@ void PacketBuffer::parseProtocolInfoReply(uint16_t& currentVersion, std::vector<
     std::memcpy(supportedVersions.data(), payload, supportedVersions.size() * sizeof(uint16_t));
 }
 
-PacketBuffer PacketBuffer::createUpgradeProtocolRequest(size_t id, uint16_t version)
+PacketBuffer PacketBuffer::createUpgradeProtocolRequest(uint64_t id, uint16_t version)
 {
     auto packetBuffer = PacketBuffer(PacketType::upgradeProtocol, id, &version, sizeof(uint16_t));
     return packetBuffer;
@@ -236,7 +236,7 @@ void PacketBuffer::parseProtocolUpgradeRequest(uint16_t& version) const
     version = *(static_cast<uint16_t*>(getPayload()));
 }
 
-PacketBuffer PacketBuffer::createUpgradeProtocolReply(size_t id, bool success)
+PacketBuffer PacketBuffer::createUpgradeProtocolReply(uint64_t id, bool success)
 {
     uint8_t success_ = success ? 1 : 0;
     auto packetBuffer = PacketBuffer(PacketType::upgradeProtocol, id, &success_, sizeof(uint8_t));
@@ -254,13 +254,13 @@ void PacketBuffer::parseProtocolUpgradeReply(bool& success) const
     success = *(static_cast<uint8_t*>(getPayload())) != 0 ? true : false;
 }
 
-PacketBuffer PacketBuffer::createRpcRequestOrReply(size_t id, const char* json, size_t jsonSize)
+PacketBuffer PacketBuffer::createRpcRequestOrReply(uint64_t id, const char* json, size_t jsonSize)
 {
     auto packetBuffer = PacketBuffer(PacketType::rpc, id, json, jsonSize);
     return packetBuffer;
 }
 
-PacketBuffer PacketBuffer::createInvalidRequestReply(size_t id)
+PacketBuffer PacketBuffer::createInvalidRequestReply(uint64_t id)
 {
     auto packetBuffer = PacketBuffer(PacketType::invalidRequest, id, nullptr, 0);
     return packetBuffer;
@@ -292,7 +292,7 @@ StringPtr PacketBuffer::parseRpcRequestOrReply() const
 
 PacketBuffer PacketBuffer::createServerNotification(const char* json, size_t jsonSize)
 {
-    auto packetBuffer = PacketBuffer(PacketType::serverNotification, std::numeric_limits<size_t>::max(), json, jsonSize);
+    auto packetBuffer = PacketBuffer(PacketType::serverNotification, std::numeric_limits<uint64_t>::max(), json, jsonSize);
     return packetBuffer;
 }
 

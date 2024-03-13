@@ -72,6 +72,15 @@ public:
         const auto errCode = this->object->setValueObject(valueObject);
         checkErrorInfo(errCode);
     }
+
+    void setValueObjectProtected(const TestValueObjectPtr& valueObject)
+    {
+        if (this->object == nullptr)
+            throw InvalidParameterException();
+
+        const auto errCode = this->object->setValueObjectProtected(valueObject);
+        checkErrorInfo(errCode);
+    }
 };
 
 END_NAMESPACE_OPENDAQ

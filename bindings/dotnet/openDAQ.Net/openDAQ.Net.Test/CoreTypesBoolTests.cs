@@ -4,7 +4,7 @@ using Daq.Core.Types;
 namespace openDaq.Net.Test;
 
 
-public class CoreTypesBoolTests : CoreTypesTestsBase
+public class CoreTypesBoolTests : OpenDAQTestsBase
 {
     //[SetUp]
     //public void Setup()

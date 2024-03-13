@@ -31,14 +31,13 @@ public:
     ServerSessionHandler(const ContextPtr& daqContext,
                          boost::asio::io_context& ioContext,
                          SessionPtr session,
+                         OnStreamingRequestCallback streamingInitHandler,
                          OnSignalSubscriptionCallback signalSubscriptionHandler,
                          native_streaming::OnSessionErrorCallback errorHandler);
 
-    ~ServerSessionHandler();
-
     void sendSignalAvailable(const SignalNumericIdType& signalNumericId, const SignalPtr &signal);
     void sendSignalUnavailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
-    void sendInitializationDone();
+    void sendStreamingInitDone();
     void sendPacket(const SignalNumericIdType signalId, const PacketPtr& packet);
     void sendSubscribingDone(const SignalNumericIdType signalNumericId);
     void sendUnsubscribingDone(const SignalNumericIdType signalNumericId);
@@ -54,6 +53,7 @@ private:
 
     void sendPacketBuffer(const packet_streaming::PacketBufferPtr& packetBuffer);
 
+    OnStreamingRequestCallback streamingInitHandler;
     OnSignalSubscriptionCallback signalSubscriptionHandler;
     OnTrasportLayerPropertiesCallback transportLayerPropsHandler;
 

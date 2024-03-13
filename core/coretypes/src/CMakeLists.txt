@@ -296,6 +296,14 @@ if (CMAKE_COMPILER_IS_GNUCXX)
     target_compile_options(${LIB_NAME} PRIVATE -Wno-type-limits)
 endif()
 
+if (OPENDAQ_ENABLE_PARAMETER_VALIDATION)
+    target_compile_definitions(${LIB_NAME} PUBLIC OPENDAQ_ENABLE_PARAMETER_VALIDATION)
+endif()
+
+if (OPENDAQ_THREAD_SAFE)
+    target_compile_definitions(${LIB_NAME} PUBLIC OPENDAQ_THREAD_SAFE)
+endif()
+
 target_compile_definitions(${LIB_NAME} PUBLIC OPENDAQ_SKIP_LIB_LINK
                                        PRIVATE BUILDING_SHARED_LIBRARY
                                                coretypes_EXPORTS

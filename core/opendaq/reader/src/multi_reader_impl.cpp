@@ -21,7 +21,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  SampleType domainReadType,
                                  ReadMode mode,
                                  ReadTimeoutType timeoutType,
-                                 bool startOnFullUnitOfDomain)
+                                 Bool startOnFullUnitOfDomain)
     : startOnFullUnitOfDomain(startOnFullUnitOfDomain)
 {    
     bool isSignal = CheckPreconditions(list);
@@ -178,7 +178,7 @@ static void checkSameDomain(const ListPtr<ISignal>& list)
 static void checkSameSampleRate(const ListPtr<ISignal>& list)
 {
     std::int64_t sampleRate = -1;
-    
+
     for (const auto& signal : list)
     {
         auto domain = signal.getDomainSignal();
@@ -991,7 +991,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     SampleType, domainReadType,
     ReadMode, mode,
     ReadTimeoutType, timeoutType,
-    bool, startOnFullUnitOfDomain)
+    Bool, startOnFullUnitOfDomain)
 
 
 template <>

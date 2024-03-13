@@ -54,6 +54,7 @@ protected:
                                                     const FunctionPtr& factoryCallback);
 
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 
 private:
     void componentUpdateEnd(const CoreEventArgsPtr& args);
@@ -147,7 +148,8 @@ BaseObjectPtr ConfigClientComponentBaseImpl<Impl>::DeserializeConfigComponent(co
                 ctx->getRemoteGlobalId(),
                 deserializeContext.getContext(),
                 deserializeContext.getParent(),
-                deserializeContext.getLocalId());
+                deserializeContext.getLocalId(),
+                className);
         });
 }
 
@@ -187,11 +189,50 @@ void ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(const C
 }
 
 template <class Impl>
+void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr& serialized)
+{
+    ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(serialized);
+
+    if (serialized.hasKey("active"))
+        this->active = serialized.readBool("active");
+
+    if (serialized.hasKey("visible"))
+        this->visible = serialized.readBool("visible");
+
+    if (serialized.hasKey("description"))
+        this->description = serialized.readString("description");
+
+    if (serialized.hasKey("name"))
+       this->name = serialized.readString("name");
+}
+
+template <class Impl>
 void ConfigClientComponentBaseImpl<Impl>::componentUpdateEnd(const CoreEventArgsPtr& args)
 {
-    // TODO: Update the component once supported
-    if (!this->coreEventMuted && this->coreEvent.assigned())
-        this->triggerCoreEvent(args);
+
+    const StringPtr str = args.getParameters().get("SerializedComponent");
+
+    const bool muted = this->coreEventMuted;
+    const auto thisPtr = this->template borrowPtr<ComponentPtr>();
+    const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
+    if (!muted)
+        propInternalPtr.disableCoreEventTrigger();
+    
+    this->deserializationComplete = false;
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.callCustomProc([&](const SerializedObjectPtr& serialized) { onRemoteUpdate(serialized); }, str);
+    this->clientComm->connectInputPorts(thisPtr);
+    this->clientComm->connectDomainSignals(thisPtr);
+
+    this->deserializationComplete = true;
+
+    if (!muted && this->coreEvent.assigned())
+    {
+        const CoreEventArgsPtr argsNew = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::ComponentUpdateEnd, Dict<IString, IBaseObject>());
+        this->triggerCoreEvent(argsNew);
+        propInternalPtr.enableCoreEventTrigger();
+    }
 }
 
 template <class Impl>
@@ -231,7 +272,7 @@ void ConfigClientComponentBaseImpl<Impl>::tagsChanged(const CoreEventArgsPtr& ar
     TagsPtr tags;
     checkErrorInfo(Impl::getTags(&tags));
     const TagsPtr newTags = args.getParameters().get("Tags");
-    tags.asPtr<ITagsPrivate>().set(newTags.getList());
+    tags.asPtr<ITagsPrivate>().replace(newTags.getList());
 }
 
 template <class Impl>

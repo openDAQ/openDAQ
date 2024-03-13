@@ -1095,14 +1095,21 @@ template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::string& fbId,
                                                                    const SerializedObjectPtr& serializedFunctionBlock)
 {
-    auto typeId = serializedFunctionBlock.readString("typeId");
+    UpdatablePtr updatableFb;
+    if (!this->functionBlocks.hasItem(fbId))
+    {
+        auto typeId = serializedFunctionBlock.readString("typeId");
 
-    auto config = PropertyObject();
-    config.addProperty(StringProperty("LocalId", fbId));
+        auto config = PropertyObject();
+        config.addProperty(StringProperty("LocalId", fbId));
 
-    auto fb = onAddFunctionBlock(typeId, config);
-
-    const auto updatableFb = fb.template asPtr<IUpdatable>(true);
+        auto fb = onAddFunctionBlock(typeId, config);
+        updatableFb = fb.template asPtr<IUpdatable>(true);
+    }
+    else
+    {
+        updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
+    }
 
     updatableFb.update(serializedFunctionBlock);
 }

@@ -194,24 +194,24 @@ void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
 void NativeStreamingServerHandler::handleTransportLayerProps(const PropertyObjectPtr& propertyObject,
                                                                    std::shared_ptr<ServerSessionHandler> sessionHandler)
 {
-    if (propertyObject.hasProperty("HeartbeatEnabled") &&
+    if (propertyObject.hasProperty("MonitoringEnabled") &&
         propertyObject.hasProperty("HeartbeatPeriod") &&
-        propertyObject.hasProperty("HeartbeatTimeout") &&
-        propertyObject.getProperty("HeartbeatEnabled").getValueType() == ctBool &&
+        propertyObject.hasProperty("InactivityTimeout") &&
+        propertyObject.getProperty("MonitoringEnabled").getValueType() == ctBool &&
         propertyObject.getProperty("HeartbeatPeriod").getValueType() == ctInt &&
-        propertyObject.getProperty("HeartbeatTimeout").getValueType() == ctInt)
+        propertyObject.getProperty("InactivityTimeout").getValueType() == ctInt)
     {
-        Bool heartbeatEnabled = propertyObject.getPropertyValue("HeartbeatEnabled");
+        Bool monitoringEnabled = propertyObject.getPropertyValue("MonitoringEnabled");
         Int heartbeatPeriod = propertyObject.getPropertyValue("HeartbeatPeriod");
-        Int heartbeatTimeout = propertyObject.getPropertyValue("HeartbeatTimeout");
+        Int inactivityTimeout = propertyObject.getPropertyValue("InactivityTimeout");
 
-        LOG_I("Heartbeat {}, with period {} ms, and timeout {} ms",
-              heartbeatEnabled ? "enabled" : "disabled",
+        LOG_I("Connection activity monitoring {}, with heartbeat period {} ms, and inactivity timeout {} ms",
+              monitoringEnabled ? "enabled" : "disabled",
               heartbeatPeriod,
-              heartbeatTimeout);
+              inactivityTimeout);
 
-        if (heartbeatEnabled)
-            sessionHandler->startHeartbeat(heartbeatPeriod, heartbeatTimeout);
+        if (monitoringEnabled)
+            sessionHandler->startConnectionActivityMonitoring(heartbeatPeriod, inactivityTimeout);
     }
     else
     {
@@ -234,14 +234,40 @@ void NativeStreamingServerHandler::setUpTransportLayerPropsCallback(std::shared_
 void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler)
 {
     auto sessionHandlerWeakPtr = std::weak_ptr<ServerSessionHandler>(sessionHandler);
-    ConfigProtocolPacketCb sendConfigPacketCb =
+    SendConfigProtocolPacketCb sendConfigPacketCb =
         [sessionHandlerWeakPtr](const config_protocol::PacketBuffer& packetBuffer)
     {
         if (auto sessionHandlerPtr = sessionHandlerWeakPtr.lock())
             sessionHandlerPtr->sendConfigurationPacket(packetBuffer);
     };
-    ConfigProtocolPacketCb receiveConfigPacketCb = setUpConfigProtocolServerCb(sendConfigPacketCb);
+    ProcessConfigProtocolPacketCb receiveConfigPacketCb = setUpConfigProtocolServerCb(sendConfigPacketCb);
     sessionHandler->setConfigPacketReceivedHandler(receiveConfigPacketCb);
+}
+
+void NativeStreamingServerHandler::handleStreamingInit(SessionPtr session)
+{
+    subscribersRegistry.sendToClient(
+        session,
+        [this](std::shared_ptr<ServerSessionHandler>& sessionHandler)
+        {
+            // send sorted signals
+            std::map<SignalNumericIdType, SignalPtr> sortedSignals;
+            for (const auto& signalRegistryItem : signalRegistry)
+            {
+                sortedSignals.insert({std::get<1>(signalRegistryItem.second),
+                                      std::get<0>(signalRegistryItem.second)});
+            }
+            for (const auto& sortedSignalsItem : sortedSignals)
+            {
+                sessionHandler->sendSignalAvailable(sortedSignalsItem.first, sortedSignalsItem.second);
+
+                // create and send event packet to initialize packet streaming
+                sessionHandler->sendPacket(sortedSignalsItem.first,
+                                           createDataDescriptorChangedEventPacket(sortedSignalsItem.second));
+            }
+            sessionHandler->sendStreamingInitDone();
+        }
+    );
 }
 
 void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
@@ -259,6 +285,12 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
     // so connection closing is handled only on read failure and not handled on write failure
     session->setErrorHandlers([](const std::string&, SessionPtr) {}, errorHandler);
 
+    OnStreamingRequestCallback streamingInitHandler =
+        [this](SessionPtr session)
+    {
+        this->handleStreamingInit(session);
+    };
+
     OnSignalSubscriptionCallback signalSubscriptionHandler =
         [this](const SignalNumericIdType& signalNumericId,
                const std::string& signalStringId,
@@ -271,27 +303,12 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
     auto sessionHandler = std::make_shared<ServerSessionHandler>(context,
                                                                  *ioContextPtr.get(),
                                                                  session,
+                                                                 streamingInitHandler,
                                                                  signalSubscriptionHandler,
                                                                  errorHandler);
     setUpTransportLayerPropsCallback(sessionHandler);
     setUpConfigProtocolCallbacks(sessionHandler);
 
-    // send sorted signals to newly connected client
-    std::map<SignalNumericIdType, SignalPtr> sortedSignals;
-    for (const auto& signalRegistryItem : signalRegistry)
-    {
-        sortedSignals.insert({std::get<1>(signalRegistryItem.second),
-                              std::get<0>(signalRegistryItem.second)});
-    }
-    for (const auto& sortedSignalsItem : sortedSignals)
-    {
-        sessionHandler->sendSignalAvailable(sortedSignalsItem.first, sortedSignalsItem.second);
-
-        // create and send event packet to initialize packet streaming
-        sessionHandler->sendPacket(sortedSignalsItem.first,
-                                   createDataDescriptorChangedEventPacket(sortedSignalsItem.second));
-    }
-    sessionHandler->sendInitializationDone();
     subscribersRegistry.registerClient(sessionHandler);
     sessionHandler->startReading();
 }

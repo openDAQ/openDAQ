@@ -1,3 +1,17 @@
+11.03.2023
+Description:
+    Update native transport protocol - initiate streaming only upon client request;
+    New protocol message type added: PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST = 11
+
+08.03.2023
+Description:
+  - Propagate server IUpdatable::Update to native protocol clients
+  - Properly handle nested property objects in native protocol
+
++ [function] IDeserializer::callCustomProc(IProcedure* customDeserialize, IString* serialized)
++ [function] ISerializedObject::isRoot(Bool* isRoot)
++ [function] IUpdatable::updateEnded()
+
 25.02.2023
 Description:
   - readers returns IReaderStatus

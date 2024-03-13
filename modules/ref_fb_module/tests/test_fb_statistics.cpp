@@ -216,7 +216,8 @@ private:
         for (size_t i = 0; i < mockPackets.size(); i++)
         {
             // Check if we should change trigger mode before sending packet
-            auto triggerModeChangeFoundAt = std::find(triggerModeChangesBeforePackets.begin(), triggerModeChangesBeforePackets.end(), i);
+            auto triggerModeChangeFoundAt =
+                std::find(triggerModeChangesBeforePackets.begin(), triggerModeChangesBeforePackets.end(), static_cast<Int>(i));
             if (triggerModeChangeFoundAt != triggerModeChangesBeforePackets.end())
             {
                 // Change trigger mode if appropriate
@@ -263,7 +264,8 @@ private:
             signal.sendPacket(dataPacket);
 
             // Check if we should change block size after sending packet
-            auto blockSizeChangeFoundAt = std::find(blockSizeChangesAfterPackets.begin(), blockSizeChangesAfterPackets.end(), static_cast<Int>(i));
+            auto blockSizeChangeFoundAt =
+                std::find(blockSizeChangesAfterPackets.begin(), blockSizeChangesAfterPackets.end(), static_cast<Int>(i));
             if (blockSizeChangeFoundAt != blockSizeChangesAfterPackets.end())
             {
                 // Change block size if appropriate
@@ -271,7 +273,8 @@ private:
             }
 
             // Check if we should change domain signal type after sending packet
-            auto domainSignalChangeFoundAt = std::find(outputDomainChangesAfterPackets.begin(), outputDomainChangesAfterPackets.end(), static_cast<Int>(i));
+            auto domainSignalChangeFoundAt =
+                std::find(outputDomainChangesAfterPackets.begin(), outputDomainChangesAfterPackets.end(), static_cast<Int>(i));
             if (domainSignalChangeFoundAt != outputDomainChangesAfterPackets.end())
             {
                 // Change domain signal type if appropriate

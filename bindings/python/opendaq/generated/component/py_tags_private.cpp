@@ -53,12 +53,12 @@ void defineITagsPrivate(pybind11::module_ m, PyDaqIntf<daq::ITagsPrivate, daq::I
         },
         py::arg("name"),
         "Removes a new tag from the list.");
-    cls.def_property("",
-        nullptr,
+    cls.def("replace",
         [](daq::ITagsPrivate *object, daq::IList* tags)
         {
             const auto objectPtr = daq::TagsPrivatePtr::Borrow(object);
-            objectPtr.set(tags);
+            objectPtr.replace(tags);
         },
+        py::arg("tags"),
         "Replaces all tags.");
 }

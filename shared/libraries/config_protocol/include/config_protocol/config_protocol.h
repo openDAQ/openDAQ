@@ -142,7 +142,7 @@ inline auto format_as(PacketType type)
         case GetProtocolInfo:
             return "GetProtocolInfo";
         case UpgradeProtocol:
-            return "GetProtocolInfo";
+            return "UpgradeProtocol";
         case Rpc:
             return "Rpc";
         case ServerNotification:

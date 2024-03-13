@@ -65,11 +65,12 @@ DeviceTypePtr RefDeviceImpl::CreateType()
 
 void RefDeviceImpl::onSetDeviceInfo()
 {
-    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(fmt::format("daqref://device{}", id));
-    deviceInfo.asPtr<IDeviceInfoConfig>().setName(fmt::format("Device {}", id));
-    deviceInfo.asPtr<IDeviceInfoConfig>().setModel("Reference Device");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setSerialNumber(fmt::format("dev_ser_{}", id));
-    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(CreateType());
+    auto deviceInfoConfig = deviceInfo.asPtr<IDeviceInfoConfig>();
+    deviceInfoConfig.setConnectionString(fmt::format("daqref://device{}", id));
+    deviceInfoConfig.setName(fmt::format("Device {}", id));
+    deviceInfoConfig.setModel("Reference Device");
+    deviceInfoConfig.setSerialNumber(fmt::format("dev_ser_{}", id));
+    deviceInfoConfig.setDeviceType(CreateType());
     deviceInfo.freeze();
 }
 

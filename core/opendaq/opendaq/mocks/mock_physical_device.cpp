@@ -69,22 +69,23 @@ MockPhysicalDeviceImpl::~MockPhysicalDeviceImpl()
 
 void MockPhysicalDeviceImpl::onSetDeviceInfo()
 {    
-    deviceInfo.asPtr<IDeviceInfoConfig>().setName("MockPhysicalDevice");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString("connection_string");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setManufacturer("manufacturer");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setManufacturerUri("manufacturer_uri");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setModel("model");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setProductCode("product_code");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setHardwareRevision("hardware_revision");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setSoftwareRevision("software_revision");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceManual("device_manual");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceClass("device_class");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setSerialNumber("serial_number");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setProductInstanceUri("product_instance_uri");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setRevisionCounter(123);
-    deviceInfo.asPtr<IDeviceInfoConfig>().addProperty(StringProperty("custom_string", "custom_string"));
-    deviceInfo.asPtr<IDeviceInfoConfig>().addProperty(IntProperty("custom_int", 1));
-    deviceInfo.asPtr<IDeviceInfoConfig>().addProperty(FloatProperty("custom_float", 1.123));
+    auto deviceInfoConfig = deviceInfo.asPtr<IDeviceInfoConfig>();
+    deviceInfoConfig.setName("MockPhysicalDevice");
+    deviceInfoConfig.setConnectionString("connection_string");
+    deviceInfoConfig.setManufacturer("manufacturer");
+    deviceInfoConfig.setManufacturerUri("manufacturer_uri");
+    deviceInfoConfig.setModel("model");
+    deviceInfoConfig.setProductCode("product_code");
+    deviceInfoConfig.setHardwareRevision("hardware_revision");
+    deviceInfoConfig.setSoftwareRevision("software_revision");
+    deviceInfoConfig.setDeviceManual("device_manual");
+    deviceInfoConfig.setDeviceClass("device_class");
+    deviceInfoConfig.setSerialNumber("serial_number");
+    deviceInfoConfig.setProductInstanceUri("product_instance_uri");
+    deviceInfoConfig.setRevisionCounter(123);
+    deviceInfoConfig.addProperty(StringProperty("custom_string", "custom_string"));
+    deviceInfoConfig.addProperty(IntProperty("custom_int", 1));
+    deviceInfoConfig.addProperty(FloatProperty("custom_float", 1.123));
 
     deviceInfo.freeze();
 }

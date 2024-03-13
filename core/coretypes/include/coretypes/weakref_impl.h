@@ -45,7 +45,6 @@ inline WeakRefImpl::~WeakRefImpl()
 {
     const auto newWeakRefCount = std::atomic_fetch_sub_explicit(&refCount->weak, 1, std::memory_order_acq_rel) - 1;
     assert(newWeakRefCount >= 0);
-   
     if (newWeakRefCount == 0)
         delete refCount;
 }

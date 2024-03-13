@@ -22,9 +22,16 @@ target_link_libraries(${TEST_APP} PRIVATE
     daq::opendaq_mocks
 )
 
-add_dependencies(${TEST_APP} ${SDK_TARGET_NAMESPACE}::ref_device_module
-                             ${SDK_TARGET_NAMESPACE}::ref_fb_module
-)
+if (TARGET ${SDK_TARGET_NAMESPACE}::ref_device_module AND TARGET ${SDK_TARGET_NAMESPACE}::ref_fb_module)
+    add_dependencies(${TEST_APP}
+        ${SDK_TARGET_NAMESPACE}::ref_device_module
+        ${SDK_TARGET_NAMESPACE}::ref_fb_module
+    )
+
+    target_compile_definitions(${TEST_APP} PRIVATE OPENDAQ_TEST_WITH_REF_MODULES)
+else()
+    message(WARNING "Disabling tests for Reference Device and Function Blocks as they are disabled.")
+endif()
 
 set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)
 

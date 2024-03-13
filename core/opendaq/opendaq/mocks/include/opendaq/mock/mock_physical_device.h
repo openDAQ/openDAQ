@@ -48,7 +48,6 @@ protected:
     ChannelPtr mockChannelB1; // InputsOutputs/mockFolderB/mockChannelB1
     ChannelPtr mockChannelB2; // InputsOutputs/mockFolderB/mockChannelB1
     std::thread generateThread;
-    DeviceInfoConfigPtr deviceInfo;
 
     FolderPtr componentA;
     ComponentPtr componentA1;

@@ -15,7 +15,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (capability.getProtocolType() == "Structure&Streaming" && capability.getProtocolName() == "openDAQ Native Streaming")
+            if (capability.getProtocolType() == "Streaming" && capability.getProtocolName() == "openDAQ Native Streaming")
             {
                 device = instance.addDevice(capability.getConnectionString());
                 break;
@@ -91,7 +91,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Connect the first output signal of the device to the renderer
     renderer.getInputPorts()[0].connect(signal);
     // Connect the second output signal of the device to the renderer
-    renderer.getInputPorts()[1].connect(device.getSignals()[2]);
+    renderer.getInputPorts()[1].connect(device.getSignals()[1]);
 
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
     std::cin.get();

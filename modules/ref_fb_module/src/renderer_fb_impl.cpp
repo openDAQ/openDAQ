@@ -443,6 +443,12 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
             case (SampleType::Int32):
                 value = *(reinterpret_cast<int32_t*>(data));
                 break;
+            case (SampleType::UInt64):
+                value = *(reinterpret_cast<uint64_t*>(data));
+                break;
+            case (SampleType::Int64):
+                value = *(reinterpret_cast<int64_t*>(data));
+                break;
             default:
                 value = 0.0;
         }

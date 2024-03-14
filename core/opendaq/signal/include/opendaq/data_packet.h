@@ -18,6 +18,7 @@
 #include <opendaq/packet.h>
 #include <opendaq/data_descriptor.h>
 #include <coretypes/number.h>
+#include <coretypes/type_manager.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -26,6 +27,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IDataPacket, GenericDataPacketPtr)]
  * [interfaceSmartPtr(IPacket, GenericPacketPtr)]
  * [interfaceLibrary(INumber, CoreTypes)]
+ * [interfaceLibrary(ITypeManager, CoreTypes)]
  */
 
 /*!
@@ -123,11 +125,13 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
     /*!
      * @brief Gets the data packet last value
      * @param[out] value The IBaseObject value can be a nullptr if there is no value, or if the data type is not supported by the function.
+     * @param typeManager Optional ITypeManager value can be provided to enable getLastValue for IStruct.
+     *
      * If a value is assigned, it can be cast based on the signal description to IFloat if the type is Float32 or Float64,
      * to IInteger if the type is Int8 through Int64 or UInt8 through UInt64, to IComplexNumber if type is ComplexFloat32 or ComplexFloat64,
      * or to IRange if the type is RangeInt64.
      */
-    virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) = 0;
+    virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) = 0;
 };
 
 /*!@}*/

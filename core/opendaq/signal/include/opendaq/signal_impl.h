@@ -144,6 +144,9 @@ private:
     void disconnectInputPort(const ConnectionPtr& connection);
     void clearConnections(std::vector<ConnectionPtr>& connections);
     TypePtr createTypeFromDescriptor(const DataDescriptorPtr& descriptor) const;
+    void addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
+                                     const DataDescriptorPtr& descriptor,
+                                     const StructTypePtr& type) const;
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
@@ -288,6 +291,37 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::createTypeFromDescriptor(c
 }
 
 template <typename TInterface, typename... Interfaces>
+inline void SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
+                                                                               const DataDescriptorPtr& descriptor,
+                                                                               const StructTypePtr& type) const
+{
+    const auto fields = descriptor.getStructFields();
+    auto fieldTypes = type.getFieldTypes();
+
+    for (size_t i = 0; i < fields.getCount(); i++)
+        if (fields[i].getSampleType() == SampleType::Struct)
+            addToTypeManagerRecursively(typeManager, fields[i], fieldTypes[i]);
+
+    const auto name = descriptor.getName();
+    if (!typeManager.hasType(name))
+    {
+        // Struct type doesn't exist in the type manager
+        // Add it
+        typeManager.addType(type);
+    }
+    else
+    {
+        if (type != typeManager.getType(name))
+        {
+            // Struct type with same name exists in the type manager
+            // Give warning
+            const auto loggerComponent = context.getLogger().getOrAddComponent("Signal");
+            LOG_W("Struct type with name {} already exists in the type manager, but it is different!", name);
+        }
+    }
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* descriptor)
 {
     OPENDAQ_PARAM_NOT_NULL(descriptor);
@@ -314,22 +348,9 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
 
             if (dataDescriptor.getSampleType() == SampleType::Struct)
             {
-                auto typeManager = context.getTypeManager();
-                const auto name = dataDescriptor.getName();
                 const StructTypePtr structType = createTypeFromDescriptor(dataDescriptor);
-
-                if (!typeManager.hasType(name))
-                {
-                    typeManager.addType(structType);
-                }
-                else
-                {
-                    if (structType != typeManager.getType(name))
-                    {
-                        const auto loggerComponent = context.getLogger().getOrAddComponent("Signal");
-                        LOG_W("Type {} already exists in the type manager!", name);
-                    }
-                }
+                auto typeManager = context.getTypeManager();
+                addToTypeManagerRecursively(typeManager, dataDescriptor, structType);
             }
         }
     }
@@ -923,7 +944,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
     if (!lastDataPacket.assigned() || lastDataPacket.getSampleCount() == 0)
         return OPENDAQ_IGNORED;
 
-    return lastDataPacket->getLastValue(value);
+    auto typeManager = context.getTypeManager();
+    return lastDataPacket->getLastValue(value, typeManager);
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SignalImpl)

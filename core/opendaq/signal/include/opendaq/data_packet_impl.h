@@ -48,14 +48,13 @@ public:
     ErrCode INTERFACE_FUNC getData(void** address) override;
     ErrCode INTERFACE_FUNC getDataSize(SizeT* dataSize) override;
     ErrCode INTERFACE_FUNC getRawDataSize(SizeT* rawDataSize) override;
-    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override;
 
 private:
     bool isDataEqual(const DataPacketPtr& dataPacket) const;
     BaseObjectPtr dataToObj(void*& addr, const SampleType& type) const;
-    TypePtr createTypeFromDescriptor(const DataDescriptorPtr& descriptor) const;
     StructPtr buildStructFromPacket(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager) const;
 
     AllocatorPtr allocator;
@@ -371,71 +370,26 @@ inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObj(void*& addr, const Sa
     }
 }
 
-// TODO Delete this?
-template <typename TInterface>
-inline TypePtr DataPacketImpl<TInterface>::createTypeFromDescriptor(const DataDescriptorPtr& descriptor) const
-{
-    const auto fields = descriptor.getStructFields();
-    auto fieldNames = List<IString>();
-    auto fieldTypes = List<IType>();
-
-    for (auto const& field : fields)
-    {
-        TypePtr type;
-        switch (field.getSampleType())
-        {
-            case SampleType::Float32:
-            case SampleType::Float64:
-                type = SimpleType(CoreType::ctFloat);
-                break;
-            case SampleType::Int8:
-            case SampleType::UInt8:
-            case SampleType::Int16:
-            case SampleType::UInt16:
-            case SampleType::Int32:
-            case SampleType::UInt32:
-            case SampleType::Int64:
-            case SampleType::UInt64:
-                type = SimpleType(CoreType::ctInt);
-                break;
-            case SampleType::ComplexFloat32:
-            case SampleType::ComplexFloat64:
-                type = SimpleType(CoreType::ctComplexNumber);
-                break;
-            case SampleType::Struct:
-                // Recursion
-                type = createTypeFromDescriptor(field);
-                break;
-            default:
-                type = SimpleType(CoreType::ctUndefined);
-                // TODO support string, list? + test
-        }
-        fieldNames.pushBack(field.getName());
-        fieldTypes.pushBack(type);
-    }
-    return StructType(descriptor.getName(), fieldNames, fieldTypes);
-}
-
 template <typename TInterface>
 inline StructPtr DataPacketImpl<TInterface>::buildStructFromPacket(void*& addr,
                                                                    const DataDescriptorPtr& descriptor,
                                                                    const TypeManagerPtr& typeManager) const
 {
-    const StructTypePtr structType = createTypeFromDescriptor(descriptor);
-    typeManager.addType(structType);
-    const auto builder = StructBuilder(structType.getName(), typeManager);
+    const auto name = descriptor.getName();
+    StructTypePtr structType = typeManager.getType(name);
+
+    const auto builder = StructBuilder(name, typeManager);
 
     const auto fields = descriptor.getStructFields();
     const auto fieldNames = structType.getFieldNames();
 
     for (size_t i = 0; i < fieldNames.getCount(); i++)
     {
-        const auto field = fields[i];
-        const auto sampleType = field.getSampleType();
+        const auto sampleType = fields[i].getSampleType();
 
         if (sampleType == SampleType::Struct)
         {
-            const auto structPtr = buildStructFromPacket(addr, field, typeManager);
+            const auto structPtr = buildStructFromPacket(addr, fields[i], typeManager);
             builder.set(fieldNames[i], structPtr);
         }
         else
@@ -450,7 +404,7 @@ inline StructPtr DataPacketImpl<TInterface>::buildStructFromPacket(void*& addr,
 }
 
 template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value)
+ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
@@ -468,7 +422,6 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value)
 
     if (sampleType == SampleType::Struct)
     {
-        const auto typeManager = TypeManager();
         auto structPtr = buildStructFromPacket(addr, descriptor, typeManager);
         *value = structPtr.detach();
     }

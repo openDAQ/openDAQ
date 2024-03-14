@@ -102,6 +102,7 @@ wheel_tag = auto_wheel_tag(modules.opendaq) if not wheel_tag else wheel_tag
 path_build_pip_source_dir = os.path.dirname(__file__)
 package_version = read_opendaq_version(
     os.path.join(path_build_pip_source_dir, '..', '..', '..', 'opendaq_version')) if not package_version else package_version
+examples_dir = os.path.join(path_build_pip_source_dir, '..', '..', '..', 'examples', 'python')
 
 if not modules.libs:
     print(f'Could not find any libraries in {build_bin_dir}')
@@ -142,6 +143,7 @@ for module in modules.modules:
     shutil.copy(os.path.join(build_bin_dir, module),
                 os.path.join(path_stage_package, 'modules'))
 shutil.copy(os.path.join(build_bin_dir, modules.opendaq), path_stage_package)
+shutil.copy(os.path.join(examples_dir, 'gui_demo.py'), os.path.join(path_stage_package, '__main__.py'))
 
 # an empty file signalling to python that auto-complete should be enabled
 pathlib.Path(os.path.join(path_stage_package, 'py.typed')).touch()

@@ -435,7 +435,7 @@ void StreamingClient::onSignal(const daq::streaming_protocol::SubscribedSignal& 
                   subscribedSignal.signalId(),
                   subscribedSignal.tableId(),
                   subscribedSignal.memberName(),
-                  subscribedSignal.dataValueType(),
+                  static_cast<int>(subscribedSignal.dataValueType()),
                   params.dump());
         }
 

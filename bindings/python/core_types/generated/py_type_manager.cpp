@@ -25,8 +25,11 @@
  * limitations under the License.
  */
 
+#include <variant>
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_converter.h"
+#include <pybind11/stl.h>
+
 
 PyDaqIntf<daq::ITypeManager, daq::IBaseObject> declareITypeManager(pybind11::module_ m)
 {
@@ -44,6 +47,13 @@ void defineITypeManager(pybind11::module_ m, PyDaqIntf<daq::ITypeManager, daq::I
         {
             const auto objectPtr = daq::TypeManagerPtr::Borrow(object);
             objectPtr.addType(type);
+
+            daq::IEnumerationType* enumType = nullptr;
+            auto errCode = type->queryInterface(daq::IEnumerationType::Id, reinterpret_cast<void**>(&enumType));
+            if (OPENDAQ_SUCCEEDED(errCode)) {
+                auto pyObject = py::cast(InterfaceWrapper<daq::IEnumerationType>(enumType));
+                pyObject.attr("__type_manager") = object;
+            }
         },
         py::arg("type"),
         "Adds a type to the manager.");
@@ -58,8 +68,20 @@ void defineITypeManager(pybind11::module_ m, PyDaqIntf<daq::ITypeManager, daq::I
     cls.def("get_type",
         [](daq::ITypeManager *object, const std::string& typeName)
         {
+            std::variant<daq::IType*, daq::IEnumerationType*> result;
             const auto objectPtr = daq::TypeManagerPtr::Borrow(object);
-            return objectPtr.getType(typeName).detach();
+            auto type = objectPtr.getType(typeName);
+
+            auto enumTypePtr = type.asPtrOrNull<daq::IEnumerationType>();
+            if(enumTypePtr.assigned()) {
+                auto pyObject = py::cast(InterfaceWrapper<daq::IEnumerationType>(enumTypePtr));
+                pyObject.attr("__type_manager") = object;
+                result = enumTypePtr.detach();
+                return result;
+            }
+
+            result = type.detach();
+            return result;
         },
         py::arg("type_name"),
         "Gets an added Type by name.");

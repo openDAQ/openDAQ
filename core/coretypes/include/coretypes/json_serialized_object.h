@@ -18,6 +18,7 @@
 #include <coretypes/deserializer.h>
 #include <coretypes/intfs.h>
 #include <rapidjson/document.h>
+#include <coretypes/string_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -43,8 +44,11 @@ public:
     ErrCode INTERFACE_FUNC getType(IString* key, CoreType* type) override;
     ErrCode INTERFACE_FUNC isRoot(Bool* isRoot) override;
 
+    ErrCode INTERFACE_FUNC toJson(IString** jsonString) override;
+
     ErrCode INTERFACE_FUNC toString(CharPtr* str) override;
 private:
+    static StringPtr objToJson(const rapidjson::Value& val);
     const JsonObject object;
     Bool root;
 };

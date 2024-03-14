@@ -37,7 +37,7 @@ DevicePtr createDevice(const StringPtr& connectionString,
         }
     }
 
-    throw NotFoundException{"Device with given uid is not available."};
+    throw NotFoundException{"No module supports the specified connection string and configuration [{}]", connectionString};
 }
 
 }

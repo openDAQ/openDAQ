@@ -83,3 +83,44 @@ TEST_F(SerializationTest, ChildObject)
     PropertyObjectPtr childObject1 = parentObject1.getPropertyValue("Child");
     ASSERT_EQ(childObject1.getPropertyValue("Name"), "IamChild");
 }
+
+TEST_F(SerializationTest, JsonSerObjectToJsonString)
+{
+    PropertyObjectPtr parent = PropertyObject();
+    PropertyObjectPtr child1 = PropertyObject();
+    PropertyObjectPtr child2 = PropertyObject();
+    PropertyObjectPtr child1_1 = PropertyObject();
+    PropertyObjectPtr child1_2 = PropertyObject();
+    PropertyObjectPtr child1_2_1 = PropertyObject();
+    PropertyObjectPtr child2_1 = PropertyObject();
+
+    child1_2_1.addProperty(StringProperty("String", "string"));
+    child1_2_1.addProperty(StringPropertyBuilder("ReadOnlyString", "string").setReadOnly(true).build());
+
+    child1_2.addProperty(ObjectProperty("child1_2_1", child1_2_1));
+    child1_2.addProperty(IntProperty("Int", 1));
+
+    child1_1.addProperty(FloatProperty("Float", 1.1));
+
+    child1.addProperty(ObjectProperty("child1_1", child1_1));
+    child1.addProperty(ObjectProperty("child1_2", child1_2));
+
+    child2_1.addProperty(RatioProperty("Ratio", Ratio(1, 2)));
+
+    child2.addProperty(ObjectProperty("child2_1", child2_1));
+
+    parent.addProperty(ObjectProperty("child1", child1));
+    parent.addProperty(ObjectProperty("child2", child2));
+
+    const auto ser = JsonSerializer();
+    parent.serialize(ser);
+    const auto str = ser.getOutput();
+
+    ProcedurePtr proc = [&str](const SerializedObjectPtr& obj) {
+        std::string json = obj.toJson();
+        ASSERT_EQ(json, str);
+    };
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.callCustomProc(proc, str);
+}

@@ -62,6 +62,8 @@ public:
     ErrCode INTERFACE_FUNC beginUpdate() override;
     ErrCode INTERFACE_FUNC endUpdate() override;
 
+    ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+
     ErrCode INTERFACE_FUNC complete() override;
 
     ErrCode INTERFACE_FUNC getRemoteGlobalId(IString** remoteGlobalId) override;
@@ -300,6 +302,19 @@ inline ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdat
 }
 
 template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::update(ISerializedObject* obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    return daqTry([this, &obj]()
+    {
+        StringPtr serialized;
+        checkErrorInfo(obj->toJson(&serialized));
+        clientComm->update(remoteGlobalId, serialized, this->path);
+    });
+}
+
+template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::complete()
 {
     deserializationComplete = true;
@@ -398,11 +413,15 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const Serialized
 
     const auto keyStr = String("properties");
     const auto hasKey = serObj.hasKey(keyStr);
+    const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
 
     if (!IsTrue(hasKey))
+    {
+        for (const auto& prop : thisPtr.getAllProperties())
+            Impl::removeProperty(prop.getName());
         return;
+    }
     
-    const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
     const auto propertyList = serObj.readSerializedList(keyStr);
     const TypeManagerPtr typeManager = this->manager.getRef();
     std::unordered_set<std::string> serializedProps{};
@@ -430,10 +449,28 @@ template <class Impl>
 void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const SerializedObjectPtr& serObj)
 {
     const auto hasKeyStr = String("propValues");
-    if (!serObj.hasKey(hasKeyStr))
-        return;
-    
     const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
+
+    if (!serObj.hasKey(hasKeyStr))
+    {
+        for (const auto& prop : thisPtr.getAllProperties())
+        {
+            const auto propInternal = prop.asPtrOrNull<IPropertyInternal>(true);
+            if (propInternal.assigned())
+            {
+                const auto valueTypeUnresolved = propInternal.getValueTypeUnresolved();
+                if (propInternal.getReferencedPropertyUnresolved().assigned())
+                    continue;
+                if (valueTypeUnresolved == ctFunc || valueTypeUnresolved == ctProc)
+                    continue;
+            }
+
+            checkErrorInfo(Impl::clearProtectedPropertyValue(prop.getName()));
+        }
+
+        return;
+    }
+    
     const TypeManagerPtr typeManager = this->manager.getRef();
     const auto propValues = serObj.readSerializedObject("propValues");
     const auto protectedPropObjPtr = thisPtr.asPtr<IPropertyObjectProtected>();
@@ -441,7 +478,6 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
     for (const auto& prop : thisPtr.getAllProperties())
     {
         const auto propName = prop.getName();
-
         const auto propInternal = prop.asPtrOrNull<IPropertyInternal>(true);
         auto valueTypeUnresolved = ctUndefined;
         if (propInternal.assigned())

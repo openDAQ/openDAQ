@@ -69,15 +69,16 @@ public:
     virtual void roundUpOnUnitOfDomain() = 0;
 
 #if !defined(NDEBUG)
-    virtual void print(std::ostream& os) const = 0;
     virtual std::string asTime() const = 0;
+#endif
+
+    virtual void print(std::ostream& os) const = 0;
 
     friend std::ostream& operator<<(std::ostream& os, const Comparable& obj)
     {
         obj.print(os);
         return os;
     }
-#endif
 
 protected:
     const ReaderDomainInfo& info;
@@ -148,16 +149,22 @@ public:
     }
 
 
-#if !defined(NDEBUG)
+
     void print(std::ostream& os) const override
     {
         using namespace reader;
 
         os.setf(std::ios::left);
         os.width(10);
-        os << value << " | " << toSysTime(value, info.readEpoch, info.readResolution);
+        os << value << " | "
+
+#if !defined(NDEBUG)
+        << toSysTime(value, info.readEpoch, info.readResolution)
+#endif
+        ;
     }
 
+#if !defined(NDEBUG)
     virtual std::string asTime() const override
     {
         using namespace reader;
@@ -218,11 +225,11 @@ public:
     };
 
 
-#if !defined(NDEBUG)
     void print(std::ostream& os) const override
     {
     }
 
+#if !defined(NDEBUG)
     virtual std::string asTime() const override
     {
         return "";
@@ -261,11 +268,11 @@ public:
         throw NotSupportedException();
     };
 
-#if !defined(NDEBUG)
     void print(std::ostream& os) const override
     {
     }
 
+#if !defined(NDEBUG)
     virtual std::string asTime() const override
     {
         return "";
@@ -317,12 +324,12 @@ public:
     };
 
 
-#if !defined(NDEBUG)
     virtual void print(std::ostream& os) const override
     {
         os << "[" << value.start << ", " << value.end << "]";
     }
 
+#if !defined(NDEBUG)
     virtual std::string asTime() const override
     {
         return "";

@@ -37,21 +37,19 @@ else()
     set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ".CMakePredefinedTargets")
 endif()
 
-if (NOT BUILDING_AS_SUBMODULE)
-    find_package(GitInfo)
-    if (COMMAND GIT_WC_INFO)
-        GIT_WC_INFO("${CMAKE_CURRENT_SOURCE_DIR}" "OPENDAQ")
-        if (DEFINED CI_GIT_BRANCH AND NOT ${CI_GIT_BRANCH} STREQUAL "")
-            STRING(REPLACE "refs/heads/" "" OPENDAQ_WC_BRANCH_NAME ${CI_GIT_BRANCH})
-        endif()
-
-        message(STATUS "Git branch: ${OPENDAQ_WC_BRANCH_NAME} | ${OPENDAQ_WC_REVISION_HASH}")
-        if (NOT ${OPENDAQ_WC_BRANCH_NAME} MATCHES "^release\/[0-9]+\.[0-9]+(\.[0-9])?(\.[0-9])?(-[a-z|A-Z|0-9]*)?$")
-            set (OPENDAQ_PACKAGE_VERSION_WITH_SHA "${OPENDAQ_PACKAGE_VERSION}_${OPENDAQ_WC_REVISION_HASH}")
-        endif()
-    else()
-        set(OPENDAQ_WC_REVISION "NA")
+find_package(GitInfo)
+if (COMMAND GIT_WC_INFO)
+    GIT_WC_INFO("${CMAKE_CURRENT_SOURCE_DIR}" "OPENDAQ")
+    if (DEFINED CI_GIT_BRANCH AND NOT ${CI_GIT_BRANCH} STREQUAL "")
+        STRING(REPLACE "refs/heads/" "" OPENDAQ_WC_BRANCH_NAME ${CI_GIT_BRANCH})
     endif()
+
+    message(STATUS "Git branch: ${OPENDAQ_WC_BRANCH_NAME} | ${OPENDAQ_WC_REVISION_HASH}")
+    if (NOT ${OPENDAQ_WC_BRANCH_NAME} MATCHES "^release\/[0-9]+\.[0-9]+(\.[0-9])?(\.[0-9])?(-[a-z|A-Z|0-9]*)?$")
+        set (OPENDAQ_PACKAGE_VERSION_WITH_SHA "${OPENDAQ_PACKAGE_VERSION}_${OPENDAQ_WC_REVISION_HASH}")
+    endif()
+else()
+    set(OPENDAQ_WC_REVISION "NA")
 endif()
 
 if (NOT ${OPENDAQ_PACKAGE_VERSION_WITH_SHA} STREQUAL "")
@@ -140,6 +138,7 @@ option(OPENDAQ_LINK_3RD_PARTY_LIBS_STATICALY "Link the 3rd party libraries stati
 
 # Testing and coverage
 option(OPENDAQ_ENABLE_TESTS "Enable testing" ON)
+option(OPENDAQ_ENABLE_TEST_UTILS "Enable testing utils library" ON)
 option(OPENDAQ_ENABLE_OPTIONAL_TESTS "Enable optional (debugging) tests" OFF)
 option(OPENDAQ_ENABLE_COVERAGE "Enable code coverage in testing" OFF)
 
@@ -150,6 +149,7 @@ option(OPENDAQ_RELEASE_WARNINGS_AS_ERRORS "Treat release warnings as errors" ON)
 option(OPENDAQ_USE_CCACHE "Use compiler cache driver if available" ON)
 
 # Dependent options
+cmake_dependent_option(OPENDAQ_ENABLE_INTEGRATION_TESTS "Enable testing" ON "OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_DELPHI_BINDINGS_TESTS "Enable delphi bindings tests" ON "OPENDAQ_GENERATE_DELPHI_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS "Enable python bindings tests" ON "OPENDAQ_GENERATE_PYTHON_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_CSHARP_BINDINGS_TESTS "Enable csharp bindings tests" ON "OPENDAQ_GENERATE_CSHARP_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
@@ -157,14 +157,19 @@ if (NOT APPLE AND UNIX)
     cmake_dependent_option(OPENDAQ_ENABLE_WS_SIGGEN_INTEGRATION_TESTS "Enable websocket streaming integration tests" ON "OPENDAQ_ENABLE_TESTS;OPENDAQ_ENABLE_WEBSOCKET_STREAMING" OFF)
 endif()
 
-#modules
+if (OPENDAQ_ENABLE_TESTS)
+    set(OPENDAQ_ENABLE_TEST_UTILS ON)
+endif()
+
+# Optional Modules
 option(DAQMODULES_OPENDAQ_CLIENT_MODULE "Building of ${SDK_NAME} client modules" OFF)
 option(DAQMODULES_OPENDAQ_SERVER_MODULE "Building of ${SDK_NAME} server modules" OFF)
 option(DAQMODULES_EMPTY_MODULE "Building of demo module" OFF)
+option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
 option(DAQMODULES_REF_DEVICE_MODULE "Building of reference device module" OFF)
 option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OFF)
+
 cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)
-option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
 
 # logging
 
@@ -272,6 +277,7 @@ if (OPENDAQ_ENABLE_COVERAGE)
 endif()
 
 if (OPENDAQ_ENABLE_TESTS)
+    message(STATUS "Unit tests are ENABLED")
     enable_testing()
 
     if (NOT gtest IN_LIST TESTING_LIBS)
@@ -295,6 +301,8 @@ if (OPENDAQ_ENABLE_TESTS)
             message(FATAL_ERROR "Delphi bindings only available in Windows")
         endif()
     endif()
+else()
+    message(STATUS "Unit tests are DISABLED")
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
@@ -555,14 +563,17 @@ endif()
 
 set(OPENDAQ_GENERATE_BINDINGS_LANG "")
 if(OPENDAQ_GENERATE_DELPHI_BINDINGS)
+    message(STATUS "Generating Delphi bindings")
     set(OPENDAQ_GENERATE_BINDINGS_LANG ${OPENDAQ_GENERATE_BINDINGS_LANG} Delphi)
 endif()
 
 if(OPENDAQ_GENERATE_PYTHON_BINDINGS)
+    message(STATUS "Generating Python bindings")
     set(OPENDAQ_GENERATE_BINDINGS_LANG ${OPENDAQ_GENERATE_BINDINGS_LANG} Python)
 endif()
 
 if(OPENDAQ_GENERATE_CSHARP_BINDINGS)
+    message(STATUS "Generating C# bindings")
     set(OPENDAQ_GENERATE_BINDINGS_LANG ${OPENDAQ_GENERATE_BINDINGS_LANG} CSharp)
 endif()
 

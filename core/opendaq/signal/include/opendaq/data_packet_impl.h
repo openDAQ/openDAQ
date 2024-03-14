@@ -54,8 +54,8 @@ public:
 
 private:
     bool isDataEqual(const DataPacketPtr& dataPacket) const;
-    BaseObjectPtr dataToObj(void*& addr, const SampleType& type) const;
-    StructPtr buildStructFromPacket(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager) const;
+    BaseObjectPtr dataToObj(void* addr, const SampleType& type) const;
+    StructPtr buildStructFromPacket(void* addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager) const;
 
     AllocatorPtr allocator;
     DataDescriptorPtr descriptor;
@@ -294,7 +294,7 @@ bool DataPacketImpl<TInterface>::isDataEqual(const DataPacketPtr& dataPacket) co
 }
 
 template <typename TInterface>
-inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObj(void*& addr, const SampleType& type) const
+inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObj(void* addr, const SampleType& type) const
 {
     switch (type)
     {
@@ -371,7 +371,7 @@ inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObj(void*& addr, const Sa
 }
 
 template <typename TInterface>
-inline StructPtr DataPacketImpl<TInterface>::buildStructFromPacket(void*& addr,
+inline StructPtr DataPacketImpl<TInterface>::buildStructFromPacket(void* addr,
                                                                    const DataDescriptorPtr& descriptor,
                                                                    const TypeManagerPtr& typeManager) const
 {

@@ -324,19 +324,19 @@ bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr&
 }
 
 bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString,
-                                                                   const StreamingInfoPtr& config)
+                                                                   const ServerCapabilityPtr& capability)
 {
     if (connectionString.assigned())
     {
         return connectionStringHasPrefix(connectionString, NativeStreamingPrefix) &&
                validateConnectionString(connectionString);
     }
-    else if (config.assigned())
+    else if (capability.assigned())
     {
-        if (config.getProtocolId() == NativeStreamingID && config.getPrimaryAddress().assigned())
+        const auto propertyObj = capability.asPtr<IPropertyObject>();
+        if (propertyObj.assigned())
         {
-            const auto propertyObj = config.asPtr<IPropertyObject>();
-            return propertyObj.assigned() && propertyObj.hasProperty("Port");
+            return propertyObj.hasProperty("ProcolId") && propertyObj.hasProperty("PrimaryAddress") && propertyObj.hasProperty("Port");
         }
     }
     return false;
@@ -382,7 +382,7 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
 }
 
 StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString,
-                                                            const StreamingInfoPtr& config)
+                                                            const ServerCapabilityPtr& capability)
 {
     if (!onAcceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();

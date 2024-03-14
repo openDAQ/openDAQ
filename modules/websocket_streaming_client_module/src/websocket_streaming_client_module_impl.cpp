@@ -96,7 +96,7 @@ bool WebsocketStreamingClientModule::onAcceptsConnectionParameters(const StringP
     return (found == 0);
 }
 
-bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const StreamingInfoPtr& config)
+bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
 {
     if (connectionString.assigned())
     {
@@ -122,7 +122,7 @@ bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(cons
     return false;
 }
 
-StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const StreamingInfoPtr& config)
+StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
 {
     StringPtr streamingConnectionString = connectionString;
 
@@ -138,7 +138,7 @@ StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& 
     return WebsocketStreaming(streamingConnectionString, context);
 }
 
-StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(const StreamingInfoPtr &config)
+StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(const ServerCapabilityPtr& capability)
 {
     auto address = config.getPrimaryAddress();
     if (address.toStdString().empty())

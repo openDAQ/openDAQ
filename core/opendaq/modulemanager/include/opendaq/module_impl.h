@@ -28,7 +28,6 @@
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/streaming_ptr.h>
-#include <opendaq/streaming_info_ptr.h>
 
 #include <opendaq/custom_log.h>
 
@@ -223,17 +222,17 @@ public:
      * @param config A configuration info object that contains streaming type ID and additional parameters.
      * The configuration info is used to generate a connection string if it is not present.
      */
-    ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IStreamingInfo* config = nullptr) override
+    ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IServerCapability* capability = nullptr) override
     {
         OPENDAQ_PARAM_NOT_NULL(accepted);
-        if (connectionString == nullptr && config == nullptr)
+        if (connectionString == nullptr && capability == nullptr)
             return makeErrorInfo(
                 OPENDAQ_ERR_ARGUMENT_NULL,
                 "At least one parameter connection string or config should be provided for streaming"
             );
 
         bool accepts;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onAcceptsStreamingConnectionParameters, accepts, connectionString, config);
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onAcceptsStreamingConnectionParameters, accepts, connectionString, capability);
 
         *accepted = accepts;
         return errCode;
@@ -245,17 +244,17 @@ public:
      * @param config Streaming configuration info.
      * @param[out] streaming The created streaming object.
      */
-    ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IStreamingInfo* config) override
+    ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IServerCapability* capability) override
     {
         OPENDAQ_PARAM_NOT_NULL(streaming);
-        if (connectionString == nullptr && config == nullptr)
+        if (connectionString == nullptr && capability == nullptr)
             return makeErrorInfo(
                 OPENDAQ_ERR_ARGUMENT_NULL,
                 "At least one parameter connection string or config should be provided for streaming"
             );
 
         StreamingPtr streamingInstance;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateStreaming, streamingInstance, connectionString, config);
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateStreaming, streamingInstance, connectionString, capability);
 
         *streaming = streamingInstance.detach();
         return errCode;
@@ -343,17 +342,17 @@ public:
         return nullptr;
     }
 
-    virtual bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const StreamingInfoPtr& config)
+    virtual bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
     {
         return false;
     }
 
-    virtual StreamingPtr onCreateStreaming(const StringPtr& connectionString, const StreamingInfoPtr& config)
+    virtual StreamingPtr onCreateStreaming(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
     {
         return nullptr;
     }
 
-    StreamingPtr createStreamingFromAnotherModule(const StringPtr& connectionString, const StreamingInfoPtr& config)
+    StreamingPtr createStreamingFromAnotherModule(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
     {
         StreamingPtr streaming = nullptr;
         ModuleManagerPtr moduleManager = context.getModuleManager();
@@ -362,7 +361,7 @@ public:
             bool accepted{};
             try
             {
-                accepted = module.acceptsStreamingConnectionParameters(connectionString, config);
+                accepted = module.acceptsStreamingConnectionParameters(connectionString, capability);
             }
             catch(NotImplementedException&)
             {
@@ -377,7 +376,7 @@ public:
 
             if (accepted)
             {
-                streaming = module.createStreaming(connectionString, config);
+                streaming = module.createStreaming(connectionString, capability);
             }
         }
         return streaming;

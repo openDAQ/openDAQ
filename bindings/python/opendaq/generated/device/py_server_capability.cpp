@@ -31,7 +31,7 @@
 PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> declareIServerCapability(pybind11::module_ m)
 {
     py::enum_<daq::ClientUpdateMethod>(m, "ClientUpdateMethod")
-        .value("RequestResponce", daq::ClientUpdateMethod::RequestResponce)
+        .value("RequestResponse", daq::ClientUpdateMethod::RequestResponse)
         .value("Broadcast", daq::ClientUpdateMethod::Broadcast)
         .value("Unknown", daq::ClientUpdateMethod::Unknown);
 

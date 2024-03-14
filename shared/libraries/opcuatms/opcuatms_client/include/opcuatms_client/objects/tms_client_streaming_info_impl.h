@@ -16,11 +16,10 @@
 
 #pragma once
 #include "opcuatms_client/objects/tms_client_property_object_impl.h"
-#include <opendaq/streaming_info_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-class TmsClientStreamingInfoImpl : public TmsClientPropertyObjectBaseImpl<StreamingInfoConfigImpl>
+class TmsClientStreamingInfoImpl : public TmsClientPropertyObjectBaseImpl<ServerCapabilityImpl>
 {
 public:
     explicit TmsClientStreamingInfoImpl(const ContextPtr& daqContext,

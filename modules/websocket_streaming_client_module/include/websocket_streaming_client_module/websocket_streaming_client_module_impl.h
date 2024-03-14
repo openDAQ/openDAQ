@@ -32,11 +32,11 @@ public:
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
     bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const StreamingInfoPtr& config) override;
-    StreamingPtr onCreateStreaming(const StringPtr& connectionString, const StreamingInfoPtr& config) override;
+    bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const ServerCapabilityPtr& capability) override;
+    StreamingPtr onCreateStreaming(const StringPtr& connectionString, const ServerCapabilityPtr& capability) override;
 
 private:
-    static StringPtr tryCreateWebsocketConnectionString(const StreamingInfoPtr& config);
+    static StringPtr tryCreateWebsocketConnectionString(const ServerCapabilityPtr& capability);
     static DeviceTypePtr createWebsocketDeviceType();
     static DeviceTypePtr createTcpsocketDeviceType();
 

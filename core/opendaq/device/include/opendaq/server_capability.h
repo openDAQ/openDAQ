@@ -23,7 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 enum class ClientUpdateMethod : uint32_t
 {
-    RequestResponce = 0,
+    RequestResponse = 0,
     Broadcast,
     Unknown = 0xffff
 };

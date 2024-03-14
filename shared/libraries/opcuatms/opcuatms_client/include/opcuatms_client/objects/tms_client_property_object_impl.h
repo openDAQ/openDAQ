@@ -15,13 +15,13 @@
  */
 
 #pragma once
-#include "coreobjects/property_object_impl.h"
+#include <coreobjects/property_object_impl.h>
 #include "opcuaclient/opcuaclient.h"
 #include "opcuatms/opcuatms.h"
 #include "opcuatms_client/objects/tms_client_object_impl.h"
-#include "opendaq/channel_impl.h"
-#include "opendaq/streaming_info_impl.h"
+#include <opendaq/channel_impl.h>
 #include "opcuatms_client/objects/tms_client_component.h"
+#include <opendaq/server_capability_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -52,7 +52,7 @@ public:
         init();
     }
 
-    template<class T = Impl, template_utils::enable_if_any<T, StreamingInfoConfigImpl> = 0>
+    template<class T = Impl, template_utils::enable_if_any<T, ServerCapabilityImpl> = 0>
     TmsClientPropertyObjectBaseImpl(const ContextPtr& daqContext,
                                     const StringPtr& protocolId,
                                     const TmsClientContextPtr& clientContext,
@@ -63,7 +63,7 @@ public:
         init();
     }
 
-    template<class T = Impl, template_utils::enable_if_none<T, FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>, ChannelImpl<ITmsClientComponent>, PropertyObjectImpl, StreamingInfoConfigImpl> = 0>
+    template<class T = Impl, template_utils::enable_if_none<T, FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>, ChannelImpl<ITmsClientComponent>, PropertyObjectImpl, ServerCapabilityImpl> = 0>
     TmsClientPropertyObjectBaseImpl(const ContextPtr& ctx,
                                     const ComponentPtr& parent,
                                     const StringPtr& localId,

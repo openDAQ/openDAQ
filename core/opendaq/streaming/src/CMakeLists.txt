@@ -9,8 +9,6 @@ set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 rtgen(SRC_Streaming streaming.h)
 rtgen(SRC_MirroredSignal mirrored_signal_config.h)
-rtgen(SRC_StreamingInfo streaming_info.h)
-rtgen(SRC_StreamingInfoConfig streaming_info_config.h)
 rtgen(SRC_SubscriptionEventArgs subscription_event_args.h)
 
 source_group("mirrored_signal" FILES ${SDK_HEADERS_DIR}/mirrored_signal_config.h
@@ -23,33 +21,23 @@ source_group("streaming" FILES ${SDK_HEADERS_DIR}/streaming.h
                                ${SDK_HEADERS_DIR}/streaming_private.h
 )
 
-source_group("streaming_info" FILES ${SDK_HEADERS_DIR}/streaming_info.h
-                                    ${SDK_HEADERS_DIR}/streaming_info_config.h
-                                    ${SDK_HEADERS_DIR}/streaming_info_impl.h
-                                    ${SDK_HEADERS_DIR}/streaming_info_factory.h
-                                    streaming_info_impl.cpp
-)
-
 source_group("subscription_event_args" FILES ${SDK_HEADERS_DIR}/subscription_event_args.h
                                              ${SDK_HEADERS_DIR}/subscription_event_args_factory.h
                                              ${SDK_HEADERS_DIR}/subscription_event_args_impl.h
                                              subscription_event_args_impl.cpp
 )
 
-set(SRC_Cpp streaming_info_impl.cpp
-            subscription_event_args_impl.cpp
+set(SRC_Cpp subscription_event_args_impl.cpp
 )
 
 set(SRC_PublicHeaders streaming_impl.h
                       mirrored_signal_impl.h
-                      streaming_info_factory.h
                       streaming_private.h
                       mirrored_signal_private.h
                       subscription_event_args_factory.h
 )
 
-set(SRC_PrivateHeaders streaming_info_impl.h
-                       subscription_event_args_impl.h
+set(SRC_PrivateHeaders subscription_event_args_impl.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)
@@ -57,22 +45,16 @@ prepend_include(${MAIN_TARGET} SRC_PublicHeaders)
 
 list(APPEND SRC_Cpp ${SRC_Streaming_Cpp}
                     ${SRC_MirroredSignal_Cpp}
-                    ${SRC_StreamingInfo_Cpp}
-                    ${SRC_StreamingInfoConfig_Cpp}
                     ${SRC_SubscriptionEventArgs_Cpp}
 )
 
 list(APPEND SRC_PublicHeaders ${SRC_Streaming_PublicHeaders}
                               ${SRC_MirroredSignal_PublicHeaders}
-                              ${SRC_StreamingInfo_PublicHeaders}
-                              ${SRC_StreamingInfoConfig_PublicHeaders}
                               ${SRC_SubscriptionEventArgs_PublicHeaders}
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_Streaming_PrivateHeaders}
                                ${SRC_MirroredSignal_PrivateHeaders}
-                               ${SRC_StreamingInfo_PrivateHeaders}
-                               ${SRC_StreamingInfoConfig_PrivateHeaders}
                                ${SRC_SubscriptionEventArgs_PrivateHeaders}
 )
 

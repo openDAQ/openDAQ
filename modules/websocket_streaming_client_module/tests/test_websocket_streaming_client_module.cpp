@@ -7,7 +7,6 @@
 #include <coretypes/common.h>
 
 #include <opendaq/context_factory.h>
-#include <opendaq/streaming_info_factory.h>
 #include <coreobjects/property_factory.h>
 
 using WebsocketStreamingClientModuleTest = testing::Test;

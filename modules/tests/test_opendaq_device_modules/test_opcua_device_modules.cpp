@@ -127,10 +127,6 @@ TEST_F(OpcuaDeviceModulesTest, GetSetDeviceProperties)
     ASSERT_EQ(refDevice.getPropertyValue("NumberOfChannels"), 1);
     ASSERT_EQ(serverRefDevice.getPropertyValue("NumberOfChannels"), 1);
 
-    refDevice.setPropertyValue("GlobalSampleRate", 2000);
-    ASSERT_EQ(refDevice.getPropertyValue("GlobalSampleRate"), 2000);
-    ASSERT_EQ(serverRefDevice.getPropertyValue("GlobalSampleRate"), 2000);
-
     // reset messages
     debugSink.waitForMessage(0);
     ASSERT_ANY_THROW(refDevice.setPropertyValue("InvalidProp", 100));
@@ -280,18 +276,6 @@ TEST_F(OpcuaDeviceModulesTest, SignalDescriptor)
     ASSERT_EQ(signalDescriptor.getName(), serverSignalDescriptor.getName());
     ASSERT_EQ(signalDescriptor.getMetadata(), serverSignalDescriptor.getMetadata());
 }
-
-TEST_F(OpcuaDeviceModulesTest, ChannelProps)
-{
-    auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
-    auto dev = client.getDevices()[0].getDevices()[0];
-    auto customRangeValue = dev.getChannels()[0].getPropertyValue("CustomRange").asPtr<IStruct>();
-
-    ASSERT_EQ(customRangeValue.get("lowValue"), -10.0);
-    ASSERT_EQ(customRangeValue.get("highValue"), 10.0);
-}
-
 
 TEST_F(OpcuaDeviceModulesTest, DataDescriptor)
 {

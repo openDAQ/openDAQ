@@ -30,20 +30,34 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
-enum class ClientReconnectionStatus
+enum class ClientConnectionStatus
 {
     Connected = 0,
     Reconnecting,
-    Restored,
     Unrecoverable
 };
+
+inline ConstCharPtr convertConnectionStatusToString(ClientConnectionStatus status)
+{
+    switch (status)
+    {
+        case ClientConnectionStatus::Connected:
+            return "Connected";
+        case ClientConnectionStatus::Reconnecting:
+            return "Reconnecting";
+        case ClientConnectionStatus::Unrecoverable:
+            return "Unrecoverable";
+    }
+
+    return "InvalidConnectionStatus";
+}
 
 using OnSignalAvailableCallback = std::function<void(const StringPtr& signalStringId,
                                                      const StringPtr& serializedSignal)>;
 using OnSignalUnavailableCallback = std::function<void(const StringPtr& signalStringId)>;
 using OnPacketCallback = std::function<void(const StringPtr& signalStringId, const PacketPtr& packet)>;
 using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
-using OnReconnectionStatusChangedCallback = std::function<void(ClientReconnectionStatus status)>;
+using OnConnectionStatusChangedCallback = std::function<void(ClientConnectionStatus status)>;
 
 class NativeStreamingClientHandler;
 using NativeStreamingClientHandlerPtr = std::shared_ptr<NativeStreamingClientHandler>;
@@ -74,12 +88,12 @@ public:
                               const OnSignalUnavailableCallback& signalUnavailableHandler,
                               const OnPacketCallback& packetHandler,
                               const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback,
-                              const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb,
+                              const OnConnectionStatusChangedCallback& connectionStatusChangedCb,
                               const OnStreamingInitDoneCallback& streamingInitDoneCb);
 
     void resetConfigHandlers();
     void setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
-                           const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb);
+                           const OnConnectionStatusChangedCallback& connectionStatusChangedCb);
 
 protected:
     void readTransportLayerProps();
@@ -94,9 +108,9 @@ protected:
                       const StringPtr& serializedSignal,
                       bool available);
 
-    void checkReconnectionStatus(const boost::system::error_code& ec);
+    void checkReconnectionResult(const boost::system::error_code& ec);
     void tryReconnect();
-    void reconnectionStatusChanged(ClientReconnectionStatus status);
+    void connectionStatusChanged(ClientConnectionStatus status);
 
     void startTransportOperations();
     void stopTransportOperations();
@@ -120,11 +134,11 @@ protected:
     OnSignalUnavailableCallback signalUnavailableHandler;
     OnPacketCallback packetHandler;
     OnSignalSubscriptionAckCallback signalSubscriptionAckCallback;
-    OnReconnectionStatusChangedCallback reconnectionStatusChangedStreamingCb;
+    OnConnectionStatusChangedCallback connectionStatusChangedStreamingCb;
     OnStreamingInitDoneCallback streamingInitDoneCb;
 
     // config callbacks
-    OnReconnectionStatusChangedCallback reconnectionStatusChangedConfigCb;
+    OnConnectionStatusChangedCallback connectionStatusChangedConfigCb;
     ProcessConfigProtocolPacketCb configPacketHandler;
 
     std::shared_ptr<boost::asio::steady_timer> reconnectionTimer;

@@ -26,7 +26,7 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
                                                      Int initTimeout)
     : Device(ctx, parent, localId)
     , connectionString(connectionString)
-    , reconnectionStatus(ClientReconnectionStatus::Connected)
+    , connectionStatus(ClientConnectionStatus::Connected)
 {
     if (!this->connectionString.assigned())
         throw ArgumentNullException("connectionString cannot be null");
@@ -38,41 +38,23 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
 
 void NativeStreamingDeviceImpl::initStatuses(const ContextPtr& ctx)
 {
-    if (!this->context.getTypeManager().hasType("ReconnectionStatusType"))
+    if (!this->context.getTypeManager().hasType("ConnectionStatusType"))
     {
-        const auto statusType = EnumerationType("ReconnectionStatusType", List<IString>("Connected",
+        const auto statusType = EnumerationType("ConnectionStatusType", List<IString>("Connected",
                                                                                         "Reconnecting",
-                                                                                        "Restored",
                                                                                         "Unrecoverable"));
         ctx.getTypeManager().addType(statusType);
     }
-    const auto statusInitValue = Enumeration("ReconnectionStatusType", "Connected", this->context.getTypeManager());
-    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ReconnectionStatus", statusInitValue);
+    const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", statusInitValue);
 }
 
-void NativeStreamingDeviceImpl::publishReconnectionStatus()
+void NativeStreamingDeviceImpl::publishConnectionStatus()
 {
-    auto newStatusValue = this->statusContainer.getStatus("ReconnectionStatus");
+    auto newStatusValue = this->statusContainer.getStatus("ConnectionStatus");
+    newStatusValue = convertConnectionStatusToString(connectionStatus);
 
-    switch (reconnectionStatus)
-    {
-        case ClientReconnectionStatus::Connected:
-            newStatusValue = "Connected";
-            break;
-        case ClientReconnectionStatus::Reconnecting:
-            newStatusValue = "Reconnecting";
-            break;
-        case ClientReconnectionStatus::Restored:
-            newStatusValue = "Restored";
-            break;
-        case ClientReconnectionStatus::Unrecoverable:
-            newStatusValue = "Unrecoverable";
-            break;
-        default:
-            break;
-    }
-
-    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ReconnectionStatus", newStatusValue);
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ConnectionStatus", newStatusValue);
 }
 
 void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandlerPtr transportProtocolClient,
@@ -92,10 +74,10 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
                       signalUnavailableHandler(signalStringId);
                   });
 
-    OnReconnectionStatusChangedCallback onReconnectionStatusChangedCallback =
-        [this](ClientReconnectionStatus status)
+    OnConnectionStatusChangedCallback onConnectionStatusChangedCallback =
+        [this](ClientConnectionStatus status)
         {
-            reconnectionStatusChangedHandler(status);
+            connectionStatusChangedHandler(status);
         };
 
     std::string streamingConnectionString = std::regex_replace(connectionString.toStdString(),
@@ -109,7 +91,7 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
                                                                   initTimeout,
                                                                   onSignalAvailableCallback,
                                                                   onSignalUnavailableCallback,
-                                                                  onReconnectionStatusChangedCallback);
+                                                                  onConnectionStatusChangedCallback);
 }
 
 void NativeStreamingDeviceImpl::activateStreaming()
@@ -239,7 +221,7 @@ void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr
 void NativeStreamingDeviceImpl::signalAvailableHandler(const StringPtr& signalStringId,
                                                        const StringPtr& serializedSignal)
 {
-    if (reconnectionStatus == ClientReconnectionStatus::Reconnecting)
+    if (connectionStatus == ClientConnectionStatus::Reconnecting)
     {
         addToDeviceSignalsOnReconnection(signalStringId, serializedSignal);
     }
@@ -270,9 +252,9 @@ void NativeStreamingDeviceImpl::signalUnavailableHandler(const StringPtr& signal
     deviceSignals.erase(signalStringId);
 }
 
-void NativeStreamingDeviceImpl::reconnectionStatusChangedHandler(ClientReconnectionStatus status)
+void NativeStreamingDeviceImpl::connectionStatusChangedHandler(ClientConnectionStatus status)
 {
-    if (status == ClientReconnectionStatus::Restored)
+    if (status == ClientConnectionStatus::Connected)
     {
         // remove signals which no longer exist after reconnection
         for (const auto& item : deviceSignals)
@@ -290,9 +272,9 @@ void NativeStreamingDeviceImpl::reconnectionStatusChangedHandler(ClientReconnect
         deviceSignals = deviceSignalsReconnection;
         deviceSignalsReconnection.clear();
     }
-    reconnectionStatus = status;
+    connectionStatus = status;
 
-    publishReconnectionStatus();
+    publishConnectionStatus();
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

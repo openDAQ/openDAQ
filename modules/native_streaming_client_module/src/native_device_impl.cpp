@@ -132,7 +132,7 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
 
     };
     transportClientHandler->setConfigHandlers(receiveConfigPacketCb,
-                                              [](ClientReconnectionStatus) {});
+                                              [](ClientConnectionStatus) {});
 }
 
 PacketBuffer NativeDeviceHelper::doConfigRequest(const PacketBuffer& reqPacket)

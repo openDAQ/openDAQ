@@ -429,10 +429,12 @@ TEST_F(SignalTest, SignalDescriptorStructSameNameDifferentDescriptor)
     signal2.sendPacket(dataPacket2);
 
     const auto lv1 = signal1.getLastValue();
+    StructPtr sp1;
+    ASSERT_NO_THROW(sp1 = lv1.asPtr<IStruct>());
+    ASSERT_EQ(sp1.get("Int32"), 4);
+
     // TODO
     // signal2.getLastValue();
-
-    ASSERT_EQ(lv1, 4);
 }
 
 TEST_F(SignalTest, SendNullPacket)

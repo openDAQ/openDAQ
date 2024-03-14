@@ -525,6 +525,50 @@ std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionP
     throw NotSupportedException("The requested sample-type is unsupported or invalid.");
 }
 
+std::string_view format_as(SampleType sampleType)
+{
+    switch (sampleType)
+    {
+        case SampleType::Float32:
+            return "Float32";
+        case SampleType::Float64:
+            return "Float64";
+        case SampleType::UInt8:
+            return "UInt8";
+        case SampleType::Int8:
+            return "Int8";
+        case SampleType::UInt16:
+            return "UInt16";
+        case SampleType::Int16:
+            return "Int16";
+        case SampleType::UInt32:
+            return "UInt32";
+        case SampleType::Int32:
+            return "Int32";
+        case SampleType::UInt64:
+            return "UInt64";
+        case SampleType::Int64:
+            return "Int64";
+        case SampleType::RangeInt64:
+            return "RangeInt64";
+        case SampleType::ComplexFloat32:
+            return "ComplexFloat32";
+        case SampleType::ComplexFloat64:
+            return "ComplexFloat64";
+        case SampleType::Struct:
+            return "Struct";
+        case SampleType::Undefined:
+            return "Undefined";
+        case SampleType::Binary:
+            return "Binary";
+        case SampleType::String:
+            return "String";
+        case SampleType::_count:
+            return "Count";
+    }
+    return "Unknown";
+}
+
 template class TypedReader<SampleTypeToType<SampleType::Float32>::Type>;
 template class TypedReader<SampleTypeToType<SampleType::Float64>::Type>;
 template class TypedReader<SampleTypeToType<SampleType::UInt8>::Type>;

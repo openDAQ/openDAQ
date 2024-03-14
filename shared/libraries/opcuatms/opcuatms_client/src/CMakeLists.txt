@@ -122,6 +122,8 @@ endif()
 
 if (MSVC)
     target_compile_options(${LIB_NAME} PRIVATE /bigobj)
+elseif (MINGW AND CMAKE_COMPILER_IS_GNUCXX)
+    target_compile_options(${LIB_NAME} PRIVATE -Wa,-mbig-obj)
 endif()
 
 target_link_libraries(${LIB_NAME}

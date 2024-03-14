@@ -74,9 +74,9 @@
 /// Format
 
 #define DAQLOG_FORMATTED(loggerComponent, message, logLevel, ...)                                    \
-    loggerComponent.logMessage(daq::SourceLocation{__FILE__, __LINE__, OPENDAQ_CURRENT_FUNCTION},         \
-                                               format(FMT_STRING(message), ##__VA_ARGS__).data(),   \
-                                               logLevel);
+    loggerComponent.logMessage(daq::SourceLocation{__FILE__, __LINE__, OPENDAQ_CURRENT_FUNCTION},    \
+                               fmt::format(FMT_STRING(message), ##__VA_ARGS__).data(),               \
+                               logLevel);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
     #define DAQLOGF_T(loggerComponent, message, ...) \
@@ -91,7 +91,7 @@
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_DEBUG)
     #define DAQLOGF_D(loggerComponent, message, ...) \
         DAQLOG_FORMATTED(loggerComponent,            \
-                        message,                    \
+                        message,                     \
                         daq::LogLevel::Debug,        \
                         ##__VA_ARGS__);
 #else
@@ -101,7 +101,7 @@
 #if OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_INFO
     #define DAQLOGF_I(loggerComponent, message, ...) \
         DAQLOG_FORMATTED(loggerComponent,            \
-                        message,                    \
+                        message,                     \
                         daq::LogLevel::Info,         \
                         ##__VA_ARGS__);
 #else
@@ -111,7 +111,7 @@
 #if OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_WARN
     #define DAQLOGF_W(loggerComponent, message, ...) \
         DAQLOG_FORMATTED(loggerComponent,            \
-                        message,                    \
+                        message,                     \
                         daq::LogLevel::Warn,         \
                         ##__VA_ARGS__);
 #else
@@ -121,7 +121,7 @@
 #if OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_ERROR
     #define DAQLOGF_E(loggerComponent, message, ...) \
         DAQLOG_FORMATTED(loggerComponent,            \
-                        message,                    \
+                        message,                     \
                         daq::LogLevel::Error,        \
                         ##__VA_ARGS__);
 #else
@@ -131,7 +131,7 @@
 #if OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_CRITICAL
     #define DAQLOGF_C(loggerComponent, message, ...) \
         DAQLOG_FORMATTED(loggerComponent,            \
-                        message,                    \
+                        message,                     \
                         daq::LogLevel::Critical,     \
                         ##__VA_ARGS__);
 #else

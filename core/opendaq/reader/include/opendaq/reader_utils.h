@@ -216,7 +216,7 @@ template <>
 struct fmt::formatter<std::chrono::system_clock::time_point> : fmt::formatter<std::string>
 {
     template <typename FormatContext>
-    auto format(std::chrono::system_clock::time_point c, FormatContext& ctx)
+    auto format(std::chrono::system_clock::time_point c, FormatContext& ctx) const
     {
         return fmt::formatter<std::string>::format(daq::reader::timePointString(c), ctx);
     }

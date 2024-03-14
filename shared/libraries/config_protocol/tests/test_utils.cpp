@@ -181,6 +181,10 @@ MockFb2Impl::MockFb2Impl(const ContextPtr& ctx, const ComponentPtr& parent, cons
 MockChannel1Impl::MockChannel1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : Channel(FunctionBlockType("ch", "", ""), ctx, parent, localId, "MockClass")
 {
+    objPtr.addProperty(StringProperty("TestStringProp", "test"));
+    objPtr.addProperty(BoolPropertyBuilder("TestStringPropWritten", false).setReadOnly(true).build());
+    objPtr.getOnPropertyValueWrite("TestStringProp") +=
+        [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("TestStringPropWritten", true); };
     const auto valueSig = createAndAddSignal("sig_ch");
     const auto domainSig = createAndAddSignal("sig_ch_time");
     valueSig.setDomainSignal(domainSig);

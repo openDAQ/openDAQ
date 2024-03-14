@@ -50,6 +50,7 @@ public:
     void setProtectedPropertyValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue);
     BaseObjectPtr getPropertyValue(const std::string& globalId, const std::string& propertyName);
     void clearPropertyValue(const std::string& globalId, const std::string& propertyName);
+    void update(const std::string& globalId, const std::string& serialized, const std::string& path);
     BaseObjectPtr callProperty(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& params);
     void setAttributeValue(const std::string& globalId, const std::string& attributeName, const BaseObjectPtr& attributeValue);
 

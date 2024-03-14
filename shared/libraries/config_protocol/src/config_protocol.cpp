@@ -175,7 +175,7 @@ void* PacketBuffer::getPayload() const
 
 PacketBuffer PacketBuffer::createGetProtocolInfoRequest(uint64_t id)
 {
-    auto packetBuffer = PacketBuffer(PacketType::getProtocolInfo, id, nullptr, 0);
+    auto packetBuffer = PacketBuffer(PacketType::GetProtocolInfo, id, nullptr, 0);
     return packetBuffer;
 }
 
@@ -186,7 +186,7 @@ PacketBuffer PacketBuffer::createGetProtocolInfoReply(uint64_t id, uint16_t curr
 
     const auto mem = PacketBuffer::allocateHeaderAndPayload(payloadSize);
     auto packetBuffer = PacketBuffer(mem, std::bind(&PacketBuffer::deallocateMem, std::placeholders::_1));
-    packetBuffer.setPacketType(PacketType::getProtocolInfo);
+    packetBuffer.setPacketType(PacketType::GetProtocolInfo);
     packetBuffer.setId(id);
     auto payload = static_cast<uint16_t*>(packetBuffer.getPayload());
     *payload++ = currentVersion;
@@ -198,7 +198,7 @@ PacketBuffer PacketBuffer::createGetProtocolInfoReply(uint64_t id, uint16_t curr
 
 void PacketBuffer::parseProtocolInfoRequest() const
 {
-    if (getPacketType() != PacketType::getProtocolInfo)
+    if (getPacketType() != PacketType::GetProtocolInfo)
         throw ConfigProtocolException("Invalid packet type");
 
     if (getPayloadSize() != 0)
@@ -207,7 +207,7 @@ void PacketBuffer::parseProtocolInfoRequest() const
 
 void PacketBuffer::parseProtocolInfoReply(uint16_t& currentVersion, std::vector<uint16_t>& supportedVersions) const
 {
-    if (getPacketType() != PacketType::getProtocolInfo)
+    if (getPacketType() != PacketType::GetProtocolInfo)
         throw ConfigProtocolException("Invalid packet type");
 
     if (getPayloadSize() < sizeof(uint16_t) + sizeof(uint16_t))
@@ -221,13 +221,13 @@ void PacketBuffer::parseProtocolInfoReply(uint16_t& currentVersion, std::vector<
 
 PacketBuffer PacketBuffer::createUpgradeProtocolRequest(uint64_t id, uint16_t version)
 {
-    auto packetBuffer = PacketBuffer(PacketType::upgradeProtocol, id, &version, sizeof(uint16_t));
+    auto packetBuffer = PacketBuffer(PacketType::UpgradeProtocol, id, &version, sizeof(uint16_t));
     return packetBuffer;
 }
 
 void PacketBuffer::parseProtocolUpgradeRequest(uint16_t& version) const
 {
-    if (getPacketType() != PacketType::upgradeProtocol)
+    if (getPacketType() != PacketType::UpgradeProtocol)
         throw ConfigProtocolException("Invalid packet type");
 
     if (getPayloadSize() != sizeof(uint16_t))
@@ -239,13 +239,13 @@ void PacketBuffer::parseProtocolUpgradeRequest(uint16_t& version) const
 PacketBuffer PacketBuffer::createUpgradeProtocolReply(uint64_t id, bool success)
 {
     uint8_t success_ = success ? 1 : 0;
-    auto packetBuffer = PacketBuffer(PacketType::upgradeProtocol, id, &success_, sizeof(uint8_t));
+    auto packetBuffer = PacketBuffer(PacketType::UpgradeProtocol, id, &success_, sizeof(uint8_t));
     return packetBuffer;
 }
 
 void PacketBuffer::parseProtocolUpgradeReply(bool& success) const
 {
-    if (getPacketType() != PacketType::upgradeProtocol)
+    if (getPacketType() != PacketType::UpgradeProtocol)
         throw ConfigProtocolException("Invalid packet type");
 
     if (getPayloadSize() != sizeof(uint8_t))
@@ -256,19 +256,19 @@ void PacketBuffer::parseProtocolUpgradeReply(bool& success) const
 
 PacketBuffer PacketBuffer::createRpcRequestOrReply(uint64_t id, const char* json, size_t jsonSize)
 {
-    auto packetBuffer = PacketBuffer(PacketType::rpc, id, json, jsonSize);
+    auto packetBuffer = PacketBuffer(PacketType::Rpc, id, json, jsonSize);
     return packetBuffer;
 }
 
 PacketBuffer PacketBuffer::createInvalidRequestReply(uint64_t id)
 {
-    auto packetBuffer = PacketBuffer(PacketType::invalidRequest, id, nullptr, 0);
+    auto packetBuffer = PacketBuffer(PacketType::InvalidRequest, id, nullptr, 0);
     return packetBuffer;
 }
 
 void PacketBuffer::parseInvalidRequestReply() const
 {
-    if (getPacketType() != PacketType::invalidRequest)
+    if (getPacketType() != PacketType::InvalidRequest)
         throw ConfigProtocolException("Invalid packet type");
 
     if (getPayloadSize() != 0)
@@ -278,7 +278,7 @@ void PacketBuffer::parseInvalidRequestReply() const
 
 StringPtr PacketBuffer::parseRpcRequestOrReply() const
 {
-    if (getPacketType() != PacketType::rpc)
+    if (getPacketType() != PacketType::Rpc)
         throw ConfigProtocolException("Invalid packet type");
 
     const auto payloadSize = getPayloadSize();
@@ -292,13 +292,13 @@ StringPtr PacketBuffer::parseRpcRequestOrReply() const
 
 PacketBuffer PacketBuffer::createServerNotification(const char* json, size_t jsonSize)
 {
-    auto packetBuffer = PacketBuffer(PacketType::serverNotification, std::numeric_limits<uint64_t>::max(), json, jsonSize);
+    auto packetBuffer = PacketBuffer(PacketType::ServerNotification, std::numeric_limits<uint64_t>::max(), json, jsonSize);
     return packetBuffer;
 }
 
 StringPtr PacketBuffer::parseServerNotification() const
 {
-    if (getPacketType() != PacketType::serverNotification)
+    if (getPacketType() != PacketType::ServerNotification)
         throw ConfigProtocolException("Invalid packet type");
 
     const auto payloadSize = getPayloadSize();

@@ -67,6 +67,8 @@ add_test(NAME ${TEST_APP}
 
 if (MSVC)
     target_compile_options(${TEST_APP} PRIVATE /wd4324  /bigobj)
+elseif (MINGW AND CMAKE_COMPILER_IS_GNUCXX)
+    target_compile_options(${TEST_APP} PRIVATE -Wa,-mbig-obj)
 endif()
 
 if (OPENDAQ_ENABLE_COVERAGE)

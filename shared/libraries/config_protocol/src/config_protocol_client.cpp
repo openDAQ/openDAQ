@@ -87,9 +87,22 @@ void ConfigProtocolClientComm::clearPropertyValue(
     parseRpcReplyPacketBuffer(clearPropertyValueRpcReplyPacketBuffer);
 }
 
+void ConfigProtocolClientComm::update(const std::string& globalId, const std::string& serialized, const std::string& path)
+{
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    dict.set("Serialized", String(serialized));
+    dict.set("Path", String(path));
+    auto updateRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "Update", dict);
+    const auto updateRpcReplyPacketBuffer = sendRequestCallback(updateRpcRequestPacketBuffer );
+
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    parseRpcReplyPacketBuffer(updateRpcReplyPacketBuffer);
+}
+
 BaseObjectPtr ConfigProtocolClientComm::callProperty(const std::string& globalId,
-    const std::string& propertyName,
-    const BaseObjectPtr& params)
+                                                     const std::string& propertyName,
+                                                     const BaseObjectPtr& params)
 {
     auto dict = Dict<IString, IBaseObject>();
     dict.set("ComponentGlobalId", String(globalId));
@@ -142,7 +155,7 @@ PacketBuffer ConfigProtocolClientComm::createRpcRequestPacketBuffer(const uint64
 {
     const auto jsonStr = createRpcRequestJson(name, params);
 
-    auto packetBuffer = PacketBuffer(PacketType::rpc, id, jsonStr.getCharPtr(), jsonStr.getLength());
+    auto packetBuffer = PacketBuffer(PacketType::Rpc, id, jsonStr.getCharPtr(), jsonStr.getLength());
     return packetBuffer;
 }
 

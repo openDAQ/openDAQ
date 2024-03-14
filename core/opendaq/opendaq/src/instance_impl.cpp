@@ -4,7 +4,6 @@
 #include <opendaq/ids_parser.h>
 #include <opendaq/instance_factory.h>
 #include <opendaq/instance_impl.h>
-#include <opendaq/create_device.h>
 #include <opendaq/input_port_private_ptr.h>
 #include <coretypes/validation.h>
 #include <boost/uuid/uuid.hpp>
@@ -12,8 +11,13 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_private.h>
+#include <opendaq/create_device.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+static std::string defineLocalId(const std::string& localId);
+static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder);
+
 InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
     : context(std::move(context))
     , moduleManager(this->context.assigned() ? this->context.asPtr<IContextInternal>().moveModuleManager() : nullptr)
@@ -25,46 +29,8 @@ InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
     loggerComponent = this->context.getLogger().addComponent("Instance");
 }
 
-static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
-{
-    const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
-
-    auto logger = builderPtr.getLogger();
-    auto scheduler = builderPtr.getScheduler();
-    auto moduleManager = builderPtr.getModuleManager();
-    auto typeManager = TypeManager();
-    auto options = builderPtr.getOptions();
-
-    // Configure logger
-    if (!logger.assigned()) 
-    {
-        auto sinks = builderPtr.getLoggerSinks();
-        if (sinks.empty())
-            logger = Logger();
-        else
-            logger = LoggerWithSinks(sinks);
-    }
-    logger.setLevel(builderPtr.getGlobalLogLevel());
-
-    for (const auto& [component, logLevel] : builderPtr.getComponentsLogLevel())
-    {
-        auto createdComponent = logger.getOrAddComponent(component);
-        createdComponent.setLevel(LogLevel(logLevel));
-    }
-
-    // Configure scheduler
-    if (!scheduler.assigned())
-        scheduler = Scheduler(logger, builderPtr.getSchedulerWorkerNum());
-
-    // Configure moduleManager
-    if (!moduleManager.assigned())
-        moduleManager = ModuleManager(builderPtr.getModulePath());
-
-    return Context(scheduler, logger, typeManager, moduleManager, options);
-}
-
 InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
-    : context(ContextFromInstanceBuilder(instanceBuilder))
+    : context(contextFromInstanceBuilder(instanceBuilder))
     , moduleManager(this->context.assigned() ? this->context.asPtr<IContextInternal>().moveModuleManager() : nullptr)
     , rootDeviceSet(false)
 {
@@ -90,7 +56,13 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
 }
 
-std::string InstanceImpl::defineLocalId(const std::string& localId)
+InstanceImpl::~InstanceImpl()
+{
+    stopServers();
+    rootDevice.release();
+}
+
+static std::string defineLocalId(const std::string& localId)
 {
     if (!localId.empty())
         return localId;
@@ -104,10 +76,42 @@ std::string InstanceImpl::defineLocalId(const std::string& localId)
     return boost::uuids::to_string(uuidBoost);
 }
 
-InstanceImpl::~InstanceImpl()
+static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 {
-    stopServers();
-    rootDevice.release();
+    const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
+
+    auto logger = builderPtr.getLogger();
+    auto scheduler = builderPtr.getScheduler();
+    auto moduleManager = builderPtr.getModuleManager();
+    auto typeManager = TypeManager();
+    auto options = builderPtr.getOptions();
+
+    // Configure logger
+    if (!logger.assigned())
+    {
+        auto sinks = builderPtr.getLoggerSinks();
+        if (sinks.empty())
+            logger = Logger();
+        else
+            logger = LoggerWithSinks(sinks);
+    }
+    logger.setLevel(builderPtr.getGlobalLogLevel());
+
+    for (const auto& [component, logLevel] : builderPtr.getComponentsLogLevel())
+    {
+        auto createdComponent = logger.getOrAddComponent(component);
+        createdComponent.setLevel(LogLevel(logLevel));
+    }
+
+    // Configure scheduler
+    if (!scheduler.assigned())
+        scheduler = Scheduler(logger, builderPtr.getSchedulerWorkerNum());
+
+    // Configure moduleManager
+    if (!moduleManager.assigned())
+        moduleManager = ModuleManager(builderPtr.getModulePath());
+
+    return Context(scheduler, logger, typeManager, moduleManager, options);
 }
 
 void InstanceImpl::stopServers()
@@ -188,7 +192,7 @@ ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverCo
         {
             if (id == typeId)
             {
-                // Use root device instead of Instance(this) to prevent cycling reference.
+                // Use the root device instead of Instance(this) to prevent cycling reference.
                 auto createdServer = module.createServer(typeId, rootDevice, serverConfig);
 
                 std::scoped_lock lock(configSync);
@@ -202,9 +206,9 @@ ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverCo
     return OPENDAQ_ERR_NOTFOUND;
 }
 
-ErrCode InstanceImpl::addStandardServers(IList** servers)
+ErrCode InstanceImpl::addStandardServers(IList** standardServers)
 {
-    OPENDAQ_PARAM_NOT_NULL(servers);
+    OPENDAQ_PARAM_NOT_NULL(standardServers);
 
     auto serversPtr = List<IServer>();
     ErrCode errCode = OPENDAQ_SUCCESS;
@@ -229,7 +233,7 @@ ErrCode InstanceImpl::addStandardServers(IList** servers)
         return errCode;
     serversPtr.pushBack(opcUaServer);
 
-    *servers = serversPtr.detach();
+    *standardServers = serversPtr.detach();
 
     return OPENDAQ_SUCCESS;
 }
@@ -251,21 +255,21 @@ ErrCode InstanceImpl::removeServer(IServer* server)
     return errCode;
 }
 
-ErrCode InstanceImpl::getServers(IList** servers)
+ErrCode InstanceImpl::getServers(IList** instanceServers)
 {
-    OPENDAQ_PARAM_NOT_NULL(servers);
+    OPENDAQ_PARAM_NOT_NULL(instanceServers);
 
     ListPtr<IServer> serversPtr{ this->servers };
-    *servers = serversPtr.detach();
+    *instanceServers = serversPtr.detach();
 
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode InstanceImpl::getRootDevice(IDevice** rootDevice)
+ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
 {
-    OPENDAQ_PARAM_NOT_NULL(rootDevice);
+    OPENDAQ_PARAM_NOT_NULL(currentRootDevice);
 
-    *rootDevice = this->rootDevice.addRefAndReturn();
+    *currentRootDevice = this->rootDevice.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -296,7 +300,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     if (devicePrivate.assigned())
         devicePrivate->setAsRoot();
 
-    LOG_I("Root device explicitly set to {}", connectionStringPtr.toStdString());
+    LOG_I("Root device explicitly set to {}", connectionStringPtr);
 
     this->rootDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
     return OPENDAQ_SUCCESS;

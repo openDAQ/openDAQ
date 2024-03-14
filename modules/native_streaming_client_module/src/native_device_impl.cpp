@@ -162,7 +162,7 @@ PacketBuffer NativeDeviceHelper::doConfigRequest(const PacketBuffer& reqPacket)
 
 void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
 {
-    if (packet.getPacketType() == serverNotification)
+    if (packet.getPacketType() == ServerNotification)
     {
         configProtocolClient->triggerNotificationPacket(packet);
     }
@@ -172,7 +172,11 @@ void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
     }
     else
     {
-        LOG_E("Received reply for unknown request id {}, reply type {:#x}", packet.getId(), packet.getPacketType());
+        LOG_E("Received reply for unknown request id {}, reply type {:#x} [{}]",
+            packet.getId(),
+            static_cast<uint8_t>(packet.getPacketType()),
+            packet.getPacketType()
+        );
     }
 }
 

@@ -108,7 +108,7 @@ opendaq_target_link_libraries(${BASE_NAME}
     PUBLIC
         daq::coretypes
     PRIVATE
-        $<BUILD_INTERFACE:spdlog::spdlog>
+        $<BUILD_INTERFACE:spdlog>
 )
 
 if (OPENDAQ_USE_SYNCHRONOUS_LOGGER)

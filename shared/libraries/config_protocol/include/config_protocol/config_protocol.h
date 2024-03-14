@@ -39,7 +39,14 @@ inline auto ParamsDict(std::initializer_list<std::pair<const StringPtr, ObjectPt
 }
 
 
-enum PacketType: uint8_t { getProtocolInfo = 0x80, upgradeProtocol = 0x81, rpc = 0x82, serverNotification = 0x83, invalidRequest = 0x84 };
+enum PacketType: uint8_t
+{
+    GetProtocolInfo = 0x80,
+    UpgradeProtocol = 0x81,
+    Rpc = 0x82,
+    ServerNotification = 0x83,
+    InvalidRequest = 0x84
+};
 
 #pragma pack(push, 1)
 struct PacketHeader
@@ -127,5 +134,23 @@ class ConfigProtocolException : public std::runtime_error
 public:
     ConfigProtocolException(const std::string& msg);
 };
+
+inline auto format_as(PacketType type)
+{
+    switch (type)
+    {
+        case GetProtocolInfo:
+            return "GetProtocolInfo";
+        case UpgradeProtocol:
+            return "UpgradeProtocol";
+        case Rpc:
+            return "Rpc";
+        case ServerNotification:
+            return "ServerNotification";
+        case InvalidRequest:
+            return "InvalidRequest";
+    }
+    return "Unknown type";
+}
 
 }

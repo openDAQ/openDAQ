@@ -6,7 +6,7 @@ using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
-static InstancePtr CreateServerInstance()
+static InstancePtr CreateDefaultServerInstance()
 {
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
@@ -21,6 +21,30 @@ static InstancePtr CreateServerInstance()
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
 
+    return instance;
+}
+
+static InstancePtr CreateUpdatedServerInstance()
+{
+    auto logger = Logger();
+    auto scheduler = Scheduler(logger);
+    auto moduleManager = ModuleManager("");
+    auto typeManager = TypeManager();
+    auto context = Context(scheduler, logger, typeManager, moduleManager);
+
+    auto instance = InstanceCustom(context, "local");
+
+    const auto refDevice = instance.addDevice("daqref://device0");
+    refDevice.setPropertyValue("NumberOfChannels", 3);
+
+    const auto testType = EnumerationType("TestEnumType", List<IString>("TestValue1", "TestValue2"));
+    instance.getContext().getTypeManager().addType(testType);
+
+    return instance;
+}
+
+static InstancePtr CreateServerInstance(InstancePtr instance = CreateDefaultServerInstance())
+{
     instance.addServer("openDAQ Native Streaming", nullptr);
 
     return instance;
@@ -606,4 +630,48 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     ASSERT_EQ(transportLayerConfig.getPropertyValue("ConnectionTimeout"), 300);
     ASSERT_EQ(transportLayerConfig.getPropertyValue("StreamingInitTimeout"), 400);
     ASSERT_EQ(transportLayerConfig.getPropertyValue("ReconnectionPeriod"), 500);
+}
+
+TEST_F(NativeDeviceModulesTest, Reconnection)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    std::promise<StringPtr> reconnectionStatusPromise;
+    std::future<StringPtr> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+    client.getDevices()[0].getOnComponentCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
+        {
+            ASSERT_TRUE(args.getParameters().hasKey("ConnectionStatus"));
+            reconnectionStatusPromise.set_value(args.getParameters().get("ConnectionStatus").toString());
+        }
+    };
+
+    // destroy server to emulate disconnection
+    server.release();
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
+
+    // reset future / promise
+    reconnectionStatusPromise = std::promise<StringPtr>();
+    reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+
+    // re-create updated server
+    server = CreateServerInstance(CreateUpdatedServerInstance());
+
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    auto channels = client.getChannels(search::Recursive(search::Any()));
+    ASSERT_EQ(channels.getCount(), 3u);
+
+    ASSERT_TRUE(client.getContext().getTypeManager().hasType("TestEnumType"));
 }

@@ -77,8 +77,7 @@ private:
     discovery::DiscoveryClient discoveryClient;
 
     using ProcessingContext = std::tuple<StringPtr, std::thread, std::shared_ptr<boost::asio::io_context>>;
-    std::vector<ProcessingContext> configurationProcessingContextPool;
-    std::vector<ProcessingContext> streamingProcessingContextPool;
+    std::vector<ProcessingContext> processingContextPool;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

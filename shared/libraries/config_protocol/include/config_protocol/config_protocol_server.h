@@ -86,6 +86,7 @@ private:
 
     BaseObjectPtr getComponent(const ParamsDictPtr& params) const;
     BaseObjectPtr getTypeManager(const ParamsDictPtr& params) const;
+    BaseObjectPtr getSerializedRootDevice(const ParamsDictPtr& params);
 
     template <class SmartPtr, class F>
     BaseObjectPtr bindComponentWrapper(const F& f, const ParamsDictPtr& params);

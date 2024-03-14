@@ -51,7 +51,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
 
 NativeStreamingClientModule::~NativeStreamingClientModule()
 {
-    for (auto& [deviceId, processingThread, processingIOContextPtr] : configurationProcessingContextPool)
+    for (auto& [description, processingThread, processingIOContextPtr] : processingContextPool)
     {
         if (!processingIOContextPtr->stopped())
             processingIOContextPtr->stop();
@@ -60,38 +60,16 @@ NativeStreamingClientModule::~NativeStreamingClientModule()
             if (processingThread.joinable())
             {
                 processingThread.join();
-                LOG_I("Native device {} - configuration processing thread joined", deviceId);
+                LOG_I("{} thread joined", description);
             }
             else
             {
-                LOG_W("Native device {} - configuration processing thread is not joinable", deviceId);
+                LOG_W("{} thread is not joinable", description);
             }
         }
         else
         {
-            LOG_C("Native device {} - configuration processing thread cannot join itself", deviceId);
-        }
-    }
-
-    for (auto& [streamingConnectionString, processingThread, processingIOContextPtr] : streamingProcessingContextPool)
-    {
-        if (!processingIOContextPtr->stopped())
-            processingIOContextPtr->stop();
-        if (processingThread.get_id() != std::this_thread::get_id())
-        {
-            if (processingThread.joinable())
-            {
-                processingThread.join();
-                LOG_I("Native streaming {} - processing thread joined", streamingConnectionString);
-            }
-            else
-            {
-                LOG_W("Native streaming {} - processing thread is not joinable", streamingConnectionString);
-            }
-        }
-        else
-        {
-            LOG_C("Native streaming {} - processing thread cannot join itself", streamingConnectionString);
+            LOG_C("{} thread cannot join itself", description);
         }
     }
 }
@@ -141,10 +119,24 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
             using namespace boost::asio;
             executor_work_guard<io_context::executor_type> workGuard(processingIOContextPtr->get_executor());
             processingIOContextPtr->run();
-            LOG_I("Native device processing thread finished");
+            LOG_I("Native device config processing thread finished");
         }
     );
-    auto deviceHelper = std::make_unique<NativeDeviceHelper>(context, transportClient, processingIOContextPtr);
+    auto reconnectionProcessingIOContextPtr = std::make_shared<boost::asio::io_context>();
+    auto reconnectionProcessingThread = std::thread(
+        [this, reconnectionProcessingIOContextPtr]()
+        {
+            using namespace boost::asio;
+            executor_work_guard<io_context::executor_type> workGuard(reconnectionProcessingIOContextPtr->get_executor());
+            reconnectionProcessingIOContextPtr->run();
+            LOG_I("Native device reconnection processing thread finished");
+        }
+    );
+    auto deviceHelper = std::make_unique<NativeDeviceHelper>(context,
+                                                             transportClient,
+                                                             processingIOContextPtr,
+                                                             reconnectionProcessingIOContextPtr,
+                                                             reconnectionProcessingThread.get_id());
     auto device = deviceHelper->connectAndGetDevice(parent);
 
     Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
@@ -163,7 +155,12 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     device.asPtr<INativeDevicePrivate>()->attachDeviceHelper(std::move(deviceHelper));
     device.asPtr<INativeDevicePrivate>()->setConnectionString(connectionString);
 
-    configurationProcessingContextPool.emplace_back(device.getGlobalId(), std::move(processingThread), processingIOContextPtr);
+    processingContextPool.emplace_back("Device " + device.getGlobalId() + " config protocol processing",
+                                                    std::move(processingThread),
+                                                    processingIOContextPtr);
+    processingContextPool.emplace_back("Device " + device.getGlobalId() + " reconnection processing",
+                                                    std::move(reconnectionProcessingThread),
+                                                    reconnectionProcessingIOContextPtr);
 
     return device;
 }
@@ -347,7 +344,9 @@ std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreami
             LOG_I("Streaming {}: processing thread finished", connectionString);
         }
     );
-    streamingProcessingContextPool.emplace_back(connectionString, std::move(processingThread), processingIOContextPtr);
+    processingContextPool.emplace_back("Streaming " + connectionString + " processing",
+                                       std::move(processingThread),
+                                       processingIOContextPtr);
 
     return processingIOContextPtr;
 }

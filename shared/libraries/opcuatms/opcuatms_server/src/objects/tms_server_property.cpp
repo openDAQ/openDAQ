@@ -138,6 +138,23 @@ void TmsServerProperty::addChildNodes()
 {
     if (isReferenceType())
     {
+        const auto type = object.getValueType();
+        if (type == CoreType::ctStruct)
+        {
+            StructPtr structPtr = this->parent.getRef().getPropertyValue(object.getName());
+            std::string structTypeName =  structPtr.getStructType().getName();
+            if(GetUAStructureDataTypeByName(structTypeName) == nullptr)
+                return;
+        }
+
+        if (type == CoreType::ctEnumeration)
+        {
+            EnumerationPtr enumPtr = this->parent.getRef().getPropertyValue(object.getName());
+            std::string enumTypeName =  enumPtr.getEnumerationType().getName();
+            if(GetUAEnumerationDataTypeByName(enumTypeName) == nullptr)
+                return;
+        }
+
         addReferenceTypeChildNodes();
         return;
     }
@@ -178,14 +195,20 @@ opcua::OpcUaNodeId TmsServerProperty::getDataTypeId()
             EnumerationPtr enumPtr = this->parent.getRef().getPropertyValue(object.getName());
             std::string enumTypeName =  enumPtr.getEnumerationType().getName();
             const auto DataType = GetUAEnumerationDataTypeByName(enumTypeName);
-            return DataType->typeId;
+            if (DataType != nullptr)
+                return DataType->typeId;
+            else
+                break;
         }
         case CoreType::ctStruct:
         {
             StructPtr structPtr = this->parent.getRef().getPropertyValue(object.getName());
             std::string structTypeName =  structPtr.getStructType().getName();
             const auto DataType = GetUAStructureDataTypeByName(structTypeName);
-            return DataType->typeId;
+            if(DataType != nullptr)
+                return DataType->typeId;
+            else
+                break;
         }
         default:
             break;

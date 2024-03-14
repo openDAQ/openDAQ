@@ -400,4 +400,69 @@ TEST_F(DataPacketTest, PacketWithStructSampleType)
     const DataPacketPtr packet = DataPacket(canMsgDescriptor, 100, 0);
 }
 
+TEST_F(DataPacketTest, GetLastValue)
+{
+    const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Int32).build();
+    const auto packet = DataPacket(descriptor, 5);
+    const auto data = static_cast<int32_t*>(packet.getData());
+    data[4] = 42;
+
+    const auto lv = packet.getLastValue();
+    IntegerPtr ptr;
+    ASSERT_NO_THROW(ptr = lv.asPtr<IInteger>());
+    ASSERT_EQ(ptr, 42);
+}
+
+TEST_F(DataPacketTest, GetLastValueNested)
+{
+    const auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build()))
+            .build();
+
+    const auto packet = DataPacket(descriptor, 5);
+    const auto data = static_cast<int32_t*>(packet.getData());
+    data[4] = 42;
+
+    auto fieldNames = List<IString>();
+    auto fieldTypes = List<IType>();
+
+    fieldNames.pushBack("Int32");
+    fieldTypes.pushBack(SimpleType(CoreType::ctInt));
+
+    const auto structType = StructType("MyTestStructType", fieldNames, fieldTypes);
+
+    const auto manager = TypeManager();
+    manager.addType(structType);
+
+    BaseObjectPtr lv;
+
+    ASSERT_NO_THROW(lv = packet.getLastValue(manager));
+
+    StructPtr ptr;
+
+    ASSERT_NO_THROW(ptr = lv.asPtr<IStruct>());
+
+    ASSERT_EQ(ptr.get("Int32"), 42);
+}
+
+TEST_F(DataPacketTest, GetLastValueNestedNoTypeManager)
+{
+    const auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build()))
+            .build();
+
+    const auto packet = DataPacket(descriptor, 5);
+    const auto data = static_cast<int32_t*>(packet.getData());
+    data[4] = 42;
+
+    ASSERT_ANY_THROW(packet.getLastValue());
+}
+
+
 END_NAMESPACE_OPENDAQ

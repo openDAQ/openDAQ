@@ -238,6 +238,8 @@ ErrCode ModuleManagerImpl::getDevice(IString* connectionString, IPropertyObject*
                         break;
                     }
                 }
+                if (deviceInfo.assigned())
+                    break;
             }
         }
     }
@@ -268,17 +270,17 @@ ErrCode ModuleManagerImpl::getDevice(IString* connectionString, IPropertyObject*
         if (accepted)
         {
             auto createdDevice = module.createDevice(connectionStringPtr, parent, config);
-            *device = createdDevice.detach();
             if (deviceInfo.assigned())
             {
                 auto deviceInfoConfig = createdDevice.getInfo().asPtr<IDeviceInfoConfig>();
                 for (const auto & capability : deviceInfo.getServerCapabilities())
                     deviceInfoConfig.addServerCapability(capability);
             }
+            *device = createdDevice.detach();
             return OPENDAQ_SUCCESS;
         }
     }
-    throw NotFoundException("Device with given uid is not available.");
+    throw NotFoundException{"No module supports the specified connection string and configuration [{}]", connectionStringPtr};
 }
 
 std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComponent, std::string searchFolder, IContext* context)

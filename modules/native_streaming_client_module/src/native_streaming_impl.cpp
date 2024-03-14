@@ -20,13 +20,13 @@ NativeStreamingImpl::NativeStreamingImpl(
     Int streamingInitTimeout,
     const ProcedurePtr& onDeviceSignalAvailableCallback,
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
-    OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb)
+    OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb)
     : Streaming(connectionString, context)
     , transportClientHandler(transportClientHandler)
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
-    , onDeviceReconnectionStatusChangedCb(onReconnectionStatusChangedCb)
-    , reconnectionStatus(ClientReconnectionStatus::Connected)
+    , onDeviceConnectionStatusChangedCb(onDeviceConnectionStatusChangedCb)
+    , connectionStatus(ClientConnectionStatus::Connected)
     , processingIOContextPtr(processingIOContextPtr)
     , processingStrand(*(this->processingIOContextPtr))
     , protocolInitFuture(protocolInitPromise.get_future())
@@ -58,7 +58,7 @@ NativeStreamingImpl::~NativeStreamingImpl()
 void NativeStreamingImpl::signalAvailableHandler(const StringPtr& signalStringId,
                                                  const StringPtr& serializedSignal)
 {
-    if (reconnectionStatus == ClientReconnectionStatus::Reconnecting)
+    if (connectionStatus == ClientConnectionStatus::Reconnecting)
     {
         addToAvailableSignalsOnReconnection(signalStringId);
     }
@@ -118,8 +118,8 @@ void NativeStreamingImpl::subscribeAckHandler(const StringPtr& signalStringId, b
 
 void NativeStreamingImpl::signalUnavailableHandler(const StringPtr& signalStringId)
 {
-    if (reconnectionStatus != ClientReconnectionStatus::Connected &&
-        reconnectionStatus != ClientReconnectionStatus::Restored)
+    if (connectionStatus != ClientConnectionStatus::Connected &&
+        connectionStatus != ClientConnectionStatus::Connected)
     {
         throw GeneralErrorException("Signal unavailable command received during reconnection");
     }
@@ -165,9 +165,9 @@ void NativeStreamingImpl::removeFromAvailableSignals(const StringPtr& signalStri
     removeFromAddedSignals(signalStringId);
 }
 
-void NativeStreamingImpl::reconnectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientReconnectionStatus status)
+void NativeStreamingImpl::connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status)
 {
-    if (status == ClientReconnectionStatus::Restored)
+    if (status == ClientConnectionStatus::Connected)
     {
         // replace available signals with new ones
         std::scoped_lock lock(availableSignalsSync);
@@ -194,16 +194,16 @@ void NativeStreamingImpl::reconnectionStatusChangedHandler(opendaq_native_stream
         availableSignals = availableSignalsReconnection;
         availableSignalsReconnection.clear();
     }
-    else if (status == ClientReconnectionStatus::Reconnecting)
+    else if (status == ClientConnectionStatus::Reconnecting)
     {
         availableSignalsReconnection.clear();
     }
 
-    reconnectionStatus = status;
+    connectionStatus = status;
 
-    if (onDeviceReconnectionStatusChangedCb)
+    if (onDeviceConnectionStatusChangedCb)
     {
-        onDeviceReconnectionStatusChangedCb(status);
+        onDeviceConnectionStatusChangedCb(status);
     }
 }
 
@@ -264,15 +264,15 @@ void NativeStreamingImpl::prepareClientHandler()
             )
         );
     };
-    OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb =
-        [this](ClientReconnectionStatus status)
+    OnConnectionStatusChangedCallback onConnectionStatusChangedCb =
+        [this](ClientConnectionStatus status)
     {
         dispatch(
             *processingIOContextPtr,
             processingStrand.wrap(
                 [this, status]()
                 {
-                    if (status == ClientReconnectionStatus::Restored)
+                    if (status == ClientConnectionStatus::Connected)
                     {
                         this->transportClientHandler->sendStreamingRequest();
                         protocolInitPromise = std::promise<void>();
@@ -285,15 +285,15 @@ void NativeStreamingImpl::prepareClientHandler()
                                     return;
 
                                 if (protocolInitFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
-                                    reconnectionStatusChangedHandler(ClientReconnectionStatus::Restored);
+                                    connectionStatusChangedHandler(ClientConnectionStatus::Connected);
                                 else
-                                    reconnectionStatusChangedHandler(ClientReconnectionStatus::Unrecoverable);
+                                    connectionStatusChangedHandler(ClientConnectionStatus::Unrecoverable);
                             }
                         );
                     }
                     else
                     {
-                        reconnectionStatusChangedHandler(status);
+                        connectionStatusChangedHandler(status);
                     }
                 }
             )
@@ -317,7 +317,7 @@ void NativeStreamingImpl::prepareClientHandler()
                                                  signalUnavailableCb,
                                                  onPacketCallback,
                                                  onSignalSubscriptionAckCallback,
-                                                 onReconnectionStatusChangedCb,
+                                                 onConnectionStatusChangedCb,
                                                  onStreamingInitDoneCb);
 }
 

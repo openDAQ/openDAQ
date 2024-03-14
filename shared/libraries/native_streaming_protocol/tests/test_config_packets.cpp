@@ -93,10 +93,10 @@ class ConfigProtocolAttributes : public ClientAttributesBase
 public:
     std::shared_ptr<TestConfigProtocolInstance> configProtocolHandler;
     ProcessConfigProtocolPacketCb configProtocolPacketHandler;
-    OnReconnectionStatusChangedCallback reconnectionStatusChangedHandler;
+    OnConnectionStatusChangedCallback connectionStatusChangedHandler;
 
-    std::promise< ClientReconnectionStatus > reconnectionStatusPromise;
-    std::future< ClientReconnectionStatus > reconnectionStatusFuture;
+    std::promise< ClientConnectionStatus > connectionStatusPromise;
+    std::future< ClientConnectionStatus > connectionStatusFuture;
 
     void setUp()
     {
@@ -117,15 +117,15 @@ public:
             configProtocolHandler->receivePacket(std::move(packetBuffer));
         };
 
-        reconnectionStatusPromise = std::promise< ClientReconnectionStatus >();
-        reconnectionStatusFuture = reconnectionStatusPromise.get_future();
-        reconnectionStatusChangedHandler = [this](ClientReconnectionStatus status)
+        connectionStatusPromise = std::promise< ClientConnectionStatus >();
+        connectionStatusFuture = connectionStatusPromise.get_future();
+        connectionStatusChangedHandler = [this](ClientConnectionStatus status)
         {
-            reconnectionStatusPromise.set_value(status);
+            connectionStatusPromise.set_value(status);
         };
 
         clientHandler->setConfigHandlers(configProtocolPacketHandler,
-                                         reconnectionStatusChangedHandler);
+                                         connectionStatusChangedHandler);
     }
 
     void tearDown()
@@ -212,23 +212,23 @@ TEST_P(ConfigPacketsTest, Reconnection)
 
     stopServer();
 
-    ASSERT_EQ(client.reconnectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
-    ASSERT_EQ(client.reconnectionStatusFuture.get(), ClientReconnectionStatus::Reconnecting);
+    ASSERT_EQ(client.connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
+    ASSERT_EQ(client.connectionStatusFuture.get(), ClientConnectionStatus::Reconnecting);
 
-    client.reconnectionStatusPromise = std::promise< ClientReconnectionStatus >();
-    client.reconnectionStatusFuture = client.reconnectionStatusPromise.get_future();
+    client.connectionStatusPromise = std::promise< ClientConnectionStatus >();
+    client.connectionStatusFuture = client.connectionStatusPromise.get_future();
 
     clientConnectedPromise = std::promise< void > ();
     clientConnectedFuture = clientConnectedPromise.get_future();
 
     startServer();
 
-    ASSERT_EQ(client.reconnectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
-    ASSERT_EQ(client.reconnectionStatusFuture.get(), ClientReconnectionStatus::Restored);
+    ASSERT_EQ(client.connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
+    ASSERT_EQ(client.connectionStatusFuture.get(), ClientConnectionStatus::Connected);
     ASSERT_EQ(clientConnectedFuture.wait_for(timeout), std::future_status::ready);
 
-    client.reconnectionStatusPromise = std::promise< ClientReconnectionStatus >();
-    client.reconnectionStatusFuture = client.reconnectionStatusPromise.get_future();
+    client.connectionStatusPromise = std::promise< ClientConnectionStatus >();
+    client.connectionStatusFuture = client.connectionStatusPromise.get_future();
 }
 
 TEST_P(ConfigPacketsTest, ServerToClientPackets)

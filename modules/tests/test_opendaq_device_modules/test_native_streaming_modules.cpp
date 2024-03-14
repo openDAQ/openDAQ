@@ -154,16 +154,18 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    std::promise<StringPtr> reconnectionStatusPromise;
-    std::future<StringPtr> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    std::promise<StringPtr> connectionStatusPromise;
+    std::future<StringPtr> connectionStatusFuture = connectionStatusPromise.get_future();
     client.getDevices()[0].getOnComponentCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
     {
         auto params = args.getParameters();
         if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
         {
-            ASSERT_TRUE(args.getParameters().hasKey("ReconnectionStatus"));
-            reconnectionStatusPromise.set_value(args.getParameters().get("ReconnectionStatus").toString());
+            ASSERT_TRUE(args.getParameters().hasKey("ConnectionStatus"));
+            connectionStatusPromise.set_value(args.getParameters().get("ConnectionStatus").toString());
         }
     };
 
@@ -171,19 +173,21 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
 
     // destroy server to emulate disconnection
     server.release();
-    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
-    ASSERT_EQ(reconnectionStatusFuture.get(), "Reconnecting");
+    ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(connectionStatusFuture.get(), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
 
     // reset future / promise
-    reconnectionStatusPromise = std::promise<StringPtr>();
-    reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+    connectionStatusPromise = std::promise<StringPtr>();
+    connectionStatusFuture = connectionStatusPromise.get_future();
 
     // re-create server to enable reconnection
     server = CreateServerInstance();
     auto serverSignals = server.getSignals(search::Recursive(search::Any()));
 
-    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
-    ASSERT_EQ(reconnectionStatusFuture.get(), "Restored");
+    ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(connectionStatusFuture.get(), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
 
     auto clientSignalsAfterReconnection = client.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(clientSignalsAfterReconnection.getCount(), clientSignalsBeforeDisconnection.getCount());
@@ -215,16 +219,18 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    std::promise<StringPtr> reconnectionStatusPromise;
-    std::future<StringPtr> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    std::promise<StringPtr> connectionStatusPromise;
+    std::future<StringPtr> connectionStatusFuture = connectionStatusPromise.get_future();
     client.getDevices()[0].getOnComponentCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
     {
         auto params = args.getParameters();
         if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
         {
-            ASSERT_TRUE(args.getParameters().hasKey("ReconnectionStatus"));
-            reconnectionStatusPromise.set_value(args.getParameters().get("ReconnectionStatus").toString());
+            ASSERT_TRUE(args.getParameters().hasKey("ConnectionStatus"));
+            connectionStatusPromise.set_value(args.getParameters().get("ConnectionStatus").toString());
         }
     };
 
@@ -248,12 +254,13 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
 
     // destroy server to emulate disconnection
     server.release();
-    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
-    ASSERT_EQ(reconnectionStatusFuture.get(), "Reconnecting");
+    ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(connectionStatusFuture.get(), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
 
     // reset future / promise
-    reconnectionStatusPromise = std::promise<StringPtr>();
-    reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+    connectionStatusPromise = std::promise<StringPtr>();
+    connectionStatusFuture = connectionStatusPromise.get_future();
 
     {
         double samples[1000];
@@ -278,8 +285,9 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
     server = CreateServerInstance();
     auto serverSignals = server.getSignals(search::Recursive(search::Any()));
 
-    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
-    ASSERT_EQ(reconnectionStatusFuture.get(), "Restored");
+    ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(connectionStatusFuture.get(), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
 
     // wait for new subscribe ack before further reading
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));

@@ -72,7 +72,7 @@ void NativeStreamingClientHandler::resetStreamingHandlers()
     this->signalUnavailableHandler = [](const StringPtr&) {};
     this->packetHandler = [](const StringPtr&, const PacketPtr&) {};
     this->signalSubscriptionAckCallback = [](const StringPtr&, bool) {};
-    this->reconnectionStatusChangedStreamingCb = [](ClientReconnectionStatus) {};
+    this->connectionStatusChangedStreamingCb = [](ClientConnectionStatus) {};
     this->streamingInitDoneCb = []() {};
 }
 
@@ -80,11 +80,11 @@ void NativeStreamingClientHandler::setStreamingHandlers(const OnSignalAvailableC
                                                         const OnSignalUnavailableCallback& signalUnavailableHandler,
                                                         const OnPacketCallback& packetHandler,
                                                         const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback,
-                                                        const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb,
+                                                        const OnConnectionStatusChangedCallback& connectionStatusChangedCb,
                                                         const OnStreamingInitDoneCallback& streamingInitDoneCb)
 {
     this->streamingInitDoneCb = streamingInitDoneCb;
-    this->reconnectionStatusChangedStreamingCb = reconnectionStatusChangedCb;
+    this->connectionStatusChangedStreamingCb = connectionStatusChangedCb;
     this->signalSubscriptionAckCallback = signalSubscriptionAckCallback;
     this->packetHandler = packetHandler;
     this->signalUnavailableHandler = signalUnavailableHandler;
@@ -93,18 +93,18 @@ void NativeStreamingClientHandler::setStreamingHandlers(const OnSignalAvailableC
 
 void NativeStreamingClientHandler::resetConfigHandlers()
 {
-    this->reconnectionStatusChangedConfigCb = [](ClientReconnectionStatus) {};
+    this->connectionStatusChangedConfigCb = [](ClientConnectionStatus) {};
     this->configPacketHandler = [](config_protocol::PacketBuffer&&) {};
 }
 
 void NativeStreamingClientHandler::setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
-                                                     const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb)
+                                                     const OnConnectionStatusChangedCallback& connectionStatusChangedCb)
 {
     this->configPacketHandler = configPacketHandler;
-    this->reconnectionStatusChangedConfigCb = reconnectionStatusChangedCb;
+    this->connectionStatusChangedConfigCb = connectionStatusChangedCb;
 }
 
-void NativeStreamingClientHandler::checkReconnectionStatus(const boost::system::error_code& ec)
+void NativeStreamingClientHandler::checkReconnectionResult(const boost::system::error_code& ec)
 {
     if (ec)
         return;
@@ -115,11 +115,11 @@ void NativeStreamingClientHandler::checkReconnectionStatus(const boost::system::
         ConnectionResult result = connectedFuture.get();
         if (result == ConnectionResult::Connected)
         {
-            reconnectionStatusChanged(ClientReconnectionStatus::Restored);
+            connectionStatusChanged(ClientConnectionStatus::Connected);
         }
         else if (result == ConnectionResult::ServerUnsupported)
         {
-            reconnectionStatusChanged(ClientReconnectionStatus::Unrecoverable);
+            connectionStatusChanged(ClientConnectionStatus::Unrecoverable);
         }
         else
         {
@@ -130,7 +130,7 @@ void NativeStreamingClientHandler::checkReconnectionStatus(const boost::system::
     {
         // connection is still pending
         reconnectionTimer->expires_from_now(reconnectionPeriod);
-        reconnectionTimer->async_wait(std::bind(&NativeStreamingClientHandler::checkReconnectionStatus, this, std::placeholders::_1));
+        reconnectionTimer->async_wait(std::bind(&NativeStreamingClientHandler::checkReconnectionResult, this, std::placeholders::_1));
     }
 }
 
@@ -144,15 +144,15 @@ void NativeStreamingClientHandler::tryReconnect()
     connectedFuture = connectedPromise.get_future();
 
     reconnectionTimer->expires_from_now(reconnectionPeriod);
-    reconnectionTimer->async_wait(std::bind(&NativeStreamingClientHandler::checkReconnectionStatus, this, std::placeholders::_1));
+    reconnectionTimer->async_wait(std::bind(&NativeStreamingClientHandler::checkReconnectionResult, this, std::placeholders::_1));
 
     client->connect();
 }
 
-void NativeStreamingClientHandler::reconnectionStatusChanged(ClientReconnectionStatus status)
+void NativeStreamingClientHandler::connectionStatusChanged(ClientConnectionStatus status)
 {
-    reconnectionStatusChangedStreamingCb(status);
-    reconnectionStatusChangedConfigCb(status);
+    connectionStatusChangedStreamingCb(status);
+    connectionStatusChangedConfigCb(status);
 }
 
 bool NativeStreamingClientHandler::connect(std::string host,
@@ -256,13 +256,13 @@ void NativeStreamingClientHandler::initClientSessionHandler(SessionPtr session)
             session->close(
                 [this](const boost::system::error_code&)
                 {
-                    reconnectionStatusChanged(ClientReconnectionStatus::Reconnecting);
+                    connectionStatusChanged(ClientConnectionStatus::Reconnecting);
                     tryReconnect();
                 });
         }
         else
         {
-            reconnectionStatusChanged(ClientReconnectionStatus::Reconnecting);
+            connectionStatusChanged(ClientConnectionStatus::Reconnecting);
             tryReconnect();
         }
     };

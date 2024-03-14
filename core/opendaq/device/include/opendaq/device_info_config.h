@@ -189,10 +189,16 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoConfig, IDeviceInfo)
     virtual ErrCode INTERFACE_FUNC setSystemUuid(IString* uuid) = 0;
 
     /*!
-     * @brief Add supported protocol 
+     * @brief Add protocol to the list of support capabilities
      * @param serverCapability The supported protocol.
      */
     virtual ErrCode INTERFACE_FUNC addServerCapability(IServerCapability* serverCapability) = 0;
+
+    /*!
+     * @brief Remove protocol from the list of support capabilities
+     * @param serverCapability The supported protocol.
+     */
+    virtual ErrCode INTERFACE_FUNC removeServerCapability(IServerCapability* serverCapability) = 0;
 };
 /*!@}*/
 

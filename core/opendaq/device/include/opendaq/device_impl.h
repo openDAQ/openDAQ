@@ -60,7 +60,7 @@ public:
                   const StringPtr& localId,
                   const StringPtr& className = nullptr);
 
-    virtual void onSetDeviceInfo();
+    virtual DeviceInfoPtr onGetInfo();
 
     virtual RatioPtr onGetResolution();
     virtual uint64_t onGetTicksSinceOrigin();
@@ -92,7 +92,6 @@ public:
     ErrCode INTERFACE_FUNC removeStreamingOption(IString* protocolId) override;
     ErrCode INTERFACE_FUNC getStreamingOptions(IList** streamingOptions) override;
     ErrCode INTERFACE_FUNC setAsRoot() override;
-    ErrCode INTERFACE_FUNC setDeviceInfo(IDeviceInfo* deviceInfo) override;
 
     // Function block devices
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
@@ -175,7 +174,6 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
                                                         const StringPtr& localId,
                                                         const StringPtr& className)
     : Super(ctx, parent, localId, className)
-    , deviceInfo(DeviceInfo(""))
     , loggerComponent(this->context.getLogger().assigned() ? this->context.getLogger().getOrAddComponent(this->globalId)
                                                            : throw ArgumentNullException("Logger must not be null"))
     , isRootDevice(false)
@@ -196,9 +194,9 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::onSetDeviceInfo()
+DeviceInfoPtr GenericDevice<TInterface, Interfaces...>::onGetInfo()
 {
-    deviceInfo.freeze();
+    return deviceInfo;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -206,9 +204,12 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 {
     OPENDAQ_PARAM_NOT_NULL(info);
 
-    *info = deviceInfo.addRefAndReturn();
+    DeviceInfoPtr devInfo;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
 
-    return OPENDAQ_SUCCESS;
+    *info = devInfo.detach();
+
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -281,20 +282,6 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
 
     this->isRootDevice = true;
     return OPENDAQ_SUCCESS;
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceInfo(IDeviceInfo* deviceInfo)
-{
-    OPENDAQ_PARAM_NOT_NULL(deviceInfo);
-    
-    std::scoped_lock lock(this->sync);
-    this->deviceInfo = deviceInfo;
-    if (!this->deviceInfo.assigned())
-        this->deviceInfo = DeviceInfo("");
-    const ErrCode errCode = wrapHandler(this, &Self::onSetDeviceInfo);
-
-    return errCode;
 }
 
 template <typename TInterface, typename ... Interfaces>

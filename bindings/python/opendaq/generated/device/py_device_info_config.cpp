@@ -223,5 +223,13 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
             objectPtr.addServerCapability(serverCapability);
         },
         py::arg("server_capability"),
-        "Add supported protocol");
+        "Add protocol to the list of support capabilities");
+    cls.def("remove_server_capability",
+        [](daq::IDeviceInfoConfig *object, daq::IServerCapability* serverCapability)
+        {
+            const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
+            objectPtr.removeServerCapability(serverCapability);
+        },
+        py::arg("server_capability"),
+        "Remove protocol from the list of support capabilities");
 }

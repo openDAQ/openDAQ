@@ -29,7 +29,7 @@ public:
     MockPhysicalDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~MockPhysicalDeviceImpl();
 
-    void onSetDeviceInfo() override;
+    daq::DeviceInfoPtr onGetInfo() override;
     daq::RatioPtr onGetResolution() override;
     uint64_t onGetTicksSinceOrigin() override;
     std::string onGetOrigin() override;
@@ -48,6 +48,7 @@ protected:
     ChannelPtr mockChannelB1; // InputsOutputs/mockFolderB/mockChannelB1
     ChannelPtr mockChannelB2; // InputsOutputs/mockFolderB/mockChannelB1
     std::thread generateThread;
+    DeviceInfoConfigPtr deviceInfo;
 
     FolderPtr componentA;
     ComponentPtr componentA1;

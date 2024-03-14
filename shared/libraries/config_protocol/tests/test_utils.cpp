@@ -211,7 +211,6 @@ MockDevice1Impl::MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& pare
     addNestedFunctionBlock(fb);
 
     fb.getInputPorts()[0].connect(sig);
-    onSetDeviceInfo();
 }
 
 DictPtr<IString, IFunctionBlockType> MockDevice1Impl::onGetAvailableFunctionBlockTypes()
@@ -243,12 +242,15 @@ void MockDevice1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBloc
     removeNestedFunctionBlock(functionBlock);
 }
 
-void MockDevice1Impl::onSetDeviceInfo()
+DeviceInfoPtr MockDevice1Impl::onGetInfo()
 {
-    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString("mock://dev1");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setName("MockDevice1");
+    if (deviceInfo != nullptr)
+        return deviceInfo;
+    
+    deviceInfo = DeviceInfo("mock://dev1", "MockDevice1");
     deviceInfo.asPtr<IDeviceInfoConfig>().setManufacturer("Testing");
     deviceInfo.freeze();
+    return deviceInfo;
 }
 
 RatioPtr MockDevice1Impl::onGetResolution()
@@ -297,7 +299,6 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusInitValue);
 
     this->objPtr.addProperty(ObjectProperty("ObjectProperty", createMockNestedPropertyObject()));
-    onSetDeviceInfo();
 }
 
 }

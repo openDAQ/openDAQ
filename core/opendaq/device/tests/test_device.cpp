@@ -24,13 +24,16 @@ public:
         auto parentFolder = this->addFolder("Folder1");
         this->addFolder("Folder2", parentFolder);
         this->addComponent("Component1");
-        onSetDeviceInfo();
     }
 
-    void onSetDeviceInfo() override
+    daq::DeviceInfoPtr onGetInfo() override
     {
+        if (deviceInfo != nullptr)
+            return deviceInfo;
+        
         deviceInfo = daq::DeviceInfo("conn");
         deviceInfo.freeze();
+        return deviceInfo;
     }
 };
 
@@ -192,7 +195,6 @@ public:
 
         const auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "fb");
         addNestedFunctionBlock(fb);
-        onSetDeviceInfo();
     }
 };
 

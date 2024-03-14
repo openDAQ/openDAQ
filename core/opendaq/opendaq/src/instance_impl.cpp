@@ -287,7 +287,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     if (!servers.empty())
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
-    const auto newRootDevice =  moduleManager.getDevice(connectionString, nullptr, nullptr, loggerComponent);
+    const auto newRootDevice = moduleManager.getDevice(connectionString, nullptr, nullptr, loggerComponent);
 
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;

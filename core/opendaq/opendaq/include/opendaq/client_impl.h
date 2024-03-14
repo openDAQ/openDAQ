@@ -30,7 +30,7 @@ public:
 
     // Device
 
-    void onSetDeviceInfo() override;
+    DeviceInfoPtr onGetInfo() override;
 
     // ClientDevice
 

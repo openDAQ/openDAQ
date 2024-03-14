@@ -37,7 +37,7 @@ protected:
     void findAndCreateSubdevices();
     DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     void onRemoveDevice(const DevicePtr& device) override;
-    void onSetDeviceInfo() override;
+    DeviceInfoPtr onGetInfo() override;
     RatioPtr onGetResolution() override;
     uint64_t onGetTicksSinceOrigin() override;
     std::string onGetOrigin() override;
@@ -54,6 +54,8 @@ protected:
     void findAndCreateStreamingOptions();
     void setUpStreamings();
     void connectToStreamings();
+
+    DeviceInfoConfigPtr deviceInfo;
 
     // Streaming related members
     std::vector<StreamingPtr> streamings;

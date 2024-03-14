@@ -59,7 +59,6 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx, con
     const PropertyObjectPtr thisPtr = this->borrowPtr<PropertyObjectPtr>();
     thisPtr.addProperty(StringProperty("TestProperty", "Test").detach());
     this->tags.add("phys_device");
-    onSetDeviceInfo();
 }
 
 MockPhysicalDeviceImpl::~MockPhysicalDeviceImpl()
@@ -67,27 +66,30 @@ MockPhysicalDeviceImpl::~MockPhysicalDeviceImpl()
     stopAcq();
 }
 
-void MockPhysicalDeviceImpl::onSetDeviceInfo()
-{    
-    auto deviceInfoConfig = deviceInfo.asPtr<IDeviceInfoConfig>();
-    deviceInfoConfig.setName("MockPhysicalDevice");
-    deviceInfoConfig.setConnectionString("connection_string");
-    deviceInfoConfig.setManufacturer("manufacturer");
-    deviceInfoConfig.setManufacturerUri("manufacturer_uri");
-    deviceInfoConfig.setModel("model");
-    deviceInfoConfig.setProductCode("product_code");
-    deviceInfoConfig.setHardwareRevision("hardware_revision");
-    deviceInfoConfig.setSoftwareRevision("software_revision");
-    deviceInfoConfig.setDeviceManual("device_manual");
-    deviceInfoConfig.setDeviceClass("device_class");
-    deviceInfoConfig.setSerialNumber("serial_number");
-    deviceInfoConfig.setProductInstanceUri("product_instance_uri");
-    deviceInfoConfig.setRevisionCounter(123);
-    deviceInfoConfig.addProperty(StringProperty("custom_string", "custom_string"));
-    deviceInfoConfig.addProperty(IntProperty("custom_int", 1));
-    deviceInfoConfig.addProperty(FloatProperty("custom_float", 1.123));
+DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
+{
+    if (deviceInfo != nullptr)
+        return deviceInfo;
 
+    deviceInfo = DeviceInfo("");
+    deviceInfo.setName("MockPhysicalDevice");
+    deviceInfo.setConnectionString("connection_string");
+    deviceInfo.setManufacturer("manufacturer");
+    deviceInfo.setManufacturerUri("manufacturer_uri");
+    deviceInfo.setModel("model");
+    deviceInfo.setProductCode("product_code");
+    deviceInfo.setHardwareRevision("hardware_revision");
+    deviceInfo.setSoftwareRevision("software_revision");
+    deviceInfo.setDeviceManual("device_manual");
+    deviceInfo.setDeviceClass("device_class");
+    deviceInfo.setSerialNumber("serial_number");
+    deviceInfo.setProductInstanceUri("product_instance_uri");
+    deviceInfo.setRevisionCounter(123);
+    deviceInfo.addProperty(StringProperty("custom_string", "custom_string"));
+    deviceInfo.addProperty(IntProperty("custom_int", 1));
+    deviceInfo.addProperty(FloatProperty("custom_float", 1.123));
     deviceInfo.freeze();
+    return deviceInfo;
 }
 
 RatioPtr MockPhysicalDeviceImpl::onGetResolution()

@@ -37,7 +37,6 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     createNativeStreaming(transportProtocolClient, processingIOContextPtr, host, port, path, initTimeout);
     activateStreaming();
     initStatuses(ctx);
-    onSetDeviceInfo();
 }
 
 void NativeStreamingDeviceImpl::initStatuses(const ContextPtr& ctx)
@@ -136,11 +135,14 @@ void NativeStreamingDeviceImpl::activateStreaming()
     }
 }
 
-void NativeStreamingDeviceImpl::onSetDeviceInfo()
+DeviceInfoPtr NativeStreamingDeviceImpl::onGetInfo()
 {
-    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(connectionString);
-    deviceInfo.asPtr<IDeviceInfoConfig>().setName("NativeStreamingClientPseudoDevice");
+    if (deviceInfo != nullptr)
+        return deviceInfo;
+
+    deviceInfo = DeviceInfo(connectionString, "NativeStreamingClientPseudoDevice");
     deviceInfo.freeze();
+    return deviceInfo;
 }
 
 SignalPtr NativeStreamingDeviceImpl::createSignal(const StringPtr& signalStringId,

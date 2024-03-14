@@ -95,6 +95,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
     ErrCode INTERFACE_FUNC addServerCapability(IServerCapability* serverCapability) override;
+    ErrCode INTERFACE_FUNC removeServerCapability(IServerCapability* serverCapability) override;
     ErrCode INTERFACE_FUNC getServerCapabilities(IList** serverCapabilities) override;
 
 private:

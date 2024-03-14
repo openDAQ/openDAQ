@@ -19,14 +19,16 @@ WebsocketClientDeviceImpl::WebsocketClientDeviceImpl(const ContextPtr& ctx,
         throw ArgumentNullException("connectionString cannot be null");
     createWebsocketStreaming();
     activateStreaming();
-    onSetDeviceInfo();
 }
 
-void WebsocketClientDeviceImpl::onSetDeviceInfo()
+DeviceInfoPtr WebsocketClientDeviceImpl::onGetInfo()
 {
-    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(connectionString);
-    deviceInfo.asPtr<IDeviceInfoConfig>().setName("WebsocketClientPseudoDevice");
+    if (deviceInfo != nullptr)
+        return deviceInfo;
+
+    deviceInfo = DeviceInfo(connectionString, "WebsocketClientPseudoDevice");
     deviceInfo.freeze();
+    return deviceInfo;
 }
 
 void WebsocketClientDeviceImpl::activateStreaming()

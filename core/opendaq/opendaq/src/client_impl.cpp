@@ -17,15 +17,15 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
 {
     if (deviceInfo.assigned())
         this->deviceInfo = deviceInfo;
-    onSetDeviceInfo();
+    else
+        this->deviceInfo = DeviceInfo("", "daq_client");
+    this->deviceInfo.freeze();
     this->isRootDevice = true;
 }
 
-void ClientImpl::onSetDeviceInfo()
+DeviceInfoPtr ClientImpl::onGetInfo()
 {
-    if (!deviceInfo.getName().assigned() || deviceInfo.getName().getLength() == 0)
-        deviceInfo.asPtr<IDeviceInfoConfig>().setName("daq_client");
-    deviceInfo.freeze();
+    return this->deviceInfo;
 }
 
 ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()

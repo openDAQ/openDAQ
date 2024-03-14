@@ -33,13 +33,16 @@ public:
     DefaultDevice(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
         : DeviceBase<IMockDefaultDevice>(ctx, parent, localId)
     {
-        onSetDeviceInfo();
     }
 
-    void onSetDeviceInfo() override
+    DeviceInfoPtr onGetInfo() override
     {
-        deviceInfo.asPtr<IDeviceInfoConfig>().setName("default_dev");
+        if (deviceInfo != nullptr)
+            return deviceInfo;
+        
+        deviceInfo = DeviceInfo("", "default_dev");
         deviceInfo.freeze();
+        return deviceInfo;
     }
 
     void addCustomComponent(const ComponentPtr& component) override

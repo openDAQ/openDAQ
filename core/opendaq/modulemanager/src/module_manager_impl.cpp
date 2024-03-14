@@ -268,8 +268,13 @@ ErrCode ModuleManagerImpl::getDevice(IString* connectionString, IPropertyObject*
         if (accepted)
         {
             auto createdDevice = module.createDevice(connectionStringPtr, parent, config);
-            createdDevice.asPtr<IDevicePrivate>()->setDeviceInfo(deviceInfo);
             *device = createdDevice.detach();
+            if (deviceInfo.assigned())
+            {
+                auto deviceInfoConfig = createdDevice.getInfo().asPtr<IDeviceInfoConfig>();
+                for (const auto & capability : deviceInfo.getServerCapabilities())
+                    deviceInfoConfig.addServerCapability(capability);
+            }
             return OPENDAQ_SUCCESS;
         }
     }

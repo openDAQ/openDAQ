@@ -40,7 +40,7 @@ public:
                                        Int initTimeout);
 
 protected:
-    void onSetDeviceInfo() override;
+    DeviceInfoPtr onGetInfo() override;
 
     void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void signalUnavailableHandler(const StringPtr& signalStringId);

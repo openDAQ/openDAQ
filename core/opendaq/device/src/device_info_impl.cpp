@@ -513,6 +513,23 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(ISe
     return OPENDAQ_SUCCESS;
 }
 
+template <typename TInterface, typename... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(IServerCapability* serverCapability)
+{
+    if (serverCapability)
+    {
+        for (size_t i = 0; i < serverCapabilities.getCount(); i++)
+        {
+            if (serverCapabilities[i] == serverCapability)
+            {
+                serverCapabilities.removeAt(i);
+                break;
+            }
+        }
+    }
+    return OPENDAQ_SUCCESS;
+}
+
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(IList** serverCapabilities)
 {

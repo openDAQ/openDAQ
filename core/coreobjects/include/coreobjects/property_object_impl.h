@@ -722,8 +722,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkEnumera
     if (!enumerationPtr.assigned())
         return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value is not an enumeration");
 
+    auto propEnumerationPtr = prop.getDefaultValue().asPtrOrNull<IEnumeration>();
+    if (!propEnumerationPtr.assigned())
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Property default value is not an enumeration");
+
     EnumerationTypePtr valueEnumerationType = enumerationPtr.getEnumerationType();
-    EnumerationTypePtr propEnumerationType = prop.getDefaultValue().asPtrOrNull<IEnumeration>().getEnumerationType();
+    EnumerationTypePtr propEnumerationType = propEnumerationPtr.getEnumerationType();
 
     if (propEnumerationType != valueEnumerationType)
         return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value EnumerationType is different from the default.");

@@ -328,6 +328,12 @@ BaseObjectPtr ConfigProtocolClientComm::requestRootDevice(const ComponentPtr& pa
     return sendComponentCommandInternal("GetComponent", params, parentComponent, true);
 }
 
+StringPtr ConfigProtocolClientComm::requestSerializedRootDevice()
+{
+    auto params = Dict<IString, IBaseObject>();
+    return sendComponentCommandInternal("GetSerializedRootDevice", params, nullptr);
+}
+
 BaseObjectPtr ConfigProtocolClientComm::sendCommand(const StringPtr& command, const ParamsDictPtr& params)
 {
     auto sendCommandRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), command, params);

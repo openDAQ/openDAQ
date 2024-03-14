@@ -1422,3 +1422,22 @@ TEST_F(ConfigCoreEventTest, DomainChanged)
 
     ASSERT_EQ(changeCount, 3);
 }
+
+TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEnd)
+{
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    serverDevice.addProperty(StringProperty("string", "foo"));
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+        updateCount++;
+    };
+
+    client->reconnect();
+    ASSERT_EQ(updateCount, 1);
+
+    ASSERT_EQ(clientDevice.getPropertyValue("string"), serverDevice.getPropertyValue("string"));
+}

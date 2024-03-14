@@ -40,7 +40,9 @@ class NativeDeviceHelper
 public:
     explicit NativeDeviceHelper(const ContextPtr& context,
                                 opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
-                                std::shared_ptr<boost::asio::io_context> processingIOContextPtr);
+                                std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+                                std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
+                                std::thread::id reconnectionProcessingThreadId);
     ~NativeDeviceHelper();
 
     DevicePtr connectAndGetDevice(const ComponentPtr& parent);
@@ -51,6 +53,7 @@ public:
     void addStreaming(const StreamingPtr& streaming);
 
 private:
+    void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
     void setupProtocolClients(const ContextPtr& context);
     config_protocol::PacketBuffer doConfigRequest(const config_protocol::PacketBuffer& reqPacket);
     void processConfigPacket(config_protocol::PacketBuffer&& packet);
@@ -60,6 +63,9 @@ private:
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     boost::asio::io_context::strand processingStrand;
+    std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr;
+    boost::asio::io_context::strand reconnectionProcessingStrand;
+    std::thread::id reconnectionProcessingThreadId;
 
     LoggerComponentPtr loggerComponent;
     std::unique_ptr<config_protocol::ConfigProtocolClient<NativeDeviceImpl>> configProtocolClient;
@@ -67,12 +73,14 @@ private:
     std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
     StreamingPtr streaming;
     WeakRefPtr<IDevice> deviceRef;
+    opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
 };
 
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)
 {
     virtual void INTERFACE_FUNC attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper) = 0;
     virtual void INTERFACE_FUNC setConnectionString(const StringPtr& connectionString) = 0;
+    virtual void INTERFACE_FUNC publishConnectionStatus(ConstCharPtr statusValue) = 0;
 };
 
 class NativeDeviceImpl final : public config_protocol::GenericConfigClientDeviceImpl<config_protocol::ConfigClientDeviceBase<INativeDevicePrivate>>
@@ -91,11 +99,14 @@ public:
     // INativeDevicePrivate
     void INTERFACE_FUNC attachDeviceHelper(std::unique_ptr<NativeDeviceHelper> deviceHelper) override;
     void INTERFACE_FUNC setConnectionString(const StringPtr& connectionString) override;
+    void INTERFACE_FUNC publishConnectionStatus(ConstCharPtr statusValue) override;
 
     // ISerializable
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 private:
+    void initStatuses(const ContextPtr& ctx);
+
     std::unique_ptr<NativeDeviceHelper> deviceHelper;
     bool deviceInfoSet;
 };

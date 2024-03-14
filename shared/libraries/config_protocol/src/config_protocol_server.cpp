@@ -126,6 +126,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
 
     rpcDispatch.insert({"GetComponent", std::bind(&ConfigProtocolServer::getComponent, this,  _1)});
     rpcDispatch.insert({"GetTypeManager", std::bind(&ConfigProtocolServer::getTypeManager, this, _1)});
+    rpcDispatch.insert({"GetSerializedRootDevice", std::bind(&ConfigProtocolServer::getSerializedRootDevice, this,  _1)});
 
     addHandler<ComponentPtr>("SetPropertyValue", &ConfigServerComponent::setPropertyValue);
     addHandler<ComponentPtr>("GetPropertyValue", &ConfigServerComponent::getPropertyValue);
@@ -300,6 +301,14 @@ BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) co
         throw NotFoundException("Component not found");
 
     return ComponentHolder(component);
+}
+
+BaseObjectPtr ConfigProtocolServer::getSerializedRootDevice(const ParamsDictPtr& params)
+{
+    serializer.reset();
+    rootDevice.serialize(serializer);
+
+    return serializer.getOutput();
 }
 
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)

@@ -17,6 +17,8 @@ TypeManagerImpl::TypeManagerImpl()
 
 ErrCode TypeManagerImpl::addType(IType* type)
 {
+    std::scoped_lock lock(this->sync);
+
     if (type == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
@@ -31,7 +33,12 @@ ErrCode TypeManagerImpl::addType(IType* type)
         return OPENDAQ_ERR_INVALIDPARAMETER;
 
     if (types.hasKey(typeName))
-        return OPENDAQ_ERR_ALREADYEXISTS;
+    {
+        if (types.get(typeName) == typePtr)
+            return OPENDAQ_SUCCESS; // Already exists and is exactly the same, which we don't mind
+        else
+            return OPENDAQ_ERR_ALREADYEXISTS; // Already exists with the same name, but is actually diffrent
+    }
 
     if(!daq::validateTypeName(typeName.getCharPtr()))
         return OPENDAQ_ERR_VALIDATE_FAILED;
@@ -50,6 +57,8 @@ ErrCode TypeManagerImpl::addType(IType* type)
 
 ErrCode TypeManagerImpl::removeType(IString* name)
 {
+    std::scoped_lock lock(this->sync);
+
     if (name == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
@@ -71,6 +80,8 @@ ErrCode TypeManagerImpl::removeType(IString* name)
 
 ErrCode TypeManagerImpl::getType(IString* name, IType** type)
 {
+    std::scoped_lock lock(this->sync);
+
     if (type == nullptr || name == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
@@ -83,6 +94,8 @@ ErrCode TypeManagerImpl::getType(IString* name, IType** type)
 
 ErrCode TypeManagerImpl::getTypes(IList** types)
 {
+    std::scoped_lock lock(this->sync);
+
     if (types == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
@@ -92,6 +105,8 @@ ErrCode TypeManagerImpl::getTypes(IList** types)
 
 ErrCode TypeManagerImpl::hasType(IString* typeName, Bool* hasType)
 {
+    std::scoped_lock lock(this->sync);
+
     if (hasType == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 

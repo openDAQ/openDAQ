@@ -18,8 +18,9 @@ ErrCode ConnectionImpl::enqueue(IPacket* packet)
 
     if (!port.getActive())
     {
-        void* intf;
-        if (OPENDAQ_FAILED(packet->borrowInterface(IEventPacket::Id, &intf)))
+        PacketType type;
+        packet->getType(&type);
+        if (type != PacketType::Event)
             return OPENDAQ_IGNORED;
     }
 
@@ -38,8 +39,9 @@ ErrCode INTERFACE_FUNC ConnectionImpl::enqueueOnThisThread(IPacket* packet)
     
     if (!port.getActive())
     {
-        void* intf;
-        if (OPENDAQ_FAILED(packet->borrowInterface(IEventPacket::Id, &intf)))
+        PacketType type;
+        packet->getType(&type);
+        if (type != PacketType::Event)
             return OPENDAQ_IGNORED;
     }
 

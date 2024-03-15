@@ -928,7 +928,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
         {
             if (propCoreType == ctEnumeration)
             {
-                const EnumerationPtr enumVal = prop.getDefaultValue();
+                const auto enumVal = prop.getDefaultValue().asPtrOrNull<IEnumeration>();
                 if (!enumVal.assigned())
                     return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Default value of enumeration property {} is not assigned)", prop.getName()));
 

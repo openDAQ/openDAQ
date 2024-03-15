@@ -371,7 +371,7 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlockProperties)
     ASSERT_NO_THROW(fb.setPropertyValue("DomainSignalType" , 1000));
     logger.flush();
     ASSERT_TRUE(debugSink.waitForMessage(2000));
-    ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"DomainSignalType\" on OpcUA client property object: Writting property value");
+    ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"DomainSignalType\" on OpcUA client property object: Writing property value");
 }
 
 TEST_F(OpcuaDeviceModulesTest, DISABLED_InputPort)

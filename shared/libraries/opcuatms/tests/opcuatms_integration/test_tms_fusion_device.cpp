@@ -169,8 +169,8 @@ TEST_F(TmsFusionDevice, EnumPropertyTest)
 
     // Test enum
     fusionAmp.setPropertyValue("ExcitationType", Enumeration("ExcitationTypeEnumeration", "ACVoltage", objManager));
-    ASSERT_EQ(fusionAmp.getPropertyValue("ExcitationType"),
-              Enumeration("ExcitationTypeEnumeration", "ACVoltage", objManager).getIntValue());
+    ASSERT_EQ(obj.getPropertyValue("ExcitationType"), Enumeration("ExcitationTypeEnumeration", "ACVoltage", objManager));
+    ASSERT_EQ(fusionAmp.getPropertyValue("ExcitationType"), Enumeration("ExcitationTypeEnumeration", "ACVoltage", objManager));
 }
 
 TEST_F(TmsFusionDevice, DISABLED_SimulatorTest)

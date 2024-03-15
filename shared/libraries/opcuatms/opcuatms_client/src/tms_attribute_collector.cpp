@@ -161,6 +161,7 @@ void TmsAttributeCollector::collectPropertyAttributes(const OpcUaNodeId& nodeId)
     attributes.insert({nodeId, UA_ATTRIBUTEID_VALUE});
     attributes.insert({nodeId, UA_ATTRIBUTEID_DISPLAYNAME});
     attributes.insert({nodeId, UA_ATTRIBUTEID_DESCRIPTION});
+    attributes.insert({nodeId, UA_ATTRIBUTEID_DATATYPE});
 
     if (browser->hasReference(nodeId, "ValidationExpression"))
         attributes.insert({browser->getChildNodeId(nodeId, "ValidationExpression"), UA_ATTRIBUTEID_VALUE});

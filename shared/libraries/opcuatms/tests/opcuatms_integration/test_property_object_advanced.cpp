@@ -620,7 +620,7 @@ TEST_F(TmsPropertyObjectAdvancedTest, ValidationCoercion)
     ASSERT_EQ(obj.getPropertyValue("CoercedInt"), clientObj.getPropertyValue("CoercedInt"));
     
     ASSERT_NO_THROW(clientObj.setPropertyValue("ValidatedInt", 11));
-    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"ValidatedInt\" on OpcUA client property object: Writting property value");
+    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"ValidatedInt\" on OpcUA client property object: Writing property value");
     ASSERT_EQ(obj.getPropertyValue("ValidatedInt"), 5);
     ASSERT_EQ(clientObj.getPropertyValue("ValidatedInt"), 5);
 

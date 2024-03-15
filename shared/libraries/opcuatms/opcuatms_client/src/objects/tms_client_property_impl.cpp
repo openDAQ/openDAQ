@@ -58,12 +58,22 @@ TmsClientPropertyImpl::TmsClientPropertyImpl(const ContextPtr& daqContext, const
 void TmsClientPropertyImpl::readBasicInfo()
 {
     auto reader = clientContext->getAttributeReader();
-    const auto variant = reader->getValue(nodeId, UA_ATTRIBUTEID_VALUE);
-    const auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
-    this->valueType = object.getCoreType();
-
     this->name = String(reader->getValue(nodeId, UA_ATTRIBUTEID_DISPLAYNAME).toString());
     this->description = String(reader->getValue(nodeId, UA_ATTRIBUTEID_DESCRIPTION).toString());
+
+    const auto dataType = reader->getValue(nodeId, UA_ATTRIBUTEID_DATATYPE).toNodeId();
+    const auto enumerationTypeId = OpcUaNodeId(0, UA_NS0ID_ENUMERATION);
+
+    if (clientContext->getReferenceBrowser()->isSubtypeOf(dataType, enumerationTypeId))
+    {
+        this->valueType = ctEnumeration;
+    }
+    else
+    {
+        const auto variant = reader->getValue(nodeId, UA_ATTRIBUTEID_VALUE);
+        const auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
+        this->valueType = object.getCoreType();
+    }
 }
 
 void TmsClientPropertyImpl::configurePropertyFields()

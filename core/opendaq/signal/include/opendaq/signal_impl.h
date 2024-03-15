@@ -15,22 +15,22 @@
  */
 
 #pragma once
-#include <coretypes/string_ptr.h>
-#include <coretypes/validation.h>
-#include <opendaq/component_impl.h>
-#include <opendaq/connection_ptr.h>
+#include <opendaq/signal.h>
+#include <opendaq/signal_events.h>
+#include <opendaq/signal_config.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/data_descriptor_ptr.h>
-#include <opendaq/event_packet_ptr.h>
-#include <opendaq/input_port_private_ptr.h>
-#include <opendaq/packet_factory.h>
-#include <opendaq/signal.h>
-#include <opendaq/signal_config.h>
+#include <opendaq/connection_ptr.h>
 #include <opendaq/signal_config_ptr.h>
-#include <opendaq/signal_events.h>
-#include <opendaq/signal_events_ptr.h>
 #include <opendaq/signal_private_ptr.h>
+#include <opendaq/event_packet_ptr.h>
+#include <coretypes/string_ptr.h>
 #include <opendaq/utility_sync.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/signal_events_ptr.h>
+#include <coretypes/validation.h>
+#include <opendaq/component_impl.h>
+#include <opendaq/input_port_private_ptr.h>
 #include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -42,10 +42,7 @@ BEGIN_NAMESPACE_OPENDAQ
 #endif
 #endif
 
-#define SIGNAL_AVAILABLE_ATTRIBUTES                \
-    {                                              \
-        "Public", "DomainSignal", "RelatedSignals" \
-    }
+#define SIGNAL_AVAILABLE_ATTRIBUTES {"Public", "DomainSignal", "RelatedSignals"}
 
 template <typename TInterface, typename... Interfaces>
 class SignalBase;
@@ -102,7 +99,6 @@ public:
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
-
 protected:
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void updateObject(const SerializedObjectPtr& obj) override;
@@ -119,7 +115,7 @@ protected:
                                        const FunctionPtr& factoryCallback) override;
 
     ErrCode lockAllAttributesInternal() override;
-
+    
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
     static std::unordered_set<std::string> signalAvailableAttributes;
 #else
@@ -156,10 +152,10 @@ std::unordered_set<std::string> SignalBase<TInterface, Interfaces...>::signalAva
 
 template <typename TInterface, typename... Interfaces>
 SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
-                                                  DataDescriptorPtr descriptor,
-                                                  const ComponentPtr& parent,
-                                                  const StringPtr& localId,
-                                                  const StringPtr& className)
+                                      DataDescriptorPtr descriptor,
+                                      const ComponentPtr& parent,
+                                      const StringPtr& localId,
+                                      const StringPtr& className)
     : Super(context, parent, localId, className)
     , dataDescriptor(std::move(descriptor))
     , isPublic(true)
@@ -212,8 +208,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-            CoreEventId::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Public"}, {"Public", this->isPublic}}));
-
+                CoreEventId::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Public"}, {"Public", this->isPublic}}));
+        
         this->triggerCoreEvent(args);
     }
     return OPENDAQ_SUCCESS;
@@ -397,7 +393,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDomainSignal(ISignal* signal)
 {
     {
         std::scoped_lock lock(this->sync);
-
+        
         if (this->lockedAttributes.count("DomainSignal"))
         {
             if (this->context.assigned() && this->context.getLogger().assigned())
@@ -426,8 +422,9 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDomainSignal(ISignal* signal)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-            CoreEventId::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "DomainSignal"}, {"DomainSignal", domainSignal}}));
-
+                CoreEventId::AttributeChanged,
+                Dict<IString, IBaseObject>({{"AttributeName", "DomainSignal"}, {"DomainSignal", domainSignal}}));
+        
         this->triggerCoreEvent(args);
     }
 
@@ -553,7 +550,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::clearRelatedSignals()
         std::scoped_lock lock(this->sync);
         relatedSignals.clear();
     }
-
+    
     triggerRelatedSignalsChanged();
     return OPENDAQ_SUCCESS;
 }
@@ -593,7 +590,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::sendPacket(IPacket* packet)
         return OPENDAQ_SUCCESS;
     }
 
-    return OPENDAQ_IGNORED;
+    return  OPENDAQ_IGNORED;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -608,7 +605,7 @@ bool SignalBase<TInterface, Interfaces...>::sendPacketInternal(const PacketPtr& 
     return true;
 }
 
-template <typename TInterface, typename... Interfaces>
+template <typename TInterface, typename ... Interfaces>
 void SignalBase<TInterface, Interfaces...>::triggerRelatedSignalsChanged()
 {
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -618,8 +615,9 @@ void SignalBase<TInterface, Interfaces...>::triggerRelatedSignalsChanged()
             sigs.pushBack(sig);
 
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-            CoreEventId::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "RelatedSignals"}, {"RelatedSignals", sigs}}));
-
+                CoreEventId::AttributeChanged,
+                Dict<IString, IBaseObject>({{"AttributeName", "RelatedSignals"}, {"RelatedSignals", sigs}}));
+        
         this->triggerCoreEvent(args);
     }
 }
@@ -772,30 +770,23 @@ ConstCharPtr SignalBase<TInterface, Interfaces...>::SerializeId()
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode SignalBase<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
-                                                           IBaseObject* context,
-                                                           IFunction* factoryCallback,
-                                                           IBaseObject** obj)
+ErrCode SignalBase<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
     return daqTry(
         [&obj, &serialized, &context, &factoryCallback]()
         {
-            *obj =
-                Super::DeserializeComponent(serialized,
-                                            context,
-                                            factoryCallback,
-                                            [](const SerializedObjectPtr& serialized,
-                                               const ComponentDeserializeContextPtr& deserializeContext,
-                                               const StringPtr& className)
-                                            {
-                                                return createWithImplementation<ISignalConfig, SignalImpl>(deserializeContext.getContext(),
-                                                                                                           nullptr,
-                                                                                                           deserializeContext.getParent(),
-                                                                                                           deserializeContext.getLocalId(),
-                                                                                                           className);
-                                            })
-                    .detach();
+            *obj = Super::DeserializeComponent(
+                       serialized,
+                       context,
+                       factoryCallback,
+                       [](const SerializedObjectPtr& serialized,
+                          const ComponentDeserializeContextPtr& deserializeContext,
+                          const StringPtr& className)
+                       {
+                           return createWithImplementation<ISignalConfig, SignalImpl>(
+                               deserializeContext.getContext(), nullptr, deserializeContext.getParent(), deserializeContext.getLocalId(), className);
+                       }).detach();
         });
 }
 
@@ -830,13 +821,14 @@ void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectP
     Super::updateObject(obj);
 }
 
+
 template <typename TInterface, typename... Interfaces>
 int SignalBase<TInterface, Interfaces...>::getSerializeFlags()
 {
     return ComponentSerializeFlag_SerializeActiveProp;
 }
 
-template <typename TInterface, typename... Interfaces>
+template <typename TInterface, typename ... Interfaces>
 void SignalBase<TInterface, Interfaces...>::disconnectInputPort(const ConnectionPtr& connection)
 {
     const auto inputPort = connection.getInputPort();
@@ -848,7 +840,7 @@ void SignalBase<TInterface, Interfaces...>::disconnectInputPort(const Connection
     }
 }
 
-template <typename TInterface, typename... Interfaces>
+template <typename TInterface, typename ... Interfaces>
 void SignalBase<TInterface, Interfaces...>::clearConnections(std::vector<ConnectionPtr>& connections)
 {
     for (auto& connection : connections)
@@ -871,6 +863,7 @@ void SignalBase<TInterface, Interfaces...>::removed()
             if (sigPrivate.assigned())
                 sigPrivate.clearDomainSignalWithoutNotification();
         }
+
     }
 
     domainSignalReferences.clear();
@@ -888,8 +881,8 @@ BaseObjectPtr SignalBase<TInterface, Interfaces...>::getDeserializedParameter(co
 
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
-                                                                          const BaseObjectPtr& context,
-                                                                          const FunctionPtr& factoryCallback)
+                                                                    const BaseObjectPtr& context,
+                                                                    const FunctionPtr& factoryCallback)
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
     if (serializedObject.hasKey("domainSignalId"))
@@ -915,7 +908,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setStreamed(Bool streamed)
     return OPENDAQ_IGNORED;
 }
 
-template <typename TInterface, typename... Interfaces>
+template <typename TInterface, typename ... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::lockAllAttributesInternal()
 {
     for (const auto& str : this->signalAvailableAttributes)
@@ -929,14 +922,14 @@ ErrCode SignalBase<TInterface, Interfaces...>::enableKeepLastValue(Bool enabled)
 {
     std::scoped_lock lock(this->sync);
     keepLastPacket = enabled;
-
+    
     if (!keepLastPacket)
         lastDataPacket = nullptr;
     return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
+ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject ** value)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
     std::scoped_lock lock(this->sync);

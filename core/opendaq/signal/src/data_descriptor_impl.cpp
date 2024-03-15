@@ -218,12 +218,13 @@ ErrCode DataDescriptorImpl::validate()
             valid = origin != "" ? false : valid;
             valid = resolution.assigned() ? false : valid;
             valid = scaling.assigned() ? false : valid;
+            valid = !name.assigned() || name == "" ? false : valid;
 
             if (!valid)
             {
                 return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE,
                                      "A Data descriptor with struct members can only have the name and dimensions configured. Its rule "
-                                     "type must be explicit and Sample type set to Struct");
+                                     "type must be explicit and Sample type set to Struct. It's name must be assigned and musn't be empty.");
             }
 
             structFields.freeze();

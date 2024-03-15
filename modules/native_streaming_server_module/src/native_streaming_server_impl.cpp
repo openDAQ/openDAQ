@@ -8,7 +8,7 @@
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_ids.h>
-
+#include <opendaq/device_info_factory.h>
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 #include <config_protocol/config_protocol_server.h>
 
@@ -36,7 +36,7 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
     const uint16_t port = config.getPropertyValue("NativeStreamingPort");
     serverHandler->startServer(port);
 
-    auto serverCapability = ServerCapability("", "openDAQ Native Streaming", "Structure&Streaming", "ipv4", ClientUpdateMethod::Broadcast);
+    auto serverCapability = ServerStreamingCapability("daq.ns");
     serverCapability.addProperty(IntProperty("Port", port));
     this->rootDevice.getInfo().asPtr<IDeviceInfoConfig>().addServerCapability(serverCapability);
 

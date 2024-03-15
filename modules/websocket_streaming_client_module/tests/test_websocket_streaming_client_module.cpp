@@ -7,6 +7,7 @@
 #include <coretypes/common.h>
 
 #include <opendaq/context_factory.h>
+#include <opendaq/device_info_factory.h>
 #include <coreobjects/property_factory.h>
 
 using WebsocketStreamingClientModuleTest = testing::Test;
@@ -182,10 +183,10 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConfig)
 {
     auto module = CreateModule();
 
-    StreamingInfoConfigPtr streamingInfoConfig = StreamingInfo("daq.wss");
+    ServerCapabilityPtr streamingInfoConfig = ServerStreamingCapability("daq.wss");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
 
-    streamingInfoConfig.setPrimaryAddress("123.123.123.123");
+    streamingInfoConfig.addProperty(StringProperty("Address", "123.123.123.123"));
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
 
     streamingInfoConfig.addProperty(IntProperty("Port", 1234));

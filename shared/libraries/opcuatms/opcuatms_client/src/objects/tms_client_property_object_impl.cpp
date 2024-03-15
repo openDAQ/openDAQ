@@ -487,7 +487,7 @@ template class TmsClientPropertyObjectBaseImpl<FunctionBlockImpl<IFunctionBlock,
 template class TmsClientPropertyObjectBaseImpl<ChannelImpl<ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<MirroredSignalBase<ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<GenericInputPortImpl<ITmsClientComponent>>;
-template class TmsClientPropertyObjectBaseImpl<StreamingInfoConfigImpl>;
+template class TmsClientPropertyObjectBaseImpl<ServerCapabilityImpl>;
 
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

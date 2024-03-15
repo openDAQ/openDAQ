@@ -336,7 +336,7 @@ bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const S
         const auto propertyObj = capability.asPtr<IPropertyObject>();
         if (propertyObj.assigned())
         {
-            return propertyObj.hasProperty("ProcolId") && propertyObj.hasProperty("PrimaryAddress") && propertyObj.hasProperty("Port");
+            return propertyObj.hasProperty("ProcolId") && propertyObj.hasProperty("Address") && propertyObj.hasProperty("Port");
         }
     }
     return false;
@@ -384,7 +384,7 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
 StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString,
                                                             const ServerCapabilityPtr& capability)
 {
-    if (!onAcceptsStreamingConnectionParameters(connectionString, config))
+    if (!onAcceptsStreamingConnectionParameters(connectionString, capability))
         throw InvalidParameterException();
 
     auto transportLayerConfig = createTransportLayerDefaultConfig();
@@ -404,13 +404,13 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
             initTimeout
         );
     }
-    else if(config.assigned())
+    else if(capability.assigned())
     {
-        auto host = config.getPrimaryAddress();
-        if (host.toStdString().empty()) throw InvalidParameterException("Device address is not set");
+        StringPtr host = capability.getPropertyValue("Address");
+        if (!host.assigned() && host.toStdString().empty()) 
+            throw InvalidParameterException("Device address is not set");
 
-        const auto propertyObj = config.asPtr<IPropertyObject>();
-        auto portNumber = propertyObj.getPropertyValue("Port").template asPtr<IInteger>();
+        auto portNumber = capability.getPropertyValue("Port").template asPtr<IInteger>();
         auto port = String(fmt::format("{}", portNumber));
 
         auto generatedConnectionString = String(fmt::format("{}{}:{}", NativeStreamingPrefix, host, portNumber));

@@ -104,13 +104,13 @@ bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(cons
         auto found = connStr.find(WebsocketStreamingPrefix);
         return (found == 0);
     }
-    else if (config.assigned())
+    else if (capability.assigned())
     {
-        if (config.getProtocolId() == WebsocketStreamingID)
+        if (capability.getPropertyValue("ProtocolId") == WebsocketStreamingID)
         {
             try
             {
-                auto generatedConnectionString = tryCreateWebsocketConnectionString(config);
+                auto generatedConnectionString = tryCreateWebsocketConnectionString(capability);
                 return true;
             }
             catch (const std::exception& e)
@@ -126,27 +126,28 @@ StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& 
 {
     StringPtr streamingConnectionString = connectionString;
 
-    if (!streamingConnectionString.assigned() && !config.assigned())
+    if (!streamingConnectionString.assigned() && !capability.assigned())
         throw ArgumentNullException();
 
-    if (!onAcceptsStreamingConnectionParameters(streamingConnectionString, config))
+    if (!onAcceptsStreamingConnectionParameters(streamingConnectionString, capability))
         throw InvalidParameterException();
 
     if (!streamingConnectionString.assigned())
-        streamingConnectionString = tryCreateWebsocketConnectionString(config);
+        streamingConnectionString = tryCreateWebsocketConnectionString(capability);
 
     return WebsocketStreaming(streamingConnectionString, context);
 }
 
 StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(const ServerCapabilityPtr& capability)
 {
-    auto address = config.getPrimaryAddress();
-    if (address.toStdString().empty())
+    if (capability == nullptr)
+        throw InvalidParameterException("Capability is not set");
+
+    StringPtr address = capability.getPropertyValue("Address");
+    if (!address.assigned() || address.toStdString().empty())
         throw InvalidParameterException("Device address is not set");
 
-    const auto propertyObj = config.asPtr<IPropertyObject>();
-    auto port = propertyObj.getPropertyValue("Port").template asPtr<IInteger>();
-
+    auto port = capability.getPropertyValue("Port").template asPtr<IInteger>();
     auto connectionString = String(fmt::format("daq.wss://{}:{}", address, port));
 
     return connectionString;

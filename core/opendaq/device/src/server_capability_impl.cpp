@@ -13,7 +13,7 @@ TypeManagerPtr ServerCapabilityImpl::getTypeManager()
     static auto typeManager = TypeManager();
     // NOTE: values are set based on priority
     // NOTE: please update version of EnumerationName if you are changing list of values in EnumerationType
-    static auto enumeration = EnumerationType(EnumerationName, List<IString>("Structure&Streaming", "Streaming", "Structure", "Unknown"));
+    static auto enumeration = EnumerationType(EnumerationName, List<IString>("Structure&Streaming", "Structure", "Streaming", "ServerStreaming", "Unknown"));
 
     static bool enumerationAdded = false;
     if (!enumerationAdded)
@@ -37,6 +37,14 @@ ServerCapabilityImpl::ServerCapabilityImpl( const StringPtr& connectionString,
     Super::addProperty(StringPropertyBuilder("protocolName", protocolName).setReadOnly(true).build());
     Super::addProperty(StringPropertyBuilder("connectionType", connectionType).setReadOnly(true).build());
     Super::addProperty(IntPropertyBuilder("updateMethod", (Int)updateMethod).setReadOnly(true).build());
+}
+
+ServerCapabilityImpl::ServerCapabilityImpl(const StringPtr& protocolId)
+    : Super()
+    , protocolType(Enumeration(EnumerationName, "ServerStreaming", getTypeManager()))
+{
+    Super::addProperty(StringPropertyBuilder("protocolId", protocolId).setReadOnly(true).build());
+    Super::addProperty(StringProperty("address", ""));
 }
 
 template <typename T>
@@ -94,5 +102,11 @@ extern "C" ErrCode PUBLIC_EXPORT createServerCapability(IServerCapability** objT
 {
     return daq::createObject<IServerCapability, ServerCapabilityImpl>(objTmp, connectionString, protocolName, protocolType, connectionType, updateMethod);
 }
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, ServerCapability,
+    IServerCapability, createServerStreamingCapability,
+    IString*, protocolId
+)
 
 END_NAMESPACE_OPENDAQ

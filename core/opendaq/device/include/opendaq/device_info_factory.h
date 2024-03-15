@@ -46,5 +46,12 @@ inline ServerCapabilityPtr ServerCapability(const StringPtr& connectionString,
     ServerCapabilityPtr obj(ServerCapability_Create(connectionString, protocolName, protocolType, connectionType, updateMethod));
     return obj;
 }
+
+inline ServerCapabilityPtr ServerStreamingCapability(const StringPtr& protocolId)
+{
+    ServerCapabilityPtr obj(ServerStreamingCapability_Create(protocolId));
+    return obj;
+}
+
 /*!@}*/
 END_NAMESPACE_OPENDAQ

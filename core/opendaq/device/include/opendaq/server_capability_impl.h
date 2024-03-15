@@ -37,6 +37,8 @@ public:
                                   const StringPtr& connectionType,
                                   ClientUpdateMethod updateMethod);
     
+    explicit ServerCapabilityImpl(const StringPtr& protocolId);
+    
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
     ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) override;
     ErrCode INTERFACE_FUNC getProtocolType(IEnumeration** type) override;

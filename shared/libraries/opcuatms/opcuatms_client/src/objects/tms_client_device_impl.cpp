@@ -379,7 +379,9 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
     std::map<uint32_t, PropertyObjectPtr> orderedStreamings;
     std::vector<PropertyObjectPtr> unorderedStreamings;
 
-    this->streamingOptions.clear();
+    DeviceInfoPtr info;
+    this->getInfo(&info);
+    info.asPtr<IDeviceInfoConfig>().clearServerStreamingCapabilities();
     auto streamingOptionsNodeId = getNodeId("StreamingOptions");
 
     try
@@ -404,10 +406,10 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
         LOG_W("Failed to find 'StreamingOptions' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
     }
 
-    for (const auto& val : orderedStreamings)
-        this->streamingOptions.push_back(val.second);
+    for (const auto& [_, val] : orderedStreamings)
+        info.asPtr<IDeviceInfoConfig>().addServerCapability(val);
     for (const auto& val : unorderedStreamings)
-        this->streamingOptions.push_back(val);
+        info.asPtr<IDeviceInfoConfig>().addServerCapability(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateCustomComponents()
@@ -549,16 +551,21 @@ void TmsClientDeviceImpl::setUpStreamings()
 
 void TmsClientDeviceImpl::connectToStreamings()
 {
+    DeviceInfoPtr info;
+    this->getInfo(&info);
     if (createStreamingCallback.assigned())
     {
-        for (const auto& option : streamingOptions)
+        for (const auto& capability : info.getServerCapabilities())
         {
+            if (!capability.hasProperty("protocolId"))
+                continue;
+
             StreamingPtr streaming;
-            ErrCode errCode = wrapHandlerReturn(createStreamingCallback, streaming, option, isRootDevice);
+            ErrCode errCode = wrapHandlerReturn(createStreamingCallback, streaming, capability, isRootDevice);
 
             if (OPENDAQ_FAILED(errCode) || !streaming.assigned())
             {
-                LOG_W("Device \"{}\" had not connected to published streaming protocol \"{}\".", globalId, option.getProtocolId());
+                LOG_W("Device \"{}\" had not connected to published streaming protocol \"{}\".", globalId, capability.getPropertyValue("ProtocolId").asPtr<IString>());
             }
             else
             {

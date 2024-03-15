@@ -199,6 +199,11 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoConfig, IDeviceInfo)
      * @param serverCapability The supported protocol.
      */
     virtual ErrCode INTERFACE_FUNC removeServerCapability(IServerCapability* serverCapability) = 0;
+
+    /*!
+     * @brief Remove server streaming capabilities
+     */
+    virtual ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() = 0;
 };
 /*!@}*/
 

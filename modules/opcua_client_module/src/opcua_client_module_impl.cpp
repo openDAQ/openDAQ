@@ -86,21 +86,24 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                                               bool isRootDevice) -> StreamingPtr
         {
             if (isRootDevice)
-                streamingInfo.template asPtr<IStreamingInfoConfig>().setPrimaryAddress(rootDeviceAddress);
+                capability.addProperty(StringProperty("Address", rootDeviceAddress));
 
             const StringPtr streamingHeuristic = deviceConfig.getPropertySelectionValue("StreamingConnectionHeuristic");
             const ListPtr<IString> allowedStreamingProtocols = deviceConfig.getPropertyValue("AllowedStreamingProtocols");
 
-            if (const auto it = std::find(allowedStreamingProtocols.begin(),
-                                          allowedStreamingProtocols.end(),
-                                          streamingInfo.getProtocolId());
-                it == allowedStreamingProtocols.end())
-                return nullptr;
+            const StringPtr protocolId = capability.getPropertyValue("ProtocolId");
+
+            if (protocolId != nullptr)
+                if (const auto it = std::find(allowedStreamingProtocols.begin(),
+                                            allowedStreamingProtocols.end(),
+                                            protocolId);
+                    it == allowedStreamingProtocols.end())
+                    return nullptr;
 
             if (streamingHeuristic == "MinHops" ||
                 streamingHeuristic == "Fallbacks" ||
                 streamingHeuristic == "MinConnections" && isRootDevice)
-                return this->createStreamingFromAnotherModule(nullptr, streamingInfo);
+                return this->createStreamingFromAnotherModule(nullptr, capability);
             else
                 return nullptr;
         };

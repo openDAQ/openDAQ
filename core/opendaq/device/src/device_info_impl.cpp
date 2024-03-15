@@ -530,6 +530,21 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(
     return OPENDAQ_SUCCESS;
 }
 
+template <typename TInterface, typename... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clearServerStreamingCapabilities()
+{
+    // size_t i = 0;
+    // while(i < serverCapabilities.getCount())
+    // {
+    //     ServerCapabilityPtr serverCapability = serverCapabilities[i];
+    //     if (serverCapability.getProtocolType().getValue() == "ServerStreaming")
+    //         serverCapabilities.removeAt(i);
+    //     else
+    //         i++;
+    // }
+    return OPENDAQ_SUCCESS;
+}
+
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(IList** serverCapabilities)
 {

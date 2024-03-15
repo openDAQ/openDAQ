@@ -9,6 +9,7 @@
 #include <opendaq/context_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/device_info_factory.h>
 
 using NativeStreamingClientModuleTest = testing::Test;
 using namespace daq;
@@ -114,15 +115,15 @@ TEST_F(NativeStreamingClientModuleTest, CreateStreamingWithNullArguments)
 TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConfig)
 {
     auto module = CreateModule();
+ 
+    ServerCapabilityPtr serverCapability = ServerStreamingCapability("daq.ns");
+    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
-    StreamingInfoConfigPtr streamingInfoConfig = StreamingInfo("daq.ns");
-    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
+    serverCapability.addProperty(StringProperty("Address", "123.123.123.123"));
+    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
-    streamingInfoConfig.setPrimaryAddress("123.123.123.123");
-    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
-
-    streamingInfoConfig.addProperty(IntProperty("Port", 1234));
-    ASSERT_TRUE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
+    serverCapability.addProperty(IntProperty("Port", 1234));
+    ASSERT_TRUE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 }
 
 TEST_F(NativeStreamingClientModuleTest, GetAvailableComponentTypes)

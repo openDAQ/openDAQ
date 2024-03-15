@@ -23,7 +23,7 @@ inline ServerCapabilityPtr TmsClientStreamingInfo(const ContextPtr& daqContext,
                                                      const daq::opcua::tms::TmsClientContextPtr& clientContext,
                                                      const opcua::OpcUaNodeId& nodeId)
 {
-    StreamingInfoConfigPtr obj(
+    ServerCapabilityPtr obj(
         createWithImplementation<IServerCapability, TmsClientStreamingInfoImpl>(daqContext, protocolId, clientContext, nodeId)
     );
     return obj;

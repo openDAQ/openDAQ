@@ -97,6 +97,7 @@ public:
     ErrCode INTERFACE_FUNC addServerCapability(IServerCapability* serverCapability) override;
     ErrCode INTERFACE_FUNC removeServerCapability(IServerCapability* serverCapability) override;
     ErrCode INTERFACE_FUNC getServerCapabilities(IList** serverCapabilities) override;
+    ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() override;
 
 private:
     ErrCode createAndSetDefaultStringProperty(const StringPtr& name, const BaseObjectPtr& value);

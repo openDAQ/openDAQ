@@ -311,7 +311,7 @@ inline void SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursively(c
         {
             // Struct type with same name but diffrent structure exists in the type manager
             // Give warning
-            const auto loggerComponent = context.getLogger().getOrAddComponent("Signal");
+            const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
             LOG_W("Struct type with name {} already exists in the type manager, but it is different!", name);
         }
     }
@@ -345,7 +345,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
             if (dataDescriptor.getSampleType() == SampleType::Struct)
             {
                 const StructTypePtr structType = createTypeFromDescriptor(dataDescriptor);
-                auto typeManager = context.getTypeManager();
+                auto typeManager = this->context.getTypeManager();
                 addToTypeManagerRecursively(typeManager, dataDescriptor, structType);
             }
         }
@@ -937,7 +937,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject ** value
     if (!lastDataPacket.assigned() || lastDataPacket.getSampleCount() == 0)
         return OPENDAQ_IGNORED;
 
-    auto typeManager = context.getTypeManager();
+    auto typeManager = this->context.getTypeManager();
     return lastDataPacket->getLastValue(value, typeManager);
 }
 

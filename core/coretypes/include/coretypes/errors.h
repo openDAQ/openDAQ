@@ -125,7 +125,6 @@
 
 #define OPENDAQ_ERR_NO_DATA                        OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_GENERIC, 0x0050u)
 
-
 /*!
  * @}
  */

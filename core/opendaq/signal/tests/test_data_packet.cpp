@@ -461,7 +461,7 @@ TEST_F(DataPacketTest, GetLastValueNestedNoTypeManager)
     const auto data = static_cast<int32_t*>(packet.getData());
     data[4] = 42;
 
-    ASSERT_ANY_THROW(packet.getLastValue());
+    ASSERT_THROW(packet.getLastValue(), InvalidParameterException);
 }
 
 

@@ -874,6 +874,45 @@ TEST_F(SignalTest, GetLastValueStruct)
     ASSERT_DOUBLE_EQ(structPtr.get("Float64"), 15.1);
 }
 
+TEST_F(SignalTest, GetLastValueStructNoSetDescriptor)
+{
+    // Create signal
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // Create DataDescriptor
+    const auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build(),
+                                                     DataDescriptorBuilder().setName("Float64").setSampleType(SampleType::Float64).build()))
+            .build();
+
+    // Prepare data packet
+    auto sizeInBytes = sizeof(int32_t) + sizeof(double);
+    const auto dataPacket = DataPacket(descriptor, 5);
+    auto data = dataPacket.getData();
+
+    // Start points to beggining of data
+    auto start = static_cast<char*>(data);
+
+    // First member of data is int32_t
+    void* a = start + sizeInBytes * 4;
+    auto A = static_cast<int32_t*>(a);
+    *A = 12;
+
+    // Second member of data is double
+    void* b = start + sizeInBytes * 4 + sizeof(int32_t);
+    auto B = static_cast<double*>(b);
+    *B = 15.1;
+
+    // Send our packet
+    signal.sendPacket(dataPacket);
+
+    // Call getLastValue
+    ASSERT_THROW(signal.getLastValue(), NotFoundException);
+}
+
 TEST_F(SignalTest, GetLastValueStructNested)
 {
     // Create signal

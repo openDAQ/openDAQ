@@ -131,6 +131,8 @@ DEFINE_EXCEPTION(NotSupported, OPENDAQ_ERR_NOT_SUPPORTED, "The operation or type
 DEFINE_EXCEPTION(ListNotHomogeneous, OPENDAQ_ERR_LIST_NOT_HOMOGENEOUS, "List is not homogeneous")
 DEFINE_EXCEPTION(FactoryNotRegistered, OPENDAQ_ERR_FACTORY_NOT_REGISTERED, "Factory not registered")
 DEFINE_EXCEPTION(NoData, OPENDAQ_ERR_NO_DATA, "No data")
+DEFINE_EXCEPTION(ExistsSame, OPENDAQ_ERR_EXISTSSAME, "Exists same")
+DEFINE_EXCEPTION(ExistsDifferent, OPENDAQ_ERR_EXISTSDIFFERENT, "Exists different")
 
 extern void checkErrorInfo(ErrCode errCode);
 

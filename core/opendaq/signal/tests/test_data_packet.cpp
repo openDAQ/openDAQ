@@ -448,7 +448,7 @@ TEST_F(DataPacketTest, GetLastValueNested)
     ASSERT_EQ(ptr.get("Int32"), 42);
 }
 
-TEST_F(DataPacketTest, GetLastValueNestedNoTypeManager)
+TEST_F(DataPacketTest, GetLastValueNoTypeManager)
 {
     const auto descriptor =
         DataDescriptorBuilder()

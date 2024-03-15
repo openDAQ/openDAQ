@@ -910,6 +910,7 @@ TEST_F(SignalTest, GetLastValueStructNoSetDescriptor)
     signal.sendPacket(dataPacket);
 
     // Call getLastValue
+    // Throws becuase we didn't use signal.setDescriptor
     ASSERT_THROW(signal.getLastValue(), NotFoundException);
 }
 

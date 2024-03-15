@@ -138,23 +138,6 @@ void TmsServerProperty::addChildNodes()
 {
     if (isReferenceType())
     {
-        const auto type = object.getValueType();
-        if (type == CoreType::ctStruct)
-        {
-            StructPtr structPtr = this->parent.getRef().getPropertyValue(object.getName());
-            std::string structTypeName =  structPtr.getStructType().getName();
-            if(GetUAStructureDataTypeByName(structTypeName) == nullptr)
-                return;
-        }
-
-        if (type == CoreType::ctEnumeration)
-        {
-            EnumerationPtr enumPtr = this->parent.getRef().getPropertyValue(object.getName());
-            std::string enumTypeName =  enumPtr.getEnumerationType().getName();
-            if(GetUAEnumerationDataTypeByName(enumTypeName) == nullptr)
-                return;
-        }
-
         addReferenceTypeChildNodes();
         return;
     }
@@ -179,7 +162,11 @@ void TmsServerProperty::configureVariableNodeAttributes(opcua::OpcUaObject<UA_Va
 
 opcua::OpcUaNodeId TmsServerProperty::getDataTypeId()
 {
-    const auto type = object.getValueType();
+    const auto objInternal = object.asPtr<IPropertyInternal>();
+    if (objInternal.getReferencedPropertyUnresolved().assigned())
+        return OpcUaNodeId(0, UA_NS0ID_STRING);
+
+    const auto type = objInternal.getValueTypeUnresolved();
     switch (type)
     {
         case CoreType::ctBool:
@@ -214,7 +201,7 @@ opcua::OpcUaNodeId TmsServerProperty::getDataTypeId()
             break;
     }
 
-    return OpcUaNodeId(0, UA_NS0ID_BASEDATATYPE);
+    return {};
 }
 
 void TmsServerProperty::validate()
@@ -310,6 +297,23 @@ void TmsServerProperty::hideStructureTypeChildren()
 
 void TmsServerProperty::addReferenceTypeChildNodes()
 {
+    const auto type = object.getValueType();
+    if (type == CoreType::ctStruct)
+    {
+        StructPtr structPtr = this->parent.getRef().getPropertyValue(object.getName());
+        std::string structTypeName =  structPtr.getStructType().getName();
+        if(GetUAStructureDataTypeByName(structTypeName) == nullptr)
+            return;
+    }
+
+    if (type == CoreType::ctEnumeration)
+    {
+        EnumerationPtr enumPtr = this->parent.getRef().getPropertyValue(object.getName());
+        std::string enumTypeName =  enumPtr.getEnumerationType().getName();
+        if(GetUAEnumerationDataTypeByName(enumTypeName) == nullptr)
+            return;
+    }
+
     const auto refNames = objectInternal.getReferencedPropertyUnresolved().getPropertyReferences();
     for (auto propName : refNames)
     {

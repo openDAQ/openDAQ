@@ -2143,12 +2143,6 @@ ObjectPtr<IBaseObject> ObjectPtr<T>::convertTo(CoreType ct) const
             });
             return ObjectPtr<IBaseObject>(val);
         }
-        case ctEnumeration:
-        {
-            Int val;
-            checkErrorInfo(convObj->toInt(&val));
-            return ObjectPtr<IBaseObject>(val);
-        }
         default:
             throw ConversionFailedException();
     }

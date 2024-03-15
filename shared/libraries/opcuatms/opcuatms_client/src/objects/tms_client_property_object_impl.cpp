@@ -35,18 +35,24 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
         {
             if (const auto& it = introspectionVariableIdMap.find(propertyNamePtr); it != introspectionVariableIdMap.cend())
             {
+                PropertyPtr prop;
+                checkErrorInfo(getProperty(propertyName, &prop));
                 if (protectedWrite)
                 {
                     lastProccessDescription = "Checking exisiting property is read-only";
-                    PropertyPtr prop;
-                    checkErrorInfo(getProperty(propertyName, &prop));
                     const bool readOnly = prop.getReadOnly();
                     if (readOnly)
                         return OPENDAQ_SUCCESS;
                 }
 
-                lastProccessDescription = "Writting property value";
-                const auto variant = VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
+                BaseObjectPtr valuePtr = value;
+                const auto ct = prop.getValueType();
+                const auto valueCt = valuePtr.getCoreType();
+                if (ct != valueCt)
+                    valuePtr = valuePtr.convertTo(ct);
+
+                lastProccessDescription = "Writing property value";
+                const auto variant = VariantConverter<IBaseObject>::ToVariant(valuePtr, nullptr, daqContext);
                 client->writeValue(it->second, variant);
                 return OPENDAQ_SUCCESS;
             }

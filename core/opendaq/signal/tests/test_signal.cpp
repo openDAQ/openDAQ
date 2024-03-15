@@ -433,8 +433,8 @@ TEST_F(SignalTest, SignalDescriptorStructSameNameDifferentDescriptor)
     ASSERT_NO_THROW(sp1 = lv1.asPtr<IStruct>());
     ASSERT_EQ(sp1.get("Int32"), 4);
 
-    // TODO
-    // signal2.getLastValue();
+    // Throws because descriptor2 has the same name as descriptor1 and hence the the struct type can't be added to the type manager
+    ASSERT_THROW(signal2.getLastValue(), InvalidParameterException);
 }
 
 TEST_F(SignalTest, SendNullPacket)

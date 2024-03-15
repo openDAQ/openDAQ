@@ -309,7 +309,7 @@ inline void SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursively(c
     {
         if (type != typeManager.getType(name))
         {
-            // Struct type with same name exists in the type manager
+            // Struct type with same name but diffrent structure exists in the type manager
             // Give warning
             const auto loggerComponent = context.getLogger().getOrAddComponent("Signal");
             LOG_W("Struct type with name {} already exists in the type manager, but it is different!", name);

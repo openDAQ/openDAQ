@@ -32,6 +32,8 @@ BEGIN_NAMESPACE_OPENDAQ
 class ConnectionImpl : public ImplementationOfWeak<IConnection>
 {
 public:
+    using Super = ImplementationOfWeak<IConnection>;
+
     explicit ConnectionImpl(
         const InputPortPtr& port,
         const SignalPtr& signal,
@@ -39,8 +41,13 @@ public:
     );
 
     ErrCode INTERFACE_FUNC enqueue(IPacket* packet) override;
+    ErrCode INTERFACE_FUNC enqueueMultiple(IList* packets) override;
+    ErrCode INTERFACE_FUNC enqueueAndSteal(IPacket* packet) override;
+    ErrCode INTERFACE_FUNC enqueueAndStealMultiple(IList* packets) override;
+
     ErrCode INTERFACE_FUNC enqueueOnThisThread(IPacket* packet) override;
     ErrCode INTERFACE_FUNC dequeue(IPacket** packet) override;
+    ErrCode INTERFACE_FUNC dequeueAll(IList** packets) override;
     ErrCode INTERFACE_FUNC peek(IPacket** packet) override;
     ErrCode INTERFACE_FUNC getPacketCount(SizeT* packetCount) override;
     ErrCode INTERFACE_FUNC getSignal(ISignal** signal) override;
@@ -50,6 +57,10 @@ public:
     ErrCode INTERFACE_FUNC getSamplesUntilNextDescriptor(SizeT* samples) override;
 
     ErrCode INTERFACE_FUNC isRemote(Bool* remote) override;
+
+    // IBaseObject
+    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
+    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
 
     [[nodiscard]] const std::deque<PacketPtr>& getPackets() const noexcept;
 
@@ -72,6 +83,7 @@ private:
     InputPortConfigPtr port;
     WeakRefPtr<ISignal> signalRef;
     ContextPtr context;
+    bool queueEmpty;
 
 #ifdef OPENDAQ_THREAD_SAFE
     mutable std::mutex mutex;

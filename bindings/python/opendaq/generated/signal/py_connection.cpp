@@ -47,6 +47,30 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
         },
         py::arg("packet"),
         "Places a packet at the back of the queue.");
+    cls.def("enqueue_and_steal",
+        [](daq::IConnection *object, daq::IPacket* packet)
+        {
+            const auto objectPtr = daq::ConnectionPtr::Borrow(object);
+            objectPtr.enqueueAndSteal(packet);
+        },
+        py::arg("packet"),
+        "Places a packet at the back of the queue. The reference of the packet is stealed.");
+    cls.def("enqueue_multiple",
+        [](daq::IConnection *object, daq::IList* packets)
+        {
+            const auto objectPtr = daq::ConnectionPtr::Borrow(object);
+            objectPtr.enqueueMultiple(packets);
+        },
+        py::arg("packets"),
+        "Places multiple packets at the back of the queue.");
+    cls.def("enqueue_and_steal_multiple",
+        [](daq::IConnection *object, daq::IList* packets)
+        {
+            const auto objectPtr = daq::ConnectionPtr::Borrow(object);
+            objectPtr.enqueueAndStealMultiple(packets);
+        },
+        py::arg("packets"),
+        "Places multiple packets at the back of the queue. The references of the packets are stealed.");
     cls.def("enqueue_on_this_thread",
         [](daq::IConnection *object, daq::IPacket* packet)
         {

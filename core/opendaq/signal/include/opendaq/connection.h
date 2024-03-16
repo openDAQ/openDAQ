@@ -53,6 +53,32 @@ DECLARE_OPENDAQ_INTERFACE(IConnection, IBaseObject)
     virtual ErrCode INTERFACE_FUNC enqueue(IPacket* packet) = 0;
 
     /*!
+     * @brief Places a packet at the back of the queue. The reference of the packet is stealed.
+     * @param packet The packet to be enqueued.
+     *
+     * After calling the method, the packet should not be touched again. The ownership of the packet
+     * is taken by underlying connections and it could be destroyed before the function returns.
+     */
+    virtual ErrCode INTERFACE_FUNC enqueueAndSteal(IPacket* packet) = 0;
+
+    // [elementType(packets, IPacket)]
+    /*!
+     * @brief Places multiple packets at the back of the queue.
+     * @param packet The packets to be enqueued.
+     */
+    virtual ErrCode INTERFACE_FUNC enqueueMultiple(IList* packets) = 0;
+
+    // [elementType(packets, IPacket)]
+    /*!
+     * @brief Places multiple packets at the back of the queue. The references of the packets are stealed.
+     * @param packet The packets to be enqueued.
+     *
+     * After calling the method, the packets should not be touched again. The ownership of the packets
+     * is taken by underlying connections and it could be destroyed before the function returns.
+     */
+    virtual ErrCode INTERFACE_FUNC enqueueAndStealMultiple(IList* packets) = 0;
+
+    /*!
      * @brief Places a packet at the back of the queue.
      * @param packet The packet to be enqueued.
      *
@@ -66,6 +92,15 @@ DECLARE_OPENDAQ_INTERFACE(IConnection, IBaseObject)
      * @retval OPENDAQ_NO_MORE_ITEMS When the connection does not hold any packets.
      */
     virtual ErrCode INTERFACE_FUNC dequeue(IPacket** packet) = 0;
+
+    // [elementType(packets, IPacket)]
+    /*!
+     * @brief Removes all packets from the queue.
+     * @param[out] packets The removed packets.
+     *
+     * Removing all packets can be more efficient than dequeuing packet by packet in heavily loaded systems.
+     */
+    virtual ErrCode INTERFACE_FUNC dequeueAll(IList** packets) = 0;
 
     /*!
      * @brief Returns the packet at the front of the queue without removing it.

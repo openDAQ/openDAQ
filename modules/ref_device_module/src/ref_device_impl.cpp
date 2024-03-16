@@ -196,11 +196,21 @@ void RefDeviceImpl::initSyncComponent()
 void RefDeviceImpl::acqLoop()
 {
     using namespace std::chrono_literals;
+    using  milli = std::chrono::milliseconds;
+
+    auto startLoopTime = std::chrono::high_resolution_clock::now();
+    const auto loopTime = milli(acqLoopTime);
 
     std::unique_lock<std::mutex> lock(sync);
+
     while (!stopAcq)
     {
-        cv.wait_for(lock, std::chrono::milliseconds(acqLoopTime));
+        const auto time = std::chrono::high_resolution_clock::now();
+        const auto loopDuration = std::chrono::duration_cast<milli>(time - startLoopTime);
+        const auto waitTime = loopDuration.count() >= loopTime.count() ? milli(0) : milli(loopTime.count() - loopDuration.count());
+        startLoopTime = time;
+
+        cv.wait_for(lock, waitTime);
         if (!stopAcq)
         {
             auto curTime = getMicroSecondsSinceDeviceStart();

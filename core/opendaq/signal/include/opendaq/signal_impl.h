@@ -83,6 +83,9 @@ public:
     ErrCode INTERFACE_FUNC removeRelatedSignal(ISignal* signal) override;
     ErrCode INTERFACE_FUNC clearRelatedSignals() override;
     ErrCode INTERFACE_FUNC sendPacket(IPacket* packet) override;
+    ErrCode INTERFACE_FUNC sendPackets(IList* packets) override;
+    ErrCode INTERFACE_FUNC sendAndStealPacket(IPacket* packet) override;
+    ErrCode INTERFACE_FUNC sendAndStealPackets(IList* packet) override;
 
     // ISignalEvents
     ErrCode INTERFACE_FUNC listenerConnected(IConnection* connection) override;
@@ -100,6 +103,8 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
+    void visibleChanged() override;
+
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void updateObject(const SerializedObjectPtr& obj) override;
     int getSerializeFlags() override;
@@ -132,13 +137,16 @@ private:
     std::vector<ConnectionPtr> connections;
     std::vector<ConnectionPtr> remoteConnections;
     std::vector<WeakRefPtr<ISignalConfig>> domainSignalReferences;
-    bool keepLastPacket = true;
+    bool keepLastPacket;
+    bool keepLastValue;
     DataPacketPtr lastDataPacket;
 
     bool sendPacketInternal(const PacketPtr& packet, bool ignoreActive = false) const;
+    bool sendPacketInternal(PacketPtr&& packet, bool ignoreActive = false) const;
     void triggerRelatedSignalsChanged();
     void disconnectInputPort(const ConnectionPtr& connection);
     void clearConnections(std::vector<ConnectionPtr>& connections);
+    void setKeepLastPacket();
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
@@ -155,7 +163,9 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     : Super(context, parent, localId, className)
     , dataDescriptor(std::move(descriptor))
     , isPublic(true)
+    , keepLastValue(true)
 {
+    setKeepLastPacket();
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -199,6 +209,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
         }
 
         this->isPublic = isPublic;
+        setKeepLastPacket();
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -499,15 +510,112 @@ ErrCode SignalBase<TInterface, Interfaces...>::sendPacket(IPacket* packet)
 
     std::scoped_lock lock(this->sync);
 
-    if (sendPacketInternal(packetPtr))
-    {
-        const auto dataPacket = packetPtr.asPtrOrNull<IDataPacket>();
-        if (keepLastPacket && dataPacket.assigned() && dataPacket.getSampleCount())
-            lastDataPacket = dataPacket;
-        return OPENDAQ_SUCCESS;
-    }
+    return daqTry([&packetPtr, this]
+        {
+            if (keepLastPacket)
+            {
+                auto dataPacket = packetPtr.asPtrOrNull<IDataPacket>();
+                if (dataPacket.assigned() && dataPacket.getSampleCount())
+                    lastDataPacket = std::move(dataPacket);
+            }
 
-    return  OPENDAQ_IGNORED;
+            if (sendPacketInternal(packetPtr))
+                return OPENDAQ_SUCCESS;
+
+            return OPENDAQ_IGNORED;
+        });
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode INTERFACE_FUNC SignalBase<TInterface, Interfaces...>::sendPackets(IList* packets)
+{
+    OPENDAQ_PARAM_NOT_NULL(packets);
+
+    const auto packetsPtr = ListPtr<IPacket>::Borrow(packets);
+
+    std::scoped_lock lock(this->sync);
+
+    return daqTry([&packetsPtr, this]
+        {
+            size_t cnt = packetsPtr.getCount();
+            if (!this->active || cnt == 0)
+                return OPENDAQ_IGNORED;
+
+            if (keepLastPacket)
+            {
+                auto dataPacket = packetsPtr[cnt - 1].asPtrOrNull<IDataPacket>();
+                if (dataPacket.assigned() && dataPacket.getSampleCount())
+                    lastDataPacket = std::move(dataPacket);
+            }
+
+            for (const auto& connection : connections)
+                connection.enqueueMultiple(packetsPtr);
+
+            return OPENDAQ_SUCCESS;
+        });    
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::sendAndStealPacket(IPacket* packet)
+{
+    OPENDAQ_PARAM_NOT_NULL(packet);
+
+    auto packetPtr = PacketPtr::Adopt(packet);
+
+    std::scoped_lock lock(this->sync);
+
+    return daqTry(
+        [&packetPtr, this]
+        {
+            if (keepLastPacket)
+            {
+                auto dataPacket = packetPtr.asPtrOrNull<IDataPacket>();
+                if (dataPacket.assigned() && dataPacket.getSampleCount())
+                    lastDataPacket = std::move(dataPacket);
+            }
+
+            sendPacketInternal(std::move(packetPtr));
+
+            return OPENDAQ_SUCCESS;
+        });
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode INTERFACE_FUNC SignalBase<TInterface, Interfaces...>::sendAndStealPackets(IList* packets)
+{
+    OPENDAQ_PARAM_NOT_NULL(packets);
+
+    auto packetsPtr = ListPtr<IPacket>::Adopt(packets);
+
+    std::scoped_lock lock(this->sync);
+
+    return daqTry(
+        [&packetsPtr, this]
+        {
+            size_t cnt = packetsPtr.getCount();
+            if (!this->active || cnt == 0)
+                return OPENDAQ_IGNORED;
+
+            if (keepLastPacket)
+            {
+                auto dataPacket = packetsPtr[cnt - 1].asPtrOrNull<IDataPacket>();
+                if (dataPacket.assigned() && dataPacket.getSampleCount())
+                    lastDataPacket = std::move(dataPacket);
+            }
+
+            if (connections.empty())
+                return OPENDAQ_SUCCESS;
+
+            auto startIt = connections.begin();
+            const auto endIt = std::prev(connections.end());
+
+            while (startIt != endIt)
+                startIt++->enqueueMultiple(packetsPtr);
+
+            (*startIt)->enqueueAndStealMultiple(packetsPtr.detach());
+
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -522,7 +630,27 @@ bool SignalBase<TInterface, Interfaces...>::sendPacketInternal(const PacketPtr& 
     return true;
 }
 
-template <typename TInterface, typename ... Interfaces>
+template <typename TInterface, typename... Interfaces>
+bool SignalBase<TInterface, Interfaces...>::sendPacketInternal(PacketPtr&& packet, bool ignoreActive) const
+{
+    if (!ignoreActive && !this->active)
+        return false;
+
+    if (connections.empty())
+        return true;
+
+    auto startIt = connections.begin();
+    const auto endIt = std::prev(connections.end());
+
+    while (startIt != endIt)
+        startIt++->enqueue(packet);
+
+    (*startIt)->enqueueAndSteal(packet.detach());
+
+    return true;
+}
+
+template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::triggerRelatedSignalsChanged()
 {
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -838,11 +966,19 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::enableKeepLastValue(Bool enabled)
 {
     std::scoped_lock lock(this->sync);
-    keepLastPacket = enabled;
-    
+    keepLastValue = enabled;
+
+    setKeepLastPacket();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+void SignalBase<TInterface, Interfaces...>::setKeepLastPacket()
+{
+    keepLastPacket = keepLastValue && isPublic && this->visible;
+
     if (!keepLastPacket)
         lastDataPacket = nullptr;
-    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -856,6 +992,13 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject ** value
 
     return lastDataPacket->getLastValue(value);
 }
+
+template <typename TInterface, typename... Interfaces>
+void SignalBase<TInterface, Interfaces...>::visibleChanged()
+{
+    setKeepLastPacket();
+}
+
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SignalImpl)
 

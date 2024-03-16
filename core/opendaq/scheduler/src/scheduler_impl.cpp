@@ -7,8 +7,10 @@
 
 #include <opendaq/task_internal.h>
 #include <opendaq/task_ptr.h>
+#include <opendaq/work_ptr.h>
 
 #include <coretypes/function_ptr.h>
+#include <coretypes/validation.h>
 
 #include <utility>
 
@@ -64,21 +66,35 @@ ErrCode SchedulerImpl::checkAndPrepare(const IBaseObject* work, IAwaitable** awa
 }
 
 
-ErrCode SchedulerImpl::scheduleWork(IFunction* work, IAwaitable** awaitable)
+ErrCode SchedulerImpl::scheduleFunction(IFunction* function, IAwaitable** awaitable)
 {
-    ErrCode errCode = checkAndPrepare(work, awaitable);
+    ErrCode errCode = checkAndPrepare(function, awaitable);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
     auto scheduled = createWithImplementation<IAwaitable, AwaitableFunc>(
-        executor->async(
-            [func = FunctionPtr(work)]() mutable
+        executor->async([func = FunctionPtr(function)]() mutable
             {
                 return func(nullptr);
             })
         );
 
     *awaitable = scheduled.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode SchedulerImpl::scheduleWork(IWork* work)
+{
+    OPENDAQ_PARAM_NOT_NULL(work);
+
+    if (stopped)
+        return OPENDAQ_ERR_SCHEDULER_STOPPED;
+
+    executor->silent_async([work = WorkPtr(work)]()
+        {
+            work->execute();
+        });
+
     return OPENDAQ_SUCCESS;
 }
 

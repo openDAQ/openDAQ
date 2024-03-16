@@ -20,8 +20,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-template <typename TInterface = IDataPacket>
-class GenericDataPacketImpl : public PacketImpl<TInterface>
+template <typename TInterface = IDataPacket, typename... TInterfaces>
+class GenericDataPacketImpl : public PacketImpl<TInterface, TInterfaces ...>
 {
 public:
     explicit GenericDataPacketImpl(const DataPacketPtr& domainPacket);
@@ -36,16 +36,16 @@ protected:
 
 Int generatePacketId();
 
-template <typename TInterface>
-GenericDataPacketImpl<TInterface>::GenericDataPacketImpl(const DataPacketPtr& domainPacket)
+template <typename TInterface, typename... TInterfaces>
+GenericDataPacketImpl<TInterface, TInterfaces...>::GenericDataPacketImpl(const DataPacketPtr& domainPacket)
     : domainPacket(domainPacket)
     , packetId(generatePacketId())
 {
     this->type = PacketType::Data;
 }
 
-template <typename TInterface>
-ErrCode GenericDataPacketImpl<TInterface>::getDomainPacket(IDataPacket** packet)
+template <typename TInterface, typename... TInterfaces>
+ErrCode GenericDataPacketImpl<TInterface, TInterfaces...>::getDomainPacket(IDataPacket** packet)
 {
     OPENDAQ_PARAM_NOT_NULL(packet);
 
@@ -53,8 +53,8 @@ ErrCode GenericDataPacketImpl<TInterface>::getDomainPacket(IDataPacket** packet)
     return OPENDAQ_SUCCESS;
 }
 
-template <typename TInterface>
-ErrCode GenericDataPacketImpl<TInterface>::getPacketId(Int* packetId)
+template <typename TInterface, typename... TInterfaces>
+ErrCode GenericDataPacketImpl<TInterface, TInterfaces...>::getPacketId(Int* packetId)
 {
     OPENDAQ_PARAM_NOT_NULL(packetId);
 

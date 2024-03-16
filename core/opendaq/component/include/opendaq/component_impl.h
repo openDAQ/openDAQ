@@ -111,6 +111,7 @@ public:
 
 protected:
     virtual void activeChanged();
+    virtual void visibleChanged();
     virtual void removed();
     virtual ErrCode lockAllAttributesInternal();
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
@@ -456,6 +457,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
         }
 
         this->visible = visible;
+        visibleChanged();
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -781,6 +783,11 @@ BaseObjectPtr ComponentImpl<Intf, Intfs...>::DeserializeComponent(const Serializ
 
 template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::activeChanged()
+{
+}
+
+template <class Intf, class... Intfs>
+void ComponentImpl<Intf, Intfs...>::visibleChanged()
 {
 }
 

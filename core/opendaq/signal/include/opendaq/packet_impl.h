@@ -40,6 +40,8 @@ protected:
     PacketType type;
     std::mutex sync;
     std::vector<PacketDestructCallbackPtr> packetDestructCallbackList;
+
+    void callDestructCallbacks();
 };
 
 template <typename TInterface, typename ... TInterfaces>
@@ -51,8 +53,7 @@ PacketImpl<TInterface, TInterfaces ...>::PacketImpl()
 template <typename TInterface, typename ... TInterfaces>
 PacketImpl<TInterface, TInterfaces...>::~PacketImpl()
 {
-    for (const auto& packetDestructCallback : packetDestructCallbackList)
-        packetDestructCallback->onPacketDestroyed();
+    callDestructCallbacks();
 }
 
 template <typename TInterface, typename... TInterfaces>
@@ -103,6 +104,14 @@ inline ErrCode INTERFACE_FUNC PacketImpl<TInterface, TInterfaces...>::equals(IBa
 
     *equals = true;
     return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... TInterfaces>
+void PacketImpl<TInterface, TInterfaces...>::callDestructCallbacks()
+{
+    for (const auto& packetDestructCallback : packetDestructCallbackList)
+        packetDestructCallback->onPacketDestroyed();
+    packetDestructCallbackList.clear();
 }
 
 END_NAMESPACE_OPENDAQ

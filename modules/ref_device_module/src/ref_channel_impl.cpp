@@ -242,30 +242,41 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
         if (!fixedPacketSize)
         {
             const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
-            generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
+            auto [dataPacket, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
+
+            checkErrorInfo(valueSignal->sendAndStealPacket(dataPacket.detach()));
+            checkErrorInfo(timeSignal->sendAndStealPacket(domainPacket.detach()));
+
             samplesGenerated = samplesSinceStart;
         }
         else
         {
+            auto packets = List<IPacket>();
+            auto domainPackets = List<IPacket>();
             while (newSamples >= packetSize)
             {
                 const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
-                generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, packetSize);
+                auto [dataPacket, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, packetSize);
+                packets.pushBack(std::move(dataPacket));
+                domainPackets.pushBack(std::move(domainPacket));
 
                 samplesGenerated += packetSize;
-                newSamples -= packetSize;
-                
+                newSamples -= packetSize;                
             }
+
+            checkErrorInfo(valueSignal->sendAndStealPackets(packets.detach()));
+            checkErrorInfo(timeSignal->sendAndStealPackets(domainPackets.detach()));
+
         }
     }
 
     lastCollectTime = curTime;
 }
 
-void RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
+std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
 {
-    const auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
-    const auto dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+    auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
+    auto dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
 
     double* buffer;
 
@@ -318,8 +329,7 @@ void RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated,
         std::free(static_cast<void*>(buffer));
     }
 
-    valueSignal.sendPacket(dataPacket);
-    timeSignal.sendPacket(domainPacket);
+    return {dataPacket, domainPacket};
 }
 
 Int RefChannelImpl::getDeltaT(const double sr) const

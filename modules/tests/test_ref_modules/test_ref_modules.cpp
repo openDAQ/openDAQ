@@ -14,6 +14,10 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 using RefModulesTest = testing::Test;
 using namespace daq;
 
@@ -1047,19 +1051,38 @@ TEST_F(RefModulesTest, ScalingFbStatuses)
 
 TEST_F(RefModulesTest, RunDeviceScalingPerformanceTest)
 {
+#ifdef _WIN32
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+#endif
+
+    constexpr size_t numberOfChannels = 200;
+    constexpr size_t numberOfDevices = 10;
+    constexpr size_t packetSize = 100;
+    constexpr size_t sampleRate = 100000;
+    ASSERT_EQ(numberOfChannels % numberOfDevices, 0);
+    constexpr size_t numberOfChannelsPerDevice = numberOfChannels / numberOfDevices;
+
+    const auto instanceBuilder = InstanceBuilder();
+    const auto options = instanceBuilder.getOptions();
+    DictPtr<IString, IBaseObject> moduleOptions = options.get("Modules");
+    auto refDeviceModultOptions = Dict<IString, IBaseObject>();
+    refDeviceModultOptions.set("MaxNumberOfDevices", numberOfDevices);
+    moduleOptions.set("RefDevice", refDeviceModultOptions);
+    const auto instance = instanceBuilder.build();
+
     constexpr bool enableRenderer = false;
     FunctionBlockPtr rendererFb;
 
-    const auto instance = Instance();
+    std::array<DevicePtr, numberOfDevices> devices;
+    for (size_t i = 0; i < numberOfDevices; ++i)
+    {
+        const auto config = PropertyObject();
+        config.addProperty(IntPropertyBuilder("NumberOfChannels", numberOfChannelsPerDevice).build());
 
-    const auto config = PropertyObject();
-    config.addProperty(IntPropertyBuilder("NumberOfChannels", 200).build());
-
-    const auto device = instance.addDevice("daqref://device0", config);
-    device.setPropertyValue("AcquisitionLoopTime", 1);
-    device.setPropertyValue("GlobalSampleRate", 100000);
-
-    const size_t numberOfChannels = device.getPropertyValue("NumberOfChannels");
+        devices[i] = instance.addDevice(fmt::format("daqref://device{}", i), config);
+        devices[i].setPropertyValue("AcquisitionLoopTime", 20);
+        devices[i].setPropertyValue("GlobalSampleRate", sampleRate);
+    }
 
     if constexpr (enableRenderer)
     {
@@ -1071,9 +1094,11 @@ TEST_F(RefModulesTest, RunDeviceScalingPerformanceTest)
 
     for (size_t i = 0; i < numberOfChannels; ++i)
     {
-        const auto deviceChannel = device.getChannels()[i];
+        const auto device = devices[i / numberOfChannelsPerDevice];
+
+        const auto deviceChannel = device.getChannels()[i % numberOfChannelsPerDevice];
         deviceChannel.setPropertyValue("FixedPacketSize", True);
-        deviceChannel.setPropertyValue("PacketSize", 10000);
+        deviceChannel.setPropertyValue("PacketSize", packetSize);
         deviceChannel.setPropertyValue("Waveform", 3);
         const auto deviceSignal = deviceChannel.getSignals()[0];
         deviceSignal.setPublic(false);
@@ -1115,9 +1140,10 @@ TEST_F(RefModulesTest, RunDeviceScalingPerformanceTest)
             }
         }
     }
-
+    std::cout << "Started" << std::endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 }
+
 static Finally CreateConfigFile(const std::string& configFilename, const std::string& data)
 {
     std::ofstream file;

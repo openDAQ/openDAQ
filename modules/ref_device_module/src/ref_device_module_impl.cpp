@@ -8,16 +8,21 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
 RefDeviceModule::RefDeviceModule(ContextPtr context)
     : Module("Reference device module",
-            daq::VersionInfo(REF_DEVICE_MODULE_MAJOR_VERSION, REF_DEVICE_MODULE_MINOR_VERSION, REF_DEVICE_MODULE_PATCH_VERSION),
-            std::move(context),
-            "ReferenceDevice")
+             daq::VersionInfo(REF_DEVICE_MODULE_MAJOR_VERSION, REF_DEVICE_MODULE_MINOR_VERSION, REF_DEVICE_MODULE_PATCH_VERSION),
+             std::move(context),
+             "ReferenceDevice")
+    , maxNumberOfDevices(2)
 {
+    auto options = this->context.getModuleOptions("RefDevice");
+    if (options.hasKey("MaxNumberOfDevices"))
+        maxNumberOfDevices = options.get("MaxNumberOfDevices");
+    devices.resize(maxNumberOfDevices);
 }
 
 ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
 {
     auto availableDevices = List<IDeviceInfo>();
-    for (size_t i = 0; i < devices.size(); i++)
+    for (size_t i = 0; i < 2; i++)
     {
         auto info = RefDeviceImpl::CreateDeviceInfo(i);
         availableDevices.pushBack(info);
@@ -37,7 +42,7 @@ DictPtr<IString, IDeviceType> RefDeviceModule::onGetAvailableDeviceTypes()
 
 DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
                                           const ComponentPtr& parent,
-                                          const PropertyObjectPtr& /*config*/)
+                                          const PropertyObjectPtr& config)
 {
     auto id = getIdFromConnectionString(connectionString);
 
@@ -57,7 +62,7 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
 
     std::string localId = fmt::format("ref_dev{}", id);
 
-    auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(id, context, parent, StringPtr(localId));
+    auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(id, config, context, parent, StringPtr(localId));
     devices[id] = devicePtr;
     return devicePtr;
 }

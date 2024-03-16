@@ -95,4 +95,28 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
         },
         py::arg("packet"),
         "Sends a packet through all connections of the signal.");
+    cls.def("send_packets",
+        [](daq::ISignalConfig *object, daq::IList* packets)
+        {
+            const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
+            objectPtr.sendPackets(packets);
+        },
+        py::arg("packets"),
+        "Sends multiple packets through all connections of the signal.");
+    cls.def("send_and_steal_packet",
+        [](daq::ISignalConfig *object, daq::IPacket* packet)
+        {
+            const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
+            objectPtr.sendAndStealPacket(packet);
+        },
+        py::arg("packet"),
+        "Sends a packet through all connections of the signal. Ownership of the packet is transfered.");
+    cls.def("send_and_steal_packets",
+        [](daq::ISignalConfig *object, daq::IList* packets)
+        {
+            const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
+            objectPtr.sendAndStealPackets(packets);
+        },
+        py::arg("packets"),
+        "Sends multiple packets through all connections of the signal. Ownership of the packets is transfered.");
 }

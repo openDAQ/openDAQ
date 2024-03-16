@@ -11,6 +11,13 @@
 #include <fstream>
 #include "classifier_test_helper.h"
 #include "testutils/memcheck_listener.h"
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 using RefModulesTest = testing::Test;
 using namespace daq;
 
@@ -1040,6 +1047,101 @@ TEST_F(RefModulesTest, ScalingFbStatuses)
     scalingFb.getInputPorts()[0].connect(signal);
     ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Invalid");
     scalingFb.getOnComponentCoreEvent() -= invalidStatusTest;
+}
+
+TEST_F(RefModulesTest, RunDeviceScalingPerformanceTest)
+{
+#ifdef _WIN32
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+#endif
+
+    constexpr size_t numberOfChannels = 200;
+    constexpr size_t numberOfDevices = 10;
+    constexpr size_t packetSize = 100;
+    constexpr size_t sampleRate = 100000;
+    ASSERT_EQ(numberOfChannels % numberOfDevices, 0);
+    constexpr size_t numberOfChannelsPerDevice = numberOfChannels / numberOfDevices;
+
+    const auto instanceBuilder = InstanceBuilder();
+    const auto options = instanceBuilder.getOptions();
+    DictPtr<IString, IBaseObject> moduleOptions = options.get("Modules");
+    auto refDeviceModultOptions = Dict<IString, IBaseObject>();
+    refDeviceModultOptions.set("MaxNumberOfDevices", numberOfDevices);
+    moduleOptions.set("RefDevice", refDeviceModultOptions);
+    const auto instance = instanceBuilder.build();
+
+    constexpr bool enableRenderer = false;
+    FunctionBlockPtr rendererFb;
+
+    std::array<DevicePtr, numberOfDevices> devices;
+    for (size_t i = 0; i < numberOfDevices; ++i)
+    {
+        const auto config = PropertyObject();
+        config.addProperty(IntPropertyBuilder("NumberOfChannels", numberOfChannelsPerDevice).build());
+
+        devices[i] = instance.addDevice(fmt::format("daqref://device{}", i), config);
+        devices[i].setPropertyValue("AcquisitionLoopTime", 20);
+        devices[i].setPropertyValue("GlobalSampleRate", sampleRate);
+    }
+
+    if constexpr (enableRenderer)
+    {
+        rendererFb = instance.addFunctionBlock("ref_fb_module_renderer");
+        rendererFb.setPropertyValue("Duration", 2.0);
+        rendererFb.setPropertyValue("SingleXAxis", 2.0);
+        rendererFb.setPropertyValue("ShowLastValue", True);
+    }
+
+    for (size_t i = 0; i < numberOfChannels; ++i)
+    {
+        const auto device = devices[i / numberOfChannelsPerDevice];
+
+        const auto deviceChannel = device.getChannels()[i % numberOfChannelsPerDevice];
+        deviceChannel.setPropertyValue("FixedPacketSize", True);
+        deviceChannel.setPropertyValue("PacketSize", packetSize);
+        deviceChannel.setPropertyValue("Waveform", 3);
+        const auto deviceSignal = deviceChannel.getSignals()[0];
+        deviceSignal.setPublic(false);
+
+        const auto scalingFb1 = instance.addFunctionBlock("ref_fb_module_scaling");
+        scalingFb1.setPropertyValue("Scale", 2.0);
+        scalingFb1.setPropertyValue("Offset", 1.0);
+        scalingFb1.getInputPorts()[0].connect(deviceSignal);
+        const auto scaledSignal1 = scalingFb1.getSignals()[0];
+        scaledSignal1.setPublic(false);
+
+        const auto scalingFb2 = instance.addFunctionBlock("ref_fb_module_scaling");
+        scalingFb2.setPropertyValue("Scale", 2.0);
+        scalingFb2.setPropertyValue("Offset", 1.0);
+        scalingFb2.getInputPorts()[0].connect(scaledSignal1);
+        const auto scaledSignal2 = scalingFb2.getSignals()[0];
+        scaledSignal2.setPublic(false);
+
+        const auto scalingFb3 = instance.addFunctionBlock("ref_fb_module_scaling");
+        scalingFb3.setPropertyValue("Scale", 2.0);
+        scalingFb3.setPropertyValue("Offset", 1.0);
+        scalingFb3.getInputPorts()[0].connect(scaledSignal2);
+        const auto scaledSignal3 = scalingFb3.getSignals()[0];
+        scaledSignal3.setPublic(false);
+
+        const auto scalingFb4 = instance.addFunctionBlock("ref_fb_module_scaling");
+        scalingFb4.setPropertyValue("Scale", 2.0);
+        scalingFb4.setPropertyValue("Offset", 1.0);
+        scalingFb4.getInputPorts()[0].connect(scaledSignal3);
+        const auto scaledSignal4 = scalingFb4.getSignals()[0];
+        scaledSignal4.setPublic(false);
+
+        if constexpr (enableRenderer)
+        {
+            if (i == 0)
+            {
+                rendererFb.getInputPorts()[0].connect(deviceSignal);
+                rendererFb.getInputPorts()[1].connect(scaledSignal4);
+            }
+        }
+    }
+    std::cout << "Started" << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 }
 
 static Finally CreateConfigFile(const std::string& configFilename, const std::string& data)

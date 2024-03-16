@@ -33,7 +33,8 @@ PyDaqIntf<daq::IInputPortConfig, daq::IInputPort> declareIInputPortConfig(pybind
     py::enum_<daq::PacketReadyNotification>(m, "PacketReadyNotification")
         .value("None", daq::PacketReadyNotification::None)
         .value("SameThread", daq::PacketReadyNotification::SameThread)
-        .value("Scheduler", daq::PacketReadyNotification::Scheduler);
+        .value("Scheduler", daq::PacketReadyNotification::Scheduler)
+        .value("SchedulerQueueWasEmpty", daq::PacketReadyNotification::SchedulerQueueWasEmpty);
 
     return wrapInterface<daq::IInputPortConfig, daq::IInputPort>(m, "IInputPortConfig");
 }
@@ -53,11 +54,12 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
         },
         "Sets the input-ports response to the packet enqueued notification.");
     cls.def("notify_packet_enqueued",
-        [](daq::IInputPortConfig *object)
+        [](daq::IInputPortConfig *object, const bool queueWasEmpty)
         {
             const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
-            objectPtr.notifyPacketEnqueued();
+            objectPtr.notifyPacketEnqueued(queueWasEmpty);
         },
+        py::arg("queue_was_empty"),
         "Gets called when a packet was enqueued in a connection.");
     cls.def("notify_packet_enqueued_on_this_thread",
         [](daq::IInputPortConfig *object)

@@ -22,11 +22,13 @@ private:
 ListImpl::ListImpl()
     : iid(IUnknown::Id)
 {
+    list.reserve(16);
 }
 
 ListImpl::ListImpl(IntfID id)
     : iid(id)
 {
+    list.reserve(16);
 }
 
 ErrCode ListImpl::getElementInterfaceId(IntfID* id)

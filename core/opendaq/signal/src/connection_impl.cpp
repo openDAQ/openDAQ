@@ -5,10 +5,12 @@
 #include <opendaq/event_packet_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 ConnectionImpl::ConnectionImpl(const InputPortPtr& port, const SignalPtr& signal, ContextPtr context)
     : port(port)
     , signalRef(signal)
     , context(std::move(context))
+    , queueEmpty(true)
 {
 }
 
@@ -16,12 +18,74 @@ ErrCode ConnectionImpl::enqueue(IPacket* packet)
 {
     OPENDAQ_PARAM_NOT_NULL(packet);
 
-    withLock([&packet, this]()
+    bool queueWasEmpty;
+
+    withLock([&packet, &queueWasEmpty, this]()
     {
+        queueWasEmpty = queueEmpty;
         packets.emplace_back(packet);
+        queueEmpty = false;
     });
 
-    port.notifyPacketEnqueued();
+    port.notifyPacketEnqueued(queueWasEmpty);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC ConnectionImpl::enqueueMultiple(IList* packets)
+{
+    OPENDAQ_PARAM_NOT_NULL(packets);
+
+    bool queueWasEmpty;
+
+    withLock([&packets, &queueWasEmpty, this]()
+        {
+            queueWasEmpty = queueEmpty;
+            const auto packetsPtr = ListPtr<IPacket>::Borrow(packets);
+            for (size_t i = 0; i < packetsPtr.getCount(); ++i)
+                this->packets.push_back(packetsPtr.getItemAt(i).detach());
+            queueEmpty = false;
+        });
+
+    port.notifyPacketEnqueued(queueWasEmpty);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC ConnectionImpl::enqueueAndSteal(IPacket* packet)
+{
+    OPENDAQ_PARAM_NOT_NULL(packet);
+
+    auto packetPtr = PacketPtr::Adopt(packet);
+    bool queueWasEmpty;
+
+    withLock([&packetPtr, &queueWasEmpty, this]()
+    {
+        queueWasEmpty = queueEmpty;
+        packets.push_back(std::move(packetPtr));
+        queueEmpty = false;
+    });
+
+    port.notifyPacketEnqueued(queueWasEmpty);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC ConnectionImpl::enqueueAndStealMultiple(IList* packets)
+{
+    OPENDAQ_PARAM_NOT_NULL(packets);
+
+    bool queueWasEmpty;
+    auto packetsPtr = ListPtr<IPacket>::Adopt(packets);
+
+    withLock(
+        [&packetsPtr, &queueWasEmpty, this]()
+        {
+            queueWasEmpty = queueEmpty;
+            for (size_t i = 0; i < packetsPtr.getCount(); ++i)
+                this->packets.push_back(packetsPtr.getItemAt(i).detach());
+            packetsPtr.clear();
+            queueEmpty = false;
+        });
+
+    port.notifyPacketEnqueued(queueWasEmpty);
     return OPENDAQ_SUCCESS;
 }
 
@@ -46,15 +110,34 @@ ErrCode ConnectionImpl::dequeue(IPacket** packet)
     {
         if (packets.empty())
         {
+            queueEmpty = true;
             *packet = nullptr;
             return OPENDAQ_NO_MORE_ITEMS;
         }
 
-        *packet = packets.front().addRefAndReturn();
+        *packet = packets.front().detach();
         packets.pop_front();
 
         return OPENDAQ_SUCCESS;
     });
+}
+
+ErrCode INTERFACE_FUNC ConnectionImpl::dequeueAll(IList** packets)
+{
+    OPENDAQ_PARAM_NOT_NULL(packets);
+
+    auto packetsPtr = List<IPacket>();
+
+    return withLock(
+        [&packetsPtr, packets, this]()
+        {
+            for (auto& packet : this->packets)
+                packetsPtr.pushBack(std::move(packet));
+            this->packets.clear();
+
+            *packets = packetsPtr.detach();
+            return OPENDAQ_NO_MORE_ITEMS;
+        });
 }
 
 ErrCode ConnectionImpl::peek(IPacket** packet)
@@ -151,6 +234,35 @@ ErrCode ConnectionImpl::isRemote(Bool* remote)
 
     *remote = False;
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode ConnectionImpl::queryInterface(const IntfID& id, void** intf)
+{
+    OPENDAQ_PARAM_NOT_NULL(intf);
+
+    if (id == IConnection::Id)
+    {
+        *intf = static_cast<IConnection*>(this);
+        this->addRef();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::queryInterface(id, intf);
+}
+
+ErrCode ConnectionImpl::borrowInterface(const IntfID& id, void** intf) const
+{
+    OPENDAQ_PARAM_NOT_NULL(intf);
+
+    if (id == IConnection::Id)
+    {
+        *intf = const_cast<IConnection*>(static_cast<const IConnection*>(this));
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::borrowInterface(id, intf);
 }
 
 ErrCode ConnectionImpl::getSignal(ISignal** signal)

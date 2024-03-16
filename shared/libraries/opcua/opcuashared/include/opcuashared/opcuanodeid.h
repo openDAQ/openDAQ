@@ -103,6 +103,7 @@ public:
     UA_NodeId* getPtr() noexcept;
 
     uint16_t getNamespaceIndex() const noexcept;
+    uint32_t getIdentifierNumeric() const;
     OpcUaIdentifierUniversal getIdentifier() const;
     OpcUaIdentifierType getIdentifierType() const;
     std::string toString() const;

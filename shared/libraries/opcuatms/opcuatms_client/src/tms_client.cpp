@@ -58,7 +58,7 @@ daq::DevicePtr TmsClient::connect()
     tmsClientContext = std::make_shared<TmsClientContext>(client, context);
 
     //On connect add server broadcasted enumeration types to the type manager
-    AddEnumerationTypesToTypeManager();
+    AddEnumerationTypesToTypeManager(context, tmsClientContext);
 
     OpcUaNodeId rootDeviceNodeId;
     std::string rootDeviceBrowseName;
@@ -86,15 +86,15 @@ daq::DevicePtr TmsClient::connect()
     return device;
 }
 
-void TmsClient::AddEnumerationTypesToTypeManager()
+void TmsClient::AddEnumerationTypesToTypeManager(const ContextPtr& contextPtr, const daq::opcua::tms::TmsClientContextPtr& clientContext)
 {
-    if (!context.assigned() || !context.getTypeManager().assigned())
+    if (!contextPtr.assigned() || !contextPtr.getTypeManager().assigned())
         return; // TypeManager required. Do nothing.
 
-    auto typeManager = context.getTypeManager();
+    auto typeManager = contextPtr.getTypeManager();
 
     const auto DataTypeEnumerationNodeId = OpcUaNodeId(UA_NS0ID_ENUMERATION);
-    const auto& references = tmsClientContext->getReferenceBrowser()->browse(DataTypeEnumerationNodeId);
+    const auto& references = clientContext->getReferenceBrowser()->browse(DataTypeEnumerationNodeId);
     StructPtr EnumValuesStruct;
     std::vector<OpcUaNodeId> vecEnumerationsNodeIds;
 
@@ -102,7 +102,7 @@ void TmsClient::AddEnumerationTypesToTypeManager()
         vecEnumerationsNodeIds.push_back(ref->nodeId.nodeId);
 
     //Cache NodeIds
-    tmsClientContext->getReferenceBrowser()->browseMultiple(vecEnumerationsNodeIds);
+    clientContext->getReferenceBrowser()->browseMultiple(vecEnumerationsNodeIds);
 
     auto listEnumValues = List<IString>();
 
@@ -112,7 +112,7 @@ void TmsClient::AddEnumerationTypesToTypeManager()
         if(typeManager.hasType(browseName))
             continue;
 
-        const auto& references1 = tmsClientContext->getReferenceBrowser()->browse(ref->nodeId.nodeId);
+        const auto& references1 = clientContext->getReferenceBrowser()->browse(ref->nodeId.nodeId);
         for (auto [childBrowseName, ChildRef] : references1.byBrowseName)
         {
             const auto childNodeValue = client->readValue(ChildRef->nodeId.nodeId);

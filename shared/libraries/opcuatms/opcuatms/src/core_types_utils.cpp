@@ -293,4 +293,35 @@ const UA_DataType* GetUAEnumerationDataTypeByName(const std::string& enumeration
     return nullptr;
 }
 
+const std::string GetUATypeName(UA_UInt16 namespaceIndex, UA_UInt32 identifierNumeric)
+{
+    // TODO: Create static list, add any custom types added automatically.
+    OpcUaDataTypeArrayList typeArr;
+    typeArr.add(UA_TYPES_COUNT, UA_TYPES);
+    typeArr.add(UA_TYPES_DI_COUNT, UA_TYPES_DI);
+    typeArr.add(UA_TYPES_DAQBT_COUNT, UA_TYPES_DAQBT);
+    typeArr.add(UA_TYPES_DAQBSP_COUNT, UA_TYPES_DAQBSP);
+    typeArr.add(UA_TYPES_DAQDEVICE_COUNT, UA_TYPES_DAQDEVICE);
+    typeArr.add(UA_TYPES_DAQESP_COUNT, UA_TYPES_DAQESP);
+    typeArr.add(UA_TYPES_DAQHBK_COUNT, UA_TYPES_DAQHBK);
+
+    const UA_DataTypeArray* dataType = typeArr.getCustomDataTypes();
+    while(dataType)
+    {
+        for(size_t i = 0; i < dataType->typesSize; ++i)
+        {
+            if ((dataType->types[i].typeId.namespaceIndex == namespaceIndex) &&
+                (dataType->types[i].typeId.identifier.numeric == identifierNumeric))
+            {
+                const auto typeKind = dataType->types[i].typeKind;
+                if (typeKind == UA_DATATYPEKIND_ENUM)
+                    return dataType->types[i].typeName;
+            }
+        }
+        dataType = dataType->next;
+    }
+
+    return "";
+}
+
 END_NAMESPACE_OPENDAQ_OPCUA

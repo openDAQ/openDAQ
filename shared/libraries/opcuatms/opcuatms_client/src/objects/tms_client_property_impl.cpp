@@ -1,4 +1,5 @@
 #include "opcuatms_client/objects/tms_client_property_impl.h"
+#include <opcuatms/core_types_utils.h>
 #include "coreobjects/coercer_factory.h"
 #include "coreobjects/eval_value_factory.h"
 #include "coreobjects/validator_factory.h"

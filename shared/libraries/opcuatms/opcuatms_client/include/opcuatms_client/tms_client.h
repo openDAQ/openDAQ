@@ -33,9 +33,10 @@ public:
               const FunctionPtr& createStreamingCallback);
 
     daq::DevicePtr connect();
+    void AddEnumerationTypesToTypeManager(const ContextPtr& context, const daq::opcua::tms::TmsClientContextPtr& clientContext);
+
 
 protected:
-    void AddEnumerationTypesToTypeManager();
     void getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string& browseNameOut);
 
     tms::TmsClientContextPtr tmsClientContext;

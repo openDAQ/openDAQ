@@ -29,6 +29,7 @@ class VariantConverter
 {
 public:
     static BlueberryTypePtr ToDaqObject(const OpcUaVariant& variant, const ContextPtr& context = nullptr);
+    static BlueberryTypePtr ToDaqObject(const OpcUaVariant& variant, std::string typeName, const ContextPtr& context = nullptr);
     static OpcUaVariant ToVariant(const BlueberryTypePtr& object,
                                   const UA_DataType* targetType = nullptr,
                                   const ContextPtr& context = nullptr);

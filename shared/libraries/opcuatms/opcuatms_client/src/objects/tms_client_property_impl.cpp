@@ -181,8 +181,19 @@ void TmsClientPropertyImpl::configurePropertyFields()
                                     "Failed to read default value of property {} on OpcUa client. Detault value is set to the value at connection time.",
                                     this->name);
                             }
-                            this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);
-                            
+
+                            //Special handling for enumerations as this data type is encoded as Int32 in OPCUA
+                            const auto dataType = reader->getValue(nodeId, UA_ATTRIBUTEID_DATATYPE).toNodeId();
+                            const auto enumerationTypeId = OpcUaNodeId(0, UA_NS0ID_ENUMERATION);
+
+                            if (clientContext->getReferenceBrowser()->isSubtypeOf(dataType, enumerationTypeId))
+                            {
+                                //Get EnumerationTypeName from the namespace id and identifier numeric
+                                std::string strEnumerationTypeName = GetUATypeName(dataType.getNamespaceIndex(), dataType.getIdentifierNumeric());
+                                this->defaultValue = VariantConverter<IEnumeration>::ToDaqObject(value, strEnumerationTypeName, daqContext);
+                            }
+                            else
+                                this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);
 
                             if (this->defaultValue.assigned() && this->defaultValue.asPtrOrNull<IFreezable>().assigned())
                                 this->defaultValue.freeze();

@@ -91,7 +91,7 @@ OpcUaVariant VariantConverter<IEnumeration>::ToVariant(const EnumerationPtr& obj
     const auto dataType = GetUAEnumerationDataTypeByName(object.getEnumerationType().getName());
     assert(dataType->memSize == sizeof(uint32_t));
 
-    const auto intVariant = VariantConverter<IInteger>::ToVariant(object.getIntValue(), &UA_TYPES[UA_TYPES_UINT32]);
+    const auto intVariant = VariantConverter<IInteger>::ToVariant(object.getIntValue(), &UA_TYPES[UA_TYPES_INT32]);
     OpcUaVariant variant{};
     UA_Variant_setScalarCopy(&variant.getValue(), intVariant->data, dataType);
 

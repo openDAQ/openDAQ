@@ -188,9 +188,14 @@ void TmsClientPropertyImpl::configurePropertyFields()
 
                             if (clientContext->getReferenceBrowser()->isSubtypeOf(dataType, enumerationTypeId))
                             {
-                                //Get EnumerationTypeName from the namespace id and identifier numeric
-                                std::string strEnumerationTypeName = GetUATypeName(dataType.getNamespaceIndex(), dataType.getIdentifierNumeric());
-                                this->defaultValue = VariantConverter<IEnumeration>::ToDaqObject(value, strEnumerationTypeName, daqContext);
+                                if (value->type != &UA_TYPES[UA_TYPES_INT32])
+                                    throw ConversionFailedException{"Enumeration node data type is not uint32_t"};
+
+                                const auto enumBrowseName = client->readBrowseName(dataType);
+                                const auto enumType = GetUAEnumerationDataTypeByName(enumBrowseName);
+                                OpcUaVariant variant{};
+                                UA_Variant_setScalarCopy(&variant.getValue(), value->data, enumType);
+                                this->defaultValue = VariantConverter<IEnumeration>::ToDaqObject(variant, daqContext);
                             }
                             else
                                 this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);

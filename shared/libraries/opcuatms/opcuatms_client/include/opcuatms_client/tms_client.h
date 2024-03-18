@@ -33,7 +33,6 @@ public:
               const FunctionPtr& createStreamingCallback);
 
     daq::DevicePtr connect();
-    void AddEnumerationTypesToTypeManager();
 
 
 protected:

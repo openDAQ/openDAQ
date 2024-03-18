@@ -48,6 +48,7 @@ public:
     void readObjectAttributes(const OpcUaNodeId& nodeId, bool forceRead = false);
     size_t getMaxNodesPerBrowse();
     size_t getMaxNodesPerRead();
+    void addEnumerationTypesToTypeManager();
 
     template <class I, class Ptr = typename InterfaceToSmartPtr<I>::SmartPtr>
     Ptr getObject(const opcua::OpcUaNodeId& nodeId)
@@ -76,6 +77,7 @@ protected:
     size_t maxNodesPerBrowse = 0;
     size_t maxNodesPerRead = 0;
     WeakRefPtr<IDevice> rootDevice;
+    bool enumerationTypesAdded = false;
 
     void initReferenceBrowser();
     void initAttributeReader();

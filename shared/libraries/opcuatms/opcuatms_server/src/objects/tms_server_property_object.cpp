@@ -111,7 +111,7 @@ void TmsServerPropertyObject::addChildNodes()
                 if(structPtr.assigned())
                 {
                     std::string structTypeName = structPtr.getStructType().getName();
-                    if(GetUAStructureDataTypeByName(structTypeName) == nullptr)
+                    if (!nativeStructConversionSupported(structTypeName) && GetUAStructureDataTypeByName(structTypeName) == nullptr)
                         continue;
                 }
             }

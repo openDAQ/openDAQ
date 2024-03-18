@@ -3,11 +3,15 @@
 #include <coretypes/type_manager_ptr.h>
 #include <coretypes/baseobject_factory.h>
 #include <coretypes/serialized_object_ptr.h>
+#include <cctype>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 TypeManagerImpl::TypeManagerImpl()
     : types(Dict<IString, IType>())
+    , reservedTypeNames({
+    "argumentinfo", "callableinfo", "unit", "complexnumber", "ratio", "devicetype", "functionblocktype",
+    "servertype", "datadescriptor", "datarule", "dimension", "dimensionrule", "range", "scaling"})
 {
 }
 
@@ -20,7 +24,12 @@ ErrCode TypeManagerImpl::addType(IType* type)
     const auto typeName = typePtr.getName();
     if (!typeName.assigned() || typeName == "")
         return OPENDAQ_ERR_INVALIDPARAMETER;
-    
+
+    std::string typeStr = typeName;
+    std::transform(typeStr.begin(), typeStr.end(), typeStr.begin(),[](char c){ return std::tolower(c); });
+    if (reservedTypeNames.count(typeStr))
+        return OPENDAQ_ERR_INVALIDPARAMETER;
+
     if (types.hasKey(typeName))
         return OPENDAQ_ERR_ALREADYEXISTS;
 

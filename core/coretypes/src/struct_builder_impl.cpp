@@ -1,6 +1,7 @@
 #include <coretypes/struct_builder_impl.h>
 #include <coretypes/validation.h>
 #include <coretypes/struct_factory.h>
+#include <coretypes/enumeration_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -93,8 +94,21 @@ ErrCode StructBuilderImpl::set(IString* name, IBaseObject* field)
     else
     {
         for (size_t i = 0; i < names.getCount(); ++i)
-            if (names[i] == namePtr && SimpleType(fieldPtr.getCoreType())!= structType.getFieldTypes()[i])
-                return OPENDAQ_ERR_INVALIDPARAMETER;
+        {
+            if (names[i] == namePtr)
+            {
+                TypePtr type;
+                if (const auto _struct = fieldPtr.asPtrOrNull<IStruct>(); _struct.assigned())
+                    type = _struct.getStructType();
+                else if (const auto _enum = fieldPtr.asPtrOrNull<IEnumeration>(); _enum.assigned())
+                    type = _enum.getEnumerationType();
+                else
+                    type = SimpleType(fieldPtr.getCoreType());
+
+                if (type != structType.getFieldTypes()[i])
+                    return OPENDAQ_ERR_INVALIDPARAMETER;
+            }
+        }
     }
 
     fields.set(name, field);

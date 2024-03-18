@@ -48,6 +48,7 @@ public:
 private:
     DictPtr<IString, IType> types;
     ProcedurePtr coreEventCallback;
+    std::unordered_set<std::string> reservedTypeNames;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(TypeManagerImpl)

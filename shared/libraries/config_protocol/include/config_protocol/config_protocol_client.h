@@ -226,10 +226,10 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
                 throw InvalidValueException("Remote type different than local");*/
             localTypeManager.addType(type);
         }
-        catch (...)
+        catch (const std::exception& e)
         {
             const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
-            LOG_W("Couldn't add type {} to local type manager.", type.getName());
+            LOG_W("Couldn't add type {} to local type manager: {}", type.getName(), e.what());
         }
     }
 }

@@ -285,10 +285,10 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     {
         ctx.getTypeManager().addType(statusType);
     }
-    catch (...)
+    catch (const std::exception& e)
     {
         const auto loggerComponent = ctx.getLogger().getOrAddComponent("TestUtils");
-        LOG_W("Couldn't add type {} to type manager.", statusType.getName());
+        LOG_W("Couldn't add type {} to type manager: {}", statusType.getName(), e.what());
     }
 
     const auto statusInitValue = Enumeration("StatusType", "Status0", ctx.getTypeManager());

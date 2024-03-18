@@ -122,10 +122,10 @@ StructPtr VariantConverter<IStruct>::ToDaqObject(const OpcUaVariant& variant, co
     {
         typeManager.addType(StructType(type->typeName, daqMembers.getKeyList(), memberTypes));
     }
-    catch (...)
+    catch (const std::exception& e)
     {
         const auto loggerComponent = context.getLogger().getOrAddComponent("GenericStructConverter");
-        LOG_W("Couldn't add type {} to type manager.", type->typeName);
+        LOG_W("Couldn't add type {} to type manager: {}", type->typeName, e.what());
     }
 
     return Struct(type->typeName, daqMembers, typeManager);

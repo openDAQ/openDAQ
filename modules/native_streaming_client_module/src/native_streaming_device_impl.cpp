@@ -46,10 +46,10 @@ void NativeStreamingDeviceImpl::initStatuses(const ContextPtr& ctx)
     {
         ctx.getTypeManager().addType(statusType);
     }
-    catch (...)
+    catch (const std::exception& e)
     {
         const auto loggerComponent = ctx.getLogger().getOrAddComponent("NativeStreamingDevice");
-        LOG_W("Couldn't add type {} to type manager.", statusType.getName());
+        LOG_W("Couldn't add type {} to type manager: {}", statusType.getName(), e.what());
     }
 
     const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());

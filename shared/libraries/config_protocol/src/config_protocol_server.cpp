@@ -308,7 +308,6 @@ void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventA
     sendNotification(packed);
 }
 
-
 ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
 {
     const auto globalId = component.assigned() ? component.getGlobalId() : "";
@@ -335,6 +334,8 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::StatusChanged:
         case CoreEventId::TypeAdded:
         case CoreEventId::TypeRemoved:
+        case CoreEventId::DeviceDomainChanged:
+        default:
             packedEvent.pushBack(args);
     }
     

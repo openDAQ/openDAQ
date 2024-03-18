@@ -236,6 +236,14 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @param configuration Serialized configuration of the device.
      */
     virtual ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration) = 0;
+
+    /*!
+     * @brief Gets the number of ticks passed since the device's absolute origin.
+     * @param[out] ticks The number of ticks.
+     *
+     * To scale the ticks into a domain unit, the Device's Domain should be used.
+     */
+    virtual ErrCode INTERFACE_FUNC getTicksSinceOrigin(UInt* ticks) = 0;
 };
 /*!@}*/
 

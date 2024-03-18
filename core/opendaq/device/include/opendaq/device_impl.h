@@ -49,10 +49,10 @@ using DeviceBase = GenericDevice<IDevice, TTraits...>;
 using Device = DeviceBase<>;
 
 template <typename TInterface, typename... Interfaces>
-class GenericDevice : public SignalContainerImpl<TInterface, IDeviceDomain, IDevicePrivate, Interfaces...>
+class GenericDevice : public SignalContainerImpl<TInterface, IDevicePrivate, Interfaces...>
 {
 public:
-    using Super = SignalContainerImpl<TInterface, IDeviceDomain, IDevicePrivate, Interfaces...>;
+    using Super = SignalContainerImpl<TInterface, IDevicePrivate, Interfaces...>;
     using Self = GenericDevice<TInterface, Interfaces...>;
 
     GenericDevice(const ContextPtr& ctx,
@@ -62,10 +62,7 @@ public:
 
     virtual DeviceInfoPtr onGetInfo();
 
-    virtual RatioPtr onGetResolution();
     virtual uint64_t onGetTicksSinceOrigin();
-    virtual std::string onGetOrigin();
-    virtual UnitPtr onGetDomainUnit();
 
     virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
@@ -109,11 +106,7 @@ public:
     ErrCode INTERFACE_FUNC saveConfiguration(IString** configuration) override;
     ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration) override;
 
-    // IDeviceDomain
-    ErrCode INTERFACE_FUNC getTickResolution(IRatio** resolution) override;
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
-    ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
-    ErrCode INTERFACE_FUNC getUnit(IUnit** unit) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -128,9 +121,6 @@ protected:
     std::vector<StreamingInfoPtr> streamingOptions;
     LoggerComponentPtr loggerComponent;
     bool isRootDevice;
-    UnitPtr domainUnit;
-    RatioPtr domainTickResolution;
-    StringPtr domainOrigin;
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
@@ -139,6 +129,8 @@ protected:
 
     void addSubDevice(const DevicePtr& device);
     void removeSubDevice(const DevicePtr& device);
+
+    void setDeviceDomain(const DeviceDomainPtr& domain);
 
     DevicePtr createAndAddSubDevice(const StringPtr& connectionString, const PropertyObjectPtr& config);
 
@@ -160,6 +152,8 @@ protected:
     void updateObject(const SerializedObjectPtr& obj) override;
     bool clearFunctionBlocksOnUpdate() override;
 
+    void setDeviceDomainNoCoreEvent(const DeviceDomainPtr& domain);
+
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -168,6 +162,7 @@ private:
     ListPtr<IDevice> getDevicesRecursive(const SearchFilterPtr& searchFilter);
 
     std::unordered_map<std::string, size_t> functionBlockCountMap;
+    DeviceDomainPtr deviceDomain;
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -222,7 +217,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getDomain(IDeviceDomain** devi
 {
     OPENDAQ_PARAM_NOT_NULL(deviceDomain);
 
-    *deviceDomain = this->template thisInterface<IDeviceDomain>();
+    *deviceDomain = this->deviceDomain.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -427,25 +422,6 @@ bool GenericDevice<TInterface, Interfaces...>::hasChannel(const FolderConfigPtr&
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getTickResolution(IRatio** resolution)
-{
-    OPENDAQ_PARAM_NOT_NULL(resolution);
-
-    RatioPtr resolutionPtr;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetResolution, resolutionPtr);
-
-    *resolution = resolutionPtr.detach();
-
-    return errCode;
-}
-
-template <typename TInterface, typename... Interfaces>
-RatioPtr GenericDevice<TInterface, Interfaces...>::onGetResolution()
-{
-    return domainTickResolution;
-}
-
-template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getTicksSinceOrigin(uint64_t* ticks)
 {
     OPENDAQ_PARAM_NOT_NULL(ticks);
@@ -459,41 +435,6 @@ template <typename TInterface, typename... Interfaces>
 uint64_t GenericDevice<TInterface, Interfaces...>::onGetTicksSinceOrigin()
 {
     return 0;
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getOrigin(IString** origin)
-{
-    OPENDAQ_PARAM_NOT_NULL(origin);
-
-    std::string originStr;
-    ErrCode errCode = wrapHandlerReturn(this, &Self::onGetOrigin, originStr);
-
-    *origin = String(originStr).detach();
-
-    return errCode;
-}
-
-template <typename TInterface, typename... Interfaces>
-std::string GenericDevice<TInterface, Interfaces...>::onGetOrigin()
-{
-    if (domainOrigin.assigned())
-        return domainOrigin.toStdString();
-
-    return {};
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getUnit(IUnit** unit)
-{
-    OPENDAQ_PARAM_NOT_NULL(unit);
-
-    UnitPtr unitPtr;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetDomainUnit, unitPtr);
-
-    *unit = unitPtr.detach();
-
-    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -537,12 +478,6 @@ ErrCode GenericDevice<TInterface, Interfaces...>::Deserialize(ISerializedObject*
                        className);
                 }).detach();
         });
-}
-
-template <typename TInterface, typename... Interfaces>
-UnitPtr GenericDevice<TInterface, Interfaces...>::onGetDomainUnit()
-{
-    return domainUnit;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1047,6 +982,17 @@ void GenericDevice<TInterface, Interfaces...>::removeSubDevice(const DevicePtr& 
     devices.removeItem(device);
 }
 
+template <typename TInterface, typename ... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::setDeviceDomain(const DeviceDomainPtr& domain)
+{
+    this->deviceDomain = domain;
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        this->triggerCoreEvent(CoreEventArgsDeviceDomainChanged(this->deviceDomain));
+    }
+}
+
 template <typename TInterface, typename... Interfaces>
 inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(const std::string& localId,
                                                                                const IoFolderConfigPtr& parent)
@@ -1102,30 +1048,10 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             deviceInfo.serialize(serializer);
         }
 
-        DeviceDomainPtr deviceDomain;
-        checkErrorInfo(this->getDomain(&deviceDomain));
         if (deviceDomain.assigned())
         {
-            const auto origin = deviceDomain.getOrigin();
-            if (origin.assigned())
-            {
-                serializer.key("domainOrigin");
-                serializer.writeString(deviceDomain.getOrigin());
-            }
-
-            const auto resolution = deviceDomain.getTickResolution();
-            if (resolution.assigned())
-            {
-                serializer.key("domainResolution");
-                resolution.serialize(serializer);
-            }
-
-            const auto unit = deviceDomain.getUnit();
-            if (unit.assigned())
-            {
-                serializer.key("domainUnit");
-                unit.serialize(serializer);
-            }
+            serializer.key("deviceDomain");
+            deviceDomain.serialize(serializer);
         }
     }
 }
@@ -1220,14 +1146,10 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
         deviceInfo.freeze();
     }
 
-    if (serializedObject.hasKey("domainOrigin"))
-        domainOrigin = serializedObject.readString("domainOrigin");
-
-    if (serializedObject.hasKey("domainResolution"))
-        domainTickResolution = serializedObject.readObject("domainResolution");
-
-    if (serializedObject.hasKey("domainUnit"))
-        domainUnit = serializedObject.readObject("domainUnit");
+    if (serializedObject.hasKey("deviceDomain"))
+    {
+        deviceDomain = serializedObject.readObject("deviceDomain");
+    }
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");
     this->template deserializeDefaultFolder<IDevice>(serializedObject, context, factoryCallback, devices, "Dev");
@@ -1291,12 +1213,23 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
             }
         }
     }
+
+    if (obj.hasKey("deviceDomain"))
+    {
+        deviceDomain = obj.readObject("deviceDomain");
+    }
 }
 
 template <typename TInterface, typename... Interfaces>
 bool GenericDevice<TInterface, Interfaces...>::clearFunctionBlocksOnUpdate()
 {
     return true;
+}
+
+template <typename TInterface, typename ... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::setDeviceDomainNoCoreEvent(const DeviceDomainPtr& domain)
+{
+    this->deviceDomain = domain;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(Device)

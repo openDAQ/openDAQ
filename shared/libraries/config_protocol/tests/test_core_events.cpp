@@ -13,6 +13,7 @@
 #include <opendaq/tags_private_ptr.h>
 #include <opendaq/component_status_container_private_ptr.h>
 #include <opendaq/component_status_container_ptr.h>
+#include <opendaq/device_domain_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include "test_utils.h"
 #include "config_protocol/config_protocol_server.h"
@@ -1390,4 +1391,34 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndDescriptorChanged)
     ASSERT_EQ(clientDeviceSig.getDescriptor(), newDesc);
 
     ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, DomainChanged)
+{
+    int changeCount = 0;
+    auto mock = dynamic_cast<test_utils::MockDevice2Impl*>(serverDevice.getObject());
+
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::DeviceDomainChanged));
+            ASSERT_EQ(args.getEventName(), "DeviceDomainChanged");
+            ASSERT_TRUE(args.getParameters().hasKey("DeviceDomain"));
+            ASSERT_EQ(comp, clientDevice);
+            changeCount++;
+        };
+
+    DeviceDomainPtr domain1 = DeviceDomain(Ratio(1, 1), "foo", Unit("test"));
+    DeviceDomainPtr domain2 = DeviceDomain(Ratio(1, 1), "bar", Unit("test1"));
+
+    mock->setDeviceDomainHelper(domain1);
+    ASSERT_EQ(clientDevice.getDomain().getOrigin(), "foo");
+
+    mock->setDeviceDomainHelper(domain2);
+    ASSERT_EQ(clientDevice.getDomain().getOrigin(), "bar");
+
+    mock->setDeviceDomainHelper(domain1);
+    ASSERT_EQ(clientDevice.getDomain().getOrigin(), "foo");
+
+    ASSERT_EQ(changeCount, 3);
 }

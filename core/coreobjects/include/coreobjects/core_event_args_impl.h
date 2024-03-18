@@ -59,6 +59,8 @@ namespace core_event_args_impl
                 return "TypeAdded";
             case CoreEventId::TypeRemoved:
                 return "TypeRemoved";
+            case CoreEventId::DeviceDomainChanged:
+                return "DeviceDomainChanged";
             default:
                 break;
         }
@@ -224,6 +226,8 @@ inline bool CoreEventArgsImpl::validateParameters() const
             return parameters.hasKey("Type");
         case CoreEventId::TypeRemoved:
             return parameters.hasKey("TypeName");
+        case CoreEventId::DeviceDomainChanged:
+            return parameters.hasKey("DeviceDomain");
         default:
             break;
     }

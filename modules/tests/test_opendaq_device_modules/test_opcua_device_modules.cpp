@@ -158,7 +158,7 @@ TEST_F(OpcuaDeviceModulesTest, DeviceInfoAndDomain)
     ASSERT_EQ(domain.getTickResolution(), serverRefDeviceDomain.getTickResolution());
     ASSERT_EQ(domain.getOrigin(), serverRefDeviceDomain.getOrigin());
     ASSERT_NO_THROW(domain.getUnit());
-    ASSERT_NO_THROW(domain.getTicksSinceOrigin());
+    ASSERT_NO_THROW(refDevice.getTicksSinceOrigin());
 }
 
 TEST_F(OpcuaDeviceModulesTest, DeviceDynamicFeatures)

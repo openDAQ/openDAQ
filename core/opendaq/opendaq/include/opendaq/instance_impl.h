@@ -24,7 +24,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class InstanceImpl final : public ImplementationOfWeak<IInstance, IDeviceDomain, ISerializable, IUpdatable>
+class InstanceImpl final : public ImplementationOfWeak<IInstance, ISerializable, IUpdatable>
 {
 public:
     explicit InstanceImpl(ContextPtr context, const StringPtr& localId);
@@ -73,10 +73,7 @@ public:
     ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration) override;
 
     // IDeviceDomain
-    ErrCode INTERFACE_FUNC getTickResolution(IRatio** resolution) override;
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
-    ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
-    ErrCode INTERFACE_FUNC getUnit(IUnit** unit) override;
 
     // IComponent
 

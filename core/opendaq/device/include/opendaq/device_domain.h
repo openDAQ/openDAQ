@@ -50,15 +50,9 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceDomain, IBaseObject)
 {
     /*!
      * @brief Gets domain (usually time) between two consecutive ticks. Resolution is provided in a domain unit.
-     * @param[out] resolution The device's resolution.
+     * @param[out] tickResolution The device's resolution.
      */
-    virtual ErrCode INTERFACE_FUNC getTickResolution(IRatio** resolution) = 0;
-
-    /*!
-     * @brief Gets the number of ticks passed since the device's absolute origin.
-     * @param[out] ticks The number of ticks.
-     */
-    virtual ErrCode INTERFACE_FUNC getTicksSinceOrigin(UInt* ticks) = 0;
+    virtual ErrCode INTERFACE_FUNC getTickResolution(IRatio** tickResolution) = 0;
 
     /*!
      * @brief Gets the device's absolute origin. Most often this is a time epoch in the ISO 8601 format.
@@ -73,5 +67,12 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceDomain, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getUnit(IUnit** unit) = 0;
 };
 /*!@}*/
+
+OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, DeviceDomain,
+    IRatio*, tickResolution,
+    IString*, origin,
+    IUnit*, unit
+)
+
 
 END_NAMESPACE_OPENDAQ

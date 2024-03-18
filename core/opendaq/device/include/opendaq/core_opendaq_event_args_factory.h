@@ -18,6 +18,7 @@
 #include <coreobjects/core_event_args_factory.h>
 #include <opendaq/core_opendaq_event_args.h>
 #include <opendaq/signal_ptr.h>
+#include <opendaq/device_domain_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -136,6 +137,17 @@ inline CoreEventArgsPtr CoreEventArgsTagsChanged(const ListPtr<IString>& tags)
     return obj;
 }
 
+/*!
+ * @brief Creates Core event args that are passed as argument when the domain of a device changes.
+ * @param deviceDomain The new device domain
+ *
+ * The ID of the event is 150, and the event name is "DeviceDomainChanged".
+ */
+inline CoreEventArgsPtr CoreEventArgsDeviceDomainChanged(const DeviceDomainPtr& deviceDomain)
+{
+    CoreEventArgsPtr obj(CoreEventArgsDeviceDomainChanged_Create(deviceDomain));
+    return obj;
+}
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

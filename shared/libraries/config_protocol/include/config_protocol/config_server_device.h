@@ -73,7 +73,7 @@ inline BaseObjectPtr ConfigServerDevice::getInfo(const DevicePtr& device, const 
 
 inline BaseObjectPtr ConfigServerDevice::getTicksSinceOrigin(const DevicePtr& device, const ParamsDictPtr& params)
 {
-    return device.getDomain().getTicksSinceOrigin();
+    return device.getTicksSinceOrigin();
 }
 
 }

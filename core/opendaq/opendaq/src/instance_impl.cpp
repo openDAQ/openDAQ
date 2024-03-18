@@ -338,42 +338,9 @@ ErrCode InstanceImpl::getSignalsRecursive(IList** signals, ISearchFilter* search
     return rootDevice->getSignalsRecursive(signals, searchFilter);
 }
 
-// IDeviceDomain
-
-ErrCode InstanceImpl::getTickResolution(IRatio** resolution)
-{
-    const auto deviceDomain = rootDevice.asPtrOrNull<IDeviceDomain>();
-    if (deviceDomain.assigned())
-        return deviceDomain->getTickResolution(resolution);
-
-    return makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Root device does not contain a device domain.");
-}
-
 ErrCode InstanceImpl::getTicksSinceOrigin(uint64_t* ticks)
 {
-    const auto deviceDomain = rootDevice.asPtrOrNull<IDeviceDomain>();
-    if (deviceDomain.assigned())
-        return deviceDomain->getTicksSinceOrigin(ticks);
-
-    return makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Root device does not contain a device domain.");
-}
-
-ErrCode InstanceImpl::getOrigin(IString** origin)
-{
-    const auto deviceDomain = rootDevice.asPtrOrNull<IDeviceDomain>();
-    if (deviceDomain.assigned())
-        return deviceDomain->getOrigin(origin);
-
-    return makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Root device does not contain a device domain.");
-}
-
-ErrCode InstanceImpl::getUnit(IUnit** unit)
-{
-    const auto deviceDomain = rootDevice.asPtrOrNull<IDeviceDomain>();
-    if (deviceDomain.assigned())
-        return deviceDomain->getUnit(unit);
-
-    return makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Root device does not contain a device domain.");
+    return rootDevice->getTicksSinceOrigin(ticks);
 }
 
 ErrCode InstanceImpl::getLocalId(IString** localId)

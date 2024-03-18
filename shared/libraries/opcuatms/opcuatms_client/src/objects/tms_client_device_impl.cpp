@@ -22,6 +22,7 @@
 #include "opcuatms/converters/list_conversion_utils.h"
 #include "opcuatms/converters/property_object_conversion_utils.h"
 #include <opcuatms_client/objects/tms_client_function_block_type_factory.h>
+#include <opendaq/device_domain_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 using namespace daq::opcua;
@@ -84,6 +85,12 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
     findAndCreateStreamingOptions();
     connectToStreamings();
     setUpStreamings();
+}
+
+ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)
+{
+    fetchTimeDomain();
+    return TmsClientComponentBaseImpl<GenericDevice<IDevice, ITmsClientComponent>>::getDomain(deviceDomain);
 }
 
 void TmsClientDeviceImpl::findAndCreateSubdevices()
@@ -186,8 +193,6 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 
 void TmsClientDeviceImpl::fetchTimeDomain()
 {
-    if (timeDomainFetched)
-        return;
     auto timeDomainNodeId = getNodeId("Domain");
     auto variant = client->readValue(timeDomainNodeId);
 
@@ -198,8 +203,9 @@ void TmsClientDeviceImpl::fetchTimeDomain()
     auto denominator = deviceDomain->resolution.denominator;
     if (denominator == 0)
         denominator = 1;
-    resolution = Ratio(numerator, denominator);
-    origin = ConvertToDaqCoreString(deviceDomain->origin);
+    const auto resolution = Ratio(numerator, denominator);
+    const auto origin = ConvertToDaqCoreString(deviceDomain->origin);
+    UnitPtr domainUnit;
     if (deviceDomain->unit.unitId > 0)
         domainUnit = Unit(ConvertToDaqCoreString(deviceDomain->unit.displayName.text),
                           deviceDomain->unit.unitId,
@@ -208,9 +214,8 @@ void TmsClientDeviceImpl::fetchTimeDomain()
     else
         domainUnit = Unit("");
 
+    setDeviceDomainNoCoreEvent(DeviceDomain(resolution, origin, domainUnit));
     ticksSinceOrigin = deviceDomain->ticksSinceOrigin;
-
-    timeDomainFetched = true;
 }
 
 void TmsClientDeviceImpl::fetchTicksSinceOrigin()
@@ -222,33 +227,10 @@ void TmsClientDeviceImpl::fetchTicksSinceOrigin()
     deviceDomain = (UA_DeviceDomainStructure*) variant.getValue().data;
     ticksSinceOrigin = deviceDomain->ticksSinceOrigin;
 }
-
-RatioPtr TmsClientDeviceImpl::onGetResolution()
-{
-    fetchTimeDomain();
-    return resolution;
-}
-
 uint64_t TmsClientDeviceImpl::onGetTicksSinceOrigin()
 {
-    if(!timeDomainFetched)
-        fetchTimeDomain();
-    else
-        fetchTicksSinceOrigin();
-
+    fetchTicksSinceOrigin();
     return ticksSinceOrigin;
-}
-
-std::string TmsClientDeviceImpl::onGetOrigin()
-{
-    fetchTimeDomain();
-    return origin;
-}
-
-UnitPtr TmsClientDeviceImpl::onGetDomainUnit()
-{
-    fetchTimeDomain();
-    return domainUnit;
 }
 
 void TmsClientDeviceImpl::findAndCreateFunctionBlocks()

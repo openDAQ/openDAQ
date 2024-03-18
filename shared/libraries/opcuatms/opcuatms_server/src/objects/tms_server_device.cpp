@@ -102,7 +102,7 @@ void TmsServerDevice::bindCallbacks()
                 uaDeviceDomain->resolution.numerator = deviceDomain.getTickResolution().getNumerator();
                 uaDeviceDomain->resolution.denominator = deviceDomain.getTickResolution().getDenominator();
                 uaDeviceDomain->origin = ConvertToOpcUaString(deviceDomain.getOrigin()).getDetachedValue();
-                uaDeviceDomain->ticksSinceOrigin = deviceDomain.getTicksSinceOrigin();
+                uaDeviceDomain->ticksSinceOrigin = object.getTicksSinceOrigin();
                 auto unit = StructConverter<IUnit, UA_EUInformationWithQuantity>::ToTmsType(deviceDomain.getUnit());
                 uaDeviceDomain->unit = unit.getDetachedValue();
 

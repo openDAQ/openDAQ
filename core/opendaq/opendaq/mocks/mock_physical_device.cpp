@@ -8,6 +8,8 @@
 #include <opendaq/folder_ptr.h>
 #include <coreobjects/callable_info_factory.h>
 
+#include "opendaq/device_domain_factory.h"
+
 using namespace daq;
 
 inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
@@ -59,6 +61,8 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx, con
     const PropertyObjectPtr thisPtr = this->borrowPtr<PropertyObjectPtr>();
     thisPtr.addProperty(StringProperty("TestProperty", "Test").detach());
     this->tags.add("phys_device");
+
+    this->setDeviceDomain(DeviceDomain(Ratio(123, 456), "origin", Unit("unit_symbol", 987, "unit_name", "unit_quantity")));
 }
 
 MockPhysicalDeviceImpl::~MockPhysicalDeviceImpl()
@@ -92,24 +96,14 @@ DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
     return deviceInfo;
 }
 
-RatioPtr MockPhysicalDeviceImpl::onGetResolution()
-{
-    return Ratio(123, 456);
-}
-
 uint64_t MockPhysicalDeviceImpl::onGetTicksSinceOrigin()
 {
     return 789;
 }
 
-std::string MockPhysicalDeviceImpl::onGetOrigin()
+void MockPhysicalDeviceImpl::setDeviceDomainHelper(const DeviceDomainPtr& deviceDomain)
 {
-    return "origin";
-}
-
-UnitPtr MockPhysicalDeviceImpl::onGetDomainUnit()
-{
-    return Unit("unit_symbol", 987, "unit_name", "unit_quantity");
+    this->setDeviceDomain(deviceDomain);
 }
 
 void MockPhysicalDeviceImpl::startAcq()

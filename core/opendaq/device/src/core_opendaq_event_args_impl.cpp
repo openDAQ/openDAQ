@@ -62,6 +62,13 @@ ErrCode PUBLIC_EXPORT createCoreEventArgsTagsChanged(ICoreEventArgs** objTmp, IL
     return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, CoreEventId, IDict*>(objTmp, CoreEventId::TagsChanged, dict);
 }
 
+extern "C"
+ErrCode PUBLIC_EXPORT createCoreEventArgsDeviceDomainChanged(ICoreEventArgs** objTmp, IDeviceDomain* deviceDomain)
+{
+    const auto dict = Dict<IString, IBaseObject>({{"DeviceDomain", deviceDomain}});
+    return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, CoreEventId, IDict*>(objTmp, CoreEventId::DeviceDomainChanged, dict);
+}
+
 #endif
 
 END_NAMESPACE_OPENDAQ

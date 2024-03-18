@@ -25,6 +25,12 @@ source_group("device" FILES ${SDK_HEADERS_DIR}/device.h
                             device_info_impl.cpp
 )
 
+source_group("device_domain" FILES ${SDK_HEADERS_DIR}/device_domain.h
+                                   ${SDK_HEADERS_DIR}/device_domain_impl.h
+                                   ${SDK_HEADERS_DIR}/device_domain_factory.h
+                                   device_domain_impl.cpp
+)
+
 source_group("device_type" FILES ${SDK_HEADERS_DIR}/device_type.h
                                  ${SDK_HEADERS_DIR}/device_type_impl.h
                                  ${SDK_HEADERS_DIR}/device_type_factory.h
@@ -47,6 +53,7 @@ set(SRC_Cpp device_info_impl.cpp
             io_folder_impl.cpp
             device_type_impl.cpp
             core_opendaq_event_args_impl.cpp
+            device_domain_impl.cpp
 )
 
 set(SRC_PublicHeaders device_info_factory.h
@@ -59,10 +66,13 @@ set(SRC_PublicHeaders device_info_factory.h
                       device_private.h
                       core_opendaq_event_args_factory.h
                       core_opendaq_event_args.h
+                      device_domain_factory.h
+                      core_opendaq_event_args.h
 )
 
 set(SRC_PrivateHeaders device_info_impl.h
                        device_type_impl.h
+                       device_domain_impl.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)

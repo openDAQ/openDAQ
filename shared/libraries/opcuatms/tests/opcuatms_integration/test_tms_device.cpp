@@ -231,7 +231,7 @@ TEST_F(TmsDeviceTest, DeviceGetTicksSinceOrigin)
     auto clientSubDevices = clientDevice.getDevices();
     auto clientSubDevice = clientSubDevices[1];
 
-    auto ticksSinceOrigin = clientSubDevice.asPtr<IDeviceDomain>(true).getTicksSinceOrigin();
+    auto ticksSinceOrigin = clientSubDevice.getTicksSinceOrigin();
     ASSERT_EQ(ticksSinceOrigin, 789);
 }
 
@@ -260,7 +260,7 @@ TEST_F(TmsDeviceTest, DeviceDomain)
     ASSERT_EQ(resolution.getNumerator(), 123);
     ASSERT_EQ(resolution.getDenominator(), 456);
 
-    auto ticksSinceOrigin = deviceDomain.getTicksSinceOrigin();
+    auto ticksSinceOrigin = clientSubDevice.getTicksSinceOrigin();
     ASSERT_EQ(ticksSinceOrigin, 789);
 
     auto origin = deviceDomain.getOrigin();

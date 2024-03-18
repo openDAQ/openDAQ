@@ -57,10 +57,7 @@ namespace daq::config_protocol::test_utils
         FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
         void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
         DeviceInfoPtr onGetInfo() override;
-        RatioPtr onGetResolution() override;
         uint64_t onGetTicksSinceOrigin() override;
-        std::string onGetOrigin() override;
-        UnitPtr onGetDomainUnit() override;
 
     protected:
         bool clearFunctionBlocksOnUpdate() override
@@ -85,6 +82,11 @@ namespace daq::config_protocol::test_utils
         void removeComponentHelper(const std::string& id)
         {
             removeComponentById(id);
+        }
+        
+        void setDeviceDomainHelper(const DeviceDomainPtr& deviceDomain)
+        {
+            setDeviceDomain(deviceDomain);
         }
 
     protected:

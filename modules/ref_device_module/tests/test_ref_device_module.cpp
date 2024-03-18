@@ -176,9 +176,8 @@ TEST_F(RefDeviceModuleTest, DeviceDomainTicksSinceEpoch)
     auto module = CreateModule();
 
     auto device = module.createDevice("daqref://device1", nullptr);
-    auto domain = device.getDomain();
 
-    auto res = domain.getTicksSinceOrigin();
+    auto res = device.getTicksSinceOrigin();
     ASSERT_GT(res, 0u);
 }
 

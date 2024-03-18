@@ -6,6 +6,7 @@
 #include "coreobjects/validator_factory.h"
 #include "opendaq/context_factory.h"
 #include "opendaq/component_status_container_private_ptr.h"
+#include "opendaq/device_domain_factory.h"
 
 namespace daq::config_protocol::test_utils
 {
@@ -215,6 +216,8 @@ MockDevice1Impl::MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& pare
     addNestedFunctionBlock(fb);
 
     fb.getInputPorts()[0].connect(sig);
+
+    setDeviceDomain(DeviceDomain(Ratio(1, 100), "N/A" , Unit("s", -1, "second", "time")));
 }
 
 DictPtr<IString, IFunctionBlockType> MockDevice1Impl::onGetAvailableFunctionBlockTypes()
@@ -254,24 +257,9 @@ DeviceInfoPtr MockDevice1Impl::onGetInfo()
     return info;
 }
 
-RatioPtr MockDevice1Impl::onGetResolution()
-{
-    return Ratio(1, 100);
-}
-
 uint64_t MockDevice1Impl::onGetTicksSinceOrigin()
 {
     return ticksSinceOrigin++;
-}
-
-std::string MockDevice1Impl::onGetOrigin()
-{
-    return "N/A";
-}
-
-UnitPtr MockDevice1Impl::onGetDomainUnit()
-{
-    return Unit("s", -1, "second", "time");
 }
 
 MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)

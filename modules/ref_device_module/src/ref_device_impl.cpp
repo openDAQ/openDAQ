@@ -7,7 +7,7 @@
 #include <fmt/format.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_type_factory.h>
-
+#include <opendaq/device_domain_factory.h>
 #include <utility>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
@@ -67,11 +67,6 @@ DeviceInfoPtr RefDeviceImpl::onGetInfo()
     return RefDeviceImpl::CreateDeviceInfo(id);
 }
 
-RatioPtr RefDeviceImpl::onGetResolution()
-{
-    return RefChannelImpl::getResolution();
-}
-
 uint64_t RefDeviceImpl::onGetTicksSinceOrigin()
 {
     auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
@@ -84,18 +79,6 @@ std::chrono::microseconds RefDeviceImpl::getMicroSecondsSinceDeviceStart() const
     auto currentTime = std::chrono::steady_clock::now();
     auto microSecondsSinceDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
     return microSecondsSinceDeviceStart;
-}
-
-std::string RefDeviceImpl::onGetOrigin()
-{
-    return RefChannelImpl::getEpoch();
-}
-
-UnitPtr RefDeviceImpl::onGetDomainUnit()
-{
-    auto unitPtr = daq::UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build();
-
-    return unitPtr;
 }
 
 DevicePtr RefDeviceImpl::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
@@ -176,6 +159,8 @@ void RefDeviceImpl::initClock()
     auto startAbsTime = std::chrono::system_clock::now();
 
     microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(startAbsTime.time_since_epoch());
+
+    this->setDeviceDomain(DeviceDomain(RefChannelImpl::getResolution(), RefChannelImpl::getEpoch(), UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build()));
 }
 
 void RefDeviceImpl::initIoFolder()

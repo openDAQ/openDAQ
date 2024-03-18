@@ -60,6 +60,7 @@ protected:
 private:
     void componentAdded(const CoreEventArgsPtr& args);
     void componentRemoved(const CoreEventArgsPtr& args);
+    void deviceDomainChanged(const CoreEventArgsPtr& args);
 };
 
 template <class TDeviceBase>
@@ -146,6 +147,9 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
             break;
         case CoreEventId::ComponentRemoved:
             componentRemoved(args);
+            break;
+        case CoreEventId::DeviceDomainChanged:
+            deviceDomainChanged(args);
             break;
         case CoreEventId::PropertyValueChanged:
         case CoreEventId::PropertyObjectUpdateEnd:
@@ -256,5 +260,12 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::componentRemoved(const CoreEven
     checkErrorInfo(TDeviceBase::hasItem(id, &hasItem));
     if (hasItem)
         this->removeComponentById(id);
+}
+
+template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::deviceDomainChanged(const CoreEventArgsPtr& args)
+{
+    const DeviceDomainPtr domain = args.getParameters().get("DeviceDomain");
+    this->setDeviceDomain(domain);
 }
 }

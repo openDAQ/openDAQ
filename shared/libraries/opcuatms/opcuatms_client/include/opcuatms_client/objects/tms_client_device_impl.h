@@ -32,16 +32,15 @@ public:
                                  const opcua::OpcUaNodeId& nodeId,
                                  const FunctionPtr& createStreamingCallback,
                                  bool isRootDevice);
+    
+    ErrCode INTERFACE_FUNC getDomain(IDeviceDomain** deviceDomain) override;
 
 protected:
     void findAndCreateSubdevices();
     DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     void onRemoveDevice(const DevicePtr& device) override;
     DeviceInfoPtr onGetInfo() override;
-    RatioPtr onGetResolution() override;
     uint64_t onGetTicksSinceOrigin() override;
-    std::string onGetOrigin() override;
-    UnitPtr onGetDomainUnit() override;
     void findAndCreateFunctionBlocks();
     void findAndCreateSignals();
     void findAndCreateInputsOutputs();
@@ -55,8 +54,6 @@ protected:
     void setUpStreamings();
     void connectToStreamings();
 
-    DeviceInfoConfigPtr deviceInfo;
-
     // Streaming related members
     std::vector<StreamingPtr> streamings;
     FunctionPtr createStreamingCallback;
@@ -66,11 +63,7 @@ private:
     void fetchTimeDomain();
     void fetchTicksSinceOrigin();
 
-    bool timeDomainFetched = false;
-    RatioPtr resolution;
     SizeT ticksSinceOrigin{};
-    StringPtr origin;
-    UnitPtr domainUnit;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
 };

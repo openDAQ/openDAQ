@@ -39,12 +39,8 @@ public:
     DeviceInfoPtr onGetInfo() override;
     DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
-
-    // IDeviceDomain
-    RatioPtr onGetResolution() override;
     uint64_t onGetTicksSinceOrigin() override;
-    std::string onGetOrigin() override;
-    UnitPtr onGetDomainUnit() override;
+
 private:
     void initClock();
     void initIoFolder();

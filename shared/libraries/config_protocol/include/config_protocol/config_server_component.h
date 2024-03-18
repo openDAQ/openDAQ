@@ -115,12 +115,14 @@ inline BaseObjectPtr ConfigServerComponent::endUpdate(const ComponentPtr& compon
 inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const ComponentPtr& component, const ParamsDictPtr& params)
 {
     const auto attributeName = static_cast<std::string>(params["AttributeName"]);
-    const auto attributeValue = static_cast<std::string>(params["AttributeValue"]);
+    const BaseObjectPtr attributeValue = params["AttributeValue"];
 
     if (attributeName == "Name")
         component.setName(attributeValue);
     else if (attributeName == "Description")
         component.setDescription(attributeValue);
+    else if (attributeName == "Active")
+        component.setActive(attributeValue);
     else
         throw InvalidParameterException("Attribute not available or not supported via native config protocol");
 

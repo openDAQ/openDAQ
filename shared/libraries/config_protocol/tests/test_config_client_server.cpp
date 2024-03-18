@@ -388,3 +388,4 @@ TEST_F(ConfigProtocolTest, SetNameAndDescriptionAttribute)
     client->getClientComm()->setAttributeValue("//root", "Description", "devDescription");
     ASSERT_EQ(deviceDescription, "devDescription");
 }
+

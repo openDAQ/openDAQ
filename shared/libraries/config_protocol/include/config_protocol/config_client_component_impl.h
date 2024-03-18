@@ -84,7 +84,7 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
     if (this->coreEventMuted)
         return Impl::setActive(active);
 
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return daqTry([this, &active] { this->clientComm->setAttributeValue(this->remoteGlobalId, "Active", active); });
 }
 
 template <class Impl>

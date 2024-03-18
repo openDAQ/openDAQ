@@ -38,13 +38,20 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
 
 void NativeStreamingDeviceImpl::initStatuses(const ContextPtr& ctx)
 {
-    if (!this->context.getTypeManager().hasType("ConnectionStatusType"))
+    const auto statusType = EnumerationType("ReconnectionStatusType", List<IString>("Connected",
+                                                                                    "Reconnecting",
+                                                                                    "Restored",
+                                                                                    "Unrecoverable"));
+    try
     {
-        const auto statusType = EnumerationType("ConnectionStatusType", List<IString>("Connected",
-                                                                                        "Reconnecting",
-                                                                                        "Unrecoverable"));
         ctx.getTypeManager().addType(statusType);
     }
+    catch (...)
+    {
+        const auto loggerComponent = ctx.getLogger().getOrAddComponent("NativeStreamingDevice");
+        LOG_W("Couldn't add type {} to type manager.", statusType.getName());
+    }
+
     const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", statusInitValue);
 }

@@ -299,21 +299,14 @@ inline void SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursively(c
             addToTypeManagerRecursively(typeManager, fields[i], fieldTypes[i]);
 
     const auto name = descriptor.getName();
-    if (!typeManager.hasType(name))
+    try
     {
-        // Struct type doesn't exist in the type manager
-        // Add it
         typeManager.addType(type);
     }
-    else
+    catch (const std::exception& e)
     {
-        if (type != typeManager.getType(name))
-        {
-            // Struct type with same name but diffrent structure exists in the type manager
-            // Give warning
-            const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
-            LOG_W("Struct type with name {} already exists in the type manager, but it is different!", name);
-        }
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+        LOG_W("Couldn't add type {} to type manager: {}", type.getName(), e.what());
     }
 }
 

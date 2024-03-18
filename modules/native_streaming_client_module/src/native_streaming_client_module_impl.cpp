@@ -29,21 +29,21 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     , pseudoDeviceIndex(0)
     , discoveryClient(
         {
-            [](MdnsDiscoveredDevice discoveredDevice)
+            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
                 auto connectionString = fmt::format("daq.nsd://{}:{}{}",
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                return ServerCapability(connectionString, "openDAQ Native Streaming", "Streaming", "Ipv4");
+                return ServerCapability(context, connectionString, "openDAQ Native Streaming", "Streaming", "Ipv4");
             },
-            [](MdnsDiscoveredDevice discoveredDevice)
+            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
                 auto connectionString = fmt::format("daq.nd://{}:{}{}",
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                return ServerCapability(connectionString, "openDAQ Native Streaming", "Structure&Streaming", "Ipv4", ClientUpdateMethod::Broadcast);
+                return ServerCapability(context, connectionString, "openDAQ Native Streaming", "Structure&Streaming", "Ipv4", ClientUpdateMethod::Broadcast);
             }
         },
         {"OPENDAQ_NS"}
@@ -331,13 +331,10 @@ bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const S
         return connectionStringHasPrefix(connectionString, NativeStreamingPrefix) &&
                validateConnectionString(connectionString);
     }
-    else if (capability.assigned())
+    else if (capability.assigned() && capability.getProtocolType().getValue() == "ServerStreaming")
     {
         const auto propertyObj = capability.asPtr<IPropertyObject>();
-        if (propertyObj.assigned())
-        {
-            return propertyObj.hasProperty("ProcolId") && propertyObj.hasProperty("Address") && propertyObj.hasProperty("Port");
-        }
+        return propertyObj.assigned() && propertyObj.hasProperty("Port");
     }
     return false;
 }

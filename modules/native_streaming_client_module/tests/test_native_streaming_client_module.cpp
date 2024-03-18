@@ -114,12 +114,14 @@ TEST_F(NativeStreamingClientModuleTest, CreateStreamingWithNullArguments)
 
 TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConfig)
 {
-    auto module = CreateModule();
+    auto context = NullContext();
+    ModulePtr module;
+    createModule(&module, context);
  
-    ServerCapabilityPtr serverCapability = ServerStreamingCapability("daq.ns");
+    ServerCapabilityPtr serverCapability = ServerStreamingCapability(context, "daq.ns");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
-    serverCapability.addProperty(StringProperty("Address", "123.123.123.123"));
+    serverCapability.setPropertyValue("Address", "123.123.123.123");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
     serverCapability.addProperty(IntProperty("Port", 1234));

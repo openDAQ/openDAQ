@@ -26,10 +26,10 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
             "OpcUaClient")
     , discoveryClient(
         {
-            [](const MdnsDiscoveredDevice& discoveredDevice)
+            [context = this->context](const MdnsDiscoveredDevice& discoveredDevice)
             {
                 auto connectionString = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
-                return ServerCapability(connectionString, "openDAQ OpcUa", "Structure", "Ipv4", ClientUpdateMethod::RequestResponse);
+                return ServerCapability(context, connectionString, "openDAQ OpcUa", "Structure", "Ipv4", ClientUpdateMethod::RequestResponse);
             }
         },
         {"OPENDAQ"}
@@ -85,6 +85,9 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     FunctionPtr createStreamingCallback = [&](const ServerCapabilityPtr& capability,
                                               bool isRootDevice) -> StreamingPtr
         {
+            if (capability.getProtocolType().getValue() != "ServerStreaming")
+                return nullptr;
+
             if (isRootDevice)
                 capability.addProperty(StringProperty("Address", rootDeviceAddress));
 

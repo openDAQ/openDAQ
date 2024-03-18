@@ -8,43 +8,51 @@ BEGIN_NAMESPACE_OPENDAQ
 
 const char* EnumerationName = "ProtocolType_v1";
 
-TypeManagerPtr ServerCapabilityImpl::getTypeManager()
+const char* ConnectionString = "ConnectionString";
+const char* ProtocolName = "ProtocolName";
+const char* ConnectionType = "ConnectionType";
+const char* UpdateMethod = "UpdateMethod"; 
+const char* ProtocolId = "ProtocolId"; 
+const char* PrimaryAddress = "Address";
+
+TypeManagerPtr ServerCapabilityImpl::GetTypeManager(const ContextPtr& context)
 {
-    static auto typeManager = TypeManager();
+    auto typeManager = context.getTypeManager();
+
     // NOTE: values are set based on priority
     // NOTE: please update version of EnumerationName if you are changing list of values in EnumerationType
-    static auto enumeration = EnumerationType(EnumerationName, List<IString>("Structure&Streaming", "Structure", "Streaming", "ServerStreaming", "Unknown"));
-
-    static bool enumerationAdded = false;
-    if (!enumerationAdded)
+    if (!typeManager.hasType(EnumerationName))
     {
+        auto enumeration = EnumerationType(EnumerationName, List<IString>("Structure&Streaming", "Structure", "Streaming", "ServerStreaming", "Unknown"));
         typeManager.addType(enumeration);
-        enumerationAdded = true;
     }
     return typeManager;
 }
 
-ServerCapabilityImpl::ServerCapabilityImpl( const StringPtr& connectionString,
+ServerCapabilityImpl::ServerCapabilityImpl( const ContextPtr& context,
+                                            const StringPtr& connectionString,
                                             const StringPtr& protocolName,
                                             const StringPtr& protocolType,
                                             const StringPtr& connectionType,
                                             ClientUpdateMethod updateMethod
                                             )
     : Super()
-    , protocolType(Enumeration(EnumerationName, protocolType, getTypeManager()))
+    , typeManager(GetTypeManager(context))
+    , protocolType(Enumeration(EnumerationName, protocolType, typeManager))
 {
-    Super::addProperty(StringPropertyBuilder("connectionString", connectionString).setReadOnly(true).build());
-    Super::addProperty(StringPropertyBuilder("protocolName", protocolName).setReadOnly(true).build());
-    Super::addProperty(StringPropertyBuilder("connectionType", connectionType).setReadOnly(true).build());
-    Super::addProperty(IntPropertyBuilder("updateMethod", (Int)updateMethod).setReadOnly(true).build());
+    Super::addProperty(StringPropertyBuilder(ConnectionString, connectionString).setReadOnly(true).build());
+    Super::addProperty(StringPropertyBuilder(ProtocolName, protocolName).setReadOnly(true).build());
+    Super::addProperty(StringPropertyBuilder(ConnectionType, connectionType).setReadOnly(true).build());
+    Super::addProperty(IntPropertyBuilder(UpdateMethod, (Int)updateMethod).setReadOnly(true).build());
 }
 
-ServerCapabilityImpl::ServerCapabilityImpl(const StringPtr& protocolId)
+ServerCapabilityImpl::ServerCapabilityImpl(const ContextPtr& context, const StringPtr& protocolId)
     : Super()
-    , protocolType(Enumeration(EnumerationName, "ServerStreaming", getTypeManager()))
+    , typeManager(GetTypeManager(context))
+    , protocolType(Enumeration(EnumerationName, "ServerStreaming", typeManager))
 {
-    Super::addProperty(StringPropertyBuilder("protocolId", protocolId).setReadOnly(true).build());
-    Super::addProperty(StringProperty("address", ""));
+    Super::addProperty(StringPropertyBuilder(ProtocolId, protocolId).setReadOnly(true).build());
+    Super::addProperty(StringProperty(PrimaryAddress, ""));
 }
 
 template <typename T>
@@ -57,7 +65,7 @@ typename InterfaceToSmartPtr<T>::SmartPtr ServerCapabilityImpl::getTypedProperty
 ErrCode ServerCapabilityImpl::getConnectionString(IString** connectionString)
 {
     return daqTry([&]() {
-        *connectionString = getTypedProperty<IString>("connectionString").detach();
+        *connectionString = getTypedProperty<IString>(ConnectionString).detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -65,7 +73,7 @@ ErrCode ServerCapabilityImpl::getConnectionString(IString** connectionString)
 ErrCode ServerCapabilityImpl::getProtocolName(IString** protocolName)
 {
     return daqTry([&]() {
-        *protocolName = getTypedProperty<IString>("protocolName").detach();
+        *protocolName = getTypedProperty<IString>(ProtocolName).detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -80,7 +88,7 @@ ErrCode ServerCapabilityImpl::getProtocolType(IEnumeration** type)
 ErrCode ServerCapabilityImpl::getConnectionType(IString** type)
 {
     return daqTry([&]() {
-        *type = getTypedProperty<IString>("connectionType").detach();
+        *type = getTypedProperty<IString>(ConnectionType).detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -88,24 +96,26 @@ ErrCode ServerCapabilityImpl::getConnectionType(IString** type)
 ErrCode ServerCapabilityImpl::getUpdateMethod(ClientUpdateMethod* method)
 {
     return daqTry([&]() {
-        *method = ClientUpdateMethod(getTypedProperty<IInteger>("updateMethod"));
+        *method = ClientUpdateMethod(getTypedProperty<IInteger>(UpdateMethod));
         return OPENDAQ_SUCCESS;
     });
 }
 
 extern "C" ErrCode PUBLIC_EXPORT createServerCapability(IServerCapability** objTmp, 
+                                            IContext* context,
                                             IString* connectionString,
                                             IString* protocolName,
                                             IString* protocolType, 
                                             IString* connectionType,
                                             ClientUpdateMethod updateMethod)
 {
-    return daq::createObject<IServerCapability, ServerCapabilityImpl>(objTmp, connectionString, protocolName, protocolType, connectionType, updateMethod);
+    return daq::createObject<IServerCapability, ServerCapabilityImpl>(objTmp, context, connectionString, protocolName, protocolType, connectionType, updateMethod);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, ServerCapability,
     IServerCapability, createServerStreamingCapability,
+    IContext*, context,
     IString*, protocolId
 )
 

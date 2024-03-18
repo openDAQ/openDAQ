@@ -23,6 +23,7 @@
 #include <coretypes/enumeration_type_ptr.h>
 #include <coretypes/enumeration_ptr.h>
 #include <coreobjects/property_object_impl.h>
+#include <opendaq/context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,14 +32,15 @@ class ServerCapabilityImpl : public GenericPropertyObjectImpl<IServerCapability>
 public:
     using Super = GenericPropertyObjectImpl<IServerCapability>;
 
-    explicit ServerCapabilityImpl(const StringPtr& connectionString,
+    explicit ServerCapabilityImpl(const ContextPtr& context,
+                                  const StringPtr& connectionString,
                                   const StringPtr& protocolName, 
                                   const StringPtr& protocolType, 
                                   const StringPtr& connectionType,
                                   ClientUpdateMethod updateMethod);
     
-    explicit ServerCapabilityImpl(const StringPtr& protocolId);
-    
+    explicit ServerCapabilityImpl(const ContextPtr& context, const StringPtr& protocolId);
+
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
     ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) override;
     ErrCode INTERFACE_FUNC getProtocolType(IEnumeration** type) override;
@@ -48,8 +50,9 @@ public:
 private:
     template <typename T>
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
-    static TypeManagerPtr getTypeManager();
+    static TypeManagerPtr GetTypeManager(const ContextPtr& context);
 
+    TypeManagerPtr typeManager;
     EnumerationPtr protocolType;
 };
 

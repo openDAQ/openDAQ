@@ -58,7 +58,7 @@ public:
                                     const TmsClientContextPtr& clientContext,
                                     const opcua::OpcUaNodeId& nodeId)
         : TmsClientObjectImpl(daqContext, clientContext, nodeId)
-        , Impl(protocolId)
+        , Impl(daqContext, protocolId)
     {
         init();
     }

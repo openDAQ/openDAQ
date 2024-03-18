@@ -557,7 +557,7 @@ void TmsClientDeviceImpl::connectToStreamings()
     {
         for (const auto& capability : info.getServerCapabilities())
         {
-            if (!capability.hasProperty("protocolId"))
+            if (capability.getProtocolType().getValue() != "ServerStreaming")
                 continue;
 
             StreamingPtr streaming;

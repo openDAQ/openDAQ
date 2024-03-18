@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #pragma once
+#include <opendaq/context.h>
 #include <coretypes/common.h>
 #include <coretypes/stringobject.h>
 #include <coretypes/enumeration.h>
@@ -69,6 +70,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, ServerCapability, IServerCapability,
+    IContext*, context,
     IString*, connectionString,
     IString*, protocolName,
     IString*, protocolType, 
@@ -78,6 +80,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, ServerStreamingCapability, IServerCapability,
+    IContext*, context,
     IString*, protocolId
 )
 

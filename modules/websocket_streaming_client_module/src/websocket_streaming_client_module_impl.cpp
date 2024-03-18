@@ -27,13 +27,13 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
     , deviceIndex(0)
     , discoveryClient(
         {
-            [](MdnsDiscoveredDevice discoveredDevice)
+            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
                 auto connectionString = fmt::format("daq.ws://{}:{}{}",
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                return ServerCapability(connectionString, "openDAQ WebsocketTcp Streaming", "Streaming", "Ipv4");
+                return ServerCapability(context, connectionString, "openDAQ WebsocketTcp Streaming", "Streaming", "Ipv4");
             }
         },
         {"WS"}

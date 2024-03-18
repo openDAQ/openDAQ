@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #pragma once
+#include <opendaq/context_ptr.h>
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq/server_capability_ptr.h>
 
@@ -36,20 +37,21 @@ inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const S
     return obj;
 }
 
-inline ServerCapabilityPtr ServerCapability(const StringPtr& connectionString,
+inline ServerCapabilityPtr ServerCapability(const ContextPtr& context,
+                                            const StringPtr& connectionString,
                                             const StringPtr& protocolName,
                                             const StringPtr& protocolType, 
                                             const StringPtr& connectionType,
                                             ClientUpdateMethod updateMethod = ClientUpdateMethod::Unknown
                                             )
 {
-    ServerCapabilityPtr obj(ServerCapability_Create(connectionString, protocolName, protocolType, connectionType, updateMethod));
+    ServerCapabilityPtr obj(ServerCapability_Create(context, connectionString, protocolName, protocolType, connectionType, updateMethod));
     return obj;
 }
 
-inline ServerCapabilityPtr ServerStreamingCapability(const StringPtr& protocolId)
+inline ServerCapabilityPtr ServerStreamingCapability(const ContextPtr& context, const StringPtr& protocolId)
 {
-    ServerCapabilityPtr obj(ServerStreamingCapability_Create(protocolId));
+    ServerCapabilityPtr obj(ServerStreamingCapability_Create(context, protocolId));
     return obj;
 }
 

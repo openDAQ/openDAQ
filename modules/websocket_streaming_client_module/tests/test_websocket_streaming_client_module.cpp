@@ -181,12 +181,14 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConnectionStringCorre
 
 TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConfig)
 {
-    auto module = CreateModule();
+    auto context = NullContext();
+    ModulePtr module;
+    createModule(&module, context);
 
-    ServerCapabilityPtr streamingInfoConfig = ServerStreamingCapability("daq.wss");
+    ServerCapabilityPtr streamingInfoConfig = ServerStreamingCapability(context, "daq.wss");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
 
-    streamingInfoConfig.addProperty(StringProperty("Address", "123.123.123.123"));
+    streamingInfoConfig.setPropertyValue("Address", "123.123.123.123");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
 
     streamingInfoConfig.addProperty(IntProperty("Port", 1234));

@@ -31,6 +31,7 @@ EnumerationImpl::EnumerationImpl(const StringPtr& name,
             );
 
         this->value = value;
+        return;
     }
     else if (const auto intValue = value.asPtrOrNull<IInteger>(); intValue.assigned())
     {
@@ -40,24 +41,38 @@ EnumerationImpl::EnumerationImpl(const StringPtr& name,
             {
                 this->value = fieldName;
                 break;
+                return;
             }
     }
-    else
-        throw InvalidParameterException{"Enumeration value must be a string or integer."};
+
+    throw InvalidParameterException{"Enumeration value must be a string or integer present in the enumeration type."};
 }
 
-EnumerationImpl::EnumerationImpl(const EnumerationTypePtr& type, const StringPtr& value)
+EnumerationImpl::EnumerationImpl(const EnumerationTypePtr& type, const BaseObjectPtr& value)
     : enumerationType(type)
 {
-    if (!this->enumerationType.getAsDictionary().hasKey(value))
-        throw InvalidParameterException(
-            fmt::format(R"(Enumeration value "{}" is not part of the Enumeration type "{}")",
-                        value.toStdString(),
-                        enumerationType.getName().toStdString()
-            )
-        );
+    if (const auto strValue = value.asPtrOrNull<IString>(); strValue.assigned())
+    {
+        if (!this->enumerationType.getAsDictionary().hasKey(strValue))
+            throw InvalidParameterException(fmt::format(R"(Enumeration value "{}" is not part of the Enumeration type "{}")",
+                                                        strValue.toStdString(),
+                                                        enumerationType.getName().toStdString()));
+        
+        this->value = value;
+        return;
+    }
 
-    this->value = value;
+    if  (const auto intValue = value.asPtrOrNull<IInteger>(); intValue.assigned())
+    {
+        for (const auto& fieldName: this->enumerationType.getEnumeratorNames())
+            if (this->enumerationType.getEnumeratorIntValue(fieldName) == intValue)
+            {
+                this->value = fieldName;
+                return;
+            }
+    }
+
+    throw InvalidParameterException{"Enumeration value must be a string or integer present in the enumeration type."};
 }
 
 ErrCode EnumerationImpl::getHashCode(SizeT* hashCode)
@@ -238,13 +253,22 @@ ErrCode PUBLIC_EXPORT createEnumerationWithIntValue(IEnumeration** objTmp,
     return createObject<IEnumeration, EnumerationImpl, IString*, IInteger*, ITypeManager*>(objTmp, name, value, typeManager);
 }
 
-#endif
+extern "C"
+ErrCode PUBLIC_EXPORT createEnumerationWithIntValueAndType(IEnumeration** objTmp,
+                                                           IEnumerationType* type,
+                                                           IInteger* value)
+{
+    return createObject<IEnumeration, EnumerationImpl, IEnumerationType*, IInteger*>(objTmp, type, value);
+}
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY, Enumeration,
-    IEnumeration, createEnumerationWithType,
-    IEnumerationType*, type,
-    IString*, value
-)
+extern "C"
+ErrCode PUBLIC_EXPORT createEnumerationWithType(IEnumeration** objTmp,
+                                                IEnumerationType* type,
+                                                IString* value)
+{
+    return createObject<IEnumeration, EnumerationImpl, IEnumerationType*, IString*>(objTmp, type, value);
+}
+
+#endif
 
 END_NAMESPACE_OPENDAQ

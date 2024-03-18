@@ -58,7 +58,7 @@ protected:
                 .addProperty(StructProperty(
                     "Scaler", Struct("GainScalingStructure", Dict<IString, IBaseObject>({{"Factor", 2.1}, {"Offset", 3.0}}), objManager)))
                 .addProperty(EnumerationProperty("ExcitationType", Enumeration("ExcitationTypeEnumeration", "DCVoltage", objManager)))
-                .addProperty(StructProperty(
+               /* .addProperty(StructProperty(
                     "FullBridge",
                     Struct("FullBridgeSensorStructure",
                            Dict<IString, IBaseObject>(
@@ -75,7 +75,7 @@ protected:
                                 {"Resistance", 350.0},
                                 {"MaximumElectrical", 5.0},
                                 {"UsedWires", 6}}),
-                           objManager)))
+                           objManager)))*/
                 .build();
         objManager.addType(fusionAmpClass);
     }

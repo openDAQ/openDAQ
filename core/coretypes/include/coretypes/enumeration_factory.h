@@ -60,6 +60,22 @@ inline EnumerationPtr EnumerationWithIntValue(const StringPtr& typeName, const I
     return obj;
 }
 
+/*!
+ * @brief Creates a new Enumeration object with a specified Enumeration Type name and value. The value
+ * must correspond to a valid integer value defined in the Enumeration type, associated with a string value key.
+ * @param type The Enumeration type.
+ * @param value The integer representation of the enumerator value.
+ *
+ * Construction of the Enumeration will fail if the value does not match the corresponding type available
+ * in the Type Manager.
+ */
+inline EnumerationPtr EnumerationWithIntValueAndType(const EnumerationTypePtr& type, const IntegerPtr& value)
+{
+    EnumerationPtr obj(EnumerationWithIntValueAndType_Create(type, value));
+    return obj;
+}
+
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

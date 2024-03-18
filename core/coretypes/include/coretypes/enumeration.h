@@ -91,4 +91,10 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IString*, value
 )
 
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, EnumerationWithIntValueAndType, IEnumeration,
+    IEnumerationType*, type,
+    IInteger*, value
+)
+
 END_NAMESPACE_OPENDAQ

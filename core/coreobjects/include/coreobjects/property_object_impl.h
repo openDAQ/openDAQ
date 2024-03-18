@@ -934,7 +934,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
 
                 const auto type = enumVal.getEnumerationType();
                 const Int intVal= value.convertTo(ctInt);
-                value = EnumerationWithIntValue(type.getName(), intVal, this->manager.getRef());
+                value = EnumerationWithIntValueAndType(type, intVal);
             }
             else
                 value = value.convertTo(propCoreType);

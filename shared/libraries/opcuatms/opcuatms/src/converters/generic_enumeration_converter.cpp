@@ -47,43 +47,6 @@ EnumerationPtr VariantConverter<IEnumeration>::ToDaqObject(const OpcUaVariant& v
 }
 
 template <>
-EnumerationPtr VariantConverter<IEnumeration>::ToDaqObject(const OpcUaVariant& variant, std::string typeName, const ContextPtr& context)
-{
-    if (variant.isNull())
-        return nullptr;
-
-    if (!context.assigned() || !context.getTypeManager().assigned())
-        throw ConversionFailedException{"Generic numeration conversion requires the TypeManager."};
-
-    const auto typeManager = context.getTypeManager();
-
-    // Get UAEnumerationType by name
-    const auto DataType = GetUAEnumerationDataTypeByName(typeName);
-
-    EnumerationTypePtr Type;
-
-    if (typeManager.hasType(DataType->typeName))
-        Type = typeManager.getType(DataType->typeName);
-    else
-        throw ConversionFailedException{"EnumerationType is not present in Type Manager."};
-
-    DictPtr<IString, IInteger> dictEnumValues = Type.getAsDictionary();
-
-    auto listKeyword = dictEnumValues.getKeyList();
-    auto listValues = dictEnumValues.getValueList();
-    StringPtr keyword;
-    auto data = variant.toInteger();
-
-    for(int i = 0; i < static_cast<int>(listKeyword.getCount()); i++)
-    {
-        if(listValues[i] == data)
-            keyword = listKeyword[i];
-    }
-
-    return Enumeration(DataType->typeName, keyword, typeManager);
-}
-
-template <>
 OpcUaVariant VariantConverter<IEnumeration>::ToVariant(const EnumerationPtr& object,
                                                        const UA_DataType* /*targetType*/,
                                                        const ContextPtr& /*context*/)

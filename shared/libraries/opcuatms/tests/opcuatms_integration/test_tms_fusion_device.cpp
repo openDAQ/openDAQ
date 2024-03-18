@@ -58,31 +58,30 @@ protected:
                 .addProperty(StructProperty(
                     "Scaler", Struct("GainScalingStructure", Dict<IString, IBaseObject>({{"Factor", 2.1}, {"Offset", 3.0}}), objManager)))
                 .addProperty(EnumerationProperty("ExcitationType", Enumeration("ExcitationTypeEnumeration", "DCVoltage", objManager)))
-               /* .addProperty(StructProperty(
-                    "FullBridge",
-                    Struct("FullBridgeSensorStructure",
-                           Dict<IString, IBaseObject>(
-                               {{"ExcitationVoltage",
-                                 Struct("ExcitationVoltageStructure",
-                                        Dict<IString, IBaseObject>(
-                                            {{"ActualValue", 5.0},
-                                             {"NominalValue", 5.0},
-                                             {"NominalValueRange",
-                                              Struct("Range", Dict<IString, IBaseObject>({{"Low", 4.0}, {"High", 6.0}}), objManager)},
-                                             {"Type", Enumeration("ExcitationTypeEnumeration", "DCVoltage", objManager)},
-                                             {"Frequency", 0}}),
-                                        objManager)},
-                                {"Resistance", 350.0},
-                                {"MaximumElectrical", 5.0},
-                                {"UsedWires", 6}}),
-                           objManager)))*/
+                //.addProperty(StructProperty(
+                //    "FullBridge",
+                //    Struct("FullBridgeSensorStructure",
+                //           Dict<IString, IBaseObject>(
+                //               {{"ExcitationVoltage",
+                //                 Struct("ExcitationVoltageStructure",
+                //                        Dict<IString, IBaseObject>(
+                //                            {{"ActualValue", 5.0},
+                //                             {"NominalValue", 5.0},
+                //                             {"NominalValueRange",
+                //                              Struct("Range", Dict<IString, IBaseObject>({{"Low", 4.0}, {"High", 6.0}}), objManager)},
+                //                             {"Type", Enumeration("ExcitationTypeEnumeration", "DCVoltage", objManager)},
+                //                             {"Frequency", 0}}),
+                //                        objManager)},
+                //                {"Resistance", 350.0},
+                //                {"MaximumElectrical", 5.0},
+                //                {"UsedWires", 6}}),
+                //           objManager)))
                 .build();
         objManager.addType(fusionAmpClass);
     }
 
     void TearDown() override
     {
-        objManager.removeType("FusionAmp");
     }
 
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)

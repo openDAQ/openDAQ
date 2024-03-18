@@ -219,8 +219,8 @@ Data Descriptors. When the Struct Fields list is filled, Packet buffers are cons
 the following manner: the data described by the first Data Descriptor is at the start, 
 followed by the data described by the second, and so on. 
 
-IMPORTANT: When configuring a Data Descriptor with Struct Fields, only the Dimensions and 
-Name can be configured in addition. Dimensions function the same way as with normal 
+IMPORTANT: When configuring a Data Descriptor with Struct Fields, the Name must be configured, 
+and additionally, only the Dimensions can be configured. Dimensions function the same way as with normal 
 Signal data, where each Sample will contain `n` structs, depending on the Dimension sizes.
 
 == Configuring Signals

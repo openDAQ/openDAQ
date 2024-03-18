@@ -220,6 +220,10 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
 
         try
         {
+            // TODO: implement type comparison/equalTo for property object classes
+            /* const auto localType = localTypeManager.getType(type.getName());
+            if (localType != type)
+                throw InvalidValueException("Remote type different than local");*/
             localTypeManager.addType(type);
         }
         catch (...)

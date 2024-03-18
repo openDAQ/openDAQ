@@ -43,6 +43,7 @@ set(SRC_Converters ${CONVERTERS_SRC_DIR}/range_converter.cpp
                    ${CONVERTERS_SRC_DIR}/selection_converter.cpp
                    ${CONVERTERS_SRC_DIR}/argument_converter.cpp
                    ${CONVERTERS_SRC_DIR}/generic_struct_converter.cpp
+                   ${CONVERTERS_SRC_DIR}/generic_enumeration_converter.cpp
                    ${CONVERTERS_SRC_DIR}/property_object_conversion_utils.cpp
 )
 

@@ -33,8 +33,8 @@ BEGIN_NAMESPACE_OPENDAQ
 class EnumerationImpl : public ImplementationOf<IEnumeration, IConvertible, ICoreType, ISerializable>
 {
 public:
-    explicit EnumerationImpl(const StringPtr& name, const StringPtr& value, const TypeManagerPtr& typeManager);
-    explicit EnumerationImpl(const EnumerationTypePtr& type, const StringPtr& value);
+    explicit EnumerationImpl(const StringPtr& name, const BaseObjectPtr& value, const TypeManagerPtr& typeManager);
+    explicit EnumerationImpl(const EnumerationTypePtr& type, const BaseObjectPtr& value);
 
     // IBaseObject
     ErrCode INTERFACE_FUNC getHashCode(SizeT* hashCode) override;

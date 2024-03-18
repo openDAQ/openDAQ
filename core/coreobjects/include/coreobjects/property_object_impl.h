@@ -39,6 +39,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <coretypes/validation.h>
 #include <coreobjects/core_event_args_factory.h>
+#include <coretypes/enumeration_factory.h>
 #include <coretypes/validation.h>
 #include <coretypes/cloneable.h>
 
@@ -249,6 +250,9 @@ private:
 
     // Checks if the property is a struct type, and checks its fields for type/name compatibility
     ErrCode checkStructType(const PropertyPtr& prop, const BaseObjectPtr& value);
+
+    // Checks if the property is a enumeration type and checks for type/name compatibility
+    ErrCode checkEnumerationType(const PropertyPtr& prop, const BaseObjectPtr& value);
 
     // Checks if value is a correct key into the list/dictionary of selection values
     ErrCode checkSelectionValues(const PropertyPtr& prop, const BaseObjectPtr& value);
@@ -698,12 +702,35 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkStructT
     auto structPtr = value.asPtrOrNull<IStruct>();
     if (!structPtr.assigned())
         return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value is not a struct");
-    
+
     StructTypePtr structType = prop.getStructType();
     StructTypePtr valueStructType = structPtr.getStructType();
 
     if (structType != valueStructType)
         return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value StructureType is different from the default.");
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkEnumerationType(const PropertyPtr& prop, const BaseObjectPtr& value)
+{
+    if (prop.getValueType() != ctEnumeration)
+        return OPENDAQ_SUCCESS;
+
+    auto enumerationPtr = value.asPtrOrNull<IEnumeration>();
+    if (!enumerationPtr.assigned())
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value is not an enumeration");
+
+    auto propEnumerationPtr = prop.getDefaultValue().asPtrOrNull<IEnumeration>();
+    if (!propEnumerationPtr.assigned())
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Property default value is not an enumeration");
+
+    EnumerationTypePtr valueEnumerationType = enumerationPtr.getEnumerationType();
+    EnumerationTypePtr propEnumerationType = propEnumerationPtr.getEnumerationType();
+
+    if (propEnumerationType != valueEnumerationType)
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value EnumerationType is different from the default.");
 
     return OPENDAQ_SUCCESS;
 }
@@ -732,8 +759,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkSelecti
 template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyValueInternal(IString* name,
                                                                                              IBaseObject* value,
-                                                                                             bool triggerEvent, 
-                                                                                             bool protectedAccess, 
+                                                                                             bool triggerEvent,
+                                                                                             bool protectedAccess,
                                                                                              bool batch,
                                                                                              bool isUpdating)
 {
@@ -743,12 +770,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
     if (frozen)
         return OPENDAQ_ERR_FROZEN;
 
-
     try
     {
         auto propName = StringPtr::Borrow(name);
         auto valuePtr = BaseObjectPtr::Borrow(value);
-        
+
         if (batch)
         {
             updatingPropsAndValues.emplace_back(std::make_pair(propName, UpdatingAction{true, protectedAccess, valuePtr}));
@@ -836,6 +862,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
                 return err;
             }
 
+            err = checkEnumerationType(prop, valuePtr);
+            if (OPENDAQ_FAILED(err))
+            {
+                return err;
+            }
+
             coercePropertyWrite(prop, valuePtr);
             validatePropertyWrite(prop, valuePtr);
             coerceMinMax(prop, valuePtr);
@@ -893,7 +925,20 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
         const auto valueCoreType = value.getCoreType();
 
         if (propCoreType != valueCoreType)
-            value = value.convertTo(propCoreType);
+        {
+            if (propCoreType == ctEnumeration)
+            {
+                const auto enumVal = prop.getDefaultValue().asPtrOrNull<IEnumeration>();
+                if (!enumVal.assigned())
+                    return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Default value of enumeration property {} is not assigned)", prop.getName()));
+
+                const auto type = enumVal.getEnumerationType();
+                const Int intVal= value.convertTo(ctInt);
+                value = EnumerationWithIntValueAndType(type, intVal);
+            }
+            else
+                value = value.convertTo(propCoreType);
+        }
     }
     catch (const DaqException& e)
     {
@@ -1236,7 +1281,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
             value = list[std::size_t(index)];
         }
     }
-    
+
     CoreType coreType = value.getCoreType();
     if (coreType == ctList || coreType == ctDict)
     {
@@ -2541,6 +2586,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
     }
 
     BaseObjectPtr propValue;
+
     switch (serialized.getType(propName))
     {
         case ctBool:

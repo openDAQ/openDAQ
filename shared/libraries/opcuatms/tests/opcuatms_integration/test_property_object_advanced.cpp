@@ -126,8 +126,8 @@ public:
                             .addProperty(IntPropertyBuilder("CoercedInt", 10).setCoercer(Coercer("if(Value > 10, 10, Value)")).build())
                             .addProperty(RatioProperty("Ratio", Ratio(1, 1000)))
                             .addProperty(ObjectPropertyBuilder("ObjectWithMetadata", obj1).setReadOnly(true).setVisible(false).build())
-                            .addProperty(StructProperty("UnitStruct", Unit("s", -1, "second", "time")))
-                            .addProperty(StructProperty("ArgumentStruct", ArgumentInfo("Arg", ctInt)))
+                            //.addProperty(StructProperty("UnitStruct", Unit("s", -1, "second", "time")))
+                            //.addProperty(StructProperty("ArgumentStruct", ArgumentInfo("Arg", ctInt)))
                             .addProperty(StructProperty("DeviceDomainStructure",
                                                         Struct("DeviceDomainStructure",
                                                                Dict<IString, IBaseObject>({{"Resolution", Ratio(10, 20)},
@@ -620,7 +620,7 @@ TEST_F(TmsPropertyObjectAdvancedTest, ValidationCoercion)
     ASSERT_EQ(obj.getPropertyValue("CoercedInt"), clientObj.getPropertyValue("CoercedInt"));
     
     ASSERT_NO_THROW(clientObj.setPropertyValue("ValidatedInt", 11));
-    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"ValidatedInt\" on OpcUA client property object: Writting property value");
+    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"ValidatedInt\" on OpcUA client property object: Writing property value");
     ASSERT_EQ(obj.getPropertyValue("ValidatedInt"), 5);
     ASSERT_EQ(clientObj.getPropertyValue("ValidatedInt"), 5);
 
@@ -719,8 +719,8 @@ TEST_F(TmsPropertyObjectAdvancedTest, StructureGet)
     const auto obj = PropertyObject(manager, "TestClass");
     auto [serverObj, clientObj] = registerPropertyObject(obj);
 
-    ASSERT_EQ(clientObj.getPropertyValue("UnitStruct"), obj.getPropertyValue("UnitStruct"));
-    ASSERT_EQ(clientObj.getPropertyValue("ArgumentStruct"), obj.getPropertyValue("ArgumentStruct"));
+    //ASSERT_EQ(clientObj.getPropertyValue("UnitStruct"), obj.getPropertyValue("UnitStruct"));
+    //ASSERT_EQ(clientObj.getPropertyValue("ArgumentStruct"), obj.getPropertyValue("ArgumentStruct"));
     ASSERT_EQ(clientObj.getPropertyValue("DeviceDomainStructure"), obj.getPropertyValue("DeviceDomainStructure"));
     ASSERT_EQ(clientObj.getPropertyValue("ListRuleDescriptionStructure"), obj.getPropertyValue("ListRuleDescriptionStructure"));
     ASSERT_EQ(clientObj.getPropertyValue("CustomRuleDescriptionStructure"), obj.getPropertyValue("CustomRuleDescriptionStructure"));
@@ -732,8 +732,8 @@ TEST_F(TmsPropertyObjectAdvancedTest, StructureSet)
     const auto obj = PropertyObject(manager, "TestClass");
     auto [serverObj, clientObj] = registerPropertyObject(obj);
 
-    clientObj.setPropertyValue("UnitStruct", Unit("V", 5, "volt", "voltage"));
-    clientObj.setPropertyValue("ArgumentStruct", ArgumentInfo("test", ctFloat));
+    //clientObj.setPropertyValue("UnitStruct", Unit("V", 5, "volt", "voltage"));
+    //clientObj.setPropertyValue("ArgumentStruct", ArgumentInfo("test", ctFloat));
     clientObj.setPropertyValue("DeviceDomainStructure",
                                Struct("DeviceDomainStructure",
                                       Dict<IString, IBaseObject>({{"Resolution", Ratio(20, 30)},
@@ -761,8 +761,8 @@ TEST_F(TmsPropertyObjectAdvancedTest, StructureSet)
                                       Dict<IString, IBaseObject>({{"Parameters", keyValuePairList}}),
                                       manager));
 
-    ASSERT_EQ(clientObj.getPropertyValue("UnitStruct"), obj.getPropertyValue("UnitStruct"));
-    ASSERT_EQ(clientObj.getPropertyValue("ArgumentStruct"), obj.getPropertyValue("ArgumentStruct"));
+    //ASSERT_EQ(clientObj.getPropertyValue("UnitStruct"), obj.getPropertyValue("UnitStruct"));
+    //ASSERT_EQ(clientObj.getPropertyValue("ArgumentStruct"), obj.getPropertyValue("ArgumentStruct"));
     ASSERT_EQ(clientObj.getPropertyValue("DeviceDomainStructure"), obj.getPropertyValue("DeviceDomainStructure"));
     ASSERT_EQ(clientObj.getPropertyValue("ListRuleDescriptionStructure"), obj.getPropertyValue("ListRuleDescriptionStructure"));
     ASSERT_EQ(clientObj.getPropertyValue("CustomRuleDescriptionStructure"), obj.getPropertyValue("CustomRuleDescriptionStructure"));

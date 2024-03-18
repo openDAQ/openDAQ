@@ -57,6 +57,9 @@ daq::DevicePtr TmsClient::connect()
 
     tmsClientContext = std::make_shared<TmsClientContext>(client, context);
 
+    //On connect add server broadcasted enumeration types to the type manager
+    AddEnumerationTypesToTypeManager();
+
     OpcUaNodeId rootDeviceNodeId;
     std::string rootDeviceBrowseName;
     getRootDeviceNodeAttributes(rootDeviceNodeId, rootDeviceBrowseName);
@@ -79,8 +82,62 @@ daq::DevicePtr TmsClient::connect()
 
     const auto endTime = std::chrono::steady_clock::now();
     const auto connectTime = std::chrono::duration<double>(endTime - startTime);
-    LOG_D("Connected to penDAQ OPC UA server {}. Connect took {:.2f} s.", opcUaUrl, connectTime.count());
+    LOG_D("Connected to openDAQ OPC UA server {}. Connect took {:.2f} s.", opcUaUrl, connectTime.count());
     return device;
+}
+
+void TmsClient::AddEnumerationTypesToTypeManager()
+{
+    if (!context.assigned() || !context.getTypeManager().assigned())
+        return; // TypeManager required. Do nothing.
+
+    auto typeManager = context.getTypeManager();
+
+    const auto DataTypeEnumerationNodeId = OpcUaNodeId(UA_NS0ID_ENUMERATION);
+    const auto& references = tmsClientContext->getReferenceBrowser()->browse(DataTypeEnumerationNodeId);
+    StructPtr EnumValuesStruct;
+    std::vector<OpcUaNodeId> vecEnumerationsNodeIds;
+
+    for (auto [browseName, ref] : references.byBrowseName)
+        vecEnumerationsNodeIds.push_back(ref->nodeId.nodeId);
+
+    //Cache NodeIds
+    tmsClientContext->getReferenceBrowser()->browseMultiple(vecEnumerationsNodeIds);
+
+    auto listEnumValues = List<IString>();
+
+    for (auto [browseName, ref] : references.byBrowseName)
+    {
+        //If type already exists, skip
+        if(typeManager.hasType(browseName))
+            continue;
+
+        const auto& references1 = tmsClientContext->getReferenceBrowser()->browse(ref->nodeId.nodeId);
+        for (auto [childBrowseName, ChildRef] : references1.byBrowseName)
+        {
+            const auto childNodeValue = client->readValue(ChildRef->nodeId.nodeId);
+            const auto childNodeObject = VariantConverter<IBaseObject>::ToDaqObject(childNodeValue, context);
+
+            if (childBrowseName == "EnumStrings")
+            {
+                for (auto value : childNodeObject.asPtr<IList>())
+                    listEnumValues.pushBack(value);
+            }
+            else if (childBrowseName == "EnumValues")
+            {
+                for (const auto& value : childNodeObject.asPtr<IList>())
+                {
+                    if (EnumValuesStruct = value.asPtrOrNull<IStruct>(); EnumValuesStruct.assigned())
+                        listEnumValues.pushBack(EnumValuesStruct.get("DisplayName"));
+                }
+            }
+        }
+
+        auto enumExcitationType = EnumerationType(browseName, listEnumValues);
+        typeManager.addType(enumExcitationType);
+
+        listEnumValues.clear();
+    }
 }
 
 void TmsClient::getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string& browseNameOut)

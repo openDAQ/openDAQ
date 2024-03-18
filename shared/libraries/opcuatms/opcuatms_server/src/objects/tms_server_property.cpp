@@ -4,6 +4,7 @@
 #include <opcuatms_server/objects/tms_server_eval_value.h>
 #include <open62541/daqbt_nodeids.h>
 #include <open62541/types_daqbt_generated.h>
+#include <opcuatms/core_types_utils.h>
 #include "opcuatms/converters/variant_converter.h"
 #include "open62541/daqbsp_nodeids.h"
 #include <coreobjects/unit_factory.h>
@@ -108,8 +109,9 @@ opcua::OpcUaNodeId TmsServerProperty::getTmsTypeId()
 
     if (objectInternal.getReferencedPropertyUnresolved().assigned())
         return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_REFERENCEVARIABLETYPE);
-    
+
     const auto type = object.getValueType();
+
     switch (type)
     {
         case CoreType::ctInt:
@@ -117,6 +119,7 @@ opcua::OpcUaNodeId TmsServerProperty::getTmsTypeId()
             return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_NUMERICVARIABLETYPE);
         case CoreType::ctStruct:
             return OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_STRUCTUREVARIABLETYPE);
+        case CoreType::ctEnumeration:
         default:
             break;
     }
@@ -155,6 +158,50 @@ void TmsServerProperty::configureVariableNodeAttributes(opcua::OpcUaObject<UA_Va
 
     if (object.getDescription().assigned())
         attr->description = UA_LOCALIZEDTEXT_ALLOC("", object.getDescription().getCharPtr());
+}
+
+opcua::OpcUaNodeId TmsServerProperty::getDataTypeId()
+{
+    const auto objInternal = object.asPtr<IPropertyInternal>();
+    if (objInternal.getReferencedPropertyUnresolved().assigned())
+        return OpcUaNodeId(0, UA_NS0ID_STRING);
+
+    const auto type = objInternal.getValueTypeUnresolved();
+    switch (type)
+    {
+        case CoreType::ctBool:
+            return OpcUaNodeId(0, UA_NS0ID_BOOLEAN);
+        case CoreType::ctInt:
+            return OpcUaNodeId(0, UA_NS0ID_INT64);
+        case CoreType::ctFloat:
+            return OpcUaNodeId(0, UA_NS0ID_DOUBLE);
+        case CoreType::ctString:
+            return OpcUaNodeId(0, UA_NS0ID_STRING);
+        case CoreType::ctEnumeration:
+        {
+            EnumerationPtr enumPtr = this->parent.getRef().getPropertyValue(object.getName());
+            std::string enumTypeName =  enumPtr.getEnumerationType().getName();
+            const auto DataType = GetUAEnumerationDataTypeByName(enumTypeName);
+            if (DataType != nullptr)
+                return DataType->typeId;
+            else
+                break;
+        }
+        case CoreType::ctStruct:
+        {
+            StructPtr structPtr = this->parent.getRef().getPropertyValue(object.getName());
+            std::string structTypeName =  structPtr.getStructType().getName();
+            const auto DataType = GetUAStructureDataTypeByName(structTypeName);
+            if(DataType != nullptr)
+                return DataType->typeId;
+            else
+                break;
+        }
+        default:
+            break;
+    }
+
+    return {};
 }
 
 void TmsServerProperty::validate()
@@ -250,6 +297,23 @@ void TmsServerProperty::hideStructureTypeChildren()
 
 void TmsServerProperty::addReferenceTypeChildNodes()
 {
+    const auto type = object.getValueType();
+    if (type == CoreType::ctStruct)
+    {
+        StructPtr structPtr = this->parent.getRef().getPropertyValue(object.getName());
+        std::string structTypeName =  structPtr.getStructType().getName();
+        if(GetUAStructureDataTypeByName(structTypeName) == nullptr)
+            return;
+    }
+
+    if (type == CoreType::ctEnumeration)
+    {
+        EnumerationPtr enumPtr = this->parent.getRef().getPropertyValue(object.getName());
+        std::string enumTypeName =  enumPtr.getEnumerationType().getName();
+        if(GetUAEnumerationDataTypeByName(enumTypeName) == nullptr)
+            return;
+    }
+
     const auto refNames = objectInternal.getReferencedPropertyUnresolved().getPropertyReferences();
     for (auto propName : refNames)
     {

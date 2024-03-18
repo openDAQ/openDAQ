@@ -136,7 +136,7 @@ TEST_F(TmsPropertyObjectTest, PropertyValueRole)
     ASSERT_EQ(prop.getPropertyValue("Role"), 1);
     
     ASSERT_NO_THROW(clientProp.setPropertyValue("Role", 2));
-    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"Role\" on OpcUA client property object: Writting property value");
+    ASSERT_EQ(getLastMessage(), "Failed to set value for property \"Role\" on OpcUA client property object: Writing property value");
 }
 
 TEST_F(TmsPropertyObjectTest, getPropertySelectionValue)

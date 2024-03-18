@@ -5,6 +5,7 @@
 #include "coreobjects/property_object_internal_ptr.h"
 #include "opcuatms/converters/variant_converter.h"
 #include "opcuatms_server/objects/tms_server_property.h"
+#include <opcuatms/core_types_utils.h>
 #include "open62541/nodeids.h"
 #include "open62541/statuscodes.h"
 #include "open62541/daqbsp_nodeids.h"
@@ -101,6 +102,30 @@ void TmsServerPropertyObject::addChildNodes()
             {
                 addMethodPropertyNode(prop, propOrder[prop.getName()]);
                 continue;
+            }
+
+            //Don't add property if struct is not part of UA data types list
+            if(prop.getValueType() == ctStruct)
+            {
+                StructPtr structPtr = prop.getDefaultValue().asPtrOrNull<IStruct>();
+                if(structPtr.assigned())
+                {
+                    std::string structTypeName = structPtr.getStructType().getName();
+                    if(GetUAStructureDataTypeByName(structTypeName) == nullptr)
+                        continue;
+                }
+            }
+
+            //Don't add property if enumeration is not part of UA data types list
+            if (prop.getValueType() == ctEnumeration)
+            {
+                EnumerationPtr enumPtr = prop.getDefaultValue().asPtrOrNull<IEnumeration>();
+                if(enumPtr.assigned())
+                {
+                    std::string enumTypeName = enumPtr.getEnumerationType().getName();
+                    if(GetUAEnumerationDataTypeByName(enumTypeName) == nullptr)
+                        continue;
+                }
             }
 
             OpcUaNodeId childNodeId;

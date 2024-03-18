@@ -31,7 +31,7 @@ StructPtr VariantConverter<IStruct>::ToDaqObject(const OpcUaVariant& variant, co
     if (!context.assigned() || !context.getTypeManager().assigned())
         throw ConversionFailedException{"Generic struct conversion requires the TypeManager."};
 
-    const auto typeManager = context.getTypeManager(); 
+    const auto typeManager = context.getTypeManager();
 
     const auto type = variant->type;
 
@@ -164,10 +164,10 @@ OpcUaVariant VariantConverter<IStruct>::ToVariant(const StructPtr& object, const
             throw ConversionFailedException{};
         }
 
-        OpcUaVariant variant = VariantConverter<IBaseObject>::ToVariant(daqMember, memberType, context);            
+        OpcUaVariant variant = VariantConverter<IBaseObject>::ToVariant(daqMember, memberType, context);
         if (variant->type != memberType && !(variant->data == UA_EMPTY_ARRAY_SENTINEL && variant->arrayLength == 0))
             throw ConversionFailedException{};
-        
+
         void* src = variant->data;
 
         if (!member->isArray)

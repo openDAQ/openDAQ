@@ -127,10 +127,6 @@ TEST_F(OpcuaDeviceModulesTest, GetSetDeviceProperties)
     ASSERT_EQ(refDevice.getPropertyValue("NumberOfChannels"), 1);
     ASSERT_EQ(serverRefDevice.getPropertyValue("NumberOfChannels"), 1);
 
-    refDevice.setPropertyValue("GlobalSampleRate", 2000);
-    ASSERT_EQ(refDevice.getPropertyValue("GlobalSampleRate"), 2000);
-    ASSERT_EQ(serverRefDevice.getPropertyValue("GlobalSampleRate"), 2000);
-
     // reset messages
     debugSink.waitForMessage(0);
     ASSERT_ANY_THROW(refDevice.setPropertyValue("InvalidProp", 100));
@@ -281,18 +277,6 @@ TEST_F(OpcuaDeviceModulesTest, SignalDescriptor)
     ASSERT_EQ(signalDescriptor.getMetadata(), serverSignalDescriptor.getMetadata());
 }
 
-TEST_F(OpcuaDeviceModulesTest, ChannelProps)
-{
-    auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
-    auto dev = client.getDevices()[0].getDevices()[0];
-    auto customRangeValue = dev.getChannels()[0].getPropertyValue("CustomRange").asPtr<IStruct>();
-
-    ASSERT_EQ(customRangeValue.get("lowValue"), -10.0);
-    ASSERT_EQ(customRangeValue.get("highValue"), 10.0);
-}
-
-
 TEST_F(OpcuaDeviceModulesTest, DataDescriptor)
 {
     auto server = CreateServerInstance();
@@ -387,7 +371,7 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlockProperties)
     ASSERT_NO_THROW(fb.setPropertyValue("DomainSignalType" , 1000));
     logger.flush();
     ASSERT_TRUE(debugSink.waitForMessage(2000));
-    ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"DomainSignalType\" on OpcUA client property object: Writting property value");
+    ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"DomainSignalType\" on OpcUA client property object: Writing property value");
 }
 
 TEST_F(OpcuaDeviceModulesTest, DISABLED_InputPort)

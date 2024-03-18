@@ -27,24 +27,24 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-/// Core type enumeration 
+/// Core type enumeration
 enum CoreType : int
 {
-    ctBool = 0, ///< Boolean, True or False
-    ctInt,      ///< 64 bit signed integer
-    ctFloat,    ///< IEEE 754 64 bit floating point
-    ctString,   ///< UTF8 zero terminated string
-    ctList,     ///< List of IBaseObject
-    ctDict,     ///< Dictionary of (key: IBaseObject, value: IBaseObject) 
-    ctRatio,    ///< Rational number (numerator / denominator)
-    ctProc,     ///< Callback without return value
-    ctObject,   ///< Generic object
-    ctBinaryData, ///< Binary buffer with predefined size
-    ctFunc,     ///< Callback with return value
-    ctComplexNumber, ///< Complex number (real, imaginary)
-    ctStruct, ///< Constant structure with dictionary of fields and types
-    ctEnumeration, ///< Enumeration representing a predefined set of named integral constants
-    ctUndefined = 0xFFFF, ///< Undefined
+    ctBool = 0,             ///< Boolean, True or False
+    ctInt,                  ///< 64 bit signed integer
+    ctFloat,                ///< IEEE 754 64 bit floating point
+    ctString,               ///< UTF8 zero terminated string
+    ctList,                 ///< List of IBaseObject
+    ctDict,                 ///< Dictionary of (key: IBaseObject, value: IBaseObject)
+    ctRatio,                ///< Rational number (numerator / denominator)
+    ctProc,                 ///< Callback without return value
+    ctObject,               ///< Generic object
+    ctBinaryData,           ///< Binary buffer with predefined size
+    ctFunc,                 ///< Callback with return value
+    ctComplexNumber,        ///< Complex number (real, imaginary)
+    ctStruct,               ///< Constant structure with dictionary of fields and types
+    ctEnumeration,          ///< Enumeration representing a predefined set of named integral constants
+    ctUndefined = 0xFFFF,   ///< Undefined
 };
 
 

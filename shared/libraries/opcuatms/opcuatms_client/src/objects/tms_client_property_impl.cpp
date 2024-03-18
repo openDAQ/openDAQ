@@ -1,4 +1,5 @@
 #include "opcuatms_client/objects/tms_client_property_impl.h"
+#include <opcuatms/core_types_utils.h>
 #include "coreobjects/coercer_factory.h"
 #include "coreobjects/eval_value_factory.h"
 #include "coreobjects/validator_factory.h"
@@ -58,12 +59,22 @@ TmsClientPropertyImpl::TmsClientPropertyImpl(const ContextPtr& daqContext, const
 void TmsClientPropertyImpl::readBasicInfo()
 {
     auto reader = clientContext->getAttributeReader();
-    const auto variant = reader->getValue(nodeId, UA_ATTRIBUTEID_VALUE);
-    const auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
-    this->valueType = object.getCoreType();
-
     this->name = String(reader->getValue(nodeId, UA_ATTRIBUTEID_DISPLAYNAME).toString());
     this->description = String(reader->getValue(nodeId, UA_ATTRIBUTEID_DESCRIPTION).toString());
+
+    const auto dataType = reader->getValue(nodeId, UA_ATTRIBUTEID_DATATYPE).toNodeId();
+    const auto enumerationTypeId = OpcUaNodeId(0, UA_NS0ID_ENUMERATION);
+
+    if (clientContext->getReferenceBrowser()->isSubtypeOf(dataType, enumerationTypeId))
+    {
+        this->valueType = ctEnumeration;
+    }
+    else
+    {
+        const auto variant = reader->getValue(nodeId, UA_ATTRIBUTEID_VALUE);
+        const auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
+        this->valueType = object.getCoreType();
+    }
 }
 
 void TmsClientPropertyImpl::configurePropertyFields()
@@ -170,8 +181,24 @@ void TmsClientPropertyImpl::configurePropertyFields()
                                     "Failed to read default value of property {} on OpcUa client. Detault value is set to the value at connection time.",
                                     this->name);
                             }
-                            this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);
-                            
+
+                            //Special handling for enumerations as this data type is encoded as Int32 in OPCUA
+                            const auto dataType = reader->getValue(nodeId, UA_ATTRIBUTEID_DATATYPE).toNodeId();
+                            const auto enumerationTypeId = OpcUaNodeId(0, UA_NS0ID_ENUMERATION);
+
+                            if (clientContext->getReferenceBrowser()->isSubtypeOf(dataType, enumerationTypeId))
+                            {
+                                if (value->type != &UA_TYPES[UA_TYPES_INT32])
+                                    throw ConversionFailedException{"Enumeration node data type is not uint32_t"};
+
+                                const auto enumBrowseName = client->readBrowseName(dataType);
+                                const auto enumType = GetUAEnumerationDataTypeByName(enumBrowseName);
+                                OpcUaVariant variant{};
+                                UA_Variant_setScalarCopy(&variant.getValue(), value->data, enumType);
+                                this->defaultValue = VariantConverter<IEnumeration>::ToDaqObject(variant, daqContext);
+                            }
+                            else
+                                this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);
 
                             if (this->defaultValue.assigned() && this->defaultValue.asPtrOrNull<IFreezable>().assigned())
                                 this->defaultValue.freeze();

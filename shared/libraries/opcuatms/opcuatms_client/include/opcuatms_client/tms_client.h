@@ -33,6 +33,8 @@ public:
               const FunctionPtr& createStreamingCallback);
 
     daq::DevicePtr connect();
+    void AddEnumerationTypesToTypeManager();
+
 
 protected:
     void getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string& browseNameOut);

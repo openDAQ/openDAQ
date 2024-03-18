@@ -232,4 +232,11 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
         },
         py::arg("server_capability"),
         "Remove protocol from the list of support capabilities");
+    cls.def("clear_server_streaming_capabilities",
+        [](daq::IDeviceInfoConfig *object)
+        {
+            const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
+            objectPtr.clearServerStreamingCapabilities();
+        },
+        "Remove server streaming capabilities");
 }

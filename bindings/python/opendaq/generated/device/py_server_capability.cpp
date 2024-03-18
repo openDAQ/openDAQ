@@ -43,6 +43,7 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
     cls.doc() = "";
 
     m.def("ServerCapability", &daq::ServerCapability_Create);
+    m.def("ServerStreamingCapability", &daq::ServerStreamingCapability_Create);
 
     cls.def_property_readonly("connection_string",
         [](daq::IServerCapability *object)

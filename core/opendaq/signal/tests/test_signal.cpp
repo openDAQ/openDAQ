@@ -434,7 +434,7 @@ TEST_F(SignalTest, SignalDescriptorStructSameNameDifferentDescriptor)
     ASSERT_EQ(sp1.get("Int32"), 4);
 
     // Throws because descriptor2 has the same name as descriptor1 and hence the the struct type can't be added to the type manager
-    ASSERT_THROW(signal2.getLastValue(), InvalidParameterException);
+    ASSERT_THROW(signal2.getLastValue(), daq::InvalidParameterException);
 }
 
 TEST_F(SignalTest, SendNullPacket)
@@ -911,7 +911,7 @@ TEST_F(SignalTest, GetLastValueStructNoSetDescriptor)
 
     // Call getLastValue
     // Throws becuase we didn't use signal.setDescriptor
-    ASSERT_THROW(signal.getLastValue(), NotFoundException);
+    ASSERT_THROW(signal.getLastValue(), daq::NotFoundException);
 }
 
 TEST_F(SignalTest, GetLastValueStructNested)

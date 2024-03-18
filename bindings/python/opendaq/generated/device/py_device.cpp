@@ -236,4 +236,11 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         py::arg("configuration"),
         "Loads the configuration of the device from string.");
+    cls.def_property_readonly("ticks_since_origin",
+        [](daq::IDevice *object)
+        {
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getTicksSinceOrigin();
+        },
+        "Gets the number of ticks passed since the device's absolute origin.");
 }

@@ -37,6 +37,8 @@ void defineIDeviceDomain(pybind11::module_ m, PyDaqIntf<daq::IDeviceDomain, daq:
 {
     cls.doc() = "Contains information about the domain of the device.";
 
+    m.def("DeviceDomain", &daq::DeviceDomain_Create);
+
     cls.def_property_readonly("tick_resolution",
         [](daq::IDeviceDomain *object)
         {
@@ -45,13 +47,6 @@ void defineIDeviceDomain(pybind11::module_ m, PyDaqIntf<daq::IDeviceDomain, daq:
         },
         py::return_value_policy::take_ownership,
         "Gets domain (usually time) between two consecutive ticks. Resolution is provided in a domain unit.");
-    cls.def_property_readonly("ticks_since_origin",
-        [](daq::IDeviceDomain *object)
-        {
-            const auto objectPtr = daq::DeviceDomainPtr::Borrow(object);
-            return objectPtr.getTicksSinceOrigin();
-        },
-        "Gets the number of ticks passed since the device's absolute origin.");
     cls.def_property_readonly("origin",
         [](daq::IDeviceDomain *object)
         {

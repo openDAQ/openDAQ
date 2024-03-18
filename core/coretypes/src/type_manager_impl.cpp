@@ -48,6 +48,7 @@ ErrCode TypeManagerImpl::addType(IType* type)
         if (OPENDAQ_FAILED(err))
             return err;
     }
+
     return daqTry(
         [&]()
         {
@@ -72,6 +73,7 @@ ErrCode TypeManagerImpl::removeType(IString* name)
         if (OPENDAQ_FAILED(err))
             return err;
     }
+
     return daqTry(
         [&]()
         {

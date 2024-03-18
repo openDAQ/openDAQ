@@ -1438,19 +1438,20 @@ TEST_F(CoreEventTest, TypeRemoved)
 TEST_F(CoreEventTest, DomainChanged)
 {
     const auto device = instance.getDevices()[0];
-    auto mock = dynamic_cast<MockPhysicalDeviceImpl*>(device.getObject());
+    const auto mock = dynamic_cast<MockPhysicalDeviceImpl*>(device.getObject());
 
     int changeCount = 0;
     getOnCoreEvent() +=
-        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
     {
         ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::DeviceDomainChanged));
         ASSERT_EQ(args.getEventName(), "DeviceDomainChanged");
         ASSERT_TRUE(args.getParameters().hasKey("DeviceDomain"));
         changeCount++;
     };
-    DeviceDomainPtr domain1 = DeviceDomain(Ratio(1, 1), "foo", Unit("test"));
-    DeviceDomainPtr domain2 = DeviceDomain(Ratio(1, 1), "bar", Unit("test1"));
+
+    const DeviceDomainPtr domain1 = DeviceDomain(Ratio(1, 1), "foo", Unit("test"));
+    const DeviceDomainPtr domain2 = DeviceDomain(Ratio(1, 1), "bar", Unit("test1"));
 
     mock->setDeviceDomainHelper(domain1);
     ASSERT_EQ(device.getDomain().getOrigin(), "foo");

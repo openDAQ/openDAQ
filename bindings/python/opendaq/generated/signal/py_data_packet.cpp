@@ -112,4 +112,12 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
             return objectPtr.getPacketId();
         },
         "Gets the unique packet id.");
+    cls.def_property_readonly("last_value",
+        [](daq::IDataPacket *object)
+        {
+            const auto objectPtr = daq::DataPacketPtr::Borrow(object);
+            return baseObjectToPyObject(objectPtr.getLastValue());
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the data packet last value");
 }

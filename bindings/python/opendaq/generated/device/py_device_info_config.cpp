@@ -38,6 +38,7 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
     cls.doc() = "Configuration component of Device info objects. Contains setter methods that are available until the object is frozen.";
 
     m.def("DeviceInfoConfig", &daq::DeviceInfoConfig_Create);
+    m.def("DeviceInfoConfigWithCustomSdkVersion", &daq::DeviceInfoConfigWithCustomSdkVersion_Create);
 
     cls.def_property("name",
         nullptr,

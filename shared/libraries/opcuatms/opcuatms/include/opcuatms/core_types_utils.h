@@ -39,5 +39,6 @@ OpcUaVariant UnwrapIfVariant(const OpcUaVariant& variant);
 const UA_DataType* GetUAStructureDataTypeByName(const std::string& structName);
 const UA_DataType* GetUAEnumerationDataTypeByName(const std::string& enumerationName);
 const std::string GetUATypeName(UA_UInt16 namespaceIndex, UA_UInt32 identifierNumeric);
+bool nativeStructConversionSupported(const std::string& structName);
 
 END_NAMESPACE_OPENDAQ_OPCUA

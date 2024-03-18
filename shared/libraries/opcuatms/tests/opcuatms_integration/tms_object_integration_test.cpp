@@ -20,8 +20,11 @@ void TmsObjectIntegrationTest::SetUp()
     logger = CreateLoggerWithDebugSink(debugSink);
 
     ctx = daq::NullContext(logger);
-    clientContext = std::make_shared<TmsClientContext>(client, ctx);
+    ctxClient = daq::NullContext(logger);
+    clientContext = std::make_shared<TmsClientContext>(client, ctxClient);
     serverContext = std::make_shared<TmsServerContext>(ctx, nullptr);
+
+    clientContext->addEnumerationTypesToTypeManager();
 }
 
 LastMessageLoggerSinkPrivatePtr TmsObjectIntegrationTest::getPrivateSink()
@@ -39,6 +42,7 @@ void TmsObjectIntegrationTest::TearDown()
     clientContext.reset();
     serverContext = nullptr;
     ctx = nullptr;
+    ctxClient = nullptr;
 
     TmsObjectTest::TearDown();
 }

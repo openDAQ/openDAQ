@@ -1,5 +1,6 @@
 #include "opcuatms_client/objects/tms_client_context.h"
 #include <opcuatms_client/tms_attribute_collector.h>
+#include <opcuatms/converters/variant_converter.h>
 #include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -126,6 +127,73 @@ void TmsClientContext::initAttributeReader()
     }
 
     attributeReader = std::make_shared<AttributeReader>(client, maxNodesPerRead);
+}
+
+void TmsClientContext::addEnumerationTypesToTypeManager()
+{
+    if (enumerationTypesAdded)
+        return;
+
+    if (!context.assigned() || !context.getTypeManager().assigned())
+        return; // TypeManager required. Do nothing.
+
+    auto typeManager = context.getTypeManager();
+
+    const auto DataTypeEnumerationNodeId = OpcUaNodeId(UA_NS0ID_ENUMERATION);
+    const auto& references = referenceBrowser->browse(DataTypeEnumerationNodeId);
+    StructPtr EnumValuesStruct;
+    std::vector<OpcUaNodeId> vecEnumerationsNodeIds;
+
+    for (auto [browseName, ref] : references.byBrowseName)
+        vecEnumerationsNodeIds.push_back(ref->nodeId.nodeId);
+
+    //Cache NodeIds
+    referenceBrowser->browseMultiple(vecEnumerationsNodeIds);
+
+    auto listEnumValues = List<IString>();
+
+    for (auto [browseName, ref] : references.byBrowseName)
+    {
+        //If type already exists, skip
+        if(typeManager.hasType(browseName))
+            continue;
+
+        const auto& references1 = referenceBrowser->browse(ref->nodeId.nodeId);
+        for (auto [childBrowseName, ChildRef] : references1.byBrowseName)
+        {
+            const auto childNodeValue = client->readValue(ChildRef->nodeId.nodeId);
+            const auto childNodeObject = VariantConverter<IBaseObject>::ToDaqObject(childNodeValue, context);
+
+            if (childBrowseName == "EnumStrings")
+            {
+                for (auto value : childNodeObject.asPtr<IList>())
+                    listEnumValues.pushBack(value);
+            }
+            else if (childBrowseName == "EnumValues")
+            {
+                for (const auto& value : childNodeObject.asPtr<IList>())
+                {
+                    if (EnumValuesStruct = value.asPtrOrNull<IStruct>(); EnumValuesStruct.assigned())
+                        listEnumValues.pushBack(EnumValuesStruct.get("DisplayName"));
+                }
+            }
+        }
+
+        auto enumType = EnumerationType(browseName, listEnumValues);
+
+        try
+        {
+            typeManager.addType(enumType);
+        }
+        catch (...)
+        {
+            LOG_I("Failed to add OPC UA type {} to type manager.", enumType.getName());
+        }
+
+        listEnumValues.clear();
+    }
+
+    enumerationTypesAdded = true;
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

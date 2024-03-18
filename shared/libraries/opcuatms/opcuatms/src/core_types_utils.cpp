@@ -15,6 +15,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
 namespace details
 {
+
 static std::unordered_map<OpcUaNodeId, CoreType> nodeIdToCoreTypeMap = {
     {OpcUaNodeId(0, UA_NS0ID_BOOLEAN), ctBool},
     {OpcUaNodeId(0, UA_NS0ID_FLOAT), ctFloat},
@@ -31,6 +32,9 @@ static std::unordered_map<OpcUaNodeId, CoreType> nodeIdToCoreTypeMap = {
     {OpcUaNodeId(0, UA_NS0ID_RATIONALNUMBER), ctRatio},
     {OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_RATIONALNUMBER64), ctRatio},
     {OpcUaNodeId(0, UA_DAQBTID_RATIONALNUMBER64), ctRatio}};
+
+static std::unordered_set<std::string> convertibleNativeStructs = {
+    "unit", "range", "argumentInfo", "complexNumber", "functionBlockType"};
 }
 
 StringPtr ConvertToDaqCoreString(const UA_String& uaString)
@@ -291,6 +295,11 @@ const UA_DataType* GetUAEnumerationDataTypeByName(const std::string& enumeration
     }
 
     return nullptr;
+}
+
+bool nativeStructConversionSupported(const std::string& structName)
+{
+    return details::convertibleNativeStructs.count(structName);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA

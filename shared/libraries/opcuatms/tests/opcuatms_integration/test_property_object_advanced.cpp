@@ -16,6 +16,8 @@
 #include "coretypes/type_manager_factory.h"
 #include <coreobjects/property_object_protected_ptr.h>
 #include <gmock/gmock.h>
+#include "opendaq/device_type_factory.h"
+#include "opendaq/server_type_factory.h"
 
 using namespace daq;
 using namespace opcua::tms;
@@ -126,8 +128,11 @@ public:
                             .addProperty(IntPropertyBuilder("CoercedInt", 10).setCoercer(Coercer("if(Value > 10, 10, Value)")).build())
                             .addProperty(RatioProperty("Ratio", Ratio(1, 1000)))
                             .addProperty(ObjectPropertyBuilder("ObjectWithMetadata", obj1).setReadOnly(true).setVisible(false).build())
-                            //.addProperty(StructProperty("UnitStruct", Unit("s", -1, "second", "time")))
-                            //.addProperty(StructProperty("ArgumentStruct", ArgumentInfo("Arg", ctInt)))
+                            .addProperty(StructProperty("UnitStruct", Unit("s", -1, "second", "time")))
+                            .addProperty(StructProperty("ArgumentStruct", ArgumentInfo("Arg", ctInt)))
+                            .addProperty(StructProperty("RangeStruct", Range(1, 2)))
+                            .addProperty(StructProperty("ComplexNumberStruct", ComplexNumber(1, 2)))
+                            .addProperty(StructProperty("FunctionBlockTypeStruct", FunctionBlockType("id", "name", "desc")))
                             .addProperty(StructProperty("DeviceDomainStructure",
                                                         Struct("DeviceDomainStructure",
                                                                Dict<IString, IBaseObject>({{"Resolution", Ratio(10, 20)},
@@ -834,5 +839,35 @@ TEST_F(TmsPropertyObjectAdvancedTest, BeginEndUpdate)
     clientObj.endUpdate();
 
     ASSERT_TRUE(eventTriggered);
+}
+
+TEST_F(TmsPropertyObjectAdvancedTest, NativeStructTypes)
+{
+    const auto obj = PropertyObject(manager, "TestClass");
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+
+    ASSERT_EQ(obj.getPropertyValue("UnitStruct"), clientObj.getPropertyValue("UnitStruct"));
+    ASSERT_EQ(obj.getPropertyValue("ArgumentStruct"), clientObj.getPropertyValue("ArgumentStruct"));
+    ASSERT_EQ(obj.getPropertyValue("RangeStruct"), clientObj.getPropertyValue("RangeStruct"));
+    ASSERT_EQ(obj.getPropertyValue("ComplexNumberStruct"), clientObj.getPropertyValue("ComplexNumberStruct"));
+    ASSERT_EQ(obj.getPropertyValue("FunctionBlockTypeStruct"), clientObj.getPropertyValue("FunctionBlockTypeStruct"));
+
+    clientObj.setPropertyValue("UnitStruct", Unit("new_symbol", 2, "new_name", "new_quantity"));
+    clientObj.setPropertyValue("ArgumentStruct", ArgumentInfo("new_name", CoreType::ctFloat));
+    clientObj.setPropertyValue("RangeStruct", Range(100, 2000));
+    clientObj.setPropertyValue("ComplexNumberStruct", ComplexNumber(100, 2000));
+    clientObj.setPropertyValue("FunctionBlockTypeStruct", FunctionBlockType("new_id", "new_name", "new_desc"));
+    
+    ASSERT_EQ(obj.getPropertyValue("UnitStruct"), Unit("new_symbol", 2, "new_name", "new_quantity"));
+    ASSERT_EQ(obj.getPropertyValue("ArgumentStruct"), ArgumentInfo("new_name", CoreType::ctFloat));
+    ASSERT_EQ(obj.getPropertyValue("RangeStruct"), Range(100, 2000));
+    ASSERT_EQ(obj.getPropertyValue("ComplexNumberStruct"), ComplexNumber(100, 2000));
+    ASSERT_EQ(obj.getPropertyValue("FunctionBlockTypeStruct"), FunctionBlockType("new_id", "new_name", "new_desc"));
+
+    ASSERT_EQ(obj.getPropertyValue("UnitStruct"), clientObj.getPropertyValue("UnitStruct"));
+    ASSERT_EQ(obj.getPropertyValue("ArgumentStruct"), clientObj.getPropertyValue("ArgumentStruct"));
+    ASSERT_EQ(obj.getPropertyValue("RangeStruct"), clientObj.getPropertyValue("RangeStruct"));
+    ASSERT_EQ(obj.getPropertyValue("ComplexNumberStruct"), clientObj.getPropertyValue("ComplexNumberStruct"));
+    ASSERT_EQ(obj.getPropertyValue("FunctionBlockTypeStruct"), clientObj.getPropertyValue("FunctionBlockTypeStruct"));
 }
 

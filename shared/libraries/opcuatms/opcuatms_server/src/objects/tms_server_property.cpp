@@ -302,7 +302,7 @@ void TmsServerProperty::addReferenceTypeChildNodes()
     {
         StructPtr structPtr = this->parent.getRef().getPropertyValue(object.getName());
         std::string structTypeName =  structPtr.getStructType().getName();
-        if(GetUAStructureDataTypeByName(structTypeName) == nullptr)
+        if (!nativeStructConversionSupported(structTypeName) && GetUAStructureDataTypeByName(structTypeName) == nullptr)
             return;
     }
 

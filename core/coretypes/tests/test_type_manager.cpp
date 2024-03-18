@@ -9,7 +9,7 @@ TEST_F(TypeManagerTest, AddType)
 {
     auto manager = TypeManager();
     manager.addType(SimpleType(ctInt));
-    manager.addType(RatioStructType());
+    ASSERT_THROW(manager.addType(RatioStructType()), InvalidParameterException);
     manager.addType(StructType("foo", List<IString>("field"), List<IType>(SimpleType(ctString))));
 }
 
@@ -70,7 +70,6 @@ TEST_F(TypeManagerTest, Serialization)
     manager.addType(SimpleType(ctInt));
     manager.addType(SimpleType(ctString));
     manager.addType(StructType("foo", List<IString>("string"), List<IBaseObject>("foo"), List<IType>(SimpleType(ctString))));
-    manager.addType(RatioStructType());
 
     const auto serializer = JsonSerializer();
     
@@ -93,4 +92,37 @@ TEST_F(TypeManagerTest, InterfaceId)
 TEST_F(TypeManagerTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<ITypeManager>(), "{EBD840C6-7E32-51F4-B063-63D0B09F4240}");
+}
+
+TEST_F(TypeManagerTest, ProtectedStructNames)
+{
+    std::vector<std::string> protectedNames{{"argumentinfo",
+                                             "callableinfo",
+                                             "unit",
+                                             "complexnumber",
+                                             "ratio",
+                                             "devicetype",
+                                             "functionblocktype",
+                                             "servertype",
+                                             "datadescriptor",
+                                             "datarule",
+                                             "dimension",
+                                             "dimensionrule",
+                                             "range",
+                                             "scaling"}};
+
+    const auto typeManager = TypeManager();
+    for (const auto& name : protectedNames)
+    {
+        std::string uppercase = name;
+        std::transform(uppercase.begin(), uppercase.end(), uppercase.begin(), [](char c) { return std::toupper(c); });
+
+        const auto type1 = StructType(name, List<IString>("field"), List<IType>(SimpleType(ctString)));
+        const auto type2 = StructType(uppercase, List<IString>("field"), List<IType>(SimpleType(ctString)));
+
+        ASSERT_THROW(typeManager.addType(type1), InvalidParameterException);
+        ASSERT_THROW(typeManager.addType(type2), InvalidParameterException);
+    }
+
+
 }

@@ -135,7 +135,8 @@ IntegerPtr StructConverter<IInteger, UA_Byte>::ToDaqObject(const UA_Byte& value,
 template <>
 OpcUaObject<UA_Byte> StructConverter<IInteger, UA_Byte>::ToTmsType(const IntegerPtr& object, const ContextPtr& /*context*/)
 {
-    return {static_cast<UA_Byte>(object)};
+    const int64_t val = object;
+    return {static_cast<UA_Byte>(val)};
 }
 
 template <>

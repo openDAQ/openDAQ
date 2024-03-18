@@ -58,24 +58,23 @@ protected:
                 .addProperty(StructProperty(
                     "Scaler", Struct("GainScalingStructure", Dict<IString, IBaseObject>({{"Factor", 2.1}, {"Offset", 3.0}}), objManager)))
                 .addProperty(EnumerationProperty("ExcitationType", Enumeration("ExcitationTypeEnumeration", "DCVoltage", objManager)))
-                //.addProperty(StructProperty(
-                //    "FullBridge",
-                //    Struct("FullBridgeSensorStructure",
-                //           Dict<IString, IBaseObject>(
-                //               {{"ExcitationVoltage",
-                //                 Struct("ExcitationVoltageStructure",
-                //                        Dict<IString, IBaseObject>(
-                //                            {{"ActualValue", 5.0},
-                //                             {"NominalValue", 5.0},
-                //                             {"NominalValueRange",
-                //                              Struct("Range", Dict<IString, IBaseObject>({{"Low", 4.0}, {"High", 6.0}}), objManager)},
-                //                             {"Type", Enumeration("ExcitationTypeEnumeration", "DCVoltage", objManager)},
-                //                             {"Frequency", 0}}),
-                //                        objManager)},
-                //                {"Resistance", 350.0},
-                //                {"MaximumElectrical", 5.0},
-                //                {"UsedWires", 6}}),
-                //           objManager)))
+                .addProperty(StructProperty(
+                    "FullBridge",
+                    Struct("FullBridgeSensorStructure",
+                           Dict<IString, IBaseObject>(
+                               {{"ExcitationVoltage",
+                                 Struct("ExcitationVoltageStructure",
+                                        Dict<IString, IBaseObject>(
+                                            {{"ActualValue", 5.0},
+                                             {"NominalValue", 5.0},
+                                             {"NominalValueRange", Range(4.0, 6.0)},
+                                             {"Type", Enumeration("ExcitationTypeEnumeration", "DCVoltage", objManager)},
+                                             {"Frequency", 0}}),
+                                        objManager)},
+                                {"Resistance", 350.0},
+                                {"MaximumElectrical", 5.0},
+                                {"UsedWires", 6}}),
+                           objManager)))
                 .build();
         objManager.addType(fusionAmpClass);
     }
@@ -91,7 +90,7 @@ protected:
         const auto serverProp =
             std::make_shared<TmsServerPropertyObject>(prop, server, context, std::make_shared<TmsServerContext>(context, nullptr));
         const auto nodeId = serverProp->registerOpcUaNode();
-        const auto clientProp = TmsClientPropertyObject(Context(nullptr, logger, objManager, nullptr), clientContext, nodeId);
+        const auto clientProp = TmsClientPropertyObject(ctxClient, clientContext, nodeId);
         return {serverProp, clientProp};
     }
 };
@@ -137,6 +136,32 @@ TEST_F(TmsFusionDevice, StructTest)
     ASSERT_DOUBLE_EQ(scalerManipulated.get("Offset"), (double) 3.1);
 }
 
+TEST_F(TmsFusionDevice, FullBridge)
+{
+    const auto obj = PropertyObject(objManager, "FusionAmp");
+    auto [serverObj, fusionAmp] = registerPropertyObject(obj);
+
+    const StructPtr fullBridge = fusionAmp.getPropertyValue("FullBridge");
+
+    const auto newExcitationVoltage = StructBuilder(fullBridge.get("ExcitationVoltage"))
+                                   .set("NominalValueRange", Range(1.2, 6.2))
+                                   .set("ActualValue", 5.9)
+                                   .build();
+
+    const auto newFullBridge = StructBuilder(fullBridge)
+                               .set("ExcitationVoltage", newExcitationVoltage)
+                               .set("UsedWires", 9)
+                               .set("Resistance", 100.1)
+                               .build();
+
+    fusionAmp.setPropertyValue("FullBridge", newFullBridge);
+    const auto serverFullBridge = obj.getPropertyValue("FullBridge");
+    const auto clientFullBridge = fusionAmp.getPropertyValue("FullBridge");
+    
+    ASSERT_EQ(serverFullBridge, clientFullBridge);
+    ASSERT_EQ(serverFullBridge, newFullBridge);
+}
+
 TEST_F(TmsFusionDevice, EnumTest)
 {
     // This test should be moved to coreobjects
@@ -145,20 +170,6 @@ TEST_F(TmsFusionDevice, EnumTest)
     // Test enum property
     obj.setPropertyValue("ExcitationType", Enumeration("ExcitationTypeEnumeration", "ACVoltage", objManager));
     ASSERT_EQ(obj.getPropertyValue("ExcitationType"), Enumeration("ExcitationTypeEnumeration", "ACVoltage", objManager));
-}
-
-TEST_F(TmsFusionDevice, DISABLED_DebugServerPublishingTest)
-{
-    // This test asserts nothing. It is used to debug the OPCUA server
-    const auto obj = PropertyObject(objManager, "FusionAmp");
-    const auto logger = Logger();
-    const auto context = Context(nullptr, logger, TypeManager(), nullptr);
-    const auto serverProp =
-        std::make_shared<TmsServerPropertyObject>(obj, server, context, std::make_shared<TmsServerContext>(context, nullptr));
-    const auto nodeId = serverProp->registerOpcUaNode();
-    while (true)
-    {
-    }
 }
 
 TEST_F(TmsFusionDevice, EnumPropertyTest)
@@ -170,16 +181,4 @@ TEST_F(TmsFusionDevice, EnumPropertyTest)
     fusionAmp.setPropertyValue("ExcitationType", Enumeration("ExcitationTypeEnumeration", "ACVoltage", objManager));
     ASSERT_EQ(obj.getPropertyValue("ExcitationType"), Enumeration("ExcitationTypeEnumeration", "ACVoltage", objManager));
     ASSERT_EQ(fusionAmp.getPropertyValue("ExcitationType"), Enumeration("ExcitationTypeEnumeration", "ACVoltage", objManager));
-}
-
-TEST_F(TmsFusionDevice, DISABLED_SimulatorTest)
-{
-    // this test should pass, if you have Fusion simulator running
-
-    const std::string connectionString = "opc.tcp://10.0.210.201";
-
-    TmsClient tmsClient(NullContext(), nullptr, connectionString, nullptr);
-    auto clientDevice = tmsClient.connect();
-
-    ASSERT_TRUE(clientDevice.assigned());
 }

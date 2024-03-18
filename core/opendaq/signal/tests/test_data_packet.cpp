@@ -9,7 +9,7 @@
 
 using DataPacketTest = testing::Test;
 
-BEGIN_NAMESPACE_OPENDAQ
+using namespace daq;
 
 // Helper methods
 
@@ -464,6 +464,3 @@ TEST_F(DataPacketTest, GetLastValueNoTypeManager)
 
     ASSERT_THROW(packet.getLastValue(), InvalidParameterException);
 }
-
-
-END_NAMESPACE_OPENDAQ

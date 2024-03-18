@@ -16,7 +16,7 @@
 
 using SignalTest = testing::Test;
 
-BEGIN_NAMESPACE_OPENDAQ
+using namespace daq;
 
 class ConnectionMockImpl : public ImplementationOf<IConnection>
 {
@@ -1082,5 +1082,3 @@ TEST_F(SignalTest, GetLastValueStructDoublyNested)
     // Check fifth (doubly nested) member
     ASSERT_FLOAT_EQ(doublyNestedPtr.get("DoublyNestedFloat32"), 6.66f);
 }
-
-END_NAMESPACE_OPENDAQ

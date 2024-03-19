@@ -133,10 +133,14 @@ static std::string printSync(SyncStatus synced)
 void SignalReader::setCommonSampleRate(const std::int64_t commonSampleRate)
 {
     this->commonSampleRate = commonSampleRate;
-    sampleRateDivider = static_cast<int32_t>(commonSampleRate / sampleRate);
 
-    if ((sampleRateDivider == 0) || (sampleRate % sampleRateDivider != 0))
-        invalid = true;
+    if (sampleRate > 0)
+    {
+        sampleRateDivider = static_cast<int32_t>(commonSampleRate / sampleRate);
+
+        if ((sampleRateDivider == 0) || (commonSampleRate % sampleRateDivider != 0))
+            invalid = true;
+    }
 }
 
 void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)

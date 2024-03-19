@@ -19,7 +19,7 @@
 #include <coreobjects/core_event_args.h>
 #include <coretypes/event_args_impl.h>
 #include <coretypes/validation.h>
-#include <core_event_args_ptr.h>
+#include <coreobjects/core_event_args_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

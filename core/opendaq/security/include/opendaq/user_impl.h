@@ -16,13 +16,15 @@
 
 #pragma once
 #include <opendaq/user.h>
+#include <opendaq/user_private.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/listobject_factory.h>
+#include <coretypes/deserializer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class UserImpl final : public ImplementationOf<IUser>
+class UserImpl final : public ImplementationOf<IUser, IUserPrivate, ISerializable>
 {
 public:
     explicit UserImpl(const StringPtr& username, const StringPtr& passwordHash, const ListPtr<IString> groups);
@@ -30,6 +32,15 @@ public:
     ErrCode INTERFACE_FUNC getUsername(IString** username) override;
     ErrCode INTERFACE_FUNC getPasswordHash(IString** passwordHash) override;
     ErrCode INTERFACE_FUNC getGroups(IList** groups) override;
+
+    // IBaseObject
+    ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
+
+    // ISerializable
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj);
 
 private:
     StringPtr username;

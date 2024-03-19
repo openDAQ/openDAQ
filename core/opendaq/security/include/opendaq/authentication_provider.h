@@ -44,11 +44,9 @@ DECLARE_OPENDAQ_INTERFACE(IAuthenticationProvider, IBaseObject)
      * @param password The password in plain text.
      * @param user[out] And instance of successfully authenticated user. If authentication is not successful, an exception is thrown.
      */
-    virtual ErrCode INTERFACE_FUNC authenticate(IString* usernanme, IString* password, IUser** user) = 0;
+    virtual ErrCode INTERFACE_FUNC authenticate(IString* usernanme, IString* password, IUser** userOut) = 0;
 };
 
 /*!@}*/
-
-OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, AuthenticationProvider)
 
 END_NAMESPACE_OPENDAQ

@@ -491,11 +491,6 @@ ErrCode INTERFACE_FUNC InstanceImpl::findComponent(IString* id, IComponent** out
     return rootDevice->findComponent(id, outComponent);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getPermissionManager(IPermissionManager** permissionManager)
-{
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
-}
-
 ErrCode InstanceImpl::getAvailableDevices(IList** availableDevices)
 {
     return rootDevice->getAvailableDevices(availableDevices);
@@ -667,6 +662,14 @@ ErrCode InstanceImpl::endUpdate()
 ErrCode InstanceImpl::getOnEndUpdate(IEvent** event)
 {
     return rootDevice->endUpdate();
+}
+
+ErrCode INTERFACE_FUNC InstanceImpl::getPermissionManager(IPermissionManager** permissionManager)
+{
+    OPENDAQ_PARAM_NOT_NULL(permissionManager);
+
+    *permissionManager = rootDevice.getPermissionManager().addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)

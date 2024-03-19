@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 #pragma once
+#include <coretypes/objectptr.h>
 #include <opendaq/authentication_provider_ptr.h>
+#include <opendaq/authentication_provider_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -25,12 +27,45 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Creates a immutable user object with provided arguments.
- * @param username Username of a user.
+ * @brief Creates an empty authentication provider without any user.
  */
 inline AuthenticationProviderPtr AuthenticationProvider()
 {
-    AuthenticationProviderPtr obj(AuthenticationProvider_Create());
+    AuthenticationProviderPtr obj(createWithImplementation<IAuthenticationProvider, StaticAuthenticationProviderImpl>(List<IUser>()));
+    return obj;
+}
+
+/*!
+ * @brief Creates an authentication provider out of static list of users.
+ * @param users List of user objects.
+ */
+inline AuthenticationProviderPtr StaticAuthenticationProvider(const ListPtr<IUser>& users)
+{
+    AuthenticationProviderPtr obj(createWithImplementation<IAuthenticationProvider, StaticAuthenticationProviderImpl>(users));
+    return obj;
+}
+
+/*!
+ * @brief Creates an authentication provider out of static json file.
+ * @param filename File path to json file contianung a list of user objects.
+ */
+inline AuthenticationProviderPtr JsonFileAuthenticationProvider(const StringPtr& filename)
+{
+    AuthenticationProviderPtr obj(createWithImplementation<IAuthenticationProvider, JsonAuthenticationProviderImpl>());
+    auto impl = (JsonAuthenticationProviderImpl*) obj.getObject();
+    impl->loadJsonFile(filename);
+    return obj;
+}
+
+/*!
+ * @brief Creates an authentication provider out of static json string.
+ * @param jsonString List of users and their groups encoded as json string.
+ */
+inline AuthenticationProviderPtr JsonStringAuthenticationProvider(const StringPtr& jsonString)
+{
+    AuthenticationProviderPtr obj(createWithImplementation<IAuthenticationProvider, JsonAuthenticationProviderImpl>());
+    auto impl = (JsonAuthenticationProviderImpl*) obj.getObject();
+    impl->loadJsonString(jsonString);
     return obj;
 }
 

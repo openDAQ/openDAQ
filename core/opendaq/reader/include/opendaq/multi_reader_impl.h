@@ -30,6 +30,7 @@ public:
                     SampleType domainReadType,
                     ReadMode mode,
                     ReadTimeoutType timeoutType,
+                    Int requiredCommonSampleRate = -1,
                     Bool startOnFullUnitOfDomain = false);
 
     MultiReaderImpl(MultiReaderImpl* old,
@@ -122,6 +123,7 @@ private:
     StringPtr readOrigin;
     RatioPtr readResolution;
     std::unique_ptr<Comparable> commonStart;
+    std::int64_t requiredCommonSampleRate = -1;
     std::int64_t commonSampleRate = -1;
     std::int32_t sampleRateDividerLcm = 1;
 

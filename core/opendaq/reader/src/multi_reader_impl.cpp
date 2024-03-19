@@ -21,21 +21,24 @@ struct fmt::formatter<daq::Comparable> : ostream_formatter
 
 BEGIN_NAMESPACE_OPENDAQ
 
+
 MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
                                  ReadMode mode,
                                  ReadTimeoutType timeoutType,
+                                 std::int64_t requiredCommonSampleRate,
                                  Bool startOnFullUnitOfDomain)
-    : startOnFullUnitOfDomain(startOnFullUnitOfDomain)
-{    
+    : requiredCommonSampleRate(requiredCommonSampleRate),
+      startOnFullUnitOfDomain(startOnFullUnitOfDomain)
+{
     bool isSignal = CheckPreconditions(list);
 
     auto logger = list[0].getContext().getLogger();
     loggerComponent = logger.getOrAddComponent("MultiReader");
 
     this->internalAddRef();
-    
+
     if (isSignal)
         connectSignals(list, valueReadType, domainReadType, mode);
     else
@@ -43,9 +46,9 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
         portBinder = PropertyObject();
         connectPorts(list, valueReadType, domainReadType, mode);
     }
-	
-	updateCommonSampleRateAndDividers();
-	
+
+    updateCommonSampleRateAndDividers();
+
     SizeT min{};
     SyncStatus syncStatus{};
     ErrCode errCode = synchronize(min, syncStatus);
@@ -65,6 +68,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
 
     CheckPreconditions(old->getSignals());
     commonSampleRate = old->commonSampleRate;
+    requiredCommonSampleRate = old->requiredCommonSampleRate;
 
     this->internalAddRef();
     auto listener = this->thisPtr<InputPortNotificationsPtr>();
@@ -197,16 +201,24 @@ static void checkSameDomain(const ListPtr<ISignal>& list)
 
 void MultiReaderImpl::updateCommonSampleRateAndDividers()
 {
-    commonSampleRate = 1;
-
-    for (const auto& signal : signals)
+    if (requiredCommonSampleRate > 0)
     {
-        commonSampleRate = std::lcm<std::int64_t>(signal.sampleRate, commonSampleRate);
+        commonSampleRate = requiredCommonSampleRate;
+    }
+    else
+    {
+        commonSampleRate = 1;
+        for (const auto& signal : signals)
+        {
+            commonSampleRate = std::lcm<std::int64_t>(signal.sampleRate, commonSampleRate);
+        }
     }
 
     for (auto& signal : signals)
     {
         signal.setCommonSampleRate(commonSampleRate);
+        if (signal.invalid)
+            throw InvalidParameterException("Signal sample rate does not match required common sample rate");
     }
 
     sampleRateDividerLcm = 1;
@@ -1025,7 +1037,9 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     SampleType, domainReadType,
     ReadMode, mode,
     ReadTimeoutType, timeoutType,
-    Bool, startOnFullUnitOfDomain)
+    Int, requiredCommonSampleRate,
+    Bool, startOnFullUnitOfDomain
+)
 
 
 template <>

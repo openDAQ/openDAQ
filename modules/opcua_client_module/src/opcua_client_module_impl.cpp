@@ -89,7 +89,7 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                 return nullptr;
 
             if (isRootDevice)
-                capability.addProperty(StringProperty("Address", rootDeviceAddress));
+                capability.setPropertyValue("Address", rootDeviceAddress);
 
             const StringPtr streamingHeuristic = deviceConfig.getPropertySelectionValue("StreamingConnectionHeuristic");
             const ListPtr<IString> allowedStreamingProtocols = deviceConfig.getPropertyValue("AllowedStreamingProtocols");

@@ -257,6 +257,7 @@ ServerTypePtr NativeStreamingServerImpl::createType()
 void NativeStreamingServerImpl::onStopServer()
 {
     stopReading();
+    // this->rootDevice.asPtr<IDevicePrivate>()->removeServerCapability(String("daq.ns"));
     serverHandler->stopServer();
 }
 

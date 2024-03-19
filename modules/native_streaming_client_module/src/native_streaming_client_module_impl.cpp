@@ -404,7 +404,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     else if(capability.assigned())
     {
         StringPtr host = capability.getPropertyValue("Address");
-        if (!host.assigned() && host.toStdString().empty()) 
+        if (host.toStdString().empty()) 
             throw InvalidParameterException("Device address is not set");
 
         auto portNumber = capability.getPropertyValue("Port").template asPtr<IInteger>();

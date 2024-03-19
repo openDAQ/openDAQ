@@ -308,6 +308,11 @@ inline void SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursively(c
         const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
         LOG_W("Couldn't add type {} to type manager: {}", type.getName(), e.what());
     }
+    catch (...)
+    {
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+        LOG_W("Couldn't add type {} to type manager!", type.getName());
+    }
 }
 
 template <typename TInterface, typename... Interfaces>

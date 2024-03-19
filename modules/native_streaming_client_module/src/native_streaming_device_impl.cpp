@@ -51,6 +51,11 @@ void NativeStreamingDeviceImpl::initStatuses(const ContextPtr& ctx)
         const auto loggerComponent = ctx.getLogger().getOrAddComponent("NativeStreamingDevice");
         LOG_W("Couldn't add type {} to type manager: {}", statusType.getName(), e.what());
     }
+    catch (...)
+    {
+        const auto loggerComponent = ctx.getLogger().getOrAddComponent("NativeStreamingDevice");
+        LOG_W("Couldn't add type {} to type manager!", statusType.getName());
+    }
 
     const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", statusInitValue);

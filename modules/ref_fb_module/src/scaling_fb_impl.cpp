@@ -262,6 +262,11 @@ void ScalingFbImpl::initStatuses()
         const auto loggerComponent = this->context.getLogger().getOrAddComponent("ScalingFunctionBlock");
         LOG_W("Couldn't add type {} to type manager: {}", inputStatusType.getName(), e.what());
     }
+    catch (...)
+    {
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("ScalingFunctionBlock");
+        LOG_W("Couldn't add type {} to type manager!", inputStatusType.getName());
+    }
 
     auto thisStatusContainer = this->statusContainer.asPtr<IComponentStatusContainerPrivate>();
 

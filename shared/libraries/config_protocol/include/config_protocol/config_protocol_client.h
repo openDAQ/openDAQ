@@ -231,6 +231,11 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
             const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
             LOG_W("Couldn't add type {} to local type manager: {}", type.getName(), e.what());
         }
+        catch (...)
+        {
+            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+            LOG_W("Couldn't add type {} to local type manager!", type.getName());
+        }
     }
 }
 

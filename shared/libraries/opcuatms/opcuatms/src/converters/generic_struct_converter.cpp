@@ -127,6 +127,11 @@ StructPtr VariantConverter<IStruct>::ToDaqObject(const OpcUaVariant& variant, co
         const auto loggerComponent = context.getLogger().getOrAddComponent("GenericStructConverter");
         LOG_W("Couldn't add type {} to type manager: {}", type->typeName, e.what());
     }
+    catch (...)
+    {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("GenericStructConverter");
+        LOG_W("Couldn't add type {} to type manager!", type->typeName);
+    }
 
     return Struct(type->typeName, daqMembers, typeManager);
 }

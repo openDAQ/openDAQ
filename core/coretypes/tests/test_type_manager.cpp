@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <coretypes/coretypes.h>
+#include <cctype>
 
 using namespace daq;
 

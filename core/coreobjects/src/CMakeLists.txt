@@ -268,6 +268,7 @@ rtgen_config(${PROJECT_NAME}
 
 target_link_libraries(${LIB_NAME} PUBLIC daq::coretypes
                                          tsl::ordered_map
+                                         daq::security
                                   PRIVATE daq::core_containers
 )
 

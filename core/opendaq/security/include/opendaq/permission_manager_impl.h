@@ -17,20 +17,36 @@
 #pragma once
 #include <coretypes/intfs.h>
 #include <opendaq/permission_manager.h>
+#include <opendaq/permission_manager_ptr.h>
+#include <opendaq/permission_manager_private.h>
+#include <opendaq/permission_manager_private_ptr.h>
+#include <coretypes/weakrefptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class PermissionManagerImpl : public ImplementationOf<IPermissionManager>
+class PermissionManagerImpl : public ImplementationOfWeak<IPermissionManager, IPermissionManagerPrivate>
 {
 public:
-    explicit PermissionManagerImpl();
+    explicit PermissionManagerImpl(const PermissionManagerPtr& parent);
 
-    ErrCode INTERFACE_FUNC inherit(Bool* inherit, IPermissionManager** managerOut) override;
-    ErrCode INTERFACE_FUNC setPermissions(IString* groupId, Int permissionFlags, IPermissionManager** managerOut) override;
-    ErrCode INTERFACE_FUNC isAuthorized(IUser* user, AccessPermission permission, Bool* authorizedOut) override;
+    ErrCode INTERFACE_FUNC setPermissionConfig(IPermissionConfig* permissionConfig) override;
+    ErrCode INTERFACE_FUNC isAuthorized(IUser* user, Permission permission, Bool* authorizedOut) override;
+
+protected:
+    ErrCode INTERFACE_FUNC setParent(IPermissionManager* parentManager) override;
+    ErrCode INTERFACE_FUNC addChildManager(IPermissionManager* childManager) override;
+    ErrCode INTERFACE_FUNC removeChildManager(IPermissionManager* childManager) override;
+    ErrCode INTERFACE_FUNC getPermissionConfig(IPermissionConfig** permisisonConfigOut) override;
+    ErrCode INTERFACE_FUNC updateInheritedPermissions() override;
 
 private:
-    std::unordered_map<std::string, Int> groupPermissions;
+    void updateChildPermissions();
+    PermissionManagerPrivatePtr getParentManager();
+
+    WeakRefPtr<IPermissionManager> parent;
+    DictPtr<IPermissionManager, Bool> children;
+    PermissionConfigPtr config;
+    PermissionConfigPtr localConfig;
 };
 
 END_NAMESPACE_OPENDAQ

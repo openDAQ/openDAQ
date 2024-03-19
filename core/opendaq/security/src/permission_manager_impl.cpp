@@ -3,51 +3,57 @@
 #include <coretypes/string_ptr.h>
 #include <opendaq/user_ptr.h>
 #include <coretypes/validation.h>
+#include <opendaq/permission_config_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-PermissionManagerImpl::PermissionManagerImpl()
+PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)
+    : children(Dict<IPermissionManager, Bool>())
+    , config(PermissionConfigBuilder().inherit(true).build())
+    , localConfig(PermissionConfigBuilder().inherit(true).build())
 {
+    setParent(parent);
 }
 
-ErrCode INTERFACE_FUNC PermissionManagerImpl::inherit(Bool* inherit, IPermissionManager** managerOut)
+ErrCode INTERFACE_FUNC PermissionManagerImpl::setPermissionConfig(IPermissionConfig* permissionConfig)
 {
-    OPENDAQ_PARAM_NOT_NULL(managerOut);
+    localConfig = permissionConfig;
+    auto builder = PermissionConfigBuilder();
 
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
-}
+    if (localConfig.getInherited() && parent.assigned())
+    {
+        const auto parent = getParentManager();
+        const auto parentConfig = parent.getPermissionConfig();
+        builder.inherit(true).extend(parentConfig);
+    }
 
-ErrCode INTERFACE_FUNC PermissionManagerImpl::setPermissions(IString* groupId, Int permissionFlags, IPermissionManager** managerOut)
-{
-    OPENDAQ_PARAM_NOT_NULL(managerOut);
+    builder.extend(localConfig);
+    config = builder.build();
 
-    StringPtr groupIdStr = groupId;
-
-    if (groupPermissions.count(groupIdStr) == 0)
-        groupPermissions[groupIdStr] = 0;
-
-    groupPermissions[groupIdStr] = permissionFlags;
-
-    *managerOut = this->thisInterface<IPermissionManager>();
+    updateChildPermissions();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC PermissionManagerImpl::isAuthorized(IUser* user, AccessPermission permission, Bool* authorizedOut)
+ErrCode INTERFACE_FUNC PermissionManagerImpl::isAuthorized(IUser* user, Permission permission, Bool* authorizedOut)
 {
     OPENDAQ_PARAM_NOT_NULL(authorizedOut);
-
     *authorizedOut = false;
+
     UserPtr userPtr = user;
     const auto& groups = userPtr.getGroups();
-    
+    const Int targetPermissionInt = (Int) permission;
+    Int permissionMask;
+
     for (const auto& group : groups)
     {
-        auto permissionMask = groupPermissions.find(group);
+        permissionMask = 0;
 
-        if (permissionMask == groupPermissions.end())
-            continue;
+        if (config.getAllowed().hasKey(group))
+            permissionMask |= (Int) config.getAllowed().get(group);
+        if (config.getDenied().hasKey(group))
+            permissionMask &= ~(Int) config.getDenied().get(group);
 
-        if ((permissionMask->second & (Int) permission) != 0)
+        if ((permissionMask & targetPermissionInt) != 0)
         {
             *authorizedOut = true;
             break;
@@ -57,6 +63,65 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::isAuthorized(IUser* user, AccessPe
     return OPENDAQ_SUCCESS;
 }
 
-OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PermissionManager)
+ErrCode INTERFACE_FUNC PermissionManagerImpl::setParent(IPermissionManager* parentManager)
+{
+    const auto self = borrowPtr<PermissionManagerPtr>();
+
+    if (parent.assigned())
+    {
+        auto parent = getParentManager();
+        parent.removeChildManager(self);
+    }
+
+    parent = parentManager;
+
+    if (parent.assigned())
+    {
+        auto parent = getParentManager();
+        parent.addChildManager(self);
+    }
+
+    setPermissionConfig(localConfig);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC PermissionManagerImpl::addChildManager(IPermissionManager* childManager)
+{
+    children.set(childManager, true);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC PermissionManagerImpl::removeChildManager(IPermissionManager* childManager)
+{
+    children.remove(childManager);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC PermissionManagerImpl::getPermissionConfig(IPermissionConfig** permisisonConfigOut)
+{
+    OPENDAQ_PARAM_NOT_NULL(permisisonConfigOut);
+
+    *permisisonConfigOut = config.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC PermissionManagerImpl::updateInheritedPermissions()
+{
+    if (localConfig.getInherited())
+        setPermissionConfig(localConfig);
+
+    return OPENDAQ_SUCCESS;
+}
+
+void PermissionManagerImpl::updateChildPermissions()
+{
+    for (auto& [child, _] : children)
+        child.asPtr<IPermissionManagerPrivate>()->updateInheritedPermissions();
+}
+
+PermissionManagerPrivatePtr PermissionManagerImpl::getParentManager()
+{
+    return parent.getRef().asPtr<IPermissionManagerPrivate>();
+}
 
 END_NAMESPACE_OPENDAQ

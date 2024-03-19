@@ -149,7 +149,6 @@ opendaq_target_link_libraries(${BASE_NAME}
            daq::scheduler
            daq::utility
            daq::context
-           daq::security
 )
 
 opendaq_target_include_directories(${BASE_NAME}

@@ -8,25 +8,40 @@ set(RTGEN_OUTPUT_DIR ${GENERATED_HEADERS_DIR})
 set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 rtgen(SRC_User user.h)
+rtgen(SRC_UserPrivate user_private.h)
 rtgen(SRC_AuthenticationProvider authentication_provider.h)
 rtgen(SRC_PermissionManager permission_manager.h)
+rtgen(SRC_PermissionManagerPrivate permission_manager_private.h)
+rtgen(SRC_PermisisonConfigBuilder permission_config_builder.h)
+rtgen(SRC_PermisisonConfig permission_config.h)
 
 set(SRC_Cpp user_impl.cpp
             authentication_provider_impl.cpp
             permission_manager_impl.cpp
+            permission_config_builder_impl.cpp
+            permission_config_impl.cpp
 )
 
-set(SRC_PublicHeaders user.h
+set(SRC_PublicHeaders security_errors.h
+                      security_exceptions.h
+                      user.h
                       user_factory.h
+                      user_private.h
                       authentication_provider.h
                       authentication_provider_factory.h
                       permission_manager.h
                       permission_manager_factory.h
+                      permission_manager_private.h
+                      permission_config_builder.h
+                      permission_config_builder_factory.h
+                      permission_config.h
 )
 
 set(SRC_PrivateHeaders user_impl.h
                        authentication_provider_impl.h
                        permission_manager_impl.h
+                       permission_config_builder_impl.h
+                       permission_config_impl.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)
@@ -51,6 +66,8 @@ opendaq_add_library(${BASE_NAME} STATIC
 opendaq_target_link_libraries(${BASE_NAME}
     PUBLIC
         daq::coretypes
+    PRIVATE
+        $<BUILD_INTERFACE:Boost::algorithm>
 )
 
 opendaq_target_include_directories(${BASE_NAME}

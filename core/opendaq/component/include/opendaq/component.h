@@ -20,7 +20,6 @@
 #include <coreobjects/property_object.h>
 #include <opendaq/tags.h>
 #include <opendaq/component_status_container.h>
-#include <opendaq/permission_manager.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -202,12 +201,6 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
      * the starting component, the id should be in the form of "dev/dev_id/ch/ch_id/sig/sig_id.
      */
     virtual ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) = 0;
-
-    /*!
-     * @brief Gets the permission manager of component.
-     * @param[out] permissionManager The permission manager of component.
-     */
-    virtual ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) = 0;
 };
 /*!@}*/
 

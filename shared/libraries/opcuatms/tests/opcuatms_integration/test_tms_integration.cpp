@@ -8,6 +8,7 @@
 #include <chrono>
 #include <thread>
 #include <testutils/test_comparators.h>
+#include <opendaq/permission_config_builder_factory.h>
 
 using namespace daq;
 using namespace daq::opcua;
@@ -402,24 +403,4 @@ TEST_F(TmsIntegrationTest, BeginEndUpdateDevice)
 
     ASSERT_NO_THROW(clientDevice.beginUpdate());
     ASSERT_NO_THROW(clientDevice.endUpdate());
-}
-
-TEST_F(TmsIntegrationTest, TmpAccessControl)
-{
-    // this is a temporary test, it should be removed
-
-    InstancePtr device = createDevice();
-
-    // /localInstance/FB/mock_fb_uid_0
-    auto fb = device.findComponent("FB/mock_fb_uid_0");
-    // fb.getPermissionManager().inherit(true).allow("user", "RWX")
-
-    TmsServer tmsServer(device);
-    tmsServer.start();
-
-    std::cin.get();
-
-    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
-    auto clientDevice = tmsClient.connect();
-    ASSERT_TRUE(clientDevice.assigned());
 }

@@ -32,6 +32,8 @@
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
 #include <iostream>
+#include <opendaq/permission_manager_factory.h>
+#include <opendaq/permission_config_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -71,6 +73,7 @@ protected:
         , valueType(ctUndefined)
         , visible(true)
         , readOnly(false)
+        , permissionManager(PermissionManager())
     {
         if (valueType == ctBinaryData)
         {
@@ -109,6 +112,7 @@ public:
 
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
+        permissionManager = PermissionManager();
 
         checkErrorInfo(validateDuringConstruction());
     }
@@ -202,8 +206,13 @@ public:
         : PropertyImpl(name, BaseObjectPtr(defaultValue), true)
     {
         this->valueType = ctObject;
+        this->readOnly = true;
+
         if (defaultValue == nullptr)
             this->defaultValue = PropertyObject().detach();
+
+        auto objPermissionManager = this->defaultValue.asPtr<IPropertyObject>().getPermissionManager().asPtr<IPermissionManagerPrivate>();
+        objPermissionManager.setParent(permissionManager);
 
         const auto err = validateDuringConstruction();
         if (err != OPENDAQ_SUCCESS)
@@ -1328,12 +1337,16 @@ public:
         }
 
         this->owner = owner;
+
+        const auto parentManager = this->owner.getRef().getPermissionManager();
+        this->permissionManager.asPtr<IPermissionManagerPrivate>().setParent(parentManager);
         return OPENDAQ_SUCCESS;
     }
 
 protected:
     PropertyPtr propPtr;
     WeakRefPtr<IPropertyObject> owner;
+    PermissionManagerPtr permissionManager;
 
     CoreType valueType;
 

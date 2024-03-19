@@ -14,33 +14,23 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/permission_manager_ptr.h>
-#include <opendaq/permission_manager_impl.h>
+#include <opendaq/permission_config_builder_ptr.h>
+#include <opendaq/permission_config_builder_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_security
- * @addtogroup opendaq_security_permission_manager Factories
+ * @addtogroup opendaq_security_permission_config_builder Factories
  * @{
  */
 
 /*!
- * @brief Creates a default permission manager object.
+ * @brief Creates a permission config builder object.
  */
-inline PermissionManagerPtr PermissionManager()
+inline PermissionConfigBuilderPtr PermissionConfigBuilder()
 {
-    PermissionManagerPtr obj(createWithImplementation<IPermissionManager, PermissionManagerImpl>(nullptr));
-    return obj;
-}
-
-/*!
- * @brief Creates a permission manager object which inherits permissions from a parent permission manager.
- * @param parent Permission manager of a parent component.
- */
-inline PermissionManagerPtr PermissionManager(const PermissionManagerPtr& parent)
-{
-    PermissionManagerPtr obj(createWithImplementation<IPermissionManager, PermissionManagerImpl>(parent));
+    PermissionConfigBuilderPtr obj(createWithImplementation<IPermissionConfigBuilder, PermissionConfigBuilderImpl>());
     return obj;
 }
 

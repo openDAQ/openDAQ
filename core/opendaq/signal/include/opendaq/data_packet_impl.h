@@ -422,14 +422,16 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManag
 
     if (sampleType == SampleType::Struct)
     {
-        auto structPtr = buildStructFromPacket(addr, descriptor, typeManager);
-        *value = structPtr.detach();
-    }
-    else
-    {
-        *value = dataToObj(addr, sampleType).detach();
+        return daqTry(
+            [&]()
+            {
+                auto structPtr = buildStructFromPacket(addr, descriptor, typeManager);
+                *value = structPtr.detach();
+                return OPENDAQ_SUCCESS;
+            });
     }
 
+    *value = dataToObj(addr, sampleType).detach();
     return OPENDAQ_SUCCESS;
 }
 

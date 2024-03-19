@@ -5,6 +5,7 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/deserialize_component_ptr.h>
+#include <opendaq/input_port_factory.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/removable_ptr.h>
 #include <opendaq/signal_events.h>
@@ -12,7 +13,6 @@
 #include <opendaq/signal_factory.h>
 #include <opendaq/signal_private_ptr.h>
 #include <opendaq/tags_factory.h>
-#include <opendaq/input_port_factory.h>
 
 using SignalTest = testing::Test;
 
@@ -434,7 +434,7 @@ TEST_F(SignalTest, SignalDescriptorStructSameNameDifferentDescriptor)
     ASSERT_EQ(sp1.get("Int32"), 4);
 
     // Throws because descriptor2 has the same name as descriptor1 and hence the the struct type can't be added to the type manager
-    ASSERT_THROW(signal2.getLastValue(), daq::InvalidParameterException);
+    ASSERT_THROW(signal2.getLastValue(), InvalidParameterException);
 }
 
 TEST_F(SignalTest, SendNullPacket)
@@ -777,7 +777,6 @@ TEST_F(SignalTest, GetLastValueComplexFloat64)
     ASSERT_DOUBLE_EQ(complexPtr.getImaginary(), 9.1);
 }
 
-
 TEST_F(SignalTest, TestSignalActiveSendPacket)
 {
     const auto context = NullContext();
@@ -911,7 +910,7 @@ TEST_F(SignalTest, GetLastValueStructNoSetDescriptor)
 
     // Call getLastValue
     // Throws becuase we didn't use signal.setDescriptor
-    ASSERT_THROW(signal.getLastValue(), daq::NotFoundException);
+    ASSERT_THROW(signal.getLastValue(), NotFoundException);
 }
 
 TEST_F(SignalTest, GetLastValueStructNested)

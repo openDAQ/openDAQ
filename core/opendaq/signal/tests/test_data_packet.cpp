@@ -462,5 +462,5 @@ TEST_F(DataPacketTest, GetLastValueNoTypeManager)
     const auto data = static_cast<int32_t*>(packet.getData());
     data[4] = 42;
 
-    ASSERT_THROW(packet.getLastValue(), daq::InvalidParameterException);
+    ASSERT_THROW(packet.getLastValue(), InvalidParameterException);
 }

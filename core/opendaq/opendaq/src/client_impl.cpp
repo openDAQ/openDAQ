@@ -41,17 +41,18 @@ ListPtr<IDeviceInfo> ClientImpl::onGetAvailableDevices()
         {
             // Parallelize the process of each module enumerating/discovering available devices,
             // as it may be time-consuming
-            AsyncEnumerationResult deviceListFuture =
-                std::async([module = module]()
-                           {
-                               return module.getAvailableDevices();
-                           });
-            enumerationResults.push_back(std::make_pair(std::move(deviceListFuture), module));
+            AsyncEnumerationResult deviceListFuture = std::async([module = module]()
+            {
+                return module.getAvailableDevices();
+            });
+            enumerationResults.emplace_back(std::move(deviceListFuture), module);
         }
         catch (const std::exception& e)
         {
             LOG_E("Failed to run device enumeration asynchronously within the module: {}. Result {}",
-                  module.getName(), e.what())
+                  module.getName(),
+                  e.what()
+            )
         }
     }
 

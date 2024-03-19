@@ -222,24 +222,25 @@ void TmsServerDevice::populateDeviceInfo()
 
 void TmsServerDevice::populateStreamingOptions()
 {
-    // auto params = AddObjectNodeParams(UA_NODEID_NULL, nodeId);
-    // params.setBrowseName("StreamingOptions");
-    // auto streamingOptionsNodeId = server->addObjectNode(params);
+    auto params = AddObjectNodeParams(UA_NODEID_NULL, nodeId);
+    params.setBrowseName("StreamingOptions");
+    auto streamingOptionsNodeId = server->addObjectNode(params);
 
-    // auto devicePrivatePtr = object.asPtrOrNull<IDevicePrivate>();
-    // if (devicePrivatePtr == nullptr) // Instance does not implement IDevicePrivate
-    //     return;
+    auto deviceInfo = object.getInfo();
+    if (deviceInfo == nullptr)
+        return;
 
-    // ListPtr<IStreamingInfo> streamingOptions;
-    // devicePrivatePtr->getStreamingOptions(&streamingOptions);
-
-    // uint32_t numberInList = 0;
-    // for (const auto& streamingOption : streamingOptions)
-    // {
-    //     auto tmsStreamingOption = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
-    //         streamingOptionsNodeId, streamingOption.asPtr<IPropertyObject>(), numberInList++, streamingOption.getProtocolId());
-    //     this->streamingOptions.push_back(std::move(tmsStreamingOption));
-    // }
+    uint32_t numberInList = 0;
+    for (const auto capability: deviceInfo.getServerCapabilities())
+    {
+        if (capability.getProtocolType().getValue() != "ServerStreaming")
+            continue;
+        
+        StringPtr protocolId = capability.getPropertyValue("ProtocolId");
+        auto tmsStreamingOption = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
+            streamingOptionsNodeId, capability.asPtr<IPropertyObject>(), numberInList++, protocolId);
+        this->streamingOptions.push_back(std::move(tmsStreamingOption));
+    }
 }
 
 void TmsServerDevice::addFunctionBlockFolderNodes()

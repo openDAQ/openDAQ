@@ -19,6 +19,9 @@ TypeManagerPtr ServerCapabilityImpl::GetTypeManager(const ContextPtr& context)
 {
     auto typeManager = context.getTypeManager();
 
+    if (typeManager == nullptr)
+        throw ArgumentNullException("ServerCapability got context with not assigned type manager");
+
     // NOTE: values are set based on priority
     // NOTE: please update version of EnumerationName if you are changing list of values in EnumerationType
     if (!typeManager.hasType(EnumerationName))

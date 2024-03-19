@@ -5,6 +5,7 @@
 #include <opendaq/device_private.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/search_filter_factory.h>
+#include <opendaq/device_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -57,6 +58,10 @@ void WebsocketStreamingServer::start()
             streamingServer.sendPacketToSubscribers(signalId, packet);
     });
     packetReader.start();
+
+    ServerCapabilityPtr serverCapability = ServerStreamingCapability(context, "daq.wss");
+    serverCapability.addProperty(IntProperty("Port", streamingPort));
+    this->device.getInfo().asPtr<IDeviceInfoConfig>().addServerCapability(serverCapability);
 }
 
 void WebsocketStreamingServer::stop()

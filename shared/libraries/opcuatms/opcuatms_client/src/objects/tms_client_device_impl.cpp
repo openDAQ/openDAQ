@@ -379,9 +379,6 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
     std::map<uint32_t, PropertyObjectPtr> orderedStreamings;
     std::vector<PropertyObjectPtr> unorderedStreamings;
 
-    DeviceInfoPtr info;
-    this->getInfo(&info);
-    info.asPtr<IDeviceInfoConfig>().clearServerStreamingCapabilities();
     auto streamingOptionsNodeId = getNodeId("StreamingOptions");
 
     try
@@ -405,6 +402,10 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
     {
         LOG_W("Failed to find 'StreamingOptions' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
     }
+
+    DeviceInfoPtr info;
+    this->getInfo(&info);
+    info.asPtr<IDeviceInfoConfig>().clearServerStreamingCapabilities();
 
     for (const auto& [_, val] : orderedStreamings)
         info.asPtr<IDeviceInfoConfig>().addServerCapability(val);

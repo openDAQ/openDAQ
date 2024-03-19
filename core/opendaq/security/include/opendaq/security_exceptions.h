@@ -13,29 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
-#include <opendaq/user_ptr.h>
+#include <coretypes/exceptions.h>
+#include <opendaq/security_errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*!
- * @ingroup opendaq_security
- * @addtogroup opendaq_security_user Factories
- * @{
- */
 
-/*!
- * @brief Creates a immutable user object with provided arguments.
- * @param username Username of a user.
- * @param passwordHash Hashed password as a string in Modular Crypt Format.
- * @param groups The list of group IDs which the user belongs to.
- */
-inline UserPtr User(const StringPtr& username, const StringPtr& passwordHash, const ListPtr<IString> groups = nullptr)
+class SecurityException : public DaqException
 {
-    UserPtr obj(User_Create(username, passwordHash, groups));
-    return obj;
-}
+public:
+    using DaqException::DaqException;
+};
 
-/*!@}*/
+
+DEFINE_EXCEPTION_BASE(SecurityException, AuthenticationFailed, OPENDAQ_ERR_AUTHENTICATION_FAILED, "Authentication failed")
 
 END_NAMESPACE_OPENDAQ

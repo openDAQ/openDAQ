@@ -40,12 +40,6 @@ DECLARE_OPENDAQ_INTERFACE(IUser, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getUsername(IString * *username) = 0;
 
-    /*!
-     * @brief Returns hashed password as a string in Modular Crypt Format.
-     * @param password[out] The hashed password as a string in Modular Crypt Format.
-     */
-    virtual ErrCode INTERFACE_FUNC getPasswordHash(IString** passwordHash) = 0;
-
     // [templateType(groups, IString)]
     /*!
      * @brief Returns a list of group IDs which the user belongs to.

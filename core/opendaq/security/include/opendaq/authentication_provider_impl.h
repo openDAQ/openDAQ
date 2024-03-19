@@ -18,15 +18,49 @@
 #include <opendaq/authentication_provider.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
+#include <opendaq/user_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+// AuthenticationProviderImpl
 
 class AuthenticationProviderImpl : public ImplementationOf<IAuthenticationProvider>
 {
 public:
     explicit AuthenticationProviderImpl();
 
-    ErrCode INTERFACE_FUNC authenticate(IString* usernanme, IString* password, IUser** user) override;
+    ErrCode INTERFACE_FUNC authenticate(IString* usernanme, IString* password, IUser** userOut) override;
+
+protected:
+    void loadUserList(const ListPtr<IUser>& userList);
+    virtual UserPtr findUser(const StringPtr& username);
+    bool isPasswordValid(const StringPtr& hash, const StringPtr& password);
+
+    DictPtr<IString, IUser> users;
 };
+
+
+// StaticAuthenticationProviderImpl
+
+class StaticAuthenticationProviderImpl : public AuthenticationProviderImpl
+{
+public:
+    StaticAuthenticationProviderImpl(const ListPtr<IUser>& users);
+};
+
+// JsonAuthenticationProviderImpl
+
+class JsonAuthenticationProviderImpl : public AuthenticationProviderImpl
+{
+public:
+    JsonAuthenticationProviderImpl();
+
+    void loadJsonFile(const StringPtr& filename);
+    void loadJsonString(const StringPtr& josnString);
+
+protected:
+    virtual StringPtr readJsonFile(const StringPtr& filename);
+};
+
 
 END_NAMESPACE_OPENDAQ

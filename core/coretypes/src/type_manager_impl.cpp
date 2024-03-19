@@ -1,17 +1,28 @@
 #include <coretypes/baseobject_factory.h>
 #include <coretypes/serialized_object_ptr.h>
-#include <cctype>
 #include <coretypes/type_manager_impl.h>
 #include <coretypes/type_manager_ptr.h>
 #include <coretypes/type_ptr.h>
+#include <cctype>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 TypeManagerImpl::TypeManagerImpl()
     : types(Dict<IString, IType>())
-    , reservedTypeNames({
-    "argumentinfo", "callableinfo", "unit", "complexnumber", "ratio", "devicetype", "functionblocktype",
-    "servertype", "datadescriptor", "datarule", "dimension", "dimensionrule", "range", "scaling"})
+    , reservedTypeNames({"argumentinfo",
+                         "callableinfo",
+                         "unit",
+                         "complexnumber",
+                         "ratio",
+                         "devicetype",
+                         "functionblocktype",
+                         "servertype",
+                         "datadescriptor",
+                         "datarule",
+                         "dimension",
+                         "dimensionrule",
+                         "range",
+                         "scaling"})
 {
 }
 
@@ -26,11 +37,10 @@ ErrCode TypeManagerImpl::addType(IType* type)
         return OPENDAQ_ERR_INVALIDPARAMETER;
 
     std::string typeStr = typeName;
-    std::transform(typeStr.begin(), typeStr.end(), typeStr.begin(),[](char c){ return std::tolower(c); });
+    std::transform(typeStr.begin(), typeStr.end(), typeStr.begin(), [](char c) { return std::tolower(c); });
     if (reservedTypeNames.count(typeStr))
         return OPENDAQ_ERR_INVALIDPARAMETER;
 
-    if (types.hasKey(typeName))
     {
         std::scoped_lock lock(this->sync);
 
@@ -62,6 +72,7 @@ ErrCode TypeManagerImpl::removeType(IString* name)
 {
     if (name == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
+
     {
         std::scoped_lock lock(this->sync);
 

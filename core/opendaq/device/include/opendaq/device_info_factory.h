@@ -16,7 +16,7 @@
 #pragma once
 #include <opendaq/context_ptr.h>
 #include <opendaq/device_info_config_ptr.h>
-#include <opendaq/server_capability_ptr.h>
+#include <opendaq/server_capability_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 /*!
@@ -37,21 +37,18 @@ inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const S
     return obj;
 }
 
-inline ServerCapabilityPtr ServerCapability(const ContextPtr& context,
-                                            const StringPtr& connectionString,
+inline ServerCapabilityConfigPtr ServerCapability(const ContextPtr& context,
                                             const StringPtr& protocolName,
-                                            const StringPtr& protocolType, 
-                                            const StringPtr& connectionType,
-                                            ClientUpdateMethod updateMethod = ClientUpdateMethod::Unknown
+                                            const StringPtr& protocolType
                                             )
 {
-    ServerCapabilityPtr obj(ServerCapability_Create(context, connectionString, protocolName, protocolType, connectionType, updateMethod));
+    ServerCapabilityConfigPtr obj(ServerCapability_Create(context, protocolName, protocolType));
     return obj;
 }
 
-inline ServerCapabilityPtr ServerStreamingCapability(const ContextPtr& context, const StringPtr& protocolId)
+inline ServerCapabilityConfigPtr ServerStreamingCapability(const ContextPtr& context, const StringPtr& protocolId)
 {
-    ServerCapabilityPtr obj(ServerStreamingCapability_Create(context, protocolId));
+    ServerCapabilityConfigPtr obj(ServerStreamingCapability_Create(context, protocolId));
     return obj;
 }
 

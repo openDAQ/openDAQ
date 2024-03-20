@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <opendaq/server_capability.h>
+#include <opendaq/server_capability_config.h>
 #include <coretypes/validation.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
@@ -27,25 +27,31 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ServerCapabilityImpl : public GenericPropertyObjectImpl<IServerCapability>
+class ServerCapabilityConfigImpl : public GenericPropertyObjectImpl<IServerCapabilityConfig>
 {
 public:
-    using Super = GenericPropertyObjectImpl<IServerCapability>;
+    using Super = GenericPropertyObjectImpl<IServerCapabilityConfig>;
 
-    explicit ServerCapabilityImpl(const ContextPtr& context,
-                                  const StringPtr& connectionString,
+    explicit ServerCapabilityConfigImpl(const ContextPtr& context,
                                   const StringPtr& protocolName, 
-                                  const StringPtr& protocolType, 
-                                  const StringPtr& connectionType,
-                                  ClientUpdateMethod updateMethod);
+                                  const StringPtr& protocolType);
     
-    explicit ServerCapabilityImpl(const ContextPtr& context, const StringPtr& protocolId);
+    explicit ServerCapabilityConfigImpl(const ContextPtr& context, const StringPtr& protocolId);
 
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
+    ErrCode INTERFACE_FUNC setConnectionString(IString* connectionString) override;
+        
     ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) override;
+    ErrCode INTERFACE_FUNC setProtocolName(IString* protocolName) override;
+    
     ErrCode INTERFACE_FUNC getProtocolType(IEnumeration** type) override;
+    ErrCode INTERFACE_FUNC setProtocolType(IString* type) override;
+    
     ErrCode INTERFACE_FUNC getConnectionType(IString** type) override;
+    ErrCode INTERFACE_FUNC setConnectionType(IString* type) override;
+    
     ErrCode INTERFACE_FUNC getUpdateMethod(ClientUpdateMethod* method) override;
+    ErrCode INTERFACE_FUNC setUpdateMethod(ClientUpdateMethod method) override;    
     
 private:
     template <typename T>

@@ -68,20 +68,4 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC getUpdateMethod(ClientUpdateMethod* method) = 0;
 };
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, ServerCapability, IServerCapability,
-    IContext*, context,
-    IString*, connectionString,
-    IString*, protocolName,
-    IString*, protocolType, 
-    IString*, connectionType,
-    ClientUpdateMethod, updateMethod
-)
-
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, ServerStreamingCapability, IServerCapability,
-    IContext*, context,
-    IString*, protocolId
-)
-
 END_NAMESPACE_OPENDAQ

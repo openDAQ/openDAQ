@@ -52,7 +52,7 @@ public:
         init();
     }
 
-    template<class T = Impl, template_utils::enable_if_any<T, ServerCapabilityImpl> = 0>
+    template<class T = Impl, template_utils::enable_if_any<T, ServerCapabilityConfigImpl> = 0>
     TmsClientPropertyObjectBaseImpl(const ContextPtr& daqContext,
                                     const StringPtr& protocolId,
                                     const TmsClientContextPtr& clientContext,
@@ -63,7 +63,7 @@ public:
         init();
     }
 
-    template<class T = Impl, template_utils::enable_if_none<T, FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>, ChannelImpl<ITmsClientComponent>, PropertyObjectImpl, ServerCapabilityImpl> = 0>
+    template<class T = Impl, template_utils::enable_if_none<T, FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>, ChannelImpl<ITmsClientComponent>, PropertyObjectImpl, ServerCapabilityConfigImpl> = 0>
     TmsClientPropertyObjectBaseImpl(const ContextPtr& ctx,
                                     const ComponentPtr& parent,
                                     const StringPtr& localId,

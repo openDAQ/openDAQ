@@ -2541,7 +2541,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwner(IPr
 {
     this->owner = newOwner;
 
-    const auto parentManager = this->owner.getRef().getPermissionManager();
+    const PermissionManagerPtr parentManager = this->owner.assigned() ? this->owner.getRef().getPermissionManager() : nullptr;
     this->permissionManager.asPtr<IPermissionManagerPrivate>().setParent(parentManager);
 
     return OPENDAQ_SUCCESS;

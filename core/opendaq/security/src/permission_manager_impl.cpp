@@ -115,7 +115,7 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::updateInheritedPermissions()
 
 void PermissionManagerImpl::updateChildPermissions()
 {
-    for (auto& [child, _] : children)
+    for (const auto& [child, _] : children)
         child.asPtr<IPermissionManagerPrivate>()->updateInheritedPermissions();
 }
 

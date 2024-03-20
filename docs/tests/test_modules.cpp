@@ -3,6 +3,7 @@
 #include <thread>
 #include <opendaq/opendaq.h>
 #include "docs_test_helpers.h"
+#include <opendaq/context_internal_ptr.h>
 
 using ModulesTest = testing::Test;
 
@@ -61,8 +62,10 @@ TEST_F(ModulesTest, CreateComponents)
 {
     SKIP_TEST_MAC_CI;
     
-    daq::ModuleManagerPtr manager = daq::ModuleManager("");
-    manager.loadModules(NullContext());
+    const auto context = Context(nullptr, Logger(), TypeManager(), ModuleManager(""), Dict<IString, IBaseObject>());
+
+    ModuleManagerPtr manager = context.asPtr<IContextInternal>().moveModuleManager();
+    manager.loadModules(context);
     ASSERT_GT(manager.getModules().getCount(), 0u);
 
     ModulePtr fbModule;
@@ -143,7 +146,9 @@ TEST_F(ModulesTest, CreateComponents)
 // Corresponding document: Antora/modules/explanation/pages/modules.adoc
 TEST_F(ModulesTest, CreateServer)
 {
-    daq::ModuleManagerPtr manager = daq::ModuleManager("");
+    const auto context = Context(nullptr, Logger(), TypeManager(), ModuleManager(""), Dict<IString, IBaseObject>());
+
+    ModuleManagerPtr manager = context.asPtr<IContextInternal>().moveModuleManager();
     manager.loadModules(NullContext());
     ASSERT_GT(manager.getModules().getCount(), 0u);
     

@@ -5,11 +5,13 @@
 #include <opendaq/module_library.h>
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <opendaq/orphaned_modules.h>
+#include <future>
 #include <string>
 #include <boost/algorithm/string/predicate.hpp>
 
-BEGIN_NAMESPACE_OPENDAQ
+#include "coretypes/validation.h"
 
+BEGIN_NAMESPACE_OPENDAQ
 static OrphanedModules orphanedModules;
 
 static constexpr char createModuleFactory[] = "createModule";
@@ -40,7 +42,7 @@ ErrCode ModuleManagerImpl::getModules(IList** availableModules)
 {
     if (availableModules == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    
     auto list = List<IModule>();
     for (auto& library : libraries)
     {
@@ -55,7 +57,7 @@ ErrCode ModuleManagerImpl::addModule(IModule* module)
 {
     if (module == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    
     orphanedModules.tryUnload();
 
     const auto found = std::find_if(
@@ -79,7 +81,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 {
     if (modulesLoaded)
         return OPENDAQ_SUCCESS;
-
+    
     const auto contextPtr = ContextPtr::Borrow(context);
     logger = contextPtr.getLogger();
     if (!logger.assigned())
@@ -92,6 +94,229 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         modulesLoaded = true;
         return OPENDAQ_SUCCESS;
     });
+}
+
+ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
+{
+    OPENDAQ_PARAM_NOT_NULL(availableDevices);
+    
+    auto availableDevicesPtr = List<IDeviceInfo>();
+
+    using AsyncEnumerationResult = std::future<ListPtr<IDeviceInfo>>;
+    std::vector<std::pair<AsyncEnumerationResult, ModulePtr>> enumerationResults;
+
+    for (const auto& library : libraries)
+    {
+        const auto module = library.module;
+
+        try
+        {
+            // Parallelize the process of each module enumerating/discovering available devices,
+            // as it may be time-consuming
+            AsyncEnumerationResult deviceListFuture = std::async([module = module]()
+            {
+                return module.getAvailableDevices();
+            });
+            enumerationResults.emplace_back(std::move(deviceListFuture), module);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_E("Failed to run device enumeration asynchronously within the module: {}. Result {}",
+                  module.getName(),
+                  e.what()
+            )
+        }
+    }
+
+    for (auto& enumerationResult : enumerationResults)
+    {
+        ListPtr<IDeviceInfo> moduleAvailableDevices;
+        auto module = enumerationResult.second;
+        try
+        {
+            moduleAvailableDevices = enumerationResult.first.get();
+        }
+        catch (NotImplementedException&)
+        {
+            LOG_I("{}: GetAvailableDevices not implemented", module.getName())
+        }
+        catch ([[maybe_unused]] const std::exception& e)
+        {
+            LOG_W("{}: GetAvailableDevices failed: {}", module.getName(), e.what())
+        }
+
+        if (!moduleAvailableDevices.assigned())
+            continue;
+
+        for (const auto& deviceInfo : moduleAvailableDevices)
+            availableDevicesPtr.pushBack(deviceInfo);
+    }
+
+    *availableDevices = availableDevicesPtr.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::getAvailableDeviceTypes(IDict** deviceTypes)
+{
+    OPENDAQ_PARAM_NOT_NULL(deviceTypes);
+    
+    auto availableTypes = Dict<IString, IDeviceType>();
+
+    for (const auto& library : libraries)
+    {
+        const auto module = library.module;
+
+        DictPtr<IString, IDeviceType> moduleDeviceTypes;
+
+        try
+        {
+            moduleDeviceTypes = module.getAvailableDeviceTypes();
+        }
+        catch (NotImplementedException&)
+        {
+            LOG_I("{}: GetAvailableDeviceTypes not implemented", module.getName())
+        }
+        catch ([[maybe_unused]] const std::exception& e)
+        {
+            LOG_W("{}: GetAvailableDeviceTypes failed: {}", module.getName(), e.what())
+        }
+
+        if (!moduleDeviceTypes.assigned())
+            continue;
+
+        for (const auto& [id, type] : moduleDeviceTypes)
+            availableTypes.set(id, type);
+    }
+
+    *deviceTypes = availableTypes.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
+{
+    OPENDAQ_PARAM_NOT_NULL(device);
+
+    for (const auto& library : libraries)
+    {
+        const auto module = library.module;
+
+        bool accepted{};
+        try
+        {
+            accepted = module.acceptsConnectionParameters(connectionString, config);
+        }
+        catch (NotImplementedException&)
+        {
+            LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
+            accepted = false;
+        }
+        catch ([[maybe_unused]] const std::exception& e)
+        {
+            LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
+            accepted = false;
+        }
+
+        if (accepted)
+        {
+            return module->createDevice(device, connectionString, parent, config);
+        }
+    }
+
+    return this->makeErrorInfo(
+        OPENDAQ_ERR_NOTFOUND, "Device with given connection string and config is not available [{}]", connectionString);
+}
+
+ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
+{
+    OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
+
+    auto availableTypes = Dict<IString, IFunctionBlockType>();
+
+    for (const auto& library : libraries)
+    {
+        const auto module = library.module;
+        
+        DictPtr<IString, IFunctionBlockType> types;
+        try
+        {
+            types = module.getAvailableFunctionBlockTypes();
+        }
+        catch (NotImplementedException&)
+        {
+            LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getName())
+        }
+        catch ([[maybe_unused]] const std::exception& e)
+        {
+            LOG_W("{}: GetAvailableFunctionBlockTypes failed", module.getName())
+        }
+
+        if (!types.assigned())
+            continue;
+
+        for (const auto& [id, type] : types)
+            availableTypes.set(id, type);
+    }
+
+    *functionBlockTypes = availableTypes.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config, IString* localId)
+{
+    OPENDAQ_PARAM_NOT_NULL(functionBlock);
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    const StringPtr typeId = StringPtr::Borrow(id);
+
+    for (const auto& library : libraries)
+    {
+        const auto module = library.module;
+        
+        DictPtr<IString, IFunctionBlockType> types;
+        try
+        {
+            types = module.getAvailableFunctionBlockTypes();
+        }
+        catch (NotImplementedException&)
+        {
+            LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getName())
+        }
+        catch ([[maybe_unused]] const std::exception& e)
+        {
+            LOG_W("{}: GetAvailableFunctionBlockTypes failed", module.getName())
+        }
+
+        if (!types.assigned())
+            continue;
+        
+        if (!types.hasKey(typeId))
+            continue;
+
+        std::string localIdStr;
+        const PropertyObjectPtr configPtr = PropertyObjectPtr::Borrow(config);
+        if (localId)
+        {
+            const auto idPtr = StringPtr::Borrow(localId);
+            localIdStr = static_cast<std::string>(idPtr); 
+        }
+        else if (configPtr.assigned() && configPtr.hasProperty("LocalId"))
+        {
+            localIdStr = static_cast<std::string>(configPtr.getPropertyValue("LocalId"));
+        }
+        else
+        {
+            // TODO: Rework
+            if (!functionBlockCountMap.count(typeId))
+                functionBlockCountMap.insert(std::pair<std::string, size_t>(typeId, 0));
+
+            localIdStr = fmt::format("{}_{}", typeId, functionBlockCountMap[typeId]++);
+        }
+
+        return module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);
+    }
+
+    return this->makeErrorInfo(
+        OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Function block with given uid and config is not available [{}])", typeId));
 }
 
 std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComponent, std::string searchFolder, IContext* context)

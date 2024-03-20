@@ -37,9 +37,10 @@ public:
 
     // IDevice
     DeviceInfoPtr onGetInfo() override;
-    DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     uint64_t onGetTicksSinceOrigin() override;
+
+    bool allowAddDevicesFromModules() override;
+    bool allowAddFunctionBlocksFromModules() override;
 
 private:
     void initClock();

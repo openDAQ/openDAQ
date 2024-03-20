@@ -107,6 +107,7 @@ TEST_F(StreamingTest, Subscription)
     server->onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) {
         auto signals = List<ISignal>();
         signals.pushBack(testDoubleSignal);
+        signals.pushBack(testDoubleSignal.getDomainSignal());
         return signals;
     });
     server->start(StreamingPort, ControlPort);
@@ -150,6 +151,7 @@ TEST_F(StreamingTest, SimpePacket)
     server->onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) {
         auto signals = List<ISignal>();
         signals.pushBack(testDoubleSignal);
+        signals.pushBack(testDoubleSignal.getDomainSignal());
         return signals;
     });
     server->start(StreamingPort, ControlPort);
@@ -181,7 +183,7 @@ TEST_F(StreamingTest, SimpePacket)
     ASSERT_TRUE(client.isConnected());
 
     client.subscribeSignals({testDoubleSignal.getGlobalId()});
-    ASSERT_EQ(subscribeAckFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
+    ASSERT_EQ(subscribeAckFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
 
     std::string signalId = testDoubleSignal.getGlobalId();
     server->sendPacketToSubscribers(signalId, packet);

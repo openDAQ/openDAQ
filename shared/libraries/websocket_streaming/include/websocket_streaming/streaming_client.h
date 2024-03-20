@@ -46,8 +46,8 @@ public:
     using OnPacketCallback = std::function<void(const StringPtr& signalId, const PacketPtr& packet)>;
     using OnSignalCallback = std::function<void(const StringPtr& signalId, const SubscribedSignalInfo& signalInfo)>;
     using OnFindSignalCallback = std::function<SignalConfigPtr(const StringPtr& signalId)>;
-    using OnDomainDescriptorCallback =
-        std::function<void(const StringPtr& signalId, const DataDescriptorPtr& domainDescriptor)>;
+    using OnDomainSignalInitCallback =
+        std::function<void(const StringPtr& dataSignalId, const StringPtr& domainSignalId, const DataDescriptorPtr& domainDescriptor)>;
     using OnAvailableSignalsCallback = std::function<void(const std::vector<std::string>& signalIds)>;
     using OnSubsciptionAckCallback = std::function<void(const std::string& signalId, bool subscribed)>;
 
@@ -60,7 +60,7 @@ public:
     void onPacket(const OnPacketCallback& callack);
     void onSignalInit(const OnSignalCallback& callback);
     void onSignalUpdated(const OnSignalCallback& callback);
-    void onDomainDescriptor(const OnDomainDescriptorCallback& callback);
+    void onDomainSingalInit(const OnDomainSignalInitCallback& callback);
     void onAvailableStreamingSignals(const OnAvailableSignalsCallback& callback);
     void onAvailableDeviceSignals(const OnAvailableSignalsCallback& callback);
     void onFindSignal(const OnFindSignalCallback& callback);
@@ -86,8 +86,9 @@ protected:
     void publishSignalChanges(const std::string& signalId, const InputSignalPtr& signal);
     void onSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, const nlohmann::json& params);
     void setSignalInitSatisfied(const std::string& signalId);
-    void setDomainDescriptor(const std::string& signalId,
+    void setDomainIdAndDescriptor(const std::string& dataSignalId,
                              const InputSignalPtr& inputSignal,
+                             const std::string& domainSignalId,
                              const DataDescriptorPtr& domainDescriptor);
     std::vector<std::pair<std::string, InputSignalPtr>> findDataSignalsByTableId(const std::string& tableId);
 
@@ -105,7 +106,7 @@ protected:
     std::unordered_map<std::string, InputSignalPtr> signals;
     OnPacketCallback onPacketCallback = [](const StringPtr&, const PacketPtr&) {};
     OnSignalCallback onSignalInitCallback = [](const StringPtr&, const SubscribedSignalInfo&) {};
-    OnDomainDescriptorCallback onDomainDescriptorCallback = [](const StringPtr&, const DataDescriptorPtr&) {};
+    OnDomainSignalInitCallback onDomainSignalInitCallback = [](const StringPtr&, const StringPtr&, const DataDescriptorPtr&) {};
     OnAvailableSignalsCallback onAvailableStreamingSignalsCb = [](const std::vector<std::string>& signalIds) {};
     OnAvailableSignalsCallback onAvailableDeviceSignalsCb = [](const std::vector<std::string>& signalIds) {};
     OnFindSignalCallback onFindSignalCallback = [](const StringPtr& signalId) { return nullptr; };
@@ -127,7 +128,7 @@ protected:
     // 4-th: boolean flag indicating that initial unsubscription completion ack is filtered-out
     std::unordered_map<std::string, std::tuple<std::promise<void>, std::future<void>, bool, bool>> signalInitializedStatus;
 
-    std::unordered_map<std::string, DataDescriptorPtr> cachedDomainDescriptors;
+    std::unordered_map<std::string, std::pair<std::string, DataDescriptorPtr>> cachedDomainIdsAndDescriptors;
     bool useRawTcpConnection;
 };
 

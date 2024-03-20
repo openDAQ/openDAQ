@@ -1346,34 +1346,24 @@ public:
 protected:
     PropertyPtr propPtr;
     WeakRefPtr<IPropertyObject> owner;
-    PermissionManagerPtr permissionManager;
-
     CoreType valueType;
-
     StringPtr name;
     StringPtr description;
-
     UnitPtr unit;
-
     NumberPtr minValue;
     NumberPtr maxValue;
-
     BaseObjectPtr defaultValue;
-
     BooleanPtr visible;
-
     BooleanPtr readOnly;
     BaseObjectPtr selectionValues;
     ListPtr<IBaseObject> suggestedValues;
-
     EvalValuePtr refProp;
-
     CoercerPtr coercer;
     ValidatorPtr validator;
-
     CallableInfoPtr callableInfo;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueWrite;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueRead;
+    PermissionManagerPtr permissionManager;
 
 private:
     PropertyPtr bindAndGetRefProp(bool& bound)

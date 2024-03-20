@@ -38,10 +38,8 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
 
 void NativeStreamingDeviceImpl::initStatuses(const ContextPtr& ctx)
 {
-    const auto statusType = EnumerationType("ReconnectionStatusType", List<IString>("Connected",
-                                                                                    "Reconnecting",
-                                                                                    "Restored",
-                                                                                    "Unrecoverable"));
+    const auto statusType = EnumerationType("ConnectionStatusType", List<IString>("Connected", "Reconnecting", "Unrecoverable"));
+
     try
     {
         ctx.getTypeManager().addType(statusType);

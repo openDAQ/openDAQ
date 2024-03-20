@@ -308,9 +308,9 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     , updateCount(0)
     , coreEventMuted(true)
     , path("")
+    , permissionManager(PermissionManager())
     , className(nullptr)
     , objectClass(nullptr)
-    , permissionManager(PermissionManager())
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();

@@ -37,7 +37,9 @@ protected:
     void updateSignalProperties(const SignalPtr& signal, const SubscribedSignalInfo& sInfo);
     void onSignalInit(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
     void onSignalUpdated(const StringPtr& signalId, const SubscribedSignalInfo& sInfo);
-    void onDomainDescriptor(const StringPtr& signalId, const DataDescriptorPtr& domainDescriptor);
+    void onDomainSignalInit(const StringPtr& signalId,
+                            const StringPtr& domainSignalId,
+                            const DataDescriptorPtr& domainDescriptor);
     void createDeviceSignals(const std::vector<std::string>& signalIds);
 
     DeviceInfoConfigPtr deviceInfo;

@@ -3,8 +3,6 @@ set(TEST_APP test_${MODULE_NAME})
 
 add_executable(${TEST_APP}
     streaming_test_helpers.h
-    mock_streaming_server.h
-    mock_streaming_server.cpp
     test_signal_descriptor_converter.cpp
     test_streaming.cpp
     test_websocket_client_device.cpp

@@ -50,8 +50,7 @@ namespace streaming_test_helpers
         return instance;
     }
 
-    inline daq::SignalPtr createTimeSignal(const daq::ContextPtr& ctx,
-                                           const daq::StringPtr& tableId = "TestTable")
+    inline daq::SignalPtr createTimeSignal(const daq::ContextPtr& ctx)
     {
         const size_t nanosecondsInSecond = 1000000000;
         auto delta = nanosecondsInSecond / 1000;
@@ -61,12 +60,14 @@ namespace streaming_test_helpers
                               .setRule(daq::LinearDataRule(delta, 100))
                               .setTickResolution(daq::Ratio(1, nanosecondsInSecond))
                               .setOrigin(daq::streaming_protocol::UNIX_EPOCH_DATE_UTC_TIME)
-                              .setUnit(daq::Unit("s", daq::streaming_protocol::Unit::UNIT_ID_SECONDS))
+                              .setUnit(daq::Unit("s",
+                                                 daq::streaming_protocol::Unit::UNIT_ID_SECONDS,
+                                                 "seconds",
+                                                 "time"))
                               .setName("Time")
                               .build();
 
         auto signal = SignalWithDescriptor(ctx, descriptor, nullptr, descriptor.getName());
-        signal.addProperty(daq::StringProperty("tableId", tableId));
         return signal;
     }
 
@@ -118,8 +119,7 @@ namespace streaming_test_helpers
 
     inline daq::SignalPtr createTestSignalWithDomain(const daq::ContextPtr& ctx,
                                                      const daq::StringPtr& name,
-                                                     const daq::SignalPtr& domainSignal,
-                                                     const daq::StringPtr& tableId = "TestTable")
+                                                     const daq::SignalPtr& domainSignal)
     {
         auto meta = daq::Dict<daq::IString, daq::IString>();
         meta["color"] = "green";
@@ -140,7 +140,6 @@ namespace streaming_test_helpers
         signal.setDomainSignal(domainSignal);
         signal.setName(name);
         signal.setDescription("TestDescription");
-        signal.addProperty(daq::StringProperty("tableId", tableId));
 
         return signal;
     }

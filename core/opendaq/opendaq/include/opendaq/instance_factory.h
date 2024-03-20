@@ -85,9 +85,9 @@ inline InstancePtr Instance(const std::string& modulePath = "", const std::strin
  * The Client supports adding function blocks and connecting to devices. The array of function blocks
  * and supported devices depends on the modules loaded by the Module manager.
  */
-inline DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr)
+inline DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr, const ComponentPtr& parent = nullptr)
 {
-    DevicePtr obj(Client_Create(context, localId, defaultDeviceInfo));
+    DevicePtr obj(Client_Create(context, localId, defaultDeviceInfo, parent));
     return obj;
 }
 

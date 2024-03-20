@@ -19,25 +19,19 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/logger_ptr.h>
 #include <opendaq/module_manager_ptr.h>
-#include <opendaq/component_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 class ClientImpl : public Device
 {
 public:
-    ClientImpl(ContextPtr ctx, const StringPtr& localId, const DeviceInfoPtr& deviceInfo);
+    ClientImpl(ContextPtr ctx, const StringPtr& localId, const DeviceInfoPtr& deviceInfo, const ComponentPtr& parent = nullptr);
 
     // Device
 
     DeviceInfoPtr onGetInfo() override;
-
-    // ClientDevice
-
-    ListPtr<IDeviceInfo> onGetAvailableDevices() override;
-    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
-    DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    void onRemoveDevice(const DevicePtr& device) override;
+    bool allowAddDevicesFromModules() override;
+    bool allowAddFunctionBlocksFromModules() override;
 
 private:
     ModuleManagerPtr manager;

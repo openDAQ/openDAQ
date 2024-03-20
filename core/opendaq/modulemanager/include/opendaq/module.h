@@ -28,7 +28,8 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*#
- * [interfaceLibrary(IPropertyObject, "coreobjects")] */
+ * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ */
 
 /*!
  * @ingroup opendaq_modules

@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/module_manager.h>
+#include <opendaq/module_manager_utils.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
@@ -26,7 +27,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 struct ModuleLibrary;
 
-class ModuleManagerImpl : public ImplementationOfWeak<IModuleManager>
+class ModuleManagerImpl : public ImplementationOfWeak<IModuleManager, IModuleManagerUtils>
 {
 public:
     explicit ModuleManagerImpl(const StringPtr& path);
@@ -36,12 +37,19 @@ public:
     ErrCode INTERFACE_FUNC addModule(IModule* module) override;
     ErrCode INTERFACE_FUNC loadModules(IContext* context) override;
 
+    ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
+    ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;
+    ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config = nullptr) override;
+    ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
+    ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) override;
+
 private:
     bool modulesLoaded;
     std::string path;
     std::vector<ModuleLibrary> libraries;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+    std::unordered_map<std::string, size_t> functionBlockCountMap;
 };
 
 END_NAMESPACE_OPENDAQ

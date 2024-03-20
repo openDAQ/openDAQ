@@ -129,9 +129,10 @@ TEST_F(InstanceTest, AddDevice)
     ASSERT_EQ(availableDevices.getCount(), 2u);
 
     for (const auto& deviceInfo : availableDevices)
-        instance.addDevice(deviceInfo.getConnectionString());
+        if (deviceInfo.getConnectionString() != "daq_client_device")
+            instance.addDevice(deviceInfo.getConnectionString());
 
-    ASSERT_EQ(instance.getDevices().getCount(), 2u);
+    ASSERT_EQ(instance.getDevices().getCount(), 1u);
 }
 
 TEST_F(InstanceTest, RemoveDevice)
@@ -139,12 +140,13 @@ TEST_F(InstanceTest, RemoveDevice)
     auto instance = test_helpers::setupInstance();
     auto availableDevices = instance.getAvailableDevices();
     ASSERT_EQ(availableDevices.getCount(), 2u);
-
+    
     for (const auto& deviceInfo : availableDevices)
-        instance.addDevice(deviceInfo.getConnectionString());
+        if (deviceInfo.getConnectionString() != "daq_client_device")
+            instance.addDevice(deviceInfo.getConnectionString());
 
     const auto devices = instance.getDevices();
-    ASSERT_EQ(devices.getCount(), 2u);
+    ASSERT_EQ(devices.getCount(), 1u);
 
     for (const auto& device : devices)
         instance.removeDevice(device);
@@ -159,9 +161,9 @@ TEST_F(InstanceTest, AddNested)
     ASSERT_EQ(availableDevices[0].getConnectionString(), "daq_client_device");
 
     DevicePtr device1, device2, device3;
-    ASSERT_NO_THROW(device1 = instance.addDevice("daq_client_device"));
-    ASSERT_NO_THROW(device2 = device1.addDevice("daq_client_device"));
-    ASSERT_NO_THROW(device3 = device2.addDevice("daq_client_device"));
+    ASSERT_NO_THROW(device1 = instance.addDevice("mock_phys_device"));
+    ASSERT_NO_THROW(device2 = device1.addDevice("mock_phys_device"));
+    ASSERT_NO_THROW(device3 = device2.addDevice("mock_phys_device"));
 }
 
 TEST_F(InstanceTest, AddFunctionBlock)
@@ -297,7 +299,8 @@ TEST_F(InstanceTest, Serialize)
     ASSERT_EQ(availableDevices.getCount(), 2u);
 
     for (const auto& deviceInfo : availableDevices)
-        instance.addDevice(deviceInfo.getConnectionString());
+        if (deviceInfo.getConnectionString() != "daq_client_device")
+            instance.addDevice(deviceInfo.getConnectionString());
 
     auto serializer = JsonSerializer(True);
 

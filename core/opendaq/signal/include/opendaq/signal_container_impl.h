@@ -24,9 +24,9 @@
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/module_manager.h>
+#include <opendaq/module_manager_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 template <class Intf = IComponent, class ... Intfs>
 class GenericSignalContainerImpl : public ComponentImpl<Intf, Intfs ...>
 {
@@ -339,53 +339,15 @@ FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddNestedF
     if (obj == nullptr)
         throw NotAssignedException{"Module Manager is not available in the Context."};
 
-    IModuleManager* manager;
-    obj->borrowInterface(IModuleManager::Id, reinterpret_cast<void**>(&manager));
-
-    ListPtr<IBaseObject> modules;
-    manager->getModules(&modules);
-
-    for (const BaseObjectPtr& moduleObj : modules)
-    {
-        IModule* module;
-        moduleObj->borrowInterface(IModule::Id, reinterpret_cast<void**>(&module));
-
-        DictPtr<IString, IFunctionBlockType> types;
-        ErrCode err = module->getAvailableFunctionBlockTypes(&types);
-        if (OPENDAQ_FAILED(err))
-        {
-            StringPtr moduleName;
-            module->getName(&moduleName);
-            if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
-            {
-                DAQLOGF_I(signalContainerLoggerComponent, "{}: GetAvailableFunctionBlockTypes not implemented", moduleName);
-            }
-            else
-            {
-                DAQLOGF_W(signalContainerLoggerComponent, "{}: GetAvailableFunctionBlockTypes failed", moduleName);
-            }
-        }
-
-        if (!types.assigned())
-            continue;
-        if (!types.hasKey(typeId))
-            continue;
-
-        FunctionBlockPtr fb;
-        err = module->createFunctionBlock(&fb, typeId, functionBlocks, localId, config);
-        if (OPENDAQ_FAILED(err))
-        {
-            StringPtr moduleName;
-            module->getName(&moduleName);
-            DAQLOGF_W(signalContainerLoggerComponent, "{}: Function Block creation failed", moduleName);
-            continue;
-        }
-        
-        addNestedFunctionBlock(fb);
-        return fb;
-    }
+    IModuleManagerUtils* managerUtils;
+    obj->borrowInterface(IModuleManagerUtils::Id, reinterpret_cast<void**>(&managerUtils));
     
-    throw NotFoundException{"Function block with given uid is not available."};
+    FunctionBlockPtr fb;
+
+    checkErrorInfo(managerUtils->createFunctionBlock(&fb, typeId, functionBlocks, config, localId));
+    if (fb.assigned())
+        addNestedFunctionBlock(fb);
+    return fb;
 }
 
 template <class Intf, class ... Intfs>

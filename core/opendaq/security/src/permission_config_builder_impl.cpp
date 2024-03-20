@@ -26,8 +26,8 @@ ErrCode INTERFACE_FUNC PermissionConfigBuilderImpl::set(IString* groupId, Int pe
 
 ErrCode INTERFACE_FUNC PermissionConfigBuilderImpl::allow(IString* groupId, Int permissionFlags)
 {
-    Int allowMask = allowed.hasKey(groupId) ? allowed.get(groupId) : 0;
-    Int denyMask = denied.hasKey(groupId) ? denied.get(groupId) : 0;
+    Int allowMask = allowed.hasKey(groupId) ? (Int) allowed.get(groupId) : 0;
+    Int denyMask = denied.hasKey(groupId) ? (Int) denied.get(groupId) : 0;
 
     allowMask |= permissionFlags;
     denyMask &= ~permissionFlags;
@@ -39,8 +39,8 @@ ErrCode INTERFACE_FUNC PermissionConfigBuilderImpl::allow(IString* groupId, Int 
 
 ErrCode INTERFACE_FUNC PermissionConfigBuilderImpl::deny(IString* groupId, Int permissionFlags)
 {
-    Int denyMask = denied.hasKey(groupId) ? denied.get(groupId) : 0;
-    Int allowMask = allowed.hasKey(groupId) ? allowed.get(groupId) : 0;
+    Int denyMask = denied.hasKey(groupId) ? (Int) denied.get(groupId) : 0;
+    Int allowMask = allowed.hasKey(groupId) ? (Int) allowed.get(groupId) : 0;
 
     denyMask |= permissionFlags;
     allowMask &= ~permissionFlags;

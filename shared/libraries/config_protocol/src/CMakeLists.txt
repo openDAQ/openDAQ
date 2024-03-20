@@ -32,6 +32,7 @@ set(SRC_PublicHeaders config_protocol.h
                       config_client_input_port.h
                       config_server_component.h
                       config_server_device.h
+                      config_server_signal.h
                       config_protocol_deserialize_context.h
 )
 

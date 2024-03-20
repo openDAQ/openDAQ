@@ -274,7 +274,8 @@ uint64_t MockDevice1Impl::onGetTicksSinceOrigin()
 MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : Device(ctx, parent, localId, "MockClass")
 {
-    createAndAddSignal("sig_device");
+    const auto sig = createAndAddSignal("sig_device");
+    sig.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Int64).build());
 
     auto aiIoFolder = this->addIoFolder("ai", ioFolder);
     createAndAddChannel<MockChannel2Impl>(aiIoFolder, "ch");

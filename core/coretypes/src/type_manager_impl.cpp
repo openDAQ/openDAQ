@@ -41,6 +41,9 @@ ErrCode TypeManagerImpl::addType(IType* type)
     if (reservedTypeNames.count(typeStr))
         return OPENDAQ_ERR_INVALIDPARAMETER;
 
+    if (!daq::validateTypeName(typeName.getCharPtr()))
+        return OPENDAQ_ERR_VALIDATE_FAILED;
+
     {
         std::scoped_lock lock(this->sync);
 
@@ -50,9 +53,6 @@ ErrCode TypeManagerImpl::addType(IType* type)
                 return OPENDAQ_SUCCESS;        // Already exists and is exactly the same, which we don't mind
             return OPENDAQ_ERR_ALREADYEXISTS;  // Already exists with the same name, but is actually diffrent
         }
-
-        if (!daq::validateTypeName(typeName.getCharPtr()))
-            return OPENDAQ_ERR_VALIDATE_FAILED;
 
         const ErrCode err = types->set(typeName, typePtr);
         if (OPENDAQ_FAILED(err))

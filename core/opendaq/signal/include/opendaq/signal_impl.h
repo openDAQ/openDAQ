@@ -249,41 +249,49 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::createTypeFromDescriptor(c
     auto fieldNames = List<IString>();
     auto fieldTypes = List<IType>();
 
-    for (auto const& field : fields)
+    if (fields.assigned())
     {
-        TypePtr type;
-        switch (field.getSampleType())
+        for (auto const& field : fields)
         {
-            case SampleType::Float32:
-            case SampleType::Float64:
-                type = SimpleType(CoreType::ctFloat);
-                break;
-            case SampleType::Int8:
-            case SampleType::UInt8:
-            case SampleType::Int16:
-            case SampleType::UInt16:
-            case SampleType::Int32:
-            case SampleType::UInt32:
-            case SampleType::Int64:
-            case SampleType::UInt64:
-                type = SimpleType(CoreType::ctInt);
-                break;
-            case SampleType::ComplexFloat32:
-            case SampleType::ComplexFloat64:
-                type = SimpleType(CoreType::ctComplexNumber);
-                break;
-            case SampleType::Struct:
-                // Recursion
-                type = createTypeFromDescriptor(field);
-                break;
-            default:
-                type = SimpleType(CoreType::ctUndefined);
-                // TODO support string, list? + test
+            TypePtr type;
+            switch (field.getSampleType())
+            {
+                case SampleType::Float32:
+                case SampleType::Float64:
+                    type = SimpleType(CoreType::ctFloat);
+                    break;
+                case SampleType::Int8:
+                case SampleType::UInt8:
+                case SampleType::Int16:
+                case SampleType::UInt16:
+                case SampleType::Int32:
+                case SampleType::UInt32:
+                case SampleType::Int64:
+                case SampleType::UInt64:
+                    type = SimpleType(CoreType::ctInt);
+                    break;
+                case SampleType::ComplexFloat32:
+                case SampleType::ComplexFloat64:
+                    type = SimpleType(CoreType::ctComplexNumber);
+                    break;
+                case SampleType::Struct:
+                    // Recursion
+                    type = createTypeFromDescriptor(field);
+                    break;
+                default:
+                    type = SimpleType(CoreType::ctUndefined);
+                    // TODO support string, list? + test
+            }
+            fieldNames.pushBack(field.getName());
+            fieldTypes.pushBack(type);
         }
-        fieldNames.pushBack(field.getName());
-        fieldTypes.pushBack(type);
     }
-    return StructType(descriptor.getName(), fieldNames, fieldTypes);
+
+    const auto name = descriptor.getName();
+
+    if (name.assigned())
+        return StructType(name, fieldNames, fieldTypes);
+    throw NotFoundException();
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -339,12 +347,23 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
                 if (signalPtr.assigned())
                     valueSignalsOfDomainSignal.push_back(std::move(signalPtr));
             }
-
-            if (dataDescriptor.getSampleType() == SampleType::Struct)
+            try {
+                if (dataDescriptor.getSampleType() == SampleType::Struct)
+                {
+                    const StructTypePtr structType = createTypeFromDescriptor(dataDescriptor);
+                    auto typeManager = this->context.getTypeManager();
+                    addToTypeManagerRecursively(typeManager, dataDescriptor, structType);
+                }
+            }
+            catch (const std::exception& e)
             {
-                const StructTypePtr structType = createTypeFromDescriptor(dataDescriptor);
-                auto typeManager = this->context.getTypeManager();
-                addToTypeManagerRecursively(typeManager, dataDescriptor, structType);
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+                LOG_W("There was an exception in setDescriptor method: {}", e.what());
+            }
+            catch (...)
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+                LOG_W("There was an exception in setDescriptor method!");
             }
         }
     }

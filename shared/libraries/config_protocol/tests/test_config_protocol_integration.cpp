@@ -12,6 +12,8 @@
 #include "opendaq/context_factory.h"
 #include <config_protocol/config_client_device_impl.h>
 
+#include "opendaq/packet_factory.h"
+
 using namespace daq;
 using namespace config_protocol;
 using namespace testing;
@@ -509,4 +511,30 @@ TEST_F(ConfigProtocolIntegrationTest, TestPropertyObjectClasses)
     testMockPropertyObjectClass(clientDevice.getDevices()[0]);
     testMockPropertyObjectClass(clientDevice.getDevices()[0].getFunctionBlocks()[0]);
     testMockPropertyObjectClass(clientDevice.getDevices()[0].getChannels()[0]);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, TestGetLastValue)
+{
+    const SignalConfigPtr serverSignal = serverDevice.getSignals()[0];
+    const SignalConfigPtr clientSignal = clientDevice.getSignals()[0];
+
+    auto dataPacket1 = DataPacket(serverSignal.getDescriptor(), 5);
+    int64_t* data1 = static_cast<int64_t*>(dataPacket1.getData());
+    data1[4] = 4;
+    serverSignal.sendPacket(dataPacket1);
+
+    auto lastValue1 = clientSignal.getLastValue();
+    IntegerPtr integerPtr;
+    ASSERT_NO_THROW(integerPtr = lastValue1.asPtr<IInteger>());
+    ASSERT_EQ(integerPtr, 4);
+
+    auto dataPacket2 = DataPacket(serverSignal.getDescriptor(), 2);
+    int64_t* data2 = static_cast<int64_t*>(dataPacket2.getData());
+    data2[1] = 7;
+    serverSignal.sendPacket(dataPacket2);
+
+    auto lastValue2 = clientSignal.getLastValue();
+    IntegerPtr integerPtr2;
+    ASSERT_NO_THROW(integerPtr2 = lastValue2.asPtr<IInteger>());
+    ASSERT_EQ(integerPtr2, 7);
 }

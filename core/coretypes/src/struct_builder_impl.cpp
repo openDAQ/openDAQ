@@ -97,7 +97,7 @@ ErrCode StructBuilderImpl::set(IString* name, IBaseObject* field)
         {
             if (names[i] == namePtr)
             {
-                TypePtr enumerationFieldType, type;
+                TypePtr type;
 
                 if (const auto _struct = fieldPtr.asPtrOrNull<IStruct>(); _struct.assigned())
                     type = _struct.getStructType();

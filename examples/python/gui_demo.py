@@ -843,13 +843,17 @@ class App(tk.Tk):
     def handle_tree_menu_remove_function_block(self, node):
         if node is None:
             return
+        if not daq.IFunctionBlock.can_cast_from(node):
+            return
+        
+        node = daq.IFunctionBlock.cast_from(node)
 
-        fbs = self.get_nearest_named_parent_folder(node.parent, 'FB')
-        if fbs is None:
+        device = self.get_nearest_device(node.parent)
+        if device is None:
             return
 
-        fbs.remove_item(node)
-        self.selected_node = fbs
+        device.remove_function_block(node)
+        self.selected_node = device
         self.tree_update(self.selected_node)
 
     def handle_tree_menu_remove_device(self, node):

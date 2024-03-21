@@ -133,7 +133,8 @@ protected:
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
         auto moduleManager = ModuleManager("");
-        auto context = Context(scheduler, logger, nullptr, moduleManager);
+        auto typeManager = TypeManager();
+        auto context = Context(scheduler, logger, typeManager, moduleManager);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -298,7 +299,8 @@ protected:
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
         auto moduleManager = ModuleManager("");
-        auto context = Context(scheduler, logger, nullptr, moduleManager);
+        auto typeManager = TypeManager();
+        auto context = Context(scheduler, logger, typeManager, moduleManager);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -361,7 +363,8 @@ protected:
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
         auto moduleManager = ModuleManager("");
-        auto context = Context(scheduler, logger, nullptr, moduleManager);
+        auto typeManager = TypeManager();
+        auto context = Context(scheduler, logger, typeManager, moduleManager);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);

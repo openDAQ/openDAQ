@@ -241,13 +241,13 @@ ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockT
         {
             types = module.getAvailableFunctionBlockTypes();
         }
-        catch (NotImplementedException&)
+        catch (const NotImplementedException&)
         {
             LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getName())
         }
         catch ([[maybe_unused]] const std::exception& e)
         {
-            LOG_W("{}: GetAvailableFunctionBlockTypes failed", module.getName())
+            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getName(), e.what())
         }
 
         if (!types.assigned())
@@ -277,13 +277,13 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
         {
             types = module.getAvailableFunctionBlockTypes();
         }
-        catch (NotImplementedException&)
+        catch (const NotImplementedException&)
         {
             LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getName())
         }
         catch ([[maybe_unused]] const std::exception& e)
         {
-            LOG_W("{}: GetAvailableFunctionBlockTypes failed", module.getName())
+            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getName(), e.what())
         }
 
         if (!types.assigned())

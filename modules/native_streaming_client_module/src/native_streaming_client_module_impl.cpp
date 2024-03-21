@@ -333,8 +333,13 @@ bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const S
     }
     else if (capability.assigned() && capability.getProtocolType().getValue() == "ServerStreaming")
     {
-        const auto propertyObj = capability.asPtr<IPropertyObject>();
-        return propertyObj.assigned() && propertyObj.hasProperty("Port");
+        StringPtr protocolId = capability.getPropertyValue("ProtocolId");
+        StringPtr primaryAddress = capability.getPropertyValue("Address");
+        if (protocolId == NativeStreamingID && primaryAddress != "")
+        {
+            const auto propertyObj = capability.asPtr<IPropertyObject>();
+            return propertyObj.assigned() && propertyObj.hasProperty("Port");
+        }
     }
     return false;
 }

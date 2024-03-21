@@ -68,6 +68,7 @@ opendaq_target_link_libraries(${BASE_NAME}
         daq::coretypes
     PRIVATE
         $<BUILD_INTERFACE:Boost::algorithm>
+        $<BUILD_INTERFACE:Boost::filesystem>
 )
 
 opendaq_target_include_directories(${BASE_NAME}

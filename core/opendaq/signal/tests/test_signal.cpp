@@ -5,6 +5,7 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/deserialize_component_ptr.h>
+#include <opendaq/dimension_factory.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/removable_ptr.h>
@@ -824,7 +825,7 @@ TEST_F(SignalTest, GetLastValueStruct)
     // Create signal
     const auto signal = Signal(NullContext(), nullptr, "sig");
 
-    // Create DataDescriptor
+    // Create data descriptor
     const auto descriptor =
         DataDescriptorBuilder()
             .setName("MyTestStructType")
@@ -909,12 +910,115 @@ TEST_F(SignalTest, GetLastValueLinearScaling)
     ASSERT_EQ(ptr, 19.0);
 }
 
+TEST_F(SignalTest, GetLastValueListOfInt)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    auto numbers = List<INumber>();
+    numbers.pushBack(1);
+    numbers.pushBack(2);
+
+    auto dimensions = List<IDimension>();
+    dimensions.pushBack(Dimension(ListDimensionRule(numbers)));
+
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).setDimensions(dimensions).build();
+
+    auto dataPacket = DataPacket(descriptor, 5);
+    int64_t* data = static_cast<int64_t*>(dataPacket.getData());
+    data[8] = 4;
+    data[9] = 44;
+
+    signal.sendPacket(dataPacket);
+
+    auto lv = signal.getLastValue();
+    ListPtr<INumber> ptr;
+    ASSERT_NO_THROW(ptr = lv.asPtr<IList>());
+    ASSERT_EQ(ptr.getItemAt(0), 4);
+    ASSERT_EQ(ptr.getItemAt(1), 44);
+}
+
+TEST_F(SignalTest, GetLastValueListOfStructs)
+{
+    // Create signal
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // Create data descriptor
+    auto numbers = List<INumber>();
+    numbers.pushBack(1);
+    numbers.pushBack(2);
+
+    auto dimensions = List<IDimension>();
+    dimensions.pushBack(Dimension(ListDimensionRule(numbers)));
+
+    auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build(),
+                                                     DataDescriptorBuilder().setName("Float64").setSampleType(SampleType::Float64).build()))
+            .setDimensions(dimensions)
+            .build();
+
+    // Set the descriptor, thereby adding the struct type to the type manager
+    signal.setDescriptor(descriptor);
+
+    // Prepare data packet
+    auto sizeInBytes = 2 * (sizeof(int32_t) + sizeof(double));
+    const auto dataPacket = DataPacket(descriptor, 5);
+    auto data = dataPacket.getData();
+
+    // Start points to beggining of data
+    auto start = static_cast<char*>(data);
+
+    // First member of data is int32_t
+    void* a = start + sizeInBytes * 4;
+    auto A = static_cast<int32_t*>(a);
+    *A = 12;
+
+    // Second member of data is double
+    void* b = start + sizeInBytes * 4 + sizeof(int32_t);
+    auto B = static_cast<double*>(b);
+    *B = 15.1;
+
+    // Third member of data is int32_t
+    void* c = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(double);
+    auto C = static_cast<int32_t*>(c);
+    *C = 13;
+
+    // Fourth member of data is double
+    void* d = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(double) + sizeof(int32_t);
+    auto D = static_cast<double*>(d);
+    *D = 16.1;
+
+    // Send our packet
+    signal.sendPacket(dataPacket);
+
+    // Call getLastValue
+    auto lv = signal.getLastValue();
+
+    // Create data structure
+    ListPtr<IStruct> ptr;
+
+    // Cast lastValuePacket to our data structure and ASSERT_NO_THROW
+    ASSERT_NO_THROW(ptr = lv.asPtr<IList>());
+
+    // Check all inner members of the list
+    const auto first = ptr.getItemAt(0).get("Int32");
+    const auto second = ptr.getItemAt(0).get("Float64");
+    const auto third = ptr.getItemAt(1).get("Int32");
+    const auto fourth = ptr.getItemAt(1).get("Float64");
+    ASSERT_EQ(first, 12);
+    ASSERT_EQ(second, 15.1);
+    ASSERT_EQ(third, 13);
+    ASSERT_EQ(fourth, 16.1);
+}
+
 TEST_F(SignalTest, GetLastValueStructNoSetDescriptor)
 {
     // Create signal
     const auto signal = Signal(NullContext(), nullptr, "sig");
 
-    // Create DataDescriptor
+    // Create data descriptor
     const auto descriptor =
         DataDescriptorBuilder()
             .setName("MyTestStructType")
@@ -954,7 +1058,7 @@ TEST_F(SignalTest, GetLastValueStructNested)
     // Create signal
     const auto signal = Signal(NullContext(), nullptr, "sig");
 
-    // Create DataDescriptor
+    // Create data descriptor
     const auto descriptor = DataDescriptorBuilder()
                                 .setName("MyTestStructType")
                                 .setSampleType(SampleType::Struct)
@@ -969,7 +1073,7 @@ TEST_F(SignalTest, GetLastValueStructNested)
                                         .build()))
                                 .build();
 
-    // Set the descriptor, thereby registering the struct type in type manager
+    // Set the descriptor, thereby adding the struct type in type manager
     signal.setDescriptor(descriptor);
 
     // Prepare data packet
@@ -1025,7 +1129,7 @@ TEST_F(SignalTest, GetLastValueStructDoublyNested)
     // Create signal
     const auto signal = Signal(NullContext(), nullptr, "sig");
 
-    // Create DataDescriptor
+    // Create data descriptor
     const auto descriptor =
         DataDescriptorBuilder()
             .setName("MyTestStructType")
@@ -1048,7 +1152,7 @@ TEST_F(SignalTest, GetLastValueStructDoublyNested)
                     .build()))
             .build();
 
-    // Set the descriptor, thereby registering the struct type in type manager
+    // Set the descriptor, thereby adding the struct type in type manager
     signal.setDescriptor(descriptor);
 
     // Prepare data packet

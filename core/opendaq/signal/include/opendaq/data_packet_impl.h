@@ -55,7 +55,7 @@ public:
 private:
     bool isDataEqual(const DataPacketPtr& dataPacket) const;
     BaseObjectPtr dataToObj(void* addr, const SampleType& type) const;
-    StructPtr buildStructFromPacket(void* addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager) const;
+    StructPtr buildStructFromPacket(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager) const;
 
     AllocatorPtr allocator;
     DataDescriptorPtr descriptor;
@@ -371,7 +371,7 @@ inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObj(void* addr, const Sam
 }
 
 template <typename TInterface>
-inline StructPtr DataPacketImpl<TInterface>::buildStructFromPacket(void* addr,
+inline StructPtr DataPacketImpl<TInterface>::buildStructFromPacket(void*& addr,
                                                                    const DataDescriptorPtr& descriptor,
                                                                    const TypeManagerPtr& typeManager) const
 {
@@ -396,8 +396,7 @@ inline StructPtr DataPacketImpl<TInterface>::buildStructFromPacket(void* addr,
         {
             const auto obj = dataToObj(addr, sampleType);
             builder.set(fieldNames[i], obj);
-            const auto temp = static_cast<char*>(addr);
-            addr = temp + getSampleSize(sampleType);
+            addr = static_cast<char*>(addr) + getSampleSize(sampleType);
         }
     }
     return builder.build();
@@ -408,7 +407,9 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManag
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    if (descriptor.getDimensions().getCount() != 0)
+    const auto dimensionCount = descriptor.getDimensions().getCount();
+
+    if (dimensionCount > 1)
         return OPENDAQ_IGNORED;
 
     void* addr;
@@ -420,18 +421,52 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManag
 
     addr = static_cast<char*>(addr) + (sampleCount - 1) * descriptor.getSampleSize();
 
-    if (sampleType == SampleType::Struct)
+    if (dimensionCount == 1)
     {
-        return daqTry(
-            [&]()
-            {
-                auto structPtr = buildStructFromPacket(addr, descriptor, typeManager);
-                *value = structPtr.detach();
-                return OPENDAQ_SUCCESS;
-            });
+        // Is list
+        auto list = List<IBaseObject>();
+        const auto size = descriptor.getDimensions()[0].getSize();
+        if (sampleType == SampleType::Struct)
+        {
+            // Handle list of structs
+            return daqTry(
+                [&]()
+                {
+                    for (size_t i = 0; i < size; i++)
+                    {
+                        auto structPtr = buildStructFromPacket(addr, descriptor, typeManager);
+                        list.pushBack(structPtr);
+                    }
+                    *value = list.detach();
+                    return OPENDAQ_SUCCESS;
+                });
+        }
+        // Handle list of other data types
+        for (size_t i = 0; i < size; i++)
+        {
+            list.pushBack(dataToObj(addr, sampleType));
+            addr = static_cast<char*>(addr) + getSampleSize(sampleType);
+        }
+        *value = list.detach();
+    }
+    else
+    {
+        // Is not list
+        if (sampleType == SampleType::Struct)
+        {
+            // Handle structs
+            return daqTry(
+                [&]()
+                {
+                    auto structPtr = buildStructFromPacket(addr, descriptor, typeManager);
+                    *value = structPtr.detach();
+                    return OPENDAQ_SUCCESS;
+                });
+        }
+        // Handle other data types
+        *value = dataToObj(addr, sampleType).detach();
     }
 
-    *value = dataToObj(addr, sampleType).detach();
     return OPENDAQ_SUCCESS;
 }
 

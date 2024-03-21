@@ -2,7 +2,6 @@
 #include <opendaq/instance_builder_impl.h>
 #include <opendaq/instance_builder_ptr.h>
 #include <opendaq/instance_ptr.h>
-#include <utility>
 #include <opendaq/custom_log.h>
 #include <opendaq/config_provider_factory.h>
 
@@ -12,7 +11,8 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 {
     return Dict<IString, IBaseObject>({
         {"ModuleManager", Dict<IString, IBaseObject>({
-                {"ModulesPath", ""}
+                {"ModulesPaths", List<IString>(""),
+                }
             })},
         {"Scheduler", Dict<IString, IBaseObject>({
                 {"WorkersNum", 0}
@@ -172,8 +172,8 @@ ErrCode InstanceBuilderImpl::setModulePath(IString* path)
 {
     if (path == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-    
-    getModuleManagerOptions().set("ModulesPath", path);
+
+    getModuleManagerOptions().set("ModulesPaths", List<IString>(path));
     return OPENDAQ_SUCCESS;
 }
 
@@ -182,7 +182,31 @@ ErrCode InstanceBuilderImpl::getModulePath(IString** path)
     if (path == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *path = getModuleManagerOptions().get("ModulesPath").asPtr<IString>().addRefAndReturn();
+    auto paths = getModuleManagerOptions().get("ModulesPaths").asPtr<IList>();
+    if (paths.empty()) {
+        *path = String("").detach();
+    } else {
+        *path = paths[0].asPtr<IString>().addRefAndReturn();
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::addModulePath(IString* path)
+{
+    if (path == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    getModuleManagerOptions().get("ModulesPaths").asPtr<IList>().pushBack(path);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getModulePathsList(IList** paths)
+{
+    if (paths == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *paths = getModuleManagerOptions().get("ModulesPaths").asPtr<IList>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

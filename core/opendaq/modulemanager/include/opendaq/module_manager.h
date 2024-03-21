@@ -59,4 +59,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, ModuleManager,
     IString*, path)
 
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
+    ModuleManagerMultiplePaths, IModuleManager,
+    IList*, paths)
+
 END_NAMESPACE_OPENDAQ

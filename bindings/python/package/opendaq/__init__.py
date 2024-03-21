@@ -2,19 +2,16 @@ from .opendaq import *
 import os
 
 OPENDAQ_MODULES_DIR = os.path.dirname(os.path.abspath(__file__))
+OPENDAQ_CWD = os.getcwd()
 
 
 def Instance(*args) -> IInstance:
     if len(args) == 0:
-        module_manager = opendaq.ModuleManager(
-            opendaq.String(OPENDAQ_MODULES_DIR))
-        type_manager = opendaq.TypeManager()
-        sinks = opendaq.List()
-        sinks.append(opendaq.StdOutLoggerSink())
-        logger = opendaq.Logger(sinks, opendaq.LogLevel.Default)
-        scheduler = opendaq.Scheduler(logger, 0)
-        context = opendaq.Context(
-            scheduler, logger, type_manager, module_manager, None)
-        return opendaq.Instance(context, None)
+        builder = opendaq.InstanceBuilder()
+        builder.add_module_path(OPENDAQ_MODULES_DIR)
+        builder.add_module_path(OPENDAQ_CWD)
+        builder.add_logger_sink(opendaq.StdOutLoggerSink())
+        builder.scheduler_worker_num = 0
+        return opendaq.InstanceFromBuilder(builder)
     else:
         return opendaq.Instance(*args)

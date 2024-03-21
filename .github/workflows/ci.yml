@@ -16,12 +16,16 @@ env:
   python_version_build: 3.11
   python_versions: 3.8 3.9 3.10 3.11 3.12
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
+  windows_x64_artifact: SdkWindows64
+  linux_x64_artifact: SdkLinux64
+  nuget_artifact: Packages (openDAQ.Net NuGet)
 
 jobs:
   build_windows:
     runs-on: ${{ matrix.runner }}
     name: ${{ matrix.name }}
-    if: '! github.event.pull_request.draft'
+    # ${{ }} expression syntax because of leading '!'
+    if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -67,6 +71,15 @@ jobs:
             cmake_defines: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
             cpack: NSIS
 
+    outputs:
+      # trick for reusable workflow in build_nuget_and_test because cannot use env context
+      test_path: ${{ env.test_path }}
+      windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
+      short_sha: ${{ env.short_sha }}
+
+    env:
+      short_sha: 'ci'  # for .NET Bindings configuration
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -88,6 +101,8 @@ jobs:
       - name: Configure
         shell: pwsh
         run: |
+          # for .NET Bindings configuration
+          $env:SHORT_SHA = "${{ env.short_sha }}"
           mkdir build
           cd build
           if ( "${{ matrix.cmake_generator_platform }}" -eq "" )
@@ -106,13 +121,6 @@ jobs:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
           cmake --build . --config ${{ matrix.cmake_build_type }}
-          if (Test-Path -Path "${{ env.dotnetBuildPath }}") {
-            if (! (Test-Path -Path "${{ env.package_path }}")) { mkdir "${{ env.package_path }}" }
-            Copy-Item "${{ env.dotnetBuildPath }}/*.nupkg" "${{ env.package_path }}"
-          } else {
-            Write-Output "*** '${{ env.dotnetBuildPath }}' not found, no .NET Bindings to copy"
-          }
-
 
       - name: Test
         shell: pwsh
@@ -148,10 +156,25 @@ jobs:
           path: ${{ env.package_path }}
           retention-days: 7
 
+      - name: Upload binaries for .NET Bindings NuGet package
+        # "There can be only one for now."
+        if: matrix.name == 'Windows VS 2022 x64 Release'
+        env:
+          dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.windows_x64_artifact }}
+          path: |
+            ${{ env.dotnetBuildPath }}
+            !${{ env.dotnetBuildPath }}/**/*.json
+          #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+          retention-days: 1
+
   build_linux:
     runs-on: ubuntu-latest
     name: ${{ matrix.name }}
-    if: '! github.event.pull_request.draft'
+    # ${{ }} expression syntax because of leading '!'
+    if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -170,13 +193,13 @@ jobs:
             cxx: g++-12
             cpack: DEB
           # - name: Ubuntu 22.04 gcc-12 Debug
-            # image: ubuntu:22.04
-            # cmake_generator: Ninja
-            # cmake_build_type: Debug
-            # apt_packages: g++-12
-            # cc: gcc-12
-            # cxx: g++-12
-            # cpack: DEB
+          #   image: ubuntu:22.04
+          #   cmake_generator: Ninja
+          #   cmake_build_type: Debug
+          #   apt_packages: g++-12
+          #   cc: gcc-12
+          #   cxx: g++-12
+          #   cpack: DEB
           - name: Ubuntu 20.04 gcc-7 Release
             image: ubuntu:20.04
             cmake_generator: Ninja
@@ -217,6 +240,10 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
         CC: ${{ matrix.cc }}
         CXX: ${{ matrix.cxx }}
+
+    outputs:
+      # trick for reusable workflow in build_nuget_and_test because cannot use env context
+      linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
 
     steps:
       - name: Install basic dependencies
@@ -277,10 +304,26 @@ jobs:
           path: ${{ env.package_path }}
           retention-days: 7
 
+      - name: Upload binaries for .NET Bindings NuGet package
+        # "There can be only one."
+        if: matrix.name == 'Ubuntu 22.04 gcc-12 Release'
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.linux_x64_artifact }}
+          path: |
+            ${{ env.build_path }}/bin/*.so
+            !${{ env.build_path }}/**/opendaq.cpython*
+            !${{ env.build_path }}/**/*_test_dll.so
+          # the exclusion filter does not work and the online-help does not explain
+          # most probably a pattern *xxx.yy does not work, only x*
+          #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+          retention-days: 1
+
   build_linux_centos:
     runs-on: ubuntu-latest
     name: ${{ matrix.name }}
-    if: '! github.event.pull_request.draft'
+    # ${{ }} expression syntax because of leading '!'
+    if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -389,7 +432,8 @@ jobs:
   build_macos:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
-    if: '! github.event.pull_request.draft'
+    # ${{ }} expression syntax because of leading '!'
+    if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -450,7 +494,8 @@ jobs:
   build_windows_pip:
     runs-on: ${{ matrix.runner }}
     name: ${{ matrix.name }}
-    if: '! github.event.pull_request.draft'
+    # ${{ }} expression syntax because of leading '!'
+    if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -522,7 +567,8 @@ jobs:
 
   # build_android:
   #   runs-on: ubuntu-latest-8-cores
-  #   if: '! github.event.pull_request.draft'
+  #   # ${{ }} expression syntax because of leading '!'
+  #   if: ${{ ! github.event.pull_request.draft }}
   #
   #   concurrency:
   #     group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.abi }}
@@ -585,3 +631,22 @@ jobs:
   #     - name: Build
   #       working-directory: build
   #       run: cmake --build .
+
+  # using reusable workflow
+  build_nuget_and_test:
+      name: .NET Bindings NuGet package
+
+      # needs: [build_windows,build_linux,build_macos]
+      needs: [build_windows,build_linux]
+
+      # ${{ }} expression syntax because of leading '!'
+      if: ${{ ! github.event.pull_request.draft }}
+
+      uses: ./.github/workflows/reusable_nuget_creation_and_test.yml
+      with:
+        # cannot use env context here, so use needs.<job>.outputs.<variable> trick
+        test_path: ${{ needs.build_windows.outputs.test_path }}
+        windows_x64_artifact_name:  ${{ needs.build_windows.outputs.windows_x64_artifact_name }}
+        linux_x64_artifact_name:  ${{ needs.build_linux.outputs.linux_x64_artifact_name }}
+        short_sha: ${{ needs.build_windows.outputs.short_sha }}
+      # -> output.nuget_artifact_name

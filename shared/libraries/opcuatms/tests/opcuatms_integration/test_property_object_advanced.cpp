@@ -192,9 +192,10 @@ public:
     {
         logger.flush();
         auto sink = getPrivateSink();
-        auto newMessage = sink.waitForMessage(2000);
-        if (newMessage == 0)
-            return StringPtr("");
+        while (sink.waitForMessage(2000))
+        {
+            // Wait for actual last message
+        }
         auto logMessage = sink.getLastMessage();
         return logMessage;
     }

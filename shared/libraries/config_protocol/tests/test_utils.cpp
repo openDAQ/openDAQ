@@ -281,8 +281,20 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     objPtr.addProperty(StringPropertyBuilder("StrProp", "-").build());
 
     const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
-    if (!ctx.getTypeManager().hasType(statusType.getName()))
+    try
+    {
         ctx.getTypeManager().addType(statusType);
+    }
+    catch (const std::exception& e)
+    {
+        const auto loggerComponent = ctx.getLogger().getOrAddComponent("TestUtils");
+        LOG_W("Couldn't add type {} to type manager: {}", statusType.getName(), e.what());
+    }
+    catch (...)
+    {
+        const auto loggerComponent = ctx.getLogger().getOrAddComponent("TestUtils");
+        LOG_W("Couldn't add type {} to type manager!", statusType.getName());
+    }
 
     const auto statusInitValue = Enumeration("StatusType", "Status0", ctx.getTypeManager());
     statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusInitValue);

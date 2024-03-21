@@ -251,10 +251,21 @@ void ScalingFbImpl::createSignals()
 
 void ScalingFbImpl::initStatuses()
 {
-    if (!this->context.getTypeManager().hasType("InputStatusType"))
+    auto inputStatusType = EnumerationType("InputStatusType", List<IString>(InputDisconnected, InputConnected, InputInvalid));
+
+    try
     {
-        auto inputStatusType = EnumerationType("InputStatusType", List<IString>(InputDisconnected, InputConnected, InputInvalid));
         this->context.getTypeManager().addType(inputStatusType);
+    }
+    catch (const std::exception& e)
+    {
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("ScalingFunctionBlock");
+        LOG_W("Couldn't add type {} to type manager: {}", inputStatusType.getName(), e.what());
+    }
+    catch (...)
+    {
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("ScalingFunctionBlock");
+        LOG_W("Couldn't add type {} to type manager!", inputStatusType.getName());
     }
 
     auto thisStatusContainer = this->statusContainer.asPtr<IComponentStatusContainerPrivate>();

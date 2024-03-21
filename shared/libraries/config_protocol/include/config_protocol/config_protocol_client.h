@@ -217,16 +217,25 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
     for (const auto& typeName : types)
     {
         const auto type = typeManager.getType(typeName);
-        if (localTypeManager.hasType(type.getName()))
+
+        try
         {
             // TODO: implement type comparison/equalTo for property object classes
-/*            const auto localType = localTypeManager.getType(type.getName());
+            /* const auto localType = localTypeManager.getType(type.getName());
             if (localType != type)
                 throw InvalidValueException("Remote type different than local");*/
-            continue;
+            localTypeManager.addType(type);
         }
-
-        localTypeManager.addType(type);
+        catch (const std::exception& e)
+        {
+            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+            LOG_W("Couldn't add type {} to local type manager: {}", type.getName(), e.what());
+        }
+        catch (...)
+        {
+            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+            LOG_W("Couldn't add type {} to local type manager!", type.getName());
+        }
     }
 }
 

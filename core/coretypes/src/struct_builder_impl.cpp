@@ -12,7 +12,7 @@ StructBuilderImpl::StructBuilderImpl(const StringPtr& name, const TypeManagerPtr
 
     const auto defaultValues = structType.getFieldDefaultValues();
     const auto names = structType.getFieldNames();
-    
+
     for (size_t i = 0 ; i < names.getCount(); ++i)
     {
         if (defaultValues.assigned())
@@ -98,6 +98,7 @@ ErrCode StructBuilderImpl::set(IString* name, IBaseObject* field)
             if (names[i] == namePtr)
             {
                 TypePtr type;
+
                 if (const auto _struct = fieldPtr.asPtrOrNull<IStruct>(); _struct.assigned())
                     type = _struct.getStructType();
                 else if (const auto _enum = fieldPtr.asPtrOrNull<IEnumeration>(); _enum.assigned())

@@ -97,7 +97,22 @@ ErrCode StructBuilderImpl::set(IString* name, IBaseObject* field)
         {
             if (names[i] == namePtr)
             {
-                TypePtr type;
+                TypePtr enumerationFieldType, type;
+
+                // If struct field is an enumeration, check if the enumeration type of the new field
+                // is the same as the original enumeartion field ofd the struct
+                if (const auto _enum = fieldPtr.asPtrOrNull<IEnumeration>(); _enum.assigned())
+                {
+                    type = _enum.getEnumerationType();
+                    const auto enumerationField = fields.get(name).asPtrOrNull<IEnumeration>();
+                    enumerationFieldType = enumerationField.getEnumerationType();
+
+                    if (type != enumerationFieldType)
+                        return OPENDAQ_ERR_INVALIDPARAMETER;
+
+                    break;
+                }
+
                 if (const auto _struct = fieldPtr.asPtrOrNull<IStruct>(); _struct.assigned())
                     type = _struct.getStructType();
                 else

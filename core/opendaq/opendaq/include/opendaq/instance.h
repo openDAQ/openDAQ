@@ -144,28 +144,14 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
  * @brief Creates an openDAQ client.
  * @param ctx The context object.
  * @param localId The localID of the client.
- */
-/*#
- * [factory(NoConstructor)]
- */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY, Client, IDevice, createClient,
-    IContext*, ctx,
-    IString*, localId,
-    IDeviceInfo*, defaultDeviceInfo
-)
-
-/*!
- * @brief Creates an openDAQ client.
- * @param ctx The context object.
- * @param localId The localID of the client.
+ * @param defaultDeviceInfo The DeviceInfo to be used by the client device.
  * @param parent The parent component of the client.
  */
 /*#
  * [factory(NoConstructor)]
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY, Client, IDevice, createClientWithParent,
+    LIBRARY_FACTORY, Client, IDevice, createClient,
     IContext*, ctx,
     IString*, localId,
     IDeviceInfo*, defaultDeviceInfo,

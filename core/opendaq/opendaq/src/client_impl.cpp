@@ -47,19 +47,6 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     IString*,
     localId,
     IDeviceInfo*,
-    defaultDeviceInfo
-    )
-
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY,
-    Client,
-    IDevice,
-    createClientWithParent,
-    IContext*,
-    ctx,
-    IString*,
-    localId,
-    IDeviceInfo*,
     defaultDeviceInfo,
     IComponent*,
     parent

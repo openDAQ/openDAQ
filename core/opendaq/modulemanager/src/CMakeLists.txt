@@ -108,6 +108,7 @@ opendaq_target_link_libraries(${BASE_NAME}
         daq::context
         daq::logger
         daq::utility
+        daq::component
     PUBLIC
         daq::coretypes
 )

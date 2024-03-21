@@ -206,7 +206,6 @@ public:
         : PropertyImpl(name, BaseObjectPtr(defaultValue), true)
     {
         this->valueType = ctObject;
-        this->readOnly = true;
 
         if (defaultValue == nullptr)
             this->defaultValue = PropertyObject().detach();

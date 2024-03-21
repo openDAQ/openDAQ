@@ -8,8 +8,8 @@
 #include <future>
 #include <string>
 #include <boost/algorithm/string/predicate.hpp>
-
-#include "coretypes/validation.h"
+#include <opendaq/search_filter_factory.h>
+#include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 static OrphanedModules orphanedModules;
@@ -305,11 +305,32 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
         }
         else
         {
-            // TODO: Rework
-            if (!functionBlockCountMap.count(typeId))
-                functionBlockCountMap.insert(std::pair<std::string, size_t>(typeId, 0));
+            int maxNum = 0;
+            const auto parentPtr = FolderPtr::Borrow(parent);
+            for (const auto& item : parentPtr.getItems(search::Any()))
+            {
+                const std::string fbId = item.getLocalId();
+                if (fbId.rfind(static_cast<std::string>(typeId), 0) == 0)
+                {
+                    const auto lastDelim = fbId.find_last_of('_');
+                    if (lastDelim == std::string::npos)
+                        continue;
 
-            localIdStr = fmt::format("{}_{}", typeId, functionBlockCountMap[typeId]++);
+                    const std::string numStr = fbId.substr(lastDelim + 1);
+                    try
+                    {
+                        const auto num = std::stoi(numStr);
+                        if (num > maxNum)
+                            maxNum = num;
+                    }
+                    catch(...)
+                    {
+                        continue;
+                    }
+                }
+            }
+
+            localIdStr = fmt::format("{}_{}", typeId, maxNum + 1);
         }
 
         return module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);

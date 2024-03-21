@@ -120,4 +120,12 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
         },
         py::return_value_policy::take_ownership,
         "Gets the data packet last value");
+    cls.def("get_last_value",
+        [](daq::IDataPacket *object, daq::ITypeManager* typeManager)
+        {
+            const auto objectPtr = daq::DataPacketPtr::Borrow(object);
+            return baseObjectToPyObject(objectPtr.getLastValue(typeManager));
+        },
+        py::arg("type_manager") = nullptr,
+        "Gets the data packet last value");
 }

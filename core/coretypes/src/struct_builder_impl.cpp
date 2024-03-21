@@ -100,7 +100,7 @@ ErrCode StructBuilderImpl::set(IString* name, IBaseObject* field)
                 TypePtr enumerationFieldType, type;
 
                 // If struct field is an enumeration, check if the enumeration type of the new field
-                // is the same as the original enumeartion field ofd the struct
+                // is the same as the original field of the struct
                 if (const auto _enum = fieldPtr.asPtrOrNull<IEnumeration>(); _enum.assigned())
                 {
                     type = _enum.getEnumerationType();

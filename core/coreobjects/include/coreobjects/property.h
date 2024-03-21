@@ -601,6 +601,21 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IBoolean*, visible
 )
 
+/*!
+ * @brief Creates an Enumeration Property object with a default value and its visible state.
+ * @param name The name of the Property.
+ * @param defaultValue The default structure value.
+ * @param visible If true, the Property is visible. Can be an EvalValue.
+ *
+ * The Property Value type is `ctEnumeration`.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, EnumerationProperty, IProperty,
+    IString*, name,
+    IEnumeration*, defaultValue,
+    IBoolean*, visible
+)
+
 //[factory(Hide)]
 /*!
  * @brief Creates a Property using Builder

@@ -232,6 +232,17 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * The ID of the event is 140, and the event name is "TypeRemoved".
  *
+ * @subsubsection opendaq_core_event_types_domain_changed Device domain changed
+ *
+ * Triggered whenever the "Domain" of a device changes.
+ *
+ * The sender of the above event types is the device of which domain changed.
+ *
+ * The "DeviceDomainChanged" event contains the following parameters:
+ *  - The device domain under the key "DeviceDomain"
+ *
+ * The ID of the event is 150, and the event name is "DeviceDomainChanged".
+ *
  * @subsection opendaq_core_event_muting Muting core events
  *
  * Components, as previously mentioned, do not trigger core events until they are connected to the root of the

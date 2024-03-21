@@ -130,6 +130,7 @@ FunctionBlockImpl<TInterface, Interfaces...>::FunctionBlockImpl(const FunctionBl
     this->defaultComponents.insert("IP");
     inputPorts = this->template addFolder<IInputPort>("IP", nullptr);
     inputPorts.asPtr<IComponentPrivate>().lockAllAttributes();
+    inputPorts.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
 }
 
 template <typename TInterface, typename... Interfaces>

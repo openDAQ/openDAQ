@@ -165,6 +165,13 @@ public:
         this->valueType = ctStruct;
     }
 
+    // EnumerationProperty()
+    PropertyBuilderImpl(const StringPtr& name, IEnumeration* defaultValue)
+        : PropertyBuilderImpl(name, BaseObjectPtr(defaultValue))
+    {
+        this->valueType = ctEnumeration;
+    }
+
     ErrCode INTERFACE_FUNC build(IProperty** property) override
     {
         if (property == nullptr)
@@ -181,11 +188,6 @@ public:
 
     ErrCode INTERFACE_FUNC setValueType(CoreType type) override
     {
-        if (type == ctEnumeration)
-        {
-            return makeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "Enumeration type Properties are not supported");
-        }
-
         this->valueType = type;
         return OPENDAQ_SUCCESS;
     }

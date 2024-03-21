@@ -1,13 +1,28 @@
-#include <coretypes/type_manager_impl.h>
-#include <coretypes/type_ptr.h>
-#include <coretypes/type_manager_ptr.h>
 #include <coretypes/baseobject_factory.h>
 #include <coretypes/serialized_object_ptr.h>
+#include <coretypes/type_manager_impl.h>
+#include <coretypes/type_manager_ptr.h>
+#include <coretypes/type_ptr.h>
+#include <cctype>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 TypeManagerImpl::TypeManagerImpl()
     : types(Dict<IString, IType>())
+    , reservedTypeNames({"argumentinfo",
+                         "callableinfo",
+                         "unit",
+                         "complexnumber",
+                         "ratio",
+                         "devicetype",
+                         "functionblocktype",
+                         "servertype",
+                         "datadescriptor",
+                         "datarule",
+                         "dimension",
+                         "dimensionrule",
+                         "range",
+                         "scaling"})
 {
 }
 
@@ -20,18 +35,32 @@ ErrCode TypeManagerImpl::addType(IType* type)
     const auto typeName = typePtr.getName();
     if (!typeName.assigned() || typeName == "")
         return OPENDAQ_ERR_INVALIDPARAMETER;
-    
-    if (types.hasKey(typeName))
-        return OPENDAQ_ERR_ALREADYEXISTS;
 
-    if(!daq::validateTypeName(typeName.getCharPtr()))
+    std::string typeStr = typeName;
+    std::transform(typeStr.begin(), typeStr.end(), typeStr.begin(), [](char c) { return std::tolower(c); });
+    if (reservedTypeNames.count(typeStr))
+        return OPENDAQ_ERR_INVALIDPARAMETER;
+
+    if (!daq::validateTypeName(typeName.getCharPtr()))
         return OPENDAQ_ERR_VALIDATE_FAILED;
-    
-    const ErrCode err = types->set(typeName, typePtr);
-    if (OPENDAQ_FAILED(err))
-        return err;
 
-    return daqTry([&]()
+    {
+        std::scoped_lock lock(this->sync);
+
+        if (types.hasKey(typeName))
+        {
+            if (types.get(typeName) == typePtr)
+                return OPENDAQ_SUCCESS;        // Already exists and is exactly the same, which we don't mind
+            return OPENDAQ_ERR_ALREADYEXISTS;  // Already exists with the same name, but is actually diffrent
+        }
+
+        const ErrCode err = types->set(typeName, typePtr);
+        if (OPENDAQ_FAILED(err))
+            return err;
+    }
+
+    return daqTry(
+        [&]()
         {
             if (coreEventCallback.assigned())
                 coreEventCallback(typePtr);
@@ -44,15 +73,20 @@ ErrCode TypeManagerImpl::removeType(IString* name)
     if (name == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    if (!types.hasKey(name))
-        return OPENDAQ_ERR_NOTFOUND;
+    {
+        std::scoped_lock lock(this->sync);
 
-    BaseObjectPtr obj;
-    const ErrCode err = types->remove(name, &obj);
-    if (OPENDAQ_FAILED(err))
-        return err;
+        if (!types.hasKey(name))
+            return OPENDAQ_ERR_NOTFOUND;
 
-    return daqTry([&]()
+        BaseObjectPtr obj;
+        const ErrCode err = types->remove(name, &obj);
+        if (OPENDAQ_FAILED(err))
+            return err;
+    }
+
+    return daqTry(
+        [&]()
         {
             if (coreEventCallback.assigned())
                 coreEventCallback(name);
@@ -64,7 +98,9 @@ ErrCode TypeManagerImpl::getType(IString* name, IType** type)
 {
     if (type == nullptr || name == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-    
+
+    std::scoped_lock lock(this->sync);
+
     if (!types.hasKey(name))
         return OPENDAQ_ERR_NOTFOUND;
 
@@ -77,6 +113,8 @@ ErrCode TypeManagerImpl::getTypes(IList** types)
     if (types == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
+    std::scoped_lock lock(this->sync);
+
     *types = this->types.getKeyList().detach();
     return OPENDAQ_SUCCESS;
 }
@@ -86,22 +124,29 @@ ErrCode TypeManagerImpl::hasType(IString* typeName, Bool* hasType)
     if (hasType == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
+    std::scoped_lock lock(this->sync);
+
     *hasType = types.hasKey(typeName);
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode TypeManagerImpl::setCoreEventCallback(IProcedure* callback)
 {
+    std::scoped_lock lock(this->sync);
+
     this->coreEventCallback = callback;
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode TypeManagerImpl::serialize(ISerializer* serializer)
 {
+    std::scoped_lock lock(this->sync);
+
     serializer->startTaggedObject(this);
 
     serializer->key("types");
     ISerializable* serializableFields;
+
     ErrCode errCode = this->types->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableFields));
 
     if (errCode == OPENDAQ_ERR_NOINTERFACE)

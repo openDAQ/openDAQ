@@ -56,6 +56,7 @@ protected:
     void addChildNodes() override;
     void configureVariableNodeAttributes(opcua::OpcUaObject<UA_VariableAttributes>& attr) override;
     void validate() override;
+    opcua::OpcUaNodeId getDataTypeId() override;
 
 private:
     void registerEvalValueNode(const std::string& nodeName, TmsServerEvalValue::ReadCallback readCallback, bool isSelection = false);

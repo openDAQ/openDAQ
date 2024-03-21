@@ -85,16 +85,20 @@ BaseObjectPtr VariantConverter<IBaseObject>::ToDaqObject(const OpcUaVariant& var
     auto decoded = DecodeIfExtensionObject(variant);
     auto unwrapped = UnwrapIfVariant(decoded);
 
+    if (unwrapped.isNull())
+        return nullptr;
+
+    const auto typeKind = unwrapped.getValue().type->typeKind;
+    if (typeKind == UA_DATATYPEKIND_ENUM )
+        return VariantConverter<IEnumeration>::ToDaqObject(unwrapped, context);
+
     const auto obj = converters::convertToDaqObject(unwrapped, context);
     if (obj.assigned())
         return obj;
 
-    if (unwrapped.isNull())
-        return nullptr; 
-    
-    const auto typeKind = unwrapped.getValue().type->typeKind;
     if (typeKind == UA_DATATYPEKIND_STRUCTURE || typeKind == UA_DATATYPEKIND_OPTSTRUCT)
         return VariantConverter<IStruct>::ToDaqObject(unwrapped, context);
+
 
     throw ConversionFailedException();
 }
@@ -131,7 +135,7 @@ OpcUaVariant VariantConverter<IBaseObject>::ToVariant(const BaseObjectPtr& objec
 {
     if (!object.assigned())
         return {};
-    
+
     const auto ids = object.asPtr<IInspectable>().getInterfaceIds();
     auto wrapConvertedValue = targetType == &UA_TYPES[UA_TYPES_EXTENSIONOBJECT] || targetType == &UA_TYPES[UA_TYPES_VARIANT];
     wrapConvertedValue = wrapConvertedValue && !object.asPtrOrNull<IList>().assigned();

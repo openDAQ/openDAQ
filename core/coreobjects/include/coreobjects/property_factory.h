@@ -446,6 +446,32 @@ inline PropertyBuilderPtr StructPropertyBuilder(const StringPtr& name, const Str
     return obj;
 }
 
+/*!
+ * @brief Creates an Enumeration Property object with a default value and its visible state.
+ * @param name The name of the Property.
+ * @param defaultValue The default enumeration value.
+ * @param visible If true, the Property is visible. Can be an EvalValue.
+ *
+ * The Property Value type is `ctEnumeration`.
+ */
+inline PropertyPtr EnumerationProperty(const StringPtr& name, const EnumerationPtr& defaultValue, const BooleanPtr& visible = true)
+{
+    PropertyPtr obj(EnumerationProperty_Create(name, defaultValue, visible));
+    return obj;
+}
+
+/*!
+ * @brief Creates an Enumeration Property builder object with a specified name and default value.
+ * @param name The name of the Property.
+ * @param defaultValue The default enumeration value.
+ *
+ * The Property Value type is `ctEnumeration`.
+ */
+inline PropertyBuilderPtr EnumerationPropertyBuilder(const StringPtr& name, const EnumerationPtr& defaultValue)
+{
+    PropertyBuilderPtr obj(EnumerationPropertyBuilder_Create(name, defaultValue));
+    return obj;
+}
 
 /*!
  * @brief Creates a Property using Builder

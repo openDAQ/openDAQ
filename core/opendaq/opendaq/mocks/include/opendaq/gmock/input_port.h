@@ -45,14 +45,16 @@ struct MockInputPort : daq::MockGenericComponent<MockInputPort, daq::IInputPortC
     MOCK_METHOD(daq::ErrCode, getCustomData, (daq::IBaseObject** customData), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, setCustomData, (daq::IBaseObject* customData), (override MOCK_CALL));
 
+    daq::Bool active = true;
+
     MockInputPort()
     {
         using namespace testing;
 
-        EXPECT_CALL(*this, notifyPacketEnqueued)
+        EXPECT_CALL(*this, notifyPacketEnqueued).Times(AnyNumber()).WillRepeatedly(DoAll(Return(OPENDAQ_SUCCESS)));
+
+        EXPECT_CALL(*this, getActive)
             .Times(AnyNumber())
-            .WillRepeatedly(DoAll(
-                Return(OPENDAQ_SUCCESS)
-            ));
+            .WillRepeatedly(DoAll(Invoke([&](daq::Bool* active) { *active = this->active; }), Return(OPENDAQ_SUCCESS)));
     }
 };

@@ -33,12 +33,25 @@ opcua::OpcUaNodeId TmsServerVariable<CoreType>::createNode(const opcua::OpcUaNod
 }
 
 template <class CoreType>
+opcua::OpcUaNodeId TmsServerVariable<CoreType>::getDataTypeId()
+{
+    return {};
+}
+
+template <class CoreType>
 void TmsServerVariable<CoreType>::configureVariableNodeAttributes(opcua::OpcUaObject<UA_VariableAttributes>& attr)
 {
-    const auto tmsTypeId = this->getTmsTypeId();
-    const auto dataTypeId = this->server->readDataType(tmsTypeId);
-
-    attr->dataType = *dataTypeId;
+    const auto dataType = this->getDataTypeId();
+    if (!dataType.isNull())
+    {
+        attr->dataType = dataType.getValue(); 
+    }
+    else
+    {
+        const auto tmsTypeId = this->getTmsTypeId();
+        const auto dataTypeId = this->server->readDataType(tmsTypeId);
+        attr->dataType = *dataTypeId;
+    }
     attr->accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
     attr->writeMask |= UA_WRITEMASK_DISPLAYNAME | UA_WRITEMASK_DESCRIPTION;
 }

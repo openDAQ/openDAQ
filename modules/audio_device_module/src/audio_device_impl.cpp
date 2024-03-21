@@ -8,6 +8,7 @@
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/device_domain_factory.h>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
@@ -28,6 +29,10 @@ AudioDeviceImpl::AudioDeviceImpl(const std::shared_ptr<MiniaudioContext>& maCont
     createAudioChannel();
 
     start();
+    
+    this->setDeviceDomain(DeviceDomain(Ratio(1, maDevice.sampleRate),
+                                       "",
+                                       UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build()));
 }
 
 AudioDeviceImpl::~AudioDeviceImpl()
@@ -61,29 +66,9 @@ DeviceInfoPtr AudioDeviceImpl::onGetInfo()
     return deviceInfo;
 }
 
-RatioPtr AudioDeviceImpl::onGetResolution()
-{
-    if (started)
-        return Ratio(1, maDevice.sampleRate);
-
-    return Ratio(0, 1);
-}
-
 uint64_t AudioDeviceImpl::onGetTicksSinceOrigin()
 {
     return 0;
-}
-
-std::string AudioDeviceImpl::onGetOrigin()
-{
-    return "";
-}
-
-UnitPtr AudioDeviceImpl::onGetDomainUnit()
-{
-    auto unitPtr = daq::UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build();
-
-    return unitPtr;
 }
 
 void AudioDeviceImpl::initProperties()

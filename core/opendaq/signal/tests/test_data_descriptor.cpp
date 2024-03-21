@@ -321,6 +321,7 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeStruct)
         .build();
 
     const auto canMsgDescriptor = DataDescriptorBuilder()
+        .setName("Struct")
         .setSampleType(SampleType::Struct)
         .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
         .build();
@@ -345,6 +346,7 @@ TEST_F(DataDescriptorTest, DataDescriptorSampleSizeMixedStruct)
                                     .build();
 
     const auto canMsgDescriptor = DataDescriptorBuilder()
+        .setName("Struct")
         .setSampleType(SampleType::Struct)
         .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
         .build();

@@ -28,18 +28,14 @@ static const char* NativeStreamingID = "daq.ns";
 class NativeStreamingImpl : public Streaming
 {
 public:
-    explicit NativeStreamingImpl(
-        const StringPtr& connectionString,
-        const StringPtr& host,
-        const StringPtr& port,
-        const StringPtr& path,
+    explicit NativeStreamingImpl(const StringPtr& connectionString,
         const ContextPtr& context,
-        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr clientHandler,
+        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
         std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
         Int streamingInitTimeout,
         const ProcedurePtr& onDeviceSignalAvailableCallback,
         const ProcedurePtr& onDeviceSignalUnavailableCallback,
-        opendaq_native_streaming_protocol::OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb);
+        opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb);
 
     ~NativeStreamingImpl();
 
@@ -67,7 +63,7 @@ protected:
 
     void removeFromAddedSignals(const StringPtr& signalStringId);
 
-    void reconnectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientReconnectionStatus status);
+    void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
 
     void prepareClientHandler();
 
@@ -77,16 +73,16 @@ protected:
     void startTransportOperations();
     void stopTransportOperations();
 
-    opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr clientHandler;
+    opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
+
+    // pseudo device callbacks
     ProcedurePtr onDeviceSignalAvailableCallback;
     ProcedurePtr onDeviceSignalUnavailableCallback;
-    opendaq_native_streaming_protocol::OnReconnectionStatusChangedCallback onDeviceReconnectionStatusChangedCb;
+    opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb;
+
     std::map<StringPtr, SizeT> availableSignals;
     std::map<StringPtr, SizeT> availableSignalsReconnection;
-    opendaq_native_streaming_protocol::ClientReconnectionStatus reconnectionStatus;
-
-    std::shared_ptr<boost::asio::io_context> transportIOContextPtr;
-    std::thread transportIOThread;
+    opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     boost::asio::io_context::strand processingStrand;
@@ -96,6 +92,7 @@ protected:
     LoggerComponentPtr loggerComponent;
 
     std::chrono::milliseconds streamingInitTimeout;
+    std::shared_ptr<boost::asio::io_context> timerContextPtr;
     std::shared_ptr<boost::asio::steady_timer> protocolInitTimer;
 
     std::mutex availableSignalsSync;

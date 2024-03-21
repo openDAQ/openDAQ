@@ -7,6 +7,7 @@
 #include "coretypes/simple_type_factory.h"
 #include "opcuatms/converters/list_conversion_utils.h"
 #include "iostream"
+#include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -31,7 +32,7 @@ StructPtr VariantConverter<IStruct>::ToDaqObject(const OpcUaVariant& variant, co
     if (!context.assigned() || !context.getTypeManager().assigned())
         throw ConversionFailedException{"Generic struct conversion requires the TypeManager."};
 
-    const auto typeManager = context.getTypeManager(); 
+    const auto typeManager = context.getTypeManager();
 
     const auto type = variant->type;
 
@@ -117,8 +118,20 @@ StructPtr VariantConverter<IStruct>::ToDaqObject(const OpcUaVariant& variant, co
         }
     }
 
-    if (!typeManager.hasType(type->typeName))
+    try
+    {
         typeManager.addType(StructType(type->typeName, daqMembers.getKeyList(), memberTypes));
+    }
+    catch (const std::exception& e)
+    {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("GenericStructConverter");
+        LOG_W("Couldn't add type {} to type manager: {}", type->typeName, e.what());
+    }
+    catch (...)
+    {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("GenericStructConverter");
+        LOG_W("Couldn't add type {} to type manager!", type->typeName);
+    }
 
     return Struct(type->typeName, daqMembers, typeManager);
 }
@@ -164,10 +177,10 @@ OpcUaVariant VariantConverter<IStruct>::ToVariant(const StructPtr& object, const
             throw ConversionFailedException{};
         }
 
-        OpcUaVariant variant = VariantConverter<IBaseObject>::ToVariant(daqMember, memberType, context);            
+        OpcUaVariant variant = VariantConverter<IBaseObject>::ToVariant(daqMember, memberType, context);
         if (variant->type != memberType && !(variant->data == UA_EMPTY_ARRAY_SENTINEL && variant->arrayLength == 0))
             throw ConversionFailedException{};
-        
+
         void* src = variant->data;
 
         if (!member->isArray)

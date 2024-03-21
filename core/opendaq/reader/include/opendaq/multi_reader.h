@@ -54,7 +54,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * [2] = [0, 0, 0, 0, 0, 0]
      * @param[in,out] count The maximum amount of samples to be read. If the `count` is less than
      * available the parameter value is set to the actual amount and only the available
-     * samples are returned. The rest of the buffer is not modified or cleared.
+     * samples are returned. The rest of the buffer is not modified or cleared. In case of different sample rates,
+     * the number of read samples may be different for each individual signal.
      * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of samples before returning.
      * @param[out] status: Represents the status of the reader.
      * - If the reader is invalid, IReaderStatus::getValid returns false.
@@ -91,7 +92,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * [2] = [0, 0, 0, 0, 0, 0]
      * @param[in,out] count The maximum amount of samples to be read. If the `count` is less than
      * available the parameter value is set to the actual amount and only the available
-     * samples are returned. The rest of the buffer is not modified or cleared.
+     * samples are returned. The rest of the buffer is not modified or cleared. In case of different sample rates,
+     * the number of read samples may be different for each individual signal.
      * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of samples before returning.
      * @param[out] status: Represents the status of the reader.
      * - If the reader is invalid, IReaderStatus::getValid returns false.
@@ -179,7 +181,9 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     SampleType, domainReadType,
     ReadMode, mode,
     ReadTimeoutType, timeoutType,
-    Bool, startOnFullUnitOfDomain)
+    Int, requiredCommonSampleRate,
+    Bool, startOnFullUnitOfDomain
+)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, MultiReaderFromExisting, IMultiReader,

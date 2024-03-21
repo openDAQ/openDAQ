@@ -15,6 +15,8 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>
 #include <opendaq/component_status_container_private_ptr.h>
+#include <opendaq/mock/mock_physical_device.h>
+#include <opendaq/device_domain_factory.h>
 
 using namespace daq;
 
@@ -1431,4 +1433,34 @@ TEST_F(CoreEventTest, TypeRemoved)
     typeManager.removeType("StructType2");
 
     ASSERT_EQ(removeCount, 3);
+}
+
+TEST_F(CoreEventTest, DomainChanged)
+{
+    const auto device = instance.getDevices()[0];
+    const auto mock = dynamic_cast<MockPhysicalDeviceImpl*>(device.getObject());
+
+    int changeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::DeviceDomainChanged));
+        ASSERT_EQ(args.getEventName(), "DeviceDomainChanged");
+        ASSERT_TRUE(args.getParameters().hasKey("DeviceDomain"));
+        changeCount++;
+    };
+
+    const DeviceDomainPtr domain1 = DeviceDomain(Ratio(1, 1), "foo", Unit("test"));
+    const DeviceDomainPtr domain2 = DeviceDomain(Ratio(1, 1), "bar", Unit("test1"));
+
+    mock->setDeviceDomainHelper(domain1);
+    ASSERT_EQ(device.getDomain().getOrigin(), "foo");
+
+    mock->setDeviceDomainHelper(domain2);
+    ASSERT_EQ(device.getDomain().getOrigin(), "bar");
+
+    mock->setDeviceDomainHelper(domain1);
+    ASSERT_EQ(device.getDomain().getOrigin(), "foo");
+
+    ASSERT_EQ(changeCount, 3);
 }

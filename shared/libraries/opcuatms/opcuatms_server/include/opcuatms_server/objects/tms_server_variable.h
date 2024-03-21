@@ -29,6 +29,8 @@ public:
 
     opcua::OpcUaNodeId createNode(const opcua::OpcUaNodeId& parentNodeId) override;
 
+    virtual opcua::OpcUaNodeId getDataTypeId();
+
 protected:
     virtual void configureVariableNodeAttributes(opcua::OpcUaObject<UA_VariableAttributes>& attr);
 };

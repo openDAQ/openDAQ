@@ -49,10 +49,13 @@ private:
     static bool validateConnectionString(const StringPtr& connectionString);
 
     std::shared_ptr<boost::asio::io_context> addStreamingProcessingContext(const StringPtr& connectionString);
+    opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr createAndConnectTransportClient(
+        const StringPtr& host,
+        const StringPtr& port,
+        const StringPtr& path,
+        const PropertyObjectPtr& transportLayerConfig);
+
     StreamingPtr createNativeStreaming(const StringPtr& connectionString,
-                                       const StringPtr& host,
-                                       const StringPtr& port,
-                                       const StringPtr& path,
                                        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
                                        Int streamingInitTimeout);
 
@@ -74,8 +77,7 @@ private:
     discovery::DiscoveryClient discoveryClient;
 
     using ProcessingContext = std::tuple<StringPtr, std::thread, std::shared_ptr<boost::asio::io_context>>;
-    std::vector<ProcessingContext> configurationProcessingContextPool;
-    std::vector<ProcessingContext> streamingProcessingContextPool;
+    std::vector<ProcessingContext> processingContextPool;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

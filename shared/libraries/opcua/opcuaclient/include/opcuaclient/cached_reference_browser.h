@@ -50,6 +50,7 @@ public:
     CachedReferenceBrowser(const OpcUaClientPtr& client, size_t maxNodesPerBrowse = 0);
 
     const CachedReferences& browse(const OpcUaNodeId& nodeId);
+    void browseMultiple(const std::vector<OpcUaNodeId>& nodes);
     void invalidate(const OpcUaNodeId& nodeId);
     void invalidateRecursive(const OpcUaNodeId& nodeId);
 
@@ -63,7 +64,6 @@ private:
     void invalidate(const OpcUaNodeId& nodeId, bool recursive);
     bool isCached(const OpcUaNodeId& nodeId);
     void markAsCached(const OpcUaNodeId& nodeId);
-    void browseMultiple(const std::vector<OpcUaNodeId>& nodes);
     size_t browseBatch(const std::vector<OpcUaNodeId>& nodes, size_t startIndex, size_t size, std::vector<OpcUaNodeId>& browseNext);
     void processBrowseResults(const std::vector<OpcUaNodeId>& nodes,
                               size_t startIndex,

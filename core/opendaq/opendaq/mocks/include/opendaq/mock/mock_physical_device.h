@@ -30,10 +30,9 @@ public:
     ~MockPhysicalDeviceImpl();
 
     daq::DeviceInfoPtr onGetInfo() override;
-    daq::RatioPtr onGetResolution() override;
     uint64_t onGetTicksSinceOrigin() override;
-    std::string onGetOrigin() override;
-    daq::UnitPtr onGetDomainUnit() override;
+
+    void setDeviceDomainHelper(const DeviceDomainPtr& deviceDomain);
 
 protected:
     void startAcq();

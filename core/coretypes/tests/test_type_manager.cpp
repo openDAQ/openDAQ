@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <coretypes/coretypes.h>
+#include <cctype>
 
 using namespace daq;
 
@@ -9,15 +10,56 @@ TEST_F(TypeManagerTest, AddType)
 {
     auto manager = TypeManager();
     manager.addType(SimpleType(ctInt));
-    manager.addType(RatioStructType());
+    ASSERT_THROW(manager.addType(RatioStructType()), InvalidParameterException);
     manager.addType(StructType("foo", List<IString>("field"), List<IType>(SimpleType(ctString))));
 }
 
-TEST_F(TypeManagerTest, AddTypeAlreadyAdded)
+TEST_F(TypeManagerTest, AddTypeSameTwice)
 {
     auto manager = TypeManager();
     manager.addType(SimpleType(ctInt));
-    ASSERT_THROW(manager.addType(SimpleType(ctInt)), AlreadyExistsException);
+    ASSERT_NO_THROW(manager.addType(SimpleType(ctInt)));
+}
+
+TEST_F(TypeManagerTest, AddTypeSameTwiceStruct)
+{
+    auto fieldNames = List<IString>();
+    auto fieldTypes = List<IType>();
+
+    fieldNames.pushBack("int");
+    fieldTypes.pushBack(SimpleType(CoreType::ctInt));
+
+    const auto type = StructType("test", fieldNames, fieldTypes);
+
+    auto manager = TypeManager();
+    manager.addType(type);
+
+    ASSERT_NO_THROW(manager.addType(type));
+}
+
+TEST_F(TypeManagerTest, AddTypeDifferentSameNameTwiceStruct)
+{
+    auto fieldNames1 = List<IString>();
+    auto fieldTypes1 = List<IType>();
+
+    fieldNames1.pushBack("int");
+    fieldTypes1.pushBack(SimpleType(CoreType::ctInt));
+
+    const auto type1 = StructType("test", fieldNames1, fieldTypes1);
+
+    auto fieldNames2 = List<IString>();
+    auto fieldTypes2 = List<IType>();
+
+    fieldNames2.pushBack("float");
+    fieldTypes2.pushBack(SimpleType(CoreType::ctFloat));
+
+    const auto type2 = StructType("test", fieldNames2, fieldTypes2);
+
+    auto manager = TypeManager();
+    manager.addType(type1);
+
+    // Throws because type1 and type2 are different but have the same name
+    ASSERT_THROW(manager.addType(type2), AlreadyExistsException);
 }
 
 TEST_F(TypeManagerTest, RemoveType)
@@ -70,13 +112,12 @@ TEST_F(TypeManagerTest, Serialization)
     manager.addType(SimpleType(ctInt));
     manager.addType(SimpleType(ctString));
     manager.addType(StructType("foo", List<IString>("string"), List<IBaseObject>("foo"), List<IType>(SimpleType(ctString))));
-    manager.addType(RatioStructType());
 
     const auto serializer = JsonSerializer();
-    
+
     manager.serialize(serializer);
     const auto serializedJson = serializer.getOutput();
-    
+
     const auto deserializer = JsonDeserializer();
     const TypeManagerPtr typeManagerDeserialized = deserializer.deserialize(serializedJson);
 
@@ -93,4 +134,37 @@ TEST_F(TypeManagerTest, InterfaceId)
 TEST_F(TypeManagerTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<ITypeManager>(), "{EBD840C6-7E32-51F4-B063-63D0B09F4240}");
+}
+
+TEST_F(TypeManagerTest, ProtectedStructNames)
+{
+    std::vector<std::string> protectedNames{{"argumentinfo",
+                                             "callableinfo",
+                                             "unit",
+                                             "complexnumber",
+                                             "ratio",
+                                             "devicetype",
+                                             "functionblocktype",
+                                             "servertype",
+                                             "datadescriptor",
+                                             "datarule",
+                                             "dimension",
+                                             "dimensionrule",
+                                             "range",
+                                             "scaling"}};
+
+    const auto typeManager = TypeManager();
+    for (const auto& name : protectedNames)
+    {
+        std::string uppercase = name;
+        std::transform(uppercase.begin(), uppercase.end(), uppercase.begin(), [](char c) { return std::toupper(c); });
+
+        const auto type1 = StructType(name, List<IString>("field"), List<IType>(SimpleType(ctString)));
+        const auto type2 = StructType(uppercase, List<IString>("field"), List<IType>(SimpleType(ctString)));
+
+        ASSERT_THROW(typeManager.addType(type1), InvalidParameterException);
+        ASSERT_THROW(typeManager.addType(type2), InvalidParameterException);
+    }
+
+
 }

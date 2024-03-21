@@ -75,7 +75,7 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManager, IBaseObject)
      * @param logger the logger Component
      * @param[out] device the device
      */
-    virtual ErrCode INTERFACE_FUNC getDevice(IString* connectionString, IPropertyObject* config, IComponent* parent, ILoggerComponent* logger, IDevice** device) = 0;
+    virtual ErrCode INTERFACE_FUNC createDevice(IString* connectionString, IPropertyObject* config, IComponent* parent, IDevice** device) = 0;
 };
 /*!@}*/
 

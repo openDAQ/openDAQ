@@ -54,7 +54,7 @@ namespace VariantUtils
     {
         if (!IsScalar(value))
             throw std::runtime_error("Variant is not a scalar");
-        if (!IsType<T>(value))
+        if (!IsType<T>(value) && value.type->typeKind != UA_TYPES_ENUMERATION)
             throw std::runtime_error("Variant does not contain a scalar of specified return type");
         return *static_cast<T*>(value.data);
     }
@@ -77,6 +77,7 @@ namespace VariantUtils
             case UA_TYPES_UINT16:
                 return ReadScalar<UA_UInt16>(value);
             case UA_TYPES_INT32:
+            case UA_TYPES_ENUMERATION:
                 return ReadScalar<UA_Int32>(value);
             case UA_TYPES_UINT32:
                 return ReadScalar<UA_UInt32>(value);
@@ -84,6 +85,7 @@ namespace VariantUtils
                 return ReadScalar<UA_Int64>(value);
             case UA_TYPES_UINT64:
                 return ReadScalar<UA_UInt64>(value);
+
             default:
                 throw std::runtime_error("Type not supported!");
         }

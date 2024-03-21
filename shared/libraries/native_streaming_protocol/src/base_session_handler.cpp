@@ -7,13 +7,14 @@ using namespace daq::native_streaming;
 
 BaseSessionHandler::BaseSessionHandler(const ContextPtr& daqContext,
                                        SessionPtr session,
-                                       boost::asio::io_context& ioContext,
+                                       const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                                        OnSessionErrorCallback errorHandler,
                                        ConstCharPtr loggerComponentName)
     : session(session)
     , configPacketReceivedHandler(nullptr)
     , errorHandler(errorHandler)
-    , connectionInactivityTimer(std::make_shared<boost::asio::steady_timer>(ioContext))
+    , ioContextPtr(ioContextPtr)
+    , connectionInactivityTimer(std::make_shared<boost::asio::steady_timer>(*(this->ioContextPtr)))
     , loggerComponent(daqContext.getLogger().getOrAddComponent(loggerComponentName))
 {
 }

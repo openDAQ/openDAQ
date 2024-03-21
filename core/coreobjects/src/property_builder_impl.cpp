@@ -99,4 +99,11 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     IStruct*, defaultValue
 )
 
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, PropertyBuilder,
+    IPropertyBuilder, createEnumerationPropertyBuilder,
+    IString*, name,
+    IEnumeration*, defaultValue
+)
+
 END_NAMESPACE_OPENDAQ

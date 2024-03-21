@@ -167,6 +167,7 @@ void ConfigClientBaseFolderImpl<Impl>::handleRemoteCoreObjectInternal(const Comp
         case CoreEventId::StatusChanged:
         case CoreEventId::TypeAdded:
         case CoreEventId::TypeRemoved:
+        case CoreEventId::DeviceDomainChanged:
         default:
             break;
     }
@@ -237,7 +238,7 @@ void ConfigClientBaseFolderImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr&
             const StringPtr type = obj.readString("__type");
             const auto thisPtr = this->template borrowPtr<ComponentPtr>();
             const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-                this->clientComm, this->remoteGlobalId, this->context, nullptr, thisPtr, key, nullptr);
+                this->clientComm, this->remoteGlobalId + "/" + key, this->context, nullptr, thisPtr, key, nullptr);
 
             const ComponentPtr deserializedObj = this->clientComm->deserializeConfigComponent(
                 type,

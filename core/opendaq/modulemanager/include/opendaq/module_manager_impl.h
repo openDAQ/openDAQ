@@ -37,7 +37,7 @@ public:
     ErrCode INTERFACE_FUNC addModule(IModule* module) override;
     ErrCode INTERFACE_FUNC loadModules(IContext* context) override;
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
-    ErrCode INTERFACE_FUNC getDevice(IString* connectionString, IPropertyObject* config, IComponent* parent, ILoggerComponent* logger, IDevice** device) override;
+    ErrCode INTERFACE_FUNC createDevice(IString* connectionString, IPropertyObject* config, IComponent* parent, IDevice** device) override;
 
 private:
     bool modulesLoaded;

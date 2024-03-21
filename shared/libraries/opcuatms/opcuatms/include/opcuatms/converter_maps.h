@@ -21,6 +21,7 @@
 #include "opendaq/data_descriptor_ptr.h"
 #include "open62541/daqbt_nodeids.h"
 #include "open62541/daqbsp_nodeids.h"
+#include "open62541/daqhbk_nodeids.h"
 #include "open62541/nodeids.h"
 #include "opendaq/function_block_type_ptr.h"
 
@@ -94,6 +95,9 @@ namespace converters
                        {IStruct::Id,
                         [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
                         { return VariantConverter<IStruct>::ToVariant(object, targetType, ctx); }},
+                       {IEnumeration::Id,
+                        [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
+                        { return VariantConverter<IEnumeration>::ToVariant(object, targetType, ctx); }},
                        {IList::Id, [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx) {
                             return VariantConverter<IBaseObject>::ToArrayVariant(object, targetType, ctx);
                         }}};
@@ -147,6 +151,9 @@ namespace converters
                             {IStruct::Id,
                              [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
                              { return VariantConverter<IStruct>::ToArrayVariant(object, targetType, ctx); }},
+                            {IEnumeration::Id,
+                             [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx)
+                             { return VariantConverter<IEnumeration>::ToArrayVariant(object, targetType, ctx); }},
                             {IArgumentInfo::Id, [](const BaseObjectPtr& object, const UA_DataType* targetType, const ContextPtr& ctx) {
                                  return VariantConverter<IArgumentInfo>::ToArrayVariant(object, targetType, ctx);
                              }}};
@@ -299,6 +306,7 @@ namespace converters
             return nullptr;
 
         const auto typeId = variant.getValue().type->typeId;
+
         if (const auto it = uaTypeToDaqObject.find(OpcUaNodeId(typeId)); it != uaTypeToDaqObject.cend())
             return it->second(variant, context);
 

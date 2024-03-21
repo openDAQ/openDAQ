@@ -5,6 +5,7 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/deserialize_component_ptr.h>
+#include <opendaq/input_port_factory.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/removable_ptr.h>
 #include <opendaq/signal_events.h>
@@ -15,7 +16,7 @@
 
 using SignalTest = testing::Test;
 
-BEGIN_NAMESPACE_OPENDAQ
+using namespace daq;
 
 class ConnectionMockImpl : public ImplementationOf<IConnection>
 {
@@ -320,6 +321,120 @@ TEST_F(SignalTest, SignalDescriptor)
 
     signal.setDescriptor(dataDescriptor);
     ASSERT_EQ(signal.getDescriptor(), dataDescriptor);
+}
+
+TEST_F(SignalTest, SignalDescriptorStruct)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    const auto descriptor = DataDescriptorBuilder()
+                                .setName("MyTestStructType")
+                                .setSampleType(SampleType::Struct)
+                                .setStructFields(List<DataDescriptorPtr>(
+                                    DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build(),
+                                    DataDescriptorBuilder().setName("Float64").setSampleType(SampleType::Float64).build(),
+                                    DataDescriptorBuilder()
+                                        .setName("Special1")
+                                        .setSampleType(SampleType::Struct)
+                                        .setStructFields(List<DataDescriptorPtr>(
+                                            DataDescriptorBuilder().setName("NestedInt64").setSampleType(SampleType::Int64).build()))
+                                        .build()))
+                                .build();
+
+    signal.setDescriptor(descriptor);
+
+    ASSERT_EQ(signal.getDescriptor(), descriptor);
+
+    auto fieldNames = List<IString>();
+    auto fieldTypes = List<IType>();
+
+    fieldNames.pushBack("Int32");
+    fieldNames.pushBack("Float64");
+
+    fieldTypes.pushBack(SimpleType(CoreType::ctInt));
+    fieldTypes.pushBack(SimpleType(CoreType::ctFloat));
+
+    auto nestedFieldNames = List<IString>();
+    auto nestedFieldTypes = List<IType>();
+
+    nestedFieldNames.pushBack("NestedInt64");
+    nestedFieldTypes.pushBack(SimpleType(CoreType::ctInt));
+
+    auto nestedStruct = StructType("Special1", nestedFieldNames, nestedFieldTypes);
+
+    fieldNames.pushBack("Special1");
+    fieldTypes.pushBack(nestedStruct);
+
+    const auto type = signal.getContext().getTypeManager().getType("MyTestStructType");
+    const auto realType = StructType("MyTestStructType", fieldNames, fieldTypes);
+
+    ASSERT_EQ(type, realType);
+}
+
+TEST_F(SignalTest, SignalDescriptorStructSameTwice)
+{
+    const auto contex = NullContext();
+
+    const auto signal1 = Signal(contex, nullptr, "sig1");
+    const auto signal2 = Signal(contex, nullptr, "sig2");
+
+    const auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build()))
+            .build();
+
+    signal1.setDescriptor(descriptor);
+    signal2.setDescriptor(descriptor);
+
+    ASSERT_EQ(signal1.getDescriptor(), signal2.getDescriptor());
+}
+
+TEST_F(SignalTest, SignalDescriptorStructSameNameDifferentDescriptor)
+{
+    const auto contex = NullContext();
+
+    const auto signal1 = Signal(contex, nullptr, "sig1");
+    const auto signal2 = Signal(contex, nullptr, "sig2");
+
+    const auto descriptor1 =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build()))
+            .build();
+
+    const auto descriptor2 =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Float64").setSampleType(SampleType::Float64).build()))
+            .build();
+
+    signal1.setDescriptor(descriptor1);
+    signal2.setDescriptor(descriptor2);
+
+    ASSERT_EQ(signal1.getDescriptor(), descriptor1);
+    ASSERT_EQ(signal2.getDescriptor(), descriptor2);
+
+    auto dataPacket1 = DataPacket(descriptor1, 5);
+    auto data1 = static_cast<int32_t*>(dataPacket1.getData());
+    data1[4] = 4;
+    signal1.sendPacket(dataPacket1);
+
+    auto dataPacket2 = DataPacket(descriptor2, 5);
+    auto data2 = static_cast<double*>(dataPacket2.getData());
+    data2[4] = 4.2;
+    signal2.sendPacket(dataPacket2);
+
+    const auto lv1 = signal1.getLastValue();
+    StructPtr sp1;
+    ASSERT_NO_THROW(sp1 = lv1.asPtr<IStruct>());
+    ASSERT_EQ(sp1.get("Int32"), 4);
+
+    // Throws because descriptor2 has the same name as descriptor1 and hence the the struct type can't be added to the type manager
+    ASSERT_THROW(signal2.getLastValue(), InvalidParameterException);
 }
 
 TEST_F(SignalTest, SendNullPacket)
@@ -662,4 +777,343 @@ TEST_F(SignalTest, GetLastValueComplexFloat64)
     ASSERT_DOUBLE_EQ(complexPtr.getImaginary(), 9.1);
 }
 
-END_NAMESPACE_OPENDAQ
+TEST_F(SignalTest, TestSignalActiveSendPacket)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Float64).build();
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    auto dataPacket = DataPacket(descriptor, 1);
+    signal.sendPacket(dataPacket);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 2);
+
+    signal.setActive(false);
+    signal.sendPacket(dataPacket);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 2);
+
+    auto descriptor1 = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int16).build();
+    signal.setDescriptor(descriptor1);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 3);
+}
+
+TEST_F(SignalTest, TestInputPortActiveSendPacket)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Float64).build();
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    auto dataPacket = DataPacket(descriptor, 1);
+    signal.sendPacket(dataPacket);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 2);
+
+    ip.setActive(false);
+    signal.sendPacket(dataPacket);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 2);
+
+    auto descriptor1 = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int16).build();
+    signal.setDescriptor(descriptor1);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 3);
+}
+
+TEST_F(SignalTest, GetLastValueStruct)
+{
+    // Create signal
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // Create DataDescriptor
+    const auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build(),
+                                                     DataDescriptorBuilder().setName("Float64").setSampleType(SampleType::Float64).build()))
+            .build();
+
+    // Set the descriptor, thereby adding the struct type to the type manager
+    signal.setDescriptor(descriptor);
+
+    // Prepare data packet
+    auto sizeInBytes = sizeof(int32_t) + sizeof(double);
+    const auto dataPacket = DataPacket(descriptor, 5);
+    auto data = dataPacket.getData();
+
+    // Start points to beggining of data
+    auto start = static_cast<char*>(data);
+
+    // First member of data is int32_t
+    void* a = start + sizeInBytes * 4;
+    auto A = static_cast<int32_t*>(a);
+    *A = 12;
+
+    // Second member of data is double
+    void* b = start + sizeInBytes * 4 + sizeof(int32_t);
+    auto B = static_cast<double*>(b);
+    *B = 15.1;
+
+    // Send our packet
+    signal.sendPacket(dataPacket);
+
+    // Call getLastValue
+    auto lastValuePacket = signal.getLastValue();
+
+    // Create data structure
+    StructPtr structPtr;
+
+    // Cast lastValuePacket to our data structure and ASSERT_NO_THROW
+    ASSERT_NO_THROW(structPtr = lastValuePacket.asPtr<IStruct>());
+
+    // Check first member
+    ASSERT_EQ(structPtr.get("Int32"), 12);
+
+    // Check second member
+    ASSERT_DOUBLE_EQ(structPtr.get("Float64"), 15.1);
+}
+
+TEST_F(SignalTest, GetLastValueLinearDataRule)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setRule(LinearDataRule(3, 2)).setName("test").setSampleType(SampleType::Float64).build();
+
+    auto dataPacket = DataPacket(descriptor, 5, 7);
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValuePacket = signal.getLastValue();
+    FloatPtr ptr;
+    ASSERT_NO_THROW(ptr = lastValuePacket.asPtr<IFloat>());
+    ASSERT_EQ(ptr, 21.0);
+}
+
+TEST_F(SignalTest, GetLastValueLinearScaling)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder()
+                          .setPostScaling(LinearScaling(3, 7, SampleType::Int32, ScaledSampleType::Float64))
+                          .setName("test")
+                          .setSampleType(SampleType::Float64)
+                          .build();
+
+    auto dataPacket = DataPacket(descriptor, 5);
+    auto data = static_cast<int32_t*>(dataPacket.getRawData());
+    data[4] = 4;
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValuePacket = signal.getLastValue();
+    FloatPtr ptr;
+    ASSERT_NO_THROW(ptr = lastValuePacket.asPtr<IFloat>());
+    ASSERT_EQ(ptr, 19.0);
+}
+
+TEST_F(SignalTest, GetLastValueStructNoSetDescriptor)
+{
+    // Create signal
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // Create DataDescriptor
+    const auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build(),
+                                                     DataDescriptorBuilder().setName("Float64").setSampleType(SampleType::Float64).build()))
+            .build();
+
+    // Prepare data packet
+    auto sizeInBytes = sizeof(int32_t) + sizeof(double);
+    const auto dataPacket = DataPacket(descriptor, 5);
+    auto data = dataPacket.getData();
+
+    // Start points to beggining of data
+    auto start = static_cast<char*>(data);
+
+    // First member of data is int32_t
+    void* a = start + sizeInBytes * 4;
+    auto A = static_cast<int32_t*>(a);
+    *A = 12;
+
+    // Second member of data is double
+    void* b = start + sizeInBytes * 4 + sizeof(int32_t);
+    auto B = static_cast<double*>(b);
+    *B = 15.1;
+
+    // Send our packet
+    signal.sendPacket(dataPacket);
+
+    // Call getLastValue
+    // Throws becuase we didn't use signal.setDescriptor
+    ASSERT_THROW(signal.getLastValue(), NotFoundException);
+}
+
+TEST_F(SignalTest, GetLastValueStructNested)
+{
+    // Create signal
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // Create DataDescriptor
+    const auto descriptor = DataDescriptorBuilder()
+                                .setName("MyTestStructType")
+                                .setSampleType(SampleType::Struct)
+                                .setStructFields(List<DataDescriptorPtr>(
+                                    DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build(),
+                                    DataDescriptorBuilder().setName("Float64").setSampleType(SampleType::Float64).build(),
+                                    DataDescriptorBuilder()
+                                        .setName("Special")
+                                        .setSampleType(SampleType::Struct)
+                                        .setStructFields(List<DataDescriptorPtr>(
+                                            DataDescriptorBuilder().setName("NestedInt64").setSampleType(SampleType::Int64).build()))
+                                        .build()))
+                                .build();
+
+    // Set the descriptor, thereby registering the struct type in type manager
+    signal.setDescriptor(descriptor);
+
+    // Prepare data packet
+    auto sizeInBytes = sizeof(int32_t) + sizeof(double) + sizeof(int64_t);
+    const auto dataPacket = DataPacket(descriptor, 5);
+    auto data = dataPacket.getData();
+
+    // Start points to beggining of data
+    auto start = static_cast<char*>(data);
+
+    // First member of data is int32_t
+    void* a = start + sizeInBytes * 4;
+    auto A = static_cast<int32_t*>(a);
+    *A = 12;
+
+    // Second member of data is double
+    void* b = start + sizeInBytes * 4 + sizeof(int32_t);
+    auto B = static_cast<double*>(b);
+    *B = 15.1;
+
+    // Third member is nested within Struct and is int64_t
+    void* c = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(double);
+    auto C = static_cast<int64_t*>(c);
+    *C = 42;
+
+    // Send our packet
+    signal.sendPacket(dataPacket);
+
+    // Call getLastValue
+    auto lastValuePacket = signal.getLastValue();
+
+    // Create data structure
+    StructPtr structPtr;
+
+    // Cast lastValuePacket to our data structure and ASSERT_NO_THROW
+    ASSERT_NO_THROW(structPtr = lastValuePacket.asPtr<IStruct>());
+
+    // Check first member
+    ASSERT_EQ(structPtr.get("Int32"), 12);
+
+    // Check second member
+    ASSERT_DOUBLE_EQ(structPtr.get("Float64"), 15.1);
+
+    // Get nested Struct
+    StructPtr nestedPtr = structPtr.get("Special").asPtr<IStruct>();
+
+    // Check third (nested) member
+    ASSERT_EQ(nestedPtr.get("NestedInt64"), 42);
+}
+
+TEST_F(SignalTest, GetLastValueStructDoublyNested)
+{
+    // Create signal
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // Create DataDescriptor
+    const auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(
+                DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build(),
+                DataDescriptorBuilder().setName("Float64").setSampleType(SampleType::Float64).build(),
+                DataDescriptorBuilder()
+                    .setName("Special1")
+                    .setSampleType(SampleType::Struct)
+                    .setStructFields(List<DataDescriptorPtr>(
+                        DataDescriptorBuilder().setName("NestedInt64").setSampleType(SampleType::Int64).build(),
+                        DataDescriptorBuilder().setName("NestedInt32").setSampleType(SampleType::Int32).build(),
+                        DataDescriptorBuilder()
+                            .setName("Special2")
+                            .setSampleType(SampleType::Struct)
+                            .setStructFields(List<DataDescriptorPtr>(
+                                DataDescriptorBuilder().setName("DoublyNestedFloat32").setSampleType(SampleType::Float32).build()))
+                            .build()))
+                    .build()))
+            .build();
+
+    // Set the descriptor, thereby registering the struct type in type manager
+    signal.setDescriptor(descriptor);
+
+    // Prepare data packet
+    auto sizeInBytes = sizeof(int32_t) + sizeof(double) + sizeof(int64_t) + sizeof(int32_t) + sizeof(float);
+    const auto dataPacket = DataPacket(descriptor, 5);
+    auto data = dataPacket.getData();
+
+    // Start points to beggining of data
+    auto start = static_cast<char*>(data);
+
+    // First member of data is int32_t
+    void* a = start + sizeInBytes * 4;
+    auto A = static_cast<int32_t*>(a);
+    *A = 12;
+
+    // Second member of data is double
+    void* b = start + sizeInBytes * 4 + sizeof(int32_t);
+    auto B = static_cast<double*>(b);
+    *B = 15.1;
+
+    // Third member is nested within Struct and is int64_t
+    void* c = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(double);
+    auto C = static_cast<int64_t*>(c);
+    *C = 42;
+
+    // Fouth member of data is int32_t
+    void* d = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(double) + sizeof(int64_t);
+    auto D = static_cast<int32_t*>(d);
+    *D = 33;
+
+    // Fifth member of data is doubly nested withing Stuct and is double
+    void* e = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(double) + sizeof(int64_t) + sizeof(int32_t);
+    auto E = static_cast<float*>(e);
+    *E = 6.66f;
+
+    // Send our packet
+    signal.sendPacket(dataPacket);
+
+    // Call getLastValue
+    auto lastValuePacket = signal.getLastValue();
+
+    // Create data structure
+    StructPtr structPtr;
+
+    // Cast lastValuePacket to our data structure and ASSERT_NO_THROW
+    ASSERT_NO_THROW(structPtr = lastValuePacket.asPtr<IStruct>());
+
+    // Check first member
+    ASSERT_EQ(structPtr.get("Int32"), 12);
+
+    // Check second member
+    ASSERT_DOUBLE_EQ(structPtr.get("Float64"), 15.1);
+
+    // Get nested Struct
+    StructPtr nestedPtr = structPtr.get("Special1").asPtr<IStruct>();
+
+    // Check third (nested) member
+    ASSERT_EQ(nestedPtr.get("NestedInt64"), 42);
+
+    // Check fourth (nested) member
+    ASSERT_EQ(nestedPtr.get("NestedInt32"), 33);
+
+    // Get doubly nested Struct
+    StructPtr doublyNestedPtr = nestedPtr.get("Special2").asPtr<IStruct>();
+
+    // Check fifth (doubly nested) member
+    ASSERT_FLOAT_EQ(doublyNestedPtr.get("DoublyNestedFloat32"), 6.66f);
+}

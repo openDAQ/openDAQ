@@ -507,6 +507,19 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IStruct*, defaultValue
 )
 
+/*!
+ * @brief Creates an Enumeration Property builder object with a specified name and default value.
+ * @param name The name of the Property.
+ * @param defaultValue The default structure value.
+ *
+ * The Property Value type is `ctEnumeration`.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, EnumerationPropertyBuilder, IPropertyBuilder,
+    IString*, name,
+    IEnumeration*, defaultValue
+)
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

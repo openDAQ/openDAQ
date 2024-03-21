@@ -108,6 +108,7 @@ private:
                                                bool isGetRootDeviceCommand = false);
 
     BaseObjectPtr requestRootDevice(const ComponentPtr& parentComponent);
+    StringPtr requestSerializedRootDevice();
 
     static SignalPtr findSignalByRemoteGlobalIdWithComponent(const ComponentPtr& component, const std::string& remoteGlobalId);
 
@@ -135,6 +136,7 @@ public:
 
     // called from client module
     DevicePtr connect(const ComponentPtr& parent = nullptr);
+    void reconnect();
 
     DevicePtr getDevice();
     ConfigProtocolClientCommPtr getClientComm();
@@ -150,9 +152,11 @@ private:
     DeserializerPtr deserializer;
 
     ConfigProtocolClientCommPtr clientComm;
-    WeakRefPtr<IDevice> deviceRef;
     
     ComponentPtr findComponent(std::string globalId);
+
+    void protocolHandshake();
+    void enumerateTypes();
 
     // this should handle server component updates
     void triggerNotificationObject(const BaseObjectPtr& object);
@@ -178,7 +182,7 @@ ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& da
 }
 
 template<class TRootDeviceImpl>
-DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& parent)
+void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake()
 {
     auto getProtocolInfoRequestPacketBuffer = PacketBuffer::createGetProtocolInfoRequest(clientComm->generateId());
     const auto getProtocolInfoReplyPacketBuffer = sendRequestCallback(getProtocolInfoRequestPacketBuffer);
@@ -201,7 +205,11 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
 
     if (!success)
         throw ConfigProtocolException("Protocol upgrade failed");
+}
 
+template<class TRootDeviceImpl>
+void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
+{
     const auto localTypeManager = daqContext.getTypeManager();
     const TypeManagerPtr typeManager = clientComm->sendCommand("GetTypeManager");
     const auto types = typeManager.getTypes();
@@ -209,21 +217,58 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
     for (const auto& typeName : types)
     {
         const auto type = typeManager.getType(typeName);
-        if (localTypeManager.hasType(type.getName()))
+
+        try
         {
             // TODO: implement type comparison/equalTo for property object classes
-/*            const auto localType = localTypeManager.getType(type.getName());
+            /* const auto localType = localTypeManager.getType(type.getName());
             if (localType != type)
                 throw InvalidValueException("Remote type different than local");*/
-            continue;
+            localTypeManager.addType(type);
         }
-
-        localTypeManager.addType(type);
+        catch (const std::exception& e)
+        {
+            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+            LOG_W("Couldn't add type {} to local type manager: {}", type.getName(), e.what());
+        }
+        catch (...)
+        {
+            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+            LOG_W("Couldn't add type {} to local type manager!", type.getName());
+        }
     }
+}
+
+template<class TRootDeviceImpl>
+void ConfigProtocolClient<TRootDeviceImpl>::reconnect()
+{
+    if (!clientComm->getConnected())
+        throw ConfigProtocolException("The 'reconnect' called without a prior successful 'connect' call.");
+
+    auto rootDevice = clientComm->getRootDevice();
+    if (!rootDevice.assigned())
+        throw NotAssignedException("Root device is not assigned.");
+
+    protocolHandshake();
+    enumerateTypes();
+
+    const StringPtr serializedDevice = clientComm->requestSerializedRootDevice();
+
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("SerializedComponent", serializedDevice);
+
+    auto args = CoreEventArgs(CoreEventId::ComponentUpdateEnd, nullptr, dict);
+    rootDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(rootDevice, args);
+}
+
+template<class TRootDeviceImpl>
+DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& parent)
+{
+    protocolHandshake();
+    enumerateTypes();
 
     const ComponentHolderPtr deviceHolder = clientComm->requestRootDevice(parent);
     auto device = deviceHolder.getComponent();
-    deviceRef = device;
 
     clientComm->setRootDevice(device);
     clientComm->connectDomainSignals(device);

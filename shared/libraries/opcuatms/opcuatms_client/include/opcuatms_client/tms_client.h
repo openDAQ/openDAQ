@@ -34,6 +34,7 @@ public:
 
     daq::DevicePtr connect();
 
+
 protected:
     void getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string& browseNameOut);
 

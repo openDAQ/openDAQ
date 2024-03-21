@@ -48,12 +48,14 @@ public:
     ErrCode INTERFACE_FUNC getData(void** address) override;
     ErrCode INTERFACE_FUNC getDataSize(SizeT* dataSize) override;
     ErrCode INTERFACE_FUNC getRawDataSize(SizeT* rawDataSize) override;
-    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override;
 
 private:
     bool isDataEqual(const DataPacketPtr& dataPacket) const;
+    BaseObjectPtr dataToObj(void* addr, const SampleType& type) const;
+    StructPtr buildStructFromPacket(void* addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager) const;
 
     AllocatorPtr allocator;
     DataDescriptorPtr descriptor;
@@ -292,111 +294,144 @@ bool DataPacketImpl<TInterface>::isDataEqual(const DataPacketPtr& dataPacket) co
 }
 
 template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value)
+inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObj(void* addr, const SampleType& type) const
+{
+    switch (type)
+    {
+        case SampleType::Float32:
+        {
+            const auto data = static_cast<float*>(addr);
+            return Floating(*data);
+        }
+        case SampleType::Float64:
+        {
+            const auto data = static_cast<double*>(addr);
+            return Floating(*data);
+        }
+        case SampleType::Int8:
+        {
+            const auto data = static_cast<int8_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::UInt8:
+        {
+            const auto data = static_cast<uint8_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::Int16:
+        {
+            const auto data = static_cast<int16_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::UInt16:
+        {
+            const auto data = static_cast<uint16_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::Int32:
+        {
+            const auto data = static_cast<int32_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::UInt32:
+        {
+            const auto data = static_cast<uint32_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::Int64:
+        {
+            const auto data = static_cast<int64_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::UInt64:
+        {
+            const auto data = static_cast<uint64_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::RangeInt64:
+        {
+            const auto data = static_cast<int64_t*>(addr);
+            return Range(data[0], data[1]);
+        }
+        case SampleType::ComplexFloat32:
+        {
+            const auto data = static_cast<float*>(addr);
+            return ComplexNumber(data[0], data[1]);
+        }
+        case SampleType::ComplexFloat64:
+        {
+            const auto data = static_cast<double*>(addr);
+            return ComplexNumber(data[0], data[1]);
+        }
+        default:
+        {
+            return BaseObject();
+        }
+    }
+}
+
+template <typename TInterface>
+inline StructPtr DataPacketImpl<TInterface>::buildStructFromPacket(void* addr,
+                                                                   const DataDescriptorPtr& descriptor,
+                                                                   const TypeManagerPtr& typeManager) const
+{
+    const auto name = descriptor.getName();
+    StructTypePtr structType = typeManager.getType(name);
+
+    const auto builder = StructBuilder(name, typeManager);
+
+    const auto fields = descriptor.getStructFields();
+    const auto fieldNames = structType.getFieldNames();
+
+    for (size_t i = 0; i < fieldNames.getCount(); i++)
+    {
+        const auto sampleType = fields[i].getSampleType();
+
+        if (sampleType == SampleType::Struct)
+        {
+            const auto structPtr = buildStructFromPacket(addr, fields[i], typeManager);
+            builder.set(fieldNames[i], structPtr);
+        }
+        else
+        {
+            const auto obj = dataToObj(addr, sampleType);
+            builder.set(fieldNames[i], obj);
+            const auto temp = static_cast<char*>(addr);
+            addr = temp + getSampleSize(sampleType);
+        }
+    }
+    return builder.build();
+}
+
+template <typename TInterface>
+ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
     if (descriptor.getDimensions().getCount() != 0)
         return OPENDAQ_IGNORED;
 
-    {
-        auto descriptorStructFields = descriptor.getStructFields();
-        if (descriptorStructFields.assigned() && !descriptorStructFields.empty())
-            return OPENDAQ_IGNORED;
-    }
-
     void* addr;
     ErrCode err = this->getData(&addr);
     if (OPENDAQ_FAILED(err))
         return err;
 
-    auto idx = sampleCount - 1;
+    const auto sampleType = descriptor.getSampleType();
 
-    switch (descriptor.getSampleType())
+    addr = static_cast<char*>(addr) + (sampleCount - 1) * descriptor.getSampleSize();
+
+    if (sampleType == SampleType::Struct)
     {
-        case SampleType::Float32:
-        {
-            auto data = static_cast<float*>(addr);
-            *value = Floating(data[idx]).detach();
-            break;
-        }
-        case SampleType::Float64:
-        {
-            auto data = static_cast<double*>(addr);
-            *value = Floating(data[idx]).detach();
-            break;
-        }
-        case SampleType::Int8:
-        {
-            auto data = static_cast<int8_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::UInt8:
-        {
-            auto data = static_cast<uint8_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::Int16:
-        {
-            auto data = static_cast<int16_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::UInt16:
-        {
-            auto data = static_cast<uint16_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::Int32:
-        {
-            auto data = static_cast<int32_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::UInt32:
-        {
-            auto data = static_cast<uint32_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::Int64:
-        {
-            auto data = static_cast<int64_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::UInt64:
-        {
-            auto data = static_cast<uint64_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::RangeInt64:
-        {
-            auto data = static_cast<int64_t*>(addr);
-            *value = Range(data[idx * 2], data[idx * 2 + 1]).detach();
-            break;
-        }
-        case SampleType::ComplexFloat32:
-        {
-            auto data = static_cast<float*>(addr);
-            *value = ComplexNumber(data[idx * 2], data[idx * 2 + 1]).detach();
-            break;
-        }
-        case SampleType::ComplexFloat64:
-        {
-            auto data = static_cast<double*>(addr);
-            *value = ComplexNumber(data[idx * 2], data[idx * 2 + 1]).detach();
-            break;
-        }
-        default:
-        {
-            return OPENDAQ_IGNORED;
-        }
-    };
+        return daqTry(
+            [&]()
+            {
+                auto structPtr = buildStructFromPacket(addr, descriptor, typeManager);
+                *value = structPtr.detach();
+                return OPENDAQ_SUCCESS;
+            });
+    }
+
+    *value = dataToObj(addr, sampleType).detach();
     return OPENDAQ_SUCCESS;
 }
 

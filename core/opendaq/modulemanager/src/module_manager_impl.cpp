@@ -113,17 +113,18 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
         {
             // Parallelize the process of each module enumerating/discovering available devices,
             // as it may be time-consuming
-            AsyncEnumerationResult deviceListFuture =
-                std::async([module = module]()
-                           {
-                               return module.getAvailableDevices();
-                           });
-            enumerationResults.push_back(std::make_pair(std::move(deviceListFuture), module));
+            AsyncEnumerationResult deviceListFuture = std::async([module = module]()
+            {
+                return module.getAvailableDevices();
+            });
+            enumerationResults.emplace_back(std::move(deviceListFuture), module);
         }
         catch (const std::exception& e)
         {
             LOG_E("Failed to run device enumeration asynchronously within the module: {}. Result {}",
-                  module.getName(), e.what())
+                  module.getName(),
+                  e.what()
+            )
         }
     }
 
@@ -174,13 +175,11 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ModuleManagerImpl::getDevice(IString* connectionString, IPropertyObject* config, IComponent* parent, ILoggerComponent* logger, IDevice** device)
+ErrCode ModuleManagerImpl::createDevice(IString* connectionString, IPropertyObject* config, IComponent* parent, IDevice** device)
 {
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     OPENDAQ_PARAM_NOT_NULL(device);
     *device = nullptr;
-
-    auto loggerComponent = LoggerComponentPtr::Borrow(logger);
 
     auto connectionStringPtr = StringPtr::Borrow(connectionString);
     if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
@@ -257,14 +256,12 @@ ErrCode ModuleManagerImpl::getDevice(IString* connectionString, IPropertyObject*
         }
         catch (NotImplementedException&)
         {
-            if (loggerComponent.assigned())
-                LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
+            LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
             accepted = false;
         }
         catch (const std::exception& e)
         {
-            if (loggerComponent.assigned())
-                LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
+            LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
             accepted = false;
         }
 

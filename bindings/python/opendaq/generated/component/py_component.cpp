@@ -64,7 +64,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             objectPtr.setActive(active);
         },
-        "Returns true if the component is active; false otherwise. / Sets the component to be either active or inactive.");
+        "Returns true if the component is active; false otherwise. / Sets the component to be either active or inactive. Also recursively sets the `active` field of all child components if component is a folder.");
     cls.def_property_readonly("context",
         [](daq::IComponent *object)
         {

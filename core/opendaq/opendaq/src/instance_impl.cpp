@@ -43,7 +43,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     auto connectionString = builderPtr.getRootDevice();
     if (connectionString.assigned() && connectionString.getLength())
     {
-        rootDevice = moduleManager.getDevice(connectionString, nullptr, nullptr, loggerComponent);
+        rootDevice = moduleManager.createDevice(connectionString, nullptr, nullptr);
         const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
         if (devicePrivate.assigned())
             devicePrivate->setAsRoot();
@@ -291,7 +291,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     if (!servers.empty())
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
-    const auto newRootDevice = moduleManager.getDevice(connectionString, nullptr, nullptr, loggerComponent);
+    const auto newRootDevice = moduleManager.createDevice(connectionString, nullptr, nullptr);
 
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;
@@ -338,42 +338,9 @@ ErrCode InstanceImpl::getSignalsRecursive(IList** signals, ISearchFilter* search
     return rootDevice->getSignalsRecursive(signals, searchFilter);
 }
 
-// IDeviceDomain
-
-ErrCode InstanceImpl::getTickResolution(IRatio** resolution)
-{
-    const auto deviceDomain = rootDevice.asPtrOrNull<IDeviceDomain>();
-    if (deviceDomain.assigned())
-        return deviceDomain->getTickResolution(resolution);
-
-    return makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Root device does not contain a device domain.");
-}
-
 ErrCode InstanceImpl::getTicksSinceOrigin(uint64_t* ticks)
 {
-    const auto deviceDomain = rootDevice.asPtrOrNull<IDeviceDomain>();
-    if (deviceDomain.assigned())
-        return deviceDomain->getTicksSinceOrigin(ticks);
-
-    return makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Root device does not contain a device domain.");
-}
-
-ErrCode InstanceImpl::getOrigin(IString** origin)
-{
-    const auto deviceDomain = rootDevice.asPtrOrNull<IDeviceDomain>();
-    if (deviceDomain.assigned())
-        return deviceDomain->getOrigin(origin);
-
-    return makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Root device does not contain a device domain.");
-}
-
-ErrCode InstanceImpl::getUnit(IUnit** unit)
-{
-    const auto deviceDomain = rootDevice.asPtrOrNull<IDeviceDomain>();
-    if (deviceDomain.assigned())
-        return deviceDomain->getUnit(unit);
-
-    return makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Root device does not contain a device domain.");
+    return rootDevice->getTicksSinceOrigin(ticks);
 }
 
 ErrCode InstanceImpl::getLocalId(IString** localId)

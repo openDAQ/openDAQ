@@ -56,6 +56,7 @@ daq::DevicePtr TmsClient::connect()
     client->runIterate();
 
     tmsClientContext = std::make_shared<TmsClientContext>(client, context);
+    tmsClientContext->addEnumerationTypesToTypeManager();
 
     OpcUaNodeId rootDeviceNodeId;
     std::string rootDeviceBrowseName;
@@ -79,7 +80,7 @@ daq::DevicePtr TmsClient::connect()
 
     const auto endTime = std::chrono::steady_clock::now();
     const auto connectTime = std::chrono::duration<double>(endTime - startTime);
-    LOG_D("Connected to penDAQ OPC UA server {}. Connect took {:.2f} s.", opcUaUrl, connectTime.count());
+    LOG_D("Connected to openDAQ OPC UA server {}. Connect took {:.2f} s.", opcUaUrl, connectTime.count());
     return device;
 }
 

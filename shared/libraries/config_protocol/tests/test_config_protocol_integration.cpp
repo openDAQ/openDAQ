@@ -247,9 +247,9 @@ TEST_F(ConfigProtocolIntegrationTest, DomainInfo)
 TEST_F(ConfigProtocolIntegrationTest, GetTicksSinceOrigin)
 {
     const auto clientSubDevice = clientDevice.getDevices()[0];
-    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 0u);
-    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 1u);
-    ASSERT_EQ(clientSubDevice.getDomain().getTicksSinceOrigin(), 2u);
+    ASSERT_EQ(clientSubDevice.getTicksSinceOrigin(), 0u);
+    ASSERT_EQ(clientSubDevice.getTicksSinceOrigin(), 1u);
+    ASSERT_EQ(clientSubDevice.getTicksSinceOrigin(), 2u);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetAvailableFunctionBlockTypes)

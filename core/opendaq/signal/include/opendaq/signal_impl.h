@@ -139,6 +139,10 @@ private:
     void triggerRelatedSignalsChanged();
     void disconnectInputPort(const ConnectionPtr& connection);
     void clearConnections(std::vector<ConnectionPtr>& connections);
+    TypePtr createTypeFromDescriptor(const DataDescriptorPtr& descriptor) const;
+    void addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
+                                     const DataDescriptorPtr& descriptor,
+                                     const StructTypePtr& type) const;
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
@@ -239,6 +243,87 @@ void SignalBase<TInterface, Interfaces...>::onListenedStatusChanged(bool /*liste
 }
 
 template <typename TInterface, typename... Interfaces>
+inline TypePtr SignalBase<TInterface, Interfaces...>::createTypeFromDescriptor(const DataDescriptorPtr& descriptor) const
+{
+    const auto fields = descriptor.getStructFields();
+    auto fieldNames = List<IString>();
+    auto fieldTypes = List<IType>();
+
+    if (fields.assigned())
+    {
+        for (auto const& field : fields)
+        {
+            TypePtr type;
+            switch (field.getSampleType())
+            {
+                case SampleType::Float32:
+                case SampleType::Float64:
+                    type = SimpleType(CoreType::ctFloat);
+                    break;
+                case SampleType::Int8:
+                case SampleType::UInt8:
+                case SampleType::Int16:
+                case SampleType::UInt16:
+                case SampleType::Int32:
+                case SampleType::UInt32:
+                case SampleType::Int64:
+                case SampleType::UInt64:
+                    type = SimpleType(CoreType::ctInt);
+                    break;
+                case SampleType::ComplexFloat32:
+                case SampleType::ComplexFloat64:
+                    type = SimpleType(CoreType::ctComplexNumber);
+                    break;
+                case SampleType::Struct:
+                    // Recursion
+                    type = createTypeFromDescriptor(field);
+                    break;
+                default:
+                    type = SimpleType(CoreType::ctUndefined);
+                    // TODO support string, list? + test
+            }
+            fieldNames.pushBack(field.getName());
+            fieldTypes.pushBack(type);
+        }
+    }
+
+    const auto name = descriptor.getName();
+
+    if (name.assigned())
+        return StructType(name, fieldNames, fieldTypes);
+    throw NotFoundException();
+}
+
+template <typename TInterface, typename... Interfaces>
+inline void SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
+                                                                               const DataDescriptorPtr& descriptor,
+                                                                               const StructTypePtr& type) const
+{
+    const auto fields = descriptor.getStructFields();
+    auto fieldTypes = type.getFieldTypes();
+
+    for (size_t i = 0; i < fields.getCount(); i++)
+        if (fields[i].getSampleType() == SampleType::Struct)
+            addToTypeManagerRecursively(typeManager, fields[i], fieldTypes[i]);
+
+    const auto name = descriptor.getName();
+    try
+    {
+        typeManager.addType(type);
+    }
+    catch (const std::exception& e)
+    {
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+        LOG_W("Couldn't add type {} to type manager: {}", type.getName(), e.what());
+    }
+    catch (...)
+    {
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+        LOG_W("Couldn't add type {} to type manager!", type.getName());
+    }
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* descriptor)
 {
     OPENDAQ_PARAM_NOT_NULL(descriptor);
@@ -262,6 +347,24 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
                 if (signalPtr.assigned())
                     valueSignalsOfDomainSignal.push_back(std::move(signalPtr));
             }
+            try {
+                if (dataDescriptor.getSampleType() == SampleType::Struct)
+                {
+                    const StructTypePtr structType = createTypeFromDescriptor(dataDescriptor);
+                    auto typeManager = this->context.getTypeManager();
+                    addToTypeManagerRecursively(typeManager, dataDescriptor, structType);
+                }
+            }
+            catch (const std::exception& e)
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+                LOG_W("There was an exception in setDescriptor method: {}", e.what());
+            }
+            catch (...)
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+                LOG_W("There was an exception in setDescriptor method!");
+            }
         }
     }
 
@@ -278,15 +381,12 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                CoreEventId::DataDescriptorChanged,
-                Dict<IString, IBaseObject>({{"DataDescriptor", dataDescriptor}}));
-        
+            CoreEventId::DataDescriptorChanged, Dict<IString, IBaseObject>({{"DataDescriptor", dataDescriptor}}));
+
         this->triggerCoreEvent(args);
     }
 
-    return success
-        ? OPENDAQ_SUCCESS
-        : OPENDAQ_IGNORED;
+    return success ? OPENDAQ_SUCCESS : OPENDAQ_IGNORED;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -854,7 +954,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject ** value
     if (!lastDataPacket.assigned() || lastDataPacket.getSampleCount() == 0)
         return OPENDAQ_IGNORED;
 
-    return lastDataPacket->getLastValue(value);
+    auto typeManager = this->context.getTypeManager();
+    return lastDataPacket->getLastValue(value, typeManager);
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SignalImpl)

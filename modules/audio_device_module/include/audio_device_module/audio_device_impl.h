@@ -39,12 +39,7 @@ public:
 
     // IDevice
     DeviceInfoPtr onGetInfo() override;
-
-    // IDeviceDomain
-    RatioPtr onGetResolution() override;
     uint64_t onGetTicksSinceOrigin() override;
-    std::string onGetOrigin() override;
-    UnitPtr onGetDomainUnit() override;
 
     void addData(const void* data, size_t sampleCount);
 

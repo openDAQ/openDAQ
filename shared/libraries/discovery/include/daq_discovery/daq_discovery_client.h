@@ -23,24 +23,20 @@ BEGIN_NAMESPACE_DISCOVERY
 
 using ServerCapabilityCb = std::function<ServerCapabilityPtr(MdnsDiscoveredDevice)>;
 
-class DiscoveryClient
+class DiscoveryClient final
 {
 public:
     explicit DiscoveryClient(std::vector<ServerCapabilityCb> serverCapabilityCbs, std::unordered_set<std::string> requiredCaps = {});
     
     void initMdnsClient(const std::string& serviceName, std::chrono::milliseconds discoveryDuration = 500ms);
-    virtual ListPtr<IDeviceInfo> discoverDevices();
+    ListPtr<IDeviceInfo> discoverDevices() const;
 
 protected:
-    ListPtr<IDeviceInfo> discoveredDevices;
-    std::shared_ptr<MDNSDiscoveryClient> mdnsClient;
-    std::vector<std::thread> threadPool;
-    std::unordered_set<std::string> requiredCaps;
-
-    void runInThread(std::function<void()> func);
-    void joinThreads();
-    void discoverMdnsDevices();
+    ListPtr<IDeviceInfo> discoverMdnsDevices() const;
     DeviceInfoPtr createDeviceInfo(MdnsDiscoveredDevice discoveredDevice) const;
+
+    std::shared_ptr<MDNSDiscoveryClient> mdnsClient;
+    std::unordered_set<std::string> requiredCaps;
     std::vector<ServerCapabilityCb> serverCapabilityCbs;
 };
 

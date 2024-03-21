@@ -15,6 +15,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
 namespace details
 {
+
 static std::unordered_map<OpcUaNodeId, CoreType> nodeIdToCoreTypeMap = {
     {OpcUaNodeId(0, UA_NS0ID_BOOLEAN), ctBool},
     {OpcUaNodeId(0, UA_NS0ID_FLOAT), ctFloat},
@@ -31,6 +32,9 @@ static std::unordered_map<OpcUaNodeId, CoreType> nodeIdToCoreTypeMap = {
     {OpcUaNodeId(0, UA_NS0ID_RATIONALNUMBER), ctRatio},
     {OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_RATIONALNUMBER64), ctRatio},
     {OpcUaNodeId(0, UA_DAQBTID_RATIONALNUMBER64), ctRatio}};
+
+static std::unordered_set<std::string> convertibleNativeStructs = {
+    "unit", "range", "argumentInfo", "complexNumber", "functionBlockType"};
 }
 
 StringPtr ConvertToDaqCoreString(const UA_String& uaString)
@@ -261,6 +265,41 @@ const UA_DataType* GetUAStructureDataTypeByName(const std::string& structName)
     }
 
     return nullptr;
+}
+
+const UA_DataType* GetUAEnumerationDataTypeByName(const std::string& enumerationName)
+{
+    // TODO: Create static list, add any custom types added automatically.
+    OpcUaDataTypeArrayList typeArr;
+    typeArr.add(UA_TYPES_COUNT, UA_TYPES);
+    typeArr.add(UA_TYPES_DI_COUNT, UA_TYPES_DI);
+    typeArr.add(UA_TYPES_DAQBT_COUNT, UA_TYPES_DAQBT);
+    typeArr.add(UA_TYPES_DAQBSP_COUNT, UA_TYPES_DAQBSP);
+    typeArr.add(UA_TYPES_DAQDEVICE_COUNT, UA_TYPES_DAQDEVICE);
+    typeArr.add(UA_TYPES_DAQESP_COUNT, UA_TYPES_DAQESP);
+    typeArr.add(UA_TYPES_DAQHBK_COUNT, UA_TYPES_DAQHBK);
+
+    const UA_DataTypeArray* dataType = typeArr.getCustomDataTypes();
+    while(dataType)
+    {
+        for(size_t i = 0; i < dataType->typesSize; ++i)
+        {
+            if (dataType->types[i].typeName == enumerationName)
+            {
+                const auto typeKind = dataType->types[i].typeKind;
+                if (typeKind == UA_DATATYPEKIND_ENUM)
+                    return &dataType->types[i];
+            }
+        }
+        dataType = dataType->next;
+    }
+
+    return nullptr;
+}
+
+bool nativeStructConversionSupported(const std::string& structName)
+{
+    return details::convertibleNativeStructs.count(structName);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA

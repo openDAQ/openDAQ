@@ -32,9 +32,6 @@ public:
                                        const ComponentPtr& parent,
                                        const StringPtr& localId,
                                        const StringPtr& connectionString,
-                                       const StringPtr& host,
-                                       const StringPtr& port,
-                                       const StringPtr& path,
                                        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                        Int initTimeout);
@@ -44,14 +41,11 @@ protected:
 
     void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void signalUnavailableHandler(const StringPtr& signalStringId);
-    void reconnectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientReconnectionStatus status);
+    void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
     void initStatuses(const ContextPtr& ctx);
-    void publishReconnectionStatus();
+    void publishConnectionStatus();
     void createNativeStreaming(opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
                                std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
-                               const StringPtr& host,
-                               const StringPtr& port,
-                               const StringPtr& path,
                                Int initTimeout);
     void activateStreaming();
     void addToDeviceSignals(const StringPtr& signalStringId, const StringPtr& serializedSignal);
@@ -59,7 +53,7 @@ protected:
     SignalPtr createSignal(const StringPtr& signalStringId, const StringPtr& serializedSignal);
 
     StringPtr connectionString;
-    opendaq_native_streaming_protocol::ClientReconnectionStatus reconnectionStatus;
+    opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
     StreamingPtr nativeStreaming;
     std::unordered_map<StringPtr, std::pair<SignalPtr, StringPtr>, StringHash, StringEqualTo> deviceSignals;
     std::unordered_map<StringPtr, std::pair<SignalPtr, StringPtr>, StringHash, StringEqualTo> deviceSignalsReconnection;

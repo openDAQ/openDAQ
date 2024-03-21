@@ -30,20 +30,34 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
-enum class ClientReconnectionStatus
+enum class ClientConnectionStatus
 {
     Connected = 0,
     Reconnecting,
-    Restored,
     Unrecoverable
 };
+
+inline ConstCharPtr convertConnectionStatusToString(ClientConnectionStatus status)
+{
+    switch (status)
+    {
+        case ClientConnectionStatus::Connected:
+            return "Connected";
+        case ClientConnectionStatus::Reconnecting:
+            return "Reconnecting";
+        case ClientConnectionStatus::Unrecoverable:
+            return "Unrecoverable";
+    }
+
+    return "InvalidConnectionStatus";
+}
 
 using OnSignalAvailableCallback = std::function<void(const StringPtr& signalStringId,
                                                      const StringPtr& serializedSignal)>;
 using OnSignalUnavailableCallback = std::function<void(const StringPtr& signalStringId)>;
 using OnPacketCallback = std::function<void(const StringPtr& signalStringId, const PacketPtr& packet)>;
 using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
-using OnReconnectionStatusChangedCallback = std::function<void(ClientReconnectionStatus status)>;
+using OnConnectionStatusChangedCallback = std::function<void(ClientConnectionStatus status)>;
 
 class NativeStreamingClientHandler;
 using NativeStreamingClientHandlerPtr = std::shared_ptr<NativeStreamingClientHandler>;
@@ -51,7 +65,8 @@ using NativeStreamingClientHandlerPtr = std::shared_ptr<NativeStreamingClientHan
 class NativeStreamingClientHandler
 {
 public:
-    explicit NativeStreamingClientHandler(const ContextPtr& context, const PropertyObjectPtr& transportLayerProperties);
+    explicit NativeStreamingClientHandler(const ContextPtr& context,
+                                          const PropertyObjectPtr& transportLayerProperties);
 
     ~NativeStreamingClientHandler();
 
@@ -66,14 +81,19 @@ public:
     void sendConfigRequest(const config_protocol::PacketBuffer& packet);
     void sendStreamingRequest();
 
-    void setIoContext(const std::shared_ptr<boost::asio::io_context>& ioContextPtr);
-    void setSignalAvailableHandler(const OnSignalAvailableCallback& signalAvailableHandler);
-    void setSignalUnavailableHandler(const OnSignalUnavailableCallback& signalUnavailableHandler);
-    void setPacketHandler(const OnPacketCallback& packetHandler);
-    void setSignalSubscriptionAckCallback(const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback);
-    void setReconnectionStatusChangedCb(const OnReconnectionStatusChangedCallback& reconnectionStatusChangedCb);
-    void setConfigPacketHandler(const ProcessConfigProtocolPacketCb& configPacketHandler);
-    void setStreamingInitDoneCb(const OnStreamingInitDoneCallback& streamingInitDoneCb);
+    std::shared_ptr<boost::asio::io_context> getIoContext();
+
+    void resetStreamingHandlers();
+    void setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
+                              const OnSignalUnavailableCallback& signalUnavailableHandler,
+                              const OnPacketCallback& packetHandler,
+                              const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback,
+                              const OnConnectionStatusChangedCallback& connectionStatusChangedCb,
+                              const OnStreamingInitDoneCallback& streamingInitDoneCb);
+
+    void resetConfigHandlers();
+    void setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
+                           const OnConnectionStatusChangedCallback& connectionStatusChangedCb);
 
 protected:
     void readTransportLayerProps();
@@ -88,8 +108,12 @@ protected:
                       const StringPtr& serializedSignal,
                       bool available);
 
-    void checkReconnectionStatus(const boost::system::error_code& ec);
+    void checkReconnectionResult(const boost::system::error_code& ec);
     void tryReconnect();
+    void connectionStatusChanged(ClientConnectionStatus status);
+
+    void startTransportOperations();
+    void stopTransportOperations();
 
     enum class ConnectionResult
     {
@@ -101,15 +125,21 @@ protected:
     ContextPtr context;
     PropertyObjectPtr transportLayerProperties;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
+    std::thread ioThread;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+
+    // streaming callbacks
     OnSignalAvailableCallback signalAvailableHandler;
     OnSignalUnavailableCallback signalUnavailableHandler;
     OnPacketCallback packetHandler;
     OnSignalSubscriptionAckCallback signalSubscriptionAckCallback;
-    OnReconnectionStatusChangedCallback reconnectionStatusChangedCb;
-    ProcessConfigProtocolPacketCb configPacketHandler = [](config_protocol::PacketBuffer&& packet) {};
+    OnConnectionStatusChangedCallback connectionStatusChangedStreamingCb;
     OnStreamingInitDoneCallback streamingInitDoneCb;
+
+    // config callbacks
+    OnConnectionStatusChangedCallback connectionStatusChangedConfigCb;
+    ProcessConfigProtocolPacketCb configPacketHandler;
 
     std::shared_ptr<boost::asio::steady_timer> reconnectionTimer;
 

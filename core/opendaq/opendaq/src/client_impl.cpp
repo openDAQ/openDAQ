@@ -69,7 +69,7 @@ DictPtr<IString, IDeviceType> ClientImpl::onGetAvailableDeviceTypes()
 DevicePtr ClientImpl::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     std::scoped_lock lock(sync);
-    auto device = manager.getDevice(connectionString, config, devices, loggerComponent);
+    auto device = manager.createDevice(connectionString, config, devices);
     if (device.assigned())
         devices.addItem(device);
     return device.addRefAndReturn();

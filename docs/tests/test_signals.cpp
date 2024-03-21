@@ -99,7 +99,7 @@ TEST_F(SignalsTest, StructData)
     auto struct1 = builder.build();
     auto struct2 = builder.build();
 
-    auto dataDesc = builder.setSampleType(SampleType::Struct).setStructFields(List<IDataDescriptor>(struct1, struct2)).build();
+    auto dataDesc = builder.setSampleType(SampleType::Struct).setName("Struct").setStructFields(List<IDataDescriptor>(struct1, struct2)).build();
 }
 
 

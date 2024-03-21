@@ -64,6 +64,7 @@ struct SignalReader
     SizeT getAvailable(bool acrossDescriptorChanges) const;
     void handleDescriptorChanged(const EventPacketPtr& eventPacket);
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket) const;
+    void setCommonSampleRate(const std::int64_t commonSampleRate);
 
     void prepare(void* outValues, SizeT count, std::chrono::milliseconds timeoutTime);
     void prepareWithDomain(void* outValues, void* domain, SizeT count, std::chrono::milliseconds timeoutTime);
@@ -94,6 +95,9 @@ struct SignalReader
     ReaderDomainInfo domainInfo;
 
     std::int64_t sampleRate;
+    std::int64_t commonSampleRate;
+    std::int32_t sampleRateDivider;
+    
     bool invalid{false};
     SyncStatus synced{SyncStatus::Unsynchronized};
 };

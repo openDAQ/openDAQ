@@ -81,7 +81,10 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getActive(Bool* active)
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    if (this->coreEventMuted)
+        return Impl::setActive(active);
+
+    return daqTry([this, &active] { this->clientComm->setAttributeValue(this->remoteGlobalId, "Active", active); });
 }
 
 template <class Impl>
@@ -181,6 +184,7 @@ void ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(const C
         case CoreEventId::ComponentRemoved:
         case CoreEventId::TypeAdded:
         case CoreEventId::TypeRemoved:
+        case CoreEventId::DeviceDomainChanged:
         default:
             break;
     }

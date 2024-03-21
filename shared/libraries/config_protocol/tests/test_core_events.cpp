@@ -1,4 +1,5 @@
 #include <opendaq/component_factory.h>
+#include <config_protocol/config_client_object_ptr.h>
 #include <opendaq/context_factory.h>
 #include <coreobjects/property_factory.h>
 #include <gtest/gtest.h>
@@ -13,6 +14,7 @@
 #include <opendaq/tags_private_ptr.h>
 #include <opendaq/component_status_container_private_ptr.h>
 #include <opendaq/component_status_container_ptr.h>
+#include <opendaq/device_domain_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include "test_utils.h"
 #include "config_protocol/config_protocol_server.h"
@@ -600,6 +602,58 @@ TEST_F(ConfigCoreEventTest, ComponentAttributeChanged)
     ASSERT_EQ(changeCount, 8);
 }
 
+TEST_F(ConfigCoreEventTest, ComponentActiveChangedRecursive)
+{
+    int changeCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::AttributeChanged));
+            ASSERT_EQ(args.getEventName(), "AttributeChanged");
+            changeCount++;
+        };
+
+    serverDevice.asPtr<IComponentPrivate>().unlockAllAttributes();
+
+    const auto components = clientDevice.getItems(search::Recursive(search::Any()));
+
+    serverDevice.setActive(false);
+    for (const auto& comp : components)
+        ASSERT_FALSE(comp.getActive());
+
+    serverDevice.setActive(true);
+    for (const auto& comp : components)
+        ASSERT_TRUE(comp.getActive());
+
+    ASSERT_EQ(changeCount, 2);
+}
+
+TEST_F(ConfigCoreEventTest, ComponentActiveChangedRecursiveClientCall)
+{
+    int changeCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::AttributeChanged));
+            ASSERT_EQ(args.getEventName(), "AttributeChanged");
+            changeCount++;
+        };
+
+    serverDevice.asPtr<IComponentPrivate>().unlockAllAttributes();
+
+    const auto components = clientDevice.getItems(search::Recursive(search::Any()));
+
+    clientDevice.setActive(false);
+    for (const auto& comp : components)
+        ASSERT_FALSE(comp.getActive());
+
+    clientDevice.setActive(true);
+    for (const auto& comp : components)
+        ASSERT_TRUE(comp.getActive());
+
+    ASSERT_EQ(changeCount, 2);
+}
+
 TEST_F(ConfigCoreEventTest, DomainSignalAttributeChanged)
 {
     const FolderConfigPtr serverSigFolder = serverDevice.getItem("Sig");
@@ -870,7 +924,6 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndPropertyAddedRemoved)
 
 TEST_F(ConfigCoreEventTest, ComponentUpdateEndFbAdded)
 {
-    
     const FolderConfigPtr clientFolder = clientDevice.getItem("FB");
     const FolderConfigPtr serverFolder = serverDevice.getItem("FB");
 
@@ -886,7 +939,6 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndFbAdded)
     serverFolder.addItem(fb1);
     serverFolder.addItem(fb2);
     serverFolder.addItem(fb3);
-
 
     serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     
@@ -906,11 +958,18 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndFbAdded)
     deserializer.update(serverFolder, serializer.getOutput());
 
     
-    ASSERT_NO_THROW(clientFolder.getItem("newFb1"));
-    ASSERT_NO_THROW(clientFolder.getItem("newFb2"));
-    ASSERT_NO_THROW(clientFolder.getItem("newFb3"));
+    ASSERT_TRUE(clientFolder.hasItem("newFb1"));
+    ASSERT_TRUE(clientFolder.hasItem("newFb2"));
+    ASSERT_TRUE(clientFolder.hasItem("newFb3"));
 
     ASSERT_TRUE(clientFolder.getItem("newFb1").supportsInterface(IFunctionBlock::Id));
+
+    const auto clientFb1 = clientFolder.getItem("newFb1");
+    const auto clientFb2 = clientFolder.getItem("newFb2");
+    const auto clientFb3 = clientFolder.getItem("newFb3");
+    ASSERT_EQ(fb1.getGlobalId(), clientFb1.asPtr<IConfigClientObject>().getRemoteGlobalId());
+    ASSERT_EQ(fb2.getGlobalId(), clientFb2.asPtr<IConfigClientObject>().getRemoteGlobalId());
+    ASSERT_EQ(fb3.getGlobalId(), clientFb3.asPtr<IConfigClientObject>().getRemoteGlobalId());
 
     ASSERT_EQ(updateCount, 1);
 }
@@ -951,6 +1010,9 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceFBModified)
 
     ASSERT_TRUE(clientFolder1.hasItem("newFb1"));
     ASSERT_FALSE(clientFolder2.hasItem("fb"));
+
+    const auto clientFb1 = clientFolder1.getItem("newFb1");
+    ASSERT_EQ(fb1.getGlobalId(), clientFb1.asPtr<IConfigClientObject>().getRemoteGlobalId());
 
     ASSERT_EQ(updateCount, 1);
 }
@@ -1014,6 +1076,13 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceSubDeviceChannelSignalModifi
     ASSERT_TRUE(clientIOFolder.hasItem("new_io"));
     ASSERT_TRUE(clientIOFolder.getItem("new_io").asPtr<IFolder>().hasItem("new_ch"));
 
+    const auto clientDev = clientDeviceFolder.getItem("new_dev");
+    const auto clientIo = clientIOFolder.getItem("new_io");
+    const auto clientSig = clientSigFolder.getItem("new_sig");
+    ASSERT_EQ(dev.getGlobalId(), clientDev.asPtr<IConfigClientObject>().getRemoteGlobalId());
+    ASSERT_EQ(io.getGlobalId(), clientIo.asPtr<IConfigClientObject>().getRemoteGlobalId());
+    ASSERT_EQ(sig.getGlobalId(), clientSig.asPtr<IConfigClientObject>().getRemoteGlobalId());
+
     ASSERT_EQ(updateCount, 1);
 }
 
@@ -1058,6 +1127,13 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndDeviceCustomCompModified)
     ASSERT_TRUE(clientDevice.hasItem("new_comp"));
     ASSERT_TRUE(clientDevice.hasItem("new_folder"));
     ASSERT_TRUE(clientDevice.getItem("new_folder").asPtr<IFolder>().hasItem("new_child_comp"));
+
+    const auto clientComp = clientDevice.getItem("new_comp");
+    const FolderPtr clientFolder = clientDevice.getItem("new_folder");
+    const auto clientChildComp = clientFolder.getItem("new_child_comp");
+    ASSERT_EQ(comp.getGlobalId(), clientComp.asPtr<IConfigClientObject>().getRemoteGlobalId());
+    ASSERT_EQ(folder.getGlobalId(), clientFolder.asPtr<IConfigClientObject>().getRemoteGlobalId());
+    ASSERT_EQ(childComp.getGlobalId(), clientChildComp.asPtr<IConfigClientObject>().getRemoteGlobalId());
 
     ASSERT_EQ(updateCount, 1);
 }
@@ -1121,6 +1197,13 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndFBSubFbSignalIPModified)
     ASSERT_TRUE(clientSigFolder.hasItem("new_sig"));
     ASSERT_FALSE(clientIPFolder.hasItem("ip"));
     ASSERT_TRUE(clientIPFolder.hasItem("new_ip"));
+
+    const auto clientFbNew = clientFBFolder.getItem("new_fb");
+    const auto clientIpNew = clientIPFolder.getItem("new_ip");
+    const auto clientSigNew = clientSigFolder.getItem("new_sig");
+    ASSERT_EQ(fbNew.getGlobalId(), clientFbNew.asPtr<IConfigClientObject>().getRemoteGlobalId());
+    ASSERT_EQ(ipNew.getGlobalId(), clientIpNew.asPtr<IConfigClientObject>().getRemoteGlobalId());
+    ASSERT_EQ(sigNew.getGlobalId(), clientSigNew.asPtr<IConfigClientObject>().getRemoteGlobalId());
 
     ASSERT_EQ(updateCount, 1);
 }
@@ -1338,4 +1421,53 @@ TEST_F(ConfigCoreEventTest, ComponentUpdateEndDescriptorChanged)
     ASSERT_EQ(clientDeviceSig.getDescriptor(), newDesc);
 
     ASSERT_EQ(updateCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, DomainChanged)
+{
+    int changeCount = 0;
+    auto mock = dynamic_cast<test_utils::MockDevice2Impl*>(serverDevice.getObject());
+
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::DeviceDomainChanged));
+            ASSERT_EQ(args.getEventName(), "DeviceDomainChanged");
+            ASSERT_TRUE(args.getParameters().hasKey("DeviceDomain"));
+            ASSERT_EQ(comp, clientDevice);
+            changeCount++;
+        };
+
+    DeviceDomainPtr domain1 = DeviceDomain(Ratio(1, 1), "foo", Unit("test"));
+    DeviceDomainPtr domain2 = DeviceDomain(Ratio(1, 1), "bar", Unit("test1"));
+
+    mock->setDeviceDomainHelper(domain1);
+    ASSERT_EQ(clientDevice.getDomain().getOrigin(), "foo");
+
+    mock->setDeviceDomainHelper(domain2);
+    ASSERT_EQ(clientDevice.getDomain().getOrigin(), "bar");
+
+    mock->setDeviceDomainHelper(domain1);
+    ASSERT_EQ(clientDevice.getDomain().getOrigin(), "foo");
+
+    ASSERT_EQ(changeCount, 3);
+}
+
+TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEnd)
+{
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    serverDevice.addProperty(StringProperty("string", "foo"));
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+        updateCount++;
+    };
+
+    client->reconnect();
+    ASSERT_EQ(updateCount, 1);
+
+    ASSERT_EQ(clientDevice.getPropertyValue("string"), serverDevice.getPropertyValue("string"));
 }

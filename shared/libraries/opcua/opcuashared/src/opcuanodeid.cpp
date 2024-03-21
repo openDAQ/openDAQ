@@ -43,6 +43,11 @@ uint16_t OpcUaNodeId::getNamespaceIndex() const noexcept
     return value.namespaceIndex;
 }
 
+uint32_t OpcUaNodeId::getIdentifierNumeric() const
+{
+    return value.identifier.numeric;
+}
+
 bool OpcUaNodeId::isNull() const noexcept
 {
     return UA_NodeId_isNull(&value);

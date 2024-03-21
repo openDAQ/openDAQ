@@ -60,6 +60,7 @@ protected:
 private:
     void componentAdded(const CoreEventArgsPtr& args);
     void componentRemoved(const CoreEventArgsPtr& args);
+    void deviceDomainChanged(const CoreEventArgsPtr& args);
 };
 
 template <class TDeviceBase>
@@ -147,6 +148,9 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
         case CoreEventId::ComponentRemoved:
             componentRemoved(args);
             break;
+        case CoreEventId::DeviceDomainChanged:
+            deviceDomainChanged(args);
+            break;
         case CoreEventId::PropertyValueChanged:
         case CoreEventId::PropertyObjectUpdateEnd:
         case CoreEventId::PropertyAdded:
@@ -214,7 +218,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
             const StringPtr type = obj.readString("__type");
             const auto thisPtr = this->template borrowPtr<ComponentPtr>();
             const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-                this->clientComm, this->remoteGlobalId, this->context, nullptr, thisPtr, key, nullptr);
+                this->clientComm, this->remoteGlobalId + "/" + key, this->context, nullptr, thisPtr, key, nullptr);
 
             const ComponentPtr deserializedObj = this->clientComm->deserializeConfigComponent(
                 type,
@@ -256,5 +260,12 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::componentRemoved(const CoreEven
     checkErrorInfo(TDeviceBase::hasItem(id, &hasItem));
     if (hasItem)
         this->removeComponentById(id);
+}
+
+template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::deviceDomainChanged(const CoreEventArgsPtr& args)
+{
+    const DeviceDomainPtr domain = args.getParameters().get("DeviceDomain");
+    this->setDeviceDomain(domain);
 }
 }

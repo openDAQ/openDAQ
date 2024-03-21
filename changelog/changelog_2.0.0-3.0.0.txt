@@ -1,5 +1,17 @@
 11.03.2023
 Description:
+	- Make DeviceDomain a standalone object in DeviceImpl
+		- Devices no longer override the DeviceDomain getters, but instead set it via the protected `setDeviceDomain` method
+		- Changing the DeviceDomain triggers a core event
+	- Move getTicksSinceOrigin to IDevice
+	
++ [factory] DeviceDomainPtr DeviceDomain(const RatioPtr& tickResolution, const StringPtr& origin, const UnitPtr& unit)
+- [function] IDeviceDomain::getTicksSinceOrigin(UInt* ticks)
++ [function] IDevice::getTicksSinceOrigin(UInt* ticks)
++ [factory] CoreEventArgsPtr CoreEventArgsDeviceDomainChanged(const DeviceDomainPtr& deviceDomain)
+
+11.03.2023
+Description:
     Update native transport protocol - initiate streaming only upon client request;
     New protocol message type added: PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST = 11
 

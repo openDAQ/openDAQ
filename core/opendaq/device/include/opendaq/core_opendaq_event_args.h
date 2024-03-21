@@ -17,6 +17,7 @@
 #pragma once
 #include <coreobjects/core_event_args.h>
 #include <opendaq/component.h>
+#include <opendaq/device_domain.h>
 #include <opendaq/signal.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -126,6 +127,16 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IList*, tags
 )
 
+/*!
+ * @brief Creates Core event args that are passed as argument when the domain of a device changes.
+ * @param deviceDomain The new device domain
+ *
+ * The ID of the event is 150, and the event name is "DeviceDomainChanged".
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, CoreEventArgsDeviceDomainChanged, ICoreEventArgs,
+    IDeviceDomain*, deviceDomain
+)
 
 /*!@}*/
 

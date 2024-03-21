@@ -34,6 +34,7 @@ protected:
 
     daq::LoggerPtr logger;
     daq::ContextPtr ctx;
+    daq::ContextPtr ctxClient;
 private:
     daq::LoggerSinkPtr debugSink;
 };

@@ -71,12 +71,12 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
         },
         py::return_value_policy::take_ownership,
         "Returns a list of known devices info. The implementation can start discovery in background and only return the results in this function.");
-    cls.def("get_device",
-        [](daq::IModuleManager *object, const std::string& connectionString, daq::IPropertyObject* config, daq::IComponent* parent, daq::ILoggerComponent* logger)
+    cls.def("create_device",
+        [](daq::IModuleManager *object, const std::string& connectionString, daq::IPropertyObject* config, daq::IComponent* parent)
         {
             const auto objectPtr = daq::ModuleManagerPtr::Borrow(object);
-            return objectPtr.getDevice(connectionString, config, parent, logger).detach();
+            return objectPtr.createDevice(connectionString, config, parent).detach();
         },
-        py::arg("connection_string"), py::arg("config"), py::arg("parent"), py::arg("logger"),
+        py::arg("connection_string"), py::arg("config"), py::arg("parent"),
         "Returns the device for specific connection string");
 }

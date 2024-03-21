@@ -8,8 +8,7 @@ BEGIN_NAMESPACE_DISCOVERY
 
 DiscoveryClient::DiscoveryClient(std::vector<ServerCapabilityCb> serverCapabilityCbs,
                                  std::unordered_set<std::string> requiredCaps)
-    : discoveredDevices(List<IDeviceInfo>())
-    , requiredCaps(std::move(requiredCaps))
+    : requiredCaps(std::move(requiredCaps))
     , serverCapabilityCbs(std::move(serverCapabilityCbs))
 {
 }
@@ -20,34 +19,16 @@ void DiscoveryClient::initMdnsClient(const std::string& serviceName, std::chrono
     mdnsClient->setDiscoveryDuration(discoveryDuration);
 }
 
-daq::ListPtr<daq::IDeviceInfo> daq::discovery::DiscoveryClient::discoverDevices()
+daq::ListPtr<daq::IDeviceInfo> DiscoveryClient::discoverDevices() const
 {
-    discoveredDevices.clear();
-
-    runInThread([this]() { discoverMdnsDevices(); });
-    joinThreads();
-
-    return discoveredDevices;
+    return discoverMdnsDevices();
 }
 
-void DiscoveryClient::runInThread(std::function<void()> func)
+ListPtr<IDeviceInfo> DiscoveryClient::discoverMdnsDevices() const
 {
-    threadPool.emplace_back(func);
-}
-
-void DiscoveryClient::joinThreads()
-{
-    for (auto& thread : threadPool)
-    {
-        if (thread.joinable())
-            thread.join();
-    }
-}
-
-void DiscoveryClient::discoverMdnsDevices()
-{
+    auto discovered = List<IDeviceInfo>();
     if (mdnsClient == nullptr)
-        return;
+        return discovered;
 
     auto mdnsDevices = mdnsClient->getAvailableDevices();
 
@@ -60,9 +41,11 @@ void DiscoveryClient::discoverMdnsDevices()
             {
                 deviceInfo.asPtr<IDeviceInfoPrivate>().addServerCapability(connectionStringFormatCb(device));
             }
-            discoveredDevices.pushBack(deviceInfo);
+            discovered.pushBack(deviceInfo);
         }
     }
+
+    return discovered;
 }
 
 template <typename T>
@@ -77,7 +60,7 @@ void addInfoProperty(DeviceInfoConfigPtr& info, std::string propName, T propValu
         else
         {
             // Ignore errors
-            info->setPropertyValue(String(propName), (daq::BaseObjectPtr) propValue);
+            info->setPropertyValue(String(propName), static_cast<daq::BaseObjectPtr>(propValue));
         }
     }
     else

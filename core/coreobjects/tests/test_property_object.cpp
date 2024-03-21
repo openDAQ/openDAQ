@@ -1903,7 +1903,6 @@ TEST_F(PropertyObjectTest, BeginEndUpdateClonedClassObject)
     propObj.endUpdate();
     ASSERT_EQ(propObj.getPropertyValue("Child"), newChild);
 
-    
     propObj.beginUpdate();
 
     propObj.clearPropertyValue("Child");
@@ -1978,6 +1977,54 @@ TEST_F(PropertyObjectTest, ClonedClassObjectsSerialize)
     const std::string deserializedJson = serializer2.getOutput().toStdString();
 
     ASSERT_EQ(json, deserializedJson);
+}
+
+TEST_F(PropertyObjectTest, EnumerationProperty)
+{
+    // Add Enumeration type to Type Manager
+    const auto enumType = EnumerationType(
+        "EnumType", List<IString>("Option1", "Option2", "Option3"));
+    objManager.addType(enumType);
+
+    // Create a PropertyObject with an Enumeration property
+    auto propObj = PropertyObject();
+    propObj.addProperty(EnumerationProperty("enumProp", Enumeration("EnumType", "Option1", objManager)));
+
+    // Test that the property exists and has the correct type
+    ASSERT_TRUE(propObj.hasProperty("enumProp"));
+    //ASSERT_EQ(propObj.getPropertyType("enumProp"), PropertyType::Enumeration);
+
+    // Test getting and setting the property value
+    ASSERT_EQ(propObj.getPropertyValue("enumProp"), "Option1");
+    propObj.setPropertyValue("enumProp", Enumeration("EnumType", "Option2", objManager));
+    ASSERT_EQ(propObj.getPropertyValue("enumProp"), "Option2");
+
+    // Test that setting an invalid value throws an exception
+    ASSERT_THROW(propObj.setPropertyValue("enumProp", Enumeration("EnumType", "InvalidOption", objManager)), InvalidParameterException);
+    ASSERT_THROW(propObj.setPropertyValue("enumProp", "InvalidOption"), ConversionFailedException);
+}
+
+TEST_F(PropertyObjectTest, EnumerationPropertyValidation)
+{
+    // Add Enumeration type to Type Manager
+    const auto enumType = EnumerationType(
+        "EnumType", List<IString>("Option1", "Option2", "Option3"));
+    objManager.addType(enumType);
+
+    auto enumerationProperty = EnumerationPropertyBuilder("enumProp", Enumeration("EnumType", "Option1", objManager))
+                                .setDefaultValue(Enumeration("EnumType", "Option2", objManager))
+                                .build();
+
+    // Create a PropertyObject with an Enumeration property
+    auto propObj = PropertyObject();
+    propObj.addProperty(enumerationProperty);
+
+    ASSERT_EQ(propObj.getPropertyValue("enumProp"), "Option2");
+
+    ASSERT_THROW(EnumerationPropertyBuilder("enumProp2", Enumeration("EnumType", "Option1", objManager))
+                                .setDefaultValue(Enumeration("EnumType", "Option2", objManager))
+                                .setMinValue(Enumeration("EnumType", "Option1", objManager))
+                                .build(), NoInterfaceException);
 }
 
 using BeginEndUpdatePropertyObjectTest = testing::Test;

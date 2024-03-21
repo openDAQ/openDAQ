@@ -63,9 +63,21 @@ if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
 endif()
 
 if(MSVC)
-    target_link_libraries(${LIB_NAME} 
-        PRIVATE 
+    target_link_libraries(${LIB_NAME}
+        PRIVATE
             pybind11::windows_extras
+    )
+
+    # Workaround pyconfig.h force linking through
+    # #pragma comment(lib)
+    target_compile_definitions(${LIB_NAME}
+        PUBLIC
+            $<$<CONFIG:Debug>:Py_NO_ENABLE_SHARED>
+            $<$<CONFIG:Debug>:Py_ENABLE_SHARED>
+    )
+
+    target_compile_options(${LIB_NAME}
+        PUBLIC /wd4100
     )
 endif()
 

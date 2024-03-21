@@ -508,24 +508,37 @@ Int DeviceInfoConfigImpl<TInterface, Interfaces...>::getIntProperty(const String
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(IServerCapability* serverCapability)
 {
-    if (serverCapability)
-        serverCapabilities.pushBack(serverCapability);
+    OPENDAQ_PARAM_NOT_NULL(serverCapability);
+    
+    auto serverCapabilityPtr = ServerCapabilityPtr::Borrow(serverCapability);
+    bool isServerStreaming = serverCapabilityPtr.getProtocolType().getValue() == "ServerStreaming";
+
+    if (isServerStreaming)
+    {
+        for (const auto& capability : serverCapabilities)
+        {
+            if (capability.getProtocolType().getValue() == "ServerStreaming" && capability.getPropertyValue("ProtocolId") == serverCapabilityPtr.getPropertyValue("ProtocolId"))
+                return OPENDAQ_ERR_DUPLICATEITEM;
+        }
+    }
+    
+    serverCapabilities.pushBack(serverCapability);
     return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(IServerCapability* serverCapability)
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(IString* protocolId)
 {
-    if (serverCapability)
+    OPENDAQ_PARAM_NOT_NULL(protocolId);
+    
+    size_t i = 0;
+    while(i < serverCapabilities.getCount())
     {
-        for (size_t i = 0; i < serverCapabilities.getCount(); i++)
-        {
-            if (serverCapabilities[i] == serverCapability)
-            {
-                serverCapabilities.removeAt(i);
-                break;
-            }
-        }
+        auto serverCapability = serverCapabilities[i];
+        if (serverCapability.getProtocolType().getValue() == "ServerStreaming" && serverCapability.getPropertyValue("ProtocolId") == StringPtr::Borrow(protocolId))
+            serverCapabilities.removeAt(i);
+        else
+            i++;
     }
     return OPENDAQ_SUCCESS;
 }
@@ -533,23 +546,24 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clearServerStreamingCapabilities()
 {
-    // size_t i = 0;
-    // while(i < serverCapabilities.getCount())
-    // {
-    //     ServerCapabilityPtr serverCapability = serverCapabilities[i];
-    //     if (serverCapability.getProtocolType().getValue() == "ServerStreaming")
-    //         serverCapabilities.removeAt(i);
-    //     else
-    //         i++;
-    // }
+    size_t i = 0;
+    while(i < serverCapabilities.getCount())
+    {
+        ServerCapabilityPtr serverCapability = serverCapabilities[i];
+        if (serverCapability.getProtocolType().getValue() == "ServerStreaming")
+            serverCapabilities.removeAt(i);
+        else
+            i++;
+    }
     return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(IList** serverCapabilities)
 {
-    if (serverCapabilities)
-        *serverCapabilities = this->serverCapabilities.addRefAndReturn();
+    OPENDAQ_PARAM_NOT_NULL(serverCapabilities);
+
+    *serverCapabilities = this->serverCapabilities.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

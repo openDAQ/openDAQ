@@ -50,8 +50,8 @@ public:
     ErrCode INTERFACE_FUNC getConnectionType(IString** type) override;
     ErrCode INTERFACE_FUNC setConnectionType(IString* type) override;
     
-    ErrCode INTERFACE_FUNC getUpdateMethod(ClientUpdateMethod* method) override;
-    ErrCode INTERFACE_FUNC setUpdateMethod(ClientUpdateMethod method) override;    
+    ErrCode INTERFACE_FUNC getCoreEventsEnabled(Bool* enabled) override;
+    ErrCode INTERFACE_FUNC setCoreEventsEnabled(Bool enabled) override;    
     
 private:
     template <typename T>

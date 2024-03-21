@@ -61,8 +61,9 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @brief Sets the client update method
      * @param type The client update method
      */
-    virtual ErrCode INTERFACE_FUNC setUpdateMethod(ClientUpdateMethod method) = 0;
+    virtual ErrCode INTERFACE_FUNC setCoreEventsEnabled(Bool enabled) = 0;
 
+    // [returnSelf]
     /*!
      * @brief Adds the property to the Property object.
      * @param property The property to be added.

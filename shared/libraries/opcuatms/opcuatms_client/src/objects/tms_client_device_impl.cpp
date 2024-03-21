@@ -16,6 +16,7 @@
 #include <open62541/daqdevice_nodeids.h>
 #include <open62541/types_daqdevice_generated.h>
 #include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_private_ptr.h>
 #include <opendaq/custom_log.h>
 #include "opcuatms/core_types_utils.h"
 #include "opcuatms/exceptions.h"
@@ -405,12 +406,12 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
 
     DeviceInfoPtr info;
     this->getInfo(&info);
-    info.asPtr<IDeviceInfoConfig>().clearServerStreamingCapabilities();
+    info.asPtr<IDeviceInfoPrivate>().clearServerStreamingCapabilities();
 
     for (const auto& [_, val] : orderedStreamings)
-        info.asPtr<IDeviceInfoConfig>().addServerCapability(val);
+        info.asPtr<IDeviceInfoPrivate>().addServerCapability(val);
     for (const auto& val : unorderedStreamings)
-        info.asPtr<IDeviceInfoConfig>().addServerCapability(val);
+        info.asPtr<IDeviceInfoPrivate>().addServerCapability(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateCustomComponents()

@@ -187,23 +187,6 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoConfig, IDeviceInfo)
      * @param uuid The unique ID of a system.
      */
     virtual ErrCode INTERFACE_FUNC setSystemUuid(IString* uuid) = 0;
-
-    /*!
-     * @brief Add protocol to the list of support capabilities
-     * @param serverCapability The supported protocol.
-     */
-    virtual ErrCode INTERFACE_FUNC addServerCapability(IServerCapability* serverCapability) = 0;
-
-    /*!
-     * @brief Remove protocol from the list of support capabilities
-     * @param serverCapability The supported protocol.
-     */
-    virtual ErrCode INTERFACE_FUNC removeServerCapability(IServerCapability* serverCapability) = 0;
-
-    /*!
-     * @brief Remove server streaming capabilities
-     */
-    virtual ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() = 0;
 };
 /*!@}*/
 

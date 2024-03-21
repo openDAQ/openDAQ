@@ -22,6 +22,8 @@
 #include <coretypes/dictobject_factory.h>
 #include <coreobjects/property_object_impl.h>
 #include <opendaq/device_type_ptr.h>
+#include <opendaq/device_info_private.h>
+#include <opendaq/server_capability_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,10 +33,10 @@ class DeviceInfoConfigImpl;
 using DeviceInfoConfigBase = DeviceInfoConfigImpl<>;
 
 template <typename TInterface, typename... Interfaces>
-class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, Interfaces...>
+class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, IDeviceInfoPrivate, Interfaces...>
 {
 public:
-    using Super = GenericPropertyObjectImpl<TInterface, Interfaces...>;
+    using Super = GenericPropertyObjectImpl<TInterface, IDeviceInfoPrivate, Interfaces...>;
 
     explicit DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion = nullptr);
     DeviceInfoConfigImpl() = default;
@@ -95,7 +97,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
     ErrCode INTERFACE_FUNC addServerCapability(IServerCapability* serverCapability) override;
-    ErrCode INTERFACE_FUNC removeServerCapability(IServerCapability* serverCapability) override;
+    ErrCode INTERFACE_FUNC removeServerCapability(IString* protocolId) override;
     ErrCode INTERFACE_FUNC getServerCapabilities(IList** serverCapabilities) override;
     ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() override;
 

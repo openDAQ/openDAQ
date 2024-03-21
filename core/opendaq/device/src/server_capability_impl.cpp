@@ -43,7 +43,7 @@ ServerCapabilityConfigImpl::ServerCapabilityConfigImpl( const ContextPtr& contex
     Super::addProperty(StringPropertyBuilder(ConnectionString, "").setReadOnly(true).build());
     Super::addProperty(StringPropertyBuilder(ProtocolName, protocolName).setReadOnly(true).build());
     Super::addProperty(StringPropertyBuilder(ConnectionType, "Unknwown").setReadOnly(true).build());
-    Super::addProperty(IntPropertyBuilder(UpdateMethod, (Int)ClientUpdateMethod::Unknown).setReadOnly(true).build());
+    Super::addProperty(BoolPropertyBuilder(UpdateMethod, false).setReadOnly(true).build());
 }
 
 ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const ContextPtr& context, const StringPtr& protocolId)
@@ -117,17 +117,17 @@ ErrCode ServerCapabilityConfigImpl::setConnectionType(IString* type)
     return Super::setPropertyValue(String(ConnectionType), type);
 }
 
-ErrCode ServerCapabilityConfigImpl::getUpdateMethod(ClientUpdateMethod* method)
+ErrCode ServerCapabilityConfigImpl::getCoreEventsEnabled(Bool* enabled)
 {
     return daqTry([&]() {
-        *method = ClientUpdateMethod(getTypedProperty<IInteger>(UpdateMethod));
+        *enabled = getTypedProperty<IBoolean>(UpdateMethod);
         return OPENDAQ_SUCCESS;
     });
 }
 
-ErrCode ServerCapabilityConfigImpl::setUpdateMethod(ClientUpdateMethod method)
+ErrCode ServerCapabilityConfigImpl::setCoreEventsEnabled(Bool enabled)
 {
-    return Super::setPropertyValue(String(UpdateMethod), IntegerPtr(int(method)));
+    return Super::setPropertyValue(String(UpdateMethod), BooleanPtr(enabled));
 }
 
 extern "C" ErrCode PUBLIC_EXPORT createServerCapability(IServerCapabilityConfig** objTmp,

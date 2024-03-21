@@ -22,13 +22,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-enum class ClientUpdateMethod : uint32_t
-{
-    RequestResponse = 0,
-    Broadcast,
-    Unknown = 0xffff
-};
-
 /*#
  * [interfaceSmartPtr(IEnumeration, EnumerationPtr, "<coretypes/enumeration_ptr.h>")]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
@@ -65,7 +58,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @brief Gets the client update method
      * @param[out] type The client update method
      */
-    virtual ErrCode INTERFACE_FUNC getUpdateMethod(ClientUpdateMethod* method) = 0;
+    virtual ErrCode INTERFACE_FUNC getCoreEventsEnabled(Bool* enabled) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

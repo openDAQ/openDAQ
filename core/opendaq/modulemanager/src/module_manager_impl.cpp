@@ -7,6 +7,7 @@
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <opendaq/orphaned_modules.h>
 #include <opendaq/device_info_config_ptr.h>
+#include <opendaq/device_info_private_ptr.h>
 #include <coretypes/validation.h>
 #include <opendaq/device_private.h>
 #include <string>
@@ -154,7 +155,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             {
                 DeviceInfoPtr value = groupedDevices.get(id);
                 for (const auto & capability : deviceInfo.getServerCapabilities())
-                    value.asPtr<IDeviceInfoConfig>().addServerCapability(capability);
+                    value.asPtr<IDeviceInfoPrivate>().addServerCapability(capability);
             }
             else
             {
@@ -272,7 +273,7 @@ ErrCode ModuleManagerImpl::getDevice(IString* connectionString, IPropertyObject*
             auto createdDevice = module.createDevice(connectionStringPtr, parent, config);
             if (deviceInfo.assigned())
             {
-                auto deviceInfoConfig = createdDevice.getInfo().asPtr<IDeviceInfoConfig>();
+                auto deviceInfoConfig = createdDevice.getInfo().asPtr<IDeviceInfoPrivate>();
                 for (const auto & capability : deviceInfo.getServerCapabilities())
                     deviceInfoConfig.addServerCapability(capability);
             }

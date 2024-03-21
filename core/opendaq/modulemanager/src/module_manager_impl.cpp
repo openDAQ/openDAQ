@@ -26,7 +26,6 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     }
     else if (const ListPtr<IString> pathList = path.asPtrOrNull<IList>(); pathList.assigned())
     {
-        printf("pathList: %lu\n", pathList.getCount());
         paths.insert(paths.end(), pathList.begin(), pathList.end());
     }
     else

@@ -62,8 +62,7 @@ daq::DevicePtr TmsClient::connect()
     std::string rootDeviceBrowseName;
     getRootDeviceNodeAttributes(rootDeviceNodeId, rootDeviceBrowseName);
 
-    const auto localId = getUniqueLocalId(rootDeviceBrowseName);
-    auto device = TmsClientRootDevice(context, parent, localId, tmsClientContext, rootDeviceNodeId, createStreamingCallback);
+    auto device = TmsClientRootDevice(context, parent, rootDeviceBrowseName, tmsClientContext, rootDeviceNodeId, createStreamingCallback);
 
     const auto deviceInfo = device.getInfo();
     if (deviceInfo.hasProperty("OpenDaqPackageVersion"))
@@ -99,28 +98,6 @@ void TmsClient::getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string&
 
     nodeIdOut = OpcUaNodeId(references.byBrowseName.begin().value()->nodeId.nodeId);
     browseNameOut = references.byBrowseName.begin().key();
-}
-
-StringPtr TmsClient::getUniqueLocalId(const StringPtr& localId, int iteration)
-{
-    if (!parent.assigned())
-        return localId;
-
-    StringPtr uniqueId = localId;
-    if (iteration != 0)
-        uniqueId = uniqueId + "_" + std::to_string(iteration);
-
-    const auto parentFolder = parent.asPtrOrNull<IFolder>();
-    if (parentFolder.assigned())
-    {
-        for (auto item : parentFolder.getItems())
-        {
-            if (item.getLocalId() == uniqueId)
-                return getUniqueLocalId(localId, iteration + 1);
-        }
-    }
-    
-    return uniqueId;
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA

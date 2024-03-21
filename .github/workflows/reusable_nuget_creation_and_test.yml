@@ -1,0 +1,124 @@
+name: .NET Bindings NuGet creation and test
+
+on:
+  workflow_call:
+    inputs:
+      test_path:
+        description: the path for the test reports (optional, omit to disable tests)
+        required: false
+        default: ''
+        type: string
+      windows_x64_artifact_name:
+        description: the name of the Windows x64 source artifact
+        required: true
+        type: string
+      linux_x64_artifact_name:
+        description: the name of the Linux x64 source artifact
+        required: true
+        type: string
+      short_sha:
+        description: the short SHA of the GitHub ref (optional, omit to generate release package)
+        required: false
+        default: ''
+        type: string
+    outputs:
+      nuget_artifact_name:
+        description: the name of the uploaded NuGet artifact  
+        value: ${{ jobs.dotnet-bindings-nuget-creation.outputs.nuget_artifact_name }}
+    
+jobs:
+  dotnet-bindings-nuget-creation:
+    runs-on: windows-2022
+    name: .NET Bindings NuGet creation
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-nuget
+      cancel-in-progress: true
+    timeout-minutes: 120
+
+    env:
+      nuget_work_path: ${{ github.workspace }}/build/nuget_work
+      nuget_work_path_win_x64: ${{ github.workspace }}/build/nuget_work/win-x64
+      nuget_work_path_linux_x64: ${{ github.workspace }}/build/nuget_work/linux-x64
+      dotnet_source_path: ${{ github.workspace }}/bindings/dotnet/openDAQ.Net
+      version_suffix: ${{ inputs.short_sha == '' && '' || format('--version-suffix beta-{0}', inputs.short_sha) }}
+      nuget_artifact: Packages (openDAQ.Net NuGet)
+      # map inputs to env
+      test_path: ${{ inputs.test_path }}
+      windows_x64_artifact: ${{ inputs.windows_x64_artifact_name }}
+      linux_x64_artifact: ${{ inputs.linux_x64_artifact_name }}
+
+    # for the test job (dotnet-bindings-nuget-test-win)
+    outputs:
+      nuget_work_path: ${{ env.nuget_work_path }}
+      nuget_work_path_win_x64: ${{ env.nuget_work_path_win_x64 }}
+      nuget_work_path_linux_x64: ${{ env.nuget_work_path_linux_x64 }}
+      dotnet_source_path: ${{ env.dotnet_source_path }}
+      nuget_artifact_name: ${{ env.nuget_artifact }}
+      test_path: ${{ env.test_path }}
+    
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: ${{ env.nuget_work_path }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download artifacts for Windows x64
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.windows_x64_artifact }}
+          path: ${{ env.nuget_work_path_win_x64 }}
+
+      - name: Download artifacts for Linux
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.linux_x64_artifact }}
+          path: ${{ env.nuget_work_path_linux_x64 }}
+
+      - name: Cleanup test-files from Linux artifacts
+        # since the exclusion filter !path/**/*_test_dll.so in upload-artifact does not work
+        working-directory: ${{ env.nuget_work_path_linux_x64 }}
+        run: |
+          del *_test_dll.so -Force
+          del opendaq.cpython* -Force
+
+      - name: Display files in working directory
+        run: ls -R
+
+      - name: Read openDAQ version
+        id: daq_version
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          DAQ_VER=$(cat opendaq_version)
+          echo Head openDAQ version: $DAQ_VER
+          echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
+
+      - name: Build NuGet package
+        working-directory: ${{ env.dotnet_source_path }}/openDAQ.NET
+        run: |
+          $SDK_WIN64_PATH = "-p:SDK_WIN64_PATH=""${{ env.nuget_work_path_win_x64 }}"""
+          $SDK_LINUX64_PATH = "-p:SDK_LINUX64_PATH=""${{ env.nuget_work_path_linux_x64 }}"""
+          $DAQ_VERSION = "-p:OPENDAQ_PACKAGE_VERSION=${{ steps.daq_version.outputs.DAQ_VERSION }}"
+          if (Test-Path "${{ env.nuget_work_path }}/win-x64/*.nupkg") { del "${{ env.nuget_work_path }}/win-x64/*.nupkg" -Force }
+          & dotnet restore .
+          & dotnet pack . --no-build --configuration Release_Build $SDK_WIN64_PATH $SDK_LINUX64_PATH $DAQ_VERSION ${{ env.version_suffix }}
+        # restoring before packing to create obj\project.assets.json needed for packing
+        # packing without building as the binaries (artifacts) have been downloaded before (handled in *.csproj)
+
+      - name: Upload package (openDAQ.Net NuGet)
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.nuget_artifact }}
+          path: ${{ env.nuget_work_path }}/win-x64/openDAQ.Net.*.nupkg
+          retention-days: 7
+
+      - name: Delete no longer needed artifacts
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: |
+            ${{ env.windows_x64_artifact }}
+            ${{ env.linux_x64_artifact }}

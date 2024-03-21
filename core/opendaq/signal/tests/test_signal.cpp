@@ -873,6 +873,42 @@ TEST_F(SignalTest, GetLastValueStruct)
     ASSERT_DOUBLE_EQ(structPtr.get("Float64"), 15.1);
 }
 
+TEST_F(SignalTest, GetLastValueLinearDataRule)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setRule(LinearDataRule(3, 2)).setName("test").setSampleType(SampleType::Float64).build();
+
+    auto dataPacket = DataPacket(descriptor, 5, 7);
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValuePacket = signal.getLastValue();
+    FloatPtr ptr;
+    ASSERT_NO_THROW(ptr = lastValuePacket.asPtr<IFloat>());
+    ASSERT_EQ(ptr, 21.0);
+}
+
+TEST_F(SignalTest, GetLastValueLinearScaling)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder()
+                          .setPostScaling(LinearScaling(3, 7, SampleType::Int32, ScaledSampleType::Float64))
+                          .setName("test")
+                          .setSampleType(SampleType::Float64)
+                          .build();
+
+    auto dataPacket = DataPacket(descriptor, 5);
+    auto data = static_cast<int32_t*>(dataPacket.getRawData());
+    data[4] = 4;
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValuePacket = signal.getLastValue();
+    FloatPtr ptr;
+    ASSERT_NO_THROW(ptr = lastValuePacket.asPtr<IFloat>());
+    ASSERT_EQ(ptr, 19.0);
+}
+
 TEST_F(SignalTest, GetLastValueStructNoSetDescriptor)
 {
     // Create signal

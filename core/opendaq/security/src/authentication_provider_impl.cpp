@@ -2,9 +2,9 @@
 #include <opendaq/security_errors.h>
 #include <opendaq/security_exceptions.h>
 #include <fstream>
-#include <filesystem>
 #include <opendaq/user_private_ptr.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -92,7 +92,7 @@ void JsonAuthenticationProviderImpl::loadJsonString(const StringPtr& josnString)
 StringPtr JsonAuthenticationProviderImpl::readJsonFile(const StringPtr& filename)
 {
     const std::string filenameStr = filename.toStdString();
-    const auto exists = std::filesystem::exists(std::filesystem::path(filenameStr));
+    const auto exists = boost::filesystem::exists(filenameStr);
 
     if (!exists)
         throw NotFoundException("Json authentication file does not exist");

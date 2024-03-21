@@ -45,9 +45,6 @@ protected:
     FunctionPtr createStreamingCallback;
     ComponentPtr parent;
     LoggerComponentPtr loggerComponent;
-
-private:
-    StringPtr getUniqueLocalId(const StringPtr& localId, int iteration = 0);
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA

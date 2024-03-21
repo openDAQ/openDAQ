@@ -1338,7 +1338,7 @@ public:
         this->owner = owner;
 
         const auto parentManager = this->owner.getRef().getPermissionManager();
-        this->permissionManager.asPtr<IPermissionManagerPrivate>().setParent(parentManager);
+        this->permissionManager.template asPtr<IPermissionManagerPrivate>().setParent(parentManager);
         return OPENDAQ_SUCCESS;
     }
 

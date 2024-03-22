@@ -76,14 +76,13 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
 
     if (isRootDevice)
         clientContext->registerRootDevice(thisInterface());
-
+    
     findAndCreateSubdevices();
     findAndCreateFunctionBlocks();
     findAndCreateSignals();
     findAndCreateInputsOutputs();
     findAndCreateCustomComponents();
 
-    findAndCreateStreamingOptions();
     connectToStreamings();
     setUpStreamings();
 }
@@ -187,6 +186,8 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
             LOG_W("Failed to read device info attribute on OpcUa client device \"{}\": {}", this->globalId, e.what());
         }
     }
+    
+    findAndCreateStreamingOptions(deviceInfo);
 
     deviceInfo.freeze();
     return deviceInfo;
@@ -201,8 +202,8 @@ void TmsClientDeviceImpl::fetchTimeDomain()
     deviceDomain = (UA_DeviceDomainStructure*) variant.getValue().data;
 
     if (deviceDomain == nullptr)
-        throw OpcUaException(UA_STATUSCODE_BADNOTREADABLE, "deviceDomain is not initialized");
-
+        return;
+    
     auto numerator = deviceDomain->resolution.numerator;
     auto denominator = deviceDomain->resolution.denominator;
     if (denominator == 0)
@@ -357,7 +358,7 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
         this->ioFolder.addItem(val);
 }
 
-void TmsClientDeviceImpl::findAndCreateStreamingOptions()
+void TmsClientDeviceImpl::findAndCreateStreamingOptions(const DeviceInfoPtr& deviceInfo)
 {
     std::map<uint32_t, PropertyObjectPtr> orderedStreamings;
     std::vector<PropertyObjectPtr> unorderedStreamings;
@@ -386,14 +387,12 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
         LOG_W("Failed to find 'StreamingOptions' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
     }
 
-    DeviceInfoPtr info;
-    this->getInfo(&info);
-    info.asPtr<IDeviceInfoPrivate>().clearServerStreamingCapabilities();
-
+    auto deviceInfoPrivate = deviceInfo.asPtr<IDeviceInfoPrivate>();
+    deviceInfoPrivate.clearServerStreamingCapabilities();
     for (const auto& [_, val] : orderedStreamings)
-        info.asPtr<IDeviceInfoPrivate>().addServerCapability(val);
+        deviceInfoPrivate.addServerCapability(val);
     for (const auto& val : unorderedStreamings)
-        info.asPtr<IDeviceInfoPrivate>().addServerCapability(val);
+        deviceInfoPrivate.addServerCapability(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateCustomComponents()

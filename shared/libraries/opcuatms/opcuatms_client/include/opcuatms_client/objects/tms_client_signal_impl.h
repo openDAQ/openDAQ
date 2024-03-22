@@ -35,7 +35,6 @@ public:
     ErrCode INTERFACE_FUNC getPublic(Bool* active) override;
     ErrCode INTERFACE_FUNC setPublic(Bool active) override;
 
-    ErrCode INTERFACE_FUNC getDescriptor(IDataDescriptor** descriptor) override;
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
 
     ErrCode INTERFACE_FUNC setDomainSignal(ISignal* signal) override;
@@ -49,10 +48,11 @@ public:
     ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
 
     StringPtr onGetRemoteId() const override;
-    Bool onTriggerEvent(EventPacketPtr eventPacket) override;
+    Bool onTriggerEvent(const EventPacketPtr& eventPacket) override;
 
 protected:
     SignalPtr onGetDomainSignal() override;
+    DataDescriptorPtr onGetDescriptor() override;
 
     std::atomic<Bool> isPublic = true;
     std::string deviceSignalId;

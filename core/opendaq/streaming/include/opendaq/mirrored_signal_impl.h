@@ -22,8 +22,9 @@
 #include <opendaq/mirrored_signal_private.h>
 #include <opendaq/subscription_event_args_factory.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+#include "opendaq/event_packet_params.h"
 
+BEGIN_NAMESPACE_OPENDAQ
 template <typename... Interfaces>
 class MirroredSignalBase;
 
@@ -42,7 +43,7 @@ public:
                                 const StringPtr& className = nullptr);
 
     virtual StringPtr onGetRemoteId() const = 0;
-    virtual Bool onTriggerEvent(EventPacketPtr eventPacket) = 0;
+    virtual Bool onTriggerEvent(const EventPacketPtr& eventPacket);
 
     // IMirroredSignalConfig
     ErrCode INTERFACE_FUNC getRemoteId(IString** id) const override;
@@ -59,6 +60,10 @@ public:
     ErrCode INTERFACE_FUNC removeStreamingSource(const StringPtr& streamingConnectionString) override;
     void INTERFACE_FUNC subscribeCompleted(const StringPtr& streamingConnectionString) override;
     void INTERFACE_FUNC unsubscribeCompleted(const StringPtr& streamingConnectionString) override;
+    DataDescriptorPtr INTERFACE_FUNC getMirroredDataDescriptor() override;
+    void INTERFACE_FUNC setMirroredDataDescriptor(const DataDescriptorPtr& descriptor) override;
+    MirroredSignalConfigPtr INTERFACE_FUNC getMirroredDomainSignal() override;
+    void INTERFACE_FUNC setMirroredDomainSignal(const MirroredSignalConfigPtr& domainSignal) override;
 
     // ISignalConfig
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
@@ -77,6 +82,8 @@ protected:
     void onListenedStatusChanged(bool listened) override;
     void removed() override;
 
+    std::mutex signalMutex;
+
 private:
     ErrCode subscribeInternal();
     ErrCode unsubscribeInternal();
@@ -87,6 +94,10 @@ private:
     bool streamed;
     EventEmitter<MirroredSignalConfigPtr, SubscriptionEventArgsPtr> onSubscribeCompleteEvent;
     EventEmitter<MirroredSignalConfigPtr, SubscriptionEventArgsPtr> onUnsubscribeCompleteEvent;
+
+    DataDescriptorPtr mirroredDataDescriptor;
+    DataDescriptorPtr mirroredDomainDataDescriptor;
+    MirroredSignalConfigPtr mirroredDomainSignal;
 };
 
 template <typename... Interfaces>
@@ -99,6 +110,48 @@ MirroredSignalBase<Interfaces...>::MirroredSignalBase(const ContextPtr& ctx,
     , listened(false)
     , streamed(true)
 {
+}
+
+template <typename ... Interfaces>
+Bool MirroredSignalBase<Interfaces...>::onTriggerEvent(const EventPacketPtr& eventPacket)
+{
+    if (!eventPacket.assigned())
+        return False;
+
+    if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+    {
+        const auto params = eventPacket.getParameters();
+        const DataDescriptorPtr newSignalDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
+        const DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+
+        std::scoped_lock lock(signalMutex);
+
+        Bool changed = False;
+
+        if (newSignalDescriptor.assigned() && newSignalDescriptor != mirroredDataDescriptor)
+        {
+            mirroredDataDescriptor = newSignalDescriptor;
+            changed = True;
+        }
+
+        if (newDomainDescriptor.assigned() && mirroredDomainDataDescriptor != newDomainDescriptor)
+        {
+            mirroredDomainDataDescriptor = newDomainDescriptor;
+
+            if (mirroredDomainSignal.assigned())
+            {
+                const auto domainSignalEventPacket = DataDescriptorChangedEventPacket(newDomainDescriptor, nullptr);
+                mirroredDomainSignal.asPtr<IMirroredSignalPrivate>()->triggerEvent(domainSignalEventPacket);
+            }
+
+            changed = True;
+        }
+
+        return changed;
+    }
+
+    // packet was not handled so returns True to forward the original packet
+    return True;
 }
 
 template <typename... Interfaces>
@@ -389,7 +442,21 @@ ErrCode MirroredSignalBase<Interfaces...>::getOnUnsubscribeComplete(IEvent** eve
 template <typename... Interfaces>
 EventPacketPtr MirroredSignalBase<Interfaces...>::createDataDescriptorChangedEventPacket()
 {
-    auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
+    {
+        std::scoped_lock lock(signalMutex);
+        if (!mirroredDataDescriptor.assigned())
+        {
+            const EventPacketPtr packet = Super::createDataDescriptorChangedEventPacket();
+            const auto params = packet.getParameters();
+
+            mirroredDataDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
+            mirroredDomainDataDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+
+            return packet;
+        }
+    }
+
+    const auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned())
     {
         StringPtr signalRemoteId;
@@ -516,6 +583,35 @@ void MirroredSignalBase<Interfaces...>::unsubscribeCompleted(const StringPtr& st
             SubscriptionEventArgs(streamingConnectionString, SubscriptionEventType::Unsubscribed)
         );
     }
+}
+
+template <typename ... Interfaces>
+DataDescriptorPtr MirroredSignalBase<Interfaces...>::getMirroredDataDescriptor()
+{
+    std::scoped_lock lock(signalMutex);
+    return mirroredDataDescriptor;
+}
+
+template <typename ... Interfaces>
+void MirroredSignalBase<Interfaces...>::setMirroredDataDescriptor(const DataDescriptorPtr& descriptor)
+{
+    std::scoped_lock lock(signalMutex);
+    this->mirroredDataDescriptor = descriptor;
+}
+
+template <typename ... Interfaces>
+MirroredSignalConfigPtr MirroredSignalBase<Interfaces...>::getMirroredDomainSignal()
+{
+    std::scoped_lock lock(signalMutex);
+    return this->mirroredDomainSignal;
+}
+
+template <typename ... Interfaces>
+void MirroredSignalBase<Interfaces...>::setMirroredDomainSignal(const MirroredSignalConfigPtr& domainSignal)
+{
+    std::scoped_lock lock(signalMutex);
+    mirroredDomainSignal = domainSignal;
+    mirroredDomainDataDescriptor = domainSignal.asPtr<IMirroredSignalPrivate>()->getMirroredDataDescriptor();
 }
 
 END_NAMESPACE_OPENDAQ

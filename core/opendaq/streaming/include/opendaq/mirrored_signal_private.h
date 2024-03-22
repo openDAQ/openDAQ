@@ -18,6 +18,8 @@
 #include <coretypes/baseobject.h>
 #include <coretypes/stringobject.h>
 #include <opendaq/event_packet_ptr.h>
+#include <opendaq/data_descriptor_ptr.h>
+#include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/streaming_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -67,6 +69,11 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredSignalPrivate, IBaseObject)
      * the unsubscription for the signal.
      */
     virtual void INTERFACE_FUNC unsubscribeCompleted(const StringPtr& streamingConnectionString) = 0;
+
+    virtual DataDescriptorPtr INTERFACE_FUNC getMirroredDataDescriptor() = 0;
+    virtual void INTERFACE_FUNC setMirroredDataDescriptor(const DataDescriptorPtr& descriptor) = 0;
+    virtual MirroredSignalConfigPtr INTERFACE_FUNC getMirroredDomainSignal() = 0;
+    virtual void INTERFACE_FUNC setMirroredDomainSignal(const MirroredSignalConfigPtr& domainSignal) = 0;
 };
 /*!@}*/
 

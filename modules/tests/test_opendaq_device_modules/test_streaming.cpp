@@ -405,9 +405,12 @@ TEST_P(StreamingReconnectionTest, Reconnection)
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
 
-    // read client initial event packet
+    // read initial event packets
     auto clientReceivedPackets = tryReadPackets(clientReader, 1);
     EXPECT_EQ(clientReceivedPackets.getCount(), 1u);
+
+    auto serverReceivedPackets = tryReadPackets(serverReader, 1);
+    EXPECT_EQ(serverReceivedPackets.getCount(), 1u);
 
     // remove streaming server to emulate disconnection
     removeStreamingServer();
@@ -419,19 +422,17 @@ TEST_P(StreamingReconnectionTest, Reconnection)
     // TODO test reconnected status
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture, 5s));
-
-    const size_t packetsToGenerate = 10;
+    
     // Expect to receive all data packets,
-    // +1 signal initial descriptor changed event packet
-    const size_t packetsToRead = packetsToGenerate + 1;
+    const size_t packetsToGenerate = 10;
 
     generatePackets(packetsToGenerate);
 
-    auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
-    clientReceivedPackets = tryReadPackets(clientReader, packetsToRead);
+    serverReceivedPackets = tryReadPackets(serverReader, packetsToGenerate);
+    clientReceivedPackets = tryReadPackets(clientReader, packetsToGenerate);
 
-    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
-    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
+    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToGenerate);
+    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToGenerate);
     EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 

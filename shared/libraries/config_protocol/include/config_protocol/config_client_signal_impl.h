@@ -42,7 +42,7 @@ public:
     void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
 
     StringPtr onGetRemoteId() const override;
-    Bool onTriggerEvent(EventPacketPtr eventPacket) override;
+    Bool onTriggerEvent(const EventPacketPtr& eventPacket) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -71,10 +71,9 @@ inline StringPtr ConfigClientSignalImpl::onGetRemoteId() const
     return String(remoteGlobalId).detach();
 }
 
-inline Bool ConfigClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
+inline Bool ConfigClientSignalImpl::onTriggerEvent(const EventPacketPtr& eventPacket)
 {
-    // TODO
-    return True;
+    return Super::onTriggerEvent(eventPacket);
 }
 
 inline ErrCode ConfigClientSignalImpl::Deserialize(ISerializedObject* serialized,

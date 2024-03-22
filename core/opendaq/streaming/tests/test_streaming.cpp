@@ -15,6 +15,7 @@ BEGIN_NAMESPACE_OPENDAQ
 static MirroredSignalConfigPtr createMirroredSignal(const StringPtr& id)
 {
     auto signal = createWithImplementation<IMirroredSignalConfig, MockMirroredSignalImpl>(NullContext(), nullptr, id);
+    signal.asPtr<IMirroredSignalPrivate>()->setMirroredDataDescriptor(DataDescriptorBuilder().build());
     return signal;
 }
 

@@ -34,11 +34,8 @@ public:
                                        const ComponentPtr& parent,
                                        const StringPtr& streamingId);
 
-    // ISignal
-    ErrCode INTERFACE_FUNC getDescriptor(IDataDescriptor** descriptor) override;
-
     StringPtr onGetRemoteId() const override;
-    Bool onTriggerEvent(EventPacketPtr eventPacket) override;
+    Bool onTriggerEvent(const EventPacketPtr& eventPacket) override;
 
     // INativeStreamingSignalPrivate
     void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
@@ -52,15 +49,12 @@ protected:
                                        const FunctionPtr& factoryCallback) override;
 
     SignalPtr onGetDomainSignal() override;
+    DataDescriptorPtr onGetDescriptor() override;
 
 private:
     static StringPtr createLocalId(const StringPtr& streamingId);
 
     StringPtr streamingId;
-    DataDescriptorPtr mirroredDataDescriptor;
-    SignalPtr mirroredDomainSignal;
-
-    std::mutex signalMutex;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

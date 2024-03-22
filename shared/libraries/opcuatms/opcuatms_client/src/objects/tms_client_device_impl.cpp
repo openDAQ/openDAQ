@@ -198,6 +198,8 @@ void TmsClientDeviceImpl::fetchTimeDomain()
 
     UA_DeviceDomainStructure* deviceDomain;
     deviceDomain = (UA_DeviceDomainStructure*) variant.getValue().data;
+    if (!deviceDomain)
+        return;
 
     auto numerator = deviceDomain->resolution.numerator;
     auto denominator = deviceDomain->resolution.denominator;

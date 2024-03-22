@@ -107,6 +107,7 @@ protected:
     virtual EventPacketPtr createDataDescriptorChangedEventPacket();
     virtual void onListenedStatusChanged(bool listened);
     virtual SignalPtr onGetDomainSignal();
+    virtual DataDescriptorPtr onGetDescriptor();
 
     void removed() override;
     BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
@@ -221,19 +222,28 @@ ErrCode SignalBase<TInterface, Interfaces...>::getDescriptor(IDataDescriptor** d
     OPENDAQ_PARAM_NOT_NULL(descriptor);
 
     std::scoped_lock lock(this->sync);
+    
+    DataDescriptorPtr dataDescriptorPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetDescriptor, dataDescriptorPtr);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
 
-    *descriptor = dataDescriptor.addRefAndReturn();
+    *descriptor = dataDescriptorPtr.detach();
     return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
 EventPacketPtr SignalBase<TInterface, Interfaces...>::createDataDescriptorChangedEventPacket()
 {
-    DataDescriptorPtr domainDataDescriptor;
-    if (domainSignal.assigned())
-        domainDataDescriptor = domainSignal.getDescriptor();
+    const SignalPtr domainSignalObj = onGetDomainSignal();
 
-    EventPacketPtr packet = DataDescriptorChangedEventPacket(dataDescriptor, domainDataDescriptor);
+    DataDescriptorPtr domainDataDescriptor;
+    if (domainSignalObj.assigned())
+        domainDataDescriptor = domainSignalObj.getDescriptor();
+
+    const DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
+
+    EventPacketPtr packet = DataDescriptorChangedEventPacket(dataDescriptorObj, domainDataDescriptor);
     return packet;
 }
 
@@ -643,6 +653,12 @@ template <typename TInterface, typename... Interfaces>
 SignalPtr SignalBase<TInterface, Interfaces...>::onGetDomainSignal()
 {
     return domainSignal;
+}
+
+template <typename TInterface, typename ... Interfaces>
+DataDescriptorPtr SignalBase<TInterface, Interfaces...>::onGetDescriptor()
+{
+    return dataDescriptor;
 }
 
 template <typename TInterface, typename... Interfaces>

@@ -24,7 +24,6 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 DECLARE_OPENDAQ_INTERFACE(IWebsocketStreamingSignalPrivate, IBaseObject)
 {
     virtual void INTERFACE_FUNC createAndAssignDomainSignal(const DataDescriptorPtr& domainDescriptor) = 0;
-    virtual void INTERFACE_FUNC assignDescriptor(const DataDescriptorPtr& descriptor) = 0;
 };
 
 class WebsocketClientSignalImpl final : public MirroredSignalBase<IWebsocketStreamingSignalPrivate>
@@ -34,27 +33,20 @@ public:
                                        const ComponentPtr& parent,
                                        const StringPtr& streamingId);
 
-    // ISignal
-    ErrCode INTERFACE_FUNC getDescriptor(IDataDescriptor** descriptor) override;
-
     StringPtr onGetRemoteId() const override;
-    Bool onTriggerEvent(EventPacketPtr eventPacket) override;
+    Bool onTriggerEvent(const EventPacketPtr& eventPacket) override;
 
     // IWebsocketStreamingSignalPrivate
     void INTERFACE_FUNC createAndAssignDomainSignal(const DataDescriptorPtr& domainDescriptor) override;
-    void INTERFACE_FUNC assignDescriptor(const DataDescriptorPtr& descriptor) override;
 
 protected:
     SignalPtr onGetDomainSignal() override;
+    DataDescriptorPtr onGetDescriptor() override;
 
 private:
     static StringPtr CreateLocalId(const StringPtr& streamingId);
 
     StringPtr streamingId;
-    DataDescriptorPtr mirroredDataDescriptor;
-    MirroredSignalConfigPtr domainSignalArtificial;
-
-    std::mutex signalMutex;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

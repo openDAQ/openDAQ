@@ -79,7 +79,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
         manager.addModule(deviceModule);
         manager.addModule(fbModule);
 
-        auto clientDevice = Client(ctx, "client");
+        auto clientDevice = Client(ctx, "client", nullptr, parent);
         *device = clientDevice.detach();
     }
     else if (connStr == "mock_phys_device")

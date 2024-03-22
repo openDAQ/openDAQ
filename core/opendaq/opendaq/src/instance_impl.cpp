@@ -11,7 +11,8 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_private.h>
-#include <opendaq/create_device.h>
+
+#include <opendaq/module_manager_utils_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -43,7 +44,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     auto connectionString = builderPtr.getRootDevice();
     if (connectionString.assigned() && connectionString.getLength())
     {
-        rootDevice = moduleManager.createDevice(connectionString, nullptr, nullptr);
+        rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, nullptr);
         const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
         if (devicePrivate.assigned())
             devicePrivate->setAsRoot();
@@ -291,7 +292,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     if (!servers.empty())
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
-    const auto newRootDevice = moduleManager.createDevice(connectionString, nullptr, nullptr);
+    const auto newRootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, config);
 
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;

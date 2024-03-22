@@ -74,7 +74,7 @@ TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
     ASSERT_EQ(fb, fbs[0]);
 
     auto sig = fb.getSignals()[0];
-    ASSERT_EQ(sig.getGlobalId(), "/mockdev/FB/mock_fb_uid_0/Sig/UniqueId_1");
+    ASSERT_EQ(sig.getGlobalId(), "/mockdev/FB/mock_fb_uid_1/Sig/UniqueId_1");
 
     instance.removeFunctionBlock(fb);
     fbs = instance.getFunctionBlocks();
@@ -129,9 +129,10 @@ TEST_F(InstanceTest, AddDevice)
     ASSERT_EQ(availableDevices.getCount(), 2u);
 
     for (const auto& deviceInfo : availableDevices)
-        instance.addDevice(deviceInfo.getConnectionString());
+        if (deviceInfo.getConnectionString() != "daq_client_device")
+            instance.addDevice(deviceInfo.getConnectionString());
 
-    ASSERT_EQ(instance.getDevices().getCount(), 2u);
+    ASSERT_EQ(instance.getDevices().getCount(), 1u);
 }
 
 TEST_F(InstanceTest, RemoveDevice)
@@ -139,12 +140,13 @@ TEST_F(InstanceTest, RemoveDevice)
     auto instance = test_helpers::setupInstance();
     auto availableDevices = instance.getAvailableDevices();
     ASSERT_EQ(availableDevices.getCount(), 2u);
-
+    
     for (const auto& deviceInfo : availableDevices)
-        instance.addDevice(deviceInfo.getConnectionString());
+        if (deviceInfo.getConnectionString() != "daq_client_device")
+            instance.addDevice(deviceInfo.getConnectionString());
 
     const auto devices = instance.getDevices();
-    ASSERT_EQ(devices.getCount(), 2u);
+    ASSERT_EQ(devices.getCount(), 1u);
 
     for (const auto& device : devices)
         instance.removeDevice(device);
@@ -159,9 +161,9 @@ TEST_F(InstanceTest, AddNested)
     ASSERT_EQ(availableDevices[0].getConnectionString(), "daq_client_device");
 
     DevicePtr device1, device2, device3;
-    ASSERT_NO_THROW(device1 = instance.addDevice("daq_client_device"));
-    ASSERT_NO_THROW(device2 = device1.addDevice("daq_client_device"));
-    ASSERT_NO_THROW(device3 = device2.addDevice("daq_client_device"));
+    ASSERT_NO_THROW(device1 = instance.addDevice("mock_phys_device"));
+    ASSERT_NO_THROW(device2 = device1.addDevice("mock_phys_device"));
+    ASSERT_NO_THROW(device3 = device2.addDevice("mock_phys_device"));
 }
 
 TEST_F(InstanceTest, AddFunctionBlock)
@@ -192,6 +194,32 @@ TEST_F(InstanceTest, RemoveFunctionBlock)
     instance.removeFunctionBlock(fb1);
 
     ASSERT_EQ(instance.getFunctionBlocks().getCount(), static_cast<SizeT>(0));
+}
+
+TEST_F(InstanceTest, AddFunctionBlockLocalIds)
+{
+    auto instance = test_helpers::setupInstance();
+    auto availableFbs = instance.getAvailableFunctionBlockTypes();
+
+    ASSERT_TRUE(availableFbs.hasKey("mock_fb_uid"));
+
+    auto fb1 = instance.addFunctionBlock("mock_fb_uid");
+    ASSERT_EQ(fb1.getLocalId(), "mock_fb_uid_1");
+    auto fb2 = instance.addFunctionBlock("mock_fb_uid");
+    ASSERT_EQ(fb2.getLocalId(), "mock_fb_uid_2");
+    auto fb3 = instance.addFunctionBlock("mock_fb_uid");
+    ASSERT_EQ(fb3.getLocalId(), "mock_fb_uid_3");
+    auto fb4 = instance.addFunctionBlock("mock_fb_uid");
+    ASSERT_EQ(fb4.getLocalId(), "mock_fb_uid_4");
+
+    instance.removeFunctionBlock(fb1);
+    instance.removeFunctionBlock(fb2);
+    instance.removeFunctionBlock(fb4);
+
+    auto fb5 = instance.addFunctionBlock("mock_fb_uid");
+    ASSERT_EQ(fb5.getLocalId(), "mock_fb_uid_4");
+
+    ASSERT_EQ(instance.getFunctionBlocks().getCount(), 2u);
 }
 
 TEST_F(InstanceTest, GetChannels)
@@ -297,7 +325,8 @@ TEST_F(InstanceTest, Serialize)
     ASSERT_EQ(availableDevices.getCount(), 2u);
 
     for (const auto& deviceInfo : availableDevices)
-        instance.addDevice(deviceInfo.getConnectionString());
+        if (deviceInfo.getConnectionString() != "daq_client_device")
+            instance.addDevice(deviceInfo.getConnectionString());
 
     auto serializer = JsonSerializer(True);
 

@@ -101,6 +101,11 @@ uint64_t MockPhysicalDeviceImpl::onGetTicksSinceOrigin()
     return 789;
 }
 
+bool MockPhysicalDeviceImpl::allowAddDevicesFromModules()
+{
+    return true;
+}
+
 void MockPhysicalDeviceImpl::setDeviceDomainHelper(const DeviceDomainPtr& deviceDomain)
 {
     this->setDeviceDomain(deviceDomain);

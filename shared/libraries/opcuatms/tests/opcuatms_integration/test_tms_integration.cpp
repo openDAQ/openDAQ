@@ -18,7 +18,7 @@ class TmsIntegrationTest : public testing::Test
 public:
     const std::string OPC_URL = "opc.tcp://localhost/";
 
-    InstancePtr createDevice()
+    InstancePtr createDevice(const StringPtr& localId = "localInstance")
     {
         const auto moduleManager = ModuleManager("[[none]]");
         auto logger = Logger();
@@ -30,7 +30,7 @@ public:
         const ModulePtr fbModule(MockFunctionBlockModule_Create(context));
         moduleManager.addModule(fbModule);
 
-        auto instance = InstanceCustom(context, "localInstance");
+        auto instance = InstanceCustom(context, localId);
         instance.addDevice("daq_client_device");
         instance.addDevice("mock_phys_device");
         instance.addFunctionBlock("mock_fb_uid");
@@ -265,14 +265,15 @@ TEST_F(TmsIntegrationTest, AddFunctionBlock)
 
     TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
     auto clientDevice = tmsClient.connect();
+    ASSERT_EQ("mock_fb_uid_1", clientDevice.getFunctionBlocks()[0].getLocalId());
 
     auto fb1 = clientDevice.addFunctionBlock("mock_fb_uid");
     ASSERT_TRUE(fb1.assigned());
-    ASSERT_EQ("mock_fb_uid_1", fb1.getLocalId());
+    ASSERT_EQ("mock_fb_uid_2", fb1.getLocalId());
 
     auto fb2 = clientDevice.addFunctionBlock("mock_fb_uid");
     ASSERT_TRUE(fb2.assigned());
-    ASSERT_EQ("mock_fb_uid_2", fb2.getLocalId());
+    ASSERT_EQ("mock_fb_uid_3", fb2.getLocalId());
 
     ASSERT_EQ(3u, clientDevice.getFunctionBlocks().getCount());
 }
@@ -364,10 +365,10 @@ TEST_F(TmsIntegrationTest, InputPortMultipleServers)
     };
 
     InstancePtr device1 = createDevice();
-    InstancePtr device2 = createDevice();
+    InstancePtr device2 = createDevice("localInstance2");
     auto server1 = StartServerDevice(device1, 4001);
-    auto server2 = StartServerDevice(device1, 4002);
-    
+    auto server2 = StartServerDevice(device2, 4002);
+
     InstancePtr instance = Instance();
     auto clientDevice1 = instance.addDevice("daq.opcua://127.0.0.1:4001");
     auto clientDevice2 = instance.addDevice("daq.opcua://127.0.0.1:4002");

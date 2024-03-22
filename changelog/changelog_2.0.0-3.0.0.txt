@@ -1,3 +1,17 @@
+21.03.2023
+Description:
+	- Move create fb/device logic to module manager
+	- Move client device logic for adding fbs/devices to device_impl
+
++ [interface] IModuleManagerUtils
++ [function] IModuleManagerUtils::getAvailableDevices(IList** availableDevices)
++ [function] IModuleManagerUtils::getAvailableDeviceTypes(IDict** deviceTypes)
++ [function] IModuleManagerUtils::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config = nullptr)
++ [function] IModuleManagerUtils::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
++ [function] IModuleManagerUtils::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr)
+-m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr)
++m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr, const ComponentPtr& parent = nullptr)
+
 11.03.2023
 Description:
 	- Make DeviceDomain a standalone object in DeviceImpl

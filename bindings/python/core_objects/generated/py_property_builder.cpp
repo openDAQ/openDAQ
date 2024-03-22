@@ -51,6 +51,7 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
     m.def("SelectionPropertyBuilder", &daq::SelectionPropertyBuilder_Create);
     m.def("SparseSelectionPropertyBuilder", &daq::SparseSelectionPropertyBuilder_Create);
     m.def("StructPropertyBuilder", &daq::StructPropertyBuilder_Create);
+    m.def("EnumerationPropertyBuilder", &daq::EnumerationPropertyBuilder_Create);
 
     cls.def("build",
         [](daq::IPropertyBuilder *object)

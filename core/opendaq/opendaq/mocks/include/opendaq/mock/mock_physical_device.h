@@ -31,6 +31,7 @@ public:
 
     daq::DeviceInfoPtr onGetInfo() override;
     uint64_t onGetTicksSinceOrigin() override;
+    bool allowAddDevicesFromModules() override;
 
     void setDeviceDomainHelper(const DeviceDomainPtr& deviceDomain);
 

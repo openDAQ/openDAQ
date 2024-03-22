@@ -146,18 +146,22 @@ TEST_F(TmsFusionDevice, FullBridge)
     const auto newExcitationVoltage = StructBuilder(fullBridge.get("ExcitationVoltage"))
                                    .set("NominalValueRange", Range(1.2, 6.2))
                                    .set("ActualValue", 5.9)
+                                   .set("Type", Enumeration("ExcitationTypeEnumeration", "ACVoltage", objManager))
+                                   .set("Frequency", 0)
+                                   .set("NominalValue", 5.0)
                                    .build();
 
     const auto newFullBridge = StructBuilder(fullBridge)
                                .set("ExcitationVoltage", newExcitationVoltage)
                                .set("UsedWires", 9)
                                .set("Resistance", 100.1)
+                               .set("MaximumElectrical", 8.0)
                                .build();
 
     fusionAmp.setPropertyValue("FullBridge", newFullBridge);
     const auto serverFullBridge = obj.getPropertyValue("FullBridge");
     const auto clientFullBridge = fusionAmp.getPropertyValue("FullBridge");
-    
+
     ASSERT_EQ(serverFullBridge, clientFullBridge);
     ASSERT_EQ(serverFullBridge, newFullBridge);
 }

@@ -549,3 +549,14 @@ Streaming framework changes:
 
 + [function] ISignal::getStreamed(Bool* streamed)
 + [function] ISignal::setStreamed(Bool streamed)
+
+22.03.2024
+
+Description:
+  - Add support for multiple module search paths in ModuleManager
+
++ [factory] ModuleManagerPtr ModuleManagerMultiplePaths(const ListPtr<IString>& paths)
+
++ [function] IInstanceBuilder::addModulePath(IString* path)
++ [function] IInstanceBuilder::getModulePathsList(IList** paths)
+

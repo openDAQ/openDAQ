@@ -290,10 +290,24 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::createTypeFromDescriptor(c
                     break;
                 default:
                     type = SimpleType(CoreType::ctUndefined);
-                    // TODO support string, list? + test
             }
-            fieldNames.pushBack(field.getName());
-            fieldTypes.pushBack(type);
+
+            const auto dimensions = field.getDimensions();
+            const auto dimensionCount = dimensions.getCount();
+
+            if (dimensionCount > 1)
+                throw NotSupportedException();
+
+            if (dimensionCount == 1)
+            {
+                fieldNames.pushBack(field.getName());
+                fieldTypes.pushBack(SimpleType(CoreType::ctList));
+            }
+            else
+            {
+                fieldNames.pushBack(field.getName());
+                fieldTypes.pushBack(type);
+            }
         }
     }
 

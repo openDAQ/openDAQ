@@ -434,8 +434,10 @@ TEST_F(SignalTest, SignalDescriptorStructSameNameDifferentDescriptor)
     ASSERT_NO_THROW(sp1 = lv1.asPtr<IStruct>());
     ASSERT_EQ(sp1.get("Int32"), 4);
 
-    // Throws because descriptor2 has the same name as descriptor1 and hence the the struct type can't be added to the type manager
-    ASSERT_THROW(signal2.getLastValue(), InvalidParameterException);
+    // Throws because descriptor2 has the same name as descriptor1 (but is different)
+    // and hence the the struct type can't be added to the type manager and hence
+    // later can't be found in the type manager
+    ASSERT_THROW(signal2.getLastValue(), NotFoundException);
 }
 
 TEST_F(SignalTest, SendNullPacket)
@@ -931,7 +933,7 @@ TEST_F(SignalTest, GetLastValueListOfInt)
     signal.sendPacket(dataPacket);
 
     auto lv = signal.getLastValue();
-    ListPtr<INumber> ptr;
+    ListPtr<IInteger> ptr;
     ASSERT_NO_THROW(ptr = lv.asPtr<IList>());
     ASSERT_EQ(ptr.getItemAt(0), 4);
     ASSERT_EQ(ptr.getItemAt(1), 44);
@@ -1008,11 +1010,177 @@ TEST_F(SignalTest, GetLastValueListOfStructs)
     const auto third = ptr.getItemAt(1).get("Int32");
     const auto fourth = ptr.getItemAt(1).get("Float64");
     ASSERT_EQ(first, 12);
-    ASSERT_EQ(second, 15.1);
+    ASSERT_DOUBLE_EQ(second, 15.1);
     ASSERT_EQ(third, 13);
-    ASSERT_EQ(fourth, 16.1);
+    ASSERT_DOUBLE_EQ(fourth, 16.1);
 }
 
+TEST_F(SignalTest, GetLastValueListOfStructsNested)
+{
+    // Create signal
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // Create data descriptor
+    auto numbers = List<INumber>();
+    numbers.pushBack(1);
+    numbers.pushBack(2);
+
+    auto dimensions = List<IDimension>();
+    dimensions.pushBack(Dimension(ListDimensionRule(numbers)));
+
+    auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(
+                DataDescriptorBuilder()
+                    .setName("Struct1")
+                    .setSampleType(SampleType::Struct)
+                    .setStructFields(
+                        List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build()))
+                    .build(),
+                DataDescriptorBuilder()
+                    .setName("Struct2")
+                    .setSampleType(SampleType::Struct)
+                    .setStructFields(
+                        List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Float64").setSampleType(SampleType::Float64).build()))
+                    .build()))
+            .setDimensions(dimensions)
+            .build();
+
+    // Set the descriptor, thereby adding the struct type to the type manager
+    signal.setDescriptor(descriptor);
+
+    // Prepare data packet
+    auto sizeInBytes = 2 * (sizeof(int32_t) + sizeof(double));
+    const auto dataPacket = DataPacket(descriptor, 5);
+    auto data = dataPacket.getData();
+
+    // Start points to beggining of data
+    auto start = static_cast<char*>(data);
+
+    // First member of data is int32_t
+    void* a = start + sizeInBytes * 4;
+    auto A = static_cast<int32_t*>(a);
+    *A = 12;
+
+    // Second member of data is double
+    void* b = start + sizeInBytes * 4 + sizeof(int32_t);
+    auto B = static_cast<double*>(b);
+    *B = 15.1;
+
+    // Third member of data is int32_t
+    void* c = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(double);
+    auto C = static_cast<int32_t*>(c);
+    *C = 13;
+
+    // Fourth member of data is double
+    void* d = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(double) + sizeof(int32_t);
+    auto D = static_cast<double*>(d);
+    *D = 16.1;
+
+    // Send our packet
+    signal.sendPacket(dataPacket);
+
+    // Call getLastValue
+    auto lv = signal.getLastValue();
+
+    // Create data structure
+    ListPtr<IStruct> ptr;
+
+    // Cast lastValuePacket to our data structure and ASSERT_NO_THROW
+    ASSERT_NO_THROW(ptr = lv.asPtr<IList>());
+
+    // Check all inner members of the list
+    const auto first = static_cast<StructPtr>(ptr.getItemAt(0).get("Struct1")).get("Int32");
+    const auto second = static_cast<StructPtr>(ptr.getItemAt(0).get("Struct2")).get("Float64");
+    const auto third = static_cast<StructPtr>(ptr.getItemAt(1).get("Struct1")).get("Int32");
+    const auto fourth = static_cast<StructPtr>(ptr.getItemAt(1).get("Struct2")).get("Float64");
+    ASSERT_EQ(first, 12);
+    ASSERT_DOUBLE_EQ(second, 15.1);
+    ASSERT_EQ(third, 13);
+    ASSERT_DOUBLE_EQ(fourth, 16.1);
+}
+
+TEST_F(SignalTest, GetLastValueStructWithLists)
+{
+    // Create signal
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // Create data descriptor
+    auto numbers = List<INumber>();
+    numbers.pushBack(1);
+    numbers.pushBack(2);
+
+    auto dimensions = List<IDimension>();
+    dimensions.pushBack(Dimension(ListDimensionRule(numbers)));
+
+    auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(
+                DataDescriptorBuilder().setName("Int32").setDimensions(dimensions).setSampleType(SampleType::Int32).build(),
+                DataDescriptorBuilder().setName("Float64").setDimensions(dimensions).setSampleType(SampleType::Float64).build()))
+            .build();
+
+    // Set the descriptor, thereby adding the struct type to the type manager
+    signal.setDescriptor(descriptor);
+
+    // Prepare data packet
+    auto sizeInBytes = 2 * (sizeof(int32_t) + sizeof(double));
+    const auto dataPacket = DataPacket(descriptor, 5);
+    auto data = dataPacket.getData();
+
+    // Start points to beggining of data
+    auto start = static_cast<char*>(data);
+
+    // First member of data is int32_t
+    void* a = start + sizeInBytes * 4;
+    auto A = static_cast<int32_t*>(a);
+    *A = 12;
+
+    // Second member of data is int32_t
+    void* b = start + sizeInBytes * 4 + sizeof(int32_t);
+    auto B = static_cast<int32_t*>(b);
+    *B = 13;
+
+    // Third member of data is double
+    void* c = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(int32_t);
+    auto C = static_cast<double*>(c);
+    *C = 15.1;
+
+    // Fourth member of data is double
+    void* d = start + sizeInBytes * 4 + sizeof(int32_t) + sizeof(int32_t) + sizeof(double);
+    auto D = static_cast<double*>(d);
+    *D = 16.1;
+
+    // Send our packet
+    signal.sendPacket(dataPacket);
+
+    // Call getLastValue
+    auto lv = signal.getLastValue();
+
+    // Create data structure
+    StructPtr ptr;
+
+    // Cast lastValuePacket to our data structure and ASSERT_NO_THROW
+    ASSERT_NO_THROW(ptr = lv.asPtr<IStruct>());
+
+    // Get lists from struct
+    const auto listInt = static_cast<ListPtr<IInteger>>(ptr.get("Int32"));
+    const auto listDouble = static_cast<ListPtr<IFloat>>(ptr.get("Float64"));
+
+    // Check all inner members of the list
+    const auto first = listInt.getItemAt(0);
+    const auto second = listInt.getItemAt(1);
+    const auto third = listDouble.getItemAt(0);
+    const auto fourth = listDouble.getItemAt(1);
+    ASSERT_EQ(first, 12);
+    ASSERT_EQ(second, 13);
+    ASSERT_DOUBLE_EQ(third, 15.1);
+    ASSERT_DOUBLE_EQ(fourth, 16.1);
+}
 TEST_F(SignalTest, GetLastValueStructNoSetDescriptor)
 {
     // Create signal

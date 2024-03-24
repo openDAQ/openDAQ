@@ -239,8 +239,9 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
 
     // [elementType(serverCapabilities, IServerCapability)]
     /*!
-     * @brief Gets the list of device supported protocols
-     * @param[out] serverCapabilities The list of device supported protocols
+     * @brief Gets the list of server capabilities stored in device info.
+     * @param[out] serverCapabilities The list of device supported protocols 
+     * (List containing IServerCapability objects, representing the supported protocols along with their properties).
      */
     virtual ErrCode INTERFACE_FUNC getServerCapabilities(IList** serverCapabilities) = 0;
 };

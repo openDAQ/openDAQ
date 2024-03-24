@@ -28,35 +28,27 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_devices
- * @addtogroup opendaq_device_info Device info
+ * @addtogroup opendaq_device_info Device info private
  * @{
  */
 
-/*!
- * @brief Configuration component of Device info objects. Contains setter methods that
- * are available until the object is frozen.
- *
- * Device info config contains functions that allow for the configuration of Device info objects.
- * The implementation of `config` also implements the `freeze` function that freezes the object making it
- * immutable. Once frozen, the setter methods fail as the object can no longer be modified.
- */
 DECLARE_OPENDAQ_INTERFACE(IDeviceInfoPrivate, IBaseObject)
 {
 
     /*!
-     * @brief Add protocol to the list of support capabilities
-     * @param serverCapability The supported protocol.
+     * @brief Adds a protocol to the list of supported capabilities.
+     * @param serverCapability The supported protocol to add.
      */
     virtual ErrCode INTERFACE_FUNC addServerCapability(IServerCapability* serverCapability) = 0;
 
     /*!
-     * @brief Remove protocol from the list of support capabilities
-     * @param serverCapability The supported protocol.
+     * @brief Removes a protocol from the list of supported capabilities.
+     * @param protocolId The ID of the protocol to remove.
      */
     virtual ErrCode INTERFACE_FUNC removeServerCapability(IString* protocolId) = 0;
 
     /*!
-     * @brief Remove server streaming capabilities
+     * @brief Removes all server streaming capabilities from the list of supported capabilities.
      */
     virtual ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() = 0;
 };

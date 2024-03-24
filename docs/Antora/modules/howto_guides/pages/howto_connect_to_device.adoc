@@ -33,8 +33,15 @@ int main(int argc, const char* argv[])
     // Discover and print the names and connection strings of openDAQ(TM) devices
     daq::ListPtr<daq::IDeviceInfo> availableDevicesInfo = instance.getAvailableDevices();
     for (const auto& deviceInfo : availableDevicesInfo)
-        if (deviceInfo.getConnectionString().toStdString().find("daq.opcua://") != std::string::npos)
-            std::cout << "Name: " << deviceInfo.getName() << ", Address: " << deviceInfo.getConnectionString() << std::endl;
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolName() == "openDAQ OpcUa")
+            {
+                std::cout << "Name: " << deviceInfo.getName() << ", Address: " << deviceInfo.getConnectionString() << std::endl;
+            }
+        }
+    }
 
     return 0;
 }

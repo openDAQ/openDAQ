@@ -715,3 +715,32 @@ TEST_F(RefDeviceModuleTest, ReadAIChannelWithFixedPacketSize)
             break;
     };
 }
+
+TEST_F(RefDeviceModuleTest, ReadConstantRule)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+
+    const ChannelPtr ch = device.getChannels()[0];
+    ch.setPropertyValue("ConstantValue", 4.0);
+    ch.setPropertyValue("Waveform", 4);
+    const auto signal = ch.getSignals()[0];
+
+    const auto packetReader = PacketReader(signal);
+    while (true)
+    {
+        const auto packet = packetReader.read();
+        if (packet.assigned() && packet.getType() == PacketType::Data &&
+            packet.asPtr<IDataPacket>(true).getDataDescriptor().getRule().getType() == DataRuleType::Constant)
+        {
+            DataPacketPtr dataPacket = packet;
+            const auto data = reinterpret_cast<double*>(dataPacket.getData());
+            ASSERT_EQ(*data, 4.0);
+            break;
+        }
+        else
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+}

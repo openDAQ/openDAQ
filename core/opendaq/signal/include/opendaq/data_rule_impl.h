@@ -28,9 +28,8 @@ class DataRuleImpl final : public GenericStructImpl<IDataRule, IStruct, IRulePri
 public:
     explicit DataRuleImpl(DataRuleType ruleType, const DictPtr<IString, IBaseObject>& params);
     explicit DataRuleImpl(DataRuleType ruleType, const NumberPtr& param1, const NumberPtr& param2);
-    explicit DataRuleImpl(const NumberPtr& constant);
-    explicit DataRuleImpl();
-    explicit DataRuleImpl(IDataRuleBuilder * dataRuleBuilder);
+    explicit DataRuleImpl(DataRuleType ruleType);
+    explicit DataRuleImpl(IDataRuleBuilder* dataRuleBuilder);
     
     ErrCode INTERFACE_FUNC getType(DataRuleType* type) override;
     ErrCode INTERFACE_FUNC getParameters(IDict** parameters) override;

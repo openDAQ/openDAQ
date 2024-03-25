@@ -21,7 +21,17 @@ namespace detail
 
         throw InvalidParameterException{"Invalid type of data rule. Rules with 2 number parameters can only be explicit or linear."};
     }
-}
+
+    static DictPtr<IString, IBaseObject> checkTypeAndBuildNoParams(DataRuleType ruleType)
+    {
+        if (ruleType == DataRuleType::Explicit)
+            return Dict<IString, IBaseObject>();
+        if (ruleType == DataRuleType::Constant)
+            return Dict<IString, IBaseObject>();
+
+        throw InvalidParameterException{"Invalid type of data rule. Rules with no parameters can only be explicit or constant."};
+    }
+    }
 
 DataRuleImpl::DataRuleImpl(DataRuleType ruleType, const DictPtr<IString, IBaseObject>& params)
     : GenericStructImpl<IDataRule, IStruct, IRulePrivate>(
@@ -37,17 +47,12 @@ DataRuleImpl::DataRuleImpl(DataRuleType ruleType, const NumberPtr& param1, const
 {
 }
 
-DataRuleImpl::DataRuleImpl(const NumberPtr& constant)
-    : DataRuleImpl(DataRuleType::Constant, Dict<IString, IBaseObject>({{"constant", constant}}))
+DataRuleImpl::DataRuleImpl(DataRuleType ruleType)
+    : DataRuleImpl(ruleType, detail::checkTypeAndBuildNoParams(ruleType))
 {
 }
 
-DataRuleImpl::DataRuleImpl()
-    : DataRuleImpl(DataRuleType::Explicit, Dict<IString, IBaseObject>())
-{
-}
-
-DataRuleImpl::DataRuleImpl(IDataRuleBuilder * dataRuleBuilder)
+DataRuleImpl::DataRuleImpl(IDataRuleBuilder* dataRuleBuilder)
     : DataRuleImpl(DataRuleBuilderPtr(dataRuleBuilder).getType(), DataRuleBuilderPtr(dataRuleBuilder).getParameters())
 {
 }
@@ -165,20 +170,11 @@ ErrCode DataRuleImpl::verifyParametersInternal()
 
     if (ruleType == DataRuleType::Constant)
     {
-        if (params.getCount() != 1)
+        if (params.getCount() != 0)
         {
             return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                                 R"(Constant rule has an invalid number of parameters. The "constant" parameter is required.)");
+                                 R"(Constant rule has an invalid number of parameters.)");
         }
-
-        if (!params.hasKey("constant"))
-        {
-            return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
-                                 R"(Constant rule has invalid parameters. The "constant" parameter is required.)");
-        }
-
-        if (!params.get("constant").asPtrOrNull<INumber>().assigned())
-            return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, R"(The "constant" parameter must be number.)");
     }
 
     try
@@ -211,15 +207,15 @@ daq::ErrCode PUBLIC_EXPORT createLinearDataRule(IDataRule** objTmp, INumber* del
 }
 
 extern "C"
-daq::ErrCode PUBLIC_EXPORT createConstantDataRule(IDataRule** objTmp, INumber* constant)
+daq::ErrCode PUBLIC_EXPORT createConstantDataRule(IDataRule** objTmp)
 {
-    return daq::createObject<IDataRule, DataRuleImpl, NumberPtr>(objTmp, constant);
+    return daq::createObject<IDataRule, DataRuleImpl>(objTmp, DataRuleType::Constant);
 }
 
 extern "C"
 daq::ErrCode PUBLIC_EXPORT createExplicitDataRule(IDataRule** objTmp)
 {
-    return daq::createObject<IDataRule, DataRuleImpl>(objTmp);
+    return daq::createObject<IDataRule, DataRuleImpl>(objTmp, DataRuleType::Explicit);
 }
 
 extern "C"

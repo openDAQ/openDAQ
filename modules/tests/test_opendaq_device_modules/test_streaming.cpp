@@ -1,8 +1,6 @@
 #include "test_helpers.h"
-
 #include <opendaq/event_packet_params.h>
 #include <opendaq/mock/mock_device_module.h>
-
 #include <opendaq/custom_log.h>
 
 using namespace daq;
@@ -66,7 +64,7 @@ public:
         return reader;
     }
 
-    ListPtr<IPacket> tryReadPackets(const PacketReaderPtr& reader,
+    static ListPtr<IPacket> tryReadPackets(const PacketReaderPtr& reader,
                                     size_t packetCount,
                                     std::chrono::seconds timeout = std::chrono::seconds(60))
     {
@@ -81,8 +79,6 @@ public:
                 auto timeElapsed = now - startPoint;
                 if (timeElapsed > timeout)
                 {
-                    LOG_E("Timeout expired: packets count expected {}, packets count ready {}",
-                          packetCount, allPackets.getCount());
                     break;
                 }
 
@@ -256,6 +252,110 @@ TEST_P(StreamingTest, DataPackets)
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+}
+
+TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
+{
+    SignalConfigPtr serverSignalPtr = getSignal(serverInstance, "ByteStep");
+    MirroredSignalConfigPtr clientSignalPtr = getSignal(clientInstance, "ByteStep");
+
+    const auto oldValueDataDesc = serverSignalPtr.getDescriptor();
+    const auto oldDomainDataDesc = serverSignalPtr.getDomainSignal().getDescriptor();
+
+    const auto valueDataDesc = DataDescriptorBuilderCopy(oldValueDataDesc).setName("test").build();
+    const auto domainDataDesc = DataDescriptorBuilderCopy(oldDomainDataDesc).setName("test_domain").build();
+
+    serverSignalPtr.setDescriptor(valueDataDesc);
+    serverSignalPtr.getDomainSignal().asPtr<ISignalConfig>().setDescriptor(domainDataDesc);
+    
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture;
+    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, clientSignalPtr);
+
+    const auto clientReader = PacketReader(clientSignalPtr);
+    
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
+
+    bool usingNativePseudoDevice = std::get<1>(GetParam()) == "daq.ns" && std::get<2>(GetParam()) == "daq.nsd://127.0.0.1/";
+    bool usingWSPseudoDevice = std::get<1>(GetParam()) == "daq.wss" && std::get<2>(GetParam()) == "daq.ws://127.0.0.1/";
+
+    const int packetsToRead = 5;
+    generatePackets(packetsToRead);
+
+    if (usingNativePseudoDevice)
+    {
+        auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 2);
+        ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 2);
+
+        for (int i = 0; i < 2; ++i)
+        {
+            const auto packet = clientReceivedPackets[i];
+            const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
+            ASSERT_TRUE(eventPacket.assigned());
+            ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+
+            const auto valueDataDescClient = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+            const auto domainDataDescClient = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+
+            if (i == 0)
+            {
+                EXPECT_EQ(oldValueDataDesc, valueDataDescClient);
+                EXPECT_EQ(oldDomainDataDesc, domainDataDescClient);
+            }
+            else
+            {
+                EXPECT_EQ(valueDataDesc, valueDataDescClient);
+                EXPECT_EQ(domainDataDesc, domainDataDescClient);
+            }
+        }
+    }
+    else if (usingWSPseudoDevice)
+    {
+        auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 3);
+        ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 3);
+
+        for (int i = 0; i < 3; ++i)
+        {
+            const auto packet = clientReceivedPackets[i];
+            const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
+            ASSERT_TRUE(eventPacket.assigned());
+            ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+
+            const auto valueDataDescClient = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+            const auto domainDataDescClient = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+
+            if (i == 0)
+            {
+                EXPECT_EQ(oldValueDataDesc, valueDataDescClient);
+                EXPECT_EQ(oldDomainDataDesc, domainDataDescClient);
+            }
+            else if (i == 1)
+            {
+                EXPECT_EQ(valueDataDesc, valueDataDescClient);
+                EXPECT_EQ(oldDomainDataDesc, domainDataDescClient);
+            }
+            else
+            {
+                EXPECT_EQ(valueDataDesc, valueDataDescClient);
+                EXPECT_EQ(domainDataDesc, domainDataDescClient);
+            }
+        }
+    }
+    else
+    {
+        auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 1);
+        ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
+        const auto packet = clientReceivedPackets[0];
+        const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
+        ASSERT_TRUE(eventPacket.assigned());
+        ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+
+        const auto valueDataDescClient = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+        const auto domainDataDescClient = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+
+        EXPECT_EQ(valueDataDesc, valueDataDescClient);
+        EXPECT_EQ(domainDataDesc, domainDataDescClient);
+    }
 }
 
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -444,5 +544,68 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.opcua://127.0.0.1/")
     )
 );
+
+class NativeDeviceStreamingTest : public testing::Test
+{};
+
+TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
+{
+    const auto moduleManager = ModuleManager("");
+    auto serverInstance = InstanceBuilder().setModuleManager(moduleManager).build();
+    const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
+    moduleManager.addModule(deviceModule);
+    serverInstance.setRootDevice("mock_phys_device");
+    serverInstance.addServer("openDAQ Native Streaming", nullptr);
+
+    const auto channels = serverInstance.getChannelsRecursive();
+    Int sigCount = 0;
+    for (const auto& ch : channels)
+        sigCount += ch.getSignalsRecursive().getCount();
+
+    const auto clientInstance = Instance();
+    clientInstance.addDevice("daq.nd://127.0.0.1");
+
+
+    int callCount = 0;
+    clientInstance.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        {
+            if (args.getEventId() == static_cast<Int>(CoreEventId::DataDescriptorChanged))  
+                callCount++;
+        };
+
+    SignalConfigPtr serverSignalPtr = serverInstance.getSignalsRecursive(search::LocalId("ByteStep"))[0];
+    MirroredSignalConfigPtr clientSignalPtr = clientInstance.getSignalsRecursive(search::LocalId("ByteStep"))[0];
+    
+    clientInstance.getDevices()[0].setPropertyValue("ChangeDescriptors", 1);
+    ASSERT_EQ(callCount, sigCount);
+
+    const DataDescriptorPtr valueDataDesc = serverSignalPtr.getDescriptor();
+    const DataDescriptorPtr domainDataDesc = serverSignalPtr.getDomainSignal().getDescriptor();
+
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture;
+    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, clientSignalPtr);
+
+    const auto clientReader = PacketReader(clientSignalPtr);
+    
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
+
+    const int packetsToRead = 5;
+    serverInstance.setPropertyValue("GeneratePackets", packetsToRead);
+
+    auto clientReceivedPackets = StreamingTest::tryReadPackets(clientReader, packetsToRead + 1);
+    ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
+    const auto packet = clientReceivedPackets[0];
+    const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
+    ASSERT_TRUE(eventPacket.assigned());
+    ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+
+    const auto valueDataDescClient = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+    const auto domainDataDescClient = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+
+    EXPECT_EQ(valueDataDesc, valueDataDescClient);
+    EXPECT_EQ(domainDataDesc, domainDataDescClient);
+}
 
 #endif

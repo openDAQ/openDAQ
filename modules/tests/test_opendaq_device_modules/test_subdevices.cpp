@@ -185,7 +185,6 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
     auto subdevice2 = CreateSubdeviceInstance(2u);
     auto gateway = CreateGatewayInstance();
     auto client = CreateClientInstance(MIN_HOPS);
-    client.addStandardServers();
 
     auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
     auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));

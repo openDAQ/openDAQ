@@ -94,6 +94,10 @@ namespace daq::config_protocol::test_utils
         {
             return false;
         }
+        bool allowAddDevicesFromModules() override
+        {
+            return true;
+        }
     };
 
 }

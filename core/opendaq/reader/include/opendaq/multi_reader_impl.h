@@ -74,6 +74,7 @@ public:
     ErrCode INTERFACE_FUNC getTickResolution(IRatio** resolution) override;
     ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
     ErrCode INTERFACE_FUNC getOffset(void* domainStart) override;
+    ErrCode INTERFACE_FUNC getCommonSampleRate(Int* commonSampleRate) override;
 
     ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) override;
 

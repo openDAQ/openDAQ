@@ -951,6 +951,18 @@ ErrCode MultiReaderImpl::getOffset(void* domainStart)
     return OPENDAQ_IGNORED;
 }
 
+ErrCode INTERFACE_FUNC MultiReaderImpl::getCommonSampleRate(Int* commonSampleRate)
+{
+    if (commonSampleRate == nullptr)
+    {
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    }
+
+    *commonSampleRate = this->commonSampleRate;
+
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode MultiReaderImpl::getIsSynchronized(Bool* isSynchronized)
 {
     OPENDAQ_PARAM_NOT_NULL(isSynchronized);

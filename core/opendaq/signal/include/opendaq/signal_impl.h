@@ -140,10 +140,8 @@ private:
     void triggerRelatedSignalsChanged();
     void disconnectInputPort(const ConnectionPtr& connection);
     void clearConnections(std::vector<ConnectionPtr>& connections);
-    TypePtr createTypeFromDescriptor(const DataDescriptorPtr& descriptor) const;
-    void addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
-                                     const DataDescriptorPtr& descriptor,
-                                     const StructTypePtr& type) const;
+    TypePtr addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
+                                        const DataDescriptorPtr& descriptor) const;
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
@@ -253,8 +251,13 @@ void SignalBase<TInterface, Interfaces...>::onListenedStatusChanged(bool /*liste
 }
 
 template <typename TInterface, typename... Interfaces>
-inline TypePtr SignalBase<TInterface, Interfaces...>::createTypeFromDescriptor(const DataDescriptorPtr& descriptor) const
+inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
+                                                                                  const DataDescriptorPtr& descriptor) const
 {
+    const auto name = descriptor.getName();
+    if (!name.assigned())
+        throw NotFoundException();
+
     const auto fields = descriptor.getStructFields();
     auto fieldNames = List<IString>();
     auto fieldTypes = List<IType>();
@@ -264,6 +267,7 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::createTypeFromDescriptor(c
         for (auto const& field : fields)
         {
             TypePtr type;
+
             switch (field.getSampleType())
             {
                 case SampleType::Float32:
@@ -286,7 +290,7 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::createTypeFromDescriptor(c
                     break;
                 case SampleType::Struct:
                     // Recursion
-                    type = createTypeFromDescriptor(field);
+                    type = addToTypeManagerRecursively(typeManager, field);
                     break;
                 default:
                     type = SimpleType(CoreType::ctUndefined);
@@ -300,67 +304,37 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::createTypeFromDescriptor(c
 
             if (dimensionCount == 1)
             {
+                // List
                 fieldNames.pushBack(field.getName());
                 fieldTypes.pushBack(SimpleType(CoreType::ctList));
             }
             else
             {
+                // Not list
                 fieldNames.pushBack(field.getName());
                 fieldTypes.pushBack(type);
             }
         }
     }
 
-    const auto name = descriptor.getName();
+    const auto structType = StructType(name, fieldNames, fieldTypes);
 
-    if (name.assigned())
-        return StructType(name, fieldNames, fieldTypes);
-    throw NotFoundException();
-}
-
-template <typename TInterface, typename... Interfaces>
-inline void SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
-                                                                               const DataDescriptorPtr& descriptor,
-                                                                               const StructTypePtr& type) const
-{
-    const auto fields = descriptor.getStructFields();
-    const auto fieldTypes = type.getFieldTypes();
-
-    for (size_t i = 0; i < fields.getCount(); i++)
-        if (fields[i].getSampleType() == SampleType::Struct)
-        {
-            size_t dimensionCount = fields[i].getDimensions().getCount();
-            if (dimensionCount == 0)
-            {
-                // Not list
-                addToTypeManagerRecursively(typeManager, fields[i], fieldTypes[i]);
-            }
-            else if (dimensionCount == 1)
-            {
-                // List
-                const auto structType = createTypeFromDescriptor(fields[i]);
-                addToTypeManagerRecursively(typeManager, fields[i], structType);
-            }
-            else
-            {
-                // Dimension count too high, not supported
-                throw NotSupportedException();
-            }
-        }
     try
     {
-        typeManager.addType(type);
+        typeManager.addType(structType);
     }
     catch (const std::exception& e)
     {
         const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
-        LOG_W("Couldn't add type {} to type manager: {}", type.getName(), e.what());
+        LOG_W("Couldn't add type {} to type manager: {}", structType.getName(), e.what());
     }
     catch (...)
     {
         const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
-        LOG_W("Couldn't add type {} to type manager!", type.getName());
+        LOG_W("Couldn't add type {} to type manager!", structType.getName());
     }
+
+    return structType;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -390,9 +364,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
             try {
                 if (dataDescriptor.getSampleType() == SampleType::Struct)
                 {
-                    const StructTypePtr structType = createTypeFromDescriptor(dataDescriptor);
                     auto typeManager = this->context.getTypeManager();
-                    addToTypeManagerRecursively(typeManager, dataDescriptor, structType);
+                    addToTypeManagerRecursively(typeManager, dataDescriptor);
                 }
             }
             catch (const std::exception& e)

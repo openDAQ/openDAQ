@@ -324,13 +324,29 @@ inline void SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursively(c
                                                                                const StructTypePtr& type) const
 {
     const auto fields = descriptor.getStructFields();
-    auto fieldTypes = type.getFieldTypes();
+    const auto fieldTypes = type.getFieldTypes();
 
     for (size_t i = 0; i < fields.getCount(); i++)
         if (fields[i].getSampleType() == SampleType::Struct)
-            addToTypeManagerRecursively(typeManager, fields[i], fieldTypes[i]);
-
-    const auto name = descriptor.getName();
+        {
+            size_t dimensionCount = fields[i].getDimensions().getCount();
+            if (dimensionCount == 0)
+            {
+                // Not list
+                addToTypeManagerRecursively(typeManager, fields[i], fieldTypes[i]);
+            }
+            else if (dimensionCount == 1)
+            {
+                // List
+                const auto structType = createTypeFromDescriptor(fields[i]);
+                addToTypeManagerRecursively(typeManager, fields[i], structType);
+            }
+            else
+            {
+                // Dimension count too high, not supported
+                throw NotSupportedException();
+            }
+        }
     try
     {
         typeManager.addType(type);

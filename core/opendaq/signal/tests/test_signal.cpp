@@ -1102,6 +1102,130 @@ TEST_F(SignalTest, GetLastValueListOfStructsNested)
     ASSERT_DOUBLE_EQ(fourth, 16.1);
 }
 
+TEST_F(SignalTest, GetLastValueListOfStructsOfListOfInt32)
+{
+    // Create signal
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // Create data descriptor
+    auto numbers = List<INumber>();
+    numbers.pushBack(1);
+    numbers.pushBack(2);
+
+    auto dimensions = List<IDimension>();
+    dimensions.pushBack(Dimension(ListDimensionRule(numbers)));
+
+    auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(
+                DataDescriptorBuilder().setName("ListOfTwoInt32").setSampleType(SampleType::Int32).setDimensions(dimensions).build()))
+            .setDimensions(dimensions)
+            .build();
+
+    // Set the descriptor, thereby adding the struct type to the type manager
+    signal.setDescriptor(descriptor);
+
+    // Prepare data packet
+    const auto dataPacket = DataPacket(descriptor, 5);
+    auto data = static_cast<int32_t*>(dataPacket.getData());
+    data[16] = 1;
+    data[17] = 2;
+    data[18] = 3;
+    data[19] = 4;
+
+    // Send our packet
+    signal.sendPacket(dataPacket);
+
+    // Call getLastValue
+    auto lv = signal.getLastValue();
+
+    // Create data structure
+    ListPtr<IStruct> ptr;
+
+    // Cast lastValuePacket to our data structure and ASSERT_NO_THROW
+    ASSERT_NO_THROW(ptr = lv.asPtr<IList>());
+
+    // Check all inner members of the list
+    const auto first = static_cast<ListPtr<IInteger>>(ptr.getItemAt(0).get("ListOfTwoInt32")).getItemAt(0);
+    const auto second = static_cast<ListPtr<IInteger>>(ptr.getItemAt(0).get("ListOfTwoInt32")).getItemAt(1);
+    const auto third = static_cast<ListPtr<IInteger>>(ptr.getItemAt(1).get("ListOfTwoInt32")).getItemAt(0);
+    const auto fourth = static_cast<ListPtr<IInteger>>(ptr.getItemAt(1).get("ListOfTwoInt32")).getItemAt(1);
+    ASSERT_EQ(first, 1);
+    ASSERT_EQ(second, 2);
+    ASSERT_EQ(third, 3);
+    ASSERT_EQ(fourth, 4);
+}
+
+TEST_F(SignalTest, GetLastValueStructOfListsOfStructsOfInt32)
+{
+    // Create signal
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // Create data descriptor
+    auto numbers = List<INumber>();
+    numbers.pushBack(1);
+    numbers.pushBack(2);
+
+    auto dimensions = List<IDimension>();
+    dimensions.pushBack(Dimension(ListDimensionRule(numbers)));
+
+    auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyStruct")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(
+                DataDescriptorBuilder()
+                    .setName("MyList1")
+                    .setSampleType(SampleType::Struct)
+                    .setStructFields(
+                        List<DataDescriptorPtr>(DataDescriptorBuilder().setName("MyInt32").setSampleType(SampleType::Int32).build()))
+                    .setDimensions(dimensions)
+                    .build(),
+                DataDescriptorBuilder()
+                    .setName("MyList2")
+                    .setSampleType(SampleType::Struct)
+                    .setStructFields(
+                        List<DataDescriptorPtr>(DataDescriptorBuilder().setName("MyInt32").setSampleType(SampleType::Int32).build()))
+                    .setDimensions(dimensions)
+                    .build()))
+            .build();
+
+    // Set the descriptor, thereby adding the struct type to the type manager
+    signal.setDescriptor(descriptor);
+
+    // Prepare data packet
+    const auto dataPacket = DataPacket(descriptor, 5);
+    auto data = static_cast<int32_t*>(dataPacket.getData());
+    data[16] = 1;
+    data[17] = 2;
+    data[18] = 3;
+    data[19] = 4;
+
+    // Send our packet
+    signal.sendPacket(dataPacket);
+
+    // Call getLastValue
+    auto lv = signal.getLastValue();
+
+    // Create data structure
+    StructPtr ptr;
+
+    // Cast lastValuePacket to our data structure and ASSERT_NO_THROW
+    ASSERT_NO_THROW(ptr = lv.asPtr<IStruct>());
+
+    // Check all inner members of the list
+    const auto first = static_cast<ListPtr<IStruct>>(ptr.get("MyList1")).getItemAt(0).get("MyInt32");
+    const auto second = static_cast<ListPtr<IStruct>>(ptr.get("MyList1")).getItemAt(1).get("MyInt32");
+    const auto third = static_cast<ListPtr<IStruct>>(ptr.get("MyList2")).getItemAt(0).get("MyInt32");
+    const auto fourth = static_cast<ListPtr<IStruct>>(ptr.get("MyList2")).getItemAt(1).get("MyInt32");
+    ASSERT_EQ(first, 1);
+    ASSERT_EQ(second, 2);
+    ASSERT_EQ(third, 3);
+    ASSERT_EQ(fourth, 4);
+}
+
 TEST_F(SignalTest, GetLastValueStructWithLists)
 {
     // Create signal

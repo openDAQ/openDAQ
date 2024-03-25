@@ -90,7 +90,7 @@ void WebsocketClientDeviceImpl::onSignalInit(const StringPtr& signalId, const Su
         signalIt->second.setName(sInfo.signalName);
         signalIt->second.asPtr<IComponentPrivate>().lockAllAttributes();
 
-        signalIt->second.asPtr<IMirroredSignalPrivate>()->setMirroredDataDescriptor(sInfo.dataDescriptor);
+        signalIt->second.asPtr<IMirroredSignalPrivate>().setMirroredDataDescriptor(sInfo.dataDescriptor);
         updateSignalProperties(signalIt->second, sInfo);
     }
 }

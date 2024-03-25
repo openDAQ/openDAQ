@@ -19,7 +19,7 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/streaming_private.h>
-#include <opendaq/mirrored_signal_private.h>
+#include <opendaq/mirrored_signal_private_ptr.h>
 #include <opendaq/subscription_event_args_factory.h>
 
 #include "opendaq/event_packet_params.h"
@@ -53,17 +53,17 @@ public:
     ErrCode INTERFACE_FUNC deactivateStreaming() override;
     ErrCode INTERFACE_FUNC getOnSubscribeComplete(IEvent** event) override;
     ErrCode INTERFACE_FUNC getOnUnsubscribeComplete(IEvent** event) override;
-
+    
     // IMirroredSignalPrivate
-    Bool INTERFACE_FUNC triggerEvent(const EventPacketPtr& eventPacket) override;
-    ErrCode INTERFACE_FUNC addStreamingSource(const StreamingPtr& streaming) override;
-    ErrCode INTERFACE_FUNC removeStreamingSource(const StringPtr& streamingConnectionString) override;
-    void INTERFACE_FUNC subscribeCompleted(const StringPtr& streamingConnectionString) override;
-    void INTERFACE_FUNC unsubscribeCompleted(const StringPtr& streamingConnectionString) override;
-    DataDescriptorPtr INTERFACE_FUNC getMirroredDataDescriptor() override;
-    void INTERFACE_FUNC setMirroredDataDescriptor(const DataDescriptorPtr& descriptor) override;
-    MirroredSignalConfigPtr INTERFACE_FUNC getMirroredDomainSignal() override;
-    void INTERFACE_FUNC setMirroredDomainSignal(const MirroredSignalConfigPtr& domainSignal) override;
+    ErrCode INTERFACE_FUNC triggerEvent(IEventPacket* eventPacket, Bool* forward) override;
+    ErrCode INTERFACE_FUNC addStreamingSource(IStreaming* streaming) override;
+    ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) override;
+    ErrCode INTERFACE_FUNC subscribeCompleted(IString* streamingConnectionString) override;
+    ErrCode INTERFACE_FUNC unsubscribeCompleted(IString* streamingConnectionString) override;
+    ErrCode INTERFACE_FUNC getMirroredDataDescriptor(IDataDescriptor** descriptor) override;
+    ErrCode INTERFACE_FUNC setMirroredDataDescriptor(IDataDescriptor* descriptor) override;
+    ErrCode INTERFACE_FUNC getMirroredDomainSignal(IMirroredSignalConfig** domainSignals) override;
+    ErrCode INTERFACE_FUNC setMirroredDomainSignal(IMirroredSignalConfig* domainSignal) override;
 
     // ISignalConfig
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
@@ -141,7 +141,7 @@ Bool MirroredSignalBase<Interfaces...>::onTriggerEvent(const EventPacketPtr& eve
             if (mirroredDomainSignal.assigned())
             {
                 const auto domainSignalEventPacket = DataDescriptorChangedEventPacket(newDomainDescriptor, nullptr);
-                mirroredDomainSignal.asPtr<IMirroredSignalPrivate>()->triggerEvent(domainSignalEventPacket);
+                mirroredDomainSignal.asPtr<IMirroredSignalPrivate>().triggerEvent(domainSignalEventPacket);
             }
 
             changed = True;
@@ -168,17 +168,6 @@ ErrCode MirroredSignalBase<Interfaces...>::getRemoteId(IString** id) const
 }
 
 template <typename... Interfaces>
-Bool MirroredSignalBase<Interfaces...>::triggerEvent(const EventPacketPtr& eventPacket)
-{
-    Bool forwardEvent;
-
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onTriggerEvent, forwardEvent, eventPacket);
-    checkErrorInfo(errCode);
-
-    return forwardEvent;
-}
-
-template <typename... Interfaces>
 void MirroredSignalBase<Interfaces...>::removed()
 {
     if (listened && streamed)
@@ -200,12 +189,26 @@ void MirroredSignalBase<Interfaces...>::removed()
 }
 
 template <typename... Interfaces>
-ErrCode MirroredSignalBase<Interfaces...>::addStreamingSource(const StreamingPtr& streaming)
+ErrCode MirroredSignalBase<Interfaces...>::triggerEvent(IEventPacket* eventPacket, Bool* forward)
 {
-    if (!streaming.assigned())
+    Bool forwardEvent;
+
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onTriggerEvent, forwardEvent, eventPacket);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    *forward = forwardEvent;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::addStreamingSource(IStreaming* streaming)
+{
+    if (!streaming)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    const auto connectionString = streaming.getConnectionString();
+    const auto streamingPtr = StreamingPtr::Borrow(streaming);
+    const auto connectionString = streamingPtr.getConnectionString();
 
     std::scoped_lock lock(this->sync);
     auto it = std::find_if(streamingSourcesRefs.begin(),
@@ -217,29 +220,31 @@ ErrCode MirroredSignalBase<Interfaces...>::addStreamingSource(const StreamingPtr
                                           ? (streamingSource.getConnectionString() == connectionString)
                                           : false;
                            });
+
     if (it != streamingSourcesRefs.end())
         return OPENDAQ_ERR_DUPLICATEITEM;
 
-    streamingSourcesRefs.push_back(WeakRefPtr<IStreaming>(streaming));
-
+    streamingSourcesRefs.push_back(WeakRefPtr<IStreaming>(streamingPtr));
     return OPENDAQ_SUCCESS;
 }
 
 template <typename... Interfaces>
-ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(const StringPtr& streamingConnectionString)
+ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(IString* streamingConnectionString)
 {
-    if (!streamingConnectionString.assigned())
+    if (!streamingConnectionString)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
     std::scoped_lock lock(this->sync);
 
+    const auto streamingConnectionStringPtr = StringPtr::Borrow(streamingConnectionString);
+
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
-                           [&streamingConnectionString](const WeakRefPtr<IStreaming>& sourceRef)
+                           [&streamingConnectionStringPtr](const WeakRefPtr<IStreaming>& sourceRef)
                            {
                                StreamingPtr streamingSource = sourceRef.getRef();
                                return streamingSource.assigned()
-                                          ? (streamingSource.getConnectionString() == streamingConnectionString)
+                                          ? (streamingSource.getConnectionString() == streamingConnectionStringPtr)
                                           : false;
                            });
 
@@ -250,7 +255,7 @@ ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(const StringPtr
 
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned() &&
-        streamingConnectionString == activeStreamingSource.getConnectionString())
+        streamingConnectionStringPtr == activeStreamingSource.getConnectionString())
     {
         if (listened && streamed)
         {
@@ -259,6 +264,90 @@ ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(const StringPtr
                 return errCode;
         }
         activeStreamingSourceRef = nullptr;
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::subscribeCompleted(IString* streamingConnectionString)
+{
+    if (!streamingConnectionString)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    const auto streamingConnectionStringPtr = StringPtr::Borrow(streamingConnectionString);
+    auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
+    if (onSubscribeCompleteEvent.hasListeners())
+    {
+        onSubscribeCompleteEvent(
+            thisPtr,
+            SubscriptionEventArgs(streamingConnectionStringPtr, SubscriptionEventType::Subscribed)
+        );
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompleted(IString* streamingConnectionString)
+{
+    if (!streamingConnectionString)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    const auto streamingConnectionStringPtr = StringPtr::Borrow(streamingConnectionString);
+    auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
+    if (onUnsubscribeCompleteEvent.hasListeners())
+    {
+        onUnsubscribeCompleteEvent(
+            thisPtr,
+            SubscriptionEventArgs(streamingConnectionStringPtr, SubscriptionEventType::Unsubscribed)
+        );
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename ... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::getMirroredDataDescriptor(IDataDescriptor** descriptor)
+{
+    if (!descriptor)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    std::scoped_lock lock(signalMutex);
+    *descriptor = mirroredDataDescriptor.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename ... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::setMirroredDataDescriptor(IDataDescriptor* descriptor)
+{
+    std::scoped_lock lock(signalMutex);
+    mirroredDataDescriptor = descriptor;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename ... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::getMirroredDomainSignal(IMirroredSignalConfig** domainSignal)
+{
+    if (!domainSignal)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    std::scoped_lock lock(signalMutex);
+    *domainSignal = mirroredDomainSignal.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename ... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::setMirroredDomainSignal(IMirroredSignalConfig* domainSignal)
+{
+    std::scoped_lock lock(signalMutex);
+    mirroredDomainSignal = domainSignal;
+
+    if (domainSignal)
+    {
+        const ErrCode err = mirroredDomainSignal.asPtr<IMirroredSignalPrivate>()->getMirroredDataDescriptor(&mirroredDomainDataDescriptor);
+        if (OPENDAQ_FAILED(err))
+            return err;
     }
 
     return OPENDAQ_SUCCESS;
@@ -557,61 +646,6 @@ ErrCode MirroredSignalBase<Interfaces...>::setStreamed(Bool streamed)
         return errCode;
 
     return OPENDAQ_SUCCESS;
-}
-
-template <typename... Interfaces>
-void MirroredSignalBase<Interfaces...>::subscribeCompleted(const StringPtr& streamingConnectionString)
-{
-    auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
-    if (onSubscribeCompleteEvent.hasListeners())
-    {
-        onSubscribeCompleteEvent(
-            thisPtr,
-            SubscriptionEventArgs(streamingConnectionString, SubscriptionEventType::Subscribed)
-        );
-    }
-}
-
-template <typename... Interfaces>
-void MirroredSignalBase<Interfaces...>::unsubscribeCompleted(const StringPtr& streamingConnectionString)
-{
-    auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
-    if (onUnsubscribeCompleteEvent.hasListeners())
-    {
-        onUnsubscribeCompleteEvent(
-            thisPtr,
-            SubscriptionEventArgs(streamingConnectionString, SubscriptionEventType::Unsubscribed)
-        );
-    }
-}
-
-template <typename ... Interfaces>
-DataDescriptorPtr MirroredSignalBase<Interfaces...>::getMirroredDataDescriptor()
-{
-    std::scoped_lock lock(signalMutex);
-    return mirroredDataDescriptor;
-}
-
-template <typename ... Interfaces>
-void MirroredSignalBase<Interfaces...>::setMirroredDataDescriptor(const DataDescriptorPtr& descriptor)
-{
-    std::scoped_lock lock(signalMutex);
-    this->mirroredDataDescriptor = descriptor;
-}
-
-template <typename ... Interfaces>
-MirroredSignalConfigPtr MirroredSignalBase<Interfaces...>::getMirroredDomainSignal()
-{
-    std::scoped_lock lock(signalMutex);
-    return this->mirroredDomainSignal;
-}
-
-template <typename ... Interfaces>
-void MirroredSignalBase<Interfaces...>::setMirroredDomainSignal(const MirroredSignalConfigPtr& domainSignal)
-{
-    std::scoped_lock lock(signalMutex);
-    mirroredDomainSignal = domainSignal;
-    mirroredDomainDataDescriptor = domainSignal.asPtr<IMirroredSignalPrivate>()->getMirroredDataDescriptor();
 }
 
 END_NAMESPACE_OPENDAQ

@@ -25,7 +25,7 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <coretypes/validation.h>
 #include <opendaq/streaming_private.h>
-#include <opendaq/mirrored_signal_private.h>
+#include <opendaq/mirrored_signal_private_ptr.h>
 #include <opendaq/ids_parser.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -371,8 +371,9 @@ void StreamingImpl<Interfaces...>::removeAllSignalsInternal()
     {
         if (mirroredSignalRef.assigned())
         {
+            // Can this be removed earlier and this is now an invalid call?
             if (auto mirroredSignal = mirroredSignalRef.getRef(); mirroredSignal.assigned())
-                mirroredSignal.template asPtr<IMirroredSignalPrivate>()->removeStreamingSource(connectionString);
+                mirroredSignal.template asPtr<IMirroredSignalPrivate>()->removeStreamingSource(connectionString); 
         }
     }
     streamingSignalsRefs.clear();
@@ -392,8 +393,7 @@ void StreamingImpl<Interfaces...>::removeSignalById(const StringPtr& streamingSi
             onRemoveSignal(mirroredSignal);
             streamingSignalsRefs.erase(it);
 
-            ErrCode errCode = mirroredSignal.template asPtr<IMirroredSignalPrivate>()->removeStreamingSource(connectionString);
-            checkErrorInfo(errCode);
+            mirroredSignal.template asPtr<IMirroredSignalPrivate>().removeStreamingSource(connectionString);
         }
     }
     else

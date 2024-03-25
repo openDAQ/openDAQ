@@ -1,7 +1,7 @@
 #include <opendaq/event_packet_params.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/signal_factory.h>
-#include <opendaq/mirrored_signal_private.h>
+#include <opendaq/mirrored_signal_private_ptr.h>
 #include "websocket_streaming/websocket_client_signal_impl.h"
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
@@ -41,17 +41,21 @@ void WebsocketClientSignalImpl::createAndAssignDomainSignal(const DataDescriptor
     const auto domainSig = createWithImplementation<IMirroredSignalPrivate, WebsocketClientSignalImpl>(
         this->context, this->parent.getRef(), CreateLocalId(streamingId + "_time_artificial"));
     domainSig->setMirroredDataDescriptor(domainDescriptor);
-    setMirroredDomainSignal(domainSig);
+    checkErrorInfo(setMirroredDomainSignal(domainSig.asPtr<IMirroredSignalConfig>()));
 }
 
 SignalPtr WebsocketClientSignalImpl::onGetDomainSignal()
 {
-    return getMirroredDomainSignal();
+    MirroredSignalConfigPtr sig;
+    checkErrorInfo(getMirroredDomainSignal(&sig));
+    return sig;
 }
 
 DataDescriptorPtr WebsocketClientSignalImpl::onGetDescriptor()
 {
-    return getMirroredDataDescriptor();
+    DataDescriptorPtr desc;
+    checkErrorInfo(getMirroredDataDescriptor(&desc));
+    return desc;
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

@@ -52,7 +52,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * [0] = [0, 0, 0, 0, 0, 0]
      * [1] = [0, 0, 0, 0, 0, 0]
      * [2] = [0, 0, 0, 0, 0, 0]
-     * @param[in,out] count The maximum amount of samples to be read. If the `count` is less than
+     * @param[in,out] count The maximum amount of samples to be read expressed in commonSampleRate. If the `count` is less than
      * available the parameter value is set to the actual amount and only the available
      * samples are returned. The rest of the buffer is not modified or cleared. In case of different sample rates,
      * the number of read samples may be different for each individual signal.
@@ -90,7 +90,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * [0] = [0, 0, 0, 0, 0, 0]
      * [1] = [0, 0, 0, 0, 0, 0]
      * [2] = [0, 0, 0, 0, 0, 0]
-     * @param[in,out] count The maximum amount of samples to be read. If the `count` is less than
+     * @param[in,out] count The maximum amount of samples to be read expressed in commonSampleRate. If the `count` is less than
      * available the parameter value is set to the actual amount and only the available
      * samples are returned. The rest of the buffer is not modified or cleared. In case of different sample rates,
      * the number of read samples may be different for each individual signal.
@@ -133,6 +133,15 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      *         OPENDAQ_IGNORED if the reader is not synchronized.
      */
     virtual ErrCode INTERFACE_FUNC getOffset(void* domainStart) = 0;
+
+    /*!
+     * @brief Gets the common sample rate in case input signal have different rates. The value of common sample rate is such
+     * that sample rate of any individual signal can be represented as commonSampleRate / Div, where Div is an integer. Unless
+     * the required common sample rate is specified in the MultiReader constructor, common sample rate is lowest common multiple
+     * of individual signal's sample rates. The number of samples to be read is specified in common sample rate.
+     * @param commonSampleRate The domain point at which the reader managed to synchronize all the signals.
+     */
+    virtual ErrCode INTERFACE_FUNC getCommonSampleRate(Int* commonSampleRate) = 0;
 
     /*!
      * @brief Gets the synchronization status of the reader

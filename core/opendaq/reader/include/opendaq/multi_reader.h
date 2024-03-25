@@ -21,6 +21,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 struct IInputPort;
+struct IMultiReaderBuilder;
 
 /*!
  * @ingroup opendaq_readers
@@ -191,5 +192,15 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     SampleType, valueReadType,
     SampleType, domainReadType
 )
+
+/*!
+ * @brief Creates a MultiReader with Builder
+ * @param builder MultiReader Builder
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, MultiReaderFromBuilder, IMultiReader,
+    IMultiReaderBuilder*, builder
+)
+
 
 END_NAMESPACE_OPENDAQ

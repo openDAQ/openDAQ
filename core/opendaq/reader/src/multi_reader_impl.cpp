@@ -29,23 +29,16 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  ReadTimeoutType timeoutType,
                                  std::int64_t requiredCommonSampleRate,
                                  Bool startOnFullUnitOfDomain)
-    : requiredCommonSampleRate(requiredCommonSampleRate),
-      startOnFullUnitOfDomain(startOnFullUnitOfDomain)
+    : requiredCommonSampleRate(requiredCommonSampleRate)
+    , startOnFullUnitOfDomain(startOnFullUnitOfDomain)
 {
-    bool isSignal = CheckPreconditions(list);
-
-    auto logger = list[0].getContext().getLogger();
-    loggerComponent = logger.getOrAddComponent("MultiReader");
+    auto ports = CheckPreconditions(list);
+    loggerComponent = ports[0].getContext().getLogger().getOrAddComponent("MultiReader");
 
     this->internalAddRef();
 
-    if (isSignal)
-        connectSignals(list, valueReadType, domainReadType, mode);
-    else
-    {
-        portBinder = PropertyObject();
-        connectPorts(list, valueReadType, domainReadType, mode);
-    }
+    portBinder = PropertyObject();
+    connectPorts(ports, valueReadType, domainReadType, mode);
 
     updateCommonSampleRateAndDividers();
 
@@ -120,6 +113,27 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
     updateCommonSampleRateAndDividers();
 }
 
+MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
+    : requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
+    , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
+{
+    auto ports = CheckPreconditions(builder.getInputPortList());
+    loggerComponent = ports[0].getContext().getLogger().getOrAddComponent("MultiReader");
+
+    this->internalAddRef();
+
+    portBinder = PropertyObject();
+    connectPorts(ports, builder.getValueReadType(), builder.getDomainReadType(), builder.getReadMode());
+
+    updateCommonSampleRateAndDividers();
+
+    SizeT min{};
+    SyncStatus syncStatus{};
+    ErrCode errCode = synchronize(min, syncStatus);
+
+    checkErrorInfo(errCode);
+}
+
 MultiReaderImpl::~MultiReaderImpl()
 {
     if (!portBinder.assigned())
@@ -137,13 +151,14 @@ ListPtr<ISignal> MultiReaderImpl::getSignals() const
     return list;
 }
 
-static void checkSameDomain(const ListPtr<ISignal>& list)
+static void checkSameDomain(const ListPtr<IInputPortConfig>& list)
 {
     StringPtr domainUnit;
     StringPtr domainQuantity;
 
-    for (const auto& signal : list)
+    for (const auto& port : list)
     {
+        auto signal = port.getSignal();
         auto domain = signal.getDomainSignal();
         if (!domain.assigned())
         {
@@ -238,38 +253,36 @@ bool MultiReaderImpl::ListElementsHaveSameType(const ListPtr<IBaseObject>& list)
     return true;
 }
 
-bool MultiReaderImpl::CheckPreconditions(const ListPtr<IBaseObject>& list)
+ListPtr<IInputPortConfig> MultiReaderImpl::CheckPreconditions(const ListPtr<IComponent>& list)
 {
     if (!list.assigned())
         throw NotAssignedException("List of inputs is not assigned");
     if (list.getCount() == 0)
         throw InvalidParameterException("Need at least one signal.");
 
-    bool isSignal = list[0].asPtrOrNull<ISignal>() != nullptr;
-    ListPtr<ISignal> signals;
-    if (isSignal)
+    auto portList = List<IInputPortConfig>();   
+    for (const auto & el : list)
     {
-        if (!ListElementsHaveSameType<ISignal>(list))
-            throw InvalidParameterException("List of signals contains not signal object");
-
-        signals = list;
-    }
-    else
-    { 
-        if (!ListElementsHaveSameType<IInputPortConfig>(list))
-            throw InvalidParameterException("List of ports contains not port object");
-
-        signals = List<IInputPortConfig>();
-        for (auto port : list)
+        if (auto signal = el.asPtrOrNull<ISignal>(); signal.assigned())
         {
-            auto signal = InputPortConfigPtr(port).getSignal();
-            if (signal.assigned())
-                signals.pushBack(signal);
+            auto port = InputPort(signal.getContext(), nullptr, fmt::format("Read signal {}", signal.getLocalId()));
+            port.setNotificationMethod(PacketReadyNotification::SameThread);
+            port.connect(signal);
+            portList.pushBack(port);
+        }
+        else if (auto port = el.asPtrOrNull<IInputPortConfig>(); port.assigned())
+        {
+            port.setNotificationMethod(PacketReadyNotification::Scheduler);
+            portList.pushBack(port);
+        }
+        else
+        {
+            throw InvalidParameterException("One of the elements of input list is not signal or input port");
         }
     }
 
-    checkSameDomain(signals);
-    return isSignal;
+    checkSameDomain(portList);
+    return portList;
 }
 
 void MultiReaderImpl::setStartInfo()
@@ -310,26 +323,6 @@ void MultiReaderImpl::setStartInfo()
     }
 }
 
-void MultiReaderImpl::connectSignals(const ListPtr<ISignal>& inputSignals,
-                                     SampleType valueRead,
-                                     SampleType domainRead,
-                                     ReadMode mode)
-{
-    auto listener = this->thisPtr<InputPortNotificationsPtr>();
-
-    int counter = 0u;
-    for (const auto& signal : inputSignals)
-    {
-        auto port = InputPort(signal.getContext(), nullptr, fmt::format("Read signal {}", counter++));
-        port.setNotificationMethod(PacketReadyNotification::SameThread);
-        port.setListener(listener);
-        port.connect(signal);
-
-        auto& sigInfo = signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
-        sigInfo.handleDescriptorChanged(sigInfo.connection.dequeue());
-    }
-}
-
 void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts,
                                      SampleType valueRead,
                                      SampleType domainRead,
@@ -340,7 +333,6 @@ void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts,
     for (const auto& port : inputPorts)
     {
         port.asPtr<IOwnable>().setOwner(portBinder);
-        port.setNotificationMethod(PacketReadyNotification::Scheduler);
         port.setListener(listener);
 
         auto& sigInfo = signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
@@ -747,14 +739,14 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
         sigInfo->handleDescriptorChanged(sigInfo->connection.dequeue());
 
         // check new signals
-        auto signalList = List<ISignal>();
+        auto portList = List<IInputPortConfig>();
         for (const auto & signalReader : signals) {
-            const auto & signal = signalReader.port.getSignal();
-            if (signal.assigned())
-                signalList.pushBack(signal);
+            const auto & inputPort = signalReader.port;
+            if (inputPort.getSignal().assigned())
+                portList.pushBack(inputPort);
         }
 
-        checkSameDomain(signalList);
+        checkSameDomain(portList);
 
         updateCommonSampleRateAndDividers();
 
@@ -1076,5 +1068,11 @@ OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     SampleType, valueReadType,
     SampleType, domainReadType
 )
+
+extern "C"
+daq::ErrCode PUBLIC_EXPORT createMultiReaderFromBuilder(IMultiReader** objTmp, IMultiReaderBuilder* builder)
+{
+    return daq::createObject<IMultiReader, MultiReaderImpl>(objTmp, builder);
+}
 
 END_NAMESPACE_OPENDAQ

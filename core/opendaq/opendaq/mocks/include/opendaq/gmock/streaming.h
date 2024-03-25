@@ -76,7 +76,7 @@ struct MockStreaming : daq::Streaming
                 Invoke([&](const daq::StringPtr& signalRemoteId, const daq::StringPtr& /*domainSignalRemoteId*/)
                        {
                            if (signal.getRemoteId() == signalRemoteId)
-                                signal.template asPtr<daq::IMirroredSignalPrivate>()->subscribeCompleted(this->connectionString);
+                                signal.template asPtr<daq::IMirroredSignalPrivate>().subscribeCompleted(this->connectionString);
                        })
             ));
 
@@ -85,7 +85,7 @@ struct MockStreaming : daq::Streaming
                 Invoke([&](const daq::StringPtr& signalRemoteId, const daq::StringPtr& /*domainSignalRemoteId*/)
                        {
                            if (signal.getRemoteId() == signalRemoteId)
-                                signal.template asPtr<daq::IMirroredSignalPrivate>()->unsubscribeCompleted(this->connectionString);
+                                signal.template asPtr<daq::IMirroredSignalPrivate>().unsubscribeCompleted(this->connectionString);
                        })
             ));
 

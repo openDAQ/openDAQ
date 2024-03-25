@@ -22,7 +22,7 @@
 #include <opendaq/component_holder_ptr.h>
 #include <opendaq/ids_parser.h>
 #include <opendaq/deserialize_component_ptr.h>
-#include <opendaq/mirrored_signal_private.h>
+#include <opendaq/mirrored_signal_private_ptr.h>
 
 #include <config_protocol/config_client_object.h>
 #include <coretypes/cloneable.h>

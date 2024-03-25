@@ -2,7 +2,7 @@
 
 #include <opendaq/event_packet_params.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
-#include <opendaq/mirrored_signal_private.h>
+#include <opendaq/mirrored_signal_private_ptr.h>
 
 #include <coreobjects/property_object_protected_ptr.h>
 
@@ -48,7 +48,7 @@ void NativeStreamingSignalImpl::assignDomainSignal(const SignalPtr& domainSignal
                             domainSignal.getGlobalId()));
         }
 
-    setMirroredDomainSignal(domainSignal);
+    setMirroredDomainSignal(domainSignal.asPtr<IMirroredSignalConfig>());
 }
 
 ErrCode NativeStreamingSignalImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
@@ -76,17 +76,21 @@ void NativeStreamingSignalImpl::deserializeCustomObjectValues(const SerializedOb
                                                               const FunctionPtr& factoryCallback)
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
-    setMirroredDataDescriptor(this->dataDescriptor);
+    checkErrorInfo(setMirroredDataDescriptor(this->dataDescriptor));
 }
 
 SignalPtr NativeStreamingSignalImpl::onGetDomainSignal()
 {
-    return getMirroredDomainSignal();
+    MirroredSignalConfigPtr sig;
+    checkErrorInfo(getMirroredDomainSignal(&sig));
+    return sig;
 }
 
 DataDescriptorPtr NativeStreamingSignalImpl::onGetDescriptor()
 {
-    return getMirroredDataDescriptor();
+    DataDescriptorPtr desc;
+    checkErrorInfo(getMirroredDataDescriptor(&desc));
+    return desc;
 }
 
 

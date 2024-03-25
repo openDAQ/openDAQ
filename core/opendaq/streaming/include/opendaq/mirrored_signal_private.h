@@ -42,38 +42,39 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredSignalPrivate, IBaseObject)
      * @param eventPacket The event packet to be handled.
      * @returns True if the eventPacket should be sent along the signal path; False otherwise.
      */
-    virtual Bool INTERFACE_FUNC triggerEvent(const EventPacketPtr& eventPacket) = 0;
+    virtual ErrCode INTERFACE_FUNC triggerEvent(IEventPacket* eventPacket, Bool* forward) = 0;
 
     /*!
      * @brief Adds streaming source for signal.
      * @param streaming The Streaming object representing the data source.
      */
-    virtual ErrCode INTERFACE_FUNC addStreamingSource(const StreamingPtr& streaming) = 0;
+    virtual ErrCode INTERFACE_FUNC addStreamingSource(IStreaming* streaming) = 0;
 
     /*!
      * @brief Removes streaming source for signal.
      * @param streamingConnectionString The connection string of streaming source to be removed.
      */
-    virtual ErrCode INTERFACE_FUNC removeStreamingSource(const StringPtr& streamingConnectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) = 0;
 
     /*!
      * @brief Handles the completion of subscription acknowledged by the specified streaming source.
      * @param streamingConnectionString The connection string of the streaming source that completed
      * the subscription for the signal.
      */
-    virtual void INTERFACE_FUNC subscribeCompleted(const StringPtr& streamingConnectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC subscribeCompleted(IString* streamingConnectionString) = 0;
 
     /*!
      * @brief Handles the completion of unsubscription acknowledged by the specified streaming source.
      * @param streamingConnectionString The connection string of the streaming source that completed
      * the unsubscription for the signal.
      */
-    virtual void INTERFACE_FUNC unsubscribeCompleted(const StringPtr& streamingConnectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC unsubscribeCompleted(IString* streamingConnectionString) = 0;
 
-    virtual DataDescriptorPtr INTERFACE_FUNC getMirroredDataDescriptor() = 0;
-    virtual void INTERFACE_FUNC setMirroredDataDescriptor(const DataDescriptorPtr& descriptor) = 0;
-    virtual MirroredSignalConfigPtr INTERFACE_FUNC getMirroredDomainSignal() = 0;
-    virtual void INTERFACE_FUNC setMirroredDomainSignal(const MirroredSignalConfigPtr& domainSignal) = 0;
+    virtual ErrCode INTERFACE_FUNC getMirroredDataDescriptor(IDataDescriptor** descriptor) = 0;
+    virtual ErrCode INTERFACE_FUNC setMirroredDataDescriptor(IDataDescriptor* descriptor) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getMirroredDomainSignal(IMirroredSignalConfig** domainSignals) = 0;
+    virtual ErrCode INTERFACE_FUNC setMirroredDomainSignal(IMirroredSignalConfig* domainSignal) = 0;
 };
 /*!@}*/
 

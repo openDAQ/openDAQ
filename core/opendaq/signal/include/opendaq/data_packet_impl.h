@@ -456,8 +456,6 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManag
     if (OPENDAQ_FAILED(err))
         return err;
 
-    const auto sampleType = descriptor.getSampleType();
-
     addr = static_cast<char*>(addr) + (sampleCount - 1) * descriptor.getSampleSize();
 
     return daqTry(

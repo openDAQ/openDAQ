@@ -47,8 +47,10 @@ void NativeStreamingSignalImpl::assignDomainSignal(const SignalPtr& domainSignal
                 fmt::format(R"(Domain signal "{}" does not implement IMirroredSignalConfig interface.)",
                             domainSignal.getGlobalId()));
         }
-
-    setMirroredDomainSignal(domainSignal.asPtr<IMirroredSignalConfig>());
+    if (domainSignal.assigned())
+        setMirroredDomainSignal(domainSignal.asPtr<IMirroredSignalConfig>());
+    else
+        setMirroredDomainSignal(nullptr);
 }
 
 ErrCode NativeStreamingSignalImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)

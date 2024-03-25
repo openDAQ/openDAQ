@@ -30,7 +30,7 @@ struct ModuleLibrary;
 class ModuleManagerImpl : public ImplementationOfWeak<IModuleManager, IModuleManagerUtils>
 {
 public:
-    explicit ModuleManagerImpl(const StringPtr& path);
+    explicit ModuleManagerImpl(const BaseObjectPtr& path);
     ~ModuleManagerImpl() override;
 
     ErrCode INTERFACE_FUNC getModules(IList** availableModules) override;
@@ -45,7 +45,7 @@ public:
 
 private:
     bool modulesLoaded;
-    std::string path;
+    std::vector<std::string> paths;
     std::vector<ModuleLibrary> libraries;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;

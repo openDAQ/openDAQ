@@ -176,6 +176,20 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
+     * @brief Add the path for the default ModuleManager of the Instance. If Module manager has been set, configuring of Module path has no effect in building Instance.
+     * @param path The path for the default ModuleManager of Instance
+     */
+    virtual ErrCode INTERFACE_FUNC addModulePath(IString* path) = 0;
+    
+    // [elementType(paths, IString)]
+    /*!
+     * @brief Get the list of paths for the default ModuleManager of the Instance. If Module manager has been set, configuring of Module path has no effect in building Instance.
+     * @param paths The paths for the default ModuleManager of Instance
+     */
+    virtual ErrCode INTERFACE_FUNC getModulePathsList(IList** paths) = 0;
+
+    // [returnSelf]
+    /*!
      * @brief Sets The custom ModuleManager for the Instance.
      * @param moduleManager The custom ModuleManager of Instance
      */

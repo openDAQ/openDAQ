@@ -46,6 +46,8 @@ public:
 
     ErrCode INTERFACE_FUNC setModulePath(IString* path) override;
     ErrCode INTERFACE_FUNC getModulePath(IString** path) override;
+    ErrCode INTERFACE_FUNC addModulePath(IString* path) override;
+    ErrCode INTERFACE_FUNC getModulePathsList(IList** paths) override;
 
     ErrCode INTERFACE_FUNC setModuleManager(IModuleManager* moduleManager) override;
     ErrCode INTERFACE_FUNC getModuleManager(IModuleManager** moduleManager) override;

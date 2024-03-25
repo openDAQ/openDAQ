@@ -96,6 +96,40 @@ TEST_F(PacketStreamingTest, DataPacket)
     ASSERT_TRUE(client.areReferencesCleared());
 }
 
+TEST_F(PacketStreamingTest, ConstantRuleDataPacket)
+{
+    const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).setRule(ConstantDataRule()).build();
+
+    const auto serverDataDescriptorChangedEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
+    server.addDaqPacket(1, serverDataDescriptorChangedEventPacket);
+
+    constexpr size_t sampleCount = 100;
+    auto serverDataPacket = ConstantDataPacketWithDomain(nullptr, valueDescriptor, sampleCount, 24.0f);
+
+    server.addDaqPacket(1, serverDataPacket);
+
+    transmitAll();
+
+    auto [signalIdDataDescriptorChangedEventPacket, clientDataDescriptorChangedEventPacket] = client.getNextDaqPacket();
+    auto [signalIdOfDataPacket, clientDataPacket] = client.getNextDaqPacket();
+
+    ASSERT_EQ(signalIdDataDescriptorChangedEventPacket, 1u);
+    ASSERT_EQ(signalIdOfDataPacket, 1u);
+    ASSERT_EQ(serverDataDescriptorChangedEventPacket, clientDataDescriptorChangedEventPacket);
+
+    const auto clientData = reinterpret_cast<float*>(clientDataPacket.asPtr<IDataPacket>(true).getData());
+
+    ASSERT_EQ(clientDataPacket.asPtr<IDataPacket>(true).getSampleCount(), sampleCount);
+    for (size_t i = 0; i < sampleCount; i++)
+        ASSERT_EQ(clientData[i], 24);
+
+    serverDataPacket.release();
+
+    completeTransmitAll();
+    ASSERT_TRUE(client.areReferencesCleared());
+}
+
+
 TEST_F(PacketStreamingTest, CanReleaseDataPacket)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();

@@ -222,14 +222,12 @@ TEST_F(VariantConverterTest, LinearDataRule)
 
 TEST_F(VariantConverterTest, ConstantDataRule)
 {
-    const DataRulePtr daqDataRule = ConstantDataRule(2.0);
-    const DataRulePtr daqDataRuleWrong = ConstantDataRule(1.0);
+    const DataRulePtr daqDataRule = ConstantDataRule();
 
     const auto variant = VariantConverter<IDataRule>::ToVariant(daqDataRule);
     const auto daqDataRuleOut = VariantConverter<IDataRule>::ToDaqObject(variant);
 
     ASSERT_TRUE(daqDataRuleOut.equals(daqDataRule));
-    ASSERT_FALSE(daqDataRuleOut.equals(daqDataRuleWrong));
 }
 
 TEST_F(VariantConverterTest, ExplicitDataRule)

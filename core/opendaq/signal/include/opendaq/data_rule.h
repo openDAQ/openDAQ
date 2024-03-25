@@ -114,11 +114,9 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 
 /*!
  * @brief Creates a DataRule with a Constant rule type configuration.
- * @param constant Constant value to be used in the rule.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, ConstantDataRule, IDataRule,
-    INumber*, constant
+    LIBRARY_FACTORY, ConstantDataRule, IDataRule
 )
 
 /*!

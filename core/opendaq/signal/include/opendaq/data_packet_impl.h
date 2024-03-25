@@ -16,7 +16,6 @@
 
 #pragma once
 #include <coretypes/intfs.h>
-#include <opendaq/allocator_ptr.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/data_rule_calc_private.h>
 #include <opendaq/generic_data_packet_impl.h>
@@ -24,6 +23,7 @@
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/scaling_calc_private.h>
 #include <opendaq/signal_exceptions.h>
+#include <opendaq/deleter_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -36,9 +36,27 @@ public:
     explicit DataPacketImpl(const DataPacketPtr& domainPacket,
                             const DataDescriptorPtr& descriptor,
                             SizeT sampleCount,
+                            const NumberPtr& offset);
+
+    explicit DataPacketImpl(const DataDescriptorPtr& descriptor,
+                            SizeT sampleCount,
+                            const NumberPtr& offset);
+
+    explicit DataPacketImpl(const DataPacketPtr& domainPacket,
+                            const DataDescriptorPtr& descriptor,
+                            SizeT sampleCount,
                             const NumberPtr& offset,
-                            AllocatorPtr allocator);
-    explicit DataPacketImpl(const DataDescriptorPtr& descriptor, SizeT sampleCount, const NumberPtr& offset, AllocatorPtr allocator);
+                            void* externalMemory,
+                            const DeleterPtr& deleter,
+                            SizeT bufferSize = std::numeric_limits<SizeT>::max());
+
+    explicit DataPacketImpl(const DataPacketPtr& domainPacket,
+                            const DataDescriptorPtr& descriptor,
+                            SizeT sampleCount,
+                            void* initialValue,
+                            void* otherValues,
+                            SizeT otherValueCount);
+
     ~DataPacketImpl() override;
 
     ErrCode INTERFACE_FUNC getDataDescriptor(IDataDescriptor** descriptor) override;
@@ -59,7 +77,7 @@ private:
     StructPtr buildStructFromFields(const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager, void*& addr) const;
     BaseObjectPtr buildFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager) const;
 
-    AllocatorPtr allocator;
+    DeleterPtr deleter;
     DataDescriptorPtr descriptor;
     SizeT sampleCount;
     NumberPtr offset = nullptr;
@@ -74,22 +92,22 @@ private:
     bool hasScalingCalc;
     bool hasDataRuleCalc;
     bool hasRawDataOnly;
+    bool externalMemory;
 };
 
 template <typename TInterface>
 DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
                                            const DataDescriptorPtr& descriptor,
                                            SizeT sampleCount,
-                                           const NumberPtr& offset,
-                                           AllocatorPtr allocator)
+                                           const NumberPtr& offset)
     : GenericDataPacketImpl<TInterface>(domainPacket)
-    , allocator(std::move(allocator))
     , descriptor(descriptor)
     , sampleCount(sampleCount)
     , offset(offset)
     , hasScalingCalc(false)
     , hasDataRuleCalc(false)
     , hasRawDataOnly(true)
+    , externalMemory(false)
 {
     scaledData = nullptr;
     data = nullptr;
@@ -104,10 +122,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
 
     if (rawDataSize > 0)
     {
-        if (this->allocator.assigned())
-            data = this->allocator.allocate(descriptor, rawDataSize, rawSampleSize);
-        else
-            data = std::malloc(rawDataSize);
+        data = std::malloc(rawDataSize);
 
         if (data == nullptr)
             throw NoMemoryException();
@@ -127,20 +142,109 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
 }
 
 template <typename TInterface>
-DataPacketImpl<TInterface>::DataPacketImpl(const DataDescriptorPtr& descriptor,
+DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
+                                           const DataDescriptorPtr& descriptor,
                                            SizeT sampleCount,
                                            const NumberPtr& offset,
-                                           AllocatorPtr allocator)
-    : DataPacketImpl<TInterface>(nullptr, descriptor, sampleCount, offset, std::move(allocator))
+                                           void* externalMemory,
+                                           const DeleterPtr& deleter,
+                                           SizeT bufferSize)
+    : GenericDataPacketImpl<TInterface>(domainPacket)
+    , deleter(deleter)
+    , descriptor(descriptor)
+    , sampleCount(sampleCount)
+    , offset(offset)
+    , hasScalingCalc(false)
+    , hasDataRuleCalc(false)
+    , hasRawDataOnly(true)
+    , externalMemory(true)
 {
+    scaledData = nullptr;
+    data = nullptr;
+
+    if (!descriptor.assigned())
+        throw ArgumentNullException("Data descriptor in packet is null.");
+
+    if (!deleter.assigned())
+        throw ArgumentNullException("Deleter must be assigned.");
+
+    sampleSize = descriptor.getSampleSize();
+    rawSampleSize = descriptor.getRawSampleSize();
+    dataSize = sampleCount * sampleSize;
+
+    if (bufferSize == std::numeric_limits<SizeT>::max())
+        rawDataSize = sampleCount * rawSampleSize;
+    else
+        rawDataSize = bufferSize;
+
+    data = externalMemory;
+
+    if (descriptor.getSampleType() == SampleType::Struct && rawSampleSize != sampleSize)
+        throw InvalidParameterException("Packets with struct implicit descriptor not supported");
+
+    const auto ruleType = descriptor.getRule().getType();
+
+    if (ruleType == DataRuleType::Constant || (ruleType == DataRuleType::Linear && this->offset.assigned()))
+        hasDataRuleCalc = descriptor.asPtr<IDataRuleCalcPrivate>(false)->hasDataRuleCalc();
+
+    hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(false)->hasScalingCalc();
+
+    hasRawDataOnly = !hasScalingCalc && !hasDataRuleCalc;
+}
+
+template <typename TInterface>
+DataPacketImpl<TInterface>::DataPacketImpl(const DataDescriptorPtr& descriptor,
+                                           SizeT sampleCount,
+                                           const NumberPtr& offset)
+    : DataPacketImpl<TInterface>(nullptr, descriptor, sampleCount, offset)
+{
+}
+
+template <typename TInterface>
+DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
+                                           const DataDescriptorPtr& descriptor,
+                                           SizeT sampleCount,
+                                           void* initialValue,
+                                           void* otherValues,
+                                           SizeT otherValueCount)
+    : GenericDataPacketImpl<TInterface>(domainPacket)
+    , descriptor(descriptor)
+    , sampleCount(sampleCount)
+    , hasRawDataOnly(true)
+    , externalMemory(false)
+{
+    scaledData = nullptr;
+    data = nullptr;
+
+    if (!descriptor.assigned())
+        throw ArgumentNullException("Data descriptor in packet is null.");
+    const auto ruleType = descriptor.getRule().getType();
+    if (ruleType != DataRuleType::Constant)
+        throw InvalidParameterException("Data rule must be constant.");
+
+    sampleSize = descriptor.getSampleSize();
+    dataSize = sampleCount * sampleSize;
+    const auto structSize = sampleSize + sizeof(uint32_t);
+
+    rawDataSize = sampleSize + structSize * otherValueCount;
+    data = std::malloc(rawDataSize);
+    std::memcpy(data, initialValue, sampleSize);
+    if (otherValueCount > 0)
+        std::memcpy(reinterpret_cast<uint8_t*>(data) + sampleSize, otherValues, otherValueCount * structSize);
+
+    hasDataRuleCalc = true;
+    hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(false)->hasScalingCalc();
+    if (hasScalingCalc)
+        throw InvalidParameterException("Constant data rule with post scaling not supported.");
+    hasRawDataOnly = false;
 }
 
 template <typename TInterface>
 DataPacketImpl<TInterface>::~DataPacketImpl()
 {
-    if (allocator.assigned())
+    if (externalMemory)
     {
-        allocator.free(data);
+        deleter.deleteMemory(data);
     }
     else
     {
@@ -216,7 +320,7 @@ ErrCode DataPacketImpl<TInterface>::getData(void** address)
                     }
                     else if (hasDataRuleCalc)
                     {
-                        scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(offset, sampleCount);
+                        scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(offset, sampleCount, data, rawDataSize);
                     }
 
                     *address = scaledData;

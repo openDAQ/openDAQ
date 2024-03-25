@@ -63,11 +63,10 @@ inline DataRulePtr LinearDataRule(const NumberPtr& delta, const NumberPtr& start
 
 /*!
  * @brief Creates a DataRule with a Constant rule type configuration.
- * @param constant Constant value to be used in the rule.
  */
-inline DataRulePtr ConstantDataRule(const NumberPtr& constant)
+inline DataRulePtr ConstantDataRule()
 {
-    DataRulePtr obj(ConstantDataRule_Create(constant));
+    DataRulePtr obj(ConstantDataRule_Create());
     return obj;
 }
 

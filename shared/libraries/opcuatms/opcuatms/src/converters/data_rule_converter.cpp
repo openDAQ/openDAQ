@@ -52,14 +52,14 @@ DataRulePtr StructConverter<IDataRule, UA_ConstantRuleDescriptionStructure>::ToD
         throw ConversionFailedException();
 
     const NumberPtr value = VariantConverter<INumber>::ToDaqObject(tmsStruct.value);
-    return ConstantDataRule(value);
+    return ConstantDataRule();
 }
 
 template <>
 OpcUaObject<UA_ConstantRuleDescriptionStructure> StructConverter<IDataRule, UA_ConstantRuleDescriptionStructure>::ToTmsType(
     const DataRulePtr& object, const ContextPtr& /*context*/)
 {
-    const NumberPtr value = object.getParameters().get("constant");
+    const NumberPtr value = Integer(0); // TODO: temporary solution until model is adapted
     OpcUaObject<UA_ConstantRuleDescriptionStructure> uaRuleDescription;
 
     uaRuleDescription->type = UA_STRING_ALLOC("constant");

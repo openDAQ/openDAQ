@@ -37,7 +37,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
 {
     const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
     loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
-    
+
     auto localId = builderPtr.getDefaultRootDeviceLocalId();
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
 
@@ -110,7 +110,7 @@ static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 
     // Configure moduleManager
     if (!moduleManager.assigned())
-        moduleManager = ModuleManager(builderPtr.getModulePath());
+        moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
 
     return Context(scheduler, logger, typeManager, moduleManager, options);
 }
@@ -670,7 +670,7 @@ ErrCode INTERFACE_FUNC InstanceImpl::update(ISerializedObject* obj)
 
             const auto rootDevicePtr = rootDeviceWrapperPtr.readSerializedObject(rootDeviceWrapperKeysPtr[0]);
             rootDevicePtr.checkObjectType("Device");
-            
+
             auto rootDeviceUpdatable = this->rootDevice.asPtr<IUpdatable>(true);
             rootDeviceUpdatable.update(rootDevicePtr);
 

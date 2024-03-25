@@ -24,10 +24,19 @@ static constexpr char checkDependenciesFunc[] = "checkDependencies";
 
 static std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComponent, std::string searchFolder, IContext* context);
 
-ModuleManagerImpl::ModuleManagerImpl(const StringPtr& path)
+ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : modulesLoaded(false)
-    , path(path)
 {
+    if (const StringPtr pathStr = path.asPtrOrNull<IString>(); pathStr.assigned())
+    {
+        paths.push_back(pathStr.toStdString());
+    }
+    else if (const ListPtr<IString> pathList = path.asPtrOrNull<IList>(); pathList.assigned())
+    {
+        paths.insert(paths.end(), pathList.begin(), pathList.end());
+    }
+    else
+        throw InvalidParameterException{};
 }
 
 ModuleManagerImpl::~ModuleManagerImpl()
@@ -38,7 +47,7 @@ ModuleManagerImpl::~ModuleManagerImpl()
 
         if (!OrphanedModules::canUnloadModule(lib.handle))
             orphanedModules.add(std::move(lib.handle));
-    } 
+    }
 
     orphanedModules.tryUnload();
 }
@@ -93,9 +102,12 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Logger must not be null");
 
     loggerComponent = this->logger.getOrAddComponent("ModuleManager");
-    
+
     return daqTry([&](){
-        libraries = enumerateModules(loggerComponent, path, context);
+        for(const auto& path: paths) {
+            auto localLibraries = enumerateModules(loggerComponent, path, context);
+            libraries.insert(libraries.end(), localLibraries.begin(), localLibraries.end());
+        }
         modulesLoaded = true;
         return OPENDAQ_SUCCESS;
     });
@@ -495,7 +507,7 @@ std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComp
 
         const fs::path& entryPath = entry.path();
         const auto filename = entryPath.filename().u8string();
-        
+
         if (boost::algorithm::ends_with(filename, OPENDAQ_MODULE_SUFFIX))
         {
             try
@@ -640,6 +652,12 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, ModuleManager,
     IString*, path
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, ModuleManager,
+    IModuleManager, createModuleManagerMultiplePaths,
+    IList*, paths
 )
 
 END_NAMESPACE_OPENDAQ

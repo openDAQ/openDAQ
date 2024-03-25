@@ -38,6 +38,18 @@ inline ModuleManagerPtr ModuleManager(const StringPtr& searchPath)
     return obj;
 }
 
+/*!
+ * @brief Creates a ModuleManager that loads modules at given search paths. If the search path is empty,
+ * it searches the executable folder and its subfolders. Otherwise, it searches the for the relative directory
+ * based on the current working directory.
+ * @param paths The locations of the module libraries.
+ */
+inline ModuleManagerPtr ModuleManagerMultiplePaths(const ListPtr<IString>& paths)
+{
+    ModuleManagerPtr obj(ModuleManagerMultiplePaths_Create(paths));
+    return obj;
+}
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

@@ -539,7 +539,23 @@ EventPacketPtr MirroredSignalBase<Interfaces...>::createDataDescriptorChangedEve
             const auto params = packet.getParameters();
 
             mirroredDataDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-            mirroredDomainDataDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+            if (!mirroredDomainDataDescriptor.assigned())
+            {
+                mirroredDomainDataDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+                if (mirroredDomainSignal.assigned())
+                    mirroredDomainSignal.asPtr<IMirroredSignalPrivate>().setMirroredDataDescriptor(mirroredDomainDataDescriptor);
+                else
+                {
+                    const SignalPtr domain = this->onGetDomainSignal();
+                    if (domain.assigned())
+                    {
+                        if (const auto mirroredDomain = domain.asPtrOrNull<IMirroredSignalPrivate>(); mirroredDomain.assigned())
+                        {
+                            mirroredDomain.setMirroredDataDescriptor(mirroredDomainDataDescriptor);
+                        }
+                    }
+                }
+            }
 
             return packet;
         }

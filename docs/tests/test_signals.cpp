@@ -49,7 +49,7 @@ TEST_F(SignalsTest, DataDescriptor)
 TEST_F(SignalsTest, DataRule)
 {
     auto dataRule1 = LinearDataRule(10, 10);
-    auto dataRule2 = ConstantDataRule(10);
+    auto dataRule2 = ConstantDataRule();
     auto dataRule3 = ExplicitDataRule();
 
     ASSERT_TRUE(dataRule1.assigned());

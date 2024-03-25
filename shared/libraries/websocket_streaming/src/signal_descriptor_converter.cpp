@@ -174,8 +174,7 @@ daq::DataRulePtr SignalDescriptorConverter::GetRule(const daq::streaming_protoco
     {
         case daq::streaming_protocol::RULETYPE_CONSTANT:
         {
-            uint64_t start = subscribedSignal.time();
-            return ConstantDataRule(start);
+            return ConstantDataRule();
         }
         break;
         case daq::streaming_protocol::RULETYPE_EXPLICIT:

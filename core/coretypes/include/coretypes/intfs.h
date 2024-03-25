@@ -571,6 +571,23 @@ protected:
         return refCount->strong;
     }
 
+    int releaseWeakRefOnException()
+    {
+        const auto newRefCount = std::atomic_fetch_sub_explicit(&refCount->strong, 1, std::memory_order_acq_rel) - 1;
+        assert(newRefCount >= 0);
+
+        if (newRefCount == 0)
+        {
+            const auto newWeakRefCount = std::atomic_fetch_sub_explicit(&refCount->weak, 1, std::memory_order_acq_rel) - 1;
+            if (newWeakRefCount != 0)
+            {
+                refCount.release();
+            }
+        }
+
+        return newRefCount;
+    }
+
     int internalAddRefNoCheck()
     {
         return std::atomic_fetch_add_explicit(&refCount->strong, 1, std::memory_order_relaxed);

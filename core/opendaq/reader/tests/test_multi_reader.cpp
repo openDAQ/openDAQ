@@ -2035,7 +2035,7 @@ TEST_F(MultiReaderTest, MultiReaderBuilderWithDifferentInputs)
     SignalPtr signal1 = sig1.signal;
     SignalPtr signal2 = sig2.signal;
 
-    MultiReaderPtr builder = MultiReaderBuilder().addInputPort(portList[0]).addSignal(signal1).addSignal(signal2);
+    MultiReaderBuilderPtr builder = MultiReaderBuilder().addInputPort(portList[0]).addSignal(signal1).addSignal(signal2);
     auto multi = MultiReaderFromBuilder(builder);
 
     auto available = multi.getAvailableCount();

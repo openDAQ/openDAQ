@@ -28,7 +28,8 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Reads multiple Signals at once.
+ * @brief Builder component of Multi reader objects. Contains setter methods to configure the Multi reader parameters
+ * and a `build` method that builds the Unit object.
  */
 DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
 {
@@ -61,27 +62,27 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
    
     // [returnSelf]
     /*!
-     * @brief Sets the value read type
-     * @param type The value read type
+     * @brief Sets the value signal read type
+     * @param type The value signal read type
      */
     virtual ErrCode INTERFACE_FUNC setValueReadType(SampleType type) = 0;
 
     /*!
-     * @brief Gets the value read type
-     * @param[out] type The value read type
+     * @brief Gets the value signal read type
+     * @param[out] type The value signal read type
      */
     virtual ErrCode INTERFACE_FUNC getValueReadType(SampleType* type) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Sets the domain read type
-     * @param type The domain read type
+     * @brief Sets the domain signal read type
+     * @param type The domain signal read type
      */
     virtual ErrCode INTERFACE_FUNC setDomainReadType(SampleType type) = 0;
 
     /*!
-     * @brief Gets the domain read type
-     * @param[out] type The domain read type
+     * @brief Gets the domain signal read type
+     * @param[out] type The domain signal read type
      */
     virtual ErrCode INTERFACE_FUNC getDomainReadType(SampleType* type) = 0;
 

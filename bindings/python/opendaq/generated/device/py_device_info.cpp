@@ -214,5 +214,5 @@ void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPr
             return objectPtr.getServerCapabilities().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the list of device supported protocols");
+        "Gets the list of server capabilities stored in device info.");
 }

@@ -628,7 +628,7 @@ jobs:
 
   dotnet-bindings-nuget:
     runs-on: windows-2022
-    name: .NET Bindings NuGet creation
+    name: .NET Bindings NuGet creation and test
     # needs: [build_windows,build_linux,build_macos]
     needs: [build_windows,build_linux]
     # if: ${{ ! github.event.pull_request.draft }}
@@ -693,6 +693,23 @@ jobs:
           & dotnet pack . --no-build --configuration Release_Build -p:NoWarn=1591 -p:CMAKE_RUNTIME_OUTPUT_DIRECTORY="${{ github.workspace }}" -p:OPENDAQ_PACKAGE_VERSION=$DAQ_VERSION --version-suffix beta-0
         # restoring before packing to create obj\project.assets.json needed for packing
         # packing without building as the binaries (artifacts) have been downloaded before (handled in *.csproj)
+
+      - name: Test NuGet package
+        shell: pwsh
+        working-directory: ${{ env.dotnet_source_path }}/openDAQ.Net.NuGet.Test
+        run: |
+          if (Test-Path ./packages/opendaq.net) { del ./packages/opendaq.net -Recurse -Force }
+          & dotnet restore . --configfile .nuget/NuGet.Config --packages ./packages
+          & dotnet test . --no-restore --configuration Release --logger "junit;LogFilePath=${test_path}/test_DotNetBindings_nuget.xml"
+        # restoring using private config and packages dir to have the NuGet package store temporary
+        # testing with building but not restoring (done before)
+
+      - name: Upload NuGet package test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Unit Test Results (openDAQ.Net NuGet)
+          path: ${{ env.test_path }}
 
       - name: Upload package (openDAQ.Net NuGet)
         uses: actions/upload-artifact@v3

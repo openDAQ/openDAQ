@@ -21,6 +21,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "openDAQDemo.Net", "openDAQD
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "openDAQ.Net.CI.Test", "openDAQ.Net.CI.Test\openDAQ.Net.CI.Test.csproj", "{19BBC771-4C59-4588-95BB-918C525572D3}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "openDAQ.Net.NuGet.Test", "openDAQ.Net.NuGet.Test\openDAQ.Net.NuGet.Test.csproj", "{DA262BA8-9766-48A8-90B8-070E78FC6D4A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_Build|x64 = Debug_Build|x64
@@ -91,6 +93,16 @@ Global
 		{19BBC771-4C59-4588-95BB-918C525572D3}.Release|x64.ActiveCfg = Release|x64
 		{19BBC771-4C59-4588-95BB-918C525572D3}.Release|x64.Build.0 = Release|x64
 		{19BBC771-4C59-4588-95BB-918C525572D3}.Release|x86.ActiveCfg = Release|x86
+		{DA262BA8-9766-48A8-90B8-070E78FC6D4A}.Debug_Build|x64.ActiveCfg = Debug|x64
+		{DA262BA8-9766-48A8-90B8-070E78FC6D4A}.Debug_Build|x86.ActiveCfg = Debug|x64
+		{DA262BA8-9766-48A8-90B8-070E78FC6D4A}.Debug|x64.ActiveCfg = Debug|x64
+		{DA262BA8-9766-48A8-90B8-070E78FC6D4A}.Debug|x64.Build.0 = Debug|x64
+		{DA262BA8-9766-48A8-90B8-070E78FC6D4A}.Debug|x86.ActiveCfg = Debug|x64
+		{DA262BA8-9766-48A8-90B8-070E78FC6D4A}.Release_Build|x64.ActiveCfg = Release|x64
+		{DA262BA8-9766-48A8-90B8-070E78FC6D4A}.Release_Build|x86.ActiveCfg = Release|x64
+		{DA262BA8-9766-48A8-90B8-070E78FC6D4A}.Release|x64.ActiveCfg = Release|x64
+		{DA262BA8-9766-48A8-90B8-070E78FC6D4A}.Release|x64.Build.0 = Release|x64
+		{DA262BA8-9766-48A8-90B8-070E78FC6D4A}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

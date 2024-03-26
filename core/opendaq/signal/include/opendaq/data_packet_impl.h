@@ -376,10 +376,14 @@ inline BaseObjectPtr DataPacketImpl<TInterface>::buildFromDescriptor(void*& addr
                                                                      const TypeManagerPtr& typeManager) const
 {
     const auto dimensions = descriptor.getDimensions();
+
+    if (!dimensions.assigned())
+        throw NotAssignedException{"Dimensions of data descriptor not assigned."};
+
     const auto dimensionCount = dimensions.getCount();
 
     if (dimensionCount > 1)
-        throw NotSupportedException();
+        throw NotSupportedException{"getLastValue on packets with dimensions supports only up to one dimension."};
 
     const auto sampleType = descriptor.getSampleType();
 

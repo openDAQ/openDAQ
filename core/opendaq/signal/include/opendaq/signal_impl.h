@@ -256,7 +256,7 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursivel
 {
     const auto name = descriptor.getName();
     if (!name.assigned())
-        throw NotFoundException();
+        throw NotAssignedException{"Name of data descriptor not assigned."};
 
     const auto fields = descriptor.getStructFields();
     auto fieldNames = List<IString>();

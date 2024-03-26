@@ -55,6 +55,8 @@ public:
 private:
     bool isDataEqual(const DataPacketPtr& dataPacket) const;
     BaseObjectPtr dataToObj(void* addr, const SampleType& type) const;
+    BaseObjectPtr dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType) const;
+    StructPtr buildStructFromFields(const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager, void*& addr) const;
     BaseObjectPtr buildFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager) const;
 
     AllocatorPtr allocator;
@@ -371,6 +373,29 @@ inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObj(void* addr, const Sam
 }
 
 template <typename TInterface>
+inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType) const
+{
+    const auto ptr = dataToObj(addr, sampleType);
+    addr = static_cast<char*>(addr) + getSampleSize(sampleType);
+    return ptr;
+}
+
+template <typename TInterface>
+inline StructPtr DataPacketImpl<TInterface>::buildStructFromFields(const DataDescriptorPtr& descriptor,
+                                                                   const TypeManagerPtr& typeManager,
+                                                                   void*& addr) const
+{
+    const auto builder = StructBuilder(descriptor.getName(), typeManager);
+    const auto fields = descriptor.getStructFields();
+    for (const auto& field : fields)
+    {
+        const auto ptr = buildFromDescriptor(addr, field, typeManager);
+        builder.set(field.getName(), ptr);
+    }
+    return builder.build();
+}
+
+template <typename TInterface>
 inline BaseObjectPtr DataPacketImpl<TInterface>::buildFromDescriptor(void*& addr,
                                                                      const DataDescriptorPtr& descriptor,
                                                                      const TypeManagerPtr& typeManager) const
@@ -393,29 +418,17 @@ inline BaseObjectPtr DataPacketImpl<TInterface>::buildFromDescriptor(void*& addr
         auto listPtr = List<IBaseObject>();
         const auto size = dimensions.getItemAt(0).getSize();
 
-        if (sampleType == SampleType::Struct)
+        for (size_t i = 0; i < size; i++)
         {
-            // Struct
-            for (size_t i = 0; i < size; i++)
+            if (sampleType == SampleType::Struct)
             {
-                const auto builder = StructBuilder(descriptor.getName(), typeManager);
-                const auto fields = descriptor.getStructFields();
-                for (const auto& field : fields)
-                {
-                    const auto ptr = buildFromDescriptor(addr, field, typeManager);
-                    builder.set(field.getName(), ptr);
-                }
-                listPtr.pushBack(builder.build());
+                // Struct
+                listPtr.pushBack(buildStructFromFields(descriptor, typeManager, addr));
             }
-        }
-        else
-        {
-            // Not struct
-            for (size_t i = 0; i < size; i++)
+            else
             {
-                const auto ptr = dataToObj(addr, sampleType);
-                addr = static_cast<char*>(addr) + getSampleSize(sampleType);
-                listPtr.pushBack(ptr);
+                // Not struct
+                listPtr.pushBack(dataToObjAndIncreaseAddr(addr, sampleType));
             }
         }
         return listPtr;
@@ -423,28 +436,15 @@ inline BaseObjectPtr DataPacketImpl<TInterface>::buildFromDescriptor(void*& addr
     else
     {
         // Not list
-        BaseObjectPtr ptr;
-
         if (sampleType == SampleType::Struct)
         {
             // Struct
-            const auto builder = StructBuilder(descriptor.getName(), typeManager);
-            const auto fields = descriptor.getStructFields();
-            for (const auto& field : fields)
-            {
-                ptr = buildFromDescriptor(addr, field, typeManager);
-                builder.set(field.getName(), ptr);
-            }
-            return builder.build();
+            return buildStructFromFields(descriptor, typeManager, addr);
         }
-
         // Not struct
-        ptr = dataToObj(addr, sampleType);
-        addr = static_cast<char*>(addr) + getSampleSize(sampleType);
-        return ptr;
+        return dataToObjAndIncreaseAddr(addr, sampleType);
     }
 }
-
 template <typename TInterface>
 ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
 {

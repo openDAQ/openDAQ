@@ -5,6 +5,8 @@ on:
     branches-ignore:
       - 'main'
       - 'release/**'
+      - 'bindings/dotnet-nuget-generation'
+### TODO: DR - remove that last exclusion
 
   workflow_dispatch:
 

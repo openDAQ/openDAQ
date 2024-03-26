@@ -2078,3 +2078,25 @@ TEST_F(MultiReaderTest, MultiReaderBuilderWithDifferentInputs)
     ASSERT_THAT(time[1], ElementsAreArray(time[0]));
     ASSERT_THAT(time[2], ElementsAreArray(time[0]));
 }
+
+TEST_F(MultiReaderTest, MultiReaderExcetionOnConstructor)
+{
+    readSignals.reserve(1);
+
+    auto& sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00", nullptr, LinearDataRule(1, 0)));  // 1000 Hz
+
+    MultiReaderPtr mr;
+    try
+    {
+        mr = MultiReaderEx(signalsToList(), SampleType::Float64, SampleType::Int64, ReadMode::Scaled, ReadTimeoutType::All, 500, false);
+    }
+    catch (...)
+    {
+        
+    }
+
+    for (Int i = 0; i < 5; i++)
+    {
+        sig0.createAndSendPacket(i);
+    }
+}

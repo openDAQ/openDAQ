@@ -32,21 +32,29 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
     : requiredCommonSampleRate(requiredCommonSampleRate)
     , startOnFullUnitOfDomain(startOnFullUnitOfDomain)
 {
-    auto ports = CheckPreconditions(list);
-    loggerComponent = ports[0].getContext().getLogger().getOrAddComponent("MultiReader");
-
     this->internalAddRef();
+    try
+    {
+        auto ports = CheckPreconditions(list);
+        loggerComponent = ports[0].getContext().getLogger().getOrAddComponent("MultiReader");
 
-    portBinder = PropertyObject();
-    connectPorts(ports, valueReadType, domainReadType, mode);
+        portBinder = PropertyObject();
+        connectPorts(ports, valueReadType, domainReadType, mode);
 
-    updateCommonSampleRateAndDividers();
+        updateCommonSampleRateAndDividers();
 
-    SizeT min{};
-    SyncStatus syncStatus{};
-    ErrCode errCode = synchronize(min, syncStatus);
+        SizeT min{};
+        SyncStatus syncStatus{};
+        ErrCode errCode = synchronize(min, syncStatus);
 
-    checkErrorInfo(errCode);
+        checkErrorInfo(errCode);
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
+
 }
 
 MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
@@ -233,7 +241,10 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
     {
         signal.setCommonSampleRate(commonSampleRate);
         if (signal.invalid)
+        {
+            signal.setCommonSampleRate(commonSampleRate);
             throw InvalidParameterException("Signal sample rate does not match required common sample rate");
+        }
     }
 
     sampleRateDividerLcm = 1;

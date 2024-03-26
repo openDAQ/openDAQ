@@ -38,6 +38,7 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
     cls.doc() = "Loads all available modules in a implementation-defined manner. User can also side-load custom modules via `addModule` call.";
 
     m.def("ModuleManager", &daq::ModuleManager_Create);
+    m.def("ModuleManagerMultiplePaths", &daq::ModuleManagerMultiplePaths_Create);
 
     cls.def_property_readonly("modules",
         [](daq::IModuleManager *object)

@@ -663,6 +663,8 @@ jobs:
 
     needs: [build_nuget]
 
+    if: always() && needs.build_nuget.outputs.nuget_creation_result == 'success'
+
     defaults:
       run:
         shell: pwsh

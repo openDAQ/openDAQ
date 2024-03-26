@@ -288,7 +288,10 @@ ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::beginUpdate()
 {
     return daqTry([this]()
         {
-            clientComm->sendComponentCommand(remoteGlobalId, "BeginUpdate");
+            std::string path{};
+            if (this->path.assigned())
+                path = this->path.toStdString();
+            clientComm->beginUpdate(remoteGlobalId, path);
         });
 }
 
@@ -297,7 +300,10 @@ inline ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdat
 {
     return daqTry([this]()
         {
-            clientComm->sendComponentCommand(remoteGlobalId, "EndUpdate");
+            std::string path{};
+            if (this->path.assigned())
+                path = this->path.toStdString();
+            clientComm->endUpdate(remoteGlobalId, path);
         });
 }
 

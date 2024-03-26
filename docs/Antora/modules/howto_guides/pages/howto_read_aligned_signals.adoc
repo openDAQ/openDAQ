@@ -37,7 +37,7 @@ Some of the above limitations might be lifted in the future.
 Using the Multi Reader is largely the same as any other Reader and is basically a xref:background_info:readers.adoc#stream_reader[Stream Reader] for multiple Signals at once except that with multiple Signals it performs some additional checks to keep the Signals compatible and synchronized to the same domain point.
 
 [#create]
-.Creating a default Multi Reader
+.Creating a default Multi Reader with list of signals
 [tabs]
 ====
 Cpp::
@@ -48,6 +48,22 @@ Cpp::
 auto reader = MultiReader(signals);
 auto reader = MultiReader<double, Int>(signals);
 auto reader = MultiReader(signals, SampleType::Float64, SampleType::Int64);
+----
+====
+
+Developer can set list of input ports instead of signals.
+[#create]
+.Creating a default Multi Reader with list of ports 
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// These calls all create the same reader
+auto reader = MultiReaderFromPort(ports);
+auto reader = MultiReaderFromPort<double, Int>(ports);
+auto reader = MultiReaderFromPort(ports, SampleType::Float64, SampleType::Int64);
 ----
 ====
 
@@ -188,10 +204,91 @@ Cpp::
 
 == Using the Multi-Reader to read time-stamps
 
-The Time Reader presented in xref:howto_read_with_timestamps.adoc[] can also be used with Multi-Reader.
+With the builder, developers can add signals and input ports using the methods `addSignal` and `addInputPort`. For signals, the builder creates an internal input port connected to the input signal.
+
+By default, the value type is set as `daq::SampleType::Float64` and the domain type as `daq::SampleType::Int64`. This can be overridden with the methods `setValueReadType` and setDomainReadType.
+
+The default value of the read mode is `daq::ReadMode::Scaled`, which can be configured using the method `setReadMode` to `daq::ReadMode::Unscaled` or `daq::ReadMode::RawValue`.
+
+In Multi-Reader, developers can set the read timeout type. The default value is `daq::ReadTimeoutType::All`, which waits for the requested amount or until the timeout is exceeded. It can be set as `daq::ReadTimeoutType::Any`, meaning the timeout will wait until any available data or the timeout is reached.
+
+The builder has fields for a common sample rate, which is disabled by default (set to -1), and for starting on the full unit of the domain (also disabled by default). These members can be overridden with the methods `setRequiredCommonSampleRate` and `setStartOnFullUnitOfDomain`.
 
 [#sync4]
-.Aligning Signals with MultiReader 4
+.Creating multi reader with default builder
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+    constexpr const auto NUM_SIGNALS = 3;
+
+    auto logger = Logger();
+    auto context = Context(Scheduler(logger, 1), logger, nullptr);
+
+    ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
+    ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");
+    ReadSignal sig2 = demoSignal(context, 843, "2022-09-27T00:02:04.123+00:00");
+
+    MultiReaderBuilderPtr builder = MultiReaderBuilder();
+    builder.addSignal(sig0.signal).addSignal(sig1.signal).addSignal(sig2.signal);
+
+    auto reader = MultiReaderFromBuilder(builder);
+
+    //
+    // To install the domain transform function to system time-stamps
+    //
+    TimeReader timeReader(reader);
+
+    sig0.sendPacket();
+    sig1.sendPacket();
+    sig2.sendPacket();
+
+    auto available = reader.getAvailableCount();  // 0
+
+    sig0.sendPacket();
+    sig1.sendPacket();
+    sig2.sendPacket();
+
+    sig0.sendPacket();
+    sig1.sendPacket();
+    sig2.sendPacket();
+
+    // Samples per signal
+    // 523 * 3 = 1569 (1.569s) need 1123 to sync
+    // 732 * 3 = 2196 (2.196s) need  123 to sync
+    // 843 * 3 = 2529 (2.529s) need    0 to sync
+
+    auto available = reader.getAvailableCount();  // 446
+
+    constexpr const SizeT SAMPLES = 523;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+
+    //
+    // Use time-stamps as a buffer instead of the domain-type
+    //
+    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+
+    SizeT count{SAMPLES};
+    reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    count = SAMPLES;
+    reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+    // count = 446
+
+    available = reader.getAvailableCount();  // 0
+----
+====
+
+== Creating MutiReader with builder
+OpenDAQ(TM) offers advanced way of creating multi reader with Multi reader builder.
+[#sync5]
+.Creating multi reader wo
 [tabs]
 ====
 Cpp::

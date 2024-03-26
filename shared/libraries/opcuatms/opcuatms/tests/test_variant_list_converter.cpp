@@ -240,7 +240,7 @@ TEST_F(VariantListConverterTest, DataRule)
 {
     auto list = List<IDataRule>();
     list.pushBack(LinearDataRule(2.0, 3.0));
-    list.pushBack(ConstantDataRule(100.0));
+    list.pushBack(ConstantDataRule());
     list.pushBack(ExplicitDataRule());
 
     const auto variant = VariantConverter<IDataRule>::ToArrayVariant(list);

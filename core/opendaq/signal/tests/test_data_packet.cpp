@@ -53,7 +53,7 @@ static void validateLinearScalingPacket(const DataDescriptorPtr& descriptor, U s
 template <typename T>
 static void validateImplicitConstantDataRulePacket(const DataDescriptorPtr& descriptor, T constant)
 {
-    const DataPacketPtr packet = DataPacket(descriptor, 100);
+    const DataPacketPtr packet = ConstantDataPacketWithDomain(nullptr, descriptor, 100, constant);
     const auto scaledData = static_cast<T*>(packet.getData());
     for (uint64_t i = 0; i < packet.getSampleCount(); ++i)
         ASSERT_EQ(scaledData[i], constant);
@@ -147,6 +147,11 @@ TEST_F(DataPacketTest, TestInt64LinearDataRule)
 {
     const auto descriptor = setupDescriptor(SampleType::Int64, LinearDataRule(10.5, 0), nullptr);
     validateImplicitLinearDataRulePacket<int64_t>(descriptor, 10, 0, 1000);
+}
+
+TEST_F(DataPacketTest, TestSingleConstantDataRule)
+{
+    const auto descriptor = setupDescriptor(SampleType::Float32, ConstantDataRule(), nullptr);
 }
 
 TEST_F(DataPacketTest, TestDoubleLinearScaling)
@@ -282,17 +287,36 @@ TEST_F(DataPacketTest, TestInt64LinearScaling)
 
 TEST_F(DataPacketTest, TestConstantRule)
 {
-    auto descriptor = setupDescriptor(SampleType::Int32, ConstantDataRule(111), nullptr);
+    auto descriptor = setupDescriptor(SampleType::Int32, ConstantDataRule(), nullptr);
     validateImplicitConstantDataRulePacket<int32_t>(descriptor, 111);
 
-    descriptor = setupDescriptor(SampleType::UInt8, ConstantDataRule(123), nullptr);
+    descriptor = setupDescriptor(SampleType::UInt8, ConstantDataRule(), nullptr);
     validateImplicitConstantDataRulePacket<uint8_t>(descriptor, 123);
 
-    descriptor = setupDescriptor(SampleType::Float32, ConstantDataRule(20.5), nullptr);
+    descriptor = setupDescriptor(SampleType::Float32, ConstantDataRule(), nullptr);
     validateImplicitConstantDataRulePacket<float>(descriptor, static_cast<float>(20.5));
 
-    descriptor = setupDescriptor(SampleType::Float64, ConstantDataRule(678.2), nullptr);
-    validateImplicitConstantDataRulePacket<double>(descriptor, 678.2);
+    descriptor = setupDescriptor(SampleType::Float64, ConstantDataRule(), nullptr);
+    validateImplicitConstantDataRulePacket<double>(descriptor, 678);
+}
+
+TEST_F(DataPacketTest, TestConstantRuleWithMultipleValues)
+{
+    auto descriptor = setupDescriptor(SampleType::Int32, ConstantDataRule(), nullptr);
+    const DataPacketPtr packet = ConstantDataPacketWithDomain(nullptr, descriptor, 100, 12, {{10, 16}, {70, 18}, {90, 20}});
+    const auto scaledData = static_cast<int32_t*>(packet.getData());
+    for (uint64_t i = 0; i < 9; ++i)
+        ASSERT_EQ(scaledData[i], 12);
+    for (uint64_t i = 10; i < 69; ++i)
+        ASSERT_EQ(scaledData[i], 16);
+    for (uint64_t i = 70; i < 89; ++i)
+        ASSERT_EQ(scaledData[i], 18);
+    for (uint64_t i = 90; i < packet.getSampleCount(); ++i)
+        ASSERT_EQ(scaledData[i], 20);
+
+    ASSERT_EQ(packet.getSampleCount(), 100);
+    ASSERT_EQ(packet.getRawDataSize(), 28);
+    ASSERT_EQ(packet.getDataSize(), 400);
 }
 
 TEST_F(DataPacketTest, TestRangeType)

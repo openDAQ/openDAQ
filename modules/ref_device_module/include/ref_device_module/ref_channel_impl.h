@@ -23,7 +23,7 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-enum class WaveformType { Sine, Rect, None, Counter };
+enum class WaveformType { Sine, Rect, None, Counter, ConstantValue };
 
 DECLARE_OPENDAQ_INTERFACE(IRefChannel, IBaseObject)
 {
@@ -58,6 +58,7 @@ private:
     double ampl;
     double dc;
     double noiseAmpl;
+    double constantValue;
     double sampleRate;
     StructPtr customRange;
     bool clientSideScaling;

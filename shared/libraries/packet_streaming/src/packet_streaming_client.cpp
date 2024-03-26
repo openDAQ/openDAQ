@@ -155,7 +155,8 @@ DataPacketPtr PacketStreamingClient::addDataPacketBuffer(const PacketBufferPtr& 
                                               dataPacketHeader->sampleCount,
                                               const_cast<void*>(packetBuffer->payload),
                                               Deleter([packetBuffer = packetBuffer](void*) mutable { packetBuffer.reset(); }),
-                                              offset);
+                                              offset,
+                                              dataPacketHeader->genericHeader.payloadSize);
     }
 
     queue.push({signalId, packet});

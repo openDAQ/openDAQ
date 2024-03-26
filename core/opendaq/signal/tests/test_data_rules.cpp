@@ -25,10 +25,9 @@ TEST_F(DataRulesTest, LinearDataRuleSetGet)
 
 TEST_F(DataRulesTest, ConstantDataRuleSetGet)
 {
-    const auto rule = ConstantDataRule(10.5);
+    const auto rule = ConstantDataRule();
 
     ASSERT_EQ(rule.getType(), DataRuleType::Constant);
-    ASSERT_EQ(rule.getParameters().get("constant"), 10.5);
 }
 
 TEST_F(DataRulesTest, ExplicitDataRule)
@@ -49,10 +48,10 @@ TEST_F(DataRulesTest, LinearDataRuleCopyFactory)
 
 TEST_F(DataRulesTest, ConstantDataRuleCopyFactory)
 {
-    const auto rule = ConstantDataRule(100);
+    const auto rule = ConstantDataRule();
     const auto ruleCopy = DataRuleBuilderCopy(rule).build();
 
-    ASSERT_EQ(ruleCopy.getParameters().get("constant"), 100);
+    ASSERT_EQ(ruleCopy.getType(), DataRuleType::Constant);
 }
 
 TEST_F(DataRulesTest, ExplicitDataRuleCopyFactory)
@@ -76,26 +75,6 @@ TEST_F(DataRulesTest, LinearDataRuleInvalidParameters)
 
     params.set("delta", 10);
     params.set("start", 10);
-    params.set("extra", 10);
-    ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
-
-    params.deleteItem("extra");
-    ASSERT_NO_THROW(ruleBuilder.build());
-}
-
-TEST_F(DataRulesTest, ConstantDataRuleInvalidParameters)
-{
-    auto ruleBuilder = DataRuleBuilder().setType(DataRuleType::Constant);
-    ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
-
-    auto params = Dict<IString, IBaseObject>();
-    ruleBuilder.setParameters(params);
-    ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
-
-    params.set("constant", "wrong");
-    ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
-
-    params.set("constant", 10);
     params.set("extra", 10);
     ASSERT_THROW(ruleBuilder.build(), InvalidParametersException);
 

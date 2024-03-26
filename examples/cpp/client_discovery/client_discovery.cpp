@@ -19,13 +19,10 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto devices = List<IDevice>();
     for (auto info : deviceInfo)
     {
-        if (info.getConnectionString().toStdString().find("daq://") != std::string::npos)
+        for (const auto & capability : info.getServerCapabilities())
         {
-            for (const auto & capability : info.getServerCapabilities())
-            {
-                auto device = instance.addDevice(capability.getConnectionString());
-                devices.pushBack(device);
-            }
+            auto device = instance.addDevice(capability.getConnectionString());
+            devices.pushBack(device);
         }
     }
 

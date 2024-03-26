@@ -77,6 +77,7 @@ set(SRC_Cpp
     generated/streaming/py_streaming_info.cpp
     generated/streaming/py_streaming_info_config.cpp
     generated/streaming/py_mirrored_signal_config.cpp
+    generated/streaming/py_mirrored_signal_private.cpp
     generated/streaming/py_subscription_event_args.cpp
 )
 

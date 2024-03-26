@@ -128,6 +128,7 @@ run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     streaming_info
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     streaming_info_config
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     mirrored_signal_config
+run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     mirrored_signal_private
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     subscription_event_args
 run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     tags
 run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     tags_private

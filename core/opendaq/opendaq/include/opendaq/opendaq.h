@@ -80,6 +80,7 @@
 
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
+#include <opendaq/mirrored_signal_private_ptr.h>
 #include <opendaq/streaming_info_factory.h>
 
 #include <opendaq/core_opendaq_event_args_factory.h>

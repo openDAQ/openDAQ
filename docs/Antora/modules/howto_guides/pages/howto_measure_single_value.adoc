@@ -51,7 +51,7 @@ Python::
 
 
 [#prinint_base_object_ptr]
-== Printing result of `getLastValue`
+== Printing the result of `getLastValue`
 
 No matter the source (either the Signal or the Data Packet), the resulting variable can be, for example, printed into the console.
 
@@ -76,7 +76,7 @@ Python::
 [#casting_base_object_ptr]
 == Casting result of `getLastValue`
 
-In C++, if we would like to do something useful with the `BaseObjectPtr`, such access its methods, we need to cast it into the correct type first. This is not necassary in Python, however.
+In C++, if we would like to do something useful with the `BaseObjectPtr`, such access its underlying methods, we need to cast it into the correct type first. This is not necassary in Python, however.
 
 The underlying type of the `BaseObjectPtr` we get from our `getLastValue` call can be cast into either `IFloat`, if the type is `Float32` or `Float64`, to `IInteger`, if the type is `Int8` through `Int64`, or `UInt8` through `UInt64`, to `IComplexNumber` if type is `ComplexFloat32` or `ComplexFloat64`, to `IRange` if the type is `RangeInt64`, to `IStruct` if the type is `Struct`, and to `IList` of the forementioned types if there is exactly one dimension in the single value.
 

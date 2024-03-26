@@ -1,9 +1,13 @@
 = Measure a single value
 
-[#measure_single_value]
-== Measure a single value
+OpenDAQ offers a variety of solutions for reading Signal values, including Readers. 
 
-OpenDAQ offers a variety of solutions for reading signal values, including readers. For developers requiring access to only the most recent value, the signal interface provides a method named "getLastValue."
+For developers requiring access to only the most recent value, the Signal and Data Packet interfaces provide a method named `getLastValue`.
+
+[#calling_get_last_value_signal]
+== Calling `getLastValue` on a Signal
+
+When the `getLastValue` method is called on a Signal, it yields an BaseObjectPtr containing the last value.
 
 [tabs]
 ====
@@ -11,23 +15,155 @@ Cpp::
 +
 [source,cpp]
 ----
-void HowToDoc_MeasureSingleValue(daq::DevicePtr device)
-{
-    // get 1st signal of device...
-    auto signal = device.getSignalsRecursive()[0];
-    // ...and get a measurement value
-    auto measurementValue = signal.getLastValue();
-    std::cout << "Single measurement value: [" << measurementValue << "]" << std::endl;
-}
+// Get last value on Signal
+auto lastValue = signal.getLastValue();
 ----
 Python::
 +
 [source,python]
 ----
-def HowToDoc_MeasureSingleValue(device):
-    signal = device.signals_recursive[0]
-    measurementValue = signal.last_value
-    print ("Single measurement value: [",measurementValue,"]")
+# TODO Python code
 ----
 ====
+
+
+[#calling_get_last_value_data_packet]
+== Calling `getLastValue` on a Data Packet
+
+Similar is true when calling the `getLastValue` method on a Data Packet.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Get last value on Data Packet
+auto lastValue = packet.getLastValue();
+----
+Python::
++
+[source,python]
+----
+# TODO Python code
+----
+====
+
+
+[#prinint_base_object_ptr]
+== Printing result of `getLastValue`
+
+No matter the source (either the Signal or the Data Packet), the resulting variable can be, for example, printed into the console.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Print last value
+std::cout << "lastValue: " << lastValue << std::endl;
+----
+Python::
++
+[source,python]
+----
+# TODO Python code
+----
+====
+
+
+[#casting_base_object_ptr]
+== Casting result of `getLastValue`
+
+In C++, if we would like to do something useful with the BaseObjectPtr, such access its methods, we need to cast it into the correct type first. This is not necassary in Python, however.
+
+The underlying type of the BaseObjectPtr we get from our `getLastValue` call can be cast into either `IFloat`, if the type is `Float32` or `Float64`, to `IInteger`, if the type is `Int8` through `Int64`, or `UInt8` through `UInt64`, to `IComplexNumber` if type is `ComplexFloat32` or `ComplexFloat64`, to `IRange` if the type is `RangeInt64`, to `IStruct` if the type is `Struct`, and to `IList` of the forementioned types if there is exactly one dimension in the single value.
+
+In this example, we cast the `lastValue` object into `RangePtr` type like so:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Cast to RangePtr
+auto range = lastValue.asPtr<IRange>();
+----
+Python::
++
+[source,python]
+----
+# Not needed
+----
+====
+
+
+[#using_cast_variable]
+== Using the cast variable
+
+An example of something we could now do is call the methods of the underlying type such as the `getLowValue` and the `getHighValue`, in this case provided by the IRange interface.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Call some methods
+auto low = range.getLowValue();
+auto high = range.getHighValue();
+----
+Python::
++
+[source,python]
+----
+# TODO Python code
+----
+====
+
+
+In the above example the Data Descriptor of the Data Packet or its Signal on which we call `getLastValue` must be:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// The descriptor for SampleType::RangeInt64
+auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::RangeInt64).build();
+// Create packet
+auto packet = DataPacket(descriptor, 5);
+----
+Python::
++
+[source,python]
+----
+# TODO Python code
+----
+====
+
+
+In this example, the `sampleCount` of the Data Packet is 5.
+
+
+[#get_last_value_complex_number]
+== `getLastValue` with Complex Number
+
+TODO COMPLEX NUMBER
+
+
+[#get_last_value_list]
+== `getLastValue` with List
+
+TODO LIST + DIMENSIONS
+
+
+[#get_last_value_struct]
+== `getLastValue` with Struct
+
+TODO STRUCT (MUST PROVIDE DATA DESCRIPTOR)
+
 

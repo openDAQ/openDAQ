@@ -164,6 +164,6 @@ TODO LIST + DIMENSIONS
 [#get_last_value_struct]
 == `getLastValue` with Struct
 
-TODO STRUCT (MUST PROVIDE DATA DESCRIPTOR)
+TODO STRUCT (MUST PROVIDE DATA DESCRIPTOR) + for data packet must provide optional arg
 
 

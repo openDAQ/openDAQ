@@ -266,6 +266,16 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursivel
     {
         for (auto const& field : fields)
         {
+            const auto dimensions = field.getDimensions();
+
+            if (!dimensions.assigned())
+                throw NotAssignedException{"Dimensions of data descriptor not assigned."};
+
+            const auto dimensionCount = dimensions.getCount();
+
+            if (dimensionCount > 1)
+                throw NotSupportedException{"getLastValue on signals with dimensions supports only up to one dimension."};
+
             TypePtr type;
 
             switch (field.getSampleType())
@@ -296,24 +306,12 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursivel
                     type = SimpleType(CoreType::ctUndefined);
             }
 
-            const auto dimensions = field.getDimensions();
-            const auto dimensionCount = dimensions.getCount();
-
-            if (dimensionCount > 1)
-                throw NotSupportedException();
-
+            // Handle list
             if (dimensionCount == 1)
-            {
-                // List
-                fieldNames.pushBack(field.getName());
-                fieldTypes.pushBack(SimpleType(CoreType::ctList));
-            }
-            else
-            {
-                // Not list
-                fieldNames.pushBack(field.getName());
-                fieldTypes.pushBack(type);
-            }
+                type = SimpleType(CoreType::ctList);
+
+            fieldNames.pushBack(field.getName());
+            fieldTypes.pushBack(type);
         }
     }
 

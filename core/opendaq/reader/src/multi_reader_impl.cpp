@@ -67,7 +67,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
     portBinder = old->portBinder;
     startOnFullUnitOfDomain = old->startOnFullUnitOfDomain;
 
-    CheckPreconditions(old->getSignals());
+    CheckPreconditions(old->getSignals(), false);
     commonSampleRate = old->commonSampleRate;
     requiredCommonSampleRate = old->requiredCommonSampleRate;
 
@@ -106,11 +106,7 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
 
     auto ports = readerConfig.getInputPorts();
 
-    ListPtr<ISignal> signalList = List<ISignal>();
-    for (const auto& port : ports)
-        signalList.pushBack(port.getSignal());
-
-    CheckPreconditions(signalList);
+    CheckPreconditions(ports, false);
   
     for (const auto& port : ports)
     {
@@ -125,7 +121,7 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     : requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
 {
-    auto ports = CheckPreconditions(builder.getInputPortList());
+    auto ports = CheckPreconditions(builder.getInputPortList(), false);
     loggerComponent = ports[0].getContext().getLogger().getOrAddComponent("MultiReader");
 
     this->internalAddRef();
@@ -264,7 +260,7 @@ bool MultiReaderImpl::ListElementsHaveSameType(const ListPtr<IBaseObject>& list)
     return true;
 }
 
-ListPtr<IInputPortConfig> MultiReaderImpl::CheckPreconditions(const ListPtr<IComponent>& list)
+ListPtr<IInputPortConfig> MultiReaderImpl::CheckPreconditions(const ListPtr<IComponent>& list, bool overrideMethod)
 {
     if (!list.assigned())
         throw NotAssignedException("List of inputs is not assigned");
@@ -277,13 +273,15 @@ ListPtr<IInputPortConfig> MultiReaderImpl::CheckPreconditions(const ListPtr<ICom
         if (auto signal = el.asPtrOrNull<ISignal>(); signal.assigned())
         {
             auto port = InputPort(signal.getContext(), nullptr, fmt::format("Read signal {}", signal.getLocalId()));
-            port.setNotificationMethod(PacketReadyNotification::SameThread);
+            if (overrideMethod)
+                port.setNotificationMethod(PacketReadyNotification::SameThread);
             port.connect(signal);
             portList.pushBack(port);
         }
         else if (auto port = el.asPtrOrNull<IInputPortConfig>(); port.assigned())
         {
-            port.setNotificationMethod(PacketReadyNotification::Scheduler);
+            if (overrideMethod)
+                port.setNotificationMethod(PacketReadyNotification::Scheduler);
             portList.pushBack(port);
         }
         else

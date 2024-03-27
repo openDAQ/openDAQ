@@ -114,7 +114,7 @@ TEST_F(HowToGetLastValue, GetLastValueSingalComplexFloat32)
     // Get last value on a Signal
     auto lastValue = signal.getLastValue();
     // Cast to ComplexNumberPtr
-    ComplexNumberPtr complex = lastValue.asPtr<IComplexNumber>();
+    auto complex = lastValue.asPtr<IComplexNumber>();
     // Call some methods
     auto real = complex.getReal();
     auto imaginary = complex.getImaginary();

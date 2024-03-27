@@ -21,7 +21,7 @@ ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticate(IString* usernam
     if (!user.assigned())
         return OPENDAQ_ERR_AUTHENTICATION_FAILED;
 
-    const auto hash = user.asPtr<IUserPrivate>().getPasswordHash();
+    const auto hash = user.asPtr<IUserPrivate>(true).getPasswordHash();
     if (!isPasswordValid(hash, password))
         return OPENDAQ_ERR_AUTHENTICATION_FAILED;
 

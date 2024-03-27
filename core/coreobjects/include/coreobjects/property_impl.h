@@ -210,7 +210,7 @@ public:
         if (defaultValue == nullptr)
             this->defaultValue = PropertyObject().detach();
 
-        auto objPermissionManager = this->defaultValue.asPtr<IPropertyObject>().getPermissionManager().asPtr<IPermissionManagerPrivate>();
+        auto objPermissionManager = this->defaultValue.asPtr<IPropertyObject>(true).getPermissionManager().asPtr<IPermissionManagerPrivate>(true);
         objPermissionManager.setParent(permissionManager);
 
         const auto err = validateDuringConstruction();
@@ -1338,7 +1338,7 @@ public:
         this->owner = owner;
 
         const auto parentManager = this->owner.getRef().getPermissionManager();
-        this->permissionManager.template asPtr<IPermissionManagerPrivate>().setParent(parentManager);
+        this->permissionManager.template asPtr<IPermissionManagerPrivate>(true).setParent(parentManager);
         return OPENDAQ_SUCCESS;
     }
 

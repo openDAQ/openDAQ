@@ -14,6 +14,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 MockChannelImpl::MockChannelImpl(ContextPtr ctx, const ComponentPtr& parent, const StringPtr& localId)
     : ChannelImpl<IMockChannel>(FunctionBlockType("mock_ch", "mock_ch", ""), std::move(ctx), parent, localId)
+    , sigGenAbsStartTime(std::chrono::system_clock::now())
 {
     createSignals();
     createInputPorts();
@@ -98,7 +99,7 @@ void MockChannelImpl::addByteStepSignal()
     
     signal.setDomainSignal(timeSignal);
 
-    auto generatedSignal = std::make_shared<SignalGenerator>(signal);
+    auto generatedSignal = std::make_shared<SignalGenerator>(signal, sigGenAbsStartTime);
 
     generatedSignal->setFunction([](uint64_t tick, void* sampleOut) {
         uint8_t* byteOut = (uint8_t*) sampleOut;
@@ -121,7 +122,7 @@ void MockChannelImpl::addIntStepSignal()
     auto signal = createAndAddSignal(dataDescriptor.getName(), dataDescriptor);
     signal.setDomainSignal(timeSignal);
 
-    auto generatedSignal = std::make_shared<SignalGenerator>(signal);
+    auto generatedSignal = std::make_shared<SignalGenerator>(signal, sigGenAbsStartTime);
 
     generatedSignal->setFunction([this](uint64_t /*tick*/, void* sampleOut) {
         int32_t* intOut = (int32_t*) sampleOut;
@@ -147,7 +148,7 @@ void MockChannelImpl::addSineSignal()
     auto signal = createAndAddSignal(dataDescriptor.getName(), dataDescriptor);
     signal.setDomainSignal(timeSignal);
 
-    auto generatedSignal = std::make_shared<SignalGenerator>(signal);
+    auto generatedSignal = std::make_shared<SignalGenerator>(signal, sigGenAbsStartTime);
 
     generatedSignal->setFunction([this](uint64_t tick, void* sampleOut) {
         auto outputRate = getOutputRate();
@@ -172,7 +173,7 @@ void MockChannelImpl::addChangingSignal()
 
     auto signal = createAndAddSignal(dataDescriptor.getName(), dataDescriptor);
     signal.setDomainSignal(changingTimeSignal);
-    auto generatedSignal = std::make_shared<SignalGenerator>(signal);
+    auto generatedSignal = std::make_shared<SignalGenerator>(signal, sigGenAbsStartTime);
 
     auto stepFunction10 = [this](uint64_t tick, void* sampleOut) {
         double* intOut = (double*) sampleOut;

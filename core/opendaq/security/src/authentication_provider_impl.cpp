@@ -15,9 +15,9 @@ AuthenticationProviderImpl::AuthenticationProviderImpl()
 {
 }
 
-ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticate(IString* usernanme, IString* password, IUser** userOut)
+ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticate(IString* username, IString* password, IUser** userOut)
 {
-    const auto user = findUser(usernanme);
+    const auto user = findUser(username);
     if (!user.assigned())
         return OPENDAQ_ERR_AUTHENTICATION_FAILED;
 

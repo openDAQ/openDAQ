@@ -77,9 +77,11 @@ jobs:
           #   cmake_defines: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
           #   cpack: NSIS
 
-    # outputs:
-    #   # trick for nuget_creation_and_test job because cannot use env context
-    #   test_path: ${{ env.test_path }}
+    outputs:
+      # trick for nuget_creation_and_test reusable workflow because cannot use env context
+      test_path: ${{ env.test_path }}
+      windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
+      linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
 
     steps:
       - name: Checkout
@@ -639,8 +641,9 @@ jobs:
     needs: [build_windows,build_linux]
 
 ### TODO: DR - undo comment out and remove trailing if
-    # if: ${{ ! github.event.pull_request.draft }}
-    if: ${{ ! github.event.pull_request.draft && github.ref == 'refs/heads/bindings/dotnet-nuget-generation' }}
+    ## if: ${{ ! github.event.pull_request.draft }}
+    #if: ${{ ! github.event.pull_request.draft && github.ref == 'refs/heads/bindings/dotnet-nuget-generation' }}
+    if: false
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
@@ -740,8 +743,9 @@ jobs:
     needs: [dotnet-bindings-nuget-creation]
 
 ### TODO: DR - undo comment out and remove trailing if
-    # if: ${{ ! github.event.pull_request.draft }}
-    if: ${{ ! github.event.pull_request.draft && github.ref == 'refs/heads/bindings/dotnet-nuget-generation' }}
+    ## if: ${{ ! github.event.pull_request.draft }}
+    #if: ${{ ! github.event.pull_request.draft && github.ref == 'refs/heads/bindings/dotnet-nuget-generation' }}
+    if: false
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
@@ -792,16 +796,18 @@ jobs:
           path: ${{ env.test_path }}
 
 ### TODO: DR - testing reusable workflow
-  # nuget_creation_and_test:
-    #   name: call .NET Bindings NuGet creation and test
+  nuget_creation_and_test:
+      name: call .NET Bindings NuGet creation and test
 
-    #   # needs: [build_windows,build_linux,build_macos]
-    #   needs: [build_windows,build_linux]
+      # needs: [build_windows,build_linux,build_macos]
+      needs: [build_windows,build_linux]
 
-    #   # if: ${{ ! github.event.pull_request.draft }}
-    #   if: ${{ ! github.event.pull_request.draft && github.ref == 'refs/heads/bindings/dotnet-nuget-generation' }}
+      # if: ${{ ! github.event.pull_request.draft }}
+      if: ${{ ! github.event.pull_request.draft && github.ref == 'refs/heads/bindings/dotnet-nuget-generation' }}
 
-    #   uses: ./.github/workflows/reusable_nuget_creation_and_test.yml
-    #   with:
-      #   # cannot use env context here, so use needs.<job>.outputs trick
-      #   test_path: ${{ needs.build_windows.outputs.test_path }}
+      uses: ./.github/workflows/reusable_nuget_creation_and_test.yml
+      with:
+        # cannot use env context here, so use needs.<job>.outputs trick
+        test_path: ${{ needs.build_windows.outputs.test_path }}
+        windows_x64_artifact_name:  ${{ needs.build_windows.outputs.windows_x64_artifact_name }}
+        linux_x64_artifact_name:  ${{ needs.build_windows.outputs.linux_x64_artifact_name }}

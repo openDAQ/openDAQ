@@ -255,7 +255,7 @@ instance = opendaq.Instance()
 # Find and output the names and connection strings of all available devices
 for device_info in instance.available_devices:
     print("Name:", device_info.name, "Connection string:", device_info.connection_string)
-    for capability: device_info.server_capabilities:
+    for capability in device_info.server_capabilities:
         print("Capability:", capability.protocol_name, "Connection string:", capability.connection_string)
 ----
 ====
@@ -273,7 +273,7 @@ strings.
 === Connecting to a remote device
 
 Once we have the list of available Devices, we can connect to one of them. In the following example, we connect to
-our simulator, filtering out Devices of which discovered addresses do not start with the `daq.opcua://` prefix.
+our simulator, filtering out protocol `openDAQ OpcUa`
 
 [tabs]
 ====
@@ -296,14 +296,24 @@ int main(int argc, const char* argv[])
     daq::DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        for (const auto & capability : deviceInfo.getServerCapabilities())
+        auto capabilities = deviceInfo.getServerCapabilities();
+        if (capabilities.getCount() == 0)
         {
-            if (capability.getProtocolName() == "openDAQ OpcUa")
+            device = instance.addDevice(deviceInfo.getConnectionString());
+            break; 
+        }
+        else
+        {
+            for (const auto & capability : capabilities)
             {
-                device = instance.addDevice(capability.getConnectionString());
-                break;
+                if (capability.getProtocolName() != "openDAQ OpcUa")
+                {
+                    device = instance.addDevice(capability.getConnectionString());
+                    break;
+                }
             }
         }
+        
     }
 
     // Exit if no device is found
@@ -329,8 +339,8 @@ instance = opendaq.Instance()
 
 # Find and connect to a device hosting an openDAQ(TM) OPC UA server
 for device_info in instance.available_devices:
-    for capability: device_info.server_capabilities:
-        if capability.protocol_name == 'openDAQ OpcUa':
+    for capability in device_info.server_capabilities:
+        if capability.protocol_name != 'openDAQ OpcUa':
             device = instance.add_device(capability.connection_string)
             break
 else:
@@ -408,7 +418,7 @@ instance = opendaq.Instance()
 
 # Find and connect to a device hosting an openDAQ(TM) OPC UA server
 for device_info in instance.available_devices:
-    for capability: device_info.server_capabilities:
+    for capability in device_info.server_capabilities:
         if capability.protocol_name == 'openDAQ OpcUa':
             device = instance.add_device(capability.connection_string)
             break
@@ -1120,7 +1130,7 @@ instance = opendaq.Instance()
 
 # Find and connect to a device hosting an openDAQ(TM) OPC UA server
 for device_info in instance.available_devices:
-    for capability: device_info.server_capabilities:
+    for capability in device_info.server_capabilities:
         if capability.protocol_name == 'openDAQ OpcUa':
             device = instance.add_device(capability.connection_string)
             break
@@ -1320,7 +1330,7 @@ instance = opendaq.Instance()
 
 # Find and connect to a device hosting a WebSocket server
 for device_info in instance.available_devices:
-    for capability: device_info.server_capabilities:
+    for capability in device_info.server_capabilities:
         if capability.protocol_name == 'openDAQ Native Streaming' and capability.protocol_type == 'Streaming':
             device = instance.add_device(capability.connection_string)
             break

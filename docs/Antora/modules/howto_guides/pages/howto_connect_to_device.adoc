@@ -57,7 +57,7 @@ instance = opendaq.Instance()
 
 # Discover and print the names and connection strings of openDAQ(TM) devices
 for device_info in instance.available_devices:
-    for capability: device_info.server_capabilities:
+    for capability in device_info.server_capabilities:
         if capability.protocol_name == 'openDAQ OpcUa':
             device = instance.add_device(capability.connection_string)
             break

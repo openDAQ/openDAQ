@@ -16,7 +16,7 @@
 
 #pragma once
 #include <opendaq/user.h>
-#include <opendaq/user_private.h>
+#include <opendaq/user_internal.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/listobject_factory.h>
@@ -24,7 +24,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class UserImpl final : public ImplementationOf<IUser, IUserPrivate, ISerializable>
+class UserImpl final : public ImplementationOf<IUser, IUserInternal, ISerializable>
 {
 public:
     explicit UserImpl(const StringPtr& username, const StringPtr& passwordHash, const ListPtr<IString> groups);

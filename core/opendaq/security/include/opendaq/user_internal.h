@@ -20,9 +20,9 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @brief Provides access to private methods of the user interface.
+ * @brief Internal User interface. It should be used only in openDAQ core implementation files.
  */
-DECLARE_OPENDAQ_INTERFACE(IUserPrivate, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IUserInternal, IBaseObject)
 {
     /*!
      * @brief Returns hashed password as a string in Modular Crypt Format.

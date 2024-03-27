@@ -2,7 +2,7 @@
 #include <opendaq/security_errors.h>
 #include <opendaq/security_exceptions.h>
 #include <fstream>
-#include <opendaq/user_private_ptr.h>
+#include <opendaq/user_internal_ptr.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
@@ -21,7 +21,7 @@ ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticate(IString* usernam
     if (!user.assigned())
         return OPENDAQ_ERR_AUTHENTICATION_FAILED;
 
-    const auto hash = user.asPtr<IUserPrivate>(true).getPasswordHash();
+    const auto hash = user.asPtr<IUserInternal>(true).getPasswordHash();
     if (!isPasswordValid(hash, password))
         return OPENDAQ_ERR_AUTHENTICATION_FAILED;
 

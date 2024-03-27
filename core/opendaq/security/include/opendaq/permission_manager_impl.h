@@ -18,13 +18,13 @@
 #include <coretypes/intfs.h>
 #include <opendaq/permission_manager.h>
 #include <opendaq/permission_manager_ptr.h>
-#include <opendaq/permission_manager_private.h>
-#include <opendaq/permission_manager_private_ptr.h>
+#include <opendaq/permission_manager_internal.h>
+#include <opendaq/permission_manager_internal_ptr.h>
 #include <coretypes/weakrefptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class PermissionManagerImpl : public ImplementationOfWeak<IPermissionManager, IPermissionManagerPrivate>
+class PermissionManagerImpl : public ImplementationOfWeak<IPermissionManager, IPermissionManagerInternal>
 {
 public:
     explicit PermissionManagerImpl(const PermissionManagerPtr& parent);
@@ -41,7 +41,7 @@ protected:
 
 private:
     void updateChildPermissions();
-    PermissionManagerPrivatePtr getParentManager();
+    PermissionManagerInternalPtr getParentManager();
 
     WeakRefPtr<IPermissionManager> parent;
     DictPtr<IPermissionManager, Bool> children;

@@ -37,7 +37,7 @@ TEST_F(HowToGetLastValue, GetLastValueDataPacketInt64)
 
     // START DOCS CODE
 
-    // Get last value on Data Packet
+    // Get last value on a Data Packet
     auto lastValue = packet.getLastValue();
 
     // END DOCS CODE
@@ -56,12 +56,13 @@ TEST_F(HowToGetLastValue, GetLastValueSignalRange)
 
     // START DOCS CODE
 
-    // The descriptor for SampleType::RangeInt64
+    // The Data Descriptor for SampleType::RangeInt64
     auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::RangeInt64).build();
     // Create packet
     auto packet = DataPacket(descriptor, 5);
 
-    // END DOCS CODE    
+    // END DOCS CODE
+
     auto data = static_cast<int64_t*>(packet.getData());
     data[8] = 8;
     data[9] = 9;
@@ -70,7 +71,7 @@ TEST_F(HowToGetLastValue, GetLastValueSignalRange)
 
     // START DOCS CODE
 
-    // Get last value on Signal
+    // Get last value on a Signal
     auto lastValue = signal.getLastValue();
 
     // Print last value
@@ -87,5 +88,42 @@ TEST_F(HowToGetLastValue, GetLastValueSignalRange)
     std::cout << "range high value: " << range.getHighValue() << std::endl;
     std::string output = testing::internal::GetCapturedStdout();
 }
+
+// Corresponding document: Antora/modules/howto_guides/pages/howto_measure_single_value.adoc
+TEST_F(HowToGetLastValue, GetLastValueSingalComplexFloat32)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // START DOCS CODE
+
+    // The Data Descriptor for SampleType::ComplexFloat32
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::ComplexFloat32).build();
+    // Create packet
+    auto dataPacket = DataPacket(descriptor, 5);
+
+    // END DOCS CODE 
+
+    auto data = static_cast<float*>(dataPacket.getData());
+    data[8] = 8.1f;
+    data[9] = 9.1f;
+
+    signal.sendPacket(dataPacket);
+
+    // START DOCS CODE
+
+    // Get last value on a Signal
+    auto lastValue = signal.getLastValue();
+    // Cast to ComplexNumberPtr
+    ComplexNumberPtr complex = lastValue.asPtr<IComplexNumber>();
+    // Call some methods
+    auto real = complex.getReal();
+    auto imaginary = complex.getImaginary();
+
+    // END DOCS CODE 
+
+    ASSERT_FLOAT_EQ(real, 8.1f);
+    ASSERT_FLOAT_EQ(imaginary, 9.1f);
+}
+
 
 END_NAMESPACE_OPENDAQ

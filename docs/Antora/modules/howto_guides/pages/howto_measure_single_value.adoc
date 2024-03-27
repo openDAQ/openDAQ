@@ -15,7 +15,7 @@ Cpp::
 +
 [source,cpp]
 ----
-// Get last value on Signal
+// Get last value on a Signal
 auto lastValue = signal.getLastValue();
 ----
 Python::
@@ -25,7 +25,6 @@ Python::
 # TODO Python code
 ----
 ====
-
 
 [#calling_get_last_value_data_packet]
 == Calling `getLastValue` on a Data Packet
@@ -38,7 +37,7 @@ Cpp::
 +
 [source,cpp]
 ----
-// Get last value on Data Packet
+// Get last value on a Data Packet
 auto lastValue = packet.getLastValue();
 ----
 Python::
@@ -48,7 +47,6 @@ Python::
 # TODO Python code
 ----
 ====
-
 
 [#printing_the_result]
 == Printing the result of `getLastValue`
@@ -72,13 +70,12 @@ Python::
 ----
 ====
 
-
 [#casting_the_result]
 == Casting the result of `getLastValue` and using the cast variable
 
-In C++, if we would like to do something useful with the `BaseObjectPtr`, such access its underlying methods, we need to cast it into the correct type first. This is not necassary in Python, however.
+In C++, if we would like to do something useful with the `BaseObjectPtr`, such as access its underlying methods, we need to cast it into the correct type first. This is not necessary in Python, however.
 
-The underlying type of the `BaseObjectPtr` we get from our `getLastValue` call can be cast into either `IFloat`, if the type is `Float32` or `Float64`, to `IInteger`, if the type is `Int8` through `Int64`, or `UInt8` through `UInt64`, to `IComplexNumber` if type is `ComplexFloat32` or `ComplexFloat64`, to `IRange` if the type is `RangeInt64`, to `IStruct` if the type is `Struct`, and to `IList` of the forementioned types if there is exactly one dimension in the single value.
+The underlying type of the `BaseObjectPtr` we get from our `getLastValue` call can be cast into either `IFloat`, if the type is `Float32` or `Float64`, to `IInteger`, if the type is `Int8` through `Int64`, or `UInt8` through `UInt64`, to `IComplexNumber` if type is `ComplexFloat32` or `ComplexFloat64`, to `IRange` if the type is `RangeInt64`, to `IStruct` if the type is `Struct`, and to `IList` of the aforementioned types if there is exactly one dimension in the single value.
 
 In this example, we cast the `lastValue` object into a `RangePtr` type like so:
 
@@ -98,7 +95,6 @@ Python::
 # Not needed
 ----
 ====
-
 
 An example of something we could now do is call the methods of the underlying type such as the `getLowValue` and the `getHighValue`, in this case provided by the `IRange` interface.
 
@@ -120,8 +116,7 @@ Python::
 ----
 ====
 
-
-In the above example the Data Descriptor of the Data Packet or its Signal on which we call `getLastValue` must be:
+In the above example the Data Descriptor of the Data Packet or its Signal on which we call `getLastValue` is:
 
 [tabs]
 ====
@@ -129,7 +124,7 @@ Cpp::
 +
 [source,cpp]
 ----
-// The descriptor for SampleType::RangeInt64
+// The Data Descriptor for SampleType::RangeInt64
 auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::RangeInt64).build();
 // Create packet
 auto packet = DataPacket(descriptor, 5);
@@ -142,24 +137,68 @@ Python::
 ----
 ====
 
-
 In this example, the `sampleCount` of the Data Packet is 5.
 
-
 [#get_last_value_complex_number]
-== `getLastValue` with Complex Number
+== `getLastValue` with a Complex Number
 
-TODO COMPLEX NUMBER
+A Data Descriptor for a Complex Number might be:
 
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// The Data Descriptor for SampleType::ComplexFloat32
+auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::ComplexFloat32).build();
+// Create packet
+auto dataPacket = DataPacket(descriptor, 5);
+----
+Python::
++
+[source,python]
+----
+# TODO Python code
+----
+====
+
+In the above example, the `sampleCount` of the Data Packet is again 5.
+
+In the following example, we first extract the last value via `getLastValue` call, then we cast the `lastValue` object into a `ComplexNumberPtr` type (C++ only). Lastly, call the methods of the underlying type such as the `getReal` and the `getImaginary`, in this case provided by the `IComplexNumber` interface.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Get last value on a Signal
+auto lastValue = signal.getLastValue();
+// Cast to ComplexNumberPtr
+ComplexNumberPtr complex = lastValue.asPtr<IComplexNumber>();
+// Call some methods
+auto real = complex.getReal();
+auto imaginary = complex.getImaginary();
+----
+Python::
++
+[source,python]
+----
+# TODO Python code
+----
+====
 
 [#get_last_value_list]
-== `getLastValue` with List
+== `getLastValue` with a List
+
+
 
 TODO LIST + DIMENSIONS
 
 
 [#get_last_value_struct]
-== `getLastValue` with Struct
+== `getLastValue` with a Struct
 
 TODO STRUCT (MUST PROVIDE DATA DESCRIPTOR) + for data packet must provide optional arg (USE CAUSION/WARNING IN MARKUP)
 

@@ -54,7 +54,7 @@ ErrCode INTERFACE_FUNC UserImpl::equals(IBaseObject* other, Bool* equal) const
     if (username != userOther.getUsername())
         return OPENDAQ_SUCCESS;
 
-    if (passwordHash != userOther.asPtr<IUserPrivate>().getPasswordHash())
+    if (passwordHash != userOther.asPtr<IUserPrivate>(true).getPasswordHash())
         return OPENDAQ_SUCCESS;
 
     if (!BaseObjectPtr::Equals(groups, userOther.getGroups()))

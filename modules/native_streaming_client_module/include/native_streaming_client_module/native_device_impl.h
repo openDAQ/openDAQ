@@ -59,7 +59,9 @@ private:
     void processConfigPacket(config_protocol::PacketBuffer&& packet);
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
-    void addSignalsToStreaming(const ListPtr<ISignal>& signals);
+    void componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
+    void enableStreamingForComponent(const ComponentPtr& component);
+    void tryAddSignalToStreaming(const SignalPtr& signal);
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     boost::asio::io_context::strand processingStrand;

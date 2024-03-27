@@ -60,6 +60,25 @@ void NativeDeviceHelper::addStreaming(const StreamingPtr& streaming)
     this->streaming = streaming;
 }
 
+void NativeDeviceHelper::enableStreamingForComponent(const ComponentPtr& component)
+{
+    if (component.supportsInterface<ISignal>())
+    {
+        tryAddSignalToStreaming(component.asPtr<ISignal>());
+    }
+    else if (component.supportsInterface<IFolder>())
+    {
+        auto nestedComponents = component.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
+        for (const auto& nestedComponent : nestedComponents)
+        {
+            if (nestedComponent.supportsInterface<ISignal>())
+            {
+                tryAddSignalToStreaming(nestedComponent.asPtr<ISignal>());
+            }
+        }
+    }
+}
+
 void NativeDeviceHelper::componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs)
 {
     auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
@@ -75,35 +94,48 @@ void NativeDeviceHelper::componentAdded(const ComponentPtr& sender, const CoreEv
 
     LOG_I("Added Component: {};", addedComponentGlobalId);
 
-    if (addedComponent.supportsInterface<ISignal>())
-    {
-        addSignalsToStreaming({addedComponent.asPtr<ISignal>()});
-    }
-    else if (addedComponent.supportsInterface<IFolder>())
-    {
-        auto nestedComponents = addedComponent.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
-        for (const auto& nestedComponent : nestedComponents)
-        {
-            if (nestedComponent.supportsInterface<ISignal>())
-            {
-                addSignalsToStreaming({nestedComponent.asPtr<ISignal>()});
-                LOG_I("Signal: {}; added to streaming", nestedComponent.getGlobalId());
-            }
-        }
-    }
+    enableStreamingForComponent(addedComponent);
 }
 
-void NativeDeviceHelper::addSignalsToStreaming(const ListPtr<ISignal>& signals)
+void NativeDeviceHelper::componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs)
 {
-    streaming.addSignals(signals);
-    for (const auto& signal : signals)
+    auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
+    if (!device.assigned())
+        return;
+
+    ComponentPtr updatedComponent = sender;
+
+    auto deviceGlobalId = device.getGlobalId().toStdString();
+    auto updatedComponentGlobalId = updatedComponent.getGlobalId().toStdString();
+    if (deviceGlobalId != updatedComponentGlobalId && !IdsParser::isNestedComponentId(deviceGlobalId, updatedComponentGlobalId))
+        return;
+
+    LOG_I("Updated Component: {};", updatedComponentGlobalId);
+
+    enableStreamingForComponent(updatedComponent);
+}
+
+void NativeDeviceHelper::tryAddSignalToStreaming(const SignalPtr& signal)
+{
+    if (!signal.getPublic())
+        return;
+
+    ErrCode errCode =
+        daqTry([&]()
+                {
+                    streaming.addSignals({signal});
+                });
+    if (OPENDAQ_SUCCEEDED(errCode))
     {
-        if (signal.getPublic())
-        {
-            auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
-            mirroredSignalConfigPtr.setActiveStreamingSource(streaming.getConnectionString());
-        }
+        LOG_I("Signal {} added to streaming {};", signal.getGlobalId(), streaming.getConnectionString());
     }
+    else if (errCode != OPENDAQ_ERR_DUPLICATEITEM)
+    {
+        checkErrorInfo(errCode);
+    }
+
+    auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
+    mirroredSignalConfigPtr.setActiveStreamingSource(streaming.getConnectionString());
 }
 
 void NativeDeviceHelper::coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
@@ -112,6 +144,9 @@ void NativeDeviceHelper::coreEventCallback(ComponentPtr& sender, CoreEventArgsPt
     {
         case CoreEventId::ComponentAdded:
             componentAdded(sender, eventArgs);
+            break;
+        case CoreEventId::ComponentUpdateEnd:
+            componentUpdated(sender, eventArgs);
             break;
         default:
             break;

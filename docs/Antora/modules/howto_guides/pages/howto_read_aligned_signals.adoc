@@ -201,11 +201,81 @@ Cpp::
     available = reader.getAvailableCount(); // 0
 ----
 ====
-[NOTE]
-====
-When creating a MultiReader from the same builder multiple times, developers should be cautious, especially if they are using input ports as input sources. This is because when creating an input port, it is bound to the first reader. Therefore, attempting to create another reader with the same input port will result in an exception, indicating that the input port is already in use.
-====
+
 == Using the Multi-Reader to read time-stamps
+
+The Time Reader presented in xref:howto_read_with_timestamps.adoc[] can also be used with Multi-Reader.
+[#sync4]
+.Aligning Signals with MultiReader 4
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+    constexpr const auto NUM_SIGNALS = 3;
+
+    auto logger = Logger();
+    auto context = Context(Scheduler(logger, 1), logger, nullptr);
+
+    ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
+    ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");
+    ReadSignal sig2 = demoSignal(context, 843, "2022-09-27T00:02:04.123+00:00");
+
+    ListPtr<ISignal> signals{sig0.signal, sig1.signal, sig2.signal};
+
+    auto reader = MultiReader(signals);
+
+    //
+    // To install the domain transform function to system time-stamps
+    //
+    TimeReader timeReader(reader);
+
+    sig0.sendPacket();
+    sig1.sendPacket();
+    sig2.sendPacket();
+
+    auto available = reader.getAvailableCount();  // 0
+
+    sig0.sendPacket();
+    sig1.sendPacket();
+    sig2.sendPacket();
+
+    sig0.sendPacket();
+    sig1.sendPacket();
+    sig2.sendPacket();
+
+    // Samples per signal
+    // 523 * 3 = 1569 (1.569s) need 1123 to sync
+    // 732 * 3 = 2196 (2.196s) need  123 to sync
+    // 843 * 3 = 2529 (2.529s) need    0 to sync
+
+    auto available = reader.getAvailableCount();  // 446
+
+    constexpr const SizeT SAMPLES = 523;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+
+    //
+    // Use time-stamps as a buffer instead of the domain-type
+    //
+    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+
+    SizeT count{SAMPLES};
+    reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    count = SAMPLES;
+    reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+    // count = 446
+
+    available = reader.getAvailableCount();  // 0
+----
+====
+
+== Creating MutiReader with builder
 
 With the builder, developers can add signals and input ports using the methods `addSignal` and `addInputPort`. For signals, the builder creates an internal input port connected to the input signal.
 
@@ -217,7 +287,7 @@ In Multi-Reader, developers can set the read timeout type. The default value is 
 
 The builder has fields for a common sample rate, which is disabled by default (set to -1), and for starting on the full unit of the domain (also disabled by default). These members can be overridden with the methods `setRequiredCommonSampleRate` and `setStartOnFullUnitOfDomain`.
 
-[#sync4]
+[#sync5]
 .Creating multi reader with default builder
 [tabs]
 ====
@@ -287,77 +357,9 @@ Cpp::
     available = reader.getAvailableCount();  // 0
 ----
 ====
-
-== Creating MutiReader with builder
-OpenDAQ(TM) offers advanced way of creating multi reader with Multi reader builder.
-[#sync5]
-.Creating multi reader wo
-[tabs]
+[NOTE]
 ====
-Cpp::
-+
-[source,cpp]
-----
-    constexpr const auto NUM_SIGNALS = 3;
-
-    auto logger = Logger();
-    auto context = Context(Scheduler(logger, 1), logger, nullptr);
-
-    ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
-    ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");
-    ReadSignal sig2 = demoSignal(context, 843, "2022-09-27T00:02:04.123+00:00");
-
-    ListPtr<ISignal> signals{sig0.signal, sig1.signal, sig2.signal};
-
-    auto reader = MultiReader(signals);
-
-    //
-    // To install the domain transform function to system time-stamps
-    //
-    TimeReader timeReader(reader);
-
-    sig0.sendPacket();
-    sig1.sendPacket();
-    sig2.sendPacket();
-
-    auto available = reader.getAvailableCount();  // 0
-
-    sig0.sendPacket();
-    sig1.sendPacket();
-    sig2.sendPacket();
-
-    sig0.sendPacket();
-    sig1.sendPacket();
-    sig2.sendPacket();
-
-    // Samples per signal
-    // 523 * 3 = 1569 (1.569s) need 1123 to sync
-    // 732 * 3 = 2196 (2.196s) need  123 to sync
-    // 843 * 3 = 2529 (2.529s) need    0 to sync
-
-    auto available = reader.getAvailableCount();  // 446
-
-    constexpr const SizeT SAMPLES = 523;
-
-    std::array<double[SAMPLES], NUM_SIGNALS> values{};
-
-    //
-    // Use time-stamps as a buffer instead of the domain-type
-    //
-    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> domain{};
-
-    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
-    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
-
-    SizeT count{SAMPLES};
-    reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
-
-    count = SAMPLES;
-    reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
-    // count = 446
-
-    available = reader.getAvailableCount();  // 0
-----
+When creating a MultiReader from the same builder multiple times, developers should be cautious, especially if they are using input ports as input sources. This is because when creating an input port, it is bound to the first reader. Therefore, attempting to create another reader with the same input port will result in an exception, indicating that the input port is already in use.
 ====
 
 == Full listing

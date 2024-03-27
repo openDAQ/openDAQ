@@ -263,8 +263,15 @@ Python::
 ----
 ====
 
-for data packet must provide optional arg (USE CAUTION/WARNING IN MARKUP)
-and can be nested
+[CAUTION]
+====
+If we want to call `getLastValue` on a Data Packet (as opposed to a Signal) and the underlying data type is a Struct, we must provide the optional parameter, Type Manager, which has had the custom Struct added to it.
+====
+
+[NOTE]
+====
+Structs can be nested within the Data Descriptor.
+====
 
 [#get_last_value_list]
 == `getLastValue` with a List

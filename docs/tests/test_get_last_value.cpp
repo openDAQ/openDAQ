@@ -97,17 +97,17 @@ TEST_F(HowToGetLastValue, GetLastValueSingalComplexFloat32)
     // START DOCS CODE
 
     // The Data Descriptor for SampleType::ComplexFloat32
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::ComplexFloat32).build();
+    auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
     // Create packet
-    auto dataPacket = DataPacket(descriptor, 5);
+    auto packet = DataPacket(descriptor, 5);
 
     // END DOCS CODE 
 
-    auto data = static_cast<float*>(dataPacket.getData());
+    auto data = static_cast<float*>(packet.getData());
     data[8] = 8.1f;
     data[9] = 9.1f;
 
-    signal.sendPacket(dataPacket);
+    signal.sendPacket(packet);
 
     // START DOCS CODE
 

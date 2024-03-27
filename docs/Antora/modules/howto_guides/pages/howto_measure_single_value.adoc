@@ -151,9 +151,9 @@ Cpp::
 [source,cpp]
 ----
 // The Data Descriptor for SampleType::ComplexFloat32
-auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::ComplexFloat32).build();
+auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
 // Create packet
-auto dataPacket = DataPacket(descriptor, 5);
+auto packet = DataPacket(descriptor, 5);
 ----
 Python::
 +
@@ -200,6 +200,6 @@ TODO LIST + DIMENSIONS
 [#get_last_value_struct]
 == `getLastValue` with a Struct
 
-TODO STRUCT (MUST PROVIDE DATA DESCRIPTOR) + for data packet must provide optional arg (USE CAUSION/WARNING IN MARKUP)
+TODO STRUCT (MUST PROVIDE DATA DESCRIPTOR - WITH NAME) + for data packet must provide optional arg (USE CAUSION/WARNING IN MARKUP)
 
 

@@ -15,7 +15,7 @@ Cpp::
 +
 [source,cpp]
 ----
-// Get last value on a Signal
+// Get last value of a Signal
 auto lastValue = signal.getLastValue();
 ----
 Python::
@@ -37,7 +37,7 @@ Cpp::
 +
 [source,cpp]
 ----
-// Get last value on a Data Packet
+// Get last value of a Data Packet
 auto lastValue = packet.getLastValue();
 ----
 Python::
@@ -126,7 +126,7 @@ Cpp::
 ----
 // The Data Descriptor for SampleType::RangeInt64
 auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::RangeInt64).build();
-// Create packet
+// Create a Data Packet
 auto packet = DataPacket(descriptor, 5);
 ----
 Python::
@@ -142,7 +142,7 @@ In this example, the `sampleCount` of the Data Packet is 5.
 [#get_last_value_complex_number]
 == `getLastValue` with a Complex Number
 
-A Data Descriptor for a Complex Number might be:
+A Data Descriptor of a Complex Number might be:
 
 [tabs]
 ====
@@ -152,7 +152,7 @@ Cpp::
 ----
 // The Data Descriptor for SampleType::ComplexFloat32
 auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
-// Create packet
+// Create a Data Packet
 auto packet = DataPacket(descriptor, 5);
 ----
 Python::
@@ -173,7 +173,7 @@ Cpp::
 +
 [source,cpp]
 ----
-// Get last value on a Signal
+// Get last value of a Signal
 auto lastValue = signal.getLastValue();
 // Cast to ComplexNumberPtr
 auto complex = lastValue.asPtr<IComplexNumber>();
@@ -189,17 +189,85 @@ Python::
 ----
 ====
 
-[#get_last_value_list]
-== `getLastValue` with a List
-
-
-
-TODO LIST + DIMENSIONS
-
-
 [#get_last_value_struct]
 == `getLastValue` with a Struct
 
-TODO STRUCT (MUST PROVIDE DATA DESCRIPTOR - WITH NAME) + for data packet must provide optional arg (USE CAUSION/WARNING IN MARKUP)
+A Data Descriptor of a Struct might be:
 
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Create a Data Descriptor
+auto descriptor = DataDescriptorBuilder()
+					  .setName("MyStruct")
+					  .setSampleType(SampleType::Struct)
+					  .setStructFields(List<DataDescriptorPtr>(
+						  DataDescriptorBuilder()
+							  .setName("MyInt32")
+							  .setSampleType(SampleType::Int32)
+							  .build(),
+						  DataDescriptorBuilder()
+							  .setName("MyFloat64")
+							  .setSampleType(SampleType::Float64)
+							  .build()))
+					  .build();
+// Set the Data Descriptor, thereby adding MyStruct to the Type Manager
+signal.setDescriptor(descriptor);
+// Create a Data Packet
+auto packet = DataPacket(descriptor, 5);
+----
+Python::
++
+[source,python]
+----
+# TODO Python code
+----
+====
+
+In the above example, we first build a Data Descriptor of a custom Struct that has two fields. The first field has Sample Type `SampleType::Int32` and the second one has Sample Type `SampleType::Float64`.
+
+[NOTE]
+====
+Because our Struct represents a custom type, we must call `setDescriptor` on our Signal in order to add `MyStruct` to the Type Manager.
+====
+
+[CAUTION]
+====
+All custom Structs and their respective fields must have their names set, which is a deviation from the previous examples. In the above code this is done by the calls to `setName` method of the Data Descriptor Builder.
+====
+
+After some data has been sent to our Signal, we can capture a single value similar to the previous examples:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Get last value of a Signal
+auto lastValue = signal.getLastValue();
+// Cast to StructPtr
+auto myStruct = lastValue.asPtr<IStruct>();
+// Extract both values
+auto myInt = myStruct.get("MyInt32");
+auto myFloat = myStruct.get("MyFloat64");
+----
+Python::
++
+[source,python]
+----
+# TODO Python code
+----
+====
+
+for data packet must provide optional arg (USE CAUTION/WARNING IN MARKUP)
+and can be nested
+
+[#get_last_value_list]
+== `getLastValue` with a List
+
+TODO LIST + DIMENSIONS + CAN BE NESTED
 

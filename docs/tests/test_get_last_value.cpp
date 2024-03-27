@@ -37,7 +37,7 @@ TEST_F(HowToGetLastValue, GetLastValueDataPacketInt64)
 
     // START DOCS CODE
 
-    // Get last value on a Data Packet
+    // Get last value of a Data Packet
     auto lastValue = packet.getLastValue();
 
     // END DOCS CODE
@@ -58,7 +58,7 @@ TEST_F(HowToGetLastValue, GetLastValueSignalRange)
 
     // The Data Descriptor for SampleType::RangeInt64
     auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::RangeInt64).build();
-    // Create packet
+    // Create a Data Packet
     auto packet = DataPacket(descriptor, 5);
 
     // END DOCS CODE
@@ -71,7 +71,7 @@ TEST_F(HowToGetLastValue, GetLastValueSignalRange)
 
     // START DOCS CODE
 
-    // Get last value on a Signal
+    // Get last value of a Signal
     auto lastValue = signal.getLastValue();
 
     // Print last value
@@ -98,10 +98,10 @@ TEST_F(HowToGetLastValue, GetLastValueSingalComplexFloat32)
 
     // The Data Descriptor for SampleType::ComplexFloat32
     auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
-    // Create packet
+    // Create a Data Packet
     auto packet = DataPacket(descriptor, 5);
 
-    // END DOCS CODE 
+    // END DOCS CODE
 
     auto data = static_cast<float*>(packet.getData());
     data[8] = 8.1f;
@@ -111,7 +111,7 @@ TEST_F(HowToGetLastValue, GetLastValueSingalComplexFloat32)
 
     // START DOCS CODE
 
-    // Get last value on a Signal
+    // Get last value of a Signal
     auto lastValue = signal.getLastValue();
     // Cast to ComplexNumberPtr
     auto complex = lastValue.asPtr<IComplexNumber>();
@@ -119,11 +119,64 @@ TEST_F(HowToGetLastValue, GetLastValueSingalComplexFloat32)
     auto real = complex.getReal();
     auto imaginary = complex.getImaginary();
 
-    // END DOCS CODE 
+    // END DOCS CODE
 
     ASSERT_FLOAT_EQ(real, 8.1f);
     ASSERT_FLOAT_EQ(imaginary, 9.1f);
 }
 
+// Corresponding document: Antora/modules/howto_guides/pages/howto_measure_single_value.adoc
+TEST_F(HowToGetLastValue, GetLastValueSignalStruct)
+{
+    // Create Signal
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // START DOCS CODE
+
+    // Create a Data Descriptor
+    auto descriptor = DataDescriptorBuilder()
+                          .setName("MyStruct")
+                          .setSampleType(SampleType::Struct)
+                          .setStructFields(List<DataDescriptorPtr>(
+                              DataDescriptorBuilder().setName("MyInt32").setSampleType(SampleType::Int32).build(),
+                              DataDescriptorBuilder().setName("MyFloat64").setSampleType(SampleType::Float64).build()))
+                          .build();
+    // Set the Data Descriptor, thereby adding MyStruct to the Type Manager
+    signal.setDescriptor(descriptor);
+    // Create a Data Packet
+    auto packet = DataPacket(descriptor, 5);
+
+    // END DOCS CODE
+
+    // Prepare data packet
+    auto sizeInBytes = sizeof(int32_t) + sizeof(double);
+    auto data = packet.getData();
+    auto start = static_cast<char*>(data);
+    void* a = start + sizeInBytes * 4;
+    auto A = static_cast<int32_t*>(a);
+    *A = 12;
+    void* b = start + sizeInBytes * 4 + sizeof(int32_t);
+    auto B = static_cast<double*>(b);
+    *B = 15.1;
+    signal.sendPacket(packet);
+
+    // START DOCS CODE
+
+    // Get last value of a Signal
+    auto lastValue = signal.getLastValue();
+    // Cast to StructPtr
+    auto myStruct = lastValue.asPtr<IStruct>();
+    // Extract both values
+    auto myInt = myStruct.get("MyInt32");
+    auto myFloat = myStruct.get("MyFloat64");
+
+    // END DOCS CODE
+
+    // Check first member
+    ASSERT_EQ(myInt, 12);
+
+    // Check second member
+    ASSERT_DOUBLE_EQ(myFloat, 15.1);
+}
 
 END_NAMESPACE_OPENDAQ

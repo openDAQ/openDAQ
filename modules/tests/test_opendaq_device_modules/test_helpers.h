@@ -40,24 +40,22 @@ namespace test_helpers
     static void setupSubscribeAckHandler(
         std::promise<StringPtr>& acknowledgementPromise,
         std::future<StringPtr>& acknowledgementFuture,
-        MirroredSignalConfigPtr& signal
+        MirroredSignalConfigPtr& signal,
+        Bool expectMultipleAck = false
     )
     {
         acknowledgementFuture = acknowledgementPromise.get_future();
-        auto signalId = std::make_shared<std::string>(signal.getGlobalId().toStdString());
         signal.getOnSubscribeComplete() +=
-            [&acknowledgementPromise, &acknowledgementFuture, signalId]
+            [&acknowledgementPromise, &acknowledgementFuture, expectMultipleAck]
             (MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
         {
             if (acknowledgementFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
             {
                 acknowledgementPromise.set_value(args.getStreamingConnectionString());
             }
-            else
+            else if (!expectMultipleAck)
             {
-                ADD_FAILURE()  << " Set already satisfied subscribe ack promise for signal: "
-                               << *signalId.get()
-                               << "\n streaming: "
+                ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
                                << args.getStreamingConnectionString();
             }
         };
@@ -67,25 +65,23 @@ namespace test_helpers
     static void setupUnsubscribeAckHandler(
         std::promise<StringPtr>& acknowledgementPromise,
         std::future<StringPtr>& acknowledgementFuture,
-        MirroredSignalConfigPtr& signal
+        MirroredSignalConfigPtr& signal,
+        Bool expectMultipleAck = false
     )
     {
         acknowledgementFuture = acknowledgementPromise.get_future();
-        auto signalId = std::make_shared<std::string>(signal.getGlobalId().toStdString());
         signal.getOnUnsubscribeComplete() +=
-            [&acknowledgementPromise, &acknowledgementFuture, signalId]
+            [&acknowledgementPromise, &acknowledgementFuture, expectMultipleAck]
             (MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
         {
             if (acknowledgementFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
             {
                 acknowledgementPromise.set_value(args.getStreamingConnectionString());
             }
-            else
+            else if (!expectMultipleAck)
             {
-                ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for signal: "
-                              << *signalId.get()
-                              << "\n streaming: "
-                              << args.getStreamingConnectionString();
+                ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
+                               << args.getStreamingConnectionString();
             }
         };
     }

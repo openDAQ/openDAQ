@@ -97,6 +97,11 @@ DataDescriptorPtr TmsClientSignalImpl::onGetDescriptor()
     return nullptr;
 }
 
+bool TmsClientSignalImpl::clearDescriptorOnUnsubscribe()
+{
+    return true;
+}
+
 ErrCode TmsClientSignalImpl::setDomainSignal(ISignal* signal)
 {
     return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;

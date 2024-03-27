@@ -49,6 +49,7 @@ public:
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
+    bool clearDescriptorOnUnsubscribe() override;
 
 private:
     void descriptorChanged(const CoreEventArgsPtr& args);
@@ -132,6 +133,11 @@ inline void ConfigClientSignalImpl::onRemoteUpdate(const SerializedObjectPtr& se
 
     if (serialized.hasKey("dataDescriptor"))
         this->dataDescriptor = serialized.readObject("dataDescriptor");
+}
+
+inline bool ConfigClientSignalImpl::clearDescriptorOnUnsubscribe()
+{
+    return true;
 }
 
 inline void ConfigClientSignalImpl::descriptorChanged(const CoreEventArgsPtr& args)

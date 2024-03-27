@@ -7,6 +7,8 @@
 #include "opendaq/context_factory.h"
 #include "opendaq/component_status_container_private_ptr.h"
 #include "opendaq/device_domain_factory.h"
+#include "opendaq/mock/mock_device_module.h"
+#include "opendaq/mock/mock_physical_device.h"
 
 namespace daq::config_protocol::test_utils
 {
@@ -14,6 +16,7 @@ namespace daq::config_protocol::test_utils
 DevicePtr createServerDevice()
 {
     const auto context = NullContext();
+
     const auto typeManager = context.getTypeManager();
 
     const auto obj = PropertyObject();
@@ -26,6 +29,12 @@ DevicePtr createServerDevice()
     typeManager.addType(mockClass);
 
     const auto serverDevice = createWithImplementation<IDevice, MockDevice2Impl>(context, nullptr, "root_dev");
+    const FolderConfigPtr devicesFolder = serverDevice.getItem("Dev");
+
+    const StringPtr id = "mock_phys_dev";
+    DevicePtr physicalDevice(MockPhysicalDevice_Create(context, devicesFolder, id));
+    devicesFolder.addItem(physicalDevice);
+
     serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     return serverDevice;
 }

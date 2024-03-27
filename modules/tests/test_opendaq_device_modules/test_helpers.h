@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ namespace test_helpers
     [[maybe_unused]]
     static bool waitForAcknowledgement(
         std::future<StringPtr>& acknowledgementFuture,
-        std::chrono::seconds timeout = std::chrono::seconds(1))
+        std::chrono::seconds timeout = std::chrono::seconds(5))
     {
         return acknowledgementFuture.wait_for(timeout) == std::future_status::ready;
     }

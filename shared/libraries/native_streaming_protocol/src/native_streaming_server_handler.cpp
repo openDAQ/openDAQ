@@ -272,7 +272,7 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
 
     OnSessionErrorCallback errorHandler = [this](const std::string& errorMessage, SessionPtr session)
     {
-        LOG_W("Closing connection caused by: {}", errorMessage);
+        LOG_I("Closing connection caused by: {}", errorMessage);
         // call dispatch to run it in the ::io_context to omit concurrent access!
         ioContextPtr->dispatch([this, session]() { releaseSessionHandler(session); });
     };

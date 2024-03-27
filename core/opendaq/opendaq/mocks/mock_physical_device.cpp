@@ -17,9 +17,9 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx, con
     , mockFolderA(IoFolder(ctx, ioFolder, "mockfolderA"))
     , mockFolderB(IoFolder(ctx, ioFolder, "mockfolderB"))
     , mockChannel1(MockChannel(ctx, ioFolder, "mockch1"))
-    , mockChannelA1(MockChannel(ctx, ioFolder, "mockchA1"))
-    , mockChannelB1(MockChannel(ctx, ioFolder, "mockchB1"))
-    , mockChannelB2(MockChannel(ctx, ioFolder, "mockchB2"))
+    , mockChannelA1(MockChannel(ctx, mockFolderA, "mockchA1"))
+    , mockChannelB1(MockChannel(ctx, mockFolderB, "mockchB1"))
+    , mockChannelB2(MockChannel(ctx, mockFolderB, "mockchB2"))
 {
     auto mockSignal = Signal(this->context, signals, "devicetimesig");
     auto mockPrivateSignal = Signal(this->context, signals, "devicetimesigprivate");
@@ -160,6 +160,7 @@ void MockPhysicalDeviceImpl::registerProperties()
         startAcq();
     };
 
+
     obj.addProperty(FunctionProperty("stop", ProcedureInfo()));
     obj.setPropertyValue("stop", Procedure(
         [this]()
@@ -167,6 +168,17 @@ void MockPhysicalDeviceImpl::registerProperties()
             stopAcq();
         }
     ));
+
+    obj.addProperty(BoolProperty("ChangeDescriptors", 0));
+    obj.getOnPropertyValueWrite("ChangeDescriptors") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& /*args*/)
+    {
+        for (const SignalConfigPtr& sig : ioFolder.getItems(search::Recursive(search::InterfaceId(ISignal::Id))))
+        {
+            const auto builder =
+                DataDescriptorBuilderCopy(sig.getDescriptor()).setMetadata(Dict<IString, IString>({{"new_metadata", "new_value"}}));
+            sig.setDescriptor(builder.build());
+        }
+    };
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 #include <opendaq/component_holder_ptr.h>
 #include <opendaq/ids_parser.h>
 #include <opendaq/deserialize_component_ptr.h>
-#include <opendaq/mirrored_signal_private.h>
+#include <opendaq/mirrored_signal_private_ptr.h>
 
 #include <config_protocol/config_client_object.h>
 #include <coretypes/cloneable.h>

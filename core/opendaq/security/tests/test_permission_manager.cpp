@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <opendaq/permission_manager_factory.h>
-#include <opendaq/permission_manager_private_ptr.h>
+#include <opendaq/permission_manager_internal_ptr.h>
 #include <opendaq/user_factory.h>
 #include <opendaq/permission_config_builder_factory.h>
 
@@ -179,7 +179,7 @@ TEST_F(PermissionManagerTest, SetParent)
 
     auto managerRoot = PermissionManager();
     managerRoot.setPermissionConfig(PermissionConfigBuilder().allow("admin", Permission::Read | Permission::Write).build());
-    manager.asPtr<IPermissionManagerPrivate>().setParent(managerRoot);
+    manager.asPtr<IPermissionManagerInternal>().setParent(managerRoot);
 
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Read));
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Write));
@@ -203,7 +203,7 @@ TEST_F(PermissionManagerTest, ChangeParent)
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Write));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Execute));
 
-    manager.asPtr<IPermissionManagerPrivate>().setParent(managerRoot2);
+    manager.asPtr<IPermissionManagerInternal>().setParent(managerRoot2);
 
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Read));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Write));
@@ -224,7 +224,7 @@ TEST_F(PermissionManagerTest, SetNullParent)
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Write));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Execute));
 
-    manager.asPtr<IPermissionManagerPrivate>().setParent(nullptr);
+    manager.asPtr<IPermissionManagerInternal>().setParent(nullptr);
 
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Read));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Write));

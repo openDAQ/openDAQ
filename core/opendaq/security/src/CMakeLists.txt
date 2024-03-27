@@ -8,10 +8,10 @@ set(RTGEN_OUTPUT_DIR ${GENERATED_HEADERS_DIR})
 set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 rtgen(SRC_User user.h)
-rtgen(SRC_UserPrivate user_private.h)
+rtgen(SRC_UserInternal user_internal.h)
 rtgen(SRC_AuthenticationProvider authentication_provider.h)
 rtgen(SRC_PermissionManager permission_manager.h)
-rtgen(SRC_PermissionManagerPrivate permission_manager_private.h)
+rtgen(SRC_PermissionManagerInternal permission_manager_internal.h)
 rtgen(SRC_PermisisonConfigBuilder permission_config_builder.h)
 rtgen(SRC_PermisisonConfig permission_config.h)
 
@@ -26,12 +26,12 @@ set(SRC_PublicHeaders security_errors.h
                       security_exceptions.h
                       user.h
                       user_factory.h
-                      user_private.h
+                      user_internal.h
                       authentication_provider.h
                       authentication_provider_factory.h
                       permission_manager.h
                       permission_manager_factory.h
-                      permission_manager_private.h
+                      permission_manager_internal.h
                       permission_config_builder.h
                       permission_config_builder_factory.h
                       permission_config.h

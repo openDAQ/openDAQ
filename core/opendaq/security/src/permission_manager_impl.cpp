@@ -116,12 +116,12 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::updateInheritedPermissions()
 void PermissionManagerImpl::updateChildPermissions()
 {
     for (const auto& [child, _] : children)
-        child.asPtr<IPermissionManagerPrivate>(true)->updateInheritedPermissions();
+        child.asPtr<IPermissionManagerInternal>(true)->updateInheritedPermissions();
 }
 
-PermissionManagerPrivatePtr PermissionManagerImpl::getParentManager()
+PermissionManagerInternalPtr PermissionManagerImpl::getParentManager()
 {
-    return parent.getRef().asPtr<IPermissionManagerPrivate>();
+    return parent.getRef().asPtr<IPermissionManagerInternal>();
 }
 
 END_NAMESPACE_OPENDAQ

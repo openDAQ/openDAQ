@@ -221,7 +221,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     lockedAttributes.insert("Visible");
 
     const PermissionManagerPtr parentManager = parent.assigned() ? parent.getPermissionManager() : nullptr;
-    this->permissionManager.template asPtr<IPermissionManagerPrivate>(true).setParent(parentManager);
+    this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
 }
 
 template <class Intf, class ... Intfs>

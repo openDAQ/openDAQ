@@ -29,7 +29,7 @@ class AuthenticationProviderImpl : public ImplementationOf<IAuthenticationProvid
 public:
     explicit AuthenticationProviderImpl();
 
-    ErrCode INTERFACE_FUNC authenticate(IString* usernanme, IString* password, IUser** userOut) override;
+    ErrCode INTERFACE_FUNC authenticate(IString* username, IString* password, IUser** userOut) override;
 
 protected:
     void loadUserList(const ListPtr<IUser>& userList);

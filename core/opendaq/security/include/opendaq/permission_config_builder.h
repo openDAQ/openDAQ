@@ -43,25 +43,25 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionConfigBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Set prmissions for given group.
+     * @brief Set permissions for given group.
      * @param groupId The id of a group to set permissions for.
-     * @param permissionFlags Bit mask of permissions to allow or deny.
+     * @param permissionFlags Bit mask of Permission enum flags to allow or deny.
      */
     virtual ErrCode INTERFACE_FUNC set(IString* groupId, Int permissionFlags) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Allow prmissions for given group.
+     * @brief Allow permissions for given group.
      * @param groupId The id of a group to allow permissions for.
-     * @param permissionFlags Bit mask of permissions to allow. Allowed flags should be set to 1 and denied to 0.
+     * @param permissionFlags Bit mask of Permission enum flags to allow. Allowed flags should be set to 1 and denied to 0.
      */
     virtual ErrCode INTERFACE_FUNC allow(IString * groupId, Int permissionFlags) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Deny prmissions for given group.
+     * @brief Deny permissions for given group.
      * @param groupId The id of a group to deny permissions for.
-     * @param permissionFlags Bit mask of permissions to deny. Denied flags should be set to 1 and allowed to 0.
+     * @param permissionFlags Bit mask of Permission enum flags to deny. Denied flags should be set to 1 and allowed to 0.
      */
     virtual ErrCode INTERFACE_FUNC deny(IString * groupId, Int permissionFlags) = 0;
 

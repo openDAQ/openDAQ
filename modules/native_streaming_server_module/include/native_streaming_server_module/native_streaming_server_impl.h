@@ -53,8 +53,10 @@ protected:
     void startProcessingOperations();
     void stopProcessingOperations();
 
+    void addSignalsOfComponent(ComponentPtr& component);
     void componentAdded(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentRemoved(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
+    void componentUpdated(ComponentPtr& updatedComponent);
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
 
     std::thread readThread;

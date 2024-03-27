@@ -145,19 +145,19 @@ void RefDeviceImpl::acqLoop()
 
 void RefDeviceImpl::initProperties()
 {
-    objPtr.addProperty(IntProperty("NumberOfChannels", 2));
+    objPtr.addProperty(IntProperty("NumberOfChannels", 10));
     objPtr.getOnPropertyValueWrite("NumberOfChannels") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { updateNumberOfChannels(); };
-		
+
     const auto globalSampleRatePropInfo =
-        FloatPropertyBuilder("GlobalSampleRate", 1000.0).setUnit(Unit("Hz")).setMinValue(1.0).setMaxValue(1000000.0).build();
+        FloatPropertyBuilder("GlobalSampleRate", 1000.0).setUnit(Unit("Hz")).setMinValue(1.0).setMaxValue(10000000.0).build();
 
     objPtr.addProperty(globalSampleRatePropInfo);
     objPtr.getOnPropertyValueWrite("GlobalSampleRate") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { updateGlobalSampleRate(); };
 
     const auto acqLoopTimePropInfo =
-        IntPropertyBuilder("AcquisitionLoopTime", 20).setUnit(Unit("ms")).setMinValue(10).setMaxValue(1000).build();
+        IntPropertyBuilder("AcquisitionLoopTime", 2).setUnit(Unit("ms")).setMinValue(10).setMaxValue(1000).build();
 
     objPtr.addProperty(acqLoopTimePropInfo);
     objPtr.getOnPropertyValueWrite("AcquisitionLoopTime") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) {

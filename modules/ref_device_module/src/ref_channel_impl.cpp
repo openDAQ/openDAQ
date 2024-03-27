@@ -56,7 +56,7 @@ void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgs
 void RefChannelImpl::initProperties()
 {
     const auto waveformProp = SelectionProperty("Waveform", List<IString>("Sine", "Rect", "None", "Counter"), 0);
-    
+
     objPtr.addProperty(waveformProp);
     objPtr.getOnPropertyValueWrite("Waveform") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { waveformChanged(); };
@@ -67,14 +67,14 @@ void RefChannelImpl::initProperties()
                               .setMinValue(0.1)
                               .setMaxValue(10000.0)
                               .build();
-    
+
     objPtr.addProperty(freqProp);
     objPtr.getOnPropertyValueWrite("Frequency") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { waveformChanged(); };
 
     const auto dcProp =
         FloatPropertyBuilder("DC", 0.0).setVisible(EvalValue("$Waveform < 3")).setUnit(Unit("V")).setMaxValue(10.0).setMinValue(-10.0).build();
-    
+
 
     objPtr.addProperty(dcProp);
     objPtr.getOnPropertyValueWrite("DC") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { waveformChanged(); };
@@ -92,7 +92,7 @@ void RefChannelImpl::initProperties()
                                    .setMinValue(0.0)
                                    .setMaxValue(10.0)
                                    .build();
-    
+
     objPtr.addProperty(noiseAmplProp);
     objPtr.getOnPropertyValueWrite("NoiseAmplitude") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { waveformChanged(); };
@@ -107,8 +107,8 @@ void RefChannelImpl::initProperties()
                                     .setVisible(EvalValue("!$UseGlobalSampleRate"))
                                     .setUnit(Unit("Hz"))
                                     .setMinValue(1.0)
-                                    .setMaxValue(1000000.0)
-                                    .setSuggestedValues(List<Float>(10.0, 100.0, 1000.0, 10000.0, 100000.0, 1000000.0))
+                                    .setMaxValue(10000000.0)
+                                    .setSuggestedValues(List<Float>(10.0, 100.0, 1000.0, 10000.0, 100000.0, 1000000.0, 10000000.0))
                                     .build();
 
     objPtr.addProperty(sampleRateProp);
@@ -254,7 +254,7 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 
                 samplesGenerated += packetSize;
                 newSamples -= packetSize;
-                
+
             }
         }
     }

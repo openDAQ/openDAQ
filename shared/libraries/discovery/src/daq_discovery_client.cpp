@@ -127,8 +127,14 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
     {
         addInfoProperty(deviceInfo, prop.first, prop.second);
     }
-
-    StringPtr connectionString = "daq://" + deviceInfo.getManufacturer() + "_" + deviceInfo.getSerialNumber();
+    
+    StringPtr manufacturer = deviceInfo.getManufacturer();
+    if (manufacturer.getLength() == 0)
+        manufacturer = "NoManufacturer";
+    StringPtr serialNumber = deviceInfo.getSerialNumber();
+    if (serialNumber.getLength() == 0)
+        serialNumber = "NoSerialNumber";
+    StringPtr connectionString = "daq://" + manufacturer + "_" + serialNumber;
     deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(connectionString);
     return deviceInfo;
 }

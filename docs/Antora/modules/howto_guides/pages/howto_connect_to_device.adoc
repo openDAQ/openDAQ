@@ -38,7 +38,7 @@ int main(int argc, const char* argv[])
         {
             if (capability.getProtocolName() == "openDAQ OpcUa")
             {
-                std::cout << "Name: " << deviceInfo.getName() << ", Address: " << deviceInfo.getConnectionString() << std::endl;
+                std::cout << "Name: " << deviceInfo.getName() << ", Address: " << capability.getConnectionString() << std::endl;
             }
         }
     }
@@ -57,8 +57,10 @@ instance = opendaq.Instance()
 
 # Discover and print the names and connection strings of openDAQ(TM) devices
 for device_info in instance.available_devices:
-    if device_info.connection_string.startswith('daq.opcua://'):
-        print('Name:', device_info.name, 'Address:', device_info.connection_string)
+    for capability: device_info.server_capabilities:
+        if capability.protocol_name == 'openDAQ OpcUa':
+            device = instance.add_device(capability.connection_string)
+            break
 ----
 C#::
 +

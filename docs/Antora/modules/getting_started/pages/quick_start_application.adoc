@@ -231,8 +231,13 @@ int main(int argc, const char* argv[])
     // Find and output the names and connection strings of all available devices
     daq::ListPtr<daq::IDeviceInfo> availableDevicesInfo = instance.getAvailableDevices();
     for (const auto& deviceInfo : availableDevicesInfo)
+    {
         std::cout << "Name: " << deviceInfo.getName() << ", Connection string: " << deviceInfo.getConnectionString() << std::endl;
-
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            std::cout << "- Capability: " << capability.getProtocolName() << ", Address: " << capability.getConnectionString() << std::endl;
+        }
+    }
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
     std::cin.get();
     return 0;
@@ -250,12 +255,19 @@ instance = opendaq.Instance()
 # Find and output the names and connection strings of all available devices
 for device_info in instance.available_devices:
     print("Name:", device_info.name, "Connection string:", device_info.connection_string)
+    for capability: device_info.server_capabilities:
+        print("Capability:", capability.protocol_name, "Connection string:", capability.connection_string)
 ----
 ====
-
+Device info connection string for most of devices has format `daq://[manufacturer]_[serial number]` and server capabilities which stores supporting protocols.
 Now run the simulator and the above client code. We should see the console output several Device names and connection
-strings. For example: `Device 0 : daqref://device0`, `Device 1 : daqref://device1`, `Device 1 : daq.opcua://xxx.xxx.xxx.xxx/`,
- `NativeStreamingClientPseudoDevice : daq.nsd://xxx.xxx.xxx.xxx/`
+strings. 
+
+* `Device 0 : daqref://device0`
+* `Device 1 : daq://openDAQ_dev_ser_1`
+** `openDAQ OpcUa : daq.opcua://xxx.xxx.xxx.xxx/`
+** `openDAQ Native Streaming : daq.nsd://xxx.xxx.xxx.xxx/`
+
 (the `daq.*://` addresses are specific to your simulator instance). We can use their corresponding connection strings to add / connect to the devices.
 
 === Connecting to a remote device
@@ -317,9 +329,10 @@ instance = opendaq.Instance()
 
 # Find and connect to a device hosting an openDAQ(TM) OPC UA server
 for device_info in instance.available_devices:
-    if device_info.connection_string.startswith('daq.opcua://'):
-        device = instance.add_device(device_info.connection_string)
-        break
+    for capability: device_info.server_capabilities:
+        if capability.protocol_name == 'openDAQ OpcUa':
+            device = instance.add_device(capability.connection_string)
+            break
 else:
     # Exit if no device is found
     exit(0)
@@ -336,6 +349,77 @@ IMPORTANT: Not all functionalities are supported as of this moment. Property con
 possible, but manipulating the data paths, and adding / removing Devices or Function Blocks is not possible yet.
 
 The Device we connect to is added as a child below the openDAQ(TM) Instance, or more accurately, below our Root Device.
+
+=== Smart Connecting to a remote device
+As mentioned before, some devices have server capabilities in their device info, and the device info connection string starts with `daq://`. 
+Developers can connect to these devices using the connection string from the chosen server capability, which means the connection will be established using the chosen protocol.
+
+If a developer does not mind about the protocol, they can use a smart option that will choose the most optimal way of connection. To do this, the developer can add the device with a connection string not from the server capability but from the device info.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main(int argc, const char* argv[])
+{
+    // Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
+    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+
+    // This will ignore daq ref and daq audio
+    // Find and connect to a device hosting an openDAQ(TM) OPC UA server
+    const auto availableDevices = instance.getAvailableDevices();
+    daq::DevicePtr device;
+    for (const auto& deviceInfo : availableDevices)
+    {
+        if (deviceInfo.getConnectionString().toView().find("daq://") != std::string::npos)
+        {
+            device = instance.addDevice(capability.getConnectionString());
+            break;
+        }
+    }
+
+    // Exit if no device is found
+    if (!device.assigned())
+        return 0;
+
+    // Output the name of the added device
+    std::cout << device.getInfo().getName() << std::endl;
+
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+import opendaq
+
+# Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
+instance = opendaq.Instance()
+
+# Find and connect to a device hosting an openDAQ(TM) OPC UA server
+for device_info in instance.available_devices:
+    for capability: device_info.server_capabilities:
+        if capability.protocol_name == 'openDAQ OpcUa':
+            device = instance.add_device(capability.connection_string)
+            break
+else:
+    # Exit if no device is found
+    exit(0)
+
+# Output the name of the added device
+print(device.info.name)
+----
+====
 
 === The openDAQ(TM) Instance and Root Device
 
@@ -1036,9 +1120,10 @@ instance = opendaq.Instance()
 
 # Find and connect to a device hosting an openDAQ(TM) OPC UA server
 for device_info in instance.available_devices:
-    if device_info.connection_string.startswith('daq.opcua://'):
-        device = instance.add_device(device_info.connection_string)
-        break
+    for capability: device_info.server_capabilities:
+        if capability.protocol_name == 'openDAQ OpcUa':
+            device = instance.add_device(capability.connection_string)
+            break
 else:
     # Exit if no device is found
     exit(0)
@@ -1235,9 +1320,10 @@ instance = opendaq.Instance()
 
 # Find and connect to a device hosting a WebSocket server
 for device_info in instance.available_devices:
-    if device_info.connection_string.startswith('daq.nsd://'):
-        device = instance.add_device(device_info.connection_string)
-        break
+    for capability: device_info.server_capabilities:
+        if capability.protocol_name == 'openDAQ Native Streaming' and capability.protocol_type == 'Streaming':
+            device = instance.add_device(capability.connection_string)
+            break
 else:
     # Exit if no device is found
     exit(0)

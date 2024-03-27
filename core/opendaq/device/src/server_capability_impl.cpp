@@ -40,10 +40,10 @@ ServerCapabilityConfigImpl::ServerCapabilityConfigImpl( const ContextPtr& contex
     , typeManager(GetTypeManager(context))
     , protocolType(Enumeration(EnumerationName, protocolType, typeManager))
 {
-    Super::addProperty(StringPropertyBuilder(ConnectionString, "").setReadOnly(true).build());
+    Super::addProperty(StringProperty(ConnectionString, ""));
     Super::addProperty(StringPropertyBuilder(ProtocolName, protocolName).setReadOnly(true).build());
-    Super::addProperty(StringPropertyBuilder(ConnectionType, "Unknwown").setReadOnly(true).build());
-    Super::addProperty(BoolPropertyBuilder(UpdateMethod, false).setReadOnly(true).build());
+    Super::addProperty(StringProperty(ConnectionType, "Unknwown"));
+    Super::addProperty(BoolProperty(UpdateMethod, false));
 }
 
 ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const ContextPtr& context, const StringPtr& protocolId)

@@ -13,6 +13,10 @@ int main(int /*argc*/, const char* /*argv*/[])
     daq::DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
+        std::cout << "device_name " << deviceInfo.getConnectionString() << "\n";
+    }
+    for (const auto& deviceInfo : availableDevices)
+    {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (capability.getProtocolType() == "Streaming" && capability.getProtocolName() == "openDAQ Native Streaming")

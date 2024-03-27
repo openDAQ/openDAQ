@@ -22,8 +22,8 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceLibrary(IProperty, "coreobjects")]
- * [interfaceLibrary(IPropertyObject, "coreobjects")]
- * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
+ * [interfaceLibrary(IServerCapability, "coreobjects")]
+ * [interfaceSmartPtr(IServerCapability, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
  */
 
 DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
@@ -62,19 +62,6 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @param type The client update method
      */
     virtual ErrCode INTERFACE_FUNC setCoreEventsEnabled(Bool enabled) = 0;
-
-    // [returnSelf]
-    /*!
-     * @brief Adds the property to the Property object.
-     * @param property The property to be added.
-     * @retval OPENDAQ_ERR_INVALIDVALUE if the property has no name.
-     * @retval OPENDAQ_ERR_ALREADYEXISTS if a property with the same name is already part of the Property object.
-     * @retval OPENDAQ_ERR_FROZEN if the Property object is frozen.
-     *
-     * The Property is frozen once added to the Property object, making it immutable. The same Property cannot
-     * be added to multiple different Property objects.
-     */
-    virtual ErrCode INTERFACE_FUNC addProperty(IProperty* property) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

@@ -2,6 +2,7 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_rule_factory.h>
+#include <opendaq/dimension_factory.h>
 #include <opendaq/range_factory.h>
 #include <opendaq/reader_factory.h>
 #include <opendaq/signal_factory.h>
@@ -76,6 +77,15 @@ public:
 
         ASSERT_EQ(low, lowValue);
         ASSERT_EQ(high, highValue);
+    }
+
+    void checkLastValueListOfInt64(const SignalPtr& signal)
+    {
+        auto lv = signal.getLastValue();
+        ListPtr<IInteger> ptr;
+        ASSERT_NO_THROW(ptr = lv.asPtr<IList>());
+        ASSERT_EQ(ptr.getItemAt(0), 4);
+        ASSERT_EQ(ptr.getItemAt(1), 44);
     }
 
     template <typename T>
@@ -283,6 +293,36 @@ TEST_F(TmsSignalTest, GetLastValueRange)
 
     checkLastValueRange(clientSignal, 8, 9);
     checkLastValueRange(daqServerSignal, 8, 9);
+}
+
+TEST_F(TmsSignalTest, GetLastValueListOfInt64)
+{
+    auto daqServerSignal = Signal(NullContext(), nullptr, "id");
+
+    auto numbers = List<INumber>();
+    numbers.pushBack(1);
+    numbers.pushBack(2);
+
+    auto dimensions = List<IDimension>();
+    dimensions.pushBack(Dimension(ListDimensionRule(numbers)));
+
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).setDimensions(dimensions).build();
+
+    auto serverSignal = TmsServerSignal(daqServerSignal, this->getServer(), ctx, serverContext);
+    auto nodeId = serverSignal.registerOpcUaNode();
+    daqServerSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::RangeInt64).build());
+
+    auto dataPacket = DataPacket(descriptor, 5);
+    auto data = static_cast<int64_t*>(dataPacket.getData());
+    data[8] = 4;
+    data[9] = 44;
+
+    daqServerSignal.sendPacket(dataPacket);
+
+    auto clientSignal = TmsClientSignal(NullContext(), nullptr, "sig", clientContext, nodeId);
+
+    checkLastValueListOfInt64(clientSignal);
+    checkLastValueListOfInt64(daqServerSignal);
 }
 
 TEST_F(TmsSignalTest, GetLastValueComplexFloat32)

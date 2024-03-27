@@ -6,7 +6,7 @@ Description:
 + [interface] IMultiReaderBuilder::build(IMultiReader** multiReader)
 + [interface] IMultiReaderBuilder::addSignal(ISignal* signal)
 + [interface] IMultiReaderBuilder::addInputPort(IInputPort* port)
-+ [interface] IMultiReaderBuilder::getInputPortList(IList** ports)
++ [interface] IMultiReaderBuilder::getSourceComponents(IList** ports)
 + [interface] IMultiReaderBuilder::setValueReadType(SampleType type)
 + [interface] IMultiReaderBuilder::getValueReadType(SampleType* type)
 + [interface] IMultiReaderBuilder::setDomainReadType(SampleType type)

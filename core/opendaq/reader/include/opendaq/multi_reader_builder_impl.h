@@ -28,7 +28,7 @@ public:
 
     ErrCode INTERFACE_FUNC addSignal(ISignal* signal) override;
     ErrCode INTERFACE_FUNC addInputPort(IInputPort* port) override;
-    ErrCode INTERFACE_FUNC getInputPortList(IList** ports) override;
+    ErrCode INTERFACE_FUNC getSourceComponents(IList** ports) override;
    
     ErrCode INTERFACE_FUNC setValueReadType(SampleType type) override;
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* type) override;
@@ -49,7 +49,7 @@ public:
     ErrCode INTERFACE_FUNC getStartOnFullUnitOfDomain(Bool* enabled) override;
 
 private:
-    ListPtr<IInputPort> inputPorts;
+    ListPtr<IComponent> sources;
     SampleType valueReadType;
     SampleType domainReadType;
     ReadMode readMode;

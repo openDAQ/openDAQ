@@ -121,7 +121,7 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     : requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
 {
-    auto ports = CheckPreconditions(builder.getInputPortList(), false);
+    auto ports = CheckPreconditions(builder.getSourceComponents(), false);
     loggerComponent = ports[0].getContext().getLogger().getOrAddComponent("MultiReader");
 
     this->internalAddRef();

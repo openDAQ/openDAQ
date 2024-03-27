@@ -53,12 +53,12 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC addInputPort(IInputPort* port) = 0;
 
-    // [templateType(ports, IInputPort)]
+    // [templateType(ports, IComponent)]
     /*!
      * @brief Gets the list of input ports
      * @param[out] ports The list of input ports
      */
-    virtual ErrCode INTERFACE_FUNC getInputPortList(IList** ports) = 0;
+    virtual ErrCode INTERFACE_FUNC getSourceComponents(IList** ports) = 0;
    
     // [returnSelf]
     /*!

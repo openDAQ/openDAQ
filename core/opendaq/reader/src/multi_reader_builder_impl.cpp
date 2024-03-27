@@ -7,7 +7,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 MultiReaderBuilderImpl::MultiReaderBuilderImpl()
-    : inputPorts(List<IInputPort>())
+    : sources(List<IComponent>())
     , valueReadType(SampleType::Float64)
     , domainReadType(SampleType::Int64)
     , readMode(ReadMode::Scaled)
@@ -34,11 +34,7 @@ ErrCode MultiReaderBuilderImpl::addSignal(ISignal* signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
-    auto signalPtr = SignalPtr::Borrow(signal);
-    auto port = InputPort(signalPtr.getContext(), nullptr, fmt::format("Read signal {}", signalPtr.getLocalId()));
-    port.setNotificationMethod(PacketReadyNotification::SameThread);
-    port.connect(signalPtr);
-    inputPorts.pushBack(port);
+    sources.pushBack(signal);
     return OPENDAQ_SUCCESS;
 }
 
@@ -46,16 +42,14 @@ ErrCode MultiReaderBuilderImpl::addInputPort(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
-    auto portPtr = InputPortConfigPtr::Borrow(port);
-    portPtr.setNotificationMethod(PacketReadyNotification::Scheduler);
-    inputPorts.pushBack(portPtr);
+    sources.pushBack(port);
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderBuilderImpl::getInputPortList(IList** ports)
+ErrCode MultiReaderBuilderImpl::getSourceComponents(IList** ports)
 {
     OPENDAQ_PARAM_NOT_NULL(ports);
-    *ports = inputPorts.addRefAndReturn();
+    *ports = sources.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

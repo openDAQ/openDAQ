@@ -197,6 +197,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
  * @brief Creates a MultiReader with Builder
  * @param builder MultiReader Builder
  */
+//[factory(Hide)]
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, MultiReaderFromBuilder, IMultiReader,
     IMultiReaderBuilder*, builder

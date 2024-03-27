@@ -201,7 +201,10 @@ Cpp::
     available = reader.getAvailableCount(); // 0
 ----
 ====
-
+[NOTE]
+====
+When creating a MultiReader from the same builder multiple times, developers should be cautious, especially if they are using input ports as input sources. This is because when creating an input port, it is bound to the first reader. Therefore, attempting to create another reader with the same input port will result in an exception, indicating that the input port is already in use.
+====
 == Using the Multi-Reader to read time-stamps
 
 With the builder, developers can add signals and input ports using the methods `addSignal` and `addInputPort`. For signals, the builder creates an internal input port connected to the input signal.

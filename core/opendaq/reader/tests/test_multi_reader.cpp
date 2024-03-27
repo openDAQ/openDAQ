@@ -2006,10 +2006,10 @@ TEST_F(MultiReaderTest, MultiReaderBuilderGetSet)
     builder.setRequiredCommonSampleRate(0);
     builder.setStartOnFullUnitOfDomain(true);
 
-    ASSERT_EQ(builder.getInputPortList().getCount(), 3);
-    ASSERT_EQ(builder.getInputPortList()[0].getSignal(), sig0);
-    ASSERT_EQ(builder.getInputPortList()[1].getSignal(), sig1);
-    ASSERT_EQ(builder.getInputPortList()[2].getSignal(), sig2);
+    ASSERT_EQ(builder.getSourceComponents().getCount(), 3);
+    ASSERT_EQ(builder.getSourceComponents()[0].asPtr<IInputPort>().getSignal(), sig0);
+    ASSERT_EQ(builder.getSourceComponents()[1], sig1);
+    ASSERT_EQ(builder.getSourceComponents()[2], sig2);
 
     ASSERT_EQ(builder.getValueReadType(), SampleType::Int16);
     ASSERT_EQ(builder.getDomainReadType(), SampleType::Int16);

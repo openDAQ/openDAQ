@@ -333,8 +333,8 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getOnEndUpdate(IEvent** event) = 0;
 
     /*!
-     * @brief Gets the permission manager of component.
-     * @param[out] permissionManager The permission manager of component.
+     * @brief Gets the permission manager of property object.
+     * @param[out] permissionManager The permission manager of property object.
      */
     virtual ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) = 0;
 };

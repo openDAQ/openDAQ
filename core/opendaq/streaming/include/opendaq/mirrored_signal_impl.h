@@ -81,8 +81,13 @@ protected:
     EventPacketPtr createDataDescriptorChangedEventPacket() override;
     void onListenedStatusChanged(bool listened) override;
     void removed() override;
+    virtual bool clearDescriptorOnUnsubscribe();
 
     std::mutex signalMutex;
+    
+    DataDescriptorPtr mirroredDataDescriptor;
+    DataDescriptorPtr mirroredDomainDataDescriptor;
+    MirroredSignalConfigPtr mirroredDomainSignal;
 
 private:
     ErrCode subscribeInternal();
@@ -95,9 +100,6 @@ private:
     EventEmitter<MirroredSignalConfigPtr, SubscriptionEventArgsPtr> onSubscribeCompleteEvent;
     EventEmitter<MirroredSignalConfigPtr, SubscriptionEventArgsPtr> onUnsubscribeCompleteEvent;
 
-    DataDescriptorPtr mirroredDataDescriptor;
-    DataDescriptorPtr mirroredDomainDataDescriptor;
-    MirroredSignalConfigPtr mirroredDomainSignal;
 };
 
 template <typename... Interfaces>
@@ -186,6 +188,12 @@ void MirroredSignalBase<Interfaces...>::removed()
         streamingSourcesRefs.clear();
     }
     Super::removed();
+}
+
+template <typename ... Interfaces>
+bool MirroredSignalBase<Interfaces...>::clearDescriptorOnUnsubscribe()
+{
+    return false;
 }
 
 template <typename... Interfaces>
@@ -296,6 +304,10 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompleted(IString* streami
     
     const auto streamingConnectionStringPtr = StringPtr::Borrow(streamingConnectionString);
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
+
+    if (clearDescriptorOnUnsubscribe())
+        setMirroredDataDescriptor(nullptr);
+
     if (onUnsubscribeCompleteEvent.hasListeners())
     {
         onUnsubscribeCompleteEvent(

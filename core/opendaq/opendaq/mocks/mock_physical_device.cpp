@@ -170,13 +170,23 @@ void MockPhysicalDeviceImpl::registerProperties()
     ));
 
     obj.addProperty(BoolProperty("ChangeDescriptors", 0));
-    obj.getOnPropertyValueWrite("ChangeDescriptors") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& /*args*/)
+    obj.getOnPropertyValueWrite("ChangeDescriptors") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& args)
     {
         for (const SignalConfigPtr& sig : ioFolder.getItems(search::Recursive(search::InterfaceId(ISignal::Id))))
         {
-            const auto builder =
-                DataDescriptorBuilderCopy(sig.getDescriptor()).setMetadata(Dict<IString, IString>({{"new_metadata", "new_value"}}));
-            sig.setDescriptor(builder.build());
+            if (args.getValue() == True)
+            {
+                const auto builder =
+                    DataDescriptorBuilderCopy(sig.getDescriptor()).setMetadata(Dict<IString, IString>({{"new_metadata", "new_value"}}));
+                sig.setDescriptor(builder.build());
+            }
+            else
+            {
+                const auto builder =
+                    DataDescriptorBuilderCopy(sig.getDescriptor()).setMetadata(Dict<IString, IString>());
+                sig.setDescriptor(builder.build());
+            }
+
         }
     };
 }

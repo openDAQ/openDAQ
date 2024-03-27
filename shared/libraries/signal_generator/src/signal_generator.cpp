@@ -34,6 +34,8 @@ void SignalGenerator::generateSamplesTo(std::chrono::milliseconds currentTime)
 {
     const double msToResolution = (double) resolution.getDenominator() / resolution.getNumerator() / 1000;
     uint64_t currentTick = (double) currentTime.count() * msToResolution / 1000 * outputRate;
+    currentTick += tick;
+
     generatePacket(tick, (currentTick - tick) / msToResolution);
     tick = currentTick;
 }

@@ -21,9 +21,9 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @brief Provides access to private methods of the permission manager.
+ * @brief Internal PermissionManager interface. It should be used only in openDAQ core implementation files.
  */
-DECLARE_OPENDAQ_INTERFACE(IPermissionManagerPrivate, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IPermissionManagerInternal, IBaseObject)
 {
     /*!
      * @brief Change the parant of a permission manager.

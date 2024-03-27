@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <opendaq/user_factory.h>
-#include <opendaq/user_private_ptr.h>
+#include <opendaq/user_internal_ptr.h>
 
 using namespace daq;
 
@@ -20,8 +20,8 @@ TEST_F(UserTest, Getters)
     ASSERT_EQ(user.getUsername(), "janm");
     ASSERT_EQ(user.getGroups(), groups);
 
-    auto userPrivate = user.asPtr<IUserPrivate>();
-    ASSERT_EQ(userPrivate.getPasswordHash(), "pass");
+    auto userInternal = user.asPtr<IUserInternal>();
+    ASSERT_EQ(userInternal.getPasswordHash(), "pass");
 }
 
 TEST_F(UserTest, EmptyGroups)
@@ -40,7 +40,7 @@ TEST_F(UserTest, Equals)
 
     ASSERT_EQ(user1.getUsername(), user2.getUsername());
     ASSERT_EQ(user1.getGroups(), user2.getGroups());
-    ASSERT_EQ(user1.asPtr<IUserPrivate>().getPasswordHash(), user2.asPtr<IUserPrivate>().getPasswordHash());
+    ASSERT_EQ(user1.asPtr<IUserInternal>().getPasswordHash(), user2.asPtr<IUserInternal>().getPasswordHash());
 
     ASSERT_TRUE(BaseObjectPtr::Equals(user1, user1));
     ASSERT_TRUE(BaseObjectPtr::Equals(user1, user2));

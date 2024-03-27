@@ -3,7 +3,7 @@
 #include <coretypes/validation.h>
 #include <coretypes/serialized_object_ptr.h>
 #include <opendaq/user_factory.h>
-#include <opendaq/user_private_ptr.h>
+#include <opendaq/user_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -54,7 +54,7 @@ ErrCode INTERFACE_FUNC UserImpl::equals(IBaseObject* other, Bool* equal) const
     if (username != userOther.getUsername())
         return OPENDAQ_SUCCESS;
 
-    if (passwordHash != userOther.asPtr<IUserPrivate>(true).getPasswordHash())
+    if (passwordHash != userOther.asPtr<IUserInternal>(true).getPasswordHash())
         return OPENDAQ_SUCCESS;
 
     if (!BaseObjectPtr::Equals(groups, userOther.getGroups()))

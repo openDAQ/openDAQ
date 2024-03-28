@@ -135,15 +135,6 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
     virtual ErrCode INTERFACE_FUNC getOffset(void* domainStart) = 0;
 
     /*!
-     * @brief Gets the common sample rate in case input signal have different rates. The value of common sample rate is such
-     * that sample rate of any individual signal can be represented as commonSampleRate / Div, where Div is an integer. Unless
-     * the required common sample rate is specified in the MultiReader constructor, common sample rate is lowest common multiple
-     * of individual signal's sample rates. The number of samples to be read is specified in common sample rate.
-     * @param commonSampleRate The domain point at which the reader managed to synchronize all the signals.
-     */
-    virtual ErrCode INTERFACE_FUNC getCommonSampleRate(Int* commonSampleRate) = 0;
-
-    /*!
      * @brief Gets the synchronization status of the reader
      * @param isSynchronized True if reader is synchronized, False otherwise.
      *
@@ -168,6 +159,15 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @param[out] callback The callback to call when the descriptor changes or @c nullptr if not set.
      */
     virtual ErrCode INTERFACE_FUNC getOnDescriptorChanged(IFunction** callback) = 0;
+	
+    /*!
+     * @brief Gets the common sample rate in case input signal have different rates. The value of common sample rate is such
+     * that sample rate of any individual signal can be represented as commonSampleRate / Div, where Div is an integer. Unless
+     * the required common sample rate is specified in the MultiReader constructor, common sample rate is lowest common multiple
+     * of individual signal's sample rates. The number of samples to be read is specified in common sample rate.
+     * @param commonSampleRate The domain point at which the reader managed to synchronize all the signals.
+     */
+    virtual ErrCode INTERFACE_FUNC getCommonSampleRate(Int* commonSampleRate) = 0;
 };
 
 /*!@}*/

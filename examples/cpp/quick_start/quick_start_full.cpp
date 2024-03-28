@@ -13,10 +13,13 @@ int main(int /*argc*/, const char* /*argv*/[])
     daq::DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        if (deviceInfo.getConnectionString().toView().find("daq.opcua://") != std::string::npos)
+        for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            device = instance.addDevice(deviceInfo.getConnectionString());
-            break;
+            if (capability.getProtocolName() == "openDAQ OpcUa")
+            {
+                device = instance.addDevice(capability.getConnectionString());
+                break;
+            }
         }
     }
 

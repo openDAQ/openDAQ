@@ -40,8 +40,8 @@ public:
     daq::ErrCode INTERFACE_FUNC getAvailableServerTypes(daq::IDict** serverTypes) override;
     daq::ErrCode INTERFACE_FUNC createServer(daq::IServer** server, daq::IString* serverType, daq::IDevice* rootDevice, daq::IPropertyObject* config) override;
 
-    daq::ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(daq::Bool* accepted, daq::IString* connectionString, daq::IStreamingInfo* config) override;
-    daq::ErrCode INTERFACE_FUNC createStreaming(daq::IStreaming** streaming, daq::IString* connectionString, daq::IStreamingInfo* config) override;
+    daq::ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(daq::Bool* accepted, daq::IString* connectionString, daq::IServerCapability* capability) override;
+    daq::ErrCode INTERFACE_FUNC createStreaming(daq::IStreaming** streaming, daq::IString* connectionString, daq::IServerCapability* capability) override;
 
 private:
     daq::ContextPtr ctx;

@@ -2,13 +2,14 @@
 #include <opendaq/device_info_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <opendaq/device_info_private_ptr.h>
 
 BEGIN_NAMESPACE_DISCOVERY
 
-DiscoveryClient::DiscoveryClient(std::vector<ConnectionStringFormatCb> connectionStringFormatCbs,
+DiscoveryClient::DiscoveryClient(std::vector<ServerCapabilityCb> serverCapabilityCbs,
                                  std::unordered_set<std::string> requiredCaps)
     : requiredCaps(std::move(requiredCaps))
-    , connectionStringFormatCbs(std::move(connectionStringFormatCbs))
+    , serverCapabilityCbs(std::move(serverCapabilityCbs))
 {
 }
 
@@ -33,10 +34,14 @@ ListPtr<IDeviceInfo> DiscoveryClient::discoverMdnsDevices() const
 
     for (const auto& device : mdnsDevices)
     {
-        for (const auto& connectionStringFormatCb : connectionStringFormatCbs)
+        DeviceInfoPtr deviceInfo = createDeviceInfo(device);
+        if (deviceInfo.assigned())
         {
-            if (auto deviceInfo = createDeviceInfo(device, connectionStringFormatCb); deviceInfo.assigned())
-                discovered.pushBack(deviceInfo);
+            for (const auto& connectionStringFormatCb : serverCapabilityCbs)
+            {
+                deviceInfo.asPtr<IDeviceInfoPrivate>().addServerCapability(connectionStringFormatCb(device));
+            }
+            discovered.pushBack(deviceInfo);
         }
     }
 
@@ -87,8 +92,7 @@ void addInfoProperty(DeviceInfoConfigPtr& info, std::string propName, T propValu
     }
 }
 
-DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredDevice,
-                                                const ConnectionStringFormatCb& connectionStringFormatCb) const
+DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredDevice) const
 {
     if (discoveredDevice.ipv4Address.empty())
         return nullptr;
@@ -111,7 +115,7 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
     if (!requiredCapsCopy.empty())
         return nullptr;
 
-    DeviceInfoConfigPtr deviceInfo = DeviceInfo(connectionStringFormatCb(discoveredDevice));
+    DeviceInfoConfigPtr deviceInfo = DeviceInfo("daq://device");
 
     addInfoProperty(deviceInfo, "canonicalName", discoveredDevice.canonicalName);
     addInfoProperty(deviceInfo, "serviceWeight", discoveredDevice.serviceWeight);
@@ -123,7 +127,15 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
     {
         addInfoProperty(deviceInfo, prop.first, prop.second);
     }
-
+    
+    StringPtr manufacturer = deviceInfo.getManufacturer();
+    if (manufacturer.getLength() == 0)
+        manufacturer = "NoManufacturer";
+    StringPtr serialNumber = deviceInfo.getSerialNumber();
+    if (serialNumber.getLength() == 0)
+        serialNumber = "NoSerialNumber";
+    StringPtr connectionString = "daq://" + manufacturer + "_" + serialNumber;
+    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(connectionString);
     return deviceInfo;
 }
 

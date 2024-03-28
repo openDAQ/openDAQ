@@ -8,7 +8,8 @@ static InstancePtr CreateServerInstance()
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
-    auto context = Context(scheduler, logger, nullptr, moduleManager);
+    auto typeManager = TypeManager();
+    auto context = Context(scheduler, logger, typeManager, moduleManager);
 
     auto instance = InstanceCustom(context, "local");
 

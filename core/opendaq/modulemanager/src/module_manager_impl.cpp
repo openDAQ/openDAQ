@@ -1,12 +1,17 @@
 #include <opendaq/module_manager_impl.h>
+#include <opendaq/module_manager_ptr.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/module_manager_exceptions.h>
 #include <opendaq/module_library.h>
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <opendaq/orphaned_modules.h>
-#include <future>
+#include <opendaq/device_info_config_ptr.h>
+#include <opendaq/device_info_private_ptr.h>
+#include <coretypes/validation.h>
+#include <opendaq/device_private.h>
 #include <string>
+#include <future>
 #include <boost/algorithm/string/predicate.hpp>
 #include <opendaq/search_filter_factory.h>
 #include <coretypes/validation.h>
@@ -111,7 +116,6 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 {
     OPENDAQ_PARAM_NOT_NULL(availableDevices);
-    
     auto availableDevicesPtr = List<IDeviceInfo>();
 
     using AsyncEnumerationResult = std::future<ListPtr<IDeviceInfo>>;
@@ -140,19 +144,19 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
         }
     }
 
-    for (auto& enumerationResult : enumerationResults)
+    auto groupedDevices = Dict<IString, IDeviceInfo>();
+    for (auto& [futureResult, module] : enumerationResults)
     {
         ListPtr<IDeviceInfo> moduleAvailableDevices;
-        auto module = enumerationResult.second;
         try
         {
-            moduleAvailableDevices = enumerationResult.first.get();
+            moduleAvailableDevices = futureResult.get();
         }
         catch (NotImplementedException&)
         {
             LOG_I("{}: GetAvailableDevices not implemented", module.getName())
         }
-        catch ([[maybe_unused]] const std::exception& e)
+        catch (const std::exception& e)
         {
             LOG_W("{}: GetAvailableDevices failed: {}", module.getName(), e.what())
         }
@@ -161,10 +165,27 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             continue;
 
         for (const auto& deviceInfo : moduleAvailableDevices)
-            availableDevicesPtr.pushBack(deviceInfo);
+        {
+            StringPtr id = deviceInfo.getConnectionString();
+            if (groupedDevices.hasKey(id))
+            {
+                DeviceInfoPtr value = groupedDevices.get(id);
+                for (const auto & capability : deviceInfo.getServerCapabilities())
+                    value.asPtr<IDeviceInfoPrivate>().addServerCapability(capability);
+            }
+            else
+            {
+                groupedDevices.set(id, deviceInfo);
+            }
+        }
     }
 
+    for (const auto & [_, deviceInfo] : groupedDevices)
+        availableDevicesPtr.pushBack(deviceInfo);
+
     *availableDevices = availableDevicesPtr.detach();
+
+    availableDevicesGroup = groupedDevices;
     return OPENDAQ_SUCCESS;
 }
 
@@ -206,8 +227,76 @@ ErrCode ModuleManagerImpl::getAvailableDeviceTypes(IDict** deviceTypes)
 
 ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
 {
+    OPENDAQ_PARAM_NOT_NULL(connectionString);
     OPENDAQ_PARAM_NOT_NULL(device);
+    *device = nullptr;
 
+    auto connectionStringPtr = StringPtr::Borrow(connectionString);
+    if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
+        throw ArgumentNullException("Connecton string is not set or empty");
+
+    DeviceInfoPtr deviceInfo;
+    ServerCapabilityPtr internalServerCapability;
+    
+    if (connectionStringPtr.toStdString().find("daq://") == 0)
+    {
+        if (!availableDevicesGroup.assigned())
+        {
+            getAvailableDevices(&ListPtr<IDeviceInfo>());
+        }
+        
+        if (availableDevicesGroup.hasKey(connectionStringPtr))
+            deviceInfo = availableDevicesGroup.get(connectionStringPtr);
+        
+        if (!deviceInfo.assigned())
+        {
+            throw NotFoundException(fmt::format("Device with connection string \"{}\" not found", connectionStringPtr));
+        }
+
+        if (deviceInfo.getServerCapabilities().getCount() == 0)
+        {
+            throw NotFoundException(fmt::format("Device with connection string \"{}\" has no availble server capabilites", connectionStringPtr));
+        }
+
+        internalServerCapability = deviceInfo.getServerCapabilities()[0];
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolType().getIntValue() < internalServerCapability.getProtocolType().getIntValue())
+                internalServerCapability = capability;
+        }
+    } 
+    else if (availableDevicesGroup.assigned())
+    {
+        for (const auto & [_, info] : availableDevicesGroup)
+        {
+            if (info.getServerCapabilities().getCount() == 0)
+            {
+                if (info.getConnectionString() == connectionStringPtr)
+                {
+                    deviceInfo = info;
+                    break;
+                }
+            }
+            else
+            {
+                for(const auto & capability : info.getServerCapabilities())
+                {
+                    if (capability.getConnectionString() == connectionStringPtr)
+                    {
+                        internalServerCapability = capability;
+                        deviceInfo = info;
+                        break;
+                    }
+                }
+                if (deviceInfo.assigned())
+                    break;
+            }
+        }
+    }
+
+    if (internalServerCapability.assigned())
+        connectionStringPtr = internalServerCapability.getConnectionString();
+    
     for (const auto& library : libraries)
     {
         const auto module = library.module;
@@ -215,7 +304,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         bool accepted{};
         try
         {
-            accepted = module.acceptsConnectionParameters(connectionString, config);
+            accepted = module.acceptsConnectionParameters(connectionStringPtr, config);
         }
         catch (NotImplementedException&)
         {
@@ -230,13 +319,21 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
         if (accepted)
         {
-            return module->createDevice(device, connectionString, parent, config);
+            auto errCode = module->createDevice(device, connectionStringPtr, parent, config);
+            auto devicePtr = DevicePtr::Borrow(*device); 
+            if (devicePtr.assigned() && deviceInfo.assigned())
+            {
+                auto deviceInfoConfig = devicePtr.getInfo().asPtr<IDeviceInfoPrivate>();
+                for (const auto & capability : deviceInfo.getServerCapabilities())
+                    deviceInfoConfig.addServerCapability(capability);
+            }
+            return errCode;
         }
     }
-
-    return this->makeErrorInfo(
+    throw this->makeErrorInfo(
         OPENDAQ_ERR_NOTFOUND, "Device with given connection string and config is not available [{}]", connectionString);
 }
+
 
 ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {

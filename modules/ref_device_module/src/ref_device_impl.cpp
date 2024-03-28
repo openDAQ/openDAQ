@@ -64,7 +64,12 @@ DeviceTypePtr RefDeviceImpl::CreateType()
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
 {
-    return RefDeviceImpl::CreateDeviceInfo(id);
+    if (deviceInfo != nullptr)
+        return deviceInfo;
+    
+    deviceInfo = RefDeviceImpl::CreateDeviceInfo(id);
+    deviceInfo.freeze();
+    return deviceInfo;
 }
 
 uint64_t RefDeviceImpl::onGetTicksSinceOrigin()

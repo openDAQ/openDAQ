@@ -207,4 +207,12 @@ void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPr
             return objectPtr.getSdkVersion().toStdString();
         },
         "Gets the version of the SDK used to build said device. Can be empty if the device does not use the SDK as its firmware/is implemented at a protocol-level.");
+    cls.def_property_readonly("server_capabilities",
+        [](daq::IDeviceInfo *object)
+        {
+            const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
+            return objectPtr.getServerCapabilities().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the list of server capabilities stored in device info.");
 }

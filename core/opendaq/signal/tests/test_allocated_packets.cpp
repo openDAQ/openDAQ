@@ -15,7 +15,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 static DataDescriptorPtr setupDescriptor(SampleType sampleType)
 {
-    return DataDescriptorBuilder().setSampleType(sampleType).build();;
+    return DataDescriptorBuilder().setSampleType(sampleType).build();
 }
 
 // Tests

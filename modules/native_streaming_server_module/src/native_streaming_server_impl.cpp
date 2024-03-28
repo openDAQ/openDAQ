@@ -4,12 +4,12 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/server_type_factory.h>
 #include <opendaq/device_private.h>
-#include <opendaq/streaming_info_factory.h>
 #include <opendaq/reader_factory.h>
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_ids.h>
-
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_private_ptr.h>
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 #include <config_protocol/config_protocol_server.h>
 
@@ -37,10 +37,9 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
     const uint16_t port = config.getPropertyValue("NativeStreamingPort");
     serverHandler->startServer(port);
 
-    StreamingInfoConfigPtr streamingInfo = StreamingInfo("daq.ns");
-    streamingInfo.addProperty(IntProperty("Port", port));
-    ErrCode errCode = this->rootDevice.asPtr<IDevicePrivate>()->addStreamingOption(streamingInfo);
-    checkErrorInfo(errCode);
+    auto serverCapability = ServerStreamingCapability(context, "daq.ns");
+    serverCapability.addProperty(IntProperty("Port", port));
+    this->rootDevice.getInfo().asPtr<IDeviceInfoPrivate>().addServerCapability(serverCapability);
 
     this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
 
@@ -259,8 +258,7 @@ ServerTypePtr NativeStreamingServerImpl::createType()
 void NativeStreamingServerImpl::onStopServer()
 {
     stopReading();
-    ErrCode errCode = rootDevice.asPtr<IDevicePrivate>()->removeStreamingOption(String("daq.ns"));
-    checkErrorInfo(errCode);
+    this->rootDevice.getInfo().asPtr<IDeviceInfoPrivate>().removeServerCapability(String("daq.ns"));
     serverHandler->stopServer();
 }
 

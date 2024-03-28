@@ -3,10 +3,10 @@
 #include <iostream>
 #include "websocket_streaming/websocket_streaming_server.h"
 #include <opendaq/device_private.h>
-#include <opendaq/streaming_info_config_ptr.h>
 #include <coreobjects/property_factory.h>
-#include <opendaq/streaming_info_factory.h>
 #include <opendaq/search_filter_factory.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -60,19 +60,14 @@ void WebsocketStreamingServer::start()
     });
     packetReader.start();
 
-    // The control port is published thru the streaming protocol itself
-    // so here the streaming port only is added to the StreamingInfo object
-    StreamingInfoConfigPtr streamingInfo = StreamingInfo("daq.wss");
-    streamingInfo.addProperty(IntProperty("Port", streamingPort));
-    ErrCode errCode = this->device.asPtr<IDevicePrivate>()->addStreamingOption(streamingInfo);
-    checkErrorInfo(errCode);
+    ServerCapabilityPtr serverCapability = ServerStreamingCapability(context, "daq.wss");
+    serverCapability.addProperty(IntProperty("Port", streamingPort));
+    this->device.getInfo().asPtr<IDeviceInfoPrivate>().addServerCapability(serverCapability);
 }
 
 void WebsocketStreamingServer::stop()
 {
-    ErrCode errCode =
-        this->device.asPtr<IDevicePrivate>()->removeStreamingOption(String("daq.wss"));
-    checkErrorInfo(errCode);
+    this->device.getInfo().asPtr<IDeviceInfoPrivate>().removeServerCapability(String("daq.wss"));
     stopInternal();
 }
 

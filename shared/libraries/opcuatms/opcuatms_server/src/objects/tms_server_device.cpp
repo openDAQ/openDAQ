@@ -9,7 +9,6 @@
 #include "opcuatms/converters/struct_converter.h"
 #include <opendaq/component_ptr.h>
 #include <opendaq/device_private.h>
-#include <opendaq/streaming_info_ptr.h>
 #include <opendaq/search_filter_factory.h>
 #include <open62541/types_daqesp_generated.h>
 #include <opcuatms/converters/variant_converter.h>
@@ -227,18 +226,19 @@ void TmsServerDevice::populateStreamingOptions()
     params.setBrowseName("StreamingOptions");
     auto streamingOptionsNodeId = server->addObjectNode(params);
 
-    auto devicePrivatePtr = object.asPtrOrNull<IDevicePrivate>();
-    if (devicePrivatePtr == nullptr) // Instance does not implement IDevicePrivate
+    auto deviceInfo = object.getInfo();
+    if (deviceInfo == nullptr)
         return;
 
-    ListPtr<IStreamingInfo> streamingOptions;
-    devicePrivatePtr->getStreamingOptions(&streamingOptions);
-
     uint32_t numberInList = 0;
-    for (const auto& streamingOption : streamingOptions)
+    for (const auto capability: deviceInfo.getServerCapabilities())
     {
+        if (capability.getProtocolType().getValue() != "ServerStreaming")
+            continue;
+        
+        StringPtr protocolId = capability.getPropertyValue("protocolId");
         auto tmsStreamingOption = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
-            streamingOptionsNodeId, streamingOption.asPtr<IPropertyObject>(), numberInList++, streamingOption.getProtocolId());
+            streamingOptionsNodeId, capability.asPtr<IPropertyObject>(), numberInList++, protocolId);
         this->streamingOptions.push_back(std::move(tmsStreamingOption));
     }
 }

@@ -36,6 +36,7 @@ PyDaqIntf<daq::IDevice, daq::IFolder> declareIDevice(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceDomain, daq::IBaseObject> declareIDeviceDomain(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceInfo, daq::IPropertyObject> declareIDeviceInfo(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceInfoConfig, daq::IDeviceInfo> declareIDeviceInfoConfig(pybind11::module_ m);
+PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> declareIServerCapability(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::module_ m);
 PyDaqIntf<daq::IChannel, daq::IFunctionBlock> declareIChannel(pybind11::module_ m);
 PyDaqIntf<daq::IFunctionBlock, daq::IFolder> declareIFunctionBlock(pybind11::module_ m);
@@ -85,8 +86,6 @@ PyDaqIntf<daq::ITagsPrivate, daq::IBaseObject> declareITagsPrivate(pybind11::mod
 PyDaqIntf<daq::IServer, daq::IBaseObject> declareIServer(pybind11::module_ m);
 PyDaqIntf<daq::IServerType, daq::IComponentType> declareIServerType(pybind11::module_ m);
 PyDaqIntf<daq::IStreaming, daq::IBaseObject> declareIStreaming(pybind11::module_ m);
-PyDaqIntf<daq::IStreamingInfo, daq::IPropertyObject> declareIStreamingInfo(pybind11::module_ m);
-PyDaqIntf<daq::IStreamingInfoConfig, daq::IStreamingInfo> declareIStreamingInfoConfig(pybind11::module_ m);
 PyDaqIntf<daq::IMirroredSignalConfig, daq::ISignalConfig> declareIMirroredSignalConfig(pybind11::module_ m);
 PyDaqIntf<daq::IMirroredSignalPrivate, daq::IBaseObject> declareIMirroredSignalPrivate(pybind11::module_ m);
 PyDaqIntf<daq::ISubscriptionEventArgs, daq::IEventArgs> declareISubscriptionEventArgs(pybind11::module_ m);
@@ -114,6 +113,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
 void defineIDeviceDomain(pybind11::module_ m, PyDaqIntf<daq::IDeviceDomain, daq::IBaseObject> cls);
 void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPropertyObject> cls);
 void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConfig, daq::IDeviceInfo> cls);
+void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> cls);
 void defineIDeviceType(pybind11::module_ m, PyDaqIntf<daq::IDeviceType, daq::IComponentType> cls);
 void defineIChannel(pybind11::module_ m, PyDaqIntf<daq::IChannel, daq::IFunctionBlock> cls);
 void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, daq::IFolder> cls);
@@ -166,8 +166,6 @@ void defineITagsPrivate(pybind11::module_ m, PyDaqIntf<daq::ITagsPrivate, daq::I
 void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IBaseObject> cls);
 void defineIServerType(pybind11::module_ m, PyDaqIntf<daq::IServerType, daq::IComponentType> cls);
 void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBaseObject> cls);
-void defineIStreamingInfo(pybind11::module_ m, PyDaqIntf<daq::IStreamingInfo, daq::IPropertyObject> cls);
-void defineIStreamingInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IStreamingInfoConfig, daq::IStreamingInfo> cls);
 void defineIMirroredSignalConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredSignalConfig, daq::ISignalConfig> cls);
 void defineIMirroredSignalPrivate(pybind11::module_ m, PyDaqIntf<daq::IMirroredSignalPrivate, daq::IBaseObject> cls);
 void defineISubscriptionEventArgs(pybind11::module_ m, PyDaqIntf<daq::ISubscriptionEventArgs, daq::IEventArgs> cls);

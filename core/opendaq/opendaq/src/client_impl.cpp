@@ -1,6 +1,5 @@
 #include <opendaq/client_impl.h>
 #include <opendaq/device_info_factory.h>
-#include <opendaq/create_device.h>
 #include <boost/algorithm/string.hpp>
 #include <future>
 

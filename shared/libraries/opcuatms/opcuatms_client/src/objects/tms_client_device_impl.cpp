@@ -16,6 +16,7 @@
 #include <open62541/daqdevice_nodeids.h>
 #include <open62541/types_daqdevice_generated.h>
 #include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_private_ptr.h>
 #include <opendaq/custom_log.h>
 #include "opcuatms/core_types_utils.h"
 #include "opcuatms/exceptions.h"
@@ -75,14 +76,13 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
 
     if (isRootDevice)
         clientContext->registerRootDevice(thisInterface());
-
+    
     findAndCreateSubdevices();
     findAndCreateFunctionBlocks();
     findAndCreateSignals();
     findAndCreateInputsOutputs();
     findAndCreateCustomComponents();
 
-    findAndCreateStreamingOptions();
     connectToStreamings();
     setUpStreamings();
 }
@@ -140,7 +140,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
     if (deviceInfo.assigned())
         return deviceInfo;
 
-    deviceInfo = DeviceInfo("");
+    deviceInfo = DeviceInfo("", "OpcUa Client");
 
     auto browseFilter = BrowseFilter();
     browseFilter.nodeClass = UA_NODECLASS_VARIABLE;
@@ -186,6 +186,8 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
             LOG_W("Failed to read device info attribute on OpcUa client device \"{}\": {}", this->globalId, e.what());
         }
     }
+    
+    findAndCreateStreamingOptions(deviceInfo);
 
     deviceInfo.freeze();
     return deviceInfo;
@@ -201,6 +203,9 @@ void TmsClientDeviceImpl::fetchTimeDomain()
     if (!deviceDomain)
         return;
 
+    if (deviceDomain == nullptr)
+        return;
+    
     auto numerator = deviceDomain->resolution.numerator;
     auto denominator = deviceDomain->resolution.denominator;
     if (denominator == 0)
@@ -355,12 +360,11 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
         this->ioFolder.addItem(val);
 }
 
-void TmsClientDeviceImpl::findAndCreateStreamingOptions()
+void TmsClientDeviceImpl::findAndCreateStreamingOptions(const DeviceInfoPtr& deviceInfo)
 {
     std::map<uint32_t, PropertyObjectPtr> orderedStreamings;
     std::vector<PropertyObjectPtr> unorderedStreamings;
 
-    this->streamingOptions.clear();
     auto streamingOptionsNodeId = getNodeId("StreamingOptions");
 
     try
@@ -385,10 +389,12 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions()
         LOG_W("Failed to find 'StreamingOptions' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
     }
 
-    for (const auto& val : orderedStreamings)
-        this->streamingOptions.push_back(val.second);
+    auto deviceInfoPrivate = deviceInfo.asPtr<IDeviceInfoPrivate>();
+    deviceInfoPrivate.clearServerStreamingCapabilities();
+    for (const auto& [_, val] : orderedStreamings)
+        deviceInfoPrivate.addServerCapability(val);
     for (const auto& val : unorderedStreamings)
-        this->streamingOptions.push_back(val);
+        deviceInfoPrivate.addServerCapability(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateCustomComponents()
@@ -530,16 +536,21 @@ void TmsClientDeviceImpl::setUpStreamings()
 
 void TmsClientDeviceImpl::connectToStreamings()
 {
+    DeviceInfoPtr info;
+    this->getInfo(&info);
     if (createStreamingCallback.assigned())
     {
-        for (const auto& option : streamingOptions)
+        for (const auto& capability : info.getServerCapabilities())
         {
+            if (capability.getProtocolType().getValue() != "ServerStreaming")
+                continue;
+
             StreamingPtr streaming;
-            ErrCode errCode = wrapHandlerReturn(createStreamingCallback, streaming, option, isRootDevice);
+            ErrCode errCode = wrapHandlerReturn(createStreamingCallback, streaming, capability, isRootDevice);
 
             if (OPENDAQ_FAILED(errCode) || !streaming.assigned())
             {
-                LOG_W("Device \"{}\" had not connected to published streaming protocol \"{}\".", globalId, option.getProtocolId());
+                LOG_W("Device \"{}\" had not connected to published streaming protocol \"{}\".", globalId, capability.getPropertyValue("protocolId").asPtr<IString>());
             }
             else
             {

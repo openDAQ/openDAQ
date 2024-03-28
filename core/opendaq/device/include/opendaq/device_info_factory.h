@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 #pragma once
+#include <opendaq/context_ptr.h>
 #include <opendaq/device_info_config_ptr.h>
+#include <opendaq/server_capability_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 /*!
@@ -34,5 +36,21 @@ inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const S
     DeviceInfoConfigPtr obj(DeviceInfoConfigWithCustomSdkVersion_Create(name, connectionString, customSdkVersion));
     return obj;
 }
+
+inline ServerCapabilityConfigPtr ServerCapability(const ContextPtr& context,
+                                            const StringPtr& protocolName,
+                                            const StringPtr& protocolType
+                                            )
+{
+    ServerCapabilityConfigPtr obj(ServerCapability_Create(context, protocolName, protocolType));
+    return obj;
+}
+
+inline ServerCapabilityConfigPtr ServerStreamingCapability(const ContextPtr& context, const StringPtr& protocolId)
+{
+    ServerCapabilityConfigPtr obj(ServerStreamingCapability_Create(context, protocolId));
+    return obj;
+}
+
 /*!@}*/
 END_NAMESPACE_OPENDAQ

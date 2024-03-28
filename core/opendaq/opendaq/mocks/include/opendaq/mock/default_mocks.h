@@ -37,7 +37,12 @@ public:
 
     DeviceInfoPtr onGetInfo() override
     {
-        return DeviceInfo("", "default_dev");
+        if (deviceInfo != nullptr)
+            return deviceInfo;
+        
+        deviceInfo = DeviceInfo("", "default_dev");
+        deviceInfo.freeze();
+        return deviceInfo;
     }
 
     void addCustomComponent(const ComponentPtr& component) override

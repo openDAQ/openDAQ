@@ -22,6 +22,8 @@
 #include <coretypes/dictobject_factory.h>
 #include <coreobjects/property_object_impl.h>
 #include <opendaq/device_type_ptr.h>
+#include <opendaq/device_info_private.h>
+#include <opendaq/server_capability_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,10 +33,10 @@ class DeviceInfoConfigImpl;
 using DeviceInfoConfigBase = DeviceInfoConfigImpl<>;
 
 template <typename TInterface, typename... Interfaces>
-class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, Interfaces...>
+class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, IDeviceInfoPrivate, Interfaces...>
 {
 public:
-    using Super = GenericPropertyObjectImpl<TInterface, Interfaces...>;
+    using Super = GenericPropertyObjectImpl<TInterface, IDeviceInfoPrivate, Interfaces...>;
 
     explicit DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion = nullptr);
     DeviceInfoConfigImpl() = default;
@@ -79,7 +81,7 @@ public:
     ErrCode INTERFACE_FUNC setSerialNumber(IString* serialNumber) override;
     ErrCode INTERFACE_FUNC setProductInstanceUri(IString* productInstanceUri) override;
     ErrCode INTERFACE_FUNC setRevisionCounter(Int revisionCounter) override;
-    ErrCode INTERFACE_FUNC setAssetId(IString* id) override;;
+    ErrCode INTERFACE_FUNC setAssetId(IString* id) override;
     ErrCode INTERFACE_FUNC setMacAddress(IString* macAddress) override;
     ErrCode INTERFACE_FUNC setParentMacAddress(IString* macAddress) override;
     ErrCode INTERFACE_FUNC setPlatform(IString* platform) override;
@@ -94,6 +96,11 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
+    ErrCode INTERFACE_FUNC addServerCapability(IServerCapability* serverCapability) override;
+    ErrCode INTERFACE_FUNC removeServerCapability(IString* protocolId) override;
+    ErrCode INTERFACE_FUNC getServerCapabilities(IList** serverCapabilities) override;
+    ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() override;
+
 private:
     ErrCode createAndSetDefaultStringProperty(const StringPtr& name, const BaseObjectPtr& value);
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
@@ -104,6 +111,7 @@ private:
 
     std::unordered_set<std::string> defaultPropertyNames;
     DeviceTypePtr deviceType;
+    ListPtr<IServerCapability> serverCapabilities;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceInfoConfigBase)

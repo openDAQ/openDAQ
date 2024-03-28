@@ -24,6 +24,7 @@ set(SRC_Cpp
     generated/device/py_device_domain.cpp
     generated/device/py_device_info.cpp
     generated/device/py_device_info_config.cpp
+    generated/device/py_server_capability.cpp
     generated/device/py_device_type.cpp
     generated/functionblock/py_channel.cpp
     generated/functionblock/py_function_block.cpp
@@ -74,8 +75,6 @@ set(SRC_Cpp
     generated/signal/py_signal_events.cpp
     generated/signal/py_packet_destruct_callback.cpp
     generated/streaming/py_streaming.cpp
-    generated/streaming/py_streaming_info.cpp
-    generated/streaming/py_streaming_info_config.cpp
     generated/streaming/py_mirrored_signal_config.cpp
     generated/streaming/py_mirrored_signal_private.cpp
     generated/streaming/py_subscription_event_args.cpp

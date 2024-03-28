@@ -124,19 +124,19 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
         py::arg("server_type_id"), py::arg("root_device"), py::arg("config") = nullptr,
         "Creates and returns a server with the specified server type. To prevent cyclic reference, we should not use the Instance instead of rootDevice.");
     cls.def("accepts_streaming_connection_parameters",
-        [](daq::IModule *object, const std::string& connectionString, daq::IStreamingInfo* config)
+        [](daq::IModule *object, const std::string& connectionString, daq::IServerCapability* capability)
         {
             const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.acceptsStreamingConnectionParameters(connectionString, config);
+            return objectPtr.acceptsStreamingConnectionParameters(connectionString, capability);
         },
-        py::arg("connection_string"), py::arg("config") = nullptr,
+        py::arg("connection_string"), py::arg("capability") = nullptr,
         "Verifies whether the provided connection string or config object can be used to establish a streaming connection supported by this module. If the connection string is not assigned, it checks if the config object is valid and complete enough to generate a connection string.");
     cls.def("create_streaming",
-        [](daq::IModule *object, const std::string& connectionString, daq::IStreamingInfo* config)
+        [](daq::IModule *object, const std::string& connectionString, daq::IServerCapability* capability)
         {
             const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.createStreaming(connectionString, config).detach();
+            return objectPtr.createStreaming(connectionString, capability).detach();
         },
-        py::arg("connection_string"), py::arg("config"),
+        py::arg("connection_string"), py::arg("capability"),
         "Creates and returns a streaming object using the specified connection string or config info object.");
 }

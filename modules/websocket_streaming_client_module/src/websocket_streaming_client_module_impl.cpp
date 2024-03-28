@@ -5,6 +5,7 @@
 #include <websocket_streaming/websocket_client_device_factory.h>
 #include <websocket_streaming/websocket_streaming_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <regex>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 
@@ -26,12 +27,21 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
     , deviceIndex(0)
     , discoveryClient(
         {
-            [](MdnsDiscoveredDevice discoveredDevice)
+            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                return fmt::format("daq.ws://{}:{}{}",
+                auto connectionString = fmt::format("daq.ws://{}:{}{}",
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
+                return ServerCapability(context, "openDAQ WebsocketTcp Streaming", "Streaming").setConnectionString(connectionString).setConnectionType("Ipv4");
+            },
+            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
+            {
+                auto connectionString = fmt::format("daq.ws://{}:{}{}",
+                                   discoveredDevice.ipv6Address,
+                                   discoveredDevice.servicePort,
+                                   discoveredDevice.getPropertyOrDefault("path", "/"));
+                return ServerCapability(context, "openDAQ WebsocketTcp Streaming", "Streaming").setConnectionString(connectionString).setConnectionType("Ipv6");
             }
         },
         {"WS"}
@@ -94,7 +104,7 @@ bool WebsocketStreamingClientModule::onAcceptsConnectionParameters(const StringP
     return (found == 0);
 }
 
-bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const StreamingInfoPtr& config)
+bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
 {
     if (connectionString.assigned())
     {
@@ -102,13 +112,13 @@ bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(cons
         auto found = connStr.find(WebsocketStreamingPrefix);
         return (found == 0);
     }
-    else if (config.assigned())
+    else if (capability.assigned())
     {
-        if (config.getProtocolId() == WebsocketStreamingID)
+        if (capability.getPropertyValue("protocolId") == WebsocketStreamingID)
         {
             try
             {
-                auto generatedConnectionString = tryCreateWebsocketConnectionString(config);
+                auto generatedConnectionString = tryCreateWebsocketConnectionString(capability);
                 return true;
             }
             catch (const std::exception& e)
@@ -120,31 +130,32 @@ bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(cons
     return false;
 }
 
-StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const StreamingInfoPtr& config)
+StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
 {
     StringPtr streamingConnectionString = connectionString;
 
-    if (!streamingConnectionString.assigned() && !config.assigned())
+    if (!streamingConnectionString.assigned() && !capability.assigned())
         throw ArgumentNullException();
 
-    if (!onAcceptsStreamingConnectionParameters(streamingConnectionString, config))
+    if (!onAcceptsStreamingConnectionParameters(streamingConnectionString, capability))
         throw InvalidParameterException();
 
     if (!streamingConnectionString.assigned())
-        streamingConnectionString = tryCreateWebsocketConnectionString(config);
+        streamingConnectionString = tryCreateWebsocketConnectionString(capability);
 
     return WebsocketStreaming(streamingConnectionString, context);
 }
 
-StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(const StreamingInfoPtr &config)
+StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(const ServerCapabilityPtr& capability)
 {
-    auto address = config.getPrimaryAddress();
-    if (address.toStdString().empty())
+    if (capability == nullptr)
+        throw InvalidParameterException("Capability is not set");
+
+    StringPtr address = capability.getPropertyValue("address");
+    if (!address.assigned() || address.toStdString().empty())
         throw InvalidParameterException("Device address is not set");
 
-    const auto propertyObj = config.asPtr<IPropertyObject>();
-    auto port = propertyObj.getPropertyValue("Port").template asPtr<IInteger>();
-
+    auto port = capability.getPropertyValue("Port").template asPtr<IInteger>();
     auto connectionString = String(fmt::format("daq.wss://{}:{}", address, port));
 
     return connectionString;

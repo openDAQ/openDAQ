@@ -121,7 +121,7 @@ TEST_F(HowToGetLastValue, GetLastValueSignalComplexFloat32)
 
     // Get last value of a Signal
     auto lastValue = signal.getLastValue();
-    // Cast to ComplexNumberPtr
+    // Cast to IComplexNumber
     auto complex = lastValue.asPtr<IComplexNumber>();
     // Extract values
     auto real = complex.getReal();
@@ -172,7 +172,7 @@ TEST_F(HowToGetLastValue, GetLastValueSignalStruct)
 
     // Get last value of a Signal
     auto lastValue = signal.getLastValue();
-    // Cast to StructPtr
+    // Cast to IStruct
     auto myStruct = lastValue.asPtr<IStruct>();
     // Extract both values
     auto myInt = myStruct.get("MyInt32");
@@ -214,7 +214,7 @@ TEST_F(HowToGetLastValue, GetLastValueSignalListOfInt)
 
     // Get last value of a Signal
     auto lastValue = signal.getLastValue();
-    // Cast to ListPtr
+    // Cast to IList
     auto myList = lastValue.asPtr<IList>();
     // Extract the third item on myList
     auto third = myList.getItemAt(2);

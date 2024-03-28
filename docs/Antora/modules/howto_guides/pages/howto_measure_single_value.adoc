@@ -197,7 +197,7 @@ descriptor = builder.build()
 ----
 ====
 
-In the following example, we first extract the last value via `getLastValue` (`last_value` in Python) call, then we cast the `lastValue` object into a `ComplexNumberPtr` type (not needed in Python). Lastly, call the methods of the underlying type such as the `getReal` (`real` in Python) and the `getImaginary` (`imaginary` in Python), in this case provided by the `IComplexNumber` interface.
+In the following example, we first extract the last value via `getLastValue` (`last_value` in Python) call, then we cast the `lastValue` object into a `IComplexNumber` type (not needed in Python). Lastly, call the methods of the underlying type such as the `getReal` (`real` in Python) and the `getImaginary` (`imaginary` in Python), in this case provided by the `IComplexNumber` interface.
 
 [tabs]
 ====
@@ -207,7 +207,7 @@ Cpp::
 ----
 // Get last value of a Signal
 auto lastValue = signal.getLastValue();
-// Cast to ComplexNumberPtr
+// Cast to IComplexNumber
 auto complex = lastValue.asPtr<IComplexNumber>();
 // Extract values
 auto real = complex.getReal();
@@ -303,7 +303,7 @@ Cpp::
 ----
 // Get last value of a Signal
 auto lastValue = signal.getLastValue();
-// Cast to StructPtr
+// Cast to IStruct
 auto myStruct = lastValue.asPtr<IStruct>();
 // Extract values
 auto myInt = myStruct.get("MyInt32");
@@ -344,7 +344,7 @@ Cpp::
 ----
 // Get last value of a Signal
 auto lastValue = signal.getLastValue();
-// Cast to ListPtr
+// Cast to IList
 auto myList = lastValue.asPtr<IList>();
 // Extract the third item on myList
 auto third = myList.getItemAt(2);

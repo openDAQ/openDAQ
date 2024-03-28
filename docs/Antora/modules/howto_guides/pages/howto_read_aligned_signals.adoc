@@ -295,66 +295,14 @@ Cpp::
 +
 [source,cpp]
 ----
-    constexpr const auto NUM_SIGNALS = 3;
-
-    auto logger = Logger();
-    auto context = Context(Scheduler(logger, 1), logger, nullptr);
-
-    ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
-    ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");
-    ReadSignal sig2 = demoSignal(context, 843, "2022-09-27T00:02:04.123+00:00");
-
     MultiReaderBuilderPtr builder = MultiReaderBuilder();
-    builder.addSignal(sig0.signal).addSignal(sig1.signal).addSignal(sig2.signal);
+    builder.addSignal(signal1).addSignal(signal2).addInputPort(port1).addInputPort(port2);
+    builder.setValueReadType(daq::SampleType::Int64);
+    builder.setDomainReadType(daq::SampleType::Float64);
 
+    // use can use build function for creating reader as well
+    // auto reader = builder.build();
     auto reader = MultiReaderFromBuilder(builder);
-
-    //
-    // To install the domain transform function to system time-stamps
-    //
-    TimeReader timeReader(reader);
-
-    sig0.sendPacket();
-    sig1.sendPacket();
-    sig2.sendPacket();
-
-    auto available = reader.getAvailableCount();  // 0
-
-    sig0.sendPacket();
-    sig1.sendPacket();
-    sig2.sendPacket();
-
-    sig0.sendPacket();
-    sig1.sendPacket();
-    sig2.sendPacket();
-
-    // Samples per signal
-    // 523 * 3 = 1569 (1.569s) need 1123 to sync
-    // 732 * 3 = 2196 (2.196s) need  123 to sync
-    // 843 * 3 = 2529 (2.529s) need    0 to sync
-
-    auto available = reader.getAvailableCount();  // 446
-
-    constexpr const SizeT SAMPLES = 523;
-
-    std::array<double[SAMPLES], NUM_SIGNALS> values{};
-
-    //
-    // Use time-stamps as a buffer instead of the domain-type
-    //
-    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> domain{};
-
-    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
-    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
-
-    SizeT count{SAMPLES};
-    reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
-
-    count = SAMPLES;
-    reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
-    // count = 446
-
-    available = reader.getAvailableCount();  // 0
 ----
 ====
 [NOTE]

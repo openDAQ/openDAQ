@@ -54,6 +54,9 @@ public:
     BaseObjectPtr callProperty(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& params);
     void setAttributeValue(const std::string& globalId, const std::string& attributeName, const BaseObjectPtr& attributeValue);
 
+    void beginUpdate(const std::string& globalId, const std::string& path);
+    void endUpdate(const std::string& globalId, const std::string& path);
+
     bool getConnected() const;
     ContextPtr getDaqContext();
 

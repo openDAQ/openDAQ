@@ -1871,8 +1871,9 @@ TEST_F(MultiReaderTest, SampleRateDivider)
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.125+00:00", nullptr, LinearDataRule(dividers[2], 0))); // 200 Hz
 
     auto multi = MultiReader(signalsToList());
+    ASSERT_EQ(multi.getCommonSampleRate(), 1000);
+
     auto available = multi.getAvailableCount();
-    
     ASSERT_EQ(available, 0u);
 
     for (Int i = 0; i < 5; i++)
@@ -1936,8 +1937,9 @@ TEST_F(MultiReaderTest, SampleRateDividerRequiredRate)
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.125+00:00", nullptr, LinearDataRule(dividers[2], 0)));  // 200 Hz
 
     auto multi = MultiReaderEx(signalsToList(), SampleType::Float64, SampleType::Int64, ReadMode::Scaled, ReadTimeoutType::All, reqiredRate, false);
-    auto available = multi.getAvailableCount();
+    ASSERT_EQ(multi.getCommonSampleRate(), reqiredRate);
 
+    auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
 
     for (Int i = 0; i < 5; i++)

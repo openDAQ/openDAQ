@@ -102,13 +102,25 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const ComponentPtr& com
 
 inline BaseObjectPtr ConfigServerComponent::beginUpdate(const ComponentPtr& component, const ParamsDictPtr& params)
 {
-    component.beginUpdate();
+    if (params.hasKey("Path"))
+    {
+        const PropertyObjectPtr obj = component.getPropertyValue(params.get("Path"));
+        obj.beginUpdate();
+    }
+    else
+        component.beginUpdate();
     return nullptr;
 }
 
 inline BaseObjectPtr ConfigServerComponent::endUpdate(const ComponentPtr& component, const ParamsDictPtr& params)
 {
-    component.endUpdate();
+    if (params.hasKey("Path"))
+    {
+        const PropertyObjectPtr obj = component.getPropertyValue(params.get("Path"));
+        obj.endUpdate();
+    }
+    else
+        component.endUpdate();
     return nullptr;
 }
 
@@ -145,4 +157,5 @@ inline BaseObjectPtr ConfigServerComponent::update(const ComponentPtr& component
 
     return nullptr;
 }
+
 }

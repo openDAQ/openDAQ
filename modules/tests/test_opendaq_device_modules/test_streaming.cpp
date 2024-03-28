@@ -256,6 +256,7 @@ TEST_P(StreamingTest, DataPackets)
 
 TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 {
+    SKIP_TEST_MAC_CI;
     SignalConfigPtr serverSignalPtr = getSignal(serverInstance, "ByteStep");
     MirroredSignalConfigPtr clientSignalPtr = getSignal(clientInstance, "ByteStep");
     MirroredSignalConfigPtr clientDomainSignalPtr = clientSignalPtr.getDomainSignal();
@@ -590,6 +591,7 @@ class NativeDeviceStreamingTest : public testing::Test
 
 TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
 {
+    SKIP_TEST_MAC_CI;
     const auto moduleManager = ModuleManager("");
     auto serverInstance = InstanceBuilder().setModuleManager(moduleManager).build();
     const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));

@@ -287,7 +287,7 @@ Because our Struct represents a custom type, we must call `setDescriptor` (`desc
 
 [CAUTION]
 ====
-All custom Structs and their respective fields must have their names set, which is a deviation from the previous examples. In the above code this is done by the calls to `setName` method of the Data Descriptor Builder.
+All custom Structs and their respective fields must have their names set, which is a deviation from the previous examples. In the above code this is done by the calls to `setName` (`name` in Python) method of the Data Descriptor Builder.
 ====
 
 After some data has been sent to our Signal, we can capture a single value similar to the previous examples:
@@ -359,7 +359,7 @@ third = last_value[2]
 
 [NOTE]
 ====
-Dimensions of the Data Descriptor that can be set via the `setDimensions` method (`set_dimensions` in Python) for Lists in the Data Descriptor Builder and must contain exactly one dimension.
+Dimensions of the Data Descriptor that can be set via the `setDimensions` method (`dimensions` in Python) for Lists in the Data Descriptor Builder and must contain exactly one dimension.
 ====
 
 [NOTE]

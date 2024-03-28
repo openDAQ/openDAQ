@@ -15,7 +15,7 @@ rtgen(SRC_StreamReader stream_reader.h)
 rtgen(SRC_BlockReader block_reader.h)
 rtgen(SRC_TailReader tail_reader.h)
 rtgen(SRC_PacketReader packet_reader.h)
-rtgen(SRC_MultiReaderBuilder multi_reader_builder.h)
+rtgen(SRC_MultiReaderBuilder multi_reader_builder.h INTERNAL)
 rtgen(SRC_MultiReader multi_reader.h)
 
 source_group("reader" FILES ${SDK_HEADERS_DIR}/reader_status.h

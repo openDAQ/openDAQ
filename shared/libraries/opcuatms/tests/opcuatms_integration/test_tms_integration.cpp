@@ -8,6 +8,7 @@
 #include <chrono>
 #include <thread>
 #include <testutils/test_comparators.h>
+#include <opendaq/permission_config_builder_factory.h>
 
 using namespace daq;
 using namespace daq::opcua;

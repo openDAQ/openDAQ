@@ -40,6 +40,7 @@
 #include <cctype>
 #include <opendaq/ids_parser.h>
 #include <opendaq/component_status_container_impl.h>
+#include <opendaq/permission_manager_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -216,6 +217,9 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
 
     context->getOnCoreEvent(&this->coreEvent);
     lockedAttributes.insert("Visible");
+
+    const PermissionManagerPtr parentManager = parent.assigned() ? parent.getPermissionManager() : nullptr;
+    this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
 }
 
 template <class Intf, class ... Intfs>

@@ -25,6 +25,7 @@
 #include <opendaq/signal_ptr.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/reader_status_ptr.h>
+#include <opendaq/multi_reader_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -348,6 +349,15 @@ BlockReaderPtr BlockReaderFromExisting(BlockReaderPtr invalidatedReader, SizeT b
     );
 }
 
+inline MultiReaderBuilderPtr MultiReaderBuilder()
+{
+    return MultiReaderBuilder_Create();
+}
+
+inline MultiReaderPtr MultiReaderFromBuilder(const MultiReaderBuilderPtr& builder)
+{
+    return MultiReaderFromBuilder_Create(builder);
+}
 
 inline MultiReaderPtr MultiReader(const ListPtr<ISignal>& signals,
                                   SampleType valueReadType,

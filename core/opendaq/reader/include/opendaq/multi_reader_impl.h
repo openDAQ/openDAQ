@@ -19,6 +19,7 @@
 #include <opendaq/reader_config_ptr.h>
 #include <opendaq/signal_reader.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/multi_reader_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -41,6 +42,8 @@ public:
                     SampleType valueReadType,
                     SampleType domainReadType,
                     ReadMode mode);
+
+    MultiReaderImpl(const MultiReaderBuilderPtr& builder);
 
     ~MultiReaderImpl() override;
 
@@ -84,12 +87,11 @@ private:
 
     template <typename T>
     static bool ListElementsHaveSameType(const ListPtr<IBaseObject>& list);
-    static bool CheckPreconditions(const ListPtr<IBaseObject>& list);
+    static ListPtr<IInputPortConfig> CheckPreconditions(const ListPtr<IComponent>& list, bool overrideMethod = true);
     void updateCommonSampleRateAndDividers();
     ListPtr<ISignal> getSignals() const;
 
     void setStartInfo();
-    void connectSignals(const ListPtr<ISignal>& inputSignals, SampleType valueRead, SampleType domainRead, ReadMode mode);
     void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
     ErrCode readUntilFirstDataPacket();

@@ -8,6 +8,7 @@ set(TEST_SOURCES test_factories.cpp
                  test_device_info.cpp
                  test_device.cpp
                  test_tree_traversal.cpp
+                 test_server_capability.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

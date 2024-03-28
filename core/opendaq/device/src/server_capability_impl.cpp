@@ -41,7 +41,7 @@ ServerCapabilityConfigImpl::ServerCapabilityConfigImpl( const ContextPtr& contex
     , protocolType(Enumeration(EnumerationName, protocolType, typeManager))
 {
     Super::addProperty(StringProperty(ConnectionString, ""));
-    Super::addProperty(StringPropertyBuilder(ProtocolName, protocolName).setReadOnly(true).build());
+    Super::addProperty(StringProperty(ProtocolName, protocolName));
     Super::addProperty(StringProperty(ConnectionType, "Unknwown"));
     Super::addProperty(BoolProperty(UpdateMethod, false));
 }

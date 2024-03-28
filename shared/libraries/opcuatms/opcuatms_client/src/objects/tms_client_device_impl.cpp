@@ -550,7 +550,7 @@ void TmsClientDeviceImpl::connectToStreamings()
 
             if (OPENDAQ_FAILED(errCode) || !streaming.assigned())
             {
-                LOG_W("Device \"{}\" had not connected to published streaming protocol \"{}\".", globalId, capability.getPropertyValue("ProtocolId").asPtr<IString>());
+                LOG_W("Device \"{}\" had not connected to published streaming protocol \"{}\".", globalId, capability.getPropertyValue("protocolId").asPtr<IString>());
             }
             else
             {

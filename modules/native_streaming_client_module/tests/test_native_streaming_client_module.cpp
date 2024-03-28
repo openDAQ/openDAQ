@@ -121,7 +121,7 @@ TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConfig)
     ServerCapabilityPtr serverCapability = ServerStreamingCapability(context, "daq.ns");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
-    serverCapability.setPropertyValue("Address", "123.123.123.123");
+    serverCapability.setPropertyValue("address", "123.123.123.123");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
     serverCapability.addProperty(IntProperty("Port", 1234));

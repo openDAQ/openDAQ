@@ -106,7 +106,7 @@ bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(cons
     }
     else if (capability.assigned())
     {
-        if (capability.getPropertyValue("ProtocolId") == WebsocketStreamingID)
+        if (capability.getPropertyValue("protocolId") == WebsocketStreamingID)
         {
             try
             {
@@ -143,7 +143,7 @@ StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(con
     if (capability == nullptr)
         throw InvalidParameterException("Capability is not set");
 
-    StringPtr address = capability.getPropertyValue("Address");
+    StringPtr address = capability.getPropertyValue("address");
     if (!address.assigned() || address.toStdString().empty())
         throw InvalidParameterException("Device address is not set");
 

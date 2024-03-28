@@ -12,8 +12,8 @@ const char* ConnectionString = "ConnectionString";
 const char* ProtocolName = "ProtocolName";
 const char* ConnectionType = "ConnectionType";
 const char* UpdateMethod = "UpdateMethod"; 
-const char* ProtocolId = "ProtocolId"; 
-const char* PrimaryAddress = "Address";
+const char* ProtocolId = "protocolId"; 
+const char* PrimaryAddress = "address";
 
 TypeManagerPtr ServerCapabilityConfigImpl::GetTypeManager(const ContextPtr& context)
 {

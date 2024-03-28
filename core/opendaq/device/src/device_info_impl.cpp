@@ -517,7 +517,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(ISe
     {
         for (const auto& capability : serverCapabilities)
         {
-            if (capability.getProtocolType().getValue() == "ServerStreaming" && capability.getPropertyValue("ProtocolId") == serverCapabilityPtr.getPropertyValue("ProtocolId"))
+            if (capability.getProtocolType().getValue() == "ServerStreaming" && capability.getPropertyValue("protocolId") == serverCapabilityPtr.getPropertyValue("protocolId"))
                 return OPENDAQ_ERR_DUPLICATEITEM;
         }
     }
@@ -535,7 +535,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(
     while(i < serverCapabilities.getCount())
     {
         auto serverCapability = serverCapabilities[i];
-        if (serverCapability.getProtocolType().getValue() == "ServerStreaming" && serverCapability.getPropertyValue("ProtocolId") == StringPtr::Borrow(protocolId))
+        if (serverCapability.getProtocolType().getValue() == "ServerStreaming" && serverCapability.getPropertyValue("protocolId") == StringPtr::Borrow(protocolId))
             serverCapabilities.removeAt(i);
         else
             i++;

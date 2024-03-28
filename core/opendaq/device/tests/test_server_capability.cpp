@@ -22,8 +22,8 @@ TEST_F(ServerCapabilityTest, Factory)
 TEST_F(ServerCapabilityTest, StreamingFactory)
 {
     ServerCapabilityPtr capability = ServerStreamingCapability(NullContext(), "Protocol Id");
-    ASSERT_EQ(capability.getPropertyValue("ProtocolId").asPtr<IString>(), "Protocol Id");
-    ASSERT_EQ(capability.getPropertyValue("Address").asPtr<IString>(), "");
+    ASSERT_EQ(capability.getPropertyValue("protocolId").asPtr<IString>(), "Protocol Id");
+    ASSERT_EQ(capability.getPropertyValue("address").asPtr<IString>(), "");
     ASSERT_EQ(capability.getProtocolType(), "ServerStreaming");
 }
 

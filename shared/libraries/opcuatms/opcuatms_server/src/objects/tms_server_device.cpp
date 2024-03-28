@@ -236,7 +236,7 @@ void TmsServerDevice::populateStreamingOptions()
         if (capability.getProtocolType().getValue() != "ServerStreaming")
             continue;
         
-        StringPtr protocolId = capability.getPropertyValue("ProtocolId");
+        StringPtr protocolId = capability.getPropertyValue("protocolId");
         auto tmsStreamingOption = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
             streamingOptionsNodeId, capability.asPtr<IPropertyObject>(), numberInList++, protocolId);
         this->streamingOptions.push_back(std::move(tmsStreamingOption));

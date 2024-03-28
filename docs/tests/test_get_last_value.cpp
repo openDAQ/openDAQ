@@ -6,24 +6,32 @@ using HowToGetLastValue = testing::Test;
 BEGIN_NAMESPACE_OPENDAQ
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_measure_single_value.adoc
-TEST_F(HowToGetLastValue, GetLastValueSignalInt64)
+TEST_F(HowToGetLastValue, GetLastValueSignalFloat64)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+
+    // START DOCS CODE
+
+    // The Data Descriptor for Float64
+    auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+
+    // END DOCS CODE
+
     auto dataPacket = DataPacket(descriptor, 5);
-    auto data = static_cast<int64_t*>(dataPacket.getData());
-    data[4] = 4;
+    auto data = static_cast<double*>(dataPacket.getData());
+    data[4] = 6.66;
     signal.sendPacket(dataPacket);
 
     // START DOCS CODE
 
+    // Get last value of a Signal
     auto lastValue = signal.getLastValue();
+    // Cast to IFloat
+    auto number = lastValue.asPtr<IFloat>();
 
     // END DOCS CODE
-
-    IntegerPtr integerPtr;
-    ASSERT_NO_THROW(integerPtr = lastValue.asPtr<IInteger>());
-    ASSERT_EQ(integerPtr, 4);
+    
+    ASSERT_EQ(number, 6.66);
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_measure_single_value.adoc
@@ -56,7 +64,7 @@ TEST_F(HowToGetLastValue, GetLastValueSignalRange)
 
     // START DOCS CODE
 
-    // The Data Descriptor for SampleType::RangeInt64
+    // The Data Descriptor for RangeInt64
     auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::RangeInt64).build();
     // Create a Data Packet
     auto packet = DataPacket(descriptor, 5);
@@ -96,7 +104,7 @@ TEST_F(HowToGetLastValue, GetLastValueSignalComplexFloat32)
 
     // START DOCS CODE
 
-    // The Data Descriptor for SampleType::ComplexFloat32
+    // The Data Descriptor for ComplexFloat32
     auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
     // Create a Data Packet
     auto packet = DataPacket(descriptor, 5);

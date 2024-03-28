@@ -40,20 +40,19 @@ namespace test_helpers
     static void setupSubscribeAckHandler(
         std::promise<StringPtr>& acknowledgementPromise,
         std::future<StringPtr>& acknowledgementFuture,
-        MirroredSignalConfigPtr& signal,
-        Bool expectMultipleAck = false
+        MirroredSignalConfigPtr& signal
     )
     {
         acknowledgementFuture = acknowledgementPromise.get_future();
         signal.getOnSubscribeComplete() +=
-            [&acknowledgementPromise, &acknowledgementFuture, expectMultipleAck]
+            [&acknowledgementPromise, &acknowledgementFuture]
             (MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
         {
             if (acknowledgementFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
             {
                 acknowledgementPromise.set_value(args.getStreamingConnectionString());
             }
-            else if (!expectMultipleAck)
+            else
             {
                 ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
                                << args.getStreamingConnectionString();
@@ -65,20 +64,19 @@ namespace test_helpers
     static void setupUnsubscribeAckHandler(
         std::promise<StringPtr>& acknowledgementPromise,
         std::future<StringPtr>& acknowledgementFuture,
-        MirroredSignalConfigPtr& signal,
-        Bool expectMultipleAck = false
+        MirroredSignalConfigPtr& signal
     )
     {
         acknowledgementFuture = acknowledgementPromise.get_future();
         signal.getOnUnsubscribeComplete() +=
-            [&acknowledgementPromise, &acknowledgementFuture, expectMultipleAck]
+            [&acknowledgementPromise, &acknowledgementFuture]
             (MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
         {
             if (acknowledgementFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
             {
                 acknowledgementPromise.set_value(args.getStreamingConnectionString());
             }
-            else if (!expectMultipleAck)
+            else
             {
                 ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
                                << args.getStreamingConnectionString();

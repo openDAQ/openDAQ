@@ -275,7 +275,11 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 
         std::promise<StringPtr> subscribeCompletePromise;
         std::future<StringPtr> subscribeCompleteFuture;
-        test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, clientSignalPtr, true);
+        test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, clientSignalPtr);
+        
+        std::promise<StringPtr> unsubscribeCompletePromise;
+        std::future<StringPtr> unsubscribeCompleteFuture;
+        test_helpers::setupUnsubscribeAckHandler(unsubscribeCompletePromise, unsubscribeCompleteFuture, clientSignalPtr);
 
         auto clientReader = PacketReader(clientSignalPtr);
 
@@ -359,14 +363,14 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
             EXPECT_EQ(domainDataDesc, domainDataDescClient);
         }
 
-        
-        std::promise<StringPtr> unsubscribeCompletePromise;
-        std::future<StringPtr> unsubscribeCompleteFuture;
-        test_helpers::setupUnsubscribeAckHandler(unsubscribeCompletePromise, unsubscribeCompleteFuture, clientSignalPtr, true);
-
         clientReader.release();
         
         ASSERT_TRUE(test_helpers::waitForAcknowledgement(unsubscribeCompleteFuture));
+
+        IEvent* evSub = clientSignalPtr.getOnSubscribeComplete();
+        IEvent* evUnsub = clientSignalPtr.getOnUnsubscribeComplete();
+        evSub->clear();
+        evUnsub->clear();
     }
 }
 
@@ -600,9 +604,18 @@ TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevi
 
         std::promise<StringPtr> subscribeCompletePromise;
         std::future<StringPtr> subscribeCompleteFuture;
-        test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, clientSignalPtr, true);
+        test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, clientSignalPtr);
+        
+        std::promise<StringPtr> unsubscribeCompletePromise;
+        std::future<StringPtr> unsubscribeCompleteFuture;
+        test_helpers::setupUnsubscribeAckHandler(unsubscribeCompletePromise, unsubscribeCompleteFuture, clientSignalPtr);
+        
+        std::promise<StringPtr> unsubscribeDomainCompletePromise;
+        std::future<StringPtr> unsubscribeDomainCompleteFuture;
+        MirroredSignalConfigPtr clientDomainSignal = clientSignalPtr.getDomainSignal();
+        test_helpers::setupUnsubscribeAckHandler(unsubscribeDomainCompletePromise, unsubscribeDomainCompleteFuture, clientDomainSignal);
 
-        const auto clientReader = PacketReader(clientSignalPtr);
+        auto clientReader = PacketReader(clientSignalPtr);
         
         ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
 
@@ -621,6 +634,19 @@ TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevi
 
         EXPECT_EQ(valueDataDesc, valueDataDescClient);
         EXPECT_EQ(domainDataDesc, domainDataDescClient);
+
+        clientReader.release();
+
+        test_helpers::waitForAcknowledgement(unsubscribeCompleteFuture);
+        test_helpers::waitForAcknowledgement(unsubscribeDomainCompleteFuture);
+
+        
+        IEvent* evSub = clientSignalPtr.getOnSubscribeComplete();
+        IEvent* evUnsub = clientSignalPtr.getOnUnsubscribeComplete();
+        IEvent* evUnsubDomain = clientDomainSignal.getOnUnsubscribeComplete();
+        evSub->clear();
+        evUnsub->clear();
+        evUnsubDomain->clear();
     }
 }
 

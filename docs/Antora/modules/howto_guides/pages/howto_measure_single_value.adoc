@@ -275,6 +275,9 @@ struct_fields.append(descriptor_int)
 struct_fields.append(descriptor_float)
 builder.struct_fields = struct_fields
 descriptor = builder.build()
+
+# Set the Data Descriptor, thereby adding MyStruct to the Type Manager
+signal.descriptor = descriptor  # TODO setter not defined
 ----
 ====
 

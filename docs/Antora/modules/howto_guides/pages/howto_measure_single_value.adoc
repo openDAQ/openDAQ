@@ -7,7 +7,7 @@ For developers requiring access to only the most recent value, the Signal and Da
 [#last_value_signal]
 == Getting the last value of a Signal
 
-When the `getLastValue` (`last_value` in Python) method is called on a Signal, it yields an `IBaseObject` containing the last value.
+When the `getLastValue` method (`last_value` in Python)  is called on a Signal, it yields an `IBaseObject` containing the last value.
 
 [tabs]
 ====
@@ -30,7 +30,7 @@ last_value = signal.last_value
 [#last_value_data_packet]
 == Getting last value of a Data Packet
 
-Similar is true when calling the `getLastValue` (`last_value` in Python) method on a Data Packet.
+Similar is true when calling the `getLastValue` method (`last_value` in Python)  on a Data Packet.
 
 [tabs]
 ====

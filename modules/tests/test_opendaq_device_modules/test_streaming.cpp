@@ -258,9 +258,11 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 {
     SignalConfigPtr serverSignalPtr = getSignal(serverInstance, "ByteStep");
     MirroredSignalConfigPtr clientSignalPtr = getSignal(clientInstance, "ByteStep");
+    MirroredSignalConfigPtr clientDomainSignalPtr = clientSignalPtr.getDomainSignal();
 
     bool usingNativePseudoDevice = std::get<1>(GetParam()) == "daq.ns" && std::get<2>(GetParam()) == "daq.nsd://127.0.0.1/";
     bool usingWSPseudoDevice = std::get<1>(GetParam()) == "daq.wss" && std::get<2>(GetParam()) == "daq.ws://127.0.0.1/";
+    bool usingNativeStreaming = std::get<1>(GetParam()) == "daq.ns";
 
     for (int i = 0; i < 5; ++i)
     {
@@ -281,9 +283,23 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
         std::future<StringPtr> unsubscribeCompleteFuture;
         test_helpers::setupUnsubscribeAckHandler(unsubscribeCompletePromise, unsubscribeCompleteFuture, clientSignalPtr);
 
+        std::promise<StringPtr> subscribeDomainCompletePromise;
+        std::future<StringPtr> subscribeDomainCompleteFuture;
+        
+        std::promise<StringPtr> unsubscribeDomainCompletePromise;
+        std::future<StringPtr> unsubscribeDomainCompleteFuture;
+
+        if (usingNativeStreaming)
+        {
+            test_helpers::setupSubscribeAckHandler(subscribeDomainCompletePromise, subscribeDomainCompleteFuture, clientDomainSignalPtr);
+            test_helpers::setupUnsubscribeAckHandler(unsubscribeDomainCompletePromise, unsubscribeDomainCompleteFuture, clientDomainSignalPtr);
+        }
+
         auto clientReader = PacketReader(clientSignalPtr);
 
         ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
+        if (usingNativeStreaming)
+            ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeDomainCompleteFuture)); 
 
         const int packetsToRead = i + 3;
         generatePackets(packetsToRead);
@@ -366,6 +382,14 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
         clientReader.release();
         
         ASSERT_TRUE(test_helpers::waitForAcknowledgement(unsubscribeCompleteFuture));
+        if (usingNativeStreaming)
+        {
+            ASSERT_TRUE(test_helpers::waitForAcknowledgement(unsubscribeDomainCompleteFuture));
+            IEvent* domainSub = clientDomainSignalPtr.getOnSubscribeComplete();
+            IEvent* domainUnSub = clientDomainSignalPtr.getOnUnsubscribeComplete();
+            domainSub->clear();
+            domainUnSub->clear();
+        }
 
         IEvent* evSub = clientSignalPtr.getOnSubscribeComplete();
         IEvent* evUnsub = clientSignalPtr.getOnUnsubscribeComplete();
@@ -592,6 +616,7 @@ TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevi
 
     SignalConfigPtr serverSignalPtr = serverInstance.getSignalsRecursive(search::LocalId("ByteStep"))[0];
     MirroredSignalConfigPtr clientSignalPtr = clientInstance.getSignalsRecursive(search::LocalId("ByteStep"))[0];
+    MirroredSignalConfigPtr clientDomainSignal = clientSignalPtr.getDomainSignal();
 
     for (int i = 1; i < 5; ++i)
     {
@@ -606,18 +631,22 @@ TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevi
         std::future<StringPtr> subscribeCompleteFuture;
         test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, clientSignalPtr);
         
+        std::promise<StringPtr> subscribeDomainCompletePromise;
+        std::future<StringPtr> subscribeDomainCompleteFuture;
+        test_helpers::setupSubscribeAckHandler(subscribeDomainCompletePromise, subscribeDomainCompleteFuture, clientDomainSignal);
+
         std::promise<StringPtr> unsubscribeCompletePromise;
         std::future<StringPtr> unsubscribeCompleteFuture;
         test_helpers::setupUnsubscribeAckHandler(unsubscribeCompletePromise, unsubscribeCompleteFuture, clientSignalPtr);
         
         std::promise<StringPtr> unsubscribeDomainCompletePromise;
         std::future<StringPtr> unsubscribeDomainCompleteFuture;
-        MirroredSignalConfigPtr clientDomainSignal = clientSignalPtr.getDomainSignal();
         test_helpers::setupUnsubscribeAckHandler(unsubscribeDomainCompletePromise, unsubscribeDomainCompleteFuture, clientDomainSignal);
 
         auto clientReader = PacketReader(clientSignalPtr);
         
         ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
+        ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeDomainCompleteFuture));
 
         const int packetsToRead = i + 3;
         serverInstance.setPropertyValue("GeneratePackets", packetsToRead);
@@ -642,9 +671,11 @@ TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevi
 
         
         IEvent* evSub = clientSignalPtr.getOnSubscribeComplete();
+        IEvent* evSubDomain = clientDomainSignal.getOnSubscribeComplete();
         IEvent* evUnsub = clientSignalPtr.getOnUnsubscribeComplete();
         IEvent* evUnsubDomain = clientDomainSignal.getOnUnsubscribeComplete();
         evSub->clear();
+        evSubDomain->clear();
         evUnsub->clear();
         evUnsubDomain->clear();
     }

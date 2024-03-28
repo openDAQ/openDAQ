@@ -105,7 +105,7 @@ TEST_F(SignalGeneratorTest, StepSignal)
     auto generator = SignalGenerator(signal, std::chrono::system_clock::now());
     generator.setFunction(stepFunction10);
     generator.generateSamplesTo(std::chrono::milliseconds(packetSize));
-    generator.generateSamplesTo(std::chrono::milliseconds(packetSize));
+    generator.generateSamplesTo(std::chrono::milliseconds(packetSize * 2));
 
     auto packets = reader.readAll();
     ASSERT_EQ(packets.getCount(), 3u);
@@ -138,7 +138,7 @@ TEST_F(SignalGeneratorTest, ChangeFunction)
     generator.setFunction(stepFunction10);
     generator.setUpdateFunction(updateFunction);
     generator.generateSamplesTo(std::chrono::milliseconds(packetSize));
-    generator.generateSamplesTo(std::chrono::milliseconds(packetSize));
+    generator.generateSamplesTo(std::chrono::milliseconds(packetSize * 2));
 
     auto packets = reader.readAll();
     ASSERT_EQ(packets.getCount(), 3u);

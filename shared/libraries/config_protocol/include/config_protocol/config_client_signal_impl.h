@@ -40,6 +40,7 @@ public:
 
     // IConfigClientSignalPrivate
     void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
+    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
 
     StringPtr onGetRemoteId() const override;
     Bool onTriggerEvent(const EventPacketPtr& eventPacket) override;
@@ -155,6 +156,24 @@ inline void ConfigClientSignalImpl::assignDomainSignal(const SignalPtr& domainSi
 
     if (unmuteCoreEvent)
         this->coreEventMuted = false;
+}
+
+inline ErrCode ConfigClientSignalImpl::getLastValue(IBaseObject** value)
+{
+    bool assigned;
+    {
+        std::scoped_lock lock(this->sync);
+        assigned = lastDataPacket.assigned();
+    }
+
+    if (!assigned)
+        return Super::getLastValue(value);
+
+    return daqTry([this, &value]
+    {
+        *value = this->clientComm->getLastValue(this->remoteGlobalId).detach();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 inline void ConfigClientSignalImpl::attributeChanged(const CoreEventArgsPtr& args)

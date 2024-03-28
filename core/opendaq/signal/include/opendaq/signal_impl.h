@@ -125,6 +125,7 @@ protected:
 
     DataDescriptorPtr dataDescriptor;
     StringPtr deserializedDomainSignalId;
+    DataPacketPtr lastDataPacket;
 
 private:
     bool isPublic{};
@@ -134,7 +135,6 @@ private:
     std::vector<ConnectionPtr> remoteConnections;
     std::vector<WeakRefPtr<ISignalConfig>> domainSignalReferences;
     bool keepLastPacket = true;
-    DataPacketPtr lastDataPacket;
 
     bool sendPacketInternal(const PacketPtr& packet, bool ignoreActive = false) const;
     void triggerRelatedSignalsChanged();

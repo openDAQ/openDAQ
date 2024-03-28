@@ -296,6 +296,11 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompleted(IString* streami
     
     const auto streamingConnectionStringPtr = StringPtr::Borrow(streamingConnectionString);
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
+    {
+        std::scoped_lock lock(this->sync);
+        this->lastDataPacket = nullptr;
+    }
+
     if (onUnsubscribeCompleteEvent.hasListeners())
     {
         onUnsubscribeCompleteEvent(

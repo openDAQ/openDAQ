@@ -53,6 +53,7 @@ public:
 protected:
     SignalPtr onGetDomainSignal() override;
     DataDescriptorPtr onGetDescriptor() override;
+    bool clearDescriptorOnUnsubscribe() override;
 
     std::atomic<Bool> isPublic = true;
     std::string deviceSignalId;

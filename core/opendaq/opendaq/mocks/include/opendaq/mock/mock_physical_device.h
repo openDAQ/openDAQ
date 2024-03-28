@@ -53,6 +53,7 @@ protected:
     FolderPtr componentA;
     ComponentPtr componentA1;
     ComponentPtr componentB;
+    uint64_t time;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

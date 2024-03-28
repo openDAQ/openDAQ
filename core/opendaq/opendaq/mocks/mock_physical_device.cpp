@@ -26,6 +26,7 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx, con
 
     const size_t nanosecondsInSecond = 1000000000;
     auto delta = nanosecondsInSecond / 10000;
+    time = 0;
 
     auto valueDescriptor = DataDescriptorBuilder()
                                .setSampleType(SampleType::UInt64)
@@ -131,14 +132,13 @@ void MockPhysicalDeviceImpl::stopAcq()
 
 void MockPhysicalDeviceImpl::generatePackets(size_t packetCount)
 {
-    uint64_t time = 0;
     uint64_t tickDelta = 100;
 
     for (size_t i = 1; i <= packetCount; i++)
     {
         // we want tick values to be 100 % reproducable even if they do not reperesnt the exact real time
         std::this_thread::sleep_for(std::chrono::milliseconds(tickDelta));
-        time = i * tickDelta;
+        time = time + i * tickDelta;
 
         for (const auto& channel : ioFolder.getItems())
         {
@@ -170,13 +170,23 @@ void MockPhysicalDeviceImpl::registerProperties()
     ));
 
     obj.addProperty(BoolProperty("ChangeDescriptors", 0));
-    obj.getOnPropertyValueWrite("ChangeDescriptors") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& /*args*/)
+    obj.getOnPropertyValueWrite("ChangeDescriptors") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& args)
     {
         for (const SignalConfigPtr& sig : ioFolder.getItems(search::Recursive(search::InterfaceId(ISignal::Id))))
         {
-            const auto builder =
-                DataDescriptorBuilderCopy(sig.getDescriptor()).setMetadata(Dict<IString, IString>({{"new_metadata", "new_value"}}));
-            sig.setDescriptor(builder.build());
+            if (args.getValue() == True)
+            {
+                const auto builder =
+                    DataDescriptorBuilderCopy(sig.getDescriptor()).setMetadata(Dict<IString, IString>({{"new_metadata", "new_value"}}));
+                sig.setDescriptor(builder.build());
+            }
+            else
+            {
+                const auto builder =
+                    DataDescriptorBuilderCopy(sig.getDescriptor()).setMetadata(Dict<IString, IString>());
+                sig.setDescriptor(builder.build());
+            }
+
         }
     };
 }

@@ -83,16 +83,12 @@ void NativeStreamingSignalImpl::deserializeCustomObjectValues(const SerializedOb
 
 SignalPtr NativeStreamingSignalImpl::onGetDomainSignal()
 {
-    MirroredSignalConfigPtr sig;
-    checkErrorInfo(getMirroredDomainSignal(&sig));
-    return sig;
+    return mirroredDomainSignal.addRefAndReturn();
 }
 
 DataDescriptorPtr NativeStreamingSignalImpl::onGetDescriptor()
 {
-    DataDescriptorPtr desc;
-    checkErrorInfo(getMirroredDataDescriptor(&desc));
-    return desc;
+    return mirroredDataDescriptor.addRefAndReturn();
 }
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import unittest
 import opendaq_test
 import opendaq as daq
 

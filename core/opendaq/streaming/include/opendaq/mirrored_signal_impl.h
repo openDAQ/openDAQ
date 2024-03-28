@@ -84,7 +84,7 @@ protected:
     virtual bool clearDescriptorOnUnsubscribe();
 
     std::mutex signalMutex;
-    
+
     DataDescriptorPtr mirroredDataDescriptor;
     DataDescriptorPtr mirroredDomainDataDescriptor;
     MirroredSignalConfigPtr mirroredDomainSignal;
@@ -330,6 +330,11 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompleted(IString* streami
         std::scoped_lock lock(signalMutex);
         mirroredDataDescriptor = nullptr;
         mirroredDomainDataDescriptor = nullptr;
+    }
+
+    {
+        std::scoped_lock lock(this->sync);
+        this->lastDataPacket = nullptr;
     }
 
     if (onUnsubscribeCompleteEvent.hasListeners())

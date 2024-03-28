@@ -40,8 +40,17 @@ namespace daq::streaming_protocol
     class BaseSignal;
     using BaseSignalPtr = std::shared_ptr<BaseSignal>;
 
+    class BaseValueSignal;
+    using BaseValueSignalPtr = std::shared_ptr<BaseValueSignal>;
+
     class BaseSynchronousSignal;
     using BaseSynchronousSignalPtr = std::shared_ptr<BaseSynchronousSignal>;
+
+    class BaseDomainSignal;
+    using BaseDomainSignalPtr = std::shared_ptr<BaseDomainSignal>;
+
+    class LinearTimeSignal;
+    using LinearTimeSignalPtr = std::shared_ptr<LinearTimeSignal>;
 }
 
 namespace daq::stream

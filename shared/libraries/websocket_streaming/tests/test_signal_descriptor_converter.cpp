@@ -7,6 +7,7 @@
 #include "streaming_protocol/Defines.h"
 #include "streaming_protocol/SubscribedSignal.hpp"
 #include "streaming_protocol/SynchronousSignal.hpp"
+#include "streaming_protocol/LinearTimeSignal.hpp"
 #include "streaming_protocol/iWriter.hpp"
 #include <opendaq/data_rule.h>
 #include <opendaq/data_rule_ptr.h>
@@ -58,10 +59,10 @@ public:
 SignalPtr createTimeSignal(const ContextPtr& ctx, uint64_t timeTicksPerSecond = TimeTicksPerSecond)
 {
     uint64_t timeTickStart = 10000000;
-    uint64_t outputRateInTicks = bsp::BaseSignal::timeTicksFromNanoseconds(std::chrono::milliseconds(1), timeTicksPerSecond);
+    uint64_t outputRateInTicks = bsp::BaseDomainSignal::timeTicksFromNanoseconds(std::chrono::milliseconds(1), timeTicksPerSecond);
 
     auto descriptor = DataDescriptorBuilder()
-    .setSampleType(SampleType::Float64)
+    .setSampleType(SampleType::UInt64)
     .setRule(LinearDataRule(outputRateInTicks, timeTickStart))
     .setTickResolution(Ratio(1, timeTicksPerSecond))
     .setName("Time")
@@ -137,40 +138,46 @@ SignalPtr createStepSignal(const ContextPtr& ctx)
 TEST(SignalConverter, synchronousSignal)
 {
     auto signal = createSineSignal(NullContext());
-    auto domainDescriptor = signal.getDomainSignal().getDescriptor();
     auto dataDescriptor = signal.getDescriptor();
-    auto start = domainDescriptor.getRule().getParameters().get("start");
     auto unit = dataDescriptor.getUnit();
+
+    auto domainSignal = signal.getDomainSignal();
+    auto domainDescriptor = domainSignal.getDescriptor();
 
     DummayWriter dummyWriter;
     // 1kHz
-    uint64_t outputRateInTicks = bsp::BaseSignal::timeTicksFromNanoseconds(std::chrono::milliseconds(1), TimeTicksPerSecond);
-    auto syncSigna1 = std::make_shared<bsp::SynchronousSignal<double>>(signal.getGlobalId(), outputRateInTicks, TimeTicksPerSecond, dummyWriter, bsp::Logging::logCallback());
-    syncSigna1->setTimeStart(start);
+    uint64_t outputRateInTicks = bsp::BaseDomainSignal::timeTicksFromNanoseconds(std::chrono::milliseconds(1), TimeTicksPerSecond);
+    auto outputRateInNs = std::chrono::milliseconds(1);
+    auto syncSignal = std::make_shared<bsp::SynchronousSignal<double>>(signal.getGlobalId(), "table1", dummyWriter, bsp::Logging::logCallback());
+    auto timeSignal = std::make_shared<bsp::LinearTimeSignal>(domainSignal.getGlobalId(), "table1", TimeTicksPerSecond, outputRateInNs, dummyWriter, bsp::Logging::logCallback());
 
-    SignalDescriptorConverter::ToStreamedSignal(signal, syncSigna1, SignalProps{});
-    ASSERT_EQ(syncSigna1->getTimeDelta(), outputRateInTicks);
-    ASSERT_EQ(syncSigna1->getTimeStart(), start);
-    ASSERT_EQ(syncSigna1->getUnitId(), unit.getId());
-    ASSERT_EQ(syncSigna1->getUnitDisplayName(), unit.getSymbol());
-    ASSERT_EQ(syncSigna1->getMemberName(), signal.getName());
+    ASSERT_NO_THROW(SignalDescriptorConverter::ToStreamedValueSignal(signal, syncSignal, SignalProps{}));
+    ASSERT_EQ(syncSignal->getUnitId(), unit.getId());
+    ASSERT_EQ(syncSignal->getUnitDisplayName(), unit.getSymbol());
+    ASSERT_EQ(syncSignal->getMemberName(), signal.getName());
+    ASSERT_EQ(syncSignal->getTableId(), "table1");
+
+    ASSERT_NO_THROW(SignalDescriptorConverter::ToStreamedLinearSignal(domainSignal, timeSignal, SignalProps{}));
+    ASSERT_EQ(timeSignal->getTimeDelta(), outputRateInTicks);
+    ASSERT_EQ(timeSignal->getTableId(), "table1");
+
+    auto start = domainDescriptor.getRule().getParameters().get("start");
+    timeSignal->setTimeStart(start);
+    ASSERT_EQ(timeSignal->getTimeStart(), start);
 }
 
 TEST(SignalConverter, TickResolution)
 {
-    auto signal = createSineSignal(NullContext());
-    auto domainDescriptor = signal.getDomainSignal().getDescriptor();
-    auto start = domainDescriptor.getRule().getParameters().get("start");
+    auto domainSignal = createTimeSignal(NullContext(), TimeTicksPerSecond);
+    auto domainDescriptor = domainSignal.getDescriptor();
 
     DummayWriter dummyWriter;
     // 1kHz
-    uint64_t outputRateInTicks = bsp::BaseSignal::timeTicksFromNanoseconds(std::chrono::milliseconds(1), TimeTicksPerSecond);
-    auto syncSigna1 =
-        std::make_shared<bsp::SynchronousSignal<double>>(signal.getGlobalId(), outputRateInTicks, TimeTicksPerSecond, dummyWriter, bsp::Logging::logCallback());
-    syncSigna1->setTimeStart(start);
+    auto outputRateInNs = std::chrono::milliseconds(1);
+    auto timeSignal = std::make_shared<bsp::LinearTimeSignal>(domainSignal.getGlobalId(), "table1", TimeTicksPerSecond, outputRateInNs, dummyWriter, bsp::Logging::logCallback());
 
-    SignalDescriptorConverter::ToStreamedSignal(signal, syncSigna1, SignalProps{});
-    syncSigna1->writeSignalMetaInformation();
+    ASSERT_NO_THROW(SignalDescriptorConverter::ToStreamedLinearSignal(domainSignal, timeSignal, SignalProps{}));
+    timeSignal->writeSignalMetaInformation();
 
     auto getTickResolution = [](const nlohmann::json& data) -> RatioPtr {
         using namespace daq::streaming_protocol;
@@ -182,10 +189,9 @@ TEST(SignalConverter, TickResolution)
     ASSERT_EQ(getTickResolution(lastMetaInformation.second), Ratio(1, TimeTicksPerSecond));
 
     auto newDomainSignal = createTimeSignal(NullContext(), 1000);
-    signal.asPtr<ISignalConfig>(true).setDomainSignal(newDomainSignal);
 
-    SignalDescriptorConverter::ToStreamedSignal(signal, syncSigna1, SignalProps{});
-    syncSigna1->writeSignalMetaInformation();
+    ASSERT_NO_THROW(SignalDescriptorConverter::ToStreamedLinearSignal(newDomainSignal, timeSignal, SignalProps{}));
+    timeSignal->writeSignalMetaInformation();
 
     lastMetaInformation = *(--dummyWriter.metaInformations.end());
     ASSERT_EQ(getTickResolution(lastMetaInformation.second), Ratio(1, 1000));
@@ -194,23 +200,17 @@ TEST(SignalConverter, TickResolution)
 TEST(SignalConverter, synchronousSignalWithPostScaling)
 {
     auto signal = createSineSignalWithPostScaling(NullContext());
-    auto domainDescriptor = signal.getDomainSignal().getDescriptor();
     auto valueDescriptor = signal.getDescriptor();
-    auto start = domainDescriptor.getRule().getParameters().get("start");
     auto unit = valueDescriptor.getUnit();
 
     DummayWriter dummyWriter;
     // 1kHz
-    uint64_t outputRateInTicks = bsp::BaseSignal::timeTicksFromNanoseconds(std::chrono::milliseconds(1), TimeTicksPerSecond);
-    auto syncSigna1 = std::make_shared<bsp::SynchronousSignal<int16_t>>(signal.getGlobalId(), outputRateInTicks, TimeTicksPerSecond, dummyWriter, bsp::Logging::logCallback());
-    syncSigna1->setTimeStart(start);
+    auto syncSignal = std::make_shared<bsp::SynchronousSignal<int16_t>>(signal.getGlobalId(), "table1", dummyWriter, bsp::Logging::logCallback());
 
-    SignalDescriptorConverter::ToStreamedSignal(signal, syncSigna1, SignalProps{});
-    ASSERT_EQ(syncSigna1->getTimeDelta(), outputRateInTicks);
-    ASSERT_EQ(syncSigna1->getTimeStart(), start);
-    ASSERT_EQ(syncSigna1->getUnitId(), unit.getId());
-    ASSERT_EQ(syncSigna1->getUnitDisplayName(), unit.getSymbol());
-    ASSERT_EQ(syncSigna1->getMemberName(), signal.getName());
+    ASSERT_NO_THROW(SignalDescriptorConverter::ToStreamedValueSignal(signal, syncSignal, SignalProps{}));
+    ASSERT_EQ(syncSignal->getUnitId(), unit.getId());
+    ASSERT_EQ(syncSignal->getUnitDisplayName(), unit.getSymbol());
+    ASSERT_EQ(syncSignal->getMemberName(), signal.getName());
 }
 
 TEST(SignalConverter, subscribedDataSignal)

@@ -128,8 +128,23 @@ bool StreamingClient::connect()
 void StreamingClient::disconnect()
 {
     ioContext.stop();
-    if (clientThread.joinable())
-        clientThread.join();
+    if (clientThread.get_id() != std::this_thread::get_id())
+    {
+        if (clientThread.joinable())
+        {
+            clientThread.join();
+            LOG_I("Websocket streaming client thread joined");
+        }
+        else
+        {
+            LOG_W("Websocket streaming client thread is not joinable");
+        }
+    }
+    else
+    {
+        LOG_C("Websocket streaming client thread cannot join itself");
+    }
+
     connected = false;
 }
 
@@ -148,9 +163,9 @@ void StreamingClient::onSignalUpdated(const OnSignalCallback& callback)
     onSignalUpdatedCallback = callback;
 }
 
-void StreamingClient::onDomainDescriptor(const OnDomainDescriptorCallback& callback)
+void StreamingClient::onDomainSingalInit(const OnDomainSignalInitCallback& callback)
 {
-    onDomainDescriptorCallback = callback;
+    onDomainSignalInitCallback = callback;
 }
 
 void StreamingClient::onAvailableStreamingSignals(const OnAvailableSignalsCallback& callback)
@@ -350,9 +365,11 @@ void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSig
         if (inputSignal->getTableId() != tableId)
         {
             inputSignal->setTableId(tableId);
-            if (auto domainDescIt = cachedDomainDescriptors.find(tableId); domainDescIt != cachedDomainDescriptors.end())
+            if (auto domainIdAndDescIt = cachedDomainIdsAndDescriptors.find(tableId); domainIdAndDescIt != cachedDomainIdsAndDescriptors.end())
             {
-                setDomainDescriptor(id, inputSignal, domainDescIt->second);
+                auto domainSignalId = domainIdAndDescIt->second.first;
+                auto domainSignalDescriptor = domainIdAndDescIt->second.second;
+                setDomainIdAndDescriptor(id, inputSignal, domainSignalId, domainSignalDescriptor);
             }
         }
 
@@ -392,11 +409,11 @@ void StreamingClient::setTimeSignal(const daq::streaming_protocol::SubscribedSig
     // set domain descriptor for all input data signals with known tableId
     for (const auto& [dataSignalId, inputSignal] : findDataSignalsByTableId(tableId))
     {
-        setDomainDescriptor(dataSignalId, inputSignal, sInfo.dataDescriptor);
+        setDomainIdAndDescriptor(dataSignalId, inputSignal, timeSignalId, sInfo.dataDescriptor);
     }
 
-    // some data signals can have unknown tableId at the moment, save domain descriptor for future
-    cachedDomainDescriptors.insert_or_assign(tableId, sInfo.dataDescriptor);
+    // some data signals can have unknown tableId at the moment, save domain signal id and descriptor for future
+    cachedDomainIdsAndDescriptors.insert_or_assign(tableId, std::make_pair(timeSignalId, sInfo.dataDescriptor));
 }
 
 void StreamingClient::publishSignalChanges(const std::string& signalId, const InputSignalPtr& signal)
@@ -499,15 +516,16 @@ void StreamingClient::setSignalInitSatisfied(const std::string& signalId)
     }
 }
 
-void StreamingClient::setDomainDescriptor(const std::string& signalId,
-                                          const InputSignalPtr& inputSignal,
-                                          const DataDescriptorPtr& domainDescriptor)
+void StreamingClient::setDomainIdAndDescriptor(const std::string& dataSignalId,
+                                               const InputSignalPtr& inputSignal,
+                                               const std::string& domainSignalId,
+                                               const DataDescriptorPtr& domainDescriptor)
 {
     // Sets the descriptors of pseudo device signal when first connecting
     if (!inputSignal->getDomainSignalDescriptor().assigned())
     {
-        onDomainDescriptorCallback(signalId, domainDescriptor);
-        setSignalInitSatisfied(signalId);
+        onDomainSignalInitCallback(dataSignalId, domainSignalId, domainDescriptor);
+        setSignalInitSatisfied(dataSignalId);
     }
 
     inputSignal->setDomainDescriptor(domainDescriptor);

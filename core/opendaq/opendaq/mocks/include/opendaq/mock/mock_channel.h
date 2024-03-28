@@ -38,6 +38,7 @@ protected:
     daq::ListPtr<daq::IInputPort> inputPorts;
     std::vector<SignalGeneratorPtr> generatedSignals;
     Int intStepValue = -10;
+    std::chrono::time_point<std::chrono::system_clock> sigGenAbsStartTime;
 
     void generateSamplesUntil(std::chrono::milliseconds currentTime) override;
     uint64_t getOutputRate() override;

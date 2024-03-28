@@ -59,14 +59,23 @@ void AsyncPacketReader::startReadThread()
     {
         {
             std::scoped_lock lock(readersSync);
-            for (const auto& [signal, reader] : signalReaders)
+            bool hasPacketsToRead;
+            do
             {
-                if (reader.getAvailableCount() == 0)
-                    continue;
+                hasPacketsToRead = false;
+                for (const auto& [signal, reader] : signalReaders)
+                {
+                    if (reader.getAvailableCount() == 0)
+                        continue;
 
-                const auto& packets = reader.readAll();
-                onPacketCallback(signal, packets);
+                    const auto& packet = reader.read();
+                    onPacketCallback(signal, {packet});
+
+                    if (reader.getAvailableCount() > 0)
+                        hasPacketsToRead = true;
+                }
             }
+            while(hasPacketsToRead);
         }
 
         std::this_thread::sleep_for(sleepTime);

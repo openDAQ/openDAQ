@@ -115,6 +115,9 @@ descriptor = builder.build()
 ----
 ====
 
+[#last_value_range]
+== Getting the last value with a Range
+
 In the following example, we cast the `lastValue` object into an `IRange` like so:
 
 [tabs]

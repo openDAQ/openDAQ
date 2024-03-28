@@ -77,10 +77,10 @@ TEST_F(HowToGetLastValue, GetLastValueSignalRange)
     // Print last value
     std::cout << "last value: " << lastValue << std::endl;
 
-    // Cast to RangePtr
+    // Cast to IRange
     auto range = lastValue.asPtr<IRange>();
 
-    // Call some methods
+    // Extract values
     auto low = range.getLowValue();
     auto high = range.getHighValue();
 
@@ -90,7 +90,7 @@ TEST_F(HowToGetLastValue, GetLastValueSignalRange)
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_measure_single_value.adoc
-TEST_F(HowToGetLastValue, GetLastValueSingalComplexFloat32)
+TEST_F(HowToGetLastValue, GetLastValueSignalComplexFloat32)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
 
@@ -115,7 +115,7 @@ TEST_F(HowToGetLastValue, GetLastValueSingalComplexFloat32)
     auto lastValue = signal.getLastValue();
     // Cast to ComplexNumberPtr
     auto complex = lastValue.asPtr<IComplexNumber>();
-    // Call some methods
+    // Extract values
     auto real = complex.getReal();
     auto imaginary = complex.getImaginary();
 
@@ -177,6 +177,45 @@ TEST_F(HowToGetLastValue, GetLastValueSignalStruct)
 
     // Check second member
     ASSERT_DOUBLE_EQ(myFloat, 15.1);
+}
+
+// Corresponding document: Antora/modules/howto_guides/pages/howto_measure_single_value.adoc
+TEST_F(HowToGetLastValue, GetLastValueSignalListOfInt)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    auto numbers = List<INumber>();
+    numbers.pushBack(1);
+    numbers.pushBack(2);
+    numbers.pushBack(3);
+
+    auto dimensions = List<IDimension>();
+    dimensions.pushBack(Dimension(ListDimensionRule(numbers)));
+
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).setDimensions(dimensions).build();
+
+    auto packet = DataPacket(descriptor, 5);
+    int64_t* data = static_cast<int64_t*>(packet.getData());
+    data[12] = 1;
+    data[13] = 4;
+    data[14] = 44;
+
+    signal.sendPacket(packet);
+
+    // START DOCS CODE
+
+    // Get last value of a Signal
+    auto lastValue = signal.getLastValue();
+    // Cast to ListPtr
+    auto myList = lastValue.asPtr<IList>();
+    // Extract the third item on myList
+    auto third = myList.getItemAt(2);
+
+    // END DOCS CODE
+
+    ASSERT_EQ(myList.getItemAt(0), 1);
+    ASSERT_EQ(myList.getItemAt(1), 4);
+    ASSERT_EQ(myList.getItemAt(2), 44);
 }
 
 END_NAMESPACE_OPENDAQ

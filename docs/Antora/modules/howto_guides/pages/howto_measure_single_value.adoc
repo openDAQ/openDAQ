@@ -76,9 +76,9 @@ print("last value: ", last_value)
 [#casting]
 == Casting the last value and using the cast variable
 
-In C++, if we would like to do something useful with the `BaseObjectPtr`, such as access its underlying methods, we need to cast it into the correct type first. This is not necessary in Python, however.
+In C++, if we would like to do something useful with the `IBaseObject`, such as access its underlying methods, we need to cast it into the correct type first. This is not necessary in Python, however.
 
-The underlying type of the `IBaseObject` we get from our `getLastValue` call can be cast into either `IFloat` if the type is `Float32` or `Float64`, to `IInteger`, if the type is `Int8` through `Int64` or `UInt8` through `UInt64`, to `IComplexNumber` if type is `ComplexFloat32` or `ComplexFloat64`, to `IRange` if the type is `RangeInt64`, to `IStruct` if the type is `Struct`, and to `IList` of the aforementioned types if there is exactly one dimension in the single value.
+The underlying type of the `IBaseObject` we get from our `getLastValue` call can be cast into either `IFloat` if the type is `Float32` or `Float64`, to `IInteger` if the type is `Int8` through `Int64` or `UInt8` through `UInt64`, to `IComplexNumber` if type is `ComplexFloat32` or `ComplexFloat64`, to `IRange` if the type is `RangeInt64`, to `IStruct` if the type is `Struct`, and to `IList` of the aforementioned types if there is exactly one dimension in the single value.
 
 In this example, we cast the `lastValue` (`last_value` in Python) object into an `IRange` like so:
 

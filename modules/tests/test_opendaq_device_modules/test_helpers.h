@@ -45,19 +45,19 @@ namespace test_helpers
     {
         acknowledgementFuture = acknowledgementPromise.get_future();
         signal.getOnSubscribeComplete() +=
-            [&acknowledgementPromise, &acknowledgementFuture]
-            (MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
-        {
-            if (acknowledgementFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+            [&acknowledgementPromise]
+            (MirroredSignalConfigPtr&, SubscriptionEventArgsPtr& args)
             {
-                acknowledgementPromise.set_value(args.getStreamingConnectionString());
-            }
-            else
-            {
-                ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
-                               << args.getStreamingConnectionString();
-            }
-        };
+                try
+                {
+                    acknowledgementPromise.set_value(args.getStreamingConnectionString());
+                }
+                catch (const std::future_errc&)
+                {
+                    ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
+                                   << args.getStreamingConnectionString();
+                }
+            };
     }
 
     [[maybe_unused]]
@@ -69,19 +69,19 @@ namespace test_helpers
     {
         acknowledgementFuture = acknowledgementPromise.get_future();
         signal.getOnUnsubscribeComplete() +=
-            [&acknowledgementPromise, &acknowledgementFuture]
-            (MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
-        {
-            if (acknowledgementFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+            [&acknowledgementPromise]
+            (MirroredSignalConfigPtr&, SubscriptionEventArgsPtr& args)
             {
-                acknowledgementPromise.set_value(args.getStreamingConnectionString());
-            }
-            else
-            {
-                ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
-                               << args.getStreamingConnectionString();
-            }
-        };
+                try
+                {
+                    acknowledgementPromise.set_value(args.getStreamingConnectionString());
+                }
+                catch (const std::future_errc&)
+                {
+                    ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
+                                   << args.getStreamingConnectionString();
+                }
+            };
     }
 
     [[maybe_unused]]

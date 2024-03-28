@@ -11,7 +11,6 @@ set(SRC_Cpp signal_descriptor_converter.cpp
             input_signal.cpp
             output_signal.cpp
             async_packet_reader.cpp
-            websocket_streaming_init.cpp
             websocket_streaming_server.cpp
             websocket_client_device_impl.cpp
             websocket_client_signal_impl.cpp
@@ -27,7 +26,6 @@ set(SRC_PublicHeaders
     input_signal.h
     output_signal.h
     async_packet_reader.h
-    websocket_streaming_init.h
     websocket_streaming_server.h
     websocket_client_device_impl.h
     websocket_client_device_factory.h

@@ -45,29 +45,6 @@ ErrCode TmsClientSignalImpl::setPublic(Bool valPublic)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode TmsClientSignalImpl::getDescriptor(IDataDescriptor** descriptor)
-{
-    *descriptor = nullptr;
-    try
-    {
-        if (descriptorNodeId)
-        {
-            OpcUaVariant opcUaVariant = client->readValue(*descriptorNodeId);
-            if (!opcUaVariant.isNull())
-            {
-                DataDescriptorPtr descriptorPtr = VariantConverter<IDataDescriptor, DataDescriptorPtr>::ToDaqObject(opcUaVariant);
-                *descriptor = descriptorPtr.addRefAndReturn();
-                return OPENDAQ_SUCCESS;
-            }
-        }
-    }
-    catch (...)
-    {
-        LOG_W("Failed to get descriptor on OpcUA client signal \"{}\"", this->globalId);
-    }
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode TmsClientSignalImpl::setDescriptor(IDataDescriptor* /*descriptor*/)
 {
     return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
@@ -93,6 +70,28 @@ SignalPtr TmsClientSignalImpl::onGetDomainSignal()
     catch (...)
     {
         LOG_W("Failed to get domain signal on OpcUA client signal \"{}\"", this->globalId);
+    }
+
+    return nullptr;
+}
+
+DataDescriptorPtr TmsClientSignalImpl::onGetDescriptor()
+{
+    try
+    {
+        if (descriptorNodeId)
+        {
+            OpcUaVariant opcUaVariant = client->readValue(*descriptorNodeId);
+            if (!opcUaVariant.isNull())
+            {
+                DataDescriptorPtr descriptorPtr = VariantConverter<IDataDescriptor, DataDescriptorPtr>::ToDaqObject(opcUaVariant);
+                return descriptorPtr.addRefAndReturn();
+            }
+        }
+    }
+    catch (...)
+    {
+        LOG_W("Failed to get descriptor on OpcUA client signal \"{}\"", this->globalId);
     }
 
     return nullptr;
@@ -155,10 +154,9 @@ ErrCode TmsClientSignalImpl::clearRelatedSignals()
     return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
 }
 
-Bool TmsClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
+Bool TmsClientSignalImpl::onTriggerEvent(const EventPacketPtr& eventPacket)
 {
-    // No new duplicated event packets have been created so returns true to forward original packet
-    return True;
+    return Self::onTriggerEvent(eventPacket);
 }
 
 

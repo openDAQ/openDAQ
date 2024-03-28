@@ -2,7 +2,7 @@
 #include <opendaq/event_packet.h>
 #include <opendaq/mirrored_signal_config.h>
 #include <opendaq/streaming_ptr.h>
-#include <opendaq/mirrored_signal_private.h>
+#include <opendaq/mirrored_signal_private_ptr.h>
 #include <opendaq/subscription_event_args_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
@@ -86,9 +86,9 @@ void WebsocketStreamingImpl::prepareStreamingClient()
             if (signal.assigned())
             {
                 if (subscribed)
-                    signal.template asPtr<daq::IMirroredSignalPrivate>()->subscribeCompleted(connectionString);
+                    signal.template asPtr<daq::IMirroredSignalPrivate>().subscribeCompleted(connectionString);
                 else
-                    signal.template asPtr<daq::IMirroredSignalPrivate>()->unsubscribeCompleted(connectionString);
+                    signal.template asPtr<daq::IMirroredSignalPrivate>().unsubscribeCompleted(connectionString);
             }
         }
     };
@@ -97,7 +97,7 @@ void WebsocketStreamingImpl::prepareStreamingClient()
 
 void WebsocketStreamingImpl::handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket)
 {
-    Bool forwardPacket = signal.template asPtr<IMirroredSignalPrivate>()->triggerEvent(eventPacket);
+    Bool forwardPacket = signal.template asPtr<IMirroredSignalPrivate>().triggerEvent(eventPacket);
     if (forwardPacket)
         signal.sendPacket(eventPacket);
 }

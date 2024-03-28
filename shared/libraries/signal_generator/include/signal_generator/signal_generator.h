@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,8 @@ public:
     using GenerateSampleFunc = std::function<void(uint64_t tick, void* valueOut)>;
     using UpdateGeneratorFunc = std::function<void(SignalGenerator& generator, uint64_t packetOffset)>;
 
-    SignalGenerator(const SignalConfigPtr& signal);
+    SignalGenerator(const SignalConfigPtr& signal,
+                    std::chrono::time_point<std::chrono::system_clock> absTime);
 
     void setFunction(GenerateSampleFunc function);
     void setUpdateFunction(UpdateGeneratorFunc function);
@@ -40,7 +41,7 @@ protected:
     void generatePacket(uint64_t startTick, size_t sampleCount);
     void calculateSampleSize();
     void calculateResolutionAndOutputRate();
-    void calculateAbsStartTick();
+    void calculateAbsStartTick(std::chrono::time_point<std::chrono::system_clock> absTime);
     uint64_t getAbsTick(uint64_t currentTick);
 
     SignalConfigPtr signal;

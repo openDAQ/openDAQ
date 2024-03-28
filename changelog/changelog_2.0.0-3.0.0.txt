@@ -1,4 +1,4 @@
-25.03.2024
+28.03.2024
 Description:
 	- Grouping discovered deivces with IServerCapability
 	- Replacing IStreamingInfo with IServerCapability
@@ -42,6 +42,25 @@ Description:
 +m [function] IModule::acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IServerCapability* capability = nullptr)
 -m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IStreamingInfo* config)
 +m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IServerCapability* capability)
+
+26.03.2024:
+Description:
+	- Fix outdated data descriptor before subscription
+
+-m [function] Bool IMirroredSignalPrivate::triggerEvent(const EventPacketPtr& eventPacket)
++m [function] ErrCode IMirroredSignalPrivate::triggerEvent(IEventPacket* eventPacket, Bool* forward)
+-m [function] ErrCode IMirroredSignalPrivate::INTERFACE_FUNC addStreamingSource(const StreamingPtr& streaming)
++m [function] ErrCode IMirroredSignalPrivate::addStreamingSource(IStreaming* streaming)
+-m [function] ErrCode IMirroredSignalPrivate::removeStreamingSource(const StringPtr& streamingConnectionString)
++m [function] ErrCode IMirroredSignalPrivate::removeStreamingSource(IString* streamingConnectionString)
+-m [function] void IMirroredSignalPrivate::subscribeCompleted(const StringPtr& streamingConnectionString)
++m [function] ErrCode IMirroredSignalPrivate::subscribeCompleted(IString* streamingConnectionString)
+-m [function] void IMirroredSignalPrivate::unsubscribeCompleted(const StringPtr& streamingConnectionString) 
++m [function] ErrCode IMirroredSignalPrivate::unsubscribeCompleted(IString* streamingConnectionString)
++ [function] ErrCode IMirroredSignalPrivate::getMirroredDataDescriptor(IDataDescriptor** descriptor)
++ [function] ErrCode IMirroredSignalPrivate::setMirroredDataDescriptor(IDataDescriptor* descriptor)
++ [function] ErrCode IMirroredSignalPrivate::getMirroredDomainSignal(IMirroredSignalConfig** domainSignals)
++ [function] ErrCode IMirroredSignalPrivate::setMirroredDomainSignal(IMirroredSignalConfig* domainSignal)
 
 21.03.2024
 Description:

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ protected:
     daq::ListPtr<daq::IInputPort> inputPorts;
     std::vector<SignalGeneratorPtr> generatedSignals;
     Int intStepValue = -10;
+    std::chrono::time_point<std::chrono::system_clock> sigGenAbsStartTime;
 
     void generateSamplesUntil(std::chrono::milliseconds currentTime) override;
     uint64_t getOutputRate() override;

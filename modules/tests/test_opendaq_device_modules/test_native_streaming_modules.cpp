@@ -283,7 +283,6 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
 
     // re-create server to enable reconnection
     server = CreateServerInstance();
-    auto serverSignals = server.getSignals(search::Recursive(search::Any()));
 
     ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Connected");
@@ -293,15 +292,7 @@ TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(domainSubscribeFuture));
 
-    {
-        daq::SizeT eventCount = 1;
-        double sample;
-        std::this_thread::sleep_for(100ms);
-
-        daq::ReaderStatusPtr status = reader.read(&sample, &eventCount);
-        EXPECT_TRUE(status.getReadStatus() == ReadStatus::Event);
-    }
-
+    // No descriptor changed packet, as the descriptor did not change
     // read data received from server after reconnection
     for (int i = 0; i < 10; ++i)
     {

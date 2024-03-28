@@ -200,6 +200,8 @@ void TmsClientDeviceImpl::fetchTimeDomain()
 
     UA_DeviceDomainStructure* deviceDomain;
     deviceDomain = (UA_DeviceDomainStructure*) variant.getValue().data;
+    if (!deviceDomain)
+        return;
 
     if (deviceDomain == nullptr)
         return;

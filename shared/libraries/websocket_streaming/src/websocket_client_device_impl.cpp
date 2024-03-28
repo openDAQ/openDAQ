@@ -63,11 +63,13 @@ void WebsocketClientDeviceImpl::createWebsocketStreaming()
     };
     streamingClient->onSignalUpdated(signalUpdatedCallback);
 
-    auto domainDescriptorCallback = [this](const StringPtr& signalId, const DataDescriptorPtr& domainDescriptor)
+    auto domainSignalInitCallback = [this](const StringPtr& dataSignalId,
+                                           const StringPtr& domainSignalId,
+                                           const DataDescriptorPtr& domainDescriptor)
     {
-        this->onDomainDescriptor(signalId, domainDescriptor);
+        this->onDomainSignalInit(dataSignalId, domainSignalId, domainDescriptor);
     };
-    streamingClient->onDomainDescriptor(domainDescriptorCallback);
+    streamingClient->onDomainSingalInit(domainSignalInitCallback);
 
     auto availableSignalsCallback = [this](const std::vector<std::string>& signalIds)
     {
@@ -90,7 +92,7 @@ void WebsocketClientDeviceImpl::onSignalInit(const StringPtr& signalId, const Su
         signalIt->second.setName(sInfo.signalName);
         signalIt->second.asPtr<IComponentPrivate>().lockAllAttributes();
 
-        signalIt->second.asPtr<IWebsocketStreamingSignalPrivate>()->assignDescriptor(sInfo.dataDescriptor);
+        signalIt->second.asPtr<IMirroredSignalPrivate>().setMirroredDataDescriptor(sInfo.dataDescriptor);
         updateSignalProperties(signalIt->second, sInfo);
     }
 }
@@ -104,15 +106,31 @@ void WebsocketClientDeviceImpl::onSignalUpdated(const StringPtr& signalId, const
         updateSignalProperties(signalIt->second, sInfo);
 }
 
-void WebsocketClientDeviceImpl::onDomainDescriptor(const StringPtr& signalId,
-                                                      const DataDescriptorPtr& domainDescriptor)
+void WebsocketClientDeviceImpl::onDomainSignalInit(const StringPtr& signalId,
+                                                   const StringPtr& domainSignalId,
+                                                   const DataDescriptorPtr& domainDescriptor)
 {
     if (!domainDescriptor.assigned())
         return;
 
-    // Sets domain descriptor for data signal
-    if (auto signalIt = deviceSignals.find(signalId); signalIt != deviceSignals.end())
-        signalIt->second.asPtr<IWebsocketStreamingSignalPrivate>()->createAndAssignDomainSignal(domainDescriptor);
+    // Sets domain signal for data signal
+    if (auto dataSignalIt = deviceSignals.find(signalId); dataSignalIt != deviceSignals.end())
+    {
+        auto domainSignalIt = deviceSignals.find(domainSignalId);
+        if (domainSignalIt == deviceSignals.end())
+        {
+            // domain signal is not found in device because was not published as available by server
+            dataSignalIt->second.asPtr<IWebsocketStreamingSignalPrivate>()->createAndAssignDomainSignal(domainDescriptor);
+        }
+        else
+        {
+            // domain signal is found in device
+            auto domainSignal = domainSignalIt->second;
+            auto dataSignal = dataSignalIt->second;
+            domainSignal.asPtr<IMirroredSignalPrivate>().setMirroredDataDescriptor(domainDescriptor);
+            dataSignal.asPtr<IMirroredSignalPrivate>().setMirroredDomainSignal(domainSignal);
+        }
+    }
 }
 
 void WebsocketClientDeviceImpl::createDeviceSignals(const std::vector<std::string>& signalIds)
@@ -120,8 +138,8 @@ void WebsocketClientDeviceImpl::createDeviceSignals(const std::vector<std::strin
     // Adds to device only signals published by server explicitly and in the same order these were published
     for (const auto& signalId : signalIds)
     {
-        // TODO Streaming didn't provide META info for Time Signals -
-        // - for these the mirrored signals will stay incomplete (without descriptors set)
+        // TODO Streaming do not support some types of signals and do not provide META info -
+        // - for those the mirrored signals will stay incomplete (without descriptors set)
         auto signal = WebsocketClientSignal(this->context, this->signals, signalId);
         this->addSignal(signal);
         deviceSignals.insert({signalId, signal});

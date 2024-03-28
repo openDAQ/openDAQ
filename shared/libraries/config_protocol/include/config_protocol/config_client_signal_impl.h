@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ public:
     void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
 
     StringPtr onGetRemoteId() const override;
-    Bool onTriggerEvent(EventPacketPtr eventPacket) override;
+    Bool onTriggerEvent(const EventPacketPtr& eventPacket) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -71,10 +71,9 @@ inline StringPtr ConfigClientSignalImpl::onGetRemoteId() const
     return String(remoteGlobalId).detach();
 }
 
-inline Bool ConfigClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
+inline Bool ConfigClientSignalImpl::onTriggerEvent(const EventPacketPtr& eventPacket)
 {
-    // TODO
-    return True;
+    return Super::onTriggerEvent(eventPacket);
 }
 
 inline ErrCode ConfigClientSignalImpl::Deserialize(ISerializedObject* serialized,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,9 @@ public:
 private:
     bool isDataEqual(const DataPacketPtr& dataPacket) const;
     BaseObjectPtr dataToObj(void* addr, const SampleType& type) const;
-    StructPtr buildStructFromPacket(void* addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager) const;
+    BaseObjectPtr dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType) const;
+    StructPtr buildStructFromFields(const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager, void*& addr) const;
+    BaseObjectPtr buildFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager) const;
 
     AllocatorPtr allocator;
     DataDescriptorPtr descriptor;
@@ -371,44 +373,86 @@ inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObj(void* addr, const Sam
 }
 
 template <typename TInterface>
-inline StructPtr DataPacketImpl<TInterface>::buildStructFromPacket(void* addr,
-                                                                   const DataDescriptorPtr& descriptor,
-                                                                   const TypeManagerPtr& typeManager) const
+inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType) const
 {
-    const auto name = descriptor.getName();
-    StructTypePtr structType = typeManager.getType(name);
+    const auto ptr = dataToObj(addr, sampleType);
+    addr = static_cast<char*>(addr) + getSampleSize(sampleType);
+    return ptr;
+}
 
-    const auto builder = StructBuilder(name, typeManager);
-
+template <typename TInterface>
+inline StructPtr DataPacketImpl<TInterface>::buildStructFromFields(const DataDescriptorPtr& descriptor,
+                                                                   const TypeManagerPtr& typeManager,
+                                                                   void*& addr) const
+{
+    const auto builder = StructBuilder(descriptor.getName(), typeManager);
     const auto fields = descriptor.getStructFields();
-    const auto fieldNames = structType.getFieldNames();
-
-    for (size_t i = 0; i < fieldNames.getCount(); i++)
+    for (const auto& field : fields)
     {
-        const auto sampleType = fields[i].getSampleType();
-
-        if (sampleType == SampleType::Struct)
-        {
-            const auto structPtr = buildStructFromPacket(addr, fields[i], typeManager);
-            builder.set(fieldNames[i], structPtr);
-        }
-        else
-        {
-            const auto obj = dataToObj(addr, sampleType);
-            builder.set(fieldNames[i], obj);
-            const auto temp = static_cast<char*>(addr);
-            addr = temp + getSampleSize(sampleType);
-        }
+        const auto ptr = buildFromDescriptor(addr, field, typeManager);
+        builder.set(field.getName(), ptr);
     }
     return builder.build();
 }
 
 template <typename TInterface>
+inline BaseObjectPtr DataPacketImpl<TInterface>::buildFromDescriptor(void*& addr,
+                                                                     const DataDescriptorPtr& descriptor,
+                                                                     const TypeManagerPtr& typeManager) const
+{
+    const auto dimensions = descriptor.getDimensions();
+
+    if (!dimensions.assigned())
+        throw NotAssignedException{"Dimensions of data descriptor not assigned."};
+
+    const auto dimensionCount = dimensions.getCount();
+
+    if (dimensionCount > 1)
+        throw NotSupportedException{"getLastValue on packets with dimensions supports only up to one dimension."};
+
+    const auto sampleType = descriptor.getSampleType();
+
+    if (dimensionCount == 1)
+    {
+        // List
+        auto listPtr = List<IBaseObject>();
+        const auto size = dimensions.getItemAt(0).getSize();
+
+        for (size_t i = 0; i < size; i++)
+        {
+            if (sampleType == SampleType::Struct)
+            {
+                // Struct
+                listPtr.pushBack(buildStructFromFields(descriptor, typeManager, addr));
+            }
+            else
+            {
+                // Not struct
+                listPtr.pushBack(dataToObjAndIncreaseAddr(addr, sampleType));
+            }
+        }
+        return listPtr;
+    }
+    else
+    {
+        // Not list
+        if (sampleType == SampleType::Struct)
+        {
+            // Struct
+            return buildStructFromFields(descriptor, typeManager, addr);
+        }
+        // Not struct
+        return dataToObjAndIncreaseAddr(addr, sampleType);
+    }
+}
+template <typename TInterface>
 ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    if (descriptor.getDimensions().getCount() != 0)
+    const auto dimensionCount = descriptor.getDimensions().getCount();
+
+    if (dimensionCount > 1)
         return OPENDAQ_IGNORED;
 
     void* addr;
@@ -416,23 +460,15 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManag
     if (OPENDAQ_FAILED(err))
         return err;
 
-    const auto sampleType = descriptor.getSampleType();
-
     addr = static_cast<char*>(addr) + (sampleCount - 1) * descriptor.getSampleSize();
 
-    if (sampleType == SampleType::Struct)
-    {
-        return daqTry(
-            [&]()
-            {
-                auto structPtr = buildStructFromPacket(addr, descriptor, typeManager);
-                *value = structPtr.detach();
-                return OPENDAQ_SUCCESS;
-            });
-    }
-
-    *value = dataToObj(addr, sampleType).detach();
-    return OPENDAQ_SUCCESS;
+    return daqTry(
+        [&]()
+        {
+            auto ptr = buildFromDescriptor(addr, descriptor, typeManager);
+            *value = ptr.detach();
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 END_NAMESPACE_OPENDAQ

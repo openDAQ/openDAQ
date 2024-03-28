@@ -166,6 +166,13 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::getRawSampleSize(SizeT* rawSampleSize
 
 void DataDescriptorImpl::calculateSampleMemSize()
 {
+    size_t elementCnt = 1;
+    for (const auto& dimension : dimensions)
+        elementCnt *= dimension.getSize();
+
+    if (elementCnt == 0)
+        elementCnt = 1;
+
     if (!structFields.assigned() || structFields.getCount() == 0)
     {
         sampleSize = daq::getSampleSize(sampleType);
@@ -174,17 +181,6 @@ void DataDescriptorImpl::calculateSampleMemSize()
         if (scaling.assigned())
             rawType = scaling.getInputSampleType();
         rawSampleSize = daq::getSampleSize(rawType);
-
-        size_t elementCnt = 1;
-        for (const auto& dimension : dimensions)
-        {
-            elementCnt *= dimension.getSize();
-        }
-
-        if (elementCnt == 0)
-        {
-            elementCnt = 1;
-        }
 
         sampleSize *= elementCnt;
         rawSampleSize *= elementCnt;
@@ -201,6 +197,8 @@ void DataDescriptorImpl::calculateSampleMemSize()
             sampleSize += structField.getSampleSize();
             rawSampleSize += structField.getRawSampleSize();
         }
+        sampleSize *= elementCnt;
+        rawSampleSize *= elementCnt;
     }
 }
 

@@ -10,6 +10,7 @@ set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 rtgen(SRC_Streaming streaming.h)
 rtgen(SRC_MirroredSignal mirrored_signal_config.h)
 rtgen(SRC_SubscriptionEventArgs subscription_event_args.h)
+rtgen(SRC_MirroredSignalPrivate mirrored_signal_private.h)
 
 source_group("mirrored_signal" FILES ${SDK_HEADERS_DIR}/mirrored_signal_config.h
                                      ${SDK_HEADERS_DIR}/mirrored_signal_impl.h
@@ -51,11 +52,13 @@ list(APPEND SRC_Cpp ${SRC_Streaming_Cpp}
 list(APPEND SRC_PublicHeaders ${SRC_Streaming_PublicHeaders}
                               ${SRC_MirroredSignal_PublicHeaders}
                               ${SRC_SubscriptionEventArgs_PublicHeaders}
+                              ${SRC_MirroredSignalPrivate_PublicHeaders}
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_Streaming_PrivateHeaders}
                                ${SRC_MirroredSignal_PrivateHeaders}
                                ${SRC_SubscriptionEventArgs_PrivateHeaders}
+                               ${SRC_MirroredSignalPrivate_PrivateHeaders}
 )
 
 opendaq_add_library(${BASE_NAME} STATIC

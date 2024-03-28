@@ -2,6 +2,8 @@
 #include "test_helpers.h"
 #include <fstream>
 
+#include "opendaq/mock/mock_device_module.h"
+
 using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;

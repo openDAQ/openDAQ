@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -129,7 +129,8 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
      *
      * If a value is assigned, it can be cast based on the signal description to IFloat if the type is Float32 or Float64,
      * to IInteger if the type is Int8 through Int64 or UInt8 through UInt64, to IComplexNumber if type is ComplexFloat32 or ComplexFloat64,
-     * or to IRange if the type is RangeInt64.
+     * to IRange if the type is RangeInt64, to IStruct if the type is Struct, and to IList of the forementioned types if there is exactly
+     * one dimension.
      */
     virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) = 0;
 };

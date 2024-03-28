@@ -3,7 +3,7 @@
 #include <opendaq/signal_config_ptr.h>
 #include <opendaq/custom_log.h>
 
-#include <opendaq/mirrored_signal_private.h>
+#include <opendaq/mirrored_signal_private_ptr.h>
 #include <opendaq/subscription_event_args_factory.h>
 
 #include <boost/asio/dispatch.hpp>
@@ -109,9 +109,9 @@ void NativeStreamingImpl::subscribeAckHandler(const StringPtr& signalStringId, b
         if (signal.assigned())
         {
             if (subscribed)
-                signal.template asPtr<daq::IMirroredSignalPrivate>()->subscribeCompleted(connectionString);
+                signal.template asPtr<daq::IMirroredSignalPrivate>().subscribeCompleted(connectionString);
             else
-                signal.template asPtr<daq::IMirroredSignalPrivate>()->unsubscribeCompleted(connectionString);
+                signal.template asPtr<daq::IMirroredSignalPrivate>().unsubscribeCompleted(connectionString);
         }
     }
 }
@@ -408,7 +408,7 @@ EventPacketPtr NativeStreamingImpl::onCreateDataDescriptorChangedEventPacket(con
 
 void NativeStreamingImpl::handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket)
 {
-    Bool forwardPacket = signal.template asPtr<IMirroredSignalPrivate>()->triggerEvent(eventPacket);
+    Bool forwardPacket = signal.template asPtr<IMirroredSignalPrivate>().triggerEvent(eventPacket);
     if (forwardPacket)
         signal.sendPacket(eventPacket);
 }

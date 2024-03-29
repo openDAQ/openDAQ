@@ -306,7 +306,11 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompleted(IString* streami
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
 
     if (clearDescriptorOnUnsubscribe())
-        setMirroredDataDescriptor(nullptr);
+    {
+        std::scoped_lock lock(signalMutex);
+        mirroredDataDescriptor = nullptr;
+        mirroredDomainDataDescriptor = nullptr;
+    }
 
     if (onUnsubscribeCompleteEvent.hasListeners())
     {

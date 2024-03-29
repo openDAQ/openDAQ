@@ -38,6 +38,25 @@ public:
 };
 
 
+TEST_F(AccessControlTest, DefaultPermissionConfig)
+{
+    const auto user = User("user", "psswordHash");
+
+    auto device = createDevice();
+    auto fb = device.findComponent("FB/mock_fb_uid_0");
+
+    auto deviceManager = device.getPermissionManager();
+    auto fbManager = fb.getPermissionManager();
+
+    ASSERT_TRUE(deviceManager.isAuthorized(user, Permission::Read));
+    ASSERT_TRUE(deviceManager.isAuthorized(user, Permission::Write));
+    ASSERT_TRUE(deviceManager.isAuthorized(user, Permission::Execute));
+
+    ASSERT_TRUE(fbManager.isAuthorized(user, Permission::Read));
+    ASSERT_TRUE(fbManager.isAuthorized(user, Permission::Write));
+    ASSERT_TRUE(fbManager.isAuthorized(user, Permission::Execute));
+}
+
 TEST_F(AccessControlTest, ComponentInherit)
 {
     const auto user = User("user", "psswordHash", List<IString>("user", "guest"));

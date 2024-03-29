@@ -34,6 +34,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 enum Permission
 {
+    None =    0x0, // The user has no permissions on the object.
     Read =    0x1, // The user can see and read an object.
     Write =   0x2, // The user can change or write to the object.
     Execute = 0x4  // The user can execute an action attached to the object.

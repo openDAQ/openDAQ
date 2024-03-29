@@ -39,7 +39,6 @@ protected:
     DictPtr<IString, IUser> users;
 };
 
-
 // StaticAuthenticationProviderImpl
 
 class StaticAuthenticationProviderImpl : public AuthenticationProviderImpl
@@ -48,19 +47,26 @@ public:
     StaticAuthenticationProviderImpl(const ListPtr<IUser>& users);
 };
 
-// JsonAuthenticationProviderImpl
+// JsonStringAuthenticationProviderImpl
 
-class JsonAuthenticationProviderImpl : public AuthenticationProviderImpl
+class JsonStringAuthenticationProviderImpl : public AuthenticationProviderImpl
 {
 public:
-    JsonAuthenticationProviderImpl();
-
-    void loadJsonFile(const StringPtr& filename);
-    void loadJsonString(const StringPtr& josnString);
+    JsonStringAuthenticationProviderImpl(const StringPtr& jsonString);
 
 protected:
-    virtual StringPtr readJsonFile(const StringPtr& filename);
+    void loadJsonString(const StringPtr& jsonString);
 };
 
+// JsonFileAuthenticationProviderImpl
+
+class JsonFileAuthenticationProviderImpl : public JsonStringAuthenticationProviderImpl
+{
+public:
+    JsonFileAuthenticationProviderImpl(const StringPtr& filename);
+
+private:
+    std::string readJsonFile(const StringPtr& filename);
+};
 
 END_NAMESPACE_OPENDAQ

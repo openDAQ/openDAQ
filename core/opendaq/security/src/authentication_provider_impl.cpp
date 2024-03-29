@@ -33,7 +33,7 @@ void AuthenticationProviderImpl::loadUserList(const ListPtr<IUser>& userList)
 {
     users.clear();
 
-    if (users.assigned())
+    if (userList.assigned())
     {
         for (const auto& user : userList)
             users.set(user.getUsername(), user);
@@ -54,6 +54,7 @@ bool AuthenticationProviderImpl::isPasswordValid(const StringPtr& hash, const St
     return hash == password;
 }
 
+
 // StaticAuthenticationProviderImpl
 
 StaticAuthenticationProviderImpl::StaticAuthenticationProviderImpl(const ListPtr<IUser>& users)
@@ -62,22 +63,18 @@ StaticAuthenticationProviderImpl::StaticAuthenticationProviderImpl(const ListPtr
     loadUserList(users);
 }
 
-// JsonAuthenticationProviderImpl
 
-JsonAuthenticationProviderImpl::JsonAuthenticationProviderImpl()
+// JsonStringAuthenticationProviderImpl
+
+JsonStringAuthenticationProviderImpl::JsonStringAuthenticationProviderImpl(const StringPtr& jsonString)
     : AuthenticationProviderImpl()
 {
+    loadJsonString(jsonString);
 }
 
-void JsonAuthenticationProviderImpl::loadJsonFile(const StringPtr& filename)
+void JsonStringAuthenticationProviderImpl::loadJsonString(const StringPtr& jsonString)
 {
-    const StringPtr json = readJsonFile(filename);
-    loadJsonString(json);
-}
-
-void JsonAuthenticationProviderImpl::loadJsonString(const StringPtr& josnString)
-{
-    std::string stdJsonString = josnString;
+    std::string stdJsonString = jsonString;
     boost::trim_left(stdJsonString);
     boost::trim_right(stdJsonString);
 
@@ -89,7 +86,15 @@ void JsonAuthenticationProviderImpl::loadJsonString(const StringPtr& josnString)
     loadUserList(userList);
 }
 
-StringPtr JsonAuthenticationProviderImpl::readJsonFile(const StringPtr& filename)
+
+// JsonFileAuthenticationProviderImpl
+
+JsonFileAuthenticationProviderImpl::JsonFileAuthenticationProviderImpl(const StringPtr& filename)
+    : JsonStringAuthenticationProviderImpl(readJsonFile(filename))
+{
+}
+
+std::string JsonFileAuthenticationProviderImpl::readJsonFile(const StringPtr& filename)
 {
     const std::string filenameStr = filename.toStdString();
     const auto exists = boost::filesystem::exists(filenameStr);
@@ -105,5 +110,22 @@ StringPtr JsonAuthenticationProviderImpl::readJsonFile(const StringPtr& filename
     const auto jsonStr = ss.str();
     return jsonStr;
 }
+
+
+// Factories
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
+    LIBRARY_FACTORY, StaticAuthenticationProviderImpl, IAuthenticationProvider, createStaticAuthenticationProvider, IList*, userList)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                               JsonStringAuthenticationProviderImpl,
+                                                               IAuthenticationProvider,
+                                                               createJsonStringAuthenticationProvider,
+                                                               IString*,
+                                                               jsonString)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
+    LIBRARY_FACTORY, JsonFileAuthenticationProviderImpl, IAuthenticationProvider, createJsonFileAuthenticationProvider, IString*, filename)
+
 
 END_NAMESPACE_OPENDAQ

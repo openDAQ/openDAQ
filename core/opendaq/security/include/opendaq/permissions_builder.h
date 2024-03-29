@@ -29,8 +29,8 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @brief A class which is responsible for assigning permissions to a property object.
- * Permisison builder can specified allowed permissions for each group. It can also inherit
- * or overwrite premissions from parent objects.
+ * Permisison builder can specify allowed and denied permissions for each group. It can
+ * also inherit or overwrite premissions from parent objects.
  */
 DECLARE_OPENDAQ_INTERFACE(IPermissionsBuilder, IBaseObject)
 {
@@ -80,5 +80,10 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionsBuilder, IBaseObject)
 };
 
 /*!@}*/
+
+/*!
+ * @brief Creates a Permissions builder object.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, PermissionsBuilder)
 
 END_NAMESPACE_OPENDAQ

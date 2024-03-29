@@ -146,7 +146,7 @@ ListPtr<IString> UserImpl::sanitizeGroupList(const ListPtr<IString> groups)
     return list;
 }
 
-
+// Factory
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, User, IString*, username, IString*, passwordHash, IList*, groups)
 

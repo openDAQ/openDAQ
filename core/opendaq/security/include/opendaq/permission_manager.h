@@ -42,7 +42,7 @@ enum Permission
 
 
 /*!
- * @brief A class which is responsible for managing permissions on a object level. Given a user's group,
+ * @brief A class which is responsible for managing permissions on an object level. Given a user's group,
  * it is possible to restrict or allow read, write and execute permissions for each object. It is also
  * possible to specify if permissions are inherited from parent object
  */
@@ -64,5 +64,11 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionManager, IBaseObject)
 };
 
 /*!@}*/
+
+/*!
+ * @brief Creates an permission manager with a given parent.
+ * @param parent Permission manager of a parent object. It can be null for a root object.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, PermissionManager, IPermissionManager*, parent)
 
 END_NAMESPACE_OPENDAQ

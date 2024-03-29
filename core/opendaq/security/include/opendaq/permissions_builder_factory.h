@@ -15,7 +15,6 @@
  */
 #pragma once
 #include <opendaq/permissions_builder_ptr.h>
-#include <opendaq/permissions_builder_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -26,11 +25,11 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Creates a permission configuration builder object.
+ * @brief Creates a permissions builder object.
  */
 inline PermissionsBuilderPtr PermissionsBuilder()
 {
-    PermissionsBuilderPtr obj(createWithImplementation<IPermissionsBuilder, PermissionsBuilderImpl>());
+    PermissionsBuilderPtr obj(PermissionsBuilder_Create());
     return obj;
 }
 

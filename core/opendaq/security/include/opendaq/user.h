@@ -50,6 +50,12 @@ DECLARE_OPENDAQ_INTERFACE(IUser, IBaseObject)
 
 /*!@}*/
 
+/*!
+ * @brief Creates an immutable user object
+ * @param username The username.
+ * @param passwordHash The hashed password as a string in Modular Crypt Format.
+ * @param groups The list of group IDs which the user belongs to.
+ */
 OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, User, IString*, username, IString*, passwordHash, IList*, groups)
 
 END_NAMESPACE_OPENDAQ

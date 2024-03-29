@@ -72,4 +72,8 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::build(IPermissions** configOut)
     return OPENDAQ_SUCCESS;
 }
 
+// Factory
+
+OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PermissionsBuilder)
+
 END_NAMESPACE_OPENDAQ

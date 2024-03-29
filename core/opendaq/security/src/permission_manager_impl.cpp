@@ -130,4 +130,8 @@ PermissionManagerInternalPtr PermissionManagerImpl::getParentManager()
     return parent.getRef().asPtr<IPermissionManagerInternal>();
 }
 
+// Factory
+
+OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PermissionManager, IPermissionManager*, parent)
+
 END_NAMESPACE_OPENDAQ

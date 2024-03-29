@@ -15,7 +15,6 @@
  */
 #pragma once
 #include <opendaq/permission_manager_ptr.h>
-#include <opendaq/permission_manager_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -30,7 +29,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 inline PermissionManagerPtr PermissionManager()
 {
-    PermissionManagerPtr obj(createWithImplementation<IPermissionManager, PermissionManagerImpl>(nullptr));
+    PermissionManagerPtr obj(PermissionManager_Create(nullptr));
     return obj;
 }
 
@@ -40,7 +39,7 @@ inline PermissionManagerPtr PermissionManager()
  */
 inline PermissionManagerPtr PermissionManager(const PermissionManagerPtr& parent)
 {
-    PermissionManagerPtr obj(createWithImplementation<IPermissionManager, PermissionManagerImpl>(parent));
+    PermissionManagerPtr obj(PermissionManager_Create(parent));
     return obj;
 }
 

@@ -44,10 +44,10 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionManagerInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC removeChildManager(IPermissionManager* childManager) = 0;
 
     /*!
-     * @brief Returns permisison config object.
-     * @param permisisonConfigOut[out] A permisison config object.
+     * @brief Returns permisisons configuration object.
+     * @param permissionsOut[out] A Permissions configuration object.
      */
-    virtual ErrCode INTERFACE_FUNC getPermissionConfig(IPermissionConfig** permisisonConfigOut) = 0;
+    virtual ErrCode INTERFACE_FUNC getPermissions(IPermissions** permissionsOut) = 0;
 
     /*!
      * @brief Recursively update permissions of objects with new permissions from their parents.

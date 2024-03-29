@@ -1,20 +1,20 @@
 #include <gtest/gtest.h>
-#include <opendaq/permission_config_builder_factory.h>
+#include <opendaq/permissions_builder_factory.h>
 #include <opendaq/permission_manager.h>
 
 using namespace daq;
 
-using PermissionConfigBuilderTest = testing::Test;
+using PermissionsBuilderTest = testing::Test;
 
-TEST_F(PermissionConfigBuilderTest, Create)
+TEST_F(PermissionsBuilderTest, Create)
 {
-    auto builder = PermissionConfigBuilder();
+    auto builder = PermissionsBuilder();
     ASSERT_TRUE(builder.assigned());
 }
 
-TEST_F(PermissionConfigBuilderTest, Inherited)
+TEST_F(PermissionsBuilderTest, Inherited)
 {
-    auto builder = PermissionConfigBuilder();
+    auto builder = PermissionsBuilder();
 
     auto config1 = builder.inherit(false).build();
     ASSERT_EQ(config1.getInherited(), false);
@@ -23,9 +23,9 @@ TEST_F(PermissionConfigBuilderTest, Inherited)
     ASSERT_EQ(config2.getInherited(), true);
 }
 
-TEST_F(PermissionConfigBuilderTest, Set)
+TEST_F(PermissionsBuilderTest, Set)
 {
-    auto builder = PermissionConfigBuilder();
+    auto builder = PermissionsBuilder();
     auto config = builder.set("admin", Permission::Read | Permission::Write).set("user", Permission::Read).build();
     Int mask;
 
@@ -42,18 +42,18 @@ TEST_F(PermissionConfigBuilderTest, Set)
     ASSERT_EQ(mask, 0);
 }
 
-TEST_F(PermissionConfigBuilderTest, SetOverwrite)
+TEST_F(PermissionsBuilderTest, SetOverwrite)
 {
-    auto builder = PermissionConfigBuilder();
+    auto builder = PermissionsBuilder();
     auto config = builder.set("admin", Permission::Read | Permission::Write).set("admin", Permission::Read).build();
 
     Int mask = config.getAllowed().get("admin");
     ASSERT_EQ(mask, Permission::Read);
 }
 
-TEST_F(PermissionConfigBuilderTest, Allow)
+TEST_F(PermissionsBuilderTest, Allow)
 {
-    auto builder = PermissionConfigBuilder();
+    auto builder = PermissionsBuilder();
     auto config = builder.set("user", Permission::Read).allow("user", Permission::Write).build();
     Int mask;
 
@@ -64,9 +64,9 @@ TEST_F(PermissionConfigBuilderTest, Allow)
     ASSERT_EQ(mask, 0);
 }
 
-TEST_F(PermissionConfigBuilderTest, Deny)
+TEST_F(PermissionsBuilderTest, Deny)
 {
-    auto builder = PermissionConfigBuilder();
+    auto builder = PermissionsBuilder();
     auto config = builder.set("user", Permission::Read).deny("user", Permission::Read).build();
     Int mask;
 
@@ -77,9 +77,9 @@ TEST_F(PermissionConfigBuilderTest, Deny)
     ASSERT_EQ(mask, Permission::Read);
 }
 
-TEST_F(PermissionConfigBuilderTest, AllowDeny)
+TEST_F(PermissionsBuilderTest, AllowDeny)
 {
-    auto builder = PermissionConfigBuilder();
+    auto builder = PermissionsBuilder();
     auto config = builder.allow("user", Permission::Read).deny("user", Permission::Read).build();
     Int mask;
 
@@ -90,9 +90,9 @@ TEST_F(PermissionConfigBuilderTest, AllowDeny)
     ASSERT_EQ(mask, Permission::Read);
 }
 
-TEST_F(PermissionConfigBuilderTest, DenyAllow)
+TEST_F(PermissionsBuilderTest, DenyAllow)
 {
-    auto builder = PermissionConfigBuilder();
+    auto builder = PermissionsBuilder();
     auto config = builder.deny("user", Permission::Read).allow("user", Permission::Read).build();
     Int mask;
 
@@ -103,11 +103,11 @@ TEST_F(PermissionConfigBuilderTest, DenyAllow)
     ASSERT_EQ(mask, 0);
 }
 
-TEST_F(PermissionConfigBuilderTest, ExtendSimple)
+TEST_F(PermissionsBuilderTest, ExtendSimple)
 {
-    auto additionalConfig = PermissionConfigBuilder().allow("manager", Permission::Execute).build();
+    auto additionalConfig = PermissionsBuilder().allow("manager", Permission::Execute).build();
 
-    auto builder = PermissionConfigBuilder();
+    auto builder = PermissionsBuilder();
     auto config = builder.set("admin", Permission::Read | Permission::Write).extend(additionalConfig).build();
     Int mask;
 
@@ -122,9 +122,9 @@ TEST_F(PermissionConfigBuilderTest, ExtendSimple)
     ASSERT_EQ(mask, 0);
 }
 
-TEST_F(PermissionConfigBuilderTest, Extend)
+TEST_F(PermissionsBuilderTest, Extend)
 {
-    auto additionalConfig = PermissionConfigBuilder()
+    auto additionalConfig = PermissionsBuilder()
                                 .deny("admin", Permission::Write)
                                 .allow("admin", Permission::Execute)
                                 .allow("user", Permission::Write)
@@ -132,7 +132,7 @@ TEST_F(PermissionConfigBuilderTest, Extend)
                                 .set("guest", Permission::Read)
                                 .build();
 
-    auto builder = PermissionConfigBuilder();
+    auto builder = PermissionsBuilder();
     auto config = builder.set("admin", Permission::Read | Permission::Write).set("user", Permission::Read).extend(additionalConfig).build();
     Int mask;
 

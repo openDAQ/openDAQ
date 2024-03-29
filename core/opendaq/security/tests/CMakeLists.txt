@@ -4,7 +4,7 @@ set(MODULE_NAME security)
 set(TEST_SOURCES test_user.cpp
                  test_authentication_provider.cpp
                  test_permission_manager.cpp
-                 test_permission_config_builder.cpp
+                 test_permissions_builder.cpp
                  test_access_control.cpp
 )
 

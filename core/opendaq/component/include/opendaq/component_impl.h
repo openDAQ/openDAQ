@@ -41,7 +41,7 @@
 #include <opendaq/ids_parser.h>
 #include <opendaq/component_status_container_impl.h>
 #include <opendaq/permission_manager_factory.h>
-#include <opendaq/permission_config_builder_factory.h>
+#include <opendaq/permissions_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -226,8 +226,8 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     }
     else
     {
-        this->permissionManager.setPermissionConfig(
-            PermissionConfigBuilder().set("everyone", Permission::Read | Permission::Write | Permission::Execute).build());
+        this->permissionManager.setPermissions(
+            PermissionsBuilder().set("everyone", Permission::Read | Permission::Write | Permission::Execute).build());
     }
 }
 

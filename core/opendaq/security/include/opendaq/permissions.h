@@ -31,7 +31,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * @brief A class which describes a permission configuration for openDAQ object.A configuration object
  * can be constructed using the permission builder class.
  */
-DECLARE_OPENDAQ_INTERFACE(IPermissionConfig, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IPermissions, IBaseObject)
 {
     /*!
      * @brief Returns true if an object should inherit permissions from it's parent object.

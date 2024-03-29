@@ -18,7 +18,7 @@
 #include <coretypes/baseobject.h>
 #include <coretypes/common.h>
 #include <opendaq/user.h>
-#include <opendaq/permission_config.h>
+#include <opendaq/permissions.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -50,9 +50,9 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionManager, IBaseObject)
 {
     /*!
      * @brief Set object permisison configuration.
-     * @param permissionConfig Permission configuration object.
+     * @param permissions Permissions configuration object.
      */
-    virtual ErrCode INTERFACE_FUNC setPermissionConfig(IPermissionConfig* permissionConfig) = 0;
+    virtual ErrCode INTERFACE_FUNC setPermissions(IPermissions* permissions) = 0;
 
     /*!
      * @brief Check if user has a given permission on an object of the permission manager.

@@ -33,7 +33,7 @@
 #include <coretypes/exceptions.h>
 #include <iostream>
 #include <opendaq/permission_manager_factory.h>
-#include <opendaq/permission_config_builder_factory.h>
+#include <opendaq/permissions_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

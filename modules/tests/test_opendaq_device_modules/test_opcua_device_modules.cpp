@@ -28,17 +28,7 @@ static InstancePtr CreateServerInstance()
     return instance;
 }
 
-static InstancePtr CreateClientInstance()
-{
-    auto instance = Instance();
-
-    auto config = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
-    config.setPropertyValue("StreamingConnectionHeuristic", 3); // 3 - not connected
-    auto refDevice = instance.addDevice("daq.opcua://127.0.0.1", config);
-    return instance;
-}
-
-static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder)
+static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = InstanceBuilder())
 {
     auto instance = builder.build();
 
@@ -59,6 +49,15 @@ TEST_F(OpcuaDeviceModulesTest, ConnectAndDisconnect)
     server->releaseRef();
     client.detach();
     server.detach();
+}
+
+TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    auto config = client.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
+    config.setPropertyValue("StreamingConnectionHeuristic", 3); // 3 - not connected
+    ASSERT_NO_THROW(client.addDevice("daq.opcua://[::1]", config));
 }
 
 TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)

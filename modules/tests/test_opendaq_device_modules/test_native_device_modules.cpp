@@ -72,6 +72,13 @@ TEST_F(NativeDeviceModulesTest, ConnectAndDisconnect)
     server.detach();
 }
 
+TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    ASSERT_NO_THROW(client.addDevice("daq.nd://[::1]", nullptr));
+}
+
 TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
 {
     SKIP_TEST_MAC_CI;

@@ -37,6 +37,13 @@ TEST_F(NativeStreamingModulesTest, ConnectAndDisconnect)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 }
+TEST_F(NativeStreamingModulesTest, ConnectViaIpv6)
+{
+    auto server = CreateServerInstance();
+
+    auto client = Instance();
+    ASSERT_NO_THROW(client.addDevice("daq.nsd://[::1]", nullptr));
+}
 
 TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
 {

@@ -40,6 +40,13 @@ TEST_F(WebsocketModulesTest, ConnectAndDisconnect)
     auto client = CreateClientInstance();
 }
 
+TEST_F(WebsocketModulesTest, ConnectViaIpv6)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    client.addDevice("daq.ws://[::1]", nullptr);
+}
+
 TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 {
     auto server = CreateServerInstance();

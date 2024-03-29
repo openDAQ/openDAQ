@@ -19,9 +19,9 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline StreamingPtr MockStreaming(const daq::StringPtr& connectionString)
+inline StreamingPtr MockStreaming(const daq::StringPtr& connectionString, const ContextPtr& context)
 {
-    StreamingPtr obj(MockStreaming_Create(connectionString));
+    StreamingPtr obj(MockStreaming_Create(connectionString, context));
     return obj;
 }
 

@@ -93,7 +93,9 @@ private:
     ErrCode subscribeInternal();
     ErrCode unsubscribeInternal();
 
-    std::vector<WeakRefPtr<IStreaming>> streamingSourcesRefs;
+    // vector is used as the order of adding & accessing sources is important
+    // store a pair string + weak reference to manage the removal of destroyed sources
+    std::vector<std::pair<StringPtr, WeakRefPtr<IStreaming>>> streamingSourcesRefs;
     WeakRefPtr<IStreaming> activeStreamingSourceRef;
     bool listened;
     bool streamed;
@@ -180,7 +182,7 @@ void MirroredSignalBase<Interfaces...>::removed()
     ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
     if (OPENDAQ_SUCCEEDED(errCode) && signalRemoteId.assigned())
     {
-        for (const auto& streamingRef : streamingSourcesRefs)
+        for (const auto& [_, streamingRef] : streamingSourcesRefs)
         {
             if (auto streamingSource = streamingRef.getRef(); streamingSource.assigned())
                 streamingSource.template asPtr<IStreamingPrivate>()->detachRemovedSignal(signalRemoteId);
@@ -212,35 +214,40 @@ ErrCode MirroredSignalBase<Interfaces...>::triggerEvent(IEventPacket* eventPacke
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::addStreamingSource(IStreaming* streaming)
 {
-    if (!streaming)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(streaming);
 
     const auto streamingPtr = StreamingPtr::Borrow(streaming);
     const auto connectionString = streamingPtr.getConnectionString();
 
     std::scoped_lock lock(this->sync);
+
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
-                           [&connectionString](const WeakRefPtr<IStreaming>& sourceRef)
+                           [&connectionString](const std::pair<StringPtr, WeakRefPtr<IStreaming>>& item)
                            {
-                               StreamingPtr streamingSource = sourceRef.getRef();
-                               return streamingSource.assigned()
-                                          ? (streamingSource.getConnectionString() == connectionString)
-                                          : false;
+                               return connectionString == item.first;
                            });
 
     if (it != streamingSourcesRefs.end())
-        return OPENDAQ_ERR_DUPLICATEITEM;
+    {
+        return this->makeErrorInfo(
+            OPENDAQ_ERR_DUPLICATEITEM,
+            fmt::format(
+                R"(Signal with global Id "{}" already has streaming source "{}" )",
+                this->globalId,
+                connectionString
+            )
+        );
+    }
 
-    streamingSourcesRefs.push_back(WeakRefPtr<IStreaming>(streamingPtr));
+    streamingSourcesRefs.push_back({connectionString, WeakRefPtr<IStreaming>(streamingPtr)});
     return OPENDAQ_SUCCESS;
 }
 
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(IString* streamingConnectionString)
 {
-    if (!streamingConnectionString)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
 
     std::scoped_lock lock(this->sync);
 
@@ -248,30 +255,45 @@ ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(IString* stream
 
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
-                           [&streamingConnectionStringPtr](const WeakRefPtr<IStreaming>& sourceRef)
+                           [&streamingConnectionStringPtr](const std::pair<StringPtr, WeakRefPtr<IStreaming>>& item)
                            {
-                               StreamingPtr streamingSource = sourceRef.getRef();
-                               return streamingSource.assigned()
-                                          ? (streamingSource.getConnectionString() == streamingConnectionStringPtr)
-                                          : false;
+                               return streamingConnectionStringPtr == item.first;
                            });
 
     if (it != streamingSourcesRefs.end())
-        streamingSourcesRefs.erase(it);
-    else
-        return OPENDAQ_ERR_NOTFOUND;
-
-    auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
-    if (activeStreamingSource.assigned() &&
-        streamingConnectionStringPtr == activeStreamingSource.getConnectionString())
     {
-        if (listened && streamed)
+        streamingSourcesRefs.erase(it);
+    }
+    else
+    {
+        return this->makeErrorInfo(
+            OPENDAQ_ERR_NOTFOUND,
+            fmt::format(
+                R"(Signal with global Id "{}" does not have streaming source "{}" )",
+                this->globalId,
+                streamingConnectionStringPtr
+            )
+        );
+    }
+
+    if (activeStreamingSourceRef.assigned())
+    {
+        auto activeStreamingSource = activeStreamingSourceRef.getRef();
+        if (!activeStreamingSource.assigned())
         {
-            ErrCode errCode = unsubscribeInternal();
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
+            // source is already destroyed
+            activeStreamingSourceRef = nullptr;
         }
-        activeStreamingSourceRef = nullptr;
+        else if (streamingConnectionStringPtr == activeStreamingSource.getConnectionString())
+        {
+            if (listened && streamed)
+            {
+                ErrCode errCode = unsubscribeInternal();
+                if (OPENDAQ_FAILED(errCode))
+                    return errCode;
+            }
+            activeStreamingSourceRef = nullptr;
+        }
     }
 
     return OPENDAQ_SUCCESS;
@@ -280,8 +302,7 @@ ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(IString* stream
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::subscribeCompleted(IString* streamingConnectionString)
 {
-    if (!streamingConnectionString)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
 
     const auto streamingConnectionStringPtr = StringPtr::Borrow(streamingConnectionString);
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
@@ -299,8 +320,7 @@ ErrCode MirroredSignalBase<Interfaces...>::subscribeCompleted(IString* streaming
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompleted(IString* streamingConnectionString)
 {
-    if (!streamingConnectionString)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
     
     const auto streamingConnectionStringPtr = StringPtr::Borrow(streamingConnectionString);
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
@@ -326,8 +346,7 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompleted(IString* streami
 template <typename ... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::getMirroredDataDescriptor(IDataDescriptor** descriptor)
 {
-    if (!descriptor)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(descriptor);
 
     std::scoped_lock lock(signalMutex);
     *descriptor = mirroredDataDescriptor.addRefAndReturn();
@@ -345,8 +364,7 @@ ErrCode MirroredSignalBase<Interfaces...>::setMirroredDataDescriptor(IDataDescri
 template <typename ... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::getMirroredDomainSignal(IMirroredSignalConfig** domainSignal)
 {
-    if (!domainSignal)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(domainSignal);
 
     std::scoped_lock lock(signalMutex);
     *domainSignal = mirroredDomainSignal.addRefAndReturn();
@@ -432,11 +450,11 @@ ErrCode MirroredSignalBase<Interfaces...>::getStreamingSources(IList** streaming
     auto stringsPtr = List<IString>();
 
     std::scoped_lock lock(this->sync);
-    for (const auto& streamingRef : streamingSourcesRefs)
+    for (const auto& [connectionString, streamingRef] : streamingSourcesRefs)
     {
         auto streamingSource = streamingRef.getRef();
         if (streamingSource.assigned())
-            stringsPtr.pushBack(streamingSource.getConnectionString());
+            stringsPtr.pushBack(connectionString);
     }
 
     *streamingConnectionStrings = stringsPtr.detach();
@@ -461,19 +479,35 @@ ErrCode MirroredSignalBase<Interfaces...>::setActiveStreamingSource(IString* str
 
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
-                           [&connectionStringPtr](const WeakRefPtr<IStreaming>& sourceRef)
+                           [&connectionStringPtr](const std::pair<StringPtr, WeakRefPtr<IStreaming>>& item)
                            {
-                               StreamingPtr streamingSource = sourceRef.getRef();
-                               return streamingSource.assigned()
-                                          ? (streamingSource.getConnectionString() == connectionStringPtr)
-                                          : false;
+                               return connectionStringPtr == item.first;
                            });
-    if (it == streamingSourcesRefs.end())
-        return OPENDAQ_ERR_NOTFOUND;
 
-    StreamingPtr streamingSource = (*it).getRef();
+    if (it == streamingSourcesRefs.end())
+    {
+        return this->makeErrorInfo(
+            OPENDAQ_ERR_NOTFOUND,
+            fmt::format(
+                R"(Signal with global Id "{}" does not have streaming source "{}" )",
+                this->globalId,
+                connectionStringPtr
+            )
+        );
+    }
+
+    StreamingPtr streamingSource = it->second.getRef();
     if (!streamingSource.assigned())
-        return OPENDAQ_ERR_NOTFOUND;
+    {
+        return this->makeErrorInfo(
+            OPENDAQ_ERR_NOTFOUND,
+            fmt::format(
+                R"(Signal with global Id "{}": streaming source "{}" is already destroyed)",
+                this->globalId,
+                connectionStringPtr
+            )
+        );
+    }
 
     if (listened && streamed)
     {

@@ -12,14 +12,14 @@ rtgen(SRC_UserInternal user_internal.h)
 rtgen(SRC_AuthenticationProvider authentication_provider.h)
 rtgen(SRC_PermissionManager permission_manager.h)
 rtgen(SRC_PermissionManagerInternal permission_manager_internal.h)
-rtgen(SRC_PermisisonConfigBuilder permission_config_builder.h)
-rtgen(SRC_PermisisonConfig permission_config.h)
+rtgen(SRC_PermisisonsBuilder permissions_builder.h)
+rtgen(SRC_Permisisons permissions.h)
 
 set(SRC_Cpp user_impl.cpp
             authentication_provider_impl.cpp
             permission_manager_impl.cpp
-            permission_config_builder_impl.cpp
-            permission_config_impl.cpp
+            permissions_builder_impl.cpp
+            permissions_impl.cpp
 )
 
 set(SRC_PublicHeaders security_errors.h
@@ -32,16 +32,16 @@ set(SRC_PublicHeaders security_errors.h
                       permission_manager.h
                       permission_manager_factory.h
                       permission_manager_internal.h
-                      permission_config_builder.h
-                      permission_config_builder_factory.h
-                      permission_config.h
+                      permissions_builder.h
+                      permissions_builder_factory.h
+                      permissions.h
 )
 
 set(SRC_PrivateHeaders user_impl.h
                        authentication_provider_impl.h
                        permission_manager_impl.h
-                       permission_config_builder_impl.h
-                       permission_config_impl.h
+                       permissions_builder_impl.h
+                       permissions_impl.h
 )
 
 prepend_include(${MAIN_TARGET} SRC_PrivateHeaders)

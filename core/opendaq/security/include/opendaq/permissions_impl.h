@@ -16,17 +16,17 @@
 
 #pragma once
 #include <coretypes/intfs.h>
-#include <opendaq/permission_config.h>
+#include <opendaq/permissions.h>
 #include <coretypes/dictobject_factory.h>
-#include <opendaq/permission_config_ptr.h>
+#include <opendaq/permissions_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class PermissionConfigImpl : public ImplementationOf<IPermissionConfig>
+class PermissionsImpl : public ImplementationOf<IPermissions>
 {
 public:
-    explicit PermissionConfigImpl();
-    explicit PermissionConfigImpl(Bool inherited, const DictPtr<IString, Int>& allowed, const DictPtr<IString, Int>& denied);
+    explicit PermissionsImpl();
+    explicit PermissionsImpl(Bool inherited, const DictPtr<IString, Int>& allowed, const DictPtr<IString, Int>& denied);
 
     ErrCode INTERFACE_FUNC getInherited(Bool* inherited) override;
     ErrCode INTERFACE_FUNC getAllowed(IDict** permissions) override;

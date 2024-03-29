@@ -29,14 +29,14 @@ class PermissionManagerImpl : public ImplementationOfWeak<IPermissionManager, IP
 public:
     explicit PermissionManagerImpl(const PermissionManagerPtr& parent);
 
-    ErrCode INTERFACE_FUNC setPermissionConfig(IPermissionConfig* permissionConfig) override;
+    ErrCode INTERFACE_FUNC setPermissions(IPermissions* permissions) override;
     ErrCode INTERFACE_FUNC isAuthorized(IUser* user, Permission permission, Bool* authorizedOut) override;
 
 protected:
     ErrCode INTERFACE_FUNC setParent(IPermissionManager* parentManager) override;
     ErrCode INTERFACE_FUNC addChildManager(IPermissionManager* childManager) override;
     ErrCode INTERFACE_FUNC removeChildManager(IPermissionManager* childManager) override;
-    ErrCode INTERFACE_FUNC getPermissionConfig(IPermissionConfig** permisisonConfigOut) override;
+    ErrCode INTERFACE_FUNC getPermissions(IPermissions** permisisonConfigOut) override;
     ErrCode INTERFACE_FUNC updateInheritedPermissions() override;
 
 private:
@@ -45,8 +45,8 @@ private:
 
     WeakRefPtr<IPermissionManager> parent;
     DictPtr<IPermissionManager, Bool> children;
-    PermissionConfigPtr config;
-    PermissionConfigPtr localConfig;
+    PermissionsPtr permissions;
+    PermissionsPtr localPermissions;
 };
 
 END_NAMESPACE_OPENDAQ

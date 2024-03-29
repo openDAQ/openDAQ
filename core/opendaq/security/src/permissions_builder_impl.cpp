@@ -1,30 +1,30 @@
-#include <opendaq/permission_config_builder_impl.h>
+#include <opendaq/permissions_builder_impl.h>
 #include <coretypes/validation.h>
-#include <opendaq/permission_config_impl.h>
+#include <opendaq/permissions_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-PermissionConfigBuilderImpl::PermissionConfigBuilderImpl()
+PermissionsBuilderImpl::PermissionsBuilderImpl()
     : inherited(false)
     , allowed(Dict<IString, Int>())
     , denied(Dict<IString, Int>())
 {
 }
 
-ErrCode INTERFACE_FUNC PermissionConfigBuilderImpl::inherit(Bool inherit)
+ErrCode INTERFACE_FUNC PermissionsBuilderImpl::inherit(Bool inherit)
 {
     inherited = inherit;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC PermissionConfigBuilderImpl::set(IString* groupId, Int permissionFlags)
+ErrCode INTERFACE_FUNC PermissionsBuilderImpl::set(IString* groupId, Int permissionFlags)
 {
     allowed.set(groupId, permissionFlags);
     denied.set(groupId, 0);
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC PermissionConfigBuilderImpl::allow(IString* groupId, Int permissionFlags)
+ErrCode INTERFACE_FUNC PermissionsBuilderImpl::allow(IString* groupId, Int permissionFlags)
 {
     Int allowMask = allowed.hasKey(groupId) ? (Int) allowed.get(groupId) : 0;
     Int denyMask = denied.hasKey(groupId) ? (Int) denied.get(groupId) : 0;
@@ -37,7 +37,7 @@ ErrCode INTERFACE_FUNC PermissionConfigBuilderImpl::allow(IString* groupId, Int 
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC PermissionConfigBuilderImpl::deny(IString* groupId, Int permissionFlags)
+ErrCode INTERFACE_FUNC PermissionsBuilderImpl::deny(IString* groupId, Int permissionFlags)
 {
     Int denyMask = denied.hasKey(groupId) ? (Int) denied.get(groupId) : 0;
     Int allowMask = allowed.hasKey(groupId) ? (Int) allowed.get(groupId) : 0;
@@ -50,9 +50,9 @@ ErrCode INTERFACE_FUNC PermissionConfigBuilderImpl::deny(IString* groupId, Int p
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC PermissionConfigBuilderImpl::extend(IPermissionConfig* config)
+ErrCode INTERFACE_FUNC PermissionsBuilderImpl::extend(IPermissions* config)
 {
-    PermissionConfigPtr configPtr = config;
+    PermissionsPtr configPtr = config;
 
     for (const auto& [groupId, permissionMask] : configPtr.getAllowed())
         allow(groupId, permissionMask);
@@ -63,11 +63,11 @@ ErrCode INTERFACE_FUNC PermissionConfigBuilderImpl::extend(IPermissionConfig* co
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC PermissionConfigBuilderImpl::build(IPermissionConfig** configOut)
+ErrCode INTERFACE_FUNC PermissionsBuilderImpl::build(IPermissions** configOut)
 {
     OPENDAQ_PARAM_NOT_NULL(configOut);
 
-    PermissionConfigPtr config(createWithImplementation<IPermissionConfig, PermissionConfigImpl>(inherited, allowed, denied));
+    PermissionsPtr config(createWithImplementation<IPermissions, PermissionsImpl>(inherited, allowed, denied));
     *configOut = config.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }

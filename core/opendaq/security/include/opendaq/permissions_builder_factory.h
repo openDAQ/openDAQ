@@ -14,23 +14,23 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/permission_config_builder_ptr.h>
-#include <opendaq/permission_config_builder_impl.h>
+#include <opendaq/permissions_builder_ptr.h>
+#include <opendaq/permissions_builder_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_security
- * @addtogroup opendaq_security_permission_config_builder Factories
+ * @addtogroup opendaq_security_permissions_builder Factories
  * @{
  */
 
 /*!
- * @brief Creates a permission config builder object.
+ * @brief Creates a permission configuration builder object.
  */
-inline PermissionConfigBuilderPtr PermissionConfigBuilder()
+inline PermissionsBuilderPtr PermissionsBuilder()
 {
-    PermissionConfigBuilderPtr obj(createWithImplementation<IPermissionConfigBuilder, PermissionConfigBuilderImpl>());
+    PermissionsBuilderPtr obj(createWithImplementation<IPermissionsBuilder, PermissionsBuilderImpl>());
     return obj;
 }
 

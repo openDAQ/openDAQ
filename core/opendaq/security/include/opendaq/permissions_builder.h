@@ -17,7 +17,7 @@
 #pragma once
 #include <coretypes/baseobject.h>
 #include <coretypes/common.h>
-#include <opendaq/permission_config.h>
+#include <opendaq/permissions.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,7 +32,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * Permisison builder can specified allowed permissions for each group. It can also inherit
  * or overwrite premissions from parent objects.
  */
-DECLARE_OPENDAQ_INTERFACE(IPermissionConfigBuilder, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IPermissionsBuilder, IBaseObject)
 {
     // [returnSelf]
     /*!
@@ -70,13 +70,13 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionConfigBuilder, IBaseObject)
      * @brief Add permisisons of another permission config object, overwrite existing ones.
      * @param config Permisison config object.
      */
-    virtual ErrCode INTERFACE_FUNC extend(IPermissionConfig* config) = 0;
+    virtual ErrCode INTERFACE_FUNC extend(IPermissions* config) = 0;
 
     /*!
      * @brief Builds the permission config object.
      * @param configOut[out] Permission config object.
      */
-    virtual ErrCode INTERFACE_FUNC build(IPermissionConfig** configOut) = 0;
+    virtual ErrCode INTERFACE_FUNC build(IPermissions** configOut) = 0;
 };
 
 /*!@}*/

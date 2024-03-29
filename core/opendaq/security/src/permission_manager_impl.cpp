@@ -3,32 +3,32 @@
 #include <coretypes/string_ptr.h>
 #include <opendaq/user_ptr.h>
 #include <coretypes/validation.h>
-#include <opendaq/permission_config_builder_factory.h>
+#include <opendaq/permissions_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)
     : children(Dict<IPermissionManager, Bool>())
-    , config(PermissionConfigBuilder().inherit(true).build())
-    , localConfig(PermissionConfigBuilder().inherit(true).build())
+    , permissions(PermissionsBuilder().inherit(true).build())
+    , localPermissions(PermissionsBuilder().inherit(true).build())
 {
     setParent(parent);
 }
 
-ErrCode INTERFACE_FUNC PermissionManagerImpl::setPermissionConfig(IPermissionConfig* permissionConfig)
+ErrCode INTERFACE_FUNC PermissionManagerImpl::setPermissions(IPermissions* permissions)
 {
-    localConfig = permissionConfig;
-    auto builder = PermissionConfigBuilder();
+    localPermissions = permissions;
+    auto builder = PermissionsBuilder();
 
-    if (localConfig.getInherited() && parent.assigned())
+    if (localPermissions.getInherited() && parent.assigned())
     {
         const auto parent = getParentManager();
-        const auto parentConfig = parent.getPermissionConfig();
+        const auto parentConfig = parent.getPermissions();
         builder.inherit(true).extend(parentConfig);
     }
 
-    builder.extend(localConfig);
-    config = builder.build();
+    builder.extend(localPermissions);
+    this->permissions = builder.build();
 
     updateChildPermissions();
     return OPENDAQ_SUCCESS;
@@ -46,7 +46,7 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::isAuthorized(IUser* user, Permissi
 
     for (const auto& group : groups)
     {
-        permissionMask = config.getDenied().hasKey(group) ? config.getDenied().get(group) : 0;
+        permissionMask = permissions.getDenied().hasKey(group) ? permissions.getDenied().get(group) : 0;
 
         if ((permissionMask & targetPermissionInt) != 0)
         {
@@ -57,7 +57,7 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::isAuthorized(IUser* user, Permissi
 
     for (const auto& group : groups)
     {
-        permissionMask = config.getAllowed().hasKey(group) ? config.getAllowed().get(group) : 0;
+        permissionMask = permissions.getAllowed().hasKey(group) ? permissions.getAllowed().get(group) : 0;
 
         if ((permissionMask & targetPermissionInt) != 0)
         {
@@ -87,7 +87,7 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::setParent(IPermissionManager* pare
         parent.addChildManager(self);
     }
 
-    setPermissionConfig(localConfig);
+    setPermissions(localPermissions);
     return OPENDAQ_SUCCESS;
 }
 
@@ -103,18 +103,18 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::removeChildManager(IPermissionMana
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC PermissionManagerImpl::getPermissionConfig(IPermissionConfig** permisisonConfigOut)
+ErrCode INTERFACE_FUNC PermissionManagerImpl::getPermissions(IPermissions** permisisonConfigOut)
 {
     OPENDAQ_PARAM_NOT_NULL(permisisonConfigOut);
 
-    *permisisonConfigOut = config.addRefAndReturn();
+    *permisisonConfigOut = permissions.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode INTERFACE_FUNC PermissionManagerImpl::updateInheritedPermissions()
 {
-    if (localConfig.getInherited())
-        setPermissionConfig(localConfig);
+    if (localPermissions.getInherited())
+        setPermissions(localPermissions);
 
     return OPENDAQ_SUCCESS;
 }

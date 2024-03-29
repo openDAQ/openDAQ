@@ -16,22 +16,22 @@
 
 #pragma once
 #include <coretypes/intfs.h>
-#include <opendaq/permission_config_builder.h>
-#include <opendaq/permission_config_ptr.h>
+#include <opendaq/permissions_builder.h>
+#include <opendaq/permissions_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class PermissionConfigBuilderImpl : public ImplementationOf<IPermissionConfigBuilder>
+class PermissionsBuilderImpl : public ImplementationOf<IPermissionsBuilder>
 {
 public:
-    explicit PermissionConfigBuilderImpl();
+    explicit PermissionsBuilderImpl();
 
     ErrCode INTERFACE_FUNC inherit(Bool inherit) override;
     ErrCode INTERFACE_FUNC set(IString* groupId, Int permissionFlags) override;
     ErrCode INTERFACE_FUNC allow(IString* groupId, Int permissionFlags) override;
     ErrCode INTERFACE_FUNC deny(IString* groupId, Int permissionFlags) override;
-    ErrCode INTERFACE_FUNC extend(IPermissionConfig* config) override;
-    ErrCode INTERFACE_FUNC build(IPermissionConfig** configOut) override;
+    ErrCode INTERFACE_FUNC extend(IPermissions* config) override;
+    ErrCode INTERFACE_FUNC build(IPermissions** configOut) override;
 
 private:
     Bool inherited;

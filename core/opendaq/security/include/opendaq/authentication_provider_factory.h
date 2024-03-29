@@ -16,7 +16,6 @@
 #pragma once
 #include <coretypes/objectptr.h>
 #include <opendaq/authentication_provider_ptr.h>
-#include <opendaq/authentication_provider_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,7 +30,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 inline AuthenticationProviderPtr AuthenticationProvider()
 {
-    AuthenticationProviderPtr obj(createWithImplementation<IAuthenticationProvider, StaticAuthenticationProviderImpl>(List<IUser>()));
+    AuthenticationProviderPtr obj(StaticAuthenticationProvider_Create(nullptr));
     return obj;
 }
 
@@ -41,7 +40,7 @@ inline AuthenticationProviderPtr AuthenticationProvider()
  */
 inline AuthenticationProviderPtr StaticAuthenticationProvider(const ListPtr<IUser>& users)
 {
-    AuthenticationProviderPtr obj(createWithImplementation<IAuthenticationProvider, StaticAuthenticationProviderImpl>(users));
+    AuthenticationProviderPtr obj(StaticAuthenticationProvider_Create(users));
     return obj;
 }
 
@@ -51,9 +50,7 @@ inline AuthenticationProviderPtr StaticAuthenticationProvider(const ListPtr<IUse
  */
 inline AuthenticationProviderPtr JsonFileAuthenticationProvider(const StringPtr& filename)
 {
-    AuthenticationProviderPtr obj(createWithImplementation<IAuthenticationProvider, JsonAuthenticationProviderImpl>());
-    auto impl = (JsonAuthenticationProviderImpl*) obj.getObject();
-    impl->loadJsonFile(filename);
+    AuthenticationProviderPtr obj(JsonFileAuthenticationProvider_Create(filename));
     return obj;
 }
 
@@ -63,9 +60,7 @@ inline AuthenticationProviderPtr JsonFileAuthenticationProvider(const StringPtr&
  */
 inline AuthenticationProviderPtr JsonStringAuthenticationProvider(const StringPtr& jsonString)
 {
-    AuthenticationProviderPtr obj(createWithImplementation<IAuthenticationProvider, JsonAuthenticationProviderImpl>());
-    auto impl = (JsonAuthenticationProviderImpl*) obj.getObject();
-    impl->loadJsonString(jsonString);
+    AuthenticationProviderPtr obj(JsonStringAuthenticationProvider_Create(jsonString));
     return obj;
 }
 

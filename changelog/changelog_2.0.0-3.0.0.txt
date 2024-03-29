@@ -1,4 +1,29 @@
-26.03.2023:
+26.03.2024
+Description:
+  - Implement multi reader builder
+
++ [interface] IMultiReaderBuilder
++ [interface] IMultiReaderBuilder::build(IMultiReader** multiReader)
++ [interface] IMultiReaderBuilder::addSignal(ISignal* signal)
++ [interface] IMultiReaderBuilder::addInputPort(IInputPort* port)
++ [interface] IMultiReaderBuilder::getSourceComponents(IList** ports)
++ [interface] IMultiReaderBuilder::setValueReadType(SampleType type)
++ [interface] IMultiReaderBuilder::getValueReadType(SampleType* type)
++ [interface] IMultiReaderBuilder::setDomainReadType(SampleType type)
++ [interface] IMultiReaderBuilder::getDomainReadType(SampleType* type)
++ [interface] IMultiReaderBuilder::setReadMode(ReadMode mode)
++ [interface] IMultiReaderBuilder::getReadMode(ReadMode* mode)
++ [interface] IMultiReaderBuilder::setReadTimeoutType(ReadTimeoutType type)
++ [interface] IMultiReaderBuilder::getReadTimeoutType(ReadTimeoutType* type)
++ [interface] IMultiReaderBuilder::setRequiredCommonSampleRate(Int sampleRate)
++ [interface] IMultiReaderBuilder::getRequiredCommonSampleRate(Int* sampleRate)
++ [interface] IMultiReaderBuilder::setStartOnFullUnitOfDomain(Bool enabled)
++ [interface] IMultiReaderBuilder::getStartOnFullUnitOfDomain(Bool* enabled)
++ [factory] MultiReaderBuilderPtr MultiReaderBuilder()
+
++ [factory] MultiReaderPtr MultiReaderFromBuilder(const MultiReaderBuilderPtr& builder)
+
+26.03.2024:
 Description:
 	- Fix outdated data descriptor before subscription
 

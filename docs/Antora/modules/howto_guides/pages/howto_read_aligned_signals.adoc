@@ -37,7 +37,7 @@ Some of the above limitations might be lifted in the future.
 Using the Multi Reader is largely the same as any other Reader and is basically a xref:background_info:readers.adoc#stream_reader[Stream Reader] for multiple Signals at once except that with multiple Signals it performs some additional checks to keep the Signals compatible and synchronized to the same domain point.
 
 [#create]
-.Creating a default Multi Reader
+.Creating a default Multi Reader with list of signals
 [tabs]
 ====
 Cpp::
@@ -48,6 +48,22 @@ Cpp::
 auto reader = MultiReader(signals);
 auto reader = MultiReader<double, Int>(signals);
 auto reader = MultiReader(signals, SampleType::Float64, SampleType::Int64);
+----
+====
+
+Developer can set list of input ports instead of signals.
+[#create]
+.Creating a default Multi Reader with list of ports 
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// These calls all create the same reader
+auto reader = MultiReaderFromPort(ports);
+auto reader = MultiReaderFromPort<double, Int>(ports);
+auto reader = MultiReaderFromPort(ports, SampleType::Float64, SampleType::Int64);
 ----
 ====
 
@@ -189,7 +205,6 @@ Cpp::
 == Using the Multi-Reader to read time-stamps
 
 The Time Reader presented in xref:howto_read_with_timestamps.adoc[] can also be used with Multi-Reader.
-
 [#sync4]
 .Aligning Signals with MultiReader 4
 [tabs]
@@ -258,6 +273,41 @@ Cpp::
 
     available = reader.getAvailableCount();  // 0
 ----
+====
+
+== Creating MutiReader with builder
+
+With the builder, developers can add signals and input ports using the methods `addSignal` and `addInputPort`. For signals, the builder creates an internal input port connected to the input signal.
+
+By default, the value type is set as `daq::SampleType::Float64` and the domain type as `daq::SampleType::Int64`. This can be overridden with the methods `setValueReadType` and setDomainReadType.
+
+The default value of the read mode is `daq::ReadMode::Scaled`, which can be configured using the method `setReadMode` to `daq::ReadMode::Unscaled` or `daq::ReadMode::RawValue`.
+
+In Multi-Reader, developers can set the read timeout type. The default value is `daq::ReadTimeoutType::All`, which waits for the requested amount or until the timeout is exceeded. It can be set as `daq::ReadTimeoutType::Any`, meaning the timeout will wait until any available data or the timeout is reached.
+
+The builder has fields for a common sample rate, which is disabled by default (set to -1), and for starting on the full unit of the domain (also disabled by default). These members can be overridden with the methods `setRequiredCommonSampleRate` and `setStartOnFullUnitOfDomain`.
+
+[#sync5]
+.Creating multi reader with default builder
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+    MultiReaderBuilderPtr builder = MultiReaderBuilder();
+    builder.addSignal(signal1).addSignal(signal2).addInputPort(port1).addInputPort(port2);
+    builder.setValueReadType(daq::SampleType::Int64);
+    builder.setDomainReadType(daq::SampleType::Float64);
+
+    // use can use build function for creating reader as well
+    // auto reader = builder.build();
+    auto reader = MultiReaderFromBuilder(builder);
+----
+====
+[NOTE]
+====
+When creating a MultiReader from the same builder multiple times, developers should be cautious, especially if they are using input ports as input sources. This is because when creating an input port, it is bound to the first reader. Therefore, attempting to create another reader with the same input port will result in an exception, indicating that the input port is already in use.
 ====
 
 == Full listing

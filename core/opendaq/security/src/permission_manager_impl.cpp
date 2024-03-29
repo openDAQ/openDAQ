@@ -46,17 +46,23 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::isAuthorized(IUser* user, Permissi
 
     for (const auto& group : groups)
     {
-        permissionMask = 0;
+        permissionMask = config.getDenied().hasKey(group) ? config.getDenied().get(group) : 0;
 
-        if (config.getAllowed().hasKey(group))
-            permissionMask |= (Int) config.getAllowed().get(group);
-        if (config.getDenied().hasKey(group))
-            permissionMask &= ~(Int) config.getDenied().get(group);
+        if ((permissionMask & targetPermissionInt) != 0)
+        {
+            *authorizedOut = false;
+            return OPENDAQ_SUCCESS;
+        }
+    }
+
+    for (const auto& group : groups)
+    {
+        permissionMask = config.getAllowed().hasKey(group) ? config.getAllowed().get(group) : 0;
 
         if ((permissionMask & targetPermissionInt) != 0)
         {
             *authorizedOut = true;
-            break;
+            return OPENDAQ_SUCCESS;
         }
     }
     

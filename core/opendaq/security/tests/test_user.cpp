@@ -12,24 +12,39 @@ TEST_F(UserTest, Create)
     ASSERT_TRUE(user.assigned());
 }
 
-TEST_F(UserTest, Getters)
-{
-    const auto groups = List<IString>("admin", "user");
-    auto user = User("janm", "pass", groups);
-
-    ASSERT_EQ(user.getUsername(), "janm");
-    ASSERT_EQ(user.getGroups(), groups);
-
-    auto userInternal = user.asPtr<IUserInternal>();
-    ASSERT_EQ(userInternal.getPasswordHash(), "pass");
-}
-
 TEST_F(UserTest, EmptyGroups)
 {
     auto user = User("janm", "psswordHash");
 
     ASSERT_TRUE(user.getGroups().assigned());
-    ASSERT_EQ(user.getGroups().getCount(), 0);
+    ASSERT_EQ(user.getGroups().getCount(), 1);
+    ASSERT_EQ(user.getGroups().getItemAt(0), "everyone");
+}
+
+
+TEST_F(UserTest, SanitazeGroups)
+{
+    const auto groups = List<IString>("user", "user", "admin");
+    const auto groupsExpected = List<IString>("admin", "everyone", "user");
+
+    auto user = User("janm", "pass", groups);
+
+    ASSERT_TRUE(user.getGroups().assigned());
+    ASSERT_EQ(user.getGroups(), groupsExpected);
+}
+
+TEST_F(UserTest, Getters)
+{
+    const auto groups = List<IString>("admin", "user");
+    const auto groupsExpected = List<IString>("admin", "everyone", "user");
+
+    auto user = User("janm", "pass", groups);
+
+    ASSERT_EQ(user.getUsername(), "janm");
+    ASSERT_EQ(user.getGroups(), groupsExpected);
+
+    auto userInternal = user.asPtr<IUserInternal>();
+    ASSERT_EQ(userInternal.getPasswordHash(), "pass");
 }
 
 TEST_F(UserTest, Equals)

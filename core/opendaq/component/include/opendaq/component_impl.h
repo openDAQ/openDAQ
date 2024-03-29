@@ -41,6 +41,7 @@
 #include <opendaq/ids_parser.h>
 #include <opendaq/component_status_container_impl.h>
 #include <opendaq/permission_manager_factory.h>
+#include <opendaq/permission_config_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -218,8 +219,16 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     context->getOnCoreEvent(&this->coreEvent);
     lockedAttributes.insert("Visible");
 
-    const PermissionManagerPtr parentManager = parent.assigned() ? parent.getPermissionManager() : nullptr;
-    this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
+    if (parent.assigned())
+    {
+        const auto parentManager = parent.getPermissionManager();
+        this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
+    }
+    else
+    {
+        this->permissionManager.setPermissionConfig(
+            PermissionConfigBuilder().set("everyone", Permission::Read | Permission::Write | Permission::Execute).build());
+    }
 }
 
 template <class Intf, class ... Intfs>

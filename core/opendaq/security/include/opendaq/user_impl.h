@@ -43,6 +43,8 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj);
 
 private:
+    ListPtr<IString> sanitizeGroupList(const ListPtr<IString> groups);
+
     StringPtr username;
     StringPtr passwordHash;
     ListPtr<IString> groups;

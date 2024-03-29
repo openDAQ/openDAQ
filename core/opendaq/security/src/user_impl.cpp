@@ -4,15 +4,15 @@
 #include <coretypes/serialized_object_ptr.h>
 #include <opendaq/user_factory.h>
 #include <opendaq/user_internal_ptr.h>
+#include <set>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 UserImpl::UserImpl(const StringPtr& username, const StringPtr& passwordHash, const ListPtr<IString> groups)
     : username(username)
     , passwordHash(passwordHash)
-    , groups(groups)
 {
-    this->groups = groups.assigned() ? groups : List<IString>();
+    this->groups = sanitizeGroupList(groups);
 }
 
 ErrCode INTERFACE_FUNC UserImpl::getUsername(IString** username)
@@ -127,6 +127,26 @@ ErrCode UserImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunc
     *obj = user.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
+
+ListPtr<IString> UserImpl::sanitizeGroupList(const ListPtr<IString> groups)
+{
+    std::set<StringPtr> orderedUnique;
+    orderedUnique.insert("everyone");
+
+    if (groups.assigned())
+    {
+        for (const auto& group : groups)
+            orderedUnique.insert(group);
+    }
+
+    auto list = List<IString>();
+    for (const auto& group : orderedUnique)
+        list.pushBack(group);
+
+    return list;
+}
+
+
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, User, IString*, username, IString*, passwordHash, IList*, groups)
 

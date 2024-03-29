@@ -83,7 +83,10 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     if (!context.assigned())
         throw InvalidParameterException{"Context is not available."};
 
-    auto [prefix, host, path] = ParseConnectionString(connectionString);
+    auto parsedConnection = ParseConnectionString(connectionString);
+    auto prefix = std::get<0>(parsedConnection);
+    auto host = std::get<1>(parsedConnection);
+    auto path = std::get<2>(parsedConnection);
     if (prefix != DaqOpcUaDevicePrefix)
         throw InvalidParameterException("OpcUa does not support connection string with prefix");
 

@@ -46,16 +46,12 @@ void WebsocketClientSignalImpl::createAndAssignDomainSignal(const DataDescriptor
 
 SignalPtr WebsocketClientSignalImpl::onGetDomainSignal()
 {
-    MirroredSignalConfigPtr sig;
-    checkErrorInfo(getMirroredDomainSignal(&sig));
-    return sig;
+    return mirroredDomainSignal.addRefAndReturn();
 }
 
 DataDescriptorPtr WebsocketClientSignalImpl::onGetDescriptor()
 {
-    DataDescriptorPtr desc;
-    checkErrorInfo(getMirroredDataDescriptor(&desc));
-    return desc;
+    return mirroredDataDescriptor.addRefAndReturn();
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

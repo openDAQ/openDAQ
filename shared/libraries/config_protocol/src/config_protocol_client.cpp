@@ -131,6 +131,32 @@ void ConfigProtocolClientComm::setAttributeValue(const std::string& globalId,
     parseRpcReplyPacketBuffer(setAttributeValueRpcReplyPacketBuffer);
 }
 
+void ConfigProtocolClientComm::beginUpdate(const std::string& globalId, const std::string& path)
+{
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    if (!path.empty())
+        dict.set("Path", String(path));
+    auto setPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "BeginUpdate", dict);
+    const auto setPropertyValueRpcReplyPacketBuffer = sendRequestCallback(setPropertyValueRpcRequestPacketBuffer);
+
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    parseRpcReplyPacketBuffer(setPropertyValueRpcReplyPacketBuffer);
+}
+
+void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std::string& path)
+{
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    if (!path.empty())
+        dict.set("Path", String(path));
+    auto setPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "EndUpdate", dict);
+    const auto setPropertyValueRpcReplyPacketBuffer = sendRequestCallback(setPropertyValueRpcRequestPacketBuffer);
+
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    parseRpcReplyPacketBuffer(setPropertyValueRpcReplyPacketBuffer);
+}
+
 BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const
 {
     auto obj = Dict<IString, IBaseObject>();

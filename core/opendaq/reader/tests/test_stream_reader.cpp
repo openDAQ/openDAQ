@@ -11,13 +11,15 @@
 #include <opendaq/input_port_factory.h>
 #include <opendaq/dimension_factory.h>
 #include <future>
+#include <gmock/gmock.h>
 
 using namespace daq;
+using namespace testing;
 
 template <typename T>
 using StreamReaderTest = ReaderTest<T>;
 
-using SampleTypes = ::testing::Types<OPENDAQ_VALUE_SAMPLE_TYPES>;
+using SampleTypes = Types<OPENDAQ_VALUE_SAMPLE_TYPES>;
 
 TYPED_TEST_SUITE(StreamReaderTest, SampleTypes);
 
@@ -521,6 +523,37 @@ TYPED_TEST(StreamReaderTest, ReadValuesMoreThanAvailable)
     ASSERT_EQ(count, 2u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 }
+
+TYPED_TEST(StreamReaderTest, ReadConstantRule)
+{
+    if constexpr (!std::is_same_v<TypeParam, Complex_Number<float>> && !std::is_same_v<TypeParam, Complex_Number<double>>)
+    {
+        constexpr size_t samplesInPacket = 2;
+
+        const auto domainDesc = setupDescriptor(SampleType::Int64, LinearDataRule(1, 0), nullptr);
+
+        this->signal.setDescriptor(setupDescriptor(SampleTypeFromType<TypeParam>::SampleType, ConstantDataRule()));
+        auto reader = daq::StreamReader<TypeParam, ClockTick>(this->signal);
+
+        auto domainPacket = DataPacket(domainDesc, samplesInPacket, 0);
+        auto dataPacket = ConstantDataPacketWithDomain<TypeParam>(domainPacket, this->signal.getDescriptor(), samplesInPacket, 12);
+        this->sendPacket(dataPacket);
+
+        domainPacket = DataPacket(domainDesc, samplesInPacket, 2);
+        dataPacket = ConstantDataPacketWithDomain<TypeParam>(domainPacket, this->signal.getDescriptor(), samplesInPacket, 24);
+        this->sendPacket(dataPacket);
+
+        SizeT count{samplesInPacket * 2};
+        TypeParam samples[samplesInPacket * 2]{};
+        ClockTick ticks[samplesInPacket * 2]{};
+        reader.readWithDomain((TypeParam*) &samples, (ClockTick*) &ticks, &count);
+        ASSERT_EQ(count, samplesInPacket * 2);
+
+        ASSERT_THAT(ticks, ElementsAre(0, 1, 2, 3));
+        ASSERT_THAT(samples, ElementsAre(12, 12, 24, 24));
+    }
+}
+
 
 TYPED_TEST(StreamReaderTest, DescriptorChangedConvertible)
 {

@@ -43,7 +43,7 @@ public:
                                         .setSampleType(SampleType::Float32)
                                         .setName("Value Name")
                                         .setDimensions(List<IDimension>())
-                                        .setRule(ConstantDataRule(1.0))
+                                        .setRule(ConstantDataRule())
                                         .setUnit(Unit("symbol", 1, "name", "quantity"))  // Optional
                                         .setOrigin("Origin")                             // Optional
                                         .setValueRange(Range(0.0, 100.0))                // Optional
@@ -350,7 +350,7 @@ TEST_F(TmsSignalTest, AttrDescriptor)
     auto serverDataDescriptor = DataDescriptorBuilder()
                                     .setSampleType(SampleType::Float32)
                                     .setDimensions(List<IDimension>())
-                                    .setRule(ConstantDataRule(1.0))
+                                    .setRule(ConstantDataRule())
                                     .setUnit(Unit("symbol", 1, "name", "quantity"))  // Optional
                                     .setOrigin("Origin")                             // Optional
                                     .setValueRange(Range(0.0, 100.0))                // Optional
@@ -399,13 +399,7 @@ TEST_F(TmsSignalTest, AttrDescriptor)
     auto clientRule = clientDataDescriptor.getRule();
     ASSERT_EQ(clientRule.getType(), DataRuleType::Constant);
     auto clientRuleParameters = clientRule.getParameters();
-    ASSERT_EQ(clientRuleParameters.getCount(), 1u);
-    auto clientKeyList = clientRuleParameters.getKeyList();
-    auto clientValueList = clientRuleParameters.getValueList();
-    auto k = clientKeyList.getItemAt(0);
-    ASSERT_EQ(clientKeyList.getItemAt(0), "constant");
-    auto v = clientValueList.getItemAt(0);
-    ASSERT_EQ(clientValueList.getItemAt(0), 1.0);
+    ASSERT_EQ(clientRuleParameters.getCount(), 0u);
 
     auto clientUnit = clientDataDescriptor.getUnit();
     ASSERT_EQ(clientUnit.getQuantity(), "quantity");

@@ -121,7 +121,7 @@ calculated depending on the Rule type. Currently, two rules are available in ope
 
 * **Linear Rule**: The Rule parameters include a `delta` and `start` numbers. The values are calculated according to the following equation: `PacketOffset + SampleIndex * delta + start`, where the `PacketOffset` is available on the Packet carrying the data and the `SampleIndex` represents the index of the data entry being calculated within a given packet.
 
-* **Constant Rule**: All values of the signal are equal to the `constant` Rule Number-type parameter.
+* **Constant Rule**: All values of the signal are equal to the `constant` defined in the packet.
 
 === Dimensions
 

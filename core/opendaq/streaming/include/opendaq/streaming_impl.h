@@ -431,7 +431,24 @@ template <typename... Interfaces>
 ErrCode StreamingImpl<Interfaces...>::subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId)
 {
     if (!signalRemoteId.assigned())
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    {
+        return this->makeErrorInfo(
+            OPENDAQ_ERR_ARGUMENT_NULL,
+            fmt::format(R"(Failed to subscribe - signal id is null)")
+        );
+    }
+
+    if (signalRemoteId == domainSignalRemoteId)
+    {
+        return this->makeErrorInfo(
+            OPENDAQ_ERR_INVALIDPARAMETER,
+            fmt::format(
+                R"(Signal "{}" failed to subscribe - provided domain signal Id is the same: "{}")",
+                signalRemoteId,
+                domainSignalRemoteId
+            )
+        );
+    }
 
     if (domainSignalRemoteId.assigned())
     {
@@ -506,7 +523,24 @@ template <typename... Interfaces>
 ErrCode StreamingImpl<Interfaces...>::unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId)
 {
     if (!signalRemoteId.assigned())
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    {
+        return this->makeErrorInfo(
+            OPENDAQ_ERR_ARGUMENT_NULL,
+            fmt::format(R"(Failed to unsubscribe - signal id is null)")
+        );
+    }
+
+    if (signalRemoteId == domainSignalRemoteId)
+    {
+        return this->makeErrorInfo(
+            OPENDAQ_ERR_INVALIDPARAMETER,
+            fmt::format(
+                R"(Signal "{}" failed to unsubscribe - provided domain signal Id is the same: "{}")",
+                signalRemoteId,
+                domainSignalRemoteId
+            )
+        );
+    }
 
     if (domainSignalRemoteId.assigned())
     {
@@ -707,7 +741,7 @@ void StreamingImpl<Interfaces...>::addToAvailableSignals(const StringPtr& signal
         else
         {
             LOG_E("Signal with id {} is already registered as available", signalStreamingId);
-            throw AlreadyExistsException("Signal with id {} is already registered as available in streaming {}",
+            throw DuplicateItemException("Signal with id {} is already registered as available in streaming {}",
                                          signalStreamingId,
                                          this->connectionString);
         }
@@ -723,7 +757,7 @@ void StreamingImpl<Interfaces...>::addToAvailableSignals(const StringPtr& signal
         else
         {
             LOG_E("Signal with id {} is already registered as available", signalStreamingId);
-            throw AlreadyExistsException("Signal with id {} is already registered as available in streaming {}",
+            throw DuplicateItemException("Signal with id {} is already registered as available in streaming {}",
                                          signalStreamingId,
                                          this->connectionString);
         }
@@ -737,7 +771,7 @@ void StreamingImpl<Interfaces...>::removeFromAvailableSignals(const StringPtr& s
 
     if (isReconnecting)
     {
-        throw GeneralErrorException("Signal unavailable command received during reconnection");
+        throw InvalidStateException("Signal unavailable command received during reconnection");
     }
     else
     {
@@ -823,6 +857,9 @@ template <typename... Interfaces>
 void StreamingImpl<Interfaces...>::completeReconnection()
 {
     std::scoped_lock lock(sync);
+
+    if (!isReconnecting)
+        throw InvalidStateException("Fail to complete reconnection - reconnection was not started");
 
     for (const auto& signalId : availableSignalIds)
     {

@@ -177,7 +177,6 @@ TEST_F(MirroredSignalTest, DeactivateStreaming)
     ASSERT_FALSE(signal.getActiveStreamingSource().assigned());
 }
 
-
 TEST_F(MirroredSignalTest, Streamed)
 {
     auto signal = createMirroredSignal("signal");

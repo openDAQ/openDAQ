@@ -26,8 +26,8 @@ DECLARE_OPENDAQ_INTERFACE(IMockStreaming, daq::IBaseObject)
 {
     virtual void makeSignalAvailable(const daq::StringPtr& signalStreamingId) = 0;
     virtual void makeSignalUnavailable(const daq::StringPtr& signalStreamingId) = 0;
-    virtual void disconnect() = 0;
-    virtual void reconnect() = 0;
+    virtual void triggerReconnectionStart() = 0;
+    virtual void triggerReconnectionCompletion() = 0;
 };
 
 struct MockStreaming : daq::StreamingImpl<IMockStreaming>
@@ -50,8 +50,8 @@ struct MockStreaming : daq::StreamingImpl<IMockStreaming>
     void makeSignalAvailable(const daq::StringPtr& signalStreamingId) override { addToAvailableSignals(signalStreamingId); }
     void makeSignalUnavailable(const daq::StringPtr& signalStreamingId) override { removeFromAvailableSignals(signalStreamingId); }
 
-    void disconnect() override { startReconnection(); }
-    void reconnect() override { completeReconnection(); }
+    void triggerReconnectionStart() override { startReconnection(); }
+    void triggerReconnectionCompletion() override { completeReconnection(); }
 
     daq::MirroredSignalConfigPtr signal;
 

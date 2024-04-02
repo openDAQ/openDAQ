@@ -19,8 +19,8 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @ingroup opendaq_security
- * @addtogroup opendaq_security_user Factories
+ * @ingroup objects_security
+ * @addtogroup objects_security_user Factories
  * @{
  */
 

@@ -18,7 +18,7 @@
 #include <coreobjects/property.h>
 #include <coretypes/type_manager.h>
 #include <coretypes/event.h>
-#include <opendaq/permission_manager.h>
+#include <coreobjects/permission_manager.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,7 +32,7 @@ BEGIN_NAMESPACE_OPENDAQ
 /*#
  * [templated(defaultAliasName: PropertyObjectPtr)]
  * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr)]
- * [interfaceSmartPtr(IPermissionManager, PermissionManagerPtr, "<opendaq/permission_manager_ptr.h>")]
+ * [interfaceSmartPtr(IPermissionManager, PermissionManagerPtr, "<coreobjects/permission_manager_ptr.h>")]
  */
 
 /*!

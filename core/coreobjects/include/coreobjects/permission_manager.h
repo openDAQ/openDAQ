@@ -17,8 +17,8 @@
 #pragma once
 #include <coretypes/baseobject.h>
 #include <coretypes/common.h>
-#include <opendaq/user.h>
-#include <opendaq/permissions.h>
+#include <coreobjects/user.h>
+#include <coreobjects/permissions.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

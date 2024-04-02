@@ -9,6 +9,7 @@ set(TEST_SOURCES test_factories.cpp
                  test_instance.cpp
                  test_core_events.cpp
                  test_config_provider.cpp
+                 test_access_control.cpp
                  ${TEST_HEADERS}
 )
 

@@ -1,6 +1,6 @@
-#include <opendaq/permissions_builder_impl.h>
+#include <coreobjects/permissions_builder_impl.h>
 #include <coretypes/validation.h>
-#include <opendaq/permissions_impl.h>
+#include <coreobjects/permissions_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <opendaq/permission_manager.h>
+#include <coreobjects/permission_manager.h>
 #include <coretypes/dictobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ

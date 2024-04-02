@@ -15,10 +15,10 @@
  */
 
 #pragma once
-#include <opendaq/authentication_provider.h>
+#include <coreobjects/authentication_provider.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
-#include <opendaq/user_ptr.h>
+#include <coreobjects/user_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

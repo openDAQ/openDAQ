@@ -15,8 +15,8 @@
  */
 
 #pragma once
-#include <opendaq/user.h>
-#include <opendaq/user_internal.h>
+#include <coreobjects/user.h>
+#include <coreobjects/user_internal.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/listobject_factory.h>

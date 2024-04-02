@@ -18,7 +18,7 @@
 #include <coretypes/common.h>
 #include <coretypes/baseobject.h>
 #include <coretypes/stringobject.h>
-#include <opendaq/user.h>
+#include <coreobjects/user.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

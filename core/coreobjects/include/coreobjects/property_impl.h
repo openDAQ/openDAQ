@@ -32,9 +32,9 @@
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
 #include <iostream>
-#include <opendaq/permission_manager_factory.h>
-#include <opendaq/permissions_builder_factory.h>
-#include <opendaq/permission_manager_internal_ptr.h>
+#include <coreobjects/permission_manager_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/permission_manager_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

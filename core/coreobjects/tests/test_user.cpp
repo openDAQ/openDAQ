@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include <opendaq/user_factory.h>
-#include <opendaq/user_internal_ptr.h>
+#include <coreobjects/user_factory.h>
+#include <coreobjects/user_internal_ptr.h>
 
 using namespace daq;
 

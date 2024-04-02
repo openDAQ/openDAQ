@@ -15,7 +15,7 @@
  */
 #pragma once
 #include <coretypes/objectptr.h>
-#include <opendaq/authentication_provider_ptr.h>
+#include <coreobjects/authentication_provider_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

@@ -13,20 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#include <coretypes/errors.h>
+#include <coreobjects/permissions_builder_ptr.h>
+
+BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @ingroup opendaq_errors_group
- * @addtogroup opendaq_errors_macros Error Code Macros
+ * @ingroup opendaq_security
+ * @addtogroup opendaq_security_permissions_builder Factories
  * @{
  */
 
-#define OPENDAQ_ERRTYPE_SECURITY 0x07u
-
-#define OPENDAQ_ERR_AUTHENTICATION_FAILED OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_SECURITY, 0x0000u)
-
 /*!
- * @}
+ * @brief Creates a permissions builder object.
  */
+inline PermissionsBuilderPtr PermissionsBuilder()
+{
+    PermissionsBuilderPtr obj(PermissionsBuilder_Create());
+    return obj;
+}
+
+/*!@}*/
+
+END_NAMESPACE_OPENDAQ

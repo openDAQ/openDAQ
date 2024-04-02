@@ -37,18 +37,15 @@ inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const S
     return obj;
 }
 
-inline ServerCapabilityConfigPtr ServerCapability(const ContextPtr& context,
-                                            const StringPtr& protocolName,
-                                            const StringPtr& protocolType
-                                            )
+inline ServerCapabilityConfigPtr ServerCapability(const StringPtr& protocolName, ProtocolType protocolType)
 {
-    ServerCapabilityConfigPtr obj(ServerCapability_Create(context, protocolName, protocolType));
+    ServerCapabilityConfigPtr obj(ServerCapability_Create(protocolName, protocolType));
     return obj;
 }
 
-inline ServerCapabilityConfigPtr ServerStreamingCapability(const ContextPtr& context, const StringPtr& protocolId)
+inline ServerCapabilityConfigPtr ServerStreamingCapability(const StringPtr& protocolId)
 {
-    ServerCapabilityConfigPtr obj(ServerStreamingCapability_Create(context, protocolId));
+    ServerCapabilityConfigPtr obj(ServerStreamingCapability_Create(protocolId));
     return obj;
 }
 

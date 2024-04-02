@@ -38,7 +38,7 @@ int main(int argc, const char* argv[])
         {
             if (capability.getProtocolName() == "openDAQ OpcUa")
             {
-                std::cout << "Name: " << deviceInfo.getName() << ", Address: " << capability.getConnectionString() << std::endl;
+                std::cout << "Name: " << deviceInfo.getName() << ", Address: " << capability.getPrimaryConnectionString() << std::endl;
             }
         }
     }

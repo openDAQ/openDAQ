@@ -185,7 +185,7 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConfig)
     ModulePtr module;
     createModule(&module, context);
 
-    ServerCapabilityPtr streamingInfoConfig = ServerStreamingCapability(context, "daq.wss");
+    ServerCapabilityPtr streamingInfoConfig = ServerStreamingCapability("daq.wss");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
 
     streamingInfoConfig.setPropertyValue("address", "123.123.123.123");

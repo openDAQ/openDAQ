@@ -33,7 +33,7 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                return ServerCapability(context, "openDAQ WebsocketTcp Streaming", "Streaming").setConnectionString(connectionString).setConnectionType("Ipv4");
+                return ServerCapability("openDAQ WebsocketTcp Streaming", ProtocolType::Streaming).addConnectionString(connectionString).setConnectionType("Ipv4");
             }
         },
         {"WS"}

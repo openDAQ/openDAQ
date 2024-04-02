@@ -22,7 +22,7 @@
 #include <coretypes/dictobject_factory.h>
 #include <coreobjects/property_object_impl.h>
 #include <opendaq/device_type_ptr.h>
-#include <opendaq/device_info_private.h>
+#include <opendaq/device_info_internal.h>
 #include <opendaq/server_capability_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -33,10 +33,10 @@ class DeviceInfoConfigImpl;
 using DeviceInfoConfigBase = DeviceInfoConfigImpl<>;
 
 template <typename TInterface, typename... Interfaces>
-class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, IDeviceInfoPrivate, Interfaces...>
+class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, IDeviceInfoInternal, Interfaces...>
 {
 public:
-    using Super = GenericPropertyObjectImpl<TInterface, IDeviceInfoPrivate, Interfaces...>;
+    using Super = GenericPropertyObjectImpl<TInterface, IDeviceInfoInternal, Interfaces...>;
 
     explicit DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion = nullptr);
     DeviceInfoConfigImpl() = default;

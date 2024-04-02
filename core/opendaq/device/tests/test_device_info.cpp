@@ -3,7 +3,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/device_type_factory.h>
-#include <opendaq/device_info_private_ptr.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/context_factory.h>
 
 using DeviceInfoTest = testing::Test;
@@ -261,27 +261,27 @@ TEST_F(DeviceInfoTest, ServerCapabilities)
 {
     auto context = NullContext();
     DeviceInfoPtr info = DeviceInfo("", "");
-    DeviceInfoPrivatePtr privateInfo = info;
+    DeviceInfoInternalPtr internalInfo = info;
 
-    auto capability1 = ServerStreamingCapability(context, "localId1");
-    auto capability2 = ServerStreamingCapability(context, "localId2");
-    auto capability3 = ServerStreamingCapability(context, "localId3");
+    auto capability1 = ServerStreamingCapability("localId1");
+    auto capability2 = ServerStreamingCapability("localId2");
+    auto capability3 = ServerStreamingCapability("localId3");
 
-    privateInfo.addServerCapability(capability1);
-    privateInfo.addServerCapability(capability2);
-    privateInfo.addServerCapability(capability3);
-    ASSERT_ANY_THROW(privateInfo.addServerCapability(capability3));
+    internalInfo.addServerCapability(capability1);
+    internalInfo.addServerCapability(capability2);
+    internalInfo.addServerCapability(capability3);
+    ASSERT_ANY_THROW(internalInfo.addServerCapability(capability3));
 
     ASSERT_EQ(info.getServerCapabilities().getCount(), 3);
     
-    privateInfo.removeServerCapability("localId0");
+    internalInfo.removeServerCapability("localId0");
     ASSERT_EQ(info.getServerCapabilities().getCount(), 3);
 
-    privateInfo.removeServerCapability("localId1");
+    internalInfo.removeServerCapability("localId1");
     ASSERT_EQ(info.getServerCapabilities().getCount(), 2);
     ASSERT_EQ(info.getServerCapabilities()[0], capability2);
 
-    privateInfo.clearServerStreamingCapabilities();
+    internalInfo.clearServerStreamingCapabilities();
     ASSERT_EQ(info.getServerCapabilities().getCount(), 0);
 }
 

@@ -33,8 +33,15 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @brief Sets the connection string of device with current protocol
      * @param connectionString The connection string of device
      */
-    virtual ErrCode INTERFACE_FUNC setConnectionString(IString* connectionString) = 0;
-    
+    virtual ErrCode INTERFACE_FUNC setPrimaryConnectionString(IString* connectionString) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the connection string of device with current protocol
+     * @param connectionString The connection string of device
+     */
+    virtual ErrCode INTERFACE_FUNC addConnectionString(IString* connectionString) = 0;
+
     // [returnSelf]
     /*!
      * @brief Sets the ID of protocol
@@ -54,7 +61,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @brief Sets the type of protocol
      * @param type The type of protocol
      */
-    virtual ErrCode INTERFACE_FUNC setProtocolType(IString* type) = 0;
+    virtual ErrCode INTERFACE_FUNC setProtocolType(ProtocolType type) = 0;
 
     // [returnSelf]
     /*!
@@ -73,14 +80,12 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, ServerCapability, IServerCapabilityConfig,
-    IContext*, context,
     IString*, protocolName,
-    IString*, protocolType
+    ProtocolType, protocolType
 )
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, ServerStreamingCapability, IServerCapabilityConfig,
-    IContext*, context,
     IString*, protocolId
 )
 

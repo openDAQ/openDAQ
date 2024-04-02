@@ -11,48 +11,43 @@ BEGIN_NAMESPACE_OPENDAQ
 
 TEST_F(ServerCapabilityTest, Factory)
 {
-    ServerCapabilityPtr capability = ServerCapability(NullContext(), "Protocol name", "Streaming");
+    ServerCapabilityPtr capability = ServerCapability("Protocol name", ProtocolType::Streaming);
     ASSERT_EQ(capability.getProtocolName(), "Protocol name");
-    ASSERT_EQ(capability.getProtocolType(), "Streaming");
-    ASSERT_EQ(capability.getConnectionString(), "");
+    ASSERT_EQ(capability.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(capability.getPrimaryConnectionString(), "");
     ASSERT_EQ(capability.getConnectionType(), "Unknwown");
     ASSERT_EQ(capability.getCoreEventsEnabled(), false);
 }
 
 TEST_F(ServerCapabilityTest, StreamingFactory)
 {
-    ServerCapabilityPtr capability = ServerStreamingCapability(NullContext(), "Protocol Id");
+    ServerCapabilityPtr capability = ServerStreamingCapability("Protocol Id");
     ASSERT_EQ(capability.getPropertyValue("protocolId").asPtr<IString>(), "Protocol Id");
     ASSERT_EQ(capability.getPropertyValue("address").asPtr<IString>(), "");
-    ASSERT_EQ(capability.getProtocolType(), "ServerStreaming");
+    ASSERT_EQ(capability.getProtocolType(), ProtocolType::StructureAndStreaming);
 }
 
 TEST_F(ServerCapabilityTest, SetGet)
 {
-    ServerCapabilityPtr capability = ServerCapability(NullContext(), "Protocol name", "Streaming").setConnectionString("connection string")
+    ServerCapabilityPtr capability = ServerCapability("Protocol name", ProtocolType::Streaming).addConnectionString("connection string")
                                                                                                   .setConnectionType("connection type")
                                                                                                   .setCoreEventsEnabled(true);
     ASSERT_EQ(capability.getProtocolName(), "Protocol name");
-    ASSERT_EQ(capability.getProtocolType(), "Streaming");
-    ASSERT_EQ(capability.getConnectionString(), "connection string");
+    ASSERT_EQ(capability.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(capability.getPrimaryConnectionString(), "connection string");
     ASSERT_EQ(capability.getConnectionType(), "connection type");
     ASSERT_EQ(capability.getCoreEventsEnabled(), true);
 }
 
-TEST_F(ServerCapabilityTest, NotSupportProtocolType)
-{
-    ASSERT_ANY_THROW(ServerCapability(NullContext(), "Protocol name", "Unsupported"));
-}
-
 TEST_F(ServerCapabilityTest, Freezable)
 {
-    ServerCapabilityConfigPtr capability = ServerCapability(NullContext(), "Protocol name", "Streaming");
+    ServerCapabilityConfigPtr capability = ServerCapability("Protocol name", ProtocolType::Streaming);
 
     ASSERT_FALSE(capability.isFrozen());
     ASSERT_NO_THROW(capability.freeze());
     ASSERT_TRUE(capability.isFrozen());
 
-    ASSERT_THROW(capability.setConnectionString("string"), FrozenException);
+    ASSERT_THROW(capability.addConnectionString("string"), FrozenException);
     ASSERT_THROW(capability.setConnectionType("string"), FrozenException);
     ASSERT_THROW(capability.setCoreEventsEnabled(false), FrozenException);
     ASSERT_THROW(capability.setProtocolName("string"), FrozenException);
@@ -62,7 +57,7 @@ TEST_F(ServerCapabilityTest, Freezable)
 
 TEST_F(ServerCapabilityTest, CustomProperties)
 {
-   ServerCapabilityConfigPtr capability = ServerCapability(NullContext(), "Protocol name", "Streaming");
+   ServerCapabilityConfigPtr capability = ServerCapability("Protocol name", ProtocolType::Streaming);
    SizeT defaultProportiesCnt = capability.getAllProperties().getCount();
 
     capability.addProperty(StringProperty("Name", "Chell"));

@@ -16,7 +16,7 @@
 #include <open62541/daqdevice_nodeids.h>
 #include <open62541/types_daqdevice_generated.h>
 #include <opendaq/device_info_factory.h>
-#include <opendaq/device_info_private_ptr.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/custom_log.h>
 #include "opcuatms/core_types_utils.h"
 #include "opcuatms/exceptions.h"
@@ -389,7 +389,7 @@ void TmsClientDeviceImpl::findAndCreateServerCapabilities(const DeviceInfoPtr& d
         LOG_W("Failed to find 'ServerCapabilities' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
     }
 
-    auto deviceInfoPrivate = deviceInfo.asPtr<IDeviceInfoPrivate>();
+    auto deviceInfoPrivate = deviceInfo.asPtr<IDeviceInfoInternal>();
     deviceInfoPrivate.clearServerStreamingCapabilities();
     for (const auto& [_, val] : orderedCaps)
         deviceInfoPrivate.addServerCapability(val);
@@ -542,7 +542,7 @@ void TmsClientDeviceImpl::connectToStreamings()
     {
         for (const auto& capability : info.getServerCapabilities())
         {
-            if (capability.getProtocolType().getValue() != "ServerStreaming")
+            if (capability.getProtocolType() != ProtocolType::Streaming)
                 continue;
 
             StreamingPtr streaming;

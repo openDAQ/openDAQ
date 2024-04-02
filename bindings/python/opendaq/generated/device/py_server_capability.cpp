@@ -30,6 +30,12 @@
 
 PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> declareIServerCapability(pybind11::module_ m)
 {
+    py::enum_<daq::ProtocolType>(m, "ProtocolType")
+        .value("StructureAndStreaming", daq::ProtocolType::StructureAndStreaming)
+        .value("Structure", daq::ProtocolType::Structure)
+        .value("Streaming", daq::ProtocolType::Streaming)
+        .value("Unknown", daq::ProtocolType::Unknown);
+
     return wrapInterface<daq::IServerCapability, daq::IPropertyObject>(m, "IServerCapability");
 }
 
@@ -37,12 +43,20 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
 {
     cls.doc() = "Represents standard information about a server's capability to support various protocols. The Server Capability object functions as a Property Object, facilitating the inclusion of custom properties of String, Int, Bool, or Float types. This interface serves to store essential details regarding the supported protocol by a device. It adheres to a standardized set of properties, including methods to retrieve information such as the connection string, protocol name, protocol type, connection type, and core events enabled.";
 
-    cls.def_property_readonly("connection_string",
+    cls.def_property_readonly("primary_connection_string",
         [](daq::IServerCapability *object)
         {
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
-            return objectPtr.getConnectionString().toStdString();
+            return objectPtr.getPrimaryConnectionString().toStdString();
         },
+        "Gets the connection string of the device with the current protocol.");
+    cls.def_property_readonly("connection_strings",
+        [](daq::IServerCapability *object)
+        {
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            return objectPtr.getConnectionStrings().detach();
+        },
+        py::return_value_policy::take_ownership,
         "Gets the connection string of the device with the current protocol.");
     cls.def_property_readonly("protocol_name",
         [](daq::IServerCapability *object)
@@ -55,9 +69,8 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
         [](daq::IServerCapability *object)
         {
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
-            return objectPtr.getProtocolType().detach();
+            return objectPtr.getProtocolType();
         },
-        py::return_value_policy::take_ownership,
         "Gets the type of protocol supported by the device.");
     cls.def_property_readonly("connection_type",
         [](daq::IServerCapability *object)

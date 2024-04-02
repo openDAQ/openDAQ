@@ -230,11 +230,6 @@ void TmsServerDevice::populateDeviceCapabilities()
     if (deviceInfo == nullptr)
         return;
 
-    const PropertyObjectPtr caps = deviceInfo.getPropertyValue("ServerCapabilities");
-    auto tmsServerCapability = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
-        nodeId, caps, numberInList++, "ServerCapabilities");
-
-    this->serverCapabilities.push_back(std::move(tmsServerCapability));
 }
 
 void TmsServerDevice::addFunctionBlockFolderNodes()

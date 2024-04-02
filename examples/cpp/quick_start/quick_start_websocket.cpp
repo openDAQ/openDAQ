@@ -22,7 +22,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         {
             if (capability.getProtocolName() == "openDAQ WebsocketTcp Streaming")
             {
-                device = instance.addDevice(capability.getConnectionString());
+                device = instance.addDevice(capability.getPrimaryConnectionString());
                 break;
             }
         }

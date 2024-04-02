@@ -209,6 +209,39 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     info.setSerialNumber("serial_number");
     info.setProductInstanceUri("product_instance_uri");
     info.setRevisionCounter(1);
+    info.asPtr<IDeviceInfoPrivate>().addServerCapability(ServerCapability(NullContext(), "test", "test"))
+
+    const auto serializer = JsonSerializer();
+    info.serialize(serializer);
+    const auto serializedDeviceInfo = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const DeviceInfoPtr newDeviceInfo = deserializer.deserialize(serializedDeviceInfo, nullptr, nullptr);
+    serializer.reset();
+    newDeviceInfo.serialize(serializer);
+    const auto newSerializedDeviceInfo = serializer.getOutput();
+
+    ASSERT_EQ(serializedDeviceInfo, newSerializedDeviceInfo);
+}
+
+TEST_F(DeviceInfoTest, SerializeDeserializeContents)
+{
+    DeviceInfoConfigPtr info = DeviceInfo("", "");
+
+    info.setName("name");
+    info.setConnectionString("connection_string");
+    info.setManufacturer("manufacturer");
+    info.setManufacturerUri("manufacturer_uri");
+    info.setModel("model");
+    info.setProductCode("product_code");
+    info.setHardwareRevision("hardware_revision");
+    info.setSoftwareRevision("software_revision");
+    info.setDeviceManual("device_manual");
+    info.setDeviceClass("device_class");
+    info.setSerialNumber("serial_number");
+    info.setProductInstanceUri("product_instance_uri");
+    info.setRevisionCounter(1);
 
     const auto serializer = JsonSerializer();
     info.serialize(serializer);

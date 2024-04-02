@@ -220,27 +220,21 @@ void TmsServerDevice::populateDeviceInfo()
     }
 }
 
-void TmsServerDevice::populateStreamingOptions()
+void TmsServerDevice::populateDeviceCapabilities()
 {
     auto params = AddObjectNodeParams(UA_NODEID_NULL, nodeId);
-    params.setBrowseName("StreamingOptions");
-    auto streamingOptionsNodeId = server->addObjectNode(params);
+    params.setBrowseName("ServerCapabilities");
+    auto serverCapabilitiesNodeId = server->addObjectNode(params);
 
-    auto deviceInfo = object.getInfo();
+    const auto deviceInfo = object.getInfo();
     if (deviceInfo == nullptr)
         return;
 
-    uint32_t numberInList = 0;
-    for (const auto capability: deviceInfo.getServerCapabilities())
-    {
-        if (capability.getProtocolType().getValue() != "ServerStreaming")
-            continue;
-        
-        StringPtr protocolId = capability.getPropertyValue("protocolId");
-        auto tmsStreamingOption = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
-            streamingOptionsNodeId, capability.asPtr<IPropertyObject>(), numberInList++, protocolId);
-        this->streamingOptions.push_back(std::move(tmsStreamingOption));
-    }
+    const PropertyObjectPtr caps = deviceInfo.getPropertyValue("ServerCapabilities");
+    auto tmsServerCapability = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
+        nodeId, caps, numberInList++, "ServerCapabilities");
+
+    this->serverCapabilities.push_back(std::move(tmsServerCapability));
 }
 
 void TmsServerDevice::addFunctionBlockFolderNodes()
@@ -432,7 +426,7 @@ void TmsServerDevice::removeFunctionBlock(const StringPtr& localId)
 void TmsServerDevice::addChildNodes()
 {
     populateDeviceInfo();
-    populateStreamingOptions();
+    populateDeviceCapabilities();
     auto methodSetNodeId = getChildNodeId("MethodSet");
     tmsPropertyObject->setMethodParentNodeId(methodSetNodeId);
 

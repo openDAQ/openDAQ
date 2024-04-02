@@ -15,16 +15,16 @@
  */
 #pragma once
 #include "opcuatms_client/objects/tms_client_context.h"
-#include "opcuatms_client/objects/tms_client_streaming_info_impl.h"
+#include "opcuatms_client/objects/tms_client_server_capability_impl.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
-inline ServerCapabilityPtr TmsClientStreamingInfo(const ContextPtr& daqContext,
-                                                     const StringPtr& protocolId,
-                                                     const daq::opcua::tms::TmsClientContextPtr& clientContext,
-                                                     const opcua::OpcUaNodeId& nodeId)
+inline ServerCapabilityPtr TmsClientServerCapability(const ContextPtr& daqContext,
+                                                      const StringPtr& protocolId,
+                                                      const daq::opcua::tms::TmsClientContextPtr& clientContext,
+                                                      const opcua::OpcUaNodeId& nodeId)
 {
     ServerCapabilityPtr obj(
-        createWithImplementation<IServerCapability, TmsClientStreamingInfoImpl>(daqContext, protocolId, clientContext, nodeId)
+        createWithImplementation<IServerCapability, TmsClientServerCapabilityImpl>(daqContext, protocolId, clientContext, nodeId)
     );
     return obj;
 }

@@ -10,7 +10,7 @@
 #include <opcuatms_client/objects/tms_client_signal_factory.h>
 #include "opcuatms_client/objects/tms_client_component_factory.h"
 #include "opcuatms_client/objects/tms_client_io_folder_factory.h"
-#include "opcuatms_client/objects/tms_client_streaming_info_factory.h"
+#include "opcuatms_client/objects/tms_client_server_capability_factory.h"
 #include <open62541/daqbsp_nodeids.h>
 #include "open62541/daqbt_nodeids.h"
 #include <open62541/daqdevice_nodeids.h>
@@ -187,7 +187,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         }
     }
     
-    findAndCreateStreamingOptions(deviceInfo);
+    findAndCreateServerCapabilities(deviceInfo);
 
     deviceInfo.freeze();
     return deviceInfo;
@@ -360,40 +360,40 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
         this->ioFolder.addItem(val);
 }
 
-void TmsClientDeviceImpl::findAndCreateStreamingOptions(const DeviceInfoPtr& deviceInfo)
+void TmsClientDeviceImpl::findAndCreateServerCapabilities(const DeviceInfoPtr& deviceInfo)
 {
-    std::map<uint32_t, PropertyObjectPtr> orderedStreamings;
-    std::vector<PropertyObjectPtr> unorderedStreamings;
+    std::map<uint32_t, PropertyObjectPtr> orderedCaps;
+    std::vector<PropertyObjectPtr> unorderedCaps;
 
-    auto streamingOptionsNodeId = getNodeId("StreamingOptions");
+    auto serverCapabilitiesNodeId = getNodeId("ServerCapabilities");
 
     try
     {
-        const auto& streamingOptionsReferences =
-            getChildReferencesOfType(streamingOptionsNodeId, OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_VARIABLEBLOCKTYPE));
+        const auto& serverCapabilitiesReferences =
+            getChildReferencesOfType(serverCapabilitiesNodeId, OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_VARIABLEBLOCKTYPE));
 
-        for (const auto& [browseName, ref] : streamingOptionsReferences.byBrowseName)
+        for (const auto& [browseName, ref] : serverCapabilitiesReferences.byBrowseName)
         {
             const auto optionNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-            auto clientStreamingInfo = TmsClientStreamingInfo(daqContext, browseName, clientContext, optionNodeId);
+            auto clientServerCapability = TmsClientServerCapability(daqContext, browseName, clientContext, optionNodeId);
 
             auto numberInList = this->tryReadChildNumberInList(optionNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max())
-                orderedStreamings.insert(std::pair<uint32_t, PropertyObjectPtr>(numberInList, clientStreamingInfo));
+                orderedCaps.insert(std::pair<uint32_t, PropertyObjectPtr>(numberInList, clientServerCapability));
             else
-                unorderedStreamings.emplace_back(clientStreamingInfo);
+                unorderedCaps.emplace_back(clientServerCapability);
         }
     }
     catch (const std::exception& e)
     {
-        LOG_W("Failed to find 'StreamingOptions' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
+        LOG_W("Failed to find 'ServerCapabilities' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
     }
 
     auto deviceInfoPrivate = deviceInfo.asPtr<IDeviceInfoPrivate>();
     deviceInfoPrivate.clearServerStreamingCapabilities();
-    for (const auto& [_, val] : orderedStreamings)
+    for (const auto& [_, val] : orderedCaps)
         deviceInfoPrivate.addServerCapability(val);
-    for (const auto& val : unorderedStreamings)
+    for (const auto& val : unorderedCaps)
         deviceInfoPrivate.addServerCapability(val);
 }
 

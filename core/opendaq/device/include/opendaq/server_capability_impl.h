@@ -27,10 +27,10 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ServerCapabilityConfigImpl : public GenericPropertyObjectImpl<IServerCapabilityConfig>
+class ServerCapabilityConfigImpl : public GenericPropertyObjectImpl<IPropertyObject, IServerCapabilityConfig>
 {
 public:
-    using Super = GenericPropertyObjectImpl<IServerCapabilityConfig>;
+    using Super = GenericPropertyObjectImpl<IPropertyObject, IServerCapabilityConfig>;
 
     explicit ServerCapabilityConfigImpl(const ContextPtr& context,
                                   const StringPtr& protocolName, 
@@ -43,6 +43,9 @@ public:
         
     ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) override;
     ErrCode INTERFACE_FUNC setProtocolName(IString* protocolName) override;
+
+    ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) override;
+    ErrCode INTERFACE_FUNC setProtocolId(IString* protocolId) override;
     
     ErrCode INTERFACE_FUNC getProtocolType(IEnumeration** type) override;
     ErrCode INTERFACE_FUNC setProtocolType(IString* type) override;
@@ -53,6 +56,11 @@ public:
     ErrCode INTERFACE_FUNC getCoreEventsEnabled(Bool* enabled) override;
     ErrCode INTERFACE_FUNC setCoreEventsEnabled(Bool enabled) override;    
     
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
 private:
     template <typename T>
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);

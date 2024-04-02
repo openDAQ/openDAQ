@@ -67,6 +67,12 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) = 0;
 
     /*!
+     * @brief Gets the id of the protocol supported by the device.
+     * @param[out] protocolId The id of the protocol.
+     */
+    virtual ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) = 0;
+
+    /*!
      * @brief Gets the type of protocol supported by the device.
      * @param[out] type The type of protocol (Enumeration value reflecting protocol type: "Structure&Streaming", "Structure", "Streaming", "ServerStreaming", "Unknown").
      */

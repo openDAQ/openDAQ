@@ -34,6 +34,13 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @param connectionString The connection string of device
      */
     virtual ErrCode INTERFACE_FUNC setConnectionString(IString* connectionString) = 0;
+    
+    // [returnSelf]
+    /*!
+     * @brief Sets the ID of protocol
+     * @param protocolId The ID of protocol
+     */
+    virtual ErrCode INTERFACE_FUNC setProtocolId(IString* protocolId) = 0;
 
     // [returnSelf]
     /*!

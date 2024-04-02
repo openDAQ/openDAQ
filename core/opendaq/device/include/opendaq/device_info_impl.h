@@ -111,7 +111,7 @@ private:
 
     std::unordered_set<std::string> defaultPropertyNames;
     DeviceTypePtr deviceType;
-    ListPtr<IServerCapability> serverCapabilities;
+    PropertyObjectPtr serverCapabilities;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceInfoConfigBase)

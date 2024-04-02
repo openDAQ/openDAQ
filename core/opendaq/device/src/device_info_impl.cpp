@@ -8,7 +8,6 @@ BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface, typename... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion)
     : Super()
-    , serverCapabilities(List<IServerCapability>())
 {
     createAndSetDefaultStringProperty("name", name);
     createAndSetDefaultStringProperty("manufacturer", "");
@@ -32,6 +31,9 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     createAndSetDefaultStringProperty("systemUuid", "");
     createAndSetDefaultStringProperty("connectionString", connectionString);
     createAndSetDefaultStringProperty("sdkVersion", "");
+
+    Super::addProperty(ObjectProperty("ServerCapabilities", PropertyObject()));
+    serverCapabilities = this->objPtr.getPropertyValue("ServerCapabilities");
 
     if (customSdkVersion.assigned())
         Super::setProtectedPropertyValue(String("sdkVersion"), customSdkVersion);
@@ -510,19 +512,22 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(ISe
 {
     OPENDAQ_PARAM_NOT_NULL(serverCapability);
     
-    auto serverCapabilityPtr = ServerCapabilityPtr::Borrow(serverCapability);
-    bool isServerStreaming = serverCapabilityPtr.getProtocolType().getValue() == "ServerStreaming";
+    StringPtr id;
+    const ErrCode err = serverCapability->getProtocolId(&id);
+    if (OPENDAQ_FAILED(err))
+        return err;
 
-    if (isServerStreaming)
+    for (const auto& prop : serverCapabilities.getAllProperties())
     {
-        for (const auto& capability : serverCapabilities)
-        {
-            if (capability.getProtocolType().getValue() == "ServerStreaming" && capability.getPropertyValue("protocolId") == serverCapabilityPtr.getPropertyValue("protocolId"))
-                return OPENDAQ_ERR_DUPLICATEITEM;
-        }
+        if (prop.getValueType() != ctObject)
+            continue;
+
+        const ServerCapabilityPtr capability = serverCapabilities.getPropertyValue(prop.getName());
+        if (capability.getProtocolId() == id)
+            return OPENDAQ_ERR_DUPLICATEITEM;
     }
-    
-    serverCapabilities.pushBack(serverCapability);
+
+    serverCapabilities.addProperty(ObjectProperty(id, serverCapability));
     return OPENDAQ_SUCCESS;
 }
 
@@ -530,31 +535,28 @@ template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(IString* protocolId)
 {
     OPENDAQ_PARAM_NOT_NULL(protocolId);
+
+    if (!serverCapabilities.hasProperty(protocolId))
+        return OPENDAQ_ERR_NOTFOUND;
+
     
-    size_t i = 0;
-    while(i < serverCapabilities.getCount())
-    {
-        auto serverCapability = serverCapabilities[i];
-        if (serverCapability.getProtocolType().getValue() == "ServerStreaming" && serverCapability.getPropertyValue("protocolId") == StringPtr::Borrow(protocolId))
-            serverCapabilities.removeAt(i);
-        else
-            i++;
-    }
-    return OPENDAQ_SUCCESS;
+    return serverCapabilities->removeProperty(protocolId);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clearServerStreamingCapabilities()
 {
-    size_t i = 0;
-    while(i < serverCapabilities.getCount())
+    const auto props = serverCapabilities.getAllProperties();
+    for (const auto& prop : props)
     {
-        ServerCapabilityPtr serverCapability = serverCapabilities[i];
-        if (serverCapability.getProtocolType().getValue() == "ServerStreaming")
-            serverCapabilities.removeAt(i);
-        else
-            i++;
+        if (prop.getValueType() == ctObject)
+        {
+            const ErrCode err = serverCapabilities->removeProperty(prop.getName());
+            if (OPENDAQ_FAILED(err))
+                return err;
+        }
     }
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -562,11 +564,24 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(IList** serverCapabilities)
 {
     OPENDAQ_PARAM_NOT_NULL(serverCapabilities);
+    ListPtr<IServerCapability> caps = List<IServerCapability>();
 
-    *serverCapabilities = this->serverCapabilities.addRefAndReturn();
+    for (const auto& prop : this->serverCapabilities.getAllProperties())
+    {
+        if (prop.getValueType() == ctObject)
+        {
+            BaseObjectPtr cap;
+            const ErrCode err = this->serverCapabilities->getPropertyValue(prop.getName(), &cap);
+            if (OPENDAQ_FAILED(err))
+                return err;
+
+            caps.pushBack(cap.detach());
+        }
+    }
+
+    *serverCapabilities = caps.detach();
     return OPENDAQ_SUCCESS;
 }
-
 
 #if !defined(BUILDING_STATIC_LIBRARY)
 
@@ -583,8 +598,5 @@ ErrCode PUBLIC_EXPORT createDeviceInfoConfigWithCustomSdkVersion(IDeviceInfoConf
 }
 
 #endif
-
-
-
 
 END_NAMESPACE_OPENDAQ

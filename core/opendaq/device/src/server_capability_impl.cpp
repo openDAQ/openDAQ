@@ -44,6 +44,7 @@ ServerCapabilityConfigImpl::ServerCapabilityConfigImpl( const ContextPtr& contex
     Super::addProperty(StringProperty(ProtocolName, protocolName));
     Super::addProperty(StringProperty(ConnectionType, "Unknwown"));
     Super::addProperty(BoolProperty(UpdateMethod, false));
+    Super::addProperty(StringProperty(ProtocolId, ""));
 }
 
 ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const ContextPtr& context, const StringPtr& protocolId)
@@ -90,6 +91,20 @@ ErrCode ServerCapabilityConfigImpl::setProtocolName(IString* protocolName)
     return Super::setPropertyValue(String(ProtocolName), protocolName);
 }
 
+ErrCode ServerCapabilityConfigImpl::getProtocolId(IString** protocolId)
+{
+    return daqTry([&]() {
+        *protocolId = getTypedProperty<IString>(ProtocolId).detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ServerCapabilityConfigImpl::setProtocolId(IString* protocolId)
+{
+    OPENDAQ_PARAM_NOT_NULL(protocolId);
+    return Super::setPropertyValue(String(ProtocolId), protocolId);
+}
+
 ErrCode ServerCapabilityConfigImpl::getProtocolType(IEnumeration** type)
 {
     OPENDAQ_PARAM_NOT_NULL(type);
@@ -130,10 +145,44 @@ ErrCode ServerCapabilityConfigImpl::setCoreEventsEnabled(Bool enabled)
     return Super::setPropertyValue(String(UpdateMethod), BooleanPtr(enabled));
 }
 
+ErrCode ServerCapabilityConfigImpl::getSerializeId(ConstCharPtr* id) const
+{
+    *id = SerializeId();
+
+    return OPENDAQ_SUCCESS;
+}
+
+ConstCharPtr ServerCapabilityConfigImpl::SerializeId()
+{
+    return "ServerCapability";
+}
+
+ErrCode ServerCapabilityConfigImpl::Deserialize(ISerializedObject* serialized,
+                                                IBaseObject* context,
+                                                IFunction* factoryCallback,
+                                                IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    return daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = Super::DeserializePropertyObject(
+                    serialized,
+                    context,
+                    factoryCallback,
+                       [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& /*context*/, const StringPtr& /*className*/)
+                       {
+                           const auto cap = createWithImplementation<IServerCapability, ServerCapabilityConfigImpl>();
+                           return cap;
+                       }).detach();
+        });
+}
+
 extern "C" ErrCode PUBLIC_EXPORT createServerCapability(IServerCapabilityConfig** objTmp,
-                                            IContext* context,
-                                            IString* protocolName,
-                                            IString* protocolType)
+                                                        IContext* context,
+                                                        IString* protocolName,
+                                                        IString* protocolType)
 {
     return daq::createObject<IServerCapabilityConfig, ServerCapabilityConfigImpl>(objTmp, context, protocolName, protocolType);
 }

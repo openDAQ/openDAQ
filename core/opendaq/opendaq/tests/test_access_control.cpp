@@ -43,7 +43,7 @@ TEST_F(AccessControlTest, DefaultPermissions)
     const auto user = User("user", "psswordHash");
 
     auto device = createDevice();
-    auto fb = device.findComponent("FB/mock_fb_uid_0");
+    auto fb = device.findComponent("FB/mock_fb_uid_1");
 
     auto deviceManager = device.getPermissionManager();
     auto fbManager = fb.getPermissionManager();
@@ -62,7 +62,7 @@ TEST_F(AccessControlTest, ComponentInherit)
     const auto user = User("user", "psswordHash", List<IString>("user", "guest"));
 
     auto device = createDevice();
-    auto fb = device.findComponent("FB/mock_fb_uid_0");
+    auto fb = device.findComponent("FB/mock_fb_uid_1");
 
     auto deviceManager = device.getPermissionManager();
     auto fbManager = fb.getPermissionManager();
@@ -111,7 +111,7 @@ TEST_F(AccessControlTest, ComponentAndObjectInherit)
     const auto user = User("user", "psswordHash", List<IString>("user", "guest"));
 
     auto device = createDevice();
-    auto fb = device.findComponent("FB/mock_fb_uid_0");
+    auto fb = device.findComponent("FB/mock_fb_uid_1");
 
     auto object = PropertyObject();
     object.addProperty(IntProperty("TestInt", 10));

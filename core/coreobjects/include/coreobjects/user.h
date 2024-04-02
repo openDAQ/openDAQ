@@ -23,8 +23,8 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @ingroup opendaq_security
- * @addtogroup opendaq_security_user User
+ * @ingroup objects_security
+ * @addtogroup objects_security_user User
  * @{
  */
 

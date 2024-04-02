@@ -7,7 +7,7 @@
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <opendaq/orphaned_modules.h>
 #include <opendaq/device_info_config_ptr.h>
-#include <opendaq/device_info_private_ptr.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <coretypes/validation.h>
 #include <opendaq/device_private.h>
 #include <string>
@@ -171,7 +171,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             {
                 DeviceInfoPtr value = groupedDevices.get(id);
                 for (const auto & capability : deviceInfo.getServerCapabilities())
-                    value.asPtr<IDeviceInfoPrivate>().addServerCapability(capability);
+                    value.asPtr<IDeviceInfoInternal>().addServerCapability(capability);
             }
             else
             {
@@ -261,9 +261,12 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         internalServerCapability = deviceInfo.getServerCapabilities()[0];
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (capability.getProtocolType().getIntValue() < internalServerCapability.getProtocolType().getIntValue())
+            if (capability.getProtocolType() < internalServerCapability.getProtocolType())
                 internalServerCapability = capability;
         }
+
+        if (internalServerCapability.assigned())
+            connectionStringPtr = internalServerCapability.getPrimaryConnectionString();
     } 
     else if (availableDevicesGroup.assigned())
     {
@@ -281,11 +284,14 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             {
                 for(const auto & capability : info.getServerCapabilities())
                 {
-                    if (capability.getConnectionString() == connectionStringPtr)
+                    for (const auto & connection: capability.getConnectionStrings())
                     {
-                        internalServerCapability = capability;
-                        deviceInfo = info;
-                        break;
+                        if (connection == connectionStringPtr)
+                        {
+                            internalServerCapability = capability;
+                            deviceInfo = info;
+                            break;
+                        }
                     }
                 }
                 if (deviceInfo.assigned())
@@ -293,9 +299,6 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             }
         }
     }
-
-    if (internalServerCapability.assigned())
-        connectionStringPtr = internalServerCapability.getConnectionString();
     
     for (const auto& library : libraries)
     {
@@ -323,7 +326,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             auto devicePtr = DevicePtr::Borrow(*device); 
             if (devicePtr.assigned() && deviceInfo.assigned())
             {
-                auto deviceInfoConfig = devicePtr.getInfo().asPtr<IDeviceInfoPrivate>();
+                auto deviceInfoConfig = devicePtr.getInfo().asPtr<IDeviceInfoInternal>();
                 for (const auto & capability : deviceInfo.getServerCapabilities())
                     deviceInfoConfig.addServerCapability(capability);
             }

@@ -118,7 +118,7 @@ TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConfig)
     ModulePtr module;
     createModule(&module, context);
  
-    ServerCapabilityPtr serverCapability = ServerStreamingCapability(context, "daq.ns");
+    ServerCapabilityPtr serverCapability = ServerStreamingCapability("daq.ns");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
     serverCapability.setPropertyValue("address", "123.123.123.123");

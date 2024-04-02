@@ -233,7 +233,7 @@ void TmsServerDevice::populateStreamingOptions()
     uint32_t numberInList = 0;
     for (const auto capability: deviceInfo.getServerCapabilities())
     {
-        if (capability.getProtocolType().getValue() != "ServerStreaming")
+        if (capability.getProtocolType() != ProtocolType::Streaming)
             continue;
         
         StringPtr protocolId = capability.getPropertyValue("protocolId");

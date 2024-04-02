@@ -25,14 +25,14 @@ Description:
 + [function] IServerCapabilityConfig::setConnectionType(IString* type)
 + [function] IServerCapabilityConfig::setCoreEventsEnabled(Bool enabled) 
 + [function] IServerCapabilityConfig::addProperty(IProperty* property)
-+ [factory] ServerCapabilityConfigPtr ServerCapability(const ContextPtr& context, const StringPtr& protocolName, const StringPtr& protocolType)
-+ [factory] ServerCapabilityConfigPtr ServerStreamingCapability(const ContextPtr& context, const StringPtr& protocolId)
++ [factory] ServerCapabilityConfigPtr ServerCapability(const StringPtr& protocolName, ProtocolType protocolType)
++ [factory] ServerCapabilityConfigPtr ServerStreamingCapability(const StringPtr& protocolId)
 
 + [function] IDeviceInfo::getServerCapabilities(IList** serverCapabilities)
-+ [interface] IDeviceInfoPrivate
-+ [function] IDeviceInfoPrivate::addServerCapability(IServerCapability* serverCapability)
-+ [function] IDeviceInfoPrivate::removeServerCapability(IString* protocolId)
-+ [function] IDeviceInfoPrivate::clearServerStreamingCapabilities()
++ [interface] IDeviceInfoInternal
++ [function] IDeviceInfoInternal::addServerCapability(IServerCapability* serverCapability)
++ [function] IDeviceInfoInternal::removeServerCapability(IString* protocolId)
++ [function] IDeviceInfoInternal::clearServerStreamingCapabilities()
 
 - [function] IDevicePrivate::addStreamingOption(IStreamingInfo* info)
 - [function] IDevicePrivate::removeStreamingOption(IString* protocolId)

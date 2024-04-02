@@ -28,11 +28,11 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_devices
- * @addtogroup opendaq_device_info Device info private
+ * @addtogroup opendaq_device_info Device info internal
  * @{
  */
 
-DECLARE_OPENDAQ_INTERFACE(IDeviceInfoPrivate, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IDeviceInfoInternal, IBaseObject)
 {
 
     /*!

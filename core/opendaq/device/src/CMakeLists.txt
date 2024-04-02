@@ -10,7 +10,7 @@ set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 rtgen(SRC_Device device.h)
 rtgen(SRC_DeviceDomain device_domain.h)
 rtgen(SRC_DeviceInfo device_info.h)
-rtgen(SRC_DeviceInfoPrivate device_info_private.h)
+rtgen(SRC_DeviceInfoInternal device_info_internal.h)
 rtgen(SRC_DeviceInfoConfig device_info_config.h)
 rtgen(SRC_ServerCapability server_capability.h)
 rtgen(SRC_ServerCapabilityConfig server_capability_config.h)
@@ -22,7 +22,7 @@ source_group("device" FILES ${SDK_HEADERS_DIR}/device.h
                             ${SDK_HEADERS_DIR}/device_domain.h
                             ${SDK_HEADERS_DIR}/device_info.h
                             ${SDK_HEADERS_DIR}/device_info_config.h
-                            ${SDK_HEADERS_DIR}/device_info_private.h
+                            ${SDK_HEADERS_DIR}/device_info_internal.h
                             ${SDK_HEADERS_DIR}/device_info_impl.h
                             ${SDK_HEADERS_DIR}/device_info_factory.h
                             ${SDK_HEADERS_DIR}/device_private.h
@@ -92,7 +92,7 @@ list(APPEND SRC_Cpp ${SRC_Device_Cpp}
                     ${SRC_DeviceDomain_Cpp}
                     ${SRC_DeviceInfo_Cpp}
                     ${SRC_DeviceInfoConfig_Cpp}
-                    ${SRC_DeviceInfoPrivate_Cpp}
+                    ${SRC_DeviceInfoInternal_Cpp}
                     ${SRC_ServerCapability_Cpp}
                     ${SRC_ServerCapabilityConfig_Cpp}
                     ${SRC_IoFolderConfig_Cpp}
@@ -103,7 +103,7 @@ list(APPEND SRC_PublicHeaders ${SRC_Device_PublicHeaders}
                               ${SRC_DeviceDomain_PublicHeaders}
                               ${SRC_DeviceInfo_PublicHeaders}
                               ${SRC_DeviceInfoConfig_PublicHeaders}
-                              ${SRC_DeviceInfoPrivate_PublicHeaders}
+                              ${SRC_DeviceInfoInternal_PublicHeaders}
                               ${SRC_ServerCapability_PublicHeaders}
                               ${SRC_ServerCapabilityConfig_PublicHeaders}
                               ${SRC_IoFolderConfig_PublicHeaders}
@@ -114,7 +114,7 @@ list(APPEND SRC_PrivateHeaders ${SRC_Device_PrivateHeaders}
                                ${SRC_DeviceDomain_PrivateHeaders}
                                ${SRC_DeviceInfo_PrivateHeaders}
                                ${SRC_DeviceInfoConfig_PrivateHeaders}
-                               ${SRC_DeviceInfoPrivate_PrivateHeaders}
+                               ${SRC_DeviceInfoInternal_PrivateHeaders}
                                ${SRC_ServerCapability_PrivateHeaders}
                                ${SRC_ServerCapabilityConfig_PrivateHeaders}
                                ${SRC_IoFolderConfig_PrivateHeaders}

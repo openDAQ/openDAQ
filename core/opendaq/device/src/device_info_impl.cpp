@@ -511,13 +511,13 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(ISe
     OPENDAQ_PARAM_NOT_NULL(serverCapability);
     
     auto serverCapabilityPtr = ServerCapabilityPtr::Borrow(serverCapability);
-    bool isServerStreaming = serverCapabilityPtr.getProtocolType().getValue() == "ServerStreaming";
+    bool isServerStreaming = serverCapabilityPtr.getProtocolType() == ProtocolType::Streaming;
 
     if (isServerStreaming)
     {
         for (const auto& capability : serverCapabilities)
         {
-            if (capability.getProtocolType().getValue() == "ServerStreaming" && capability.getPropertyValue("protocolId") == serverCapabilityPtr.getPropertyValue("protocolId"))
+            if (capability.getProtocolType() == ProtocolType::Streaming && capability.getPropertyValue("protocolId") == serverCapabilityPtr.getPropertyValue("protocolId"))
                 return OPENDAQ_ERR_DUPLICATEITEM;
         }
     }
@@ -535,7 +535,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(
     while(i < serverCapabilities.getCount())
     {
         auto serverCapability = serverCapabilities[i];
-        if (serverCapability.getProtocolType().getValue() == "ServerStreaming" && serverCapability.getPropertyValue("protocolId") == StringPtr::Borrow(protocolId))
+        if (serverCapability.getProtocolType() == ProtocolType::Streaming && serverCapability.getPropertyValue("protocolId") == StringPtr::Borrow(protocolId))
             serverCapabilities.removeAt(i);
         else
             i++;
@@ -550,7 +550,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clearServerStreamingCap
     while(i < serverCapabilities.getCount())
     {
         ServerCapabilityPtr serverCapability = serverCapabilities[i];
-        if (serverCapability.getProtocolType().getValue() == "ServerStreaming")
+        if (serverCapability.getProtocolType() == ProtocolType::Streaming)
             serverCapabilities.removeAt(i);
         else
             i++;

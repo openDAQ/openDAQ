@@ -2,7 +2,7 @@
 #include <opendaq/device_info_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>
-#include <opendaq/device_info_private_ptr.h>
+#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_DISCOVERY
 
@@ -39,7 +39,7 @@ ListPtr<IDeviceInfo> DiscoveryClient::discoverMdnsDevices() const
         {
             for (const auto& connectionStringFormatCb : serverCapabilityCbs)
             {
-                deviceInfo.asPtr<IDeviceInfoPrivate>().addServerCapability(connectionStringFormatCb(device));
+                deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(connectionStringFormatCb(device));
             }
             discovered.pushBack(deviceInfo);
         }

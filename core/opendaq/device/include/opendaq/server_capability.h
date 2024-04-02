@@ -34,6 +34,14 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
  */
 
+enum class ProtocolType: uint32_t
+{
+    StructureAndStreaming = 0,
+    Structure,
+    Streaming,
+    Unknown = 0xFF,
+};
+
 /*!
  * @brief Represents standard information about a server's capability to support various protocols. 
  * The Server Capability object functions as a Property Object, facilitating the inclusion of custom properties of String, Int, Bool, or Float types.
@@ -58,7 +66,14 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @brief Gets the connection string of the device with the current protocol.
      * @param[out] connectionString The connection string of the device (URL to connect).
      */
-    virtual ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC getPrimaryConnectionString(IString** connectionString) = 0;
+
+    // [templateType(connectionStrings, IString)]
+    /*!
+     * @brief Gets the connection string of the device with the current protocol.
+     * @param[out] connectionString The connection string of the device (URL to connect).
+     */
+    virtual ErrCode INTERFACE_FUNC getConnectionStrings(IList** connectionStrings) = 0;
 
     /*!
      * @brief Gets the name of the protocol supported by the device.
@@ -70,7 +85,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @brief Gets the type of protocol supported by the device.
      * @param[out] type The type of protocol (Enumeration value reflecting protocol type: "Structure&Streaming", "Structure", "Streaming", "ServerStreaming", "Unknown").
      */
-    virtual ErrCode INTERFACE_FUNC getProtocolType(IEnumeration** type) = 0;
+    virtual ErrCode INTERFACE_FUNC getProtocolType(ProtocolType* type) = 0;
 
     /*!
      * @brief Gets the type of connection supported by the device.

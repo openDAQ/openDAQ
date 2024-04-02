@@ -32,20 +32,21 @@ class ServerCapabilityConfigImpl : public GenericPropertyObjectImpl<IServerCapab
 public:
     using Super = GenericPropertyObjectImpl<IServerCapabilityConfig>;
 
-    explicit ServerCapabilityConfigImpl(const ContextPtr& context,
-                                  const StringPtr& protocolName, 
-                                  const StringPtr& protocolType);
+    explicit ServerCapabilityConfigImpl(const StringPtr& protocolName, ProtocolType protocolType);
     
-    explicit ServerCapabilityConfigImpl(const ContextPtr& context, const StringPtr& protocolId);
+    explicit ServerCapabilityConfigImpl(const StringPtr& protocolId);
 
-    ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
-    ErrCode INTERFACE_FUNC setConnectionString(IString* connectionString) override;
+    ErrCode INTERFACE_FUNC getPrimaryConnectionString(IString** connectionString) override;
+    ErrCode INTERFACE_FUNC setPrimaryConnectionString(IString* connectionString) override;
+
+    ErrCode INTERFACE_FUNC getConnectionStrings(IList** connectionStrings) override;
+    ErrCode INTERFACE_FUNC addConnectionString(IString* connectionString) override;
         
     ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) override;
     ErrCode INTERFACE_FUNC setProtocolName(IString* protocolName) override;
     
-    ErrCode INTERFACE_FUNC getProtocolType(IEnumeration** type) override;
-    ErrCode INTERFACE_FUNC setProtocolType(IString* type) override;
+    ErrCode INTERFACE_FUNC getProtocolType(ProtocolType* type) override;
+    ErrCode INTERFACE_FUNC setProtocolType(ProtocolType type) override;
     
     ErrCode INTERFACE_FUNC getConnectionType(IString** type) override;
     ErrCode INTERFACE_FUNC setConnectionType(IString* type) override;
@@ -56,7 +57,9 @@ public:
 private:
     template <typename T>
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
-    static TypeManagerPtr GetTypeManager(const ContextPtr& context);
+
+    static StringPtr ProtocolTypeToString(ProtocolType type);
+    static ProtocolType StringToProtocolType(const StringPtr& type);
 
     TypeManagerPtr typeManager;
     EnumerationPtr protocolType;

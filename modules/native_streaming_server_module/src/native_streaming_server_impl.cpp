@@ -9,7 +9,7 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/device_info_factory.h>
-#include <opendaq/device_info_private_ptr.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 #include <config_protocol/config_protocol_server.h>
 
@@ -37,9 +37,9 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
     const uint16_t port = config.getPropertyValue("NativeStreamingPort");
     serverHandler->startServer(port);
 
-    auto serverCapability = ServerStreamingCapability(context, "daq.ns");
+    auto serverCapability = ServerStreamingCapability("daq.ns");
     serverCapability.addProperty(IntProperty("Port", port));
-    this->rootDevice.getInfo().asPtr<IDeviceInfoPrivate>().addServerCapability(serverCapability);
+    this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
 
     this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
 
@@ -258,7 +258,7 @@ ServerTypePtr NativeStreamingServerImpl::createType()
 void NativeStreamingServerImpl::onStopServer()
 {
     stopReading();
-    this->rootDevice.getInfo().asPtr<IDeviceInfoPrivate>().removeServerCapability(String("daq.ns"));
+    this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().removeServerCapability(String("daq.ns"));
     serverHandler->stopServer();
 }
 

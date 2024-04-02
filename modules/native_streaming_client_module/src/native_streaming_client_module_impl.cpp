@@ -35,7 +35,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                return ServerCapability(context, "openDAQ Native Streaming", "Streaming").setConnectionString(connectionString).setConnectionType("Ipv4");
+                return ServerCapability("openDAQ Native Streaming", ProtocolType::Streaming).addConnectionString(connectionString).setConnectionType("Ipv4");
             },
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
@@ -43,7 +43,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                return ServerCapability(context, "openDAQ Native Streaming", "Structure&Streaming").setConnectionString(connectionString).setConnectionType("Ipv4").setCoreEventsEnabled(true);
+                return ServerCapability("openDAQ Native Streaming", ProtocolType::StructureAndStreaming).addConnectionString(connectionString).setConnectionType("Ipv4").setCoreEventsEnabled(true);
             }
         },
         {"OPENDAQ_NS"}
@@ -324,7 +324,7 @@ bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const S
         return connectionStringHasPrefix(connectionString, NativeStreamingPrefix) &&
                validateConnectionString(connectionString);
     }
-    else if (capability.assigned() && capability.getProtocolType().getValue() == "ServerStreaming")
+    else if (capability.assigned() && capability.getProtocolType() == ProtocolType::Streaming)
     {
         StringPtr protocolId = capability.getPropertyValue("protocolId");
         StringPtr primaryAddress = capability.getPropertyValue("address");

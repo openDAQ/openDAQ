@@ -40,8 +40,8 @@
 #include <cctype>
 #include <opendaq/ids_parser.h>
 #include <opendaq/component_status_container_impl.h>
-#include <opendaq/permission_manager_factory.h>
-#include <opendaq/permissions_builder_factory.h>
+#include <coreobjects/permission_manager_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

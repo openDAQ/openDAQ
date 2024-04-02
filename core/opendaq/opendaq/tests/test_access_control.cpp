@@ -5,12 +5,12 @@
 #include <opendaq/mock/mock_fb_module.h>
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/scheduler_factory.h>
-#include <opendaq/user_factory.h>
+#include <coreobjects/user_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
-#include <opendaq/permissions_builder_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
 #include <opendaq/search_filter_factory.h>
-#include <opendaq/permission_manager_factory.h>
+#include <coreobjects/permission_manager_factory.h>
 
 using namespace daq;
 

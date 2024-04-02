@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include <opendaq/authentication_provider_factory.h>
-#include <opendaq/security_exceptions.h>
-#include <opendaq/user_factory.h>
+#include <coreobjects/authentication_provider_factory.h>
+#include <coreobjects/user_factory.h>
+#include <coreobjects/exceptions.h>
 
 using namespace daq;
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/permission_manager_ptr.h>
+#include <coreobjects/permission_manager_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

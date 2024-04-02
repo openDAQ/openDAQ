@@ -16,8 +16,8 @@
 
 #pragma once
 #include <coretypes/intfs.h>
-#include <opendaq/permissions_builder.h>
-#include <opendaq/permissions_ptr.h>
+#include <coreobjects/permissions_builder.h>
+#include <coreobjects/permissions_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

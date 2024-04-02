@@ -16,10 +16,10 @@
 
 #pragma once
 #include <coretypes/intfs.h>
-#include <opendaq/permission_manager.h>
-#include <opendaq/permission_manager_ptr.h>
-#include <opendaq/permission_manager_internal.h>
-#include <opendaq/permission_manager_internal_ptr.h>
+#include <coreobjects/permission_manager.h>
+#include <coreobjects/permission_manager_ptr.h>
+#include <coreobjects/permission_manager_internal.h>
+#include <coreobjects/permission_manager_internal_ptr.h>
 #include <coretypes/weakrefptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ

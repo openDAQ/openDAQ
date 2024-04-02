@@ -13,29 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
-#include <opendaq/user_ptr.h>
+#include <coreobjects/user.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @ingroup opendaq_security
- * @addtogroup opendaq_security_user Factories
- * @{
+ * @brief Internal User interface. It should be used only in openDAQ core implementation files.
  */
-
-/*!
- * @brief Creates a immutable user object with provided arguments.
- * @param username Username of a user.
- * @param passwordHash Hashed password as a string in Modular Crypt Format.
- * @param groups The list of group IDs which the user belongs to.
- */
-inline UserPtr User(const StringPtr& username, const StringPtr& passwordHash, const ListPtr<IString> groups = nullptr)
+DECLARE_OPENDAQ_INTERFACE(IUserInternal, IBaseObject)
 {
-    UserPtr obj(User_Create(username, passwordHash, groups));
-    return obj;
-}
-
-/*!@}*/
+    /*!
+     * @brief Returns hashed password as a string in Modular Crypt Format.
+     * @param password[out] The hashed password as a string in Modular Crypt Format.
+     */
+    virtual ErrCode INTERFACE_FUNC getPasswordHash(IString** passwordHash) = 0;
+};
 
 END_NAMESPACE_OPENDAQ

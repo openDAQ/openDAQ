@@ -42,8 +42,8 @@
 #include <coretypes/enumeration_factory.h>
 #include <coretypes/validation.h>
 #include <coretypes/cloneable.h>
-#include <opendaq/permission_manager_factory.h>
-#include <opendaq/permission_manager_internal_ptr.h>
+#include <coreobjects/permission_manager_factory.h>
+#include <coreobjects/permission_manager_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

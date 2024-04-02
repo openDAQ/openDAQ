@@ -1,9 +1,9 @@
-#include <opendaq/user_impl.h>
+#include <coreobjects/user_impl.h>
 #include <coretypes/impl.h>
 #include <coretypes/validation.h>
 #include <coretypes/serialized_object_ptr.h>
-#include <opendaq/user_factory.h>
-#include <opendaq/user_internal_ptr.h>
+#include <coreobjects/user_factory.h>
+#include <coreobjects/user_internal_ptr.h>
 #include <set>
 
 BEGIN_NAMESPACE_OPENDAQ

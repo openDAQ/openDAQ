@@ -1,9 +1,9 @@
-#include <opendaq/permission_manager_impl.h>
+#include <coreobjects/permission_manager_impl.h>
 #include <coretypes/impl.h>
 #include <coretypes/string_ptr.h>
-#include <opendaq/user_ptr.h>
+#include <coreobjects/user_ptr.h>
 #include <coretypes/validation.h>
-#include <opendaq/permissions_builder_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

@@ -14,22 +14,25 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/permissions_builder_ptr.h>
+#include <coreobjects/user_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_security
- * @addtogroup opendaq_security_permissions_builder Factories
+ * @addtogroup opendaq_security_user Factories
  * @{
  */
 
 /*!
- * @brief Creates a permissions builder object.
+ * @brief Creates a immutable user object with provided arguments.
+ * @param username Username of a user.
+ * @param passwordHash Hashed password as a string in Modular Crypt Format.
+ * @param groups The list of group IDs which the user belongs to.
  */
-inline PermissionsBuilderPtr PermissionsBuilder()
+inline UserPtr User(const StringPtr& username, const StringPtr& passwordHash, const ListPtr<IString> groups = nullptr)
 {
-    PermissionsBuilderPtr obj(PermissionsBuilder_Create());
+    UserPtr obj(User_Create(username, passwordHash, groups));
     return obj;
 }
 

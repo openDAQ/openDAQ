@@ -1,10 +1,9 @@
-#include <opendaq/authentication_provider_impl.h>
-#include <opendaq/security_errors.h>
-#include <opendaq/security_exceptions.h>
+#include <coreobjects/authentication_provider_impl.h>
 #include <fstream>
-#include <opendaq/user_internal_ptr.h>
+#include <coreobjects/user_internal_ptr.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <coreobjects/errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

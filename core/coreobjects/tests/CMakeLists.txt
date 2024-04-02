@@ -21,7 +21,11 @@ set(TEST_SOURCES test_property.cpp
                  test_callable_info.cpp
                  test_argument_info.cpp
                  test_value_changed_events.cpp
-				 test_unit.cpp
+                 test_unit.cpp
+                 test_user.cpp
+                 test_authentication_provider.cpp
+                 test_permission_manager.cpp
+                 test_permissions_builder.cpp
 )
 
 set(TEST_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/coreobjects_test.h

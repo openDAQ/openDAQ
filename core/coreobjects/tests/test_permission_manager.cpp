@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include <opendaq/permission_manager_factory.h>
-#include <opendaq/permission_manager_internal_ptr.h>
-#include <opendaq/user_factory.h>
-#include <opendaq/permissions_builder_factory.h>
+#include <coreobjects/permission_manager_factory.h>
+#include <coreobjects/permission_manager_internal_ptr.h>
+#include <coreobjects/user_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
 
 using namespace daq;
 

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include <opendaq/permissions_builder_factory.h>
-#include <opendaq/permission_manager.h>
+#include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/permission_manager.h>
 
 using namespace daq;
 

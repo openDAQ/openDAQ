@@ -13,7 +13,7 @@
         },
     "RootDevice": 
         {
-			"DefaultLocalId": "testtron",
+			"DefaultLocalId": "falselocalid",
             "ConnectionString": "daqref://device1"
         }
 }

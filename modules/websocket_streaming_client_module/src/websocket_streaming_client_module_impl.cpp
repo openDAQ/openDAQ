@@ -34,14 +34,6 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
                 return ServerCapability(context, "openDAQ WebsocketTcp Streaming", "Streaming").setConnectionString(connectionString).setConnectionType("Ipv4");
-            },
-            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
-            {
-                auto connectionString = fmt::format("daq.ws://{}:{}{}",
-                                   discoveredDevice.ipv6Address,
-                                   discoveredDevice.servicePort,
-                                   discoveredDevice.getPropertyOrDefault("path", "/"));
-                return ServerCapability(context, "openDAQ WebsocketTcp Streaming", "Streaming").setConnectionString(connectionString).setConnectionType("Ipv6");
             }
         },
         {"WS"}

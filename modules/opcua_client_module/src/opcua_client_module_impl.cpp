@@ -30,14 +30,6 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
             {
                 auto connectionString = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
                 return ServerCapability(context, "openDAQ OpcUa", "Structure").setConnectionString(connectionString).setConnectionType("Ipv4");
-            },
-            [context = this->context](const MdnsDiscoveredDevice& discoveredDevice)
-            {
-                auto connectionString = fmt::format("{}[{}]{}",
-                                   DaqOpcUaDevicePrefix,
-                                   discoveredDevice.ipv6Address,
-                                   "/");
-                return ServerCapability(context, "openDAQ OpcUa", "Structure").setConnectionString(connectionString).setConnectionType("Ipv6");
             }
         },
         {"OPENDAQ"}

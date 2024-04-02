@@ -94,7 +94,7 @@ bool WebsocketStreamingClientModule::onAcceptsConnectionParameters(const StringP
     return (found == 0);
 }
 
-bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
+bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     if (connectionString.assigned())
     {
@@ -102,13 +102,13 @@ bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(cons
         auto found = connStr.find(WebsocketDevicePrefix);
         return (found == 0);
     }
-    else if (capability.assigned())
+    else if (config.assigned())
     {
-        if (capability.getPropertyValue("protocolId") == WebsocketDeviceTypeId)
+        if (config.getPropertyValue("protocolId") == WebsocketDeviceTypeId)
         {
             try
             {
-                auto generatedConnectionString = tryCreateWebsocketConnectionString(capability);
+                auto generatedConnectionString = tryCreateWebsocketConnectionString(config);
                 return true;
             }
             catch (const std::exception& e)
@@ -120,18 +120,18 @@ bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(cons
     return false;
 }
 
-StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
+StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     StringPtr streamingConnectionString = connectionString;
 
-    if (!streamingConnectionString.assigned() && !capability.assigned())
+    if (!streamingConnectionString.assigned() && !config.assigned())
         throw ArgumentNullException();
 
-    if (!onAcceptsStreamingConnectionParameters(streamingConnectionString, capability))
+    if (!onAcceptsStreamingConnectionParameters(streamingConnectionString, config))
         throw InvalidParameterException();
 
     if (!streamingConnectionString.assigned())
-        streamingConnectionString = tryCreateWebsocketConnectionString(capability);
+        streamingConnectionString = tryCreateWebsocketConnectionString(config);
 
     return WebsocketStreaming(streamingConnectionString, context);
 }

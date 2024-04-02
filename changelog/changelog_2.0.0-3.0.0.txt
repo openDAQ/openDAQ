@@ -29,6 +29,11 @@ Description:
 + [function] IServerCapabilityConfig::addProperty(IProperty* property)
 + [factory] ServerCapabilityConfigPtr ServerCapability(const StringPtr& protocolName, ProtocolType protocolType)
 
+-m [function] IModule::acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr)
++m [function] IModule::acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr)
+-m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config)
++m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config)
+
 + [function] IDeviceInfo::getServerCapabilities(IList** serverCapabilities)
 + [interface] IDeviceInfoInternal
 + [function] IDeviceInfoInternal::addServerCapability(IServerCapability* serverCapability)

@@ -113,7 +113,7 @@ ErrCode MockServerModuleImpl::getVersionInfo(IVersionInfo** version)
 
 ErrCode MockServerModuleImpl::acceptsStreamingConnectionParameters(Bool* accepted,
                                                                    IString* /*connectionString*/,
-                                                                   IServerCapability* /*capability*/)
+                                                                   IPropertyObject* /*config*/)
 {
     OPENDAQ_PARAM_NOT_NULL(accepted);
 
@@ -123,7 +123,7 @@ ErrCode MockServerModuleImpl::acceptsStreamingConnectionParameters(Bool* accepte
 
 ErrCode MockServerModuleImpl::createStreaming(IStreaming** /*streaming*/,
                                               IString* /*connectionString*/,
-                                              IServerCapability* /*capability*/)
+                                              IPropertyObject* /*config*/)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }

@@ -21,7 +21,7 @@ ErrCode DeviceDomainImpl::getTickResolution(IRatio** tickResolution)
 {
     OPENDAQ_PARAM_NOT_NULL(tickResolution);
 
-    *tickResolution = this->fields.get("tickResolution").asPtr<IRatio>().addRefAndReturn();;
+    *tickResolution = this->fields.get("tickResolution").asPtr<IRatio>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -29,7 +29,7 @@ ErrCode DeviceDomainImpl::getOrigin(IString** origin)
 {
     OPENDAQ_PARAM_NOT_NULL(origin);
 
-    *origin = this->fields.get("origin").asPtr<IString>().addRefAndReturn();;
+    *origin = this->fields.get("origin").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -37,7 +37,7 @@ ErrCode DeviceDomainImpl::getUnit(IUnit** unit)
 {
     OPENDAQ_PARAM_NOT_NULL(unit);
 
-    *unit = this->fields.get("unit").asPtr<IUnit>().addRefAndReturn();;
+    *unit = this->fields.get("unit").asPtr<IUnit>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

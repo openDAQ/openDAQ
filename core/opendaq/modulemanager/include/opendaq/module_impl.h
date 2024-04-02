@@ -222,17 +222,17 @@ public:
      * @param config A configuration info object that contains streaming type ID and additional parameters.
      * The configuration info is used to generate a connection string if it is not present.
      */
-    ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IServerCapability* capability = nullptr) override
+    ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr) override
     {
         OPENDAQ_PARAM_NOT_NULL(accepted);
-        if (connectionString == nullptr && capability == nullptr)
+        if (connectionString == nullptr && config == nullptr)
             return makeErrorInfo(
                 OPENDAQ_ERR_ARGUMENT_NULL,
                 "At least one parameter connection string or config should be provided for streaming"
             );
 
         bool accepts;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onAcceptsStreamingConnectionParameters, accepts, connectionString, capability);
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onAcceptsStreamingConnectionParameters, accepts, connectionString, config);
 
         *accepted = accepts;
         return errCode;
@@ -244,17 +244,17 @@ public:
      * @param config Streaming configuration info.
      * @param[out] streaming The created streaming object.
      */
-    ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IServerCapability* capability) override
+    ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config) override
     {
         OPENDAQ_PARAM_NOT_NULL(streaming);
-        if (connectionString == nullptr && capability == nullptr)
+        if (connectionString == nullptr && config == nullptr)
             return makeErrorInfo(
                 OPENDAQ_ERR_ARGUMENT_NULL,
                 "At least one parameter connection string or config should be provided for streaming"
             );
 
         StreamingPtr streamingInstance;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateStreaming, streamingInstance, connectionString, capability);
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateStreaming, streamingInstance, connectionString, config);
 
         *streaming = streamingInstance.detach();
         return errCode;
@@ -342,12 +342,12 @@ public:
         return nullptr;
     }
 
-    virtual bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
+    virtual bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
     {
         return false;
     }
 
-    virtual StreamingPtr onCreateStreaming(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
+    virtual StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
     {
         return nullptr;
     }

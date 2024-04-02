@@ -141,7 +141,7 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
      * @param config A configuration info object that contains streaming type ID and additional parameters.
      * The configuration info is used to generate a connection string if it is not present.
      */
-    virtual ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IServerCapability* capability = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr) = 0;
 
     /*!
      * @brief Creates and returns a streaming object using the specified connection string or config info object.
@@ -149,7 +149,7 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
      * @param config Streaming configuration info.
      * @param[out] streaming The created streaming object.
      */
-    virtual ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IServerCapability* capability) = 0;
+    virtual ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config) = 0;
 };
 /*!@}*/
 

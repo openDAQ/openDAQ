@@ -113,6 +113,11 @@ Vagrant.configure("2") do |config|
     # Copy opendaq-config.json file
     config.vm.provision "file", source: "opendaq-config.json", destination: "/tmp/"
     config.vm.provision "shell", inline: "cp /tmp/opendaq-config.json /home/opendaq/opendaq/"
+	
+	# Add/modify serial number in opendaq-config.json file
+	config.vm.provision "file", source: "serial_number_setter.py", destination: "/tmp/"
+	config.vm.provision "shell", inline: "cp /tmp/serial_number_setter.py /home/opendaq/opendaq/"
+	config.vm.provision "shell", inline: "python3 /home/opendaq/opendaq/serial_number_setter.py"
 
     # Reduce memory usage
     config.vm.provision :shell, :inline => <<-SCRIPT

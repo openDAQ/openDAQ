@@ -150,7 +150,7 @@ TEST_F(QuickStartTest, QuickStartAppConnectNativePseudoDevice)
     InstancePtr server = docs_test_helpers::setupSimulatorServers();
     daq::InstancePtr instance = daq::Instance();
 
-    daq::DevicePtr device = instance.addDevice("daq.nsd://127.0.0.1");
+    daq::DevicePtr device = instance.addDevice("daq.ns://127.0.0.1");
     ASSERT_TRUE(device.assigned());
 
     ASSERT_EQ(device.getInfo().getName(), "NativeStreamingClientPseudoDevice");
@@ -164,7 +164,7 @@ TEST_F(QuickStartTest, QuickStartAppReaderNativePseudoDevice)
     InstancePtr server = docs_test_helpers::setupSimulatorServers();
     daq::InstancePtr instance = daq::Instance();
 
-    daq::DevicePtr device = instance.addDevice("daq.nsd://127.0.0.1");
+    daq::DevicePtr device = instance.addDevice("daq.ns://127.0.0.1");
     ASSERT_TRUE(device.assigned());
 
     using namespace std::chrono_literals;

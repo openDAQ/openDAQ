@@ -52,13 +52,7 @@ ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocol
     Super::addProperty(StringProperty(ProtocolTypeName, ProtocolTypeToString(protocolType)));
     Super::addProperty(StringProperty(ConnectionType, "Unknwown"));
     Super::addProperty(BoolProperty(CoreEventsEnabled, false));
-}
-
-ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocolId)
-    : Super()
-{
-    Super::addProperty(StringPropertyBuilder(ProtocolId, protocolId).setReadOnly(true).build());
-    Super::addProperty(StringProperty(ProtocolTypeName, ProtocolTypeToString(ProtocolType::Streaming)));
+    Super::addProperty(StringProperty(ProtocolId, ""));
     Super::addProperty(StringProperty(PrimaryAddress, ""));
 }
 
@@ -164,17 +158,11 @@ ErrCode ServerCapabilityConfigImpl::setCoreEventsEnabled(Bool enabled)
     return Super::setPropertyValue(String(CoreEventsEnabled), BooleanPtr(enabled));
 }
 
-extern "C" ErrCode PUBLIC_EXPORT createServerCapability(IServerCapabilityConfig** objTmp,
-                                            IString* protocolName,
-                                            ProtocolType protocolType)
-{
-    return daq::createObject<IServerCapabilityConfig, ServerCapabilityConfigImpl>(objTmp, protocolName, protocolType);
-}
-
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, ServerCapabilityConfig,
-    IServerCapabilityConfig, createServerStreamingCapability,
-    IString*, protocolId
+    IServerCapabilityConfig, createServerCapability,
+    IString*, protocolName,
+    ProtocolType, protocolType
 )
 
 END_NAMESPACE_OPENDAQ

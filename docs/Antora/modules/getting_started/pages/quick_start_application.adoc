@@ -29,7 +29,7 @@ IMPORTANT: If building from source, all function calls used to get available Dev
 find any Devices. They will instead return an empty list. As such, when not using the provided virtual machine, the
 code examples will need to be modified to specify the connection string `"daq.opcua://127.0.0.1/"` whenever attempting to add
 a openDAQ(TM) OPC UA-enabled Device; to add the Device without using openDAQ(TM) OPC UA protocol the connection string
-`"daq.nsd://127.0.0.1/"` should be used for the Devices that utilize the openDAQ(TM) Native streaming protocol.
+`"daq.ns://127.0.0.1/"` should be used for the Devices that utilize the openDAQ(TM) Native streaming protocol.
 
 === Using a virtual machine (recommended)
 
@@ -266,7 +266,7 @@ strings.
 * `Device 0 : daqref://device0`
 * `Device 1 : daq://openDAQ_dev_ser_1`
 ** `openDAQ OpcUa : daq.opcua://xxx.xxx.xxx.xxx/`
-** `openDAQ Native Streaming : daq.nsd://xxx.xxx.xxx.xxx/`
+** `openDAQ Native Streaming : daq.ns://xxx.xxx.xxx.xxx/`
 
 (the `daq.*://` addresses are specific to your simulator instance). We can use their corresponding connection strings to add / connect to the devices.
 
@@ -1193,12 +1193,12 @@ for i in range(400):
 == Connecting to remote Device using Native streaming protocol
 
 To connect to simulator using the Native streaming protocol we filter out Devices of which discovered addresses do not start
-with the `daq.nsd://` prefix.
+with the `daq.ns://` prefix.
 
 IMPORTANT: The provided Virtual Box simulator image hosts a mDNS discovery service, allowing it to be discovered by
 openDAQ(TM). Such a service is, as of now, not provided by openDAQ(TM). Thus, if you have
 xref:#own_simulator[compiled your own simulator device] it will not appear in the list of available Devices.
-You are therefore required to enter the simulator's connection string manually when connecting to it (`"daq.nsd://127.0.0.1"`).
+You are therefore required to enter the simulator's connection string manually when connecting to it (`"daq.ns://127.0.0.1"`).
 
 Adding a remote Device with its connection string connects to said Device and creates a pseudo Device containing only Signals
 of the remote Device.
@@ -1235,7 +1235,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (capability.getProtocolType() == ProtocolType::Streaming && capability.getProtocolName() == "openDAQ Native Streaming")
+            if (capability.getProtocolName() == "openDAQ Native Streaming")
             {
                 device = instance.addDevice(capability.getPrimaryConnectionString());
                 break;

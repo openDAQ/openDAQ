@@ -31,7 +31,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto connectionString = fmt::format("daq.nsd://{}:{}{}",
+                auto connectionString = fmt::format("daq.ns://{}:{}{}",
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
@@ -43,7 +43,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                return ServerCapability("openDAQ Native Streaming", ProtocolType::StructureAndStreaming).addConnectionString(connectionString).setConnectionType("Ipv4").setCoreEventsEnabled(true);
+                return ServerCapability("openDAQ Native Configuration", ProtocolType::StructureAndStreaming).addConnectionString(connectionString).setConnectionType("Ipv4").setCoreEventsEnabled(true);
             }
         },
         {"OPENDAQ_NS"}

@@ -54,12 +54,14 @@ public:
 
     template<class T = Impl, template_utils::enable_if_any<T, ServerCapabilityConfigImpl> = 0>
     TmsClientPropertyObjectBaseImpl(const ContextPtr& daqContext,
+                                    const StringPtr& protocolName,
                                     const StringPtr& protocolId,
                                     const TmsClientContextPtr& clientContext,
                                     const opcua::OpcUaNodeId& nodeId)
         : TmsClientObjectImpl(daqContext, clientContext, nodeId)
-        , Impl(protocolId)
+        , Impl(protocolName, ProtocolType::Streaming)
     {
+        Impl::setPropertyValue(String("protocolId"), protocolId);
         init();
     }
 

@@ -60,14 +60,15 @@ void WebsocketStreamingServer::start()
     });
     packetReader.start();
 
-    ServerCapabilityPtr serverCapability = ServerStreamingCapability("daq.wss");
+    ServerCapabilityPtr serverCapability = ServerCapability("openDAQ WebsocketTcp Streaming", ProtocolType::Streaming);
+    serverCapability.setPropertyValue("protocolId", "daq.ws");
     serverCapability.addProperty(IntProperty("Port", streamingPort));
     this->device.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
 }
 
 void WebsocketStreamingServer::stop()
 {
-    this->device.getInfo().asPtr<IDeviceInfoInternal>().removeServerCapability(String("daq.wss"));
+    this->device.getInfo().asPtr<IDeviceInfoInternal>().removeServerCapability(String("daq.ws"));
     stopInternal();
 }
 

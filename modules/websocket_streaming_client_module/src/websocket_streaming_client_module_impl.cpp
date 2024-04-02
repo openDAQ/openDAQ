@@ -13,8 +13,6 @@ static const char* WebsocketDeviceTypeId = "daq.ws";
 static const char* TcpsocketDeviceTypeId = "daq.tcp";
 static const char* WebsocketDevicePrefix = "daq.ws://";
 static const char* TcpsocketDevicePrefix = "daq.tcp://";
-static const char* WebsocketStreamingPrefix = "daq.wss://";
-static const char* WebsocketStreamingID = "daq.wss";
 
 using namespace discovery;
 using namespace daq::websocket_streaming;
@@ -101,12 +99,12 @@ bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(cons
     if (connectionString.assigned())
     {
         std::string connStr = connectionString;
-        auto found = connStr.find(WebsocketStreamingPrefix);
+        auto found = connStr.find(WebsocketDevicePrefix);
         return (found == 0);
     }
     else if (capability.assigned())
     {
-        if (capability.getPropertyValue("protocolId") == WebsocketStreamingID)
+        if (capability.getPropertyValue("protocolId") == WebsocketDeviceTypeId)
         {
             try
             {
@@ -148,7 +146,7 @@ StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(con
         throw InvalidParameterException("Device address is not set");
 
     auto port = capability.getPropertyValue("Port").template asPtr<IInteger>();
-    auto connectionString = String(fmt::format("daq.wss://{}:{}", address, port));
+    auto connectionString = String(fmt::format("daq.ws://{}:{}", address, port));
 
     return connectionString;
 }

@@ -33,8 +33,6 @@ public:
     using Super = GenericPropertyObjectImpl<IServerCapabilityConfig>;
 
     explicit ServerCapabilityConfigImpl(const StringPtr& protocolName, ProtocolType protocolType);
-    
-    explicit ServerCapabilityConfigImpl(const StringPtr& protocolId);
 
     ErrCode INTERFACE_FUNC getPrimaryConnectionString(IString** connectionString) override;
     ErrCode INTERFACE_FUNC setPrimaryConnectionString(IString* connectionString) override;

@@ -19,10 +19,11 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-class TmsClientStreamingInfoImpl : public TmsClientPropertyObjectBaseImpl<ServerCapabilityConfigImpl>
+class TmsClientServerCapabilityImpl : public TmsClientPropertyObjectBaseImpl<ServerCapabilityConfigImpl>
 {
 public:
-    explicit TmsClientStreamingInfoImpl(const ContextPtr& daqContext,
+    explicit TmsClientServerCapabilityImpl(const ContextPtr& daqContext,
+                                        const StringPtr& protocolName,
                                         const StringPtr& protocolId,
                                         const TmsClientContextPtr& clientContext,
                                         const opcua::OpcUaNodeId& nodeId);

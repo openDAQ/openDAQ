@@ -77,9 +77,4 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     ProtocolType, protocolType
 )
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, ServerStreamingCapability, IServerCapabilityConfig,
-    IString*, protocolId
-)
-
 END_NAMESPACE_OPENDAQ

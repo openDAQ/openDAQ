@@ -43,11 +43,5 @@ inline ServerCapabilityConfigPtr ServerCapability(const StringPtr& protocolName,
     return obj;
 }
 
-inline ServerCapabilityConfigPtr ServerStreamingCapability(const StringPtr& protocolId)
-{
-    ServerCapabilityConfigPtr obj(ServerStreamingCapability_Create(protocolId));
-    return obj;
-}
-
 /*!@}*/
 END_NAMESPACE_OPENDAQ

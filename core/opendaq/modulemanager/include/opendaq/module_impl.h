@@ -218,7 +218,7 @@ public:
      * supported by this module. If the connection string is not assigned, it checks if the config object
      * is valid and complete enough to generate a connection string.
      * @param[out] accepted Whether this module supports the @p connectionString or @p config.
-     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.wss//`.
+     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.ws//`.
      * @param config A configuration info object that contains streaming type ID and additional parameters.
      * The configuration info is used to generate a connection string if it is not present.
      */
@@ -240,7 +240,7 @@ public:
 
     /*!
      * @brief Creates and returns a streaming object using the specified connection string or config info object.
-     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.wss//`.
+     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.ws//`.
      * @param config Streaming configuration info.
      * @param[out] streaming The created streaming object.
      */

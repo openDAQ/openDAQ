@@ -12,21 +12,22 @@ Description:
 - [factory] StreamingInfoConfigPtr StreamingInfo(const StringPtr& protocolId)
 
 + [interface] IServerCapability
-+ [function] IServerCapability::getConnectionString(IString** connectionString)
++ [function] IServerCapabilityConfig::getPrimaryConnectionString(IString** connectionString)
++ [function] IServerCapabilityConfig::getConnectionStrings(IList** connectionStrings)
 + [function] IServerCapability::getProtocolName(IString** protocolName)
 + [function] IServerCapability::getProtocolType(IEnumeration** type)
 + [function] IServerCapability::getConnectionType(IString** type)
 + [function] IServerCapability::getCoreEventsEnabled(Bool* enabled)
 
 + [interface] IServerCapabilityConfig
-+ [function] IServerCapabilityConfig::setConnectionString(IString* connectionString)
++ [function] IServerCapabilityConfig::setPrimaryConnectionString(IString* connectionString)
++ [function] IServerCapabilityConfig::addConnectionString(IString* connectionString)
 + [function] IServerCapabilityConfig::setProtocolName(IString* protocolName)
 + [function] IServerCapabilityConfig::setProtocolType(IString* type)
 + [function] IServerCapabilityConfig::setConnectionType(IString* type)
 + [function] IServerCapabilityConfig::setCoreEventsEnabled(Bool enabled) 
 + [function] IServerCapabilityConfig::addProperty(IProperty* property)
 + [factory] ServerCapabilityConfigPtr ServerCapability(const StringPtr& protocolName, ProtocolType protocolType)
-+ [factory] ServerCapabilityConfigPtr ServerStreamingCapability(const StringPtr& protocolId)
 
 + [function] IDeviceInfo::getServerCapabilities(IList** serverCapabilities)
 + [interface] IDeviceInfoInternal

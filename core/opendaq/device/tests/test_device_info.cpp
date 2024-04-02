@@ -230,9 +230,12 @@ TEST_F(DeviceInfoTest, ServerCapabilities)
     DeviceInfoPtr info = DeviceInfo("", "");
     DeviceInfoInternalPtr internalInfo = info;
 
-    auto capability1 = ServerStreamingCapability("localId1");
-    auto capability2 = ServerStreamingCapability("localId2");
-    auto capability3 = ServerStreamingCapability("localId3");
+    auto capability1 = ServerCapability("protocolName1", ProtocolType::Streaming);
+    capability1.setPropertyValue("protocolId", "localId1");
+    auto capability2 = ServerCapability("protocolName2", ProtocolType::Streaming);
+    capability2.setPropertyValue("protocolId", "localId2");
+    auto capability3 = ServerCapability("protocolName3", ProtocolType::Streaming);
+    capability3.setPropertyValue("protocolId", "localId3");
 
     internalInfo.addServerCapability(capability1);
     internalInfo.addServerCapability(capability2);

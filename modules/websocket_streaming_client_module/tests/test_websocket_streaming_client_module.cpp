@@ -175,7 +175,7 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConnectionStringCorre
 {
     auto module = CreateModule();
 
-    ASSERT_TRUE(module.acceptsStreamingConnectionParameters("daq.wss://device8"));
+    ASSERT_TRUE(module.acceptsStreamingConnectionParameters("daq.ws://device8"));
 }
 
 
@@ -185,14 +185,15 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConfig)
     ModulePtr module;
     createModule(&module, context);
 
-    ServerCapabilityPtr streamingInfoConfig = ServerStreamingCapability("daq.wss");
-    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
+    ServerCapabilityPtr serverCapability = ServerCapability("openDAQ WebsocketTcp Streaming", ProtocolType::Streaming);
+    serverCapability.setPropertyValue("protocolId", "daq.ws");
+    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
-    streamingInfoConfig.setPropertyValue("address", "123.123.123.123");
-    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
+    serverCapability.setPropertyValue("address", "123.123.123.123");
+    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
-    streamingInfoConfig.addProperty(IntProperty("Port", 1234));
-    ASSERT_TRUE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
+    serverCapability.addProperty(IntProperty("Port", 1234));
+    ASSERT_TRUE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 }
 
 TEST_F(WebsocketStreamingClientModuleTest, CreateStreamingWithNullArguments)
@@ -223,7 +224,7 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateStreamingConnectionStringInvali
 
     ASSERT_THROW(module.createStreaming("daqref://devicett3axxr1", nullptr), InvalidParameterException);
     ASSERT_THROW(module.createStreaming("daq.opcua://devicett3axxr1", nullptr), InvalidParameterException);
-    ASSERT_THROW(module.createStreaming("daq.ws://devicett3axxr1", nullptr), InvalidParameterException);
+    ASSERT_THROW(module.createStreaming("daq.ws://devicett3axxr1", nullptr), NotFoundException);
 }
 
 TEST_F(WebsocketStreamingClientModuleTest, GetAvailableComponentTypes)

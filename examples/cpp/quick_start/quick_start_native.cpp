@@ -15,7 +15,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (capability.getProtocolType() == daq::ProtocolType::Streaming && capability.getProtocolName() == "openDAQ Native Streaming")
+            if (capability.getProtocolName() == "openDAQ Native Streaming")
             {
                 device = instance.addDevice(capability.getPrimaryConnectionString());
                 break;

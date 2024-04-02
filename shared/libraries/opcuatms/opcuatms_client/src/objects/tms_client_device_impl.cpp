@@ -10,7 +10,7 @@
 #include <opcuatms_client/objects/tms_client_signal_factory.h>
 #include "opcuatms_client/objects/tms_client_component_factory.h"
 #include "opcuatms_client/objects/tms_client_io_folder_factory.h"
-#include "opcuatms_client/objects/tms_client_streaming_info_factory.h"
+#include "opcuatms_client/objects/tms_client_server_capability_factory.h"
 #include <open62541/daqbsp_nodeids.h>
 #include "open62541/daqbt_nodeids.h"
 #include <open62541/daqdevice_nodeids.h>
@@ -375,7 +375,7 @@ void TmsClientDeviceImpl::findAndCreateStreamingOptions(const DeviceInfoPtr& dev
         for (const auto& [browseName, ref] : streamingOptionsReferences.byBrowseName)
         {
             const auto optionNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-            auto clientStreamingInfo = TmsClientStreamingInfo(daqContext, browseName, clientContext, optionNodeId);
+            auto clientStreamingInfo = TmsClientServerCapability(daqContext, "openDAQ OpcUa", browseName, clientContext, optionNodeId);
 
             auto numberInList = this->tryReadChildNumberInList(optionNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max())

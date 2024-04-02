@@ -11,5 +11,7 @@ TmsClientServerCapabilityImpl::TmsClientServerCapabilityImpl(const ContextPtr& d
                                                        const opcua::OpcUaNodeId& nodeId)
     : TmsClientPropertyObjectBaseImpl(daqContext, protocolId, clientContext, nodeId)
 {
+
 }
+
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

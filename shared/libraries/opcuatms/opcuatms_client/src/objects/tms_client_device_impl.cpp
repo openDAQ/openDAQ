@@ -377,11 +377,20 @@ void TmsClientDeviceImpl::findAndCreateServerCapabilities(const DeviceInfoPtr& d
             const auto optionNodeId = OpcUaNodeId(ref->nodeId.nodeId);
             auto clientServerCapability = TmsClientServerCapability(daqContext, browseName, clientContext, optionNodeId);
 
+            auto capabilityCopy = ServerCapability("", "", ProtocolType::Unknown);
+            for (const auto& prop : clientServerCapability.getAllProperties())
+            {
+                const auto name = prop.getName();
+                if (!capabilityCopy.hasProperty(name))
+                    capabilityCopy.addProperty(prop.asPtr<IPropertyInternal>().clone());
+                capabilityCopy.setPropertyValue(name, clientServerCapability.getPropertyValue(name));
+            }
+
             auto numberInList = this->tryReadChildNumberInList(optionNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max())
-                orderedCaps.insert(std::pair<uint32_t, PropertyObjectPtr>(numberInList, clientServerCapability));
+                orderedCaps.insert(std::pair<uint32_t, PropertyObjectPtr>(numberInList, capabilityCopy));
             else
-                unorderedCaps.emplace_back(clientServerCapability);
+                unorderedCaps.emplace_back(capabilityCopy);
         }
     }
     catch (const std::exception& e)
@@ -389,12 +398,12 @@ void TmsClientDeviceImpl::findAndCreateServerCapabilities(const DeviceInfoPtr& d
         LOG_W("Failed to find 'ServerCapabilities' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
     }
 
-    auto deviceInfoPrivate = deviceInfo.asPtr<IDeviceInfoInternal>();
-    deviceInfoPrivate.clearServerStreamingCapabilities();
+    auto deviceInfoInternal = deviceInfo.asPtr<IDeviceInfoInternal>();
+    deviceInfoInternal.clearServerStreamingCapabilities();
     for (const auto& [_, val] : orderedCaps)
-        deviceInfoPrivate.addServerCapability(val);
+        deviceInfoInternal.addServerCapability(val);
     for (const auto& val : unorderedCaps)
-        deviceInfoPrivate.addServerCapability(val);
+        deviceInfoInternal.addServerCapability(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateCustomComponents()

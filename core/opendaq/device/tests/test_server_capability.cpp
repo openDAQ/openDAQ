@@ -11,11 +11,11 @@ BEGIN_NAMESPACE_OPENDAQ
 
 TEST_F(ServerCapabilityTest, Factory)
 {
-    ServerCapabilityPtr capability = ServerCapability("Protocol name", ProtocolType::Streaming);
+    ServerCapabilityPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
     ASSERT_EQ(capability.getProtocolName(), "Protocol name");
     ASSERT_EQ(capability.getProtocolType(), ProtocolType::Streaming);
     ASSERT_EQ(capability.getPrimaryConnectionString(), "");
-    ASSERT_EQ(capability.getConnectionType(), "Unknwown");
+    ASSERT_EQ(capability.getConnectionType(), "Unknown");
     ASSERT_EQ(capability.getCoreEventsEnabled(), false);
 }
 
@@ -29,7 +29,7 @@ TEST_F(ServerCapabilityTest, StreamingFactory)
 
 TEST_F(ServerCapabilityTest, SetGet)
 {
-    ServerCapabilityPtr capability = ServerCapability("Protocol name", ProtocolType::Streaming).addConnectionString("connection string")
+    ServerCapabilityPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming).addConnectionString("connection string")
                                                                                                   .setConnectionType("connection type")
                                                                                                   .setCoreEventsEnabled(true);
     ASSERT_EQ(capability.getProtocolName(), "Protocol name");
@@ -41,7 +41,7 @@ TEST_F(ServerCapabilityTest, SetGet)
 
 TEST_F(ServerCapabilityTest, Freezable)
 {
-    ServerCapabilityConfigPtr capability = ServerCapability("Protocol name", ProtocolType::Streaming);
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
 
     ASSERT_FALSE(capability.isFrozen());
     ASSERT_NO_THROW(capability.freeze());
@@ -57,7 +57,7 @@ TEST_F(ServerCapabilityTest, Freezable)
 
 TEST_F(ServerCapabilityTest, CustomProperties)
 {
-   ServerCapabilityConfigPtr capability = ServerCapability("Protocol name", ProtocolType::Streaming);
+   ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
    SizeT defaultProportiesCnt = capability.getAllProperties().getCount();
 
     capability.addProperty(StringProperty("Name", "Chell"));

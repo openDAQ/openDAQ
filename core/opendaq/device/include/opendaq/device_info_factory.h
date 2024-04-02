@@ -37,9 +37,9 @@ inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const S
     return obj;
 }
 
-inline ServerCapabilityConfigPtr ServerCapability(const StringPtr& protocolName, ProtocolType protocolType)
+inline ServerCapabilityConfigPtr ServerCapability(const StringPtr& protocolId, const StringPtr& protocolName, ProtocolType protocolType)
 {
-    ServerCapabilityConfigPtr obj(ServerCapability_Create(protocolName, protocolType));
+    ServerCapabilityConfigPtr obj(ServerCapability_Create(protocolId, protocolName, protocolType));
     return obj;
 }
 

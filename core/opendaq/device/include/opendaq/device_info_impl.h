@@ -39,7 +39,7 @@ public:
     using Super = GenericPropertyObjectImpl<TInterface, IDeviceInfoInternal, Interfaces...>;
 
     explicit DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion = nullptr);
-    DeviceInfoConfigImpl() = default;
+    DeviceInfoConfigImpl();
 
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
@@ -111,7 +111,6 @@ private:
 
     std::unordered_set<std::string> defaultPropertyNames;
     DeviceTypePtr deviceType;
-    PropertyObjectPtr serverCapabilities;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceInfoConfigBase)

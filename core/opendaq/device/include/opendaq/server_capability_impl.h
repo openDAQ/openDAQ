@@ -27,12 +27,12 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ServerCapabilityConfigImpl : public GenericPropertyObjectImpl<IPropertyObject, IServerCapabilityConfig>
+class ServerCapabilityConfigImpl : public GenericPropertyObjectImpl<IServerCapabilityConfig>
 {
 public:
-    using Super = GenericPropertyObjectImpl<IPropertyObject, IServerCapabilityConfig>;
+    using Super = GenericPropertyObjectImpl<IServerCapabilityConfig>;
 
-    explicit ServerCapabilityConfigImpl(const StringPtr& protocolName, ProtocolType protocolType);
+    explicit ServerCapabilityConfigImpl(const StringPtr& protocolId, const StringPtr& protocolName, ProtocolType protocolType);
     
     explicit ServerCapabilityConfigImpl(const StringPtr& protocolId);
 
@@ -59,8 +59,13 @@ public:
     
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
+    ErrCode getInterfaceIds(SizeT* idCount, IntfID** ids) override;
+
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+protected:
+    PropertyObjectPtr createCloneBase() override;
 
 private:
     template <typename T>
@@ -68,9 +73,8 @@ private:
 
     static StringPtr ProtocolTypeToString(ProtocolType type);
     static ProtocolType StringToProtocolType(const StringPtr& type);
-
-    TypeManagerPtr typeManager;
-    EnumerationPtr protocolType;
 };
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ServerCapabilityConfigImpl)
 
 END_NAMESPACE_OPENDAQ

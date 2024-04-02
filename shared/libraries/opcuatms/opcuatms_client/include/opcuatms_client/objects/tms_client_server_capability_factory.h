@@ -18,6 +18,7 @@
 #include "opcuatms_client/objects/tms_client_server_capability_impl.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
+
 inline ServerCapabilityPtr TmsClientServerCapability(const ContextPtr& daqContext,
                                                       const StringPtr& protocolId,
                                                       const daq::opcua::tms::TmsClientContextPtr& clientContext,

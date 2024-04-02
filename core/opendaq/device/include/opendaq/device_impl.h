@@ -200,11 +200,16 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 {
     OPENDAQ_PARAM_NOT_NULL(info);
 
+    if (this->deviceInfo.assigned())
+    {
+        *info = this->deviceInfo.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
     DeviceInfoPtr devInfo;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
 
     *info = devInfo.detach();
-
     return errCode;
 }
 

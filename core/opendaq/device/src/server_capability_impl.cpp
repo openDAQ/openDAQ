@@ -43,30 +43,36 @@ ProtocolType ServerCapabilityConfigImpl::StringToProtocolType(const StringPtr& t
     return ProtocolType::StructureAndStreaming; 
 }
 
-ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocolName, ProtocolType protocolType)
+ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocolId, const StringPtr& protocolName, ProtocolType protocolType)
     : Super()
 {
     Super::addProperty(StringProperty(PrimaryConnectionString, ""));
     Super::addProperty(ListProperty(ConnectionStrings, List<IString>()));
-    Super::addProperty(StringProperty(ProtocolName, protocolName));
-    Super::addProperty(StringProperty(ProtocolTypeName, ProtocolTypeToString(protocolType)));
-    Super::addProperty(StringProperty(ConnectionType, "Unknwown"));
+    Super::addProperty(StringProperty(ProtocolName, ""));
+    Super::addProperty(StringProperty(ProtocolId, ""));
+    Super::addProperty(StringProperty(ProtocolTypeName, ProtocolTypeToString(ProtocolType::Unknown)));
+    Super::addProperty(StringProperty(ConnectionType, "Unknown"));
     Super::addProperty(BoolProperty(CoreEventsEnabled, false));
+
+    Super::setPropertyValue(String(ProtocolId), protocolId);
+    Super::setPropertyValue(String(ProtocolName), protocolName);
+    Super::setPropertyValue(String(ProtocolTypeName), ProtocolTypeToString(protocolType));
 }
 
 ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocolId)
     : Super()
 {
-    Super::addProperty(StringPropertyBuilder(ProtocolId, protocolId).setReadOnly(true).build());
-    Super::addProperty(StringProperty(ProtocolTypeName, ProtocolTypeToString(ProtocolType::Streaming)));
+    Super::addProperty(StringProperty(ProtocolId, ""));
+    Super::addProperty(StringProperty(ProtocolTypeName, ProtocolTypeToString(ProtocolType::Unknown)));
     Super::addProperty(StringProperty(PrimaryAddress, ""));
+
+    Super::setPropertyValue(String(ProtocolId), protocolId);
 }
 
 template <typename T>
 typename InterfaceToSmartPtr<T>::SmartPtr ServerCapabilityConfigImpl::getTypedProperty(const StringPtr& name)
 {
-    const auto obj = this->template borrowPtr<PropertyObjectPtr>();
-    return obj.getPropertyValue(name).template asPtr<T>();
+    return objPtr.getPropertyValue(name).template asPtr<T>();
 }
 
 ErrCode ServerCapabilityConfigImpl::getPrimaryConnectionString(IString** connectionString)
@@ -185,6 +191,24 @@ ErrCode ServerCapabilityConfigImpl::getSerializeId(ConstCharPtr* id) const
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ServerCapabilityConfigImpl::getInterfaceIds(SizeT* idCount, IntfID** ids)
+{
+    if (idCount == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *idCount = InterfaceIds::Count() + 1;
+    if (ids == nullptr)
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    **ids = IPropertyObject::Id;
+    (*ids)++;
+
+    InterfaceIds::AddInterfaceIds(*ids);
+    return OPENDAQ_SUCCESS;
+}
+
 ConstCharPtr ServerCapabilityConfigImpl::SerializeId()
 {
     return "ServerCapability";
@@ -206,18 +230,30 @@ ErrCode ServerCapabilityConfigImpl::Deserialize(ISerializedObject* serialized,
                     factoryCallback,
                        [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& /*context*/, const StringPtr& /*className*/)
                        {
-                           const auto cap = createWithImplementation<IServerCapability, ServerCapabilityConfigImpl>();
+                           const auto cap = createWithImplementation<IServerCapability, ServerCapabilityConfigImpl>("", "", ProtocolType::Unknown);
                            return cap;
                        }).detach();
         });
 }
 
-extern "C" ErrCode PUBLIC_EXPORT createServerCapability(IServerCapabilityConfig** objTmp,
-                                            IString* protocolName,
-                                            ProtocolType protocolType)
+PropertyObjectPtr ServerCapabilityConfigImpl::createCloneBase()
 {
-    return daq::createObject<IServerCapabilityConfig, ServerCapabilityConfigImpl>(objTmp, protocolName, protocolType);
+    const auto obj = createWithImplementation<IServerCapability, ServerCapabilityConfigImpl>("", "", ProtocolType::Unknown);
+    return obj;
 }
+
+#if !defined(BUILDING_STATIC_LIBRARY)
+
+extern "C"
+ErrCode PUBLIC_EXPORT createServerCapability(IServerCapabilityConfig** objTmp,
+                                             IString* protocolId,
+                                             IString* protocolName,
+                                             ProtocolType protocolType)
+{
+    return daq::createObject<IServerCapabilityConfig, ServerCapabilityConfigImpl>(objTmp, protocolId, protocolName, protocolType);
+}
+
+#endif
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, ServerCapabilityConfig,

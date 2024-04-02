@@ -72,14 +72,15 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
 
     // [returnSelf]
     /*!
-     * @brief Sets the client update method
-     * @param type The client update method
+     * @brief Sets the boolean flag indicating whether the server capability supports core event propagation to clients
+     * @param enabled True if core events are enabled; false otherwise
      */
     virtual ErrCode INTERFACE_FUNC setCoreEventsEnabled(Bool enabled) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, ServerCapability, IServerCapabilityConfig,
+    IString*, protocolId,
     IString*, protocolName,
     ProtocolType, protocolType
 )

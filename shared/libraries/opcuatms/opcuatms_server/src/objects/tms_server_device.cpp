@@ -220,16 +220,17 @@ void TmsServerDevice::populateDeviceInfo()
     }
 }
 
-void TmsServerDevice::populateDeviceCapabilities()
+void TmsServerDevice::populateServerCapabilities()
 {
-    auto params = AddObjectNodeParams(UA_NODEID_NULL, nodeId);
-    params.setBrowseName("ServerCapabilities");
-    auto serverCapabilitiesNodeId = server->addObjectNode(params);
-
     const auto deviceInfo = object.getInfo();
     if (deviceInfo == nullptr)
         return;
 
+    const PropertyObjectPtr serverCapabilitiesObj = deviceInfo.getPropertyValue("serverCapabilities"); 
+
+    auto tmsServerCapability = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
+            nodeId, serverCapabilitiesObj.asPtr<IPropertyObject>(), numberInList++, "ServerCapabilities");
+    this->serverCapabilities.push_back(std::move(tmsServerCapability));
 }
 
 void TmsServerDevice::addFunctionBlockFolderNodes()
@@ -421,7 +422,7 @@ void TmsServerDevice::removeFunctionBlock(const StringPtr& localId)
 void TmsServerDevice::addChildNodes()
 {
     populateDeviceInfo();
-    populateDeviceCapabilities();
+    populateServerCapabilities();
     auto methodSetNodeId = getChildNodeId("MethodSet");
     tmsPropertyObject->setMethodParentNodeId(methodSetNodeId);
 

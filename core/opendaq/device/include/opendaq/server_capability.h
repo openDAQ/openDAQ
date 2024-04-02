@@ -71,7 +71,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
     // [templateType(connectionStrings, IString)]
     /*!
      * @brief Gets the connection string of the device with the current protocol.
-     * @param[out] connectionString The connection string of the device (URL to connect).
+     * @param[out] connectionStrings The connection string of the device (URL to connect).
      */
     virtual ErrCode INTERFACE_FUNC getConnectionStrings(IList** connectionStrings) = 0;
 
@@ -82,7 +82,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) = 0;
 
     /*!
-     * @brief Gets the id of the protocol supported by the device.
+     * @brief Gets the id of the protocol supported by the device. Should not contain spaces or special characters except for '_' and '-'.
      * @param[out] protocolId The id of the protocol.
      */
     virtual ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) = 0;

@@ -47,7 +47,7 @@ public:
 protected:
     opcua::OpcUaNodeId getTmsTypeId() override;
     void populateDeviceInfo();
-    void populateDeviceCapabilities();
+    void populateServerCapabilities();
     void addFunctionBlockFolderNodes();
     void createFunctionBlockTypesFolder(const OpcUaNodeId& parentId);
     void createAddFunctionBlockNode(const OpcUaNodeId& parentId);

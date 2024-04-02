@@ -45,7 +45,7 @@ TEST_F(DeviceInfoTest, DefaultValues)
     ASSERT_EQ(deviceInfo.getSystemUuid(), "");
     ASSERT_FALSE(deviceInfo.getDeviceType().assigned());
 
-    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 22u);
+    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 23u);
 }
 
 TEST_F(DeviceInfoTest, SetGetProperties)
@@ -189,7 +189,7 @@ TEST_F(DeviceInfoTest, CustomProperties)
     ASSERT_NO_THROW(info.addProperty(FloatProperty("Height", 172.4)));
     ASSERT_NO_THROW(info.addProperty(BoolProperty("IsAsleep", true)));
 
-    ASSERT_EQ(info.getCustomInfoPropertyNames().getCount(), 4u);
+    ASSERT_EQ(info.getCustomInfoPropertyNames().getCount(), 5u);
 }
 
 TEST_F(DeviceInfoTest, SerializeDeserialize)
@@ -209,7 +209,8 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     info.setSerialNumber("serial_number");
     info.setProductInstanceUri("product_instance_uri");
     info.setRevisionCounter(1);
-    info.asPtr<IDeviceInfoPrivate>().addServerCapability(ServerCapability(NullContext(), "test", "test"))
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability("test_id1", "test", ProtocolType::Streaming));
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability("test_id2", "test", ProtocolType::Structure));
 
     const auto serializer = JsonSerializer();
     info.serialize(serializer);
@@ -218,38 +219,11 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     const auto deserializer = JsonDeserializer();
 
     const DeviceInfoPtr newDeviceInfo = deserializer.deserialize(serializedDeviceInfo, nullptr, nullptr);
-    serializer.reset();
-    newDeviceInfo.serialize(serializer);
-    const auto newSerializedDeviceInfo = serializer.getOutput();
 
-    ASSERT_EQ(serializedDeviceInfo, newSerializedDeviceInfo);
-}
+    ASSERT_EQ(newDeviceInfo.getServerCapabilities().getCount(), 2);
+    ASSERT_EQ(newDeviceInfo.getServerCapabilities()[0].getProtocolId(), "test_id1");
+    ASSERT_EQ(newDeviceInfo.getServerCapabilities()[1].getProtocolId(), "test_id2");
 
-TEST_F(DeviceInfoTest, SerializeDeserializeContents)
-{
-    DeviceInfoConfigPtr info = DeviceInfo("", "");
-
-    info.setName("name");
-    info.setConnectionString("connection_string");
-    info.setManufacturer("manufacturer");
-    info.setManufacturerUri("manufacturer_uri");
-    info.setModel("model");
-    info.setProductCode("product_code");
-    info.setHardwareRevision("hardware_revision");
-    info.setSoftwareRevision("software_revision");
-    info.setDeviceManual("device_manual");
-    info.setDeviceClass("device_class");
-    info.setSerialNumber("serial_number");
-    info.setProductInstanceUri("product_instance_uri");
-    info.setRevisionCounter(1);
-
-    const auto serializer = JsonSerializer();
-    info.serialize(serializer);
-    const auto serializedDeviceInfo = serializer.getOutput();
-
-    const auto deserializer = JsonDeserializer();
-
-    const DeviceInfoPtr newDeviceInfo = deserializer.deserialize(serializedDeviceInfo, nullptr, nullptr);
     serializer.reset();
     newDeviceInfo.serialize(serializer);
     const auto newSerializedDeviceInfo = serializer.getOutput();
@@ -270,16 +244,15 @@ TEST_F(DeviceInfoTest, ServerCapabilities)
     internalInfo.addServerCapability(capability1);
     internalInfo.addServerCapability(capability2);
     internalInfo.addServerCapability(capability3);
-    ASSERT_ANY_THROW(internalInfo.addServerCapability(capability3));
+    ASSERT_THROW(internalInfo.addServerCapability(capability3), DuplicateItemException);
 
     ASSERT_EQ(info.getServerCapabilities().getCount(), 3);
     
-    internalInfo.removeServerCapability("localId0");
-    ASSERT_EQ(info.getServerCapabilities().getCount(), 3);
+    ASSERT_THROW(internalInfo.removeServerCapability("localId0"), NotFoundException);
 
     internalInfo.removeServerCapability("localId1");
     ASSERT_EQ(info.getServerCapabilities().getCount(), 2);
-    ASSERT_EQ(info.getServerCapabilities()[0], capability2);
+    ASSERT_EQ(info.getServerCapabilities()[0].getProtocolId(), capability2.getPropertyValue("protocolId"));
 
     internalInfo.clearServerStreamingCapabilities();
     ASSERT_EQ(info.getServerCapabilities().getCount(), 0);

@@ -13,7 +13,10 @@
         },
     "RootDevice": 
         {
-			"LocalId": "falselocalid",
             "ConnectionString": "daqref://device1"
         }
+	"ReferenceDevice":
+		{
+			"LocalId": "falselocalid"
+		}
 }

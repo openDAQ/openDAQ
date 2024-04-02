@@ -227,7 +227,7 @@ void RefChannelImpl::resetCounter()
 
 uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const
 {
-    const uint64_t samplesSinceStart = static_cast<uint64_t>(std::trunc(static_cast<double>((time - startTime).count()) / 10000000.0 * sampleRate));
+    const uint64_t samplesSinceStart = static_cast<uint64_t>(std::trunc(static_cast<double>((time - startTime).count()) / 1000000.0 * sampleRate));
     return samplesSinceStart;
 }
 
@@ -413,7 +413,7 @@ std::string RefChannelImpl::getEpoch()
 
 RatioPtr RefChannelImpl::getResolution()
 {
-    return Ratio(1, 10000000);
+    return Ratio(1, 1000000);
 }
 
 void RefChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating)

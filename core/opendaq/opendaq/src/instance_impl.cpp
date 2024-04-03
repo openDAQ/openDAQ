@@ -17,6 +17,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 static std::string defineLocalId(const std::string& localId);
 static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder);
+static std::string getErrorMessage();
 
 InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
     : context(std::move(context))
@@ -206,6 +207,26 @@ ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverCo
     return OPENDAQ_ERR_NOTFOUND;
 }
 
+std::string getErrorMessage()
+{
+    std::string errorMessage;
+
+    ErrorInfoPtr errorInfo;
+    daqGetErrorInfo(&errorInfo);
+    if (errorInfo.assigned())
+    {
+        StringPtr message;
+        errorInfo->getMessage(&message);
+
+        if (message.assigned())
+        {
+            errorMessage = message.toStdString();
+        }
+    }
+
+    return errorMessage;
+}
+
 ErrCode InstanceImpl::addStandardServers(IList** standardServers)
 {
     OPENDAQ_PARAM_NOT_NULL(standardServers);
@@ -213,24 +234,40 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     auto serversPtr = List<IServer>();
     ErrCode errCode = OPENDAQ_SUCCESS;
 
+    StringPtr serverName;
+    
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     ServerPtr nativeStreamingServer;
-    errCode = addServer(String("openDAQ Native Streaming"), nullptr, &nativeStreamingServer);
+    serverName = "openDAQ Native Streaming";
+    errCode = addServer(serverName, nullptr, &nativeStreamingServer);
     if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, getErrorMessage(), errCode);
         return errCode;
+    }
     serversPtr.pushBack(nativeStreamingServer);
+
 #elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
+
     ServerPtr websocketServer;
-    errCode = addServer(String("openDAQ WebsocketTcp Streaming"), nullptr, &websocketServer);
+    serverName = "openDAQ WebsocketTcp Streaming";
+    errCode = addServer(serverName, nullptr, &websocketServer);
     if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, getErrorMessage(), errCode);
         return errCode;
+    }
     serversPtr.pushBack(websocketServer);
 #endif
 
     ServerPtr opcUaServer;
-    errCode = addServer(String("openDAQ OpcUa"), nullptr, &opcUaServer);
+    serverName = "openDAQ OpcUa";
+    errCode = addServer(serverName, nullptr, &opcUaServer);
     if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, getErrorMessage(), errCode);
         return errCode;
+    }
     serversPtr.pushBack(opcUaServer);
 
     *standardServers = serversPtr.detach();

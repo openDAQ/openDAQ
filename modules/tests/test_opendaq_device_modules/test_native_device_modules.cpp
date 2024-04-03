@@ -673,8 +673,12 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_EQ(reconnectionStatusFuture.get(), "Connected");
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
 
-    auto channels = client.getChannels(search::Recursive(search::Any()));
+    auto channels = client.getDevices()[0].getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 3u);
+
+    auto fbs = client.getDevices()[0].getFunctionBlocks(search::Recursive(search::Any()));
+    ASSERT_EQ(fbs.getCount(), 1u);
+    ASSERT_EQ(fbs[0].getFunctionBlockType().getId(), "ref_fb_module_scaling");
 
     ASSERT_TRUE(client.getContext().getTypeManager().hasType("TestEnumType"));
 

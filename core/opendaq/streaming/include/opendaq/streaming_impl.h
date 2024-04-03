@@ -152,7 +152,6 @@ private:
     std::unordered_map<StringPtr, SignalItem, StringHash, StringEqualTo> streamingSignalsItems;
 
     std::unordered_set<StringPtr, StringHash, StringEqualTo> availableSignalIds;
-    std::unordered_set<StringPtr, StringHash, StringEqualTo> availableSignalsIdsReconnection;
 };
 
 template <typename... Interfaces>
@@ -742,35 +741,18 @@ void StreamingImpl<Interfaces...>::addToAvailableSignals(const StringPtr& signal
 {
     std::scoped_lock lock(sync);
 
-    if (isReconnecting)
+    if (const auto& it = availableSignalIds.find(signalStreamingId); it == availableSignalIds.end())
     {
-        if (const auto it = availableSignalsIdsReconnection.find(signalStreamingId); it == availableSignalsIdsReconnection.end())
-        {
-            availableSignalsIdsReconnection.insert(signalStreamingId);
-        }
-        else
-        {
-            LOG_E("Signal with id {} is already registered as available", signalStreamingId);
-            throw DuplicateItemException("Signal with id {} is already registered as available in streaming {}",
-                                         signalStreamingId,
-                                         this->connectionString);
-        }
+        this->availableSignalIds.insert(signalStreamingId);
+        remapAvailableSignal(signalStreamingId);
+        resubscribeAvailableSignal(signalStreamingId);
     }
     else
     {
-        if (const auto& it = availableSignalIds.find(signalStreamingId); it == availableSignalIds.end())
-        {
-            this->availableSignalIds.insert(signalStreamingId);
-            remapAvailableSignal(signalStreamingId);
-            resubscribeAvailableSignal(signalStreamingId);
-        }
-        else
-        {
-            LOG_E("Signal with id {} is already registered as available", signalStreamingId);
-            throw DuplicateItemException("Signal with id {} is already registered as available in streaming {}",
-                                         signalStreamingId,
-                                         this->connectionString);
-        }
+        LOG_E("Signal with id {} is already registered as available", signalStreamingId);
+        throw DuplicateItemException("Signal with id {} is already registered as available in streaming {}",
+                                     signalStreamingId,
+                                     this->connectionString);
     }
 }
 
@@ -859,7 +841,11 @@ void StreamingImpl<Interfaces...>::startReconnection()
 {
     std::scoped_lock lock(sync);
 
-    availableSignalsIdsReconnection.clear();
+    // consider all signals as unavailable
+    for (const auto& signalStreamingId : availableSignalIds)
+        remapUnavailableSignal(signalStreamingId);
+
+    availableSignalIds.clear();
     isReconnecting = true;
 }
 
@@ -870,28 +856,6 @@ void StreamingImpl<Interfaces...>::completeReconnection()
 
     if (!isReconnecting)
         throw InvalidStateException("Fail to complete reconnection - reconnection was not started");
-
-    for (const auto& signalId : availableSignalIds)
-    {
-        if (auto it = availableSignalsIdsReconnection.find(signalId); it == availableSignalsIdsReconnection.end())
-        {
-            // signal no longer available
-            remapUnavailableSignal(signalId);
-        }
-    }
-
-    for (const auto& signalId : availableSignalsIdsReconnection)
-    {
-        if (auto it = availableSignalIds.find(signalId); it == availableSignalIds.end())
-        {
-            // signal became available
-            remapAvailableSignal(signalId);
-        }
-        resubscribeAvailableSignal(signalId);
-    }
-
-    availableSignalIds = availableSignalsIdsReconnection;
-    availableSignalsIdsReconnection.clear();
 
     isReconnecting = false;
 }

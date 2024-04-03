@@ -4,7 +4,7 @@
 using namespace daq;
 
 MockStreamingImpl::MockStreamingImpl(const StringPtr& connectionString, const ContextPtr& context)
-    : Streaming(connectionString, context)
+    : Streaming(connectionString, context, false)
 {
 }
 

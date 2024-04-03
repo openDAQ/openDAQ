@@ -44,7 +44,7 @@ public:
     using Super = ImplementationOfWeak<IStreaming, IStreamingPrivate, Interfaces...>;
     using Self = StreamingImpl<Interfaces...>;
 
-    explicit StreamingImpl(const StringPtr& connectionString, ContextPtr context);
+    explicit StreamingImpl(const StringPtr& connectionString, ContextPtr context, bool skipDomainSignalSubscribe);
 
     ~StreamingImpl() override;
 
@@ -147,6 +147,7 @@ private:
 
     bool isActive{false};
     bool isReconnecting{false};
+    const bool skipDomainSignalSubscribe;
 
     using SignalItem = std::pair<SizeT, WeakRefPtr<IMirroredSignalConfig>>;
     std::unordered_map<StringPtr, SignalItem, StringHash, StringEqualTo> streamingSignalsItems;
@@ -155,10 +156,11 @@ private:
 };
 
 template <typename... Interfaces>
-StreamingImpl<Interfaces...>::StreamingImpl(const StringPtr& connectionString, ContextPtr context)
+StreamingImpl<Interfaces...>::StreamingImpl(const StringPtr& connectionString, ContextPtr context, bool skipDomainSignalSubscribe)
     : connectionString(connectionString)
     , context(std::move(context))
     , loggerComponent(this->context.getLogger().getOrAddComponent(fmt::format("Streaming({})", connectionString)))
+    , skipDomainSignalSubscribe(skipDomainSignalSubscribe)
 {
 }
 
@@ -453,7 +455,7 @@ ErrCode StreamingImpl<Interfaces...>::subscribeSignal(const StringPtr& signalRem
         );
     }
 
-    if (domainSignalRemoteId.assigned())
+    if (domainSignalRemoteId.assigned() && !skipDomainSignalSubscribe)
     {
         ErrCode errCode = doSubscribeSignal(domainSignalRemoteId);
         if (OPENDAQ_FAILED(errCode))
@@ -545,7 +547,7 @@ ErrCode StreamingImpl<Interfaces...>::unsubscribeSignal(const StringPtr& signalR
         );
     }
 
-    if (domainSignalRemoteId.assigned())
+    if (domainSignalRemoteId.assigned() && !skipDomainSignalSubscribe)
     {
         ErrCode errCode = doUnsubscribeSignal(domainSignalRemoteId);
         if (OPENDAQ_FAILED(errCode))

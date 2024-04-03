@@ -33,13 +33,21 @@ using ListPtr = ListObjectPtr<IList, T, S>;
 template <class T, class S = typename InterfaceOrTypeToSmartPtr<T>::SmartPtr, class U>
 static void addToList(ListPtr<T, S>& list, U&& element)
 {
-    list.unsafePushBack(std::forward<U>(element));
+    if constexpr (std::is_enum_v<U>)
+        list.unsafePushBack(static_cast<std::underlying_type_t<U>>(element));
+    else
+        list.unsafePushBack(std::forward<U>(element));
+    
 }
 
 template <class T, class S = typename InterfaceOrTypeToSmartPtr<T>::SmartPtr, class U, class... V>
 static void addToList(ListPtr<T, S>& list, U&& first, V&&... rest)
 {
-    list.unsafePushBack(std::forward<U>(first));
+    if constexpr (std::is_enum_v<U>)
+        list.unsafePushBack(static_cast<std::underlying_type_t<U>>(first));
+    else
+        list.unsafePushBack(std::forward<U>(first));
+
     addToList(list, std::forward<V>(rest)...);
 }
 

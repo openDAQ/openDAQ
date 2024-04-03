@@ -18,6 +18,7 @@
 #include <coretypes/intfs.h>
 #include <coreobjects/permissions_builder.h>
 #include <coreobjects/permissions_ptr.h>
+#include <coreobjects/permission_manager.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -27,13 +28,17 @@ public:
     explicit PermissionsBuilderImpl();
 
     ErrCode INTERFACE_FUNC inherit(Bool inherit) override;
-    ErrCode INTERFACE_FUNC set(IString* groupId, Int permissionFlags) override;
-    ErrCode INTERFACE_FUNC allow(IString* groupId, Int permissionFlags) override;
-    ErrCode INTERFACE_FUNC deny(IString* groupId, Int permissionFlags) override;
+    ErrCode INTERFACE_FUNC set(IString* groupId, IList* permissions) override;
+    ErrCode INTERFACE_FUNC allow(IString* groupId, IList* permissions) override;
+    ErrCode INTERFACE_FUNC deny(IString* groupId, IList* permissions) override;
     ErrCode INTERFACE_FUNC extend(IPermissions* config) override;
     ErrCode INTERFACE_FUNC build(IPermissions** configOut) override;
 
 private:
+    Int permissionsToBitMask(const ListPtr<Permission>& permissions);
+    void allow(IString* groupId, Int permissionFlags);
+    void deny(IString* groupId, Int permissionFlags);
+
     Bool inherited;
     DictPtr<IString, Int> allowed;
     DictPtr<IString, Int> denied;

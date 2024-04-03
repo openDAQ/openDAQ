@@ -30,8 +30,10 @@ TEST_F(PermissionManagerTest, IsAuthorizedSimple)
     auto guest = User("guest", "password", List<IString>("guest"));
 
     auto manager = PermissionManager();
-    manager.setPermissions(
-        PermissionsBuilder().set("admin", Permission::Read | Permission::Write).set("user", Permission::Read).build());
+    manager.setPermissions(PermissionsBuilder()
+                               .set("admin", List<Permission>(Permission::Read, Permission::Write))
+                               .set("user", List<Permission>(Permission::Read))
+                               .build());
 
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Read));
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Write));
@@ -52,10 +54,10 @@ TEST_F(PermissionManagerTest, IsAuthorizedInherited)
     auto user = User("user", "password", List<IString>("user"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", Permission::Read | Permission::Write).build());
+    managerRoot.setPermissions(PermissionsBuilder().set("admin", List<Permission>(Permission::Read, Permission::Write)).build());
 
     auto manager = PermissionManager(managerRoot);
-    manager.setPermissions(PermissionsBuilder().inherit(true).set("user", Permission::Read).build());
+    manager.setPermissions(PermissionsBuilder().inherit(true).set("user", List<Permission>(Permission::Read)).build());
 
     ASSERT_TRUE(managerRoot.isAuthorized(admin, Permission::Read));
     ASSERT_TRUE(managerRoot.isAuthorized(admin, Permission::Write));
@@ -76,10 +78,11 @@ TEST_F(PermissionManagerTest, IsAuthorizedNotInherited)
     auto user = User("user", "password", List<IString>("user"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", Permission::Read | Permission::Write).build());
+    managerRoot.setPermissions(PermissionsBuilder().set("admin", List<Permission>(Permission::Read, Permission::Write)).build());
 
     auto manager = PermissionManager(managerRoot);
-    manager.setPermissions(PermissionsBuilder().inherit(false).set("user", Permission::Read | Permission::Execute).build());
+    manager.setPermissions(
+        PermissionsBuilder().inherit(false).set("user", List<Permission>(Permission::Read, Permission::Execute)).build());
 
     ASSERT_TRUE(managerRoot.isAuthorized(admin, Permission::Read));
     ASSERT_TRUE(managerRoot.isAuthorized(admin, Permission::Write));
@@ -99,7 +102,7 @@ TEST_F(PermissionManagerTest, UpdateInherited)
     auto admin = User("admin", "password", List<IString>("admin", "guest"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", Permission::Read | Permission::Write).build());
+    managerRoot.setPermissions(PermissionsBuilder().set("admin", List<Permission>(Permission::Read, Permission::Write)).build());
 
     auto manager = PermissionManager(managerRoot);
     manager.setPermissions(PermissionsBuilder().inherit(true).build());
@@ -108,7 +111,7 @@ TEST_F(PermissionManagerTest, UpdateInherited)
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Write));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Execute));
 
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", Permission::Read).build());
+    managerRoot.setPermissions(PermissionsBuilder().set("admin", List<Permission>(Permission::Read)).build());
 
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Read));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Write));
@@ -120,10 +123,10 @@ TEST_F(PermissionManagerTest, Allow)
     auto admin = User("admin", "password", List<IString>("admin", "guest"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", Permission::Read | Permission::Write).build());
+    managerRoot.setPermissions(PermissionsBuilder().set("admin", List<Permission>(Permission::Read, Permission::Write)).build());
 
     auto manager = PermissionManager(managerRoot);
-    manager.setPermissions(PermissionsBuilder().inherit(true).allow("admin", Permission::Execute).build());
+    manager.setPermissions(PermissionsBuilder().inherit(true).allow("admin", List<Permission>(Permission::Execute)).build());
 
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Read));
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Write));
@@ -135,10 +138,10 @@ TEST_F(PermissionManagerTest, Deny)
     auto admin = User("admin", "password", List<IString>("admin", "guest"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", Permission::Read | Permission::Write).build());
+    managerRoot.setPermissions(PermissionsBuilder().set("admin", List<Permission>(Permission::Read, Permission::Write)).build());
 
     auto manager = PermissionManager(managerRoot);
-    manager.setPermissions(PermissionsBuilder().inherit(true).deny("admin", Permission::Write).build());
+    manager.setPermissions(PermissionsBuilder().inherit(true).deny("admin", List<Permission>(Permission::Write)).build());
 
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Read));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Write));
@@ -150,7 +153,7 @@ TEST_F(PermissionManagerTest, UpdateAllowRoot)
     auto admin = User("admin", "password", List<IString>("admin", "guest"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", Permission::Read | Permission::Write).build());
+    managerRoot.setPermissions(PermissionsBuilder().set("admin", List<Permission>(Permission::Read, Permission::Write)).build());
 
     auto manager = PermissionManager(managerRoot);
     manager.setPermissions(PermissionsBuilder().inherit(true).build());
@@ -159,7 +162,7 @@ TEST_F(PermissionManagerTest, UpdateAllowRoot)
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Write));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Execute));
 
-    managerRoot.setPermissions(PermissionsBuilder().allow("admin", Permission::Execute).build());
+    managerRoot.setPermissions(PermissionsBuilder().allow("admin", List<Permission>(Permission::Execute)).build());
 
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Read));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Write));
@@ -171,14 +174,14 @@ TEST_F(PermissionManagerTest, SetParent)
     auto admin = User("admin", "password", List<IString>("admin", "guest"));
 
     auto manager = PermissionManager();
-    manager.setPermissions(PermissionsBuilder().inherit(true).allow("admin", Permission::Read).build());
+    manager.setPermissions(PermissionsBuilder().inherit(true).allow("admin", List<Permission>(Permission::Read)).build());
 
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Read));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Write));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Execute));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().allow("admin", Permission::Read | Permission::Write).build());
+    managerRoot.setPermissions(PermissionsBuilder().allow("admin", List<Permission>(Permission::Read, Permission::Write)).build());
     manager.asPtr<IPermissionManagerInternal>().setParent(managerRoot);
 
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Read));
@@ -191,10 +194,10 @@ TEST_F(PermissionManagerTest, ChangeParent)
     auto admin = User("admin", "password", List<IString>("admin", "guest"));
 
     auto managerRoot1 = PermissionManager();
-    managerRoot1.setPermissions(PermissionsBuilder().set("admin", Permission::Read | Permission::Write).build());
+    managerRoot1.setPermissions(PermissionsBuilder().set("admin", List<Permission>(Permission::Read, Permission::Write)).build());
 
     auto managerRoot2 = PermissionManager();
-    managerRoot2.setPermissions(PermissionsBuilder().set("admin", Permission::Read).build());
+    managerRoot2.setPermissions(PermissionsBuilder().set("admin", List<Permission>(Permission::Read)).build());
 
     auto manager = PermissionManager(managerRoot1);
     manager.setPermissions(PermissionsBuilder().inherit(true).build());
@@ -215,7 +218,7 @@ TEST_F(PermissionManagerTest, SetNullParent)
     auto admin = User("admin", "password", List<IString>("admin", "guest"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", Permission::Read | Permission::Write).build());
+    managerRoot.setPermissions(PermissionsBuilder().set("admin", List<Permission>(Permission::Read, Permission::Write)).build());
 
     auto manager = PermissionManager(managerRoot);
     manager.setPermissions(PermissionsBuilder().inherit(true).build());

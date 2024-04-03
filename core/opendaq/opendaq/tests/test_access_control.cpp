@@ -67,9 +67,12 @@ TEST_F(AccessControlTest, ComponentInherit)
     auto deviceManager = device.getPermissionManager();
     auto fbManager = fb.getPermissionManager();
 
-    deviceManager.setPermissions(PermissionsBuilder().set("guest", Permission::Read | Permission::Write).build());
-    fbManager.setPermissions(
-        PermissionsBuilder().inherit(true).allow("guest", Permission::Execute).deny("guest", Permission::Write).build());
+    deviceManager.setPermissions(PermissionsBuilder().set("guest", List<Permission>(Permission::Read, Permission::Write)).build());
+    fbManager.setPermissions(PermissionsBuilder()
+                                 .inherit(true)
+                                 .allow("guest", List<Permission>(Permission::Execute))
+                                 .deny("guest", List<Permission>(Permission::Write))
+                                 .build());
 
     ASSERT_TRUE(deviceManager.isAuthorized(user, Permission::Read));
     ASSERT_TRUE(deviceManager.isAuthorized(user, Permission::Write));
@@ -93,9 +96,12 @@ TEST_F(AccessControlTest, ObjectPropertyInherit)
     auto deviceManager = device.getPermissionManager();
     auto objectManager = object.getPermissionManager();
 
-    deviceManager.setPermissions(PermissionsBuilder().set("guest", Permission::Read | Permission::Write).build());
-    objectManager.setPermissions(
-        PermissionsBuilder().inherit(true).allow("guest", Permission::Execute).deny("guest", Permission::Write).build());
+    deviceManager.setPermissions(PermissionsBuilder().set("guest", List<Permission>(Permission::Read, Permission::Write)).build());
+    objectManager.setPermissions(PermissionsBuilder()
+                                     .inherit(true)
+                                     .allow("guest", List<Permission>(Permission::Execute))
+                                     .deny("guest", List<Permission>(Permission::Write))
+                                     .build());
 
     ASSERT_TRUE(deviceManager.isAuthorized(user, Permission::Read));
     ASSERT_TRUE(deviceManager.isAuthorized(user, Permission::Write));
@@ -121,9 +127,9 @@ TEST_F(AccessControlTest, ComponentAndObjectInherit)
     auto fbManager = fb.getPermissionManager();
     auto objectManager = object.getPermissionManager();
 
-    deviceManager.setPermissions(PermissionsBuilder().set("guest", Permission::Read).build());
-    fbManager.setPermissions(PermissionsBuilder().inherit(true).allow("guest", Permission::Write).build());
-    objectManager.setPermissions(PermissionsBuilder().inherit(true).allow("guest", Permission::Execute).build());
+    deviceManager.setPermissions(PermissionsBuilder().set("guest", List<Permission>(Permission::Read)).build());
+    fbManager.setPermissions(PermissionsBuilder().inherit(true).allow("guest", List<Permission>(Permission::Write)).build());
+    objectManager.setPermissions(PermissionsBuilder().inherit(true).allow("guest", List<Permission>(Permission::Execute)).build());
 
     ASSERT_TRUE(deviceManager.isAuthorized(user, Permission::Read));
     ASSERT_FALSE(deviceManager.isAuthorized(user, Permission::Write));

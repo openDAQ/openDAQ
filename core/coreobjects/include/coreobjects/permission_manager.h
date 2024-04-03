@@ -32,7 +32,7 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief Enumeration of available access permissions
  */
-enum Permission
+enum class Permission : EnumType
 {
     None =    0x0, // The user has no permissions on the object.
     Read =    0x1, // The user can see and read an object.

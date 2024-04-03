@@ -18,6 +18,8 @@
 #include <coretypes/baseobject.h>
 #include <coretypes/common.h>
 #include <coreobjects/permissions.h>
+#include <coretypes/listobject.h>
+#include <coreobjects/permission_manager.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -41,29 +43,32 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionsBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC inherit(Bool inherit) = 0;
 
+    // [templateType(permissions, Permission)]
     // [returnSelf]
     /*!
      * @brief Set permissions for given group.
      * @param groupId The id of a group to set permissions for.
-     * @param permissionFlags Bit mask of Permission enum flags to allow or deny.
+     * @param permissions List of permissions to allow. Permissions which are not present in the list are denied.
      */
-    virtual ErrCode INTERFACE_FUNC set(IString* groupId, Int permissionFlags) = 0;
+    virtual ErrCode INTERFACE_FUNC set(IString* groupId, IList* permissions) = 0;
 
+    // [templateType(permissions, Permission)]
     // [returnSelf]
     /*!
      * @brief Allow permissions for given group.
      * @param groupId The id of a group to allow permissions for.
-     * @param permissionFlags Bit mask of Permission enum flags to allow. Allowed flags should be set to 1 and denied to 0.
+     * @param permissions List of Permission enum flags to allow.
      */
-    virtual ErrCode INTERFACE_FUNC allow(IString * groupId, Int permissionFlags) = 0;
+    virtual ErrCode INTERFACE_FUNC allow(IString * groupId, IList* permissions) = 0;
 
+    // [templateType(permissions, Permission)]
     // [returnSelf]
     /*!
      * @brief Deny permissions for given group.
      * @param groupId The id of a group to deny permissions for.
-     * @param permissionFlags Bit mask of Permission enum flags to deny. Denied flags should be set to 1 and allowed to 0.
+     * @param permissions List of Permission enum flags to deny.
      */
-    virtual ErrCode INTERFACE_FUNC deny(IString * groupId, Int permissionFlags) = 0;
+    virtual ErrCode INTERFACE_FUNC deny(IString * groupId, IList* permissions) = 0;
 
     // [returnSelf]
     /*!

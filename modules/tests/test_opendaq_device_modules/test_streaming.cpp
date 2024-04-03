@@ -203,7 +203,7 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(packetsEqual(serverReceivedPackets,
                              clientReceivedPackets,
-                             std::get<0>(GetParam()) == "openDAQ WebsocketTcp Streaming"));
+                             std::get<0>(GetParam()) == "openDAQ StreamingLT"));
 
     // recreate client reader and test initial event packet
     clientReader = createClientReader(clientSignal.getDescriptor().getName());
@@ -407,8 +407,8 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Values(
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/"),
-        std::make_tuple("openDAQ WebsocketTcp Streaming", "opendaq_lt_streaming", "daq.lt://127.0.0.1/"),
-        std::make_tuple("openDAQ WebsocketTcp Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ StreamingLT", "opendaq_lt_streaming", "daq.lt://127.0.0.1/"),
+        std::make_tuple("openDAQ StreamingLT", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/")
     )
 );
 #elif defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && !defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -425,8 +425,8 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingTestGroup,
     StreamingTest,
     testing::Values(
-        std::make_tuple("openDAQ WebsocketTcp Streaming", "opendaq_lt_streaming", "daq.lt://127.0.0.1/"),
-        std::make_tuple("openDAQ WebsocketTcp Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ StreamingLT", "opendaq_lt_streaming", "daq.lt://127.0.0.1/"),
+        std::make_tuple("openDAQ StreamingLT", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/")
     )
 );
 #endif

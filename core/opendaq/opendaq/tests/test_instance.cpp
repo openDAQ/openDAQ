@@ -242,9 +242,9 @@ TEST_F(InstanceTest, EnumerateServerTypes)
     auto mockServer = serverTypes.get("MockServer");
     ASSERT_EQ(mockServer.getId(), "MockServer");
 
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ WebsocketTcp Streaming"));
-    mockServer = serverTypes.get("openDAQ WebsocketTcp Streaming");
-    ASSERT_EQ(mockServer.getId(), "openDAQ WebsocketTcp Streaming");
+    ASSERT_TRUE(serverTypes.hasKey("openDAQ StreamingLT"));
+    mockServer = serverTypes.get("openDAQ StreamingLT");
+    ASSERT_EQ(mockServer.getId(), "openDAQ StreamingLT");
 
     ASSERT_TRUE(serverTypes.hasKey("openDAQ Native Streaming"));
     mockServer = serverTypes.get("openDAQ Native Streaming");

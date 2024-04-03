@@ -17,7 +17,7 @@ static InstancePtr CreateServerInstance()
     const auto refDevice = instance.addDevice("daqref://device1");
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
 
-    instance.addServer("openDAQ WebsocketTcp Streaming", nullptr);
+    instance.addServer("openDAQ StreamingLT", nullptr);
 
     return instance;
 }

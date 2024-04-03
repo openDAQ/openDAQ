@@ -222,7 +222,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     serversPtr.pushBack(nativeStreamingServer);
 #elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     ServerPtr websocketServer;
-    errCode = addServer(String("openDAQ WebsocketTcp Streaming"), nullptr, &websocketServer);
+    errCode = addServer(String("openDAQ StreamingLT"), nullptr, &websocketServer);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
     serversPtr.pushBack(websocketServer);

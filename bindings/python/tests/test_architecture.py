@@ -15,7 +15,7 @@ class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
         instance.set_root_device('daqref://device0')
 
         # Start a web-socket streaming server
-        instance.add_server('openDAQ WebsocketTcp Streaming', None)
+        instance.add_server('openDAQ StreamingLT', None)
 
         # Start an openDAQ OpcUa and native streaming servers
         instance.add_standard_servers()

@@ -29,8 +29,9 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
             [context = this->context](const MdnsDiscoveredDevice& discoveredDevice)
             {
                 auto connectionString = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
-                auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration).addConnectionString(connectionString).setConnectionType("Ipv4");
-                cap.setPrefix("daq.opcua");
+                auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration).addConnectionString(connectionString)
+                                                                                                                 .setConnectionType("Ipv4")
+                                                                                                                 .setPrefix("daq.opcua");
                 return cap;
             }
         },
@@ -231,10 +232,21 @@ void OpcUaClientModule::configureStreamingSources(const PropertyObjectPtr& devic
 
     const StringPtr primaryStreamingProtocol = deviceConfig.getPropertyValue("PrimaryStreamingProtocol");
     const ListPtr<IString> allowedStreamingProtocols = deviceConfig.getPropertyValue("AllowedStreamingProtocols");
-    const auto capabilities = device.getInfo().getServerCapabilities();
     std::unordered_map<std::string, std::string> idPrefixMap;
-    for (const auto& cap : capabilities)
-        idPrefixMap.insert(std::make_pair(cap.getProtocolId(), cap.getPrefix()));
+
+    {
+        auto devices = device.getDevices(search::Recursive(search::Any()));
+        devices.pushBack(device);
+
+        for (const auto& dev : devices)
+        {
+            const auto capabilities = dev.getInfo().getServerCapabilities();
+            for (const auto & cap : capabilities)
+            {
+                idPrefixMap.insert(std::make_pair(cap.getProtocolId(), cap.getPrefix()));
+            }
+        }
+    }
 
     for (const auto& signal : device.getSignals(search::Recursive(search::Any())))
     {

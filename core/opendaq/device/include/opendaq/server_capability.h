@@ -77,7 +77,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
 
     /*!
      * @brief Gets the name of the protocol supported by the device.
-     * @param[out] protocolName The name of the protocol (e.g., "openDAQ Native Streaming", "openDAQ OpcUa", "openDAQ WebsocketTcp Streaming").
+     * @param[out] protocolName The name of the protocol (e.g., "openDAQ Native Streaming", "openDAQ OpcUa", "openDAQ StreamingLT").
      */
     virtual ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) = 0;
 

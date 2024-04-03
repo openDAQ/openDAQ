@@ -20,7 +20,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (capability.getProtocolName() == "openDAQ WebsocketTcp Streaming")
+            if (capability.getProtocolName() == "openDAQ StreamingLT")
             {
                 device = instance.addDevice(capability.getPrimaryConnectionString());
                 break;

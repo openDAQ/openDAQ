@@ -39,7 +39,7 @@ namespace docs_test_helpers
         
         instance.setRootDevice("daqref://device1");
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING) && defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-        instance.addServer("openDAQ WebsocketTcp Streaming", nullptr);
+        instance.addServer("openDAQ StreamingLT", nullptr);
 #endif
         instance.addStandardServers();
         return instance;

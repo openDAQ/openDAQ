@@ -50,8 +50,8 @@ ServerTypePtr WebsocketStreamingServerImpl::createType()
     };
 
     return ServerType(
-        "openDAQ WebsocketTcp Streaming",
-        "openDAQ WebsocketTcp Streaming server",
+        "openDAQ StreamingLT",
+        "openDAQ StreamingLT server",
         "Publishes device signals as a flat list and streams data over WebsocketTcp protocol",
         configurationCallback);
 }

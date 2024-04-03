@@ -1,4 +1,5 @@
 #include "test_helpers.h"
+#include <iostream>
 
 using namespace daq;
 
@@ -40,10 +41,10 @@ public:
 
         if (subdeviceStreamingType == StreamingType::WebsocketStreaming)
         {
-            auto ws_config = instance.getAvailableServerTypes().get("openDAQ WebsocketTcp Streaming").createDefaultConfig();
+            auto ws_config = instance.getAvailableServerTypes().get("openDAQ StreamingLT").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT + index);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT + index);
-            instance.addServer("openDAQ WebsocketTcp Streaming", ws_config);
+            instance.addServer("openDAQ StreamingLT", ws_config);
         }
         else if (subdeviceStreamingType == StreamingType::NativeStreaming)
         {
@@ -86,10 +87,10 @@ public:
 
         if (gatewayStreamingType == StreamingType::WebsocketStreaming)
         {
-            auto ws_config = instance.getAvailableServerTypes().get("openDAQ WebsocketTcp Streaming").createDefaultConfig();
+            auto ws_config = instance.getAvailableServerTypes().get("openDAQ StreamingLT").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT);
-            instance.addServer("openDAQ WebsocketTcp Streaming", ws_config);
+            instance.addServer("openDAQ StreamingLT", ws_config);
         }
         else if (gatewayStreamingType == StreamingType::NativeStreaming)
         {
@@ -184,7 +185,7 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
     auto subdevice1 = CreateSubdeviceInstance(1u);
     auto subdevice2 = CreateSubdeviceInstance(2u);
     auto gateway = CreateGatewayInstance();
-    auto client = CreateClientInstance(MIN_HOPS);
+    auto client = CreateClientInstance(MIN_HOPS);    
 
     auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
     auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));

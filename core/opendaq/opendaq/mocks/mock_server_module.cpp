@@ -73,7 +73,7 @@ ErrCode MockServerModuleImpl::getAvailableServerTypes(IDict** serverTypes)
     auto types = Dict<IString, IServerType>();
 
     types.set("MockServer", ServerType("MockServer", "Mock Server", "Mock"));
-    types.set("openDAQ WebsocketTcp Streaming", ServerType("openDAQ WebsocketTcp Streaming", "Mock Server", "Mock"));
+    types.set("openDAQ StreamingLT", ServerType("openDAQ StreamingLT", "Mock Server", "Mock"));
     types.set("openDAQ Native Streaming", ServerType("openDAQ Native Streaming", "Mock Server", "Mock"));
     types.set("openDAQ OpcUa", ServerType("openDAQ OpcUa", "Mock Server", "Mock"));
 
@@ -89,7 +89,7 @@ ErrCode MockServerModuleImpl::createServer(IServer** server,
 {
     const StringPtr serverTypePtr = StringPtr::Borrow(serverType);
     if (serverTypePtr == "MockServer" ||
-        serverTypePtr == "openDAQ WebsocketTcp Streaming" ||
+        serverTypePtr == "openDAQ StreamingLT" ||
         serverTypePtr == "openDAQ Native Streaming" ||
         serverTypePtr == "openDAQ OpcUa")
     {

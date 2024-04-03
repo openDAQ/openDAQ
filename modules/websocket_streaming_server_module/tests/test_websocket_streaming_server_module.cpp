@@ -55,7 +55,7 @@ static InstancePtr CreateTestInstance()
 
 static PropertyObjectPtr CreateServerConfig(const InstancePtr& instance)
 {
-    auto config = instance.getAvailableServerTypes().get("openDAQ WebsocketTcp Streaming").createDefaultConfig();
+    auto config = instance.getAvailableServerTypes().get("openDAQ StreamingLT").createDefaultConfig();
     config.setPropertyValue("WebsocketStreamingPort", 0);
     config.setPropertyValue("WebsocketControlPort", 0);
     return config;
@@ -108,8 +108,8 @@ TEST_F(WebsocketStreamingServerModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
     ASSERT_EQ(serverTypes.getCount(), 1u);
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ WebsocketTcp Streaming"));
-    ASSERT_EQ(serverTypes.get("openDAQ WebsocketTcp Streaming").getId(), "openDAQ WebsocketTcp Streaming");
+    ASSERT_TRUE(serverTypes.hasKey("openDAQ StreamingLT"));
+    ASSERT_EQ(serverTypes.get("openDAQ StreamingLT").getId(), "openDAQ StreamingLT");
 }
 
 TEST_F(WebsocketStreamingServerModuleTest, ServerConfig)
@@ -117,8 +117,8 @@ TEST_F(WebsocketStreamingServerModuleTest, ServerConfig)
     auto module = CreateModule();
 
     DictPtr<IString, IServerType> serverTypes = module.getAvailableServerTypes();
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ WebsocketTcp Streaming"));
-    auto config = serverTypes.get("openDAQ WebsocketTcp Streaming").createDefaultConfig();
+    ASSERT_TRUE(serverTypes.hasKey("openDAQ StreamingLT"));
+    auto config = serverTypes.get("openDAQ StreamingLT").createDefaultConfig();
     ASSERT_TRUE(config.assigned());
 
     ASSERT_TRUE(config.hasProperty("WebsocketStreamingPort"));
@@ -134,7 +134,7 @@ TEST_F(WebsocketStreamingServerModuleTest, CreateServer)
     auto module = CreateModule(device.getContext());
     auto config = CreateServerConfig(device);
 
-    ASSERT_NO_THROW(module.createServer("openDAQ WebsocketTcp Streaming", device.getRootDevice(), config));
+    ASSERT_NO_THROW(module.createServer("openDAQ StreamingLT", device.getRootDevice(), config));
 }
 
 TEST_F(WebsocketStreamingServerModuleTest, CreateServerFromInstance)
@@ -142,5 +142,5 @@ TEST_F(WebsocketStreamingServerModuleTest, CreateServerFromInstance)
     auto device = CreateTestInstance();
     auto config = CreateServerConfig(device);
 
-    ASSERT_NO_THROW(device.addServer("openDAQ WebsocketTcp Streaming", config));
+    ASSERT_NO_THROW(device.addServer("openDAQ StreamingLT", config));
 }

@@ -119,7 +119,7 @@ TEST_F(ModulesTest, CreateComponents)
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     daq::DictPtr<daq::IString, daq::IServerType> websocketStreamingServerTypes =
         websocketStreamingServerModule.getAvailableServerTypes();
-    daq::ServerTypePtr webSocketStreamingServerType = websocketStreamingServerTypes.get("openDAQ WebsocketTcp Streaming");
+    daq::ServerTypePtr webSocketStreamingServerType = websocketStreamingServerTypes.get("openDAQ StreamingLT");
     ASSERT_GT(websocketStreamingServerTypes.getCount(), 0u);
 #endif
     daq::DictPtr<daq::IString, daq::IServerType> serverTypes = serverModule.getAvailableServerTypes();
@@ -199,7 +199,7 @@ TEST_F(ModulesTest, CreateServer)
     ASSERT_NO_THROW(nativeStreamingServerModule.createServer(nativeStreamingServerType.getId(), device, nativeStreamingConfig));
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    daq::ServerTypePtr webSocketServerType = websocketStreamingServerTypes.get("openDAQ WebsocketTcp Streaming");
+    daq::ServerTypePtr webSocketServerType = websocketStreamingServerTypes.get("openDAQ StreamingLT");
     daq::PropertyObjectPtr webSocketConfig = webSocketServerType.createDefaultConfig();
     daq::ListPtr<IProperty> webSocketConfigFields = webSocketConfig.getVisibleProperties();
     ASSERT_NO_THROW(webSocketConfigFields[0].getName());

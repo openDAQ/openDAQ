@@ -60,7 +60,7 @@ public:
     
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
-    ErrCode getInterfaceIds(SizeT* idCount, IntfID** ids) override;
+    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);

@@ -119,7 +119,7 @@ Vagrant.configure("2") do |config|
     config.vm.provision "shell", inline: "mv /home/opendaq/{opcuatms.service,native_streaming.service} /etc/avahi/services/"
 
     # Move opendaq-config.json file
-    config.vm.provision "shell", inline: "mv /tmp/opendaq-config.json /home/opendaq/opendaq/"
+    config.vm.provision "shell", inline: "mv /home/opendaq/opendaq-config.json /home/opendaq/opendaq/"
 
     # Get systemd service to proper location
     config.vm.provision "file", source: "simulator.service", destination: "/etc/systemd/system/simulator.service"

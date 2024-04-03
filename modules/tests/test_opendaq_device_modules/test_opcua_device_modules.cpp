@@ -117,6 +117,8 @@ TEST_F(OpcuaDeviceModulesTest, GetSetDeviceProperties)
     ASSERT_EQ(refDevice.getPropertyValue("NumberOfChannels"), 1);
     ASSERT_EQ(serverRefDevice.getPropertyValue("NumberOfChannels"), 1);
 
+    auto oldProperties = refDevice.getAllProperties();
+
     // reset messages
     debugSink.waitForMessage(0);
     ASSERT_ANY_THROW(refDevice.setPropertyValue("InvalidProp", 100));
@@ -125,7 +127,7 @@ TEST_F(OpcuaDeviceModulesTest, GetSetDeviceProperties)
     ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"InvalidProp\" on OpcUA client property object: Property not found");
 
     auto properties = refDevice.getAllProperties();
-    ASSERT_EQ(properties.getCount(), 6u);
+    ASSERT_EQ(properties.getCount(), oldProperties.getCount());
 }
 
 TEST_F(OpcuaDeviceModulesTest, DeviceInfoAndDomain)

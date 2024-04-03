@@ -72,7 +72,7 @@ public:
         auto subdeviceStreamingType = GetParam().first;
         for (auto index = 1; index <= 2; index++)
         {
-            auto config = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
+            auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
             config.setPropertyValue("StreamingConnectionHeuristic", MIN_CONNECTIONS);
             config.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
             if (subdeviceStreamingType == StreamingType::WebsocketStreaming)

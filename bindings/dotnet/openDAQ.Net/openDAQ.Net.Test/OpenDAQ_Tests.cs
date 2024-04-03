@@ -21,7 +21,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 {
     private const string ConnectionProtocolDaqRef  = "daqref://";
     private const string ConnectionProtocolOpcUa   = "daq.opcua://";
-    private const string ConnectionProtocolWinSock = "daq.ws://";
+    private const string ConnectionProtocolWinSock = "daq.lt://";
 
     public enum eDesiredConnection
     {
@@ -698,7 +698,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
                 reader.Read(samples, ref count, 1000);
                 samplesCount += count;
 
-                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000} ... {count-1}: {samples[count - 1]:+0.000;-0.000;±0.000})";
+                string values = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000} ... {count-1}: {samples[count - 1]:+0.000;-0.000;ï¿½0.000})";
                 Console.WriteLine($"  Block {readBlockNo + 1,2} read {count,3} values {values}");
             }
         }

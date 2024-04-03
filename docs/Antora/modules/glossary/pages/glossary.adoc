@@ -331,7 +331,7 @@ xref:glossary.adoc#opendaq_websocket_streaming_client_module[Websocket Streaming
 Those <<device>>s are assumed to be running a {mdns-wiki}[mDNS] discovery service, 
 advertising the `_opcua-tcp._tcp.local.` service, with a `TXT` record entry of `caps=TMS` if device is openDAQ(TM) OPC UA-supported,
 a {mdns-wiki}[mDNS] discovery service, advertising the `_opendaq-streaming-native._tcp.local.` service, with a `TXT` record entry of `caps=OPENDAQ_NS` if device is Native-streaming-supported.
-and a {mdns-wiki}[mDNS] discovery service, advertising the `_streaming-ws._tcp.local.` service, with a `TXT` record entry of `caps=WS` if device is Websocket-streaming-supported.
+and a {mdns-wiki}[mDNS] discovery service, advertising the `_streaming-lt._tcp.local.` service, with a `TXT` record entry of `caps=WS` if device is Websocket-streaming-supported.
 
 [#opc_foundation]
 == OPC Foundation

@@ -153,7 +153,7 @@ Depending on the modules loaded we can connect to different types of devices. Wh
 integrated into openDAQ(TM), it is added/connected to in the same manner as a openDAQ(TM) OPC UA device, but using its
 own discovery mechanism and connection string format. For example, the openDAQ(TM) reference device module
 uses addresses prefixed with "daqref://", the openDAQ(TM) `native_stream_cl_module` uses addresses prefixed with "daq.ns://" and
-the openDAQ(TM) `ws_stream_cl_module` uses addresses prefixed with "daq.ws://".
+the openDAQ(TM) `ws_stream_cl_module` uses addresses prefixed with "daq.lt://".
 
 [tabs]
 ====

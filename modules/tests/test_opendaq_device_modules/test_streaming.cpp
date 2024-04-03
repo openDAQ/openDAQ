@@ -263,7 +263,7 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
     MirroredSignalConfigPtr clientDomainSignalPtr = clientSignalPtr.getDomainSignal();
 
     bool usingNativePseudoDevice = std::get<1>(GetParam()) == "opendaq_native_streaming" && std::get<2>(GetParam()) == "daq.ns://127.0.0.1/";
-    bool usingWSPseudoDevice = std::get<1>(GetParam()) == "opendaq_lt_streaming" && std::get<2>(GetParam()) == "daq.ws://127.0.0.1/";
+    bool usingWSPseudoDevice = std::get<1>(GetParam()) == "opendaq_lt_streaming" && std::get<2>(GetParam()) == "daq.lt://127.0.0.1/";
     bool usingNativeStreaming = std::get<1>(GetParam()) == "opendaq_native_streaming";
 
     for (int i = 0; i < 5; ++i)
@@ -407,7 +407,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Values(
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/"),
-        std::make_tuple("openDAQ WebsocketTcp Streaming", "opendaq_lt_streaming", "daq.ws://127.0.0.1/"),
+        std::make_tuple("openDAQ WebsocketTcp Streaming", "opendaq_lt_streaming", "daq.lt://127.0.0.1/"),
         std::make_tuple("openDAQ WebsocketTcp Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/")
     )
 );
@@ -425,7 +425,7 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingTestGroup,
     StreamingTest,
     testing::Values(
-        std::make_tuple("openDAQ WebsocketTcp Streaming", "opendaq_lt_streaming", "daq.ws://127.0.0.1/"),
+        std::make_tuple("openDAQ WebsocketTcp Streaming", "opendaq_lt_streaming", "daq.lt://127.0.0.1/"),
         std::make_tuple("openDAQ WebsocketTcp Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/")
     )
 );

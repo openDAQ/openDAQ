@@ -10,7 +10,7 @@
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 
 static const char* WebsocketDeviceTypeId = "opendaq_lt_streaming";
-static const char* WebsocketDevicePrefix = "daq.ws://";
+static const char* WebsocketDevicePrefix = "daq.lt://";
 
 using namespace discovery;
 using namespace daq::websocket_streaming;
@@ -25,19 +25,20 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto connectionString = fmt::format("daq.ws://{}:{}{}",
+                auto connectionString = fmt::format("{}{}:{}{}",
+                                   WebsocketDevicePrefix,
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
                 auto cap = ServerCapability("opendaq_lt_streaming", "openDAQ StreamingLT", ProtocolType::Streaming).addConnectionString(connectionString).setConnectionType("Ipv4");
-                cap.setPrefix("daq.ws");
+                cap.setPrefix("daq.lt");
                 return cap;
             }
         },
         {"WS"}
     )
 {
-    discoveryClient.initMdnsClient("_streaming-ws._tcp.local.");
+    discoveryClient.initMdnsClient("_streaming-lt._tcp.local.");
 }
 
 ListPtr<IDeviceInfo> WebsocketStreamingClientModule::onGetAvailableDevices()
@@ -142,7 +143,7 @@ StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(con
         throw InvalidParameterException("Device address is not set");
 
     auto port = capability.getPropertyValue("Port").template asPtr<IInteger>();
-    auto connectionString = String(fmt::format("daq.ws://{}:{}", address, port));
+    auto connectionString = String(fmt::format("{}{}:{}", WebsocketDevicePrefix, address, port));
 
     return connectionString;
 }

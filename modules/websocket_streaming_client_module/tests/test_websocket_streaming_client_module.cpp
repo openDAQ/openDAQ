@@ -97,7 +97,7 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsConnectionStringCorrect)
 {
     auto module = CreateModule();
 
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.ws://device8"));
+    ASSERT_TRUE(module.acceptsConnectionParameters("daq.lt://device8"));
 }
 
 TEST_F(WebsocketStreamingClientModuleTest, CreateDeviceConnectionStringNull)
@@ -134,7 +134,7 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateDeviceConnectionFailed)
 {
     auto module = CreateModule();
 
-    ASSERT_THROW(module.createDevice("daq.ws://127.0.0.1", nullptr), NotFoundException);
+    ASSERT_THROW(module.createDevice("daq.lt://127.0.0.1", nullptr), NotFoundException);
 }
 
 
@@ -175,7 +175,7 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConnectionStringCorre
 {
     auto module = CreateModule();
 
-    ASSERT_TRUE(module.acceptsStreamingConnectionParameters("daq.ws://device8"));
+    ASSERT_TRUE(module.acceptsStreamingConnectionParameters("daq.lt://device8"));
 }
 
 
@@ -186,7 +186,7 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConfig)
     createModule(&module, context);
 
     ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_lt_streaming", "openDAQ WebsocketTcp Streaming", ProtocolType::Streaming);
-    serverCapability.setPrefix("daq.ws");
+    serverCapability.setPrefix("daq.lt");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
     serverCapability.setPropertyValue("address", "123.123.123.123");
@@ -224,7 +224,7 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateStreamingConnectionStringInvali
 
     ASSERT_THROW(module.createStreaming("daqref://devicett3axxr1", nullptr), InvalidParameterException);
     ASSERT_THROW(module.createStreaming("daq.opcua://devicett3axxr1", nullptr), InvalidParameterException);
-    ASSERT_THROW(module.createStreaming("daq.ws://devicett3axxr1", nullptr), NotFoundException);
+    ASSERT_THROW(module.createStreaming("daq.lt://devicett3axxr1", nullptr), NotFoundException);
 }
 
 TEST_F(WebsocketStreamingClientModuleTest, GetAvailableComponentTypes)

@@ -42,13 +42,13 @@ int main(int /*argc*/, const char* /*argv*/[])
     daq::InstancePtr instance = daq::Instance(MODULE_PATH);
 
     // Get the default configuration Property object for OPC UA enabled device type
-    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
+    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
 
     // Allow multiple streaming protocols by device configuration
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.ws"));
+    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
 
     // Set websocket streaming protocol as primary by device configuration
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.ws");
+    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
 
     // Disregard direct streaming connections for nested devices,
     // establish the minimum number of streaming connections possible.
@@ -115,7 +115,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         std::cout << source << std::endl;
         if (source.toView().find("daq.ns://") != std::string::npos)
             nativeStreamingSource = source;
-        if (source.toView().find("daq.ws://") != std::string::npos)
+        if (source.toView().find("daq.lt://") != std::string::npos)
             websocketStreamingSource = source;
     }
 

@@ -33,7 +33,7 @@ public:
     const uint16_t STREAMING_PORT = 7414;
     const uint16_t STREAMING_CONTROL_PORT = 7438;
     const std::string OPCUA_URL = "opc.tcp://127.0.0.1/";
-    const std::string STREAMING_URL = "daq.ws://127.0.0.1/";
+    const std::string STREAMING_URL = "daq.lt://127.0.0.1/";
 
     using ReadCallback = std::function<void(const ListPtr<IPacket>& readPackets)>;
 

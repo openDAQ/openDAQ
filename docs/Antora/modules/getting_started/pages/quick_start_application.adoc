@@ -1331,7 +1331,7 @@ instance = opendaq.Instance()
 # Find and connect to a device hosting a WebSocket server
 for device_info in instance.available_devices:
     for capability in device_info.server_capabilities:
-        if capability.protocol_name == 'openDAQ Native Streaming' and capability.protocol_type == 'Streaming':
+        if capability.protocol_name == 'openDAQ Native Streaming':
             device = instance.add_device(capability.connection_string)
             break
 else:

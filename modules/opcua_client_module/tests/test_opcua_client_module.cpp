@@ -153,7 +153,7 @@ TEST_F(OpcUaClientModuleTest, DefaultDeviceConfig)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 1u);
-    ASSERT_TRUE(deviceTypes.hasKey("daq.opcua"));
+    ASSERT_TRUE(deviceTypes.hasKey("opendaq_opcua_config"));
     auto config = deviceTypes.get("opendaq_opcua_config").createDefaultConfig();
     ASSERT_TRUE(config.assigned());
 

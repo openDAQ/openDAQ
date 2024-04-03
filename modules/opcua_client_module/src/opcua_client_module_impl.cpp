@@ -194,11 +194,11 @@ PropertyObjectPtr OpcUaClientModule::createDeviceDefaultConfig()
 // TODO add websocket streaming to default list of allowed protocols
 // when it will have subscribe/unsubscribe support
 //#if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-//    allowedStreamingProtocols.pushBack("daq.ws");
+//    allowedStreamingProtocols.pushBack("opendaq_lt_streaming");
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     allowedStreamingProtocols.pushBack("opendaq_lt_streaming");
-//    primaryStreamingProtocol = "daq.ws";
+//    primaryStreamingProtocol = "opendaq_lt_streaming";
 #endif
 
     defaultConfig.addProperty(ListProperty("AllowedStreamingProtocols", allowedStreamingProtocols));

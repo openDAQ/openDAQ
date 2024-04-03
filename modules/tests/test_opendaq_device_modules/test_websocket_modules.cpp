@@ -25,7 +25,7 @@ static InstancePtr CreateServerInstance()
 static InstancePtr CreateClientInstance()
 {
     auto instance = Instance();
-    auto refDevice = instance.addDevice("daq.ws://127.0.0.1/");
+    auto refDevice = instance.addDevice("daq.lt://127.0.0.1/");
     return instance;
 }
 

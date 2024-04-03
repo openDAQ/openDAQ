@@ -61,7 +61,7 @@ void WebsocketStreamingServer::start()
     packetReader.start();
 
     const ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_lt_streaming", "openDAQ-LT Streaming", ProtocolType::Streaming);
-    serverCapability.setPrefix("daq.ws");
+    serverCapability.setPrefix("daq.lt");
     serverCapability.addProperty(IntProperty("Port", streamingPort));
     this->device.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
 }

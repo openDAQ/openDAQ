@@ -31,9 +31,9 @@
 PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> declareIServerCapability(pybind11::module_ m)
 {
     py::enum_<daq::ProtocolType>(m, "ProtocolType")
-        .value("StructureAndStreaming", daq::ProtocolType::ConfigurationAndStreaming)
-        .value("Structure", daq::ProtocolType::Configuration)
+        .value("Configuration", daq::ProtocolType::Configuration)
         .value("Streaming", daq::ProtocolType::Streaming)
+        .value("ConfigurationAndStreaming", daq::ProtocolType::ConfigurationAndStreaming)
         .value("Unknown", daq::ProtocolType::Unknown);
 
     return wrapInterface<daq::IServerCapability, daq::IPropertyObject>(m, "IServerCapability");
@@ -65,6 +65,13 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
             return objectPtr.getProtocolName().toStdString();
         },
         "Gets the name of the protocol supported by the device.");
+    cls.def_property_readonly("protocol_id",
+        [](daq::IServerCapability *object)
+        {
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            return objectPtr.getProtocolId().toStdString();
+        },
+        "Gets the id of the protocol supported by the device. Should not contain spaces or special characters except for '_' and '-'.");
     cls.def_property_readonly("protocol_type",
         [](daq::IServerCapability *object)
         {
@@ -72,6 +79,13 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
             return objectPtr.getProtocolType();
         },
         "Gets the type of protocol supported by the device.");
+    cls.def_property_readonly("prefix",
+        [](daq::IServerCapability *object)
+        {
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            return objectPtr.getPrefix().toStdString();
+        },
+        "Gets the prefix of the connection string (eg. \"daq.nd\" or \"daq.opcua\")");
     cls.def_property_readonly("connection_type",
         [](daq::IServerCapability *object)
         {

@@ -299,7 +299,6 @@ PropertyObjectPtr NativeStreamingClientModule::createDeviceDefaultConfig()
 bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr& connectionString,
                                                                 const PropertyObjectPtr& config)
 {
-    std::string connStr = connectionString;
     auto pseudoDevicePrefixFound = connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix);
     auto devicePrefixFound = connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix);
 

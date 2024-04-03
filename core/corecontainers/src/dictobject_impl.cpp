@@ -237,9 +237,6 @@ ErrCode DictImpl::createStartIterator(IIterator** iterator)
     if (iterator == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    if (iterator == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
     *iterator = new (std::nothrow) DictIterator<decltype(hashTable)>(
         borrowInterface<IBaseObject>(),
         hashTable.begin(),
@@ -258,9 +255,6 @@ ErrCode DictImpl::createStartIterator(IIterator** iterator)
 
 ErrCode DictImpl::createEndIterator(IIterator** iterator)
 {
-    if (iterator == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
     if (iterator == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 

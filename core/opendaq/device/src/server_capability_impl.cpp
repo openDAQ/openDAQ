@@ -154,7 +154,7 @@ ErrCode ServerCapabilityConfigImpl::setProtocolType(ProtocolType type)
 ErrCode ServerCapabilityConfigImpl::getPrefix(IString** prefix)
 {
     return daqTry([&]() {
-        *prefix = getTypedProperty<IString>(Prefix);
+        *prefix = getTypedProperty<IString>(Prefix).detach();
         return OPENDAQ_SUCCESS;
     });
 }

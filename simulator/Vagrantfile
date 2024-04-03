@@ -105,19 +105,20 @@ Vagrant.configure("2") do |config|
     sudo netplan set network.ethernets.enp0s3.match=null
     SCRIPT
 
-    # Copy MDNS services configs
+    # Copy files to tmp
     config.vm.provision "file", source: "opcuatms.service", destination: "/tmp/opcuatms.service"
     config.vm.provision "file", source: "native_streaming.service", destination: "/tmp/native_streaming.service"
+    config.vm.provision "file", source: "opendaq-config.json", destination: "/tmp/"
+    config.vm.provision "file", source: "configurator.py", destination: "/tmp/"
+
+    # Configure serial numbers and local ids with configurator
+    config.vm.provision "shell", inline: "cd /tmp/ && python3 configurator.py"
+
+    # Copy MDNS services configs
     config.vm.provision "shell", inline: "cp /tmp/*.service /etc/avahi/services/"
 
     # Copy opendaq-config.json file
-    config.vm.provision "file", source: "opendaq-config.json", destination: "/tmp/"
-    config.vm.provision "shell", inline: "cp /tmp/opendaq-config.json /home/opendaq/opendaq/"
-	
-	# Add/modify serial number in opendaq-config.json file
-	config.vm.provision "file", source: "serial_number_setter.py", destination: "/tmp/"
-	config.vm.provision "shell", inline: "cp /tmp/serial_number_setter.py /home/opendaq/opendaq/"
-	config.vm.provision "shell", inline: "cd /home/opendaq/opendaq/ && python3 serial_number_setter.py"
+    config.vm.provision "shell", inline: "cp /tmp/opendaq-config.json /home/opendaq/opendaq/"	
 
     # Reduce memory usage
     config.vm.provision :shell, :inline => <<-SCRIPT

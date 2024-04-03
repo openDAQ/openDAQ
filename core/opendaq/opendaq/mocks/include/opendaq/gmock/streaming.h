@@ -55,7 +55,8 @@ struct MockStreaming : daq::StreamingImpl<IMockStreaming>
 
     daq::MirroredSignalConfigPtr signal;
 
-    MockStreaming(const daq::StringPtr& connectionString, const daq::ContextPtr& context) : daq::StreamingImpl<IMockStreaming>(connectionString, context)
+    MockStreaming(const daq::StringPtr& connectionString, const daq::ContextPtr& context)
+        : daq::StreamingImpl<IMockStreaming>(connectionString, context, false)
     {
         using namespace testing;
 

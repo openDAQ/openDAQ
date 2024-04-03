@@ -21,7 +21,7 @@ NativeStreamingImpl::NativeStreamingImpl(
     const ProcedurePtr& onDeviceSignalAvailableCallback,
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
     OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb)
-    : Streaming(connectionString, context)
+    : Streaming(connectionString, context, false)
     , transportClientHandler(transportClientHandler)
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)

@@ -48,6 +48,9 @@ public:
     
     ErrCode INTERFACE_FUNC getProtocolType(ProtocolType* type) override;
     ErrCode INTERFACE_FUNC setProtocolType(ProtocolType type) override;
+
+    ErrCode INTERFACE_FUNC getPrefix(IString** prefix) override;
+    ErrCode INTERFACE_FUNC setPrefix(IString* prefix) override;
     
     ErrCode INTERFACE_FUNC getConnectionType(IString** type) override;
     ErrCode INTERFACE_FUNC setConnectionType(IString* type) override;

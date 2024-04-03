@@ -185,8 +185,8 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConfig)
     ModulePtr module;
     createModule(&module, context);
 
-    ServerCapabilityPtr serverCapability = ServerCapability("openDAQ WebsocketTcp Streaming", ProtocolType::Streaming);
-    serverCapability.setPropertyValue("protocolId", "daq.ws");
+    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_lt_streaming", "openDAQ WebsocketTcp Streaming", ProtocolType::Streaming);
+    serverCapability.setPrefix("daq.ws");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
     serverCapability.setPropertyValue("address", "123.123.123.123");

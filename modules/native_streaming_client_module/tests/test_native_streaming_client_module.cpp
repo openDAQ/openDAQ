@@ -118,8 +118,7 @@ TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConfig)
     ModulePtr module;
     createModule(&module, context);
  
-    ServerCapabilityPtr serverCapability = ServerCapability("openDAQ Native Streaming", ProtocolType::Streaming);
-    serverCapability.setPropertyValue("protocolId", "daq.ns");
+    ServerCapabilityPtr serverCapability = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
     serverCapability.setPropertyValue("address", "123.123.123.123");

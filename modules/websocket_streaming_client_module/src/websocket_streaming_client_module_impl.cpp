@@ -9,7 +9,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 
-static const char* WebsocketDeviceTypeId = "daq.ws";
+static const char* WebsocketDeviceTypeId = "opendaq_lt_streaming";
 static const char* TcpsocketDeviceTypeId = "daq.tcp";
 static const char* WebsocketDevicePrefix = "daq.ws://";
 static const char* TcpsocketDevicePrefix = "daq.tcp://";
@@ -31,7 +31,9 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                return ServerCapability("opendaq_streaming_lt", "openDAQ StreamingLT", ProtocolType::Streaming).addConnectionString(connectionString).setConnectionType("Ipv4");
+                auto cap = ServerCapability("opendaq_lt_streaming", "openDAQ StreamingLT", ProtocolType::Streaming).addConnectionString(connectionString).setConnectionType("Ipv4");
+                cap.setPrefix("daq.ws");
+                return cap;
             }
         },
         {"WS"}

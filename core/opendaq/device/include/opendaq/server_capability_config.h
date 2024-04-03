@@ -62,6 +62,13 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @param type The type of protocol
      */
     virtual ErrCode INTERFACE_FUNC setProtocolType(ProtocolType type) = 0;
+    
+    // [returnSelf]
+    /*!
+     * @brief Sets the prefix of the connection string (eg. "daq.nd" or "daq.opcua")
+     * @param prefix The connection string prefix
+     */
+    virtual ErrCode INTERFACE_FUNC setPrefix(IString* prefix) = 0;
 
     // [returnSelf]
     /*!

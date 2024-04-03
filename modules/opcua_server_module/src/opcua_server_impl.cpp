@@ -3,9 +3,10 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/server_type_factory.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_SERVER_MODULE
-
 using namespace daq;
 using namespace daq::opcua;
 
@@ -17,8 +18,19 @@ OpcUaServerImpl::OpcUaServerImpl(DevicePtr rootDevice, PropertyObjectPtr config,
 {
     const uint16_t port = config.getPropertyValue("Port");
 
+    auto serverCapability = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration)
+               .setPrefix("daq.opcua")
+               .setConnectionType("Ipv4")
+               .setPrefix("daq.opcua");
+    this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
+
     server.setOpcUaPort(port);
     server.start();
+}
+
+OpcUaServerImpl::~OpcUaServerImpl()
+{
+    this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().removeServerCapability("opendaq_opcua_config");
 }
 
 PropertyObjectPtr OpcUaServerImpl::createDefaultConfig()

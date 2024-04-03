@@ -210,7 +210,7 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     info.setProductInstanceUri("product_instance_uri");
     info.setRevisionCounter(1);
     info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability("test_id1", "test", ProtocolType::Streaming));
-    info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability("test_id2", "test", ProtocolType::Structure));
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability("test_id2", "test", ProtocolType::Configuration));
 
     const auto serializer = JsonSerializer();
     info.serialize(serializer);
@@ -237,12 +237,9 @@ TEST_F(DeviceInfoTest, ServerCapabilities)
     DeviceInfoPtr info = DeviceInfo("", "");
     DeviceInfoInternalPtr internalInfo = info;
 
-    auto capability1 = ServerCapability("protocolName1", ProtocolType::Streaming);
-    capability1.setPropertyValue("protocolId", "localId1");
-    auto capability2 = ServerCapability("protocolName2", ProtocolType::Streaming);
-    capability2.setPropertyValue("protocolId", "localId2");
-    auto capability3 = ServerCapability("protocolName3", ProtocolType::Streaming);
-    capability3.setPropertyValue("protocolId", "localId3");
+    auto capability1 = ServerCapability("localId1", "protocolName1", ProtocolType::Streaming);
+    auto capability2 = ServerCapability("localId2","protocolName2", ProtocolType::Streaming);
+    auto capability3 = ServerCapability("localId3","protocolName3", ProtocolType::Streaming);
 
     internalInfo.addServerCapability(capability1);
     internalInfo.addServerCapability(capability2);

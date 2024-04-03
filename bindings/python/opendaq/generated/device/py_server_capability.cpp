@@ -31,8 +31,8 @@
 PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> declareIServerCapability(pybind11::module_ m)
 {
     py::enum_<daq::ProtocolType>(m, "ProtocolType")
-        .value("StructureAndStreaming", daq::ProtocolType::StructureAndStreaming)
-        .value("Structure", daq::ProtocolType::Structure)
+        .value("StructureAndStreaming", daq::ProtocolType::ConfigurationAndStreaming)
+        .value("Structure", daq::ProtocolType::Configuration)
         .value("Streaming", daq::ProtocolType::Streaming)
         .value("Unknown", daq::ProtocolType::Unknown);
 

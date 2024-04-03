@@ -16,17 +16,18 @@ const char* ConnectionType = "ConnectionType";
 const char* CoreEventsEnabled = "CoreEventsEnabled"; 
 const char* ProtocolId = "protocolId"; 
 const char* PrimaryAddress = "address";
+const char* Prefix = "prefix";
 
 StringPtr ServerCapabilityConfigImpl::ProtocolTypeToString(ProtocolType type)
 {
     switch (type)
     {
-        case(ProtocolType::StructureAndStreaming):
-            return "Structure&Streaming";
-        case(ProtocolType::Structure):
-            return "Structure";
+        case(ProtocolType::Configuration):
+            return "Configuration";
         case(ProtocolType::Streaming):
             return "Streaming";
+        case(ProtocolType::ConfigurationAndStreaming):
+            return "ConfigurationAndStreaming";
         default:
             return "Unknown";
     }
@@ -34,13 +35,13 @@ StringPtr ServerCapabilityConfigImpl::ProtocolTypeToString(ProtocolType type)
 
 ProtocolType ServerCapabilityConfigImpl::StringToProtocolType(const StringPtr& type)
 {
-    if (type == "Structure&Streaming")
-        return ProtocolType::StructureAndStreaming;
+    if (type == "ConfigurationAndStreaming")
+        return ProtocolType::ConfigurationAndStreaming;
     if (type == "Structure")
-        return ProtocolType::Structure; 
+        return ProtocolType::Configuration; 
     if (type == "Streaming")
         return ProtocolType::Streaming;
-    return ProtocolType::StructureAndStreaming; 
+    return ProtocolType::ConfigurationAndStreaming; 
 }
 
 ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocolId, const StringPtr& protocolName, ProtocolType protocolType)
@@ -54,15 +55,11 @@ ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocol
     Super::addProperty(StringProperty(ConnectionType, "Unknown"));
     Super::addProperty(BoolProperty(CoreEventsEnabled, false));
     Super::addProperty(StringProperty(PrimaryAddress, ""));
+    Super::addProperty(StringProperty(Prefix, ""));
 
-    Super::setPropertyValue(String(ProtocolId), "");
-    Super::setPropertyValue(String(ProtocolName), "");
+    Super::setPropertyValue(String(ProtocolId), protocolId);
+    Super::setPropertyValue(String(ProtocolName), protocolName);
     Super::setPropertyValue(String(ProtocolTypeName), ProtocolTypeToString(protocolType));
-}
-
-ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocolId)
-    : Super()
-{
 }
 
 template <typename T>
@@ -152,6 +149,19 @@ ErrCode ServerCapabilityConfigImpl::getProtocolType(ProtocolType* type)
 ErrCode ServerCapabilityConfigImpl::setProtocolType(ProtocolType type)
 {
     return Super::setPropertyValue(String(ProtocolTypeName), ProtocolTypeToString(type));
+}
+
+ErrCode ServerCapabilityConfigImpl::getPrefix(IString** prefix)
+{
+    return daqTry([&]() {
+        *prefix = getTypedProperty<IString>(Prefix);
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ServerCapabilityConfigImpl::setPrefix(IString* prefix)
+{
+    return Super::setPropertyValue(String(Prefix), prefix);
 }
 
 ErrCode ServerCapabilityConfigImpl::getConnectionType(IString** type)

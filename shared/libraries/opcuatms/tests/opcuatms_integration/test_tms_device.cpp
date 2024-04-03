@@ -37,7 +37,7 @@ public:
         const auto device = instance.addDevice("mock_phys_device");
         const auto infoInternal = device.getInfo().asPtr<IDeviceInfoInternal>();
         infoInternal.addServerCapability(ServerCapability("protocol_1", "protocol 1", ProtocolType::Streaming));
-        infoInternal.addServerCapability(ServerCapability("protocol_2", "protocol 2", ProtocolType::Structure));
+        infoInternal.addServerCapability(ServerCapability("protocol_2", "protocol 2", ProtocolType::Configuration));
 
         instance.addFunctionBlock("mock_fb_uid");
 

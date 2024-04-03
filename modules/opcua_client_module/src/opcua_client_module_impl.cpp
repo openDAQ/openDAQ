@@ -29,7 +29,9 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
             [context = this->context](const MdnsDiscoveredDevice& discoveredDevice)
             {
                 auto connectionString = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
-                return ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Structure).addConnectionString(connectionString).setConnectionType("Ipv4");
+                auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration).addConnectionString(connectionString).setConnectionType("Ipv4");
+                cap.setPrefix("daq.opcua");
+                return cap;
             }
         },
         {"OPENDAQ"}

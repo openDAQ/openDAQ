@@ -36,9 +36,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 enum class ProtocolType: uint32_t
 {
-    StructureAndStreaming = 0,
-    Structure,
+    Configuration = 0,
     Streaming,
+    ConfigurationAndStreaming,
     Unknown = 0xFF,
 };
 
@@ -56,7 +56,7 @@ enum class ProtocolType: uint32_t
  * For instance, it provides methods to retrieve details like 
  * - the connection string (URL), 
  * - protocol name (e.g., "openDAQ Native Streaming," "openDAQ OpcUa"), 
- * - protocol type (e.g., "Structure&Streaming," "Streaming"), 
+ * - protocol type (e.g., "Configuration&Streaming," "Streaming"), 
  * - connection type (e.g., IPv4, IPv6),
  * - core events enabled (indicating communication mode).
 */
@@ -89,9 +89,15 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
 
     /*!
      * @brief Gets the type of protocol supported by the device.
-     * @param[out] type The type of protocol (Enumeration value reflecting protocol type: "Structure&Streaming", "Structure", "Streaming", "ServerStreaming", "Unknown").
+     * @param[out] type The type of protocol (Enumeration value reflecting protocol type: "ConfigurationAndStreaming", "Configuration", "Streaming", "ServerStreaming", "Unknown").
      */
     virtual ErrCode INTERFACE_FUNC getProtocolType(ProtocolType* type) = 0;
+
+    /*!
+     * @brief Gets the prefix of the connection string (eg. "daq.nd" or "daq.opcua")
+     * @param prefix The connection string prefix
+     */
+    virtual ErrCode INTERFACE_FUNC getPrefix(IString** prefix) = 0;
 
     /*!
      * @brief Gets the type of connection supported by the device.

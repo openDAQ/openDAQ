@@ -375,7 +375,7 @@ void TmsClientDeviceImpl::findAndCreateServerCapabilities(const DeviceInfoPtr& d
         for (const auto& [browseName, ref] : serverCapabilitiesReferences.byBrowseName)
         {
             const auto optionNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-            auto clientServerCapability = TmsClientServerCapability(daqContext, browseName, clientContext, optionNodeId);
+            auto clientServerCapability = TmsClientServerCapability(daqContext, browseName, "", clientContext, optionNodeId);
 
             auto capabilityCopy = ServerCapability("", "", ProtocolType::Unknown);
             for (const auto& prop : clientServerCapability.getAllProperties())

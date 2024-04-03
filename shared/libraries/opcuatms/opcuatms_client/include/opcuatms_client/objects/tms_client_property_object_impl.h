@@ -59,9 +59,8 @@ public:
                                     const TmsClientContextPtr& clientContext,
                                     const opcua::OpcUaNodeId& nodeId)
         : TmsClientObjectImpl(daqContext, clientContext, nodeId)
-        , Impl(protocolName, ProtocolType::Streaming)
+        , Impl(protocolId, protocolName, ProtocolType::Streaming)
     {
-        Impl::setPropertyValue(String("protocolId"), protocolId);
         init();
     }
 

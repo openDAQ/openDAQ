@@ -37,7 +37,8 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
     const uint16_t port = config.getPropertyValue("NativeStreamingPort");
     serverHandler->startServer(port);
 
-    auto serverCapability = ServerStreamingCapability("daq.ns");
+    ServerCapabilityPtr serverCapability = ServerCapability("openDAQ Native Streaming", ProtocolType::Streaming);
+    serverCapability.setPropertyValue("protocolId", "daq.ns");
     serverCapability.addProperty(IntProperty("Port", port));
     this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
 

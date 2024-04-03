@@ -74,9 +74,9 @@ public:
         {
             auto config = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
             config.setPropertyValue("StreamingConnectionHeuristic", MIN_CONNECTIONS);
-            config.setPropertyValue("AllowedStreamingProtocols", List<IString>("daq.ns", "daq.wss"));
+            config.setPropertyValue("AllowedStreamingProtocols", List<IString>("daq.ns", "daq.ws"));
             if (subdeviceStreamingType == StreamingType::WebsocketStreaming)
-                config.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+                config.setPropertyValue("PrimaryStreamingProtocol", "daq.ws");
             else if (subdeviceStreamingType == StreamingType::NativeStreaming)
                 config.setPropertyValue("PrimaryStreamingProtocol", "daq.ns");
             const auto subDevice = instance.addDevice(createConnectionString(OPCUA_PORT+index), config);
@@ -117,9 +117,9 @@ public:
         auto clientStreamingType = (heuristicValue == MIN_HOPS) ?  GetParam().first : GetParam().second;
         auto config = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
         config.setPropertyValue("StreamingConnectionHeuristic", heuristicValue);
-        config.setPropertyValue("AllowedStreamingProtocols", List<IString>("daq.ns", "daq.wss"));
+        config.setPropertyValue("AllowedStreamingProtocols", List<IString>("daq.ns", "daq.ws"));
         if (clientStreamingType == StreamingType::WebsocketStreaming)
-            config.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+            config.setPropertyValue("PrimaryStreamingProtocol", "daq.ws");
         else if (clientStreamingType == StreamingType::NativeStreaming)
             config.setPropertyValue("PrimaryStreamingProtocol", "daq.ns");
         auto refDevice = instance.addDevice(createConnectionString(OPCUA_PORT), config);

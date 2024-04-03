@@ -19,14 +19,6 @@ TEST_F(ServerCapabilityTest, Factory)
     ASSERT_EQ(capability.getCoreEventsEnabled(), false);
 }
 
-TEST_F(ServerCapabilityTest, StreamingFactory)
-{
-    ServerCapabilityPtr capability = ServerStreamingCapability("Protocol Id");
-    ASSERT_EQ(capability.getPropertyValue("protocolId").asPtr<IString>(), "Protocol Id");
-    ASSERT_EQ(capability.getPropertyValue("address").asPtr<IString>(), "");
-    ASSERT_EQ(capability.getProtocolType(), ProtocolType::StructureAndStreaming);
-}
-
 TEST_F(ServerCapabilityTest, SetGet)
 {
     ServerCapabilityPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming).addConnectionString("connection string")

@@ -36,8 +36,8 @@ public:
                              const ComponentPtr& parent,
                              const PropertyObjectPtr& config) override;
     bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const ServerCapabilityPtr& capability) override;
-    StreamingPtr onCreateStreaming(const StringPtr& connectionString, const ServerCapabilityPtr& capability) override;
+    bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
 private:
     static bool connectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);

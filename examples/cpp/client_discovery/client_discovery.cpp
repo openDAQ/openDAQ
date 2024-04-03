@@ -14,7 +14,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     const InstancePtr instance = Instance(MODULE_PATH);
 
     // Discover all available devices, filter out all of which connection strings
-    // do not start with "daq.opcua://" or "daq.ws://" or "daq.nsd://"
+    // do not start with "daq.opcua://" or "daq.ws://" or "daq.ns://"
     const auto deviceInfo = instance.getAvailableDevices();
     auto devices = List<IDevice>();
     for (auto info : deviceInfo)

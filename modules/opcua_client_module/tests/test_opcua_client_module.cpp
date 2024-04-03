@@ -162,16 +162,16 @@ TEST_F(OpcUaClientModuleTest, DefaultDeviceConfig)
 
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     ASSERT_TRUE(config.hasProperty("AllowedStreamingProtocols"));
-    ASSERT_EQ(config.getPropertyValue("AllowedStreamingProtocols"), List<IString>("daq.ns", "daq.wss"));
+    ASSERT_EQ(config.getPropertyValue("AllowedStreamingProtocols"), List<IString>("daq.ns", "daq.ws"));
 
     ASSERT_TRUE(config.hasProperty("PrimaryStreamingProtocol"));
     ASSERT_EQ(config.getPropertyValue("PrimaryStreamingProtocol"), "daq.ns");
 #elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING) && !defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     ASSERT_TRUE(config.hasProperty("AllowedStreamingProtocols"));
-    ASSERT_EQ(config.getPropertyValue("AllowedStreamingProtocols"), List<IString>("daq.wss"));
+    ASSERT_EQ(config.getPropertyValue("AllowedStreamingProtocols"), List<IString>("daq.ws"));
 
     ASSERT_TRUE(config.hasProperty("PrimaryStreamingProtocol"));
-    ASSERT_EQ(config.getPropertyValue("PrimaryStreamingProtocol"), "daq.wss");
+    ASSERT_EQ(config.getPropertyValue("PrimaryStreamingProtocol"), "daq.ws");
 #endif
 }
 

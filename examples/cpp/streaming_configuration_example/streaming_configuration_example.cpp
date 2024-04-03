@@ -45,10 +45,10 @@ int main(int /*argc*/, const char* /*argv*/[])
     daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
 
     // Allow multiple streaming protocols by device configuration
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.wss"));
+    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.ws"));
 
     // Set websocket streaming protocol as primary by device configuration
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.ws");
 
     // Disregard direct streaming connections for nested devices,
     // establish the minimum number of streaming connections possible.
@@ -115,7 +115,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         std::cout << source << std::endl;
         if (source.toView().find("daq.ns://") != std::string::npos)
             nativeStreamingSource = source;
-        if (source.toView().find("daq.wss://") != std::string::npos)
+        if (source.toView().find("daq.ws://") != std::string::npos)
             websocketStreamingSource = source;
     }
 

@@ -71,7 +71,7 @@ TEST_F(NativeStreamingClientModuleTest, AcceptsConnectionStringCorrect)
 {
     auto module = CreateModule();
 
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.nsd://device8"));
+    ASSERT_TRUE(module.acceptsConnectionParameters("daq.ns://device8"));
     ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://device8"));
 }
 
@@ -87,7 +87,7 @@ TEST_F(NativeStreamingClientModuleTest, CreateDeviceConnectionFailed)
 {
     auto module = CreateModule();
 
-    ASSERT_THROW(module.createDevice("daq.nsd://127.0.0.1", nullptr), NotFoundException);
+    ASSERT_THROW(module.createDevice("daq.ns://127.0.0.1", nullptr), NotFoundException);
     ASSERT_THROW(module.createDevice("daq.nd://127.0.0.1", nullptr), NotFoundException);
 }
 
@@ -118,7 +118,8 @@ TEST_F(NativeStreamingClientModuleTest, AcceptsStreamingConfig)
     ModulePtr module;
     createModule(&module, context);
  
-    ServerCapabilityPtr serverCapability = ServerStreamingCapability("daq.ns");
+    ServerCapabilityPtr serverCapability = ServerCapability("openDAQ Native Streaming", ProtocolType::Streaming);
+    serverCapability.setPropertyValue("protocolId", "daq.ns");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
     serverCapability.setPropertyValue("address", "123.123.123.123");
@@ -139,8 +140,8 @@ TEST_F(NativeStreamingClientModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 2u);
-    ASSERT_TRUE(deviceTypes.hasKey("daq.nsd"));
-    ASSERT_EQ(deviceTypes.get("daq.nsd").getId(), "daq.nsd");
+    ASSERT_TRUE(deviceTypes.hasKey("daq.ns"));
+    ASSERT_EQ(deviceTypes.get("daq.ns").getId(), "daq.ns");
     ASSERT_TRUE(deviceTypes.hasKey("daq.nd"));
     ASSERT_EQ(deviceTypes.get("daq.nd").getId(), "daq.nd");
 
@@ -162,10 +163,10 @@ TEST_F(NativeStreamingClientModuleTest, DefaultDeviceConfig)
     ASSERT_TRUE(deviceConfig.assigned());
     ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://address", deviceConfig));
 
-    ASSERT_TRUE(deviceTypes.hasKey("daq.nsd"));
-    auto pseudoDeviceConfig = deviceTypes.get("daq.nsd").createDefaultConfig();
+    ASSERT_TRUE(deviceTypes.hasKey("daq.ns"));
+    auto pseudoDeviceConfig = deviceTypes.get("daq.ns").createDefaultConfig();
     ASSERT_TRUE(pseudoDeviceConfig.assigned());
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.nsd://address", pseudoDeviceConfig));
+    ASSERT_TRUE(module.acceptsConnectionParameters("daq.ns://address", pseudoDeviceConfig));
 }
 
 TEST_F(NativeStreamingClientModuleTest, InvalidDeviceConfig)
@@ -174,7 +175,7 @@ TEST_F(NativeStreamingClientModuleTest, InvalidDeviceConfig)
     auto config = PropertyObject();
 
     ASSERT_FALSE(module.acceptsConnectionParameters("daq.nd://device8", config));
-    ASSERT_FALSE(module.acceptsConnectionParameters("daq.nsd://device8", config));
+    ASSERT_FALSE(module.acceptsConnectionParameters("daq.ns://device8", config));
 }
 
 class ConnectionStringTest : public NativeStreamingClientModuleTest,
@@ -232,8 +233,6 @@ INSTANTIATE_TEST_SUITE_P(
         "daqref://devicett3axxr1",
         "daq.opcua://devicett3axxr1"
         "daq.ns://",
-        "daq.nsd://",
-        "daq.ns:///",
-        "daq.nsd:///"
+        "daq.ns:///"
     )
 );

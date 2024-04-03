@@ -622,7 +622,7 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     ASSERT_EQ(transportLayerConfig.getPropertyValue("StreamingInitTimeout"), 400);
     ASSERT_EQ(transportLayerConfig.getPropertyValue("ReconnectionPeriod"), 500);
 
-    auto pseudoDeviceConfig = instance.getAvailableDeviceTypes().get("daq.nsd").createDefaultConfig();
+    auto pseudoDeviceConfig = instance.getAvailableDeviceTypes().get("daq.ns").createDefaultConfig();
     ASSERT_TRUE(pseudoDeviceConfig.hasProperty("TransportLayerConfig"));
     transportLayerConfig = pseudoDeviceConfig.getPropertyValue("TransportLayerConfig");
 

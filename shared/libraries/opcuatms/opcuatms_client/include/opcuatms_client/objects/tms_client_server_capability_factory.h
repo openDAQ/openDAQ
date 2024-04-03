@@ -20,12 +20,13 @@
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 inline ServerCapabilityPtr TmsClientServerCapability(const ContextPtr& daqContext,
-                                                      const StringPtr& protocolId,
-                                                      const daq::opcua::tms::TmsClientContextPtr& clientContext,
-                                                      const opcua::OpcUaNodeId& nodeId)
+                                                     const StringPtr& protocolId,
+                                                     const StringPtr& protocolName,
+                                                     const daq::opcua::tms::TmsClientContextPtr& clientContext,
+                                                     const opcua::OpcUaNodeId& nodeId)
 {
     ServerCapabilityPtr obj(
-        createWithImplementation<IServerCapability, TmsClientServerCapabilityImpl>(daqContext, protocolId, clientContext, nodeId)
+        createWithImplementation<IServerCapability, TmsClientServerCapabilityImpl>(daqContext, protocolId, protocolName,  clientContext, nodeId)
     );
     return obj;
 }

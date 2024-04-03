@@ -6,10 +6,11 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 using namespace daq::opcua;
 
 TmsClientServerCapabilityImpl::TmsClientServerCapabilityImpl(const ContextPtr& daqContext,
-                                                       const StringPtr& protocolId,
-                                                       const TmsClientContextPtr& clientContext,
-                                                       const opcua::OpcUaNodeId& nodeId)
-    : TmsClientPropertyObjectBaseImpl(daqContext, protocolId, clientContext, nodeId)
+                                                             const StringPtr& protocolName,
+                                                             const StringPtr& protocolId,
+                                                             const TmsClientContextPtr& clientContext,
+                                                             const opcua::OpcUaNodeId& nodeId)
+    : TmsClientPropertyObjectBaseImpl(daqContext, protocolId, protocolName, clientContext, nodeId)
 {
 
 }

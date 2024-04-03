@@ -31,7 +31,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto connectionString = fmt::format("daq.nsd://{}:{}{}",
+                auto connectionString = fmt::format("daq.ns://{}:{}{}",
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
@@ -43,7 +43,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                return ServerCapability("opendaq_native_config", "openDAQ Native Streaming", ProtocolType::StructureAndStreaming).addConnectionString(connectionString).setConnectionType("Ipv4").setCoreEventsEnabled(true);
+                return ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::StructureAndStreaming).addConnectionString(connectionString).setConnectionType("Ipv4").setCoreEventsEnabled(true);
             }
         },
         {"OPENDAQ_NS"}
@@ -317,22 +317,19 @@ bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr&
 }
 
 bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString,
-                                                                   const ServerCapabilityPtr& capability)
+                                                                   const PropertyObjectPtr& config)
 {
     if (connectionString.assigned())
     {
         return connectionStringHasPrefix(connectionString, NativeStreamingPrefix) &&
                validateConnectionString(connectionString);
     }
-    else if (capability.assigned() && capability.getProtocolType() == ProtocolType::Streaming)
+    else if (config.assigned())
     {
-        StringPtr protocolId = capability.getPropertyValue("protocolId");
-        StringPtr primaryAddress = capability.getPropertyValue("address");
+        StringPtr protocolId = config.getPropertyValue("protocolId");
+        StringPtr primaryAddress = config.getPropertyValue("address");
         if (protocolId == NativeStreamingID && primaryAddress != "")
-        {
-            const auto propertyObj = capability.asPtr<IPropertyObject>();
-            return propertyObj.assigned() && propertyObj.hasProperty("Port");
-        }
+            return config.hasProperty("Port");
     }
     return false;
 }
@@ -390,9 +387,9 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
 }
 
 StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString,
-                                                            const ServerCapabilityPtr& capability)
+                                                            const PropertyObjectPtr& config)
 {
-    if (!onAcceptsStreamingConnectionParameters(connectionString, capability))
+    if (!onAcceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
 
     StringPtr host;
@@ -407,13 +404,13 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
         path = getPath(connectionString);
         streamingConnectionString = connectionString;
     }
-    else if(capability.assigned())
+    else if(config.assigned())
     {
-        host = capability.getPropertyValue("address");
+        host = config.getPropertyValue("address");
         if (host.toStdString().empty()) 
             throw InvalidParameterException("Device address is not set");
 
-        auto portNumber = capability.getPropertyValue("Port").template asPtr<IInteger>();
+        auto portNumber = config.getPropertyValue("Port").template asPtr<IInteger>();
         port = String(fmt::format("{}", portNumber));
 
         path = String("/");

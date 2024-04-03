@@ -13,8 +13,6 @@ static const char* WebsocketDeviceTypeId = "daq.ws";
 static const char* TcpsocketDeviceTypeId = "daq.tcp";
 static const char* WebsocketDevicePrefix = "daq.ws://";
 static const char* TcpsocketDevicePrefix = "daq.tcp://";
-static const char* WebsocketStreamingPrefix = "daq.wss://";
-static const char* WebsocketStreamingID = "daq.wss";
 
 using namespace discovery;
 using namespace daq::websocket_streaming;
@@ -96,21 +94,21 @@ bool WebsocketStreamingClientModule::onAcceptsConnectionParameters(const StringP
     return (found == 0);
 }
 
-bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
+bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     if (connectionString.assigned())
     {
         std::string connStr = connectionString;
-        auto found = connStr.find(WebsocketStreamingPrefix);
+        auto found = connStr.find(WebsocketDevicePrefix);
         return (found == 0);
     }
-    else if (capability.assigned())
+    else if (config.assigned())
     {
-        if (capability.getPropertyValue("protocolId") == WebsocketStreamingID)
+        if (config.getPropertyValue("protocolId") == WebsocketDeviceTypeId)
         {
             try
             {
-                auto generatedConnectionString = tryCreateWebsocketConnectionString(capability);
+                auto generatedConnectionString = tryCreateWebsocketConnectionString(config);
                 return true;
             }
             catch (const std::exception& e)
@@ -122,18 +120,18 @@ bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(cons
     return false;
 }
 
-StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
+StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     StringPtr streamingConnectionString = connectionString;
 
-    if (!streamingConnectionString.assigned() && !capability.assigned())
+    if (!streamingConnectionString.assigned() && !config.assigned())
         throw ArgumentNullException();
 
-    if (!onAcceptsStreamingConnectionParameters(streamingConnectionString, capability))
+    if (!onAcceptsStreamingConnectionParameters(streamingConnectionString, config))
         throw InvalidParameterException();
 
     if (!streamingConnectionString.assigned())
-        streamingConnectionString = tryCreateWebsocketConnectionString(capability);
+        streamingConnectionString = tryCreateWebsocketConnectionString(config);
 
     return WebsocketStreaming(streamingConnectionString, context);
 }
@@ -148,7 +146,7 @@ StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(con
         throw InvalidParameterException("Device address is not set");
 
     auto port = capability.getPropertyValue("Port").template asPtr<IInteger>();
-    auto connectionString = String(fmt::format("daq.wss://{}:{}", address, port));
+    auto connectionString = String(fmt::format("daq.ws://{}:{}", address, port));
 
     return connectionString;
 }

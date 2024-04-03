@@ -23,9 +23,10 @@ class TmsClientServerCapabilityImpl : public TmsClientPropertyObjectBaseImpl<Ser
 {
 public:
     explicit TmsClientServerCapabilityImpl(const ContextPtr& daqContext,
-                                             const StringPtr& protocolId,
-                                             const TmsClientContextPtr& clientContext,
-                                             const opcua::OpcUaNodeId& nodeId);
+                                           const StringPtr& protocolId,
+                                           const StringPtr& protocolName,
+                                           const TmsClientContextPtr& clientContext,
+                                           const opcua::OpcUaNodeId& nodeId);
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

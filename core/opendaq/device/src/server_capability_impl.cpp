@@ -53,20 +53,16 @@ ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocol
     Super::addProperty(StringProperty(ProtocolTypeName, ProtocolTypeToString(ProtocolType::Unknown)));
     Super::addProperty(StringProperty(ConnectionType, "Unknown"));
     Super::addProperty(BoolProperty(CoreEventsEnabled, false));
+    Super::addProperty(StringProperty(PrimaryAddress, ""));
 
-    Super::setPropertyValue(String(ProtocolId), protocolId);
-    Super::setPropertyValue(String(ProtocolName), protocolName);
+    Super::setPropertyValue(String(ProtocolId), "");
+    Super::setPropertyValue(String(ProtocolName), "");
     Super::setPropertyValue(String(ProtocolTypeName), ProtocolTypeToString(protocolType));
 }
 
 ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocolId)
     : Super()
 {
-    Super::addProperty(StringProperty(ProtocolId, ""));
-    Super::addProperty(StringProperty(ProtocolTypeName, ProtocolTypeToString(ProtocolType::Unknown)));
-    Super::addProperty(StringProperty(PrimaryAddress, ""));
-
-    Super::setPropertyValue(String(ProtocolId), protocolId);
 }
 
 template <typename T>
@@ -254,11 +250,5 @@ ErrCode PUBLIC_EXPORT createServerCapability(IServerCapabilityConfig** objTmp,
 }
 
 #endif
-
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY, ServerCapabilityConfig,
-    IServerCapabilityConfig, createServerStreamingCapability,
-    IString*, protocolId
-)
 
 END_NAMESPACE_OPENDAQ

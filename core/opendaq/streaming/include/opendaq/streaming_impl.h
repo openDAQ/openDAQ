@@ -226,16 +226,18 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList* signals)
                                                    signal.getGlobalId()));
         }
 
+        auto signalRemoteId = mirroredSignal.getRemoteId();
+        auto signalGlobalId = mirroredSignal.getGlobalId();
         {
             std::scoped_lock lock(sync);
 
-            StringPtr signalIdKey = getSignalStreamingId(mirroredSignal.getRemoteId());
+            StringPtr signalIdKey = getSignalStreamingId(signalRemoteId);
             if (!signalIdKey.assigned())
             {
                 LOG_W("Added signal with Ids (global /// remote) \"{}\" /// \"{}\" is not available in streaming yet",
-                      mirroredSignal.getGlobalId(),
-                      mirroredSignal.getRemoteId());
-                signalIdKey = mirroredSignal.getRemoteId();
+                      signalGlobalId,
+                      signalRemoteId);
+                signalIdKey = signalRemoteId;
             }
 
             auto it = streamingSignalsItems.find(signalIdKey);
@@ -246,8 +248,8 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList* signals)
                     OPENDAQ_ERR_DUPLICATEITEM,
                     fmt::format(
                         R"(Signal with Ids (global /// remote /// key) "{}" /// "{}" /// "{}" failed to add - signal already added to streaming "{}")",
-                        mirroredSignal.getGlobalId(),
-                        mirroredSignal.getRemoteId(),
+                        signalGlobalId,
+                        signalRemoteId,
                         signalIdKey,
                         connectionString
                     )
@@ -305,6 +307,8 @@ ErrCode StreamingImpl<Interfaces...>::removeSignals(IList* signals)
             return errCode;
         }
 
+        auto signalRemoteId = mirroredSignalToRemove.getRemoteId();
+        auto signalGlobalId = mirroredSignalToRemove.getGlobalId();
         {
             std::scoped_lock lock(sync);
 
@@ -312,9 +316,9 @@ ErrCode StreamingImpl<Interfaces...>::removeSignals(IList* signals)
             if (!signalIdKey.assigned())
             {
                 LOG_W("Removed signal with Ids (global /// remote) \"{}\" /// \"{}\" is not available in streaming",
-                      mirroredSignalToRemove.getGlobalId(),
-                      mirroredSignalToRemove.getRemoteId());
-                signalIdKey = mirroredSignalToRemove.getRemoteId();
+                      signalGlobalId,
+                      signalRemoteId);
+                signalIdKey = signalRemoteId;
             }
 
             auto it = streamingSignalsItems.find(signalIdKey);
@@ -333,8 +337,8 @@ ErrCode StreamingImpl<Interfaces...>::removeSignals(IList* signals)
                     OPENDAQ_ERR_NOTFOUND,
                     fmt::format(
                         R"(Signal with Ids (global /// remote /// key) "{}" /// "{}" /// "{}" failed to remove - signal not found in streaming "{}" )",
-                        mirroredSignalToRemove.getGlobalId(),
-                        mirroredSignalToRemove.getRemoteId(),
+                        signalGlobalId,
+                        signalRemoteId,
                         signalIdKey,
                         connectionString
                     )
@@ -660,25 +664,28 @@ void StreamingImpl<Interfaces...>::removeAllSignalsInternal()
 template <typename... Interfaces>
 void StreamingImpl<Interfaces...>::onPacket(const StringPtr& signalId, const PacketPtr& packet)
 {
-    std::scoped_lock lock(sync);
-
-    if (!packet.assigned() || !this->isActive)
-        return;
-
-    if (auto it = streamingSignalsItems.find(signalId); it != streamingSignalsItems.end())
+    MirroredSignalConfigPtr signal;
     {
-        auto signalRef = it->second.second;
-        MirroredSignalConfigPtr signal = signalRef.getRef();
-        if (signal.assigned() &&
-            signal.getStreamed() &&
-            signal.getActiveStreamingSource() == connectionString)
+        std::scoped_lock lock(sync);
+
+        if (!packet.assigned() || !this->isActive)
+            return;
+
+        if (auto it = streamingSignalsItems.find(signalId); it != streamingSignalsItems.end())
         {
-            const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
-            if (eventPacket.assigned())
-                handleEventPacket(signal, eventPacket);
-            else
-                signal.sendPacket(packet);
+            auto signalRef = it->second.second;
+            signal = signalRef.getRef();
         }
+    }
+    if (signal.assigned() &&
+        signal.getStreamed() &&
+        signal.getActiveStreamingSource() == connectionString)
+    {
+        const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
+        if (eventPacket.assigned())
+            handleEventPacket(signal, eventPacket);
+        else
+            signal.sendPacket(packet);
     }
 }
 
@@ -693,19 +700,22 @@ void StreamingImpl<Interfaces...>::handleEventPacket(const MirroredSignalConfigP
 template <typename... Interfaces>
 void StreamingImpl<Interfaces...>::triggerSubscribeAck(const StringPtr& signalStreamingId, bool subscribed)
 {
-    std::scoped_lock lock(sync);
-
-    if (auto it = streamingSignalsItems.find(signalStreamingId); it != streamingSignalsItems.end())
+    MirroredSignalConfigPtr signal;
     {
-        auto signalRef = it->second.second;
-        MirroredSignalConfigPtr signal = signalRef.getRef();
-        if (signal.assigned())
+        std::scoped_lock lock(sync);
+
+        if (auto it = streamingSignalsItems.find(signalStreamingId); it != streamingSignalsItems.end())
         {
-            if (subscribed)
-                signal.template asPtr<daq::IMirroredSignalPrivate>().subscribeCompleted(connectionString);
-            else
-                signal.template asPtr<daq::IMirroredSignalPrivate>().unsubscribeCompleted(connectionString);
+            auto signalRef = it->second.second;
+            signal = signalRef.getRef();
         }
+    }
+    if (signal.assigned())
+    {
+        if (subscribed)
+            signal.template asPtr<daq::IMirroredSignalPrivate>().subscribeCompleted(connectionString);
+        else
+            signal.template asPtr<daq::IMirroredSignalPrivate>().unsubscribeCompleted(connectionString);
     }
 }
 

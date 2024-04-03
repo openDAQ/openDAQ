@@ -173,7 +173,7 @@ bool NativeStreamingClientHandler::connect(std::string host,
 
 void NativeStreamingClientHandler::subscribeSignal(const StringPtr& signalStringId)
 {
-    std::scoped_lock lock(sync);
+    std::scoped_lock lock(registeredSignalsSync);
 
     const auto it = std::find_if(std::begin(signalIds),
                                  std::end(signalIds),
@@ -191,7 +191,7 @@ void NativeStreamingClientHandler::subscribeSignal(const StringPtr& signalString
 
 void NativeStreamingClientHandler::unsubscribeSignal(const StringPtr& signalStringId)
 {
-    std::scoped_lock lock(sync);
+    std::scoped_lock lock(registeredSignalsSync);
 
     const auto it = std::find_if(std::begin(signalIds),
                                  std::end(signalIds),
@@ -209,7 +209,7 @@ void NativeStreamingClientHandler::unsubscribeSignal(const StringPtr& signalStri
 
 EventPacketPtr NativeStreamingClientHandler::getDataDescriptorChangedEventPacket(const StringPtr& signalStringId)
 {
-    std::scoped_lock lock(sync);
+    std::scoped_lock lock(registeredSignalsSync);
 
     const auto it = std::find_if(std::begin(signalIds),
                                  std::end(signalIds),
@@ -234,6 +234,10 @@ void NativeStreamingClientHandler::sendConfigRequest(const config_protocol::Pack
 
 void NativeStreamingClientHandler::sendStreamingRequest()
 {
+    {
+        std::scoped_lock lock(registeredSignalsSync);
+        signalIds.clear();
+    }
     if (sessionHandler)
         sessionHandler->sendStreamingRequest();
 }
@@ -380,11 +384,26 @@ void NativeStreamingClientHandler::handleSignal(const SignalNumericIdType& signa
                                                 bool available)
 {
     {
-        std::scoped_lock lock(sync);
+        std::scoped_lock lock(registeredSignalsSync);
         if (available)
-            signalIds.insert({signalNumericId, signalStringId});
+        {
+            if (const auto it = signalIds.find(signalNumericId); it == signalIds.end())
+            {
+                signalIds.insert({signalNumericId, signalStringId});
+            }
+            else
+            {
+                LOG_E("Signal with numeric Id {} is already registered by client; string ids: registered {}, new {}",
+                      signalNumericId,
+                      it->second,
+                      signalStringId);
+                throw DuplicateItemException();
+            }
+        }
         else
+        {
             signalIds.erase(signalNumericId);
+        }
     }
 
     if (available)

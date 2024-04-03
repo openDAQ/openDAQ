@@ -139,10 +139,10 @@ TEST_F(NativeStreamingClientModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 2u);
-    ASSERT_TRUE(deviceTypes.hasKey("daq.ns"));
-    ASSERT_EQ(deviceTypes.get("daq.ns").getId(), "daq.ns");
-    ASSERT_TRUE(deviceTypes.hasKey("daq.nd"));
-    ASSERT_EQ(deviceTypes.get("daq.nd").getId(), "daq.nd");
+    ASSERT_TRUE(deviceTypes.hasKey("opendaq_native_streaming"));
+    ASSERT_EQ(deviceTypes.get("opendaq_native_streaming").getId(), "opendaq_native_streaming");
+    ASSERT_TRUE(deviceTypes.hasKey("opendaq_native_config"));
+    ASSERT_EQ(deviceTypes.get("opendaq_native_config").getId(), "opendaq_native_config");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
@@ -157,13 +157,13 @@ TEST_F(NativeStreamingClientModuleTest, DefaultDeviceConfig)
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 2u);
 
-    ASSERT_TRUE(deviceTypes.hasKey("daq.nd"));
-    auto deviceConfig = deviceTypes.get("daq.nd").createDefaultConfig();
+    ASSERT_TRUE(deviceTypes.hasKey("opendaq_native_config"));
+    auto deviceConfig = deviceTypes.get("opendaq_native_config").createDefaultConfig();
     ASSERT_TRUE(deviceConfig.assigned());
     ASSERT_TRUE(module.acceptsConnectionParameters("daq.nd://address", deviceConfig));
 
-    ASSERT_TRUE(deviceTypes.hasKey("daq.ns"));
-    auto pseudoDeviceConfig = deviceTypes.get("daq.ns").createDefaultConfig();
+    ASSERT_TRUE(deviceTypes.hasKey("opendaq_native_streaming"));
+    auto pseudoDeviceConfig = deviceTypes.get("opendaq_native_streaming").createDefaultConfig();
     ASSERT_TRUE(pseudoDeviceConfig.assigned());
     ASSERT_TRUE(module.acceptsConnectionParameters("daq.ns://address", pseudoDeviceConfig));
 }

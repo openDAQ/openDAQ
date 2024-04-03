@@ -38,7 +38,6 @@ public:
 private:
     static StringPtr tryCreateWebsocketConnectionString(const ServerCapabilityPtr& capability);
     static DeviceTypePtr createWebsocketDeviceType();
-    static DeviceTypePtr createTcpsocketDeviceType();
 
     std::mutex sync;
     size_t deviceIndex;

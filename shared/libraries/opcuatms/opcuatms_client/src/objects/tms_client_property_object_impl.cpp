@@ -19,6 +19,11 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 using namespace opcua;
 
+namespace detail
+{
+    std::unordered_set<std::string> ignoredPropertyNames{"ServerCapabilities"};
+}
+
 template <class Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite)
 {
@@ -257,6 +262,8 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
     {
         const auto typeId = OpcUaNodeId(ref->typeDefinition.nodeId);
         const auto propName = String(utils::ToStdString(ref->browseName.name));
+        if (detail::ignoredPropertyNames.count(propName))
+            continue;
 
         Bool hasProp;
         daq::checkErrorInfo(Impl::hasProperty(propName, &hasProp));

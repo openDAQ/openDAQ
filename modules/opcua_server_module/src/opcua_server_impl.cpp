@@ -18,19 +18,12 @@ OpcUaServerImpl::OpcUaServerImpl(DevicePtr rootDevice, PropertyObjectPtr config,
 {
     const uint16_t port = config.getPropertyValue("Port");
 
-    auto serverCapability = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration)
-               .setPrefix("daq.opcua")
-               .setConnectionType("Ipv4")
-               .setPrefix("daq.opcua");
-    this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
-
     server.setOpcUaPort(port);
     server.start();
 }
 
 OpcUaServerImpl::~OpcUaServerImpl()
 {
-    this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().removeServerCapability("opendaq_opcua_config");
 }
 
 PropertyObjectPtr OpcUaServerImpl::createDefaultConfig()
@@ -65,6 +58,12 @@ ServerTypePtr OpcUaServerImpl::createType()
 void OpcUaServerImpl::onStopServer()
 {
     server.stop();
+    if (this->rootDevice.assigned())
+    {
+        const auto info = this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>();
+        if (info.hasServerCapability("opendaq_opcua_config"))
+            info.removeServerCapability("opendaq_opcua_config");
+    }
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

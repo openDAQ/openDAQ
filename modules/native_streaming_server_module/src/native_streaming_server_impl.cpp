@@ -55,8 +55,14 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
 NativeStreamingServerImpl::~NativeStreamingServerImpl()
 {
     this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
-    this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().removeServerCapability("opendaq_native_streaming");
-    this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().removeServerCapability("opendaq_native_config");
+    if (this->rootDevice.assigned())
+    {
+        const auto info = this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>();
+        if (info.hasServerCapability("opendaq_native_streaming"))
+            info.removeServerCapability("opendaq_native_streaming");
+        if (info.hasServerCapability("opendaq_native_config"))
+            info.removeServerCapability("opendaq_native_config");
+    }
 
     stopReading();
     stopTransportOperations();
@@ -267,8 +273,17 @@ ServerTypePtr NativeStreamingServerImpl::createType()
 void NativeStreamingServerImpl::onStopServer()
 {
     stopReading();
-    this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().removeServerCapability(String("daq.ns"));
     serverHandler->stopServer();
+
+    if (this->rootDevice.assigned())
+    {
+        const auto info = this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>();
+        if (info.hasServerCapability("opendaq_native_streaming"))
+            info.removeServerCapability("opendaq_native_streaming");
+        if (info.hasServerCapability("opendaq_native_config"))
+            info.removeServerCapability("opendaq_native_config");
+    }
+
 }
 
 void NativeStreamingServerImpl::startReading()

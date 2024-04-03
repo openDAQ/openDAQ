@@ -32,7 +32,7 @@ static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = Inst
 {
     auto instance = builder.build();
 
-    auto config = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
+    auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
     config.setPropertyValue("StreamingConnectionHeuristic", 3); // 3 - not connected
     auto refDevice = instance.addDevice("daq.opcua://127.0.0.1", config);
     return instance;

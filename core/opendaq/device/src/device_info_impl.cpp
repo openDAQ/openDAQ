@@ -594,6 +594,23 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clearServerStreamingCap
 }
 
 template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::hasServerCapability(IString* protocolId, Bool* hasCapability)
+{
+    OPENDAQ_PARAM_NOT_NULL(hasCapability);
+    OPENDAQ_PARAM_NOT_NULL(protocolId);
+    
+    BaseObjectPtr obj;
+    StringPtr str = "serverCapabilities";
+    ErrCode err = this->getPropertyValue(str, &obj);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>();
+    serverCapabilitiesPtr->hasProperty(protocolId, hasCapability);
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(IList** serverCapabilities)
 {
     OPENDAQ_PARAM_NOT_NULL(serverCapabilities);

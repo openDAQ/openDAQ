@@ -237,11 +237,9 @@ TEST_F(WebsocketStreamingClientModuleTest, GetAvailableComponentTypes)
 
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
-    ASSERT_EQ(deviceTypes.getCount(), 2u);
-    ASSERT_TRUE(deviceTypes.hasKey("daq.ws"));
-    ASSERT_EQ(deviceTypes.get("daq.ws").getId(), "daq.ws");
-    ASSERT_TRUE(deviceTypes.hasKey("daq.tcp"));
-    ASSERT_EQ(deviceTypes.get("daq.tcp").getId(), "daq.tcp");
+    ASSERT_EQ(deviceTypes.getCount(), 1u);
+    ASSERT_TRUE(deviceTypes.hasKey("opendaq_lt_streaming"));
+    ASSERT_EQ(deviceTypes.get("opendaq_lt_streaming").getId(), "opendaq_lt_streaming");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());

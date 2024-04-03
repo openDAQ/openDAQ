@@ -100,6 +100,7 @@ public:
     ErrCode INTERFACE_FUNC removeServerCapability(IString* protocolId) override;
     ErrCode INTERFACE_FUNC getServerCapabilities(IList** serverCapabilities) override;
     ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() override;
+    ErrCode INTERFACE_FUNC hasServerCapability(IString* protocolId, Bool* hasCapability) override;
 
 private:
     ErrCode createAndSetDefaultStringProperty(const StringPtr& name, const BaseObjectPtr& value);

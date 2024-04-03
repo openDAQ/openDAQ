@@ -189,7 +189,7 @@ TEST_F(DeviceInfoTest, CustomProperties)
     ASSERT_NO_THROW(info.addProperty(FloatProperty("Height", 172.4)));
     ASSERT_NO_THROW(info.addProperty(BoolProperty("IsAsleep", true)));
 
-    ASSERT_EQ(info.getCustomInfoPropertyNames().getCount(), 5u);
+    ASSERT_EQ(info.getCustomInfoPropertyNames().getCount(), 4u);
 }
 
 TEST_F(DeviceInfoTest, SerializeDeserialize)

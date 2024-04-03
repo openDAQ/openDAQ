@@ -12,7 +12,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 
-static const char* DaqOpcUaDeviceTypeId = "daq.opcua";
+static const char* DaqOpcUaDeviceTypeId = "opendaq_opcua_config";
 static const char* DaqOpcUaDevicePrefix = "daq.opcua://";
 static const char* OpcUaScheme = "opc.tcp://";
 
@@ -189,15 +189,15 @@ PropertyObjectPtr OpcUaClientModule::createDeviceDefaultConfig()
     StringPtr primaryStreamingProtocol = "none";
 
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-    allowedStreamingProtocols.pushBack("daq.ns");
-    primaryStreamingProtocol = "daq.ns";
+    allowedStreamingProtocols.pushBack("opendaq_native_streaming");
+    primaryStreamingProtocol = "opendaq_native_streaming";
 // TODO add websocket streaming to default list of allowed protocols
 // when it will have subscribe/unsubscribe support
 //#if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
 //    allowedStreamingProtocols.pushBack("daq.ws");
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    allowedStreamingProtocols.pushBack("daq.ws");
+    allowedStreamingProtocols.pushBack("opendaq_lt_streaming");
 //    primaryStreamingProtocol = "daq.ws";
 #endif
 
@@ -231,6 +231,10 @@ void OpcUaClientModule::configureStreamingSources(const PropertyObjectPtr& devic
 
     const StringPtr primaryStreamingProtocol = deviceConfig.getPropertyValue("PrimaryStreamingProtocol");
     const ListPtr<IString> allowedStreamingProtocols = deviceConfig.getPropertyValue("AllowedStreamingProtocols");
+    const auto capabilities = device.getInfo().getServerCapabilities();
+    std::unordered_map<std::string, std::string> idPrefixMap;
+    for (const auto& cap : capabilities)
+        idPrefixMap.insert(std::make_pair(cap.getProtocolId(), cap.getPrefix()));
 
     for (const auto& signal : device.getSignals(search::Recursive(search::Any())))
     {
@@ -250,7 +254,12 @@ void OpcUaClientModule::configureStreamingSources(const PropertyObjectPtr& devic
         for (const auto& streamingConnectionString : streamingSources)
         {
             std::string connectionString = streamingConnectionString.toStdString();
-            std::string protocolPrefix = primaryStreamingProtocol.toStdString();
+            std::string streamingProtocolId = primaryStreamingProtocol.toStdString();
+
+            if (!idPrefixMap.count(streamingProtocolId))
+                continue;
+
+            std::string protocolPrefix = idPrefixMap.at(streamingProtocolId);
             if (connectionString.find(protocolPrefix) == 0)
             {
                 // save the first streaming source as the leaf streaming
@@ -267,9 +276,12 @@ void OpcUaClientModule::configureStreamingSources(const PropertyObjectPtr& devic
             for (const auto& streamingConnectionString : streamingSources)
             {
                 std::string connectionString = streamingConnectionString.toStdString();
-                for (const auto& protocol : allowedStreamingProtocols)
+                for (const auto& streamingProtocolId : allowedStreamingProtocols)
                 {
-                    std::string protocolPrefix = protocol.toStdString();
+                    if (!idPrefixMap.count(streamingProtocolId))
+                        continue;
+
+                    std::string protocolPrefix = idPrefixMap.at(streamingProtocolId);
                     if (connectionString.find(protocolPrefix) == 0)
                     {
                         // save the first streaming source as the leaf streaming

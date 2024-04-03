@@ -51,6 +51,8 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoInternal, IBaseObject)
      * @brief Removes all server streaming capabilities from the list of supported capabilities.
      */
     virtual ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() = 0;
+
+    virtual ErrCode INTERFACE_FUNC hasServerCapability(IString* protocolId, Bool* hasCapability) = 0;
 };
 /*!@}*/
 

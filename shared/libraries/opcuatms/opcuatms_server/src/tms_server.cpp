@@ -3,6 +3,8 @@
 #include <opcuatms_server/tms_server.h>
 #include <open62541/di_nodeids.h>
 #include <iostream>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
 
 using namespace daq::opcua;
 using namespace daq::opcua::tms;
@@ -48,6 +50,12 @@ void TmsServer::start()
     tmsDevice = std::make_unique<TmsServerDevice>(device, server, context, tmsContext);
     tmsDevice->registerOpcUaNode(OpcUaNodeId(NAMESPACE_DI, UA_DIID_DEVICESET));
     tmsDevice->createNonhierarchicalReferences();
+    
+    auto serverCapability = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration)
+               .setPrefix("daq.opcua")
+               .setConnectionType("Ipv4")
+               .setPrefix("daq.opcua");
+    device.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
 
     server->start();
 }
@@ -56,7 +64,7 @@ void TmsServer::stop()
 {
     if (server)
         server->stop();
-
+    
     server.reset();
     tmsDevice.reset();
 }

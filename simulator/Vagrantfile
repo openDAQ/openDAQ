@@ -112,7 +112,7 @@ Vagrant.configure("2") do |config|
     config.vm.provision "file", source: "configurator.py", destination: "/tmp/configurator.py"
 
     # Copy files to /home/opendaq/
-    config.vm.provision "shell", inline: "cp /tmp/{opcuatms.service,native_streaming.service,opendaq-config.json} /home/opendaq/"
+    config.vm.provision "shell", inline: "cp /tmp/{opcuatms.service,native_streaming.service,opendaq-config.json,configurator.py} /home/opendaq/"
 
     # Configure serial numbers and local ids with configurator
     config.vm.provision "shell", inline: "cd /home/opendaq/ && python3 configurator.py"

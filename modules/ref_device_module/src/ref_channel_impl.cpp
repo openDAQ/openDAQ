@@ -413,7 +413,7 @@ std::string RefChannelImpl::getEpoch()
 
 RatioPtr RefChannelImpl::getResolution()
 {
-    return Ratio(1, 1000000);
+    return Ratio(1, 10000000);
 }
 
 void RefChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating)

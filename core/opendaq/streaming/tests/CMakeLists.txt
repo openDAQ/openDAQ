@@ -16,6 +16,10 @@ opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
                            ${TEST_SOURCES}
 )
 
+if (MSVC)
+    target_compile_options(${TEST_APP} PRIVATE /bigobj)
+endif()
+
 target_link_libraries(${TEST_APP}
     PRIVATE
         daq::coreobjects

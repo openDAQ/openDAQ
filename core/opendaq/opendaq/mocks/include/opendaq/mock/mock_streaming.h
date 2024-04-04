@@ -21,20 +21,20 @@
 class MockStreamingImpl : public daq::Streaming
 {
 public:
-    explicit MockStreamingImpl(const daq::StringPtr& connectionString);
+    explicit MockStreamingImpl(const daq::StringPtr& connectionString, const daq::ContextPtr& context);
 
 protected:
     void onSetActive(bool active) override;
-    daq::StringPtr onGetSignalStreamingId(const daq::StringPtr& signalRemoteId) override;
     void onAddSignal(const daq::MirroredSignalConfigPtr& signal) override;
     void onRemoveSignal(const daq::MirroredSignalConfigPtr& signal) override;
-    void onSubscribeSignal(const daq::StringPtr& signalRemoteId, const daq::StringPtr& domainSignalRemoteId) override;
-    void onUnsubscribeSignal(const daq::StringPtr& signalRemoteId, const daq::StringPtr& domainSignalRemoteId) override;
-    daq::EventPacketPtr onCreateDataDescriptorChangedEventPacket(const daq::StringPtr& signalRemoteId) override;
+    void onSubscribeSignal(const daq::StringPtr& signalStreamingIdd) override;
+    void onUnsubscribeSignal(const daq::StringPtr& signalStreamingId) override;
+    daq::EventPacketPtr onCreateDataDescriptorChangedEventPacket(const daq::StringPtr& signalStreamingId) override;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     INTERNAL_FACTORY,
     MockStreaming, daq::IStreaming,
-    daq::IString*, connectionString
+    daq::IString*, connectionString,
+    daq::IContext*, context
 )

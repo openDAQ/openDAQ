@@ -30,7 +30,7 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                auto cap = ServerCapability("opendaq_lt_streaming", "openDAQ StreamingLT", ProtocolType::Streaming).addConnectionString(connectionString).setConnectionType("Ipv4");
+                auto cap = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming).addConnectionString(connectionString).setConnectionType("Ipv4");
                 cap.setPrefix("daq.lt");
                 return cap;
             }

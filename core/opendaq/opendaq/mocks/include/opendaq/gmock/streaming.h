@@ -22,30 +22,41 @@
 #include <coretypes/gmock/mock_ptr.h>
 #include <opendaq/packet_factory.h>
 
-struct MockStreaming : daq::Streaming
+DECLARE_OPENDAQ_INTERFACE(IMockStreaming, daq::IBaseObject)
+{
+    virtual void makeSignalAvailable(const daq::StringPtr& signalStreamingId) = 0;
+    virtual void makeSignalUnavailable(const daq::StringPtr& signalStreamingId) = 0;
+    virtual void triggerReconnectionStart() = 0;
+    virtual void triggerReconnectionCompletion() = 0;
+};
+
+struct MockStreaming : daq::StreamingImpl<IMockStreaming>
 {
     typedef MockPtr<
         daq::IStreaming,
         daq::StreamingPtr,
         MockStreaming,
-        const daq::StringPtr&
+        const daq::StringPtr&,
+        const daq::ContextPtr&
     > Strict;
-
-    daq::StringPtr onGetSignalStreamingId(const daq::StringPtr& signalRemoteId) override
-    {
-        return signalRemoteId;
-    }
 
     MOCK_METHOD(void, onSetActive, (bool active), (override));
     MOCK_METHOD(void, onAddSignal, (const daq::MirroredSignalConfigPtr& signal), (override));
     MOCK_METHOD(void, onRemoveSignal, (const daq::MirroredSignalConfigPtr& signal), (override));
-    MOCK_METHOD(void, onSubscribeSignal, (const daq::StringPtr& signalRemoteId, const daq::StringPtr& domainSignalRemoteId), (override));
-    MOCK_METHOD(void, onUnsubscribeSignal, (const daq::StringPtr& signalRemoteId, const daq::StringPtr& domainSignalRemoteId), (override));
-    MOCK_METHOD(daq::EventPacketPtr, onCreateDataDescriptorChangedEventPacket, (const daq::StringPtr& signalRemoteId), (override));
+    MOCK_METHOD(void, onSubscribeSignal, (const daq::StringPtr& signalStreamingId), (override));
+    MOCK_METHOD(void, onUnsubscribeSignal, (const daq::StringPtr& signalStreamingId), (override));
+    MOCK_METHOD(daq::EventPacketPtr, onCreateDataDescriptorChangedEventPacket, (const daq::StringPtr& signalStreamingId), (override));
+
+    void makeSignalAvailable(const daq::StringPtr& signalStreamingId) override { addToAvailableSignals(signalStreamingId); }
+    void makeSignalUnavailable(const daq::StringPtr& signalStreamingId) override { removeFromAvailableSignals(signalStreamingId); }
+
+    void triggerReconnectionStart() override { startReconnection(); }
+    void triggerReconnectionCompletion() override { completeReconnection(); }
 
     daq::MirroredSignalConfigPtr signal;
 
-    MockStreaming(const daq::StringPtr& connectionString) : daq::Streaming(connectionString, nullptr)
+    MockStreaming(const daq::StringPtr& connectionString, const daq::ContextPtr& context)
+        : daq::StreamingImpl<IMockStreaming>(connectionString, context, false)
     {
         using namespace testing;
 
@@ -73,25 +84,25 @@ struct MockStreaming : daq::Streaming
 
         ON_CALL(*this, onSubscribeSignal)
             .WillByDefault(DoAll(
-                Invoke([&](const daq::StringPtr& signalRemoteId, const daq::StringPtr& /*domainSignalRemoteId*/)
+                Invoke([&](const daq::StringPtr& signalStreamingId)
                        {
-                           if (signal.getRemoteId() == signalRemoteId)
+                           if (signal.getRemoteId() == signalStreamingId)
                                 signal.template asPtr<daq::IMirroredSignalPrivate>().subscribeCompleted(this->connectionString);
                        })
             ));
 
         ON_CALL(*this, onUnsubscribeSignal)
             .WillByDefault(DoAll(
-                Invoke([&](const daq::StringPtr& signalRemoteId, const daq::StringPtr& /*domainSignalRemoteId*/)
+                Invoke([&](const daq::StringPtr& signalStreamingId)
                        {
-                           if (signal.getRemoteId() == signalRemoteId)
+                           if (signal.getRemoteId() == signalStreamingId)
                                 signal.template asPtr<daq::IMirroredSignalPrivate>().unsubscribeCompleted(this->connectionString);
                        })
             ));
 
         ON_CALL(*this, onCreateDataDescriptorChangedEventPacket)
             .WillByDefault(DoAll(
-                Invoke([&](const daq::StringPtr& signalRemoteId)
+                Invoke([&](const daq::StringPtr& signalStreamingId)
                        {
                            return daq::DataDescriptorChangedEventPacket(nullptr, nullptr);
                        })

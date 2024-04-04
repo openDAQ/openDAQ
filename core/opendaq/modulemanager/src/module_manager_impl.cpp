@@ -237,7 +237,6 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
     DeviceInfoPtr deviceInfo;
-    ServerCapabilityPtr internalServerCapability;
     
     if (connectionStringPtr.toStdString().find("daq://") == 0)
     {
@@ -261,7 +260,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format("Device with connection string \"{}\" has no availble server capabilites", connectionStringPtr));
         }
 
-        internalServerCapability = deviceInfo.getServerCapabilities()[0];
+        ServerCapabilityPtr internalServerCapability = deviceInfo.getServerCapabilities()[0];
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (capability.getProtocolType() < internalServerCapability.getProtocolType())
@@ -291,7 +290,6 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
                     {
                         if (connection == connectionStringPtr)
                         {
-                            internalServerCapability = capability;
                             deviceInfo = info;
                             break;
                         }

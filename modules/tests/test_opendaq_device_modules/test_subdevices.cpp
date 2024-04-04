@@ -41,10 +41,10 @@ public:
 
         if (subdeviceStreamingType == StreamingType::WebsocketStreaming)
         {
-            auto ws_config = instance.getAvailableServerTypes().get("openDAQ StreamingLT").createDefaultConfig();
+            auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT + index);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT + index);
-            instance.addServer("openDAQ StreamingLT", ws_config);
+            instance.addServer("openDAQ LT Streaming", ws_config);
         }
         else if (subdeviceStreamingType == StreamingType::NativeStreaming)
         {
@@ -87,10 +87,10 @@ public:
 
         if (gatewayStreamingType == StreamingType::WebsocketStreaming)
         {
-            auto ws_config = instance.getAvailableServerTypes().get("openDAQ StreamingLT").createDefaultConfig();
+            auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT);
-            instance.addServer("openDAQ StreamingLT", ws_config);
+            instance.addServer("openDAQ LT Streaming", ws_config);
         }
         else if (gatewayStreamingType == StreamingType::NativeStreaming)
         {

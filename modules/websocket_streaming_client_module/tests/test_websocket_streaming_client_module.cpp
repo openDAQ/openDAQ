@@ -185,7 +185,7 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConfig)
     ModulePtr module;
     createModule(&module, context);
 
-    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_lt_streaming", "openDAQ StreamingLT", ProtocolType::Streaming);
+    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming);
     serverCapability.setPrefix("daq.lt");
     ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 

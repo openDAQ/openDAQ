@@ -67,14 +67,14 @@ TEST_F(MirroredSignalTest, SetActiveSourceInvalid)
 TEST_F(MirroredSignalTest, AddSource)
 {
     auto signal = createMirroredSignal("signal");
-    auto streaming = MockStreaming(connStr);
+    auto streaming = MockStreaming(connStr, NullContext());
     ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->addStreamingSource(streaming), OPENDAQ_SUCCESS);
 }
 
 TEST_F(MirroredSignalTest, AddSourceTwice)
 {
     auto signal = createMirroredSignal("signal");
-    auto streaming = MockStreaming(connStr);
+    auto streaming = MockStreaming(connStr, NullContext());
     ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->addStreamingSource(streaming), OPENDAQ_SUCCESS);
     ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->addStreamingSource(streaming), OPENDAQ_ERR_DUPLICATEITEM);
 }
@@ -82,7 +82,7 @@ TEST_F(MirroredSignalTest, AddSourceTwice)
 TEST_F(MirroredSignalTest, AddGetSources)
 {
     auto signal = createMirroredSignal("signal");
-    auto streaming = MockStreaming(connStr);
+    auto streaming = MockStreaming(connStr, NullContext());
     ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->addStreamingSource(streaming), OPENDAQ_SUCCESS);
     auto sources = signal.getStreamingSources();
     ASSERT_EQ(sources.getCount(), 1u);
@@ -94,7 +94,7 @@ TEST_F(MirroredSignalTest, DestroyedSource)
     auto signal = createMirroredSignal("signal");
 
     {
-        auto streaming = MockStreaming(connStr);
+        auto streaming = MockStreaming(connStr, NullContext());
         streaming.addSignals({signal});
 
         auto sources = signal.getStreamingSources();
@@ -108,14 +108,14 @@ TEST_F(MirroredSignalTest, DestroyedSource)
 TEST_F(MirroredSignalTest, RemoveSourceNotAdded)
 {
     auto signal = createMirroredSignal("signal");
-    auto streaming = MockStreaming(connStr);
+    auto streaming = MockStreaming(connStr, NullContext());
     ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->removeStreamingSource(connStr), OPENDAQ_ERR_NOTFOUND);
 }
 
 TEST_F(MirroredSignalTest, AddRemoveSource)
 {
     auto signal = createMirroredSignal("signal");
-    auto streaming = MockStreaming(connStr);
+    auto streaming = MockStreaming(connStr, NullContext());
     ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->addStreamingSource(streaming), OPENDAQ_SUCCESS);
     ASSERT_EQ(signal.getStreamingSources().getCount(), 1u);
     ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->removeStreamingSource(connStr), OPENDAQ_SUCCESS);
@@ -125,7 +125,7 @@ TEST_F(MirroredSignalTest, AddRemoveSource)
 TEST_F(MirroredSignalTest, SetActiveSource)
 {
     auto signal = createMirroredSignal("signal");
-    auto streaming = MockStreaming(connStr);
+    auto streaming = MockStreaming(connStr, NullContext());
     ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->addStreamingSource(streaming), OPENDAQ_SUCCESS);
     ASSERT_NO_THROW(signal.setActiveStreamingSource(connStr));
 
@@ -135,7 +135,7 @@ TEST_F(MirroredSignalTest, SetActiveSource)
 TEST_F(MirroredSignalTest, SetGetActiveSource)
 {
     auto signal = createMirroredSignal("signal");
-    auto streaming = MockStreaming(connStr);
+    auto streaming = MockStreaming(connStr, NullContext());
     ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->addStreamingSource(streaming), OPENDAQ_SUCCESS);
     signal.setActiveStreamingSource(connStr);
     ASSERT_EQ(signal.getActiveStreamingSource(), connStr);
@@ -144,7 +144,7 @@ TEST_F(MirroredSignalTest, SetGetActiveSource)
 TEST_F(MirroredSignalTest, RemoveActiveSource)
 {
     auto signal = createMirroredSignal("signal");
-    auto streaming = MockStreaming(connStr);
+    auto streaming = MockStreaming(connStr, NullContext());
     ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->addStreamingSource(streaming), OPENDAQ_SUCCESS);
     signal.setActiveStreamingSource(connStr);
 
@@ -158,7 +158,7 @@ TEST_F(MirroredSignalTest, DestroyActiveSource)
     auto signal = createMirroredSignal("signal");
 
     {
-        auto streaming = MockStreaming(connStr);
+        auto streaming = MockStreaming(connStr, NullContext());
         streaming.addSignals({signal});
         signal.setActiveStreamingSource(connStr);
     }
@@ -169,14 +169,13 @@ TEST_F(MirroredSignalTest, DestroyActiveSource)
 TEST_F(MirroredSignalTest, DeactivateStreaming)
 {
     auto signal = createMirroredSignal("signal");
-    auto streaming = MockStreaming(connStr);
+    auto streaming = MockStreaming(connStr, NullContext());
     ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->addStreamingSource(streaming), OPENDAQ_SUCCESS);
     signal.setActiveStreamingSource(connStr);
     ASSERT_EQ(signal.getActiveStreamingSource(), connStr);
     ASSERT_NO_THROW(signal.deactivateStreaming());
     ASSERT_FALSE(signal.getActiveStreamingSource().assigned());
 }
-
 
 TEST_F(MirroredSignalTest, Streamed)
 {
@@ -215,7 +214,7 @@ TEST_F(MirroredSignalTest, SubscriptionEvents)
 TEST_F(MirroredSignalTest, Remove)
 {
     auto signal = createMirroredSignal("signal");
-    auto streaming = MockStreaming(connStr);
+    auto streaming = MockStreaming(connStr, NullContext());
     streaming.addSignals({signal});
     signal.setActiveStreamingSource(connStr);
 

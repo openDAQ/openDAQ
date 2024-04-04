@@ -36,6 +36,7 @@ static InstancePtr CreateUpdatedServerInstance()
 
     auto instance = InstanceCustom(context, "local");
 
+    const auto statistics = instance.addFunctionBlock("ref_fb_module_scaling");
     const auto refDevice = instance.addDevice("daqref://device0");
     refDevice.setPropertyValue("NumberOfChannels", 3);
 
@@ -672,8 +673,58 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_EQ(reconnectionStatusFuture.get(), "Connected");
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
 
-    auto channels = client.getChannels(search::Recursive(search::Any()));
+    auto channels = client.getDevices()[0].getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 3u);
 
+    auto fbs = client.getDevices()[0].getFunctionBlocks(search::Recursive(search::Any()));
+    ASSERT_EQ(fbs.getCount(), 1u);
+    ASSERT_EQ(fbs[0].getFunctionBlockType().getId(), "ref_fb_module_scaling");
+
     ASSERT_TRUE(client.getContext().getTypeManager().hasType("TestEnumType"));
+
+    auto signals = client.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : signals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, Update)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    std::promise<void> updatedPromise;
+    std::future<void> updatedFuture = updatedPromise.get_future();
+
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& component, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentUpdateEnd)
+        {
+            updatedPromise.set_value();
+        }
+    };
+
+    // update device
+    auto updatableDevice = client.getDevices()[0].getDevices()[0];
+    const auto serializer = JsonSerializer();
+    updatableDevice.serialize(serializer);
+    const auto str = serializer.getOutput();
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(updatableDevice, str);
+
+    ASSERT_TRUE(updatedFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+
+    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : clientSignals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+    }
 }

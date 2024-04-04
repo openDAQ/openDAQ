@@ -16,7 +16,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     const InstancePtr instance = Instance(MODULE_PATH);
 
     instance.setRootDevice("daqref://device1");
-    instance.addServer("openDAQ StreamingLT", nullptr);
+    instance.addServer("openDAQ LT Streaming", nullptr);
     instance.addStandardServers();
 
     while(true)

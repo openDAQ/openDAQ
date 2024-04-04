@@ -149,7 +149,7 @@ protected:
     std::future<ConnectionResult> connectedFuture;
 
     std::unordered_map<SignalNumericIdType, StringPtr> signalIds;
-    std::mutex sync;
+    std::mutex registeredSignalsSync;
 
     bool connectionMonitoringEnabled{false};
     Int heartbeatPeriod;

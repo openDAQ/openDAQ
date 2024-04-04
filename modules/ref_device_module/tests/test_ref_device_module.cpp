@@ -744,7 +744,7 @@ TEST_F(RefDeviceModuleTest, ReadConstantRule)
 
 TEST_F(RefDeviceModuleTestConfig, JsonConfigReadReferenceDeviceLocalId)
 {
-    std::string filename = "jsonConfigReadReferenceDeviceLocalId.json";
+    std::string filename = "test.json";
     std::string json = "{ \"ReferenceDevice\": { \"LocalId\": \"testtest\" } }";
     createConfigFile(filename, json);
 
@@ -760,7 +760,7 @@ TEST_F(RefDeviceModuleTestConfig, JsonConfigReadReferenceDeviceLocalId)
 }
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfig)
 {
-    std::string filename = "ModuleDeviceJsonConfig.json";
+    std::string filename = "test.json";
     std::string json = "{ \"ReferenceDevice\": { \"LocalId\": \"testtest\" } }";
     createConfigFile(filename, json);
 
@@ -774,5 +774,81 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfig)
     ModulePtr module;
     createModule(&module, context);
 
-    ASSERT_NO_THROW(module.createDevice("daqref://device1", nullptr));
+    DevicePtr ptr;
+    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
+    ASSERT_EQ(ptr.getLocalId(), "testtest");
+}
+
+TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigMalformed1)
+{
+    std::string filename = "test.json";
+    std::string json = "{ \"ReferenceDevice\": { \"Error\": { \"LocalId\": \"testtest\" } } }";
+    createConfigFile(filename, json);
+
+    auto options = GetDefaultOptions();
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    auto context = NullContext(Logger(), TypeManager(), options);
+
+    ModulePtr module;
+    createModule(&module, context);
+
+    ASSERT_THROW(module.createDevice("daqref://device1", nullptr), GeneralErrorException);
+}
+
+TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigMalformed2)
+{
+    std::string filename = "test.json";
+    std::string json = "{ \"ReferenceDevice\": { \"LocalId\": { \"Error\": \"testtest\" } } }";
+    createConfigFile(filename, json);
+
+    auto options = GetDefaultOptions();
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    auto context = NullContext(Logger(), TypeManager(), options);
+
+    ModulePtr module;
+    createModule(&module, context);
+
+    ASSERT_THROW(module.createDevice("daqref://device1", nullptr), GeneralErrorException);
+}
+
+TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigDefault)
+{
+    auto options = GetOptionsNoReferenceDevice();
+
+    auto context = NullContext(Logger(), TypeManager(), options);
+
+    ModulePtr module;
+    createModule(&module, context);
+
+    DevicePtr ptr;
+    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
+    ASSERT_EQ(ptr.getLocalId(), "ref_dev1");
+}
+
+TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigNoOptions)
+{
+    auto module = CreateModule();
+
+    DevicePtr ptr;
+    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
+    ASSERT_EQ(ptr.getLocalId(), "ref_dev1");
+}
+
+TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)
+{
+    auto options = GetDefaultOptions();
+
+    auto context = NullContext(Logger(), TypeManager(), options);
+
+    ModulePtr module;
+    createModule(&module, context);
+
+    DevicePtr ptr;
+    ASSERT_THROW(ptr = module.createDevice("daqref://device1", nullptr), GeneralErrorException);
 }

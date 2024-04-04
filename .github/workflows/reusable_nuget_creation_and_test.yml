@@ -46,7 +46,7 @@ jobs:
       nuget_work_path_linux_x64: ${{ github.workspace }}/build/nuget_work/linux-x64
       dotnet_source_path: ${{ github.workspace }}/bindings/dotnet/openDAQ.Net
       version_suffix: ${{ inputs.short_sha == '' && '' || format('--version-suffix beta-{0}', inputs.short_sha) }}
-      nuget_artifact: Packages (openDAQ.Net NuGet)
+      nuget_artifact: Package (openDAQ.Net NuGet)
       # map inputs to env
       test_path: ${{ inputs.test_path }}
       windows_x64_artifact: ${{ inputs.windows_x64_artifact_name }}

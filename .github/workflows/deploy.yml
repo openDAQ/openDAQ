@@ -688,7 +688,6 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Upload NuGet to S3
-        if: github.ref == 'refs/heads/main'
         run: |
           Write-Output "# S3 listing"
           aws s3 ls "s3://${{ env.s3bucket }}/${{ env.s3dotnet_path }}/" --recursive --human-readable

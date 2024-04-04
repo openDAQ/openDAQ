@@ -684,6 +684,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* co
     const auto it = std::find(connections.begin(), connections.end(), connectionPtr);
     if (it != connections.end())
         return OPENDAQ_ERR_DUPLICATEITEM;
+    
+    const auto packet = createDataDescriptorChangedEventPacket();
 
     if (connections.empty())
     {
@@ -694,7 +696,6 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* co
 
     connections.push_back(connectionPtr);
 
-    const auto packet = createDataDescriptorChangedEventPacket();
     connectionPtr.enqueueOnThisThread(packet);
 
     return OPENDAQ_SUCCESS;

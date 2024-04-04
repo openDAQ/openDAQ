@@ -31,10 +31,13 @@ PacketPtr InputSignal::createDataPacket(uint64_t packetOffset, const uint8_t* da
     return dataPacket;
 }
 
-EventPacketPtr InputSignal::createDecriptorChangedPacket() const
+EventPacketPtr InputSignal::createDecriptorChangedPacket(bool valueChanged, bool domainChanged) const
 {
     std::scoped_lock lock(descriptorsSync);
-    return DataDescriptorChangedEventPacket(currentDataDescriptor, currentDomainDataDescriptor);
+    const auto valueDesc = valueChanged ? currentDataDescriptor : nullptr;
+    const auto domainDesc = domainChanged ? currentDomainDataDescriptor : nullptr;
+
+    return DataDescriptorChangedEventPacket(valueDesc, domainDesc);
 }
 
 void InputSignal::setDataDescriptor(const DataDescriptorPtr& dataDescriptor)

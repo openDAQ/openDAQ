@@ -15,11 +15,14 @@
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_params.h>
-
 #include <thread>
+#include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
+#include <opendaq/config_provider_factory.h>
 
-using RefDeviceModuleTest = testing::Test;
 using namespace daq;
+using RefDeviceModuleTest = testing::Test;
+using namespace test_config_provider_helpers;
+using RefDeviceModuleTestConfig =  ConfigProviderTest;
 
 static ModulePtr CreateModule()
 {
@@ -743,4 +746,21 @@ TEST_F(RefDeviceModuleTest, ReadConstantRule)
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
+}
+
+TEST_F(RefDeviceModuleTestConfig, jsonConfigReadReferenceDeviceLocalId)
+{
+    std::string filename = "jsonConfigReadReferenceDeviceLocalId.json";
+    std::string json = "{ \"ReferenceDevice\": { \"LocalId\": \"testtest\" } }";
+    createConfigFile(filename, json);
+
+    auto options = GetDefaultOptions();
+
+    auto expectedOptions = GetDefaultOptions();
+    getChildren(expectedOptions, "ReferenceDevice").set("LocalId", "testtest");
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
 }

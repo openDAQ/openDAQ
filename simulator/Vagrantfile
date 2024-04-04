@@ -107,24 +107,25 @@ Vagrant.configure("2") do |config|
     config.vm.provision "file", source: "opcuatms.service", destination: "/tmp/opcuatms.service"
     config.vm.provision "file", source: "native_streaming.service", destination: "/tmp/native_streaming.service"
     config.vm.provision "file", source: "opendaq-config.json", destination: "/tmp/opendaq-config.json"
+    config.vm.provision "file", source: "simulator.service", destination: "/tmp/simulator.service"
     config.vm.provision "file", source: "configurator.py", destination: "/tmp/configurator.py"
 
     # Copy files to /home/opendaq/
-    config.vm.provision "shell", inline: "cp /tmp/{opcuatms.service,native_streaming.service,opendaq-config.json,configurator.py} /home/opendaq/"
+    config.vm.provision "shell", inline: "cp /tmp/{opcuatms.service,native_streaming.service,opendaq-config.json,simulator.service,configurator.py} /home/opendaq/"
 
     # Configure serial numbers and local ids with configurator
     config.vm.provision "shell", inline: "cd /home/opendaq/ && python3 configurator.py"
 
     # Move MDNS services configs
     config.vm.provision "shell", inline: "mv /home/opendaq/{opcuatms.service,native_streaming.service} /etc/avahi/services/"
+    
+    # Move systemd service file
+    config.vm.provision "shell", inline: "mv /home/opendaq/simulator.service /etc/systemd/system/"
 
     # Move opendaq-config.json file
     config.vm.provision "shell", inline: "mv /home/opendaq/opendaq-config.json /home/opendaq/opendaq/"
-
-    # Get systemd service to proper location
-    config.vm.provision "file", source: "simulator.service", destination: "/etc/systemd/system/simulator.service"
     
-    # Make service run on boot (before login)
+    # Make systemd service run on boot (before login)
     config.vm.provision "shell", inline: "sudo systemctl enable simulator"
 
     # Reduce memory usage

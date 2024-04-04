@@ -1,28 +1,28 @@
-#include <testutils/testutils.h>
-#include <ref_device_module/module_dll.h>
-#include <ref_device_module/version.h>
-#include <gmock/gmock.h>
-#include <opendaq/module_ptr.h>
-#include <opendaq/device_ptr.h>
-#include <opendaq/input_port_factory.h>
-#include <opendaq/removable_ptr.h>
-#include <opendaq/range_factory.h>
 #include <coretypes/common.h>
+#include <gmock/gmock.h>
+#include <opendaq/config_provider_factory.h>
 #include <opendaq/context_factory.h>
-#include <opendaq/search_filter_factory.h>
-#include <opendaq/reader_factory.h>
 #include <opendaq/data_packet_ptr.h>
-#include <opendaq/event_packet_ptr.h>
+#include <opendaq/device_ptr.h>
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_ptr.h>
+#include <opendaq/input_port_factory.h>
+#include <opendaq/module_ptr.h>
+#include <opendaq/range_factory.h>
+#include <opendaq/reader_factory.h>
+#include <opendaq/removable_ptr.h>
+#include <opendaq/search_filter_factory.h>
+#include <ref_device_module/module_dll.h>
+#include <ref_device_module/version.h>
+#include <testutils/testutils.h>
 #include <thread>
 #include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
-#include <opendaq/config_provider_factory.h>
 
 using namespace daq;
 using RefDeviceModuleTest = testing::Test;
 using namespace test_config_provider_helpers;
-using RefDeviceModuleTestConfig =  ConfigProviderTest;
+using RefDeviceModuleTestConfig = ConfigProviderTest;
 
 static ModulePtr CreateModule()
 {
@@ -229,7 +229,6 @@ TEST_F(RefDeviceModuleTest, CreateFunctionBlockIdEmpty)
     ASSERT_THROW(module.createFunctionBlock("", nullptr, "id"), NotFoundException);
 }
 
-
 TEST_F(RefDeviceModuleTest, DeviceNumberOfChannels)
 {
     auto module = CreateModule();
@@ -257,7 +256,6 @@ TEST_F(RefDeviceModuleTest, DeviceChangeNumberOfChannels)
     numChannels = device.getPropertyValue("NumberOfChannels");
     ASSERT_EQ(numChannels, 3);
     ASSERT_EQ(device.getChannels().getCount(), 3u);
-
 }
 
 TEST_F(RefDeviceModuleTest, DeviceChangeAcqLoopTime)
@@ -437,10 +435,7 @@ TEST_F(RefDeviceModuleTest, Ids)
 
 bool propertyInfoListContainsProperty(const ListPtr<IProperty>& list, const std::string& propName)
 {
-    auto it = std::find_if(list.begin(), list.end(), [propName](const PropertyPtr& prop)
-        {
-            return prop.getName() == propName;
-        });
+    auto it = std::find_if(list.begin(), list.end(), [propName](const PropertyPtr& prop) { return prop.getName() == propName; });
 
     return it != list.end();
 }
@@ -548,7 +543,7 @@ TEST_F(RefDeviceModuleTest, Sync)
     auto module = CreateModule();
     auto device = module.createDevice("daqref://device1", nullptr);
     ComponentPtr syncComponent = device.getItem("sync");
-    
+
     ASSERT_FALSE(syncComponent.getPropertyValue("UseSync"));
     syncComponent.setPropertyValue("UseSync", True);
     ASSERT_TRUE(syncComponent.getPropertyValue("UseSync"));
@@ -745,10 +740,9 @@ TEST_F(RefDeviceModuleTest, ReadConstantRule)
         else
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-
 }
 
-TEST_F(RefDeviceModuleTestConfig, jsonConfigReadReferenceDeviceLocalId)
+TEST_F(RefDeviceModuleTestConfig, JsonConfigReadReferenceDeviceLocalId)
 {
     std::string filename = "jsonConfigReadReferenceDeviceLocalId.json";
     std::string json = "{ \"ReferenceDevice\": { \"LocalId\": \"testtest\" } }";
@@ -763,4 +757,22 @@ TEST_F(RefDeviceModuleTestConfig, jsonConfigReadReferenceDeviceLocalId)
     provider.populateOptions(options);
 
     ASSERT_EQ(options, expectedOptions);
+}
+TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfig)
+{
+    std::string filename = "ModuleDeviceJsonConfig.json";
+    std::string json = "{ \"ReferenceDevice\": { \"LocalId\": \"testtest\" } }";
+    createConfigFile(filename, json);
+
+    auto options = GetDefaultOptions();
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    auto context = NullContext(Logger(), TypeManager(), options);
+
+    ModulePtr module;
+    createModule(&module, context);
+
+    ASSERT_NO_THROW(module.createDevice("daqref://device1", nullptr));
 }

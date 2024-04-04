@@ -33,7 +33,7 @@ public:
     InputSignal();
 
     PacketPtr createDataPacket(uint64_t packetOffset, const uint8_t* data, size_t size) const;
-    EventPacketPtr createDecriptorChangedPacket() const;
+    EventPacketPtr createDecriptorChangedPacket(bool valueChanged = true, bool domainChanged = true) const;
     void setDataDescriptor(const DataDescriptorPtr& dataDescriptor);
     void setDomainDescriptor(const DataDescriptorPtr& domainDescriptor);
     bool hasDescriptors() const;

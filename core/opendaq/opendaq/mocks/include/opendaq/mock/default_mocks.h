@@ -37,9 +37,6 @@ public:
 
     DeviceInfoPtr onGetInfo() override
     {
-        if (deviceInfo != nullptr)
-            return deviceInfo;
-        
         deviceInfo = DeviceInfo("", "default_dev");
         deviceInfo.freeze();
         return deviceInfo;

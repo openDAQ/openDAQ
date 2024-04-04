@@ -21,7 +21,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         for (const auto & capability : info.getServerCapabilities())
         {
-            auto device = instance.addDevice(capability.getPrimaryConnectionString());
+            auto device = instance.addDevice(capability.getConnectionString());
             devices.pushBack(device);
         }
     }

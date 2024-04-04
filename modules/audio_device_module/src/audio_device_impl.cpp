@@ -51,9 +51,6 @@ DeviceInfoPtr AudioDeviceImpl::CreateDeviceInfo(const std::shared_ptr<MiniaudioC
 
 DeviceInfoPtr AudioDeviceImpl::onGetInfo()
 {
-    if (deviceInfo != nullptr)
-        return deviceInfo;
-    
     ma_result result;
     ma_device_info info;
     result = ma_device_get_info(&maDevice, ma_device_type_capture, &info);
@@ -61,7 +58,7 @@ DeviceInfoPtr AudioDeviceImpl::onGetInfo()
     {
         LOG_W("Miniaudio get device information failed: {}", ma_result_description(result));
     }
-    deviceInfo = CreateDeviceInfo(maContext, info);
+    auto deviceInfo = CreateDeviceInfo(maContext, info);
     deviceInfo.freeze();
     return deviceInfo;
 }

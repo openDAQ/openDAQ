@@ -33,7 +33,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @brief Sets the connection string of device with current protocol
      * @param connectionString The connection string of device
      */
-    virtual ErrCode INTERFACE_FUNC setPrimaryConnectionString(IString* connectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC setConnectionString(IString* connectionString) = 0;
 
     // [returnSelf]
     /*!

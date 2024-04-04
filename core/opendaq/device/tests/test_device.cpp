@@ -28,10 +28,7 @@ public:
 
     daq::DeviceInfoPtr onGetInfo() override
     {
-        if (deviceInfo != nullptr)
-            return deviceInfo;
-        
-        deviceInfo = daq::DeviceInfo("conn");
+        auto deviceInfo = daq::DeviceInfo("conn");
         deviceInfo.freeze();
         return deviceInfo;
     }

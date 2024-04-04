@@ -43,11 +43,11 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
 {
     cls.doc() = "Represents standard information about a server's capability to support various protocols. The Server Capability object functions as a Property Object, facilitating the inclusion of custom properties of String, Int, Bool, or Float types. This interface serves to store essential details regarding the supported protocol by a device. It adheres to a standardized set of properties, including methods to retrieve information such as the connection string, protocol name, protocol type, connection type, and core events enabled.";
 
-    cls.def_property_readonly("primary_connection_string",
+    cls.def_property_readonly("connection_string",
         [](daq::IServerCapability *object)
         {
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
-            return objectPtr.getPrimaryConnectionString().toStdString();
+            return objectPtr.getConnectionString().toStdString();
         },
         "Gets the connection string of the device with the current protocol.");
     cls.def_property_readonly("connection_strings",

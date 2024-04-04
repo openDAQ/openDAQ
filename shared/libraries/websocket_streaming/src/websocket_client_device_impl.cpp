@@ -23,10 +23,7 @@ WebsocketClientDeviceImpl::WebsocketClientDeviceImpl(const ContextPtr& ctx,
 
 DeviceInfoPtr WebsocketClientDeviceImpl::onGetInfo()
 {
-    if (deviceInfo != nullptr)
-        return deviceInfo;
-
-    deviceInfo = DeviceInfo(connectionString, "WebsocketClientPseudoDevice");
+    auto deviceInfo = DeviceInfo(connectionString, "WebsocketClientPseudoDevice");
     deviceInfo.freeze();
     return deviceInfo;
 }

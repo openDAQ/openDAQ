@@ -138,12 +138,16 @@ StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(con
     if (capability == nullptr)
         throw InvalidParameterException("Capability is not set");
 
+    StringPtr connectionString = capability.getPropertyValue("PrimaryConnectionString");
+    if (connectionString.getLength() != 0)
+        return connectionString;
+
     StringPtr address = capability.getPropertyValue("address");
     if (!address.assigned() || address.toStdString().empty())
         throw InvalidParameterException("Device address is not set");
 
     auto port = capability.getPropertyValue("Port").template asPtr<IInteger>();
-    auto connectionString = String(fmt::format("{}{}:{}", WebsocketDevicePrefix, address, port));
+    connectionString = String(fmt::format("{}{}:{}", WebsocketDevicePrefix, address, port));
 
     return connectionString;
 }

@@ -34,8 +34,8 @@ public:
 
     explicit ServerCapabilityConfigImpl(const StringPtr& protocolId, const StringPtr& protocolName, ProtocolType protocolType);
 
-    ErrCode INTERFACE_FUNC getPrimaryConnectionString(IString** connectionString) override;
-    ErrCode INTERFACE_FUNC setPrimaryConnectionString(IString* connectionString) override;
+    ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
+    ErrCode INTERFACE_FUNC setConnectionString(IString* connectionString) override;
 
     ErrCode INTERFACE_FUNC getConnectionStrings(IList** connectionStrings) override;
     ErrCode INTERFACE_FUNC addConnectionString(IString* connectionString) override;

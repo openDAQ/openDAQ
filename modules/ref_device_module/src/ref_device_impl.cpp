@@ -64,10 +64,7 @@ DeviceTypePtr RefDeviceImpl::CreateType()
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
 {
-    if (deviceInfo != nullptr)
-        return deviceInfo;
-    
-    deviceInfo = RefDeviceImpl::CreateDeviceInfo(id);
+    auto deviceInfo = RefDeviceImpl::CreateDeviceInfo(id);
     deviceInfo.freeze();
     return deviceInfo;
 }

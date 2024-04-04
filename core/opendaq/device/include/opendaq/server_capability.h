@@ -66,7 +66,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @brief Gets the connection string of the device with the current protocol.
      * @param[out] connectionString The connection string of the device (URL to connect).
      */
-    virtual ErrCode INTERFACE_FUNC getPrimaryConnectionString(IString** connectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) = 0;
 
     // [templateType(connectionStrings, IString)]
     /*!

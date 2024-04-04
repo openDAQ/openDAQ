@@ -63,7 +63,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         {
             if (capability.getProtocolName() == "openDAQ OpcUa")
             {
-                device = instance.addDevice(capability.getPrimaryConnectionString(), deviceConfig);
+                device = instance.addDevice(capability.getConnectionString(), deviceConfig);
                 break;
             }
         }

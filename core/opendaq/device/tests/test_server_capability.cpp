@@ -14,7 +14,7 @@ TEST_F(ServerCapabilityTest, Factory)
     ServerCapabilityPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
     ASSERT_EQ(capability.getProtocolName(), "Protocol name");
     ASSERT_EQ(capability.getProtocolType(), ProtocolType::Streaming);
-    ASSERT_EQ(capability.getPrimaryConnectionString(), "");
+    ASSERT_EQ(capability.getConnectionString(), "");
     ASSERT_EQ(capability.getConnectionType(), "Unknown");
     ASSERT_EQ(capability.getCoreEventsEnabled(), false);
 }
@@ -26,7 +26,7 @@ TEST_F(ServerCapabilityTest, SetGet)
                                                                                                   .setCoreEventsEnabled(true);
     ASSERT_EQ(capability.getProtocolName(), "Protocol name");
     ASSERT_EQ(capability.getProtocolType(), ProtocolType::Streaming);
-    ASSERT_EQ(capability.getPrimaryConnectionString(), "connection string");
+    ASSERT_EQ(capability.getConnectionString(), "connection string");
     ASSERT_EQ(capability.getConnectionType(), "connection type");
     ASSERT_EQ(capability.getCoreEventsEnabled(), true);
 }

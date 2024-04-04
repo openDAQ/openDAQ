@@ -235,7 +235,7 @@ int main(int argc, const char* argv[])
         std::cout << "Name: " << deviceInfo.getName() << ", Connection string: " << deviceInfo.getConnectionString() << std::endl;
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            std::cout << "- Capability: " << capability.getProtocolName() << ", Address: " << capability.getPrimaryConnectionString() << std::endl;
+            std::cout << "- Capability: " << capability.getProtocolName() << ", Address: " << capability.getConnectionString() << std::endl;
         }
     }
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
@@ -308,7 +308,7 @@ int main(int argc, const char* argv[])
             {
                 if (capability.getProtocolName() != "openDAQ OpcUa")
                 {
-                    device = instance.addDevice(capability.getPrimaryConnectionString());
+                    device = instance.addDevice(capability.getConnectionString());
                     break;
                 }
             }
@@ -390,7 +390,7 @@ int main(int argc, const char* argv[])
     {
         if (deviceInfo.getConnectionString().toView().find("daq://") != std::string::npos)
         {
-            device = instance.addDevice(capability.getPrimaryConnectionString());
+            device = instance.addDevice(capability.getConnectionString());
             break;
         }
     }
@@ -1003,7 +1003,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         {
             if (capability.getProtocolName() == "openDAQ OpcUa")
             {
-                device = instance.addDevice(capability.getPrimaryConnectionString());
+                device = instance.addDevice(capability.getConnectionString());
                 break;
             }
         }
@@ -1237,7 +1237,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         {
             if (capability.getProtocolName() == "openDAQ Native Streaming")
             {
-                device = instance.addDevice(capability.getPrimaryConnectionString());
+                device = instance.addDevice(capability.getConnectionString());
                 break;
             }
         }

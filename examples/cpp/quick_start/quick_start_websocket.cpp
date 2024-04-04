@@ -22,7 +22,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         {
             if (capability.getProtocolName() == "openDAQ StreamingLT")
             {
-                device = instance.addDevice(capability.getPrimaryConnectionString());
+                device = instance.addDevice(capability.getConnectionString());
                 break;
             }
         }

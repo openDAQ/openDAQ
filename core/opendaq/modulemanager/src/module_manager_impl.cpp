@@ -15,6 +15,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <opendaq/search_filter_factory.h>
 #include <coretypes/validation.h>
+#include <opendaq/server_capability_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 static OrphanedModules orphanedModules;
@@ -233,7 +234,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
     auto connectionStringPtr = StringPtr::Borrow(connectionString);
     if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
-        throw ArgumentNullException("Connecton string is not set or empty");
+        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
     DeviceInfoPtr deviceInfo;
     ServerCapabilityPtr internalServerCapability;
@@ -242,7 +243,9 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     {
         if (!availableDevicesGroup.assigned())
         {
-            getAvailableDevices(&ListPtr<IDeviceInfo>());
+            auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
+            if (OPENDAQ_FAILED(errCode))
+                return this->makeErrorInfo(errCode, "Failed getting available devices");
         }
         
         if (availableDevicesGroup.hasKey(connectionStringPtr))
@@ -250,12 +253,12 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         
         if (!deviceInfo.assigned())
         {
-            throw NotFoundException(fmt::format("Device with connection string \"{}\" not found", connectionStringPtr));
+            return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format("Device with connection string \"{}\" not found", connectionStringPtr));
         }
 
         if (deviceInfo.getServerCapabilities().getCount() == 0)
         {
-            throw NotFoundException(fmt::format("Device with connection string \"{}\" has no availble server capabilites", connectionStringPtr));
+            return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format("Device with connection string \"{}\" has no availble server capabilites", connectionStringPtr));
         }
 
         internalServerCapability = deviceInfo.getServerCapabilities()[0];
@@ -266,7 +269,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         }
 
         if (internalServerCapability.assigned())
-            connectionStringPtr = internalServerCapability.getPrimaryConnectionString();
+            connectionStringPtr = internalServerCapability.getConnectionString();
     } 
     else if (availableDevicesGroup.assigned())
     {
@@ -323,12 +326,19 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         if (accepted)
         {
             auto errCode = module->createDevice(device, connectionStringPtr, parent, config);
+            if (OPENDAQ_FAILED(errCode))
+                return errCode;
+
             auto devicePtr = DevicePtr::Borrow(*device); 
-            if (devicePtr.assigned() && deviceInfo.assigned())
+            if (devicePtr.assigned() && deviceInfo.assigned() && devicePtr.getInfo().assigned())
             {
                 auto deviceInfoConfig = devicePtr.getInfo().asPtr<IDeviceInfoInternal>();
                 for (const auto & capability : deviceInfo.getServerCapabilities())
+                {
+                    if (deviceInfoConfig.hasServerCapability(capability.getProtocolId()))
+                        deviceInfoConfig.removeServerCapability(capability.getProtocolId());
                     deviceInfoConfig.addServerCapability(capability);
+                }
             }
             return errCode;
         }

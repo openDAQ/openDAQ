@@ -329,6 +329,12 @@ bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const S
     }
     else if (config.assigned())
     {
+        StringPtr configConnectionString = config.getPropertyValue("PrimaryConnectionString");
+        if (configConnectionString.getLength())
+        {
+            return connectionStringHasPrefix(configConnectionString, NativeStreamingPrefix) &&
+               validateConnectionString(configConnectionString);
+        }
         StringPtr protocolId = config.getPropertyValue("protocolId");
         StringPtr primaryAddress = config.getPropertyValue("address");
         if (protocolId == NativeStreamingID && primaryAddress != "")
@@ -409,15 +415,19 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     }
     else if(config.assigned())
     {
-        host = config.getPropertyValue("address");
-        if (host.toStdString().empty()) 
-            throw InvalidParameterException("Device address is not set");
+        streamingConnectionString = config.getPropertyValue("PrimaryConnectionString");
+        if (streamingConnectionString.getLength() == 0)
+        {
+            host = config.getPropertyValue("address");
+            if (host.toStdString().empty()) 
+                throw InvalidParameterException("Device address is not set");
 
-        auto portNumber = config.getPropertyValue("Port").template asPtr<IInteger>();
-        port = String(fmt::format("{}", portNumber));
+            auto portNumber = config.getPropertyValue("Port").template asPtr<IInteger>();
+            port = String(fmt::format("{}", portNumber));
 
-        path = String("/");
-        streamingConnectionString = String(fmt::format("{}{}:{}", NativeStreamingPrefix, host, portNumber));
+            path = String("/");
+            streamingConnectionString = String(fmt::format("{}{}:{}", NativeStreamingPrefix, host, portNumber));
+        }
     }
     else
     {

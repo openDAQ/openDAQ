@@ -120,10 +120,7 @@ void NativeStreamingDeviceImpl::activateStreaming()
 
 DeviceInfoPtr NativeStreamingDeviceImpl::onGetInfo()
 {
-    if (deviceInfo != nullptr)
-        return deviceInfo;
-
-    deviceInfo = DeviceInfo(connectionString, "NativeStreamingClientPseudoDevice");
+    auto deviceInfo = DeviceInfo(connectionString, "NativeStreamingClientPseudoDevice");
     deviceInfo.freeze();
     return deviceInfo;
 }

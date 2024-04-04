@@ -68,7 +68,7 @@ typename InterfaceToSmartPtr<T>::SmartPtr ServerCapabilityConfigImpl::getTypedPr
     return objPtr.getPropertyValue(name).template asPtr<T>();
 }
 
-ErrCode ServerCapabilityConfigImpl::getPrimaryConnectionString(IString** connectionString)
+ErrCode ServerCapabilityConfigImpl::getConnectionString(IString** connectionString)
 {
     return daqTry([&]() {
         *connectionString = getTypedProperty<IString>(PrimaryConnectionString).detach();
@@ -76,7 +76,7 @@ ErrCode ServerCapabilityConfigImpl::getPrimaryConnectionString(IString** connect
     });
 }
 
-ErrCode ServerCapabilityConfigImpl::setPrimaryConnectionString(IString* connectionString)
+ErrCode ServerCapabilityConfigImpl::setConnectionString(IString* connectionString)
 {
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     return daqTry([&]() {
@@ -103,9 +103,8 @@ ErrCode ServerCapabilityConfigImpl::addConnectionString(IString* connectionStrin
         checkErrorInfo(Super::setPropertyValue(String(ConnectionStrings), connectionStrings));
 
         if (connectionStrings.getCount() == 1)
-        {
             checkErrorInfo(Super::setPropertyValue(String(PrimaryConnectionString), connectionString));
-        }
+
         return OPENDAQ_SUCCESS;
     });
 }

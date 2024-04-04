@@ -259,11 +259,8 @@ void MockDevice1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBloc
 }
 
 DeviceInfoPtr MockDevice1Impl::onGetInfo()
-{
-    if (deviceInfo != nullptr)
-        return deviceInfo;
-    
-    deviceInfo = DeviceInfo("mock://dev1", "MockDevice1");
+{    
+    auto deviceInfo = DeviceInfo("mock://dev1", "MockDevice1");
     deviceInfo.asPtr<IDeviceInfoConfig>().setManufacturer("Testing");
     deviceInfo.freeze();
     return deviceInfo;

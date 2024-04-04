@@ -85,6 +85,15 @@ protected:
                                            {"Modules", Dict<IString, IBaseObject>()}});
     }
 
+        static DictPtr<IString, IBaseObject> GetOptionsNoReferenceDevice()
+    {
+        return Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"ModulesPath", ""}})},
+                                           {"Scheduler", Dict<IString, IBaseObject>({{"WorkersNum", 0}})},
+                                           {"Logging", Dict<IString, IBaseObject>({{"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}})},
+                                           {"RootDevice", Dict<IString, IBaseObject>({{"DefaultLocalId", ""}, {"ConnectionString", ""}})},
+                                           {"Modules", Dict<IString, IBaseObject>()}});
+    }
+
     std::set<std::string> filenames;
     std::map<std::string, std::string> oldEnvValues;
 };

@@ -90,9 +90,6 @@ protected:
                     {"DefaultLocalId", ""},
                     {"ConnectionString", ""}
                 })},
-            {"ReferenceDevice", Dict<IString, IBaseObject>({
-                    {"LocalId", ""}
-                })},
             {"Modules", Dict<IString, IBaseObject>()}
         });
     }
@@ -116,23 +113,6 @@ TEST_F(ConfigProviderTest, jsonConfigReadModuleManagerPath)
 
     auto expectedOptions = GetDefaultOptions();
     getChildren(expectedOptions, "ModuleManager").set("ModulesPath", "testtest");
-
-    auto provider = JsonConfigProvider(StringPtr(filename));
-    provider.populateOptions(options);
-
-    ASSERT_EQ(options, expectedOptions);
-}
-
-TEST_F(ConfigProviderTest, jsonConfigReadReferenceDeviceLocalId)
-{
-    std::string filename = "jsonConfigReadReferenceDeviceLocalId.json";
-    std::string json = "{ \"ReferenceDevice\": { \"LocalId\": \"testtest\" } }";
-    createConfigFile(filename, json);
-
-    auto options = GetDefaultOptions();
-
-    auto expectedOptions = GetDefaultOptions();
-    getChildren(expectedOptions, "ReferenceDevice").set("LocalId", "testtest");
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);

@@ -52,6 +52,21 @@ TEST_F(InstanceTest, GetSetRootDevice)
     instance.setRootDevice("daq_client_device");
 }
 
+TEST_F(InstanceTest, SetRootDeviceWithConfig)
+{
+    auto instance = test_helpers::setupInstance();
+
+    auto deviceTypes = instance.getAvailableDeviceTypes();
+    auto config = deviceTypes.get("mock_phys_device").createDefaultConfig();
+    config.setPropertyValue("message", "Hello from config.");
+
+    ASSERT_NO_THROW(instance.setRootDevice("mock_phys_device", config));
+
+    auto rootDevice = instance.getRootDevice();
+    ASSERT_TRUE(rootDevice.hasProperty("message"));
+    ASSERT_EQ(rootDevice.getPropertyValue("message"), config.getPropertyValue("message"));
+}
+
 TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
 {
     auto instance = test_helpers::setupInstance();
@@ -374,6 +389,45 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     ASSERT_EQ(instanceBuilder.getDefaultRootDeviceLocalId(), "DefaultRootDeviceLocalId");
     ASSERT_EQ(instanceBuilder.getRootDevice(), "test");
     ASSERT_EQ(instanceBuilder.getDefaultRootDeviceInfo(), defaultRootDeviceInfo);
+}
+
+TEST_F(InstanceTest, InstanceBuilderSetContext)
+{
+    const auto logger = Logger();
+    const auto moduleManager = ModuleManager("[[none]]");
+    const auto typeManager = TypeManager();
+    const auto context = Context(nullptr, logger, typeManager, moduleManager);
+
+    const ModulePtr deviceModule(MockDeviceModule_Create(context));
+    moduleManager.addModule(deviceModule);
+
+    auto instanceNoContext = InstanceBuilder().build();
+    ASSERT_NE(instanceNoContext.getContext(), context);
+
+    auto instance = InstanceBuilder().setContext(context).build();
+    ASSERT_EQ(instance.getContext(), context);
+    ASSERT_EQ(instance.getContext().getTypeManager(), typeManager);
+    ASSERT_EQ(instance.getContext().getLogger(), logger);
+    ASSERT_EQ(instance.getContext().getScheduler(), context.getScheduler());
+    ASSERT_NO_THROW(instance.addDevice("mock_phys_device"));
+}
+
+TEST_F(InstanceTest, InstanceBuilderRootDeviceConfig)
+{
+    auto config = PropertyObject();
+    config.addProperty(StringProperty("message", "Hello from config."));
+
+    const auto moduleManager = ModuleManager("[[none]]");
+    const auto context = Context(nullptr, Logger(), TypeManager(), moduleManager);
+
+    const ModulePtr deviceModule(MockDeviceModule_Create(context));
+    moduleManager.addModule(deviceModule);
+
+    auto instance = InstanceBuilder().setContext(context).setRootDevice("mock_phys_device", config).build();
+
+    auto rootDevice = instance.getRootDevice();
+    ASSERT_TRUE(rootDevice.hasProperty("message"));
+    ASSERT_EQ(rootDevice.getPropertyValue("message"), config.getPropertyValue("message"));
 }
 
 TEST_F(InstanceTest, InstanceCreateFactory)

@@ -26,7 +26,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class MockPhysicalDeviceImpl : public Device
 {
 public:
-    MockPhysicalDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    MockPhysicalDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
     ~MockPhysicalDeviceImpl();
 
     daq::DeviceInfoPtr onGetInfo() override;
@@ -40,6 +40,7 @@ protected:
     void stopAcq();
     void generatePackets(size_t packetCount);
     void registerProperties();
+    void registerTestConfigProperties();
 
     FolderConfigPtr mockFolderA; // InputsOutputs/mockFolderA
     FolderConfigPtr mockFolderB; // InputsOutputs/mockFolderB
@@ -54,6 +55,7 @@ protected:
     ComponentPtr componentA1;
     ComponentPtr componentB;
     uint64_t time;
+    PropertyObjectPtr config;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
@@ -61,6 +63,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     MockPhysicalDevice, daq::IDevice,
     daq::IContext*, ctx,
     daq::IComponent*, parent,
-    daq::IString*, localId)
+    daq::IString*, localId,
+    daq::IPropertyObject*, config)
 
 END_NAMESPACE_OPENDAQ

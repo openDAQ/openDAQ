@@ -31,6 +31,9 @@ public:
 
     ErrCode INTERFACE_FUNC addConfigProvider(IConfigProvider* configProvider) override;
 
+    ErrCode INTERFACE_FUNC setContext(IContext* context) override;
+    ErrCode INTERFACE_FUNC getContext(IContext** context) override;
+
     ErrCode INTERFACE_FUNC setLogger(ILogger* logger) override;
     ErrCode INTERFACE_FUNC getLogger(ILogger** logger) override;
     
@@ -61,8 +64,9 @@ public:
     ErrCode INTERFACE_FUNC setDefaultRootDeviceLocalId(IString* localId) override;
     ErrCode INTERFACE_FUNC getDefaultRootDeviceLocalId(IString** localId) override;
 
-    ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString) override;
+    ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString, IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC getRootDevice(IString** connectionString) override;
+    ErrCode INTERFACE_FUNC getRootDeviceConfig(IPropertyObject** config) override;
 
     ErrCode INTERFACE_FUNC setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo) override;
     ErrCode INTERFACE_FUNC getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo) override;
@@ -88,10 +92,12 @@ private:
 
     SchedulerPtr scheduler;
     ModuleManagerPtr moduleManager;
+    ContextPtr context{nullptr};
 
     Bool useStandardProviders{false};
     ListPtr<IConfigProvider> providers;
     DictPtr<IString, IBaseObject> options;
+    PropertyObjectPtr rootDeviceConfig{nullptr};
 };
 
 END_NAMESPACE_OPENDAQ

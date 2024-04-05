@@ -43,9 +43,11 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
 
     auto connectionString = builderPtr.getRootDevice();
+    auto rootDeviceConfig = builderPtr.getRootDeviceConfig();
+
     if (connectionString.assigned() && connectionString.getLength())
     {
-        rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, nullptr);
+        rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, rootDeviceConfig, nullptr);
         const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
         if (devicePrivate.assigned())
             devicePrivate->setAsRoot();
@@ -81,6 +83,10 @@ static std::string defineLocalId(const std::string& localId)
 static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 {
     const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
+    const auto context = builderPtr.getContext();
+
+    if (context.assigned())
+        return context;
 
     auto logger = builderPtr.getLogger();
     auto scheduler = builderPtr.getScheduler();

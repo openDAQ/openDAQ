@@ -27,6 +27,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
+/*#
+ * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ */
+
 /*!
  * @brief Builder component of Instance objects. Contains setter methods to configure the Instance parameters, such as Context (Logger, Scheduler, ModuleManager) and RootDevice.
  * Contains a  `build` method that builds the Instance object.
@@ -94,6 +98,20 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * @param sink The configuration provider
      */
     virtual ErrCode INTERFACE_FUNC addConfigProvider(IConfigProvider* configProvider) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the Context object of the instance. This overwrites other context related
+     * settings such as logger, scheduler and module manager settings.
+     * @param context The Context object for instance.
+     */
+    virtual ErrCode INTERFACE_FUNC setContext(IContext* context) = 0;
+
+    /*!
+     * @brief Returns a context object of the instance.
+     * @param[out] context The Context object of the instance.
+     */
+    virtual ErrCode INTERFACE_FUNC getContext(IContext** context) = 0;
 
     // [returnSelf]
     /*!
@@ -246,14 +264,24 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
     * When the instance is created, a connection to the device with the given connection string will be established, 
     * and the device will be placed at the root of the component tree structure.
     * @param connectionString The connection string for the root device of the Instance.
+    * @param config A config object to configure a client device. This object can contain properties like max sample rate,
+    * port to use for 3rd party communication, number of channels to generate, or other device specific settings. In case
+    * of nullptr, a default configuration is used.
     */
-    virtual ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC setRootDevice(IString* connectionString, IPropertyObject* config = nullptr) = 0;
 
     /*!
      * @brief Gets the connection string for the default root device of Instance.
      * @param[out] rootDevice The connection string for the root device of Instance. Returns nullptr, if root device connection string has not been set.
      */
     virtual ErrCode INTERFACE_FUNC getRootDevice(IString** connectionString) = 0;
+
+    /*!
+     * @brief Gets the configuration property object for the default root device of Instance.
+     * @param[out] config The configuraiton property object for the root device of Instance. Returns nullptr, for the default
+     * configuration property object.
+     */
+    virtual ErrCode INTERFACE_FUNC getRootDeviceConfig(IPropertyObject** config) = 0;
 
     // [returnSelf]
     /*!

@@ -12,8 +12,12 @@
 
 using namespace daq;
 
-inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx,
+                                                      const ComponentPtr& parent,
+                                                      const StringPtr& localId,
+                                                      const PropertyObjectPtr& config)
     : GenericDevice<>(ctx, parent, localId)
+    , config(config)
     , mockFolderA(IoFolder(ctx, ioFolder, "mockfolderA"))
     , mockFolderB(IoFolder(ctx, ioFolder, "mockfolderB"))
     , mockChannel1(MockChannel(ctx, ioFolder, "mockch1"))
@@ -186,6 +190,23 @@ void MockPhysicalDeviceImpl::registerProperties()
 
         }
     };
+
+    registerTestConfigProperties();
+}
+
+void MockPhysicalDeviceImpl::registerTestConfigProperties()
+{
+    if (!config.assigned())
+        return;
+
+    auto obj = this->borrowPtr<PropertyObjectPtr>();
+
+    if (config.hasProperty("message"))
+    {
+        const auto prop = config.getProperty("message");
+        obj.addProperty(PropertyBuilder(prop.getName()).setValueType(prop.getValueType()).setDefaultValue(prop.getDefaultValue()).build());
+        obj.setPropertyValue(prop.getName(), config.getPropertyValue(prop.getName()));
+    }
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
@@ -193,5 +214,6 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     MockPhysicalDevice, daq::IDevice,
     daq::IContext*, ctx,
     daq::IComponent*, parent,
-    daq::IString*, localId)
+    daq::IString*, localId,
+    daq::IPropertyObject*, config)
 

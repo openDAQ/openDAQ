@@ -17,6 +17,7 @@
         },
 	"ReferenceDevice":
 		{
-			"LocalId": "falselocalid"
+			"LocalId": "falselocalid",
+			"Name": "Reference device simulator"
 		}
 }

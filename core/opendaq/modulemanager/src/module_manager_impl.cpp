@@ -180,9 +180,10 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 
                 if (groupedDevices.hasKey(id))
                 {
-                    DeviceInfoPtr value = groupedDevices.get(id);
+                    DeviceInfoInternalPtr value = groupedDevices.get(id);
                     for (const auto & capability : deviceInfo.getServerCapabilities())
-                        value.asPtr<IDeviceInfoInternal>().addServerCapability(capability);
+                        if (!value.hasServerCapability(capability.getProtocolId()))
+                            value.addServerCapability(capability);
                 }
                 else
                 {

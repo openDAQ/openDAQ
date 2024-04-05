@@ -608,17 +608,31 @@ ErrCode SignalBase<TInterface, Interfaces...>::sendPacket(IPacket* packet)
 
     const auto packetPtr = PacketPtr::Borrow(packet);
 
-    std::scoped_lock lock(this->sync);
+    return daqTry(
+        [this, &packetPtr]
+        {
+            std::vector<ConnectionPtr> tempConnections;
 
-    if (sendPacketInternal(packetPtr))
-    {
-        const auto dataPacket = packetPtr.asPtrOrNull<IDataPacket>();
-        if (keepLastPacket && dataPacket.assigned() && dataPacket.getSampleCount())
-            lastDataPacket = dataPacket;
-        return OPENDAQ_SUCCESS;
-    }
+            {
+                std::scoped_lock lock(this->sync);
 
-    return  OPENDAQ_IGNORED;
+                if (!this->active)
+                    return OPENDAQ_IGNORED;
+
+                const auto dataPacket = packetPtr.asPtrOrNull<IDataPacket>();
+                if (keepLastPacket && dataPacket.assigned() && dataPacket.getSampleCount())
+                    lastDataPacket = dataPacket;
+
+                tempConnections.reserve(connections.size());
+                for (const auto& connection : connections)
+                    tempConnections.push_back(connection);
+            }
+
+            for (const auto& connection : tempConnections)
+                connection.enqueue(packetPtr);
+
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 template <typename TInterface, typename... Interfaces>

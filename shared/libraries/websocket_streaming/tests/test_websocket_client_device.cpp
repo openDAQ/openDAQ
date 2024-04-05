@@ -72,15 +72,16 @@ TEST_F(WebsocketClientDeviceTest, DeviceInfo)
 
 TEST_F(WebsocketClientDeviceTest, SignalWithDomain)
 {
-    // Create server signal
-    auto testSignal = streaming_test_helpers::createTestSignal(context);
+    // Create server signals
+    auto testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
+    auto testValueSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestName", testDomainSignal);
 
     // Setup and start server which will publish created signal
     auto server = std::make_shared<StreamingServer>(context);
-    server->onAccept([&testSignal](const daq::streaming_protocol::StreamWriterPtr& writer) {
+    server->onAccept([&](const daq::streaming_protocol::StreamWriterPtr& writer) {
         auto signals = List<ISignal>();
-        signals.pushBack(testSignal);
-        signals.pushBack(testSignal.getDomainSignal());
+        signals.pushBack(testValueSignal);
+        signals.pushBack(testDomainSignal);
         return signals;
     });
     server->start(STREAMING_PORT, CONTROL_PORT);
@@ -97,23 +98,23 @@ TEST_F(WebsocketClientDeviceTest, SignalWithDomain)
     ASSERT_EQ(clientDevice.getSignals()[0].getDomainSignal(), clientDevice.getSignals()[1]);
 
     ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDescriptor(),
-                                      testSignal.getDescriptor()));
+                                      testValueSignal.getDescriptor()));
     ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDomainSignal().getDescriptor(),
-                                      testSignal.getDomainSignal().getDescriptor()));
+                                      testValueSignal.getDomainSignal().getDescriptor()));
 
     ASSERT_EQ(clientDevice.getSignals()[0].getName(), "TestName");
     ASSERT_EQ(clientDevice.getSignals()[0].getDescription(), "TestDescription");
 
     // Publish signal changes
-    auto descriptor = DataDescriptorBuilderCopy(testSignal.getDescriptor()).build();
-    std::string signalId = testSignal.getGlobalId();
-    server->broadcastPacket(signalId, DataDescriptorChangedEventPacket(descriptor, testSignal.getDomainSignal().getDescriptor()));
+    auto descriptor = DataDescriptorBuilderCopy(testValueSignal.getDescriptor()).build();
+    std::string signalId = testValueSignal.getGlobalId();
+    server->broadcastPacket(signalId, DataDescriptorChangedEventPacket(descriptor, testValueSignal.getDomainSignal().getDescriptor()));
 
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
 
-    testSignal.asPtr<IComponentPrivate>().unlockAllAttributes();
-    testSignal.setName("NewName");
-    testSignal.setDescription("NewDescription");
+    testValueSignal.asPtr<IComponentPrivate>().unlockAllAttributes();
+    testValueSignal.setName("NewName");
+    testValueSignal.setDescription("NewDescription");
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
 
     ASSERT_EQ(clientDevice.getSignals()[0].getName(), "NewName");
@@ -125,13 +126,13 @@ TEST_F(WebsocketClientDeviceTest, SignalWithDomain)
     ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDescriptor(),
                                       descriptor));
     ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDomainSignal().getDescriptor(),
-                                      testSignal.getDomainSignal().getDescriptor()));
+                                      testValueSignal.getDomainSignal().getDescriptor()));
 }
 
 TEST_F(WebsocketClientDeviceTest, SingleDomainSignal)
 {
     // Create server signal
-    auto testSignal = streaming_test_helpers::createTimeSignal(context);
+    auto testSignal = streaming_test_helpers::createLinearTimeSignal(context);
 
     // Setup and start server which will publish created signal
     auto server = std::make_shared<StreamingServer>(context);
@@ -154,7 +155,7 @@ TEST_F(WebsocketClientDeviceTest, SingleDomainSignal)
 TEST_F(WebsocketClientDeviceTest, SingleUnsupportedSignal)
 {
     // Create server signal
-    auto testSignal = streaming_test_helpers::createTestSignalWithoutDomain(context);
+    auto testSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestSignal", nullptr);
 
     // Setup and start server which will publish created signal
     auto server = std::make_shared<StreamingServer>(context);
@@ -204,9 +205,9 @@ TEST_F(WebsocketClientDeviceTest, DeviceWithMultipleSignals)
 TEST_F(WebsocketClientDeviceTest, SignalsWithSharedDomain)
 {
     // Create server signals
-    auto timeSignal = streaming_test_helpers::createTimeSignal(context);
-    auto dataSignal1 = streaming_test_helpers::createTestSignalWithDomain(context, "Data1", timeSignal);
-    auto dataSignal2 = streaming_test_helpers::createTestSignalWithDomain(context, "Data2", timeSignal);
+    auto timeSignal = streaming_test_helpers::createLinearTimeSignal(context);
+    auto dataSignal1 = streaming_test_helpers::createExplicitValueSignal(context, "Data1", timeSignal);
+    auto dataSignal2 = streaming_test_helpers::createExplicitValueSignal(context, "Data2", timeSignal);
 
     auto server = std::make_shared<StreamingServer>(context);
     server->onAccept([&](const daq::streaming_protocol::StreamWriterPtr& writer) {

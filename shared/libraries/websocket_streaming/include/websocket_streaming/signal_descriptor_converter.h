@@ -53,6 +53,7 @@ private:
     static daq::SampleType Convert(daq::streaming_protocol::SampleType dataType);
     static daq::streaming_protocol::SampleType Convert(daq::SampleType sampleType);
     static void DecodeInterpretationObject(const nlohmann::json& extra, DataDescriptorBuilderPtr& dataDescriptor);
+    static void DecodeBitsInterpretationObject(const nlohmann::json& bits, DataDescriptorBuilderPtr& dataDescriptor);
     static nlohmann::json DictToJson(const DictPtr<IString, IBaseObject>& dict);
     static DictPtr<IString, IBaseObject> JsonToDict(const nlohmann::json& json);
 };

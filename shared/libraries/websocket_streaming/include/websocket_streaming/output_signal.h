@@ -22,6 +22,8 @@
 #include "streaming_protocol/Logging.hpp"
 #include "websocket_streaming/signal_info.h"
 
+#include <variant>
+
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
 class OutputSignalBase;
@@ -85,7 +87,7 @@ public:
                           daq::streaming_protocol::LogCallback logCb);
 
     void writeDaqPacket(const PacketPtr& packet) override;
-    void setSubscribed(bool subscribed) override;
+    virtual void setSubscribed(bool subscribed) override;
     bool isDataSignal() override;
 
 protected:
@@ -105,6 +107,7 @@ class OutputDomainSignalBase : public OutputSignalBase
 {
 public:
     friend class OutputValueSignalBase;
+    friend class OutputConstValueSignal;
 
     OutputDomainSignalBase(daq::streaming_protocol::BaseDomainSignalPtr domainStream,
                        const SignalPtr& signal,
@@ -144,6 +147,41 @@ private:
         daq::streaming_protocol::LogCallback logCb);
 
     daq::streaming_protocol::BaseSynchronousSignalPtr syncStream;
+};
+
+class OutputConstValueSignal : public OutputValueSignalBase
+{
+public:
+    using ConstantValueType =
+        std::variant<int8_t, int16_t , int32_t, int64_t, uint8_t, uint16_t , uint32_t, uint64_t, float, double>;
+
+    OutputConstValueSignal(const daq::streaming_protocol::StreamWriterPtr& writer,
+                           const SignalPtr& signal,
+                           OutputDomainSignaBaselPtr outputDomainSignal,
+                           const std::string& tableId,
+                           daq::streaming_protocol::LogCallback logCb);
+
+    void setSubscribed(bool subscribed) override;
+
+protected:
+    void writeDataPacket(const DataPacketPtr& packet) override;
+
+private:
+    static daq::streaming_protocol::BaseConstantSignalPtr createSignalStream(
+        const daq::streaming_protocol::StreamWriterPtr& writer,
+        const SignalPtr& signal,
+        const std::string& tableId,
+        daq::streaming_protocol::LogCallback logCb);
+
+    template <typename DataType>
+    static std::vector<std::pair<DataType, uint64_t>>
+    extractConstValuesFromDataPacket(const DataPacketPtr& packet);
+
+    template <typename DataType>
+    void writeData(const DataPacketPtr& packet, uint64_t firstValueIndex);
+
+    daq::streaming_protocol::BaseConstantSignalPtr constStream;
+    std::optional<ConstantValueType> lastConstValue;
 };
 
 class OutputLinearDomainSignal : public OutputDomainSignalBase

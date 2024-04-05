@@ -46,7 +46,7 @@ Python::
 [source,python]
 ----
 # Get last value of a Data Packet
-packet.last_value()  # TODO ()???
+last_value = packet.last_value
 ----
 ====
 

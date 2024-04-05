@@ -57,18 +57,21 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
 
     const auto options = context.getOptions();
     StringPtr localId;
+    StringPtr name;
 
     if (options.assigned() && options.hasKey("ReferenceDevice"))
     {
         const DictPtr<StringPtr, BaseObjectPtr> referenceDevice = options.get("ReferenceDevice");
         if (referenceDevice.hasKey("LocalId"))
             localId = referenceDevice.get("LocalId");
+        if (referenceDevice.hasKey("Name"))
+            name = referenceDevice.get("Name");
     }
 
     if (!localId.assigned())
         localId = fmt::format("ref_dev{}", id);
 
-    auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(id, context, parent, localId);
+    auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(id, context, parent, localId, name);
     devices[id] = devicePtr;
     return devicePtr;
 }

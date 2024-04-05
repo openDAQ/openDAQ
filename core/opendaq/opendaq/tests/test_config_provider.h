@@ -97,16 +97,16 @@ protected:
                                            {"Scheduler", Dict<IString, IBaseObject>({{"WorkersNum", 0}})},
                                            {"Logging", Dict<IString, IBaseObject>({{"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}})},
                                            {"RootDevice", Dict<IString, IBaseObject>({{"DefaultLocalId", ""}, {"ConnectionString", ""}})},
-                                           {"ReferenceDevice", Dict<IString, IBaseObject>({{"LocalId", ""}})},
                                            {"Modules", Dict<IString, IBaseObject>()}});
     }
 
-        static DictPtr<IString, IBaseObject> GetOptionsNoReferenceDevice()
+        static DictPtr<IString, IBaseObject> GetOptionsWithReferenceDevice()
     {
         return Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"ModulesPath", ""}})},
                                            {"Scheduler", Dict<IString, IBaseObject>({{"WorkersNum", 0}})},
                                            {"Logging", Dict<IString, IBaseObject>({{"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}})},
                                            {"RootDevice", Dict<IString, IBaseObject>({{"DefaultLocalId", ""}, {"ConnectionString", ""}})},
+                                           {"ReferenceDevice", Dict<IString, IBaseObject>({{"LocalId", ""}})},
                                            {"Modules", Dict<IString, IBaseObject>()}});
     }
 

@@ -47,7 +47,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
 
     if (connectionString.assigned() && connectionString.getLength())
     {
-        rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, rootDeviceConfig, nullptr);
+        rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, rootDeviceConfig);
         const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
         if (devicePrivate.assigned())
             devicePrivate->setAsRoot();

@@ -27,6 +27,7 @@ set(TEST_SOURCES
     test_range.cpp
     test_packet_destruct_callback.cpp
     test_signal_event_packets.cpp
+    test_data_path.cpp
 )
 
 if (OPENDAQ_MIMALLOC_SUPPORT)

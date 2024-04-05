@@ -286,6 +286,11 @@ signal.descriptor = descriptor  # TODO setter not defined
 
 In the above example, we first build a Data Descriptor of a custom Struct that has two fields. The first field has Sample Type `Int32` and the second one has Sample Type `Float64`.
 
+[CAUTION]
+====
+`opendaq.SampleType.Struct` is not yet supported in Python.
+====
+
 [NOTE]
 ====
 Because our Struct represents a custom type, we must call `setDescriptor` (`descriptor` in Python) on our Signal in order to add `MyStruct` to the Type Manager.

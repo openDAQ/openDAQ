@@ -47,15 +47,14 @@ void TmsServer::start()
     tmsContext = std::make_shared<TmsServerContext>(context, device);
     auto signals = device.getSignals();
 
+    auto serverCapability = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
+    serverCapability.setPrefix("daq.opcua");
+    serverCapability.setConnectionType("Ipv4");
+    device.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
+
     tmsDevice = std::make_unique<TmsServerDevice>(device, server, context, tmsContext);
     tmsDevice->registerOpcUaNode(OpcUaNodeId(NAMESPACE_DI, UA_DIID_DEVICESET));
     tmsDevice->createNonhierarchicalReferences();
-    
-    auto serverCapability = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration)
-               .setPrefix("daq.opcua")
-               .setConnectionType("Ipv4")
-               .setPrefix("daq.opcua");
-    device.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
 
     server->start();
 }

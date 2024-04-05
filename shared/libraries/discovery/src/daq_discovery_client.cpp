@@ -34,14 +34,16 @@ ListPtr<IDeviceInfo> DiscoveryClient::discoverMdnsDevices() const
 
     for (const auto& device : mdnsDevices)
     {
-        DeviceInfoPtr deviceInfo = createDeviceInfo(device);
-        if (deviceInfo.assigned())
+        
+        for (const auto& serverCapabilityFormatCb : serverCapabilityCbs)
         {
-            for (const auto& connectionStringFormatCb : serverCapabilityCbs)
+            if (DeviceInfoPtr deviceInfo = createDeviceInfo(device); deviceInfo.assigned())
             {
-                deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(connectionStringFormatCb(device));
+                auto serverCapability = serverCapabilityFormatCb(device);
+                deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
+                deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(serverCapability.getConnectionString());
+                discovered.pushBack(deviceInfo);
             }
-            discovered.pushBack(deviceInfo);
         }
     }
 
@@ -115,7 +117,7 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
     if (!requiredCapsCopy.empty())
         return nullptr;
 
-    DeviceInfoConfigPtr deviceInfo = DeviceInfo("daq://device");
+    DeviceInfoConfigPtr deviceInfo = DeviceInfo("");
 
     addInfoProperty(deviceInfo, "canonicalName", discoveredDevice.canonicalName);
     addInfoProperty(deviceInfo, "serviceWeight", discoveredDevice.serviceWeight);
@@ -128,14 +130,6 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
         addInfoProperty(deviceInfo, prop.first, prop.second);
     }
     
-    StringPtr manufacturer = deviceInfo.getManufacturer();
-    if (manufacturer.getLength() == 0)
-        manufacturer = "NoManufacturer";
-    StringPtr serialNumber = deviceInfo.getSerialNumber();
-    if (serialNumber.getLength() == 0)
-        serialNumber = "NoSerialNumber";
-    StringPtr connectionString = "daq://" + manufacturer + "_" + serialNumber;
-    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(connectionString);
     return deviceInfo;
 }
 

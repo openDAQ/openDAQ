@@ -167,17 +167,29 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 
         for (const auto& deviceInfo : moduleAvailableDevices)
         {
-            StringPtr id = deviceInfo.getConnectionString();
-            if (groupedDevices.hasKey(id))
+            StringPtr manufacturer = deviceInfo.getManufacturer();
+            StringPtr serialNumber = deviceInfo.getSerialNumber();
+
+            if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0)
             {
-                DeviceInfoPtr value = groupedDevices.get(id);
-                for (const auto & capability : deviceInfo.getServerCapabilities())
-                    value.asPtr<IDeviceInfoInternal>().addServerCapability(capability);
+                groupedDevices.set(deviceInfo.getConnectionString(), deviceInfo);
             }
             else
             {
-                groupedDevices.set(id, deviceInfo);
-            }
+                StringPtr id = "daq://" + manufacturer + "_" + serialNumber;
+
+                if (groupedDevices.hasKey(id))
+                {
+                    DeviceInfoPtr value = groupedDevices.get(id);
+                    for (const auto & capability : deviceInfo.getServerCapabilities())
+                        value.asPtr<IDeviceInfoInternal>().addServerCapability(capability);
+                }
+                else
+                {
+                    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
+                    groupedDevices.set(id, deviceInfo);
+                }
+            }            
         }
     }
 

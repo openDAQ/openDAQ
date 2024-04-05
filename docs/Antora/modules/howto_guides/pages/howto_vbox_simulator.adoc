@@ -16,7 +16,7 @@ To start, head over to {sdk-docs-website}[The openDAQ(TM) downloads page] and do
 Select the image file and click "Next > Finish".
 . Start the `{vm-name}` image.
 . When you see the login screen, the simulator is already running in the background as a service (no login is required).
-. However if you do want to login, the credentials are `User: opendaq`, `Password: opendaq`.
+. However, if you do want to login, the credentials are `User: opendaq`, `Password: opendaq`.
 
 Your virtual machine should look similar to this:
 

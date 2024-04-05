@@ -18,8 +18,8 @@
 #include <coretypes/baseobject.h>
 #include <coretypes/common.h>
 #include <coreobjects/permissions.h>
+#include <coreobjects/permission_mask_builder.h>
 #include <coretypes/listobject.h>
-#include <coreobjects/permission_manager.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -43,32 +43,29 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionsBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC inherit(Bool inherit) = 0;
 
-    // [templateType(permissions, Permission)]
     // [returnSelf]
     /*!
-     * @brief Set permissions for given group.
+     * @brief Allow a set of permissions for a given group and deny all others.
      * @param groupId The id of a group to set permissions for.
-     * @param permissions List of permissions to allow. Permissions which are not present in the list are denied.
+     * @param permissions A set of permissions to allow for given group. Permissions not present in the set are denied.
      */
-    virtual ErrCode INTERFACE_FUNC set(IString* groupId, IList* permissions) = 0;
+    virtual ErrCode INTERFACE_FUNC set(IString* groupId, IPermissionMaskBuilder* permissions) = 0;
 
-    // [templateType(permissions, Permission)]
     // [returnSelf]
     /*!
-     * @brief Allow permissions for given group.
+     * @brief Allow a set of permissions for a given group and inherit all others.
      * @param groupId The id of a group to allow permissions for.
-     * @param permissions List of Permission enum flags to allow.
+     * @param permissions A set of permissions to allow for given group. Permissions not persent in the set are inherited.
      */
-    virtual ErrCode INTERFACE_FUNC allow(IString * groupId, IList* permissions) = 0;
+    virtual ErrCode INTERFACE_FUNC allow(IString * groupId, IPermissionMaskBuilder* permissions) = 0;
 
-    // [templateType(permissions, Permission)]
     // [returnSelf]
     /*!
-     * @brief Deny permissions for given group.
+     * @brief Deny a set of permissions for a given group and inherit all others.
      * @param groupId The id of a group to deny permissions for.
-     * @param permissions List of Permission enum flags to deny.
+     * @param permissions A set of permissions to deny for given group. Permissions not persent in the set are inherited.
      */
-    virtual ErrCode INTERFACE_FUNC deny(IString * groupId, IList* permissions) = 0;
+    virtual ErrCode INTERFACE_FUNC deny(IString * groupId, IPermissionMaskBuilder* permissions) = 0;
 
     // [returnSelf]
     /*!

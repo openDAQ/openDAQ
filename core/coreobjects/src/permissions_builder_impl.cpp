@@ -1,6 +1,7 @@
 #include <coreobjects/permissions_builder_impl.h>
 #include <coretypes/validation.h>
 #include <coreobjects/permissions_impl.h>
+#include <coreobjects/permission_mask_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -17,24 +18,30 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::inherit(Bool inherit)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC PermissionsBuilderImpl::set(IString* groupId, IList* permissions)
+ErrCode INTERFACE_FUNC PermissionsBuilderImpl::set(IString* groupId, IPermissionMaskBuilder* permissions)
 {
-    const Int permissionFlags = permissionsToBitMask(permissions);
+    PermissionMaskBuilderPtr permissionsPtr = permissions;
+    const Int permissionFlags = permissionsPtr.build();
+
     allowed.set(groupId, permissionFlags);
     denied.set(groupId, 0);
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC PermissionsBuilderImpl::allow(IString* groupId, IList* permissions)
+ErrCode INTERFACE_FUNC PermissionsBuilderImpl::allow(IString* groupId, IPermissionMaskBuilder* permissions)
 {
-    const Int permissionFlags = permissionsToBitMask(permissions);
+    PermissionMaskBuilderPtr permissionsPtr = permissions;
+    const Int permissionFlags = permissionsPtr.build();
+
     allow(groupId, permissionFlags);
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC PermissionsBuilderImpl::deny(IString* groupId, IList* permissions)
+ErrCode INTERFACE_FUNC PermissionsBuilderImpl::deny(IString* groupId, IPermissionMaskBuilder* permissions)
 {
-    const Int permissionFlags = permissionsToBitMask(permissions);
+    PermissionMaskBuilderPtr permissionsPtr = permissions;
+    const Int permissionFlags = permissionsPtr.build();
+
     deny(groupId, permissionFlags);
     return OPENDAQ_SUCCESS;
 }

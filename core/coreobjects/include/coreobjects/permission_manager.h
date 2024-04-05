@@ -19,6 +19,7 @@
 #include <coretypes/common.h>
 #include <coreobjects/user.h>
 #include <coreobjects/permissions.h>
+#include <coreobjects/permission_enum.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -27,19 +28,6 @@ BEGIN_NAMESPACE_OPENDAQ
  * @addtogroup objects_security_permission_manager PermissionManager
  * @{
  */
-
-
-/*!
- * @brief Enumeration of available access permissions
- */
-enum class Permission : EnumType
-{
-    None =    0x0, // The user has no permissions on the object.
-    Read =    0x1, // The user can see and read an object.
-    Write =   0x2, // The user can change or write to the object.
-    Execute = 0x4  // The user can execute an action attached to the object.
-};
-
 
 /*!
  * @brief A class which is responsible for managing permissions on an object level. Given a user's group,

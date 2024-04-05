@@ -26,6 +26,7 @@ set(TEST_SOURCES test_property.cpp
                  test_authentication_provider.cpp
                  test_permission_manager.cpp
                  test_permissions_builder.cpp
+                 test_permission_mask_builder.cpp
 )
 
 set(TEST_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/coreobjects_test.h

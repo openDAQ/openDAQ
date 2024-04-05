@@ -42,6 +42,7 @@
 #include <opendaq/component_status_container_impl.h>
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/permission_mask_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -229,7 +230,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     else
     {
         this->permissionManager.setPermissions(
-            PermissionsBuilder().set("everyone", List<Permission>(Permission::Read, Permission::Write, Permission::Execute)).build());
+            PermissionsBuilder().set("everyone", PermissionMaskBuilder().read().write().execute()).build());
     }
 }
 

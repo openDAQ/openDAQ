@@ -32,7 +32,7 @@ DevicePtr createServerDevice()
     const FolderConfigPtr devicesFolder = serverDevice.getItem("Dev");
 
     const StringPtr id = "mock_phys_dev";
-    DevicePtr physicalDevice(MockPhysicalDevice_Create(context, devicesFolder, id));
+    DevicePtr physicalDevice(MockPhysicalDevice_Create(context, devicesFolder, id, nullptr));
     devicesFolder.addItem(physicalDevice);
 
     serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();

@@ -5,7 +5,7 @@
   <service>
     <type>_opcua-tcp._tcp</type>
     <port>4840</port>
-    <txt-record>name=Device 1</txt-record>
+    <txt-record>name=Reference device simulator</txt-record>
     <txt-record>model=Reference device</txt-record>
     <txt-record>serialNumber=dev_ser_1</txt-record>
     <txt-record>caps=OPENDAQ</txt-record>

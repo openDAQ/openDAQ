@@ -37,7 +37,8 @@ public:
     GenericSignalContainerImpl(const ContextPtr& context,
                                const ComponentPtr& parent,
                                const StringPtr& localId,
-                               const StringPtr& className = nullptr);
+                               const StringPtr& className = nullptr,
+                               const StringPtr& name = nullptr);
     
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
@@ -120,7 +121,8 @@ public:
     SignalContainerImpl(const ContextPtr& context,
                         const ComponentPtr& parent,
                         const StringPtr& localId,
-                        const StringPtr& className = nullptr);
+                        const StringPtr& className = nullptr,
+                        const StringPtr& name = nullptr);
     
     // IComponent
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
@@ -135,8 +137,9 @@ template <class Intf, class... Intfs>
 GenericSignalContainerImpl<Intf, Intfs...>::GenericSignalContainerImpl(const ContextPtr& context,
                                                                        const ComponentPtr& parent,
                                                                        const StringPtr& localId,
-                                                                       const StringPtr& className)
-    : Super(context, parent, localId, className)
+                                                                       const StringPtr& className,
+                                                                       const StringPtr& name)
+    : Super(context, parent, localId, className, name)
     , allowNonDefaultComponents(false)
     , signalContainerLoggerComponent(
         context.getLogger().assigned() ? context.getLogger().getOrAddComponent("GenericSignalContainerImpl")
@@ -184,8 +187,9 @@ template <class Intf, class ... Intfs>
 SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& context,
                                                          const ComponentPtr& parent,
                                                          const StringPtr& localId,
-                                                         const StringPtr& className)
-    : Super(context, parent, localId, className)
+                                                         const StringPtr& className,
+                                                         const StringPtr& name)
+    : Super(context, parent, localId, className, name)
 {
 }
 

@@ -29,7 +29,7 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 class RefDeviceImpl final : public Device
 {
 public:
-    explicit RefDeviceImpl(size_t id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit RefDeviceImpl(size_t id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name = nullptr);
     ~RefDeviceImpl() override;
 
     static DeviceInfoPtr CreateDeviceInfo(size_t id);

@@ -58,7 +58,8 @@ public:
     GenericDevice(const ContextPtr& ctx,
                   const ComponentPtr& parent,
                   const StringPtr& localId,
-                  const StringPtr& className = nullptr);
+                  const StringPtr& className = nullptr,
+                  const StringPtr& name = nullptr);
 
     virtual DeviceInfoPtr onGetInfo();
 
@@ -170,8 +171,9 @@ template <typename TInterface, typename... Interfaces>
 GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
                                                         const ComponentPtr& parent,
                                                         const StringPtr& localId,
-                                                        const StringPtr& className)
-    : Super(ctx, parent, localId, className)
+                                                        const StringPtr& className,
+                                                        const StringPtr& name)
+    : Super(ctx, parent, localId, className, name)
     , loggerComponent(this->context.getLogger().assigned() ? this->context.getLogger().getOrAddComponent(this->globalId)
                                                            : throw ArgumentNullException("Logger must not be null"))
     , isRootDevice(false)

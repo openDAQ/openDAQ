@@ -370,10 +370,11 @@ void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSig
             }
         }
 
-        if (dataDescriptor != inputSignal->getSignalDescriptor() ||
-            domainDescriptor != inputSignal->getDomainSignalDescriptor())
+        const bool valueChanged = dataDescriptor != inputSignal->getSignalDescriptor();
+        const bool domainChanged = domainDescriptor != inputSignal->getDomainSignalDescriptor() ;
+        if (valueChanged || domainChanged)
         {
-            publishSignalChanges(id, inputSignal);
+            publishSignalChanges(id, inputSignal, valueChanged, domainChanged);
         }
     }
 }
@@ -413,7 +414,7 @@ void StreamingClient::setTimeSignal(const daq::streaming_protocol::SubscribedSig
     cachedDomainIdsAndDescriptors.insert_or_assign(tableId, std::make_pair(timeSignalId, sInfo.dataDescriptor));
 }
 
-void StreamingClient::publishSignalChanges(const std::string& signalId, const InputSignalPtr& signal)
+void StreamingClient::publishSignalChanges(const std::string& signalId, const InputSignalPtr& signal, bool valueChanged, bool domainChanged)
 {
     // signal meta information is always received by pairs of META_METHOD_SIGNAL:
     // one is meta for data signal, another is meta for time signal.
@@ -422,7 +423,7 @@ void StreamingClient::publishSignalChanges(const std::string& signalId, const In
     if (!signal->hasDescriptors())
         return;
 
-    auto eventPacket = signal->createDecriptorChangedPacket();
+    auto eventPacket = signal->createDecriptorChangedPacket(valueChanged, domainChanged);
     onPacketCallback(signalId, eventPacket);
 }
 
@@ -471,11 +472,12 @@ void StreamingClient::onSignal(const daq::streaming_protocol::SubscribedSignal& 
                 if (auto it = signals.find(id); it != signals.end())
                 {
                     auto inputSignal = it->second;
-                    if (signalDescriptors.first != inputSignal->getSignalDescriptor() ||
-                        signalDescriptors.second != inputSignal->getDomainSignalDescriptor())
+
+                    const bool valueChanged = signalDescriptors.first != inputSignal->getSignalDescriptor();
+                    const bool domainChanged = signalDescriptors.second != inputSignal->getDomainSignalDescriptor() ;
+                    if (valueChanged || domainChanged)
                     {
-                        // descriptors changed - generate event packet and send it to signal listeners
-                        publishSignalChanges(id, inputSignal);
+                        publishSignalChanges(id, inputSignal, valueChanged, domainChanged);
                     }
                 }
             }

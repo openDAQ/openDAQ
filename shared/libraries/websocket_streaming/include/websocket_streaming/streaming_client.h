@@ -83,7 +83,7 @@ protected:
     void onMessage(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, uint64_t timeStamp, const uint8_t* data, size_t size);
     void setDataSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
     void setTimeSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
-    void publishSignalChanges(const std::string& signalId, const InputSignalPtr& signal);
+    void publishSignalChanges(const std::string& signalId, const InputSignalPtr& signal, bool valueChanged, bool domainChanged);
     void onSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, const nlohmann::json& params);
     void setSignalInitSatisfied(const std::string& signalId);
     void setDomainIdAndDescriptor(const std::string& dataSignalId,

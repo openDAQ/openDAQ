@@ -43,8 +43,6 @@ Vagrant.configure("2") do |config|
     sudo useradd -p $(openssl passwd -1 opendaq) -m -d /home/$1/ -s /bin/bash $1
     usermod -aG sudo $1
     mkdir /home/$1/opendaq
-    sudo echo "export LD_LIBRARY_PATH=/home/$1/opendaq/lib" >> /home/$1/.profile
-    sudo echo "/home/$1/opendaq/application_simulator" >> /home/$1/.profile
     hostnamectl set-hostname opendaq
     SCRIPT
     config.vm.provision :shell, :inline => set_user, :args => "opendaq"
@@ -105,14 +103,30 @@ Vagrant.configure("2") do |config|
     sudo netplan set network.ethernets.enp0s3.match=null
     SCRIPT
 
-    # Copy MDNS services configs
+    # Get files to /tmp/
     config.vm.provision "file", source: "opcuatms.service", destination: "/tmp/opcuatms.service"
     config.vm.provision "file", source: "native_streaming.service", destination: "/tmp/native_streaming.service"
-    config.vm.provision "shell", inline: "cp /tmp/*.service /etc/avahi/services/"
+    config.vm.provision "file", source: "opendaq-config.json", destination: "/tmp/opendaq-config.json"
+    config.vm.provision "file", source: "simulator.service", destination: "/tmp/simulator.service"
+    config.vm.provision "file", source: "configurator.py", destination: "/tmp/configurator.py"
 
-    # Copy opendaq-config.json file
-    config.vm.provision "file", source: "opendaq-config.json", destination: "/tmp/"
-    config.vm.provision "shell", inline: "cp /tmp/opendaq-config.json /home/opendaq/opendaq/"
+    # Copy files to /home/opendaq/
+    config.vm.provision "shell", inline: "cp /tmp/{opcuatms.service,native_streaming.service,opendaq-config.json,simulator.service,configurator.py} /home/opendaq/"
+
+    # Configure serial numbers and local ids with configurator and delete it
+    config.vm.provision "shell", inline: "cd /home/opendaq/ && python3 configurator.py && rm configurator.py"
+
+    # Move MDNS services configs
+    config.vm.provision "shell", inline: "mv /home/opendaq/{opcuatms.service,native_streaming.service} /etc/avahi/services/"
+    
+    # Move systemd service file
+    config.vm.provision "shell", inline: "mv /home/opendaq/simulator.service /etc/systemd/system/"
+
+    # Move opendaq-config.json file
+    config.vm.provision "shell", inline: "mv /home/opendaq/opendaq-config.json /home/opendaq/opendaq/"
+    
+    # Make systemd service run on boot (before login)
+    config.vm.provision "shell", inline: "sudo systemctl enable simulator"
 
     # Reduce memory usage
     config.vm.provision :shell, :inline => <<-SCRIPT

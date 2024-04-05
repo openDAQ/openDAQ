@@ -14,5 +14,10 @@
     "RootDevice": 
         {
             "ConnectionString": "daqref://device1"
-        }
+        },
+	"ReferenceDevice":
+		{
+			"LocalId": "falselocalid",
+			"Name": "Reference device simulator"
+		}
 }

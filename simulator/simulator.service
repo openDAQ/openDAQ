@@ -1,0 +1,15 @@
+[Unit]
+Description=openDAQ simulator service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=opendaq
+Environment=LD_LIBRARY_PATH=/home/opendaq/opendaq/lib
+ExecStart=/home/opendaq/opendaq/application_simulator
+
+[Install]
+WantedBy=multi-user.target

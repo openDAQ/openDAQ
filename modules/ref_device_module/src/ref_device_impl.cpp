@@ -12,8 +12,8 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-RefDeviceImpl::RefDeviceImpl(size_t id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : GenericDevice<>(ctx, parent, localId)
+RefDeviceImpl::RefDeviceImpl(size_t id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
+    : GenericDevice<>(ctx, parent, localId, nullptr, name)
     , id(id)
     , microSecondsFromEpochToDeviceStart(0)
     , acqLoopTime(0)

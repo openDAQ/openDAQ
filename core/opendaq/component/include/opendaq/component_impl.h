@@ -63,7 +63,8 @@ public:
     ComponentImpl(const ContextPtr& context,
                   const ComponentPtr& parent,
                   const StringPtr& localId,
-                  const StringPtr& className = nullptr);
+                  const StringPtr& className = nullptr,
+                  const StringPtr& name = nullptr);
 
     // IComponent
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
@@ -178,7 +179,8 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     const ContextPtr& context,
     const ComponentPtr& parent,
     const StringPtr& localId,
-    const StringPtr& className)
+    const StringPtr& className,
+    const StringPtr& name)
     : Super(
         context.assigned() ? context.getTypeManager() : nullptr,
         className,
@@ -194,7 +196,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
           }))
       , visible(true)
       , active(true)
-      , name(localId)
+      , name(name.assigned() && name != "" ? name : localId)
       , description("")
       , statusContainer(createWithImplementation<IComponentStatusContainer, ComponentStatusContainerImpl>(
           [&](const CoreEventArgsPtr& args)

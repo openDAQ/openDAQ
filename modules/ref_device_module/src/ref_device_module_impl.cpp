@@ -60,7 +60,7 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
 
     if (options.assigned() && options.hasKey("ReferenceDevice"))
     {
-        const DictPtr<StringPtr, StringPtr> referenceDevice = options.get("ReferenceDevice");
+        const DictPtr<StringPtr, BaseObjectPtr> referenceDevice = options.get("ReferenceDevice");
         if (referenceDevice.hasKey("LocalId"))
             localId = referenceDevice.get("LocalId");
     }

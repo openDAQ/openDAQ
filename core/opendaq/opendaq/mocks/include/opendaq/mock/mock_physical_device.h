@@ -42,6 +42,7 @@ protected:
     void registerProperties();
     void registerTestConfigProperties();
 
+    PropertyObjectPtr config;
     FolderConfigPtr mockFolderA; // InputsOutputs/mockFolderA
     FolderConfigPtr mockFolderB; // InputsOutputs/mockFolderB
     ChannelPtr mockChannel1; // InputsOutputs/mockChannel1
@@ -55,7 +56,6 @@ protected:
     ComponentPtr componentA1;
     ComponentPtr componentB;
     uint64_t time;
-    PropertyObjectPtr config;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

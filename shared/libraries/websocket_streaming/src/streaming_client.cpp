@@ -230,27 +230,24 @@ void StreamingClient::parseConnectionString(const std::string& url)
     target = "/";
 
     std::smatch match;
-    std::string suffix;
 
-    auto regexHostname = std::regex("^(.*:\\/\\/)?([^:\\/\\s]+)");
-    if (std::regex_search(url, match, regexHostname))
-        host = match[2];
-    else
-        return;
+    // parsing connection string to four groups: prefix, host, port, path
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(?:\[([a-fA-F0-9:]+)\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
 
-    auto regexPort = std::regex("^:(\\d+)");
-    suffix = match.suffix().str();
-    if (std::regex_search(suffix, match, regexPort))
+    bool parsed = false;
+    parsed = std::regex_search(url, match, regexIpv6Hostname);
+    if (!parsed)
+        parsed = std::regex_search(url, match, regexIpv4Hostname);
+
+    if (parsed)
     {
-        port = std::stoi(match[1]);
-        suffix = match.suffix().str();
+        host = match[2];
+        if (match[3].matched)
+            port = std::stoi(match[3]);
+        if (match[4].matched)
+            target = match[4];
     }
-
-    auto regexTarget = std::regex("^\\/?[^\\?]+");
-    if (std::regex_search(suffix, match, regexTarget))
-        target = match[0];
-    else
-        return;
 }
 
 void StreamingClient::onSignalMeta(const SubscribedSignal& subscribedSignal, const std::string& method, const nlohmann::json& params)

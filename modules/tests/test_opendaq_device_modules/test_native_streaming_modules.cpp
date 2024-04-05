@@ -23,7 +23,7 @@ static InstancePtr CreateServerInstance()
 static InstancePtr CreateClientInstance()
 {
     auto instance = Instance();
-    auto refDevice = instance.addDevice("daq.nsd://127.0.0.1/");
+    auto refDevice = instance.addDevice("daq.ns://127.0.0.1/");
     return instance;
 }
 
@@ -76,7 +76,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
     DeviceInfoPtr info;
     ASSERT_NO_THROW(info = client.getDevices()[0].getInfo());
     ASSERT_TRUE(info.assigned());
-    ASSERT_EQ(info.getConnectionString(), "daq.nsd://127.0.0.1/");
+    ASSERT_EQ(info.getConnectionString(), "daq.ns://127.0.0.1/");
     ASSERT_EQ(info.getName(), "NativeStreamingClientPseudoDevice");
 }
 

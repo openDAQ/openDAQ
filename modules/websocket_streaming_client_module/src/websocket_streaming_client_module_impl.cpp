@@ -5,15 +5,12 @@
 #include <websocket_streaming/websocket_client_device_factory.h>
 #include <websocket_streaming/websocket_streaming_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <regex>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 
-static const char* WebsocketDeviceTypeId = "daq.ws";
-static const char* TcpsocketDeviceTypeId = "daq.tcp";
-static const char* WebsocketDevicePrefix = "daq.ws://";
-static const char* TcpsocketDevicePrefix = "daq.tcp://";
-static const char* WebsocketStreamingPrefix = "daq.wss://";
-static const char* WebsocketStreamingID = "daq.wss";
+static const char* WebsocketDeviceTypeId = "opendaq_lt_streaming";
+static const char* WebsocketDevicePrefix = "daq.lt://";
 
 using namespace discovery;
 using namespace daq::websocket_streaming;
@@ -26,18 +23,22 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
     , deviceIndex(0)
     , discoveryClient(
         {
-            [](MdnsDiscoveredDevice discoveredDevice)
+            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                return fmt::format("daq.ws://{}:{}{}",
+                auto connectionString = fmt::format("{}{}:{}{}",
+                                   WebsocketDevicePrefix,
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
+                auto cap = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming).addConnectionString(connectionString).setConnectionType("Ipv4");
+                cap.setPrefix("daq.lt");
+                return cap;
             }
         },
         {"WS"}
     )
 {
-    discoveryClient.initMdnsClient("_streaming-ws._tcp.local.");
+    discoveryClient.initMdnsClient("_streaming-lt._tcp.local.");
 }
 
 ListPtr<IDeviceInfo> WebsocketStreamingClientModule::onGetAvailableDevices()
@@ -55,10 +56,8 @@ DictPtr<IString, IDeviceType> WebsocketStreamingClientModule::onGetAvailableDevi
     auto result = Dict<IString, IDeviceType>();
 
     auto websocketDeviceType = createWebsocketDeviceType();
-    auto tcpsocketDeviceType = createTcpsocketDeviceType();
 
     result.set(websocketDeviceType.getId(), websocketDeviceType);
-    result.set(tcpsocketDeviceType.getId(), tcpsocketDeviceType);
 
     return result;
 }
@@ -89,22 +88,20 @@ bool WebsocketStreamingClientModule::onAcceptsConnectionParameters(const StringP
 {
     std::string connStr = connectionString;
     auto found = connStr.find(WebsocketDevicePrefix);
-    if (found != 0)
-        found = connStr.find(TcpsocketDevicePrefix);
     return (found == 0);
 }
 
-bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const StreamingInfoPtr& config)
+bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     if (connectionString.assigned())
     {
         std::string connStr = connectionString;
-        auto found = connStr.find(WebsocketStreamingPrefix);
+        auto found = connStr.find(WebsocketDevicePrefix);
         return (found == 0);
     }
     else if (config.assigned())
     {
-        if (config.getProtocolId() == WebsocketStreamingID)
+        if (config.getPropertyValue("protocolId") == WebsocketDeviceTypeId)
         {
             try
             {
@@ -120,7 +117,7 @@ bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(cons
     return false;
 }
 
-StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const StreamingInfoPtr& config)
+StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     StringPtr streamingConnectionString = connectionString;
 
@@ -136,16 +133,21 @@ StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& 
     return WebsocketStreaming(streamingConnectionString, context);
 }
 
-StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(const StreamingInfoPtr &config)
+StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(const ServerCapabilityPtr& capability)
 {
-    auto address = config.getPrimaryAddress();
-    if (address.toStdString().empty())
+    if (capability == nullptr)
+        throw InvalidParameterException("Capability is not set");
+
+    StringPtr connectionString = capability.getPropertyValue("PrimaryConnectionString");
+    if (connectionString.getLength() != 0)
+        return connectionString;
+
+    StringPtr address = capability.getPropertyValue("address");
+    if (!address.assigned() || address.toStdString().empty())
         throw InvalidParameterException("Device address is not set");
 
-    const auto propertyObj = config.asPtr<IPropertyObject>();
-    auto port = propertyObj.getPropertyValue("Port").template asPtr<IInteger>();
-
-    auto connectionString = String(fmt::format("daq.wss://{}:{}", address, port));
+    auto port = capability.getPropertyValue("Port").template asPtr<IInteger>();
+    connectionString = String(fmt::format("{}{}:{}", WebsocketDevicePrefix, address, port));
 
     return connectionString;
 }
@@ -154,13 +156,6 @@ DeviceTypePtr WebsocketStreamingClientModule::createWebsocketDeviceType()
 {
     return DeviceType(WebsocketDeviceTypeId,
                       "Websocket enabled device",
-                      "Pseudo device, provides only signals of the remote device as flat list");
-}
-
-DeviceTypePtr WebsocketStreamingClientModule::createTcpsocketDeviceType()
-{
-    return DeviceType(TcpsocketDeviceTypeId,
-                      "Tcpsocket enabled device",
                       "Pseudo device, provides only signals of the remote device as flat list");
 }
 

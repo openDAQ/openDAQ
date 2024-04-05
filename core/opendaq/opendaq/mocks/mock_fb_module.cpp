@@ -120,7 +120,7 @@ ErrCode MockFunctionBlockModuleImpl::getVersionInfo(IVersionInfo** version)
 
 ErrCode MockFunctionBlockModuleImpl::acceptsStreamingConnectionParameters(Bool* accepted,
                                                                           IString* /*connectionString*/,
-                                                                          daq::IStreamingInfo* /*config*/)
+                                                                          IPropertyObject* /*config*/)
 {
     OPENDAQ_PARAM_NOT_NULL(accepted);
 
@@ -130,7 +130,7 @@ ErrCode MockFunctionBlockModuleImpl::acceptsStreamingConnectionParameters(Bool* 
 
 ErrCode MockFunctionBlockModuleImpl::createStreaming(IStreaming** /*streaming*/,
                                                      IString* /*connectionString*/,
-                                                     daq::IStreamingInfo* /*config*/)
+                                                     IPropertyObject* /*config*/)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }

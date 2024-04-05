@@ -85,17 +85,17 @@ TEST_F(StreamingTest, ConnectTwice)
 
 TEST_F(StreamingTest, ParseConnectString)
 {
-    auto client = std::make_shared<StreamingClient>(NullContext(), "daq.wss://127.0.0.1");
+    auto client = std::make_shared<StreamingClient>(NullContext(), "daq.lt://127.0.0.1");
     ASSERT_EQ(client->getPort(), daq::streaming_protocol::WEBSOCKET_LISTENING_PORT);
     ASSERT_EQ(client->getHost(), "127.0.0.1");
     ASSERT_EQ(client->getTarget(), "/");
 
-    client = std::make_shared<StreamingClient>(NullContext(), "daq.wss://localhost/path/other");
+    client = std::make_shared<StreamingClient>(NullContext(), "daq.lt://localhost/path/other");
     ASSERT_EQ(client->getPort(), daq::streaming_protocol::WEBSOCKET_LISTENING_PORT);
     ASSERT_EQ(client->getHost(), "localhost");
     ASSERT_EQ(client->getTarget(), "/path/other");
 
-    client = std::make_shared<StreamingClient>(NullContext(), "daq.wss://localhost:3000/path/other");
+    client = std::make_shared<StreamingClient>(NullContext(), "daq.lt://localhost:3000/path/other");
     ASSERT_EQ(client->getPort(), 3000u);
     ASSERT_EQ(client->getHost(), "localhost");
     ASSERT_EQ(client->getTarget(), "/path/other");

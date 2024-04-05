@@ -52,8 +52,8 @@ set(SRC_Objects_Headers ${OBJECT_SRC_DIR}/tms_client_object_impl.h
                         ${OBJECT_SRC_DIR}/tms_client_component_impl.h
                         ${OBJECT_SRC_DIR}/tms_client_component_factory.h
 
-                        ${OBJECT_SRC_DIR}/tms_client_streaming_info_impl.h
-                        ${OBJECT_SRC_DIR}/tms_client_streaming_info_factory.h
+                        ${OBJECT_SRC_DIR}/tms_client_server_capability_impl.h
+                        ${OBJECT_SRC_DIR}/tms_client_server_capability_factory.h
 						
                         ${OBJECT_SRC_DIR}/tms_client_function_impl.h
                         ${OBJECT_SRC_DIR}/tms_client_function_factory.h
@@ -77,7 +77,7 @@ set(SRC_Objects ${OBJECT_SRC_DIR}/tms_client_object_impl.cpp
                 ${OBJECT_SRC_DIR}/tms_client_folder_impl.cpp
                 ${OBJECT_SRC_DIR}/tms_client_io_folder_impl.cpp
                 ${OBJECT_SRC_DIR}/tms_client_component_impl.cpp
-                ${OBJECT_SRC_DIR}/tms_client_streaming_info_impl.cpp
+                ${OBJECT_SRC_DIR}/tms_client_server_capability_impl.cpp
                 ${OBJECT_SRC_DIR}/tms_client_function_impl.cpp
                 ${OBJECT_SRC_DIR}/tms_client_procedure_impl.cpp
                 ${OBJECT_SRC_DIR}/tms_client_tags_impl.cpp
@@ -98,7 +98,7 @@ source_group("objects\\device" "${OBJECT_SRC_DIR}/tms_client_device.*")
 source_group("objects\\folder" "${OBJECT_SRC_DIR}/tms_client_folder.*")
 source_group("objects\\component" "${OBJECT_SRC_DIR}/tms_client_component.*")
 source_group("objects\\io_folder" "${OBJECT_SRC_DIR}/tms_client_io_folder.*")
-source_group("objects\\streaming_info" "${OBJECT_SRC_DIR}/tms_client_streaming_info.*")
+source_group("objects\\server_capability" "${OBJECT_SRC_DIR}/tms_client_server_capability.*")
 source_group("objects\\tags" "${OBJECT_SRC_DIR}/tms_client_tags.*")
 source_group("objects\\function" "${OBJECT_SRC_DIR}/(tms_client_function_impl.*|tms_client_function_factory.h|tms_client_procedure.*)")
 

@@ -41,7 +41,6 @@ EnumerationImpl::EnumerationImpl(const StringPtr& name,
             {
                 this->value = fieldName;
                 break;
-                return;
             }
     }
 

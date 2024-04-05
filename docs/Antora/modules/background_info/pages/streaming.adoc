@@ -46,7 +46,7 @@ For example, the connection string `"daq.ns://127.0.0.1"` will be accepted by
 xref:glossary:glossary.adoc#opendaq_native_streaming_client_module[openDAQ(TM) Native Streaming Client Module]
 initiating a connection with the openDAQ(TM) Native Streaming Server on the local machine, utilizing
 the default values: port number `7420` and path `"/"` . Similarly, the connection string
-`"daq.wss://192.168.1.3:7413/streaming"` will be accepted by the
+`"daq.lt://192.168.1.3:7413/streaming"` will be accepted by the
 xref:glossary:glossary.adoc#opendaq_websocket_streaming_client_module[Websocket Streaming Client Module], and this
 module will initiate a connection with the Websocket Streaming Server hosted on a remote machine with the
 address `"192.168.1.3"`, employing the specified values for the port number (`7413`) and path (`"/streaming"`) .

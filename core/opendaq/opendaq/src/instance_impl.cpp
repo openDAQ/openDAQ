@@ -11,7 +11,8 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_private.h>
-#include <opendaq/create_device.h>
+
+#include <opendaq/module_manager_utils_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -44,7 +45,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     auto connectionString = builderPtr.getRootDevice();
     if (connectionString.assigned() && connectionString.getLength())
     {
-        rootDevice = detail::createDevice(connectionString, nullptr, nullptr, moduleManager, loggerComponent);
+        rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, nullptr);
         const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
         if (devicePrivate.assigned())
             devicePrivate->setAsRoot();
@@ -250,7 +251,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
 #elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
 
     ServerPtr websocketServer;
-    serverName = "openDAQ WebsocketTcp Streaming";
+    serverName = "openDAQ LT Streaming";
     errCode = addServer(serverName, nullptr, &websocketServer);
     if (OPENDAQ_FAILED(errCode))
     {
@@ -328,7 +329,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     if (!servers.empty())
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
-    const auto newRootDevice = detail::createDevice(connectionStringPtr, config, nullptr, moduleManager, loggerComponent);
+    const auto newRootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, config);
 
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;

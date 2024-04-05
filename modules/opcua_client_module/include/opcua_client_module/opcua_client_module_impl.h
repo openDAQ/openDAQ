@@ -34,7 +34,7 @@ public:
     bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
 private:
-    static std::string GetUrlFromConnectionString(const StringPtr& connectionString);
+    static std::tuple<std::string, std::string, std::string> ParseConnectionString(const StringPtr& connectionString);
     static bool acceptDeviceProperties(const PropertyObjectPtr& config);
     static PropertyObjectPtr createDeviceDefaultConfig();
     static void configureStreamingSources(const PropertyObjectPtr& deviceConfig, const DevicePtr& device);

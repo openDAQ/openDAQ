@@ -7,7 +7,7 @@ Typically, in addition to publishing its own structure (xref:background_info:sig
 xref:background_info:function_blocks.adoc#channel[Channel]s,
 xref:background_info:function_blocks.adoc[Function Blocks], etc.), an openDAQ(TM)
 xref:background_info:device.adoc[Device] also publishes information about Streaming protocols it supports.
-This information includes the streaming protocol ID (e.g. `"daq.wss"` or `"daq.ns"`) and a range of optional
+This information includes the streaming protocol ID (e.g. `"daq.lt"` or `"daq.ns"`) and a range of optional
 parameters (e.g. port number). Upon initiating a streaming server on the device, it automatically generates
 and prepares the mentioned piece of information, also known as a Streaming option, for publication alongside
 the device's structural details. To enable the publication of this information, the server responsible for
@@ -36,8 +36,8 @@ int main()
 
     instance.setRootDevice("daqref://device1");
 
-    // Creates and registers a Streaming option with the ID `daq.wss` and the default port number 7414
-    instance.addServer("openDAQ WebsocketTcp Streaming", nullptr);
+    // Creates and registers a Streaming option with the ID `daq.lt` and the default port number 7414
+    instance.addServer("openDAQ LT Streaming", nullptr);
 
     // Creates and registers a Streaming option with the ID `daq.ns` and the default port number 7420
     instance.addServer("openDAQ Native Streaming", nullptr);
@@ -104,13 +104,13 @@ int main()
     daq::InstancePtr instance = daq::Instance(MODULE_PATH);
 
     // Get the default configuration Property object for OPC UA enabled device type
-    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
+    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
 
     // Allow multiple streaming protocols by device configuration
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.wss"));
+    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
 
     // Set websocket streaming protocol as primary by device configuration
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
 
     // Disregard direct streaming connections for nested devices,
     // establish the minimum number of streaming connections possible.
@@ -121,11 +121,13 @@ int main()
     daq::DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        if (deviceInfo.getConnectionString().toView().find("daq.opcua://") != std::string::npos)
+        for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            // Add device using modified configuration Property object
-            device = instance.addDevice(deviceInfo.getConnectionString(), deviceConfig);
-            break;
+            if (capability.getProtocolName() == "openDAQ OpcUa")
+            {
+                device = instance.addDevice(capability.getConnectionString(), deviceConfig);
+                break;
+            }
         }
     }
 
@@ -153,10 +155,10 @@ Streaming connection instantiation, except that the prefix representing the Stre
 is replaced with the prefix representing the appropriate Device type ID. Following this prefix, the same
 set of parameters unique to each Streaming protocol type is appended.
 
-For example, the Device connection string prefix `"daq.nsd"` aligns with the Native Streaming protocol,
+For example, the Device connection string prefix `"daq.ns"` aligns with the Native Streaming protocol,
 identified by the Streaming connection string prefix `"daq.ns"`. Similarly, the Device connection string
-prefix `"daq.ws"` corresponds to the Websocket Streaming protocol, recognized by the Streaming connection
-string prefix `"daq.wss"`.
+prefix `"daq.lt"` corresponds to the Websocket Streaming protocol, recognized by the Streaming connection
+string prefix `"daq.lt"`.
 
 [tabs]
 ====
@@ -178,11 +180,13 @@ int main()
     daq::DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        if (deviceInfo.getConnectionString().toView().find("daq.nsd://") != std::string::npos)
+        for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            // Add device using modified configuration Property object
-            device = instance.addDevice(deviceInfo.getConnectionString(), deviceConfig);
-            break;
+            if (capability.getProtocolName() == "openDAQ Native Streaming")
+            {
+                device = instance.addDevice(capability.getConnectionString(), deviceConfig);
+                break;
+            }
         }
     }
 
@@ -244,7 +248,7 @@ int main()
         std::cout << source << std::endl;
         if (source.toView().find("daq.ns://") != std::string::npos)
             nativeStreamingSource = source;
-        if (source.toView().find("daq.wss://") != std::string::npos)
+        if (source.toView().find("daq.lt://") != std::string::npos)
             websocketStreamingSource = source;
     }
 
@@ -320,24 +324,26 @@ int main(int /*argc*/, const char* /*argv*/[])
     daq::InstancePtr instance = daq::Instance(MODULE_PATH);
 
     // Get the default configuration Property object for OPC UA enabled device type
-    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
+    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
 
     // Allow multiple streaming protocol by device configuration
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.wss"));
+    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
 
     // Set websocket streaming protocol as primary by device configuration
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
 
     // Find and connect to a device hosting an OPC UA TMS server
     const auto availableDevices = instance.getAvailableDevices();
     daq::DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        if (deviceInfo.getConnectionString().toView().find("daq.opcua://") != std::string::npos)
+        for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            // Add device using modified configuration Property object
-            device = instance.addDevice(deviceInfo.getConnectionString(), deviceConfig);
-            break;
+            if (capability.getProtocolName() == "openDAQ OpcUa")
+            {
+                device = instance.addDevice(capability.getConnectionString(), deviceConfig);
+                break;
+            }
         }
     }
 
@@ -387,7 +393,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         std::cout << source << std::endl;
         if (source.toView().find("daq.ns://") != std::string::npos)
             nativeStreamingSource = source;
-        if (source.toView().find("daq.wss://") != std::string::npos)
+        if (source.toView().find("daq.lt://") != std::string::npos)
             websocketStreamingSource = source;
     }
 

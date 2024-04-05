@@ -118,8 +118,9 @@ public:
 
     DeviceInfoPtr onGetInfo() override
     {
-        auto devInfo = DeviceInfo("conn");
-        return devInfo;
+        auto deviceInfo = DeviceInfo("conn");
+        deviceInfo.freeze();
+        return deviceInfo;
     }
 };
 

@@ -12,6 +12,7 @@
 #include <opcuatms_client/objects/tms_client_device_factory.h>
 #include <opendaq/search_filter_factory.h>
 #include "tms_object_integration_test.h"
+#include "opendaq/device_info_internal_ptr.h"
 
 using namespace daq;
 using namespace opcua::tms;
@@ -33,7 +34,11 @@ public:
 
         auto instance = InstanceCustom(context, "localInstance");
         instance.addDevice("daq_client_device");
-        instance.addDevice("mock_phys_device");
+        const auto device = instance.addDevice("mock_phys_device");
+        const auto infoInternal = device.getInfo().asPtr<IDeviceInfoInternal>();
+        infoInternal.addServerCapability(ServerCapability("protocol_1", "protocol 1", ProtocolType::Streaming));
+        infoInternal.addServerCapability(ServerCapability("protocol_2", "protocol 2", ProtocolType::Configuration));
+
         instance.addFunctionBlock("mock_fb_uid");
 
         return instance;
@@ -217,6 +222,41 @@ TEST_F(TmsDeviceTest, DeviceInfo)
     ASSERT_EQ(clientDeviceInfo.getPropertyValue("custom_string"), "custom_string");
     ASSERT_EQ(clientDeviceInfo.getPropertyValue("custom_float"), 1.123);
     ASSERT_EQ(clientDeviceInfo.getPropertyValue("custom_int"), 1);
+}
+
+TEST_F(TmsDeviceTest, DeviceInfoServerCapabilities)
+{
+    auto ctx = NullContext();
+    DevicePtr serverDevice = createDevice();
+
+    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
+    auto nodeId = serverTmsDevice.registerOpcUaNode();
+    
+    auto serverSubDevices = serverDevice.getDevices();
+    ASSERT_EQ(serverSubDevices.getCount(), 2u);
+    auto serverSubDevice = serverSubDevices[1];
+    auto serverDeviceInfo = serverSubDevice.getInfo();
+
+    auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId, nullptr);
+
+    auto clientSubDevices = clientDevice.getDevices();
+    ASSERT_EQ(clientSubDevices.getCount(), 2u);
+    auto clientSubDevice = clientSubDevices[1];
+    auto clientDeviceInfo = clientSubDevice.getInfo();
+    ASSERT_EQ(serverDeviceInfo.getServerCapabilities().getCount(), 2);
+    ASSERT_EQ(clientDeviceInfo.getServerCapabilities().getCount(), 2);
+    auto name = clientDeviceInfo.getServerCapabilities()[1].getProtocolName();
+    auto id = clientDeviceInfo.getServerCapabilities()[1].getProtocolId();
+    ASSERT_EQ(clientDeviceInfo.getServerCapabilities()[0].getProtocolId(), serverDeviceInfo.getServerCapabilities()[0].getProtocolId());
+    ASSERT_EQ(clientDeviceInfo.getServerCapabilities()[1].getProtocolId(), serverDeviceInfo.getServerCapabilities()[1].getProtocolId());
+    ASSERT_EQ(clientDeviceInfo.getServerCapabilities()[0].getProtocolName(), serverDeviceInfo.getServerCapabilities()[0].getProtocolName());
+    ASSERT_EQ(clientDeviceInfo.getServerCapabilities()[1].getProtocolName(), serverDeviceInfo.getServerCapabilities()[1].getProtocolName());
+    ASSERT_EQ(clientDeviceInfo.getServerCapabilities()[0].getProtocolType(), serverDeviceInfo.getServerCapabilities()[0].getProtocolType());
+    ASSERT_EQ(clientDeviceInfo.getServerCapabilities()[1].getProtocolType(), serverDeviceInfo.getServerCapabilities()[1].getProtocolType());
+    ASSERT_EQ(clientDeviceInfo.getServerCapabilities()[0].getConnectionType(), serverDeviceInfo.getServerCapabilities()[0].getConnectionType());
+    ASSERT_EQ(clientDeviceInfo.getServerCapabilities()[1].getConnectionType(), serverDeviceInfo.getServerCapabilities()[1].getConnectionType());
+    ASSERT_EQ(clientDeviceInfo.getServerCapabilities()[0].getCoreEventsEnabled(), serverDeviceInfo.getServerCapabilities()[0].getCoreEventsEnabled());
+    ASSERT_EQ(clientDeviceInfo.getServerCapabilities()[1].getCoreEventsEnabled(), serverDeviceInfo.getServerCapabilities()[1].getCoreEventsEnabled());
 }
 
 TEST_F(TmsDeviceTest, DeviceGetTicksSinceOrigin)

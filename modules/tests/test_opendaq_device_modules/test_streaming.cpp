@@ -129,7 +129,8 @@ protected:
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
         auto moduleManager = ModuleManager("");
-        auto context = Context(scheduler, logger, nullptr, moduleManager);
+        auto typeManager = TypeManager();
+        auto context = Context(scheduler, logger, typeManager, moduleManager);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -152,8 +153,8 @@ protected:
         auto connectionString = std::get<2>(GetParam());
         if (connectionString.find("daq.opcua") == 0)
         {
-            auto config = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
-            config.setPropertyValue("AllowedStreamingProtocols", List<IString>("daq.ns", "daq.wss"));
+            auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+            config.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
             config.setPropertyValue("PrimaryStreamingProtocol", std::get<1>(GetParam()));
             auto device = instance.addDevice(connectionString, config);
         }
@@ -202,7 +203,7 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(packetsEqual(serverReceivedPackets,
                              clientReceivedPackets,
-                             std::get<0>(GetParam()) == "openDAQ WebsocketTcp Streaming"));
+                             std::get<0>(GetParam()) == "openDAQ LT Streaming"));
 
     // recreate client reader and test initial event packet
     clientReader = createClientReader(clientSignal.getDescriptor().getName());
@@ -261,9 +262,9 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
     MirroredSignalConfigPtr clientSignalPtr = getSignal(clientInstance, "ByteStep");
     MirroredSignalConfigPtr clientDomainSignalPtr = clientSignalPtr.getDomainSignal();
 
-    bool usingNativePseudoDevice = std::get<1>(GetParam()) == "daq.ns" && std::get<2>(GetParam()) == "daq.nsd://127.0.0.1/";
-    bool usingWSPseudoDevice = std::get<1>(GetParam()) == "daq.wss" && std::get<2>(GetParam()) == "daq.ws://127.0.0.1/";
-    bool usingNativeStreaming = std::get<1>(GetParam()) == "daq.ns";
+    bool usingNativePseudoDevice = std::get<1>(GetParam()) == "opendaq_native_streaming" && std::get<2>(GetParam()) == "daq.ns://127.0.0.1/";
+    bool usingWSPseudoDevice = std::get<1>(GetParam()) == "opendaq_lt_streaming" && std::get<2>(GetParam()) == "daq.lt://127.0.0.1/";
+    bool usingNativeStreaming = std::get<1>(GetParam()) == "opendaq_native_streaming";
 
     for (int i = 0; i < 5; ++i)
     {
@@ -404,10 +405,10 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingTestGroup,
     StreamingTest,
     testing::Values(
-        std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.nsd://127.0.0.1/"),
-        std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.opcua://127.0.0.1/"),
-        std::make_tuple("openDAQ WebsocketTcp Streaming", "daq.wss", "daq.ws://127.0.0.1/"),
-        std::make_tuple("openDAQ WebsocketTcp Streaming", "daq.wss", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.lt://127.0.0.1/"),
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/")
     )
 );
 #elif defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && !defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -415,8 +416,8 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingTestGroup,
     StreamingTest,
     testing::Values(
-        std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.nsd://127.0.0.1/"),
-        std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/")
     )
 );
 #elif !defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -424,8 +425,8 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingTestGroup,
     StreamingTest,
     testing::Values(
-        std::make_tuple("openDAQ WebsocketTcp Streaming", "daq.wss", "daq.ws://127.0.0.1/"),
-        std::make_tuple("openDAQ WebsocketTcp Streaming", "daq.wss", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.lt://127.0.0.1/"),
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/")
     )
 );
 #endif
@@ -439,7 +440,8 @@ protected:
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
         auto moduleManager = ModuleManager("");
-        auto context = Context(scheduler, logger, nullptr, moduleManager);
+        auto typeManager = TypeManager();
+        auto context = Context(scheduler, logger, typeManager, moduleManager);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -489,8 +491,8 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingAsyncSignalTestGroup,
     StreamingAsyncSignalTest,
     testing::Values(
-        std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.nsd://127.0.0.1/"),
-        std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/")
     )
 );
 
@@ -502,7 +504,8 @@ protected:
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
         auto moduleManager = ModuleManager("");
-        auto context = Context(scheduler, logger, nullptr, moduleManager);
+        auto typeManager = TypeManager();
+        auto context = Context(scheduler, logger, typeManager, moduleManager);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -581,8 +584,8 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingReconnectionTestGroup,
     StreamingReconnectionTest,
     testing::Values(
-        std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.nsd://127.0.0.1/"),
-        std::make_tuple("openDAQ Native Streaming", "daq.ns", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/")
     )
 );
 

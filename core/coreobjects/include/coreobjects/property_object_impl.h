@@ -221,6 +221,7 @@ protected:
     bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value);
     virtual void cloneAndSetChildPropertyObject(const PropertyPtr& prop);
     void configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj);
+    virtual PropertyObjectPtr createCloneBase();
 
     ErrCode beginUpdateInternal(bool deep);
     ErrCode endUpdateInternal(bool deep);
@@ -534,8 +535,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::coercePropertyW
         {
             try
             {
-                const auto* propObj = static_cast<const IPropertyObject*>(this);
-                valuePtr = coercer.coerce(propObj, valuePtr);
+                valuePtr = coercer.coerce(objPtr, valuePtr);
             }
             catch (const DaqException&)
             {
@@ -560,8 +560,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::validatePropert
         {
             try
             {
-                const auto* propObj = static_cast<const IPropertyObject*>(this);
-                validator.validate(propObj, valuePtr);
+                validator.validate(objPtr, valuePtr);
             }
             catch (const DaqException&)
             {
@@ -1098,6 +1097,14 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
         objInternal.setCoreEventTrigger(triggerCoreEvent);
         objInternal.enableCoreEventTrigger();
     }
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+PropertyObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::createCloneBase()
+{
+    const auto managerRef = manager.assigned() ? manager.getRef() : nullptr; 
+    PropertyObjectPtr obj = createWithImplementation<IPropertyObject, PropertyObjectImpl>(managerRef, this->className);
+    return obj;
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -2175,8 +2182,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPrope
 {
     OPENDAQ_PARAM_NOT_NULL(cloned);
 
-    const auto managerRef = manager.assigned() ? manager.getRef() : nullptr; 
-    PropertyObjectPtr obj = createWithImplementation<IPropertyObject, PropertyObjectImpl>(managerRef, this->className);
+    PropertyObjectPtr obj = createCloneBase();
 
     return daqTry([this, &obj, &cloned]()
     {

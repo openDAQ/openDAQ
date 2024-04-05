@@ -266,7 +266,7 @@ int main(int argc, const char* argv[])
     logger.setLevel(daq::LogLevel::Critical);
 
     auto serverTypes = instance.getAvailableServerTypes();
-    auto config = serverTypes.get("openDAQ WebsocketTcp Streaming").createDefaultConfig();
+    auto config = serverTypes.get("openDAQ LT Streaming").createDefaultConfig();
 
     bool readTime = false;
     for (int i = 0; i < argc; ++i)
@@ -291,7 +291,7 @@ int main(int argc, const char* argv[])
     config.setPropertyValue("WebsocketStreamingPort", websocketPort);
 
     // Start a web-socket streaming server
-    instance.addServer("openDAQ WebsocketTcp Streaming", config);
+    instance.addServer("openDAQ LT Streaming", config);
     // Start an OpcUa server
     instance.addServer("openDAQ OpcUa", nullptr);
 

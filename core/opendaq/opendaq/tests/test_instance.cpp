@@ -242,9 +242,9 @@ TEST_F(InstanceTest, EnumerateServerTypes)
     auto mockServer = serverTypes.get("MockServer");
     ASSERT_EQ(mockServer.getId(), "MockServer");
 
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ WebsocketTcp Streaming"));
-    mockServer = serverTypes.get("openDAQ WebsocketTcp Streaming");
-    ASSERT_EQ(mockServer.getId(), "openDAQ WebsocketTcp Streaming");
+    ASSERT_TRUE(serverTypes.hasKey("openDAQ LT Streaming"));
+    mockServer = serverTypes.get("openDAQ LT Streaming");
+    ASSERT_EQ(mockServer.getId(), "openDAQ LT Streaming");
 
     ASSERT_TRUE(serverTypes.hasKey("openDAQ Native Streaming"));
     mockServer = serverTypes.get("openDAQ Native Streaming");
@@ -341,7 +341,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     const auto logger = Logger();
     const auto scheduler = Scheduler(logger);
     const auto moduleManager = ModuleManager("./modulePath1");
-    const auto defaultRootDeviceInfo = DeviceInfo("connectionString");
+    const auto defaultRootDeviceInfo = DeviceInfo("daqref://device0");
 
     const auto instanceBuilder = InstanceBuilder()
                                 .setLogger(logger)
@@ -381,7 +381,7 @@ TEST_F(InstanceTest, InstanceCreateFactory)
     const auto logger = Logger();
     const auto scheduler = Scheduler(logger, 2);
     const auto moduleManager = ModuleManager("");
-    const auto defaultRootDeviceInfo = DeviceInfo("connectionString");
+    const auto defaultRootDeviceInfo = DeviceInfo("daqref://device0");
 
     auto instance = InstanceBuilder()
                                 .setLogger(logger)

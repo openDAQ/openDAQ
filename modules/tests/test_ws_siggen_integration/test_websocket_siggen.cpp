@@ -104,7 +104,6 @@ INSTANTIATE_TEST_SUITE_P(
     SiggenTestGroup,
     SiggenTest,
     testing::Values(
-        "daq.tcp://127.0.0.1:7411/",
-        "daq.ws://127.0.0.1:7413/"
+        "daq.lt://127.0.0.1:7413/"
         )
     );

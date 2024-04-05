@@ -20,6 +20,7 @@
 #include <opendaq/context_ptr.h>
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
+#include <opendaq/device_info_ptr.h>
 #include <coretypes/string_ptr.h>
 #include <vector>
 
@@ -49,6 +50,7 @@ private:
     std::vector<ModuleLibrary> libraries;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+    DictPtr<IString, IDeviceInfo> availableDevicesGroup;
     std::unordered_map<std::string, size_t> functionBlockCountMap;
 };
 

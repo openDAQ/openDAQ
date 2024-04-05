@@ -259,11 +259,11 @@ void MockDevice1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBloc
 }
 
 DeviceInfoPtr MockDevice1Impl::onGetInfo()
-{
-    const auto info = DeviceInfo("mock://dev1", "MockDevice1");
-    info.setManufacturer("Testing");
-    info.freeze();
-    return info;
+{    
+    auto deviceInfo = DeviceInfo("mock://dev1", "MockDevice1");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setManufacturer("Testing");
+    deviceInfo.freeze();
+    return deviceInfo;
 }
 
 uint64_t MockDevice1Impl::onGetTicksSinceOrigin()

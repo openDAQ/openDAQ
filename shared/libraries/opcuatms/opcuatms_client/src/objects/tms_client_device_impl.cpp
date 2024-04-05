@@ -10,12 +10,13 @@
 #include <opcuatms_client/objects/tms_client_signal_factory.h>
 #include "opcuatms_client/objects/tms_client_component_factory.h"
 #include "opcuatms_client/objects/tms_client_io_folder_factory.h"
-#include "opcuatms_client/objects/tms_client_streaming_info_factory.h"
+#include "opcuatms_client/objects/tms_client_server_capability_factory.h"
 #include <open62541/daqbsp_nodeids.h>
 #include "open62541/daqbt_nodeids.h"
 #include <open62541/daqdevice_nodeids.h>
 #include <open62541/types_daqdevice_generated.h>
 #include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/custom_log.h>
 #include "opcuatms/core_types_utils.h"
 #include "opcuatms/exceptions.h"
@@ -29,7 +30,7 @@ using namespace daq::opcua;
 
 namespace detail
 {
-    static std::unordered_set<std::string> defaultComponents = {"Sig", "FB", "IO", "StreamingOptions"};
+    static std::unordered_set<std::string> defaultComponents = {"Sig", "FB", "IO", "ServerCapabilities"};
 
     static std::unordered_map<std::string, std::function<void (const DeviceInfoConfigPtr&, const OpcUaVariant&)>> deviceInfoSetterMap = {
         {"AssetId", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setAssetId(v.toString()); }},
@@ -75,14 +76,13 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
 
     if (isRootDevice)
         clientContext->registerRootDevice(thisInterface());
-
+    
     findAndCreateSubdevices();
     findAndCreateFunctionBlocks();
     findAndCreateSignals();
     findAndCreateInputsOutputs();
     findAndCreateCustomComponents();
 
-    findAndCreateStreamingOptions();
     connectToStreamings();
     setUpStreamings();
 }
@@ -137,10 +137,7 @@ void TmsClientDeviceImpl::onRemoveDevice(const DevicePtr& /*device*/)
 
 DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 {
-    if (deviceInfo.assigned())
-        return deviceInfo;
-
-    deviceInfo = DeviceInfo("");
+    auto deviceInfo = DeviceInfo("", "OpcUa Client");
 
     auto browseFilter = BrowseFilter();
     browseFilter.nodeClass = UA_NODECLASS_VARIABLE;
@@ -186,6 +183,8 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
             LOG_W("Failed to read device info attribute on OpcUa client device \"{}\": {}", this->globalId, e.what());
         }
     }
+    
+    findAndCreateServerCapabilities(deviceInfo);
 
     deviceInfo.freeze();
     return deviceInfo;
@@ -201,6 +200,9 @@ void TmsClientDeviceImpl::fetchTimeDomain()
     if (!deviceDomain)
         return;
 
+    if (deviceDomain == nullptr)
+        return;
+    
     auto numerator = deviceDomain->resolution.numerator;
     auto denominator = deviceDomain->resolution.denominator;
     if (denominator == 0)
@@ -355,40 +357,50 @@ void TmsClientDeviceImpl::findAndCreateInputsOutputs()
         this->ioFolder.addItem(val);
 }
 
-void TmsClientDeviceImpl::findAndCreateStreamingOptions()
+void TmsClientDeviceImpl::findAndCreateServerCapabilities(const DeviceInfoPtr& deviceInfo)
 {
-    std::map<uint32_t, PropertyObjectPtr> orderedStreamings;
-    std::vector<PropertyObjectPtr> unorderedStreamings;
+    std::map<uint32_t, PropertyObjectPtr> orderedCaps;
+    std::vector<PropertyObjectPtr> unorderedCaps;
 
-    this->streamingOptions.clear();
-    auto streamingOptionsNodeId = getNodeId("StreamingOptions");
+    auto serverCapabilitiesNodeId = getNodeId("ServerCapabilities");
 
     try
     {
-        const auto& streamingOptionsReferences =
-            getChildReferencesOfType(streamingOptionsNodeId, OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_VARIABLEBLOCKTYPE));
+        const auto& serverCapabilitiesReferences =
+            getChildReferencesOfType(serverCapabilitiesNodeId, OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_VARIABLEBLOCKTYPE));
 
-        for (const auto& [browseName, ref] : streamingOptionsReferences.byBrowseName)
+        for (const auto& [browseName, ref] : serverCapabilitiesReferences.byBrowseName)
         {
             const auto optionNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-            auto clientStreamingInfo = TmsClientStreamingInfo(daqContext, browseName, clientContext, optionNodeId);
+            auto clientServerCapability = TmsClientServerCapability(daqContext, browseName, "", clientContext, optionNodeId);
+
+            auto capabilityCopy = ServerCapability("", "", ProtocolType::Unknown);
+            for (const auto& prop : clientServerCapability.getAllProperties())
+            {
+                const auto name = prop.getName();
+                if (!capabilityCopy.hasProperty(name))
+                    capabilityCopy.addProperty(prop.asPtr<IPropertyInternal>().clone());
+                capabilityCopy.setPropertyValue(name, clientServerCapability.getPropertyValue(name));
+            }
 
             auto numberInList = this->tryReadChildNumberInList(optionNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max())
-                orderedStreamings.insert(std::pair<uint32_t, PropertyObjectPtr>(numberInList, clientStreamingInfo));
+                orderedCaps.insert(std::pair<uint32_t, PropertyObjectPtr>(numberInList, capabilityCopy));
             else
-                unorderedStreamings.emplace_back(clientStreamingInfo);
+                unorderedCaps.emplace_back(capabilityCopy);
         }
     }
     catch (const std::exception& e)
     {
-        LOG_W("Failed to find 'StreamingOptions' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
+        LOG_W("Failed to find 'ServerCapabilities' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
     }
 
-    for (const auto& val : orderedStreamings)
-        this->streamingOptions.push_back(val.second);
-    for (const auto& val : unorderedStreamings)
-        this->streamingOptions.push_back(val);
+    auto deviceInfoInternal = deviceInfo.asPtr<IDeviceInfoInternal>();
+    deviceInfoInternal.clearServerStreamingCapabilities();
+    for (const auto& [_, val] : orderedCaps)
+        deviceInfoInternal.addServerCapability(val);
+    for (const auto& val : unorderedCaps)
+        deviceInfoInternal.addServerCapability(val);
 }
 
 void TmsClientDeviceImpl::findAndCreateCustomComponents()
@@ -530,16 +542,21 @@ void TmsClientDeviceImpl::setUpStreamings()
 
 void TmsClientDeviceImpl::connectToStreamings()
 {
+    DeviceInfoPtr info;
+    this->getInfo(&info);
     if (createStreamingCallback.assigned())
     {
-        for (const auto& option : streamingOptions)
+        for (const auto& capability : info.getServerCapabilities())
         {
+            if (capability.getProtocolType() != ProtocolType::Streaming)
+                continue;
+
             StreamingPtr streaming;
-            ErrCode errCode = wrapHandlerReturn(createStreamingCallback, streaming, option, isRootDevice);
+            ErrCode errCode = wrapHandlerReturn(createStreamingCallback, streaming, capability, isRootDevice);
 
             if (OPENDAQ_FAILED(errCode) || !streaming.assigned())
             {
-                LOG_W("Device \"{}\" had not connected to published streaming protocol \"{}\".", globalId, option.getProtocolId());
+                LOG_W("Device \"{}\" had not connected to published streaming protocol \"{}\".", globalId, capability.getPropertyValue("protocolId").asPtr<IString>());
             }
             else
             {

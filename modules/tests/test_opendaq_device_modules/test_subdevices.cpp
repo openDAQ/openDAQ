@@ -1,4 +1,5 @@
 #include "test_helpers.h"
+#include <iostream>
 
 using namespace daq;
 
@@ -40,10 +41,10 @@ public:
 
         if (subdeviceStreamingType == StreamingType::WebsocketStreaming)
         {
-            auto ws_config = instance.getAvailableServerTypes().get("openDAQ WebsocketTcp Streaming").createDefaultConfig();
+            auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT + index);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT + index);
-            instance.addServer("openDAQ WebsocketTcp Streaming", ws_config);
+            instance.addServer("openDAQ LT Streaming", ws_config);
         }
         else if (subdeviceStreamingType == StreamingType::NativeStreaming)
         {
@@ -72,13 +73,13 @@ public:
         auto subdeviceStreamingType = GetParam().first;
         for (auto index = 1; index <= 2; index++)
         {
-            auto config = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
+            auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
             config.setPropertyValue("StreamingConnectionHeuristic", MIN_CONNECTIONS);
-            config.setPropertyValue("AllowedStreamingProtocols", List<IString>("daq.ns", "daq.wss"));
+            config.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
             if (subdeviceStreamingType == StreamingType::WebsocketStreaming)
-                config.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+                config.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
             else if (subdeviceStreamingType == StreamingType::NativeStreaming)
-                config.setPropertyValue("PrimaryStreamingProtocol", "daq.ns");
+                config.setPropertyValue("PrimaryStreamingProtocol", "opendaq_native_streaming");
             const auto subDevice = instance.addDevice(createConnectionString(OPCUA_PORT+index), config);
         }
 
@@ -86,10 +87,10 @@ public:
 
         if (gatewayStreamingType == StreamingType::WebsocketStreaming)
         {
-            auto ws_config = instance.getAvailableServerTypes().get("openDAQ WebsocketTcp Streaming").createDefaultConfig();
+            auto ws_config = instance.getAvailableServerTypes().get("openDAQ LT Streaming").createDefaultConfig();
             ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT);
             ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT);
-            instance.addServer("openDAQ WebsocketTcp Streaming", ws_config);
+            instance.addServer("openDAQ LT Streaming", ws_config);
         }
         else if (gatewayStreamingType == StreamingType::NativeStreaming)
         {
@@ -115,13 +116,13 @@ public:
         auto instance = InstanceCustom(context, "client");
 
         auto clientStreamingType = (heuristicValue == MIN_HOPS) ?  GetParam().first : GetParam().second;
-        auto config = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
+        auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
         config.setPropertyValue("StreamingConnectionHeuristic", heuristicValue);
-        config.setPropertyValue("AllowedStreamingProtocols", List<IString>("daq.ns", "daq.wss"));
+            config.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
         if (clientStreamingType == StreamingType::WebsocketStreaming)
-            config.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+            config.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
         else if (clientStreamingType == StreamingType::NativeStreaming)
-            config.setPropertyValue("PrimaryStreamingProtocol", "daq.ns");
+            config.setPropertyValue("PrimaryStreamingProtocol", "opendaq_native_streaming");
         auto refDevice = instance.addDevice(createConnectionString(OPCUA_PORT), config);
 
         return instance;
@@ -184,7 +185,7 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
     auto subdevice1 = CreateSubdeviceInstance(1u);
     auto subdevice2 = CreateSubdeviceInstance(2u);
     auto gateway = CreateGatewayInstance();
-    auto client = CreateClientInstance(MIN_HOPS);
+    auto client = CreateClientInstance(MIN_HOPS);    
 
     auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
     auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));

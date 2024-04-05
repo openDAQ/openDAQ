@@ -28,6 +28,7 @@ class OpcUaServerImpl : public daq::Server
 {
 public:
     explicit OpcUaServerImpl(daq::DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context);
+    ~OpcUaServerImpl();
     static PropertyObjectPtr createDefaultConfig();
     static ServerTypePtr createType();
 

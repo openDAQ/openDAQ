@@ -3,6 +3,8 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
+#include <opendaq/context_factory.h>
 
 using DeviceInfoTest = testing::Test;
 
@@ -43,7 +45,7 @@ TEST_F(DeviceInfoTest, DefaultValues)
     ASSERT_EQ(deviceInfo.getSystemUuid(), "");
     ASSERT_FALSE(deviceInfo.getDeviceType().assigned());
 
-    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 22u);
+    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 23u);
 }
 
 TEST_F(DeviceInfoTest, SetGetProperties)
@@ -207,6 +209,8 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     info.setSerialNumber("serial_number");
     info.setProductInstanceUri("product_instance_uri");
     info.setRevisionCounter(1);
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability("test_id1", "test", ProtocolType::Streaming));
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability("test_id2", "test", ProtocolType::Configuration));
 
     const auto serializer = JsonSerializer();
     info.serialize(serializer);
@@ -215,11 +219,43 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     const auto deserializer = JsonDeserializer();
 
     const DeviceInfoPtr newDeviceInfo = deserializer.deserialize(serializedDeviceInfo, nullptr, nullptr);
+
+    ASSERT_EQ(newDeviceInfo.getServerCapabilities().getCount(), 2);
+    ASSERT_EQ(newDeviceInfo.getServerCapabilities()[0].getProtocolId(), "test_id1");
+    ASSERT_EQ(newDeviceInfo.getServerCapabilities()[1].getProtocolId(), "test_id2");
+
     serializer.reset();
     newDeviceInfo.serialize(serializer);
     const auto newSerializedDeviceInfo = serializer.getOutput();
 
     ASSERT_EQ(serializedDeviceInfo, newSerializedDeviceInfo);
+}
+
+TEST_F(DeviceInfoTest, ServerCapabilities)
+{
+    auto context = NullContext();
+    DeviceInfoPtr info = DeviceInfo("", "");
+    DeviceInfoInternalPtr internalInfo = info;
+
+    auto capability1 = ServerCapability("localId1", "protocolName1", ProtocolType::Streaming);
+    auto capability2 = ServerCapability("localId2","protocolName2", ProtocolType::Streaming);
+    auto capability3 = ServerCapability("localId3","protocolName3", ProtocolType::Streaming);
+
+    internalInfo.addServerCapability(capability1);
+    internalInfo.addServerCapability(capability2);
+    internalInfo.addServerCapability(capability3);
+    ASSERT_THROW(internalInfo.addServerCapability(capability3), DuplicateItemException);
+
+    ASSERT_EQ(info.getServerCapabilities().getCount(), 3);
+    
+    ASSERT_THROW(internalInfo.removeServerCapability("localId0"), NotFoundException);
+
+    internalInfo.removeServerCapability("localId1");
+    ASSERT_EQ(info.getServerCapabilities().getCount(), 2);
+    ASSERT_EQ(info.getServerCapabilities()[0].getProtocolId(), capability2.getPropertyValue("protocolId"));
+
+    internalInfo.clearServerStreamingCapabilities();
+    ASSERT_EQ(info.getServerCapabilities().getCount(), 0);
 }
 
 END_NAMESPACE_OPENDAQ

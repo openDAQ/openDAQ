@@ -18,6 +18,7 @@
 #include <coretypes/stringobject.h>
 #include <coreobjects/property_object.h>
 #include <opendaq/device_type.h>
+#include <opendaq/server_capability.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -235,6 +236,14 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
      * @param[out] version The SDK version.
      */
     virtual ErrCode INTERFACE_FUNC getSdkVersion(IString** version) = 0;
+
+    // [elementType(serverCapabilities, IServerCapability)]
+    /*!
+     * @brief Gets the list of server capabilities stored in device info.
+     * @param[out] serverCapabilities The list of device supported protocols 
+     * (List containing IServerCapability objects, representing the supported protocols along with their properties).
+     */
+    virtual ErrCode INTERFACE_FUNC getServerCapabilities(IList** serverCapabilities) = 0;
 };
 /*!@}*/
 

@@ -9,6 +9,7 @@
 #include <native_streaming_client_module/native_device_impl.h>
 
 #include <regex>
+#include <string>
 
 #include <config_protocol/config_protocol_client.h>
 
@@ -28,19 +29,25 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     , pseudoDeviceIndex(0)
     , discoveryClient(
         {
-            [](MdnsDiscoveredDevice discoveredDevice)
+            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                return fmt::format("daq.nsd://{}:{}{}",
+                auto connectionString = fmt::format("daq.ns://{}:{}{}",
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
+                auto cap = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming).addConnectionString(connectionString).setConnectionType("Ipv4");
+                cap.setPrefix("daq.ns");
+                return cap;
             },
-            [](MdnsDiscoveredDevice discoveredDevice)
+            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                return fmt::format("daq.nd://{}:{}{}",
+                auto connectionString = fmt::format("daq.nd://{}:{}{}",
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
+                auto cap = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming).addConnectionString(connectionString).setConnectionType("Ipv4").setCoreEventsEnabled(true);
+                cap.setPrefix("daq.nd");
+                return cap;
             }
         },
         {"OPENDAQ_NS"}
@@ -292,7 +299,6 @@ PropertyObjectPtr NativeStreamingClientModule::createDeviceDefaultConfig()
 bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr& connectionString,
                                                                 const PropertyObjectPtr& config)
 {
-    std::string connStr = connectionString;
     auto pseudoDevicePrefixFound = connectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix);
     auto devicePrefixFound = connectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix);
 
@@ -314,7 +320,7 @@ bool NativeStreamingClientModule::onAcceptsConnectionParameters(const StringPtr&
 }
 
 bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString,
-                                                                   const StreamingInfoPtr& config)
+                                                                   const PropertyObjectPtr& config)
 {
     if (connectionString.assigned())
     {
@@ -323,11 +329,16 @@ bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const S
     }
     else if (config.assigned())
     {
-        if (config.getProtocolId() == NativeStreamingID && config.getPrimaryAddress().assigned())
+        StringPtr configConnectionString = config.getPropertyValue("PrimaryConnectionString");
+        if (configConnectionString.getLength())
         {
-            const auto propertyObj = config.asPtr<IPropertyObject>();
-            return propertyObj.assigned() && propertyObj.hasProperty("Port");
+            return connectionStringHasPrefix(configConnectionString, NativeStreamingPrefix) &&
+               validateConnectionString(configConnectionString);
         }
+        StringPtr protocolId = config.getPropertyValue("protocolId");
+        StringPtr primaryAddress = config.getPropertyValue("address");
+        if (protocolId == NativeStreamingID && primaryAddress != "")
+            return config.hasProperty("Port");
     }
     return false;
 }
@@ -385,7 +396,7 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
 }
 
 StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& connectionString,
-                                                            const StreamingInfoPtr& config)
+                                                            const PropertyObjectPtr& config)
 {
     if (!onAcceptsStreamingConnectionParameters(connectionString, config))
         throw InvalidParameterException();
@@ -404,16 +415,19 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     }
     else if(config.assigned())
     {
-        host = config.getPrimaryAddress();
-        if (host.toStdString().empty())
-            throw InvalidParameterException("Device address is not set");
+        streamingConnectionString = config.getPropertyValue("PrimaryConnectionString");
+        if (streamingConnectionString.getLength() == 0)
+        {
+            host = config.getPropertyValue("address");
+            if (host.toStdString().empty()) 
+                throw InvalidParameterException("Device address is not set");
 
-        const auto propertyObj = config.asPtr<IPropertyObject>();
-        auto portNumber = propertyObj.getPropertyValue("Port").template asPtr<IInteger>();
-        port = String(fmt::format("{}", portNumber));
+            auto portNumber = config.getPropertyValue("Port").template asPtr<IInteger>();
+            port = String(fmt::format("{}", portNumber));
 
-        path = String("/");
-        streamingConnectionString = String(fmt::format("{}{}:{}", NativeStreamingPrefix, host, portNumber));
+            path = String("/");
+            streamingConnectionString = String(fmt::format("{}{}:{}", NativeStreamingPrefix, host, portNumber));
+        }
     }
     else
     {
@@ -471,17 +485,15 @@ StringPtr NativeStreamingClientModule::getHost(const StringPtr& url)
 {
     std::string urlString = url.toStdString();
 
-    auto regexHostname = std::regex("^.*:\\/\\/([^:\\/\\s]+)");
+    auto regexIpv6Hostname = std::regex("^.*:\\/\\/(\\[([a-fA-F0-9:]+)\\])");
+    auto regexIpv4Hostname = std::regex("^.*:\\/\\/([^:\\/\\s]+)");
     std::smatch match;
 
-    if (std::regex_search(urlString, match, regexHostname))
-    {
+    if (std::regex_search(urlString, match, regexIpv6Hostname))
+        return String(match[2]);
+    if (std::regex_search(urlString, match, regexIpv4Hostname))
         return String(match[1]);
-    }
-    else
-    {
-        throw InvalidParameterException("Host name not found in url: {}", url);
-    }
+    throw InvalidParameterException("Host name not found in url: {}", url);
 }
 
 StringPtr NativeStreamingClientModule::getPort(const StringPtr& url)

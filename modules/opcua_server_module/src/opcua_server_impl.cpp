@@ -3,9 +3,10 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/server_type_factory.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_SERVER_MODULE
-
 using namespace daq;
 using namespace daq::opcua;
 
@@ -19,6 +20,10 @@ OpcUaServerImpl::OpcUaServerImpl(DevicePtr rootDevice, PropertyObjectPtr config,
 
     server.setOpcUaPort(port);
     server.start();
+}
+
+OpcUaServerImpl::~OpcUaServerImpl()
+{
 }
 
 PropertyObjectPtr OpcUaServerImpl::createDefaultConfig()
@@ -53,6 +58,12 @@ ServerTypePtr OpcUaServerImpl::createType()
 void OpcUaServerImpl::onStopServer()
 {
     server.stop();
+    if (this->rootDevice.assigned())
+    {
+        const auto info = this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>();
+        if (info.hasServerCapability("opendaq_opcua_config"))
+            info.removeServerCapability("opendaq_opcua_config");
+    }
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

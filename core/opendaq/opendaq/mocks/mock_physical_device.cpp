@@ -73,10 +73,7 @@ MockPhysicalDeviceImpl::~MockPhysicalDeviceImpl()
 
 DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
 {
-    if (deviceInfo != nullptr)
-        return deviceInfo;
-
-    deviceInfo = DeviceInfo("");
+    auto deviceInfo = DeviceInfo("");
     deviceInfo.setName("MockPhysicalDevice");
     deviceInfo.setConnectionString("connection_string");
     deviceInfo.setManufacturer("manufacturer");

@@ -9,7 +9,7 @@ template <typename TInterface, typename... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion)
     : Super()
 {
-    createAndSetDefaultStringProperty("name", name);
+    createAndSetDefaultStringProperty("name", "");
     createAndSetDefaultStringProperty("manufacturer", "");
     createAndSetDefaultStringProperty("manufacturerUri", "");
     createAndSetDefaultStringProperty("model", "");
@@ -29,13 +29,24 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     createAndSetDefaultIntProperty("position", 0);
     createAndSetDefaultStringProperty("systemType", "");
     createAndSetDefaultStringProperty("systemUuid", "");
-    createAndSetDefaultStringProperty("connectionString", connectionString);
+    createAndSetDefaultStringProperty("connectionString", "");
     createAndSetDefaultStringProperty("sdkVersion", "");
+    
+    Super::setProtectedPropertyValue(String("name"), name);
+    Super::setProtectedPropertyValue(String("connectionString"), connectionString);
+
+    Super::addProperty(ObjectProperty("serverCapabilities", PropertyObject()));
+    defaultPropertyNames.insert("serverCapabilities");
 
     if (customSdkVersion.assigned())
         Super::setProtectedPropertyValue(String("sdkVersion"), customSdkVersion);
     else
         Super::setProtectedPropertyValue(String("sdkVersion"), String(OPENDAQ_PACKAGE_VERSION));
+}
+
+template <typename TInterface, typename ... Interfaces>
+DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
+{
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -409,9 +420,13 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getRevisionCounter(Int*
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* property)
 {
+    OPENDAQ_PARAM_NOT_NULL(property);
+    StringPtr name;
+    property->getName(&name);
+
     CoreType type;
     property->getValueType(&type);
-    if (static_cast<int>(type) > 3)
+    if (static_cast<int>(type) > 3 && name != "serverCapabilities")
         return this->makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Only String, Int, Bool, or Float-type properties can be added to Device Info.");
 
     BaseObjectPtr selValues;
@@ -504,6 +519,126 @@ Int DeviceInfoConfigImpl<TInterface, Interfaces...>::getIntProperty(const String
     return obj.getPropertyValue(name).template asPtr<IInteger>();
 }
 
+template <typename TInterface, typename... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(IServerCapability* serverCapability)
+{
+    OPENDAQ_PARAM_NOT_NULL(serverCapability);
+    
+    StringPtr id;
+    ErrCode err = serverCapability->getProtocolId(&id);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    BaseObjectPtr serverCapabilities;
+    StringPtr str = "serverCapabilities";
+    err = this->getPropertyValue(str, &serverCapabilities);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>();
+    for (const auto& prop : serverCapabilitiesPtr.getAllProperties())
+    {
+        if (prop.getValueType() != ctObject)
+            continue;
+
+        const ServerCapabilityPtr capability = serverCapabilitiesPtr.getPropertyValue(prop.getName());
+        if (capability.getProtocolId() == id)
+            return OPENDAQ_ERR_DUPLICATEITEM;
+    }
+
+    serverCapabilitiesPtr.addProperty(ObjectProperty(id, serverCapability));
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(IString* protocolId)
+{
+    OPENDAQ_PARAM_NOT_NULL(protocolId);
+
+    BaseObjectPtr serverCapabilities;
+    StringPtr str = "serverCapabilities";
+    const ErrCode err = this->getPropertyValue(str, &serverCapabilities);
+    if (OPENDAQ_FAILED(err))
+        return err;
+    
+    const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>();
+    if (!serverCapabilitiesPtr.hasProperty(protocolId))
+        return OPENDAQ_ERR_NOTFOUND;
+
+    
+    return serverCapabilitiesPtr->removeProperty(protocolId);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clearServerStreamingCapabilities()
+{
+    BaseObjectPtr serverCapabilities;
+    StringPtr str = "serverCapabilities";
+    ErrCode err = this->getPropertyValue(str, &serverCapabilities);
+    if (OPENDAQ_FAILED(err))
+        return err;
+    
+    const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>();
+    const auto props = serverCapabilitiesPtr.getAllProperties();
+    for (const auto& prop : props)
+    {
+        if (prop.getValueType() == ctObject)
+        {
+            err = serverCapabilitiesPtr->removeProperty(prop.getName());
+            if (OPENDAQ_FAILED(err))
+                return err;
+        }
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::hasServerCapability(IString* protocolId, Bool* hasCapability)
+{
+    OPENDAQ_PARAM_NOT_NULL(hasCapability);
+    OPENDAQ_PARAM_NOT_NULL(protocolId);
+    
+    BaseObjectPtr obj;
+    StringPtr str = "serverCapabilities";
+    ErrCode err = this->getPropertyValue(str, &obj);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>();
+    serverCapabilitiesPtr->hasProperty(protocolId, hasCapability);
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(IList** serverCapabilities)
+{
+    OPENDAQ_PARAM_NOT_NULL(serverCapabilities);
+    ListPtr<IServerCapability> caps = List<IServerCapability>();
+
+    BaseObjectPtr obj;
+    StringPtr str = "serverCapabilities";
+    ErrCode err = this->getPropertyValue(str, &obj);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>();
+    for (const auto& prop : serverCapabilitiesPtr.getAllProperties())
+    {
+        if (prop.getValueType() == ctObject)
+        {
+            BaseObjectPtr cap;
+            err = serverCapabilitiesPtr->getPropertyValue(prop.getName(), &cap);
+            if (OPENDAQ_FAILED(err))
+                return err;
+
+            caps.pushBack(cap.detach());
+        }
+    }
+
+    *serverCapabilities = caps.detach();
+    return OPENDAQ_SUCCESS;
+}
 
 #if !defined(BUILDING_STATIC_LIBRARY)
 
@@ -520,8 +655,5 @@ ErrCode PUBLIC_EXPORT createDeviceInfoConfigWithCustomSdkVersion(IDeviceInfoConf
 }
 
 #endif
-
-
-
 
 END_NAMESPACE_OPENDAQ

@@ -33,7 +33,7 @@ public:
     const uint16_t STREAMING_PORT = 7414;
     const uint16_t STREAMING_CONTROL_PORT = 7438;
     const std::string OPCUA_URL = "opc.tcp://127.0.0.1/";
-    const std::string STREAMING_URL = "daq.wss://127.0.0.1/";
+    const std::string STREAMING_URL = "daq.lt://127.0.0.1/";
 
     using ReadCallback = std::function<void(const ListPtr<IPacket>& readPackets)>;
 
@@ -42,10 +42,10 @@ public:
         logger = Logger();
         loggerComponent = logger.getOrAddComponent("StreamingIntegrationTest");
         auto clientLogger = Logger();
-        clientContext = Context(Scheduler(clientLogger, 1), clientLogger, nullptr, nullptr);
+        clientContext = Context(Scheduler(clientLogger, 1), clientLogger, TypeManager(), nullptr);
         instance = createDevice();
 
-        createStreamingCallback = Function([this](const StreamingInfoPtr& /*streamingConfig*/,
+        createStreamingCallback = Function([this](const ServerCapabilityPtr& /*capability*/,
                                                   bool /*isRootDevice*/)
                                            {
                                                return createStreaming();
@@ -442,7 +442,7 @@ TEST_F(StreamingIntegrationTest, StreamingDeactivate)
     server.start();
 
     auto streaming = createStreaming();
-    auto createStreamingCb = Function([&](const StreamingInfoPtr& /*streamingConfig*/,
+    auto createStreamingCb = Function([&](const ServerCapabilityPtr& /*capability*/,
                                           bool /*isRootDevice*/)
                                       {
                                           return streaming;

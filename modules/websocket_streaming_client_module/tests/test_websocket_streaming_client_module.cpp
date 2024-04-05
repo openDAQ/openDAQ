@@ -7,7 +7,7 @@
 #include <coretypes/common.h>
 
 #include <opendaq/context_factory.h>
-#include <opendaq/streaming_info_factory.h>
+#include <opendaq/device_info_factory.h>
 #include <coreobjects/property_factory.h>
 
 using WebsocketStreamingClientModuleTest = testing::Test;
@@ -97,7 +97,7 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsConnectionStringCorrect)
 {
     auto module = CreateModule();
 
-    ASSERT_TRUE(module.acceptsConnectionParameters("daq.ws://device8"));
+    ASSERT_TRUE(module.acceptsConnectionParameters("daq.lt://device8"));
 }
 
 TEST_F(WebsocketStreamingClientModuleTest, CreateDeviceConnectionStringNull)
@@ -134,7 +134,7 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateDeviceConnectionFailed)
 {
     auto module = CreateModule();
 
-    ASSERT_THROW(module.createDevice("daq.ws://127.0.0.1", nullptr), NotFoundException);
+    ASSERT_THROW(module.createDevice("daq.lt://127.0.0.1", nullptr), NotFoundException);
 }
 
 
@@ -175,22 +175,25 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConnectionStringCorre
 {
     auto module = CreateModule();
 
-    ASSERT_TRUE(module.acceptsStreamingConnectionParameters("daq.wss://device8"));
+    ASSERT_TRUE(module.acceptsStreamingConnectionParameters("daq.lt://device8"));
 }
 
 
 TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConfig)
 {
-    auto module = CreateModule();
+    auto context = NullContext();
+    ModulePtr module;
+    createModule(&module, context);
 
-    StreamingInfoConfigPtr streamingInfoConfig = StreamingInfo("daq.wss");
-    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
+    ServerCapabilityConfigPtr serverCapability = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming);
+    serverCapability.setPrefix("daq.lt");
+    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
-    streamingInfoConfig.setPrimaryAddress("123.123.123.123");
-    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
+    serverCapability.setPropertyValue("address", "123.123.123.123");
+    ASSERT_FALSE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 
-    streamingInfoConfig.addProperty(IntProperty("Port", 1234));
-    ASSERT_TRUE(module.acceptsStreamingConnectionParameters(nullptr, streamingInfoConfig));
+    serverCapability.addProperty(IntProperty("Port", 1234));
+    ASSERT_TRUE(module.acceptsStreamingConnectionParameters(nullptr, serverCapability));
 }
 
 TEST_F(WebsocketStreamingClientModuleTest, CreateStreamingWithNullArguments)
@@ -221,7 +224,7 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateStreamingConnectionStringInvali
 
     ASSERT_THROW(module.createStreaming("daqref://devicett3axxr1", nullptr), InvalidParameterException);
     ASSERT_THROW(module.createStreaming("daq.opcua://devicett3axxr1", nullptr), InvalidParameterException);
-    ASSERT_THROW(module.createStreaming("daq.ws://devicett3axxr1", nullptr), InvalidParameterException);
+    ASSERT_THROW(module.createStreaming("daq.lt://devicett3axxr1", nullptr), NotFoundException);
 }
 
 TEST_F(WebsocketStreamingClientModuleTest, GetAvailableComponentTypes)
@@ -234,11 +237,9 @@ TEST_F(WebsocketStreamingClientModuleTest, GetAvailableComponentTypes)
 
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
-    ASSERT_EQ(deviceTypes.getCount(), 2u);
-    ASSERT_TRUE(deviceTypes.hasKey("daq.ws"));
-    ASSERT_EQ(deviceTypes.get("daq.ws").getId(), "daq.ws");
-    ASSERT_TRUE(deviceTypes.hasKey("daq.tcp"));
-    ASSERT_EQ(deviceTypes.get("daq.tcp").getId(), "daq.tcp");
+    ASSERT_EQ(deviceTypes.getCount(), 1u);
+    ASSERT_TRUE(deviceTypes.hasKey("opendaq_lt_streaming"));
+    ASSERT_EQ(deviceTypes.get("opendaq_lt_streaming").getId(), "opendaq_lt_streaming");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());

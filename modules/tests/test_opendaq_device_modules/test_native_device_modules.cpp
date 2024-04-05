@@ -612,7 +612,7 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     InstancePtr instance;
     ASSERT_NO_THROW(instance = InstanceBuilder().addConfigProvider(JsonConfigProvider("opendaq-config.json")).build());
 
-    auto deviceConfig = instance.getAvailableDeviceTypes().get("daq.nd").createDefaultConfig();
+    auto deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_native_config").createDefaultConfig();
     ASSERT_TRUE(deviceConfig.hasProperty("TransportLayerConfig"));
     PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
 
@@ -623,7 +623,7 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     ASSERT_EQ(transportLayerConfig.getPropertyValue("StreamingInitTimeout"), 400);
     ASSERT_EQ(transportLayerConfig.getPropertyValue("ReconnectionPeriod"), 500);
 
-    auto pseudoDeviceConfig = instance.getAvailableDeviceTypes().get("daq.nsd").createDefaultConfig();
+    auto pseudoDeviceConfig = instance.getAvailableDeviceTypes().get("opendaq_native_streaming").createDefaultConfig();
     ASSERT_TRUE(pseudoDeviceConfig.hasProperty("TransportLayerConfig"));
     transportLayerConfig = pseudoDeviceConfig.getPropertyValue("TransportLayerConfig");
 

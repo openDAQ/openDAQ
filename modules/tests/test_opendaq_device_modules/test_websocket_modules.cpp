@@ -8,7 +8,8 @@ static InstancePtr CreateServerInstance()
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
-    auto context = Context(scheduler, logger, nullptr, moduleManager);
+    auto typeManager = TypeManager();
+    auto context = Context(scheduler, logger, typeManager, moduleManager);
 
     auto instance = InstanceCustom(context, "local");
 
@@ -16,7 +17,7 @@ static InstancePtr CreateServerInstance()
     const auto refDevice = instance.addDevice("daqref://device1");
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
 
-    instance.addServer("openDAQ WebsocketTcp Streaming", nullptr);
+    instance.addServer("openDAQ LT Streaming", nullptr);
 
     return instance;
 }
@@ -24,7 +25,7 @@ static InstancePtr CreateServerInstance()
 static InstancePtr CreateClientInstance()
 {
     auto instance = Instance();
-    auto refDevice = instance.addDevice("daq.ws://127.0.0.1/");
+    auto refDevice = instance.addDevice("daq.lt://127.0.0.1/");
     return instance;
 }
 

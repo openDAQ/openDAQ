@@ -30,7 +30,6 @@
 #include <coreobjects/property_object_impl.h>
 #include <coretypes/validation.h>
 #include <opendaq/device_private.h>
-#include <opendaq/streaming_info_factory.h>
 #include <tsl/ordered_set.h>
 #include <opendaq/component_keys.h>
 #include <opendaq/core_opendaq_event_args_factory.h>
@@ -86,9 +85,6 @@ public:
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
 
     // IDevicePrivate
-    ErrCode INTERFACE_FUNC addStreamingOption(IStreamingInfo* info) override;
-    ErrCode INTERFACE_FUNC removeStreamingOption(IString* protocolId) override;
-    ErrCode INTERFACE_FUNC getStreamingOptions(IList** streamingOptions) override;
     ErrCode INTERFACE_FUNC setAsRoot() override;
 
     // Function block devices
@@ -119,7 +115,6 @@ protected:
     DeviceInfoPtr deviceInfo;
     FolderConfigPtr devices;
     IoFolderConfigPtr ioFolder;
-    std::vector<StreamingInfoPtr> streamingOptions;
     LoggerComponentPtr loggerComponent;
     bool isRootDevice;
 
@@ -206,12 +201,16 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 {
     OPENDAQ_PARAM_NOT_NULL(info);
+    ErrCode errCode = OPENDAQ_SUCCESS;
 
-    DeviceInfoPtr devInfo;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
+    if (!this->deviceInfo.assigned())
+    {
+        DeviceInfoPtr devInfo;
+        errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
+        this->deviceInfo = devInfo.detach();
+    }
 
-    *info = devInfo.detach();
-
+    *info = this->deviceInfo.addRefAndReturn();
     return errCode;
 }
 
@@ -221,60 +220,6 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getDomain(IDeviceDomain** devi
     OPENDAQ_PARAM_NOT_NULL(deviceDomain);
 
     *deviceDomain = this->deviceDomain.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::addStreamingOption(IStreamingInfo* info)
-{
-    OPENDAQ_PARAM_NOT_NULL(info);
-
-    auto infoPtr = StreamingInfoPtr::Borrow(info);
-
-    std::scoped_lock lock(this->sync);
-    auto it = std::find_if(this->streamingOptions.begin(),
-                           this->streamingOptions.end(),
-                           [&infoPtr](const StreamingInfoPtr& option)
-                           {
-                               return option.getProtocolId() == infoPtr.getProtocolId();
-                           });
-    if (it != this->streamingOptions.end())
-        return OPENDAQ_ERR_DUPLICATEITEM;
-
-    streamingOptions.push_back(infoPtr);
-    return OPENDAQ_SUCCESS;
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::removeStreamingOption(IString* protocolId)
-{
-    OPENDAQ_PARAM_NOT_NULL(protocolId);
-
-    const auto protocolIdPtr = StringPtr::Borrow(protocolId);
-
-    std::scoped_lock lock(this->sync);
-    auto it = std::find_if(this->streamingOptions.begin(),
-                           this->streamingOptions.end(),
-                           [&protocolIdPtr](const StreamingInfoPtr& option)
-                           {
-                               return option.getProtocolId() == protocolIdPtr;
-                           });
-    if (it == this->streamingOptions.end())
-        return OPENDAQ_ERR_NOTFOUND;
-
-    this->streamingOptions.erase(it);
-    return OPENDAQ_SUCCESS;
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getStreamingOptions(IList** streamingOptions)
-{
-    OPENDAQ_PARAM_NOT_NULL(streamingOptions);
-
-    std::scoped_lock lock(this->sync);
-    ListPtr<IStreamingInfo> streamingOptionsPtr{this->streamingOptions};
-    *streamingOptions = streamingOptionsPtr.detach();
-
     return OPENDAQ_SUCCESS;
 }
 

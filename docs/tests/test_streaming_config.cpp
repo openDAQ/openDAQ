@@ -14,17 +14,17 @@ TEST_F(StreamingConfigTest, ModifyConfiguration)
 
     daq::DictPtr<daq::IString, daq::IDeviceType> deviceTypes;
     deviceTypes = instance.getAvailableDeviceTypes();
-    ASSERT_TRUE(deviceTypes.hasKey("daq.opcua"));
+    ASSERT_TRUE(deviceTypes.hasKey("opendaq_opcua_config"));
 
-    daq::PropertyObjectPtr deviceConfig = deviceTypes.get("daq.opcua").createDefaultConfig();
+    daq::PropertyObjectPtr deviceConfig = deviceTypes.get("opendaq_opcua_config").createDefaultConfig();
     ASSERT_TRUE(deviceConfig.assigned());
 
     ASSERT_TRUE(deviceConfig.hasProperty("AllowedStreamingProtocols"));
     ASSERT_NO_THROW(deviceConfig.setPropertyValue("AllowedStreamingProtocols",
-                                                  daq::List<daq::IString>("daq.ns", "daq.wss")));
+                                                  daq::List<daq::IString>("opendaq_native_streaming", "opendaq_lt_streaming")));
 
     ASSERT_TRUE(deviceConfig.hasProperty("PrimaryStreamingProtocol"));
-    ASSERT_NO_THROW(deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss"));
+    ASSERT_NO_THROW(deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming"));
 
     ASSERT_TRUE(deviceConfig.hasProperty("StreamingConnectionHeuristic"));
     ASSERT_NO_THROW(deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0));
@@ -38,7 +38,7 @@ TEST_F(StreamingConfigTest, AddPseudoDevice)
     InstancePtr server = docs_test_helpers::setupSimulatorServers();
     daq::InstancePtr instance = daq::Instance();
 
-    daq::DevicePtr device = instance.addDevice("daq.nsd://127.0.0.1");
+    daq::DevicePtr device = instance.addDevice("daq.ns://127.0.0.1");
     ASSERT_TRUE(device.assigned());
 
     ASSERT_EQ(device.getInfo().getName(), "NativeStreamingClientPseudoDevice");
@@ -52,9 +52,9 @@ TEST_F(StreamingConfigTest, AddDeviceWithConfig)
     InstancePtr server = docs_test_helpers::setupSimulatorServers();
     daq::InstancePtr instance = daq::Instance();
 
-    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.wss"));
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
+    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
     deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
 
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
@@ -71,9 +71,9 @@ TEST_F(StreamingConfigTest, StreamingSources)
     InstancePtr server = docs_test_helpers::setupSimulatorServers();
     daq::InstancePtr instance = daq::Instance();
 
-    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.wss"));
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
+    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
     deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
 
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
@@ -82,13 +82,13 @@ TEST_F(StreamingConfigTest, StreamingSources)
     daq::MirroredSignalConfigPtr signal = device.getSignalsRecursive()[0];
 
     ASSERT_TRUE(signal.getActiveStreamingSource().assigned());
-    ASSERT_TRUE(signal.getActiveStreamingSource().toView().find("daq.wss://") != std::string::npos);
-    ASSERT_EQ(signal.getActiveStreamingSource(), "daq.wss://127.0.0.1:7414");
+    ASSERT_TRUE(signal.getActiveStreamingSource().toView().find("daq.lt://") != std::string::npos);
+    ASSERT_EQ(signal.getActiveStreamingSource(), "daq.lt://127.0.0.1:7414");
 
     daq::ListPtr<IString> streamingSources = signal.getStreamingSources();
     ASSERT_EQ(streamingSources.getCount(), 2u);
 
-    ASSERT_NE(std::find(streamingSources.begin(), streamingSources.end(), "daq.wss://127.0.0.1:7414"),
+    ASSERT_NE(std::find(streamingSources.begin(), streamingSources.end(), "daq.lt://127.0.0.1:7414"),
               streamingSources.end());
     ASSERT_NE(std::find(streamingSources.begin(), streamingSources.end(), "daq.ns://127.0.0.1:7420"),
               streamingSources.end());
@@ -104,16 +104,16 @@ TEST_F(StreamingConfigTest, WebsocketStreamingRead)
     InstancePtr server = docs_test_helpers::setupSimulatorServers();
     daq::InstancePtr instance = daq::Instance();
 
-    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.wss"));
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
+    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
     deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
 
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
     ASSERT_TRUE(device.assigned());
 
     daq::MirroredSignalConfigPtr signal = device.getSignalsRecursive()[0];
-    ASSERT_NO_THROW(signal.setActiveStreamingSource("daq.wss://127.0.0.1:7414"));
+    ASSERT_NO_THROW(signal.setActiveStreamingSource("daq.lt://127.0.0.1:7414"));
 
     using namespace std::chrono_literals;
     StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
@@ -136,9 +136,9 @@ TEST_F(StreamingConfigTest, NativeStreamingRead)
     InstancePtr server = docs_test_helpers::setupSimulatorServers();
     daq::InstancePtr instance = daq::Instance();
 
-    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
-    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("daq.ns", "daq.wss"));
-    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "daq.wss");
+    daq::PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
+    deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
+    deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
     deviceConfig.setPropertyValue("StreamingConnectionHeuristic", 0);
 
     daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);

@@ -7,7 +7,6 @@ set(TEST_MOCKS mock/mock_mirrored_signal.h
 
 set(TEST_SOURCES test_streaming.cpp
                  test_mirrored_signal.cpp
-                 test_streaming_info.cpp
                  ${TEST_MOCKS}
 )
 

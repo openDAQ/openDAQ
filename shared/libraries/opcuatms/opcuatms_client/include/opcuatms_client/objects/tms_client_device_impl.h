@@ -50,7 +50,7 @@ protected:
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 
     // Streaming related methods
-    void findAndCreateStreamingOptions();
+    void findAndCreateServerCapabilities(const DeviceInfoPtr& deviceInfo);
     void setUpStreamings();
     void connectToStreamings();
 

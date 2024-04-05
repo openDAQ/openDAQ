@@ -154,12 +154,12 @@ void StreamingServer::sendPacketToSubscribers(const std::string& signalId, const
     }
 }
 
-DataRuleType StreamingServer::getDomainSignalRuleType(const SignalPtr& domainSignal)
+DataRuleType StreamingServer::getSignalRuleType(const SignalPtr& signal)
 {
-    auto descriptor = domainSignal.getDescriptor();
+    auto descriptor = signal.getDescriptor();
     if (!descriptor.assigned() || !descriptor.getRule().assigned())
     {
-        throw InvalidParameterException("Unknown domain signal rule");
+        throw InvalidParameterException("Unknown signal rule");
     }
     return descriptor.getRule().getType();
 }
@@ -172,9 +172,9 @@ void StreamingServer::addToOutputSignals(const SignalPtr& signal,
         -> std::shared_ptr<OutputDomainSignalBase>
     {
         auto tableId = domainSignal.getGlobalId();
-        const auto domainRuleType = getDomainSignalRuleType(domainSignal);
+        const auto domainSignalRuleType = getSignalRuleType(domainSignal);
 
-        if (domainRuleType == DataRuleType::Linear)
+        if (domainSignalRuleType == DataRuleType::Linear)
         {
             return std::make_shared<OutputLinearDomainSignal>(writer, domainSignal, tableId, logCallback);
         }
@@ -204,12 +204,26 @@ void StreamingServer::addToOutputSignals(const SignalPtr& signal,
 
         auto tableId = domainSignalId;
 
-        const auto domainRuleType = getDomainSignalRuleType(domainSignal);
-        if (domainRuleType == DataRuleType::Linear)
+        const auto domainSignalRuleType = getSignalRuleType(domainSignal);
+        if (domainSignalRuleType == DataRuleType::Linear)
         {
-            auto outputValueSignal =
-                std::make_shared<OutputSyncValueSignal>(writer, signal, outputDomainSignal, tableId, logCallback);
-            outputSignals.insert({signal.getGlobalId(), outputValueSignal});
+            const auto valueSignalRuleType = getSignalRuleType(signal);
+            if (valueSignalRuleType == DataRuleType::Explicit)
+            {
+                auto outputValueSignal =
+                    std::make_shared<OutputSyncValueSignal>(writer, signal, outputDomainSignal, tableId, logCallback);
+                outputSignals.insert({signal.getGlobalId(), outputValueSignal});
+            }
+            else if (valueSignalRuleType == DataRuleType::Constant)
+            {
+                auto outputValueSignal =
+                    std::make_shared<OutputConstValueSignal>(writer, signal, outputDomainSignal, tableId, logCallback);
+                outputSignals.insert({signal.getGlobalId(), outputValueSignal});
+            }
+            else
+            {
+                throw InvalidParameterException("Unsupported value signal rule type");
+            }
         }
         else
         {

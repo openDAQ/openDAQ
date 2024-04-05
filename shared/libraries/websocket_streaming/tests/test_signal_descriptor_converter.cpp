@@ -268,6 +268,57 @@ TEST(SignalConverter, subscribedDataSignal)
     ASSERT_EQ(daq::DataRuleType::Explicit, rule.getType());
 }
 
+TEST(SignalConverter, subscribedBitfieldSignal)
+{
+    std::string method;
+    int result;
+    unsigned int signalNumber = 3;
+    std::string tableId = "table id";
+    std::string signalId = "signal id";
+    std::string memberName = "This is the measured value";
+
+    nlohmann::json bitsInterpretationObject =
+        R"([{"description": "Data overrun","index": 0,"uuid": "c214c128-2447-4cee-ba39-6227aed2eff4"}])"_json;
+
+    bsp::SubscribedSignal subscribedSignal(signalNumber, bsp::Logging::logCallback());
+
+    // some meta information is to be processed to have the signal described:
+    // -subscribe
+    // -signal
+    nlohmann::json subscribeParams;
+    method = bsp::META_METHOD_SUBSCRIBE;
+    subscribeParams[bsp::META_SIGNALID] = signalId;
+    result = subscribedSignal.processSignalMetaInformation(method, subscribeParams);
+    ASSERT_EQ(result, 0);
+
+    nlohmann::json signalParams;
+    method = bsp::META_METHOD_SIGNAL;
+    signalParams[bsp::META_TABLEID] = tableId;
+    signalParams[bsp::META_DEFINITION][bsp::META_NAME] = memberName;
+    signalParams[bsp::META_DEFINITION][bsp::META_DATATYPE] = bsp::DATA_TYPE_BITFIELD;
+    signalParams[bsp::META_DEFINITION][bsp::DATA_TYPE_BITFIELD]["bits"] =
+        bitsInterpretationObject;
+    signalParams[bsp::META_DEFINITION][bsp::DATA_TYPE_BITFIELD][bsp::META_DATATYPE] =
+        bsp::DATA_TYPE_UINT64;
+    signalParams[bsp::META_DEFINITION][bsp::META_RULE] = bsp::META_RULETYPE_CONSTANT;
+
+    result = subscribedSignal.processSignalMetaInformation(method, signalParams);
+    ASSERT_EQ(result, 0);
+    ASSERT_FALSE(subscribedSignal.isTimeSignal());
+    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto dataDescriptor = subscribedSignalInfo.dataDescriptor;
+    ASSERT_EQ(subscribedSignalInfo.signalName, memberName);
+
+    ASSERT_EQ(dataDescriptor.getSampleType(), daq::SampleType::UInt64);
+
+    auto rule = dataDescriptor.getRule();
+    ASSERT_TRUE(rule.assigned());
+    ASSERT_EQ(daq::DataRuleType::Constant, rule.getType());
+
+    ASSERT_TRUE(dataDescriptor.getMetadata().hasKey("bits"));
+    ASSERT_EQ(dataDescriptor.getMetadata().get("bits"), bitsInterpretationObject.dump());
+}
+
 TEST(SignalConverter, subscribedTimeSignal)
 {
     std::string method;

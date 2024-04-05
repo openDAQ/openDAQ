@@ -21,40 +21,156 @@
 #include <opendaq/sample_type.h>
 #include <opendaq/signal_factory.h>
 #include <opendaq/event_packet_ptr.h>
+#include <opendaq/data_packet_ptr.h>
+#include <variant>
+#include <websocket_streaming/signal_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
+
+class InputSignalBase;
+using InputSignalBasePtr = std::shared_ptr<InputSignalBase>;
 
 class InputSignal;
 using InputSignalPtr = std::shared_ptr<InputSignal>;
 
-class InputSignal
+class InputSignalBase
 {
 public:
-    InputSignal();
+    InputSignalBase(const std::string& signalId,
+                    const std::string& tabledId,
+                    const SubscribedSignalInfo& signalInfo,
+                    const InputSignalBasePtr& domainSignal,
+                    daq::streaming_protocol::LogCallback logCb);
 
-    PacketPtr createDataPacket(uint64_t packetOffset, const uint8_t* data, size_t size) const;
+    virtual void processSamples(uint64_t timestamp, const uint8_t* data, size_t sampleCount);
+    virtual DataPacketPtr generateDataPacket(uint64_t packetOffset,
+                                             const uint8_t* data,
+                                             size_t sampleCount,
+                                             const DataPacketPtr& domainPacket) = 0;
+    virtual bool isDomainSignal() const = 0;
+    virtual bool isCountable() const = 0;
+
     EventPacketPtr createDecriptorChangedPacket(bool valueChanged = true, bool domainChanged = true) const;
-    void setDataDescriptor(const DataDescriptorPtr& dataDescriptor);
-    void setDomainDescriptor(const DataDescriptorPtr& domainDescriptor);
-    bool hasDescriptors() const;
-    DataDescriptorPtr getSignalDescriptor() const;
-    DataDescriptorPtr getDomainSignalDescriptor() const;
-    void setTableId(std::string id);
-    std::string getTableId() const;
 
-    void setIsDomainSignal(bool value);
-    bool getIsDomainSignal() const;
+    void setDataDescriptor(const DataDescriptorPtr& dataDescriptor);
+    bool hasDescriptors() const;
+
+    DataDescriptorPtr getSignalDescriptor() const;
+    std::string getTableId() const;
+    std::string getSignalId() const;
+
+    InputSignalBasePtr getInputDomainSignal() const;
 
 protected:
+    const std::string signalId;
+    const std::string tableId;
     DataDescriptorPtr currentDataDescriptor;
-    DataDescriptorPtr currentDomainDataDescriptor;
+    const InputSignalBasePtr inputDomainSignal;
 
     std::string name;
     std::string description;
-    std::string tableId;
-    bool isDomainSignal;
 
+    daq::streaming_protocol::LogCallback logCallback;
     mutable std::mutex descriptorsSync;
 };
+
+class InputDomainSignal : public InputSignalBase
+{
+public:
+    InputDomainSignal(const std::string& signalId,
+                      const std::string& tabledId,
+                      const SubscribedSignalInfo& signalInfo,
+                      streaming_protocol::LogCallback logCb);
+
+    DataPacketPtr generateDataPacket(uint64_t packetOffset,
+                                     const uint8_t* data,
+                                     size_t sampleCount,
+                                     const DataPacketPtr& domainPacket) override;
+    bool isDomainSignal() const override;
+    bool isCountable() const override;
+
+private:
+    DataPacketPtr lastDomainPacket;
+};
+
+class InputExplicitDataSignal : public InputSignalBase
+{
+public:
+    InputExplicitDataSignal(const std::string& signalId,
+                            const std::string& tabledId,
+                            const SubscribedSignalInfo& signalInfo,
+                            const InputSignalBasePtr& domainSignal,
+                            streaming_protocol::LogCallback logCb);
+
+    DataPacketPtr generateDataPacket(uint64_t packetOffset,
+                                     const uint8_t* data,
+                                     size_t sampleCount,
+                                     const DataPacketPtr& domainPacket) override;
+    bool isDomainSignal() const override;
+    bool isCountable() const override;
+};
+
+class InputConstantDataSignal : public InputSignalBase
+{
+public:
+    using ConstantValueType =
+        std::variant<int8_t, int16_t , int32_t, int64_t, uint8_t, uint16_t , uint32_t, uint64_t, float, double>;
+
+    InputConstantDataSignal(const std::string& signalId,
+                            const std::string& tabledId,
+                            const SubscribedSignalInfo& signalInfo,
+                            const InputSignalBasePtr& domainSignal,
+                            streaming_protocol::LogCallback logCb);
+
+    void processSamples(uint64_t timestamp, const uint8_t* data, size_t sampleCount) override;
+    DataPacketPtr generateDataPacket(uint64_t packetOffset,
+                                     const uint8_t* data,
+                                     size_t sampleCount,
+                                     const DataPacketPtr& domainPacket) override;
+    bool isDomainSignal() const override;
+    bool isCountable() const override;
+
+private:
+    template<typename DataType>
+    static ConstantValueType extractConstantValue(const uint8_t* pValue);
+
+    template<typename DataType>
+    static DataPacketPtr createTypedConstantPacket(
+        ConstantValueType startValue,
+        const std::vector<std::pair<uint32_t, ConstantValueType>>& otherValues,
+        size_t sampleCount,
+        const DataPacketPtr& domainPacket,
+        const DataDescriptorPtr& dataDescriptor);
+
+    std::map<NumberPtr, ConstantValueType> cachedConstantValues;
+    std::optional<ConstantValueType> lastConstantValue;
+};
+
+inline InputSignalBasePtr InputSignal(const std::string& signalId,
+                                      const std::string& tabledId,
+                                      const SubscribedSignalInfo& signalInfo,
+                                      bool isTimeSignal,
+                                      const InputSignalBasePtr& domainSignal,
+                                      streaming_protocol::LogCallback logCb)
+{
+    auto dataRuleType = signalInfo.dataDescriptor.getRule().getType();
+
+    if (isTimeSignal)
+    {
+        if (dataRuleType == daq::DataRuleType::Linear)
+            return std::make_shared<InputDomainSignal>(signalId, tabledId, signalInfo, logCb);
+        else
+            throw ConversionFailedException("Unsupported input domain signal rule");
+    }
+    else
+    {
+        if (dataRuleType == daq::DataRuleType::Explicit)
+            return std::make_shared<InputExplicitDataSignal>(signalId, tabledId, signalInfo, domainSignal, logCb);
+        else if (dataRuleType == daq::DataRuleType::Constant)
+            return std::make_shared<InputConstantDataSignal>(signalId, tabledId, signalInfo, domainSignal, logCb);
+        else
+            throw ConversionFailedException("Unsupported input data signal rule");
+    }
+}
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

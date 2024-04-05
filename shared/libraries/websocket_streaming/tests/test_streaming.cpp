@@ -17,25 +17,33 @@ public:
     const std::string StreamingTarget = "/";
     const uint16_t ControlPort = daq::streaming_protocol::HTTP_CONTROL_PORT;
     SignalPtr testDoubleSignal;
+    SignalPtr testConstantSignal;
+    SignalPtr testDomainSignal;
     ContextPtr context;
+
+    Int delta;
+    Int packetOffset;
 
     void SetUp() override
     {
         context = NullContext();
-        testDoubleSignal = streaming_test_helpers::createTestSignal(context);
+        testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
+        testDoubleSignal = streaming_test_helpers::createExplicitValueSignal(context, "DoubleSignal", testDomainSignal);
+        testConstantSignal = streaming_test_helpers::createConstantValueSignal(context, "ConstantSignal", testDomainSignal);
+
+        delta = testDomainSignal.getDescriptor().getRule().getParameters().get("delta");
+        packetOffset = testDomainSignal.getDescriptor().getRule().getParameters().get("start");
     }
 
     void TearDown() override
     {
     }
 
-    PacketPtr createDataPacket(const std::vector<double> data, Int packetOffset = 0)
+    DataPacketPtr getNextDomainPacket(size_t sampleCount)
     {
-        auto sampleCount = data.size();
-        auto dataDescriptor = testDoubleSignal.getDescriptor();
-        auto domainDescriptor = testDoubleSignal.getDomainSignal().getDescriptor();
-        auto domainPacket = DataPacket(domainDescriptor, sampleCount, packetOffset);
-        return DataPacketWithDomain(domainPacket, dataDescriptor, sampleCount);
+        auto packet = DataPacket(testDomainSignal.getDescriptor(), sampleCount, packetOffset);
+        packetOffset += sampleCount * delta;
+        return packet;
     }
 };
 
@@ -138,25 +146,26 @@ TEST_F(StreamingTest, Subscription)
     client.connect();
     ASSERT_TRUE(client.isConnected());
 
-    client.subscribeSignals({testDoubleSignal.getGlobalId()});
+    client.subscribeSignal(testDoubleSignal.getGlobalId());
     ASSERT_EQ(subscribeAckFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
     ASSERT_EQ(subscribeAckFuture.get(), testDoubleSignal.getGlobalId());
 
-    client.unsubscribeSignals({testDoubleSignal.getGlobalId()});
+    client.unsubscribeSignal(testDoubleSignal.getGlobalId());
     ASSERT_EQ(unsubscribeAckFuture.wait_for(std::chrono::milliseconds(500)), std::future_status::ready);
     ASSERT_EQ(unsubscribeAckFuture.get(), testDoubleSignal.getGlobalId());
 }
 
-TEST_F(StreamingTest, SimpePacket)
+TEST_F(StreamingTest, SimpePackets)
 {
     std::vector<double> data = {-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5};
-    auto packet = createDataPacket(data, 100);
+    auto sampleCount = data.size();
 
     auto server = std::make_shared<StreamingServer>(context);
     server->onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) {
         auto signals = List<ISignal>();
+        signals.pushBack(testDomainSignal);
         signals.pushBack(testDoubleSignal);
-        signals.pushBack(testDoubleSignal.getDomainSignal());
+        signals.pushBack(testConstantSignal);
         return signals;
     });
     server->start(StreamingPort, ControlPort);
@@ -164,14 +173,20 @@ TEST_F(StreamingTest, SimpePacket)
     std::vector<PacketPtr> receivedPackets;
     auto client = StreamingClient(context, "127.0.0.1", StreamingPort, StreamingTarget);
 
-    std::promise<std::string> subscribeAckPromise;
-    std::future<std::string> subscribeAckFuture = subscribeAckPromise.get_future();
+    std::map<std::string, std::promise<void>> subscribeAckPromises;
+    subscribeAckPromises.emplace(testConstantSignal.getGlobalId(), std::promise<void>());
+    subscribeAckPromises.emplace(testDoubleSignal.getGlobalId(), std::promise<void>());
+
+    std::map<std::string, std::future<void>> subscribeAckFutures;
+    subscribeAckFutures.emplace(testConstantSignal.getGlobalId(), subscribeAckPromises.at(testConstantSignal.getGlobalId()).get_future());
+    subscribeAckFutures.emplace(testDoubleSignal.getGlobalId(), subscribeAckPromises.at(testDoubleSignal.getGlobalId()).get_future());
 
     auto onSubscriptionAck =
-        [&subscribeAckPromise](const std::string& signalId, bool subscribed)
+        [&subscribeAckPromises](const std::string& signalId, bool subscribed)
     {
+        ASSERT_EQ(subscribeAckPromises.count(signalId), 1u);
         if (subscribed)
-            subscribeAckPromise.set_value(signalId);
+            subscribeAckPromises.at(signalId).set_value();
     };
 
     auto onPacket = [&receivedPackets](const StringPtr& signalId, const PacketPtr& packet)
@@ -179,22 +194,66 @@ TEST_F(StreamingTest, SimpePacket)
         receivedPackets.push_back(packet);
     };
 
-    auto findSignal = [&](const StringPtr& signalId) { return testDoubleSignal; };
-
     client.onPacket(onPacket);
-    client.onFindSignal(findSignal);
     client.onSubscriptionAck(onSubscriptionAck);
     client.connect();
     ASSERT_TRUE(client.isConnected());
 
-    client.subscribeSignals({testDoubleSignal.getGlobalId()});
-    ASSERT_EQ(subscribeAckFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
+    client.subscribeSignal(testConstantSignal.getGlobalId());
+    client.subscribeSignal(testDoubleSignal.getGlobalId());
 
-    std::string signalId = testDoubleSignal.getGlobalId();
-    server->sendPacketToSubscribers(signalId, packet);
+    ASSERT_EQ(subscribeAckFutures.at(testConstantSignal.getGlobalId()).wait_for(std::chrono::seconds(5)), std::future_status::ready);
+    ASSERT_EQ(subscribeAckFutures.at(testDoubleSignal.getGlobalId()).wait_for(std::chrono::seconds(5)), std::future_status::ready);
+
+    auto domainPacket1 = getNextDomainPacket(sampleCount);
+    auto explicitValuePacket1 = DataPacketWithDomain(domainPacket1, testDoubleSignal.getDescriptor(), sampleCount);
+    std::memcpy(explicitValuePacket1.getRawData(), data.data(), explicitValuePacket1.getRawDataSize());
+    auto constantValuePacket1 = ConstantDataPacketWithDomain<uint64_t>(domainPacket1,
+                                                                       testConstantSignal.getDescriptor(),
+                                                                       sampleCount,
+                                                                       1,
+                                                                       {{2, 2}, {4, 4}, {5, 5}});
+
+    server->sendPacketToSubscribers(testConstantSignal.getGlobalId(), constantValuePacket1);
+    server->sendPacketToSubscribers(testDoubleSignal.getGlobalId(), explicitValuePacket1);
+
+    auto domainPacket2 = getNextDomainPacket(sampleCount);
+    auto explicitValuePacket2 = DataPacketWithDomain(domainPacket2, testDoubleSignal.getDescriptor(), sampleCount);
+    std::memcpy(explicitValuePacket2.getRawData(), data.data(), explicitValuePacket2.getRawDataSize());
+
+    server->sendPacketToSubscribers(testDoubleSignal.getGlobalId(), explicitValuePacket2);
+
+    auto domainPacket3 = getNextDomainPacket(sampleCount);
+    auto explicitValuePacket3 = DataPacketWithDomain(domainPacket3, testDoubleSignal.getDescriptor(), sampleCount);
+    std::memcpy(explicitValuePacket3.getRawData(), data.data(), explicitValuePacket3.getRawDataSize());
+    auto constantValuePacket3 = ConstantDataPacketWithDomain<uint64_t>(domainPacket3,
+                                                                       testConstantSignal.getDescriptor(),
+                                                                       sampleCount,
+                                                                       1);
+
+    server->sendPacketToSubscribers(testConstantSignal.getGlobalId(), constantValuePacket3);
+    server->sendPacketToSubscribers(testDoubleSignal.getGlobalId(), explicitValuePacket3);
+
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
 
-    ASSERT_EQ(receivedPackets.size(), 2u);
-    ASSERT_EQ(receivedPackets[0].asPtr<IEventPacket>().getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
-    ASSERT_TRUE(BaseObjectPtr::Equals(packet, receivedPackets[1]));
+    // 3 domain and 6 value packets
+    ASSERT_EQ(receivedPackets.size(), 9u);
+
+    ASSERT_TRUE(BaseObjectPtr::Equals(domainPacket1, receivedPackets[0]));
+    ASSERT_TRUE(BaseObjectPtr::Equals(explicitValuePacket1, receivedPackets[1]));
+    ASSERT_TRUE(BaseObjectPtr::Equals(constantValuePacket1, receivedPackets[2]));
+
+    // packet automatically generated by client
+    auto constantValuePacket2 = ConstantDataPacketWithDomain<uint64_t>(domainPacket2,
+                                                                       testConstantSignal.getDescriptor(),
+                                                                       sampleCount,
+                                                                       5);
+
+    ASSERT_TRUE(BaseObjectPtr::Equals(domainPacket2, receivedPackets[3]));
+    ASSERT_TRUE(BaseObjectPtr::Equals(explicitValuePacket2, receivedPackets[4]));
+    ASSERT_TRUE(BaseObjectPtr::Equals(constantValuePacket2, receivedPackets[5]));
+
+    ASSERT_TRUE(BaseObjectPtr::Equals(domainPacket3, receivedPackets[6]));
+    ASSERT_TRUE(BaseObjectPtr::Equals(explicitValuePacket3, receivedPackets[7]));
+    ASSERT_TRUE(BaseObjectPtr::Equals(constantValuePacket3, receivedPackets[8]));
 }

@@ -3,6 +3,7 @@
 #include "streaming_protocol/StreamWriter.h"
 #include "streaming_protocol/SynchronousSignal.hpp"
 #include "streaming_protocol/LinearTimeSignal.hpp"
+#include "streaming_protocol/ConstantSignal.hpp"
 #include <opendaq/event_packet_params.h>
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/signal_factory.h>
@@ -499,6 +500,214 @@ void OutputSyncValueSignal::writeDataPacket(const DataPacketPtr& packet)
     }
 
     syncStream->addData(packet.getRawData(), packet.getSampleCount());
+}
+
+BaseConstantSignalPtr OutputConstValueSignal::createSignalStream(
+    const daq::streaming_protocol::StreamWriterPtr& writer,
+    const SignalPtr& signal,
+    const std::string& tableId,
+    daq::streaming_protocol::LogCallback logCb)
+{
+    BaseConstantSignalPtr constStream;
+
+    const auto valueDescriptor = signal.getDescriptor();
+    auto sampleType = valueDescriptor.getSampleType();
+    if (valueDescriptor.getPostScaling().assigned())
+        sampleType = valueDescriptor.getPostScaling().getInputSampleType();
+
+    const auto signalId = signal.getGlobalId();
+
+    switch (sampleType)
+    {
+        case daq::SampleType::Int8:
+            constStream = std::make_shared<ConstantSignal<int8_t>>(signalId, tableId, *writer, logCb);
+            break;
+        case daq::SampleType::UInt8:
+            constStream = std::make_shared<ConstantSignal<uint8_t>>(signalId, tableId, *writer, logCb);
+            break;
+        case daq::SampleType::Int16:
+            constStream = std::make_shared<ConstantSignal<int16_t>>(signalId, tableId, *writer, logCb);
+            break;
+        case daq::SampleType::UInt16:
+            constStream = std::make_shared<ConstantSignal<uint16_t>>(signalId, tableId, *writer, logCb);
+            break;
+        case daq::SampleType::Int32:
+            constStream = std::make_shared<ConstantSignal<int32_t>>(signalId, tableId, *writer, logCb);
+            break;
+        case daq::SampleType::UInt32:
+            constStream = std::make_shared<ConstantSignal<uint32_t>>(signalId, tableId, *writer, logCb);
+            break;
+        case daq::SampleType::Int64:
+            constStream = std::make_shared<ConstantSignal<int64_t>>(signalId, tableId, *writer, logCb);
+            break;
+        case daq::SampleType::UInt64:
+            constStream = std::make_shared<ConstantSignal<uint64_t>>(signalId, tableId, *writer, logCb);
+            break;
+        case daq::SampleType::Float32:
+            constStream = std::make_shared<ConstantSignal<float>>(signalId, tableId, *writer, logCb);
+            break;
+        case daq::SampleType::Float64:
+            constStream = std::make_shared<ConstantSignal<double>>(signalId, tableId, *writer, logCb);
+            break;
+        case daq::SampleType::ComplexFloat32:
+        case daq::SampleType::ComplexFloat64:
+        case daq::SampleType::Binary:
+        case daq::SampleType::Invalid:
+        case daq::SampleType::String:
+        case daq::SampleType::RangeInt64:
+        case daq::SampleType::Struct:
+        default:
+            throw InvalidTypeException("Unsupported data signal sample type");
+    }
+
+    SignalDescriptorConverter::ToStreamedValueSignal(signal, constStream, getSignalProps(signal));
+
+    return constStream;
+}
+
+OutputConstValueSignal::OutputConstValueSignal(const daq::streaming_protocol::StreamWriterPtr& writer,
+                                               const SignalPtr& signal, OutputDomainSignaBaselPtr outputDomainSignal,
+                                               const std::string& tableId,
+                                               daq::streaming_protocol::LogCallback logCb)
+    : OutputValueSignalBase(createSignalStream(writer, signal, tableId, logCb), signal, outputDomainSignal, logCb)
+    , constStream(std::dynamic_pointer_cast<daq::streaming_protocol::BaseConstantSignal>(stream))
+{
+}
+
+template <typename DataType>
+std::vector<std::pair<DataType, uint64_t>>
+OutputConstValueSignal::extractConstValuesFromDataPacket(const DataPacketPtr& packet)
+{
+    std::vector<std::pair<DataType, uint64_t>> result;
+
+    const auto packetData = reinterpret_cast<DataType*>(packet.getData());
+    result.push_back({packetData[0], 0});
+
+    for (size_t index = 1; index < packet.getSampleCount(); ++index)
+    {
+        DataType packetDataValue = packetData[index];
+        if (result.back().first != packetDataValue)
+            result.push_back({packetDataValue, static_cast<uint64_t>(index)});
+    }
+
+    return result;
+}
+
+template <typename DataType>
+void OutputConstValueSignal::writeData(const DataPacketPtr& packet, uint64_t firstValueIndex)
+{
+    if (doSetStartTime)
+    {
+        lastConstValue.reset();
+        doSetStartTime = false;
+    }
+
+    const auto values = extractConstValuesFromDataPacket<DataType>(packet);
+    const DataType packetFirstValue = values[0].first;
+
+    if (!lastConstValue.has_value() || std::get<DataType>(lastConstValue.value()) != packetFirstValue || values.size() > 1)
+    {
+        size_t startFrom = 0;
+        if (lastConstValue.has_value() && std::get<DataType>(lastConstValue.value()) == packetFirstValue)
+            startFrom = 1;
+
+        auto valuesCount = values.size();
+
+        std::vector<DataType> constants;
+        std::vector<uint64_t> indices;
+
+        for (size_t i = startFrom; i < valuesCount; ++i)
+        {
+            constants.push_back(static_cast<DataType>(values[i].first));
+            indices.push_back(values[i].second + firstValueIndex);
+        }
+
+        constStream->addData(constants.data(), indices.data(), valuesCount);
+    }
+
+    lastConstValue = values.back().first;
+}
+
+void OutputConstValueSignal::writeDataPacket(const DataPacketPtr& packet)
+{
+    const auto domainPacket = packet.getDomainPacket();
+    if (!domainPacket.assigned() || !domainPacket.getDataDescriptor().assigned())
+    {
+        STREAMING_PROTOCOL_LOG_E("streaming-lt: cannot stream data packet without domain packet / descriptor");
+        return;
+    }
+    const auto packetDomainDescriptor = domainPacket.getDataDescriptor();
+    if (outputDomainSignal->isTimeConfigChanged(packetDomainDescriptor) ||
+        isTimeConfigChanged(packetDomainDescriptor))
+    {
+        STREAMING_PROTOCOL_LOG_E("Domain signal config mismatched, skip data packet");
+        return;
+    }
+
+    uint64_t timeStamp = domainPacket.getOffset();
+    auto timeValueOffset = outputDomainSignal->calcStartTimeOffset(timeStamp);
+    Int deltaInTicks = packetDomainDescriptor.getRule().getParameters().get("delta");
+    uint64_t firstValueIndex = timeValueOffset / deltaInTicks;
+
+    auto sampleType = packet.getDataDescriptor().getSampleType();
+    switch (sampleType) {
+        case daq::SampleType::Int8:
+            writeData<int8_t>(packet, firstValueIndex);
+            break;
+        case daq::SampleType::Int16:
+            writeData<int16_t>(packet, firstValueIndex);
+            break;
+        case daq::SampleType::Int32:
+            writeData<int32_t>(packet, firstValueIndex);
+            break;
+        case daq::SampleType::Int64:
+            writeData<int64_t>(packet, firstValueIndex);
+            break;
+        case daq::SampleType::UInt8:
+            writeData<uint8_t>(packet, firstValueIndex);
+            break;
+        case daq::SampleType::UInt16:
+            writeData<uint16_t>(packet, firstValueIndex);
+            break;
+        case daq::SampleType::UInt32:
+            writeData<uint32_t>(packet, firstValueIndex);
+            break;
+        case daq::SampleType::UInt64:
+            writeData<uint64_t>(packet, firstValueIndex);
+            break;
+        case daq::SampleType::Float32:
+            writeData<float>(packet, firstValueIndex);
+            break;
+        case daq::SampleType::Float64:
+            writeData<double>(packet, firstValueIndex);
+            break;
+        default:
+            STREAMING_PROTOCOL_LOG_E("Unsupported sample type, skip data packet");
+            break;
+    }
+}
+
+void OutputConstValueSignal::setSubscribed(bool subscribed)
+{
+    if (this->subscribed != subscribed)
+    {
+        std::scoped_lock lock(subscribedSync);
+
+        this->subscribed = subscribed;
+        doSetStartTime = true;
+        lastConstValue.reset();
+
+        if (subscribed)
+        {
+            outputDomainSignal->subscribeByDataSignal();
+            stream->subscribe();
+        }
+        else
+        {
+            stream->unsubscribe();
+            outputDomainSignal->unsubscribeByDataSignal();
+        }
+    }
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

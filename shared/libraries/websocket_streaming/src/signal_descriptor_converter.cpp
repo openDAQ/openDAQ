@@ -69,6 +69,9 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(const daq::stre
         dataDescriptor.setValueRange(daq::Range(-15.0, 15.0));
     }
 
+    auto bitsInterpretation = subscribedSignal.bitsInterpretationObject();
+    DecodeBitsInterpretationObject(bitsInterpretation, dataDescriptor);
+
     // --- meta "interpretation" start ---
     // overwrite/add descriptor fields with ones from optional "interpretation" object
     auto extra = subscribedSignal.interpretationObject();
@@ -189,7 +192,7 @@ daq::DataRulePtr SignalDescriptorConverter::GetRule(const daq::streaming_protoco
         }
         break;
         default:
-            throw ConversionFailedException();
+            throw ConversionFailedException("Unsupported data rule type");
     }
 }
 
@@ -238,9 +241,11 @@ daq::SampleType SignalDescriptorConverter::Convert(daq::streaming_protocol::Samp
         case daq::streaming_protocol::SampleType::SAMPLETYPE_REAL64:
             return daq::SampleType::Float64;
         case daq::streaming_protocol::SampleType::SAMPLETYPE_BITFIELD32:
+            return daq::SampleType::UInt32;
         case daq::streaming_protocol::SampleType::SAMPLETYPE_BITFIELD64:
+            return daq::SampleType::UInt64;
         default:
-            throw ConversionFailedException();
+            throw ConversionFailedException("Unsupported input sample type");
     }
 }
 
@@ -293,7 +298,7 @@ daq::streaming_protocol::SampleType SignalDescriptorConverter::Convert(daq::Samp
         case daq::SampleType::String:
         case daq::SampleType::RangeInt64:
         default:
-            throw ConversionFailedException();
+            throw ConversionFailedException("Unsupported output sample type");
     }
 }
 
@@ -344,6 +349,15 @@ void SignalDescriptorConverter::EncodeInterpretationObject(const DataDescriptorP
         extra["scaling"]["outputType"] = scaling.getOutputSampleType();
         extra["scaling"]["scalingType"] = scaling.getType();
         extra["scaling"]["parameters"] = DictToJson(scaling.getParameters());
+    }
+}
+
+void SignalDescriptorConverter::DecodeBitsInterpretationObject(const nlohmann::json& bits, DataDescriptorBuilderPtr& dataDescriptor)
+{
+    if (!bits.empty() && bits.is_array())
+    {
+        auto metadata = dataDescriptor.getMetadata();
+        metadata.set("bits", bits.dump());
     }
 }
 

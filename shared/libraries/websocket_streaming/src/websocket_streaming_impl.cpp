@@ -40,12 +40,12 @@ void WebsocketStreamingImpl::onRemoveSignal(const MirroredSignalConfigPtr& /*sig
 
 void WebsocketStreamingImpl::onSubscribeSignal(const StringPtr& signalStreamingId)
 {
-    streamingClient->subscribeSignals({signalStreamingId.toStdString()});
+    streamingClient->subscribeSignal(signalStreamingId.toStdString());
 }
 
 void WebsocketStreamingImpl::onUnsubscribeSignal(const StringPtr& signalStreamingId)
 {
-    streamingClient->unsubscribeSignals({signalStreamingId.toStdString()});
+    streamingClient->unsubscribeSignal(signalStreamingId.toStdString());
 }
 
 void WebsocketStreamingImpl::prepareStreamingClient()
@@ -62,6 +62,12 @@ void WebsocketStreamingImpl::prepareStreamingClient()
     };
     streamingClient->onAvailableStreamingSignals(availableSignalsCallback);
 
+    auto hiddenSignalCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& /*sInfo*/)
+    {
+        this->onHiddenSignal(signalId);
+    };
+    streamingClient->onHiddenStreamingSignal(hiddenSignalCallback);
+
     auto signalSubscriptionAckCallback = [this](const std::string& signalStringId, bool subscribed)
     {
         this->triggerSubscribeAck(signalStringId, subscribed);
@@ -74,9 +80,18 @@ void WebsocketStreamingImpl::onAvailableSignals(const std::vector<std::string>& 
     for (const auto& signalId : signalIds)
     {
         auto signalStringId = String(signalId);
-        {
-            addToAvailableSignals(signalStringId);
-        }
+        addToAvailableSignals(signalStringId);
+    }
+}
+
+void WebsocketStreamingImpl::onHiddenSignal(const std::string& signalId)
+{
+    if (const auto it = hiddenSignals.find(signalId); it == hiddenSignals.end())
+    {
+        hiddenSignals.insert(signalId);
+
+        auto signalStringId = String(signalId);
+        addToAvailableSignals(signalStringId);
     }
 }
 

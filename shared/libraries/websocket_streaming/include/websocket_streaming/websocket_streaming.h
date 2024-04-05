@@ -51,6 +51,9 @@ namespace daq::streaming_protocol
 
     class LinearTimeSignal;
     using LinearTimeSignalPtr = std::shared_ptr<LinearTimeSignal>;
+
+    class BaseConstantSignal;
+    using BaseConstantSignalPtr = std::shared_ptr<BaseConstantSignal>;
 }
 
 namespace daq::stream

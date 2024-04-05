@@ -21,12 +21,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
-DECLARE_OPENDAQ_INTERFACE(IWebsocketStreamingSignalPrivate, IBaseObject)
-{
-    virtual void INTERFACE_FUNC createAndAssignDomainSignal(const DataDescriptorPtr& domainDescriptor) = 0;
-};
-
-class WebsocketClientSignalImpl final : public MirroredSignalBase<IWebsocketStreamingSignalPrivate>
+class WebsocketClientSignalImpl final : public MirroredSignal
 {
 public:
     explicit WebsocketClientSignalImpl(const ContextPtr& ctx,
@@ -35,9 +30,6 @@ public:
 
     StringPtr onGetRemoteId() const override;
     Bool onTriggerEvent(const EventPacketPtr& eventPacket) override;
-
-    // IWebsocketStreamingSignalPrivate
-    void INTERFACE_FUNC createAndAssignDomainSignal(const DataDescriptorPtr& domainDescriptor) override;
 
 protected:
     SignalPtr onGetDomainSignal() override;

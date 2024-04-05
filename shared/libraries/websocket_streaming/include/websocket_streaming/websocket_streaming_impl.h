@@ -41,8 +41,10 @@ protected:
 
     void prepareStreamingClient();
     void onAvailableSignals(const std::vector<std::string>& signalIds);
+    void onHiddenSignal(const std::string& signalId);
 
     daq::websocket_streaming::StreamingClientPtr streamingClient;
+    std::unordered_set<std::string> hiddenSignals;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

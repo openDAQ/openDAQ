@@ -93,7 +93,7 @@ protected:
     bool serverRunning{false};
 
 private:
-    static DataRuleType getDomainSignalRuleType(const SignalPtr& domainSignal);
+    static DataRuleType getSignalRuleType(const SignalPtr& domainSignal);
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

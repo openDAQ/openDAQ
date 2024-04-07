@@ -307,7 +307,7 @@ signal.descriptor = descriptor
 ----
 ====
 
-In the above example, we first build a Data Descriptor of a custom Struct that has two fields. The first field has Sample Type `Int32` and the second one has Sample Type `Float64`.
+In the above example, a Data Descriptor of a custom Struct that has two fields is first built. The first field has Sample Type `Int32` and the second one has Sample Type `Float64`.
 
 [CAUTION]
 ====

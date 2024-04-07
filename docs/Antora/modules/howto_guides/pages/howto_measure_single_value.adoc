@@ -87,7 +87,7 @@ The underlying type of the `IBaseObject` we get from our `getLastValue` call can
 * `IStruct` if the type is `Struct`
 * `IList` of the aforementioned types if there is exactly one dimension in the single value
 
-In this example, we cast `lastValue` object into an `IFloat` like so:
+An example of casting the `lastValue` object into an `IFloat` object:
 
 [tabs]
 ====

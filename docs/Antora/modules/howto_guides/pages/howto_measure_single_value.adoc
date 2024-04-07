@@ -131,7 +131,7 @@ descriptor = builder.build()
 [#last_value_range]
 == Getting the last value with a Range
 
-The following example demonstrate casting the `lastValue` object into an `IRange`
+The following example demonstrates casting the `lastValue` object into an `IRange`:
 
 [tabs]
 ====
@@ -172,7 +172,7 @@ high = last_value.high_value
 ----
 ====
 
-In the above example, the Data Descriptor of the Data Packet or its Signal on which we call `getLastValue` (`last_value` in Python) is:
+In the above example, the Data Descriptor of the Data Packet or its Signal on which `getLastValue` (`last_value` in Python) is called is:
 
 [tabs]
 ====

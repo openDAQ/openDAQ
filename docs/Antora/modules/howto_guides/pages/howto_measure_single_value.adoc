@@ -172,27 +172,7 @@ high = last_value.high_value
 ----
 ====
 
-In the above example, the Data Descriptor of the Data Packet or its Signal on which `getLastValue` (`last_value` in Python) is called is:
-
-[tabs]
-====
-Cpp::
-+
-[source,cpp]
-----
-// The Data Descriptor for RangeInt64
-auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::RangeInt64).build();
-----
-Python::
-+
-[source,python]
-----
-# The Data Descriptor for RangeInt64
-builder = opendaq.DataDescriptorBuilder()
-builder.sample_type = opendaq.SampleType.RangeInt64
-descriptor = builder.build()
-----
-====
+In the above example, the Data Descriptor of the Data Packet or its Signal on which `getLastValue` (`last_value` in Python) is called is similar to the the one from the previous example (the Data Descriptor with Sample Type `Float64`), except the Sample Type is `RangeInt64`.
 
 [#last_value_complex_number]
 == Getting the last value with a Complex Number

@@ -82,7 +82,7 @@ The underlying type of the `IBaseObject` we get from our `getLastValue` call can
 
 * `IFloat` if the type is `Float32` or `Float64`
 * `IInteger` if the type is `Int8` through `Int64` or `UInt8` through `UInt64`
-* `IComplexNumber` if type is `ComplexFloat32` or `ComplexFloat64`
+* `IComplexNumber` if the type is `ComplexFloat32` or `ComplexFloat64`
 * `IRange` if the type is `RangeInt64`
 * `IStruct` if the type is `Struct`
 * `IList` of the aforementioned types if there is exactly one dimension in the single value
@@ -131,7 +131,7 @@ descriptor = builder.build()
 [#last_value_range]
 == Getting the last value with a Range
 
-The following example demonstrates casting the `lastValue` object into an `IRange`:
+The following example demonstrates casting the `lastValue` object into an `IRange`. Something usefeul we can then do is call the methods of the underlying type and access its members such as the `getLowValue` (`low_value` in Python) and the `getHighValue` (`high_value` in Python), in this case provided by the `IRange` interface.
 
 [tabs]
 ====
@@ -141,23 +141,6 @@ Cpp::
 ----
 // Cast to IRange
 auto range = lastValue.asPtr<IRange>();
-----
-Python::
-+
-[source,python]
-----
-# No need for casting
-----
-====
-
-An example of something we could now do is call the methods of the underlying type and access its members such as the `getLowValue` (`low_value` in Python) and the `getHighValue` (`high_value` in Python), in this case provided by the `IRange` interface.
-
-[tabs]
-====
-Cpp::
-+
-[source,cpp]
-----
 // Extract values
 auto low = range.getLowValue();
 auto high = range.getHighValue();
@@ -166,6 +149,8 @@ Python::
 +
 [source,python]
 ----
+# No need for casting
+
 # Extract values
 low = last_value.low_value
 high = last_value.high_value
@@ -179,7 +164,7 @@ In the above example, the Data Descriptor of the Data Packet or its Signal on wh
 
 In the following example:
 
-* Last value is extracted via `getLastValue` (`last_value` in Python) call
+* Last value is extracted via a `getLastValue` (`last_value` in Python) call
 * `lastValue` object is cast into a `IComplexNumber` type (not needed in Python)
 * Methods of the underlying type such as the `getReal` (`real` in Python) and the `getImaginary` (`imaginary` in Python) are called, in this case provided by the `IComplexNumber` interface
 

@@ -91,6 +91,12 @@ Cpp::
 // Cast to IFloat
 auto number = lastValue.asPtr<IFloat>();
 ----
+Python::
++
+[source,python]
+----
+# No need for casting
+----
 ====
 
 In the above example, the Data Descriptor of the Data Packet or its Signal on which we call `getLastValue` (`last_value` in Python) is:
@@ -128,6 +134,12 @@ Cpp::
 ----
 // Cast to IRange
 auto range = lastValue.asPtr<IRange>();
+----
+Python::
++
+[source,python]
+----
+# No need for casting
 ----
 ====
 

@@ -106,7 +106,7 @@ Python::
 ----
 ====
 
-In the above example, the Data Descriptor of the Data Packet or its Signal on which `getLastValue` (`last_value` in Python) is called is:
+In the above example, the Data Descriptor of the Data Packet or its Signal on which `getLastValue` (`last_value` in Python) is called might be:
 
 [tabs]
 ====
@@ -208,7 +208,7 @@ real = last_value.real
 imaginary = last_value.imaginary
 ====
 
-A Data Descriptor for a Complex Number is again very similar to the ones from previous examples, except the Sample Type is `ComplexFloat32` instead of `Float64` or `RangeInt64`.
+A Data Descriptor for this Complex Number example is again very similar to the ones from previous examples, except the Sample Type might be `ComplexFloat32` or `ComplexFloat64` or  instead of `Float64` or `RangeInt64`.
 
 [#last_value_struct]
 == Getting the last value with a Struct

@@ -76,7 +76,7 @@ print("last value: ", last_value)
 [#casting_the_last_value]
 == Casting the last value and using the cast variable
 
-In C++, if we would like to do something useful with the `IBaseObject`, such as access its underlying methods, we need to cast it into the correct type first. This is not necessary in Python, however.
+In C++, the function `getLastValue` returns an object of type `IBaseObject`. To access it's underying members and methods, one must explicitly cast it into the appropriate type. However, in Python, this is not necessary due to dynamic typing.
 
 The underlying type of the `IBaseObject` we get from our `getLastValue` call can be cast into either:
 

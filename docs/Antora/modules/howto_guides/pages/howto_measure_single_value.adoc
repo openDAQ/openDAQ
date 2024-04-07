@@ -208,27 +208,7 @@ real = last_value.real
 imaginary = last_value.imaginary
 ====
 
-A Data Descriptor for a Complex Number might be:
-
-[tabs]
-====
-Cpp::
-+
-[source,cpp]
-----
-// The Data Descriptor for ComplexFloat32
-auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
-----
-Python::
-+
-[source,python]
-----
-# The Data Descriptor for ComplexFloat32
-builder = opendaq.DataDescriptorBuilder()
-builder.sample_type = opendaq.SampleType.ComplexFloat32
-descriptor = builder.build()
-----
-====
+A Data Descriptor for a Complex Number is again very similar to the ones from previous examples, except the Sample Type is `ComplexFloat32` instead of `Float64` or `RangeInt64`.
 
 [#last_value_struct]
 == Getting the last value with a Struct

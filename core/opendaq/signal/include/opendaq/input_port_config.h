@@ -91,6 +91,12 @@ DECLARE_OPENDAQ_INTERFACE(IInputPortConfig, IInputPort)
      * the owner of the input port (function block) should report an error.
      */
     virtual ErrCode INTERFACE_FUNC setRequiresSignal(Bool requiresSignal) = 0;
+
+    /*!
+     * @brief Returns the state of gap checking requested by the input port.
+     * @param gapCheckingEnabled true if gap checking is requested by the input port.
+     */
+    virtual ErrCode INTERFACE_FUNC getGapCheckingEnabled(Bool* gapCheckingEnabled) = 0;
 };
 /*!@}*/
 

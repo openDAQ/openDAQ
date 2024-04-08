@@ -129,7 +129,7 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
 ErrCode BlockReaderImpl::readPacketData()
 {
     auto remainingSampleCount = info.dataPacket.getSampleCount() - info.prevSampleIndex;
-    SizeT toRead = std::min(remainingSampleCount, blockSize);
+    SizeT toRead = std::min(remainingSampleCount, info.remainingSamplesToRead);
 
     ErrCode errCode = valueReader->readData(getValuePacketData(info.dataPacket), info.prevSampleIndex, &info.values, toRead);
     if (OPENDAQ_FAILED(errCode))
@@ -178,42 +178,50 @@ ErrCode BlockReaderImpl::readPacketData()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode BlockReaderImpl::readPackets(IReaderStatus** status)
+ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
 {
     ErrCode errCode = OPENDAQ_SUCCESS;
 
     BlockReadInfo::Duration remainingTime = info.timeout;
-    auto shouldReadMore = getAvailable() > 0 || remainingTime.count() > 0;
+    auto availableBlocks = getAvailable();
+    const auto maxBlocksToRead = info.remainingSamplesToRead / blockSize;
 
-    while (info.remainingSamplesToRead > 0 && shouldReadMore)
+    while (availableBlocks < maxBlocksToRead && remainingTime.count() > 0)
+    {
+        // if not enough samples wait for the timeout or a full block
+
+        std::unique_lock notifyLock(notify.mutex);
+        if (notify.condition.wait_for(notifyLock, remainingTime, [this, &availableBlocks, maxBlocksToRead]
+        {
+             if (!notify.dataReady)
+                 return false;
+             availableBlocks = getAvailable();
+             notify.dataReady = false;
+             if (availableBlocks >= maxBlocksToRead)
+                return true;
+             return false;
+        }))
+        {
+            break;
+        }
+
+        remainingTime = info.timeout - info.durationFromStart();
+    }
+
+    info.remainingSamplesToRead = std::min(availableBlocks * blockSize, info.remainingSamplesToRead);
+    *count = info.remainingSamplesToRead / blockSize;
+
+    while (info.remainingSamplesToRead > 0)
     {
         PacketPtr packet = info.dataPacket;
 
         // if no partially-read packet and there are more blocks left in the connection
-        if (getAvailable() > 0 && !packet.assigned())
+        if (!packet.assigned())
         {
             std::unique_lock notifyLock(notify.mutex);
 
             packet = connection.dequeue();
             notify.dataReady = false;
-        }
-        else if (!packet.assigned())
-        {
-            // if not enough samples wait for the timeout or a full block
-
-            std::unique_lock notifyLock(notify.mutex);
-            if (notify.condition.wait_for(notifyLock, remainingTime, [this]
-            {
-                return notify.dataReady && getAvailable() != 0;
-            }))
-            {
-                packet = connection.dequeue();
-                notify.dataReady = false;
-            }
-            else
-            {
-                break;
-            }
         }
 
         switch (packet.getType())
@@ -246,17 +254,10 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status)
             case PacketType::None:
                 break;
         }
-
-        if (info.timeout.count() != 0)
-            remainingTime = info.timeout - info.durationFromStart();
-
-        auto available = getAvailableSamples();
-        auto remaining = remainingTime.count();
-
-        shouldReadMore = info.remainingSamplesToRead <= available ||
-                         remaining > 0;
     }
 
+    if (OPENDAQ_FAILED(errCode))
+        *count = 0;
     return errCode;
 }
 
@@ -277,16 +278,14 @@ ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IRead
     if (status)
         *status = nullptr;
 
-    SizeT samplesToRead = *count * blockSize;
+    const SizeT samplesToRead = *count * blockSize;
     info.prepare(blocks, samplesToRead, milliseconds(timeoutMs));
 
-    ErrCode errCode = readPackets(status);
+    const ErrCode errCode = readPackets(status, count);
 
     if (status && *status == nullptr)
         *status = ReaderStatus().detach();
 
-    SizeT samplesRead = samplesToRead - info.remainingSamplesToRead;
-    *count = samplesRead / blockSize;
     return errCode;
 }
 
@@ -308,16 +307,13 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
     if (status)
         *status = nullptr;
 
-    SizeT samplesToRead = *count * blockSize;
+    const SizeT samplesToRead = *count * blockSize;
     info.prepareWithDomain(dataBlocks, domainBlocks, samplesToRead, milliseconds(timeoutMs));
 
-    ErrCode errCode = readPackets(status);
+    const ErrCode errCode = readPackets(status, count);
 
     if (status && *status == nullptr)
         *status = ReaderStatus().detach();
-
-    SizeT samplesRead = samplesToRead - info.remainingSamplesToRead;
-    *count = samplesRead / blockSize;
     return errCode;
 }
 

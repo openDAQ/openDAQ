@@ -286,6 +286,8 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        user_impl.h
                        authentication_provider_impl.h
                        permission_manager_impl.h
+                       permissions_impl.h
+                       permissions_builder_impl.h
                        permission_mask_builder_impl.h
 )
 

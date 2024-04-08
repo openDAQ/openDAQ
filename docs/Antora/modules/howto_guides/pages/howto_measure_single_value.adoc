@@ -22,8 +22,7 @@ Python::
 +
 [source,python]
 ----
-# Get last value of a Signal
-last_value = signal.last_value
+
 ----
 ====
 
@@ -45,8 +44,7 @@ Python::
 +
 [source,python]
 ----
-# Get last value of a Data Packet
-last_value = packet.last_value
+
 ----
 ====
 
@@ -68,8 +66,7 @@ Python::
 +
 [source,python]
 ----
-# Print last value
-print("last value: ", last_value)
+
 ----
 ====
 
@@ -121,10 +118,7 @@ Python::
 +
 [source,python]
 ----
-# The Data Descriptor for Float64
-builder = opendaq.DataDescriptorBuilder()
-builder.sample_type = opendaq.SampleType.Float64
-descriptor = builder.build()
+
 ----
 ====
 
@@ -149,11 +143,7 @@ Python::
 +
 [source,python]
 ----
-# No need for casting
 
-# Extract values
-low = last_value.low_value
-high = last_value.high_value
 ----
 ====
 
@@ -186,11 +176,7 @@ Python::
 +
 [source,python]
 ----
-# Get last value of a Signal
-last_value = signal.last_value
-# Extract values
-real = last_value.real
-imaginary = last_value.imaginary
+
 ====
 
 A Data Descriptor for this Complex Number example is again very similar to the ones from previous examples, except the Sample Type might be `ComplexFloat32` or `ComplexFloat64` or  instead of `Float64` or `RangeInt64`.
@@ -227,28 +213,7 @@ Python::
 +
 [source,python]
 ----
-# Create a Data Descriptor
-builder_int = opendaq.DataDescriptorBuilder()
-builder_int.name = "MyInt32"
-builder_int.sample_type = opendaq.SampleType.Int32
-descriptor_int = builder_int.build()
 
-builder_float = opendaq.DataDescriptorBuilder()
-builder_float.name = "MyFloat64"
-builder_float.sample_type = opendaq.SampleType.Float64
-descriptor_float = builder_float.build()
-
-builder = opendaq.DataDescriptorBuilder()
-builder.name = "MyStruct"
-builder.sample_type = opendaq.SampleType.Struct  # TODO not implemented
-struct_fields = opendaq.List()
-struct_fields.append(descriptor_int)
-struct_fields.append(descriptor_float)
-builder.struct_fields = struct_fields
-descriptor = builder.build()
-
-# Set the Data Descriptor, thereby adding MyStruct to the Type Manager
-signal.descriptor = descriptor
 ----
 ====
 
@@ -289,11 +254,7 @@ Python::
 +
 [source,python]
 ----
-# Get last value of a Signal
-last_value = signal.last_value
-# Extract values
-my_int = last_value.get("MyInt32")
-my_float = last_value.get("MyFloat64")
+
 ----
 ====
 
@@ -329,10 +290,7 @@ Python::
 +
 [source,python]
 ----
-# Get last value of a Signal
-last_value = signal.last_value
-# Extract the third item
-third = last_value[2]
+
 ----
 ====
 

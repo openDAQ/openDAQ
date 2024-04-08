@@ -48,8 +48,8 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
 ListPtr<IDeviceInfo> WebsocketStreamingClientModule::onGetAvailableDevices()
 {
     auto availableDevices = discoveryClient.discoverDevices();
-    if (availableDevices.getCount() == 0)
-        availableDevices = oldDiscoveryClient.discoverDevices();
+    for (const auto & device : oldDiscoveryClient.discoverDevices())
+        availableDevices.pushBack(device);
 
     for (auto device : availableDevices)
     {

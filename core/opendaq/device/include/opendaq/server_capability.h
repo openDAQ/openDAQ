@@ -28,12 +28,6 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-/*#
- * [interfaceSmartPtr(IEnumeration, EnumerationPtr, "<coretypes/enumeration_ptr.h>")]
- * [interfaceLibrary(IPropertyObject, "coreobjects")]
- * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
- */
-
 enum class ProtocolType: uint32_t
 {
     Unknown = 0,
@@ -41,6 +35,14 @@ enum class ProtocolType: uint32_t
     Streaming,
     ConfigurationAndStreaming,
 };
+
+/*#
+ * [templated(defaultAliasName: ServerCapabilityPtr)]
+ * [interfaceSmartPtr(IServerCapability, GenericServerCapabilityPtr)]
+ * [interfaceSmartPtr(IEnumeration, EnumerationPtr, "<coretypes/enumeration_ptr.h>")]
+ * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
+ */
 
 /*!
  * @brief Represents standard information about a server's capability to support various protocols. 

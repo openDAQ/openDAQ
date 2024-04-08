@@ -77,6 +77,68 @@ protected:
                            objManager)))
                 .build();
         objManager.addType(fusionAmpClass);
+
+        //Sync Component Interfaces
+        auto syncInterfaceBase = PropertyObjectClassBuilder("SyncInterfaceBase")
+                                     .addProperty(SelectionProperty("Mode", List<IString>("Input", "Output", "Auto", "off"), 0))
+                                     .build();
+        objManager.addType(syncInterfaceBase);
+
+        PropertyObjectPtr statusProperty = PropertyObject();
+        statusProperty.addProperty(SelectionProperty("State", List<IString>("OK", "Error", "Warning"), 0));
+
+        auto interfaceClockSync = PropertyObjectClassBuilder("InterfaceClockSync")
+                                      .setParentName("SyncInterfaceBase")
+                                      .addProperty(ObjectProperty("Status", statusProperty))
+                                      .build();
+
+        objManager.addType(interfaceClockSync);
+
+        PropertyObjectPtr statusProperty_2 = PropertyObject();
+        statusProperty.addProperty(SelectionProperty("State", List<IString>("OK", "Error", "Warning"), 0));
+        statusProperty.addProperty(StringPropertyBuilder("Grandmaster", "").build());
+
+
+        //Ptp Enumerations
+        const auto enumClockType = EnumerationType(
+            "PtpClockTypeEnumeration", List<IString>("Transparent", "OrdinaryBoundary", "SlaveOnly", "MasterOnly"));
+        const auto enumStepFlag = EnumerationType(
+            "PtpStepFlagEnumeration", List<IString>("ONE", "TWO"));
+        const auto enumTransportProtocol = EnumerationType(
+            "PtpProtocolEnumeration", List<IString>("IEEE802_3", "UDP_IPV4", "UDP_IPV6", "UDP6_ SCOPE"));
+        const auto enumDelayMechanism = EnumerationType(
+            "PtpDelayMechanismEnumeration", List<IString>("P2P", "E2E"));
+        const auto enumProfiles = EnumerationType(
+            "PtpProfileEnumeration", List<IString>("I558", "802_IAS"));
+        objManager.addType(enumClockType);
+        objManager.addType(enumStepFlag);
+        objManager.addType(enumTransportProtocol);
+        objManager.addType(enumDelayMechanism);
+        objManager.addType(enumProfiles);
+
+        PropertyObjectPtr ports = PropertyObject();
+        ports.addProperty(BoolProperty("Port1", true));
+
+        PropertyObjectPtr parameters = PropertyObject();
+        parameters.addProperty(StructProperty("Configuration",
+                                    Dict<IString, IBaseObject>({{"ClockType", Enumeration("PtpClockTypeEnumeration", "Transparent", objManager)},
+                                                                {"TransportProtocol", Enumeration("PtpProtocolEnumeration", "IEEE802_3", objManager)},
+                                                                {"StepFlag", Enumeration("PtpStepFlagEnumeration", "ONE", objManager)},
+                                                                {"DomainNumber", 0},
+                                                                {"LeapSeconds", 0},
+                                                                {"DelayMechanism", Enumeration("PtpDelayMechanismEnumeration", "P2P", objManager)},
+                                                                {"Priority1", 0},
+                                                                {"Priority2", 0},
+                                                                {"Profiles", Enumeration("PtpProfileEnumeration", "I558", objManager)}}), objManager));
+        parameters.addProperty(ObjectProperty("Ports", ports));
+
+        auto ptpSyncInterface = PropertyObjectClassBuilder("PtpSyncInterface")
+                                      .setParentName("SyncInterfaceBase")
+                                      .addProperty(ObjectProperty("Status", statusProperty_2))
+                                      .addProperty(ObjectProperty("Parameters", parameters))
+                                      .build();
+
+        objManager.addType(ptpSyncInterface);
     }
 
     void TearDown() override

@@ -97,7 +97,7 @@ void ClassifierFbImpl::readProperties()
 
     assert(blockSize > 0);
     if (!useCustomClasses)
-        assert(classCount > 0);
+        assert(classCount > 0.0);
     else if (customClassList.empty())
     {
         LOG_W("ClassifierFb: CustomClassList is empty");

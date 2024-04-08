@@ -790,15 +790,15 @@ TEST_F(SignalTest, TestSignalActiveSendPacket)
 
     auto dataPacket = DataPacket(descriptor, 1);
     signal.sendPacket(dataPacket);
-    ASSERT_EQ(ip.getConnection().getPacketCount(), 2);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 2u);
 
     signal.setActive(false);
     signal.sendPacket(dataPacket);
-    ASSERT_EQ(ip.getConnection().getPacketCount(), 2);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 2u);
 
     auto descriptor1 = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int16).build();
     signal.setDescriptor(descriptor1);
-    ASSERT_EQ(ip.getConnection().getPacketCount(), 3);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 3u);
 }
 
 TEST_F(SignalTest, TestInputPortActiveSendPacket)
@@ -811,15 +811,15 @@ TEST_F(SignalTest, TestInputPortActiveSendPacket)
 
     auto dataPacket = DataPacket(descriptor, 1);
     signal.sendPacket(dataPacket);
-    ASSERT_EQ(ip.getConnection().getPacketCount(), 2);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 2u);
 
     ip.setActive(false);
     signal.sendPacket(dataPacket);
-    ASSERT_EQ(ip.getConnection().getPacketCount(), 2);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 2u);
 
     auto descriptor1 = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int16).build();
     signal.setDescriptor(descriptor1);
-    ASSERT_EQ(ip.getConnection().getPacketCount(), 3);
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 3u);
 }
 
 TEST_F(SignalTest, GetLastValueStruct)

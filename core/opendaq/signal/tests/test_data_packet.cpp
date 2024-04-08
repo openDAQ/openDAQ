@@ -314,9 +314,9 @@ TEST_F(DataPacketTest, TestConstantRuleWithMultipleValues)
     for (uint64_t i = 90; i < packet.getSampleCount(); ++i)
         ASSERT_EQ(scaledData[i], 20);
 
-    ASSERT_EQ(packet.getSampleCount(), 100);
-    ASSERT_EQ(packet.getRawDataSize(), 28);
-    ASSERT_EQ(packet.getDataSize(), 400);
+    ASSERT_EQ(packet.getSampleCount(), 100u);
+    ASSERT_EQ(packet.getRawDataSize(), 28u);
+    ASSERT_EQ(packet.getDataSize(), 400u);
 }
 
 TEST_F(DataPacketTest, TestRangeType)

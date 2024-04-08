@@ -243,8 +243,8 @@ TEST_F(TmsDeviceTest, DeviceInfoServerCapabilities)
     ASSERT_EQ(clientSubDevices.getCount(), 2u);
     auto clientSubDevice = clientSubDevices[1];
     auto clientDeviceInfo = clientSubDevice.getInfo();
-    ASSERT_EQ(serverDeviceInfo.getServerCapabilities().getCount(), 2);
-    ASSERT_EQ(clientDeviceInfo.getServerCapabilities().getCount(), 2);
+    ASSERT_EQ(serverDeviceInfo.getServerCapabilities().getCount(), 2u);
+    ASSERT_EQ(clientDeviceInfo.getServerCapabilities().getCount(), 2u);
     auto name = clientDeviceInfo.getServerCapabilities()[1].getProtocolName();
     auto id = clientDeviceInfo.getServerCapabilities()[1].getProtocolId();
     ASSERT_EQ(clientDeviceInfo.getServerCapabilities()[0].getProtocolId(), serverDeviceInfo.getServerCapabilities()[0].getProtocolId());

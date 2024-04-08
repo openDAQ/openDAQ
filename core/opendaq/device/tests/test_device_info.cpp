@@ -220,7 +220,7 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
 
     const DeviceInfoPtr newDeviceInfo = deserializer.deserialize(serializedDeviceInfo, nullptr, nullptr);
 
-    ASSERT_EQ(newDeviceInfo.getServerCapabilities().getCount(), 2);
+    ASSERT_EQ(newDeviceInfo.getServerCapabilities().getCount(), 2u);
     ASSERT_EQ(newDeviceInfo.getServerCapabilities()[0].getProtocolId(), "test_id1");
     ASSERT_EQ(newDeviceInfo.getServerCapabilities()[1].getProtocolId(), "test_id2");
 
@@ -246,16 +246,16 @@ TEST_F(DeviceInfoTest, ServerCapabilities)
     internalInfo.addServerCapability(capability3);
     ASSERT_THROW(internalInfo.addServerCapability(capability3), DuplicateItemException);
 
-    ASSERT_EQ(info.getServerCapabilities().getCount(), 3);
+    ASSERT_EQ(info.getServerCapabilities().getCount(), 3u);
     
     ASSERT_THROW(internalInfo.removeServerCapability("localId0"), NotFoundException);
 
     internalInfo.removeServerCapability("localId1");
-    ASSERT_EQ(info.getServerCapabilities().getCount(), 2);
+    ASSERT_EQ(info.getServerCapabilities().getCount(), 2u);
     ASSERT_EQ(info.getServerCapabilities()[0].getProtocolId(), capability2.getPropertyValue("protocolId"));
 
     internalInfo.clearServerStreamingCapabilities();
-    ASSERT_EQ(info.getServerCapabilities().getCount(), 0);
+    ASSERT_EQ(info.getServerCapabilities().getCount(), 0u);
 }
 
 END_NAMESPACE_OPENDAQ

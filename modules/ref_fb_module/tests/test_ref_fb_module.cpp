@@ -101,7 +101,7 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IFunctionBlockType> functionBlockTypes;
     ASSERT_NO_THROW(functionBlockTypes = module.getAvailableFunctionBlockTypes());
     ASSERT_TRUE(functionBlockTypes.assigned());
-    ASSERT_EQ(functionBlockTypes.getCount(), 6u);
+    ASSERT_EQ(functionBlockTypes.getCount(), 7u);
 
     ASSERT_TRUE(functionBlockTypes.hasKey("ref_fb_module_renderer"));
     ASSERT_EQ("ref_fb_module_renderer", functionBlockTypes.get("ref_fb_module_renderer").getId());

@@ -80,6 +80,10 @@ if (DAQMODULES_REF_FB_MODULE AND DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     add_subdirectory(sfml EXCLUDE_FROM_ALL)
 endif()
 
+if (DAQMODULES_REF_FB_MODULE)
+    add_subdirectory(kissfft EXCLUDE_FROM_ALL)
+endif()
+
 if (DAQMODULES_AUDIO_DEVICE_MODULE)
     add_subdirectory(miniaudio EXCLUDE_FROM_ALL)
 endif()

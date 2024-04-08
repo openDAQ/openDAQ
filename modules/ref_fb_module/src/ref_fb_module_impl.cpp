@@ -9,6 +9,7 @@
 #include <ref_fb_module/scaling_fb_impl.h>
 #include <ref_fb_module/statistics_fb_impl.h>
 #include <ref_fb_module/trigger_fb_impl.h>
+#include <ref_fb_module/fft_fb_impl.h>
 #include <ref_fb_module/version.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
@@ -44,6 +45,9 @@ DictPtr<IString, IFunctionBlockType> RefFbModule::onGetAvailableFunctionBlockTyp
 
     auto typeTrigger = Trigger::TriggerFbImpl::CreateType();
     types.set(typeTrigger.getId(), typeTrigger);
+
+    auto typeFFT = FFT::FFTFbImpl::CreateType();
+    types.set(typeFFT.getId(), typeFFT);
 
     return types;
 }
@@ -85,6 +89,12 @@ FunctionBlockPtr RefFbModule::onCreateFunctionBlock(const StringPtr& id,
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Trigger::TriggerFbImpl>(context, parent, localId, config);
         return fb;
     }
+    if (id == FFT::FFTFbImpl::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, FFT::FFTFbImpl>(context, parent, localId);
+        return fb;
+    }
+
 
     LOG_W("Function block \"{}\" not found", id);
     throw NotFoundException("Function block not found");

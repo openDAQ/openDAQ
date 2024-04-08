@@ -131,7 +131,7 @@ descriptor = builder.build()
 [#last_value_range]
 == Getting the last value with a Range
 
-The following example demonstrates casting the `lastValue` object into an `IRange`. Something usefeul we can then do is call the methods of the underlying type and access its members such as the `getLowValue` (`low_value` in Python) and the `getHighValue` (`high_value` in Python), in this case provided by the `IRange` interface.
+The following example demonstrates casting the `lastValue` object into an `IRange`. Something usefeul we can then do is call the methods of the underlying type and access its members, such as the `getLowValue` (`low_value` in Python) and the `getHighValue` (`high_value` in Python), in this case provided by the `IRange` interface.
 
 [tabs]
 ====

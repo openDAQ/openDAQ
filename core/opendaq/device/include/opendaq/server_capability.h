@@ -36,10 +36,10 @@ BEGIN_NAMESPACE_OPENDAQ
 
 enum class ProtocolType: uint32_t
 {
-    Configuration = 0,
+    Unknown = 0,
+    Configuration,
     Streaming,
     ConfigurationAndStreaming,
-    Unknown = 0xFF,
 };
 
 /*!

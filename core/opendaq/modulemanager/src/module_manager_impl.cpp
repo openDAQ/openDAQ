@@ -170,7 +170,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             StringPtr manufacturer = deviceInfo.getManufacturer();
             StringPtr serialNumber = deviceInfo.getSerialNumber();
 
-            if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0)
+            if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0 || deviceInfo.getServerCapabilities().getCount() == 0)
             {
                 groupedDevices.set(deviceInfo.getConnectionString(), deviceInfo);
             }
@@ -268,20 +268,27 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format("Device with connection string \"{}\" not found", connectionStringPtr));
         }
 
-        if (deviceInfo.getServerCapabilities().getCount() == 0)
+        const auto capabilities = deviceInfo.getServerCapabilities();
+        if (capabilities.getCount() == 0)
         {
             return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format("Device with connection string \"{}\" has no availble server capabilites", connectionStringPtr));
         }
 
-        ServerCapabilityPtr internalServerCapability = deviceInfo.getServerCapabilities()[0];
-        for (const auto & capability : deviceInfo.getServerCapabilities())
+        ServerCapabilityPtr selectedCapability = capabilities[0];
+        auto selectedPriority = getServerCapabilityPriority(selectedCapability);
+
+        for (const auto & capability : capabilities)
         {
-            if (capability.getProtocolType() < internalServerCapability.getProtocolType())
-                internalServerCapability = capability;
+            const auto priority = getServerCapabilityPriority(capability);
+            if (priority  > selectedPriority)
+            {
+                selectedCapability = capability;
+                selectedPriority = priority;
+            }
         }
 
-        if (internalServerCapability.assigned())
-            connectionStringPtr = internalServerCapability.getConnectionString();
+        if (selectedCapability.assigned())
+            connectionStringPtr = selectedCapability.getConnectionString();
     } 
     else if (availableDevicesGroup.assigned())
     {
@@ -471,6 +478,27 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
 
     return this->makeErrorInfo(
         OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Function block with given uid and config is not available [{}])", typeId));
+}
+
+uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)
+{
+    const std::string nativeId = "opendaq_native_config";
+    if (cap.getProtocolId() == nativeId)
+        return 42;
+
+    switch (cap.getProtocolType())
+    {
+        case ProtocolType::Unknown:
+            return 0;
+        case ProtocolType::Streaming:
+            return 1;
+        case ProtocolType::Configuration:
+            return 2;
+        case ProtocolType::ConfigurationAndStreaming:
+            return 3;
+    }
+
+    return 0;
 }
 
 std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComponent, std::string searchFolder, IContext* context)

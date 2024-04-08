@@ -1950,7 +1950,7 @@ TEST_F(MultiReaderTest, SampleRateDividerRequiredRate)
     }
 
     available = multi.getAvailableCount();
-    ASSERT_EQ(available, 2960);
+    ASSERT_EQ(available, 2960u);
 
     constexpr const SizeT SAMPLES = 102u;
 
@@ -2008,7 +2008,7 @@ TEST_F(MultiReaderTest, MultiReaderBuilderGetSet)
     builder.setRequiredCommonSampleRate(0);
     builder.setStartOnFullUnitOfDomain(true);
 
-    ASSERT_EQ(builder.getSourceComponents().getCount(), 3);
+    ASSERT_EQ(builder.getSourceComponents().getCount(), 3u);
     ASSERT_EQ(builder.getSourceComponents()[0].asPtr<IInputPort>().getSignal(), sig0);
     ASSERT_EQ(builder.getSourceComponents()[1], sig1);
     ASSERT_EQ(builder.getSourceComponents()[2], sig2);

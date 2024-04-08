@@ -25,4 +25,10 @@ namespace event_packet_id
      *  - "DomainDataDescriptor" : IDataDescriptor
      */
     const std::string DATA_DESCRIPTOR_CHANGED = "DATA_DESCRIPTOR_CHANGED";
-}
+
+    /*!
+     * Parameter dictionary elements:
+     *  - "GapDiff" : Int64       // in ticks
+     */
+    const std::string IMPLICIT_DOMAIN_GAP_DETECTED = "IMPLICIT_DOMAIN_GAP_DETECTED";
+    }

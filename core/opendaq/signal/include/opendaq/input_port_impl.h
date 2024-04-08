@@ -44,7 +44,7 @@ public:
     explicit GenericInputPortImpl(const ContextPtr& context,
                                   const ComponentPtr& parent,
                                   const StringPtr& localId,
-                                  const StringPtr& className = nullptr);
+                                  bool gapChecking = false);
 
     ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
@@ -61,6 +61,8 @@ public:
     ErrCode INTERFACE_FUNC getCustomData(IBaseObject** data) override;
     ErrCode INTERFACE_FUNC setCustomData(IBaseObject* data) override;
     ErrCode INTERFACE_FUNC setRequiresSignal(Bool requiresSignal) override;
+
+    ErrCode INTERFACE_FUNC getGapCheckingEnabled(Bool* gapCheckingEnabled) override;
 
     // IInputPortPrivate
     ErrCode INTERFACE_FUNC disconnectWithoutSignalNotification() override;
@@ -99,6 +101,7 @@ protected:
 
 private:
     Bool requiresSignal;
+    bool gapCheckingEnabled;
     BaseObjectPtr customData;
     PacketReadyNotification notifyMethod{};
 
@@ -127,9 +130,10 @@ template <class... Interfaces>
 GenericInputPortImpl<Interfaces ...>::GenericInputPortImpl(const ContextPtr& context,
                              const ComponentPtr& parent,
                              const StringPtr& localId,
-                             const StringPtr& className)
-    : Super(context, parent, localId, className)
+                             bool gapCheckingEnabled)
+    : Super(context, parent, localId)
     , requiresSignal(true)
+    , gapCheckingEnabled(gapCheckingEnabled)
     , notifyMethod(PacketReadyNotification::None)
     , listenerRef(nullptr)
     , connectionRef(nullptr)
@@ -600,12 +604,12 @@ ErrCode GenericInputPortImpl<Interfaces...>::Deserialize(ISerializedObject* seri
                        serialized,
                        context,
                        factoryCallback,
-                       [](const SerializedObjectPtr& serialized,
+                       [](const SerializedObjectPtr&,
                           const ComponentDeserializeContextPtr& deserializeContext,
-                          const StringPtr& className)
+                          const StringPtr&)
                        {
                            return createWithImplementation<IInputPort, InputPortImpl>(
-                               deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className);
+                               deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId());
                        })
                        .detach();
         });
@@ -736,6 +740,15 @@ ErrCode GenericInputPortImpl<Interfaces...>::setRequiresSignal(Bool requiresSign
     std::scoped_lock lock(this->sync);
 
     this->requiresSignal = requiresSignal;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class ... Interfaces>
+ErrCode GenericInputPortImpl<Interfaces...>::getGapCheckingEnabled(Bool* gapCheckingEnabled)
+{
+    OPENDAQ_PARAM_NOT_NULL(gapCheckingEnabled);
+
+    *gapCheckingEnabled = this->gapCheckingEnabled;
     return OPENDAQ_SUCCESS;
 }
 

@@ -20,6 +20,8 @@
 #include <opendaq/context_ptr.h>
 #include <coretypes/intfs.h>
 #include <coretypes/weakrefobj.h>
+#include <opendaq/event_packet_ptr.h>
+#include <opendaq/data_packet_ptr.h>
 
 #ifdef OPENDAQ_THREAD_SAFE
     #include <mutex>
@@ -28,7 +30,6 @@
 #include <queue>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 class ConnectionImpl : public ImplementationOfWeak<IConnection>
 {
 public:
@@ -37,7 +38,6 @@ public:
         const SignalPtr& signal,
         ContextPtr context
     );
-
     ErrCode INTERFACE_FUNC enqueue(IPacket* packet) override;
     ErrCode INTERFACE_FUNC enqueueOnThisThread(IPacket* packet) override;
     ErrCode INTERFACE_FUNC dequeue(IPacket** packet) override;
@@ -69,14 +69,37 @@ public:
 #endif
 
 private:
+    union DomainValue
+    {
+        int64_t valueInt64_t;
+        double valueDouble;
+    };
+
+    enum class GapCheckState { disabled, uninitialized, not_available, initialized, running };
+
     InputPortConfigPtr port;
     WeakRefPtr<ISignal> signalRef;
     ContextPtr context;
+    GapCheckState gapCheckState;
+    DomainValue nextExpectedPacketOffset;
+    DomainValue delta;
+    SampleType domainSampleType;
+    LoggerComponentPtr loggerComponent;
 
 #ifdef OPENDAQ_THREAD_SAFE
     mutable std::mutex mutex;
 #endif
 
+    void checkForGaps(const PacketPtr& packet);
+    void enqueueGapPacket(const DomainValue& diff);
+    void beginGapCheck(const DataPacketPtr& domainPacket);
+    bool doGapCheck(const DataPacketPtr& domainPacket, DomainValue& diff);
+    void initGapCheck(const EventPacketPtr& packet);
+
+    DomainValue numberToDomainValue(const NumberPtr& number);
+
+    template <class F>
+    ErrCode enqueueInternal(IPacket* packet, const F& f);
 protected:
     std::deque<PacketPtr> packets;
 };

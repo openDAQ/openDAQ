@@ -159,6 +159,19 @@ inline EventPacketPtr DataDescriptorChangedEventPacket(const DataDescriptorPtr& 
     return obj;
 }
 
+/*!
+ * @brief Creates a ImplicitDomainGapDetected Event packet.
+ * @param diff The size of the gap in ticks or value
+ *
+ * The ID of the packet is "IMPLICIT_DOMAIN_GAP_DETECTED". Its parameters dictionary contains the key "GapDiff", which holds
+ * the size of the gap. The size can be negative, in which case it is an overlap of samples.
+ */
+inline EventPacketPtr ImplicitDomainGapDetectedEventPacket(const NumberPtr& diff)
+{
+    EventPacketPtr obj(ImplicitDomainGapDetectedEventPacket_Create(diff));
+    return obj;
+}
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

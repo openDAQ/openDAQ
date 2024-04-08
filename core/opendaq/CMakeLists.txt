@@ -16,5 +16,5 @@ add_subdirectory(reader)
 add_subdirectory(utility)
 add_subdirectory(component)
 add_subdirectory(streaming)
-
+add_subdirectory(synchronization)
 add_subdirectory(opendaq)

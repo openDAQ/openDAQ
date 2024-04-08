@@ -170,7 +170,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             StringPtr manufacturer = deviceInfo.getManufacturer();
             StringPtr serialNumber = deviceInfo.getSerialNumber();
 
-            if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0)
+            if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0 || deviceInfo.getServerCapabilities().getCount() == 0)
             {
                 groupedDevices.set(deviceInfo.getConnectionString(), deviceInfo);
             }

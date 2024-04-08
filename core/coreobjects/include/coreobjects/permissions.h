@@ -18,6 +18,7 @@
 #include <coretypes/baseobject.h>
 #include <coretypes/common.h>
 #include <coretypes/dictobject.h>
+#include <coretypes/integer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -25,6 +26,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * @ingroup objects_security
  * @addtogroup objects_security_permissions Permissions
  * @{
+ */
+
+/*#
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -39,14 +44,14 @@ DECLARE_OPENDAQ_INTERFACE(IPermissions, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getInherited(Bool* inherited) = 0;
 
-    // [templateType(permissions, IString, Int)]
+    // [templateType(permissions, IString, IInteger)]
     /*!
      * @brief Returns a dictionary of allowed permissions for each group.
      * @param permissions[out] A dictionary of allowed permissions for each group.
      */
     virtual ErrCode INTERFACE_FUNC getAllowed(IDict** permissions) = 0;
 
-    // [templateType(permissions, IString, Int)]
+    // [templateType(permissions, IString, IInteger)]
     /*!
      * @brief Returns a dictionary of denied permissions for each group.
      * @param permissions[out] A dictionary of denied permissions for each group.

@@ -48,7 +48,7 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionManager, IBaseObject)
      * @param permission A permisson to test.
      * @param authorizedOut[out] Returns true if user is authorized and false otherwise.
      */
-    virtual ErrCode INTERFACE_FUNC isAuthorized(IUser * user, Permission permission, Bool * authorizedOut) = 0;
+    virtual ErrCode INTERFACE_FUNC isAuthorized(IUser * user, Permission permission, Bool* authorizedOut) = 0;
 };
 
 /*!@}*/

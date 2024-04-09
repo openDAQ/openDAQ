@@ -57,13 +57,13 @@ private:
 
     size_t blockSize;
     size_t maxBlockReadCount;
-    std::unique_ptr<float[]> inputData;
-    std::unique_ptr<uint64_t[]> inputDomainData;
+    std::vector<float> inputData;
+    std::vector<uint64_t> inputDomainData;
 
 
     kiss_fft_cfg cfg;
-    std::unique_ptr<kiss_fft_cpx[]> fftIn;
-    std::unique_ptr<kiss_fft_cpx[]> fftOut;
+    std::vector<kiss_fft_cpx> fftIn;
+    std::vector<kiss_fft_cpx> fftOut;
 
     void createInputPorts();
     void createSignals();

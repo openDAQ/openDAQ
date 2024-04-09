@@ -27,8 +27,8 @@ FFTFbImpl::FFTFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const St
     createSignals();
 
     cfg = nullptr;
-    inputData = std::make_unique<float[]>(blockSize * maxBlockReadCount);
-    inputDomainData = std::make_unique<uint64_t[]>(blockSize * maxBlockReadCount);
+    inputData.resize(blockSize * maxBlockReadCount);
+    inputDomainData.resize(blockSize * maxBlockReadCount);
 }
 
 FFTFbImpl::~FFTFbImpl()
@@ -154,13 +154,13 @@ void FFTFbImpl::configure()
             DataDescriptorBuilderCopy(inputDomainDataDescriptor).setRule(ExplicitDataRule()).setSampleType(SampleType::UInt64).build();
         outputDomainSignal.setDescriptor(outputDomainDataDescriptor);
             
-        inputData = std::make_unique<float[]>(maxBlockReadCount * blockSize);
-        inputDomainData = std::make_unique<uint64_t[]>(maxBlockReadCount * blockSize);
+        inputData.resize(maxBlockReadCount * blockSize);
+        inputDomainData.resize(maxBlockReadCount * blockSize);
         
         kiss_fft_free(cfg);
         cfg = kiss_fft_alloc(static_cast<int>(blockSize), 0, nullptr, nullptr);
-        fftIn = std::make_unique<kiss_fft_cpx[]>(blockSize);
-        fftOut = std::make_unique<kiss_fft_cpx[]>(blockSize);
+        fftIn.resize(blockSize);
+        fftOut.resize(blockSize);
 
         configValid = true;
     }
@@ -190,7 +190,7 @@ void FFTFbImpl::calculate()
     while (continueReading)
     {
         SizeT readAmount = std::min(availableBlocks, maxBlockReadCount);
-        const auto status = linearReader.readWithDomain(inputData.get(), inputDomainData.get(), &readAmount);
+        const auto status = linearReader.readWithDomain(inputData.data(), inputDomainData.data(), &readAmount);
 
         if (configValid)
         {
@@ -217,11 +217,9 @@ void FFTFbImpl::processData(SizeT readAmount)
 
     const auto outputDomainPacket = DataPacket(outputDomainDataDescriptor, readAmount);
     const auto outputDomainData = static_cast<uint64_t*>(outputDomainPacket.getData());
-    memset(outputDomainData, 0, outputDomainPacket.getRawDataSize());
 
     const auto outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, readAmount);
     const auto outputData = static_cast<double*>(outputPacket.getData());
-    memset(outputData, 0, outputPacket.getRawDataSize());
 
     for (size_t blockIdx = 0; blockIdx < readAmount; blockIdx++)
     {
@@ -231,7 +229,7 @@ void FFTFbImpl::processData(SizeT readAmount)
             fftIn[i].i = 0;
         }
 
-        kiss_fft(cfg, fftIn.get(), fftOut.get());
+        kiss_fft(cfg, fftIn.data(), fftOut.data());
 
         for (size_t idx = 0; idx < blockSize / 2; idx++)
             outputData[blockIdx * (blockSize / 2) + idx] = 2 * std::sqrt(std::pow(fftOut[idx + 1].r, 2) + std::pow(fftOut[idx + 1].i, 2)) / blockSize;

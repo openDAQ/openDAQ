@@ -191,16 +191,20 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
         // if not enough samples wait for the timeout or a full block
 
         std::unique_lock notifyLock(notify.mutex);
-        if (notify.condition.wait_for(notifyLock, remainingTime, [this, &availableBlocks, maxBlocksToRead]
+        auto condition = [this, &availableBlocks, maxBlocksToRead]
         {
-             if (!notify.dataReady)
-                 return false;
-             availableBlocks = getAvailable();
-             notify.dataReady = false;
-             if (availableBlocks >= maxBlocksToRead)
+            if (!notify.dataReady)
+                return false;
+
+            availableBlocks = getAvailable();
+            notify.dataReady = false;
+
+            if (availableBlocks >= maxBlocksToRead)
                 return true;
-             return false;
-        }))
+            return false;
+        };
+
+        if (notify.condition.wait_for(notifyLock, remainingTime, condition))
         {
             break;
         }

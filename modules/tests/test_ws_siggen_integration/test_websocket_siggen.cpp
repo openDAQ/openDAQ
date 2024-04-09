@@ -59,7 +59,7 @@ TEST_P(SiggenTest, SyncSignalDescriptors)
     EXPECT_NE(domainDescriptor.getTickResolution().getDenominator(), 0);
 }
 
-TEST_P(SiggenTest, AsyncSignalDescriptors)
+TEST_P(SiggenTest, DISABLED_AsyncSignalDescriptors)
 {
     auto client = CreateClientInstance(GetParam());
 

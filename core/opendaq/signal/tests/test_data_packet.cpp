@@ -285,39 +285,74 @@ TEST_F(DataPacketTest, TestInt64LinearScaling)
     validateLinearScalingPacket<int64_t, double>(descriptor, 1012, 10020);
 }
 
-TEST_F(DataPacketTest, TestConstantRule)
+template <typename DataType>
+class ConstantRuleTest : public DataPacketTest
 {
-    auto descriptor = setupDescriptor(SampleType::Int32, ConstantDataRule(), nullptr);
-    validateImplicitConstantDataRulePacket<int32_t>(descriptor, 111);
+public:
+    static_assert(std::is_arithmetic_v<DataType>);
 
-    descriptor = setupDescriptor(SampleType::UInt8, ConstantDataRule(), nullptr);
-    validateImplicitConstantDataRulePacket<uint8_t>(descriptor, 123);
+    void DoTestWithSingleValue()
+    {
+        auto descriptor = setupDescriptor(SampleTypeFromType<DataType>::SampleType, ConstantDataRule(), nullptr);
 
-    descriptor = setupDescriptor(SampleType::Float32, ConstantDataRule(), nullptr);
-    validateImplicitConstantDataRulePacket<float>(descriptor, static_cast<float>(20.5));
+        if constexpr (std::is_integral_v<DataType>)
+            validateImplicitConstantDataRulePacket<DataType>(descriptor, 123);
+        else if constexpr (std::is_floating_point_v<DataType>)
+            validateImplicitConstantDataRulePacket<DataType>(descriptor, static_cast<DataType>(20.5));
+    }
 
-    descriptor = setupDescriptor(SampleType::Float64, ConstantDataRule(), nullptr);
-    validateImplicitConstantDataRulePacket<double>(descriptor, 678);
+    void DoTestWithMultipleValues()
+    {
+        constexpr size_t sampleCount = 100;
+        auto sampleType = SampleTypeFromType<DataType>::SampleType;
+        auto descriptor = setupDescriptor(sampleType, ConstantDataRule(), nullptr);
+        const DataPacketPtr packet = ConstantDataPacketWithDomain<DataType>(nullptr, descriptor, sampleCount, 12, {{10, 16}, {70, 18}, {90, 20}});
+        const auto scaledData = static_cast<DataType*>(packet.getData());
+        if constexpr (std::is_unsigned_v<DataType>)
+        {
+            for (uint64_t i = 0; i < 9; ++i)
+                ASSERT_EQ(scaledData[i], 12u);
+            for (uint64_t i = 10; i < 69; ++i)
+                ASSERT_EQ(scaledData[i], 16u);
+            for (uint64_t i = 70; i < 89; ++i)
+                ASSERT_EQ(scaledData[i], 18u);
+            for (uint64_t i = 90; i < packet.getSampleCount(); ++i)
+                ASSERT_EQ(scaledData[i], 20u);
+        }
+        else
+        {
+            for (uint64_t i = 0; i < 9; ++i)
+                ASSERT_EQ(scaledData[i], 12);
+            for (uint64_t i = 10; i < 69; ++i)
+                ASSERT_EQ(scaledData[i], 16);
+            for (uint64_t i = 70; i < 89; ++i)
+                ASSERT_EQ(scaledData[i], 18);
+            for (uint64_t i = 90; i < packet.getSampleCount(); ++i)
+                ASSERT_EQ(scaledData[i], 20);
+        }
+
+        ASSERT_EQ(packet.getSampleCount(), sampleCount);
+        ASSERT_EQ(packet.getRawDataSize(), getSampleSize(sampleType) * 4 + 12);
+        ASSERT_EQ(packet.getDataSize(), getSampleSize(sampleType) * sampleCount);
+    }
+};
+
+TYPED_TEST_SUITE_P(ConstantRuleTest);
+
+TYPED_TEST_P(ConstantRuleTest, TestConstantRule)
+{
+    this->DoTestWithSingleValue();
 }
 
-TEST_F(DataPacketTest, TestConstantRuleWithMultipleValues)
+TYPED_TEST_P(ConstantRuleTest, TestConstantRuleWithMultipleValues)
 {
-    auto descriptor = setupDescriptor(SampleType::Int32, ConstantDataRule(), nullptr);
-    const DataPacketPtr packet = ConstantDataPacketWithDomain(nullptr, descriptor, 100, 12, {{10, 16}, {70, 18}, {90, 20}});
-    const auto scaledData = static_cast<int32_t*>(packet.getData());
-    for (uint64_t i = 0; i < 9; ++i)
-        ASSERT_EQ(scaledData[i], 12);
-    for (uint64_t i = 10; i < 69; ++i)
-        ASSERT_EQ(scaledData[i], 16);
-    for (uint64_t i = 70; i < 89; ++i)
-        ASSERT_EQ(scaledData[i], 18);
-    for (uint64_t i = 90; i < packet.getSampleCount(); ++i)
-        ASSERT_EQ(scaledData[i], 20);
-
-    ASSERT_EQ(packet.getSampleCount(), 100u);
-    ASSERT_EQ(packet.getRawDataSize(), 28u);
-    ASSERT_EQ(packet.getDataSize(), 400u);
+    this->DoTestWithMultipleValues();
 }
+
+REGISTER_TYPED_TEST_SUITE_P(ConstantRuleTest, TestConstantRule, TestConstantRuleWithMultipleValues);
+
+using SampleTypes = testing::Types<int8_t, int16_t , int32_t, int64_t, uint8_t, uint16_t , uint32_t, uint64_t, float, double>;
+INSTANTIATE_TYPED_TEST_SUITE_P(ConstantRuleTestTyped, ConstantRuleTest, SampleTypes);
 
 TEST_F(DataPacketTest, TestRangeType)
 {

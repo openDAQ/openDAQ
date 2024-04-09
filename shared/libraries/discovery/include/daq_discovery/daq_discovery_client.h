@@ -28,7 +28,7 @@ class DiscoveryClient final
 public:
     explicit DiscoveryClient(std::vector<ServerCapabilityCb> serverCapabilityCbs, std::unordered_set<std::string> requiredCaps = {});
     
-    void initMdnsClient(const std::string& serviceName, std::chrono::milliseconds discoveryDuration = 500ms);
+    void initMdnsClient(const ListPtr<IString>& serviceNames, std::chrono::milliseconds discoveryDuration = 500ms);
     ListPtr<IDeviceInfo> discoverDevices() const;
 
 protected:

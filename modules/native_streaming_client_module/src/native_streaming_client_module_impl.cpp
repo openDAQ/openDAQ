@@ -35,7 +35,9 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                auto cap = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming).addConnectionString(connectionString).setConnectionType("Ipv4");
+                auto cap = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
+                cap.addConnectionString(connectionString);
+                cap.setConnectionType("Ipv4");
                 cap.setPrefix("daq.ns");
                 return cap;
             },
@@ -45,7 +47,10 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                auto cap = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming).addConnectionString(connectionString).setConnectionType("Ipv4").setCoreEventsEnabled(true);
+                auto cap = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
+                cap.addConnectionString(connectionString);
+                cap.setConnectionType("Ipv4");
+                cap.setCoreEventsEnabled(true);
                 cap.setPrefix("daq.nd");
                 return cap;
             }
@@ -53,7 +58,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
         {"OPENDAQ_NS"}
     )
 {
-    discoveryClient.initMdnsClient("_opendaq-streaming-native._tcp.local.");
+    discoveryClient.initMdnsClient(List<IString>("_opendaq-streaming-native._tcp.local."));
 }
 
 NativeStreamingClientModule::~NativeStreamingClientModule()

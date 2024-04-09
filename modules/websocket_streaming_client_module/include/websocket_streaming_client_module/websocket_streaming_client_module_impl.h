@@ -42,7 +42,6 @@ private:
     std::mutex sync;
     size_t deviceIndex;
     discovery::DiscoveryClient discoveryClient;
-    discovery::DiscoveryClient oldDiscoveryClient;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE

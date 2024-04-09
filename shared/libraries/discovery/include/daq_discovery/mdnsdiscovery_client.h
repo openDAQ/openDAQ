@@ -44,8 +44,6 @@
 #include <netdb.h>
 #endif
 
-#define QUERY_COUNT (size_t)4
-
 BEGIN_NAMESPACE_DISCOVERY
 
 using namespace std::chrono_literals;
@@ -71,7 +69,7 @@ struct MdnsDiscoveredDevice
 class MDNSDiscoveryClient
 {
 public:
-    explicit MDNSDiscoveryClient(StringPtr serviceName);
+    explicit MDNSDiscoveryClient(const ListPtr<IString>& serviceNames);
     ~MDNSDiscoveryClient();
 
     std::vector<MdnsDiscoveredDevice> getAvailableDevices();
@@ -125,16 +123,18 @@ private:
     MdnsDiscoveredDevice createMdnsDiscoveredDevice(const DeviceData& device);
     bool isValidMdnsDevice(const MdnsDiscoveredDevice& device);
 
-    mdns_query_t query[QUERY_COUNT];
-    std::string serviceName;
+    std::vector<mdns_query_t> query;
+    std::vector<std::string> serviceNames;
     std::thread discoveryThread;
     std::chrono::milliseconds discoveryDuration = 0ms;
 };
 
-inline MDNSDiscoveryClient::MDNSDiscoveryClient(const StringPtr serviceName)
+inline MDNSDiscoveryClient::MDNSDiscoveryClient(const ListPtr<IString>& serviceNames)
     : started(false)
 {
-    this->serviceName = serviceName.toStdString();
+    this->serviceNames.reserve(serviceNames.getCount());
+    for (const auto & service : serviceNames)
+        this->serviceNames.push_back(service.toStdString());
     setupQuery();
 
 #ifdef _WIN32
@@ -184,16 +184,23 @@ inline void MDNSDiscoveryClient::setDiscoveryDuration(std::chrono::milliseconds 
 
 inline void MDNSDiscoveryClient::setupQuery()
 {
-    for (size_t i = 0; i < QUERY_COUNT; ++i)
+    if (serviceNames.size() == 2)
     {
-        query[i].name = serviceName.c_str();
-        query[i].length = strlen(query[0].name);
+        printf("asd");
     }
-
-    query[0].type = MDNS_RECORDTYPE_PTR;
-    query[1].type = MDNS_RECORDTYPE_SRV;
-    query[2].type = MDNS_RECORDTYPE_A;
-    query[3].type = MDNS_RECORDTYPE_AAAA;
+    std::vector<mdns_record_type> types {MDNS_RECORDTYPE_PTR, MDNS_RECORDTYPE_SRV, MDNS_RECORDTYPE_A, MDNS_RECORDTYPE_AAAA};
+    query.resize(serviceNames.size() * types.size());
+    for (size_t nameIdx = 0; nameIdx < serviceNames.size(); nameIdx++)
+    {
+        const auto& name = serviceNames[nameIdx];
+        size_t offset = nameIdx * types.size();
+        for (size_t i = 0; i < types.size(); i++)
+        {
+            query[offset + i].name = name.c_str();
+            query[offset + i].length = name.size();
+            query[offset + i].type = types[i];
+        }
+    }
 }
 
 inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets, int maxSockets)
@@ -506,7 +513,7 @@ inline void MDNSDiscoveryClient::sendMdnsQuery()
     void* buffer = malloc(capacity);
 
     for (int isock = 0; isock < numSockets; ++isock)
-        queryId[isock] = mdns_multiquery_send(sockets[isock], query, QUERY_COUNT, buffer, capacity, 0);
+        queryId[isock] = mdns_multiquery_send(sockets[isock], query.data(), query.size(), buffer, capacity, 0);
 
     auto callback = [&](int sock,
                         const sockaddr* from,

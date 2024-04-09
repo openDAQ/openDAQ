@@ -184,10 +184,6 @@ inline void MDNSDiscoveryClient::setDiscoveryDuration(std::chrono::milliseconds 
 
 inline void MDNSDiscoveryClient::setupQuery()
 {
-    if (serviceNames.size() == 2)
-    {
-        printf("asd");
-    }
     std::vector<mdns_record_type> types {MDNS_RECORDTYPE_PTR, MDNS_RECORDTYPE_SRV, MDNS_RECORDTYPE_A, MDNS_RECORDTYPE_AAAA};
     query.resize(serviceNames.size() * types.size());
     for (size_t nameIdx = 0; nameIdx < serviceNames.size(); nameIdx++)

@@ -87,7 +87,7 @@ private:
 
     template <typename T>
     static bool ListElementsHaveSameType(const ListPtr<IBaseObject>& list);
-    static ListPtr<IInputPortConfig> CheckPreconditions(const ListPtr<IComponent>& list, bool overrideMethod = true);
+    static ListPtr<IInputPortConfig> CheckPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts);
     void updateCommonSampleRateAndDividers();
     ListPtr<ISignal> getSignals() const;
 

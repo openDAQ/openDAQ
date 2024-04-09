@@ -99,7 +99,7 @@ Python::
 +
 [source,python]
 ----
-# No need for casting
+
 ----
 ====
 

@@ -21,19 +21,20 @@
 #include <opendaq/signal_config_ptr.h>
 #include <opendaq/block_reader_ptr.h>
 #include <opendaq/event_packet_ptr.h>
+#include <kiss_fft.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
-    
 namespace FFT
 {
 
-constexpr int32_t defaultBlockSize = 1024;
+constexpr size_t defaultBlockSize = 1024;
+constexpr size_t maxSampleReadCount = 1000000;
 
 class FFTFbImpl final : public FunctionBlock
 {
 public:
     explicit FFTFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
-    ~FFTFbImpl() override = default;
+    ~FFTFbImpl() override;
 
     static FunctionBlockTypePtr CreateType();
 
@@ -54,13 +55,21 @@ private:
 
     BlockReaderPtr linearReader;
 
-    size_t blockSize = defaultBlockSize;
+    size_t blockSize;
+    size_t maxBlockReadCount;
+    std::unique_ptr<float[]> inputData;
+    std::unique_ptr<uint64_t[]> inputDomainData;
+
+
+    kiss_fft_cfg cfg;
+    std::unique_ptr<kiss_fft_cpx[]> fftIn;
+    std::unique_ptr<kiss_fft_cpx[]> fftOut;
 
     void createInputPorts();
     void createSignals();
 
     void calculate();
-
+    void processData(SizeT readAmount);
     void processEventPacket(const EventPacketPtr& packet);
 
     bool processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,

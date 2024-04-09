@@ -63,12 +63,14 @@ inline DataPacketPtr DataPacketWithDomain(const DataPacketPtr& domainPacket,
     return obj;
 }
 
+#pragma pack(push, 1)
 template <class T>
 struct ConstantPosAndValue
 {
     uint32_t pos;
     T value;
 };
+#pragma pack(pop)
 
 /*!
  * @brief Creates a Data packet with a given constat rule descriptor, initial constant value,

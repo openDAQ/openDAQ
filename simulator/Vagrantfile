@@ -113,17 +113,8 @@ Vagrant.configure("2") do |config|
     # Copy files to /home/opendaq/
     config.vm.provision "shell", inline: "cp /tmp/{opcuatms.service,native_streaming.service,opendaq-config.json,simulator.service,configurator.py} /home/opendaq/"
 
-    # Configure serial numbers and local ids with configurator and delete it
-    config.vm.provision "shell", inline: "cd /home/opendaq/ && python3 configurator.py && rm configurator.py"
-
-    # Move MDNS services configs
-    config.vm.provision "shell", inline: "mv /home/opendaq/{opcuatms.service,native_streaming.service} /etc/avahi/services/"
-    
     # Move systemd service file
     config.vm.provision "shell", inline: "mv /home/opendaq/simulator.service /etc/systemd/system/"
-
-    # Move opendaq-config.json file
-    config.vm.provision "shell", inline: "mv /home/opendaq/opendaq-config.json /home/opendaq/opendaq/"
     
     # Make systemd service run on boot (before login)
     config.vm.provision "shell", inline: "sudo systemctl enable simulator"

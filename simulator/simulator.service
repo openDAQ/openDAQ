@@ -8,6 +8,10 @@ Type=simple
 Restart=always
 RestartSec=1
 User=opendaq
+ExecStartPre=python3 /home/opendaq/configurator.py
+ExecStartPre=cp /home/opendaq/opendaq-config.json /home/opendaq/opendaq/
+ExecStartPre=cp /home/opendaq/{opcuatms.service,native_streaming.service} /etc/avahi/services/
+ExecStartPre=sudo service avahi-daemon restart
 Environment=LD_LIBRARY_PATH=/home/opendaq/opendaq/lib
 ExecStart=/home/opendaq/opendaq/application_simulator
 

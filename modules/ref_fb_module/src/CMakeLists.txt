@@ -14,6 +14,7 @@ set(SRC_Include common.h
                 classifier_fb_impl.h
                 dispatch.h
                 trigger_fb_impl.h
+                fft_fb_impl.h
 )
 
 set(SRC_Srcs module_dll.cpp
@@ -23,6 +24,7 @@ set(SRC_Srcs module_dll.cpp
              classifier_fb_impl.cpp
              scaling_fb_impl.cpp
              trigger_fb_impl.cpp
+             fft_fb_impl.cpp
 )
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
@@ -54,12 +56,14 @@ set(MODULE_FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
                             ${MODULE_HEADERS_DIR}/dispatch.h
                             ${MODULE_HEADERS_DIR}/trigger_fb_impl.h
                             ${MODULE_HEADERS_DIR}/classifier_fb_impl.h
+                            ${MODULE_HEADERS_DIR}/fft_fb_impl.h
                             module_dll.cpp
                             power_fb_impl.cpp
                             statistics_fb_impl.cpp
                             scaling_fb_impl.cpp
                             classifier_fb_impl.cpp
-                            trigger_fb_impl.cpp)
+                            trigger_fb_impl.cpp
+                            fft_fb_impl.cpp)
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     set(MODULE_FILES ${MODULE_FILES} ${MODULE_HEADERS_DIR}/renderer_fb_impl.h
@@ -87,7 +91,9 @@ add_library(${LIB_NAME} SHARED ${SRC_Include}
 
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
-target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq)
+target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq
+                                  PRIVATE kissfft::kissfft
+)
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     target_compile_definitions(${LIB_NAME} PRIVATE OPENDAQ_ENABLE_RENDERER)

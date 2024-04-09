@@ -34,6 +34,6 @@ def configure_serial_in_service(filename, keyword):
         file.write(string)
 
 
-configure_local_id_in_json("opendaq-config.json", "opendaq")
-configure_serial_in_service("opcuatms.service", "serialNumber")
-configure_serial_in_service("native_streaming.service", "serialNumber")
+configure_local_id_in_json("/home/opendaq/opendaq-config.json", "opendaq")
+configure_serial_in_service("/home/opendaq/opcuatms.service", "serialNumber")
+configure_serial_in_service("/home/opendaq/native_streaming.service", "serialNumber")

@@ -120,8 +120,8 @@ Vagrant.configure("2") do |config|
     config.vm.provision "shell", inline: "sudo systemctl enable simulator"
 	
 	# Set permissions
-	config.vm.provision "shell", inline: "sudo chown opendaq:opendaq -hR /home/opendaq/"
-	config.vm.provision "shell", inline: "sudo chown opendaq:opendaq -hR /etc/avahi/services/"
+    config.vm.provision "shell", inline: "sudo chown opendaq:opendaq -hR /home/opendaq/"
+    config.vm.provision "shell", inline: "sudo chown opendaq:opendaq -hR /etc/avahi/services/"
 
     # Reduce memory usage
     config.vm.provision :shell, :inline => <<-SCRIPT

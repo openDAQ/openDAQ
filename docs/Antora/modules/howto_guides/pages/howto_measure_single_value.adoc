@@ -100,33 +100,6 @@ Python::
 ----
 ====
 
-[#last_value_range]
-== Getting the last value with a Range
-
-The following example demonstrates casting the last value object into an openDAQ Range interface. We can then call the methods of the underlying interface and access its members.
-
-[tabs]
-====
-Cpp::
-+
-[source,cpp]
-----
-// Cast to IRange
-auto range = lastValue.asPtr<IRange>();
-// Extract values
-auto low = range.getLowValue();
-auto high = range.getHighValue();
-----
-Python::
-+
-[source,python]
-----
-
-----
-====
-
-In the above example, the Data Descriptor of the Data Packet or Signal on which the method for getting the last value is called is similar to the the one from the previous example (the Data Descriptor with Sample Type `Float64`), except the Sample Type is `RangeInt64`.
-
 [#last_value_complex_number]
 == Getting the last value with a Complex Number
 

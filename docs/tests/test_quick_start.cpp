@@ -116,6 +116,19 @@ TEST_F(QuickStartTest, QuickStartAppConnectWebsocket)
     ASSERT_EQ(device.getInfo().getName(), "WebsocketClientPseudoDevice");
 }
 
+TEST_F(QuickStartTest, QuickStartAppConnectOldWebsocket)
+{
+    SKIP_TEST_MAC_CI;
+
+    InstancePtr server = docs_test_helpers::setupSimulatorServers();
+    daq::InstancePtr instance = daq::Instance();
+
+    daq::DevicePtr device = instance.addDevice("daq.ws://127.0.0.1");
+    ASSERT_TRUE(device.assigned());
+
+    ASSERT_EQ(device.getInfo().getName(), "WebsocketClientPseudoDevice");
+}
+
 // Corresponding document: Antora/modules/quick_start/pages/quick_start_application.adoc
 TEST_F(QuickStartTest, QuickStartAppReaderWebsocket)
 {

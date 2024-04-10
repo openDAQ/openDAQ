@@ -25,7 +25,7 @@ InputSignalBase::InputSignalBase(const std::string& signalId,
 {
 }
 
-void InputSignalBase::processSamples(uint64_t /*packetOffset*/, const uint8_t* /*data*/, size_t /*sampleCount*/)
+void InputSignalBase::processSamples(const NumberPtr& /*startDomainValue*/, const uint8_t* /*data*/, size_t /*sampleCount*/)
 {
 }
 
@@ -93,16 +93,16 @@ InputDomainSignal::InputDomainSignal(const std::string& signalId,
 {
 }
 
-DataPacketPtr InputDomainSignal::generateDataPacket(uint64_t packetOffset,
+DataPacketPtr InputDomainSignal::generateDataPacket(const NumberPtr& packetOffset,
                                                     const uint8_t* /*data*/,
                                                     size_t sampleCount,
                                                     const DataPacketPtr& /*domainPacket*/)
 {
     std::scoped_lock lock(descriptorsSync);
 
-    if (!lastDomainPacket.assigned() || lastDomainPacket.getOffset().getIntValue() != (Int) packetOffset)
+    if (!lastDomainPacket.assigned() || lastDomainPacket.getOffset() != packetOffset)
     {
-        lastDomainPacket = DataPacket(currentDataDescriptor, sampleCount, (Int) packetOffset);
+        lastDomainPacket = DataPacket(currentDataDescriptor, sampleCount, packetOffset);
     }
 
     return lastDomainPacket;
@@ -127,7 +127,7 @@ InputExplicitDataSignal::InputExplicitDataSignal(const std::string& signalId,
 {
 }
 
-DataPacketPtr InputExplicitDataSignal::generateDataPacket(uint64_t /*packetOffset*/,
+DataPacketPtr InputExplicitDataSignal::generateDataPacket(const NumberPtr& /*packetOffset*/,
                                                           const uint8_t* data,
                                                           size_t sampleCount,
                                                           const DataPacketPtr& domainPacket)
@@ -163,131 +163,164 @@ InputConstantDataSignal::InputConstantDataSignal(const std::string& signalId,
 {
 }
 
-void InputConstantDataSignal::processSamples(uint64_t timestamp, const uint8_t* data, size_t sampleCount)
+NumberPtr InputConstantDataSignal::calcDomainValue(const NumberPtr& startDomainValue, const uint64_t sampleIndex)
+{
+    NumberPtr domainRuleDelta = getDomainRuleDelta();
+
+    if (startDomainValue.getCoreType() == CoreType::ctFloat)
+        return startDomainValue.getFloatValue() + sampleIndex * domainRuleDelta.getFloatValue();
+    else
+        return startDomainValue.getIntValue() + sampleIndex * domainRuleDelta.getIntValue();
+}
+
+void InputConstantDataSignal::processSamples(const NumberPtr& absoluteStartDomainValue, const uint8_t* data, size_t sampleCount)
 {
     auto sampleType = currentDataDescriptor.getSampleType();
     const auto sampleSize = getSampleSize(sampleType);
     const auto bufferSize = sampleCount * (sampleSize + sizeof(uint64_t));
-    Int delta = inputDomainSignal->getSignalDescriptor().getRule().getParameters().get("delta");
 
-    for (size_t offset = 0; offset < bufferSize; offset += sizeof(uint64_t) + sampleSize)
+    for (size_t addrOffset = 0; addrOffset < bufferSize; addrOffset += sizeof(uint64_t) + sampleSize)
     {
-        const uint64_t* pIndex = reinterpret_cast<const uint64_t*>(data + offset);
-        const uint8_t* pConstantValue = data + offset + sizeof(uint64_t);
-        NumberPtr timeStamp = (Int)(*pIndex) * delta + timestamp;
+        const uint64_t* pIndex = reinterpret_cast<const uint64_t*>(data + addrOffset);
+        const uint8_t* pSignalValue = data + addrOffset + sizeof(uint64_t);
+        auto domainValue = calcDomainValue(absoluteStartDomainValue, *pIndex);
 
-        ConstantValueType constantValue;
+        SignalValueType signalValue;
         switch (sampleType)
         {
             case daq::SampleType::Int8:
-                constantValue = extractConstantValue<int8_t>(pConstantValue);
+                signalValue = extractConstantValue<int8_t>(pSignalValue);
                 break;
             case daq::SampleType::Int16:
-                constantValue = extractConstantValue<int16_t>(pConstantValue);
+                signalValue = extractConstantValue<int16_t>(pSignalValue);
                 break;
             case daq::SampleType::Int32:
-                constantValue = extractConstantValue<int32_t>(pConstantValue);
+                signalValue = extractConstantValue<int32_t>(pSignalValue);
                 break;
             case daq::SampleType::Int64:
-                constantValue = extractConstantValue<int64_t>(pConstantValue);
+                signalValue = extractConstantValue<int64_t>(pSignalValue);
                 break;
             case daq::SampleType::UInt8:
-                constantValue = extractConstantValue<uint8_t>(pConstantValue);
+                signalValue = extractConstantValue<uint8_t>(pSignalValue);
                 break;
             case daq::SampleType::UInt16:
-                constantValue = extractConstantValue<uint16_t>(pConstantValue);
+                signalValue = extractConstantValue<uint16_t>(pSignalValue);
                 break;
             case daq::SampleType::UInt32:
-                constantValue = extractConstantValue<uint32_t>(pConstantValue);
+                signalValue = extractConstantValue<uint32_t>(pSignalValue);
                 break;
             case daq::SampleType::UInt64:
-                constantValue = extractConstantValue<uint64_t>(pConstantValue);
+                signalValue = extractConstantValue<uint64_t>(pSignalValue);
                 break;
             case daq::SampleType::Float32:
-                constantValue = extractConstantValue<float>(pConstantValue);
+                signalValue = extractConstantValue<float>(pSignalValue);
                 break;
             case daq::SampleType::Float64:
-                constantValue = extractConstantValue<double>(pConstantValue);
+                signalValue = extractConstantValue<double>(pSignalValue);
                 break;
             default:
                 return;
         }
 
-        cachedConstantValues.insert_or_assign(timeStamp, constantValue);
+        cachedSignalValues.insert_or_assign(domainValue, signalValue);
     }
 }
 
-DataPacketPtr InputConstantDataSignal::generateDataPacket(uint64_t /*packetOffset*/,
+NumberPtr InputConstantDataSignal::getDomainRuleDelta()
+{
+    return inputDomainSignal->getSignalDescriptor().getRule().getParameters().get("delta");
+}
+
+uint32_t InputConstantDataSignal::calcPosition(const NumberPtr& startDomainValue, const NumberPtr& domainValue)
+{
+    NumberPtr domainRuleDelta = getDomainRuleDelta();
+
+    if (startDomainValue.getCoreType() == CoreType::ctFloat)
+        return (domainValue.getFloatValue() - startDomainValue.getFloatValue()) / domainRuleDelta.getFloatValue();
+    else
+        return (domainValue.getIntValue() - startDomainValue.getIntValue()) / domainRuleDelta.getIntValue();
+}
+
+DataPacketPtr InputConstantDataSignal::generateDataPacket(const NumberPtr& /*packetOffset*/,
                                                           const uint8_t* /*data*/,
                                                           size_t sampleCount,
                                                           const DataPacketPtr& domainPacket)
 {
-    std::scoped_lock lock(descriptorsSync);
-
-    auto sampleType = currentDataDescriptor.getSampleType();
-
-    Int delta = domainPacket.getDataDescriptor().getRule().getParameters().get("delta");
-    Int startOffset = domainPacket.getOffset();
-    Int endOffset = startOffset + delta * sampleCount;
-
-    DataPacketPtr dataPacket;
-    ConstantValueType startValue;
-
-    if (auto it = cachedConstantValues.find(startOffset); it != cachedConstantValues.end())
-        startValue = it->second;
-    else if (lastConstantValue.has_value())
-        startValue = lastConstantValue.value();
-    else
+    if (sampleCount == 0)
         return nullptr;
 
-    // TODO erase cached values that was already used to generate packets
-    std::vector<std::pair<uint32_t, ConstantValueType>> otherValues;
-    if (!cachedConstantValues.empty())
-    {
-        auto itStart = cachedConstantValues.upper_bound(startOffset);
-        auto itEnd = cachedConstantValues.lower_bound(endOffset);
+    std::scoped_lock lock(descriptorsSync);
 
-        for (auto it = itStart; it != itEnd; ++it)
+    if (domainPacket.getDataDescriptor() != inputDomainSignal->getSignalDescriptor())
+    {
+        STREAMING_PROTOCOL_LOG_E("Fail to generate constant data packet: domain descriptor mismatch");
+        return nullptr;
+    }
+
+    NumberPtr packetStartDomainValue = domainPacket.getOffset();
+    NumberPtr packetEndDomainValue = calcDomainValue(packetStartDomainValue, sampleCount - 1);
+
+    // search for cached value to be used as packet start value
+    // it should have smaller or equal domain value (map key) in comparison with packet domain value
+    auto itStart = cachedSignalValues.end();
+    for (auto it = cachedSignalValues.begin(); it != cachedSignalValues.end(); ++it)
+    {
+        if (it->first <= packetStartDomainValue)
+            itStart = it;
+    }
+
+    // start value is not found
+    if (itStart == cachedSignalValues.end())
+    {
+        STREAMING_PROTOCOL_LOG_E("Fail to generate constant data packet: packet start value is unknown");
+        return nullptr;
+    }
+
+    // start value found
+    SignalValueType packetStartValue = itStart->second;
+
+    // search for other cached values which belong to generated packet domain values range
+    std::vector<std::pair<uint32_t, SignalValueType>> packetOtherValues;
+    {
+        auto it = itStart;
+        ++it;
+        for (; it != cachedSignalValues.end() && it->first <= packetEndDomainValue; ++it)
         {
-            uint32_t pos = (it->first.getIntValue() - startOffset) / delta;
-            otherValues.emplace_back(pos, it->second);
-            lastConstantValue = it->second;
+            auto pos = calcPosition(packetStartDomainValue, it->first);
+            packetOtherValues.emplace_back(pos, it->second);
         }
     }
 
-    switch (sampleType)
+    // erase values related to previously generated packets
+    if (itStart != cachedSignalValues.begin())
+    {
+        cachedSignalValues.erase(cachedSignalValues.begin(), itStart);
+    }
+
+    switch (currentDataDescriptor.getSampleType())
     {
         case daq::SampleType::Int8:
-            return createTypedConstantPacket<int8_t>(startValue, otherValues, sampleCount, domainPacket, currentDataDescriptor);
-            break;
+            return createTypedConstantPacket<int8_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
         case daq::SampleType::Int16:
-            return createTypedConstantPacket<int16_t>(startValue, otherValues, sampleCount, domainPacket, currentDataDescriptor);
-            break;
+            return createTypedConstantPacket<int16_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
         case daq::SampleType::Int32:
-            return createTypedConstantPacket<int32_t>(startValue, otherValues, sampleCount, domainPacket, currentDataDescriptor);
-            break;
+            return createTypedConstantPacket<int32_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
         case daq::SampleType::Int64:
-            return createTypedConstantPacket<int64_t>(startValue, otherValues, sampleCount, domainPacket, currentDataDescriptor);
-            break;
+            return createTypedConstantPacket<int64_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
         case daq::SampleType::UInt8:
-            return createTypedConstantPacket<uint8_t>(startValue, otherValues, sampleCount, domainPacket, currentDataDescriptor);
-            break;
+            return createTypedConstantPacket<uint8_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
         case daq::SampleType::UInt16:
-            return createTypedConstantPacket<uint16_t>(startValue, otherValues, sampleCount, domainPacket, currentDataDescriptor);
-            break;
+            return createTypedConstantPacket<uint16_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
         case daq::SampleType::UInt32:
-            return createTypedConstantPacket<uint32_t>(startValue, otherValues, sampleCount, domainPacket, currentDataDescriptor);
-            break;
+            return createTypedConstantPacket<uint32_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
         case daq::SampleType::UInt64:
-            return createTypedConstantPacket<uint64_t>(startValue, otherValues, sampleCount, domainPacket, currentDataDescriptor);
-            break;
+            return createTypedConstantPacket<uint64_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
         case daq::SampleType::Float32:
-            return createTypedConstantPacket<float>(startValue, otherValues, sampleCount, domainPacket, currentDataDescriptor);
-            break;
+            return createTypedConstantPacket<float>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
         case daq::SampleType::Float64:
-            return createTypedConstantPacket<double>(startValue, otherValues, sampleCount, domainPacket, currentDataDescriptor);
-            break;
+            return createTypedConstantPacket<double>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
         default:
+            STREAMING_PROTOCOL_LOG_E("Fail to generate constant data packet: unsupported sample type");
             return nullptr;
     }
 }
@@ -303,15 +336,15 @@ bool InputConstantDataSignal::isCountable() const
 }
 
 template<typename DataType>
-InputConstantDataSignal::ConstantValueType InputConstantDataSignal::extractConstantValue(const uint8_t* pValue)
+InputConstantDataSignal::SignalValueType InputConstantDataSignal::extractConstantValue(const uint8_t* pValue)
 {
-    return ConstantValueType(*(reinterpret_cast<const DataType*>(pValue)));
+    return SignalValueType(*(reinterpret_cast<const DataType*>(pValue)));
 }
 
 template<typename DataType>
 DataPacketPtr InputConstantDataSignal::createTypedConstantPacket(
-    ConstantValueType startValue,
-    const std::vector<std::pair<uint32_t, ConstantValueType>>& otherValues,
+    SignalValueType startValue,
+    const std::vector<std::pair<uint32_t, SignalValueType>>& otherValues,
     size_t sampleCount,
     const DataPacketPtr& domainPacket,
     const DataDescriptorPtr& dataDescriptor)

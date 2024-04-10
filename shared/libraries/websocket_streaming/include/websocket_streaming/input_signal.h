@@ -42,8 +42,8 @@ public:
                     const InputSignalBasePtr& domainSignal,
                     daq::streaming_protocol::LogCallback logCb);
 
-    virtual void processSamples(uint64_t timestamp, const uint8_t* data, size_t sampleCount);
-    virtual DataPacketPtr generateDataPacket(uint64_t packetOffset,
+    virtual void processSamples(const NumberPtr& startDomainValue, const uint8_t* data, size_t sampleCount);
+    virtual DataPacketPtr generateDataPacket(const NumberPtr& packetOffset,
                                              const uint8_t* data,
                                              size_t sampleCount,
                                              const DataPacketPtr& domainPacket) = 0;
@@ -82,7 +82,7 @@ public:
                       const SubscribedSignalInfo& signalInfo,
                       streaming_protocol::LogCallback logCb);
 
-    DataPacketPtr generateDataPacket(uint64_t packetOffset,
+    DataPacketPtr generateDataPacket(const NumberPtr& packetOffset,
                                      const uint8_t* data,
                                      size_t sampleCount,
                                      const DataPacketPtr& domainPacket) override;
@@ -102,7 +102,7 @@ public:
                             const InputSignalBasePtr& domainSignal,
                             streaming_protocol::LogCallback logCb);
 
-    DataPacketPtr generateDataPacket(uint64_t packetOffset,
+    DataPacketPtr generateDataPacket(const NumberPtr& packetOffset,
                                      const uint8_t* data,
                                      size_t sampleCount,
                                      const DataPacketPtr& domainPacket) override;
@@ -113,7 +113,7 @@ public:
 class InputConstantDataSignal : public InputSignalBase
 {
 public:
-    using ConstantValueType =
+    using SignalValueType =
         std::variant<int8_t, int16_t , int32_t, int64_t, uint8_t, uint16_t , uint32_t, uint64_t, float, double>;
 
     InputConstantDataSignal(const std::string& signalId,
@@ -122,8 +122,8 @@ public:
                             const InputSignalBasePtr& domainSignal,
                             streaming_protocol::LogCallback logCb);
 
-    void processSamples(uint64_t timestamp, const uint8_t* data, size_t sampleCount) override;
-    DataPacketPtr generateDataPacket(uint64_t packetOffset,
+    void processSamples(const NumberPtr& absoluteStartDomainValue, const uint8_t* data, size_t sampleCount) override;
+    DataPacketPtr generateDataPacket(const NumberPtr& packetOffset,
                                      const uint8_t* data,
                                      size_t sampleCount,
                                      const DataPacketPtr& domainPacket) override;
@@ -132,18 +132,21 @@ public:
 
 private:
     template<typename DataType>
-    static ConstantValueType extractConstantValue(const uint8_t* pValue);
+    static SignalValueType extractConstantValue(const uint8_t* pValue);
 
     template<typename DataType>
     static DataPacketPtr createTypedConstantPacket(
-        ConstantValueType startValue,
-        const std::vector<std::pair<uint32_t, ConstantValueType>>& otherValues,
+        SignalValueType startValue,
+        const std::vector<std::pair<uint32_t, SignalValueType>>& otherValues,
         size_t sampleCount,
         const DataPacketPtr& domainPacket,
         const DataDescriptorPtr& dataDescriptor);
 
-    std::map<NumberPtr, ConstantValueType> cachedConstantValues;
-    std::optional<ConstantValueType> lastConstantValue;
+    NumberPtr calcDomainValue(const NumberPtr& startDomainValue, const uint64_t sampleIndex);
+    NumberPtr getDomainRuleDelta();
+    uint32_t calcPosition(const NumberPtr& startDomainValue, const NumberPtr& domainValue);
+
+    std::map<NumberPtr, SignalValueType> cachedSignalValues;
 };
 
 inline InputSignalBasePtr InputSignal(const std::string& signalId,

@@ -48,9 +48,9 @@ public static class CoreTypesDllInfo
     /// The library will be searched in the same directory as this assembly or in a sub-tree below 'runtimes'.
     /// </remarks>
 #if _X86
-    public const string FileName = "daqcoretypes-32-2" + Target;
+    public const string FileName = "daqcoretypes-32-3" + Target;
 #else
-    public const string FileName = "daqcoretypes-64-2" + Target;
+    public const string FileName = "daqcoretypes-64-3" + Target;
 #endif
 
     /// <summary>The SDK version.</summary>

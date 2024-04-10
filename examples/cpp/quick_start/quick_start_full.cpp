@@ -57,7 +57,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     int cnt = 0;
     while (cnt < 40)
     {
-        std::this_thread::sleep_for(100ms);
+        // std::this_thread::sleep_for(100ms);
 
         // Read up to 100 samples every 25ms, storing the amount read into `count`
         daq::SizeT count = 100;
@@ -80,7 +80,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     cnt = 0;
     while (cnt < 40)
     {
-        std::this_thread::sleep_for(100ms);
+        // std::this_thread::sleep_for(100ms);
 
         // Read up to 100 samples every 25ms, storing the amount read into `count`
         daq::SizeT count = 100;

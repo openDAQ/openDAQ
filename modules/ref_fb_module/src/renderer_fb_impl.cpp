@@ -963,19 +963,9 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         auto domainDataDimension = signalContext.inputDataSignalDescriptor.getDimensions()[0];
         labels = domainDataDimension.getLabels();
         xTickCount = labels.getCount();
-
-        size_t tmpCount = xTickCount;
-        while (tmpCount > 20)
+        if (xTickCount > 21)
         {
-            xTickStep *= 10;
-            tmpCount /= 10;
-        }
-        if (xTickStep != 1)
-        {
-            if (tmpCount < 5)
-                xTickStep /= 5;
-            else if (tmpCount < 10)
-                xTickStep /= 2;
+            xTickStep = (xTickCount + 20) / 21;
         }
     }
 
@@ -1047,15 +1037,19 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         renderTarget.draw(valueText);
     }
     
+    // for absolute time shows every second horizontal axi value
+    if (signalContext.hasTimeOrigin)
+        xTickStep = xTickStep * 2;
+
     // create labeles for horizontal axi
     for (size_t i = 0; i < xTickCount; i += xTickStep)
-    {
+	{
+
         if (!drawXAxisLabels) 
             break;
 
-        // for absolute time show only 3 domain values, otherwise 5
-        if (i % 2 == 1 && signalContext.hasTimeOrigin)
-            continue;
+        if (xTickCount - 1 - i < xTickStep)
+			i = xTickCount - 1;
 
         const float xPos = signalContext.topLeft.x + (1.0f * static_cast<float>(i) * xSize / static_cast<float>(xTickCount - 1));
 
@@ -1075,7 +1069,9 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
             domainStr << date::format("%F %T", tpms);
         }
         else
+        {
             domainStr << std::fixed << std::showpoint << std::setprecision(2) << duration * (static_cast<double>(i) / static_cast<double>(xTickCount - 1));
+        }
 
         domainText.setString(domainStr.str());
         const auto domainBounds = domainText.getGlobalBounds();

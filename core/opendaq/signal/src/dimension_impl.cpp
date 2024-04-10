@@ -173,7 +173,7 @@ ErrCode DimensionImpl::equals(IBaseObject* other, Bool* equals) const
 ListPtr<IBaseObject> DimensionImpl::getLinearLabels() const
 {
     const SizeT size = rule.getParameters().get("size");
-    const Float delta = rule.getParameters().get("delta");
+    const int delta = rule.getParameters().get("delta");
     const int start = rule.getParameters().get("start");
 
     auto list = List<IBaseObject>();

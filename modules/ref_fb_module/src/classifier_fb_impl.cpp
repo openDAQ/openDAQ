@@ -48,7 +48,7 @@ void ClassifierFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("BlockSize") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    auto classCountProp = FloatPropertyBuilder("ClassCount", 1).setVisible(EvalValue("!$UseCustomClasses")).build();
+    auto classCountProp = IntPropertyBuilder("ClassCount", 1).setVisible(EvalValue("!$UseCustomClasses")).build();
     objPtr.addProperty(classCountProp);
     objPtr.getOnPropertyValueWrite("ClassCount") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
@@ -97,7 +97,7 @@ void ClassifierFbImpl::readProperties()
 
     assert(blockSize > 0);
     if (!useCustomClasses)
-        assert(classCount > 0.0);
+        assert(classCount > 0);
     else if (customClassList.empty())
     {
         LOG_W("ClassifierFb: CustomClassList is empty");
@@ -226,9 +226,7 @@ void ClassifierFbImpl::configure()
             }
 
             size_t rangeSize = inputHighValue - inputLowValue;
-            Float offset = rangeSize / classCount;
-            offset = offset != std::round(offset);
-            rangeSize = (rangeSize / classCount) + offset + 1;
+            rangeSize = (rangeSize + classCount - 1) / classCount + 1;
             dimensions.pushBack(Dimension(LinearDimensionRule(classCount, (Int)inputLowValue, rangeSize)));
         }
         outputDataDescriptorBuilder.setDimensions(dimensions);

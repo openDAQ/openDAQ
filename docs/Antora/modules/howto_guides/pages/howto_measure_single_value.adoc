@@ -2,7 +2,7 @@
 
 openDAQ offers a variety of solutions for reading Signal values, including Readers. 
 
-For developers requiring access to only the most recent value, the Signal and Data Packet interfaces provide a method for doing just that.
+However, for developers requiring access to only the most recent value, the Signal and Data Packet interfaces provide a method for doing just that.
 
 [#last_value_signal]
 == Getting the last value of a Signal
@@ -49,7 +49,7 @@ Python::
 ====
 
 [#last_value_signal_types]
-== Last value and signal types
+== Last value and Signal types
 
 The method for getting the last value yields an openDAQ base object-type value.
 

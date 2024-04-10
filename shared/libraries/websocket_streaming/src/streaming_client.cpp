@@ -342,6 +342,7 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
 {
     std::string id = subscribedSignal.signalId();
 
+    NumberPtr domainValue = static_cast<Int>(timeStamp);
     InputSignalBasePtr inputSignal = nullptr;
 
     if (auto availableSigIt = availableSignals.find(id); availableSigIt != availableSignals.end())
@@ -358,17 +359,17 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
             DataPacketPtr domainPacket;
             if (inputSignal->isDomainSignal())
             {
-                domainPacket = inputSignal->generateDataPacket(timeStamp, data, valueCount, nullptr);
+                domainPacket = inputSignal->generateDataPacket(domainValue, data, valueCount, nullptr);
                 if (domainPacket.assigned())
                     onPacketCallback(id, domainPacket);
             }
             else
             {
                 domainPacket =
-                    inputSignal->getInputDomainSignal()->generateDataPacket(timeStamp, nullptr, valueCount, nullptr);
+                    inputSignal->getInputDomainSignal()->generateDataPacket(domainValue, nullptr, valueCount, nullptr);
                 if (domainPacket.assigned())
                     onPacketCallback(inputSignal->getInputDomainSignal()->getSignalId(), domainPacket);
-                auto packet = inputSignal->generateDataPacket(timeStamp, data, valueCount, domainPacket);
+                auto packet = inputSignal->generateDataPacket(domainValue, data, valueCount, domainPacket);
                 if (packet.assigned())
                     onPacketCallback(id, packet);
             }
@@ -380,7 +381,7 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
             {
                 if (!relatedSignal->isCountable())
                 {
-                    auto packet = relatedSignal->generateDataPacket(timeStamp, nullptr, valueCount, domainPacket);
+                    auto packet = relatedSignal->generateDataPacket(domainValue, nullptr, valueCount, domainPacket);
                     if (packet.assigned())
                         onPacketCallback(relatedSignal->getSignalId(), packet);
                 }
@@ -388,7 +389,7 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
         }
         else
         {
-            inputSignal->processSamples(timeStamp, data, valueCount);
+            inputSignal->processSamples(domainValue, data, valueCount);
         }
     }
 }

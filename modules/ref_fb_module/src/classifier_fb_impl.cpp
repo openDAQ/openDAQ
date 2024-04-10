@@ -95,21 +95,25 @@ void ClassifierFbImpl::readProperties()
     inputLowValue = objPtr.getPropertyValue("inputLowValue");
     outputName = static_cast<std::string>(objPtr.getPropertyValue("OutputName"));
 
-    assert(blockSize > 0);
+    if (blockSize == 0)
+        throw InvalidParameterException("Classifier property BlockSize must be greater than 0");
+
     if (!useCustomClasses)
+    {
         assert(classCount > 0);
+    }
     else if (customClassList.empty())
     {
-        LOG_W("ClassifierFb: CustomClassList is empty");
+        LOG_W("Classifier property CustomClassList is empty");
     }
     else
     {
         Float lastValue = customClassList[0];
         for (const auto& el : customClassList)
         {
-            if (static_cast<Float>(el) <= lastValue)
+            if (static_cast<Float>(el) < lastValue)
             {
-                LOG_W("ClassifierFb: CustomClassList is not incremental");
+                LOG_W("Classifier property CustomClassList is not incremental");
                 break;
             }
             lastValue = el;
@@ -155,7 +159,7 @@ void ClassifierFbImpl::configure()
         if (inputDataDescriptor.getSampleType() == SampleType::Struct || inputDataDescriptor.getDimensions().getCount() > 0)
             throw std::runtime_error("Incompatible input value data descriptor");
 
-        inputSampleType = inputDataDescriptor.getSampleType();
+        auto inputSampleType = inputDataDescriptor.getSampleType();
         if (inputSampleType != SampleType::Float64 &&
             inputSampleType != SampleType::Float32 &&
             inputSampleType != SampleType::Int8 &&
@@ -197,24 +201,14 @@ void ClassifierFbImpl::configure()
             // packets per BlockSize
             linearBlockCount = blockSize * linearBlockCount / 1000;
 
-            if (!linearReader.assigned())
-            {
-                linearReader = BlockReaderFromPort(inputPort, linearBlockCount, inputDataDescriptor.getSampleType(), inputDomainDataDescriptor.getSampleType());
-                linearReader.setOnDataAvailable([this] {
-                        SAMPLE_TYPE_DISPATCH(inputSampleType, processLinearDataPacket);
-                    });
-            }
-            else
-            {
-                linearReader = BlockReaderFromExisting(linearReader, linearBlockCount, inputDataDescriptor.getSampleType(), inputDomainDataDescriptor.getSampleType());
-            }
+            linearReader = BlockReaderFromExisting(linearReader, linearBlockCount, SampleType::Float64, SampleType::UInt64);
         }
-
-        auto outputDataDescriptorBuilder = DataDescriptorBuilder().setSampleType(SampleType::Float64);
         
         auto dimensions = List<IDimension>();
         if (useCustomClasses) 
+        {
             dimensions.pushBack(Dimension(ListDimensionRule(customClassList)));
+        }
         else 
         {
             if (!useCustomInputRange)
@@ -229,28 +223,20 @@ void ClassifierFbImpl::configure()
             rangeSize = (rangeSize + classCount - 1) / classCount + 1;
             dimensions.pushBack(Dimension(LinearDimensionRule(classCount, (Int)inputLowValue, rangeSize)));
         }
+
+        auto outputDataDescriptorBuilder = DataDescriptorBuilder().setSampleType(SampleType::Float64);
         outputDataDescriptorBuilder.setDimensions(dimensions);
-
         outputDataDescriptorBuilder.setValueRange(Range(0, 1));
-
+        outputDataDescriptorBuilder.setUnit(Unit("%"));
         if (outputName.empty())
             outputDataDescriptorBuilder.setName(inputDataDescriptor.getName().toStdString() + "/Classified");
         else
             outputDataDescriptorBuilder.setName(outputName);
 
-        outputDataDescriptorBuilder.setUnit(Unit("%"));
-
         outputDataDescriptor = outputDataDescriptorBuilder.build();
         outputSignal.setDescriptor(outputDataDescriptor);
         
-        if (domainLinear)
-        {
-            const auto domainRuleParams = domainRule.getParameters();
-            outputDomainDataDescriptor = DataDescriptorBuilderCopy(inputDomainDataDescriptor).setRule(LinearDataRule(static_cast<UInt>(linearBlockCount * inputDeltaTicks), domainRuleParams.get("start"))).build();
-        }
-        else
-            outputDomainDataDescriptor = DataDescriptorBuilderCopy(inputDomainDataDescriptor).setRule(ExplicitDataRule()).build();
-        
+        outputDomainDataDescriptor = DataDescriptorBuilderCopy(inputDomainDataDescriptor).setRule(ExplicitDataRule()).build();
         outputDomainSignal.setDescriptor(outputDomainDataDescriptor);
     }
     catch (const std::exception& e)
@@ -260,44 +246,34 @@ void ClassifierFbImpl::configure()
     }
 }
 
-void ClassifierFbImpl::onPacketReceived(const InputPortPtr& port)
+void ClassifierFbImpl::processData()
 {
-    std::scoped_lock lock(sync);
-
-    PacketPtr packet;
-    const auto connection = inputPort.getConnection();
-    if (!connection.assigned())
-        return;
-
-    packet = connection.peek();
-    if (packet.assigned() && packet.getType() == PacketType::Event)
+    while (linearReader.getAvailableCount())
     {
-        processEventPacket(packet);
-    }
-
-    if (linearReader.assigned())
-        return;
-
-    packet = connection.dequeue();
-
-    while (packet.assigned())
-    {
-        switch (packet.getType())
+        if (linearBlockCount == 0)
         {
-            case PacketType::Event:
-                processEventPacket(packet);
-                break;
+            LOG_D("blockSize have to more than zero");
+            return;
+        }
+        std::vector<Float> inputData(linearBlockCount);
+        std::vector<UInt> inputDomainData(linearBlockCount);
 
-            case PacketType::Data:
-                SAMPLE_TYPE_DISPATCH(inputSampleType, processDataPacket, packet);
-                break;
+        size_t blocksToRead = 1;
+        auto status = linearReader.readWithDomain(inputData.data(), inputDomainData.data(), &blocksToRead);
 
-            default:
-                break;
+        if (blocksToRead == 1)
+        {
+            if(domainLinear)
+                processLinearData(inputData, inputDomainData);
+            else
+                processExplicitData(inputData[0], inputDomainData[0]);
         }
 
-        packet = connection.dequeue();
-    };
+        if (auto eventPacket = status.getEventPacket(); eventPacket.assigned())
+        {
+            processEventPacket(eventPacket);
+        }
+    }
 }
 
 void ClassifierFbImpl::processEventPacket(const EventPacketPtr& packet)
@@ -308,16 +284,6 @@ void ClassifierFbImpl::processEventPacket(const EventPacketPtr& packet)
         DataDescriptorPtr inputDomainDataDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
         processSignalDescriptorChanged(inputDataDescriptor, inputDomainDataDescriptor);
     }
-}
-
-inline UInt ClassifierFbImpl::timeMs(UInt time) 
-{
-    return time * 1000 / inputResolution;
-}
-
-inline bool ClassifierFbImpl::timeInInterval(UInt startTime, UInt endTime) 
-{
-    return timeMs(endTime - startTime) < blockSize;
 }
 
 Int ClassifierFbImpl::binarySearch(float value, const ListPtr<IBaseObject>& labels) 
@@ -351,172 +317,98 @@ Int ClassifierFbImpl::binarySearch(float value, const ListPtr<IBaseObject>& labe
     return -1;
 }
 
-template <SampleType InputSampleType>
-void ClassifierFbImpl::processLinearDataPacket()
+void ClassifierFbImpl::processLinearData(const std::vector<Float>& inputData, const std::vector<UInt>& inputDomainData)
 {
-    using InputType = typename SampleTypeToType<InputSampleType>::Type;
-    using InputDomainType = UInt;
-    using OutputType = Float;
-    
-    if (linearBlockCount == 0)
-    {
-        LOG_D("blockSize is too small");
-        return;
-    }
-
     auto labels = outputDataDescriptor.getDimensions()[0].getLabels();
-    if (labels.getCount() == 0) 
-        return;
-
-    SizeT readBlock = 1;
-    auto inputData = std::make_unique<InputType[]>(linearBlockCount);
-    auto inputDomainData = std::make_unique<InputDomainType[]>(linearBlockCount);
-
-    auto status = linearReader.readWithDomain(inputData.get(), inputDomainData.get(), &readBlock);
-    auto eventPacket = status.getEventPacket();
-
-    if (readBlock == 0)
+    if (labels.getCount() != linearBlockCount) 
     {
-        if (eventPacket.assigned())
-            processEventPacket(eventPacket);
+        LOG_E("labels count is not equal to linearBlockCount. {} != {}", labels.getCount(), linearBlockCount);
         return;
     }
 
     auto outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1);
+    UInt* outputDomainData = static_cast<UInt*>(outputDomainPacket.getData());
     auto outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
-    auto outputData = static_cast<OutputType*>(outputPacket.getData());
+    auto outputData = static_cast<Float*>(outputPacket.getData());
     memset(outputData, 0, outputPacket.getRawDataSize());
 
-    for (size_t sampleIdx = 0; sampleIdx < linearBlockCount; sampleIdx++) 
+    for (const auto & value : inputData)
     {
-        auto& rawData = inputData[sampleIdx];
-
-        auto idx = binarySearch(static_cast<Float>(rawData), labels);
+        auto idx = binarySearch(value, labels);
         if (idx != -1)
             outputData[idx] += 1;
     }
 
     for (size_t i = 0; i < labels.getCount(); i++) 
-        outputData[i] /= linearBlockCount;
+        outputData[i] /= inputData.size();
+
+    outputDomainData[0] = inputDomainData.back();
+
+    outputSignal.sendPacket(outputPacket);
+    outputDomainSignal.sendPacket(outputDomainPacket);
+}
+
+inline UInt ClassifierFbImpl::blockSizeToTimeDuration() 
+{
+    return blockSize * inputResolution / 1000;
+}
+
+void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData)
+{
+    // set packetStarted with first domain data
+    if (packetStarted == UInt{})
+        packetStarted = inputDomainData;
+
+    if (inputDomainData < packetStarted + blockSizeToTimeDuration())
+    {
+        cachedSamples.push_back(inputData);
+        return;
+    }
+
+    auto labels = outputDataDescriptor.getDimensions()[0].getLabels();
+    if (labels.getCount() != linearBlockCount) 
+    {
+        LOG_E("labels count is not equal to linearBlockCount. {} != {}", labels.getCount(), linearBlockCount);
+        cachedSamples.push_back(inputData);
+        return;
+    }
+
+    DataPacketPtr outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1);
+    UInt* outputDomainData = static_cast<UInt*>(outputDomainPacket.getData());
+
+    DataPacketPtr outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
+    Float* outputData = static_cast<Float*>(outputPacket.getData());
+    memset(outputData, 0, labels.getCount() * sizeof(Float));
+
+    for (const auto & value : cachedSamples)
+    {
+        auto idx = binarySearch(static_cast<Float>(value), labels);
+        if (idx != -1)
+            outputData[idx] += 1;
+    }
+    
+    packetStarted += blockSizeToTimeDuration();
+    outputDomainData[0] = packetStarted;
+
+    if (cachedSamples.size())
+    {
+        for (size_t i = 0; i < labels.getCount(); i++) 
+            outputData[i] /= cachedSamples.size();
+    }
 
     outputSignal.sendPacket(outputPacket);
     outputDomainSignal.sendPacket(outputDomainPacket);
 
-    if (eventPacket.assigned())
-        processEventPacket(eventPacket);
-}
-
-template <SampleType InputSampleType>
-void ClassifierFbImpl::processDataPacket(const DataPacketPtr& packet)
-{
-    using InputType = typename SampleTypeToType<InputSampleType>::Type;
-    using OutputType = Float;
-
-    // if packet does not have samples - ignore
-    if (packet.getSampleCount() == 0)
-        return;
-
-    packets.push_back(packet);
-
-    UInt outputPackets = 0;
-    {
-        auto inputDomainData = static_cast<UInt*>(packet.getDomainPacket().getData());
-        UInt lastTime = inputDomainData[packet.getSampleCount() - 1];
-
-        // initialize members
-        if (packetStarted == UInt{})
-        {
-            packetStarted = inputDomainData[0];
-            lastReadSampleInBlock = 0; 
-        }
-
-        outputPackets = timeMs(lastTime - packetStarted) / blockSize;
-    }
-
-    if (!outputPackets)
-        return;
-
-    auto labels = outputDataDescriptor.getDimensions()[0].getLabels();
-    if (labels.getCount() == 0) 
-        return;
-
-    DataPacketPtr outputDomainPacket {};
-    UInt* outputDomainData {};
-
-    DataPacketPtr outputPacket {};
-    OutputType* outputData {};
-
-    size_t packetValueCount = 0;
-    while (outputPackets && packets.size()) 
-    {
-        auto listPacket = packets.front();
-
-        auto sampleCnt = listPacket.getSampleCount();
-        auto inputData = static_cast<InputType*>(listPacket.getData());
-        auto inputDomainData = static_cast<UInt*>(listPacket.getDomainPacket().getData());
-       
-        // reset array for new package
-        if (packetValueCount == 0)
-        {
-            outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1);
-            outputDomainData = static_cast<UInt*>(outputDomainPacket.getData());
-
-            outputPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, 1);
-            outputData = static_cast<OutputType*>(outputPacket.getData());
-            memset(outputData, 0, labels.getCount() * sizeof(OutputType));
-        }
-
-        bool packetInEpoch = timeInInterval(packetStarted, inputDomainData[sampleCnt - 1]);
-
-        size_t sampleIdx = lastReadSampleInBlock;
-        for (; sampleIdx < sampleCnt; sampleIdx++) 
-        {
-            // if there are values from another interval - check each value
-            if (!packetInEpoch && !timeInInterval(packetStarted, inputDomainData[sampleIdx]))
-                break;
-
-            outputDomainData[0] = inputDomainData[sampleIdx];
-            packetValueCount++;
-
-            auto& rawData = inputData[sampleIdx];
-
-            auto idx = binarySearch(static_cast<Float>(rawData), labels);
-            if (idx != -1)
-                outputData[idx] += 1;
-        }
-
-        if (packetInEpoch) 
-        {
-            lastReadSampleInBlock = 0;
-            packets.pop_front();
-        } 
-        else 
-        {
-            packetStarted += blockSize * inputResolution / 1000;
-
-            if (!packetValueCount) 
-            {
-                if (outputDomainData)
-                    outputDomainData[0] = packetStarted;
-                packetValueCount = 1;   
-            }
-
-            for (size_t i = 0; i < labels.getCount(); i++) 
-                outputData[i] /= packetValueCount;
-
-            outputSignal.sendPacket(outputPacket);
-            outputDomainSignal.sendPacket(outputDomainPacket);
-
-            lastReadSampleInBlock = sampleIdx;
-            packetValueCount = 0;
-            outputPackets--;
-        }
-    }
+    cachedSamples.clear();
+    cachedSamples.push_back(inputData);
 }
 
 void ClassifierFbImpl::createInputPorts()
 {
-    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);   
+    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    
+    linearReader = BlockReaderFromPort(inputPort, linearBlockCount, SampleType::Float64, SampleType::UInt64);
+    linearReader.setOnDataAvailable([this] { processData(); });
 }
 
 void ClassifierFbImpl::createSignals()

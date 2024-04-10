@@ -573,6 +573,9 @@ TEST_F(RefModulesTest, ClassifierGeneralDescriptor)
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
     const auto classifierDomainSignalDescription = classifierSignal.getDomainSignal().getDescriptor();
 
+    ASSERT_TRUE(classifierSignalDescription.assigned());
+    ASSERT_TRUE(classifierDomainSignalDescription.assigned());
+
     // Classifier returning values with float float
     ASSERT_EQ(classifierSignalDescription.getSampleType(), SampleType::Float64);
 

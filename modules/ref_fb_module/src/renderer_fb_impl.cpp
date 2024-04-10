@@ -1044,7 +1044,6 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
     // create labeles for horizontal axi
     for (size_t i = 0; i < xTickCount; i += xTickStep)
 	{
-
         if (!drawXAxisLabels) 
             break;
 

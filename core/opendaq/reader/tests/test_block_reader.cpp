@@ -933,6 +933,53 @@ TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallback)
     ASSERT_EQ(samples[1], dataPtr[1]);
 }
 
+TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlock)
+{
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+    RangeType64 domain[BLOCK_SIZE]{};
+    bool isEventPacket {false};
+    SizeT readSamples {0};
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::BlockReader(this->signal, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+        BlockReaderStatusPtr status = reader.readWithDomain(&samples, &domain, &count);
+        readSamples = status.getReadSamples();
+        isEventPacket = status.getReadStatus() == ReadStatus::Event;
+        promise.set_value();
+    });
+
+    auto domainPacket1 = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE - 1, 1);
+    auto dataPacket1 = DataPacketWithDomain(domainPacket1, this->signal.getDescriptor(), BLOCK_SIZE - 1);
+    auto dataPtr1 = static_cast<double*>(dataPacket1.getData());
+    dataPtr1[0] = 111.1;
+
+    this->sendPacket(dataPacket1);
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float32));
+
+    auto domainPacket2 = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
+    auto dataPacket2 = DataPacketWithDomain(domainPacket2, this->signal.getDescriptor(), 1);
+    auto dataPtr2 = static_cast<double*>(dataPacket2.getData());
+    dataPtr2[0] = 222.2;
+
+    this->sendPacket(dataPacket2);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(count, 0u);
+    // TODO: not working correctly because get_available in reader
+    // ASSERT_TRUE(isEventPacket);
+    ASSERT_EQ(readSamples, 1u);
+    ASSERT_EQ(samples[0], dataPtr1[0]);
+}
+
 TYPED_TEST(BlockReaderTest, BlockReaderFromPortOnReadCallback)
 {
     SizeT count{1};

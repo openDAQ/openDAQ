@@ -184,6 +184,7 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status)
 
     BlockReadInfo::Duration remainingTime = info.timeout;
     auto shouldReadMore = getAvailable() > 0 || remainingTime.count() > 0;
+    SizeT samplesToRead = info.remainingSamplesToRead;
 
     while (info.remainingSamplesToRead > 0 && shouldReadMore)
     {
@@ -238,7 +239,7 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status)
                 {
                     handleDescriptorChanged(eventPacket);
                     if (status)
-                        *status = ReaderStatus(eventPacket, !invalid).detach();
+                        *status = BlockReaderStatus(eventPacket, !invalid, samplesToRead - info.remainingSamplesToRead).detach();
                     return errCode;
                 }
                 break;
@@ -270,7 +271,7 @@ ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IRead
     if (invalid)
     {
         if (status)
-            *status = ReaderStatus(nullptr, !invalid).detach();
+            *status = BlockReaderStatus(nullptr, !invalid).detach();
         return OPENDAQ_IGNORED;
     }
 
@@ -282,11 +283,12 @@ ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IRead
 
     ErrCode errCode = readPackets(status);
 
-    if (status && *status == nullptr)
-        *status = ReaderStatus().detach();
-
     SizeT samplesRead = samplesToRead - info.remainingSamplesToRead;
     *count = samplesRead / blockSize;
+
+    if (status && *status == nullptr)
+        *status = BlockReaderStatus(nullptr, !invalid, samplesRead).detach();
+    
     return errCode;
 }
 
@@ -301,7 +303,7 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
     if (invalid)
     {
         if (status)
-            *status = ReaderStatus(nullptr, !invalid).detach();
+            *status = BlockReaderStatus(nullptr, !invalid).detach();
         return OPENDAQ_IGNORED;
     }
 
@@ -313,11 +315,12 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
 
     ErrCode errCode = readPackets(status);
 
-    if (status && *status == nullptr)
-        *status = ReaderStatus().detach();
-
     SizeT samplesRead = samplesToRead - info.remainingSamplesToRead;
     *count = samplesRead / blockSize;
+
+    if (status && *status == nullptr)
+        *status = BlockReaderStatus(nullptr, !invalid, samplesRead).detach();
+
     return errCode;
 }
 

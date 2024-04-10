@@ -99,6 +99,11 @@ TEST_F(StreamingTest, ParseConnectString)
     ASSERT_EQ(client->getPort(), 3000u);
     ASSERT_EQ(client->getHost(), "localhost");
     ASSERT_EQ(client->getTarget(), "/path/other");
+
+    client = std::make_shared<StreamingClient>(NullContext(), "daq.ws://127.0.0.1");
+    ASSERT_EQ(client->getPort(), daq::streaming_protocol::WEBSOCKET_LISTENING_PORT);
+    ASSERT_EQ(client->getHost(), "127.0.0.1");
+    ASSERT_EQ(client->getTarget(), "/");
 }
 
 TEST_F(StreamingTest, Subscription)

@@ -11,6 +11,7 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 
 static const char* WebsocketDeviceTypeId = "opendaq_lt_streaming";
 static const char* WebsocketDevicePrefix = "daq.lt://";
+static const char* OldWebsocketDevicePrefix = "daq.ws://";
 
 using namespace discovery;
 using namespace daq::websocket_streaming;
@@ -89,17 +90,15 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
 bool WebsocketStreamingClientModule::onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/)
 {
     std::string connStr = connectionString;
-    auto found = connStr.find(WebsocketDevicePrefix);
-    return (found == 0);
+    auto found = connStr.find(WebsocketDevicePrefix) == 0 || connStr.find(OldWebsocketDevicePrefix) == 0;
+    return found;
 }
 
 bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     if (connectionString.assigned())
     {
-        std::string connStr = connectionString;
-        auto found = connStr.find(WebsocketDevicePrefix);
-        return (found == 0);
+        return onAcceptsConnectionParameters(connectionString, config);
     }
     else if (config.assigned())
     {

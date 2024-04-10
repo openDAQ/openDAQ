@@ -176,8 +176,9 @@ TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConnectionStringCorre
     auto module = CreateModule();
 
     ASSERT_TRUE(module.acceptsStreamingConnectionParameters("daq.lt://device8"));
+    // check that old style conenction is also supported
+    ASSERT_TRUE(module.acceptsStreamingConnectionParameters("daq.ws://device8"));
 }
-
 
 TEST_F(WebsocketStreamingClientModuleTest, AcceptsStreamingConfig)
 {

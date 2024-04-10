@@ -1,9 +1,9 @@
 import json
-from uuid import getnode as get_mac
+import netifaces
 from xml.etree import ElementTree
 
 # serial number = mac address
-serial = str(get_mac())
+serial = netifaces.ifaddresses("enp0s3")[netifaces.AF_LINK][0]["addr"]
 header = ("<?xml version=\"1.0\" standalone='no'?>"
           "<!--*-nxml-*-->\n<!DOCTYPE service-group SYSTEM \"avahi-service.dtd\">\n")
 

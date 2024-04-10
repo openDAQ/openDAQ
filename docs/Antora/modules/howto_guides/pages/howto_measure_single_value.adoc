@@ -40,13 +40,13 @@ Cpp::
 // Get last value of a Data Packet
 auto lastValue = packet.getLastValue();
 ----
-Python::
-+
-[source,python]
-----
-
-----
 ====
+
+[CAUTION]
+====
+Getting the last value of a Data Packet is not yet supported in Python.
+====
+
 
 [#last_value_signal_types]
 == Last value and Signal types

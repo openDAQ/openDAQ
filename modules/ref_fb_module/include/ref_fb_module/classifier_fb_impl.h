@@ -57,7 +57,7 @@ private:
     BlockReaderPtr linearReader;
 
     size_t blockSize;
-    Float classCount;
+    size_t classCount;
     Float inputDeltaTicks;
     Float inputResolution;
 

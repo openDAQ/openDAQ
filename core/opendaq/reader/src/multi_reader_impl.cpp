@@ -767,7 +767,6 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
     if (sigInfo != signals.end())
     {
         sigInfo->connection = sigInfo->port.getConnection();
-        sigInfo->handleDescriptorChanged(sigInfo->connection.dequeue());
 
         // check new signals
         auto portList = List<IInputPortConfig>();

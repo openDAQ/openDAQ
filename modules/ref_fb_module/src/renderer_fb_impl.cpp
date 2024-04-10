@@ -950,6 +950,7 @@ void RendererFbImpl::getYMinMax(const SignalContext& signalContext, double& yMax
 
 void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& signalContext, const sf::Font& font, bool drawXAxisLabels, bool drawTitle)
 {
+    size_t xTickStep = 1;
     size_t xTickCount = 5;
     size_t yTickCount = 5;
 
@@ -962,6 +963,10 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         auto domainDataDimension = signalContext.inputDataSignalDescriptor.getDimensions()[0];
         labels = domainDataDimension.getLabels();
         xTickCount = labels.getCount();
+        if (xTickCount > 21)
+        {
+            xTickStep = (xTickCount + 20) / 21;
+        }
     }
 
     // create left border line
@@ -997,7 +1002,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
     }
 
     // create vertical grid
-    for (size_t i = 1; i < xTickCount; i++)
+    for (size_t i = xTickStep; i < xTickCount; i += xTickStep)
     {
         const float xPos = signalContext.topLeft.x + (1.0f * i * xSize / static_cast<float>(xTickCount - 1));
 
@@ -1032,49 +1037,55 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         renderTarget.draw(valueText);
     }
     
+    // for absolute time shows every second horizontal axi value
+    if (signalContext.hasTimeOrigin)
+        xTickStep = xTickStep * 2;
+
     // create labeles for horizontal axi
-    for (size_t i = 0; i < xTickCount; i++)
-    {
+    for (size_t i = 0; i < xTickCount; i += xTickStep)
+	{
+
         if (!drawXAxisLabels) 
             break;
 
+        if (xTickCount - 1 - i < xTickStep)
+			i = xTickCount - 1;
+
         const float xPos = signalContext.topLeft.x + (1.0f * static_cast<float>(i) * xSize / static_cast<float>(xTickCount - 1));
 
-        // for absolute time show only 3 domain values, otherwise 5
-        if (i % 2 == 0 || !signalContext.hasTimeOrigin)
+        sf::Text domainText;
+        domainText.setFont(font);
+        domainText.setFillColor(axisColor);
+        domainText.setCharacterSize(16);
+        std::ostringstream domainStr;
+        if (signalDimension == 1) 
         {
-            sf::Text domainText;
-            domainText.setFont(font);
-            domainText.setFillColor(axisColor);
-            domainText.setCharacterSize(16);
-            std::ostringstream domainStr;
-            if (signalDimension == 1) 
-            {
-                domainStr << std::fixed << std::showpoint << std::setprecision(2) << labels[i];
-            }
-            else if (signalContext.hasTimeOrigin)
-            {
-                const auto tp = signalContext.lastTimeValue - timeValueToDuration(signalContext, duration * (static_cast<double>(xTickCount - 1 - i) / static_cast<double>(xTickCount - 1)));
-                const auto tpms = date::floor<std::chrono::milliseconds>(tp);
-                domainStr << date::format("%F %T", tpms);
-            }
-            else
-                domainStr << std::fixed << std::showpoint << std::setprecision(2) << duration * (static_cast<double>(i) / static_cast<double>(xTickCount - 1));
-
-            domainText.setString(domainStr.str());
-            const auto domainBounds = domainText.getGlobalBounds();
-            float xOffset;
-            if (i == 0)
-                xOffset = 0;
-            else if (i == xTickCount - 1)
-                xOffset = domainBounds.width;
-            else
-                xOffset = domainBounds.width / 2.0f;
-
-            domainText.setPosition({xPos - xOffset, signalContext.bottomRight.y + domainBounds.height - 5.0f});
-
-            renderTarget.draw(domainText);
+            domainStr << std::fixed << std::showpoint << std::setprecision(2) << labels[i];
         }
+        else if (signalContext.hasTimeOrigin)
+        {
+            const auto tp = signalContext.lastTimeValue - timeValueToDuration(signalContext, duration * (static_cast<double>(xTickCount - 1 - i) / static_cast<double>(xTickCount - 1)));
+            const auto tpms = date::floor<std::chrono::milliseconds>(tp);
+            domainStr << date::format("%F %T", tpms);
+        }
+        else
+        {
+            domainStr << std::fixed << std::showpoint << std::setprecision(2) << duration * (static_cast<double>(i) / static_cast<double>(xTickCount - 1));
+        }
+
+        domainText.setString(domainStr.str());
+        const auto domainBounds = domainText.getGlobalBounds();
+        float xOffset;
+        if (i == 0)
+            xOffset = 0;
+        else if (i == xTickCount - 1)
+            xOffset = domainBounds.width;
+        else
+            xOffset = domainBounds.width / 2.0f;
+
+        domainText.setPosition({xPos - xOffset, signalContext.bottomRight.y + domainBounds.height - 5.0f});
+
+        renderTarget.draw(domainText);
     }
 
     if (drawTitle)

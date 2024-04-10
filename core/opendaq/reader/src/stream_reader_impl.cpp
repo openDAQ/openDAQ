@@ -185,9 +185,6 @@ ErrCode StreamReaderImpl::connected(IInputPort* port)
 
     std::scoped_lock lock(this->mutex);
     connection = InputPortConfigPtr::Borrow(port).getConnection();
-    if (connection.assigned())
-        handleDescriptorChanged(connection.dequeue());
-
     return OPENDAQ_SUCCESS;
 }
 

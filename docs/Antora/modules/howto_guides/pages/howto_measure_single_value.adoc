@@ -1,13 +1,13 @@
 = Measure a single value
 
-OpenDAQ offers a variety of solutions for reading Signal values, including Readers. 
+openDAQ offers a variety of solutions for reading Signal values, including Readers. 
 
-For developers requiring access to only the most recent value, the Signal and Data Packet interfaces provide a method named `getLastValue` (`last_value` in Python).
+For developers requiring access to only the most recent value, the Signal and Data Packet interfaces provide a method for doing just that.
 
 [#last_value_signal]
 == Getting the last value of a Signal
 
-When the `getLastValue` method (`last_value` in Python)  is called on a Signal, it yields an `IBaseObject` containing the last value.
+Reading the last value of a Signal yields an openDAQ base object-type value. Said value contains the last sample of the most recent packet sent through the Signal.
 
 [tabs]
 ====
@@ -27,9 +27,9 @@ Python::
 ====
 
 [#last_value_data_packet]
-== Getting last value of a Data Packet
+== Getting the last value of a Data Packet
 
-Similar is true when calling the `getLastValue` method (`last_value` in Python)  on a Data Packet.
+Similar is true when reading the last value of a Data Packet.
 
 [tabs]
 ====
@@ -48,34 +48,12 @@ Python::
 ----
 ====
 
-[#printing_the_last_value]
-== Printing the last value
+[#last_value_signal_types]
+== Last value and signal types
 
-No matter the source (either the Signal or the Data Packet), the resulting variable can be, for example, printed into the console.
+The method for getting the last value yields an openDAQ base object-type value.
 
-[tabs]
-====
-Cpp::
-+
-[source,cpp]
-----
-// Print last value
-std::cout << "lastValue: " << lastValue << std::endl;
-----
-Python::
-+
-[source,python]
-----
-
-----
-====
-
-[#casting_the_last_value]
-== Casting the last value and using the cast variable
-
-In C++, the function `getLastValue` returns an object of type `IBaseObject`. To access it's underying members and methods, one must explicitly cast it into the appropriate type. However, in Python, this is not necessary due to dynamic typing.
-
-The underlying type of the `IBaseObject` we get from our `getLastValue` call can be cast into either:
+The underlying type of the openDAQ base object-type we get from the method call can be cast into either:
 
 * `IFloat` if the type is `Float32` or `Float64`
 * `IInteger` if the type is `Int8` through `Int64` or `UInt8` through `UInt64`
@@ -84,7 +62,7 @@ The underlying type of the `IBaseObject` we get from our `getLastValue` call can
 * `IStruct` if the type is `Struct`
 * `IList` of the aforementioned types if there is exactly one dimension in the single value
 
-An example of casting the `lastValue` object into an `IFloat` object:
+An example of casting the last value object into an openDAQ Float interface:
 
 [tabs]
 ====
@@ -103,7 +81,7 @@ Python::
 ----
 ====
 
-In the above example, the Data Descriptor of the Data Packet or its Signal on which `getLastValue` (`last_value` in Python) is called might be:
+In the above example, the Data Descriptor of the Data Packet or its Signal on which the method for getting the last value is called might be:
 
 [tabs]
 ====
@@ -125,7 +103,7 @@ Python::
 [#last_value_range]
 == Getting the last value with a Range
 
-The following example demonstrates casting the `lastValue` object into an `IRange`. Something usefeul we can then do is call the methods of the underlying type and access its members, such as the `getLowValue` (`low_value` in Python) and the `getHighValue` (`high_value` in Python), in this case provided by the `IRange` interface.
+The following example demonstrates casting the last value object into an openDAQ Range interface. We can then call the methods of the underlying interface and access its members.
 
 [tabs]
 ====
@@ -147,7 +125,7 @@ Python::
 ----
 ====
 
-In the above example, the Data Descriptor of the Data Packet or its Signal on which `getLastValue` (`last_value` in Python) is called is similar to the the one from the previous example (the Data Descriptor with Sample Type `Float64`), except the Sample Type is `RangeInt64`.
+In the above example, the Data Descriptor of the Data Packet or Signal on which the method for getting the last value is called is similar to the the one from the previous example (the Data Descriptor with Sample Type `Float64`), except the Sample Type is `RangeInt64`.
 
 [#last_value_complex_number]
 == Getting the last value with a Complex Number
@@ -231,7 +209,7 @@ Because our Struct represents a custom type, we must call `setDescriptor` (`desc
 
 [CAUTION]
 ====
-All custom Structs and their respective fields must have their names set, which is a deviation from the previous examples. In the above code this is done by the calls to `setName` (`name` in Python) method of the Data Descriptor Builder.
+All custom Structs and their respective fields must have their names set, which is a deviation from the previous examples.
 ====
 
 After some data has been sent to our Signal, we can capture a single value similar to the previous examples:
@@ -260,7 +238,7 @@ Python::
 
 [CAUTION]
 ====
-If we want to call `getLastValue` (`last_value` in Python) on a Data Packet (as opposed to a Signal) and the underlying data type is a Struct, we must provide the optional parameter, Type Manager, which has had the custom Struct added to it.
+If we want to call the method for getting last value on a Data Packet (as opposed to a Signal) and the underlying data type is a Struct, we must provide the optional parameter, Type Manager, which has had the custom Struct added to it.
 ====
 
 [NOTE]
@@ -296,7 +274,7 @@ Python::
 
 [NOTE]
 ====
-Dimensions of the Data Descriptor that can be set via the `setDimensions` method (`dimensions` in Python) for Lists in the Data Descriptor Builder and must contain exactly one dimension.
+Dimensions of the Data Descriptor that can be set via the method for setting dimensions for Lists in the Data Descriptor Builder and must contain exactly one dimension.
 ====
 
 [NOTE]

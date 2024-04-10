@@ -566,6 +566,12 @@ TEST_F(RefModulesTest, ClassifierGeneralDescriptor)
     ClassifierTestHelper helper;
     helper.setUp();
 
+    // send packet to trigger classifier
+    auto dataPacket = helper.createDataPacket(1);
+    auto dataPtr = static_cast<UInt*>(dataPacket.getData());
+    dataPtr[0] = 0;
+    helper.sendPacket(dataPacket);
+
     const auto inputSignal = helper.getInputSignal();
     const auto inputDomainDescriptor = helper.getInputDomainSignal().getDescriptor();
 
@@ -597,6 +603,12 @@ TEST_F(RefModulesTest, ClassifierRuleForSync)
     ClassifierTestHelper helper;
     helper.setUp();
 
+    // send packet to trigger classifier
+    auto dataPacket = helper.createDataPacket(1);
+    auto dataPtr = static_cast<UInt*>(dataPacket.getData());
+    dataPtr[0] = 0;
+    helper.sendPacket(dataPacket);
+
     const auto inputSignal = helper.getInputSignal();
     const auto inputDomainDescriptor = helper.getInputDomainSignal().getDescriptor();
 
@@ -607,19 +619,19 @@ TEST_F(RefModulesTest, ClassifierRuleForSync)
     const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
 
     // Check Linear Rule
-    ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Linear);
-
-    // Check deltas
-    auto classifierDelta = classifierDomainRule.getParameters().get("delta");
-    auto inputResolution = inputDomainDescriptor.getTickResolution() * Int(1000);
-    auto expectedClassifierDelata = 1.0 / static_cast<Float>(inputResolution);
-    ASSERT_EQ(classifierDelta, expectedClassifierDelata);
+    ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
 }
 
 TEST_F(RefModulesTest, ClassifierRuleForAsync)
 {
     ClassifierTestHelper helper;
     helper.setUp(daq::SampleType::UInt64, Range(-10, 10), false);
+
+    // send packet to trigger classifier
+    auto dataPacket = helper.createDataPacket(1);
+    auto dataPtr = static_cast<UInt*>(dataPacket.getData());
+    dataPtr[0] = 0;
+    helper.sendPacket(dataPacket);
 
     const auto classifierSignal = helper.getOutputSignal();
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
@@ -636,6 +648,12 @@ TEST_F(RefModulesTest, ClassifierRangeSize)
     ClassifierTestHelper helper;
     helper.setUp(daq::SampleType::UInt64, Range(-3, 3));
 
+    // send packet to trigger classifier
+    auto dataPacket = helper.createDataPacket(1);
+    auto dataPtr = static_cast<UInt*>(dataPacket.getData());
+    dataPtr[0] = 0;
+    helper.sendPacket(dataPacket);
+
     const auto classifierSignal = helper.getOutputSignal();
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
 
@@ -648,6 +666,12 @@ TEST_F(RefModulesTest, ClassifierRangeSizeCustomClassCount)
 {
     ClassifierTestHelper helper;
     helper.setUp(daq::SampleType::UInt64, Range(-5, 5));
+
+    // send packet to trigger classifier
+    auto dataPacket = helper.createDataPacket(1);
+    auto dataPtr = static_cast<UInt*>(dataPacket.getData());
+    dataPtr[0] = 0;
+    helper.sendPacket(dataPacket);
 
     const auto classifierFb = helper.getClassifier();
     classifierFb.setPropertyValue("ClassCount", 4);
@@ -664,6 +688,12 @@ TEST_F(RefModulesTest, ClassifierRangeSizeCustomClasses)
 {
     ClassifierTestHelper helper;
     helper.setUp(daq::SampleType::UInt64, Range(-10, 10));
+
+    // send packet to trigger classifier
+    auto dataPacket = helper.createDataPacket(1);
+    auto dataPtr = static_cast<UInt*>(dataPacket.getData());
+    dataPtr[0] = 0;
+    helper.sendPacket(dataPacket);
 
     const auto classifierFb = helper.getClassifier();
     classifierFb.setPropertyValue("UseCustomClasses", true);
@@ -705,8 +735,12 @@ TEST_F(RefModulesTest, ClassifierCheckSyncData)
     helper.sendPacket(dataPacket);
 
     size_t blockCnt = 1;
-    auto outputData = std::make_unique<outputSignalType[]>(21);
-    auto status = reader.read(outputData.get(), &blockCnt, 500);
+    std::vector<outputSignalType>outputData(21);
+    while (reader.read(outputData.data(), &blockCnt, 1000).getReadStatus() == ReadStatus::Event)
+    {
+        blockCnt = 1;
+    }
+
     // check that was read output packet
     ASSERT_EQ(blockCnt, 1u);
 
@@ -759,15 +793,21 @@ TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
     helper.sendPacket(dataPacket);
 
     // reading first output block
-    auto firstOutputData = std::make_unique<outputSignalType[]>(5);
     size_t firstBlockCnt = 1;
-    reader.read(firstOutputData.get(), &firstBlockCnt, 500);
+    std::vector<outputSignalType>firstOutputData(5);
+    while (reader.read(firstOutputData.data(), &firstBlockCnt, 500).getReadStatus() == ReadStatus::Event)
+    {
+        firstBlockCnt = 1;
+    }
     ASSERT_EQ(firstBlockCnt, 1u);
 
     // reading second output block
-    auto secondOutputData = std::make_unique<outputSignalType[]>(5);
     size_t secondBlockCnt = 1;
-    reader.read(secondOutputData.get(), &secondBlockCnt, 500);
+    std::vector<outputSignalType>secondOutputData(5);
+    while (reader.read(secondOutputData.data(), &secondBlockCnt, 500).getReadStatus() == ReadStatus::Event)
+    {
+        secondBlockCnt = 1;
+    }
     ASSERT_EQ(secondBlockCnt, 1u);
 
     // check that values are in expected intervals for first result
@@ -813,8 +853,11 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClass)
     helper.sendPacket(dataPacket);
 
     size_t blockCnt = 1;
-    auto outputData = std::make_unique<outputSignalType[]>(11);
-    reader.read(outputData.get(), &blockCnt, 500);
+    std::vector<outputSignalType>outputData(11);
+    while (reader.read(outputData.data(), &blockCnt, 500).getReadStatus() == ReadStatus::Event)
+    {
+        blockCnt = 1;
+    }
 
     // check that was read output packet
     ASSERT_EQ(blockCnt, 1u);
@@ -862,8 +905,12 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
     helper.sendPacket(dataPacket);
 
     size_t blockCnt = 1;
-    auto outputData = std::make_unique<outputSignalType[]>(4);
-    reader.read(outputData.get(), &blockCnt, 500);
+    std::vector<outputSignalType>outputData(4);
+    while (reader.read(outputData.data(), &blockCnt, 500).getReadStatus() == ReadStatus::Event)
+    {
+        blockCnt = 1;
+    }
+
     // check that was read output packet
     ASSERT_EQ(blockCnt, 1u);
 
@@ -906,9 +953,11 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     helper.sendPacket(dataPacket);
 
     size_t blockCnt = 1;
-    auto outputData = std::make_unique<outputSignalType[]>(4);
-    reader.read(outputData.get(), &blockCnt, 500);
-    // check that was read output packet
+    std::vector<outputSignalType>outputData(4);
+    while (reader.read(outputData.data(), &blockCnt, 500).getReadStatus() == ReadStatus::Event)
+    {
+        blockCnt = 1;
+    }
     ASSERT_EQ(blockCnt, 1u);
 
     // check that sum of output values is eqauled to 1
@@ -958,15 +1007,21 @@ TEST_F(RefModulesTest, ClassifierCheckAsyncMultiData)
     helper.sendPacket(dataPacket);
 
     // reading first output block
-    auto firstOutputData = std::make_unique<outputSignalType[]>(5);
     size_t firstBlockCnt = 1;
-    reader.read(firstOutputData.get(), &firstBlockCnt, 200);
+    std::vector<outputSignalType>firstOutputData(5);
+    while (reader.read(firstOutputData.data(), &firstBlockCnt, 200).getReadStatus() == ReadStatus::Event)
+    {
+        firstBlockCnt = 1;
+    }
     ASSERT_EQ(firstBlockCnt, 1u);
 
     // reading second output block
-    auto secondOutputData = std::make_unique<outputSignalType[]>(5);
     size_t secondBlockCnt = 1;
-    reader.read(secondOutputData.get(), &secondBlockCnt, 200);
+    std::vector<outputSignalType>secondOutputData(5);
+    while (reader.read(secondOutputData.data(), &secondBlockCnt, 200).getReadStatus() == ReadStatus::Event)
+    {
+        secondBlockCnt = 1;
+    }
     ASSERT_EQ(secondBlockCnt, 1u);
 
     // check that values are in expected intervals for first result

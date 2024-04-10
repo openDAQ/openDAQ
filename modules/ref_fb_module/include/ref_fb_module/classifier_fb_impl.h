@@ -67,6 +67,7 @@ private:
     bool useCustomClasses;
     ListPtr<Float> customClassList;
 
+    bool firstPacket {true};
     UInt packetStarted {};
     std::list<Float> cachedSamples;
 

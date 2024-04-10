@@ -320,9 +320,9 @@ Int ClassifierFbImpl::binarySearch(float value, const ListPtr<IBaseObject>& labe
 void ClassifierFbImpl::processLinearData(const std::vector<Float>& inputData, const std::vector<UInt>& inputDomainData)
 {
     auto labels = outputDataDescriptor.getDimensions()[0].getLabels();
-    if (labels.getCount() != linearBlockCount) 
+    if (labels.getCount() == 0) 
     {
-        LOG_E("labels count is not equal to linearBlockCount. {} != {}", labels.getCount(), linearBlockCount);
+        LOG_E("Classifier labels are not set correctly");
         return;
     }
 
@@ -356,8 +356,11 @@ inline UInt ClassifierFbImpl::blockSizeToTimeDuration()
 void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData)
 {
     // set packetStarted with first domain data
-    if (packetStarted == UInt{})
+    if (firstPacket)
+    {
         packetStarted = inputDomainData;
+        firstPacket = false;
+    }
 
     if (inputDomainData < packetStarted + blockSizeToTimeDuration())
     {
@@ -366,9 +369,9 @@ void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData
     }
 
     auto labels = outputDataDescriptor.getDimensions()[0].getLabels();
-    if (labels.getCount() != linearBlockCount) 
+    if (labels.getCount() == 0) 
     {
-        LOG_E("labels count is not equal to linearBlockCount. {} != {}", labels.getCount(), linearBlockCount);
+        LOG_E("Classifier labels are not set correctly");
         cachedSamples.push_back(inputData);
         return;
     }

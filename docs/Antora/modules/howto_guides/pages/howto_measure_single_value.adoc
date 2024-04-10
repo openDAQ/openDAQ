@@ -79,38 +79,6 @@ Python::
 ----
 ====
 
-[#last_value_complex_number]
-== Getting the last value with a Complex Number
-
-In the following example:
-
-* Last value is extracted via a `getLastValue` (`last_value` in Python) call
-* `lastValue` object is cast into a `IComplexNumber` type (not needed in Python)
-* Methods of the underlying type such as the `getReal` (`real` in Python) and the `getImaginary` (`imaginary` in Python) are called, in this case provided by the `IComplexNumber` interface
-
-[tabs]
-====
-Cpp::
-+
-[source,cpp]
-----
-// Get last value of a Signal
-auto lastValue = signal.getLastValue();
-// Cast to IComplexNumber
-auto complex = lastValue.asPtr<IComplexNumber>();
-// Extract values
-auto real = complex.getReal();
-auto imaginary = complex.getImaginary();
-----
-Python::
-+
-[source,python]
-----
-
-====
-
-A Data Descriptor for this Complex Number example is again very similar to the ones from previous examples, except the Sample Type might be `ComplexFloat32` or `ComplexFloat64` or  instead of `Float64` or `RangeInt64`.
-
 [#last_value_struct]
 == Getting the last value with a Struct
 

@@ -2,12 +2,12 @@
 
 openDAQ offers a variety of solutions for reading Signal values, including Readers. 
 
-However, for developers requiring access to only the most recent value, the Signal and Data Packet interfaces provide a method for doing just that.
+However, for developers requiring access to only the most recent value, the Signal interface provides a method for doing just that.
 
 [#last_value_signal]
 == Getting the last value of a Signal
 
-Reading the last value of a Signal yields an openDAQ base object-type value. Said value contains the last sample of the most recent packet sent through the Signal.
+Reading the last value of a Signal yields an openDAQ base object-type value. Said value contains the last sample of the most recent Packet sent through the Signal.
 
 [tabs]
 ====
@@ -24,27 +24,6 @@ Python::
 ----
 
 ----
-====
-
-[#last_value_data_packet]
-== Getting the last value of a Data Packet
-
-Similar is true when reading the last value of a Data Packet.
-
-[tabs]
-====
-Cpp::
-+
-[source,cpp]
-----
-// Get last value of a Data Packet
-auto lastValue = packet.getLastValue();
-----
-====
-
-[CAUTION]
-====
-Getting the last value of a Data Packet is not yet supported in Python.
 ====
 
 
@@ -81,7 +60,7 @@ Python::
 ----
 ====
 
-In the above example, the Data Descriptor of the Data Packet or its Signal on which the method for getting the last value is called might be:
+In the above example, the Data Descriptor of the Signal on which the method for getting the last value is called might be:
 
 [tabs]
 ====
@@ -207,11 +186,6 @@ Python::
 ----
 
 ----
-====
-
-[CAUTION]
-====
-If we want to call the method for getting last value on a Data Packet (as opposed to a Signal) and the underlying data type is a Struct, we must provide the optional parameter, Type Manager, which has had the custom Struct added to it.
 ====
 
 [NOTE]

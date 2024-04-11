@@ -103,7 +103,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
 
     /*!
      * @brief Gets the type of connection supported by the device.
-     * @param[out] type The type of connection (e.g., "IPv4", "IPv6").
+     * @param[out] type The type of connection (e.g., "TCP/IP").
      */
     virtual ErrCode INTERFACE_FUNC getConnectionType(IString** type) = 0;
 

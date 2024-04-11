@@ -15,7 +15,7 @@ SubscribersRegistry::SubscribersRegistry(const ContextPtr& context)
     loggerComponent = this->logger.getOrAddComponent("NativeStreamingSubscribers");
 }
 
-void SubscribersRegistry::sendToClients(SendToClientCallback sendCallback)
+void SubscribersRegistry::doForAllClients(DoForClientCallback sendCallback)
 {
     std::scoped_lock lock(sync);
     for (auto& sessionHandler : sessionHandlers)
@@ -24,13 +24,13 @@ void SubscribersRegistry::sendToClients(SendToClientCallback sendCallback)
     }
 }
 
-void SubscribersRegistry::sendToSubscribers(const SignalPtr& signal, SendToClientCallback sendCallback)
+void SubscribersRegistry::doForSubscribedClients(const SignalPtr& signal, DoForClientCallback sendCallback)
 {
     auto signalKey = signal.getGlobalId().toStdString();
-    auto iter = signalsSubscribers.find(signalKey);
-    if (iter != signalsSubscribers.end())
+    auto iter = registeredSignals.find(signalKey);
+    if (iter != registeredSignals.end())
     {
-        auto& subscribers = iter->second;
+        auto& subscribers = std::get<0>(iter->second);
         std::scoped_lock lock(sync);
         for (auto& sessionHandler : subscribers)
         {
@@ -43,7 +43,7 @@ void SubscribersRegistry::sendToSubscribers(const SignalPtr& signal, SendToClien
     }
 }
 
-void SubscribersRegistry::sendToClient(SessionPtr session, SendToClientCallback sendCallback)
+void SubscribersRegistry::doForSingleClient(SessionPtr session, DoForClientCallback sendCallback)
 {
     std::scoped_lock lock(sync);
     auto iter = std::find_if(sessionHandlers.begin(),
@@ -65,10 +65,10 @@ void SubscribersRegistry::sendToClient(SessionPtr session, SendToClientCallback 
 void SubscribersRegistry::registerSignal(const SignalPtr& signal)
 {
     auto signalKey = signal.getGlobalId().toStdString();
-    auto iter = signalsSubscribers.find(signalKey);
-    if (iter == signalsSubscribers.end())
+    auto iter = registeredSignals.find(signalKey);
+    if (iter == registeredSignals.end())
     {
-        signalsSubscribers.insert({signalKey, std::vector<std::shared_ptr<ServerSessionHandler>>()});
+        registeredSignals.insert({signalKey, {Clients(), nullptr}});
     }
     else
     {
@@ -80,14 +80,14 @@ bool SubscribersRegistry::removeSignal(const SignalPtr& signal)
 {
     bool doSignalUnsubscribe = false;
     auto signalKey = signal.getGlobalId().toStdString();
-    auto signalIter = signalsSubscribers.find(signalKey);
-    if (signalIter != signalsSubscribers.end())
+    auto signalIter = registeredSignals.find(signalKey);
+    if (signalIter != registeredSignals.end())
     {
         std::scoped_lock lock(sync);
-        auto& subscribers = signalIter->second;
+        auto& subscribers = std::get<0>(signalIter->second);
         if (!subscribers.empty())
             doSignalUnsubscribe = true;
-        signalsSubscribers.erase(signalIter);
+        registeredSignals.erase(signalIter);
     }
     else
     {
@@ -107,10 +107,10 @@ std::vector<std::string> SubscribersRegistry::unregisterClient(SessionPtr sessio
     std::vector<std::string> toUnsubscribe;
 
     // find and remove session handler from subscribers
-    for (auto& signalIter : signalsSubscribers)
+    for (auto& signalIter : registeredSignals)
     {
         std::scoped_lock lock(sync);
-        auto& subscribers = signalIter.second;
+        auto& subscribers = std::get<0>(signalIter.second);
         auto subscriberIter = std::find_if(subscribers.begin(),
                                            subscribers.end(),
                                            [&session](std::shared_ptr<ServerSessionHandler>& handler)
@@ -144,11 +144,11 @@ bool SubscribersRegistry::registerSignalSubscriber(const std::string& signalStri
 {
     bool doSignalSubscribe = false;
     auto signalKey = signalStringId;
-    auto iter = signalsSubscribers.find(signalKey);
-    if (iter != signalsSubscribers.end())
+    auto iter = registeredSignals.find(signalKey);
+    if (iter != registeredSignals.end())
     {
         std::scoped_lock lock(sync);
-        auto& subscribers = iter->second;
+        auto& subscribers = std::get<0>(iter->second);
         auto subscribersIter = std::find_if(subscribers.begin(),
                                             subscribers.end(),
                                             [&session](std::shared_ptr<ServerSessionHandler>& handler)
@@ -186,11 +186,11 @@ bool SubscribersRegistry::removeSignalSubscriber(const std::string& signalString
 {
     bool doSignalUnsubscribe = false;
     auto signalKey = signalStringId;
-    auto iter = signalsSubscribers.find(signalKey);
-    if (iter != signalsSubscribers.end())
+    auto iter = registeredSignals.find(signalKey);
+    if (iter != registeredSignals.end())
     {
         std::scoped_lock lock(sync);
-        auto& subscribers = iter->second;
+        auto& subscribers = std::get<0>(iter->second);
         auto subscribersIter = std::find_if(subscribers.begin(),
                                             subscribers.end(),
                                             [&session](std::shared_ptr<ServerSessionHandler>& handler)
@@ -213,6 +213,36 @@ bool SubscribersRegistry::removeSignalSubscriber(const std::string& signalString
     }
 
     return doSignalUnsubscribe;
+}
+
+void SubscribersRegistry::setLastEventPacket(const std::string& signalStringId, const EventPacketPtr& packet)
+{
+    auto signalKey = signalStringId;
+    auto iter = registeredSignals.find(signalKey);
+    if (iter != registeredSignals.end())
+    {
+        std::scoped_lock lock(sync);
+        std::get<1>(iter->second) = packet;
+    }
+    else
+    {
+        throw NativeStreamingProtocolException("Signal is not registered");
+    }
+}
+
+EventPacketPtr SubscribersRegistry::getLastEventPacket(const std::string& signalStringId)
+{
+    auto signalKey = signalStringId;
+    auto iter = registeredSignals.find(signalKey);
+    if (iter != registeredSignals.end())
+    {
+        std::scoped_lock lock(sync);
+        return std::get<1>(iter->second);
+    }
+    else
+    {
+        throw NativeStreamingProtocolException("Signal is not registered");
+    }
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

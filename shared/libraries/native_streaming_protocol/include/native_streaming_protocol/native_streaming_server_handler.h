@@ -71,8 +71,6 @@ protected:
     SignalPtr findRegisteredSignal(const std::string &signalKey);
     SignalNumericIdType findSignalNumericId(const SignalPtr& signal);
 
-    static EventPacketPtr createDataDescriptorChangedEventPacket(const SignalPtr& signal);
-
     ContextPtr context;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     LoggerPtr logger;

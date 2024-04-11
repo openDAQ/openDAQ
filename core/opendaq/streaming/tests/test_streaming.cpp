@@ -477,7 +477,6 @@ TEST_F(TriggeredSubscriptionTest, BySingleConnection)
     signal.setActiveStreamingSource(streaming.ptr.getConnectionString());
     auto inputPort = InputPort(context, nullptr, "TestPort");
 
-    EXPECT_CALL(streaming.mock(), onCreateDataDescriptorChangedEventPacket(signal.getRemoteId())).Times(Exactly(1));
     EXPECT_CALL(streaming.mock(), onSubscribeSignal(signal.getRemoteId())).Times(Exactly(1));
     inputPort.connect(signal);
 
@@ -492,7 +491,6 @@ TEST_F(TriggeredSubscriptionTest, ByMultipleConnections)
     auto inputPort1 = InputPort(context, nullptr, "TestPort1");
     auto inputPort2 = InputPort(context, nullptr, "TestPort2");
 
-    EXPECT_CALL(streaming.mock(), onCreateDataDescriptorChangedEventPacket(signal.getRemoteId())).Times(Exactly(2));
     EXPECT_CALL(streaming.mock(), onSubscribeSignal(signal.getRemoteId())).Times(Exactly(1));
     inputPort1.connect(signal);
     inputPort2.connect(signal);
@@ -553,7 +551,6 @@ TEST_F(TriggeredSubscriptionTest, UnsubscribeBySignalRemove)
 
     auto inputPort = InputPort(context, nullptr, "TestPort");
 
-    EXPECT_CALL(streaming.mock(), onCreateDataDescriptorChangedEventPacket(signal.getRemoteId())).Times(Exactly(1));
     EXPECT_CALL(streaming.mock(), onSubscribeSignal(signal.getRemoteId())).Times(Exactly(1));
     inputPort.connect(signal);
 

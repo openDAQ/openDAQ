@@ -119,9 +119,7 @@ TEST_F(HowToGetLastValue, GetLastValueSignalListOfInt)
     // Check Dimensions count in Signal's Data Descriptor
     assert(mySignal.getDescriptor().getDimensions().getCount() == 1);
     // Get last value of a Signal
-    auto myLastValue = mySignal.getLastValue();
-    // Cast to IList
-    auto myList = myLastValue.asPtr<IList>();
+    ListPtr<IBaseObject> myList = mySignal.getLastValue();
     // Extract the second item on myList
     auto myItem = myList.getItemAt(1);
 

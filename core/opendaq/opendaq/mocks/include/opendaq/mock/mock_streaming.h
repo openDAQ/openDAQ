@@ -29,7 +29,6 @@ protected:
     void onRemoveSignal(const daq::MirroredSignalConfigPtr& signal) override;
     void onSubscribeSignal(const daq::StringPtr& signalStreamingIdd) override;
     void onUnsubscribeSignal(const daq::StringPtr& signalStreamingId) override;
-    daq::EventPacketPtr onCreateDataDescriptorChangedEventPacket(const daq::StringPtr& signalStreamingId) override;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

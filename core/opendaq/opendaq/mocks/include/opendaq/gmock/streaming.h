@@ -45,7 +45,6 @@ struct MockStreaming : daq::StreamingImpl<IMockStreaming>
     MOCK_METHOD(void, onRemoveSignal, (const daq::MirroredSignalConfigPtr& signal), (override));
     MOCK_METHOD(void, onSubscribeSignal, (const daq::StringPtr& signalStreamingId), (override));
     MOCK_METHOD(void, onUnsubscribeSignal, (const daq::StringPtr& signalStreamingId), (override));
-    MOCK_METHOD(daq::EventPacketPtr, onCreateDataDescriptorChangedEventPacket, (const daq::StringPtr& signalStreamingId), (override));
 
     void makeSignalAvailable(const daq::StringPtr& signalStreamingId) override { addToAvailableSignals(signalStreamingId); }
     void makeSignalUnavailable(const daq::StringPtr& signalStreamingId) override { removeFromAvailableSignals(signalStreamingId); }
@@ -97,14 +96,6 @@ struct MockStreaming : daq::StreamingImpl<IMockStreaming>
                        {
                            if (signal.getRemoteId() == signalStreamingId)
                                 signal.template asPtr<daq::IMirroredSignalPrivate>().unsubscribeCompleted(this->connectionString);
-                       })
-            ));
-
-        ON_CALL(*this, onCreateDataDescriptorChangedEventPacket)
-            .WillByDefault(DoAll(
-                Invoke([&](const daq::StringPtr& signalStreamingId)
-                       {
-                           return daq::DataDescriptorChangedEventPacket(nullptr, nullptr);
                        })
             ));
     }

@@ -207,25 +207,6 @@ void NativeStreamingClientHandler::unsubscribeSignal(const StringPtr& signalStri
     }
 }
 
-EventPacketPtr NativeStreamingClientHandler::getDataDescriptorChangedEventPacket(const StringPtr& signalStringId)
-{
-    std::scoped_lock lock(registeredSignalsSync);
-
-    const auto it = std::find_if(std::begin(signalIds),
-                                 std::end(signalIds),
-                                 [signalStringId](const auto& pair)
-                                 {
-                                     return signalStringId == pair.second;
-                                 });
-
-    if (it != std::end(signalIds))
-    {
-        if (sessionHandler)
-            return sessionHandler->getDataDescriptorChangedEventPacket(it->first);
-    }
-    return DataDescriptorChangedEventPacket(nullptr, nullptr);
-}
-
 void NativeStreamingClientHandler::sendConfigRequest(const config_protocol::PacketBuffer& packet)
 {
     if (sessionHandler)

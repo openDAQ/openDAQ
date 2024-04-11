@@ -59,7 +59,6 @@ public:
     // IStreamingPrivate
     ErrCode INTERFACE_FUNC subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
     ErrCode INTERFACE_FUNC unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
-    EventPacketPtr INTERFACE_FUNC createDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId) override;
     ErrCode INTERFACE_FUNC detachRemovedSignal(const StringPtr& signalRemoteId) override;
 
 protected:
@@ -98,13 +97,6 @@ protected:
      * @param signalStreamingId The streaming ID of the signal to be unsubscribed.
      */
     virtual void onUnsubscribeSignal(const StringPtr& signalStreamingId) = 0;
-
-    /*!
-     * @brief A function is invoked on creation of an initial DataDescriptor Changed Event Packet.
-     * @param signalRemoteId The global remote ID of the signal for which the event is created.
-     * @return The created DataDescriptor Changed Event Packet
-     */
-    virtual EventPacketPtr onCreateDataDescriptorChangedEventPacket(const StringPtr& signalStreamingId) = 0;
 
     void onPacket(const StringPtr& signalId, const PacketPtr& packet);
     void handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket);
@@ -576,24 +568,6 @@ void StreamingImpl<Interfaces...>::resubscribeAvailableSignal(const StringPtr& s
         }
     }
     // else - corresponding signal was not added, no actions required
-}
-
-template <typename... Interfaces>
-EventPacketPtr StreamingImpl<Interfaces...>::createDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId)
-{
-    std::scoped_lock lock(sync);
-
-    StringPtr signalStreamingId = getSignalStreamingId(signalRemoteId);
-
-    if (signalStreamingId.assigned())
-    {
-        return onCreateDataDescriptorChangedEventPacket(signalStreamingId);
-    }
-    else
-    {
-        LOG_E("Signal with remote id {} is not available", signalRemoteId);
-        return DataDescriptorChangedEventPacket(nullptr, nullptr);
-    }
 }
 
 template <typename... Interfaces>

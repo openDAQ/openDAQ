@@ -16,7 +16,7 @@ Cpp::
 [source,cpp]
 ----
 // Get last value of a Signal
-auto lastValue = signal.getLastValue();
+auto myLastValue = signal.getLastValue();
 ----
 Python::
 +
@@ -25,7 +25,6 @@ Python::
 
 ----
 ====
-
 
 [#last_value_signal_types]
 == Last value and Signal types
@@ -40,27 +39,6 @@ The underlying type of the openDAQ Base object-type value we get from the method
 * openDAQ Range object-type corresponds to `RangeInt64` Sample Type
 * openDAQ Struct object-type corresponds to `Struct` Sample Type and the Data Descriptor must have Struct Fields defined
 * openDAQ List object-type corresponds to any of the aforementioned Sample Types and the Data Descriptor must have Dimensions defined
-
-An example of casting the last value object into an openDAQ Float interface:
-
-[tabs]
-====
-Cpp::
-+
-[source,cpp]
-----
-// Cast to IFloat
-auto number = lastValue.asPtr<IFloat>();
-----
-Python::
-+
-[source,python]
-----
-
-----
-====
-
-In the above example, the Data Descriptor of the Signal on which the method for getting the last value is called might be:
 
 [tabs]
 ====

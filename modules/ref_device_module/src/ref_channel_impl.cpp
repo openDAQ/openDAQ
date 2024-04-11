@@ -390,8 +390,6 @@ void RefChannelImpl::buildSignalDescriptors()
                                 .setName("Time AI " + std::to_string(index + 1));
 
     timeSignal.setDescriptor(timeDescriptor.build());
-
-    valueSignal.setDomainSignal(timeSignal);
 }
 
 double RefChannelImpl::coerceSampleRate(const double wantedSampleRate) const
@@ -420,6 +418,7 @@ void RefChannelImpl::createSignals()
 {
     valueSignal = createAndAddSignal(fmt::format("ai{}", index));
     timeSignal = createAndAddSignal(fmt::format("ai{}_time", index), nullptr, false);
+    valueSignal.setDomainSignal(timeSignal);
 }
 
 void RefChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)

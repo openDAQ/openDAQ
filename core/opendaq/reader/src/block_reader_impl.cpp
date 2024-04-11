@@ -187,11 +187,14 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status)
     SizeT samplesToRead = info.remainingSamplesToRead;
 
     while (info.remainingSamplesToRead > 0 && shouldReadMore)
-    {
+    {   
         PacketPtr packet = info.dataPacket;
 
+        SizeT samplesForFullBlock = samplesToRead - info.remainingSamplesToRead;
+        samplesForFullBlock = blockSize - (samplesForFullBlock % blockSize);
+
         // if no partially-read packet and there are more blocks left in the connection
-        if (getAvailable() > 0 && !packet.assigned())
+        if (getAvailableSamples() >= samplesForFullBlock && !packet.assigned())
         {
             std::unique_lock notifyLock(notify.mutex);
 
@@ -201,11 +204,10 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status)
         else if (!packet.assigned())
         {
             // if not enough samples wait for the timeout or a full block
-
             std::unique_lock notifyLock(notify.mutex);
-            if (notify.condition.wait_for(notifyLock, remainingTime, [this]
+            if (notify.condition.wait_for(notifyLock, remainingTime, [this, samplesForFullBlock]
             {
-                return notify.dataReady && getAvailable() != 0;
+                return notify.dataReady && getAvailableSamples() >= samplesForFullBlock;
             }))
             {
                 packet = connection.dequeue();
@@ -233,7 +235,6 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status)
             case PacketType::Event:
             {
                 // Handle events
-
                 auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {

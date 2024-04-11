@@ -974,8 +974,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlock)
     ASSERT_EQ(promiseStatus, std::future_status::ready);
 
     ASSERT_EQ(count, 0u);
-    // TODO: not working correctly because get_available in reader
-    // ASSERT_TRUE(isEventPacket);
+    ASSERT_TRUE(isEventPacket);
     ASSERT_EQ(readSamples, 1u);
     ASSERT_EQ(samples[0], dataPtr1[0]);
 }

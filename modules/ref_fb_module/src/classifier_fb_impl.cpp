@@ -307,9 +307,10 @@ Int ClassifierFbImpl::binarySearch(float value, const ListPtr<IBaseObject>& labe
             return low;
 
         Int mid = low + (high - low) / 2;
-        if (value >= static_cast<Float>(labels.getItemAt(mid)) && value < static_cast<Float>(labels.getItemAt(mid+1))) 
+        Float midValue = static_cast<Float>(labels.getItemAt(mid));
+        if (value >= midValue && value < static_cast<Float>(labels.getItemAt(mid+1))) 
             return mid;
-        else if (value < static_cast<Float>(labels.getItemAt(mid))) 
+        else if (value < midValue) 
             high = mid - 1;
         else 
             low = mid + 1;
@@ -372,7 +373,6 @@ void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData
     if (labels.getCount() == 0) 
     {
         LOG_E("Classifier labels are not set correctly");
-        cachedSamples.push_back(inputData);
         return;
     }
 

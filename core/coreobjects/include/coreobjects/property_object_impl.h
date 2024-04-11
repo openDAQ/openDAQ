@@ -42,6 +42,8 @@
 #include <coretypes/enumeration_factory.h>
 #include <coretypes/validation.h>
 #include <coretypes/cloneable.h>
+#include <coreobjects/permission_manager_factory.h>
+#include <coreobjects/permission_manager_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -91,6 +93,7 @@ public:
     virtual ErrCode INTERFACE_FUNC endUpdate() override;
 
     virtual ErrCode INTERFACE_FUNC getOnEndUpdate(IEvent** event) override;
+    virtual ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) override;
 
     // IPropertyObjectInternal
     virtual ErrCode INTERFACE_FUNC checkForReferences(IProperty* property, Bool* isReferenced) override;
@@ -162,6 +165,7 @@ protected:
     WeakRefPtr<ITypeManager> manager;
     PropertyOrderedMap localProperties;
     StringPtr path;
+    PermissionManagerPtr permissionManager;
 
     void internalDispose(bool) override;
     ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool batch, bool isUpdating = false);
@@ -306,6 +310,7 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     , updateCount(0)
     , coreEventMuted(true)
     , path("")
+    , permissionManager(PermissionManager())
     , className(nullptr)
     , objectClass(nullptr)
 {
@@ -1435,7 +1440,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
                 const ErrCode err = cloneable->clone(&obj);
                 if (OPENDAQ_FAILED(err) || !obj.assigned())
                     continue;
-                
+
                 this->propValues.insert(std::make_pair(val.first, obj));
             }
         }
@@ -1447,7 +1452,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
                 const ErrCode err = cloneable->clone(&obj);
                 if (OPENDAQ_FAILED(err) || !obj.assigned())
                     continue;
-                
+
                 this->propValues.insert(std::make_pair(val.first, obj));
             }
         }
@@ -1517,7 +1522,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             {
                 return err;
             }
-            
+
             if (protectedAccess)
             {
                 const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObjectProtected>(true);
@@ -2047,6 +2052,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnEndUpda
 }
 
 template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPermissionManager(IPermissionManager** permissionManager)
+{
+    OPENDAQ_PARAM_NOT_NULL(permissionManager);
+
+    *permissionManager = this->permissionManager.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename... Interfaces>
 bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkIsReferenced(const StringPtr& referencedPropName,
                                                                                    const PropertyInternalPtr& prop)
 {
@@ -2527,6 +2541,10 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwner(IPropertyObject* newOwner)
 {
     this->owner = newOwner;
+
+    const PermissionManagerPtr parentManager = this->owner.assigned() ? this->owner.getRef().getPermissionManager() : nullptr;
+    this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -2621,7 +2639,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
                 const auto serializedNestedObj = serialized.readSerializedObject(propName);
                 return updatable->update(serializedNestedObj);
             }
-            
+
             propValue = serialized.readObject(propName);
             break;
         }

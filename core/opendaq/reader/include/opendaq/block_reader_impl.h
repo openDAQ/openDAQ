@@ -119,7 +119,7 @@ public:
     ErrCode INTERFACE_FUNC getBlockSize(SizeT* size) override;
 
 private:
-    ErrCode readPackets(IReaderStatus** status);
+    ErrCode readPackets(IReaderStatus** status, SizeT* count);
     ErrCode readPacketData();
 
     SizeT getAvailable() const;

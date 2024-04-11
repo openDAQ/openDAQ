@@ -22,5 +22,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DEFINE_EXCEPTION(CalcFailed, OPENDAQ_ERR_CALCFAILED, "Calculation failed")
 DEFINE_EXCEPTION(ManagerNotAssigned, OPENDAQ_ERR_MANAGER_NOT_ASSIGNED, "Property object class manager is not assigned")
+DEFINE_EXCEPTION(AuthenticationFailed, OPENDAQ_ERR_AUTHENTICATION_FAILED, "Authentication failed")
 
 END_NAMESPACE_OPENDAQ

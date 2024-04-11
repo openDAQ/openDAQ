@@ -161,7 +161,7 @@ TEST_F(OpcuaDeviceModulesTest, DeviceDynamicFeatures)
     auto daqDevice = client.getDevices()[0];
 
     ASSERT_EQ(daqDevice.getAvailableDevices().getCount(), 0u);
-    ASSERT_EQ(daqDevice.getAvailableFunctionBlockTypes().getCount(), 7u);
+    ASSERT_EQ(daqDevice.getAvailableFunctionBlockTypes().getCount(), 8u);
     ASSERT_THROW(daqDevice.addDevice("daqref://device0"),
                  opcua::OpcUaClientCallNotAvailableException);  // Are these the correct errors to return?
 

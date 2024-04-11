@@ -45,6 +45,7 @@ public:
     ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) override;
 
 private:
+    static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
     bool modulesLoaded;
     std::vector<std::string> paths;
     std::vector<ModuleLibrary> libraries;

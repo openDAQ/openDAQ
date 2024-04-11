@@ -22,8 +22,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceLibrary(IProperty, "coreobjects")]
- * [interfaceLibrary(IServerCapability, "coreobjects")]
- * [interfaceSmartPtr(IServerCapability, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
+ * [interfaceSmartPtr(IServerCapability, GenericServerCapabilityPtr)]
  */
 
 DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)

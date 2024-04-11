@@ -37,6 +37,14 @@ rtgen(SRC_Unit unit.h)
 rtgen(SRC_UnitBuilder unit_builder.h)
 rtgen(SRC_ComponentType component_type.h)
 rtgen(SRC_CoreEventArgs core_event_args.h)
+rtgen(SRC_User user.h)
+rtgen(SRC_UserInternal user_internal.h)
+rtgen(SRC_AuthenticationProvider authentication_provider.h)
+rtgen(SRC_PermissionManager permission_manager.h)
+rtgen(SRC_PermissionManagerInternal permission_manager_internal.h)
+rtgen(SRC_PermisisonsBuilder permissions_builder.h)
+rtgen(SRC_PermisisonMaskBuilder permission_mask_builder.h)
+rtgen(SRC_Permisisons permissions.h)
 
 get_target_property(CORE_CONTAINERS_SRCS core_containers INTERFACE_SOURCES)
 
@@ -144,6 +152,40 @@ source_group("core_event_args" FILES ${SDK_HEADERS_DIR}/core_event_args.h
                                      core_event_args_impl.cpp
 )
 
+source_group("user" FILES ${SDK_HEADERS_DIR}/user.h
+                          ${SDK_HEADERS_DIR}/user_internal.h
+                          ${SDK_HEADERS_DIR}/user_factory.h
+                          ${SDK_HEADERS_DIR}/user_impl.h
+                          user_impl.cpp
+)
+
+source_group("authentication_provider" FILES ${SDK_HEADERS_DIR}/authentication_provider.h
+                                             ${SDK_HEADERS_DIR}/authentication_provider_factory.h
+                                             ${SDK_HEADERS_DIR}/authentication_provider_impl.h
+                                             authentication_provider_impl.cpp
+)
+
+source_group("permission_manager" FILES ${SDK_HEADERS_DIR}/permission_manager.h
+                                        ${SDK_HEADERS_DIR}/permission_manager_factory.h
+                                        ${SDK_HEADERS_DIR}/permission_manager_internal.h
+                                        ${SDK_HEADERS_DIR}/permission_manager_impl.h
+                                        permission_manager_impl.cpp
+                                        ${SDK_HEADERS_DIR}/permission_enum.h
+)
+
+source_group("permission_builder" FILES ${SDK_HEADERS_DIR}/permissions_builder.h
+                                        ${SDK_HEADERS_DIR}/permissions_builder_factory.h
+                                        ${SDK_HEADERS_DIR}/permissions_builder_impl.h
+                                        permissions_builder_impl.cpp
+                                        ${SDK_HEADERS_DIR}/permission_mask_builder.h
+                                        ${SDK_HEADERS_DIR}/permission_mask_builder_factory.h
+                                        ${SDK_HEADERS_DIR}/permission_mask_builder_impl.h
+                                        permission_mask_builder_impl.cpp
+                                        ${SDK_HEADERS_DIR}/permissions.h
+                                        ${SDK_HEADERS_DIR}/permissions_impl.h
+                                        permissions_impl.cpp
+)
+
 set(SRC_Cpp version.cpp
             eval_value_impl.cpp
             eval_value_lexer.cpp
@@ -165,7 +207,13 @@ set(SRC_Cpp version.cpp
             util.cpp
             unit_impl.cpp
             unit_builder_impl.cpp
-			core_event_args_impl.cpp
+            core_event_args_impl.cpp
+            user_impl.cpp
+            authentication_provider_impl.cpp
+            permission_manager_impl.cpp
+            permissions_impl.cpp
+            permissions_builder_impl.cpp
+            permission_mask_builder_impl.cpp
 )
 
 set(SRC_PublicHeaders coreobjects.h
@@ -199,7 +247,21 @@ set(SRC_PublicHeaders coreobjects.h
                       component_type.h
                       core_event_args_factory.h 
                       core_event_args_ids.h 
-					  core_event_args_impl.h
+                      core_event_args_impl.h
+                      user.h
+                      user_internal.h
+                      user_factory.h
+                      authentication_provider.h
+                      authentication_provider_factory.h
+                      permission_manager.h
+                      permission_manager_internal.h
+                      permission_manager_factory.h
+                      permissions.h
+                      permissions_builder.h
+                      permissions_builder_factory.h
+                      permission_mask_builder.h
+                      permission_mask_builder_factory.h
+                      permission_enum.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -221,6 +283,12 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        property_object_class_builder_impl.h
                        property_object_internal.h
                        component_type_impl.h
+                       user_impl.h
+                       authentication_provider_impl.h
+                       permission_manager_impl.h
+                       permissions_impl.h
+                       permissions_builder_impl.h
+                       permission_mask_builder_impl.h
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)
@@ -266,9 +334,14 @@ rtgen_config(${PROJECT_NAME}
              ${PROJECT_VERSION_PATCH}
 )
 
-target_link_libraries(${LIB_NAME} PUBLIC daq::coretypes
-                                         tsl::ordered_map
-                                  PRIVATE daq::core_containers
+target_link_libraries(${LIB_NAME}
+    PUBLIC
+        daq::coretypes
+        tsl::ordered_map
+    PRIVATE
+        daq::core_containers
+        $<BUILD_INTERFACE:Boost::algorithm>
+        $<BUILD_INTERFACE:Boost::filesystem>
 )
 
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

@@ -5,7 +5,7 @@
         },
     "Scheduler": 
         {
-            "WorkerNnum": 0
+            "WorkersNum": 0
         },
     "Logging": 
         {

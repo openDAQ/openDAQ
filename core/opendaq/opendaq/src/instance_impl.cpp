@@ -664,6 +664,14 @@ ErrCode InstanceImpl::getOnEndUpdate(IEvent** event)
     return rootDevice->endUpdate();
 }
 
+ErrCode INTERFACE_FUNC InstanceImpl::getPermissionManager(IPermissionManager** permissionManager)
+{
+    OPENDAQ_PARAM_NOT_NULL(permissionManager);
+
+    *permissionManager = rootDevice.getPermissionManager().addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)
 {
     return rootDevice->hasProperty(propertyName, hasProperty);

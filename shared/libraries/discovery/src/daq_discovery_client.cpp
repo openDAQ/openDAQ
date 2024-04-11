@@ -13,9 +13,9 @@ DiscoveryClient::DiscoveryClient(std::vector<ServerCapabilityCb> serverCapabilit
 {
 }
 
-void DiscoveryClient::initMdnsClient(const std::string& serviceName, std::chrono::milliseconds discoveryDuration)
+void DiscoveryClient::initMdnsClient(const ListPtr<IString>& serviceNames, std::chrono::milliseconds discoveryDuration)
 {
-    mdnsClient = std::make_shared<MDNSDiscoveryClient>(serviceName);
+    mdnsClient = std::make_shared<MDNSDiscoveryClient>(serviceNames);
     mdnsClient->setDiscoveryDuration(discoveryDuration);
 }
 
@@ -107,8 +107,11 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
     while (std::getline(ss, segment, ','))
     {
         // Replace legacy caps tag "TMS" with "OPENDAQ"
+        // Replace legacy caps tag "WS" with "LT"
         if (segment == "TMS")
             segment = "OPENDAQ";
+        else if (segment == "WS")
+            segment = "LT";
 
         if (requiredCapsCopy.count(segment))
             requiredCapsCopy.erase(segment);

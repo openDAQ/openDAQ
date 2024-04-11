@@ -11,6 +11,7 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 
 static const char* WebsocketDeviceTypeId = "opendaq_lt_streaming";
 static const char* WebsocketDevicePrefix = "daq.lt://";
+static const char* OldWebsocketDevicePrefix = "daq.ws://";
 
 using namespace discovery;
 using namespace daq::websocket_streaming;
@@ -26,19 +27,21 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
                 auto connectionString = fmt::format("{}{}:{}{}",
-                                   WebsocketDevicePrefix,
-                                   discoveredDevice.ipv4Address,
-                                   discoveredDevice.servicePort,
-                                   discoveredDevice.getPropertyOrDefault("path", "/"));
-                auto cap = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming).addConnectionString(connectionString).setConnectionType("Ipv4");
+                                    WebsocketDevicePrefix,
+                                    discoveredDevice.ipv4Address,
+                                    discoveredDevice.servicePort,
+                                    discoveredDevice.getPropertyOrDefault("path", "/"));
+                auto cap = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming);
+                cap.addConnectionString(connectionString);
+                cap.setConnectionType("Ipv4");
                 cap.setPrefix("daq.lt");
                 return cap;
             }
-        },
-        {"WS"}
+        }, 
+        {"LT"}
     )
 {
-    discoveryClient.initMdnsClient("_streaming-lt._tcp.local.");
+    discoveryClient.initMdnsClient(List<IString>("_streaming-lt._tcp.local.", "_streaming-ws._tcp.local."));
 }
 
 ListPtr<IDeviceInfo> WebsocketStreamingClientModule::onGetAvailableDevices()
@@ -87,17 +90,15 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
 bool WebsocketStreamingClientModule::onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/)
 {
     std::string connStr = connectionString;
-    auto found = connStr.find(WebsocketDevicePrefix);
-    return (found == 0);
+    auto found = connStr.find(WebsocketDevicePrefix) == 0 || connStr.find(OldWebsocketDevicePrefix) == 0;
+    return found;
 }
 
 bool WebsocketStreamingClientModule::onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     if (connectionString.assigned())
     {
-        std::string connStr = connectionString;
-        auto found = connStr.find(WebsocketDevicePrefix);
-        return (found == 0);
+        return onAcceptsConnectionParameters(connectionString, config);
     }
     else if (config.assigned())
     {

@@ -357,15 +357,15 @@ inline UInt ClassifierFbImpl::blockSizeToTimeDuration()
 void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData)
 {
     // set packetStarted with first domain data
-    if (firstPacket)
+    if (cachedSamples == nullptr)
     {
+        cachedSamples = List<Float>();
         packetStarted = inputDomainData;
-        firstPacket = false;
     }
 
     if (inputDomainData < packetStarted + blockSizeToTimeDuration())
     {
-        cachedSamples.push_back(inputData);
+        cachedSamples.pushBack(inputData);
         return;
     }
 
@@ -373,7 +373,20 @@ void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData
     if (labels.getCount() == 0) 
     {
         LOG_E("Classifier labels are not set correctly");
+        packetGap = true;
         return;
+    }
+
+    if (packetGap)
+    {
+        packetGap = false;
+        UInt missedBlocks = (inputDomainData - packetStarted) / blockSizeToTimeDuration();
+        if (missedBlocks != 0)
+        {
+            cachedSamples = List<Float>(inputData);
+            packetStarted += missedBlocks * blockSizeToTimeDuration();
+            return;
+        }
     }
 
     DataPacketPtr outputDomainPacket = DataPacket(outputDomainDataDescriptor, 1);
@@ -393,17 +406,16 @@ void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData
     packetStarted += blockSizeToTimeDuration();
     outputDomainData[0] = packetStarted;
 
-    if (cachedSamples.size())
+    if (cachedSamples.getCount())
     {
         for (size_t i = 0; i < labels.getCount(); i++) 
-            outputData[i] /= cachedSamples.size();
+            outputData[i] /= cachedSamples.getCount();
     }
 
     outputSignal.sendPacket(outputPacket);
     outputDomainSignal.sendPacket(outputDomainPacket);
 
-    cachedSamples.clear();
-    cachedSamples.push_back(inputData);
+    cachedSamples = List<Float>(inputData);
 }
 
 void ClassifierFbImpl::createInputPorts()

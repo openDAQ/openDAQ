@@ -51,11 +51,11 @@ private:
     SignalConfigPtr outputDomainSignal;
 
     bool domainLinear{false};
-    size_t linearBlockCount{1};
+    SizeT linearBlockCount{1};
     BlockReaderPtr linearReader;
 
-    size_t blockSize;
-    size_t classCount;
+    SizeT blockSize;
+    SizeT classCount;
     Float inputDeltaTicks;
     Float inputResolution;
 
@@ -67,9 +67,9 @@ private:
     bool useCustomClasses;
     ListPtr<Float> customClassList;
 
-    bool firstPacket {true};
+    bool packetGap {false};
     UInt packetStarted {};
-    std::list<Float> cachedSamples;
+    ListPtr<Float> cachedSamples;
 
     void createInputPorts();
     void createSignals();

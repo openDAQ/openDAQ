@@ -75,7 +75,7 @@ Python::
 +
 [source,python]
 ----
-
+# Not supported in Python yet
 ----
 ====
 
@@ -97,7 +97,7 @@ Python::
 +
 [source,python]
 ----
-
+# Not supported in Python yet
 ----
 ====
 

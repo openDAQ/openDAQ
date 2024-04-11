@@ -23,7 +23,7 @@ AudioDeviceImpl::AudioDeviceImpl(const std::shared_ptr<MiniaudioContext>& maCont
                           : throw ArgumentNullException("Logger must not be null"))
 {
     // time signal is owned by device, because in case of multiple channels they should share the same time signal
-    timeSignal = createAndAddSignal("time");
+    timeSignal = createAndAddSignal("time", nullptr, false);
 
     initProperties();
     createAudioChannel();

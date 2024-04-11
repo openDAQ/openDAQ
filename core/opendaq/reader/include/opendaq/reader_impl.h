@@ -112,10 +112,7 @@ public:
     ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
-        
-        std::scoped_lock lock(mutex);
-        connection = InputPortConfigPtr::Borrow(inputPort).getConnection();
-        handleDescriptorChanged(connection.dequeue());
+        connection = InputPortPtr::Borrow(inputPort).getConnection();
         return OPENDAQ_SUCCESS;
     }
 

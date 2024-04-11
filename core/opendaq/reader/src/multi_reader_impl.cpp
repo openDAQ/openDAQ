@@ -35,10 +35,13 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
     this->internalAddRef();
     try
     {
-        auto ports = CheckPreconditions(list);
+        bool fromInputPorts;
+        auto ports = CheckPreconditions(list, true, fromInputPorts);
         loggerComponent = ports[0].getContext().getLogger().getOrAddComponent("MultiReader");
 
-        portBinder = PropertyObject();
+        if (fromInputPorts)
+            portBinder = PropertyObject();
+
         connectPorts(ports, valueReadType, domainReadType, mode);
 
         updateCommonSampleRateAndDividers();
@@ -67,7 +70,8 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old,
     portBinder = old->portBinder;
     startOnFullUnitOfDomain = old->startOnFullUnitOfDomain;
 
-    CheckPreconditions(old->getSignals(), false);
+    bool fromInputPorts;
+    CheckPreconditions(old->getSignals(), false, fromInputPorts);
     commonSampleRate = old->commonSampleRate;
     requiredCommonSampleRate = old->requiredCommonSampleRate;
 
@@ -106,7 +110,8 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig,
 
     auto ports = readerConfig.getInputPorts();
 
-    CheckPreconditions(ports, false);
+    bool fromInputPorts;
+    CheckPreconditions(ports, false, fromInputPorts);
   
     for (const auto& port : ports)
     {
@@ -121,12 +126,14 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     : requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
 {
-    auto ports = CheckPreconditions(builder.getSourceComponents(), false);
+    bool fromInputPorts;
+    auto ports = CheckPreconditions(builder.getSourceComponents(), false, fromInputPorts);
     loggerComponent = ports[0].getContext().getLogger().getOrAddComponent("MultiReader");
 
     this->internalAddRef();
 
-    portBinder = PropertyObject();
+    if (fromInputPorts)
+        portBinder = PropertyObject();
     connectPorts(ports, builder.getValueReadType(), builder.getDomainReadType(), builder.getReadMode());
 
     updateCommonSampleRateAndDividers();
@@ -260,35 +267,49 @@ bool MultiReaderImpl::ListElementsHaveSameType(const ListPtr<IBaseObject>& list)
     return true;
 }
 
-ListPtr<IInputPortConfig> MultiReaderImpl::CheckPreconditions(const ListPtr<IComponent>& list, bool overrideMethod)
+ListPtr<IInputPortConfig> MultiReaderImpl::CheckPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts)
 {
     if (!list.assigned())
         throw NotAssignedException("List of inputs is not assigned");
     if (list.getCount() == 0)
         throw InvalidParameterException("Need at least one signal.");
 
-    auto portList = List<IInputPortConfig>();   
+    bool haveInputPorts = false;
+    bool haveSignals = false;
+
+    auto portList = List<IInputPortConfig>();
     for (const auto & el : list)
     {
         if (auto signal = el.asPtrOrNull<ISignal>(); signal.assigned())
         {
+            if (haveInputPorts)
+                throw InvalidParameterException("Cannot pass both input ports and signals as items");
             auto port = InputPort(signal.getContext(), nullptr, fmt::format("Read signal {}", signal.getLocalId()));
             if (overrideMethod)
                 port.setNotificationMethod(PacketReadyNotification::SameThread);
             port.connect(signal);
             portList.pushBack(port);
+
+            haveSignals = true;
         }
         else if (auto port = el.asPtrOrNull<IInputPortConfig>(); port.assigned())
         {
+            if (haveSignals)
+                throw InvalidParameterException("Cannot pass both input ports and signals as items");
+
             if (overrideMethod)
                 port.setNotificationMethod(PacketReadyNotification::Scheduler);
             portList.pushBack(port);
+
+            haveInputPorts = true;
         }
         else
         {
             throw InvalidParameterException("One of the elements of input list is not signal or input port");
         }
     }
+
+    fromInputPorts = haveInputPorts;
 
     checkSameDomain(portList);
     return portList;
@@ -341,7 +362,8 @@ void MultiReaderImpl::connectPorts(const ListPtr<IInputPortConfig>& inputPorts,
 
     for (const auto& port : inputPorts)
     {
-        port.asPtr<IOwnable>().setOwner(portBinder);
+        if (portBinder.assigned())
+            port.asPtr<IOwnable>().setOwner(portBinder);
         port.setListener(listener);
 
         auto& sigInfo = signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
@@ -745,7 +767,6 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
     if (sigInfo != signals.end())
     {
         sigInfo->connection = sigInfo->port.getConnection();
-        sigInfo->handleDescriptorChanged(sigInfo->connection.dequeue());
 
         // check new signals
         auto portList = List<IInputPortConfig>();

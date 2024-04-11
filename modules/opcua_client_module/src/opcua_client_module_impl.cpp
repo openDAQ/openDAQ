@@ -29,16 +29,17 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
             [context = this->context](const MdnsDiscoveredDevice& discoveredDevice)
             {
                 auto connectionString = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
-                auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration).addConnectionString(connectionString)
-                                                                                                                 .setConnectionType("Ipv4")
-                                                                                                                 .setPrefix("daq.opcua");
+                auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
+                cap.addConnectionString(connectionString);
+                cap.setConnectionType("Ipv4");
+                cap.setPrefix("daq.opcua");
                 return cap;
             }
         },
         {"OPENDAQ"}
     )
 {
-    discoveryClient.initMdnsClient("_opcua-tcp._tcp.local.");
+    discoveryClient.initMdnsClient(List<IString>("_opcua-tcp._tcp.local."));
 }
 
 ListPtr<IDeviceInfo> OpcUaClientModule::onGetAvailableDevices()

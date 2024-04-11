@@ -229,9 +229,4 @@ void NativeStreamingImpl::onUnsubscribeSignal(const StringPtr& signalStreamingId
     transportClientHandler->unsubscribeSignal(signalStreamingId);
 }
 
-EventPacketPtr NativeStreamingImpl::onCreateDataDescriptorChangedEventPacket(const StringPtr& signalStreamingId)
-{
-    return transportClientHandler->getDataDescriptorChangedEventPacket(signalStreamingId);
-}
-
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

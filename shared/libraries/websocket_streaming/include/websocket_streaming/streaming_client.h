@@ -70,7 +70,6 @@ public:
     std::string getTarget();
     bool isConnected();
     void setConnectTimeout(std::chrono::milliseconds timeout);
-    EventPacketPtr getDataDescriptorChangedEventPacket(const StringPtr& signalStringId);
     void subscribeSignals(const std::vector<std::string>& signalIds);
     void unsubscribeSignals(const std::vector<std::string>& signalIds);
 

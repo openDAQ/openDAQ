@@ -173,12 +173,12 @@ ErrCode DimensionImpl::equals(IBaseObject* other, Bool* equals) const
 ListPtr<IBaseObject> DimensionImpl::getLinearLabels() const
 {
     const SizeT size = rule.getParameters().get("size");
-    const int delta = rule.getParameters().get("delta");
-    const int start = rule.getParameters().get("start");
+    const Float delta = rule.getParameters().get("delta");
+    const Float start = rule.getParameters().get("start");
 
     auto list = List<IBaseObject>();
     for (SizeT i = 0; i < size; ++i)
-        list.pushBack(start + static_cast<int>(i) * delta);
+        list.pushBack(start +  static_cast<Float>(i) * delta);
 
     return list;
 }
@@ -187,13 +187,13 @@ ListPtr<IBaseObject> DimensionImpl::getLinearLabels() const
 ListPtr<IBaseObject> DimensionImpl::getLogLabels() const
 {
     const SizeT size = rule.getParameters().get("size");
-    const int delta = rule.getParameters().get("delta");
-    const int start = rule.getParameters().get("start");
-    const int base = rule.getParameters().get("base");
+    const Float delta = rule.getParameters().get("delta");
+    const Float start = rule.getParameters().get("start");
+    const Float base = rule.getParameters().get("base");
 
     auto list = List<IBaseObject>();
     for (SizeT i = 0; i < size; ++i)
-        list.pushBack(std::pow(base, start + i * delta));
+        list.pushBack(std::pow(base, start + static_cast<Float>(i) * delta));
 
     return list;
 }

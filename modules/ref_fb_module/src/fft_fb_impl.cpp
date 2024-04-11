@@ -23,8 +23,8 @@ FFTFbImpl::FFTFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const St
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
     initProperties();
-    createInputPorts();
     createSignals();
+    createInputPorts();
 
     cfg = nullptr;
     inputData.resize(blockSize * maxBlockReadCount);
@@ -57,7 +57,7 @@ void FFTFbImpl::propertyChanged(bool configure)
 
 void FFTFbImpl::readProperties()
 {
-    blockSize = objPtr.getPropertyValue("BlockSize");
+    blockSize = objPtr.getPropertyValue("BlockSize") * 2;
     maxBlockReadCount = maxSampleReadCount / blockSize;
 }
 
@@ -133,13 +133,23 @@ void FFTFbImpl::configure()
         linearReader = BlockReaderFromExisting(linearReader, blockSize, SampleType::Float32, SampleType::UInt64);
 
         auto dimensions = List<IDimension>();
-        dimensions.pushBack(Dimension(DimensionRuleBuilder()
-                                      .setType(DimensionRuleType::Linear)
-                                      .addParameter("delta", 1)
-                                      .addParameter("start", 1)
-                                      .addParameter("size", blockSize / 2)
-                                      .build()));
+        const auto resolution = inputDomainDataDescriptor.getTickResolution();
+        if (!resolution.assigned())
+        {
+            throw std::runtime_error("FFT: Domain signal descriptor has no Tick resolution configured");
+        }
 
+        const int delta = domainRule.getParameters().get("delta");
+        const double inverted = static_cast<double>(resolution.getDenominator()) / static_cast<double>(resolution.getNumerator()) / delta;
+        const double dimensionDelta = inverted / static_cast<double>(blockSize);
+        const auto rule = DimensionRuleBuilder()
+                              .setType(DimensionRuleType::Linear)
+                              .addParameter("delta", dimensionDelta)
+                              .addParameter("start", 0)
+                              .addParameter("size", blockSize / 2)
+                              .build();
+        dimensions.pushBack(Dimension(rule, Unit("Hz", -1, "Hertz"), "Frequency"));
+        const auto labels = dimensions[0].getLabels();
         const auto inputRange = inputDataDescriptor.getValueRange();
         outputDataDescriptor = DataDescriptorBuilder()
                                    .setSampleType(SampleType::Float64)

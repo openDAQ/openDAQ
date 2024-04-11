@@ -28,7 +28,7 @@ namespace FFT
 {
 
 constexpr size_t defaultBlockSize = 1024;
-constexpr size_t maxSampleReadCount = 1000000;
+constexpr size_t maxSampleReadCount = 100000;
 
 class FFTFbImpl final : public FunctionBlock
 {

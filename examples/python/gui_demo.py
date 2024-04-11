@@ -176,10 +176,8 @@ class App(tk.Tk):
 
     def init_opendaq(self):
         # init device
-        instance = daq.Instance()
-
-        self.instance = instance
-
+        self.instance = daq.Instance()
+        
         self.all_devices = {}
         self.connected_devices = {}
 
@@ -305,10 +303,8 @@ class App(tk.Tk):
 
         if daq.IDevice.can_cast_from(component):
             device = daq.IDevice.cast_from(component)
-            component_name = device.info.name
         elif daq.IFunctionBlock.can_cast_from(component):
             function_block = daq.IFunctionBlock.cast_from(component)
-            component_name = function_block.function_block_type.name
         elif daq.IFolder.can_cast_from(component):
             if component_name == 'Sig':
                 component_name = 'Signals'
@@ -630,8 +626,7 @@ class App(tk.Tk):
 
             if daq.IDevice.can_cast_from(component):
                 device = daq.IDevice.cast_from(component)
-                print(device.info.name)
-                tree.insert(parent_id, tk.END, text=device.info.name,
+                tree.insert(parent_id, tk.END, text=device.name,
                             iid=device.global_id, open=True)
                 parent_id = device.global_id
 

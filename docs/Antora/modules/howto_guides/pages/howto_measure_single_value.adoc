@@ -7,7 +7,7 @@ However, for developers requiring access to only the most recent value, the Sign
 [#last_value_signal]
 == Getting the last value of a Signal
 
-Reading the last value of a Signal yields an openDAQ base object-type value. Said value contains the last sample of the most recent Packet sent through the Signal.
+Reading the last value of a Signal yields an openDAQ Base object-type value. Said value contains the last sample of the most recent Packet sent through the Signal.
 
 [tabs]
 ====
@@ -30,16 +30,16 @@ Python::
 [#last_value_signal_types]
 == Last value and Signal types
 
-The method for getting the last value yields an openDAQ base object-type value.
+The method for getting the last value yields an openDAQ Base object-type value.
 
-The underlying type of the openDAQ base object-type we get from the method call can be cast into either:
+The underlying type of the openDAQ Base object-type value we get from the method call corresponds to the Sample Type in the Data Descriptor of the Signal.
 
-* `IFloat` if the type is `Float32` or `Float64`
-* `IInteger` if the type is `Int8` through `Int64` or `UInt8` through `UInt64`
-* `IComplexNumber` if the type is `ComplexFloat32` or `ComplexFloat64`
-* `IRange` if the type is `RangeInt64`
-* `IStruct` if the type is `Struct`
-* `IList` of the aforementioned types if there is exactly one dimension in the single value
+* openDAQ Float object-type corresponds to `Float32` or `Float64` Sample Types
+* openDAQ Integer object-type corresponds to `Int8` through `Int64` or `UInt8` through `UInt64` Sample Types
+* openDAQ Complex Float object-type corresponds to `ComplexFloat32` or `ComplexFloat64` Sample Types
+* openDAQ Range object-type corresponds to `RangeInt64` Sample Type
+* openDAQ Struct object-type corresponds to `Struct` Sample Type and the Data Descriptor must have Struct Fields defined
+* openDAQ List object-type corresponds to any of the aforementioned Sample Types and the Data Descriptor must have Dimensions defined
 
 An example of casting the last value object into an openDAQ Float interface:
 

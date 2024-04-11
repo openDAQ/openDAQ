@@ -16,13 +16,14 @@ Cpp::
 [source,cpp]
 ----
 // Get last value of a Signal
-auto myLastValue = signal.getLastValue();
+auto lastValue = signal.getLastValue();
 ----
 Python::
 +
 [source,python]
 ----
-
+# Get last value of a Signal
+last_value = signal.last_value
 ----
 ====
 

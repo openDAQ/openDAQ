@@ -14,6 +14,7 @@ set(PYHTON_TEST_SRC
     test_how_to_add_function_block.py
     test_reader_datetime.py
     test_property_system.py
+	test_how_to_last_value.py
 )
 
 option(OPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS "Use python executable from virtual environment for tests" OFF)

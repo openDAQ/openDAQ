@@ -167,12 +167,24 @@ bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericI
 void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, const PacketPtr& packet)
 {
     auto signalNumericId = findSignalNumericId(signal);
-    subscribersRegistry.sendToSubscribers(
-        signal,
-        [signalNumericId, &packet](std::shared_ptr<ServerSessionHandler>& sessionHandler)
-        {
-            sessionHandler->sendPacket(signalNumericId, packet);
-        });
+
+    if (packet.getType() == PacketType::Data) // send data only to subscribers
+    {
+        subscribersRegistry.sendToSubscribers(
+            signal,
+            [signalNumericId, &packet](std::shared_ptr<ServerSessionHandler>& sessionHandler)
+            {
+                sessionHandler->sendPacket(signalNumericId, packet);
+            });
+    }
+    else // send event packet to all connected clients to notify them about signal change
+    {
+        subscribersRegistry.sendToClients(
+            [signalNumericId, &packet](std::shared_ptr<ServerSessionHandler>& sessionHandler)
+            {
+                sessionHandler->sendPacket(signalNumericId, packet);
+            });
+    }
 }
 
 void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)

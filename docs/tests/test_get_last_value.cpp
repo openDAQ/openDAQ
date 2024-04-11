@@ -120,7 +120,7 @@ TEST_F(HowToGetLastValue, GetLastValueSignalListOfInt)
     assert(mySignal.getDescriptor().getDimensions().getCount() == 1);
     // Get last value of a Signal
     ListPtr<IBaseObject> myList = mySignal.getLastValue();
-    // Extract the second item on myList
+    // Extract the second item on list
     auto myItem = myList.getItemAt(1);
 
     // END DOCS CODE

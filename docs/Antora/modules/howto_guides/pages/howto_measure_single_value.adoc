@@ -126,14 +126,19 @@ Cpp::
 assert(mySignal.getDescriptor().getDimensions().getCount() == 1);
 // Get last value of a Signal
 ListPtr<IBaseObject> myList = mySignal.getLastValue();
-// Extract the second item on myList
+// Extract the second item on list
 auto myItem = myList.getItemAt(1);
 ----
 Python::
 +
 [source,python]
 ----
-
+# Check Dimensions count in Signal's Data Descriptor
+assert len(my_signal.descriptor.dimensions) == 1
+# Get last value of a Signal
+my_list = my_signal.last_value
+# Extract the second item on list
+my_item = my_list[1]
 ----
 ====
 

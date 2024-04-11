@@ -47,15 +47,17 @@ private:
     DataDescriptorPtr outputDataDescriptor;
     DataDescriptorPtr outputDomainDataDescriptor;
 
+    SampleType inputSampleType;
+
     SignalConfigPtr outputSignal;
     SignalConfigPtr outputDomainSignal;
 
-    bool domainLinear{false};
-    SizeT linearBlockCount{1};
+    bool domainLinear;
+    size_t linearBlockCount;
     BlockReaderPtr linearReader;
 
-    SizeT blockSize;
-    SizeT classCount;
+    size_t blockSize;
+    size_t classCount;
     Float inputDeltaTicks;
     Float inputResolution;
 
@@ -67,19 +69,22 @@ private:
     bool useCustomClasses;
     ListPtr<Float> customClassList;
 
-    bool packetGap {false};
     UInt packetStarted {};
-    ListPtr<Float> cachedSamples;
+    size_t lastReadSampleInBlock {};
+    std::list<DataPacketPtr> packets;
+    size_t samplesInPacketList {};
 
     void createInputPorts();
     void createSignals();
 
-    void processData();
-    void processLinearData(const std::vector<Float>& inputData, const std::vector<UInt>& inputDomainData);
-    void processExplicitData(Float inputData, UInt inputDomainData);
+    template <SampleType InputSampleType>
+    void processDataPacket(const DataPacketPtr& packet);
+    template <SampleType InputSampleType>
+    void processLinearDataPacket();
 
     void processEventPacket(const EventPacketPtr& packet);
-    
+    void onPacketReceived(const InputPortPtr& port) override;
+
     bool processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
                                         const DataDescriptorPtr& inputDomainDataDescriptor);
 
@@ -89,8 +94,8 @@ private:
     void propertyChanged(bool configure);
     void readProperties();
 
-    inline UInt blockSizeToTimeDuration();
-
+    inline UInt timeMs(UInt time);
+    inline bool timeInInterval(UInt startTime, UInt endTime);
     Int binarySearch(float value, const ListPtr<IBaseObject>& labels);
 };
 

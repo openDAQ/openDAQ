@@ -18,7 +18,6 @@ BlockReaderImpl::BlockReaderImpl(const SignalPtr& signal,
     , blockSize(blockSize)
 {
     port.setNotificationMethod(PacketReadyNotification::SameThread);
-    BlockReaderImpl::handleDescriptorChanged(connection.dequeue());
 }
 
 BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
@@ -30,8 +29,6 @@ BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
     , blockSize(blockSize)
 {
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
-    if (connection.assigned())
-        BlockReaderImpl::handleDescriptorChanged(connection.dequeue());
 }
 
 BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -42,7 +39,6 @@ BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
     : Super(readerConfig, mode, valueReadType, domainReadType)
     , blockSize(blockSize)
 {
-    readDescriptorFromPort();
 }
 
 BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
@@ -54,8 +50,7 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , info(old->info)
 {
     this->internalAddRef();
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr));
-    readDescriptorFromPort();
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
     notify.dataReady = false;
 }
 

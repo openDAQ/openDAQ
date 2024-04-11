@@ -98,7 +98,10 @@ TYPED_TEST(BlockReaderTest, ReadOneBlock)
 
     SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samples, &count);
+    while (reader.read(&samples, &count).getReadStatus() == ReadStatus::Event)
+    {
+        count = 1;
+    }
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -141,7 +144,10 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithTimeout)
 
     SizeT count{2};
     TypeParam samples[2 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samples, &count, 1000u);
+    while (reader.read(&samples, &count, 1000u).getReadStatus() == ReadStatus::Event)
+    {
+        count = 2;
+    }
 
     if (t.joinable())
     {
@@ -186,7 +192,10 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithClockTicks)
     SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
     ClockTick ticks[1 * BLOCK_SIZE]{};
-    reader.readWithDomain((TypeParam*) &samples, (ClockTick*) &ticks, &count);
+    while (reader.readWithDomain(&samples, &ticks, &count).getReadStatus() == ReadStatus::Event)
+    {
+        count = 1;
+    }
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -231,10 +240,20 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithClockTicksTimeout)
         this->scheduler.waitAll();
     });
 
+    SizeT blocksRead{0};
     SizeT count{2};
     TypeParam samples[2 * BLOCK_SIZE]{};
     ClockTick ticks[2 * BLOCK_SIZE]{};
-    reader.readWithDomain((TypeParam*) &samples, (ClockTick*) &ticks, &count, 1000u);
+
+    for (size_t i = 0; i < 10; i++)
+    {
+        count = 2 - blocksRead;
+        reader.readWithDomain(&samples[blocksRead*BLOCK_SIZE], &ticks[blocksRead*BLOCK_SIZE], &count, 1000u);
+        blocksRead += count;
+        if (blocksRead == 2)
+            break;
+    }
+    count = blocksRead;
 
     if (t.joinable())
     {
@@ -294,7 +313,10 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithRanges)
     SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
     ClockRange stamps[1 * BLOCK_SIZE]{};
-    reader->readWithDomain((TypeParam*) &samples, (ClockRange*) &stamps, &count);
+    while (reader.readWithDomain(&samples, &stamps, &count).getReadStatus() == ReadStatus::Event)
+    {
+        count = 1;
+    }
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -342,10 +364,20 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithRangesTimeout)
         this->scheduler.waitAll();
     });
 
+    SizeT blocksRead{0};
     SizeT count{2};
     TypeParam samples[2 * BLOCK_SIZE]{};
-    ClockRange stamps[2 * BLOCK_SIZE]{};
-    reader->readWithDomain((void*) &samples, (void*) &stamps, &count, 1000u);
+    ClockRange stamps[2 * BLOCK_SIZE]{};    
+    for (size_t i = 0; i < 10; i++)
+    {
+        count = 2 - blocksRead;
+        reader.readWithDomain(&samples[blocksRead*BLOCK_SIZE], &stamps[blocksRead*BLOCK_SIZE], &count, 1000u);
+        blocksRead += count;
+        if (blocksRead == 2)
+            break;
+    }
+
+    count = blocksRead;
 
     if (t.joinable())
     {
@@ -393,7 +425,10 @@ TYPED_TEST(BlockReaderTest, ReadLessThanOnePacket)
 
     SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
-    reader.read((void*) &samples, &count);
+    while (reader.read(&samples, &count).getReadStatus() == ReadStatus::Event)
+    {
+        count = 1;
+    }
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -428,7 +463,10 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPackets)
 
     SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
-    reader.read((void*) &samples, &count);
+    while (reader.read(&samples, &count).getReadStatus() == ReadStatus::Event)
+    {
+        count = 1;
+    }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -454,7 +492,10 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsTimeout)
 
     SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
-    reader.read((void*) &samples, &count);
+    while (reader.read((void*)&samples, &count).getReadStatus() == ReadStatus::Event)
+    {
+        count = 1;
+    }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -475,8 +516,17 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsTimeout)
     });
 
     count = 2;
+    SizeT blocksRead{0};
     TypeParam samples2[2 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samples2, &count, 1000u);
+    for (size_t i = 0; i < 10; i++)
+    {
+        count = 2 - blocksRead;
+        reader.read(&samples2[blocksRead*BLOCK_SIZE], &count, 1000u);
+        blocksRead += count;
+        if (blocksRead == 2)
+            break;
+    }
+    count = blocksRead;
 
     if (t.joinable())
         t.join();
@@ -518,7 +568,10 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsAndCheckValues)
 
     SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
-    reader.read((void*) &samples, &count);
+    while (reader.read((void*)&samples, &count).getReadStatus() == ReadStatus::Event)
+    {
+        count = 1;
+    }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -565,7 +618,16 @@ TYPED_TEST(BlockReaderTest, ReadValuesMoreThanAvailable)
 
     SizeT count{2};
     TypeParam samples[2 * BLOCK_SIZE]{};
-    reader.read((void*) &samples, &count);
+    SizeT blocksRead{0};
+    for (size_t i = 0; i < 10; i++)
+    {
+        count = 2 - blocksRead;
+        reader.read(&samples[blocksRead*BLOCK_SIZE], &count);
+        blocksRead += count;
+        if (blocksRead == 2)
+            break;
+    }
+    count = blocksRead;
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -590,7 +652,10 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
 
     SizeT count{1};
     TypeParam samplesDouble[1 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samplesDouble, &count);
+    while (reader.read(&samplesDouble, &count).getReadStatus() == ReadStatus::Event)
+    {
+        count = 1;
+    }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -642,7 +707,14 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedNotConvertible)
 
     SizeT count{1};
     std::int32_t samples[1 * BLOCK_SIZE];
-    auto status = reader.read((std::int32_t*) &samples, &count);
+    ReaderStatusPtr status;
+    
+    for (size_t i = 0; i < 10; i++)
+    {
+        status = reader.read((std::int32_t*) &samples, &count);
+        if (!status.getValid())
+            break;
+    }
     ASSERT_FALSE(status.getValid());
 }
 

@@ -603,12 +603,6 @@ TEST_F(RefModulesTest, ClassifierRuleForSync)
     ClassifierTestHelper helper;
     helper.setUp();
 
-    // send packet to trigger classifier
-    auto dataPacket = helper.createDataPacket(1);
-    auto dataPtr = static_cast<UInt*>(dataPacket.getData());
-    dataPtr[0] = 0;
-    helper.sendPacket(dataPacket);
-
     const auto inputSignal = helper.getInputSignal();
     const auto inputDomainDescriptor = helper.getInputDomainSignal().getDescriptor();
 
@@ -618,8 +612,17 @@ TEST_F(RefModulesTest, ClassifierRuleForSync)
 
     const auto classifierDomainRule = classifierDomainSignalDescription.getRule();
 
+    // Check Explicit Rule
+    // ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
+
     // Check Linear Rule
-    ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Explicit);
+    ASSERT_EQ(classifierDomainRule.getType(), DataRuleType::Linear);
+
+    // Check deltas
+    auto classifierDelta = classifierDomainRule.getParameters().get("delta");
+    auto inputResolution = inputDomainDescriptor.getTickResolution() * Int(1000);
+    auto expectedClassifierDelata = 1.0 / static_cast<Float>(inputResolution);
+    ASSERT_EQ(classifierDelta, expectedClassifierDelata);
 }
 
 TEST_F(RefModulesTest, ClassifierRuleForAsync)
@@ -659,7 +662,7 @@ TEST_F(RefModulesTest, ClassifierRangeSize)
 
     auto signalDimension = classifierSignalDescription.getDimensions()[0];
 
-    ASSERT_EQ(signalDimension.getLabels(), List<NumberPtr>(-3, -2, -1, 0, 1, 2, 3));
+    ASSERT_EQ(signalDimension.getLabels(), List<NumberPtr>(-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0));
 }
 
 TEST_F(RefModulesTest, ClassifierRangeSizeCustomClassCount)
@@ -681,7 +684,7 @@ TEST_F(RefModulesTest, ClassifierRangeSizeCustomClassCount)
 
     const auto signalDimension = classifierSignalDescription.getDimensions()[0];
 
-    ASSERT_EQ(signalDimension.getLabels(), List<NumberPtr>(-5, -1, 3, 7));
+    ASSERT_EQ(signalDimension.getLabels(), List<NumberPtr>(-5.0, -1.0, 3.0, 7.0));
 }
 
 TEST_F(RefModulesTest, ClassifierRangeSizeCustomClasses)

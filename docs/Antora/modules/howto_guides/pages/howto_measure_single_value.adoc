@@ -16,14 +16,14 @@ Cpp::
 [source,cpp]
 ----
 // Get last value of a Signal
-auto lastValue = signal.getLastValue();
+auto myLastValue = mySignal.getLastValue();
 ----
 Python::
 +
 [source,python]
 ----
 # Get last value of a Signal
-last_value = signal.last_value
+my_last_value = my_signal.last_value
 ----
 ====
 
@@ -41,12 +41,107 @@ The underlying type of the openDAQ Base object-type value we get from the method
 * openDAQ Struct object-type corresponds to `Struct` Sample Type and the Data Descriptor must have Struct Fields defined
 * openDAQ List object-type corresponds to any of the aforementioned Sample Types and the Data Descriptor must have Dimensions defined
 
+[#last_value_struct]
+== Last value for Struct
+
+If the underlying type of the openDAQ Base object-type value we get from the method call is an openDAQ Struct object-type, the Signal's Data Descriptor has Struct Fields.
+
 [NOTE]
 ====
-Dimensions of the Data Descriptor for Lists may contain exactly one dimension.
+All Structs and their respective Struct Fields have their names set.
+====
+
+For example:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Check Signal Data Descriptor's Sample Type and name
+auto myDescriptor = mySignal.getDescriptor();
+assert(myDescriptor.getSampleType() == SampleType::Struct);
+assert(myDescriptor.getName() == "MyStruct");
+// Check Struct Fields
+auto myStructFields = myDescriptor.getStructFields();
+assert(myStructFields.getCount() == 2);
+assert(myStructFields[0].getSampleType() == SampleType::Int32);
+assert(myStructFields[0].getName() == "MyInt32");
+assert(myStructFields[1].getSampleType() == SampleType::Float64);
+assert(myStructFields[1].getName() == "MyFloat64");
+----
+Python::
++
+[source,python]
+----
+
+----
+====
+
+Knowing this, we can then do: 
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Get last value of a Signal
+StructPtr myStruct = mySignal.getLastValue();
+// Extract values
+int32_t myInt = myStruct.get("MyInt32");
+double myFloat = myStruct.get("MyFloat64");
+----
+Python::
++
+[source,python]
+----
+
+----
 ====
 
 [NOTE]
 ====
-Lists may contain (nested) Structs. In such cases, be sure to configure the Data Descriptor appropriately.
+Structs can be nested within the Data Descriptor.
+====
+
+[#last_value_list]
+== Last value for List
+
+It's possible for a value of a Signal to be a List.
+
+[NOTE]
+====
+Dimensions of the Data Descriptor for Lists contain exactly one dimension.
+====
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Check Dimensions count in Signal's Data Descriptor
+assert(mySignal.getDescriptor().getDimensions().getCount() == 1);
+// Get last value of a Signal
+auto myLastValue = mySignal.getLastValue();
+// Cast to IList
+auto myList = myLastValue.asPtr<IList>();
+// Extract the second item on myList
+auto myItem = myList.getItemAt(1);
+----
+Python::
++
+[source,python]
+----
+
+----
+====
+
+In the above example, the item's underlying type will depend upon Signal Data Descriptor's Sample Type.
+
+[NOTE]
+====
+Lists may contain (nested) Structs.
 ====

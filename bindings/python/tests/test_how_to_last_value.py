@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import unittest
-
 import opendaq_test
 import opendaq
 
@@ -11,16 +10,16 @@ class TestDocumentationHowToLastValue(opendaq_test.TestCase):
     def test_last_value_signal(self):
         mock = opendaq.MockSignal()
         mock.add_data([0.1, 0.2, 0.3])
-        signal = mock.signal
+        my_signal = mock.signal
 
         # START DOCS CODE
 
         # Get last value of a Signal
-        last_value = signal.last_value
+        my_last_value = my_signal.last_value
 
         # END DOCS CODE
 
-        self.assertEqual(last_value, 0.3)
+        self.assertEqual(my_last_value, 0.3)
 
 
 if __name__ == '__main__':

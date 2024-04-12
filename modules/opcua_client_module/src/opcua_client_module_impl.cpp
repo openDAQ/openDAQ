@@ -31,7 +31,7 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
                 auto connectionString = DaqOpcUaDevicePrefix + discoveredDevice.ipv4Address + "/";
                 auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
                 cap.addConnectionString(connectionString);
-                cap.setConnectionType("Ipv4");
+                cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.opcua");
                 return cap;
             }

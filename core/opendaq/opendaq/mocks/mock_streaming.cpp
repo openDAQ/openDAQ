@@ -33,11 +33,6 @@ void MockStreamingImpl::onUnsubscribeSignal(const StringPtr& /*signalStreamingId
 
 }
 
-EventPacketPtr MockStreamingImpl::onCreateDataDescriptorChangedEventPacket(const StringPtr& /*signalStreamingId*/)
-{
-    return DataDescriptorChangedEventPacket(nullptr, nullptr);
-}
-
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     INTERNAL_FACTORY,
     MockStreaming, IStreaming,

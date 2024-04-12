@@ -38,7 +38,6 @@ protected:
     void onRemoveSignal(const MirroredSignalConfigPtr& signal) override;
     void onSubscribeSignal(const StringPtr& signalStreamingId) override;
     void onUnsubscribeSignal(const StringPtr& signalStreamingId) override;
-    EventPacketPtr onCreateDataDescriptorChangedEventPacket(const StringPtr& signalStreamingId) override;
 
     void prepareStreamingClient();
     void onAvailableSignals(const std::vector<std::string>& signalIds);

@@ -48,11 +48,6 @@ void WebsocketStreamingImpl::onUnsubscribeSignal(const StringPtr& signalStreamin
     streamingClient->unsubscribeSignals({signalStreamingId.toStdString()});
 }
 
-EventPacketPtr WebsocketStreamingImpl::onCreateDataDescriptorChangedEventPacket(const StringPtr& signalStreamingId)
-{
-    return streamingClient->getDataDescriptorChangedEventPacket(signalStreamingId);
-}
-
 void WebsocketStreamingImpl::prepareStreamingClient()
 {
     auto packetCallback = [this](const StringPtr& signalId, const PacketPtr& packet)

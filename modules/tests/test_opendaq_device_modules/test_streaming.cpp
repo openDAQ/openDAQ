@@ -108,14 +108,49 @@ public:
 
         for (SizeT i = 0; i < count; i++)
         {
-            if (skipEventPackets &&
-                listA.getItemAt(i).getType() == PacketType::Event &&
-                listB.getItemAt(i).getType() == PacketType::Event)
-                continue;
             if (!BaseObjectPtr::Equals(listA.getItemAt(i), listB.getItemAt(i)))
             {
-                LOG_E("Packets at index {} differs: A - \"{}\", B - \"{}\"",
+                if (listA.getItemAt(i).getType() == PacketType::Event &&
+                    listB.getItemAt(i).getType() == PacketType::Event)
+                {
+                    if (skipEventPackets)
+                        continue;
+                    auto eventPacketA = listA.getItemAt(i).asPtr<IEventPacket>(true);
+                    auto eventPacketB = listB.getItemAt(i).asPtr<IEventPacket>(true);
+
+                    if (eventPacketA.getEventId() != eventPacketB.getEventId())
+                    {
+                        LOG_E("Event id of packets at index {} differs: A - \"{}\", B - \"{}\"",
+                              i, eventPacketA.getEventId(), eventPacketB.getEventId());
+                    }
+                    else if(eventPacketA.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED &&
+                             eventPacketB.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+                    {
+                        const DataDescriptorPtr valueDataDescA = eventPacketA.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                        const DataDescriptorPtr domainDataDescA = eventPacketA.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+
+                        const DataDescriptorPtr valueDataDescB = eventPacketB.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                        const DataDescriptorPtr domainDataDescB = eventPacketB.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+
+                        LOG_E("Event parameters of packets at index {} differs:", i);
+                        LOG_E("packet A - \nvalue:\n\"{}\"\ndomain:\n\"{}\"",
+                              valueDataDescA.assigned() ? valueDataDescA.toString() : "null",
+                              domainDataDescA.assigned() ? domainDataDescA.toString() : "null");
+                        LOG_E("packet B - \nvalue:\n\"{}\"\ndomain:\n\"{}\"",
+                              valueDataDescB.assigned() ? valueDataDescB.toString() : "null",
+                              domainDataDescB.assigned() ? domainDataDescB.toString() : "null");
+                    }
+                    else
+                    {
+                        LOG_E("Event packets at index {} differs: A - \"{}\", B - \"{}\"",
+                              i, listA.getItemAt(i).toString(), listB.getItemAt(i).toString());
+                    }
+                }
+                else
+                {
+                    LOG_E("Data packets at index {} differs: A - \"{}\", B - \"{}\"",
                           i, listA.getItemAt(i).toString(), listB.getItemAt(i).toString());
+                }
                 result = false;
             }
         }

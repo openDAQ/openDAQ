@@ -149,6 +149,8 @@ private:
     double customMaxValue;
     double yMaxValue;
     double yMinValue;
+    bool useCustomXAxisLabels;
+    ListPtr<Float> customXAxisLabels;
     sf::Vector2f topLeft;
     sf::Vector2f bottomRight;
     size_t signalContextIndex;

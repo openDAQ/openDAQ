@@ -130,6 +130,21 @@ void RendererFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("CustomMinValue") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
 
+    const auto useCustomXAxisLabelsProp = BoolPropertyBuilder("UseCustomXAxisLabels", False)
+        .setDescription("property UseCustomXAxisLabels is using for rendering 2D values. For 1d values this property have no affect")
+        .build();
+    objPtr.addProperty(useCustomXAxisLabelsProp);
+    objPtr.getOnPropertyValueWrite("UseCustomXAxisLabels") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
+
+    auto customXAxisLabelsProp = ListPropertyBuilder("CustomXAxisLabels", List<Float>())
+        .setVisible(EvalValue("$UseCustomXAxisLabels"))
+        .setDescription("Renderer will use labels from CustomXAxisLabels for 2d values if UseCustomXAxisLabels is set to true")
+        .build();
+    objPtr.addProperty(customXAxisLabelsProp);
+    objPtr.getOnPropertyValueWrite("CustomXAxisLabels") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
+
     readProperties();
     readResolutionProperty();
 }
@@ -168,6 +183,11 @@ void RendererFbImpl::readProperties()
     LOG_T("Properties: CustomMinValue {}", customMinValue)
     customMaxValue = objPtr.getPropertyValue("CustomMaxValue");
     LOG_T("Properties: CustomMaxValue {}", customMaxValue)
+
+    useCustomXAxisLabels = objPtr.getPropertyValue("UseCustomXAxisLabels");
+    LOG_T("Properties: UseCustomXAxisLabels {}", useCustomXAxisLabels);
+    customXAxisLabels = objPtr.getPropertyValue("CustomXAxisLabels");
+    LOG_T("Properties: CustomXAxisLabels count {}", customXAxisLabels);
 }
 
 void RendererFbImpl::readResolutionProperty()
@@ -957,8 +977,14 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
     daq::ListPtr<daq::IBaseObject> labels{};
 
     size_t signalDimension = signalContext.inputDataSignalDescriptor.getDimensions().getCount();
+    bool useCustomXAxisLabels = signalDimension == 1 && this->useCustomXAxisLabels && customXAxisLabels.getCount() != 0;
 
-    if (signalDimension == 1) 
+    if (useCustomXAxisLabels)
+    {
+        labels = customXAxisLabels;
+        xTickCount = labels.getCount();
+    }
+    else if (signalDimension == 1) 
     {
         auto domainDataDimension = signalContext.inputDataSignalDescriptor.getDimensions()[0];
         labels = domainDataDimension.getLabels();
@@ -968,6 +994,15 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
             xTickStep = (xTickCount + 10) / 11;
         }
     }
+    else
+    {
+        labels = List<IInteger>(0, 1, 2, 3, 4);
+        xTickCount = labels.getCount();
+    }
+
+    Float minXLabelValue = labels[0];
+    Float maxXLabelValue = labels[labels.getCount() - 1];
+    Float xLabelRange = maxXLabelValue - minXLabelValue;
 
     // create left border line
     Polyline leftLine(lineThickness, LineStyle::solid);
@@ -1002,9 +1037,9 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
     }
 
     // create vertical grid
-    for (size_t i = xTickStep; i < xTickCount; i += xTickStep)
+    for (const auto & label : labels)
     {
-        const float xPos = signalContext.topLeft.x + (1.0f * i * xSize / static_cast<float>(xTickCount - 1));
+        const float xPos = signalContext.topLeft.x + (1.0f * (static_cast<Float>(label) - minXLabelValue) * xSize / xLabelRange);
 
         Polyline imLineVert(lineThickness, LineStyle::dash);
         imLineVert.setColor(axisColor);
@@ -1038,7 +1073,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
     }
     
     // for absolute time shows every second horizontal axi value
-    if (signalContext.hasTimeOrigin)
+    if (signalContext.hasTimeOrigin && !useCustomXAxisLabels)
         xTickStep = xTickStep * 2;
 
     // create labeles for horizontal axi
@@ -1051,7 +1086,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         if (xTickCount - 1 - i < xTickStep)
 			i = xTickCount - 1;
 
-        const float xPos = signalContext.topLeft.x + (1.0f * static_cast<float>(i) * xSize / static_cast<float>(xTickCount - 1));
+        const float xPos = signalContext.topLeft.x + (1.0f * (static_cast<Float>(labels[i]) - minXLabelValue) * xSize / xLabelRange);
 
         sf::Text domainText;
         domainText.setFont(font);

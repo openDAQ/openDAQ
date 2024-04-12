@@ -8,6 +8,60 @@ import numpy
 
 class TestReaderDateTime(opendaq_test.TestCase):
 
+    def try_read(self, reader, blocks):
+        values = None
+        i = 0
+
+        while reader.available_count != 0:
+            temp_values = reader.read(blocks)
+            if values is None and len(temp_values) != 0:
+                values = numpy.empty((blocks, reader.block_size), dtype = temp_values.dtype)
+            for value in temp_values:
+                values[i] = value
+                i += 1
+                if i == blocks:
+                    break
+        
+        return values
+    
+    def try_read_with_domain(self, reader, blocks):
+        values = None
+        domain = None
+        i = 0
+
+        while reader.available_count != 0:
+            (temp_values, temp_domain) = reader.read_with_domain(blocks)
+            if values is None and len(temp_values) != 0:
+                values = numpy.empty((blocks, reader.block_size), dtype = temp_values.dtype)
+                domain = numpy.empty((blocks, reader.block_size), dtype = temp_domain.dtype)
+            for idx in range(len(temp_values)):
+                values[i] = temp_values[idx]
+                domain[i] = temp_domain[idx]
+                i += 1
+                if i == blocks:
+                    break
+        
+        return values, domain
+    
+    def try_read_with_timestamps(self, time_reader, block_reader, blocks):
+        values = None
+        domain = None
+        i = 0
+
+        while block_reader.available_count != 0:
+            (temp_values, temp_domain) = time_reader.read_with_timestamps(blocks)
+            if values is None and len(temp_values) != 0:
+                values = numpy.empty((blocks, block_reader.block_size), dtype = temp_values.dtype)
+                domain = numpy.empty((blocks, block_reader.block_size), dtype = temp_domain.dtype)
+            for idx in range(len(temp_values)):
+                values[i] = temp_values[idx]
+                domain[i] = temp_domain[idx]
+                i += 1
+                if i == blocks:
+                    break
+        
+        return values, domain
+
     def test_read(self):
         mock = opendaq.MockSignal()
         reader = opendaq.StreamReader(mock.signal)
@@ -138,8 +192,8 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 5)
-
-        values = reader.read(5)
+        
+        values = self.try_read(reader, 5)
         self.assertTrue(numpy.array_equal(
             values, numpy.arange(10).reshape(5, 2)))
 
@@ -158,7 +212,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 5)
 
-        values = reader.read(5)
+        values = self.try_read(reader, 5)
         self.assertTrue(numpy.array_equal(
             values, numpy.arange(10).reshape(5, 2)))
 
@@ -180,7 +234,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 5)
 
-        (values, domain) = reader.read_with_domain(5)
+        (values, domain) = self.try_read_with_domain(reader, 5)
         self.assertTrue(numpy.array_equal(
             values, numpy.arange(10).reshape(5, 2)))
 
@@ -197,7 +251,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
         mock.add_data(numpy.arange(10))
         self.assertEqual(block.available_count, 5)
 
-        (values, domain) = reader.read_with_timestamps(5)
+        (values, domain) = self.try_read_with_timestamps(reader, block, 5)
         self.assertTrue(numpy.array_equal(
             values, numpy.arange(10).reshape(5, 2)))
 

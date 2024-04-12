@@ -48,7 +48,7 @@ TEST_F(InstanceTest, InstanceGetters)
 TEST_F(InstanceTest, GetSetRootDevice)
 {
     auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("daq_client"));
+    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("openDAQ Client"));
     instance.setRootDevice("daq_client_device");
 }
 
@@ -70,7 +70,7 @@ TEST_F(InstanceTest, SetRootDeviceWithConfig)
 TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
 {
     auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("daq_client"));
+    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("openDAQ Client"));
     instance.setRootDevice("mock_phys_device");
 
     auto fbs = instance.getFunctionBlocks();
@@ -104,7 +104,7 @@ TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
 TEST_F(InstanceTest, DeviceInformation)
 {
     auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getInfo().getName(), String("daq_client"));
+    ASSERT_EQ(instance.getInfo().getName(), String("openDAQ Client"));
 }
 
 TEST_F(InstanceTest, DeviceSignals)
@@ -452,7 +452,7 @@ TEST_F(InstanceTest, InstanceCreateFactory)
     ASSERT_EQ(instance.getContext().getScheduler(), scheduler);
     ASSERT_EQ(instance.getContext().getScheduler().isMultiThreaded(), true);
     ASSERT_EQ(instance.getContext().getModuleManager(), moduleManager);
-    ASSERT_EQ(instance.getRootDevice().getName(), "DefaultRootDeviceLocalId"); 
+    ASSERT_EQ(instance.getRootDevice().getName(), String("openDAQ Client")); 
 
     ASSERT_EQ(instance.getInfo(), defaultRootDeviceInfo);
 }

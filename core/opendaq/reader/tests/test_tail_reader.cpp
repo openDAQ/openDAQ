@@ -725,7 +725,7 @@ TEST_F(TailReaderTest, ReadUndefinedNoDomain)
     const SizeT HISTORY_SIZE = 2u;
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
-    auto reader = daq::BlockReader(this->signal, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+    auto reader = daq::TailReader(this->signal, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
     ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);

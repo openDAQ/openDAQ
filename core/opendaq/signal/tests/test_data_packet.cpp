@@ -438,6 +438,28 @@ TEST_F(DataPacketTest, GetLastValue)
     ASSERT_EQ(ptr, 42);
 }
 
+TEST_F(DataPacketTest, GetLastValueConstantPosAndValue)
+{
+    std::vector<daq::ConstantPosAndValue<uint64_t>> constantPosAndValue;
+    constantPosAndValue.push_back({0, 0});
+    constantPosAndValue.push_back({5, 5});
+    constantPosAndValue.push_back({10, 10});
+    constantPosAndValue.push_back({15, 15});
+
+    DataPacketPtr packet;
+
+    ASSERT_NO_THROW(packet = ConstantDataPacketWithDomain<uint64_t>(
+                        nullptr,
+                        DataDescriptorBuilder().setSampleType(SampleType::UInt64).setRule(ConstantDataRule()).build(),
+                        50,
+                        0,
+                        constantPosAndValue));
+
+    auto lastValue = packet.getLastValue();
+
+    ASSERT_EQ(lastValue, 15);
+}
+
 TEST_F(DataPacketTest, GetLastValueNested)
 {
     const auto descriptor =

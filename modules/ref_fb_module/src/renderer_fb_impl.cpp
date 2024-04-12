@@ -1001,7 +1001,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         renderTarget.draw(imLineHorz);
     }
 
-    // create vertical grid
+    // create horizontal grid
     for (size_t i = xTickStep; i < xTickCount; i += xTickStep)
     {
         const float xPos = signalContext.topLeft.x + (1.0f * i * xSize / static_cast<float>(xTickCount - 1));
@@ -1061,7 +1061,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         if (signalDimension == 1) 
         {
             if (labels[i].supportsInterface(IString::Id))
-                domainStr << std::fixed << std::showpoint << std::setprecision(2) << labels[i];
+                domainStr << labels[i];
             else if (labels[i].supportsInterface(IInteger::Id))
                 domainStr << static_cast<Int>(labels[i]);
             else

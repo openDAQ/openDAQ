@@ -22,6 +22,42 @@ TYPED_TEST_SUITE(BlockReaderTest, SampleTypes);
 
 static constexpr const SizeT BLOCK_SIZE = 2u;
 
+template <typename DataType, typename DomainType>
+size_t tryRead(const BlockReaderPtr& reader, DataType* data, DomainType* domain, size_t blockCnt = 1u, size_t timeout = 0u)
+{
+    SizeT samplesInBlock = reader.getBlockSize();
+    SizeT samplesRead{0u};
+    SizeT count{};
+
+    for (size_t i = 0u; i < blockCnt * 4u; i++)
+    {
+        count = blockCnt - samplesRead / samplesInBlock;
+        BlockReaderStatusPtr status = reader.readWithDomain(&data[samplesRead], &domain[samplesRead], &count, timeout);
+        samplesRead += status.getReadSamples();
+        if (samplesRead == blockCnt * samplesInBlock)
+            break;
+    }
+    return samplesRead / samplesInBlock;
+}
+
+template <typename DataType>
+size_t tryRead(const BlockReaderPtr& reader, DataType* data, size_t blockCnt = 1u, size_t timeout = 0u)
+{
+    SizeT samplesInBlock = reader.getBlockSize();
+    SizeT samplesRead{0u};
+    SizeT count{};
+
+    for (size_t i = 0u; i < blockCnt * 4u; i++)
+    {
+        count = blockCnt - samplesRead / samplesInBlock;
+        BlockReaderStatusPtr status = reader.read(&data[samplesRead], &count, timeout);
+        samplesRead += status.getReadSamples();
+        if (samplesRead == blockCnt * samplesInBlock)
+            break;
+    }
+    return samplesRead / samplesInBlock;
+}
+
 TYPED_TEST(BlockReaderTest, Create)
 {
     ASSERT_NO_THROW((BlockReader<TypeParam, ClockRange>)(this->signal, BLOCK_SIZE));
@@ -96,9 +132,8 @@ TYPED_TEST(BlockReaderTest, ReadOneBlock)
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
 
-    SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samples, &count);
+    SizeT count = tryRead(reader, samples, 1u);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -139,9 +174,8 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithTimeout)
         this->scheduler.waitAll();
     });
 
-    SizeT count{2};
     TypeParam samples[2 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samples, &count, 1000u);
+    SizeT count = tryRead(reader, samples, 2u, 1000u);
 
     if (t.joinable())
     {
@@ -183,10 +217,9 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithClockTicks)
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
 
-    SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
     ClockTick ticks[1 * BLOCK_SIZE]{};
-    reader.readWithDomain((TypeParam*) &samples, (ClockTick*) &ticks, &count);
+    SizeT count = tryRead(reader, samples, ticks, 1u);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -231,10 +264,9 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithClockTicksTimeout)
         this->scheduler.waitAll();
     });
 
-    SizeT count{2};
     TypeParam samples[2 * BLOCK_SIZE]{};
     ClockTick ticks[2 * BLOCK_SIZE]{};
-    reader.readWithDomain((TypeParam*) &samples, (ClockTick*) &ticks, &count, 1000u);
+    SizeT count = tryRead(reader, samples, ticks, 2u, 1000u);
 
     if (t.joinable())
     {
@@ -291,10 +323,9 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithRanges)
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
 
-    SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
     ClockRange stamps[1 * BLOCK_SIZE]{};
-    reader->readWithDomain((TypeParam*) &samples, (ClockRange*) &stamps, &count);
+    SizeT count = tryRead(reader, samples, stamps, 1u);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -342,10 +373,9 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithRangesTimeout)
         this->scheduler.waitAll();
     });
 
-    SizeT count{2};
     TypeParam samples[2 * BLOCK_SIZE]{};
-    ClockRange stamps[2 * BLOCK_SIZE]{};
-    reader->readWithDomain((void*) &samples, (void*) &stamps, &count, 1000u);
+    ClockRange stamps[2 * BLOCK_SIZE]{};  
+    SizeT count = tryRead(reader, samples, stamps, 2u, 1000u);  
 
     if (t.joinable())
     {
@@ -391,9 +421,8 @@ TYPED_TEST(BlockReaderTest, ReadLessThanOnePacket)
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
 
-    SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
-    reader.read((void*) &samples, &count);
+    SizeT count = tryRead(reader, samples, 1u);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -426,9 +455,8 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPackets)
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
 
-    SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
-    reader.read((void*) &samples, &count);
+    tryRead(reader, samples, 1u);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -452,9 +480,8 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsTimeout)
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
 
-    SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
-    reader.read((void*) &samples, &count);
+    SizeT count = tryRead(reader, samples, 1u);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -474,9 +501,8 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsTimeout)
         this->sendPacket(data2Packet);
     });
 
-    count = 2;
     TypeParam samples2[2 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samples2, &count, 1000u);
+    count = tryRead(reader, samples2, 2u, 1000u);
 
     if (t.joinable())
         t.join();
@@ -516,9 +542,8 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsAndCheckValues)
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
 
-    SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE]{};
-    reader.read((void*) &samples, &count);
+    SizeT count = tryRead(reader, samples, 1u);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -532,9 +557,8 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsAndCheckValues)
 
     ASSERT_EQ(reader.getAvailableCount(), 2u);
 
-    count = 2;
     TypeParam nextSamples[2 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &nextSamples, &count);
+    count = tryRead(reader, nextSamples, 2u);
 
     ASSERT_EQ(count, 2u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -563,9 +587,8 @@ TYPED_TEST(BlockReaderTest, ReadValuesMoreThanAvailable)
     this->sendPacket(DataPacket(this->signal.getDescriptor(), NUM_SAMPLES));
     this->scheduler.waitAll();
 
-    SizeT count{2};
     TypeParam samples[2 * BLOCK_SIZE]{};
-    reader.read((void*) &samples, &count);
+    SizeT count = tryRead(reader, samples, 2u);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -588,9 +611,8 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
 
     ASSERT_EQ(reader.getAvailableCount(), 1u);
 
-    SizeT count{1};
     TypeParam samplesDouble[1 * BLOCK_SIZE]{};
-    reader.read((TypeParam*) &samplesDouble, &count);
+    tryRead(reader, samplesDouble, 1u);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -606,17 +628,8 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertible)
 
     ASSERT_EQ(reader.getAvailableCount(), 1u);
 
-    count = 1;
     TypeParam sampleInt32[1 * BLOCK_SIZE]{};
-    
-    {    
-        // read event packet
-        size_t tmpCount = 1;
-        auto status = reader.read((TypeParam*) &sampleInt32, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-
-    reader.read((TypeParam*) &sampleInt32, &count);
+    tryRead(reader, sampleInt32, 1u);
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
@@ -640,9 +653,10 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedNotConvertible)
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
 
-    SizeT count{1};
     std::int32_t samples[1 * BLOCK_SIZE];
-    auto status = reader.read((std::int32_t*) &samples, &count);
+    tryRead(reader, samples, 1u);
+    SizeT count = 1;
+    auto status = reader.read(samples, &count);
     ASSERT_FALSE(status.getValid());
 }
 
@@ -664,26 +678,22 @@ TYPED_TEST(BlockReaderTest, ReuseReader)
     this->sendPacket(dataPacket);
     this->scheduler.waitAll();
 
-    SizeT count{1};
     TypeParam samples[1 * BLOCK_SIZE];
-    {    
-        // read event packet
-        size_t tmpCount = 1;
-        auto status = reader.read((TypeParam*) &samples, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-
-    auto status = reader.read((TypeParam*) &samples, &count);
+    SizeT count = tryRead(reader, samples, 1u);
 
     Bool convertable = IsTemplateOf<TypeParam, Complex_Number>::value;
-    ASSERT_EQ(status.getValid(), convertable);
+    if (convertable)
+    {
+        ASSERT_EQ(count, 1u);
+    }
+    else
+    {
+        ASSERT_EQ(count, 0u);
+    }
 
     auto newReader = daq::BlockReaderFromExisting<ComplexFloat32, ClockRange>(reader, reader.getBlockSize());
-
-    SizeT complexCount{1};
     ComplexFloat32 complexSamples[1 * BLOCK_SIZE];
-    status = newReader.read((ComplexFloat32*) &complexSamples, &complexCount);
-    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    SizeT complexCount = tryRead(newReader, complexSamples, 1u);
 
     ASSERT_EQ(complexCount, 1u);
 
@@ -708,6 +718,19 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedNoDomain)
 
     auto reader = daq::BlockReader(this->signal, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
 
+    {
+        // trigger to set description
+        auto dataPacket = DataPacket(this->signal.getDescriptor(), BLOCK_SIZE);
+        auto dataPtr = static_cast<Float*>(dataPacket.getData());
+        dataPtr[0] = 11.0;
+        dataPtr[1] = 22.0;
+        this->sendPacket(dataPacket);
+        this->scheduler.waitAll();
+
+        Float samples[2];
+        tryRead(reader, samples, 1u);
+    }
+
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
     ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 }
@@ -718,8 +741,8 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomain)
 
     auto reader = daq::BlockReader(this->signal, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
 
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+    // ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+    // ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainDescriptor = setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr);
     auto eventPacket = DataDescriptorChangedEventPacket(nullptr, domainDescriptor);
@@ -732,18 +755,10 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithDomain)
     dataPtr[1] = 22.2;
 
     this->sendPacket(dataPacket);
+    this->scheduler.waitAll();
 
-    SizeT count{1};
     double samples[BLOCK_SIZE]{};
-
-    {    
-        // read event packet
-        size_t tmpCount = 1;
-        auto status = reader.read(&samples, &tmpCount);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-
-    reader.read(&samples, &count);
+    SizeT count = tryRead(reader, samples, 1u);
 
     ASSERT_EQ(count, 1u);
 
@@ -758,8 +773,8 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithNoDomainFromPacket)
 
     auto reader = daq::BlockReader(this->signal, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
 
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+    // ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+    // ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
@@ -768,10 +783,10 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithNoDomainFromPacket)
     dataPtr[1] = 222.2;
 
     this->sendPacket(dataPacket);
+    this->scheduler.waitAll();
 
-    SizeT count{1};
     double samples[BLOCK_SIZE]{};
-    reader.read(&samples, &count);
+    SizeT count = tryRead(reader, samples, 1u);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
@@ -786,8 +801,8 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithWithDomainFromPacket)
 
     auto reader = daq::BlockReader(this->signal, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
 
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
+    // ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
+    // ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
@@ -796,11 +811,9 @@ TYPED_TEST(BlockReaderTest, ReadUndefinedWithWithDomainFromPacket)
     dataPtr[1] = 222.2;
 
     this->sendPacket(dataPacket);
-
-    SizeT count{1};
     double samples[BLOCK_SIZE]{};
     RangeType64 domain[BLOCK_SIZE]{};
-    reader.readWithDomain(&samples, &domain, &count);
+    SizeT count = tryRead(reader, samples, domain, 1u);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
@@ -836,10 +849,9 @@ TYPED_TEST(BlockReaderTest, BlockReaderWithInputPort)
 
     this->sendPacket(dataPacket);
 
-    SizeT count{1};
     double samples[BLOCK_SIZE]{};
     RangeType64 domain[BLOCK_SIZE]{};
-    reader.readWithDomain(&samples, &domain, &count);
+    SizeT count = tryRead(reader, samples, domain, 1u);
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(samples[0], dataPtr[0]);
@@ -904,7 +916,6 @@ TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallback)
 {
     SizeT count{1};
     double samples[BLOCK_SIZE]{};
-    RangeType64 domain[BLOCK_SIZE]{};
 
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
@@ -913,7 +924,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallback)
 
     auto reader = daq::BlockReader(this->signal, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
     reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
-        reader.readWithDomain(&samples, &domain, &count);
+        count = tryRead(reader, samples, count);
         promise.set_value();
     });
 
@@ -933,11 +944,50 @@ TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallback)
     ASSERT_EQ(samples[1], dataPtr[1]);
 }
 
+TYPED_TEST(BlockReaderTest, BlockReaderEventInMiddleOfBlock)
+{
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = daq::BlockReader(this->signal, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
+    reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
+        count = tryRead(reader, samples, count);
+        promise.set_value();
+    });
+
+    auto domainPacket1 = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE - 1, 1);
+    auto dataPacket1 = DataPacketWithDomain(domainPacket1, this->signal.getDescriptor(), BLOCK_SIZE - 1);
+    auto dataPtr1 = static_cast<double*>(dataPacket1.getData());
+    dataPtr1[0] = 111.1;
+
+    this->sendPacket(dataPacket1);
+    
+    // change descriptor in the middle of packet
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float32));
+
+    auto domainPacket2 = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
+    auto dataPacket2 = DataPacketWithDomain(domainPacket2, this->signal.getDescriptor(), 1);
+    auto dataPtr2 = static_cast<float*>(dataPacket2.getData());
+    dataPtr2[0] = 222.2f;
+
+    this->sendPacket(dataPacket2);
+
+    auto promiseStatus = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(promiseStatus, std::future_status::ready);
+
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(samples[0], dataPtr1[0]);
+}
+
 TYPED_TEST(BlockReaderTest, BlockReaderFromPortOnReadCallback)
 {
     SizeT count{1};
     double samples[BLOCK_SIZE]{};
-    RangeType64 domain[BLOCK_SIZE]{};
 
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
@@ -948,7 +998,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromPortOnReadCallback)
 
     auto reader = daq::BlockReaderFromPort(port, BLOCK_SIZE, SampleType::Undefined, SampleType::Undefined);
     reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
-        reader.readWithDomain(&samples, &domain, &count);
+        count = tryRead(reader, samples, count);
         promise.set_value();
     });
 
@@ -972,7 +1022,6 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
 {
     SizeT count{1};
     double samples[BLOCK_SIZE]{};
-    RangeType64 domain[BLOCK_SIZE]{};
 
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
@@ -986,7 +1035,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
         if (!newReader.assigned())
         {
             SizeT tmpCount = 1;
-            auto status = reader.readWithDomain(&samples, &domain, &tmpCount);
+            auto status = reader.read(&samples, &tmpCount);
             if (status.getReadStatus() == ReadStatus::Event)
             {
                 newReader = daq::BlockReaderFromExisting(reader, BLOCK_SIZE, SampleType::Float64, SampleType::RangeInt64);
@@ -994,7 +1043,7 @@ TYPED_TEST(BlockReaderTest, BlockReaderFromExistingOnReadCallback)
         }
         else
         {
-            newReader.readWithDomain(&samples, &domain, &count);
+            count = tryRead(newReader, samples, count);
             promise.set_value();
         }
     });

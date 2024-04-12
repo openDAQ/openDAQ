@@ -32,6 +32,10 @@ enum class ReadStatus : uint32_t
     Unknown = 0xFFFF
 };
 
+/*#
+  * [templated(defaultAliasName: ReaderStatusPtr)]
+  * [interfaceSmartPtr(IReaderStatus, GenericReaderStatusPtr)]
+  */
 /*!
  * @brief Represents the status of the reading process returned by the reader::read function.
  *

@@ -33,7 +33,7 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
                                     discoveredDevice.getPropertyOrDefault("path", "/"));
                 auto cap = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming);
                 cap.addConnectionString(connectionString);
-                cap.setConnectionType("Ipv4");
+                cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.lt");
                 return cap;
             }

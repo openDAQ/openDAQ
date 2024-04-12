@@ -166,14 +166,12 @@ inline void ConfigClientSignalImpl::assignDomainSignal(const SignalPtr& domainSi
 
 inline ErrCode ConfigClientSignalImpl::getLastValue(IBaseObject** value)
 {
-    bool assigned;
     {
         std::scoped_lock lock(this->sync);
-        assigned = lastDataPacket.assigned();
-    }
 
-    if (!assigned)
-        return Super::getLastValue(value);
+        if (lastDataPacket.assigned())
+            return Super::getLastValue(value);
+    }
 
     return daqTry([this, &value]
     {

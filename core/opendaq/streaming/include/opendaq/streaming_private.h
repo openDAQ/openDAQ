@@ -48,14 +48,6 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingPrivate, IBaseObject)
     virtual ErrCode INTERFACE_FUNC unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) = 0;
 
     /*!
-     * @brief Creates an initial DataDescriptor Changed Event Packet for a signal using data received
-     * via the streaming.
-     * @param signalRemoteId The global remote ID of the signal for which the event packet should be created.
-     * @return The created DataDescriptor Changed Event Packet
-     */
-    virtual EventPacketPtr INTERFACE_FUNC createDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId) = 0;
-
-    /*!
      * @brief Removes added signal without removing the streaming source from it.
      * @param signalRemoteId The global remote ID of the removed signal.
      * @retval OPENDAQ_ERR_NOTFOUND if a signal with corresponding remote Id was not added to the Streaming.

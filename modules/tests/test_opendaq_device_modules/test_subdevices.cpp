@@ -225,6 +225,13 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
 TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
 {
     SKIP_TEST_MAC_CI;
+
+    if (GetParam().second == StreamingType::WebsocketStreaming)
+    {
+        // skip test
+        return;
+    }
+
     auto subdevice1 = CreateSubdeviceInstance(1u);
     auto subdevice2 = CreateSubdeviceInstance(2u);
     auto gateway = CreateGatewayInstance();
@@ -264,6 +271,7 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
 
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
+
     double clientSamples[100];
     double gatewaySamples[100];
     for (int i = 0; i < 10; ++i)

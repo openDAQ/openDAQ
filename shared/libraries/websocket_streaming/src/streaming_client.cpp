@@ -213,14 +213,6 @@ void StreamingClient::setConnectTimeout(std::chrono::milliseconds timeout)
     this->connectTimeout = timeout;
 }
 
-EventPacketPtr StreamingClient::getDataDescriptorChangedEventPacket(const StringPtr& signalStringId)
-{
-    if (auto it = signals.find(signalStringId); it == signals.end())
-        return DataDescriptorChangedEventPacket(nullptr, nullptr);
-    else
-        return it->second->createDecriptorChangedPacket();
-}
-
 void StreamingClient::parseConnectionString(const std::string& url)
 {
     // this is not great but it is convenient until we have a way to pass configuration parameters to a client device

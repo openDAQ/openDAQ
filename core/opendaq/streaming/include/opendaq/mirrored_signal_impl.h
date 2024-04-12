@@ -581,46 +581,33 @@ ErrCode MirroredSignalBase<Interfaces...>::getOnUnsubscribeComplete(IEvent** eve
 template <typename... Interfaces>
 EventPacketPtr MirroredSignalBase<Interfaces...>::createDataDescriptorChangedEventPacket()
 {
-    {
-        std::scoped_lock lock(signalMutex);
-        if (!mirroredDataDescriptor.assigned())
-        {
-            const EventPacketPtr packet = Super::createDataDescriptorChangedEventPacket();
-            const auto params = packet.getParameters();
+    const EventPacketPtr eventPacketFromConfig = Super::createDataDescriptorChangedEventPacket();
+    const auto params = eventPacketFromConfig.getParameters();
 
-            mirroredDataDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-            if (!mirroredDomainDataDescriptor.assigned())
+    std::scoped_lock lock(signalMutex);
+    if (!mirroredDataDescriptor.assigned())
+    {
+        mirroredDataDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
+        if (!mirroredDomainDataDescriptor.assigned())
+        {
+            mirroredDomainDataDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+            if (mirroredDomainSignal.assigned())
+                mirroredDomainSignal.asPtr<IMirroredSignalPrivate>().setMirroredDataDescriptor(mirroredDomainDataDescriptor);
+            else
             {
-                mirroredDomainDataDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-                if (mirroredDomainSignal.assigned())
-                    mirroredDomainSignal.asPtr<IMirroredSignalPrivate>().setMirroredDataDescriptor(mirroredDomainDataDescriptor);
-                else
+                const SignalPtr domain = this->onGetDomainSignal();
+                if (domain.assigned())
                 {
-                    const SignalPtr domain = this->onGetDomainSignal();
-                    if (domain.assigned())
+                    if (const auto mirroredDomain = domain.asPtrOrNull<IMirroredSignalPrivate>(); mirroredDomain.assigned())
                     {
-                        if (const auto mirroredDomain = domain.asPtrOrNull<IMirroredSignalPrivate>(); mirroredDomain.assigned())
-                        {
-                            mirroredDomain.setMirroredDataDescriptor(mirroredDomainDataDescriptor);
-                        }
+                        mirroredDomain.setMirroredDataDescriptor(mirroredDomainDataDescriptor);
                     }
                 }
             }
-
-            return packet;
         }
     }
 
-    const auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
-    if (activeStreamingSource.assigned())
-    {
-        StringPtr signalRemoteId;
-        ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
-        checkErrorInfo(errCode);
-        return activeStreamingSource.template asPtr<IStreamingPrivate>()->createDataDescriptorChangedEventPacket(signalRemoteId);
-    }
-
-    return DataDescriptorChangedEventPacket(nullptr, nullptr);
+    return DataDescriptorChangedEventPacket(mirroredDataDescriptor, mirroredDomainDataDescriptor);
 }
 
 template <typename... Interfaces>

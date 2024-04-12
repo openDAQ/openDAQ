@@ -147,6 +147,8 @@ public:
         signalSubscribedHandler =
             [this](const SignalPtr& signal)
         {
+            if (initialEventPacket.assigned())
+                serverHandler->sendPacket(signal, initialEventPacket);
             signalSubscribedPromise.set_value(signal);
         };
 
@@ -204,8 +206,9 @@ public:
         return clientHandler;
     }
 
-    void startServer(const ListPtr<ISignal>& signalsList)
+    void startServer(const ListPtr<ISignal>& signalsList, const EventPacketPtr& eventPacket = nullptr)
     {
+        initialEventPacket = eventPacket;
         startIoOperations();
         serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
                                                                        ioContextPtrServer,
@@ -225,6 +228,7 @@ public:
 protected:
     std::vector<StreamingProtocolAttributes> clients;
 
+    EventPacketPtr initialEventPacket;
     OnSignalSubscribedCallback signalSubscribedHandler;
     OnSignalUnsubscribedCallback signalUnsubscribedHandler;
 
@@ -523,14 +527,18 @@ TEST_P(StreamingProtocolTest, RemoveSubscribedSignal)
     ASSERT_EQ(signalUnsubscribedFuture.get(), serverSignal);
 }
 
-TEST_P(StreamingProtocolTest, InitialEventPacket)
+TEST_P(StreamingProtocolTest, InitialEventPacketOnSubscribe)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
-    auto initialEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
+    auto firstEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
 
-    startServer(List<ISignal>(serverSignal));
+    StringPtr clientSignalStringId;
 
+    // send event packet on first subscribe request
+    startServer(List<ISignal>(serverSignal), firstEventPacket);
+
+    // connect all clients
     for (auto& client : clients)
     {
         client.clientHandler = createClient(client, client.signalAvailableHandler);
@@ -538,20 +546,42 @@ TEST_P(StreamingProtocolTest, InitialEventPacket)
         client.clientHandler->sendStreamingRequest();
         ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
+        ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
+        clientSignalStringId = std::get<0>(client.signalAvailableFuture.get());
+    }
+
+    // subscribe all clients to signal
+    for (auto& client : clients)
+    {
+        client.clientHandler->subscribeSignal(clientSignalStringId);
+    }
+
+    ASSERT_EQ(signalSubscribedFuture.wait_for(timeout), std::future_status::ready);
+
+    // wait for ack
+    for (auto& client : clients)
+    {
+        ASSERT_EQ(client.subscribedAckFuture.wait_for(timeout), std::future_status::ready);
+    }
+
+    // check that all clients received event packet
+    for (auto& client : clients)
+    {
         ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
         auto [signalId, packet] = client.packetReceivedFuture.get();
         ASSERT_EQ(signalId, serverSignal.getGlobalId());
-        ASSERT_EQ(packet, initialEventPacket);
+        ASSERT_EQ(packet, firstEventPacket);
     }
 }
 
-TEST_P(StreamingProtocolTest, SendEventPacket)
+TEST_P(StreamingProtocolTest, InitialEventPacketPostSubscribe)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
-    auto initialEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
+    auto firstEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
 
-    startServer(List<ISignal>(serverSignal));
+    // do not send event packet on first subscribe request
+    startServer(List<ISignal>(serverSignal), nullptr);
 
     for (auto& client : clients)
     {
@@ -561,14 +591,7 @@ TEST_P(StreamingProtocolTest, SendEventPacket)
         ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
-        auto [clientSignalStringId, serializedSignal] =
-            client.signalAvailableFuture.get();
-
-        // wait for initial event packet
-        ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
-        // reset packet future / promise
-        client.packetReceivedPromise = std::promise< std::tuple<StringPtr, PacketPtr> >();
-        client.packetReceivedFuture = client.packetReceivedPromise.get_future();
+        auto clientSignalStringId = std::get<0>(client.signalAvailableFuture.get());
 
         client.clientHandler->subscribeSignal(clientSignalStringId);
         ASSERT_EQ(client.subscribedAckFuture.wait_for(timeout), std::future_status::ready);
@@ -576,25 +599,23 @@ TEST_P(StreamingProtocolTest, SendEventPacket)
 
     ASSERT_EQ(signalSubscribedFuture.wait_for(timeout), std::future_status::ready);
 
-    const auto newValueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Binary).build();
-    auto serverEventPacket = DataDescriptorChangedEventPacket(newValueDescriptor, nullptr);
-    serverHandler->sendPacket(serverSignal, serverEventPacket);
-
+    serverHandler->sendPacket(serverSignal, firstEventPacket);
     for (auto& client : clients)
     {
         ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
         auto [signalId, packet] = client.packetReceivedFuture.get();
         ASSERT_EQ(signalId, serverSignal.getGlobalId());
-        ASSERT_EQ(packet, serverEventPacket);
+        ASSERT_EQ(packet, firstEventPacket);
     }
 }
 
-TEST_P(StreamingProtocolTest, SendPacketsNoSubscribers)
+TEST_P(StreamingProtocolTest, SendEventPacket)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
+    auto firstEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
 
-    startServer(List<ISignal>(serverSignal));
+    startServer(List<ISignal>(serverSignal), firstEventPacket);
 
     for (auto& client : clients)
     {
@@ -603,18 +624,58 @@ TEST_P(StreamingProtocolTest, SendPacketsNoSubscribers)
         client.clientHandler->sendStreamingRequest();
         ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
-        // wait for initial event packet
+        ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
+        auto clientSignalStringId = std::get<0>(client.signalAvailableFuture.get());
+
+        client.clientHandler->subscribeSignal(clientSignalStringId);
+        ASSERT_EQ(client.subscribedAckFuture.wait_for(timeout), std::future_status::ready);
+    }
+
+    ASSERT_EQ(signalSubscribedFuture.wait_for(timeout), std::future_status::ready);
+
+    serverHandler->sendPacket(serverSignal, firstEventPacket);
+    for (auto& client : clients)
+    {
         ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
+        auto [signalId, packet] = client.packetReceivedFuture.get();
+        ASSERT_EQ(signalId, serverSignal.getGlobalId());
+        ASSERT_EQ(packet, firstEventPacket);
 
         // reset packet future / promise
         client.packetReceivedPromise = std::promise< std::tuple<StringPtr, PacketPtr> >();
         client.packetReceivedFuture = client.packetReceivedPromise.get_future();
     }
 
-    auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
-    auto serverDataPacket = DataPacket(valueDescriptor, 100);
+    const auto newValueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Binary).build();
+    auto secondEventPacket = DataDescriptorChangedEventPacket(newValueDescriptor, nullptr);
+    serverHandler->sendPacket(serverSignal, secondEventPacket);
 
-    serverHandler->sendPacket(serverSignal, serverEventPacket);
+    for (auto& client : clients)
+    {
+        ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
+        auto [signalId, packet] = client.packetReceivedFuture.get();
+        ASSERT_EQ(signalId, serverSignal.getGlobalId());
+        ASSERT_EQ(packet, secondEventPacket);
+    }
+}
+
+TEST_P(StreamingProtocolTest, SendPacketsNoSubscribers)
+{
+    const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
+    auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
+    auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
+
+    startServer(List<ISignal>(serverSignal), serverEventPacket);
+
+    for (auto& client : clients)
+    {
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
+    }
+
+    auto serverDataPacket = DataPacket(valueDescriptor, 100);
     serverHandler->sendPacket(serverSignal, serverDataPacket);
 
     // no subscribers - so packets wont be sent to clients
@@ -627,10 +688,11 @@ TEST_P(StreamingProtocolTest, SendPacketsNoSubscribers)
 TEST_P(StreamingProtocolTest, SendDataPacket)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
+    auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
     auto serverDataPacket = DataPacket(valueDescriptor, 100);
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
 
-    startServer(List<ISignal>(serverSignal));
+    startServer(List<ISignal>(serverSignal), serverEventPacket);
 
     for (auto& client : clients)
     {
@@ -640,14 +702,7 @@ TEST_P(StreamingProtocolTest, SendDataPacket)
         ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
 
         ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
-        auto [clientSignalStringId, serializedSignal] =
-            client.signalAvailableFuture.get();
-
-        // wait for initial event packet
-        ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
-        // reset packet future / promise
-        client.packetReceivedPromise = std::promise< std::tuple<StringPtr, PacketPtr> >();
-        client.packetReceivedFuture = client.packetReceivedPromise.get_future();
+        auto clientSignalStringId = std::get<0>(client.signalAvailableFuture.get());
 
         client.clientHandler->subscribeSignal(clientSignalStringId);
         ASSERT_EQ(client.subscribedAckFuture.wait_for(timeout), std::future_status::ready);
@@ -655,10 +710,22 @@ TEST_P(StreamingProtocolTest, SendDataPacket)
 
     ASSERT_EQ(signalSubscribedFuture.wait_for(timeout), std::future_status::ready);
 
-    serverHandler->sendPacket(serverSignal, serverDataPacket);
-
     for (auto& client : clients)
     {
+        // wait for event packet
+        ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
+        auto [signalId, packet] = client.packetReceivedFuture.get();
+        ASSERT_EQ(signalId, serverSignal.getGlobalId());
+        ASSERT_EQ(packet, serverEventPacket);
+        // reset packet future / promise
+        client.packetReceivedPromise = std::promise< std::tuple<StringPtr, PacketPtr> >();
+        client.packetReceivedFuture = client.packetReceivedPromise.get_future();
+    }
+
+    serverHandler->sendPacket(serverSignal, serverDataPacket);
+    for (auto& client : clients)
+    {
+        // wait for data packet
         ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
         auto [signalId, packet] = client.packetReceivedFuture.get();
         ASSERT_EQ(signalId, serverSignal.getGlobalId());

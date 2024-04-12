@@ -88,11 +88,6 @@ void ClientSessionHandler::sendStreamingRequest()
     session->scheduleWrite(tasks);
 }
 
-EventPacketPtr ClientSessionHandler::getDataDescriptorChangedEventPacket(const SignalNumericIdType& signalNumericId)
-{
-    return packetStreamingClient.getDataDescriptorChangedEventPacket(signalNumericId);
-}
-
 ReadTask ClientSessionHandler::readPacket(const void* data, size_t size)
 {
     size_t bytesDone = 0;

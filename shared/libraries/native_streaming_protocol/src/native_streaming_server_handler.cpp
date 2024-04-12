@@ -74,13 +74,9 @@ void NativeStreamingServerHandler::addSignal(const SignalPtr& signal)
     auto signalNumericId = registerSignal(signal);
 
     subscribersRegistry.registerSignal(signal);
-    subscribersRegistry.sendToClients([signalNumericId, signal](std::shared_ptr<ServerSessionHandler>& sessionHandler)
+    subscribersRegistry.doForAllClients([signalNumericId, signal](std::shared_ptr<ServerSessionHandler>& sessionHandler)
                                       {
                                           sessionHandler->sendSignalAvailable(signalNumericId, signal);
-
-                                          // create and send event packet to initialize packet streaming
-                                          sessionHandler->sendPacket(signalNumericId,
-                                                                     createDataDescriptorChangedEventPacket(signal));
                                       });
 }
 
@@ -111,7 +107,7 @@ void NativeStreamingServerHandler::removeSignalInternal(const SignalPtr& signal)
     if (subscribersRegistry.removeSignal(signal))
         signalUnsubscribedHandler(signal);
     auto signalNumericId = findSignalNumericId(signal);
-    subscribersRegistry.sendToClients([signalNumericId, signal](std::shared_ptr<ServerSessionHandler>& sessionHandler)
+    subscribersRegistry.doForAllClients([signalNumericId, signal](std::shared_ptr<ServerSessionHandler>& sessionHandler)
                                       {
                                           sessionHandler->sendSignalUnavailable(signalNumericId, signal);
                                       });
@@ -133,7 +129,26 @@ bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericI
         {
             if (subscribersRegistry.registerSignalSubscriber(signalStringId, session))
             {
+                // creates reader
+                // automatically generates first event packet that will initialize packet streaming
                 signalSubscribedHandler(findRegisteredSignal(signalStringId));
+            }
+            else
+            {
+                // does not create reader
+                // so send last event packet to initialize packet streaming
+                // packet not assigned means initial event packet is not yet processed by streaming
+                auto packet = subscribersRegistry.getLastEventPacket(signalStringId);
+                if (packet.assigned())
+                {
+                    subscribersRegistry.doForSingleClient(
+                        session,
+                        [&signalNumericId, &packet](std::shared_ptr<ServerSessionHandler>& sessionHandler)
+                        {
+                            sessionHandler->sendPacket(signalNumericId, packet);
+                        }
+                    );
+                }
             }
         }
         catch (const std::exception& e)
@@ -167,7 +182,14 @@ bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericI
 void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, const PacketPtr& packet)
 {
     auto signalNumericId = findSignalNumericId(signal);
-    subscribersRegistry.sendToSubscribers(
+    auto signalStringId = signal.getGlobalId().toStdString();
+
+    if (packet.getType() == PacketType::Event && packet.supportsInterface<IEventPacket>())
+    {
+        subscribersRegistry.setLastEventPacket(signalStringId, packet.asPtr<IEventPacket>(true));
+    }
+
+    subscribersRegistry.doForSubscribedClients(
         signal,
         [signalNumericId, &packet](std::shared_ptr<ServerSessionHandler>& sessionHandler)
         {
@@ -242,7 +264,7 @@ void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<
 
 void NativeStreamingServerHandler::handleStreamingInit(SessionPtr session)
 {
-    subscribersRegistry.sendToClient(
+    subscribersRegistry.doForSingleClient(
         session,
         [this](std::shared_ptr<ServerSessionHandler>& sessionHandler)
         {
@@ -256,10 +278,6 @@ void NativeStreamingServerHandler::handleStreamingInit(SessionPtr session)
             for (const auto& sortedSignalsItem : sortedSignals)
             {
                 sessionHandler->sendSignalAvailable(sortedSignalsItem.first, sortedSignalsItem.second);
-
-                // create and send event packet to initialize packet streaming
-                sessionHandler->sendPacket(sortedSignalsItem.first,
-                                           createDataDescriptorChangedEventPacket(sortedSignalsItem.second));
             }
             sessionHandler->sendStreamingInitDone();
         }
@@ -351,14 +369,6 @@ SignalPtr NativeStreamingServerHandler::findRegisteredSignal(const std::string& 
         return std::get<0>(iter->second);
     else
         throw NativeStreamingProtocolException("Signal is not registered");
-}
-
-EventPacketPtr NativeStreamingServerHandler::createDataDescriptorChangedEventPacket(const SignalPtr& signal)
-{
-    DataDescriptorPtr domainDescriptor;
-    if (signal.getDomainSignal().assigned())
-        domainDescriptor = signal.getDomainSignal().getDescriptor();
-    return DataDescriptorChangedEventPacket(signal.getDescriptor(), domainDescriptor);
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

@@ -41,8 +41,6 @@ public:
     void sendTransportLayerProperties(const PropertyObjectPtr& properties);
     void sendStreamingRequest();
 
-    EventPacketPtr getDataDescriptorChangedEventPacket(const SignalNumericIdType& signalNumericId);
-
 private:
     daq::native_streaming::ReadTask readHeader(const void* data, size_t size) override;
 

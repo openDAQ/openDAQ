@@ -662,7 +662,7 @@ TEST_F(RefModulesTest, ClassifierRangeSize)
 
     auto signalDimension = classifierSignalDescription.getDimensions()[0];
 
-    ASSERT_EQ(signalDimension.getLabels(), List<NumberPtr>(-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0));
+    ASSERT_EQ(signalDimension.getLabels(), List<Float>(-3, -2, -1, 0, 1, 2, 3));
 }
 
 TEST_F(RefModulesTest, ClassifierRangeSizeCustomClassCount)
@@ -684,7 +684,7 @@ TEST_F(RefModulesTest, ClassifierRangeSizeCustomClassCount)
 
     const auto signalDimension = classifierSignalDescription.getDimensions()[0];
 
-    ASSERT_EQ(signalDimension.getLabels(), List<NumberPtr>(-5.0, -1.0, 3.0, 7.0));
+    ASSERT_EQ(signalDimension.getLabels(), List<Float>(-5, -1, 3, 7));
 }
 
 TEST_F(RefModulesTest, ClassifierRangeSizeCustomClasses)

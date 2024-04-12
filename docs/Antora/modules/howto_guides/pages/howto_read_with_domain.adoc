@@ -1,4 +1,4 @@
-= Read Basic Value And Domain Data
+= Read basic value and Domain Data
 
 :tip-caption: Assumptions
 [TIP]

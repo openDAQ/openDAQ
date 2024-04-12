@@ -1,4 +1,4 @@
-= Read With Absolute Time-Stamps
+= Read with absolute time-stamps
 
 :tip-caption: Assumptions
 [TIP]

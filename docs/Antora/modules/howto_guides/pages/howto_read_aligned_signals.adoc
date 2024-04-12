@@ -1,4 +1,4 @@
-= Read Multiple Signals Aligned
+= Read multiple Signals aligned
 
 :tip-caption: Assumptions
 [TIP]

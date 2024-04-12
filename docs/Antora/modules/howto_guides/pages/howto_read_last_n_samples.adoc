@@ -1,4 +1,4 @@
-= Read Last N Samples
+= Read last N samples
 
 :tip-caption: Assumptions
 [TIP]

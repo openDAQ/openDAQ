@@ -1,4 +1,4 @@
-= Read With Time-Outs
+= Read with time-outs
 
 :tip-caption: Assumptions
 [TIP]

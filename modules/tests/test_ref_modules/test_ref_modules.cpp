@@ -804,6 +804,12 @@ TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
     }
     ASSERT_EQ(firstBlockCnt, 1u);
 
+    // trigger new reader in classifier
+    auto triggerDataPacket = helper.createDataPacket(1);
+    auto triggerDataPtr = static_cast<inputSignalType*>(triggerDataPacket.getData());
+    triggerDataPtr[0] = 0;
+    helper.sendPacket(triggerDataPacket);
+
     // reading second output block
     size_t secondBlockCnt = 1;
     std::vector<outputSignalType>secondOutputData(5);

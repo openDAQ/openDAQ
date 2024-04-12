@@ -77,7 +77,7 @@ void WAVWriterFbImpl::startStore()
         return;
     }
 
-    if (inputValueDataDescriptor.getSampleType() != SampleType::Float32)
+    if (inputValueDataDescriptor.getSampleType() != SampleType::Float32 && inputValueDataDescriptor.getSampleType() != SampleType::Float64)
     {
         LOG_W("Incompatible value sample type {}", convertSampleTypeToString(inputValueDataDescriptor.getSampleType()));
         return;
@@ -151,8 +151,18 @@ void WAVWriterFbImpl::processDataPacket(const DataPacketPtr& packet)
     if (!storing)
         return;
 
-    const auto data = packet.getData();
+    auto data = packet.getData();
     const auto sampleCount = packet.getSampleCount();
+    
+    std::vector<float> vec;
+    if (inputValueDataDescriptor.getSampleType() == SampleType::Float64)
+    {
+        vec.reserve(sampleCount);
+        for (size_t i = 0; i < sampleCount; ++i)
+            vec.push_back(static_cast<float>(static_cast<double*>(data)[i]));
+        data = vec.data();
+    }
+
     ma_uint64 samplesWritten;
     ma_result result;
     if ((result = ma_encoder_write_pcm_frames(&encoder, data, sampleCount, &samplesWritten)) != MA_SUCCESS)

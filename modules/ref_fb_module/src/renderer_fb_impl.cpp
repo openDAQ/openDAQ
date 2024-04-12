@@ -963,9 +963,9 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         auto domainDataDimension = signalContext.inputDataSignalDescriptor.getDimensions()[0];
         labels = domainDataDimension.getLabels();
         xTickCount = labels.getCount();
-        if (xTickCount > 21)
+        if (xTickCount > 10)
         {
-            xTickStep = (xTickCount + 20) / 21;
+            xTickStep = (xTickCount + 10) / 11;
         }
     }
 
@@ -1060,7 +1060,12 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         std::ostringstream domainStr;
         if (signalDimension == 1) 
         {
-            domainStr << std::fixed << std::showpoint << std::setprecision(2) << labels[i];
+            if (labels[i].supportsInterface(IString::Id))
+                domainStr << std::fixed << std::showpoint << std::setprecision(2) << labels[i];
+            else if (labels[i].supportsInterface(IInteger::Id))
+                domainStr << static_cast<Int>(labels[i]);
+            else
+                domainStr << std::fixed << std::showpoint << std::setprecision(2) << static_cast<Float>(labels[i]);
         }
         else if (signalContext.hasTimeOrigin)
         {
@@ -1190,16 +1195,19 @@ void RendererFbImpl::subscribeToSignalCoreEvent(const SignalPtr& signal)
 
 void RendererFbImpl::processCoreEvent(ComponentPtr& component, CoreEventArgsPtr& args)
 {
-    for (auto& sigCtx: signalContexts)
+    if (args.getEventId() == static_cast<Int>(CoreEventId::AttributeChanged))
     {
-        if (sigCtx.inputPort.getSignal() == component)
+        for (auto& sigCtx: signalContexts)
         {
-            const auto params = args.getParameters();
-            const auto name = params.get("AttributeName");
-            const auto value = params.get(name);
+            if (sigCtx.inputPort.getSignal() == component)
+            {
+                const auto params = args.getParameters();
+                const auto name = params.get("AttributeName");
+                const auto value = params.get(name);
 
-            processAttributeChanged(sigCtx, name, value);
-            break;
+                processAttributeChanged(sigCtx, name, value);
+                break;
+            }
         }
     }
 }

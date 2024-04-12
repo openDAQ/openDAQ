@@ -93,7 +93,7 @@ protected:
 private:
     ErrCode subscribeInternal();
     ErrCode unsubscribeInternal();
-    ErrCode unsubscribeCompletedInternal(IString* streamingConnectionString, bool lock);
+    ErrCode unsubscribeCompletedInternal(IString* streamingConnectionString, bool syncLock);
 
     // vector is used as the order of adding & accessing sources is important
     // store a pair string + weak reference to manage the removal of destroyed sources
@@ -332,7 +332,7 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString*
 }
 
 template <typename... Interfaces>
-ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString* streamingConnectionString, bool lock)
+ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString* streamingConnectionString, bool syncLock)
 {
     OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
 
@@ -346,7 +346,7 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString*
         mirroredDomainDataDescriptor = nullptr;
     }
 
-    if (lock)
+    if (syncLock)
     {
         std::scoped_lock lock(this->sync);
         this->lastDataPacket = nullptr;

@@ -455,7 +455,9 @@ TEST_F(DataPacketTest, GetLastValueConstantPosAndValue)
                         0,
                         constantPosAndValue));
 
-    auto lastValue = packet.getLastValue();
+    uint64_t lastValue;
+
+    ASSERT_NO_THROW(lastValue = packet.getLastValue());
 
     ASSERT_EQ(lastValue, 15);
 }

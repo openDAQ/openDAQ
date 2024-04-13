@@ -7,6 +7,7 @@ from tkinter.filedialog import asksaveasfile, askopenfile
 import tkinter.font as tkfont
 from functools import cmp_to_key
 import os
+from gui_demo.components.block_view import BlockView
 
 import opendaq as daq
 
@@ -25,7 +26,6 @@ yes_no_inv = {
     'No':  False,
     'Yes': True,
 }
-
 
 class DeviceInfoLocal:
     def __init__(self, conn_string):
@@ -154,23 +154,35 @@ class App(tk.Tk):
             main_frame_bottom, orient=tk.constants.HORIZONTAL)
         main_frame_navigator.pack_propagate(0)
 
-        frame_navigator_for_properties = tk.PanedWindow(
-            main_frame_navigator, orient=tk.constants.VERTICAL)
-        frame_navigator_for_properties.pack_propagate(0)
+        # frame_navigator_for_properties = tk.PanedWindow(
+        #     main_frame_navigator, orient=tk.constants.VERTICAL)
+        # frame_navigator_for_properties.pack_propagate(0)
+
+        frame_navigator_for_properties = tk.Frame(
+            main_frame_navigator)
+        frame_navigator_for_properties.pack_propagate(False)
 
         self.tree_widget_create(main_frame_navigator)
 
         main_frame_navigator.add(frame_navigator_for_properties)
-        self.properties_widget_create(frame_navigator_for_properties)
-        self.attributes_widget_create(frame_navigator_for_properties)
+
+
+        # self.properties_widget_create(frame_navigator_for_properties)
+        # self.attributes_widget_create(frame_navigator_for_properties)
 
         main_frame_navigator.pack(side=tk.LEFT, expand=1, fill=tk.BOTH)
+
+        self.frame_navigator_for_properties = frame_navigator_for_properties
+
+        self.right_side_panel_create(frame_navigator_for_properties)
 
         # High DPI workaround for now
         ttk.Style().configure('Treeview', rowheight=30*self.ui_scaling_factor)
 
         default_font = tkfont.nametofont("TkDefaultFont")
         default_font.configure(size=9*self.ui_scaling_factor)
+
+        self.icons = self.load_icons(os.path.join(os.path.dirname(__file__), 'gui_demo', 'icons'))
 
         self.init_opendaq()
 
@@ -187,6 +199,10 @@ class App(tk.Tk):
         # add the first device if connection string is provided once on start
         if self.connection_string != None:
             self.add_first_available_device()  # also calls self.update_tree_widget()
+
+        obj = daq.PropertyObject()
+        obj.add_property(daq.StringProperty(daq.String('name'), daq.String('Name'), daq.Boolean(True)))
+        self.instance.add_property(daq.ObjectProperty(daq.String('obj'), obj))
 
         self.tree_update()
 
@@ -277,8 +293,8 @@ class App(tk.Tk):
         self.tree_traverse_components_recursive(self.instance)
         self.selected_node = self.tree_restore_selection(
             self.selected_node)  # reset in case the selected node outdates
-        self.properties_update()
-        self.attributes_update()
+        # self.properties_update()
+        # self.attributes_update()
         self.tree_update_conext_buttons_state()
 
     def tree_traverse_components_recursive(self, component):
@@ -300,12 +316,31 @@ class App(tk.Tk):
     def tree_add_component(self, parent_node_id, component):
         component_node_id = component.global_id
         component_name = component.name
+        icon = None
 
-        if daq.IDevice.can_cast_from(component):
-            device = daq.IDevice.cast_from(component)
+
+        if daq.IChannel.can_cast_from(component):
+            channel = daq.IChannel.cast_from(component)
+            component_name = channel.name
+            icon = self.icons['channel']
+        elif daq.ISignal.can_cast_from(component):
+            signal = daq.ISignal.cast_from(component)
+            component_name = signal.name
+            icon = self.icons['signal']
         elif daq.IFunctionBlock.can_cast_from(component):
             function_block = daq.IFunctionBlock.cast_from(component)
+            component_name = function_block.function_block_type.name
+            icon = self.icons['function_block']
+        elif daq.IInputPort.can_cast_from(component):
+            input_port = daq.IInputPort.cast_from(component)
+            component_name = input_port.name
+            icon = self.icons['input_port']
+        elif daq.IDevice.can_cast_from(component):
+            device = daq.IDevice.cast_from(component)
+            component_name = device.info.name
+            icon = self.icons['device']
         elif daq.IFolder.can_cast_from(component):
+            icon = self.icons['folder']
             if component_name == 'Sig':
                 component_name = 'Signals'
             elif component_name == 'FB':
@@ -317,7 +352,7 @@ class App(tk.Tk):
             elif component_name == 'IO':
                 component_name = 'Inputs/Outputs'
 
-        self.tree.insert(parent_node_id, tk.END, iid=component_node_id,
+        self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
                          text=component_name, open=True, values=(component_node_id,))
         self.nodes[component_node_id] = component
 
@@ -543,6 +578,39 @@ class App(tk.Tk):
                 value = yes_no[value]
             self.attributes_tree.insert(
                 '', tk.END, iid=attr, text=attr, values=(value, locked))
+
+    def right_side_panel_create(self, parent_frame):
+
+        def canvas_on_configure(event):
+            canvas.itemconfig(sframe_id, width = event.width)
+
+        def inner_frame_on_configure(event):
+            reqwidth, reqheight = sframe.winfo_reqwidth(), sframe.winfo_reqheight()
+            canvas.config(scrollregion=f'0 0 {reqwidth} {reqheight}')
+
+        def yview_wrapper(*args):
+            moveto = float(args[1])
+            moveto = moveto if moveto > 0 else 0.0
+            return canvas.yview('moveto', moveto)
+
+        frame = parent_frame
+        canvas = tk.Canvas(frame)
+        canvas.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
+
+        canvas.xview_moveto(0)
+        canvas.yview_moveto(0)
+
+        scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=yview_wrapper)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        sframe = tk.Frame(canvas)
+        sframe_id = canvas.create_window(0, 0, window=sframe, anchor=tk.NW)
+        
+        self.right_side_panel = sframe
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.bind('<Configure>', canvas_on_configure)
+        sframe.bind('<Configure>', inner_frame_on_configure)
 
     # MARK: - Add device dialog
     def add_device_dialog_show(self):
@@ -814,8 +882,116 @@ class App(tk.Tk):
         finally:
             self.tree_popup.grab_release()
 
+    # MARK: - Right hand side panel
+
+    def find_io_folder_of_device(self, node):
+        if node is None:
+            return None
+        elif daq.IFolder.can_cast_from(node):
+            folder = daq.IFolder.cast_from(node)
+            if folder.parent is not None and daq.IDevice.can_cast_from(folder.parent) and folder.local_id == 'IO':
+                return folder
+            else: # iterate over folders only
+                return self.find_io_folder_of_device(node.parent)
+        else:
+            return None
+
+    def find_fb_or_device(self, node):
+        if node is None:
+            return None
+        elif daq.IChannel.can_cast_from(node):
+            return daq.IChannel.cast_from(node)
+        elif daq.IFunctionBlock.can_cast_from(node):
+            return daq.IFunctionBlock.cast_from(node)
+        elif daq.IDevice.can_cast_from(node):
+            return daq.IDevice.cast_from(node)
+        else:
+            if daq.IFolderConfig.can_cast_from(node):
+                folder = daq.IFolderConfig.cast_from(node)
+                print(f'io folder {node} named: {folder.name} items: {folder.items}')
+            return self.find_fb_or_device(node.parent)
+        
+
+    def right_side_panel_draw_node(self, node):
+        if node is None:
+            return
+        found = self.find_fb_or_device(node)
+        if found is None:
+            return
+        elif type(found) in (daq.IChannel, daq.IFunctionBlock):
+            
+            upper_nodes = list()
+
+            if daq.IChannel.can_cast_from(found): #traversing up IO folders
+                current = found.parent
+                while current is not None:
+                    next_parent = current.parent
+                    if daq.IFolder.can_cast_from(current):
+                        if next_parent is not None and daq.IFolder.can_cast_from(next_parent):
+                            if not daq.IDevice.can_cast_from(next_parent) and current.local_id != 'IO':
+                                upper_nodes.append(daq.IFolder.cast_from(current))
+                            else :
+                                break
+                    current = current.parent
+            elif daq.IFunctionBlock.can_cast_from(found): #traversing function blocks
+                current = found.parent
+                while current is not None:
+                    if daq.IFunctionBlock.can_cast_from(current):
+                        upper_nodes.append(daq.IFunctionBlock.cast_from(current))
+                    current = current.parent
+
+            for upper_node in reversed(upper_nodes):
+                block_view = BlockView(self.right_side_panel, upper_node)
+                block_view.pack(fill=tk.X)
+
+            def draw_sub_fbs(fb, level=0):
+                if fb is None:
+                    return
+                
+                if daq.IFunctionBlock.can_cast_from(fb):
+                    fb = daq.IFunctionBlock.cast_from(fb)
+                    b = BlockView(self.right_side_panel, fb, level == 0)
+                    b.pack(fill=tk.X, padx=(5*level, 0))
+                
+                if fb.has_item('FB'):
+                    fb_folder = fb.get_item('FB')
+                    fb_folder = daq.IFolder.cast_from(fb_folder)
+                    for fb in fb_folder.items:
+                        draw_sub_fbs(fb, level+1)
+
+            draw_sub_fbs(found)
+
+        elif type(found) is daq.IDevice:
+            block_view = BlockView(self.right_side_panel, found)
+            block_view.handle_expand_toggle()
+            block_view.pack(fill=tk.X)
+
+
+    # MARK: - Tree view handlers
+
+
+    #function getting all the file path in the directory passed as argument
+    def get_files_in_directory(self, directory):
+        files = []
+        for file in os.listdir(directory):
+            if os.path.isfile(os.path.join(directory, file)) and file.endswith('.png'):
+                files.append(file)
+        return files
+    
+    def load_and_resize_image(self, filename, x_subsample = 10, y_subsample = 10):
+        image = tk.PhotoImage(file=filename)
+        return image.subsample(x_subsample, y_subsample)
+    
+    def load_icons(self, directory):
+        images = {}
+        for file in self.get_files_in_directory(directory):
+            image = self.load_and_resize_image(os.path.join(directory, file))
+            images[file.split('.')[0]] = image
+        return images
+
     def handle_tree_select(self, event):
-        self.properties_clear()
+        # frame = tk.Frame(self.frame_navigator_for_properties)
+        # self.frame_navigator_for_properties.add(frame)
 
         selected_item = self.treeview_get_first_selection(self.tree)
         if selected_item is None:
@@ -830,10 +1006,29 @@ class App(tk.Tk):
             return
         node = self.nodes[node_unique_id]
         self.selected_node = node
-        self.tree_update_conext_buttons_state()
-        if node != None and (type(node) is daq.PropertyObject or daq.IPropertyObject.can_cast_from(node)):
-            self.properties_list(node)
-        self.attributes_update()
+
+        for widget in self.right_side_panel.children.values():
+            widget.pack_forget()
+
+        self.right_side_panel_draw_node(node)
+
+        # fbs  = list()
+        # while node is not None:
+        #     if daq.IFunctionBlock.can_cast_from(node) or daq.IFolder.can_cast_from(node):
+        #         fbs.append(node)
+        #     node = node.parent
+
+        # for widget in self.right_side_panel.children.values():
+        #     widget.pack_forget()
+
+        # for node in reversed(fbs):
+        #     expandable = Expandable(self.right_side_panel, 'fb', node)
+        #     if expandable.context.global_id == self.selected_node.global_id:
+        #         expandable.handle_expand()
+        #     expandable.pack(fill=tk.X, expand=True)
+            # self.frame_navigator_for_properties.add(Expandable(self, 'fb', node))
+
+        # self.frame_navigator_for_properties.add(Expandable(self, 'fb', node))
 
     def handle_tree_menu_remove_function_block(self, node):
         if node is None:
@@ -1170,6 +1365,10 @@ class App(tk.Tk):
             component = component.parent
         return None
 
+# MARK: - CTX
+class Context:
+    def __init__(self):
+        self.instance = daq.IInstance()
 
 # MARK: - Entry point
 if __name__ == '__main__':

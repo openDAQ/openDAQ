@@ -985,7 +985,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         labels = List<IString>();
         for (size_t i = 0; i < xTickCount; i += xTickStep)
         {
-            if (i & 1 == 0)
+            if ((i & 1) == 1)
             {
                 labels.pushBack(String(""));
             }

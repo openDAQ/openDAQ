@@ -163,10 +163,10 @@ void RendererFbImpl::readProperties()
     customMaxValue = objPtr.getPropertyValue("CustomMaxValue");
     LOG_T("Properties: CustomMaxValue {}", customMaxValue)
 
-    useCustom2dRangeValue = objPtr.getPropertyValue<bool>("UseCustom2dRangeValue");
+    useCustom2dRangeValue = objPtr.getPropertyValue("UseCustom2dRangeValue");
     LOG_T("Properties: UseCustom2dRangeValue {}", useCustom2dRangeValue);
-    custom2dMinRange = objPtr.getPropertyValue<int>("Custom2dMinRange");
-    custom2dMaxRange = objPtr.getPropertyValue<int>("Custom2dMaxRange");
+    custom2dMinRange = objPtr.getPropertyValue("Custom2dMinRange");
+    custom2dMaxRange = objPtr.getPropertyValue("Custom2dMaxRange");
     if (custom2dMinRange > custom2dMaxRange)
         std::swap(custom2dMinRange, custom2dMaxRange);
     LOG_T("Properties: Custom2dMinRange {}", custom2dMinRange);
@@ -987,13 +987,13 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         {
             if (i & 1 == 0)
             {
-                labels.add(String(""));
+                labels.pushBack(String(""));
             }
             else
             {
                 const auto tp = signalContext.lastTimeValue - timeValueToDuration(signalContext, duration * (static_cast<double>(xTickCount - 1 - i) / static_cast<double>(xTickCount - 1)));
                 const auto tpms = date::floor<std::chrono::milliseconds>(tp);
-                labels.add(String(date::format("%F %T", tpms)));
+                labels.pushBack(String(date::format("%F %T", tpms)));
             }
         }
     }
@@ -1073,10 +1073,6 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
 
         renderTarget.draw(valueText);
     }
-    
-    // for absolute time shows every second horizontal axi value
-    if (signalContext.hasTimeOrigin)
-        xTickStep = xTickStep * 2;
 
     // create labeles for horizontal axi
     for (size_t i = 0; i < xTickCount; i += xTickStep)

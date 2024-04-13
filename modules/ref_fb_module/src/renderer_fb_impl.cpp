@@ -1002,7 +1002,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         labels = List<IFloat>();
         for (size_t i = 0; i < xTickCount; i += xTickStep)
         {
-            labels.add(duration * (static_cast<double>(i) / static_cast<double>(xTickCount - 1)));
+            labels.pushBack(duration * (static_cast<double>(i) / static_cast<double>(xTickCount - 1)));
         }
     }
 

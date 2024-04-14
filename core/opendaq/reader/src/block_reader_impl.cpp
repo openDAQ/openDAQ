@@ -30,7 +30,6 @@ BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
     , blockSize(blockSize)
 {
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
 }
 
 BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,

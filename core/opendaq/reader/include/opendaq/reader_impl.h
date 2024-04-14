@@ -437,26 +437,6 @@ protected:
             }
         }
 
-        if (!dataDescriptor.assigned())
-        {
-            const auto signal = port.getSignal();
-            if (!signal.assigned())
-            {
-                throw InvalidStateException("Input port must already have a signal assigned");
-            }
-
-            dataDescriptor = signal.getDescriptor();
-            if (!dataDescriptor.assigned())
-            {
-                throw InvalidStateException("Input port connected signal must have a descriptor assigned.");
-            }
-
-            if (signal.getDomainSignal().assigned())
-            {
-                domainDescriptor = signal.getDomainSignal().getDescriptor();
-            }
-        }
-
         handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
     }
 

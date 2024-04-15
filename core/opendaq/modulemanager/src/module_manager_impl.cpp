@@ -1,3 +1,4 @@
+#include <coreobjects/property_factory.h>
 #include <opendaq/module_manager_impl.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/custom_log.h>
@@ -16,6 +17,11 @@
 #include <opendaq/search_filter_factory.h>
 #include <coretypes/validation.h>
 #include <opendaq/server_capability_config_ptr.h>
+#include <ping/icmp_ping.h>
+
+// #include <boost/asio/steady_timer.hpp>
+// #include <boost/asio/ip/icmp.hpp>
+
 
 BEGIN_NAMESPACE_OPENDAQ
 static OrphanedModules orphanedModules;
@@ -27,6 +33,7 @@ static std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& log
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : modulesLoaded(false)
+    , work(ioContext.get_executor())
 {
     if (const StringPtr pathStr = path.asPtrOrNull<IString>(); pathStr.assigned())
     {
@@ -36,8 +43,25 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     {
         paths.insert(paths.end(), pathList.begin(), pathList.end());
     }
-    else
-        throw InvalidParameterException{};
+
+
+    std::size_t numThreads = 2;
+    pool.reserve(numThreads);
+    
+    for (std::size_t i = 0; i < numThreads; ++i)
+    {
+        pool.emplace_back([this, id = i + 1]
+        {
+            // LOG_D("Starting ping thread {}\n", id);
+            fmt::println("Starting ping thread {}", id);
+            ioContext.run();
+            // LOG_D("Stopped ping thread {}\n", id);
+            fmt::println("Stopped ping thread {}", id);
+        });
+    }
+
+    if (paths.empty())
+        throw InvalidParameterException{"No valid paths provided!"};
 }
 
 ModuleManagerImpl::~ModuleManagerImpl()
@@ -51,6 +75,14 @@ ModuleManagerImpl::~ModuleManagerImpl()
     }
 
     orphanedModules.tryUnload();
+
+    work.reset();
+    ioContext.stop();
+    for (auto& thread : pool)
+    {
+        if (thread.joinable())
+            thread.join();
+    }
 }
 
 ErrCode ModuleManagerImpl::getModules(IList** availableModules)
@@ -114,6 +146,119 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     });
 }
 
+//void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
+//{
+//    using namespace boost::asio;
+//    using namespace std::chrono_literals;
+//
+//    ip::icmp::resolver resolver(ioContext);
+//    
+//    for (auto device : list)
+//    {
+//        if (device.hasProperty("ipv4Address"))
+//        {
+//            std::string ipv4 = device.getPropertyValue("ipv4Address");
+//            LOG_I("Trying to ping device {} on: {} ...", device.getName(), ipv4);
+//
+//            auto flags = ip::resolver_base::flags::address_configured |
+//                         ip::resolver_base::flags::numeric_host |
+//                         ip::resolver_base::flags::passive   
+//            ;
+//
+//            resolver.async_resolve(
+//                ipv4,
+//                "",
+//                flags,
+//                [ipv4, device, this](boost::system::error_code asyncErr, const ip::basic_resolver_results<ip::icmp>& responses)
+//                {
+//                    if (asyncErr)
+//                    {
+//                        LOG_I(R"(Ping to "{}" failed: {})", ipv4, asyncErr.message());
+//
+//                        device.addProperty(BoolProperty("canPing", false));
+//                    }
+//                    else
+//                    {
+//                        LOG_I(R"(Ping to "{}" SUCCEEDED!)", ipv4, asyncErr.message());
+//
+//                        if (!responses.empty())
+//                        {
+//                            int i = 0;
+//                            for (const auto& response : responses)
+//                            {
+//                                LOG_I("Response {}: {} | {} | {}",
+//                                    ++i,
+//                                    response.host_name(),
+//                                    response.endpoint().address().to_string(),
+//                                    response.service_name()
+//                                );
+//                            }
+//                        }
+//
+//                        device.addProperty(BoolProperty("canPing", !responses.empty()));
+//                    }
+//                });
+//        }
+//        else
+//        {
+//            LOG_I("Device {} has no IPv4!", device.getName());
+//        }
+//    }
+//
+//    ioContext.run_for(1s);
+//    resolver.cancel();
+//}
+
+struct DevicePing
+{
+    DeviceInfoPtr info;
+    std::shared_ptr<IcmpPing> ping;
+};
+
+void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
+{
+    using namespace std::chrono_literals;
+
+    std::vector<DevicePing> statuses;
+
+    for (auto deviceInfo : list)
+    {
+        if (!deviceInfo.hasProperty("ipv4Address"))
+        {
+            continue;
+        }
+
+        auto icmp = IcmpPing::Create(ioContext);
+        IcmpPing& ping = *icmp;
+
+        std::string deviceIp = deviceInfo.getPropertyValue("ipv4Address");
+
+        ping.setMaxHops(1);
+        ping.start(boost::asio::ip::make_address_v4(deviceIp));
+        if (ping.waitSend())
+        {
+            deviceInfo.addProperty(BoolProperty("canPing", true));
+            continue;
+        }
+
+        statuses.push_back({deviceInfo, icmp});
+
+        LOG_I("No replies received yet: waiting 1s\n");
+    }
+
+    if (!statuses.empty())
+    {
+        std::this_thread::sleep_for(1s);
+
+        for (const auto& [info, ping] : statuses)
+        {
+            ping->stop();
+            info->addProperty(BoolProperty("canPing", ping->getNumReplies() > 0));
+        }
+        statuses.clear();
+    }
+}
+
 ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 {
     OPENDAQ_PARAM_NOT_NULL(availableDevices);
@@ -170,7 +315,9 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             StringPtr manufacturer = deviceInfo.getManufacturer();
             StringPtr serialNumber = deviceInfo.getSerialNumber();
 
-            if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0 || deviceInfo.getServerCapabilities().getCount() == 0)
+            if (manufacturer.getLength() == 0 ||
+                serialNumber.getLength() == 0 ||
+                deviceInfo.getServerCapabilities().getCount() == 0)
             {
                 groupedDevices.set(deviceInfo.getConnectionString(), deviceInfo);
             }
@@ -190,12 +337,22 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
                     deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
                     groupedDevices.set(id, deviceInfo);
                 }
-            }            
+            }
         }
     }
 
     for (const auto & [_, deviceInfo] : groupedDevices)
         availableDevicesPtr.pushBack(deviceInfo);
+
+    try
+    {
+        checkNetworkSettings(availableDevicesPtr);        
+    }
+    catch(const std::exception& e)
+    {
+        LOG_W("Failed to check for network settings: {}", e.what());
+        // ignore all errors
+    }
 
     *availableDevices = availableDevicesPtr.detach();
 
@@ -361,8 +518,12 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             return errCode;
         }
     }
-    throw this->makeErrorInfo(
-        OPENDAQ_ERR_NOTFOUND, "Device with given connection string and config is not available [{}]", connectionString);
+
+    return this->makeErrorInfo(
+        OPENDAQ_ERR_NOTFOUND,
+        "Device with given connection string and config is not available [{}]",
+        connectionString
+    );
 }
 
 
@@ -477,7 +638,9 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
     }
 
     return this->makeErrorInfo(
-        OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Function block with given uid and config is not available [{}])", typeId));
+        OPENDAQ_ERR_NOTFOUND,
+        fmt::format(R"(Function block with given uid and config is not available [{}])", typeId)
+    );
 }
 
 uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)

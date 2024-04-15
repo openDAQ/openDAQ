@@ -6,10 +6,10 @@
 
 BEGIN_NAMESPACE_DISCOVERY
 
-DiscoveryClient::DiscoveryClient(std::vector<ServerCapabilityCb> serverCapabilityCbs,
+DiscoveryClient::DiscoveryClient(std::vector<ServerCapabilityCallback> serverCapabilityCbs,
                                  std::unordered_set<std::string> requiredCaps)
     : requiredCaps(std::move(requiredCaps))
-    , serverCapabilityCbs(std::move(serverCapabilityCbs))
+    , serverCapabilityCallbacks(std::move(serverCapabilityCbs))
 {
 }
 
@@ -34,12 +34,11 @@ ListPtr<IDeviceInfo> DiscoveryClient::discoverMdnsDevices() const
 
     for (const auto& device : mdnsDevices)
     {
-        
-        for (const auto& serverCapabilityFormatCb : serverCapabilityCbs)
+        for (const auto& serverCapabilityFormatCallback : serverCapabilityCallbacks)
         {
             if (DeviceInfoPtr deviceInfo = createDeviceInfo(device); deviceInfo.assigned())
             {
-                auto serverCapability = serverCapabilityFormatCb(device);
+                auto serverCapability = serverCapabilityFormatCallback(device);
                 deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
                 deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(serverCapability.getConnectionString());
                 discovered.pushBack(deviceInfo);

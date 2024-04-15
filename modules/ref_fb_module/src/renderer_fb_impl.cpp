@@ -502,9 +502,19 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
     auto domainDataDescriptor = domainPacket.getDataDescriptor();
     const auto samplesInPacket = packet.getSampleCount();
     
-    size_t count = signalContext.inputDataSignalDescriptor.getDimensions()[0].getSize();
+    size_t xTickOffset = 0;
+    size_t xTickCount = signalContext.inputDataSignalDescriptor.getDimensions()[0].getSize();
+
+    if (useCustom2dRangeValue && (custom2dMinRange < custom2dMaxRange))
+    {
+        if (custom2dMinRange < xTickCount)
+            xTickOffset = custom2dMinRange;
+        if (custom2dMaxRange + 1 <= xTickCount)
+            xTickCount = custom2dMaxRange + 1;
+        xTickCount -= xTickOffset;
+    }
     
-    double domainFactor = static_cast<double>(count-1) / static_cast<double>(xSize);
+    double domainFactor = static_cast<double>(xTickCount - 1) / static_cast<double>(xSize);
 
     double yMax, yMin;
     getYMinMax(signalContext, yMax, yMin);
@@ -519,8 +529,9 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
         return;
 
     double value;
-    for (size_t idx = 0; idx < count; idx++) 
+    for (size_t i = 0; i < xTickCount; i++) 
     {
+        size_t idx = i + xTickOffset;
         switch (signalContext.sampleType)
         {
             case (SampleType::Float32):
@@ -557,7 +568,7 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
                 value = 0.0;
         }
 
-        float xPos = xOffset + static_cast<float>(1.0 * idx / domainFactor);
+        float xPos = xOffset + static_cast<float>(1.0 * i / domainFactor);
         float yPos = yOffset - static_cast<float>((value - yMin) / valueFactor);
 
         if (yPos < signalContext.topLeft.y)

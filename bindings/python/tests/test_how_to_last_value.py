@@ -30,15 +30,17 @@ class TestDocumentationHowToLastValue(opendaq_test.TestCase):
 
         # START DOCS CODE
 
+        # Retrieve the Signal's Sample Type
+        my_sample_type = my_signal.descriptor.sample_type
+
         # Check Dimensions count in Signal's Data Descriptor
         assert len(my_signal.descriptor.dimensions) == 1
         # Get last value of a Signal
         my_list = my_signal.last_value
+        # Check the number of elements in List
+        assert len(my_list) == 2
         # Extract the second item on list
         my_item = my_list[1]
-
-        # END DOCS CODE
-        self.assertEqual(my_item, 44)
     '''
 
 if __name__ == '__main__':

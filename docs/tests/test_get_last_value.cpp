@@ -100,7 +100,6 @@ TEST_F(HowToGetLastValue, GetLastValueSignalListOfInt)
     auto numbers = List<INumber>();
     numbers.pushBack(1);
     numbers.pushBack(2);
-    numbers.pushBack(3);
 
     auto dimensions = List<IDimension>();
     dimensions.pushBack(Dimension(ListDimensionRule(numbers)));
@@ -110,9 +109,8 @@ TEST_F(HowToGetLastValue, GetLastValueSignalListOfInt)
 
     auto packet = DataPacket(descriptor, 5);
     int64_t* data = static_cast<int64_t*>(packet.getData());
-    data[12] = 1;
-    data[13] = 4;
-    data[14] = 44;
+    data[8] = 4;
+    data[9] = 44;
 
     mySignal.sendPacket(packet);
 
@@ -125,15 +123,16 @@ TEST_F(HowToGetLastValue, GetLastValueSignalListOfInt)
     assert(mySignal.getDescriptor().getDimensions().getCount() == 1);
     // Get last value of a Signal
     ListPtr<IBaseObject> myList = mySignal.getLastValue();
+    // Check the number of elements in List
+    assert(myList.getCount() == 2);
     // Extract the second item on list
     auto myItem = myList.getItemAt(1);
 
     // END DOCS CODE
 
     // Assert equality
-    ASSERT_EQ(myList.getItemAt(0), 1);
-    ASSERT_EQ(myList.getItemAt(1), 4);
-    ASSERT_EQ(myList.getItemAt(2), 44);
+    ASSERT_EQ(myList.getItemAt(0), 4);
+    ASSERT_EQ(myList.getItemAt(1), 44);
     ASSERT_EQ(mySampleType, SampleType::Int64);
 }
 

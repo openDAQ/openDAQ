@@ -94,7 +94,10 @@ void RendererFbImpl::initProperties()
 
     const auto resolutionProp = SelectionProperty("Resolution", List<IString>("640x480", "800x600", "1024x768", "1280x720"), 1);
     objPtr.addProperty(resolutionProp);
-    objPtr.getOnPropertyValueWrite("Resolution") += onPropertyValueWrite;
+    objPtr.getOnPropertyValueWrite("Resolution") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& /*args*/)
+    {
+        resolutionChanged();
+    };
 
     const auto showLastValueProp = BoolProperty("ShowLastValue", False);
     objPtr.addProperty(showLastValueProp);

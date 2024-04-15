@@ -155,7 +155,7 @@ TEST_F(InstanceTest, RemoveDevice)
     auto instance = test_helpers::setupInstance();
     auto availableDevices = instance.getAvailableDevices();
     ASSERT_EQ(availableDevices.getCount(), 2u);
-    
+
     for (const auto& deviceInfo : availableDevices)
         if (deviceInfo.getConnectionString() != "daq_client_device")
             instance.addDevice(deviceInfo.getConnectionString());
@@ -370,14 +370,14 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
                                 .setDefaultRootDeviceLocalId("openDAQ Client")
                                 .setRootDevice("test")
                                 .setDefaultRootDeviceInfo(defaultRootDeviceInfo);
-    
+
     ASSERT_EQ(instanceBuilder.getLogger(), logger);
     ASSERT_EQ(instanceBuilder.getGlobalLogLevel(), LogLevel::Debug);
-    
+
     auto components = instanceBuilder.getComponentsLogLevel();
     ASSERT_EQ(components.getCount(), 1u);
     ASSERT_EQ(components["component1"], LogLevel::Critical);
-    
+
     auto sinks = instanceBuilder.getLoggerSinks();
     ASSERT_EQ(sinks.getCount(), 1u);
     ASSERT_EQ(sinks[0].getLevel(), LogLevel::Warn);
@@ -452,7 +452,7 @@ TEST_F(InstanceTest, InstanceCreateFactory)
     ASSERT_EQ(instance.getContext().getScheduler(), scheduler);
     ASSERT_EQ(instance.getContext().getScheduler().isMultiThreaded(), true);
     ASSERT_EQ(instance.getContext().getModuleManager(), moduleManager);
-    ASSERT_EQ(instance.getRootDevice().getName(), "openDAQ Client");
+    ASSERT_EQ(instance.getRootDevice().getName(), String("openDAQ Client"));
 
     ASSERT_EQ(instance.getInfo(), defaultRootDeviceInfo);
 }

@@ -60,6 +60,7 @@ public:
     ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) override;
     ErrCode INTERFACE_FUNC subscribeCompleted(IString* streamingConnectionString) override;
     ErrCode INTERFACE_FUNC unsubscribeCompleted(IString* streamingConnectionString) override;
+    ErrCode INTERFACE_FUNC unsubscribeCompletedNoLock(IString* streamingConnectionString) override;
     ErrCode INTERFACE_FUNC getMirroredDataDescriptor(IDataDescriptor** descriptor) override;
     ErrCode INTERFACE_FUNC setMirroredDataDescriptor(IDataDescriptor* descriptor) override;
     ErrCode INTERFACE_FUNC getMirroredDomainSignal(IMirroredSignalConfig** domainSignals) override;
@@ -84,7 +85,7 @@ protected:
     virtual bool clearDescriptorOnUnsubscribe();
 
     std::mutex signalMutex;
-    
+
     DataDescriptorPtr mirroredDataDescriptor;
     DataDescriptorPtr mirroredDomainDataDescriptor;
     MirroredSignalConfigPtr mirroredDomainSignal;
@@ -92,6 +93,7 @@ protected:
 private:
     ErrCode subscribeInternal();
     ErrCode unsubscribeInternal();
+    ErrCode unsubscribeCompletedInternal(IString* streamingConnectionString, bool syncLock);
 
     // vector is used as the order of adding & accessing sources is important
     // store a pair string + weak reference to manage the removal of destroyed sources
@@ -320,8 +322,20 @@ ErrCode MirroredSignalBase<Interfaces...>::subscribeCompleted(IString* streaming
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompleted(IString* streamingConnectionString)
 {
+    return unsubscribeCompletedInternal(streamingConnectionString, true);
+}
+
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedNoLock(IString* streamingConnectionString)
+{
+    return unsubscribeCompletedInternal(streamingConnectionString, false);
+}
+
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString* streamingConnectionString, bool syncLock)
+{
     OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
-    
+
     const auto streamingConnectionStringPtr = StringPtr::Borrow(streamingConnectionString);
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
 
@@ -332,12 +346,19 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompleted(IString* streami
         mirroredDomainDataDescriptor = nullptr;
     }
 
+    if (syncLock)
+    {
+        std::scoped_lock lock(this->sync);
+        this->lastDataPacket = nullptr;
+    }
+    else
+    {
+        this->lastDataPacket = nullptr;
+    }
+
     if (onUnsubscribeCompleteEvent.hasListeners())
     {
-        onUnsubscribeCompleteEvent(
-            thisPtr,
-            SubscriptionEventArgs(streamingConnectionStringPtr, SubscriptionEventType::Unsubscribed)
-        );
+        onUnsubscribeCompleteEvent(thisPtr, SubscriptionEventArgs(streamingConnectionStringPtr, SubscriptionEventType::Unsubscribed));
     }
 
     return OPENDAQ_SUCCESS;

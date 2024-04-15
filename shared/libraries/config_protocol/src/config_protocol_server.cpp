@@ -4,6 +4,7 @@
 #include <config_protocol/config_server_component.h>
 #include <config_protocol/config_server_device.h>
 #include <config_protocol/config_server_input_port.h>
+#include <config_protocol/config_server_signal.h>
 #include <coreobjects/core_event_args_factory.h>
 #include <coretypes/cloneable.h>
 
@@ -143,6 +144,8 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("AddFunctionBlock", &ConfigServerDevice::addFunctionBlock);
     addHandler<DevicePtr>("RemoveFunctionBlock", &ConfigServerDevice::removeFunctionBlock);
     addHandler<DevicePtr>("GetTicksSinceOrigin", &ConfigServerDevice::getTicksSinceOrigin);
+
+    addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
     addHandler<InputPortPtr>("ConnectSignal",
                              [this](const InputPortPtr& inputPort, const ParamsDictPtr& params)

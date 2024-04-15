@@ -109,7 +109,7 @@ int main()
     // Allow multiple streaming protocols by device configuration
     deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
 
-    // Set websocket streaming protocol as primary by device configuration
+    // Set Streaming LT protocol as primary by device configuration
     deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
 
     // Disregard direct streaming connections for nested devices,
@@ -157,7 +157,7 @@ set of parameters unique to each Streaming protocol type is appended.
 
 For example, the Device connection string prefix `"daq.ns"` aligns with the Native Streaming protocol,
 identified by the Streaming connection string prefix `"daq.ns"`. Similarly, the Device connection string
-prefix `"daq.lt"` corresponds to the Websocket Streaming protocol, recognized by the Streaming connection
+prefix `"daq.lt"` corresponds to the Streaming LT protocol, recognized by the Streaming connection
 string prefix `"daq.lt"`.
 
 [tabs]
@@ -329,7 +329,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Allow multiple streaming protocol by device configuration
     deviceConfig.setPropertyValue("AllowedStreamingProtocols", daq::List<daq::IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
 
-    // Set websocket streaming protocol as primary by device configuration
+    // Set Streaming LT protocol as primary by device configuration
     deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
 
     // Find and connect to a device hosting an OPC UA TMS server
@@ -403,7 +403,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         std::cerr << "Wrong active streaming source of AI signal" << std::endl;
         return 1;
     }
-    // Output samples using reader with websocket streaming
+    // Output samples using reader with Streaming LT
     readSamples(signal);
 
     // Change the active streaming source of signal

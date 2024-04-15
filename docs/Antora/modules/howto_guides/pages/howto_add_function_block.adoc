@@ -56,7 +56,7 @@ C#::
 // Get available Function Block types
 IDictObject<StringObject, FunctionBlockType> functionBlockTypes = instance.GetAvailableFunctionBlockTypes();
 foreach (string functionBlockTypeName in functionBlockTypes.Keys)
-	Console.WriteLine(functionBlockTypeName);
+    Console.WriteLine(functionBlockTypeName);
 ----
 ====
 
@@ -225,11 +225,11 @@ Device device = instance.AddDevice("daqref://device0");
 // Get available Function Block types
 IDictObject<StringObject, FunctionBlockType> functionBlockTypes = instance.GetAvailableFunctionBlockTypes();
 foreach (string functionBlockTypeName in functionBlockTypes.Keys)
-	Console.WriteLine(functionBlockTypeName);
+    Console.WriteLine(functionBlockTypeName);
 
 // If there is no Statistics Function Block available, exit with an error
 if (!functionBlockTypes.ContainsKey("ref_fb_module_statistics"))
-	return 1;
+    return 1;
 
 // Add Function Block on the host computer
 FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");

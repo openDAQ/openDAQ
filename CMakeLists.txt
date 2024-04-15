@@ -308,8 +308,9 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 
 if (WIN32)
+    set(MIN_WINDOWS_VERSION 0x0601)
     add_compile_definitions(NOMINMAX
-                            _WIN32_WINNT=0x0601 # Windows 7 Compat
+                            _WIN32_WINNT=${MIN_WINDOWS_VERSION} # Windows 7 Compat
     )
 
     add_compile_definitions(UNICODE _UNICODE)

@@ -109,6 +109,7 @@ opendaq_target_link_libraries(${BASE_NAME}
         daq::logger
         daq::utility
         daq::component
+        daq::discovery_ping
     PUBLIC
         daq::coretypes
 )

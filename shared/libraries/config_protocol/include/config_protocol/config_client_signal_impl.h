@@ -55,6 +55,8 @@ protected:
 private:
     void descriptorChanged(const CoreEventArgsPtr& args);
     void attributeChanged(const CoreEventArgsPtr& args);
+
+    LoggerComponentPtr loggerComponent;
 };
 
 
@@ -65,6 +67,8 @@ inline ConfigClientSignalImpl::ConfigClientSignalImpl(const ConfigProtocolClient
                                                       const StringPtr& localId,
                                                       const StringPtr& className)
     : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
+    , loggerComponent(ctx.getLogger().assigned() ? ctx.getLogger().getOrAddComponent(remoteGlobalId)
+                                                 : throw ArgumentNullException("Logger must not be null"))
 {
 }
 
@@ -173,11 +177,20 @@ inline ErrCode ConfigClientSignalImpl::getLastValue(IBaseObject** value)
             return Super::getLastValue(value);
     }
 
-    return daqTry([this, &value]
+    try
     {
         *value = this->clientComm->getLastValue(this->remoteGlobalId).detach();
-        return OPENDAQ_SUCCESS;
-    });
+    }
+    catch (const DaqException& e)
+    {
+        LOG_W("getLastValue() RPC fialed: {}", e.what());
+    }
+    catch (const std::exception& e)
+    {
+        return errorFromException(e);
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 inline void ConfigClientSignalImpl::attributeChanged(const CoreEventArgsPtr& args)

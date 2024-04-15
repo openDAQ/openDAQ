@@ -352,6 +352,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         // ...
     }
 
+	// Corresponding document: Antora/modules/howto_guides/pages/howto_configure_function_block.adoc
     [Test]
     [Category(SKIP_SETUP)]
     public void FunctionBlockConfigure_FullListingTest()
@@ -365,22 +366,23 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         // Add Function Block on the host computer
         FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
 
-        // list properties of the function block
+        // List properties of the Function Block
         IListObject<Property> functionBlockProperties = functionBlock.GetVisibleProperties();
         foreach (var prop in functionBlockProperties)
             Console.WriteLine(prop.GetName());
 
-        // print current block size
+        // Print current block size
         long currentBlockSize = functionBlock.GetPropertyValue("BlockSize");
         Console.WriteLine($"Current block size is {currentBlockSize}");
-
-        // configure the properties of the function block
+        // Configure the properties of the Function Block
         functionBlock.SetPropertyValue("BlockSize", 100);
 
-        // connect the first signal of the first channel from the device to the first input port on the function block
+        // Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
         functionBlock.GetInputPorts()[0].Connect(device.GetChannels()[0].GetSignals()[0]);
+		// Read data from the Signal
+        // ...
 
-        // get the output signal of the function block
+        // Get the output Signal of the Function Block
         Signal outputSignal = functionBlock.GetSignals()[0];
 
         Console.WriteLine(outputSignal.GetDescriptor().GetName());

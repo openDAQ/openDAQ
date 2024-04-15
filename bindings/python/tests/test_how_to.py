@@ -31,32 +31,34 @@ class TestDocumentationHowTo(opendaq_test.TestCase):
         print(function_block_type.name)
         print(function_block_type.description)
 
+    # Corresponding document: Antora/modules/howto_guides/pages/howto_configure_function_block.adoc
     def test_configure_function_block(self):
-        # Create an openDAQ(TM) instance, loading modules from the current directory
+        # Create an openDAQ(TM) Instance, loading modules from the current directory
         instance = opendaq.Instance()
 
-        # add simulated device
+        # Add simulated device
         device = instance.add_device('daqref://device0')
 
-        # add function block on the host computer
+        # Add Function Block on the host computer
         function_block = instance.add_function_block("ref_fb_module_statistics")
 
-        #list properties of the function block
+        # List properties of the Function Block
         function_block_properties = function_block.visible_properties
         for prop in function_block_properties:
             print(prop.name)
 
-        # print current block size
+        # Print current block size
         currentBlockSize = function_block.get_property_value("BlockSize")
         print("Current block size is %d" % (currentBlockSize))
-
-        # configure the properties of the function block
+        # Configure the properties of the Function Block
         function_block.set_property_value("BlockSize", 100)
 
-        # connect the first signal of the first channel from the device to the first input port on the function block
+        # Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
         function_block.input_ports[0].connect(device.channels[0].signals[0])
-
-        # get the output signal of the function block
+        # Read data from the Signal
+        # ...
+    
+        # Get the output Signal of the Function Block
         output_signal = function_block.signals[0]
 
         print(output_signal.descriptor.name)

@@ -16,7 +16,7 @@ The SDK is bundled with a few Function Blocks:
 These Function Blocks serve as an example of what is possible to achieve with openDAQ(TM) SDK. They are not
 meant to be used in production code.
 
-The following examples use the Statistics Function Block to show how to add a Function Block. Same methods can
+The following examples use the Statistics Function Block to show how to add a Function Block. The same methods can
 be used to add other function blocks.
 ====
 

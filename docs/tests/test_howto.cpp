@@ -70,31 +70,32 @@ TEST_F(HowToTest, AddFunctionBlock)
 // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_function_block.adoc
 TEST_F(HowToTest, ConfigureFunctionBlock)
 {
-    // Create an openDAQ(TM) instance, loading modules from the current directory
+    // Create an openDAQ(TM) Instance, loading modules from the current directory
     InstancePtr instance = Instance();
 
-    // add simulated device
+    // Add simulated device
     DevicePtr device = instance.addDevice("daqref://device0");
 
-    // add function block on the host computer
+    // Add Function Block on the host computer
     FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 
-    // list properties of the function block
+    // List properties of the Function Block
     ListPtr<IProperty> functionBlockProperties = functionBlock.getVisibleProperties();
     for (const auto& prop : functionBlockProperties)
         std::cout << prop.getName() << std::endl;
 
-    // print current block size
+    // Print current block size
     Int currentBlockSize = functionBlock.getPropertyValue("BlockSize");
     std::cout << "Current block size is " << currentBlockSize << std::endl;
-
-    // configure the properties of the function block
+    // Configure the properties of the Function Block
     functionBlock.setPropertyValue("BlockSize", 100);
 
-    // connect the first signal of the first channel from the device to the first input port on the function block
+    // Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
     functionBlock.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
+    // Read data from the Signal
+    // ...
 
-    // get the output signal of the function block
+    // Get the output Signal of the Function Block
     SignalPtr outputSignal = functionBlock.getSignals()[0];
 
     std::cout << outputSignal.getDescriptor().getName() << std::endl;

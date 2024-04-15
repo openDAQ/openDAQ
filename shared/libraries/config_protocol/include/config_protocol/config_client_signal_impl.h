@@ -67,7 +67,7 @@ inline ConfigClientSignalImpl::ConfigClientSignalImpl(const ConfigProtocolClient
                                                       const StringPtr& localId,
                                                       const StringPtr& className)
     : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
-    , loggerComponent(ctx.getLogger().assigned() ? ctx.getLogger().getOrAddComponent(remoteGlobalId)
+    , loggerComponent(ctx.getLogger().assigned() ? ctx.getLogger().getOrAddComponent("ConfigProtocolClientSignal")
                                                  : throw ArgumentNullException("Logger must not be null"))
 {
 }

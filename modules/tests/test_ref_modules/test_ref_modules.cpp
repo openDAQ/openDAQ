@@ -683,7 +683,6 @@ TEST_F(RefModulesTest, ClassifierRangeSizeCustomClassCount)
     const auto classifierSignalDescription = classifierSignal.getDescriptor();
 
     const auto signalDimension = classifierSignalDescription.getDimensions()[0];
-
     ASSERT_EQ(signalDimension.getLabels(), List<Float>(-5, -1, 3, 7));
 }
 
@@ -1113,7 +1112,7 @@ static Finally CreateConfigFile(const std::string& configFilename, const std::st
 {
     std::ofstream file;
     file.open(configFilename);
-    if (!file.is_open()) 
+    if (!file.is_open())
         throw std::runtime_error("can not open file for writing");
 
     file << data;

@@ -157,6 +157,17 @@ void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std:
     parseRpcReplyPacketBuffer(setPropertyValueRpcReplyPacketBuffer);
 }
 
+BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)
+{
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    auto getPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetLastValue", dict);
+    const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
+
+    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext, nullptr, nullptr, nullptr, nullptr);
+    return parseRpcReplyPacketBuffer(getPropertyValueRpcReplyPacketBuffer, deserializeContext);
+}
+
 BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const
 {
     auto obj = Dict<IString, IBaseObject>();

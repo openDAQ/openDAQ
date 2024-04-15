@@ -53,6 +53,7 @@ public:
     void update(const std::string& globalId, const std::string& serialized, const std::string& path);
     BaseObjectPtr callProperty(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& params);
     void setAttributeValue(const std::string& globalId, const std::string& attributeName, const BaseObjectPtr& attributeValue);
+    BaseObjectPtr getLastValue(const std::string& globalId);
 
     void beginUpdate(const std::string& globalId, const std::string& path);
     void endUpdate(const std::string& globalId, const std::string& path);

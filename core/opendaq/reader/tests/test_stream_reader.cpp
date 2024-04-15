@@ -1081,9 +1081,6 @@ TYPED_TEST(StreamReaderTest, StreamReaderWithInputPort)
 
     auto reader = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
 
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
-
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
     auto dataPtr = static_cast<double*>(dataPacket.getData());
@@ -1094,7 +1091,10 @@ TYPED_TEST(StreamReaderTest, StreamReaderWithInputPort)
     SizeT count{1};
     double samples[1]{};
     RangeType64 domain[1]{};
-    reader.readWithDomain(&samples, &domain, &count);
+    while (reader.readWithDomain(&samples, &domain, &count).getReadStatus() == ReadStatus::Event)
+    {
+        count = 1;
+    }
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
@@ -1212,12 +1212,13 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromPortOnReadCallback)
 
     auto reader = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
     reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
-        reader.readWithDomain(&samples, &domain, &count);
+        auto tmpCount = count;
+        while (reader.readWithDomain(&samples, &domain, &count).getReadStatus() == ReadStatus::Event)
+        {
+            count = tmpCount;
+        }
         promise.set_value();
     });
-
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);

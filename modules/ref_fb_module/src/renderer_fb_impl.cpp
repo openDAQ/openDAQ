@@ -1051,7 +1051,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         renderTarget.draw(imLineHorz);
     }
 
-    // create vertical grid
+    // create horizontal grid
     for (size_t i = xTickStep; i < xTickCount; i += xTickStep)
     {
         const float xPos = signalContext.topLeft.x + (1.0f * i * xSize / static_cast<float>(xTickCount - 1));

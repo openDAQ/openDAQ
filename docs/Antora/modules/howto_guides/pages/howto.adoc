@@ -7,7 +7,7 @@
 * xref:howto_configure_function_block.adoc[]
 * xref:howto_configure_instance.adoc[]
 * xref:howto_configure_instance_providers.adoc[]
-
+* xref:howto_measure_single_value.adoc[]
 // == Configure a Signal
 
 // * xref:howto_create_a_signal.adoc[]

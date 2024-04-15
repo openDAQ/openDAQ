@@ -469,23 +469,23 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     #region Save and load configuration
 
+	// Corresponding document: Antora/modules/howto_guides/pages/howto_save_load_configuration.adoc
     [Test]
     public void ConfigurationSaveTest()
     {
-        // save configuration to string
+        // Save configuration to string
         string jsonStr = instance.SaveConfiguration();
-
-        // write configuration string to file
+        // Write configuration string to file
         File.WriteAllText("openDAQconfig.json", jsonStr, System.Text.Encoding.UTF8);
     }
 
+	// Corresponding document: Antora/modules/howto_guides/pages/howto_save_load_configuration.adoc
     [Test]
     public void ConfigurationLoadTest()
     {
-        // read configuration from file
+        // Read configuration from file
         string jsonStr = File.ReadAllText("openDAQconfig.json", System.Text.Encoding.UTF8);
-
-        // load configuration from string
+        // Load configuration from string
         instance.LoadConfiguration(jsonStr);
     }
 

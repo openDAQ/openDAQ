@@ -62,26 +62,25 @@ class TestDocumentationHowTo(opendaq_test.TestCase):
         output_signal = function_block.signals[0]
 
         print(output_signal.descriptor.name)
-
+        
+    # Corresponding document: Antora/modules/howto_guides/pages/howto_save_load_configuration.adoc
     def test_save_load_configuration(self):
         instance = opendaq.Instance()
 
-        # save configuration to string
+        # Save configuration to string
         json_str = instance.save_configuration();
-
-        # write configuration string to file
+        # Write configuration string to file
         config_file = open("config.json", "w")
         config_file.write(json_str)
         config_file.close()
 
         instance = opendaq.Instance()
 
-        # read configuration from file
+        # Read configuration from file
         config_file = open("config.json", "r")
         json_str = config_file.read();
         config_file.close()
-
-        # load configuration from string
+        # Load configuration from string
         instance.load_configuration(json_str);
 
 if __name__ == '__main__':

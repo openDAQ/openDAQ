@@ -75,7 +75,7 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredSignalPrivate, IBaseObject)
      * @param streamingConnectionString The connection string of the streaming source that completed
      * the unsubscription for the signal.
      */
-    virtual ErrCode INTERFACE_FUNC unsubscribeCompletedInternal(IString * streamingConnectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC unsubscribeCompletedNoLock(IString * streamingConnectionString) = 0;
 
     virtual ErrCode INTERFACE_FUNC getMirroredDataDescriptor(IDataDescriptor** descriptor) = 0;
     virtual ErrCode INTERFACE_FUNC setMirroredDataDescriptor(IDataDescriptor* descriptor) = 0;

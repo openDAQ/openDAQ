@@ -60,7 +60,7 @@ public:
     ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) override;
     ErrCode INTERFACE_FUNC subscribeCompleted(IString* streamingConnectionString) override;
     ErrCode INTERFACE_FUNC unsubscribeCompleted(IString* streamingConnectionString) override;
-    ErrCode INTERFACE_FUNC unsubscribeCompletedInternal(IString* streamingConnectionString) override;
+    ErrCode INTERFACE_FUNC unsubscribeCompletedNoLock(IString* streamingConnectionString) override;
     ErrCode INTERFACE_FUNC getMirroredDataDescriptor(IDataDescriptor** descriptor) override;
     ErrCode INTERFACE_FUNC setMirroredDataDescriptor(IDataDescriptor* descriptor) override;
     ErrCode INTERFACE_FUNC getMirroredDomainSignal(IMirroredSignalConfig** domainSignals) override;
@@ -326,7 +326,7 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompleted(IString* streami
 }
 
 template <typename... Interfaces>
-ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString* streamingConnectionString)
+ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedNoLock(IString* streamingConnectionString)
 {
     return unsubscribeCompletedInternal(streamingConnectionString, false);
 }

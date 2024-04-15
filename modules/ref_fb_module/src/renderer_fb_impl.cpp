@@ -123,7 +123,7 @@ void RendererFbImpl::initProperties()
     objPtr.addProperty(custom2dMinRangeProp);
     objPtr.getOnPropertyValueWrite("Custom2dMinRange") += onPropertyValueWrite;
 
-    const auto custom2dMaxRangeProp = IntPropertyBuilder("Custom2dMaxRange", 0).setVisible(EvalValue("$UseCustom2dRangeValue")).build();
+    const auto custom2dMaxRangeProp = IntPropertyBuilder("Custom2dMaxRange", 100).setVisible(EvalValue("$UseCustom2dRangeValue")).build();
     objPtr.addProperty(custom2dMaxRangeProp);
     objPtr.getOnPropertyValueWrite("Custom2dMaxRange") += onPropertyValueWrite;
 

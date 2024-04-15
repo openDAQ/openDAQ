@@ -149,6 +149,9 @@ private:
     double customMaxValue;
     double yMaxValue;
     double yMinValue;
+    bool useCustom2dRangeValue;
+    size_t custom2dMinRange;
+    size_t custom2dMaxRange;
     sf::Vector2f topLeft;
     sf::Vector2f bottomRight;
     size_t signalContextIndex;

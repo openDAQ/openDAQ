@@ -202,7 +202,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Category(SKIP_SETUP)]
     public void ConnectingGetAvailableDevicesTest()
     {
-        // Create an openDAQ(TM) instance, loading modules from the current directory
+        // Create an openDAQ(TM) Instance, loading modules from the current directory
         Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
         // Discover and print the names and connection strings of openDAQ(TM) devices
@@ -216,7 +216,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Category(SKIP_SETUP)]
     public void ConnectingOpcUaDevicesTest()
     {
-        // Create an openDAQ(TM) instance, loading modules from the current directory
+        // Create an openDAQ(TM) Instance, loading modules from the current directory
         Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
         IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
@@ -235,7 +235,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Category(SKIP_SETUP)]
     public void ConnectingOtherDevicesTest()
     {
-        // Create an openDAQ(TM) instance, loading modules from the current directory
+        // Create an openDAQ(TM) Instance, loading modules from the current directory
         Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
         IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
@@ -257,7 +257,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Category(SKIP_SETUP_DEVICE)]
     public void FunctionBlockAddingGetAvailableTypesTest()
     {
-        // get available function block types
+        // Get available Function Block types
         IDictionary<StringObject, FunctionBlockType> functionBlockTypes = instance.GetAvailableFunctionBlockTypes();
         foreach (string functionBlockTypeName in functionBlockTypes.Keys)
             Console.WriteLine(functionBlockTypeName);
@@ -267,7 +267,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Category(SKIP_SETUP_DEVICE)]
     public void FunctionBlockAddingAddTest()
     {
-        // add function block on the host computer
+        // Add Function Block on the host computer
         FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
     }
 
@@ -283,29 +283,30 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         Console.WriteLine(functionBlockType.GetDescription());
     }
 
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
     [Test(ExpectedResult = 0)]
     [Category(SKIP_SETUP)]
     public int FunctionBlockAdding_FullListingTest()
     {
-        // Create an openDAQ(TM) instance, loading modules from the current directory
+        // Create an openDAQ(TM) Instance, loading modules from the current directory
         Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
-        // add simulated device
+        // Add simulated device
         Device device = instance.AddDevice("daqref://device0");
 
-        // get available function block types
+        // Get available Function Block types
         IDictObject<StringObject, FunctionBlockType> functionBlockTypes = instance.GetAvailableFunctionBlockTypes();
         foreach (string functionBlockTypeName in functionBlockTypes.Keys)
             Console.WriteLine(functionBlockTypeName);
 
-        // if there is no statistics function block available, exit with an error
+        // If there is no Statistics Function Block available, exit with an error
         if (!functionBlockTypes.ContainsKey("ref_fb_module_statistics"))
             return 1;
 
-        // add function block on the host computer
+        // Add Function Block on the host computer
         FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
 
-        // print function block type info
+        // Print Function Block type info
         FunctionBlockType functionBlockType = functionBlock.GetFunctionBlockType();
         Console.WriteLine(functionBlockType.GetId());
         Console.WriteLine(functionBlockType.GetName());
@@ -355,13 +356,13 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Category(SKIP_SETUP)]
     public void FunctionBlockConfigure_FullListingTest()
     {
-        // Create an openDAQ(TM) instance, loading modules from the current directory
+        // Create an openDAQ(TM) Instance, loading modules from the current directory
         Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
-        // add simulated device
+        // Add simulated device
         Device device = instance.AddDevice("daqref://device0");
 
-        // add function block on the host computer
+        // Add Function Block on the host computer
         FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
 
         // list properties of the function block

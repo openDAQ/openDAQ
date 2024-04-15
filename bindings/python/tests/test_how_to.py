@@ -3,30 +3,29 @@
 import unittest
 import opendaq_test
 import opendaq
-import time
 
 class TestDocumentationHowTo(opendaq_test.TestCase):
-
+    # Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
     def test_add_function_block(self):
-        # Create an openDAQ(TM) instance, loading modules from the current directory
+        # Create an openDAQ(TM) Instance, loading modules from the current directory
         instance = opendaq.Instance()
 
-        # add simulated device
+        # Add simulated device
         device = instance.add_device('daqref://device0')
         
-        # get available function block types
+        # Get available Function Block types
         function_block_types = instance.available_function_block_types
         for function_block_type in function_block_types.keys():
             print(function_block_type)
 
-        # if there is not statistics function block available, exit with error
+        # If there is no Statistics Function Block available, exit with an error
         if not "ref_fb_module_statistics" in function_block_types.keys():
             self.assertTrue(False, "Function block not found")
 
-        # add function block on the host computer
+        # Add Function Block on the host computer
         function_block = instance.add_function_block("ref_fb_module_statistics")
 
-        # print function block type info
+        # Print Function Block type info
         function_block_type = function_block.function_block_type
         print(function_block_type.id)
         print(function_block_type.name)

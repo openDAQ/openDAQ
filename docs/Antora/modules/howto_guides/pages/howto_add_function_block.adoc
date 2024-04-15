@@ -35,26 +35,28 @@ Cpp::
 +
 [source,cpp]
 ----
-// get available function block types
+// Get available Function Block types
 DictPtr<IString, IFunctionBlockType> functionBlockTypes = instance.getAvailableFunctionBlockTypes();
-for (const auto& functionBlockType: functionBlockTypes.getKeys())
+for (const auto& functionBlockType : functionBlockTypes.getKeys())
     std::cout << functionBlockType << std::endl;
 ----
 Python::
 +
 [source,python]
 ----
-for function_block_type in instance.available_function_block_types:
+# Get available Function Block types
+function_block_types = instance.available_function_block_types
+for function_block_type in function_block_types.keys():
     print(function_block_type)
 ----
 C#::
 +
 [source,csharp]
 ----
-// get available function block types
-IDictionary<StringObject, FunctionBlockType> functionBlockTypes = instance.GetAvailableFunctionBlockTypes();
-foreach (string functionBlockType in functionBlockTypes.Keys)
-    Console.WriteLine(functionBlockType);
+// Get available Function Block types
+IDictObject<StringObject, FunctionBlockType> functionBlockTypes = instance.GetAvailableFunctionBlockTypes();
+foreach (string functionBlockTypeName in functionBlockTypes.Keys)
+	Console.WriteLine(functionBlockTypeName);
 ----
 ====
 
@@ -69,20 +71,21 @@ Cpp::
 +
 [source,cpp]
 ----
-// add function block on the host computer
+// Add Function Block on the host computer
 FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 ----
 Python::
 +
 [source,python]
 ----
-function_block = instance.add_function_block('ref_fb_module_statistics')
+# Add Function Block on the host computer
+function_block = instance.add_function_block("ref_fb_module_statistics")
 ----
 C#::
 +
 [source,csharp]
 ----
-// add function block on the host computer
+// Add Function Block on the host computer
 FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
 ----
 ====
@@ -100,6 +103,7 @@ Cpp::
 +
 [source,cpp]
 ----
+// Print Function Block type info
 FunctionBlockTypePtr functionBlockType = functionBlock.getFunctionBlockType();
 std::cout << functionBlockType.getId() << std::endl;
 std::cout << functionBlockType.getName() << std::endl;
@@ -109,6 +113,7 @@ Python::
 +
 [source,python]
 ----
+# Print Function Block type info
 function_block_type = function_block.function_block_type
 print(function_block_type.id)
 print(function_block_type.name)
@@ -118,6 +123,7 @@ C#::
 +
 [source,csharp]
 ----
+// Print Function Block type info
 FunctionBlockType functionBlockType = functionBlock.GetFunctionBlockType();
 Console.WriteLine(functionBlockType.GetId());
 Console.WriteLine(functionBlockType.GetName());
@@ -144,25 +150,25 @@ using namespace daq;
 // Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
 int main()
 {
-    // Create an openDAQ(TM) instance, loading modules from the current directory
-    InstancePtr instance = Instance(MODULE_PATH);
+    // Create an openDAQ(TM) Instance, loading modules from the current directory
+    InstancePtr instance = Instance();
 
-    // add simulated device
+    // Add simulated device
     DevicePtr device = instance.addDevice("daqref://device0");
 
-    // get available function block types
+    // Get available Function Block types
     DictPtr<IString, IFunctionBlockType> functionBlockTypes = instance.getAvailableFunctionBlockTypes();
-    for (const auto& functionBlockType: functionBlockTypes.getKeys())
+    for (const auto& functionBlockType : functionBlockTypes.getKeys())
         std::cout << functionBlockType << std::endl;
 
-    // if there is no statistics function block available, exit with an error
+    // If there is no Statistics Function Block available, exit with an error
     if (!functionBlockTypes.hasKey("ref_fb_module_statistics"))
         return 1;
 
-    // add function block on the host computer
+    // Add Function Block on the host computer
     FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 
-    // print function block type info
+    // Print Function Block type info
     FunctionBlockTypePtr functionBlockType = functionBlock.getFunctionBlockType();
     std::cout << functionBlockType.getId() << std::endl;
     std::cout << functionBlockType.getName() << std::endl;
@@ -177,26 +183,26 @@ Python::
 ----
 import opendaq
 
-# Create an openDAQ(TM) instance, loading modules from the current directory
+# Create an openDAQ(TM) Instance, loading modules from the current directory
 instance = opendaq.Instance()
 
-# add simulated device
+# Add simulated device
 device = instance.add_device('daqref://device0')
 
-# get available function block types
+# Get available Function Block types
 function_block_types = instance.available_function_block_types
-for function_block_type in function_block_types:
+for function_block_type in function_block_types.keys():
     print(function_block_type)
 
-# if there is no statistics function block available, exit with an error
-if 'ref_fb_module_statistics' not in function_block_types:
+# If there is no Statistics Function Block available, exit with an error
+if not "ref_fb_module_statistics" in function_block_types.keys():
     print('Function block not found')
     exit(1)
 
-# add function block on the host computer
-function_block = instance.add_function_block('ref_fb_module_statistics')
+# Add Function Block on the host computer
+function_block = instance.add_function_block("ref_fb_module_statistics")
 
-# print function block type info
+# Print Function Block type info
 function_block_type = function_block.function_block_type
 print(function_block_type.id)
 print(function_block_type.name)
@@ -210,25 +216,25 @@ using Daq.Core.Types;
 using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 
-// Create an openDAQ(TM) instance, loading modules from the current directory
+// Create an openDAQ(TM) Instance, loading modules from the current directory
 Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
-// add simulated device
+// Add simulated device
 Device device = instance.AddDevice("daqref://device0");
 
-// get available function block types
+// Get available Function Block types
 IDictObject<StringObject, FunctionBlockType> functionBlockTypes = instance.GetAvailableFunctionBlockTypes();
 foreach (string functionBlockTypeName in functionBlockTypes.Keys)
-    Console.WriteLine(functionBlockTypeName);
+	Console.WriteLine(functionBlockTypeName);
 
-// if there is no statistics function block available, exit with an error
+// If there is no Statistics Function Block available, exit with an error
 if (!functionBlockTypes.ContainsKey("ref_fb_module_statistics"))
-    return 1;
+	return 1;
 
-// add function block on the host computer
+// Add Function Block on the host computer
 FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
 
-// print function block type info
+// Print Function Block type info
 FunctionBlockType functionBlockType = functionBlock.GetFunctionBlockType();
 Console.WriteLine(functionBlockType.GetId());
 Console.WriteLine(functionBlockType.GetName());

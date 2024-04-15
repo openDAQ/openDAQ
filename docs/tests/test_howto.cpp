@@ -2,8 +2,8 @@
 #include <opendaq/opendaq.h>
 #include <fstream>
 
-#include "docs_test_helpers.h"
 #include <thread>
+#include "docs_test_helpers.h"
 
 using HowToTest = testing::Test;
 
@@ -36,31 +36,31 @@ TEST_F(HowToTest, ConnectToDevice2)
 
 void printProperty(const PropertyPtr& /*prop*/)
 {
-//    std::cout << prop.getName() << std::endl;
+    //    std::cout << prop.getName() << std::endl;
 }
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
 TEST_F(HowToTest, AddFunctionBlock)
 {
-    // Create an openDAQ(TM) instance, loading modules from the current directory
+    // Create an openDAQ(TM) Instance, loading modules from the current directory
     InstancePtr instance = Instance();
 
-    // add simulated device
+    // Add simulated device
     DevicePtr device = instance.addDevice("daqref://device0");
 
-    // get available function block types
+    // Get available Function Block types
     DictPtr<IString, IFunctionBlockType> functionBlockTypes = instance.getAvailableFunctionBlockTypes();
     for (const auto& functionBlockType : functionBlockTypes.getKeys())
         std::cout << functionBlockType << std::endl;
 
-    // if there is not statistics function block available, exit with error
+    // If there is no Statistics Function Block available, exit with an error
     if (!functionBlockTypes.hasKey("ref_fb_module_statistics"))
-        ASSERT_TRUE(false) << "Function block does not exist";
+        ASSERT_TRUE(false) << "Function Block does not exist";
 
-    // add function block on the host computer
+    // Add Function Block on the host computer
     FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 
-    // print function block type info
+    // Print Function Block type info
     FunctionBlockTypePtr functionBlockType = functionBlock.getFunctionBlockType();
     std::cout << functionBlockType.getId() << std::endl;
     std::cout << functionBlockType.getName() << std::endl;
@@ -130,16 +130,12 @@ TEST_F(HowToTest, SaveLoadConfiguration)
 
 TEST_F(HowToTest, InstanceConfiguration)
 {
-    InstanceBuilderPtr builder = InstanceBuilder()
-        .setGlobalLogLevel(LogLevel::Info)
-        .setModulePath("")
-        .setSchedulerWorkerNum(1)
-        .setRootDevice("daqref://device0");
+    InstanceBuilderPtr builder =
+        InstanceBuilder().setGlobalLogLevel(LogLevel::Info).setModulePath("").setSchedulerWorkerNum(1).setRootDevice("daqref://device0");
 
     InstancePtr instance = builder.build();
     daq::DevicePtr device = instance.getRootDevice();
     ASSERT_TRUE(device.assigned());
 }
-
 
 END_NAMESPACE_OPENDAQ

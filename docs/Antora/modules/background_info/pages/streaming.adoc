@@ -37,7 +37,7 @@ xref:howto_guides:howto_configure_streaming.adoc#streaming_config_per_device[use
 
 A specific Streaming protocol implementation is associated with an openDAQ(TM) xref:background_info:modules.adoc[Module].
 The SDK handles the routing and delegation of Streaming object instantiation to the appropriate Module
-through the use of a connection string. The connection string always starts with the protocol type ID as its
+through the use of a connection string. The connection string always starts with the protocol
 prefix, followed by a set of parameters unique to the protocol type. Some parameters, such as the IP address,
 might be obligatory, while others, like the port number, are optional and adopt default values if not
 explicitly specified.

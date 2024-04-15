@@ -41,6 +41,10 @@ class TestDocumentationHowToLastValue(opendaq_test.TestCase):
         assert len(my_list) == 2
         # Extract the second item on list
         my_item = my_list[1]
+
+        # END DOCS CODE
+        self.assertEqual(my_item, 44)
+        self.assertEqual(my_sample_type, opendaq.SampleType.Int64)
     '''
 
 if __name__ == '__main__':

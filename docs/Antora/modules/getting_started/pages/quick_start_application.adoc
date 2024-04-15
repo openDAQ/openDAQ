@@ -37,7 +37,7 @@ The simulator can be used in the form of a VirtualBox `.ova` image. The image (o
 {docs-website}[the openDAQ(TM) documentation and releases webpage],
 and should be run with https://www.virtualbox.org/wiki/Downloads/[VirtualBox 7.0.6 or newer].
 
-Once the simulator is started, log in using the username `opendaq` and password `opendaq`:
+Once the simulator is started, you can connect to simulator with opendaq.
 
 [listing]
 --
@@ -46,8 +46,6 @@ Password: opendaq
 --
 
 Detailed instructions on setting up the simulator can be found xref:howto_guides:howto_vbox_simulator.adoc[here].
-
-NOTE: For a simulator that is a simulator or a physical openDAQ(TM) DAQ device, the openDAQ-reference-device-vm-version.ova image can be used instead. Note that the properties and configuration of the device does not fully match that of the one described in this guide, but the general principles still apply.
 
 [#own_simulator]
 === Building a simulator from source (optional)
@@ -190,7 +188,7 @@ sensors connected to the connectors as Signals, carrying data bundled in Packets
 simulates two such Channels, both outputting sine wave Signals.
 
 We can obtain a list of Devices that we can add / connect to via by getting a list of available Devices.
-openDAQ(TM) can ask all loaded Modules to return information about any Device it discovers. In this guide, we use
+openDAQ(TM) can ask all loaded Modules to return information about any Device it discovers. If multiple modules return information about the same device, this means that devices supports multiple protocol, and information will be grouped. In this guide, we use
 three Modules that can connect to / add Devices - the openDAQ(TM) `opcua_client_module`, `native_stream_cl_module`
 (Native streaming client module), and a reference device module.
 
@@ -232,14 +230,12 @@ int main(int argc, const char* argv[])
     daq::ListPtr<daq::IDeviceInfo> availableDevicesInfo = instance.getAvailableDevices();
     for (const auto& deviceInfo : availableDevicesInfo)
     {
-        std::cout << "Name: " << deviceInfo.getName() << ", Connection string: " << deviceInfo.getConnectionString() << std::endl;
+        std::cout << "Device name: " << deviceInfo.getName() << ". Connection string: " << deviceInfo.getConnectionString() << std::endl;
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            std::cout << "- Capability: " << capability.getProtocolName() << ", Address: " << capability.getConnectionString() << std::endl;
+            std::cout << " - Supports protocol: " << capability.getProtocolName() << "  by connection string: " << capability.getConnectionString() << std::endl;
         }
     }
-    std::cout << "Press \"enter\" to exit the application..." << std::endl;
-    std::cin.get();
     return 0;
 }
 ----
@@ -254,27 +250,26 @@ instance = opendaq.Instance()
 
 # Find and output the names and connection strings of all available devices
 for device_info in instance.available_devices:
-    print('Device name "{}". Connection string "{}"'.format(device_info.name, device_info.connection_string))
+    print('Device name: "{}". Connection string: "{}"'.format(device_info.name, device_info.connection_string))
     for capability in device_info.server_capabilities:
-        print(' - Supports protocol "{}" by connection string {}'.format(capability.protocol_name, capability.connection_string))
+        print(' - Supports protocol "{}" by connection string: "{}"'.format(capability.protocol_name, capability.connection_string))
 ----
 ====
-Device info connection string for most of devices has format `daq://[manufacturer]_[serial number]` and server capabilities which stores supporting protocols.
 Now run the simulator and the above client code. We should see the console output several Device names and connection
 strings. 
 
 * `Device 0 : daqref://device0`
-* `Device 1 : daq://openDAQ_dev_ser_1`
+* `Device 1 : daq://openDAQ_xxx`
 ** `openDAQ Native Streaming : daq.ns://xxx.xxx.xxx.xxx/`
 ** `openDAQ Native Configuration : daq.nd://xxx.xxx.xxx.xxx/`
 ** `openDAQ OpcUa : daq.opcua://xxx.xxx.xxx.xxx/`
 
-(the `daq.*://` addresses are specific to your simulator instance). We can use their corresponding connection strings to add / connect to the devices.
+In the above example, we see that the simulator device is shown as `daq://openDAQ_xxx` where `openDAQ` is manufacturer name and `xxx` is a serial number.
+Because simulator was discovered by multiple modules, information about simulator was grouped. To connect to the simulator, we can use any of the provided connection strings.
 
 === Connecting to a remote device
 
-Once we have the list of available Devices, we can connect to one of them. In the following example, we connect to
-our simulator. Simulator has static connection string `daq://openDAQ_122151531904566`
+Once we have the list of available Devices, we can connect to one of them. In the following example, we connect to our simulator, Simulator connection string starts with `daq://openDAQ_`, so to connect to it we use the connection string that starts with `daq://openDAQ_`.
 
 [tabs]
 ====
@@ -292,12 +287,12 @@ int main(int argc, const char* argv[])
     // Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
     daq::InstancePtr instance = daq::Instance(MODULE_PATH);
 
-    // Find and connect to a device hosting an openDAQ(TM) OPC UA server
+    // Find and connect to a simulator device
     const auto availableDevices = instance.getAvailableDevices();
     daq::DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        if (deviceInfo.getConnectionString() == "daq://openDAQ_122151531904566")
+        if (deviceInfo.getConnectionString().toView().find("daq://openDAQ_") != std::string::npos)
         {
             device = instance.addDevice(deviceInfo.getConnectionString());
             break; 
@@ -325,9 +320,9 @@ import opendaq
 # Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
 instance = opendaq.Instance()
 
-# Find and connect to a device hosting an openDAQ(TM) OPC UA server
+# Find and connect to a simulator device
 for device_info in instance.available_devices:
-    if device_info.connection_string == "daq://openDAQ_122151531904566":
+    if 'daq://openDAQ_' in device_info.connection_string:
         device = instance.add_device(device_info.connection_string)
         break
 else:
@@ -347,12 +342,8 @@ possible, but manipulating the data paths, and adding / removing Devices or Func
 
 The Device we connect to is added as a child below the openDAQ(TM) Instance, or more accurately, below our Root Device.
 
-=== Smart Connecting to a remote device
-As mentioned before, some discoverable by mdns devices have server capabilities in their device info, and the device info connection string starts with `daq://`. 
-Developers can connect to these devices using the connection string from the chosen server capability, which means the connection will be established using the chosen protocol.
-
-If a developer does not mind about the protocol, they can use a smart option that will choose the most optimal way of connection. To do this, the developer can add the device with a connection string not from the server capability but from the device info.
-
+=== Connecting with prefered protocol
+In the example above was shown connecting to the simulator with prefered protocol. If you want to connect to the simulator with a specific protocol, you can use the connect with connecting string from prefered suppported server capability. In example below we connect to the simulator with openDAQ OpcUa protocol.
 [tabs]
 ====
 Cpp::
@@ -370,15 +361,21 @@ int main(int argc, const char* argv[])
     daq::InstancePtr instance = daq::Instance(MODULE_PATH);
 
     // This will ignore daq ref and daq audio
-    // Find and connect to a device hosting an openDAQ(TM) OPC UA server
+    // Find and connect to a simulator hosting an openDAQ(TM) OPC UA server
     const auto availableDevices = instance.getAvailableDevices();
     daq::DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
-        if (deviceInfo.getConnectionString().toView().find("daq://") != std::string::npos)
+        if (deviceInfo.getConnectionString().toView().find("daq://openDAQ_") != std::string::npos)
         {
-            device = instance.addDevice(capability.getConnectionString());
-            break;
+            for (const auto & serverCapability : deviceInfo.getServerCapabilities())
+            {
+                if (serverCapability.getProtocolName().toView() == "openDAQ OpcUa")
+                {
+                    device = instance.addDevice(serverCapability.getConnectionString());
+                    break;
+                }
+            }
         }
     }
 

@@ -8,6 +8,7 @@ set(RTGEN_OUTPUT_DIR ${GENERATED_HEADERS_DIR})
 set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 rtgen(SRC_ReaderStatus reader_status.h)
+rtgen(SRC_BlockReaderStatus block_reader_status.h)
 rtgen(SRC_Reader reader.h)
 rtgen(SRC_SampleReader sample_reader.h)
 rtgen(SRC_ReaderConfig reader_config.h)
@@ -19,6 +20,7 @@ rtgen(SRC_MultiReaderBuilder multi_reader_builder.h INTERNAL)
 rtgen(SRC_MultiReader multi_reader.h)
 
 source_group("reader" FILES ${SDK_HEADERS_DIR}/reader_status.h
+                            ${SDK_HEADERS_DIR}/block_reader_status.h
                             ${SDK_HEADERS_DIR}/reader.h
                             ${SDK_HEADERS_DIR}/sample_reader.h
                             ${SDK_HEADERS_DIR}/reader_config.h
@@ -115,6 +117,7 @@ list(APPEND SRC_Cpp ${SRC_Reader_Cpp}
 )
 
 list(APPEND SRC_PublicHeaders ${SRC_ReaderStatus_PublicHeaders}
+                              ${SRC_BlockReaderStatus_PublicHeaders}
                               ${SRC_Reader_PublicHeaders}
                               ${SRC_SampleReader_PublicHeaders}
                               ${SRC_ReaderConfig_PublicHeaders}
@@ -128,6 +131,7 @@ list(APPEND SRC_PublicHeaders ${SRC_ReaderStatus_PublicHeaders}
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_ReaderStatus_PrivateHeaders}
+                               ${SRC_BlockReaderStatus_PrivateHeaders}
                                ${SRC_Reader_PrivateHeaders}
                                ${SRC_SampleReader_PrivateHeaders}
                                ${SRC_ReaderConfig_PrivateHeaders}

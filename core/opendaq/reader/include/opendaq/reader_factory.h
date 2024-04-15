@@ -25,6 +25,7 @@
 #include <opendaq/signal_ptr.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/reader_status_ptr.h>
+#include <opendaq/block_reader_status_ptr.h>
 #include <opendaq/multi_reader_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -34,6 +35,11 @@ using UndefinedType = void;
 inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true)
 {
     return ReaderStatus_Create(packet, valid);
+}
+
+inline BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, SizeT readSamples = 0)
+{
+    return BlockReaderStatus_Create(packet, valid, readSamples);
 }
 
 /*!

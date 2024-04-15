@@ -227,7 +227,8 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
                 if (OPENDAQ_FAILED(errCode))
                 {
                     if (status)
-                        *status = BlockReaderStatus(nullptr, true, samplesToRead - info.remainingSamplesToRead).detach();
+                        *status = BlockReaderStatus(nullptr, true, (samplesToRead - info.remainingSamplesToRead) % blockSize).detach();
+                    *count = (samplesToRead - info.remainingSamplesToRead) / blockSize;
                     return errCode;
                 }
                 break;
@@ -240,7 +241,8 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
                 {
                     handleDescriptorChanged(eventPacket);
                     if (status)
-                        *status = BlockReaderStatus(eventPacket, !invalid, samplesToRead - info.remainingSamplesToRead).detach();
+                        *status = BlockReaderStatus(eventPacket, !invalid, (samplesToRead - info.remainingSamplesToRead) % blockSize).detach();
+                    *count = (samplesToRead - info.remainingSamplesToRead) / blockSize;
                     return errCode;
                 }
                 break;
@@ -273,12 +275,9 @@ ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IRead
     info.prepare(blocks, samplesToRead, milliseconds(timeoutMs));
 
     const ErrCode errCode = readPackets(status, count);
-
-    SizeT samplesRead = (*count *  blockSize) - info.remainingSamplesToRead;
-    *count = samplesRead / blockSize;
-
+    
     if (status && *status == nullptr)
-        *status = BlockReaderStatus(nullptr, !invalid, samplesRead).detach();
+        *status = BlockReaderStatus(nullptr, !invalid, *count * blockSize).detach();
     
     return errCode;
 }
@@ -306,11 +305,8 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
 
     const ErrCode errCode = readPackets(status, count);
 
-    SizeT samplesRead = (*count *  blockSize) - info.remainingSamplesToRead;
-    *count = samplesRead / blockSize;
-
     if (status && *status == nullptr)
-        *status = BlockReaderStatus(nullptr, !invalid, samplesRead).detach();
+        *status = BlockReaderStatus(nullptr, !invalid, *count * blockSize).detach();
 
     return errCode;
 }

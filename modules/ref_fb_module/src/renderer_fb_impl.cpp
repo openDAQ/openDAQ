@@ -167,10 +167,11 @@ void RendererFbImpl::readProperties()
     LOG_T("Properties: UseCustom2dRangeValue {}", useCustom2dRangeValue);
     custom2dMinRange = objPtr.getPropertyValue("Custom2dMinRange");
     custom2dMaxRange = objPtr.getPropertyValue("Custom2dMaxRange");
-    if (custom2dMinRange > custom2dMaxRange)
-        std::swap(custom2dMinRange, custom2dMaxRange);
+
     LOG_T("Properties: Custom2dMinRange {}", custom2dMinRange);
     LOG_T("Properties: Custom2dMaxRange {}", custom2dMaxRange);
+    if (custom2dMinRange > custom2dMaxRange)
+        LOG_E("Property custom2dMaxRange have to be more then custom2dMinRange");
 }
 
 void RendererFbImpl::readResolutionProperty()
@@ -968,12 +969,13 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         auto domainDataDimension = signalContext.inputDataSignalDescriptor.getDimensions()[0];
         labels = domainDataDimension.getLabels();
         xTickCount = labels.getCount();
-        if (useCustomMinMaxValue && custom2dMinRange != custom2dMaxRange)
+        if (useCustom2dRangeValue && (custom2dMinRange < custom2dMaxRange))
         {
             if (custom2dMinRange < labels.getCount())
                 xTickOffset = custom2dMinRange;
-            if (custom2dMaxRange + 1 < labels.getCount())
-                xTickCount = custom2dMaxRange - xTickOffset + 1;
+            if (custom2dMaxRange + 1 <= labels.getCount())
+                xTickCount = custom2dMaxRange + 1;
+            xTickCount -= xTickOffset;
         }
         if (xTickCount > 11)
         {

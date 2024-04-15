@@ -27,6 +27,8 @@ TEST_F(HowToGetLastValue, GetLastValueSignalFloat64)
 
     // Cast to IFloat
     auto number = myLastValue.asPtr<IFloat>();
+
+    // Assert equality
     ASSERT_EQ(number, 6.66);
 }
 
@@ -116,6 +118,9 @@ TEST_F(HowToGetLastValue, GetLastValueSignalListOfInt)
 
     // START DOCS CODE
 
+    // Retrieve the Signal's Sample Type
+    auto mySampleType = mySignal.getDescriptor().getSampleType();
+
     // Check Dimensions count in Signal's Data Descriptor
     assert(mySignal.getDescriptor().getDimensions().getCount() == 1);
     // Get last value of a Signal
@@ -125,9 +130,11 @@ TEST_F(HowToGetLastValue, GetLastValueSignalListOfInt)
 
     // END DOCS CODE
 
+    // Assert equality
     ASSERT_EQ(myList.getItemAt(0), 1);
     ASSERT_EQ(myList.getItemAt(1), 4);
     ASSERT_EQ(myList.getItemAt(2), 44);
+    ASSERT_EQ(mySampleType, SampleType::Int64);
 }
 
 END_NAMESPACE_OPENDAQ

@@ -41,6 +41,25 @@ The underlying type of the openDAQ Base object-type value we get from the method
 * openDAQ Struct object-type corresponds to `Struct` Sample Type and the Data Descriptor must have Struct Fields defined
 * openDAQ List object-type corresponds to any of the aforementioned Sample Types and the Data Descriptor must have Dimensions defined
 
+To retrieve the value Sample Type, one can do:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Retrieve the Signal's Sample Type
+auto mySampleType = mySignal.getDescriptor().getSampleType();
+----
+Python::
++
+[source,python]
+----
+
+----
+====
+
 [#last_value_struct]
 == Last value for Struct
 

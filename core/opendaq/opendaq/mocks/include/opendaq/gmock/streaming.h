@@ -96,7 +96,7 @@ struct MockStreaming : daq::StreamingImpl<IMockStreaming>
                 Invoke([&](const daq::StringPtr& signalStreamingId)
                        {
                            if (signal.getRemoteId() == signalStreamingId)
-                                signal.template asPtr<daq::IMirroredSignalPrivate>().unsubscribeCompleted(this->connectionString);
+                                signal.template asPtr<daq::IMirroredSignalPrivate>().unsubscribeCompletedNoLock(this->connectionString);
                        })
             ));
 

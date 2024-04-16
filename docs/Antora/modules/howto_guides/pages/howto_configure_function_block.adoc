@@ -224,7 +224,7 @@ function_block.input_ports[0].connect(device.channels[0].signals[0])
 output_signal = function_block.signals[0]
 
 # wait while the output signal is configured
-print(otuput_signal.descriptor.name)
+print(output_signal.descriptor.name)
 ----
 C#::
 +

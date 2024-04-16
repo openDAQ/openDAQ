@@ -59,8 +59,7 @@ instance = opendaq.Instance()
 for device_info in instance.available_devices:
     for capability in device_info.server_capabilities:
         if capability.protocol_name == 'openDAQ OpcUa':
-            device = instance.add_device(capability.connection_string)
-            break
+            print('Name:', device_info.name, 'Address:', capability.connection_string)
 ----
 C#::
 +
@@ -118,9 +117,11 @@ import opendaq
 instance = opendaq.Instance()
 
 # Discover and connect to all openDAQ(TM) devices
-devices = [instance.add_device(d.connection_string)
-           for d in instance.available_devices
-           if d.connection_string.startswith('daq.opcua://')]
+devices = []
+for device_info in instance.available_devices:
+    for capability in device_info.server_capabilities:
+        if capability.protocol_name == 'openDAQ OpcUa':
+            devices.append(instance.add_device(capability.connection_string))
 ----
 C#::
 +

@@ -1381,13 +1381,15 @@ import time
 instance = opendaq.Instance()
 
 # Find and connect to a device hosting a WebSocket server
+device = None
 for device_info in instance.available_devices:
     if 'daq://openDAQ_' in device_info.connection_string:
         for capability in device_info.server_capabilities:
             if capability.protocol_name == 'openDAQ Native Streaming':
                 device = instance.add_device(capability.connection_string)
                 break
-else:
+
+if device is None:
     # Exit if no device is found
     exit(0)
 
@@ -1413,8 +1415,9 @@ renderer = instance.add_function_block('ref_fb_module_renderer')
 
 # Connect the first output signal of the device to the renderer
 renderer.input_ports[0].connect(signal)
+
 # Connect the second output signal of the device to the renderer
-renderer.input_ports[1].connect(device.signals[2])
+renderer.input_ports[1].connect(device.signals[1])
 
 time.sleep(10)
 ----

@@ -39,7 +39,7 @@ class TestDocumentationHowToLastValue(opendaq_test.TestCase):
         my_list = my_signal.last_value
         # Check the number of elements in List
         assert len(my_list) == 2
-        # Extract the second item on list
+        # Extract the second item in List
         my_item = my_list[1]
 
         # END DOCS CODE

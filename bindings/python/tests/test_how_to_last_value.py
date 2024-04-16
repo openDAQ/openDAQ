@@ -43,6 +43,7 @@ class TestDocumentationHowToLastValue(opendaq_test.TestCase):
         my_item = my_list[1]
 
         # END DOCS CODE
+
         self.assertEqual(my_item, 44)
         self.assertEqual(my_sample_type, opendaq.SampleType.Int64)
     '''

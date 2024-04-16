@@ -15,7 +15,7 @@
 // *** xref:howto_create_dimension_objects.adoc[]
 // *** xref:howto_configure_a_time_signal.adoc[]
 ** Read data with Readers
-*** xref:howto_read_with_domain.adoc[Basic value and Domain]
+*** xref:howto_read_with_domain.adoc[Basic value and domain]
 *** xref:howto_read_last_n_samples.adoc[Only last N samples]
 *** xref:howto_read_with_timestamps.adoc[Absolute time-stamps]
 *** xref:howto_read_aligned_signals.adoc[Align multiple Signals]

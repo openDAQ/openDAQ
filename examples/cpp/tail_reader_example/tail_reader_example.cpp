@@ -1,18 +1,18 @@
 #include <opendaq/context_factory.h>
-#include <opendaq/reader_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/reader_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/signal_factory.h>
 
-#include <iostream>
 #include <cassert>
+#include <iostream>
 
 using namespace daq;
 
 SignalConfigPtr setupExampleSignal();
 DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples, Int offset = 0);
-DataDescriptorPtr setupDescriptor(daq::SampleType type, daq::DataRulePtr rule = nullptr);
+DataDescriptorPtr setupDescriptor(SampleType type, DataRulePtr rule = nullptr);
 
 /*
  * Corresponding document: Antora/modules/howto_guides/pages/howto_read_last_n_samples.adoc
@@ -165,7 +165,7 @@ void example3(const SignalConfigPtr& signal)
 /*
  * ENTRY POINT
  */
-int main(int /*argc*/, const char* /*argv*/ [])
+int main(int /*argc*/, const char* /*argv*/[])
 {
     SignalConfigPtr signal = setupExampleSignal();
 
@@ -190,10 +190,10 @@ SignalConfigPtr setupExampleSignal()
     return signal;
 }
 
-DataDescriptorPtr setupDescriptor(daq::SampleType type, daq::DataRulePtr rule)
+DataDescriptorPtr setupDescriptor(SampleType type, DataRulePtr rule)
 {
     // Set up the data descriptor with the provided Sample-Type
-    const auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type);
+    const auto dataDescriptor = DataDescriptorBuilder().setSampleType(type);
 
     // For the Domain, we provide a Linear Rule to generate time-stamps
     if (rule.assigned())
@@ -205,15 +205,10 @@ DataDescriptorPtr setupDescriptor(daq::SampleType type, daq::DataRulePtr rule)
 DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples, Int offset)
 {
     // Create a Data Packet where the values are generated via the +1 rule starting at 0
-    auto domainPacket = daq::DataPacket(
-        setupDescriptor(daq::SampleType::Int64, daq::LinearDataRule(1, 0)),
-        numSamples,
-        offset // offset from 0 to start the sample generation at
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::Int64, LinearDataRule(1, 0)),
+                                   numSamples,
+                                   offset  // offset from 0 to start the sample generation at
     );
 
-    return daq::DataPacketWithDomain(
-        domainPacket,
-        signal.getDescriptor(),
-        numSamples
-    );
+    return DataPacketWithDomain(domainPacket, signal.getDescriptor(), numSamples);
 }

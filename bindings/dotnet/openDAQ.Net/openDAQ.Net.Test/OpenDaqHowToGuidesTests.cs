@@ -195,7 +195,8 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     }
 
 
-
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_connect_to_device.adoc
+    
     #region Connect to a device
 
     [Test]

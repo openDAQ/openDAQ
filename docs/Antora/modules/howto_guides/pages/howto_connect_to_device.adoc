@@ -82,7 +82,7 @@ foreach (var deviceInfo in availableDevicesInfo)
 ====
 
 The connection string of discovered devices can be used to connect to them. Doing so adds the remote device as a
-child of the Root device. The device can now be viewed, configured, and its data can be streamed. For configuration
+child of the Root device. The Device can now be viewed, configured, and its data can be streamed. For configuration
 and inspection of its properties, OPC UA is used. Native streaming protocol is used to stream the device's data.
 
 [tabs]

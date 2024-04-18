@@ -23,8 +23,8 @@
 * xref:howto_read_with_domain.adoc[]
 * xref:howto_read_last_n_samples.adoc[]
 * xref:howto_read_with_timestamps.adoc[]
-* xref:howto_read_aligned_signals.adoc[]
 * xref:howto_read_with_timeouts.adoc[]
+* xref:howto_read_aligned_signals.adoc[]
 
 == Configuration
 

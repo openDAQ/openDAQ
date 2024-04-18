@@ -18,6 +18,6 @@
 *** xref:howto_read_with_domain.adoc[Basic value and Domain]
 *** xref:howto_read_last_n_samples.adoc[Only last N samples]
 *** xref:howto_read_with_timestamps.adoc[Absolute time-stamps]
-*** xref:howto_read_aligned_signals.adoc[Align multiple Signals]
 *** xref:howto_read_with_timeouts.adoc[Time-outs]
+*** xref:howto_read_aligned_signals.adoc[Align multiple Signals]
 ** xref:howto_save_load_configuration.adoc[]

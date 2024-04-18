@@ -139,6 +139,9 @@ void example4(const SignalConfigPtr& signal)
     SizeT count{5};
     double values[5]{};
     reader.read(values, &count);
+    size_t tmpCount = 5 - count;
+    reader.read(values + count, &tmpCount);
+    count += tmpCount;
 
     assert(count == 4u);
     assert(values[0] == 1.1);
@@ -167,66 +170,9 @@ void example4(const SignalConfigPtr& signal)
 }
 
 /*
- * Example 5: Reader invalidation
+ * Example 5: Reader reuse
  */
 void example5(const SignalConfigPtr& signal)
-{
-    // Signal value sample-type is `Float64`
-    signal.setDescriptor(setupDescriptor(SampleType::Float64));
-
-    auto reader = StreamReader<double, Int>(signal);
-
-    //
-    // The value sample-type of the `signal` changes from `Float64` to `Int16`
-    //
-    signal.setDescriptor(setupDescriptor(SampleType::Int16));
-
-    //
-    // Signal produces 2 samples { 1, 2 }
-    //
-    auto packet = createPacketForSignal(signal, 2);
-    auto data = static_cast<std::int16_t*>(packet.getData());
-    data[0] = 1;
-    data[1] = 2;
-    signal.sendPacket(packet);
-
-    [[maybe_unused]]
-    bool failed{true};
-    try
-    {
-        // Fails even if the new sample-type is convertible to `double` because
-        // the user callback invalidated the reader.
-
-        SizeT count{5};
-        double values[5]{};
-        reader.read(values, &count);
-
-        failed = false;
-    }
-    catch (const InvalidDataException& e)
-    {
-        std::cerr << "Exception: " << e.what() << std::endl;
-    }
-
-    assert(failed);
-
-    // This will reuse the Reader's configuration and Connection but change read type
-    // from to `Float64` to `Int64` and clear the `invalid` state.
-    auto newReader = StreamReaderFromExisting<Int, Int>(reader);
-
-    SizeT count{5};
-    Int values[5]{};
-    newReader.read(values, &count); // count = 2, values = { 1, 2 }
-
-    assert(count == 2u);
-    assert(values[0] == 1);
-    assert(values[1] == 2);
-}
-
-/*
- * Example 6: Reader reuse
- */
-void example6(const SignalConfigPtr& signal)
 {
     signal.setDescriptor(setupDescriptor(SampleType::Int64));
 
@@ -263,24 +209,10 @@ void example6(const SignalConfigPtr& signal)
     assert(newValues[0] == 3);
     assert(newValues[1] == 4);
 
-    [[maybe_unused]]
-    bool failed{true};
-    try
-    {
-        // The old reader has been invalidated when reused by a new one
-
-        count = 2;
-        Int oldValues[2]{};
-        reader.read(oldValues, &count);
-
-        failed = false;
-    }
-    catch (const InvalidDataException& e)
-    {
-        std::cerr << "Exception: " << e.what() << std::endl;
-    }
-
-    assert(failed);
+    count = 2;
+    Int oldValues[2]{};
+    auto status = reader.read(oldValues, &count);
+    assert(status.getValid() == false);
 }
 
 /*
@@ -296,7 +228,6 @@ int main(int /*argc*/, const char* /*argv*/ [])
     example3(signal);
     example4(signal);
     example5(signal);
-    example6(signal);
 
     return 0;
 }

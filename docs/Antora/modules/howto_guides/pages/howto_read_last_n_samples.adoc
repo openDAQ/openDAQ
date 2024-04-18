@@ -186,10 +186,6 @@ DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples, I
 DataDescriptorPtr setupDescriptor(SampleType type, DataRulePtr rule = nullptr);
 
 /*
- * Corresponding document: Antora/modules/howto_guides/pages/howto_read_last_n_samples.adoc
- */
-
-/*
  * Example 1: Behavior of the Tail Reader before getting the full history-size samples
  */
 void example1(const SignalConfigPtr& signal)

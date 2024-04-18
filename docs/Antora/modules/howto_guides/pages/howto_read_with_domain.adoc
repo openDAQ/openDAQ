@@ -1,4 +1,4 @@
-= Read basic value and domain data
+= Read basic value and Domain data
 
 :tip-caption: Assumptions
 [TIP]
@@ -12,7 +12,7 @@ In the end, you'll also get the option to continue on a more specific guide depe
 
 == Creating the Reader
 
-For starters, let's explore how you'd create a Stream Reader where you read the value data as `double` and domain as `Int`.
+For starters, let's explore how you'd create a Stream Reader where you read the value data as `double` and Domain as `Int`.
 
 [#create]
 .Creating a default Stream Reader
@@ -48,7 +48,7 @@ The constructor for the reader is designed to offer flexibility in its input par
 By default, if no explicit read Sample Types are provided, they're assumed to be:
 
 * `SampleType::Float64` / `daq::Float` / `double` for _value_.
-* `SampleType::Int64` / `daq::Int` / `std::int64_t` for _domain_.
+* `SampleType::Int64` / `daq::Int` / `std::int64_t` for _Domain_.
 ====
 
 Setting up the Reader this way will let you read the Signal's data as `Float64` even if the samples it produces are in a different format.
@@ -70,7 +70,7 @@ Type2 b = (Type2) a;
 === Reading with Signal's Sample Type
 
 A reader can also be constructed without knowing the Signal's Sample Types in advance by using `SampleType::Undefined`.
-This is useful if you don't want any conversions to be performed or just as a helper method that spares you the time to manually query the Signal's Sample Types. You can choose to use the automatic Sample Type deduction for either _value_ or _domain_ or both.
+This is useful if you don't want any conversions to be performed or just as a helper method that spares you the time to manually query the Signal's Sample Types. You can choose to use the automatic Sample Type deduction for either _value_ or _Domain_ or both.
 
 .Creating a reader with the Signal's Sample Type
 [tabs]
@@ -79,24 +79,24 @@ Cpp::
 +
 [source,cpp]
 ----
-// Use the Signal's Sample Types for both value and domain
+// Use the Signal's Sample Types for both value and Domain
 auto reader = StreamReader(signal, SampleType::Undefined, SampleType::Undefined);
 
 // Only for value
 auto reader = StreamReader(signal, SampleType::Undefined, SampleType::Int64);
 
-// Or only for domain
+// Or only for Domain
 auto reader = StreamReader(signal, SampleType::Float64, SampleType::Undefined);
 ----
 Python::
 +
 [source,python]
 ----
-# Use the Signal's Sample Types for both value and domain
+# Use the Signal's Sample Types for both value and Domain
 reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Undefined, domain_type=opendaq.SampleType.Undefined)
 # Only for values
 reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Undefined, domain_type=opendaq.SampleType.Int64)
-# Or only for domain
+# Or only for Domain
 reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Float64, domain_type=opendaq.SampleType.Undefined)
 ----
 ====
@@ -110,7 +110,7 @@ Once you've successfully created and configured the Reader, you can now actually
 You do this by issuing xref:background_info:readers.adoc#read_calls[_read_ calls] but at first, it is best to check how many samples are actually available and decide on how many you wish to read.
 After that, you need to properly prepare the call parameters and set up sample-buffers.
 
-The example below shows how to check for and read at first `5` value samples and then another `5` with the associated domain values.
+The example below shows how to check for and read at first `5` value samples and then another `5` with the associated Domain values.
 
 [CAUTION]
 The count / size parameter needs to be set _before_ the call to a desired maximum count and will be modified with the actual amount read _after_.
@@ -120,7 +120,7 @@ The type of the allocated memory buffer must match with the type the Reader is c
 There are no run-time checks to enforce this.
 If the buffer is bigger than the read amount, the rest of the buffer is not modified.
 
-.Reading first 5 values samples then another 5 with the associated domain
+.Reading first 5 values samples then another 5 with the associated Domain
 [tabs]
 ====
 Cpp::
@@ -155,7 +155,7 @@ Int newDomain[5];
 reader.readWithDomain(newValues, newDomain, &readCount);
 
 // `readCount` should now be 3
-std::cout << "Read another " << readCount << " value and domain samples" << std::endl;
+std::cout << "Read another " << readCount << " value and Domain samples" << std::endl;
 for (SizeT i = 0; i < readCount; ++i)
 {
     std::cout << newValues[i] << ", " << newDomain[i] << std::endl;
@@ -201,7 +201,7 @@ The xref:background_info:signals.adoc[Signal] stores the information about itsel
 Each time any of the Signal information changes, it creates an xref:glossary:glossary.adoc#event_packet[Event Packet] with the id of xref:background_info:packets.adoc#descriptor_changed[`"DATA_DESCRIPTOR_CHANGED"`].
 The user can react to these changes by installing a callback as shown below.
 
-The event contains two Data Descriptors, one for value and one for domain, each of which can be `null` if unchanged, but not both.
+The event contains two Data Descriptors, one for value and one for Domain, each of which can be `null` if unchanged, but not both.
 The Reader first forwards the descriptors to their respective internal data-readers to update their information and check if the data can still be converted to the requested Sample Types. Then in returns the Reader Status with event packet and status of data conversation.
 
 .Reacting to a Data Descriptor changed event
@@ -340,7 +340,7 @@ void example1(const SignalConfigPtr& signal)
     assert(reader2.getValueReadType() == SampleType::Float64);
     assert(reader3.getValueReadType() == SampleType::Float64);
 
-    // For domain
+    // For Domain
     assert(reader1.getDomainReadType() == SampleType::Int64);
     assert(reader2.getDomainReadType() == SampleType::Int64);
     assert(reader3.getDomainReadType() == SampleType::Int64);
@@ -351,7 +351,7 @@ void example1(const SignalConfigPtr& signal)
  */
 void example2(const SignalConfigPtr& signal)
 {
-    // Use the Signal's Sample Types for both value and domain
+    // Use the Signal's Sample Types for both value and Domain
     auto reader1 = StreamReader(signal, SampleType::Undefined, SampleType::Undefined);
     assert(reader1.getValueReadType() == SampleType::Float64);
     assert(reader1.getDomainReadType() == SampleType::Int64);
@@ -361,14 +361,14 @@ void example2(const SignalConfigPtr& signal)
     assert(reader2.getValueReadType() == SampleType::Float64);
     assert(reader2.getDomainReadType() == SampleType::Int64);
 
-    // Or only for domain
+    // Or only for Domain
     auto reader3 = StreamReader(signal, SampleType::Float64, SampleType::Undefined);
     assert(reader3.getValueReadType() == SampleType::Float64);
     assert(reader3.getDomainReadType() == SampleType::Int64);
 }
 
 /*
- * Example 3: Reading basic value and domain data
+ * Example 3: Reading basic value and Domain data
  */
 void example3(const SignalConfigPtr& signal)
 {
@@ -404,7 +404,7 @@ void example3(const SignalConfigPtr& signal)
     reader.readWithDomain(newValues, newDomain, &readCount);
 
     // `readCount` should now be 3
-    std::cout << "Read another " << readCount << " value and domain samples" << std::endl;
+    std::cout << "Read another " << readCount << " value and Domain samples" << std::endl;
     for (SizeT i = 0; i < readCount; ++i)
     {
         std::cout << newValues[i] << ", " << newDomain[i] << std::endl;

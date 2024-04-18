@@ -34,7 +34,7 @@ void example1(const SignalConfigPtr& signal)
     assert(reader2.getValueReadType() == SampleType::Float64);
     assert(reader3.getValueReadType() == SampleType::Float64);
 
-    // For domain
+    // For Domain
     assert(reader1.getDomainReadType() == SampleType::Int64);
     assert(reader2.getDomainReadType() == SampleType::Int64);
     assert(reader3.getDomainReadType() == SampleType::Int64);
@@ -45,7 +45,7 @@ void example1(const SignalConfigPtr& signal)
  */
 void example2(const SignalConfigPtr& signal)
 {
-    // Use the Signal's Sample Types for both value and domain
+    // Use the Signal's Sample Types for both value and Domain
     auto reader1 = StreamReader(signal, SampleType::Undefined, SampleType::Undefined);
     assert(reader1.getValueReadType() == SampleType::Float64);
     assert(reader1.getDomainReadType() == SampleType::Int64);
@@ -55,14 +55,14 @@ void example2(const SignalConfigPtr& signal)
     assert(reader2.getValueReadType() == SampleType::Float64);
     assert(reader2.getDomainReadType() == SampleType::Int64);
 
-    // Or only for domain
+    // Or only for Domain
     auto reader3 = StreamReader(signal, SampleType::Float64, SampleType::Undefined);
     assert(reader3.getValueReadType() == SampleType::Float64);
     assert(reader3.getDomainReadType() == SampleType::Int64);
 }
 
 /*
- * Example 3: Reading basic value and domain data
+ * Example 3: Reading basic value and Domain data
  */
 void example3(const SignalConfigPtr& signal)
 {
@@ -98,7 +98,7 @@ void example3(const SignalConfigPtr& signal)
     reader.readWithDomain(newValues, newDomain, &readCount);
 
     // `readCount` should now be 3
-    std::cout << "Read another " << readCount << " value and domain samples" << std::endl;
+    std::cout << "Read another " << readCount << " value and Domain samples" << std::endl;
     for (SizeT i = 0; i < readCount; ++i)
     {
         std::cout << newValues[i] << ", " << newDomain[i] << std::endl;

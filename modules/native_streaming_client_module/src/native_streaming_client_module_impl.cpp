@@ -37,7 +37,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
                 auto cap = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
                 cap.addConnectionString(connectionString);
-                cap.setConnectionType("Ipv4");
+                cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.ns");
                 return cap;
             },
@@ -49,7 +49,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
                 auto cap = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
                 cap.addConnectionString(connectionString);
-                cap.setConnectionType("Ipv4");
+                cap.setConnectionType("TCP/IP");
                 cap.setCoreEventsEnabled(true);
                 cap.setPrefix("daq.nd");
                 return cap;

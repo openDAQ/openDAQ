@@ -70,7 +70,7 @@ uint64_t AudioDeviceImpl::onGetTicksSinceOrigin()
 
 void AudioDeviceImpl::initProperties()
 {
-    auto sampleRatePropInfo = IntPropertyBuilder("SampleRate", 44100).setSuggestedValues(List<Int>(11025, 22050, 44100)).build();
+    auto sampleRatePropInfo = IntPropertyBuilder("SampleRate", 44100).setReadOnly(true).setSuggestedValues(List<Int>(11025, 22050, 44100)).build();
     objPtr.addProperty(sampleRatePropInfo);
     objPtr.getOnPropertyValueWrite("SampleRate") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };

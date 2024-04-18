@@ -394,7 +394,12 @@ template <typename TInterface>
 bool DataPacketImpl<TInterface>::isDataEqual(const DataPacketPtr& dataPacket) const
 {
     if (rawDataSize != dataPacket.getRawDataSize())
-        throw InvalidSampleTypeException();
+    {
+        if (descriptor.getRule().getType() == DataRuleType::Constant)
+            return false;
+        else
+            throw InvalidSampleTypeException();
+    }
 
     return data == dataPacket.getRawData() || std::memcmp(data, dataPacket.getRawData(), rawDataSize) == 0;
 }

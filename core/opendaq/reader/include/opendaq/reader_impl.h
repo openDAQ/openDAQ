@@ -313,6 +313,7 @@ protected:
         , domainReader(daq::createReaderForType(domainReadType, old->domainReader->getTransformFunction()))
     {
         dataDescriptor = old->dataDescriptor;
+        domainDescriptor = old->domainDescriptor;
         old->invalid = true;
 
         timeoutType = old->timeoutType;
@@ -403,6 +404,7 @@ protected:
         // Check if domain is stil convertible
         if (newDomainDescriptor.assigned())
         {
+            domainDescriptor = newDomainDescriptor;
             if (domainReader->isUndefined())
             {
                 inferReaderReadType(newDomainDescriptor, domainReader);
@@ -435,22 +437,7 @@ protected:
             }
         }
 
-        if (!dataDescriptor.assigned())
-        {
-            const auto signal = port.getSignal();
-            if (!signal.assigned())
-            {
-                throw InvalidStateException("Input port must already have a signal assigned");
-            }
-
-            dataDescriptor = signal.getDescriptor();
-            if (!dataDescriptor.assigned())
-            {
-                throw InvalidStateException("Input port connected signal must have a descriptor assigned.");
-            }
-        }
-
-        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr));
+        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
     }
 
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket)
@@ -497,6 +484,7 @@ protected:
     ReadTimeoutType timeoutType;
 
     DataDescriptorPtr dataDescriptor;
+    DataDescriptorPtr domainDescriptor;
 
     std::unique_ptr<Reader> valueReader;
     std::unique_ptr<Reader> domainReader;

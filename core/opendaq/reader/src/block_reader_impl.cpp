@@ -18,7 +18,7 @@ BlockReaderImpl::BlockReaderImpl(const SignalPtr& signal,
     , blockSize(blockSize)
 {
     port.setNotificationMethod(PacketReadyNotification::SameThread);
-    BlockReaderImpl::handleDescriptorChanged(connection.dequeue());
+    readDescriptorFromPort();
 }
 
 BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
@@ -30,8 +30,6 @@ BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
     , blockSize(blockSize)
 {
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
-    if (connection.assigned())
-        BlockReaderImpl::handleDescriptorChanged(connection.dequeue());
 }
 
 BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -54,8 +52,11 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , info(old->info)
 {
     this->internalAddRef();
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr));
-    readDescriptorFromPort();
+    if (portBinder.assigned())
+        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+    else
+        readDescriptorFromPort();
+
     notify.dataReady = false;
 }
 
@@ -182,41 +183,29 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
 {
     ErrCode errCode = OPENDAQ_SUCCESS;
 
-    BlockReadInfo::Duration remainingTime = info.timeout;
-    auto availableBlocks = getAvailable();
-    const auto maxBlocksToRead = info.remainingSamplesToRead / blockSize;
-
-    while (availableBlocks < maxBlocksToRead && remainingTime.count() > 0)
+    auto availableSamples = getAvailableSamples();
+    if (availableSamples < info.remainingSamplesToRead && info.timeout.count() > 0)
     {
         // if not enough samples wait for the timeout or a full block
-
         std::unique_lock notifyLock(notify.mutex);
-        auto condition = [this, &availableBlocks, maxBlocksToRead]
+        auto condition = [this, &availableSamples]
         {
             if (!notify.dataReady)
                 return false;
-
-            availableBlocks = getAvailable();
             notify.dataReady = false;
 
-            if (availableBlocks >= maxBlocksToRead)
-                return true;
-            return false;
+            availableSamples = getAvailableSamples();
+            return availableSamples >= info.remainingSamplesToRead;
         };
-
-        if (notify.condition.wait_for(notifyLock, remainingTime, condition))
-        {
-            break;
-        }
-
-        remainingTime = info.timeout - info.durationFromStart();
+        notify.condition.wait_for(notifyLock, info.timeout, condition);
     }
 
-    info.remainingSamplesToRead = std::min(availableBlocks * blockSize, info.remainingSamplesToRead);
+    info.remainingSamplesToRead = std::min(availableSamples, info.remainingSamplesToRead);
+    SizeT samplesToRead = info.remainingSamplesToRead;
     *count = info.remainingSamplesToRead / blockSize;
 
-    while (info.remainingSamplesToRead > 0)
-    {
+    while (info.remainingSamplesToRead != 0)
+    {   
         PacketPtr packet = info.dataPacket;
 
         // if no partially-read packet and there are more blocks left in the connection
@@ -237,6 +226,9 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
 
                 if (OPENDAQ_FAILED(errCode))
                 {
+                    if (status)
+                        *status = BlockReaderStatus(nullptr, true, (samplesToRead - info.remainingSamplesToRead) % blockSize).detach();
+                    *count = (samplesToRead - info.remainingSamplesToRead) / blockSize;
                     return errCode;
                 }
                 break;
@@ -244,13 +236,13 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
             case PacketType::Event:
             {
                 // Handle events
-
                 auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
                 if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                 {
                     handleDescriptorChanged(eventPacket);
                     if (status)
-                        *status = ReaderStatus(eventPacket, !invalid).detach();
+                        *status = BlockReaderStatus(eventPacket, !invalid, (samplesToRead - info.remainingSamplesToRead) % blockSize).detach();
+                    *count = (samplesToRead - info.remainingSamplesToRead) / blockSize;
                     return errCode;
                 }
                 break;
@@ -259,9 +251,6 @@ ErrCode BlockReaderImpl::readPackets(IReaderStatus** status, SizeT* count)
                 break;
         }
     }
-
-    if (OPENDAQ_FAILED(errCode))
-        *count = 0;
     return errCode;
 }
 
@@ -275,7 +264,7 @@ ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IRead
     if (invalid)
     {
         if (status)
-            *status = ReaderStatus(nullptr, !invalid).detach();
+            *status = BlockReaderStatus(nullptr, !invalid).detach();
         return OPENDAQ_IGNORED;
     }
 
@@ -286,10 +275,10 @@ ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IRead
     info.prepare(blocks, samplesToRead, milliseconds(timeoutMs));
 
     const ErrCode errCode = readPackets(status, count);
-
+    
     if (status && *status == nullptr)
-        *status = ReaderStatus().detach();
-
+        *status = BlockReaderStatus(nullptr, !invalid, *count * blockSize).detach();
+    
     return errCode;
 }
 
@@ -304,7 +293,7 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
     if (invalid)
     {
         if (status)
-            *status = ReaderStatus(nullptr, !invalid).detach();
+            *status = BlockReaderStatus(nullptr, !invalid).detach();
         return OPENDAQ_IGNORED;
     }
 
@@ -317,7 +306,8 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
     const ErrCode errCode = readPackets(status, count);
 
     if (status && *status == nullptr)
-        *status = ReaderStatus().detach();
+        *status = BlockReaderStatus(nullptr, !invalid, *count * blockSize).detach();
+
     return errCode;
 }
 

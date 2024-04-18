@@ -11,7 +11,7 @@ static constexpr char delimeter = '#';
 WebsocketClientSignalImpl::WebsocketClientSignalImpl(const ContextPtr& ctx,
                                                      const ComponentPtr& parent,
                                                      const StringPtr& streamingId)
-    : MirroredSignalBase(ctx, parent, CreateLocalId(streamingId), nullptr)
+    : MirroredSignal(ctx, parent, CreateLocalId(streamingId), nullptr)
     , streamingId(streamingId)
 {
 }
@@ -34,14 +34,6 @@ StringPtr WebsocketClientSignalImpl::onGetRemoteId() const
 Bool WebsocketClientSignalImpl::onTriggerEvent(const EventPacketPtr& eventPacket)
 {
     return Self::onTriggerEvent(eventPacket);
-}
-
-void WebsocketClientSignalImpl::createAndAssignDomainSignal(const DataDescriptorPtr& domainDescriptor)
-{
-    const auto domainSig = createWithImplementation<IMirroredSignalPrivate, WebsocketClientSignalImpl>(
-        this->context, this->parent.getRef(), CreateLocalId(streamingId + "_time_artificial"));
-    domainSig->setMirroredDataDescriptor(domainDescriptor);
-    checkErrorInfo(setMirroredDomainSignal(domainSig.asPtr<IMirroredSignalConfig>()));
 }
 
 SignalPtr WebsocketClientSignalImpl::onGetDomainSignal()

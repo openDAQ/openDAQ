@@ -70,65 +70,62 @@ void RendererFbImpl::removed()
 
 void RendererFbImpl::initProperties()
 {
-    const auto durationProp = FloatPropertyBuilder("Duration", 1.0).setSuggestedValues(List<Float>(0.01, 0.1, 1.0, 10.0)).build();
+    auto onPropertyValueWrite = [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
 
+    const auto durationProp = FloatPropertyBuilder("Duration", 1.0).setSuggestedValues(List<Float>(0.01, 0.1, 1.0, 10.0)).build();
     objPtr.addProperty(durationProp);
-    objPtr.getOnPropertyValueWrite("Duration") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
-    {
-        propertyChanged();
-    };
+    objPtr.getOnPropertyValueWrite("Duration") += onPropertyValueWrite;
 
     const auto singleXAxisProp = BoolProperty("SingleXAxis", False);
     objPtr.addProperty(singleXAxisProp);
-    objPtr.getOnPropertyValueWrite("SingleXAxis") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
-    {
-        propertyChanged();
-    };
+    objPtr.getOnPropertyValueWrite("SingleXAxis") += onPropertyValueWrite;
 
     const auto singleYAxisProp = BoolPropertyBuilder("SingleYAxis", False).setVisible(EvalValue("$SingleXAxis")).build();
     objPtr.addProperty(singleYAxisProp);
-    objPtr.getOnPropertyValueWrite("SingleYAxis") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
+    objPtr.getOnPropertyValueWrite("SingleYAxis") += onPropertyValueWrite;
 
     const auto lineThicknessProp = FloatProperty("LineThickness", 1.0);
     objPtr.addProperty(lineThicknessProp);
-    objPtr.getOnPropertyValueWrite("LineThickness") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
+    objPtr.getOnPropertyValueWrite("LineThickness") += onPropertyValueWrite;
 
     const auto freezeProp = BoolProperty("Freeze", False);
     objPtr.addProperty(freezeProp);
-    objPtr.getOnPropertyValueWrite("Freeze") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
-    {
-        propertyChanged();
-    };
+    objPtr.getOnPropertyValueWrite("Freeze") += onPropertyValueWrite;
 
     const auto resolutionProp = SelectionProperty("Resolution", List<IString>("640x480", "800x600", "1024x768", "1280x720"), 1);
     objPtr.addProperty(resolutionProp);
-    objPtr.getOnPropertyValueWrite("Resolution") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
+    objPtr.getOnPropertyValueWrite("Resolution") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& /*args*/)
     {
         resolutionChanged();
     };
 
     const auto showLastValueProp = BoolProperty("ShowLastValue", False);
     objPtr.addProperty(showLastValueProp);
-    objPtr.getOnPropertyValueWrite("ShowLastValue") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
-    {
-        propertyChanged();
-    };
-
+    objPtr.getOnPropertyValueWrite("ShowLastValue") += onPropertyValueWrite;
 
     const auto useCustomMinMaxValue = BoolProperty("UseCustomMinMaxValue", False);
     objPtr.addProperty(useCustomMinMaxValue);
-    objPtr.getOnPropertyValueWrite("UseCustomMinMaxValue") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
+    objPtr.getOnPropertyValueWrite("UseCustomMinMaxValue") += onPropertyValueWrite;
 
     const auto customHighValueProp = FloatPropertyBuilder("CustomMaxValue", 10.0).setVisible(EvalValue("$UseCustomMinMaxValue")).build();
     objPtr.addProperty(customHighValueProp);
-    objPtr.getOnPropertyValueWrite("CustomMaxValue") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
+    objPtr.getOnPropertyValueWrite("CustomMaxValue") += onPropertyValueWrite;
 
     const auto customLowValueProp = FloatPropertyBuilder("CustomMinValue", -10.0).setVisible(EvalValue("$UseCustomMinMaxValue")).build();
     objPtr.addProperty(customLowValueProp);
-    objPtr.getOnPropertyValueWrite("CustomMinValue") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
+    objPtr.getOnPropertyValueWrite("CustomMinValue") += onPropertyValueWrite;
+
+    const auto useCustom2dRangeValueProp = BoolPropertyBuilder("UseCustom2dRangeValue", false).build();
+    objPtr.addProperty(useCustom2dRangeValueProp);
+    objPtr.getOnPropertyValueWrite("UseCustom2dRangeValue") += onPropertyValueWrite;
+
+    const auto custom2dMinRangeProp = IntPropertyBuilder("Custom2dMinRange", 0).setVisible(EvalValue("$UseCustom2dRangeValue")).build();
+    objPtr.addProperty(custom2dMinRangeProp);
+    objPtr.getOnPropertyValueWrite("Custom2dMinRange") += onPropertyValueWrite;
+
+    const auto custom2dMaxRangeProp = IntPropertyBuilder("Custom2dMaxRange", 100).setVisible(EvalValue("$UseCustom2dRangeValue")).build();
+    objPtr.addProperty(custom2dMaxRangeProp);
+    objPtr.getOnPropertyValueWrite("Custom2dMaxRange") += onPropertyValueWrite;
 
     readProperties();
     readResolutionProperty();
@@ -168,6 +165,16 @@ void RendererFbImpl::readProperties()
     LOG_T("Properties: CustomMinValue {}", customMinValue)
     customMaxValue = objPtr.getPropertyValue("CustomMaxValue");
     LOG_T("Properties: CustomMaxValue {}", customMaxValue)
+
+    useCustom2dRangeValue = objPtr.getPropertyValue("UseCustom2dRangeValue");
+    LOG_T("Properties: UseCustom2dRangeValue {}", useCustom2dRangeValue);
+    custom2dMinRange = objPtr.getPropertyValue("Custom2dMinRange");
+    custom2dMaxRange = objPtr.getPropertyValue("Custom2dMaxRange");
+
+    LOG_T("Properties: Custom2dMinRange {}", custom2dMinRange);
+    LOG_T("Properties: Custom2dMaxRange {}", custom2dMaxRange);
+    if (custom2dMinRange > custom2dMaxRange)
+        LOG_E("Property custom2dMaxRange have to be more then custom2dMinRange");
 }
 
 void RendererFbImpl::readResolutionProperty()
@@ -498,9 +505,19 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
     auto domainDataDescriptor = domainPacket.getDataDescriptor();
     const auto samplesInPacket = packet.getSampleCount();
     
-    size_t count = signalContext.inputDataSignalDescriptor.getDimensions()[0].getSize();
+    size_t xTickOffset = 0;
+    size_t xTickCount = signalContext.inputDataSignalDescriptor.getDimensions()[0].getSize();
+
+    if (useCustom2dRangeValue && (custom2dMinRange < custom2dMaxRange))
+    {
+        if (custom2dMinRange < xTickCount)
+            xTickOffset = custom2dMinRange;
+        if (custom2dMaxRange + 1 <= xTickCount)
+            xTickCount = custom2dMaxRange + 1;
+        xTickCount -= xTickOffset;
+    }
     
-    double domainFactor = static_cast<double>(count-1) / static_cast<double>(xSize);
+    double domainFactor = static_cast<double>(xTickCount - 1) / static_cast<double>(xSize);
 
     double yMax, yMin;
     getYMinMax(signalContext, yMax, yMin);
@@ -515,8 +532,9 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
         return;
 
     double value;
-    for (size_t idx = 0; idx < count; idx++) 
+    for (size_t i = 0; i < xTickCount; i++) 
     {
+        size_t idx = i + xTickOffset;
         switch (signalContext.sampleType)
         {
             case (SampleType::Float32):
@@ -553,7 +571,7 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
                 value = 0.0;
         }
 
-        float xPos = xOffset + static_cast<float>(1.0 * idx / domainFactor);
+        float xPos = xOffset + static_cast<float>(1.0 * i / domainFactor);
         float yPos = yOffset - static_cast<float>((value - yMin) / valueFactor);
 
         if (yPos < signalContext.topLeft.y)
@@ -749,7 +767,7 @@ void RendererFbImpl::resize(sf::RenderWindow& window)
     topLeft = sf::Vector2(0.0f, 0.0f);
     bottomRight = sf::Vector2f(width, height);
 
-    for (auto sigCtx : signalContexts)
+    for (auto& sigCtx : signalContexts)
     {
         sigCtx.topLeft = topLeft;
         sigCtx.bottomRight = bottomRight;
@@ -769,7 +787,7 @@ void RendererFbImpl::processSignalContexts()
 template <typename Iter, typename Cont>
 bool RendererFbImpl::isLastIter(Iter iter, const Cont& cont)
 {
-    return (iter != cont.end()) && (std::next(iter) != cont.end()) &&  (std::next(std::next(iter)) == cont.end());
+    return (iter != cont.end()) && (std::next(iter) != cont.end()) && (std::next(iter, 2) == cont.end());
 }
 
 void RendererFbImpl::renderAxes(sf::RenderTarget& renderTarget, const sf::Font& font)
@@ -947,25 +965,60 @@ void RendererFbImpl::getYMinMax(const SignalContext& signalContext, double& yMax
     }
 }
 
-
 void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& signalContext, const sf::Font& font, bool drawXAxisLabels, bool drawTitle)
 {
+    size_t yTickCount = 5;
+
+    size_t xTickOffset = 0;
     size_t xTickStep = 1;
     size_t xTickCount = 5;
-    size_t yTickCount = 5;
 
     daq::ListPtr<daq::IBaseObject> labels{};
 
     size_t signalDimension = signalContext.inputDataSignalDescriptor.getDimensions().getCount();
 
+    // create label values for horizontal axi
     if (signalDimension == 1) 
     {
         auto domainDataDimension = signalContext.inputDataSignalDescriptor.getDimensions()[0];
         labels = domainDataDimension.getLabels();
         xTickCount = labels.getCount();
-        if (xTickCount > 10)
+        if (useCustom2dRangeValue && (custom2dMinRange < custom2dMaxRange))
+        {
+            if (custom2dMinRange < labels.getCount())
+                xTickOffset = custom2dMinRange;
+            if (custom2dMaxRange + 1 <= labels.getCount())
+                xTickCount = custom2dMaxRange + 1;
+            xTickCount -= xTickOffset;
+        }
+        if (xTickCount > 11)
         {
             xTickStep = (xTickCount + 10) / 11;
+        }
+    }
+    else if (signalContext.hasTimeOrigin)
+    {
+        labels = List<IString>();
+        for (size_t i = 0; i < xTickCount; i += xTickStep)
+        {
+            if ((i & 1) == 1)
+            {
+                labels.pushBack(String(""));
+            }
+            else
+            {
+                const auto tp = signalContext.lastTimeValue - timeValueToDuration(signalContext, duration * (static_cast<double>(xTickCount - 1 - i) / static_cast<double>(xTickCount - 1)));
+                const auto tpms = date::floor<std::chrono::milliseconds>(tp);
+                labels.pushBack(String(date::format("%F %T", tpms)));
+            }
+        }
+    }
+    else
+    {
+        labels = List<IFloat>();
+        for (size_t i = 0; i < xTickCount; i += xTickStep)
+        {
+            labels.pushBack(duration * (static_cast<double>(i) / static_cast<double>(xTickCount - 1)));
         }
     }
 
@@ -1001,7 +1054,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         renderTarget.draw(imLineHorz);
     }
 
-    // create vertical grid
+    // create horizontal grid
     for (size_t i = xTickStep; i < xTickCount; i += xTickStep)
     {
         const float xPos = signalContext.topLeft.x + (1.0f * i * xSize / static_cast<float>(xTickCount - 1));
@@ -1036,15 +1089,10 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
 
         renderTarget.draw(valueText);
     }
-    
-    // for absolute time shows every second horizontal axi value
-    if (signalContext.hasTimeOrigin)
-        xTickStep = xTickStep * 2;
 
     // create labeles for horizontal axi
     for (size_t i = 0; i < xTickCount; i += xTickStep)
 	{
-
         if (!drawXAxisLabels) 
             break;
 
@@ -1058,28 +1106,18 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         domainText.setFillColor(axisColor);
         domainText.setCharacterSize(16);
         std::ostringstream domainStr;
-        if (signalDimension == 1) 
-        {
-            if (labels[i].supportsInterface(IString::Id))
-                domainStr << std::fixed << std::showpoint << std::setprecision(2) << labels[i];
-            else if (labels[i].supportsInterface(IInteger::Id))
-                domainStr << static_cast<Int>(labels[i]);
-            else
-                domainStr << std::fixed << std::showpoint << std::setprecision(2) << static_cast<Float>(labels[i]);
-        }
-        else if (signalContext.hasTimeOrigin)
-        {
-            const auto tp = signalContext.lastTimeValue - timeValueToDuration(signalContext, duration * (static_cast<double>(xTickCount - 1 - i) / static_cast<double>(xTickCount - 1)));
-            const auto tpms = date::floor<std::chrono::milliseconds>(tp);
-            domainStr << date::format("%F %T", tpms);
-        }
-        else
-        {
-            domainStr << std::fixed << std::showpoint << std::setprecision(2) << duration * (static_cast<double>(i) / static_cast<double>(xTickCount - 1));
-        }
 
+        auto label = labels[i + xTickOffset];
+        if (label.supportsInterface(IFloat::Id))
+            domainStr << std::fixed << std::showpoint << std::setprecision(2) << static_cast<Float>(label);
+        else if (label.supportsInterface(IInteger::Id))
+            domainStr << static_cast<Int>(label);
+        else
+            domainStr << label;
+            
         domainText.setString(domainStr.str());
         const auto domainBounds = domainText.getGlobalBounds();
+
         float xOffset;
         if (i == 0)
             xOffset = 0;
@@ -1112,29 +1150,28 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
 
 void RendererFbImpl::renderMultiTitle(sf::RenderTarget& renderTarget, const sf::Font& font)
 {
-    std::vector<std::pair<std::shared_ptr<sf::Text>, sf::FloatRect>> list;
+    std::vector<std::pair<sf::Text, sf::FloatRect>> list;
     float totalWidth = 0.0;
     for (auto sigIt = signalContexts.begin(); sigIt != signalContexts.end() - 1; ++sigIt)
     {
-        std::shared_ptr<sf::Text> signalText = std::make_shared<sf::Text>();
-        signalText->setFont(font);
-        signalText->setStyle(sf::Text::Style::Bold);
-        signalText->setFillColor(getColor(*sigIt));
-        signalText->setCharacterSize(16);
-        signalText->setString(sigIt->caption + " ");
-        const auto valueBounds = signalText->getGlobalBounds();
+        sf::Text signalText;
+        signalText.setFont(font);
+        signalText.setStyle(sf::Text::Style::Bold);
+        signalText.setFillColor(getColor(*sigIt));
+        signalText.setCharacterSize(16);
+        signalText.setString(sigIt->caption + " ");
+        sf::FloatRect valueBounds = signalText.getGlobalBounds();
         totalWidth += valueBounds.width;
 
-        list.push_back({signalText, valueBounds});
+        list.push_back({std::move(signalText), std::move(valueBounds)});
     }
 
     float xPos = (bottomRight.x - totalWidth) / 2.0;
-    for (auto& item: list)
+    for (auto& [text, bounds]: list)
     {
-        item.first->setPosition({xPos, topLeft.y});
-
-        xPos += item.second.width;
-        renderTarget.draw(*(item.first));
+        text.setPosition({xPos, topLeft.y});
+        xPos += bounds.width;
+        renderTarget.draw(text);
     }
 }
 
@@ -1148,7 +1185,7 @@ void RendererFbImpl::processSignalContext(SignalContext& signalContext)
     PacketPtr packet = conn.dequeue();
     while (packet.assigned())
     {
-        if (packet.supportsInterface<IEventPacket>())
+        if (packet.getType() == PacketType::Event)
         {
             auto eventPacket = packet.asPtr<IEventPacket>(true);
             LOG_T("Processing {} event", eventPacket.getEventId())
@@ -1340,7 +1377,7 @@ void RendererFbImpl::setSignalContextCaption(SignalContext& signalContext, const
     {
         auto sig = signalContext.inputPort.getSignal();
         if (sig.assigned())
-            signalContext.caption = static_cast<std::string>(sig.getName());
+            signalContext.caption = sig.getName().toStdString();
         else
             signalContext.caption = "N/A";
     }
@@ -1390,24 +1427,25 @@ void RendererFbImpl::setLastDomainStamp(SignalContext& signalContext, const Data
     using DestDomainType = typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type;
 
     const auto domainDataDescriptor = domainPacket.getDataDescriptor();
+    const auto sampleCount = domainPacket.getSampleCount();
 
     DestDomainType lastDomainStamp;
     if (signalContext.isExplicit)
     {
         const auto domainDataPtr = static_cast<SourceDomainType*>(domainPacket.getData());
-        lastDomainStamp = static_cast<DestDomainType>(*(domainDataPtr + domainPacket.getSampleCount() - 1));
+        lastDomainStamp = static_cast<DestDomainType>(*(domainDataPtr + sampleCount - 1));
     }
     else
     {
         NumberPtr offset = 0;
         if (domainPacket.getOffset().assigned())
             offset = domainPacket.getOffset();
-        lastDomainStamp = static_cast<DestDomainType>(offset + domainPacket.getSampleCount() * signalContext.domainDelta +
+        lastDomainStamp = static_cast<DestDomainType>(offset + sampleCount * signalContext.domainDelta +
                                                       signalContext.domainStart); 
     }
 
     signalContext.lastDomainStamp = lastDomainStamp;
-    DestDomainType domainDuration = duration * signalContext.domainResDen / signalContext.domainResNum;
+    const DestDomainType domainDuration = duration * signalContext.domainResDen / signalContext.domainResNum;
     signalContext.firstDomainStamp = lastDomainStamp - domainDuration;
 
     if (signalContext.hasTimeOrigin)

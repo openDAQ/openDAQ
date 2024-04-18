@@ -725,7 +725,7 @@ TEST_F(TailReaderTest, ReadUndefinedNoDomain)
     const SizeT HISTORY_SIZE = 2u;
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
-    auto reader = daq::BlockReader(this->signal, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
+    auto reader = daq::TailReader(this->signal, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
     ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
@@ -841,9 +841,6 @@ TEST_F(TailReaderTest, TailReaderWithInputPort)
     port.connect(this->signal);
     auto reader = daq::TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
 
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
-
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), HISTORY_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), HISTORY_SIZE);
     auto dataPtr = static_cast<double*>(dataPacket.getData());
@@ -855,7 +852,10 @@ TEST_F(TailReaderTest, TailReaderWithInputPort)
     SizeT count{HISTORY_SIZE};
     double samples[HISTORY_SIZE]{};
     RangeType64 domain[HISTORY_SIZE]{};
-    reader.readWithDomain(&samples, &domain, &count);
+    while (reader.readWithDomain(&samples, &domain, &count).getReadStatus() == ReadStatus::Event)
+    {
+        count = HISTORY_SIZE;
+    }
 
     ASSERT_EQ(count, HISTORY_SIZE);
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
@@ -986,12 +986,12 @@ TEST_F(TailReaderTest, TailReaderFromPortOnReadCallback)
 
     auto reader = daq::TailReaderFromPort(port, HISTORY_SIZE, SampleType::Undefined, SampleType::Undefined);
     reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
-        reader.readWithDomain(&samples, &domain, &count);
+        while (reader.readWithDomain(&samples, &domain, &count).getReadStatus() == ReadStatus::Event)
+        {
+            count = HISTORY_SIZE;
+        }
         promise.set_value();
     });
-
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), HISTORY_SIZE, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), HISTORY_SIZE);

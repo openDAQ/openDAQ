@@ -82,9 +82,7 @@ quick_start_simulator.exe
 ----
 
 If using this method of simulating a Device, use the "daq.opcua://127.0.0.1" connection string in all
-`addDevice(std::string connectionString)` calls in the later examples of this guide, except
-xref:#websocket_example[Connecting to remote Device using Web-socket streaming protocol] and
-xref:#native_streaming_example[Connecting to remote Device using Native streaming protocol] examples.
+`addDevice(std::string connectionString)` calls in the later examples of this guide.
 --
 
 Python::
@@ -110,8 +108,7 @@ input('Press "Enter" to exit the application ...')
 ----
 
 If using this method of simulating a Device, use `add_device('daq.opcua://127.0.0.1')`
-in all `add_device` calls in the later examples of this guide, except
-xref:#native_streaming_example[Connecting to remote Device using Native streaming protocol] examples.
+in all `add_device` calls in the later examples of this guide.
 --
 ====
 
@@ -122,10 +119,6 @@ implement the client application that connects to the simulated Device. The clie
 an OPC UA Client to connect to an openDAQ(TM) OPC UA Server. When connected, the application is used to read the
 Device's Signal data, read / modify its Properties, and perform structural changes such as
 adding / removing / re-routing Function Blocks or Devices - all of which will be explained throughout this guide.
-
-Also the client-side application can uses a the Native streaming client to connect to devices which do not have
-an openDAQ(TM) OPC UA Server running. Description of how to do this can be found in the corresponding
-xref:#native_streaming_example[Connecting to remote Device using Native streaming protocol] example.
 
 [tabs]
 ====
@@ -188,8 +181,9 @@ sensors connected to the connectors as Signals, carrying data bundled in Packets
 simulates two such Channels, both outputting sine wave Signals.
 
 We can obtain a list of Devices that we can add / connect to via by getting a list of available Devices.
-openDAQ(TM) can ask all loaded Modules to return information about any Device it discovers. If multiple modules return information about the same device, this means that devices supports multiple protocol, and information will be grouped. In this guide, we use
-three Modules that can connect to / add Devices - the openDAQ(TM) `opcua_client_module`, `native_stream_cl_module`
+openDAQ(TM) can ask all loaded Modules to return information about any Device it discovers. 
+If multiple modules return information about the same device, this means that devices supports multiple protocol, and information will be grouped. 
+In this guide, we use three Modules that can connect to / add Devices - the openDAQ(TM) `opcua_client_module`, `native_stream_cl_module`
 (Native streaming client module), and a reference device module.
 
 The latter allows for the creation of simulated Devices that output sine waves. Those are used by the
@@ -1236,189 +1230,5 @@ for i in range(400):
     if not (1.05 <= amplitude <= 9.95):
         amplitude_step = -amplitude_step
     channel.set_property_value('Amplitude', amplitude + amplitude_step)
-----
-====
-
-[#native_streaming_example]
-== Connecting to remote Device using Native streaming protocol
-
-To connect to simulator using the Native streaming protocol we filter out Devices which have the `"openDAQ Native Streaming"` capability.
-
-IMPORTANT: The provided Virtual Box simulator image hosts a mDNS discovery service, allowing it to be discovered by
-openDAQ(TM). Such a service is, as of now, not provided by openDAQ(TM). Thus, if you have
-xref:#own_simulator[compiled your own simulator device] it will not appear in the list of available Devices.
-You are therefore required to enter the simulator's connection string manually when connecting to it (`"daq.ns://127.0.0.1"`).
-
-Adding a remote Device with its connection string connects to said Device and creates a pseudo Device containing only Signals
-of the remote Device.
-The pseudo Device is added as a child below the openDAQ(TM) Instance, or more accurately, below our Root Device.
-
-In this case we don't use the OPC UA Server or Client which means we can only read the Device's data,
-and are not able to configure its Properties or Components, and as mentioned before only Device Signals are available
-as a flat list and no Function Blocks or Channels are present.
-
-After the Device added we read the Signal and domain data of its first Signal using the Stream xref:#signal_reader[Reader].
-Next, we add the xref:#renderer[renderer] Function Block and connect the first and second output data Signals
-of our simulated Device to its Input Ports.
-
-[tabs]
-====
-Cpp::
-+
-[source,cpp]
-----
-#include <opendaq/opendaq.h>
-#include <iostream>
-#include <chrono>
-#include <thread>
-
-int main(int /*argc*/, const char* /*argv*/[])
-{
-    // Create a new Instance that we will use for all the interactions with the SDK
-    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
-
-    // Find and connect to a device hosting a Native streaming server
-    const auto availableDevices = instance.getAvailableDevices();
-    daq::DevicePtr device;
-    for (const auto& deviceInfo : availableDevices)
-    {
-        if (deviceInfo.getConnectionString().toView().find("daq://openDAQ_") != std::string::npos)
-        {
-            for (const auto & capability : deviceInfo.getServerCapabilities())
-            {
-                if (capability.getProtocolName() == "openDAQ Native Streaming")
-                {
-                    device = instance.addDevice(capability.getConnectionString());
-                    break;
-                }
-            }
-        }
-    }
-
-    // Exit if no device is found
-    if (!device.assigned())
-    {
-        std::cerr << "No relevant device found!" << std::endl;
-        return 0;
-    }
-
-    // Output the name of the added device
-    std::cout << device.getInfo().getName() << std::endl;
-
-    // Output 10 samples using reader
-    using namespace std::chrono_literals;
-
-    // Find the first signal
-    daq::SignalPtr signal = device.getSignals()[0];
-    daq::StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal);
-
-    // Get the resolution and origin
-    daq::DataDescriptorPtr descriptor = signal.getDomainSignal().getDescriptor();
-    daq::RatioPtr resolution = descriptor.getTickResolution();
-    daq::StringPtr origin = descriptor.getOrigin();
-    daq::StringPtr unitSymbol = descriptor.getUnit().getSymbol();
-
-    std::cout << "Origin: " << origin << std::endl;
-
-    // Allocate buffer for reading double samples
-    double samples[100];
-    uint64_t domainSamples[100];
-    for (int i = 0; i < 40; ++i)
-    {
-        std::this_thread::sleep_for(25ms);
-
-        // Read up to 100 samples every 25ms, storing the amount read into `count`
-        daq::SizeT count = 100;
-        reader.readWithDomain(samples, domainSamples, &count);
-        if (count > 0)
-        {
-            daq::Float domainValue = (daq::Int) domainSamples[count - 1] * resolution;
-            std::cout << "Value: " << samples[count - 1] << ", Domain: " << domainValue << unitSymbol << std::endl;
-        }
-    }
-
-    using namespace date;
-
-    // From here on the reader returns system-clock time-points as a domain
-    auto timeReader = daq::TimeReader(reader);
-
-    // Allocate buffer for reading time-stamps
-    std::chrono::system_clock::time_point timeStamps[100];
-    for (int i = 0; i < 40; ++i)
-    {
-        std::this_thread::sleep_for(25ms);
-
-        // Read up to 100 samples every 25ms, storing the amount read into `count`
-        daq::SizeT count = 100;
-        reader.readWithDomain(samples, timeStamps, &count);
-        if (count > 0)
-        {
-            std::cout << "Value: " << samples[count - 1] << ", Domain: " << timeStamps[count - 1] << std::endl;
-        }
-    }
-
-    // Create an instance of the renderer function block
-    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("ref_fb_module_renderer");
-
-    // Connect the first output signal of the device to the renderer
-    renderer.getInputPorts()[0].connect(signal);
-    // Connect the second output signal of the device to the renderer
-    renderer.getInputPorts()[1].connect(device.getSignals()[2]);
-
-    std::cout << "Press \"enter\" to exit the application..." << std::endl;
-    std::cin.get();
-    return 0;
-}
-----
-Python::
-+
-[source,python]
-----
-import opendaq
-import time
-
-# Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
-instance = opendaq.Instance()
-
-# Find and connect to a device hosting a WebSocket server
-device = None
-for device_info in instance.available_devices:
-    if 'daq://openDAQ_' in device_info.connection_string:
-        for capability in device_info.server_capabilities:
-            if capability.protocol_name == 'openDAQ Native Streaming':
-                device = instance.add_device(capability.connection_string)
-                break
-
-if device is None:
-    # Exit if no device is found
-    exit(0)
-
-# Output the name of the added device
-print(device.info.name)
-
-# Find the first signal
-signal = device.signals[0]
-
-# Output 40 samples using reader
-reader = opendaq.StreamReader(signal)
-cnt = 0
-while cnt < 40:
-    time.sleep(0.025)
-    # Read up to 100 samples and print the last one
-    samples = reader.read(100)
-    if len(samples) > 0:
-        print(samples[-1])
-        cnt += 1
-
-# Create an instance of the renderer function block
-renderer = instance.add_function_block('ref_fb_module_renderer')
-
-# Connect the first output signal of the device to the renderer
-renderer.input_ports[0].connect(signal)
-
-# Connect the second output signal of the device to the renderer
-renderer.input_ports[1].connect(device.signals[1])
-
-time.sleep(10)
 ----
 ====

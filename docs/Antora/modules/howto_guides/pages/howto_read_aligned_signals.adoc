@@ -9,18 +9,18 @@ For brevity, in `C++` we also assume that all the code is in namespace `daq` or 
 ====
 
 When you start reading more than one xref:glossary:glossary.adoc#signal[Signal] at once, you immediately run into a problem.
-The fact that the next sample in all the signals read doesn't represent the same point in a xref:glossary:glossary.adoc#domain[Domain] (usually time domain).
-This happens because the signals can have different xref:glossary:glossary.adoc#tick_resolution[Origin]s, produce data with different xref:glossary:glossary.adoc#tick_resolution[Tick Resolution]s representing different xref:glossary:glossary.adoc#unit[Unit]s and with xref:glossary:glossary.adoc#data_rule[Data Rule]s taken into account at different rates (usually called _sample-rate_).
+The fact that the next sample in all the Signals read doesn't represent the same point in a xref:glossary:glossary.adoc#domain[Domain] (usually time Domain).
+This happens because the Signals can have different xref:glossary:glossary.adoc#tick_resolution[Origin]s, produce data with different xref:glossary:glossary.adoc#tick_resolution[Tick Resolution]s representing different xref:glossary:glossary.adoc#unit[Unit]s and with xref:glossary:glossary.adoc#data_rule[Data Rule]s taken into account at different rates (usually called _sample-rate_).
 
-This is quite a complex problem, and even more if you take into account that the read Signals can completely change at any time during measurement. But the fact is also that most Signals don't change at all or at least not radically, and almost all of them are in a time domain, so in practice, we can cover reading a large portion of Signals when we limit ourselves to a subset of allowed configurations.
+This is quite a complex problem, and even more if you take into account that the read Signals can completely change at any time during measurement. But the fact is also that most Signals don't change at all or at least not radically, and almost all of them are in a time Domain, so in practice, we can cover reading a large portion of Signals when we limit ourselves to a subset of allowed configurations.
 
 :iso-8601-url: https://www.iso.org/iso-8601-date-and-time-format.html
 
 [#limitations]
 With this in mind, we limit ourselves to Signals that have:
 
-. A _domain_ Signal assigned
-. Implicit domain where:
+. A _Domain_ Signal assigned
+. Implicit Domain where:
 ** Domain ticks represent _time_ in _seconds_
 ** Domain origin is specified in {iso-8601-url}[ISO-8601] format
 . A combination of Tick Resolution and Data Rule that result in the same sample rate
@@ -34,33 +34,33 @@ Some of the above limitations might be lifted in the future.
 
 == Using the Multi-Reader
 
-Using the Multi Reader is largely the same as any other Reader and is basically a xref:background_info:readers.adoc#stream_reader[Stream Reader] for multiple Signals at once except that with multiple Signals it performs some additional checks to keep the Signals compatible and synchronized to the same domain point.
+Using the Multi-Reader is largely the same as any other Reader and is basically a xref:background_info:readers.adoc#stream_reader[Stream Reader] for multiple Signals at once except that with multiple Signals it performs some additional checks to keep the Signals compatible and synchronized to the same Domain point.
 
 [#create]
-.Creating a default Multi Reader with list of signals
+.Creating a default Multi-Reader with list of Signals
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-// These calls all create the same reader
+// These calls all create the same Reader
 auto reader = MultiReader(signals);
 auto reader = MultiReader<double, Int>(signals);
 auto reader = MultiReader(signals, SampleType::Float64, SampleType::Int64);
 ----
 ====
 
-Developer can set list of input ports instead of signals.
+Developer can set list of Input Ports instead of Signals.
 [#create]
-.Creating a default Multi Reader with list of ports 
+.Creating a default Multi-Reader with list of ports 
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-// These calls all create the same reader
+// These calls all create the same Reader
 auto reader = MultiReaderFromPort(ports);
 auto reader = MultiReaderFromPort<double, Int>(ports);
 auto reader = MultiReaderFromPort(ports, SampleType::Float64, SampleType::Int64);
@@ -70,17 +70,17 @@ auto reader = MultiReaderFromPort(ports, SampleType::Float64, SampleType::Int64)
 On creation the Reader first checks the preconditions listed in <<limitations>> and throws an error if they aren't met.
 Once constructed, the Signals are not yet synchronized.
 This happens on the first _read call_ or any call where the number of samples ready needs to be determined.
-There the Reader tries to align all signals to the first common domain-point which serves as the new start from which the reader will provide the data.
+There the Reader tries to align all Signals to the first common Domain point which serves as the new start from which the reader will provide the data.
 
-It does this by dropping samples until the domain value is equal or greater than the chosen start one.
-Until there are enough samples in the queue of all signals to reach the synchronized start domain value the `count` parameter will be `0` even if in the background the reader actually reads as much as possible accounting for the timeout.
+It does this by dropping samples until the Domain value is equal or greater than the chosen start one.
+Until there are enough samples in the queue of all Signals to reach the synchronized start Domain value the `count` parameter will be `0` even if in the background the reader actually reads as much as possible accounting for the timeout.
 
 === Aligning Signals start
 
 The basic example we will follow uses `3` Signals with:
 
 * Value type of `SampleType::Float64`
-* Domain signal with
+* Domain Signal with
     ** Tick resolution of `1` / `1000`
     ** Linear rule with
         *** Delta: 1
@@ -92,46 +92,46 @@ But different origins of:
 * `"2022-09-27T00:02:04+00:00"`
 * `"2022-09-27T00:02:04.123+00:00"`
 
-The third signal has the highest domain value.
-This makes the first signal start `1.123s` or `1123` samples and second `0.123s` or `123` samples after.
+The third Signal has the highest Domain value.
+This makes the first Signal start `1.123s` or `1123` samples and second `0.123s` or `123` samples after.
 Since the Offset is `0` and tick-resolutions are the same no additional adjustments are made.
 
 [#sync]
-.Aligning Signals with MultiReader 1
+.Aligning 3 Signals with Multi-Reader
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-    ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
-    ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");
-    ReadSignal sig2 = demoSignal(context, 843, "2022-09-27T00:02:04.123+00:00");
+ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
+ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");
+ReadSignal sig2 = demoSignal(context, 843, "2022-09-27T00:02:04.123+00:00");
 
-    ListPtr<ISignal> signals{sig0.signal, sig1.signal, sig2.signal};
-    auto reader = MultiReader(signals);
+ListPtr<ISignal> signals{sig0.signal, sig1.signal, sig2.signal};
+auto reader = MultiReader(signals);
 
-    sig0.sendPacket();
-    sig1.sendPacket();
-    sig2.sendPacket();
+sig0.sendPacket();
+sig1.sendPacket();
+sig2.sendPacket();
 
-    auto available = reader.getAvailableCount(); // 0
+auto available = reader.getAvailableCount(); // 0
 ----
 ====
 
-After the Reader construction, Signals produce xref:glossary:glossary.adoc#data_packet[Data Packet]s of differing sizes but not enough to align on the start domain point.
-So the reader reports it has `0` samples available as it dropped them on the call to check the number of samples available as they are below the start domain-point.
+After the Reader construction, Signals produce xref:glossary:glossary.adoc#data_packet[Data Packet]s of differing sizes but not enough to align on the start Domain point.
+So the reader reports it has `0` samples available as it dropped them on the call to check the number of samples available as they are below the start Domain point.
 
 [NOTE]
 ====
-In the examples, a helper function `demoSignal()` is used to set-up a custom simulated signal with preset _epoch_ / _origin_ and _packet size_.
-This is not a real device signal but one with manually generated data to illustrate and support the example.
+In the examples, a helper function `demoSignal()` is used to set-up a custom simulated Signal with preset _epoch_ / _origin_ and _packet size_.
+This is not a real device Signal but one with manually generated data to illustrate and support the example.
 ====
 
 ==== Reading synchronized data
 
 After some time, more data packets arrive and the Reader finally has enough samples to align the start.
-The situation after 3 data packets for each signal is:
+The situation after 3 data packets for each Signal is:
 
 * `523 * 3` = `1569` samples (1.569s)
     ** need `1123` to sync
@@ -144,61 +144,61 @@ The situation after 3 data packets for each signal is:
     ** `2529` remaining
 
 To issue read calls, you first need to pre-allocate buffers for the Reader to fill.
-The procedure is the same as with other Readers except that instead of providing a pointer to the start of the buffer, you now specify an array of per signal pointers to buffers (called a jagged array);
+The procedure is the same as with other Readers except that instead of providing a pointer to the start of the buffer, you now specify an array of per Signal pointers to buffers (called a jagged array);
 
-We request `523` samples from the reader but as it needed to align the start and drop `1123` samples from the first signal only `446` aligned samples remain which are then returned.
+We request `523` samples from the reader but as it needed to align the start and drop `1123` samples from the first Signal only `446` aligned samples remain which are then returned.
 
 [#sync3]
-.Aligning Signals with MultiReader 3
+.Aligning 3 Signals with Multi-Reader
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-    constexpr const auto NUM_SIGNALS = 3;
+constexpr const auto NUM_SIGNALS = 3;
 
-    ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
-    ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");
-    ReadSignal sig2 = demoSignal(context, 843, "2022-09-27T00:02:04.123+00:00");
+ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
+ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");
+ReadSignal sig2 = demoSignal(context, 843, "2022-09-27T00:02:04.123+00:00");
 
-    ListPtr<ISignal> signals{sig0.signal, sig1.signal, sig2.signal};
-    auto reader = MultiReader(signals);
+ListPtr<ISignal> signals{sig0.signal, sig1.signal, sig2.signal};
+auto reader = MultiReader(signals);
 
-    sig0.sendPacket();
-    sig1.sendPacket();
-    sig2.sendPacket();
+sig0.sendPacket();
+sig1.sendPacket();
+sig2.sendPacket();
 
-    auto available = reader.getAvailableCount(); // 0
+auto available = reader.getAvailableCount(); // 0
 
-    sig0.sendPacket();
-    sig1.sendPacket();
-    sig2.sendPacket();
+sig0.sendPacket();
+sig1.sendPacket();
+sig2.sendPacket();
 
-    sig0.sendPacket();
-    sig1.sendPacket();
-    sig2.sendPacket();
+sig0.sendPacket();
+sig1.sendPacket();
+sig2.sendPacket();
 
-    // Samples per signal
-    // 523 * 3 = 1569 (1.569s) need 1123 to sync
-    // 732 * 3 = 2196 (2.196s) need  123 to sync
-    // 843 * 3 = 2529 (2.529s) need    0 to sync
+// Samples per Signal
+// 523 * 3 = 1569 (1.569s) need 1123 to sync
+// 732 * 3 = 2196 (2.196s) need  123 to sync
+// 843 * 3 = 2529 (2.529s) need    0 to sync
 
-    auto available = reader.getAvailableCount(); // 446
+auto available = reader.getAvailableCount(); // 446
 
-    constexpr const SizeT SAMPLES = 523;
+constexpr const SizeT SAMPLES = 523;
 
-    std::array<double[SAMPLES], NUM_SIGNALS> values{};
-    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+std::array<double[SAMPLES], NUM_SIGNALS> values{};
+std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
 
-    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
-    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
 
-    count = SAMPLES;
-    reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
-    // count = 446
+count = SAMPLES;
+reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+// count = 446
 
-    available = reader.getAvailableCount(); // 0
+available = reader.getAvailableCount(); // 0
 ----
 ====
 
@@ -206,113 +206,113 @@ Cpp::
 
 The Time Reader presented in xref:howto_read_with_timestamps.adoc[] can also be used with Multi-Reader.
 [#sync4]
-.Aligning Signals with MultiReader 4
+.Aligning 3 Signals with Multi-Reader (time-stamps)
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-    constexpr const auto NUM_SIGNALS = 3;
+constexpr const auto NUM_SIGNALS = 3;
 
-    auto logger = Logger();
-    auto context = Context(Scheduler(logger, 1), logger, nullptr);
+auto logger = Logger();
+auto context = Context(Scheduler(logger, 1), logger, nullptr);
 
-    ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
-    ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");
-    ReadSignal sig2 = demoSignal(context, 843, "2022-09-27T00:02:04.123+00:00");
+ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
+ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");
+ReadSignal sig2 = demoSignal(context, 843, "2022-09-27T00:02:04.123+00:00");
 
-    ListPtr<ISignal> signals{sig0.signal, sig1.signal, sig2.signal};
+ListPtr<ISignal> signals{sig0.signal, sig1.signal, sig2.signal};
 
-    auto reader = MultiReader(signals);
+auto reader = MultiReader(signals);
 
-    //
-    // To install the domain transform function to system time-stamps
-    //
-    TimeReader timeReader(reader);
+//
+// To install the Domain transform function to system time-stamps
+//
+TimeReader timeReader(reader);
 
-    sig0.sendPacket();
-    sig1.sendPacket();
-    sig2.sendPacket();
+sig0.sendPacket();
+sig1.sendPacket();
+sig2.sendPacket();
 
-    auto available = reader.getAvailableCount();  // 0
+auto available = reader.getAvailableCount();  // 0
 
-    sig0.sendPacket();
-    sig1.sendPacket();
-    sig2.sendPacket();
+sig0.sendPacket();
+sig1.sendPacket();
+sig2.sendPacket();
 
-    sig0.sendPacket();
-    sig1.sendPacket();
-    sig2.sendPacket();
+sig0.sendPacket();
+sig1.sendPacket();
+sig2.sendPacket();
 
-    // Samples per signal
-    // 523 * 3 = 1569 (1.569s) need 1123 to sync
-    // 732 * 3 = 2196 (2.196s) need  123 to sync
-    // 843 * 3 = 2529 (2.529s) need    0 to sync
+// Samples per Signal
+// 523 * 3 = 1569 (1.569s) need 1123 to sync
+// 732 * 3 = 2196 (2.196s) need  123 to sync
+// 843 * 3 = 2529 (2.529s) need    0 to sync
 
-    auto available = reader.getAvailableCount();  // 446
+auto available = reader.getAvailableCount();  // 446
 
-    constexpr const SizeT SAMPLES = 523;
+constexpr const SizeT SAMPLES = 523;
 
-    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+std::array<double[SAMPLES], NUM_SIGNALS> values{};
 
-    //
-    // Use time-stamps as a buffer instead of the domain-type
-    //
-    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> domain{};
+//
+// Use time-stamps as a buffer instead of the Domain-type
+//
+std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> domain{};
 
-    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
-    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
 
-    SizeT count{SAMPLES};
-    reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+SizeT count{SAMPLES};
+reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
 
-    count = SAMPLES;
-    reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
-    // count = 446
+count = SAMPLES;
+reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+// count = 446
 
-    available = reader.getAvailableCount();  // 0
+available = reader.getAvailableCount();  // 0
 ----
 ====
 
-== Creating MutiReader with builder
+== Creating Mutli-Reader with builder
 
-With the builder, developers can add signals and input ports using the methods `addSignal` and `addInputPort`. For signals, the builder creates an internal input port connected to the input signal.
+With the builder, developers can add Signals and Input Ports using the methods `addSignal` and `addInputPort`. For Signals, the builder creates an internal Input Port connected to the input Signal.
 
-By default, the value type is set as `daq::SampleType::Float64` and the domain type as `daq::SampleType::Int64`. This can be overridden with the methods `setValueReadType` and setDomainReadType.
+By default, the value type is set as `SampleType::Float64` and the Domain type as `SampleType::Int64`. This can be overridden with the methods `setValueReadType` and setDomainReadType.
 
-The default value of the read mode is `daq::ReadMode::Scaled`, which can be configured using the method `setReadMode` to `daq::ReadMode::Unscaled` or `daq::ReadMode::RawValue`.
+The default value of the read mode is `ReadMode::Scaled`, which can be configured using the method `setReadMode` to `ReadMode::Unscaled` or `ReadMode::RawValue`.
 
-In Multi-Reader, developers can set the read timeout type. The default value is `daq::ReadTimeoutType::All`, which waits for the requested amount or until the timeout is exceeded. It can be set as `daq::ReadTimeoutType::Any`, meaning the timeout will wait until any available data or the timeout is reached.
+In Multi-Reader, developers can set the read timeout type. The default value is `ReadTimeoutType::All`, which waits for the requested amount or until the timeout is exceeded. It can be set as `ReadTimeoutType::Any`, meaning the timeout will wait until any available data or the timeout is reached.
 
-The builder has fields for a common sample rate, which is disabled by default (set to -1), and for starting on the full unit of the domain (also disabled by default). These members can be overridden with the methods `setRequiredCommonSampleRate` and `setStartOnFullUnitOfDomain`.
+The builder has fields for a common sample rate, which is disabled by default (set to -1), and for starting on the full unit of the Domain (also disabled by default). These members can be overridden with the methods `setRequiredCommonSampleRate` and `setStartOnFullUnitOfDomain`.
 
 [#sync5]
-.Creating multi reader with default builder
+.Creating Multi-Reader with default builder
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-    MultiReaderBuilderPtr builder = MultiReaderBuilder();
-    builder.addSignal(signal1).addSignal(signal2).addInputPort(port1).addInputPort(port2);
-    builder.setValueReadType(daq::SampleType::Int64);
-    builder.setDomainReadType(daq::SampleType::Float64);
+MultiReaderBuilderPtr builder = MultiReaderBuilder();
+builder.addSignal(signal1).addSignal(signal2).addInputPort(port1).addInputPort(port2);
+builder.setValueReadType(SampleType::Int64);
+builder.setDomainReadType(SampleType::Float64);
 
-    // use can use build function for creating reader as well
-    // auto reader = builder.build();
-    auto reader = MultiReaderFromBuilder(builder);
+// use can use build function for creating reader as well
+// auto reader = builder.build();
+auto reader = MultiReaderFromBuilder(builder);
 ----
 ====
 [NOTE]
 ====
-When creating a MultiReader from the same builder multiple times, developers should be cautious, especially if they are using input ports as input sources. This is because when creating an input port, it is bound to the first reader. Therefore, attempting to create another reader with the same input port will result in an exception, indicating that the input port is already in use.
+When creating a Multi-Reader from the same builder multiple times, developers should be cautious, especially if they are using Input Ports as input sources. This is because when creating an Input Port, it is bound to the first reader. Therefore, attempting to create another reader with the same Input Port will result in an exception, indicating that the Input Port is already in use.
 ====
 
 == Full listing
 
-The following is a self-contained file with all above examples of aligning the reading multiple signals.
+The following is a self-contained file with all above examples of aligning the reading multiple Signals.
 To properly illustrate the point and provide reproducibility, the data is manually generated, but the same should hold when connecting to a real device.
 
 
@@ -327,6 +327,10 @@ Cpp::
 #include <opendaq/opendaq.h>
 
 using namespace daq;
+
+/*
+ * Corresponding document: Antora/modules/howto_guides/pages/howto_read_aligned_signals.adoc
+ */
 
 struct ReadSignal
 {
@@ -347,14 +351,14 @@ SignalConfigPtr createDomainSignal(const ContextPtr& context, std::string epoch)
 ReadSignal demoSignal(const ContextPtr& context, std::int64_t packetSize, const std::string& domainOrigin);
 
 /*
- * Aligns 3 signals to the same domain position and starts reading from there
+ * Aligns 3 Signals to the same Domain position and starts reading from there
  */
 void exampleSimple()
 {
     constexpr const auto NUM_SIGNALS = 3;
 
     auto logger = Logger();
-    auto context = Context(Scheduler(logger, 1), logger, nullptr);
+    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr);
 
     ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
     ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");
@@ -367,8 +371,7 @@ void exampleSimple()
     sig1.sendPacket();
     sig2.sendPacket();
 
-    [[maybe_unused]]
-    auto available = reader.getAvailableCount(); // 0
+    [[maybe_unused]] auto available = reader.getAvailableCount();  // 0
     assert(available == 0);
 
     sig0.sendPacket();
@@ -379,7 +382,7 @@ void exampleSimple()
     sig1.sendPacket();
     sig2.sendPacket();
 
-    // Samples per signal
+    // Samples per Signal
     // 523 * 3 = 1569 (1.569s) need 1123 to sync
     // 732 * 3 = 2196 (2.196s) need  123 to sync
     // 843 * 3 = 2529 (2.529s) need    0 to sync
@@ -400,7 +403,7 @@ void exampleSimple()
     // count = 446
     assert(count == 446);
 
-    available = reader.getAvailableCount(); // 0
+    available = reader.getAvailableCount();  // 0
     assert(available == 0);
 
     /* Should print:
@@ -431,14 +434,14 @@ void exampleSimple()
 }
 
 /*
- * The same as example 1 but read domain in `std::chrono::system_clock::time_point` values
+ * The same as example 1 but read Domain in `std::chrono::system_clock::time_point` values
  */
 void exampleWithTimeStamps()
 {
     constexpr const auto NUM_SIGNALS = 3;
 
     auto logger = Logger();
-    auto context = Context(Scheduler(logger, 1), logger, nullptr);
+    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr);
 
     ReadSignal sig0 = demoSignal(context, 523, "2022-09-27T00:02:03+00:00");
     ReadSignal sig1 = demoSignal(context, 732, "2022-09-27T00:02:04+00:00");
@@ -453,8 +456,7 @@ void exampleWithTimeStamps()
     sig1.sendPacket();
     sig2.sendPacket();
 
-    [[maybe_unused]]
-    auto available = reader.getAvailableCount();  // 0
+    [[maybe_unused]] auto available = reader.getAvailableCount();  // 0
     assert(available == 0);
 
     sig0.sendPacket();
@@ -465,7 +467,7 @@ void exampleWithTimeStamps()
     sig1.sendPacket();
     sig2.sendPacket();
 
-    // Samples per signal
+    // Samples per Signal
     // 523 * 3 = 1569 (1.569s) need 1123 to sync
     // 732 * 3 = 2196 (2.196s) need  123 to sync
     // 843 * 3 = 2529 (2.529s) need    0 to sync
@@ -528,19 +530,19 @@ int main(int /*argc*/, const char* /*argv*/[])
     return 0;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////// Utility functions ///////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+ * Utility functions
+ */
 
 SignalConfigPtr createDomainSignal(const ContextPtr& context, std::string epoch)
 {
-    daq::DataDescriptorPtr dataDescriptor = daq::DataDescriptorBuilder()
-                                                .setSampleType(SampleTypeFromType<ClockTick>::SampleType)
-                                                .setOrigin(epoch)
-                                                .setTickResolution(Ratio(1, 1000))
-                                                .setRule(LinearDataRule(1, 0))
-                                                .setUnit(daq::Unit("s", -1, "seconds", "time"))
-                                                .build();
+    DataDescriptorPtr dataDescriptor = DataDescriptorBuilder()
+                                           .setSampleType(SampleTypeFromType<ClockTick>::SampleType)
+                                           .setOrigin(epoch)
+                                           .setTickResolution(Ratio(1, 1000))
+                                           .setRule(LinearDataRule(1, 0))
+                                           .setUnit(Unit("s", -1, "seconds", "time"))
+                                           .build();
 
     auto domain = Signal(context, nullptr, "time");
     domain.setDescriptor(dataDescriptor);
@@ -574,13 +576,13 @@ void ReadSignal::sendPacket()
     Int delta = domainDescriptor.getRule().getParameters()["delta"];
 
     auto offset = (packetSize * delta) * packetIndex;
-    auto domainPacket = daq::DataPacket(domainDescriptor, packetSize, offset);
-    auto packet = daq::DataPacketWithDomain(domainPacket, valueDescriptor, packetSize);
+    auto domainPacket = DataPacket(domainDescriptor, packetSize, offset);
+    auto packet = DataPacketWithDomain(domainPacket, valueDescriptor, packetSize);
 
     // Zero-out data
-    memset(packet.getData(), 0, packet.getSampleCount() * packet.getSampleMemSize());
+    memset(packet.getRawData(), 0, packet.getRawDataSize());
 
-    auto* data = static_cast<double*>(packet.getData());
+    auto* data = static_cast<double*>(packet.getRawData());
     for (auto i = 0; i < packetSize; ++i)
     {
         data[i] = offset + i;

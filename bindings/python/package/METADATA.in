@@ -10,7 +10,7 @@ Project-URL: Homepage, https://opendaq.com/
 Project-URL: Documentation, https://docs.opendaq.com/manual/
 Project-URL: Download, https://docs.opendaq.com/
 Project-URL: Source code, https://github.com/openDAQ/openDAQ
-Classifier: Development Status :: 4 - Beta
+Classifier: Development Status :: 5 - Production/Stable
 Classifier: Intended Audience :: Developers
 Classifier: Intended Audience :: Science/Research
 Classifier: Programming Language :: Python :: 3

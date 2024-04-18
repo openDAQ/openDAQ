@@ -27,8 +27,6 @@ FFTFbImpl::FFTFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const St
     createInputPorts();
 
     cfg = nullptr;
-    inputData.resize(blockSize * maxBlockReadCount);
-    inputDomainData.resize(blockSize * maxBlockReadCount);
 }
 
 FFTFbImpl::~FFTFbImpl()
@@ -59,6 +57,9 @@ void FFTFbImpl::readProperties()
 {
     blockSize = objPtr.getPropertyValue("BlockSize") * 2;
     maxBlockReadCount = maxSampleReadCount / blockSize;
+
+    inputData.resize(maxBlockReadCount * blockSize);
+    inputDomainData.resize(maxBlockReadCount * blockSize);
 }
 
 FunctionBlockTypePtr FFTFbImpl::CreateType()
@@ -163,10 +164,7 @@ void FFTFbImpl::configure()
         outputDomainDataDescriptor =
             DataDescriptorBuilderCopy(inputDomainDataDescriptor).setRule(ExplicitDataRule()).setSampleType(SampleType::UInt64).build();
         outputDomainSignal.setDescriptor(outputDomainDataDescriptor);
-            
-        inputData.resize(maxBlockReadCount * blockSize);
-        inputDomainData.resize(maxBlockReadCount * blockSize);
-        
+
         kiss_fft_free(cfg);
         cfg = kiss_fft_alloc(static_cast<int>(blockSize), 0, nullptr, nullptr);
         fftIn.resize(blockSize);
@@ -212,6 +210,7 @@ void FFTFbImpl::calculate()
             const auto eventPacket = status.getEventPacket();
             if (eventPacket.assigned())
                 processEventPacket(eventPacket);
+            return;
         }
 
         continueReading = readAmount < availableBlocks;

@@ -15,6 +15,13 @@ int main(int /*argc*/, const char* /*argv*/[])
     
     // Connect to device on localhost
     auto device = instance.addDevice("daq.opcua://127.0.0.1");
+
+    // Exit if no device is found
+    if (device == nullptr)
+    {
+        std::cerr << "No relevant device found!" << std::endl;
+        return 0;
+    }
     
     // Output the name and connection string of connected-to device
     std::cout << "Connected device:" << std::endl;

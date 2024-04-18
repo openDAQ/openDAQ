@@ -40,6 +40,7 @@ public:
 
     // IConfigClientSignalPrivate
     void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
+    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
 
     StringPtr onGetRemoteId() const override;
     Bool onTriggerEvent(const EventPacketPtr& eventPacket) override;
@@ -54,6 +55,8 @@ protected:
 private:
     void descriptorChanged(const CoreEventArgsPtr& args);
     void attributeChanged(const CoreEventArgsPtr& args);
+
+    LoggerComponentPtr loggerComponent;
 };
 
 
@@ -64,6 +67,8 @@ inline ConfigClientSignalImpl::ConfigClientSignalImpl(const ConfigProtocolClient
                                                       const StringPtr& localId,
                                                       const StringPtr& className)
     : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
+    , loggerComponent(ctx.getLogger().assigned() ? ctx.getLogger().getOrAddComponent("ConfigProtocolClientSignal")
+                                                 : throw ArgumentNullException("Logger must not be null"))
 {
 }
 
@@ -161,6 +166,31 @@ inline void ConfigClientSignalImpl::assignDomainSignal(const SignalPtr& domainSi
 
     if (unmuteCoreEvent)
         this->coreEventMuted = false;
+}
+
+inline ErrCode ConfigClientSignalImpl::getLastValue(IBaseObject** value)
+{
+    {
+        std::scoped_lock lock(this->sync);
+
+        if (lastDataPacket.assigned())
+            return Super::getLastValue(value);
+    }
+
+    try
+    {
+        *value = this->clientComm->getLastValue(this->remoteGlobalId).detach();
+    }
+    catch (const DaqException& e)
+    {
+        LOG_W("getLastValue() RPC fialed: {}", e.what());
+    }
+    catch (const std::exception& e)
+    {
+        return errorFromException(e);
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 inline void ConfigClientSignalImpl::attributeChanged(const CoreEventArgsPtr& args)

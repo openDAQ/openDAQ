@@ -5,23 +5,13 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/json_config_provider_impl.h>
 #include <opendaq/path_tool.h>
-#include <iostream>
 #include <sstream>
 #include <fstream>
 #include <utility>
 #include <cctype>
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
-
-#if __has_include(<filesystem>)
-    #include <filesystem>
-    namespace fs = std::filesystem;
-#elif __has_include(<experimental/filesystem>)
-    #include <experimental/filesystem>
-    namespace fs = std::experimental::filesystem;
-#else
-    #error "Must have <filesystem> library"
-#endif
+#include <coretypes/filesystem.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

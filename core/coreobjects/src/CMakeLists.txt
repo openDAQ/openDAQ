@@ -349,7 +349,6 @@ target_link_libraries(${LIB_NAME}
     PRIVATE
         daq::core_containers
         $<BUILD_INTERFACE:Boost::algorithm>
-        $<BUILD_INTERFACE:Boost::filesystem>
 )
 
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

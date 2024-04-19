@@ -316,6 +316,14 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_UnitBuilder}
                                ${SRC_ComponentType}
                                ${SRC_CoreEventArgs}
+                               ${SRC_User}
+                               ${SRC_UserInternal}
+                               ${SRC_AuthenticationProvider}
+                               ${SRC_PermissionManager}
+                               ${SRC_PermissionManagerInternal}
+                               ${SRC_PermisisonsBuilder}
+                               ${SRC_PermisisonMaskBuilder}
+                               ${SRC_Permisisons}
                                coreobjects.natvis
 )
 

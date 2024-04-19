@@ -1,39 +1,20 @@
 set(MODULE_NAME discovery_ping)
 
 set(SRC_Headers
-    ip_v4.h
-    ipv4_header.h
     log.h
-    common.h
     format.h
-    network_interface.h
-    network_interface_exception.h
 
-    icmp_ping.h
+    ipv4_header.h
     icmp_header.h
+    icmp_ping.h
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Headers)
 
-if (WIN32)
-    set(SRC_Cpp_Win
-        network_interfaces_win.cpp
-    )
-else()
-    set(SRC_Cpp_Linux
-        network_interfaces_linux.cpp
-    )
-endif()
-
 set(SRC_Cpp
-    ip_v4.cpp
     ipv4_header.cpp
-    network_interface_exception.cpp
-    ${SRC_Cpp_Win}
-    ${SRC_Cpp_Linux}
-
-    icmp_ping.cpp
     icmp_header.cpp
+    icmp_ping.cpp
 )
 
 add_library(${MODULE_NAME} STATIC ${SRC_Cpp}
@@ -51,7 +32,6 @@ target_link_libraries(${MODULE_NAME}
         Threads::Threads
         Boost::headers
         fmt::fmt
-        #discovery_common
 )
 
 target_compile_definitions(${MODULE_NAME}

@@ -443,7 +443,11 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/"),
         std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.lt://127.0.0.1/"),
-        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://[::1]/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://[::1]/"),
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.lt://[::1]/"),
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://[::1]/")
     )
 );
 #elif defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && !defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -452,7 +456,9 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingTest,
     testing::Values(
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
-        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://[::1]/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://[::1]/")
     )
 );
 #elif !defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -461,7 +467,9 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingTest,
     testing::Values(
         std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.lt://127.0.0.1/"),
-        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.lt://[::1]/"),
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://[::1]/")
     )
 );
 #endif
@@ -527,7 +535,9 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingAsyncSignalTest,
     testing::Values(
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
-        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://[::1]/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://[::1]/")
     )
 );
 
@@ -620,7 +630,9 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingReconnectionTest,
     testing::Values(
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
-        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://[::1]/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://[::1]/")
     )
 );
 

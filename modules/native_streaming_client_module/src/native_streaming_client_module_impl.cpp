@@ -31,24 +31,38 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto connectionString = fmt::format("daq.ns://{}:{}{}",
+                auto connectionStringIpv4 = fmt::format("daq.ns://{}:{}{}",
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
+                auto connectionStringIpv6 = fmt::format("daq.ns://[{}]:{}{}",
+                                   discoveredDevice.ipv6Address,
+                                   discoveredDevice.servicePort,
+                                   discoveredDevice.getPropertyOrDefault("path", "/"));
                 auto cap = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
-                cap.addConnectionString(connectionString);
+                cap.addConnectionString(connectionStringIpv4);
+                cap.addAddress(discoveredDevice.ipv4Address);
+                cap.addConnectionString("[" + connectionStringIpv6 + "]");
+                cap.addAddress(discoveredDevice.ipv6Address);
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.ns");
                 return cap;
             },
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto connectionString = fmt::format("daq.nd://{}:{}{}",
+                auto connectionStringIpv4 = fmt::format("daq.nd://{}:{}{}",
                                    discoveredDevice.ipv4Address,
                                    discoveredDevice.servicePort,
                                    discoveredDevice.getPropertyOrDefault("path", "/"));
+                auto connectionStringIpv6 = fmt::format("daq.nd://[{}]:{}{}",
+                                   discoveredDevice.ipv6Address,
+                                   discoveredDevice.servicePort,
+                                   discoveredDevice.getPropertyOrDefault("path", "/"));
                 auto cap = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
-                cap.addConnectionString(connectionString);
+                cap.addConnectionString(connectionStringIpv4);
+                cap.addAddress(discoveredDevice.ipv4Address);
+                cap.addConnectionString("[" + connectionStringIpv6 + "]");
+                cap.addAddress(discoveredDevice.ipv6Address);
                 cap.setConnectionType("TCP/IP");
                 cap.setCoreEventsEnabled(true);
                 cap.setPrefix("daq.nd");
@@ -341,7 +355,11 @@ bool NativeStreamingClientModule::onAcceptsStreamingConnectionParameters(const S
                validateConnectionString(configConnectionString);
         }
         StringPtr protocolId = config.getPropertyValue("protocolId");
-        StringPtr primaryAddress = config.getPropertyValue("address");
+        StringPtr primaryAddress = "";
+        if (ListPtr<IString> addresses = config.getPropertyValue("Addresses"); addresses.getCount() > 0)
+        {
+            primaryAddress = addresses[0];
+        }
         if (protocolId == NativeStreamingID && primaryAddress != "")
             return config.hasProperty("Port");
     }
@@ -423,8 +441,11 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
         streamingConnectionString = config.getPropertyValue("PrimaryConnectionString");
         if (streamingConnectionString.getLength() == 0)
         {
-            host = config.getPropertyValue("address");
-            if (host.toStdString().empty()) 
+            if (ListPtr<IString> addresses = config.getPropertyValue("Addresses"); addresses.getCount() > 0)
+            {
+                host = addresses[0];
+            }
+            if (!host.assigned() || host.toStdString().empty()) 
                 throw InvalidParameterException("Device address is not set");
 
             auto portNumber = config.getPropertyValue("Port").template asPtr<IInteger>();

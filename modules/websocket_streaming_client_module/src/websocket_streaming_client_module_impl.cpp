@@ -26,13 +26,21 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
         {
             [context = this->context](MdnsDiscoveredDevice discoveredDevice)
             {
-                auto connectionString = fmt::format("{}{}:{}{}",
+                auto connectionStringIpv4 = fmt::format("{}{}:{}{}",
                                     WebsocketDevicePrefix,
                                     discoveredDevice.ipv4Address,
                                     discoveredDevice.servicePort,
                                     discoveredDevice.getPropertyOrDefault("path", "/"));
+                auto connectionStringIpv6 = fmt::format("{}[{}]:{}{}",
+                                    WebsocketDevicePrefix,
+                                    discoveredDevice.ipv6Address,
+                                    discoveredDevice.servicePort,
+                                    discoveredDevice.getPropertyOrDefault("path", "/"));
                 auto cap = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming);
-                cap.addConnectionString(connectionString);
+                cap.addConnectionString(connectionStringIpv4);
+                cap.addAddress(discoveredDevice.ipv4Address);
+                cap.addConnectionString("[" + connectionStringIpv6 + "]");
+                cap.addAddress(discoveredDevice.ipv6Address);
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.lt");
                 return cap;
@@ -143,7 +151,11 @@ StringPtr WebsocketStreamingClientModule::tryCreateWebsocketConnectionString(con
     if (connectionString.getLength() != 0)
         return connectionString;
 
-    StringPtr address = capability.getPropertyValue("address");
+    StringPtr address;
+    if (ListPtr<IString> addresses = capability.getAddresses(); addresses.getCount() > 0)
+    {
+        address = addresses[0];
+    }
     if (!address.assigned() || address.toStdString().empty())
         throw InvalidParameterException("Device address is not set");
 

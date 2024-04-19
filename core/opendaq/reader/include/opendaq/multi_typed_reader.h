@@ -141,8 +141,12 @@ public:
 
     void roundUpOnUnitOfDomain() override
     {
-        const auto den = info.resolution.getDenominator() * info.multiplier.getNumerator();
-        const auto num = info.resolution.getNumerator() * info.multiplier.getDenominator();
+        auto den = info.resolution.getDenominator() * info.multiplier.getNumerator();
+        auto num = info.resolution.getNumerator() * info.multiplier.getDenominator();
+
+        const Int gcd = std::gcd(num, den);
+        den /= gcd;
+        num /= gcd;
 
         if (den % num != 0)
             throw NotSupportedException("Resolution must be aligned on full unit of domain");
@@ -152,8 +156,12 @@ public:
 
     void roundUpOnDomainInterval(const RatioPtr interval) override
     {
-        const auto den = info.resolution.getDenominator() * info.multiplier.getNumerator() * interval.getNumerator();
-        const auto num = info.resolution.getNumerator() * info.multiplier.getDenominator() * interval.getDenominator();
+        auto den = info.resolution.getDenominator() * info.multiplier.getNumerator() * interval.getNumerator();
+        auto num = info.resolution.getNumerator() * info.multiplier.getDenominator() * interval.getDenominator();
+
+        const Int gcd = std::gcd(num, den);
+        den /= gcd;
+        num /= gcd;
 
         if (den % num != 0)
             throw NotSupportedException("Resolution must be aligned on full unit of domain");

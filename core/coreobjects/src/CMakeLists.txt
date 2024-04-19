@@ -316,6 +316,14 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_UnitBuilder}
                                ${SRC_ComponentType}
                                ${SRC_CoreEventArgs}
+                               ${SRC_User}
+                               ${SRC_UserInternal}
+                               ${SRC_AuthenticationProvider}
+                               ${SRC_PermissionManager}
+                               ${SRC_PermissionManagerInternal}
+                               ${SRC_PermisisonsBuilder}
+                               ${SRC_PermisisonMaskBuilder}
+                               ${SRC_Permisisons}
                                coreobjects.natvis
 )
 
@@ -341,7 +349,7 @@ target_link_libraries(${LIB_NAME}
     PRIVATE
         daq::core_containers
         $<BUILD_INTERFACE:Boost::algorithm>
-        $<BUILD_INTERFACE:Boost::filesystem>
+        $<BUILD_INTERFACE:std::filesystem>
 )
 
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

@@ -2,7 +2,7 @@
 #include <fstream>
 #include <coreobjects/user_internal_ptr.h>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
+#include <coretypes/filesystem.h>
 #include <coreobjects/errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -96,7 +96,7 @@ JsonFileAuthenticationProviderImpl::JsonFileAuthenticationProviderImpl(const Str
 std::string JsonFileAuthenticationProviderImpl::readJsonFile(const StringPtr& filename)
 {
     const std::string filenameStr = filename.toStdString();
-    const auto exists = boost::filesystem::exists(filenameStr);
+    const auto exists = fs::exists(filenameStr);
 
     if (!exists)
         throw NotFoundException("Json authentication file does not exist");

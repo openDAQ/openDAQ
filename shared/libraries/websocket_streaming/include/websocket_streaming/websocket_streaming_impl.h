@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,20 +34,17 @@ public:
                                     const ContextPtr& context);
 protected:
     void onSetActive(bool active) override;
-    StringPtr onGetSignalStreamingId(const StringPtr& signalRemoteId) override;
     void onAddSignal(const MirroredSignalConfigPtr& signal) override;
     void onRemoveSignal(const MirroredSignalConfigPtr& signal) override;
-    void onSubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
-    void onUnsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
-    EventPacketPtr onCreateDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId) override;
+    void onSubscribeSignal(const StringPtr& signalStreamingId) override;
+    void onUnsubscribeSignal(const StringPtr& signalStreamingId) override;
 
     void prepareStreamingClient();
-    void handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket);
-    void onPacket(const StringPtr& signalId, const PacketPtr& packet);
     void onAvailableSignals(const std::vector<std::string>& signalIds);
+    void onHiddenSignal(const std::string& signalId);
 
     daq::websocket_streaming::StreamingClientPtr streamingClient;
-    std::vector<StringPtr> availableSignalIds;
+    std::unordered_set<std::string> hiddenSignals;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

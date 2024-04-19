@@ -16,24 +16,26 @@ static std::chrono::milliseconds requestTimeout = std::chrono::milliseconds(1000
 
 NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        NativeStreamingClientHandlerPtr transportProtocolClient,
-                                       std::shared_ptr<boost::asio::io_context> processingIOContextPtr)
+                                       std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+                                       std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
+                                       std::thread::id reconnectionProcessingThreadId)
     : processingIOContextPtr(processingIOContextPtr)
     , processingStrand(*(this->processingIOContextPtr))
+    , reconnectionProcessingIOContextPtr(reconnectionProcessingIOContextPtr)
+    , reconnectionProcessingStrand(*(this->reconnectionProcessingIOContextPtr))
+    , reconnectionProcessingThreadId(reconnectionProcessingThreadId)
     , loggerComponent(context.getLogger().getOrAddComponent("NativeDevice"))
-    , transportProtocolClient(transportProtocolClient)
+    , transportClientHandler(transportProtocolClient)
+    , connectionStatus(ClientConnectionStatus::Connected)
 {
     setupProtocolClients(context);
 }
 
 NativeDeviceHelper::~NativeDeviceHelper()
 {
-    // reset transport protocol handler of received config packets
-    if (transportProtocolClient)
-    {
-        auto receiveConfigPacketCb = [](PacketBuffer&& packet) {};
-        transportProtocolClient->setConfigPacketHandler(receiveConfigPacketCb);
-    }
+    transportClientHandler->resetConfigHandlers();
     processingIOContextPtr->stop();
+    reconnectionProcessingIOContextPtr->stop();
 }
 
 DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent)
@@ -58,6 +60,25 @@ void NativeDeviceHelper::addStreaming(const StreamingPtr& streaming)
     this->streaming = streaming;
 }
 
+void NativeDeviceHelper::enableStreamingForComponent(const ComponentPtr& component)
+{
+    if (component.supportsInterface<ISignal>())
+    {
+        tryAddSignalToStreaming(component.asPtr<ISignal>());
+    }
+    else if (component.supportsInterface<IFolder>())
+    {
+        auto nestedComponents = component.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
+        for (const auto& nestedComponent : nestedComponents)
+        {
+            if (nestedComponent.supportsInterface<ISignal>())
+            {
+                tryAddSignalToStreaming(nestedComponent.asPtr<ISignal>());
+            }
+        }
+    }
+}
+
 void NativeDeviceHelper::componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs)
 {
     auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
@@ -73,35 +94,48 @@ void NativeDeviceHelper::componentAdded(const ComponentPtr& sender, const CoreEv
 
     LOG_I("Added Component: {};", addedComponentGlobalId);
 
-    if (addedComponent.supportsInterface<ISignal>())
-    {
-        addSignalsToStreaming({addedComponent.asPtr<ISignal>()});
-    }
-    else if (addedComponent.supportsInterface<IFolder>())
-    {
-        auto nestedComponents = addedComponent.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
-        for (const auto& nestedComponent : nestedComponents)
-        {
-            if (nestedComponent.supportsInterface<ISignal>())
-            {
-                addSignalsToStreaming({nestedComponent.asPtr<ISignal>()});
-                LOG_I("Signal: {}; added to streaming", nestedComponent.getGlobalId());
-            }
-        }
-    }
+    enableStreamingForComponent(addedComponent);
 }
 
-void NativeDeviceHelper::addSignalsToStreaming(const ListPtr<ISignal>& signals)
+void NativeDeviceHelper::componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs)
 {
-    streaming.addSignals(signals);
-    for (const auto& signal : signals)
+    auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
+    if (!device.assigned())
+        return;
+
+    ComponentPtr updatedComponent = sender;
+
+    auto deviceGlobalId = device.getGlobalId().toStdString();
+    auto updatedComponentGlobalId = updatedComponent.getGlobalId().toStdString();
+    if (deviceGlobalId != updatedComponentGlobalId && !IdsParser::isNestedComponentId(deviceGlobalId, updatedComponentGlobalId))
+        return;
+
+    LOG_I("Updated Component: {};", updatedComponentGlobalId);
+
+    enableStreamingForComponent(updatedComponent);
+}
+
+void NativeDeviceHelper::tryAddSignalToStreaming(const SignalPtr& signal)
+{
+    if (!signal.getPublic())
+        return;
+
+    ErrCode errCode =
+        daqTry([&]()
+                {
+                    streaming.addSignals({signal});
+                });
+    if (OPENDAQ_SUCCEEDED(errCode))
     {
-        if (signal.getPublic())
-        {
-            auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
-            mirroredSignalConfigPtr.setActiveStreamingSource(streaming.getConnectionString());
-        }
+        LOG_I("Signal {} added to streaming {};", signal.getGlobalId(), streaming.getConnectionString());
     }
+    else if (errCode != OPENDAQ_ERR_DUPLICATEITEM)
+    {
+        checkErrorInfo(errCode);
+    }
+
+    auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
+    mirroredSignalConfigPtr.setActiveStreamingSource(streaming.getConnectionString());
 }
 
 void NativeDeviceHelper::coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
@@ -111,9 +145,35 @@ void NativeDeviceHelper::coreEventCallback(ComponentPtr& sender, CoreEventArgsPt
         case CoreEventId::ComponentAdded:
             componentAdded(sender, eventArgs);
             break;
+        case CoreEventId::ComponentUpdateEnd:
+            componentUpdated(sender, eventArgs);
+            break;
         default:
             break;
     }
+}
+
+void NativeDeviceHelper::connectionStatusChangedHandler(ClientConnectionStatus status)
+{
+    if (status == ClientConnectionStatus::Connected)
+    {
+        try
+        {
+            configProtocolClient->reconnect();
+        }
+        catch(const std::exception& e)
+        {
+            LOG_W("Reconnection failed: {}", e.what());
+            return;
+        }
+    }
+
+    connectionStatus = status;
+
+    auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
+    if (!device.assigned())
+        return;
+    device.asPtr<INativeDevicePrivate>()->publishConnectionStatus(convertConnectionStatusToString(connectionStatus));
 }
 
 void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
@@ -134,18 +194,37 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
             {
                 this->processConfigPacket(std::move(*packetBufferPtr));
             }));
-
     };
-    transportProtocolClient->setConfigPacketHandler(receiveConfigPacketCb);
+
+    OnConnectionStatusChangedCallback connectionStatusChangedCb =
+        [this](ClientConnectionStatus status)
+    {
+        boost::asio::dispatch(*reconnectionProcessingIOContextPtr, reconnectionProcessingStrand.wrap(
+            [this, status]()
+            {
+                this->connectionStatusChangedHandler(status);
+            }));
+    };
+
+    transportClientHandler->setConfigHandlers(receiveConfigPacketCb,
+                                              connectionStatusChangedCb);
 }
 
 PacketBuffer NativeDeviceHelper::doConfigRequest(const PacketBuffer& reqPacket)
 {
+    // using a thread id is a hacky way to disable all config requests
+    // except those related to reconnection until reconnection is finished
+    if (connectionStatus != ClientConnectionStatus::Connected &&
+        std::this_thread::get_id() != reconnectionProcessingThreadId)
+    {
+        throw GeneralErrorException("Connection lost");
+    }
+
     // future/promise mechanism is used since transport client works asynchronously
     auto reqId = reqPacket.getId();
     replyPackets.insert({reqId, std::promise<PacketBuffer>()});
     std::future<PacketBuffer> future = replyPackets.at(reqId).get_future();
-    transportProtocolClient->sendConfigRequest(reqPacket);
+    transportClientHandler->sendConfigRequest(reqPacket);
 
     if (future.wait_for(requestTimeout) == std::future_status::ready)
     {
@@ -156,7 +235,8 @@ PacketBuffer NativeDeviceHelper::doConfigRequest(const PacketBuffer& reqPacket)
     else
     {
         replyPackets.erase(reqId);
-        throw GeneralErrorException("Native configuration protocol request timed out");
+        LOG_E("Native configuration protocol request id {} timed out", reqId);
+        throw GeneralErrorException("Native configuration protocol request id {} timed out", reqId);
     }
 }
 
@@ -164,7 +244,11 @@ void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
 {
     if (packet.getPacketType() == ServerNotification)
     {
-        configProtocolClient->triggerNotificationPacket(packet);
+        // allow server notifications only if connected / reconnection finished
+        if (connectionStatus == ClientConnectionStatus::Connected)
+        {
+            configProtocolClient->triggerNotificationPacket(packet);
+        }
     }
     else if(auto it = replyPackets.find(packet.getId()); it != replyPackets.end())
     {
@@ -189,6 +273,7 @@ NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCo
     : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
     , deviceInfoSet(false)
 {
+    initStatuses(ctx);
 }
 
 NativeDeviceImpl::~NativeDeviceImpl()
@@ -197,6 +282,19 @@ NativeDeviceImpl::~NativeDeviceImpl()
     {
         this->deviceHelper->unsubscribeFromCoreEvent(this->context);
     }
+}
+
+void NativeDeviceImpl::initStatuses(const ContextPtr& ctx)
+{
+    if (!this->context.getTypeManager().hasType("ConnectionStatusType"))
+    {
+        const auto statusType = EnumerationType("ConnectionStatusType", List<IString>("Connected",
+                                                                                      "Reconnecting",
+                                                                                      "Unrecoverable"));
+        ctx.getTypeManager().addType(statusType);
+    }
+    const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", statusInitValue);
 }
 
 // INativeDevicePrivate
@@ -236,6 +334,14 @@ void NativeDeviceImpl::setConnectionString(const StringPtr& connectionString)
 
     deviceInfo = newDeviceInfo;
     deviceInfoSet = true;
+}
+
+void NativeDeviceImpl::publishConnectionStatus(ConstCharPtr statusValue)
+{
+    auto newStatusValue = this->statusContainer.getStatus("ConnectionStatus");
+    newStatusValue = statusValue;
+
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ConnectionStatus", newStatusValue);
 }
 
 ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,

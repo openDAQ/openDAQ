@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,9 +30,10 @@
  * Failed to retrieve the object's owner as it has no owner.
  * }
  */
-#define OPENDAQ_ERR_NO_OWNER             OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_COREOBJECTS, 0x001u)
-#define OPENDAQ_ERR_OWNER_EXPIRED        OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_COREOBJECTS, 0x002u)
-#define OPENDAQ_ERR_MANAGER_NOT_ASSIGNED OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_COREOBJECTS, 0x002u)
+#define OPENDAQ_ERR_NO_OWNER              OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_COREOBJECTS, 0x001u)
+#define OPENDAQ_ERR_OWNER_EXPIRED         OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_COREOBJECTS, 0x002u)
+#define OPENDAQ_ERR_MANAGER_NOT_ASSIGNED  OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_COREOBJECTS, 0x003u)
+#define OPENDAQ_ERR_AUTHENTICATION_FAILED OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_COREOBJECTS, 0x004u)
 
 /*!
  * @}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,12 +27,12 @@ class DataRuleCalc
 public:
     virtual ~DataRuleCalc() = default;
 
-    virtual void* calculateRule(const NumberPtr& packetOffset, SizeT sampleCount)
+    virtual void* calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize)
     {
         return nullptr;
     }
     
-    virtual void calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void** output)
+    virtual void calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output)
     {
     }
 };
@@ -44,8 +44,8 @@ template <typename T>
 class DataRuleCalcTyped : public DataRuleCalc
 {
 public:
-    void* calculateRule(const NumberPtr& packetOffset, SizeT sampleCount) override;
-    void calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void** output) override;
+    void* calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize) override;
+    void calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output) override;
 
 private:
     friend DataRuleCalc* createDataRuleCalcTyped(const DataRulePtr& outputRule, SampleType outputType);
@@ -54,10 +54,10 @@ private:
     explicit DataRuleCalcTyped(const DataRulePtr& rule);
 
     void* calculateLinearRule(const NumberPtr& packetOffset, SizeT sampleCount) const;
-    void* calculateConstantRule(SizeT sampleCount);
+    void* calculateConstantRule(SizeT sampleCount, void* input, SizeT inputSize);
 
     void calculateLinearRule(const NumberPtr& packetOffset, SizeT sampleCount, void** output) const;
-    void calculateConstantRule(SizeT sampleCount, void** output);
+    void calculateConstantRule(SizeT sampleCount, void* input, SizeT inputSize, void** output);
 
 
     DataRuleType type;
@@ -82,11 +82,6 @@ std::vector<T> DataRuleCalcTyped<T>::ParseRuleParameters(const DictPtr<IString, 
         parameters.push_back(delta);
         parameters.push_back(start);
     }
-    else if (type == DataRuleType::Constant)
-    {
-        T constant = ruleParameters.get("constant");
-        parameters.push_back(constant);
-    }
 
     return parameters;
 }
@@ -102,12 +97,6 @@ inline std::vector<RangeType64> DataRuleCalcTyped<RangeType64>::ParseRuleParamet
         parameters.push_back(delta);
         parameters.push_back(start);
     }
-    else if (type == DataRuleType::Constant)
-    {
-        RangeType64 constant = (RangeType64::Type) ruleParameters.get("constant");
-        parameters.push_back(constant);
-    }
-
     return parameters;
 }
 
@@ -122,16 +111,11 @@ inline std::vector<uint8_t> DataRuleCalcTyped<uint8_t>::ParseRuleParameters(cons
         parameters.push_back(static_cast<uint8_t>(delta));
         parameters.push_back(static_cast<uint8_t>(start));
     }
-    else if (type == DataRuleType::Constant)
-    {
-        int16_t constant = ruleParameters.get("constant");
-        parameters.push_back(static_cast<uint8_t>(constant));
-    }
     return parameters;
 }
 
 template <typename T>
-void* DataRuleCalcTyped<T>::calculateRule(const NumberPtr& packetOffset, SizeT sampleCount)
+void* DataRuleCalcTyped<T>::calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize)
 {
     switch (type)
     {
@@ -139,7 +123,7 @@ void* DataRuleCalcTyped<T>::calculateRule(const NumberPtr& packetOffset, SizeT s
         case DataRuleType::Linear:
             return calculateLinearRule(packetOffset, sampleCount);
         case DataRuleType::Constant:
-            return calculateConstantRule(sampleCount);
+            return calculateConstantRule(sampleCount, input, inputSize);
         case DataRuleType::Other:
         case DataRuleType::Explicit:
             break;
@@ -149,7 +133,7 @@ void* DataRuleCalcTyped<T>::calculateRule(const NumberPtr& packetOffset, SizeT s
 }
 
 template <typename T>
-void DataRuleCalcTyped<T>::calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void** output)
+void DataRuleCalcTyped<T>::calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output)
 {
     switch (type)
     {
@@ -157,7 +141,7 @@ void DataRuleCalcTyped<T>::calculateRule(const NumberPtr& packetOffset, SizeT sa
             calculateLinearRule(packetOffset, sampleCount, output);
             return;
         case DataRuleType::Constant:
-            calculateConstantRule(sampleCount, output);
+            calculateConstantRule(sampleCount, input, inputSize, output);
             return;
         case DataRuleType::Other:
         case DataRuleType::Explicit:
@@ -179,13 +163,13 @@ void* DataRuleCalcTyped<T>::calculateLinearRule(const NumberPtr& packetOffset, S
 }
 
 template <typename T>
-void* DataRuleCalcTyped<T>::calculateConstantRule(SizeT sampleCount)
+void* DataRuleCalcTyped<T>::calculateConstantRule(SizeT sampleCount, void* input, SizeT inputSize)
 {
     auto output = std::malloc(sampleCount * sizeof(T));
     if (!output)
         throw NoMemoryException("Memory allocation failed.");
 
-    this->calculateConstantRule(sampleCount, &output);
+    this->calculateConstantRule(sampleCount, input, inputSize, &output);
     return output;
 }
 
@@ -212,12 +196,40 @@ void DataRuleCalcTyped<T>::calculateLinearRule(const NumberPtr& packetOffset, Si
 }
 
 template <typename T>
-void DataRuleCalcTyped<T>::calculateConstantRule(SizeT sampleCount, void** output)
+void DataRuleCalcTyped<T>::calculateConstantRule(SizeT sampleCount, void* input, SizeT inputSize, void** output)
 {
+    if (inputSize < sizeof(T))
+        throw InvalidParameterException("Constant rule data packet must have at least one value");
+
+    constexpr size_t entrySize = sizeof(T) + sizeof(uint32_t);
+    const size_t entryCount = (inputSize - sizeof(T)) / entrySize;
+
     T* outputTyped = static_cast<T*>(*output);
-    const T constant = parameters[0];
-    for (SizeT i = 0; i < sampleCount; ++i)
-        outputTyped[i] = constant;
+    T constant = *static_cast<T*>(input);
+
+    SizeT currentEntry = 0;
+    auto* entryPtr = (reinterpret_cast<uint8_t*>(input) + sizeof(T));
+
+    SizeT sampleIndex = 0;
+    while (sampleIndex < sampleCount)
+    {
+        SizeT upToSamples;
+        T nextConstantValue{};
+        if (currentEntry++ == entryCount)
+            upToSamples = sampleCount;
+        else
+        {
+            upToSamples = *(reinterpret_cast<uint32_t*>(entryPtr));
+            entryPtr += sizeof(uint32_t);
+            nextConstantValue = *(reinterpret_cast<T*>(entryPtr));
+            entryPtr += sizeof(T);
+        }
+
+        for (; sampleIndex < upToSamples; sampleIndex++)
+            outputTyped[sampleIndex] = constant;
+
+        constant = nextConstantValue;
+    }
 }
 
 static DataRuleCalc* createDataRuleCalcTyped(const DataRulePtr& outputRule, SampleType outputType)

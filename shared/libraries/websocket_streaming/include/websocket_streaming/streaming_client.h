@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,8 +46,8 @@ public:
     using OnPacketCallback = std::function<void(const StringPtr& signalId, const PacketPtr& packet)>;
     using OnSignalCallback = std::function<void(const StringPtr& signalId, const SubscribedSignalInfo& signalInfo)>;
     using OnFindSignalCallback = std::function<SignalConfigPtr(const StringPtr& signalId)>;
-    using OnDomainDescriptorCallback =
-        std::function<void(const StringPtr& signalId, const DataDescriptorPtr& domainDescriptor)>;
+    using OnDomainSignalInitCallback =
+        std::function<void(const StringPtr& dataSignalId, const StringPtr& domainSignalId)>;
     using OnAvailableSignalsCallback = std::function<void(const std::vector<std::string>& signalIds)>;
     using OnSubsciptionAckCallback = std::function<void(const std::string& signalId, bool subscribed)>;
 
@@ -58,21 +58,21 @@ public:
     bool connect();
     void disconnect();
     void onPacket(const OnPacketCallback& callack);
-    void onSignalInit(const OnSignalCallback& callback);
+    void onAvailableSignalInit(const OnSignalCallback& callback);
     void onSignalUpdated(const OnSignalCallback& callback);
-    void onDomainDescriptor(const OnDomainDescriptorCallback& callback);
+    void onDomainSingalInit(const OnDomainSignalInitCallback& callback);
     void onAvailableStreamingSignals(const OnAvailableSignalsCallback& callback);
     void onAvailableDeviceSignals(const OnAvailableSignalsCallback& callback);
-    void onFindSignal(const OnFindSignalCallback& callback);
+    void onHiddenStreamingSignal(const OnSignalCallback& callback);
+    void onHiddenDeviceSignal(const OnSignalCallback& callback);
     void onSubscriptionAck(const OnSubsciptionAckCallback& callback);
     std::string getHost();
     uint16_t getPort();
     std::string getTarget();
     bool isConnected();
     void setConnectTimeout(std::chrono::milliseconds timeout);
-    EventPacketPtr getDataDescriptorChangedEventPacket(const StringPtr& signalStringId);
-    void subscribeSignals(const std::vector<std::string>& signalIds);
-    void unsubscribeSignals(const std::vector<std::string>& signalIds);
+    void subscribeSignal(const std::string& signalId);
+    void unsubscribeSignal(const std::string& signalId);
 
 protected:
     void parseConnectionString(const std::string& url);
@@ -80,16 +80,14 @@ protected:
                       const std::string& method,
                       const nlohmann::json& params);
     void onProtocolMeta(daq::streaming_protocol::ProtocolHandler& protocolHandler, const std::string& method, const nlohmann::json& params);
-    void onMessage(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, uint64_t timeStamp, const uint8_t* data, size_t size);
+    void onMessage(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, uint64_t timeStamp, const uint8_t* data, size_t valueCount);
     void setDataSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
     void setTimeSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
-    void publishSignalChanges(const std::string& signalId, const InputSignalPtr& signal);
+    void publishSignalChanges(const InputSignalBasePtr& signal, bool valueChanged, bool domainChanged);
     void onSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, const nlohmann::json& params);
     void setSignalInitSatisfied(const std::string& signalId);
-    void setDomainDescriptor(const std::string& signalId,
-                             const InputSignalPtr& inputSignal,
-                             const DataDescriptorPtr& domainDescriptor);
-    std::vector<std::pair<std::string, InputSignalPtr>> findDataSignalsByTableId(const std::string& tableId);
+    std::vector<InputSignalBasePtr> findDataSignalsByTableId(const std::string& tableId);
+    InputSignalBasePtr findTimeSignalByTableId(const std::string& tableId);
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
@@ -102,14 +100,16 @@ protected:
     boost::asio::io_context ioContext;
     daq::streaming_protocol::SignalContainer signalContainer;
     daq::streaming_protocol::ProtocolHanlderPtr protocolHandler;
-    std::unordered_map<std::string, InputSignalPtr> signals;
+    std::unordered_map<std::string, InputSignalBasePtr> availableSignals;
+    std::unordered_map<std::string, InputSignalBasePtr> hiddenSignals;
     OnPacketCallback onPacketCallback = [](const StringPtr&, const PacketPtr&) {};
-    OnSignalCallback onSignalInitCallback = [](const StringPtr&, const SubscribedSignalInfo&) {};
-    OnDomainDescriptorCallback onDomainDescriptorCallback = [](const StringPtr&, const DataDescriptorPtr&) {};
+    OnSignalCallback onAvailableSignalInitCb = [](const StringPtr&, const SubscribedSignalInfo&) {};
+    OnDomainSignalInitCallback onDomainSignalInitCallback = [](const StringPtr&, const StringPtr&) {};
     OnAvailableSignalsCallback onAvailableStreamingSignalsCb = [](const std::vector<std::string>& signalIds) {};
     OnAvailableSignalsCallback onAvailableDeviceSignalsCb = [](const std::vector<std::string>& signalIds) {};
-    OnFindSignalCallback onFindSignalCallback = [](const StringPtr& signalId) { return nullptr; };
     OnSignalCallback onSignalUpdatedCallback = [](const StringPtr& signalId, const SubscribedSignalInfo&) {};
+    OnSignalCallback onHiddenStreamingSignalCb = [](const StringPtr& signalId, const SubscribedSignalInfo&) {};
+    OnSignalCallback onHiddenDeviceSignalInitCb = [](const StringPtr& signalId, const SubscribedSignalInfo&) {};
     OnSubsciptionAckCallback onSubscriptionAckCallback = [](const StringPtr& signalId, bool subscribed) {};
     std::thread clientThread;
     std::mutex clientMutex;
@@ -120,14 +120,12 @@ protected:
     // is published only for subscribed signals.
     // as workaround we temporarily subscribe all signals to receive signal meta-info
     // at initialization stage.
-    // To manage this the 'signalInitializedStatus' is used, it is map of 4-element tuples, where:
+    // To manage this the 'availableSigInitStatus' is used, it is map of 4-element tuples, where:
     // 1-st is std::promise
     // 2-nd is std::future
-    // 3-rd: boolean flag indicating that initial subscription completion ack is filtered-out
-    // 4-th: boolean flag indicating that initial unsubscription completion ack is filtered-out
-    std::unordered_map<std::string, std::tuple<std::promise<void>, std::future<void>, bool, bool>> signalInitializedStatus;
+    // 3-rd: boolean flag indicating that initial unsubscription completion ack is filtered-out
+    std::unordered_map<std::string, std::tuple<std::promise<void>, std::future<void>, bool>> availableSigInitStatus;
 
-    std::unordered_map<std::string, DataDescriptorPtr> cachedDomainDescriptors;
     bool useRawTcpConnection;
 };
 

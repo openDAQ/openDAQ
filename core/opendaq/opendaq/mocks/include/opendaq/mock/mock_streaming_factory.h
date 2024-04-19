@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline StreamingPtr MockStreaming(const daq::StringPtr& connectionString)
+inline StreamingPtr MockStreaming(const daq::StringPtr& connectionString, const ContextPtr& context)
 {
-    StreamingPtr obj(MockStreaming_Create(connectionString));
+    StreamingPtr obj(MockStreaming_Create(connectionString, context));
     return obj;
 }
 

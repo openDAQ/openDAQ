@@ -2,62 +2,52 @@
 #include <opendaq/device_info_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_DISCOVERY
 
-DiscoveryClient::DiscoveryClient(std::vector<ConnectionStringFormatCb> connectionStringFormatCbs,
+DiscoveryClient::DiscoveryClient(std::vector<ServerCapabilityCb> serverCapabilityCbs,
                                  std::unordered_set<std::string> requiredCaps)
-    : discoveredDevices(List<IDeviceInfo>())
-    , requiredCaps(std::move(requiredCaps))
-    , connectionStringFormatCbs(std::move(connectionStringFormatCbs))
+    : requiredCaps(std::move(requiredCaps))
+    , serverCapabilityCbs(std::move(serverCapabilityCbs))
 {
 }
 
-void DiscoveryClient::initMdnsClient(const std::string& serviceName, std::chrono::milliseconds discoveryDuration)
+void DiscoveryClient::initMdnsClient(const ListPtr<IString>& serviceNames, std::chrono::milliseconds discoveryDuration)
 {
-    mdnsClient = std::make_shared<MDNSDiscoveryClient>(serviceName);
+    mdnsClient = std::make_shared<MDNSDiscoveryClient>(serviceNames);
     mdnsClient->setDiscoveryDuration(discoveryDuration);
 }
 
-daq::ListPtr<daq::IDeviceInfo> daq::discovery::DiscoveryClient::discoverDevices()
+daq::ListPtr<daq::IDeviceInfo> DiscoveryClient::discoverDevices() const
 {
-    discoveredDevices.clear();
-
-    runInThread([this]() { discoverMdnsDevices(); });
-    joinThreads();
-
-    return discoveredDevices;
+    return discoverMdnsDevices();
 }
 
-void DiscoveryClient::runInThread(std::function<void()> func)
+ListPtr<IDeviceInfo> DiscoveryClient::discoverMdnsDevices() const
 {
-    threadPool.emplace_back(func);
-}
-
-void DiscoveryClient::joinThreads()
-{
-    for (auto& thread : threadPool)
-    {
-        if (thread.joinable())
-            thread.join();
-    }
-}
-
-void DiscoveryClient::discoverMdnsDevices()
-{
+    auto discovered = List<IDeviceInfo>();
     if (mdnsClient == nullptr)
-        return;
+        return discovered;
 
     auto mdnsDevices = mdnsClient->getAvailableDevices();
 
     for (const auto& device : mdnsDevices)
     {
-        for (const auto& connectionStringFormatCb : connectionStringFormatCbs)
+        
+        for (const auto& serverCapabilityFormatCb : serverCapabilityCbs)
         {
-            if (auto deviceInfo = createDeviceInfo(device, connectionStringFormatCb); deviceInfo.assigned())
-                discoveredDevices.pushBack(deviceInfo);
+            if (DeviceInfoPtr deviceInfo = createDeviceInfo(device); deviceInfo.assigned())
+            {
+                auto serverCapability = serverCapabilityFormatCb(device);
+                deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
+                deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(serverCapability.getConnectionString());
+                discovered.pushBack(deviceInfo);
+            }
         }
     }
+
+    return discovered;
 }
 
 template <typename T>
@@ -72,7 +62,7 @@ void addInfoProperty(DeviceInfoConfigPtr& info, std::string propName, T propValu
         else
         {
             // Ignore errors
-            info->setPropertyValue(String(propName), (daq::BaseObjectPtr) propValue);
+            info->setPropertyValue(String(propName), static_cast<daq::BaseObjectPtr>(propValue));
         }
     }
     else
@@ -104,8 +94,7 @@ void addInfoProperty(DeviceInfoConfigPtr& info, std::string propName, T propValu
     }
 }
 
-DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredDevice,
-                                                ConnectionStringFormatCb connectionStringFormatCb) const
+DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredDevice) const
 {
     if (discoveredDevice.ipv4Address.empty())
         return nullptr;
@@ -118,8 +107,11 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
     while (std::getline(ss, segment, ','))
     {
         // Replace legacy caps tag "TMS" with "OPENDAQ"
+        // Replace legacy caps tag "WS" with "LT"
         if (segment == "TMS")
             segment = "OPENDAQ";
+        else if (segment == "WS")
+            segment = "LT";
 
         if (requiredCapsCopy.count(segment))
             requiredCapsCopy.erase(segment);
@@ -128,7 +120,7 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
     if (!requiredCapsCopy.empty())
         return nullptr;
 
-    DeviceInfoConfigPtr deviceInfo = DeviceInfo(connectionStringFormatCb(discoveredDevice));
+    DeviceInfoConfigPtr deviceInfo = DeviceInfo("");
 
     addInfoProperty(deviceInfo, "canonicalName", discoveredDevice.canonicalName);
     addInfoProperty(deviceInfo, "serviceWeight", discoveredDevice.serviceWeight);
@@ -140,7 +132,7 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
     {
         addInfoProperty(deviceInfo, prop.first, prop.second);
     }
-
+    
     return deviceInfo;
 }
 

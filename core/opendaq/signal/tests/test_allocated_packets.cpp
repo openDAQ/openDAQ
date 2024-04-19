@@ -15,25 +15,10 @@ BEGIN_NAMESPACE_OPENDAQ
 
 static DataDescriptorPtr setupDescriptor(SampleType sampleType)
 {
-    return DataDescriptorBuilder().setSampleType(sampleType).build();;
+    return DataDescriptorBuilder().setSampleType(sampleType).build();
 }
 
 // Tests
-
-TEST_F(AllocatedPacketsTest, TestDataPacket)
-{
-    const SampleType sampleType = SampleType::Float64;
-    const std::size_t sampleSize = getSampleSize(sampleType);
-    const SizeT sampleCount = 100;
-    auto allocator = MockAllocator::Strict();
-    DataPacketPtr packet;
-
-    EXPECT_CALL(allocator.mock(), allocate(_, sampleCount*sampleSize, sampleSize, _));
-    ASSERT_NO_THROW(packet = DataPacket(setupDescriptor(sampleType), sampleCount, 10, allocator));
-    ASSERT_NE(packet.getRawData(), nullptr);
-
-    EXPECT_CALL(allocator.mock(), free(_)).Times(AtLeast(1));
-}
 
 TEST_F(AllocatedPacketsTest, DataPacketWithExternalMemory)
 {

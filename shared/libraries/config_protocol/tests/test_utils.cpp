@@ -7,6 +7,8 @@
 #include "opendaq/context_factory.h"
 #include "opendaq/component_status_container_private_ptr.h"
 #include "opendaq/device_domain_factory.h"
+#include "opendaq/mock/mock_device_module.h"
+#include "opendaq/mock/mock_physical_device.h"
 
 namespace daq::config_protocol::test_utils
 {
@@ -14,6 +16,7 @@ namespace daq::config_protocol::test_utils
 DevicePtr createServerDevice()
 {
     const auto context = NullContext();
+
     const auto typeManager = context.getTypeManager();
 
     const auto obj = PropertyObject();
@@ -26,6 +29,12 @@ DevicePtr createServerDevice()
     typeManager.addType(mockClass);
 
     const auto serverDevice = createWithImplementation<IDevice, MockDevice2Impl>(context, nullptr, "root_dev");
+    const FolderConfigPtr devicesFolder = serverDevice.getItem("Dev");
+
+    const StringPtr id = "mock_phys_dev";
+    DevicePtr physicalDevice(MockPhysicalDevice_Create(context, devicesFolder, id, nullptr));
+    devicesFolder.addItem(physicalDevice);
+
     serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     return serverDevice;
 }
@@ -250,11 +259,11 @@ void MockDevice1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBloc
 }
 
 DeviceInfoPtr MockDevice1Impl::onGetInfo()
-{
-    const auto info = DeviceInfo("mock://dev1", "MockDevice1");
-    info.setManufacturer("Testing");
-    info.freeze();
-    return info;
+{    
+    auto deviceInfo = DeviceInfo("mock://dev1", "MockDevice1");
+    deviceInfo.asPtr<IDeviceInfoConfig>().setManufacturer("Testing");
+    deviceInfo.freeze();
+    return deviceInfo;
 }
 
 uint64_t MockDevice1Impl::onGetTicksSinceOrigin()
@@ -265,7 +274,8 @@ uint64_t MockDevice1Impl::onGetTicksSinceOrigin()
 MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : Device(ctx, parent, localId, "MockClass")
 {
-    createAndAddSignal("sig_device");
+    const auto sig = createAndAddSignal("sig_device");
+    sig.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Int64).build());
 
     auto aiIoFolder = this->addIoFolder("ai", ioFolder);
     createAndAddChannel<MockChannel2Impl>(aiIoFolder, "ch");
@@ -281,8 +291,20 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     objPtr.addProperty(StringPropertyBuilder("StrProp", "-").build());
 
     const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
-    if (!ctx.getTypeManager().hasType(statusType.getName()))
+    try
+    {
         ctx.getTypeManager().addType(statusType);
+    }
+    catch (const std::exception& e)
+    {
+        const auto loggerComponent = ctx.getLogger().getOrAddComponent("TestUtils");
+        LOG_W("Couldn't add type {} to type manager: {}", statusType.getName(), e.what());
+    }
+    catch (...)
+    {
+        const auto loggerComponent = ctx.getLogger().getOrAddComponent("TestUtils");
+        LOG_W("Couldn't add type {} to type manager!", statusType.getName());
+    }
 
     const auto statusInitValue = Enumeration("StatusType", "Status0", ctx.getTypeManager());
     statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusInitValue);

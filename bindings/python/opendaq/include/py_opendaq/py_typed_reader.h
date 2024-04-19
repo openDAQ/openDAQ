@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -206,7 +206,9 @@ private:
     }
 
     template <typename ValueType, typename DomainType, typename ReaderType>
-    static inline std::tuple<SampleTypeVariant, DomainTypeVariant> read(const ReaderType& reader, size_t count, [[maybe_unused]] size_t timeoutMs)
+    static inline std::tuple<SampleTypeVariant, DomainTypeVariant> read(const ReaderType& reader,
+                                                                        size_t count,
+                                                                        [[maybe_unused]] size_t timeoutMs)
     {
         using DomainVectorType = typename std::conditional<std::is_same<DomainType, std::chrono::system_clock::time_point>::value,
                                                            std::vector<int64_t>,
@@ -227,12 +229,11 @@ private:
             static_assert(sizeof(std::chrono::system_clock::time_point::rep) == sizeof(int64_t));
             if constexpr (ReaderHasReadWithTimeout<ReaderType, ValueType>::value)
             {
-                reader->readWithDomain(
-                    values.data(), reinterpret_cast<std::chrono::system_clock::time_point*>(domain.data()), &count, timeoutMs, nullptr);
+                reader->readWithDomain(values.data(), domain.data(), &count, timeoutMs, nullptr);
             }
             else
             {
-                reader->readWithDomain(values.data(), reinterpret_cast<std::chrono::system_clock::time_point*>(domain.data()), &count, nullptr);
+                reader->readWithDomain(values.data(), domain.data(), &count, nullptr);
             }
         }
         else
@@ -257,7 +258,17 @@ private:
 
         std::string domainDtype;
         if constexpr (std::is_same_v<DomainType, std::chrono::system_clock::time_point>)
+        {
             domainDtype = "datetime64[ns]";
+            std::transform(domain.begin(),
+                           domain.end(),
+                           domain.begin(),
+                           [](int64_t timestamp)
+                           {
+                               const auto t = std::chrono::system_clock::time_point(std::chrono::system_clock::duration(timestamp));
+                               return std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count();
+                           });
+        }
 
         auto valuesArray = toPyArray(std::move(values), shape);
         auto domainArray = toPyArray(std::move(domain), shape, domainDtype);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ class ServerSessionHandler : public BaseSessionHandler
 {
 public:
     ServerSessionHandler(const ContextPtr& daqContext,
-                         boost::asio::io_context& ioContext,
+                         const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                          SessionPtr session,
                          OnStreamingRequestCallback streamingInitHandler,
                          OnSignalSubscriptionCallback signalSubscriptionHandler,

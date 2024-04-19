@@ -307,15 +307,16 @@ When an <<instance>> (device) hosts an xref:glossary.adoc#opendaq_opcua_server_m
 [#module]
 == Module
 
-A Module is usually a dynamically loaded library that provides a set of <<function_block>>s, xref:glossary.adoc#opendaq_opcua_server_module[Servers], and supported <<device>> types.
-It can be asked to add a provided <<function_block>> / xref:glossary.adoc#opendaq_opcua_server_module[Server] to an openDAQ(TM) application, and to connect to a <<device>>.
- 
+A Module is usually a dynamically loaded library that provides a set of <<function_block>>s, servers, and supported <<device>> types.
+It can be asked to add a provided <<function_block>> / server to an openDAQ(TM) application, and to connect to a <<device>>.
+
 Not all modules provide each of these. 
 For example, openDAQ(TM) provides:
 
 * `opcua_client_module`,`native_stream_cl_module` and `ws_stream_cl_module` which allow for connecting to <<device>>s.
-* `opcua_server_module` which allows for setting up a <<opendaq_opcua_server_module,Server>> that advertises <<device>> structure.
-* `native_stream_srv_module` and `ws_stream_srv_module` which allow for setting up Servers that advertise <<device>> <<signal>>s and stream <<device>> data.
+* `opcua_server_module` which allows for setting up a server that advertises <<device>> structure.
+* `native_stream_srv_module` which allows for setting up a server that advertises <<device>> structure, <<signal>>s and stream <<device>> data.
+* `ws_stream_srv_module` which allows for setting up a server that advertises <<device>> <<signal>>s and stream <<device>> data.
 
 [#device_discovery]
 == Device discovery
@@ -326,12 +327,12 @@ For example, openDAQ(TM) provides:
 
 When enumerating available <<device>>s, each <<module>> is queried for what <<device>>s it can connect to / create.
 This is done with the <<module>>'s provided discovery mechanism.
-The openDAQ(TM) xref:glossary.adoc#opendaq_opcua_client_module[OPC-UA Client Module], xref:glossary.adoc#opendaq_native_streaming_client_module[Native Streaming Client Module] and
+The openDAQ(TM) xref:glossary.adoc#opendaq_opcua_client_module[OPC-UA Client Module], xref:glossary.adoc#opendaq_native_client_module[Native Client Module] and
 xref:glossary.adoc#opendaq_websocket_streaming_client_module[Websocket Streaming Client Module] use a {mdns-wiki}[mDNS] query to discover all supported devices on the network.
 Those <<device>>s are assumed to be running a {mdns-wiki}[mDNS] discovery service, 
 advertising the `_opcua-tcp._tcp.local.` service, with a `TXT` record entry of `caps=TMS` if device is openDAQ(TM) OPC UA-supported,
 a {mdns-wiki}[mDNS] discovery service, advertising the `_opendaq-streaming-native._tcp.local.` service, with a `TXT` record entry of `caps=OPENDAQ_NS` if device is Native-streaming-supported.
-and a {mdns-wiki}[mDNS] discovery service, advertising the `_streaming-ws._tcp.local.` service, with a `TXT` record entry of `caps=WS` if device is Websocket-streaming-supported.
+and a {mdns-wiki}[mDNS] discovery service, advertising the `_streaming-lt._tcp.local.` service, with a `TXT` record entry of `caps=WS` if device is Websocket-streaming-supported.
 
 [#opc_foundation]
 == OPC Foundation
@@ -370,7 +371,7 @@ Allows for connecting to xref:glossary.adoc#opendaq_opcua[openDAQ(TM) OPC UA]-en
 It reads the structure of the remote <<device>> and mirrors it as a sub-device.
 Settings changed on the <<device>> mirror are also changed on the actual <<device>> itself.
 
-The openDAQ(TM) OPC-UA Client <<module>> also can use xref:glossary.adoc#opendaq_native_streaming_client_module[openDAQ(TM) Native Streaming Client Module]
+The openDAQ(TM) OPC-UA Client <<module>> also can use xref:glossary.adoc#opendaq_native_client_module[openDAQ(TM) Native Client Module]
 and xref:glossary.adoc#opendaq_websocket_streaming_client_module[openDAQ(TM) Websocket Streaming Client Module]
 to connect to the server component created by the corresponding Streaming Server Module.
 Doing so enables transferring <<data_packet>>s from server <<signal>>s into client xref:glossary.adoc#device[Signals].
@@ -379,15 +380,15 @@ Doing so enables transferring <<data_packet>>s from server <<signal>>s into clie
 == Websocket Streaming Server Module
 
 // suppress inspection "GrazieInspection"
-Allows for the creation of a web-socket streaming server on an <<instance>>.
+Allows for the creation of a web-socket streaming-lt server on an <<instance>>.
 It publishes <<device>> <<signal>>s and streams <<device>> data.
 
 [#opendaq_websocket_streaming_client_module]
 == Websocket Streaming Client Module
 
-Allows for connecting to <<device>>s running a web-socket streaming server.
+Allows for connecting to <<device>>s running a web-socket streaming-lt server.
 
-The openDAQ(TM) Websocket Streaming Client Module enables its own web-socket streaming client, which connects
+The openDAQ(TM) Websocket Streaming Client Module enables its own web-socket streaming-lt client, which connects
 to the server component created by the xref:glossary.adoc#opendaq_websocket_streaming_server_module[openDAQ(TM) Websocket Streaming Server Module].
 Doing so reads server signals and transfers data packets from server signals into client signals.
 
@@ -397,39 +398,55 @@ This "Pseudo" <<device>> does not mirror <<channel>>s or <<function_block>>s of 
 and does not provide a mechanism to change settings of the remote <<device>>.
 
 [#websocket_streaming_protocol]
-== openDAQ(TM) Websocket streaming protocol
+== openDAQ(TM) Websocket streaming-lt protocol
 
 The data transfer protocol used by openDAQ(TM) to publish <<device>> available <<signal>>s and send data from <<device>>s running an
 xref:glossary.adoc#opendaq_websocket_streaming_server_module[openDAQ(TM) Websocket Streaming Server]
 to an xref:glossary.adoc#opendaq_websocket_streaming_client_module[openDAQ(TM) Websocket Streaming Client].
 
-[#opendaq_native_streaming_server_module]
-== Native Streaming Server Module
+[#opendaq_native_server_module]
+== Native Server Module
 
 // suppress inspection "GrazieInspection"
-Allows for the creation of a native streaming server on an <<instance>>.
-It publishes <<device>> <<signal>>s and streams <<device>> data.
+Allows for the creation of native configuration and streaming servers on an openDAQ(TM) <<instance>>.
 
-[#opendaq_native_streaming_client_module]
-== Native Streaming Client Module
+The configuration server publishes the structure of the <<root_device>> and all its descendants (other <<device>>s and <<function_block>>s),
+and allows for changing the <<property_value>>s of all the structures from a remote client.
+The structure also dynamically adjusts to accommodate broader modifications, such as the addition of new
+<<function_block>>s, <<device>>s, <<channel>>s, or other <<component>>s.
 
-Allows for connecting to <<device>>s running a native streaming server.
+The streaming server publishes <<device>> <<signal>>s and streams <<device>> data.
 
-The openDAQ(TM) Native Streaming Client Module enables its own native streaming client, which connects
-to the server component created by the xref:glossary.adoc#opendaq_native_streaming_server_module[openDAQ(TM) Native Streaming Server Module].
+[#opendaq_native_client_module]
+== Native Client Module
+
+Allows for connecting to <<device>>s running native configuration and streaming servers.
+
+It reads the structure of the remote <<device>> and mirrors it as a sub-device.
+Settings changed on the <<device>> mirror are also changed on the actual <<device>> itself.
+
+The openDAQ(TM) Native Client Module enables its own native streaming client, which connects
+to the server streaming component created by the xref:glossary.adoc#opendaq_native_server_module[openDAQ(TM) Native Server Module].
 Doing so reads server signals and transfers data packets from server signals into client signals.
 
-The openDAQ(TM) Native Streaming Client Module allows to read the list of all signals of
+The openDAQ(TM) Native Client Module also allows to read the list of all signals of
 the remote <<device>> and mirror these as a flat list as if owned by a "pseudo" local <<device>>.
-This "Pseudo" <<device>> does not mirror <<channel>>s or <<function_block>>s of the remote <<device>>s,
+The "Pseudo" <<device>> does not mirror <<channel>>s or <<function_block>>s of the remote <<device>>s,
 and does not provide a mechanism to change settings of the remote <<device>>.
 
 [#native_streaming_protocol]
 == openDAQ(TM) Native streaming protocol
 
 The data transfer protocol used by openDAQ(TM) to publish <<device>> available <<signal>>s and send data from <<device>>s running an
-xref:glossary.adoc#opendaq_native_streaming_server_module[openDAQ(TM) Native Streaming Server]
-to an xref:glossary.adoc#opendaq_native_streaming_client_module[openDAQ(TM) Native Streaming Client].
+xref:glossary.adoc#opendaq_native_server_module[openDAQ(TM) Native Server]
+to an xref:glossary.adoc#opendaq_native_client_module[openDAQ(TM) Native Client].
+
+[#native_configuration_protocol]
+== openDAQ(TM) Native configuration protocol
+
+// suppress inspection "GrazieInspection"
+It is a protocol that describes the structure of a <<device>>.
+The openDAQ(TM) xref:glossary.adoc#opendaq_native_client_module[openDAQ(TM) Native Client] can connect to <<device>>s that adhere to this protocol.
 
 [#streaming]
 == Streaming

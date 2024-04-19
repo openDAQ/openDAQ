@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -189,7 +189,7 @@ public:
     }
 
     /*!
-     * @brief Gets the value of a field with the given name.
+     * @brief Sets the value of a field with the given name.
      * @param name The name of the queried field.
      * @param field The value of the field.
      */

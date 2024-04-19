@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 #pragma once
 #include <audio_device_module/common.h>
 #include <opendaq/function_block_impl.h>
-#include <opendaq/function_block_type_factory.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/data_packet_ptr.h>
+#include <opendaq/stream_reader_ptr.h>
 #include <miniaudio/miniaudio.h>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
@@ -31,9 +31,6 @@ public:
     ~WAVWriterFbImpl() override;
 
     static FunctionBlockTypePtr CreateType();
-
-    void onPacketReceived(const InputPortPtr& port) override;
-    void processPackets();
 private:
     InputPortConfigPtr inputPort;
     std::string fileName;
@@ -41,15 +38,24 @@ private:
     ma_encoder encoder;
     DataDescriptorPtr inputValueDataDescriptor;
     DataDescriptorPtr inputTimeDataDescriptor;
+    StreamReaderPtr reader;
+    bool selfChange;
+
+    bool validateDataDescriptor() const;
+    bool validateDomainDescriptor() const;
+    bool initializeEncoder();
 
     void initProperties();
-    void propertyChanged();
-    void readProperties();
     void createInputPort();
+
+    void fileNameChanged();
+    void storingChanged(bool store);
+    void storingChangedNoLock(bool store);
     void startStore();
     void stopStore();
-    void processSignalDescriptorChanged(const DataDescriptorPtr& valueDataDescriptor, const DataDescriptorPtr& timeDataDescriptor);
-    void processDataPacket(const DataPacketPtr& packet);
+    void stopStoreInternal();
+    void processEventPacket(const EventPacketPtr& packet);
+    void calculate();
 };
 
 END_NAMESPACE_AUDIO_DEVICE_MODULE

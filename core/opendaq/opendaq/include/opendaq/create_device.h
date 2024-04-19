@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,8 @@ DevicePtr createDevice(const StringPtr& connectionString,
                        const PropertyObjectPtr& config,
                        const ComponentPtr& parent,
                        const ModuleManagerPtr& manager,
-                       const LoggerComponentPtr& loggerComponent);
+                       const LoggerComponentPtr& loggerComponent,
+                       const DeviceInfoPtr& deviceInfo);
 }
 
 END_NAMESPACE_OPENDAQ

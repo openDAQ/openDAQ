@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,19 +40,23 @@ public:
 
     // IConfigClientSignalPrivate
     void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
+    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
 
     StringPtr onGetRemoteId() const override;
-    Bool onTriggerEvent(EventPacketPtr eventPacket) override;
+    Bool onTriggerEvent(const EventPacketPtr& eventPacket) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
+    bool clearDescriptorOnUnsubscribe() override;
 
 private:
     void descriptorChanged(const CoreEventArgsPtr& args);
     void attributeChanged(const CoreEventArgsPtr& args);
+
+    LoggerComponentPtr loggerComponent;
 };
 
 
@@ -63,6 +67,8 @@ inline ConfigClientSignalImpl::ConfigClientSignalImpl(const ConfigProtocolClient
                                                       const StringPtr& localId,
                                                       const StringPtr& className)
     : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
+    , loggerComponent(ctx.getLogger().assigned() ? ctx.getLogger().getOrAddComponent("ConfigProtocolClientSignal")
+                                                 : throw ArgumentNullException("Logger must not be null"))
 {
 }
 
@@ -71,10 +77,9 @@ inline StringPtr ConfigClientSignalImpl::onGetRemoteId() const
     return String(remoteGlobalId).detach();
 }
 
-inline Bool ConfigClientSignalImpl::onTriggerEvent(EventPacketPtr eventPacket)
+inline Bool ConfigClientSignalImpl::onTriggerEvent(const EventPacketPtr& eventPacket)
 {
-    // TODO
-    return True;
+    return Super::onTriggerEvent(eventPacket);
 }
 
 inline ErrCode ConfigClientSignalImpl::Deserialize(ISerializedObject* serialized,
@@ -135,6 +140,11 @@ inline void ConfigClientSignalImpl::onRemoteUpdate(const SerializedObjectPtr& se
         this->dataDescriptor = serialized.readObject("dataDescriptor");
 }
 
+inline bool ConfigClientSignalImpl::clearDescriptorOnUnsubscribe()
+{
+    return true;
+}
+
 inline void ConfigClientSignalImpl::descriptorChanged(const CoreEventArgsPtr& args)
 {
     this->dataDescriptor = args.getParameters().get("DataDescriptor");
@@ -156,6 +166,31 @@ inline void ConfigClientSignalImpl::assignDomainSignal(const SignalPtr& domainSi
 
     if (unmuteCoreEvent)
         this->coreEventMuted = false;
+}
+
+inline ErrCode ConfigClientSignalImpl::getLastValue(IBaseObject** value)
+{
+    {
+        std::scoped_lock lock(this->sync);
+
+        if (lastDataPacket.assigned())
+            return Super::getLastValue(value);
+    }
+
+    try
+    {
+        *value = this->clientComm->getLastValue(this->remoteGlobalId).detach();
+    }
+    catch (const DaqException& e)
+    {
+        LOG_W("getLastValue() RPC failed: {}", e.what());
+    }
+    catch (const std::exception& e)
+    {
+        return errorFromException(e);
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 inline void ConfigClientSignalImpl::attributeChanged(const CoreEventArgsPtr& args)

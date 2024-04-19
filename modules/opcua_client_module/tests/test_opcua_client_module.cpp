@@ -138,8 +138,8 @@ TEST_F(OpcUaClientModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 1u);
-    ASSERT_TRUE(deviceTypes.hasKey("daq.opcua"));
-    ASSERT_EQ(deviceTypes.get("daq.opcua").getId(), "daq.opcua");
+    ASSERT_TRUE(deviceTypes.hasKey("opendaq_opcua_config"));
+    ASSERT_EQ(deviceTypes.get("opendaq_opcua_config").getId(), "opendaq_opcua_config");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
@@ -153,8 +153,8 @@ TEST_F(OpcUaClientModuleTest, DefaultDeviceConfig)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 1u);
-    ASSERT_TRUE(deviceTypes.hasKey("daq.opcua"));
-    auto config = deviceTypes.get("daq.opcua").createDefaultConfig();
+    ASSERT_TRUE(deviceTypes.hasKey("opendaq_opcua_config"));
+    auto config = deviceTypes.get("opendaq_opcua_config").createDefaultConfig();
     ASSERT_TRUE(config.assigned());
 
     ASSERT_TRUE(config.hasProperty("StreamingConnectionHeuristic"));
@@ -162,16 +162,16 @@ TEST_F(OpcUaClientModuleTest, DefaultDeviceConfig)
 
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     ASSERT_TRUE(config.hasProperty("AllowedStreamingProtocols"));
-    ASSERT_EQ(config.getPropertyValue("AllowedStreamingProtocols"), List<IString>("daq.ns", "daq.wss"));
+    ASSERT_EQ(config.getPropertyValue("AllowedStreamingProtocols"), List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
 
     ASSERT_TRUE(config.hasProperty("PrimaryStreamingProtocol"));
-    ASSERT_EQ(config.getPropertyValue("PrimaryStreamingProtocol"), "daq.ns");
+    ASSERT_EQ(config.getPropertyValue("PrimaryStreamingProtocol"), "opendaq_native_streaming");
 #elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING) && !defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     ASSERT_TRUE(config.hasProperty("AllowedStreamingProtocols"));
-    ASSERT_EQ(config.getPropertyValue("AllowedStreamingProtocols"), List<IString>("daq.wss"));
+    ASSERT_EQ(config.getPropertyValue("AllowedStreamingProtocols"), List<IString>("opendaq_lt_streaming"));
 
     ASSERT_TRUE(config.hasProperty("PrimaryStreamingProtocol"));
-    ASSERT_EQ(config.getPropertyValue("PrimaryStreamingProtocol"), "daq.wss");
+    ASSERT_EQ(config.getPropertyValue("PrimaryStreamingProtocol"), "opendaq_lt_streaming");
 #endif
 }
 

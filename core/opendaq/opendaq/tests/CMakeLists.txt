@@ -2,12 +2,14 @@ set(MODULE_NAME ${SDK_TARGET_NAME})
 set(TEST_APP test_${MODULE_NAME})
 
 set(TEST_HEADERS test_helpers.h
+                 test_config_provider.h
 )
 
 set(TEST_SOURCES test_factories.cpp
                  test_instance.cpp
                  test_core_events.cpp
                  test_config_provider.cpp
+                 test_access_control.cpp
                  ${TEST_HEADERS}
 )
 

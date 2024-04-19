@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,9 +48,9 @@ public static class CoreTypesDllInfo
     /// The library will be searched in the same directory as this assembly or in a sub-tree below 'runtimes'.
     /// </remarks>
 #if _X86
-    public const string FileName = "daqcoretypes-32-2" + Target;
+    public const string FileName = "daqcoretypes-32-3" + Target;
 #else
-    public const string FileName = "daqcoretypes-64-2" + Target;
+    public const string FileName = "daqcoretypes-64-3" + Target;
 #endif
 
     /// <summary>The SDK version.</summary>

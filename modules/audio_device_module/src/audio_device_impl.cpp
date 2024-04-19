@@ -23,7 +23,7 @@ AudioDeviceImpl::AudioDeviceImpl(const std::shared_ptr<MiniaudioContext>& maCont
                           : throw ArgumentNullException("Logger must not be null"))
 {
     // time signal is owned by device, because in case of multiple channels they should share the same time signal
-    timeSignal = createAndAddSignal("time");
+    timeSignal = createAndAddSignal("time", nullptr, false);
 
     initProperties();
     createAudioChannel();
@@ -58,7 +58,9 @@ DeviceInfoPtr AudioDeviceImpl::onGetInfo()
     {
         LOG_W("Miniaudio get device information failed: {}", ma_result_description(result));
     }
-    return CreateDeviceInfo(maContext, info);
+    auto deviceInfo = CreateDeviceInfo(maContext, info);
+    deviceInfo.freeze();
+    return deviceInfo;
 }
 
 uint64_t AudioDeviceImpl::onGetTicksSinceOrigin()
@@ -68,7 +70,7 @@ uint64_t AudioDeviceImpl::onGetTicksSinceOrigin()
 
 void AudioDeviceImpl::initProperties()
 {
-    auto sampleRatePropInfo = IntPropertyBuilder("SampleRate", 44100).setSuggestedValues(List<Int>(11025, 22050, 44100)).build();
+    auto sampleRatePropInfo = IntPropertyBuilder("SampleRate", 44100).setReadOnly(true).setSuggestedValues(List<Int>(11025, 22050, 44100)).build();
     objPtr.addProperty(sampleRatePropInfo);
     objPtr.getOnPropertyValueWrite("SampleRate") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };

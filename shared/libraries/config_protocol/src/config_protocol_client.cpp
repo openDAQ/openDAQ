@@ -131,6 +131,43 @@ void ConfigProtocolClientComm::setAttributeValue(const std::string& globalId,
     parseRpcReplyPacketBuffer(setAttributeValueRpcReplyPacketBuffer);
 }
 
+void ConfigProtocolClientComm::beginUpdate(const std::string& globalId, const std::string& path)
+{
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    if (!path.empty())
+        dict.set("Path", String(path));
+    auto setPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "BeginUpdate", dict);
+    const auto setPropertyValueRpcReplyPacketBuffer = sendRequestCallback(setPropertyValueRpcRequestPacketBuffer);
+
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    parseRpcReplyPacketBuffer(setPropertyValueRpcReplyPacketBuffer);
+}
+
+void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std::string& path)
+{
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    if (!path.empty())
+        dict.set("Path", String(path));
+    auto setPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "EndUpdate", dict);
+    const auto setPropertyValueRpcReplyPacketBuffer = sendRequestCallback(setPropertyValueRpcRequestPacketBuffer);
+
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    parseRpcReplyPacketBuffer(setPropertyValueRpcReplyPacketBuffer);
+}
+
+BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)
+{
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    auto getPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetLastValue", dict);
+    const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
+
+    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext, nullptr, nullptr, nullptr, nullptr);
+    return parseRpcReplyPacketBuffer(getPropertyValueRpcReplyPacketBuffer, deserializeContext);
+}
+
 BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const
 {
     auto obj = Dict<IString, IBaseObject>();
@@ -326,6 +363,12 @@ BaseObjectPtr ConfigProtocolClientComm::requestRootDevice(const ComponentPtr& pa
     auto params = Dict<IString, IBaseObject>();
     params.set("ComponentGlobalId", "//root");
     return sendComponentCommandInternal("GetComponent", params, parentComponent, true);
+}
+
+StringPtr ConfigProtocolClientComm::requestSerializedRootDevice()
+{
+    auto params = Dict<IString, IBaseObject>();
+    return sendComponentCommandInternal("GetSerializedRootDevice", params, nullptr);
 }
 
 BaseObjectPtr ConfigProtocolClientComm::sendCommand(const StringPtr& command, const ParamsDictPtr& params)

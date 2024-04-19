@@ -1,25 +1,28 @@
-#include <testutils/testutils.h>
-#include <ref_device_module/module_dll.h>
-#include <ref_device_module/version.h>
-#include <gmock/gmock.h>
-#include <opendaq/module_ptr.h>
-#include <opendaq/device_ptr.h>
-#include <opendaq/input_port_factory.h>
-#include <opendaq/removable_ptr.h>
-#include <opendaq/range_factory.h>
 #include <coretypes/common.h>
+#include <gmock/gmock.h>
+#include <opendaq/config_provider_factory.h>
 #include <opendaq/context_factory.h>
-#include <opendaq/search_filter_factory.h>
-#include <opendaq/reader_factory.h>
 #include <opendaq/data_packet_ptr.h>
-#include <opendaq/event_packet_ptr.h>
+#include <opendaq/device_ptr.h>
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_params.h>
-
+#include <opendaq/event_packet_ptr.h>
+#include <opendaq/input_port_factory.h>
+#include <opendaq/module_ptr.h>
+#include <opendaq/range_factory.h>
+#include <opendaq/reader_factory.h>
+#include <opendaq/removable_ptr.h>
+#include <opendaq/search_filter_factory.h>
+#include <ref_device_module/module_dll.h>
+#include <ref_device_module/version.h>
+#include <testutils/testutils.h>
 #include <thread>
+#include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
 
-using RefDeviceModuleTest = testing::Test;
 using namespace daq;
+using RefDeviceModuleTest = testing::Test;
+using namespace test_config_provider_helpers;
+using RefDeviceModuleTestConfig = ConfigProviderTest;
 
 static ModulePtr CreateModule()
 {
@@ -226,7 +229,6 @@ TEST_F(RefDeviceModuleTest, CreateFunctionBlockIdEmpty)
     ASSERT_THROW(module.createFunctionBlock("", nullptr, "id"), NotFoundException);
 }
 
-
 TEST_F(RefDeviceModuleTest, DeviceNumberOfChannels)
 {
     auto module = CreateModule();
@@ -254,7 +256,6 @@ TEST_F(RefDeviceModuleTest, DeviceChangeNumberOfChannels)
     numChannels = device.getPropertyValue("NumberOfChannels");
     ASSERT_EQ(numChannels, 3);
     ASSERT_EQ(device.getChannels().getCount(), 3u);
-
 }
 
 TEST_F(RefDeviceModuleTest, DeviceChangeAcqLoopTime)
@@ -434,10 +435,7 @@ TEST_F(RefDeviceModuleTest, Ids)
 
 bool propertyInfoListContainsProperty(const ListPtr<IProperty>& list, const std::string& propName)
 {
-    auto it = std::find_if(list.begin(), list.end(), [propName](const PropertyPtr& prop)
-        {
-            return prop.getName() == propName;
-        });
+    auto it = std::find_if(list.begin(), list.end(), [propName](const PropertyPtr& prop) { return prop.getName() == propName; });
 
     return it != list.end();
 }
@@ -545,7 +543,7 @@ TEST_F(RefDeviceModuleTest, Sync)
     auto module = CreateModule();
     auto device = module.createDevice("daqref://device1", nullptr);
     ComponentPtr syncComponent = device.getItem("sync");
-    
+
     ASSERT_FALSE(syncComponent.getPropertyValue("UseSync"));
     syncComponent.setPropertyValue("UseSync", True);
     ASSERT_TRUE(syncComponent.getPropertyValue("UseSync"));
@@ -714,4 +712,167 @@ TEST_F(RefDeviceModuleTest, ReadAIChannelWithFixedPacketSize)
         if (sampleCount == packetSize)
             break;
     };
+}
+
+TEST_F(RefDeviceModuleTest, ReadConstantRule)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+
+    const ChannelPtr ch = device.getChannels()[0];
+    ch.setPropertyValue("ConstantValue", 4.0);
+    ch.setPropertyValue("Waveform", 4);
+    const auto signal = ch.getSignals()[0];
+
+    const auto packetReader = PacketReader(signal);
+    while (true)
+    {
+        const auto packet = packetReader.read();
+        if (packet.assigned() && packet.getType() == PacketType::Data &&
+            packet.asPtr<IDataPacket>(true).getDataDescriptor().getRule().getType() == DataRuleType::Constant)
+        {
+            DataPacketPtr dataPacket = packet;
+            const auto data = reinterpret_cast<double*>(dataPacket.getData());
+            ASSERT_EQ(*data, 4.0);
+            break;
+        }
+        else
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+
+TEST_F(RefDeviceModuleTestConfig, JsonConfigReadReferenceDeviceLocalId)
+{
+    std::string filename = "test.json";
+    std::string json = "{ \"ReferenceDevice\": { \"LocalId\": \"testtest\" } }";
+    createConfigFile(filename, json);
+
+    auto options = GetOptionsWithReferenceDevice();
+
+    auto expectedOptions = GetOptionsWithReferenceDevice();
+    getChildren(expectedOptions, "ReferenceDevice").set("LocalId", "testtest");
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalId)
+{
+    std::string filename = "test.json";
+    std::string json = "{ \"ReferenceDevice\": { \"LocalId\": \"testtest\" } }";
+    createConfigFile(filename, json);
+
+    auto options = GetDefaultOptions();
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    auto context = NullContext(Logger(), TypeManager(), options);
+
+    ModulePtr module;
+    createModule(&module, context);
+
+    DevicePtr ptr;
+    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
+    ASSERT_EQ(ptr.getLocalId(), "testtest");
+}
+
+TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigName)
+{
+    std::string filename = "test.json";
+    std::string json = "{ \"ReferenceDevice\": { \"Name\": \"testname\" } }";
+    createConfigFile(filename, json);
+
+    auto options = GetDefaultOptions();
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    auto context = NullContext(Logger(), TypeManager(), options);
+
+    ModulePtr module;
+    createModule(&module, context);
+
+    DevicePtr ptr;
+    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
+    ASSERT_EQ(ptr.getName(), "testname");
+}
+
+TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalIdAndName)
+{
+    std::string filename = "test.json";
+    std::string json = "{ \"ReferenceDevice\": { \"LocalId\": \"testtest\", \"Name\": \"testname\" } }";
+    createConfigFile(filename, json);
+
+    auto options = GetDefaultOptions();
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    auto context = NullContext(Logger(), TypeManager(), options);
+
+    ModulePtr module;
+    createModule(&module, context);
+
+    DevicePtr ptr;
+    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
+    ASSERT_EQ(ptr.getLocalId(), "testtest");
+    ASSERT_EQ(ptr.getName(), "testname");
+}
+
+TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigMalformed)
+{
+    std::string filename = "test.json";
+    std::string json = "{ \"ReferenceDevice\": { \"LocalId\": { \"Error\": \"testtest\" } } }";
+    createConfigFile(filename, json);
+
+    auto options = GetDefaultOptions();
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    auto context = NullContext(Logger(), TypeManager(), options);
+
+    ModulePtr module;
+    createModule(&module, context);
+
+    ASSERT_THROW(module.createDevice("daqref://device1", nullptr), NoInterfaceException);
+}
+
+TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigDefault)
+{
+    auto options = GetDefaultOptions();
+
+    auto context = NullContext(Logger(), TypeManager(), options);
+
+    ModulePtr module;
+    createModule(&module, context);
+
+    DevicePtr ptr;
+    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
+    ASSERT_EQ(ptr.getLocalId(), "ref_dev1");
+}
+
+TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigNoOptions)
+{
+    auto module = CreateModule();
+
+    DevicePtr ptr;
+    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
+    ASSERT_EQ(ptr.getLocalId(), "ref_dev1");
+}
+
+TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)
+{
+    auto options = GetOptionsWithReferenceDevice();
+
+    auto context = NullContext(Logger(), TypeManager(), options);
+
+    ModulePtr module;
+    createModule(&module, context);
+
+    DevicePtr ptr;
+    ASSERT_THROW(ptr = module.createDevice("daqref://device1", nullptr), GeneralErrorException);
 }

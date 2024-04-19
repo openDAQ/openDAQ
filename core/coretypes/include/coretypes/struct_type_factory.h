@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ inline StructTypePtr StructType(const StringPtr& name,
 }
 
 /*!
- * @brief Creates a Struct type with a given name, fieldn ames and field types.
+ * @brief Creates a Struct type with a given name, field names and field types.
  * @param name The name of the Struct type
  * @param fieldNames The list of field names (String objects)
  * @param fieldTypes The list of field types (Type objects)

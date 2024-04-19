@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ public:
 protected:
     opcua::OpcUaNodeId getTmsTypeId() override;
     void populateDeviceInfo();
-    void populateStreamingOptions();
+    void populateServerCapabilities();
     void addFunctionBlockFolderNodes();
     void createFunctionBlockTypesFolder(const OpcUaNodeId& parentId);
     void createAddFunctionBlockNode(const OpcUaNodeId& parentId);
@@ -66,7 +66,7 @@ protected:
     std::list<TmsServerFunctionBlockPtr> functionBlocks;
     std::list<TmsServerFolderPtr> folders;
     std::list<TmsServerComponentPtr> components;
-    std::list<TmsServerPropertyObjectPtr> streamingOptions;
+    std::list<TmsServerPropertyObjectPtr> serverCapabilities;
     std::list<TmsServerFunctionBlockTypePtr> functionBlockTypes;
 };
 

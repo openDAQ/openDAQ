@@ -2,11 +2,13 @@
 #include "test_helpers.h"
 #include <fstream>
 
+#include "opendaq/mock/mock_device_module.h"
+
 using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
-static InstancePtr CreateServerInstance()
+static InstancePtr CreateDefaultServerInstance()
 {
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
@@ -21,6 +23,31 @@ static InstancePtr CreateServerInstance()
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
 
+    return instance;
+}
+
+static InstancePtr CreateUpdatedServerInstance()
+{
+    auto logger = Logger();
+    auto scheduler = Scheduler(logger);
+    auto moduleManager = ModuleManager("");
+    auto typeManager = TypeManager();
+    auto context = Context(scheduler, logger, typeManager, moduleManager);
+
+    auto instance = InstanceCustom(context, "local");
+
+    const auto statistics = instance.addFunctionBlock("ref_fb_module_scaling");
+    const auto refDevice = instance.addDevice("daqref://device0");
+    refDevice.setPropertyValue("NumberOfChannels", 3);
+
+    const auto testType = EnumerationType("TestEnumType", List<IString>("TestValue1", "TestValue2"));
+    instance.getContext().getTypeManager().addType(testType);
+
+    return instance;
+}
+
+static InstancePtr CreateServerInstance(InstancePtr instance = CreateDefaultServerInstance())
+{
     instance.addServer("openDAQ Native Streaming", nullptr);
 
     return instance;
@@ -585,7 +612,7 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     InstancePtr instance;
     ASSERT_NO_THROW(instance = InstanceBuilder().addConfigProvider(JsonConfigProvider("opendaq-config.json")).build());
 
-    auto deviceConfig = instance.getAvailableDeviceTypes().get("daq.nd").createDefaultConfig();
+    auto deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_native_config").createDefaultConfig();
     ASSERT_TRUE(deviceConfig.hasProperty("TransportLayerConfig"));
     PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
 
@@ -596,7 +623,7 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     ASSERT_EQ(transportLayerConfig.getPropertyValue("StreamingInitTimeout"), 400);
     ASSERT_EQ(transportLayerConfig.getPropertyValue("ReconnectionPeriod"), 500);
 
-    auto pseudoDeviceConfig = instance.getAvailableDeviceTypes().get("daq.nsd").createDefaultConfig();
+    auto pseudoDeviceConfig = instance.getAvailableDeviceTypes().get("opendaq_native_streaming").createDefaultConfig();
     ASSERT_TRUE(pseudoDeviceConfig.hasProperty("TransportLayerConfig"));
     transportLayerConfig = pseudoDeviceConfig.getPropertyValue("TransportLayerConfig");
 
@@ -606,4 +633,98 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     ASSERT_EQ(transportLayerConfig.getPropertyValue("ConnectionTimeout"), 300);
     ASSERT_EQ(transportLayerConfig.getPropertyValue("StreamingInitTimeout"), 400);
     ASSERT_EQ(transportLayerConfig.getPropertyValue("ReconnectionPeriod"), 500);
+}
+
+TEST_F(NativeDeviceModulesTest, Reconnection)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    std::promise<StringPtr> reconnectionStatusPromise;
+    std::future<StringPtr> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+    client.getDevices()[0].getOnComponentCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
+        {
+            ASSERT_TRUE(args.getParameters().hasKey("ConnectionStatus"));
+            reconnectionStatusPromise.set_value(args.getParameters().get("ConnectionStatus").toString());
+        }
+    };
+
+    // destroy server to emulate disconnection
+    server.release();
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
+
+    // reset future / promise
+    reconnectionStatusPromise = std::promise<StringPtr>();
+    reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+
+    // re-create updated server
+    server = CreateServerInstance(CreateUpdatedServerInstance());
+
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    auto channels = client.getDevices()[0].getChannels(search::Recursive(search::Any()));
+    ASSERT_EQ(channels.getCount(), 3u);
+
+    auto fbs = client.getDevices()[0].getFunctionBlocks(search::Recursive(search::Any()));
+    ASSERT_EQ(fbs.getCount(), 1u);
+    ASSERT_EQ(fbs[0].getFunctionBlockType().getId(), "ref_fb_module_scaling");
+
+    ASSERT_TRUE(client.getContext().getTypeManager().hasType("TestEnumType"));
+
+    auto signals = client.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : signals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, Update)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    std::promise<void> updatedPromise;
+    std::future<void> updatedFuture = updatedPromise.get_future();
+
+    client.getContext().getOnCoreEvent() +=
+        [&](const ComponentPtr& component, const CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentUpdateEnd)
+        {
+            updatedPromise.set_value();
+        }
+    };
+
+    // update device
+    auto updatableDevice = client.getDevices()[0].getDevices()[0];
+    const auto serializer = JsonSerializer();
+    updatableDevice.serialize(serializer);
+    const auto str = serializer.getOutput();
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(updatableDevice, str);
+
+    ASSERT_TRUE(updatedFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+
+    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : clientSignals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+    }
 }

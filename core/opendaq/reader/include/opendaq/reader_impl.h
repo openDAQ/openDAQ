@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -112,10 +112,7 @@ public:
     ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
-        
-        std::scoped_lock lock(mutex);
-        connection = InputPortConfigPtr::Borrow(inputPort).getConnection();
-        handleDescriptorChanged(connection.dequeue());
+        connection = InputPortPtr::Borrow(inputPort).getConnection();
         return OPENDAQ_SUCCESS;
     }
 
@@ -316,6 +313,7 @@ protected:
         , domainReader(daq::createReaderForType(domainReadType, old->domainReader->getTransformFunction()))
     {
         dataDescriptor = old->dataDescriptor;
+        domainDescriptor = old->domainDescriptor;
         old->invalid = true;
 
         timeoutType = old->timeoutType;
@@ -406,6 +404,7 @@ protected:
         // Check if domain is stil convertible
         if (newDomainDescriptor.assigned())
         {
+            domainDescriptor = newDomainDescriptor;
             if (domainReader->isUndefined())
             {
                 inferReaderReadType(newDomainDescriptor, domainReader);
@@ -438,22 +437,7 @@ protected:
             }
         }
 
-        if (!dataDescriptor.assigned())
-        {
-            const auto signal = port.getSignal();
-            if (!signal.assigned())
-            {
-                throw InvalidStateException("Input port must already have a signal assigned");
-            }
-
-            dataDescriptor = signal.getDescriptor();
-            if (!dataDescriptor.assigned())
-            {
-                throw InvalidStateException("Input port connected signal must have a descriptor assigned.");
-            }
-        }
-
-        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr));
+        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
     }
 
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket)
@@ -500,6 +484,7 @@ protected:
     ReadTimeoutType timeoutType;
 
     DataDescriptorPtr dataDescriptor;
+    DataDescriptorPtr domainDescriptor;
 
     std::unique_ptr<Reader> valueReader;
     std::unique_ptr<Reader> domainReader;

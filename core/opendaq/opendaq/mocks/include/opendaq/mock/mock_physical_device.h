@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,11 +26,12 @@ BEGIN_NAMESPACE_OPENDAQ
 class MockPhysicalDeviceImpl : public Device
 {
 public:
-    MockPhysicalDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    MockPhysicalDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
     ~MockPhysicalDeviceImpl();
-     
+
     daq::DeviceInfoPtr onGetInfo() override;
     uint64_t onGetTicksSinceOrigin() override;
+    bool allowAddDevicesFromModules() override;
 
     void setDeviceDomainHelper(const DeviceDomainPtr& deviceDomain);
 
@@ -39,7 +40,9 @@ protected:
     void stopAcq();
     void generatePackets(size_t packetCount);
     void registerProperties();
+    void registerTestConfigProperties();
 
+    PropertyObjectPtr config;
     FolderConfigPtr mockFolderA; // InputsOutputs/mockFolderA
     FolderConfigPtr mockFolderB; // InputsOutputs/mockFolderB
     ChannelPtr mockChannel1; // InputsOutputs/mockChannel1
@@ -52,6 +55,7 @@ protected:
     FolderPtr componentA;
     ComponentPtr componentA1;
     ComponentPtr componentB;
+    uint64_t time;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
@@ -59,6 +63,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     MockPhysicalDevice, daq::IDevice,
     daq::IContext*, ctx,
     daq::IComponent*, parent,
-    daq::IString*, localId)
+    daq::IString*, localId,
+    daq::IPropertyObject*, config)
 
 END_NAMESPACE_OPENDAQ

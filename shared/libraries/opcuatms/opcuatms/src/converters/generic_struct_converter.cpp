@@ -7,6 +7,7 @@
 #include "coretypes/simple_type_factory.h"
 #include "opcuatms/converters/list_conversion_utils.h"
 #include "iostream"
+#include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -17,8 +18,10 @@ namespace detail
         const auto ct = obj.getCoreType();
         if (ct == ctStruct)
             return obj.asPtr<IStruct>().getStructType();
-
-        return SimpleType(ct);
+        else if (ct == ctEnumeration)
+            return obj.asPtr<IEnumeration>().getEnumerationType();
+        else
+            return SimpleType(ct);
     }
 }
 
@@ -108,7 +111,7 @@ StructPtr VariantConverter<IStruct>::ToDaqObject(const OpcUaVariant& variant, co
                 }
                 else
                 {
-                    daqMembers.set(member->memberName, nullptr); 
+                    daqMembers.set(member->memberName, nullptr);
                     src += sizeof(size_t*);
                     memberTypes.pushBack(SimpleType(ctUndefined));
                 }
@@ -117,8 +120,20 @@ StructPtr VariantConverter<IStruct>::ToDaqObject(const OpcUaVariant& variant, co
         }
     }
 
-    if (!typeManager.hasType(type->typeName))
+    try
+    {
         typeManager.addType(StructType(type->typeName, daqMembers.getKeyList(), memberTypes));
+    }
+    catch (const std::exception& e)
+    {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("GenericStructConverter");
+        LOG_W("Couldn't add type {} to type manager: {}", type->typeName, e.what());
+    }
+    catch (...)
+    {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("GenericStructConverter");
+        LOG_W("Couldn't add type {} to type manager!", type->typeName);
+    }
 
     return Struct(type->typeName, daqMembers, typeManager);
 }

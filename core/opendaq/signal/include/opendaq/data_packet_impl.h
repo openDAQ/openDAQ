@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 #pragma once
 #include <coretypes/intfs.h>
-#include <opendaq/allocator_ptr.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/data_rule_calc_private.h>
 #include <opendaq/generic_data_packet_impl.h>
@@ -24,6 +23,7 @@
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/scaling_calc_private.h>
 #include <opendaq/signal_exceptions.h>
+#include <opendaq/deleter_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -36,9 +36,27 @@ public:
     explicit DataPacketImpl(const DataPacketPtr& domainPacket,
                             const DataDescriptorPtr& descriptor,
                             SizeT sampleCount,
+                            const NumberPtr& offset);
+
+    explicit DataPacketImpl(const DataDescriptorPtr& descriptor,
+                            SizeT sampleCount,
+                            const NumberPtr& offset);
+
+    explicit DataPacketImpl(const DataPacketPtr& domainPacket,
+                            const DataDescriptorPtr& descriptor,
+                            SizeT sampleCount,
                             const NumberPtr& offset,
-                            AllocatorPtr allocator);
-    explicit DataPacketImpl(const DataDescriptorPtr& descriptor, SizeT sampleCount, const NumberPtr& offset, AllocatorPtr allocator);
+                            void* externalMemory,
+                            const DeleterPtr& deleter,
+                            SizeT bufferSize = std::numeric_limits<SizeT>::max());
+
+    explicit DataPacketImpl(const DataPacketPtr& domainPacket,
+                            const DataDescriptorPtr& descriptor,
+                            SizeT sampleCount,
+                            void* initialValue,
+                            void* otherValues,
+                            SizeT otherValueCount);
+
     ~DataPacketImpl() override;
 
     ErrCode INTERFACE_FUNC getDataDescriptor(IDataDescriptor** descriptor) override;
@@ -48,14 +66,18 @@ public:
     ErrCode INTERFACE_FUNC getData(void** address) override;
     ErrCode INTERFACE_FUNC getDataSize(SizeT* dataSize) override;
     ErrCode INTERFACE_FUNC getRawDataSize(SizeT* rawDataSize) override;
-    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override;
 
 private:
     bool isDataEqual(const DataPacketPtr& dataPacket) const;
+    BaseObjectPtr dataToObj(void* addr, const SampleType& type) const;
+    BaseObjectPtr dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType) const;
+    StructPtr buildStructFromFields(const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager, void*& addr) const;
+    BaseObjectPtr buildFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager) const;
 
-    AllocatorPtr allocator;
+    DeleterPtr deleter;
     DataDescriptorPtr descriptor;
     SizeT sampleCount;
     NumberPtr offset = nullptr;
@@ -70,22 +92,22 @@ private:
     bool hasScalingCalc;
     bool hasDataRuleCalc;
     bool hasRawDataOnly;
+    bool externalMemory;
 };
 
 template <typename TInterface>
 DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
                                            const DataDescriptorPtr& descriptor,
                                            SizeT sampleCount,
-                                           const NumberPtr& offset,
-                                           AllocatorPtr allocator)
+                                           const NumberPtr& offset)
     : GenericDataPacketImpl<TInterface>(domainPacket)
-    , allocator(std::move(allocator))
     , descriptor(descriptor)
     , sampleCount(sampleCount)
     , offset(offset)
     , hasScalingCalc(false)
     , hasDataRuleCalc(false)
     , hasRawDataOnly(true)
+    , externalMemory(false)
 {
     scaledData = nullptr;
     data = nullptr;
@@ -100,10 +122,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
 
     if (rawDataSize > 0)
     {
-        if (this->allocator.assigned())
-            data = this->allocator.allocate(descriptor, rawDataSize, rawSampleSize);
-        else
-            data = std::malloc(rawDataSize);
+        data = std::malloc(rawDataSize);
 
         if (data == nullptr)
             throw NoMemoryException();
@@ -123,20 +142,109 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
 }
 
 template <typename TInterface>
-DataPacketImpl<TInterface>::DataPacketImpl(const DataDescriptorPtr& descriptor,
+DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
+                                           const DataDescriptorPtr& descriptor,
                                            SizeT sampleCount,
                                            const NumberPtr& offset,
-                                           AllocatorPtr allocator)
-    : DataPacketImpl<TInterface>(nullptr, descriptor, sampleCount, offset, std::move(allocator))
+                                           void* externalMemory,
+                                           const DeleterPtr& deleter,
+                                           SizeT bufferSize)
+    : GenericDataPacketImpl<TInterface>(domainPacket)
+    , deleter(deleter)
+    , descriptor(descriptor)
+    , sampleCount(sampleCount)
+    , offset(offset)
+    , hasScalingCalc(false)
+    , hasDataRuleCalc(false)
+    , hasRawDataOnly(true)
+    , externalMemory(true)
 {
+    scaledData = nullptr;
+    data = nullptr;
+
+    if (!descriptor.assigned())
+        throw ArgumentNullException("Data descriptor in packet is null.");
+
+    if (!deleter.assigned())
+        throw ArgumentNullException("Deleter must be assigned.");
+
+    sampleSize = descriptor.getSampleSize();
+    rawSampleSize = descriptor.getRawSampleSize();
+    dataSize = sampleCount * sampleSize;
+
+    if (bufferSize == std::numeric_limits<SizeT>::max())
+        rawDataSize = sampleCount * rawSampleSize;
+    else
+        rawDataSize = bufferSize;
+
+    data = externalMemory;
+
+    if (descriptor.getSampleType() == SampleType::Struct && rawSampleSize != sampleSize)
+        throw InvalidParameterException("Packets with struct implicit descriptor not supported");
+
+    const auto ruleType = descriptor.getRule().getType();
+
+    if (ruleType == DataRuleType::Constant || (ruleType == DataRuleType::Linear && this->offset.assigned()))
+        hasDataRuleCalc = descriptor.asPtr<IDataRuleCalcPrivate>(false)->hasDataRuleCalc();
+
+    hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(false)->hasScalingCalc();
+
+    hasRawDataOnly = !hasScalingCalc && !hasDataRuleCalc;
+}
+
+template <typename TInterface>
+DataPacketImpl<TInterface>::DataPacketImpl(const DataDescriptorPtr& descriptor,
+                                           SizeT sampleCount,
+                                           const NumberPtr& offset)
+    : DataPacketImpl<TInterface>(nullptr, descriptor, sampleCount, offset)
+{
+}
+
+template <typename TInterface>
+DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
+                                           const DataDescriptorPtr& descriptor,
+                                           SizeT sampleCount,
+                                           void* initialValue,
+                                           void* otherValues,
+                                           SizeT otherValueCount)
+    : GenericDataPacketImpl<TInterface>(domainPacket)
+    , descriptor(descriptor)
+    , sampleCount(sampleCount)
+    , hasRawDataOnly(true)
+    , externalMemory(false)
+{
+    scaledData = nullptr;
+    data = nullptr;
+
+    if (!descriptor.assigned())
+        throw ArgumentNullException("Data descriptor in packet is null.");
+    const auto ruleType = descriptor.getRule().getType();
+    if (ruleType != DataRuleType::Constant)
+        throw InvalidParameterException("Data rule must be constant.");
+
+    sampleSize = descriptor.getSampleSize();
+    dataSize = sampleCount * sampleSize;
+    const auto structSize = sampleSize + sizeof(uint32_t);
+
+    rawDataSize = sampleSize + structSize * otherValueCount;
+    data = std::malloc(rawDataSize);
+    std::memcpy(data, initialValue, sampleSize);
+    if (otherValueCount > 0)
+        std::memcpy(reinterpret_cast<uint8_t*>(data) + sampleSize, otherValues, otherValueCount * structSize);
+
+    hasDataRuleCalc = true;
+    hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(false)->hasScalingCalc();
+    if (hasScalingCalc)
+        throw InvalidParameterException("Constant data rule with post scaling not supported.");
+    hasRawDataOnly = false;
 }
 
 template <typename TInterface>
 DataPacketImpl<TInterface>::~DataPacketImpl()
 {
-    if (allocator.assigned())
+    if (externalMemory)
     {
-        allocator.free(data);
+        deleter.deleteMemory(data);
     }
     else
     {
@@ -212,7 +320,7 @@ ErrCode DataPacketImpl<TInterface>::getData(void** address)
                     }
                     else if (hasDataRuleCalc)
                     {
-                        scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(offset, sampleCount);
+                        scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(offset, sampleCount, data, rawDataSize);
                     }
 
                     *address = scaledData;
@@ -286,118 +394,190 @@ template <typename TInterface>
 bool DataPacketImpl<TInterface>::isDataEqual(const DataPacketPtr& dataPacket) const
 {
     if (rawDataSize != dataPacket.getRawDataSize())
-        throw InvalidSampleTypeException();
+    {
+        if (descriptor.getRule().getType() == DataRuleType::Constant)
+            return false;
+        else
+            throw InvalidSampleTypeException();
+    }
 
     return data == dataPacket.getRawData() || std::memcmp(data, dataPacket.getRawData(), rawDataSize) == 0;
 }
 
 template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value)
+inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObj(void* addr, const SampleType& type) const
+{
+    switch (type)
+    {
+        case SampleType::Float32:
+        {
+            const auto data = static_cast<float*>(addr);
+            return Floating(*data);
+        }
+        case SampleType::Float64:
+        {
+            const auto data = static_cast<double*>(addr);
+            return Floating(*data);
+        }
+        case SampleType::Int8:
+        {
+            const auto data = static_cast<int8_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::UInt8:
+        {
+            const auto data = static_cast<uint8_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::Int16:
+        {
+            const auto data = static_cast<int16_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::UInt16:
+        {
+            const auto data = static_cast<uint16_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::Int32:
+        {
+            const auto data = static_cast<int32_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::UInt32:
+        {
+            const auto data = static_cast<uint32_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::Int64:
+        {
+            const auto data = static_cast<int64_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::UInt64:
+        {
+            const auto data = static_cast<uint64_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::RangeInt64:
+        {
+            const auto data = static_cast<int64_t*>(addr);
+            return Range(data[0], data[1]);
+        }
+        case SampleType::ComplexFloat32:
+        {
+            const auto data = static_cast<float*>(addr);
+            return ComplexNumber(data[0], data[1]);
+        }
+        case SampleType::ComplexFloat64:
+        {
+            const auto data = static_cast<double*>(addr);
+            return ComplexNumber(data[0], data[1]);
+        }
+        default:
+        {
+            return BaseObject();
+        }
+    }
+}
+
+template <typename TInterface>
+inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType) const
+{
+    const auto ptr = dataToObj(addr, sampleType);
+    addr = static_cast<char*>(addr) + getSampleSize(sampleType);
+    return ptr;
+}
+
+template <typename TInterface>
+inline StructPtr DataPacketImpl<TInterface>::buildStructFromFields(const DataDescriptorPtr& descriptor,
+                                                                   const TypeManagerPtr& typeManager,
+                                                                   void*& addr) const
+{
+    const auto builder = StructBuilder(descriptor.getName(), typeManager);
+    const auto fields = descriptor.getStructFields();
+    for (const auto& field : fields)
+    {
+        const auto ptr = buildFromDescriptor(addr, field, typeManager);
+        builder.set(field.getName(), ptr);
+    }
+    return builder.build();
+}
+
+template <typename TInterface>
+inline BaseObjectPtr DataPacketImpl<TInterface>::buildFromDescriptor(void*& addr,
+                                                                     const DataDescriptorPtr& descriptor,
+                                                                     const TypeManagerPtr& typeManager) const
+{
+    const auto dimensions = descriptor.getDimensions();
+
+    if (!dimensions.assigned())
+        throw NotAssignedException{"Dimensions of data descriptor not assigned."};
+
+    const auto dimensionCount = dimensions.getCount();
+
+    if (dimensionCount > 1)
+        throw NotSupportedException{"getLastValue on packets with dimensions supports only up to one dimension."};
+
+    const auto sampleType = descriptor.getSampleType();
+
+    if (dimensionCount == 1)
+    {
+        // List
+        auto listPtr = List<IBaseObject>();
+        const auto size = dimensions.getItemAt(0).getSize();
+
+        for (size_t i = 0; i < size; i++)
+        {
+            if (sampleType == SampleType::Struct)
+            {
+                // Struct
+                listPtr.pushBack(buildStructFromFields(descriptor, typeManager, addr));
+            }
+            else
+            {
+                // Not struct
+                listPtr.pushBack(dataToObjAndIncreaseAddr(addr, sampleType));
+            }
+        }
+        return listPtr;
+    }
+    else
+    {
+        // Not list
+        if (sampleType == SampleType::Struct)
+        {
+            // Struct
+            return buildStructFromFields(descriptor, typeManager, addr);
+        }
+        // Not struct
+        return dataToObjAndIncreaseAddr(addr, sampleType);
+    }
+}
+template <typename TInterface>
+ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    if (descriptor.getDimensions().getCount() != 0)
-        return OPENDAQ_IGNORED;
+    const auto dimensionCount = descriptor.getDimensions().getCount();
 
-    {
-        auto descriptorStructFields = descriptor.getStructFields();
-        if (descriptorStructFields.assigned() && !descriptorStructFields.empty())
-            return OPENDAQ_IGNORED;
-    }
+    if (dimensionCount > 1)
+        return OPENDAQ_IGNORED;
 
     void* addr;
     ErrCode err = this->getData(&addr);
     if (OPENDAQ_FAILED(err))
         return err;
 
-    auto idx = sampleCount - 1;
+    addr = static_cast<char*>(addr) + (sampleCount - 1) * descriptor.getSampleSize();
 
-    switch (descriptor.getSampleType())
-    {
-        case SampleType::Float32:
+    return daqTry(
+        [&]()
         {
-            auto data = static_cast<float*>(addr);
-            *value = Floating(data[idx]).detach();
-            break;
-        }
-        case SampleType::Float64:
-        {
-            auto data = static_cast<double*>(addr);
-            *value = Floating(data[idx]).detach();
-            break;
-        }
-        case SampleType::Int8:
-        {
-            auto data = static_cast<int8_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::UInt8:
-        {
-            auto data = static_cast<uint8_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::Int16:
-        {
-            auto data = static_cast<int16_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::UInt16:
-        {
-            auto data = static_cast<uint16_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::Int32:
-        {
-            auto data = static_cast<int32_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::UInt32:
-        {
-            auto data = static_cast<uint32_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::Int64:
-        {
-            auto data = static_cast<int64_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::UInt64:
-        {
-            auto data = static_cast<uint64_t*>(addr);
-            *value = Integer(data[idx]).detach();
-            break;
-        }
-        case SampleType::RangeInt64:
-        {
-            auto data = static_cast<int64_t*>(addr);
-            *value = Range(data[idx * 2], data[idx * 2 + 1]).detach();
-            break;
-        }
-        case SampleType::ComplexFloat32:
-        {
-            auto data = static_cast<float*>(addr);
-            *value = ComplexNumber(data[idx * 2], data[idx * 2 + 1]).detach();
-            break;
-        }
-        case SampleType::ComplexFloat64:
-        {
-            auto data = static_cast<double*>(addr);
-            *value = ComplexNumber(data[idx * 2], data[idx * 2 + 1]).detach();
-            break;
-        }
-        default:
-        {
-            return OPENDAQ_IGNORED;
-        }
-    };
-    return OPENDAQ_SUCCESS;
+            auto ptr = buildFromDescriptor(addr, descriptor, typeManager);
+            *value = ptr.detach();
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 END_NAMESPACE_OPENDAQ

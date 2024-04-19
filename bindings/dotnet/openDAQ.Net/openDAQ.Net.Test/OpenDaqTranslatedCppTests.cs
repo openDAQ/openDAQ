@@ -14,7 +14,7 @@ namespace openDaq.Net.Test;
 public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
 {
     private const string DAQ_OPCUA   = "daq.opcua://";
-    private const string DAQ_WEBSOCK = "daq.ws://";
+    private const string DAQ_WEBSOCK = "daq.lt://";
     private const string DAQ_REF     = "daqref://";
     private const string MODULE_PATH = ".";
 
@@ -38,7 +38,7 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
             const InstancePtr instance = Instance(MODULE_PATH);
 
             // Discover all available devices, filter out all of which connection strings
-            // do not start with "daq.opcua://" or "daq.ws://"
+            // do not start with "daq.opcua://" or "daq.lt://"
             const auto deviceInfo = instance.getAvailableDevices();
             auto devices = List<IDevice>();
             for (auto info : deviceInfo)
@@ -50,7 +50,7 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
                     auto device = instance.addDevice(connectionString);
                     devices.pushBack(device);
                 }
-                if (connectionString.toStdString().find("daq.ws://") != std::string::npos)
+                if (connectionString.toStdString().find("daq.lt://") != std::string::npos)
                 {
                     // Connect to device and store it in a list
                     auto device = instance.addDevice(connectionString);
@@ -72,7 +72,7 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
 
         Console.WriteLine("instance.GetAvailableDevices()");
         // Discover all available devices, filter out all of which connection strings
-        // do not start with "daq.opcua://" or "daq.ws://"
+        // do not start with "daq.opcua://" or "daq.lt://"
         System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
         var deviceInfo = instance.GetAvailableDevices();
         sw.Stop();
@@ -173,7 +173,7 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
             const InstancePtr instance = Instance(MODULE_PATH);
 
             // Discover all available devices, filter out all of which connection strings
-            // do not start with "daq.opcua://" or "daq.ws://"
+            // do not start with "daq.opcua://" or "daq.lt://"
             const auto deviceInfo = instance.getAvailableDevices();
             auto devices = List<IDevice>();
             for (auto info : deviceInfo)
@@ -185,7 +185,7 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
                     auto device = instance.addDevice(connectionString);
                     devices.pushBack(device);
                 }
-                if (connectionString.toStdString().find("daq.ws://") != std::string::npos)
+                if (connectionString.toStdString().find("daq.lt://") != std::string::npos)
                 {
                     // Connect to device and store it in a list
                     auto device = instance.addDevice(connectionString);
@@ -207,7 +207,7 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
 
         Console.WriteLine("instance.GetAvailableDevices()");
         // Discover all available devices, filter out all of which connection strings
-        // do not start with "daq.opcua://" or "daq.ws://"
+        // do not start with "daq.opcua://" or "daq.lt://"
         System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
         var deviceInfo = instance.GetAvailableDevices();
         sw.Stop();

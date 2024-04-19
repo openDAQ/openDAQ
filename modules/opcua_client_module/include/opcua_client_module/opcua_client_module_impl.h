@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ public:
     bool onAcceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
 private:
-    static std::string GetUrlFromConnectionString(const StringPtr& connectionString);
+    static std::tuple<std::string, std::string, std::string> ParseConnectionString(const StringPtr& connectionString);
     static bool acceptDeviceProperties(const PropertyObjectPtr& config);
     static PropertyObjectPtr createDeviceDefaultConfig();
     static void configureStreamingSources(const PropertyObjectPtr& deviceConfig, const DevicePtr& device);

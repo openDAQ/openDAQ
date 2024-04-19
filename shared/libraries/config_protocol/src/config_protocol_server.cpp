@@ -4,6 +4,7 @@
 #include <config_protocol/config_server_component.h>
 #include <config_protocol/config_server_device.h>
 #include <config_protocol/config_server_input_port.h>
+#include <config_protocol/config_server_signal.h>
 #include <coreobjects/core_event_args_factory.h>
 #include <coretypes/cloneable.h>
 
@@ -126,6 +127,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
 
     rpcDispatch.insert({"GetComponent", std::bind(&ConfigProtocolServer::getComponent, this,  _1)});
     rpcDispatch.insert({"GetTypeManager", std::bind(&ConfigProtocolServer::getTypeManager, this, _1)});
+    rpcDispatch.insert({"GetSerializedRootDevice", std::bind(&ConfigProtocolServer::getSerializedRootDevice, this,  _1)});
 
     addHandler<ComponentPtr>("SetPropertyValue", &ConfigServerComponent::setPropertyValue);
     addHandler<ComponentPtr>("GetPropertyValue", &ConfigServerComponent::getPropertyValue);
@@ -142,6 +144,8 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("AddFunctionBlock", &ConfigServerDevice::addFunctionBlock);
     addHandler<DevicePtr>("RemoveFunctionBlock", &ConfigServerDevice::removeFunctionBlock);
     addHandler<DevicePtr>("GetTicksSinceOrigin", &ConfigServerDevice::getTicksSinceOrigin);
+
+    addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
     addHandler<InputPortPtr>("ConnectSignal",
                              [this](const InputPortPtr& inputPort, const ParamsDictPtr& params)
@@ -300,6 +304,14 @@ BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) co
         throw NotFoundException("Component not found");
 
     return ComponentHolder(component);
+}
+
+BaseObjectPtr ConfigProtocolServer::getSerializedRootDevice(const ParamsDictPtr& params)
+{
+    serializer.reset();
+    rootDevice.serialize(serializer);
+
+    return serializer.getOutput();
 }
 
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)

@@ -23,23 +23,17 @@ WebsocketClientDeviceImpl::WebsocketClientDeviceImpl(const ContextPtr& ctx,
 
 DeviceInfoPtr WebsocketClientDeviceImpl::onGetInfo()
 {
-    if (deviceInfo != nullptr)
-        return deviceInfo;
-
-    deviceInfo = DeviceInfo(connectionString, "WebsocketClientPseudoDevice");
+    auto deviceInfo = DeviceInfo(connectionString, "WebsocketClientPseudoDevice");
     deviceInfo.freeze();
     return deviceInfo;
 }
 
 void WebsocketClientDeviceImpl::activateStreaming()
 {
-    auto self = this->borrowPtr<DevicePtr>();
-    const auto signals = self.getSignals(search::Any());
-    websocketStreaming.addSignals(signals);
     websocketStreaming.setActive(true);
-
-    for (const auto& signal : signals)
+    for (const auto& [_, signal] : deviceSignals)
     {
+        websocketStreaming.addSignals({signal});
         auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
         mirroredSignalConfigPtr.setActiveStreamingSource(websocketStreaming.getConnectionString());
     }
@@ -55,7 +49,7 @@ void WebsocketClientDeviceImpl::createWebsocketStreaming()
     {
         this->onSignalInit(signalId, sInfo);
     };
-    streamingClient->onSignalInit(signalInitCallback);
+    streamingClient->onAvailableSignalInit(signalInitCallback);
 
     auto signalUpdatedCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
     {
@@ -63,17 +57,23 @@ void WebsocketClientDeviceImpl::createWebsocketStreaming()
     };
     streamingClient->onSignalUpdated(signalUpdatedCallback);
 
-    auto domainDescriptorCallback = [this](const StringPtr& signalId, const DataDescriptorPtr& domainDescriptor)
+    auto domainSignalInitCallback = [this](const StringPtr& dataSignalId,const StringPtr& domainSignalId)
     {
-        this->onDomainDescriptor(signalId, domainDescriptor);
+        this->onDomainSignalInit(dataSignalId, domainSignalId);
     };
-    streamingClient->onDomainDescriptor(domainDescriptorCallback);
+    streamingClient->onDomainSingalInit(domainSignalInitCallback);
 
     auto availableSignalsCallback = [this](const std::vector<std::string>& signalIds)
     {
         this->createDeviceSignals(signalIds);
     };
     streamingClient->onAvailableDeviceSignals(availableSignalsCallback);
+
+    auto hiddenSignalCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
+    {
+        this->addHiddenSignal(signalId, sInfo);
+    };
+    streamingClient->onHiddenDeviceSignal(hiddenSignalCallback);
 
     websocketStreaming = WebsocketStreaming(streamingClient, connectionString, context);
 }
@@ -90,7 +90,7 @@ void WebsocketClientDeviceImpl::onSignalInit(const StringPtr& signalId, const Su
         signalIt->second.setName(sInfo.signalName);
         signalIt->second.asPtr<IComponentPrivate>().lockAllAttributes();
 
-        signalIt->second.asPtr<IWebsocketStreamingSignalPrivate>()->assignDescriptor(sInfo.dataDescriptor);
+        signalIt->second.asPtr<IMirroredSignalPrivate>().setMirroredDataDescriptor(sInfo.dataDescriptor);
         updateSignalProperties(signalIt->second, sInfo);
     }
 }
@@ -104,15 +104,20 @@ void WebsocketClientDeviceImpl::onSignalUpdated(const StringPtr& signalId, const
         updateSignalProperties(signalIt->second, sInfo);
 }
 
-void WebsocketClientDeviceImpl::onDomainDescriptor(const StringPtr& signalId,
-                                                      const DataDescriptorPtr& domainDescriptor)
+void WebsocketClientDeviceImpl::onDomainSignalInit(const StringPtr& signalId, const StringPtr& domainSignalId)
 {
-    if (!domainDescriptor.assigned())
-        return;
-
-    // Sets domain descriptor for data signal
-    if (auto signalIt = deviceSignals.find(signalId); signalIt != deviceSignals.end())
-        signalIt->second.asPtr<IWebsocketStreamingSignalPrivate>()->createAndAssignDomainSignal(domainDescriptor);
+    // Sets domain signal for data signal
+    if (auto dataSignalIt = deviceSignals.find(signalId); dataSignalIt != deviceSignals.end())
+    {
+        auto domainSignalIt = deviceSignals.find(domainSignalId);
+        if (domainSignalIt != deviceSignals.end())
+        {
+            // domain signal is found in device
+            auto domainSignal = domainSignalIt->second;
+            auto dataSignal = dataSignalIt->second;
+            dataSignal.asPtr<IMirroredSignalPrivate>().setMirroredDomainSignal(domainSignal);
+        }
+    }
 }
 
 void WebsocketClientDeviceImpl::createDeviceSignals(const std::vector<std::string>& signalIds)
@@ -120,12 +125,21 @@ void WebsocketClientDeviceImpl::createDeviceSignals(const std::vector<std::strin
     // Adds to device only signals published by server explicitly and in the same order these were published
     for (const auto& signalId : signalIds)
     {
-        // TODO Streaming didn't provide META info for Time Signals -
-        // - for these the mirrored signals will stay incomplete (without descriptors set)
+        // TODO Streaming do not support some types of signals and do not provide META info -
+        // - for those the mirrored signals will stay incomplete (without descriptors set)
         auto signal = WebsocketClientSignal(this->context, this->signals, signalId);
         this->addSignal(signal);
         deviceSignals.insert({signalId, signal});
     }
+}
+
+void WebsocketClientDeviceImpl::addHiddenSignal(const StringPtr& signalId, const SubscribedSignalInfo& sInfo)
+{
+    // Adds 'hidden' signal which were not published by server explicitly as available
+    auto signal = WebsocketClientSignal(this->context, this->signals, signalId);
+    this->addSignal(signal);
+    deviceSignals.insert({signalId, signal});
+    onSignalInit(signalId, sInfo);
 }
 
 void WebsocketClientDeviceImpl::updateSignalProperties(const SignalPtr& signal, const SubscribedSignalInfo& sInfo)

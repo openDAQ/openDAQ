@@ -12,6 +12,8 @@
 #include "opendaq/context_factory.h"
 #include <config_protocol/config_client_device_impl.h>
 
+#include "opendaq/packet_factory.h"
+
 using namespace daq;
 using namespace config_protocol;
 using namespace testing;
@@ -402,6 +404,71 @@ TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateRecursive)
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), "SomeValue");
 }
 
+TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateSubPropertyObject)
+{
+    const PropertyObjectPtr serverMockChild = serverDevice.getPropertyValue("MockChild");
+    int state{0};
+
+    serverMockChild.getOnEndUpdate() += [&state](PropertyObjectPtr&, EndUpdateEventArgsPtr& args)
+    {
+        ASSERT_EQ(state, 1);
+        const auto propsChanged = args.getProperties();
+        ASSERT_THAT(propsChanged, ElementsAre("NestedStringProperty"));
+        state = 2;
+    };
+
+    serverMockChild.getOnPropertyValueWrite("NestedStringProperty") +=
+        [&state](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
+    {
+        ASSERT_EQ(state, 0);
+        auto prop = args.getProperty();
+        ASSERT_TRUE(args.getIsUpdating());
+        state = 1;
+    };
+
+    const PropertyObjectPtr clientMockChild = clientDevice.getPropertyValue("MockChild");
+    ASSERT_EQ(clientMockChild.getPropertyValue("NestedStringProperty"), "string");
+
+    clientMockChild.beginUpdate();
+    clientMockChild.setPropertyValue("NestedStringProperty", "string1");
+    clientMockChild.endUpdate();
+
+    ASSERT_EQ(state, 2);
+    ASSERT_EQ(clientMockChild.getPropertyValue("NestedStringProperty"), "string1");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateNestedPropertyObject)
+{
+    const PropertyObjectPtr serverMockChild = serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1");
+    int state{0};
+
+    serverMockChild.getOnEndUpdate() += [&state](PropertyObjectPtr&, EndUpdateEventArgsPtr& args)
+    {
+        ASSERT_EQ(state, 1);
+        const auto propsChanged = args.getProperties();
+        ASSERT_THAT(propsChanged, ElementsAre("String"));
+        state = 2;
+    };
+
+    serverMockChild.getOnPropertyValueWrite("String") += [&state](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
+    {
+        ASSERT_EQ(state, 0);
+        auto prop = args.getProperty();
+        ASSERT_TRUE(args.getIsUpdating());
+        state = 1;
+    };
+
+    const PropertyObjectPtr clientMockChild = clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1");
+    ASSERT_EQ(clientMockChild.getPropertyValue("String"), "string");
+
+    clientMockChild.beginUpdate();
+    clientMockChild.setPropertyValue("String", "string1");
+    clientMockChild.endUpdate();
+
+    ASSERT_EQ(state, 2);
+    ASSERT_EQ(clientMockChild.getPropertyValue("String"), "string1");
+}
+
 TEST_F(ConfigProtocolIntegrationTest, SetSignalNameAndDescriptionFromClient)
 {
     const auto serverSignal = serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal();
@@ -444,4 +511,30 @@ TEST_F(ConfigProtocolIntegrationTest, TestPropertyObjectClasses)
     testMockPropertyObjectClass(clientDevice.getDevices()[0]);
     testMockPropertyObjectClass(clientDevice.getDevices()[0].getFunctionBlocks()[0]);
     testMockPropertyObjectClass(clientDevice.getDevices()[0].getChannels()[0]);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, TestGetLastValue)
+{
+    const SignalConfigPtr serverSignal = serverDevice.getSignals()[0];
+    const SignalConfigPtr clientSignal = clientDevice.getSignals()[0];
+
+    auto dataPacket1 = DataPacket(serverSignal.getDescriptor(), 5);
+    int64_t* data1 = static_cast<int64_t*>(dataPacket1.getData());
+    data1[4] = 4;
+    serverSignal.sendPacket(dataPacket1);
+
+    auto lastValue1 = clientSignal.getLastValue();
+    IntegerPtr integerPtr;
+    ASSERT_NO_THROW(integerPtr = lastValue1.asPtr<IInteger>());
+    ASSERT_EQ(integerPtr, 4);
+
+    auto dataPacket2 = DataPacket(serverSignal.getDescriptor(), 2);
+    int64_t* data2 = static_cast<int64_t*>(dataPacket2.getData());
+    data2[1] = 7;
+    serverSignal.sendPacket(dataPacket2);
+
+    auto lastValue2 = clientSignal.getLastValue();
+    IntegerPtr integerPtr2;
+    ASSERT_NO_THROW(integerPtr2 = lastValue2.asPtr<IInteger>());
+    ASSERT_EQ(integerPtr2, 7);
 }

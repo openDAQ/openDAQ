@@ -176,10 +176,8 @@ class App(tk.Tk):
 
     def init_opendaq(self):
         # init device
-        instance = daq.Instance()
-
-        self.instance = instance
-
+        self.instance = daq.Instance()
+        
         self.all_devices = {}
         self.connected_devices = {}
 
@@ -305,10 +303,8 @@ class App(tk.Tk):
 
         if daq.IDevice.can_cast_from(component):
             device = daq.IDevice.cast_from(component)
-            component_name = device.info.name
         elif daq.IFunctionBlock.can_cast_from(component):
             function_block = daq.IFunctionBlock.cast_from(component)
-            component_name = function_block.function_block_type.name
         elif daq.IFolder.can_cast_from(component):
             if component_name == 'Sig':
                 component_name = 'Signals'
@@ -630,8 +626,7 @@ class App(tk.Tk):
 
             if daq.IDevice.can_cast_from(component):
                 device = daq.IDevice.cast_from(component)
-                print(device.info.name)
-                tree.insert(parent_id, tk.END, text=device.info.name,
+                tree.insert(parent_id, tk.END, text=device.name,
                             iid=device.global_id, open=True)
                 parent_id = device.global_id
 
@@ -843,13 +838,17 @@ class App(tk.Tk):
     def handle_tree_menu_remove_function_block(self, node):
         if node is None:
             return
+        if not daq.IFunctionBlock.can_cast_from(node):
+            return
+        
+        node = daq.IFunctionBlock.cast_from(node)
 
-        fbs = self.get_nearest_named_parent_folder(node.parent, 'FB')
-        if fbs is None:
+        device = self.get_nearest_device(node.parent)
+        if device is None:
             return
 
-        fbs.remove_item(node)
-        self.selected_node = fbs
+        device.remove_function_block(node)
+        self.selected_node = device
         self.tree_update(self.selected_node)
 
     def handle_tree_menu_remove_device(self, node):

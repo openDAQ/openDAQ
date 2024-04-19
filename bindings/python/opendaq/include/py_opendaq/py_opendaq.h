@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ PyDaqIntf<daq::IDevice, daq::IFolder> declareIDevice(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceDomain, daq::IBaseObject> declareIDeviceDomain(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceInfo, daq::IPropertyObject> declareIDeviceInfo(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceInfoConfig, daq::IDeviceInfo> declareIDeviceInfoConfig(pybind11::module_ m);
+PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> declareIServerCapability(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::module_ m);
 PyDaqIntf<daq::IChannel, daq::IFunctionBlock> declareIChannel(pybind11::module_ m);
 PyDaqIntf<daq::IFunctionBlock, daq::IFolder> declareIFunctionBlock(pybind11::module_ m);
@@ -53,6 +54,7 @@ PyDaqIntf<daq::IBlockReader, daq::ISampleReader> declareIBlockReader(pybind11::m
 PyDaqIntf<daq::IStreamReader, daq::ISampleReader> declareIStreamReader(pybind11::module_ m);
 PyDaqIntf<daq::ITailReader, daq::ISampleReader> declareITailReader(pybind11::module_ m);
 PyDaqIntf<daq::IReaderStatus, daq::IBaseObject> declareIReaderStatus(pybind11::module_ m);
+PyDaqIntf<daq::IBlockReaderStatus, daq::IReaderStatus> declareIBlockReaderStatus(pybind11::module_ m);
 PyDaqIntf<daq::IAwaitable, daq::IBaseObject> declareIAwaitable(pybind11::module_ m);
 PyDaqIntf<daq::IGraphVisualization, daq::IBaseObject> declareIGraphVisualization(pybind11::module_ m);
 PyDaqIntf<daq::IScheduler, daq::IBaseObject> declareIScheduler(pybind11::module_ m);
@@ -85,9 +87,8 @@ PyDaqIntf<daq::ITagsPrivate, daq::IBaseObject> declareITagsPrivate(pybind11::mod
 PyDaqIntf<daq::IServer, daq::IBaseObject> declareIServer(pybind11::module_ m);
 PyDaqIntf<daq::IServerType, daq::IComponentType> declareIServerType(pybind11::module_ m);
 PyDaqIntf<daq::IStreaming, daq::IBaseObject> declareIStreaming(pybind11::module_ m);
-PyDaqIntf<daq::IStreamingInfo, daq::IPropertyObject> declareIStreamingInfo(pybind11::module_ m);
-PyDaqIntf<daq::IStreamingInfoConfig, daq::IStreamingInfo> declareIStreamingInfoConfig(pybind11::module_ m);
 PyDaqIntf<daq::IMirroredSignalConfig, daq::ISignalConfig> declareIMirroredSignalConfig(pybind11::module_ m);
+PyDaqIntf<daq::IMirroredSignalPrivate, daq::IBaseObject> declareIMirroredSignalPrivate(pybind11::module_ m);
 PyDaqIntf<daq::ISubscriptionEventArgs, daq::IEventArgs> declareISubscriptionEventArgs(pybind11::module_ m);
 PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> declareIComponentPrivate(pybind11::module_ m);
 PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> declareISearchFilter(pybind11::module_ m);
@@ -113,6 +114,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
 void defineIDeviceDomain(pybind11::module_ m, PyDaqIntf<daq::IDeviceDomain, daq::IBaseObject> cls);
 void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPropertyObject> cls);
 void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConfig, daq::IDeviceInfo> cls);
+void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> cls);
 void defineIDeviceType(pybind11::module_ m, PyDaqIntf<daq::IDeviceType, daq::IComponentType> cls);
 void defineIChannel(pybind11::module_ m, PyDaqIntf<daq::IChannel, daq::IFunctionBlock> cls);
 void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, daq::IFolder> cls);
@@ -133,6 +135,7 @@ void defineTimeTailReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::T
 void defineTimeBlockReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::BlockReaderPtr>> cls);
 void defineITailReader(pybind11::module_ m, PyDaqIntf<daq::ITailReader, daq::ISampleReader> cls);
 void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq::IBaseObject> cls);
+void defineIBlockReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderStatus, daq::IReaderStatus> cls);
 void defineIAwaitable(pybind11::module_ m, PyDaqIntf<daq::IAwaitable, daq::IBaseObject> cls);
 void defineIGraphVisualization(pybind11::module_ m, PyDaqIntf<daq::IGraphVisualization, daq::IBaseObject> cls);
 void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBaseObject> cls);
@@ -165,9 +168,8 @@ void defineITagsPrivate(pybind11::module_ m, PyDaqIntf<daq::ITagsPrivate, daq::I
 void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IBaseObject> cls);
 void defineIServerType(pybind11::module_ m, PyDaqIntf<daq::IServerType, daq::IComponentType> cls);
 void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBaseObject> cls);
-void defineIStreamingInfo(pybind11::module_ m, PyDaqIntf<daq::IStreamingInfo, daq::IPropertyObject> cls);
-void defineIStreamingInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IStreamingInfoConfig, daq::IStreamingInfo> cls);
 void defineIMirroredSignalConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredSignalConfig, daq::ISignalConfig> cls);
+void defineIMirroredSignalPrivate(pybind11::module_ m, PyDaqIntf<daq::IMirroredSignalPrivate, daq::IBaseObject> cls);
 void defineISubscriptionEventArgs(pybind11::module_ m, PyDaqIntf<daq::ISubscriptionEventArgs, daq::IEventArgs> cls);
 void defineMockSignal(pybind11::module_ m, py::class_<daq::MockSignal> cls);
 void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> cls);

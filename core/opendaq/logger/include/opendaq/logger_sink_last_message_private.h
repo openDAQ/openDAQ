@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ DECLARE_OPENDAQ_INTERFACE(ILastMessageLoggerSinkPrivate, IBaseObject)
 
     /*!
      * @brief Wait for receiving a new log message
-     * @param timeoutMs The timeout in milliseconds until which wait for a new log message. If timeout set as 0 ms waiting will be skipepd.
+     * @param timeoutMs The timeout in milliseconds until which wait for a new log message. If timeout set as 0 ms waiting will be skipped.
      * @param[out] success The success will return true if there was a new unread log message before waiting
      * or sink got a new logger message before timeout. False if timeout was reached.
      */

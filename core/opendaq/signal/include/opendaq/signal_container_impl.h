@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/module_manager.h>
+#include <opendaq/module_manager_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 template <class Intf = IComponent, class ... Intfs>
 class GenericSignalContainerImpl : public ComponentImpl<Intf, Intfs ...>
 {
@@ -37,7 +37,8 @@ public:
     GenericSignalContainerImpl(const ContextPtr& context,
                                const ComponentPtr& parent,
                                const StringPtr& localId,
-                               const StringPtr& className = nullptr);
+                               const StringPtr& className = nullptr,
+                               const StringPtr& name = nullptr);
     
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
@@ -120,7 +121,8 @@ public:
     SignalContainerImpl(const ContextPtr& context,
                         const ComponentPtr& parent,
                         const StringPtr& localId,
-                        const StringPtr& className = nullptr);
+                        const StringPtr& className = nullptr,
+                        const StringPtr& name = nullptr);
     
     // IComponent
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
@@ -135,8 +137,9 @@ template <class Intf, class... Intfs>
 GenericSignalContainerImpl<Intf, Intfs...>::GenericSignalContainerImpl(const ContextPtr& context,
                                                                        const ComponentPtr& parent,
                                                                        const StringPtr& localId,
-                                                                       const StringPtr& className)
-    : Super(context, parent, localId, className)
+                                                                       const StringPtr& className,
+                                                                       const StringPtr& name)
+    : Super(context, parent, localId, className, name)
     , allowNonDefaultComponents(false)
     , signalContainerLoggerComponent(
         context.getLogger().assigned() ? context.getLogger().getOrAddComponent("GenericSignalContainerImpl")
@@ -184,8 +187,9 @@ template <class Intf, class ... Intfs>
 SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& context,
                                                          const ComponentPtr& parent,
                                                          const StringPtr& localId,
-                                                         const StringPtr& className)
-    : Super(context, parent, localId, className)
+                                                         const StringPtr& className,
+                                                         const StringPtr& name)
+    : Super(context, parent, localId, className, name)
 {
 }
 
@@ -339,53 +343,15 @@ FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddNestedF
     if (obj == nullptr)
         throw NotAssignedException{"Module Manager is not available in the Context."};
 
-    IModuleManager* manager;
-    obj->borrowInterface(IModuleManager::Id, reinterpret_cast<void**>(&manager));
-
-    ListPtr<IBaseObject> modules;
-    manager->getModules(&modules);
-
-    for (const BaseObjectPtr& moduleObj : modules)
-    {
-        IModule* module;
-        moduleObj->borrowInterface(IModule::Id, reinterpret_cast<void**>(&module));
-
-        DictPtr<IString, IFunctionBlockType> types;
-        ErrCode err = module->getAvailableFunctionBlockTypes(&types);
-        if (OPENDAQ_FAILED(err))
-        {
-            StringPtr moduleName;
-            module->getName(&moduleName);
-            if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
-            {
-                DAQLOGF_I(signalContainerLoggerComponent, "{}: GetAvailableFunctionBlockTypes not implemented", moduleName);
-            }
-            else
-            {
-                DAQLOGF_W(signalContainerLoggerComponent, "{}: GetAvailableFunctionBlockTypes failed", moduleName);
-            }
-        }
-
-        if (!types.assigned())
-            continue;
-        if (!types.hasKey(typeId))
-            continue;
-
-        FunctionBlockPtr fb;
-        err = module->createFunctionBlock(&fb, typeId, functionBlocks, localId, config);
-        if (OPENDAQ_FAILED(err))
-        {
-            StringPtr moduleName;
-            module->getName(&moduleName);
-            DAQLOGF_W(signalContainerLoggerComponent, "{}: Function Block creation failed", moduleName);
-            continue;
-        }
-        
-        addNestedFunctionBlock(fb);
-        return fb;
-    }
+    IModuleManagerUtils* managerUtils;
+    obj->borrowInterface(IModuleManagerUtils::Id, reinterpret_cast<void**>(&managerUtils));
     
-    throw NotFoundException{"Function block with given uid is not available."};
+    FunctionBlockPtr fb;
+
+    checkErrorInfo(managerUtils->createFunctionBlock(&fb, typeId, functionBlocks, config, localId));
+    if (fb.assigned())
+        addNestedFunctionBlock(fb);
+    return fb;
 }
 
 template <class Intf, class ... Intfs>

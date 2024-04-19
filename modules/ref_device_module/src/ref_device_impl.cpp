@@ -12,8 +12,8 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-RefDeviceImpl::RefDeviceImpl(size_t id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : GenericDevice<>(ctx, parent, localId)
+RefDeviceImpl::RefDeviceImpl(size_t id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
+    : GenericDevice<>(ctx, parent, localId, nullptr, name)
     , id(id)
     , microSecondsFromEpochToDeviceStart(0)
     , acqLoopTime(0)
@@ -64,7 +64,9 @@ DeviceTypePtr RefDeviceImpl::CreateType()
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
 {
-    return RefDeviceImpl::CreateDeviceInfo(id);
+    auto deviceInfo = RefDeviceImpl::CreateDeviceInfo(id);
+    deviceInfo.freeze();
+    return deviceInfo;
 }
 
 uint64_t RefDeviceImpl::onGetTicksSinceOrigin()
@@ -74,83 +76,21 @@ uint64_t RefDeviceImpl::onGetTicksSinceOrigin()
     return static_cast<SizeT>(ticksSinceEpoch.count());
 }
 
+bool RefDeviceImpl::allowAddDevicesFromModules()
+{
+    return true;
+}
+
+bool RefDeviceImpl::allowAddFunctionBlocksFromModules()
+{
+    return true;
+}
+
 std::chrono::microseconds RefDeviceImpl::getMicroSecondsSinceDeviceStart() const
 {
     auto currentTime = std::chrono::steady_clock::now();
     auto microSecondsSinceDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
     return microSecondsSinceDeviceStart;
-}
-
-DevicePtr RefDeviceImpl::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
-{
-    ModuleManagerPtr manager = context.getModuleManager().asPtr<IModuleManager>();
-    for (const auto module : manager.getModules())
-    {
-        bool accepted;
-        try
-        {
-            accepted = module.acceptsConnectionParameters(connectionString, config);
-        }
-        catch (NotImplementedException&)
-        {
-            LOG_I("{}: AcceptsConnectionString not implemented", module.getName())
-            accepted = false;
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("{}: AcceptsConnectionString failed: {}", module.getName(), e.what())
-            accepted = false;
-        }
-
-        if (accepted)
-        {
-            auto device = module.createDevice(connectionString, devices, config);
-            addSubDevice(device);
-
-            return device;
-        }
-    }
-
-    return nullptr;
-}
-
-FunctionBlockPtr RefDeviceImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
-{
-    ModuleManagerPtr manager = context.getModuleManager().asPtr<IModuleManager>();
-    for (const auto module : manager.getModules())
-    {
-        DictPtr<IString, IFunctionBlockType> types;
-
-        try
-        {
-            types = module.getAvailableFunctionBlockTypes();
-        }
-        catch (NotImplementedException&)
-        {
-            LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getName())
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getName(), e.what())
-        }
-
-        if (!types.assigned())
-            continue;
-
-        if (!types.hasKey(typeId))
-            continue;
-
-        if (functionBlocks.hasItem(typeId))
-            throw DuplicateItemException("The function block is already added");
-
-        std::string localId = typeId;
-
-        auto fb = module.createFunctionBlock(typeId, functionBlocks, localId, config);
-        functionBlocks.addItem(fb);
-        return fb;
-    }
-
-    throw NotFoundException{"Function block with given uid is not available."};
 }
 
 void RefDeviceImpl::initClock()

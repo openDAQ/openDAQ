@@ -3,6 +3,7 @@
 #include <thread>
 #include <opendaq/opendaq.h>
 #include "docs_test_helpers.h"
+#include <opendaq/context_internal_ptr.h>
 
 using ModulesTest = testing::Test;
 
@@ -61,8 +62,10 @@ TEST_F(ModulesTest, CreateComponents)
 {
     SKIP_TEST_MAC_CI;
     
-    daq::ModuleManagerPtr manager = daq::ModuleManager("");
-    manager.loadModules(NullContext());
+    const auto context = Context(nullptr, Logger(), TypeManager(), ModuleManager(""), Dict<IString, IBaseObject>());
+
+    ModuleManagerPtr manager = context.asPtr<IContextInternal>().moveModuleManager();
+    manager.loadModules(context);
     ASSERT_GT(manager.getModules().getCount(), 0u);
 
     ModulePtr fbModule;
@@ -116,7 +119,7 @@ TEST_F(ModulesTest, CreateComponents)
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     daq::DictPtr<daq::IString, daq::IServerType> websocketStreamingServerTypes =
         websocketStreamingServerModule.getAvailableServerTypes();
-    daq::ServerTypePtr webSocketStreamingServerType = websocketStreamingServerTypes.get("openDAQ WebsocketTcp Streaming");
+    daq::ServerTypePtr webSocketStreamingServerType = websocketStreamingServerTypes.get("openDAQ LT Streaming");
     ASSERT_GT(websocketStreamingServerTypes.getCount(), 0u);
 #endif
     daq::DictPtr<daq::IString, daq::IServerType> serverTypes = serverModule.getAvailableServerTypes();
@@ -143,7 +146,9 @@ TEST_F(ModulesTest, CreateComponents)
 // Corresponding document: Antora/modules/explanation/pages/modules.adoc
 TEST_F(ModulesTest, CreateServer)
 {
-    daq::ModuleManagerPtr manager = daq::ModuleManager("");
+    const auto context = Context(nullptr, Logger(), TypeManager(), ModuleManager(""), Dict<IString, IBaseObject>());
+
+    ModuleManagerPtr manager = context.asPtr<IContextInternal>().moveModuleManager();
     manager.loadModules(NullContext());
     ASSERT_GT(manager.getModules().getCount(), 0u);
     
@@ -194,7 +199,7 @@ TEST_F(ModulesTest, CreateServer)
     ASSERT_NO_THROW(nativeStreamingServerModule.createServer(nativeStreamingServerType.getId(), device, nativeStreamingConfig));
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    daq::ServerTypePtr webSocketServerType = websocketStreamingServerTypes.get("openDAQ WebsocketTcp Streaming");
+    daq::ServerTypePtr webSocketServerType = websocketStreamingServerTypes.get("openDAQ LT Streaming");
     daq::PropertyObjectPtr webSocketConfig = webSocketServerType.createDefaultConfig();
     daq::ListPtr<IProperty> webSocketConfigFields = webSocketConfig.getVisibleProperties();
     ASSERT_NO_THROW(webSocketConfigFields[0].getName());

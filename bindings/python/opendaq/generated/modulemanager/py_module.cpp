@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
         py::arg("server_type_id"), py::arg("root_device"), py::arg("config") = nullptr,
         "Creates and returns a server with the specified server type. To prevent cyclic reference, we should not use the Instance instead of rootDevice.");
     cls.def("accepts_streaming_connection_parameters",
-        [](daq::IModule *object, const std::string& connectionString, daq::IStreamingInfo* config)
+        [](daq::IModule *object, const std::string& connectionString, daq::IPropertyObject* config)
         {
             const auto objectPtr = daq::ModulePtr::Borrow(object);
             return objectPtr.acceptsStreamingConnectionParameters(connectionString, config);
@@ -132,7 +132,7 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
         py::arg("connection_string"), py::arg("config") = nullptr,
         "Verifies whether the provided connection string or config object can be used to establish a streaming connection supported by this module. If the connection string is not assigned, it checks if the config object is valid and complete enough to generate a connection string.");
     cls.def("create_streaming",
-        [](daq::IModule *object, const std::string& connectionString, daq::IStreamingInfo* config)
+        [](daq::IModule *object, const std::string& connectionString, daq::IPropertyObject* config)
         {
             const auto objectPtr = daq::ModulePtr::Borrow(object);
             return objectPtr.createStreaming(connectionString, config).detach();

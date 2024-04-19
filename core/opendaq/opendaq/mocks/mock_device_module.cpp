@@ -45,9 +45,16 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
 {
     OPENDAQ_PARAM_NOT_NULL(deviceTypes);
 
+    auto createMockConfig = []()
+    {
+        auto config = PropertyObject();
+        config.addProperty(StringProperty("message", ""));
+        return config;
+    };
+
     auto types = Dict<IString, IDeviceType>();
     types.set("daq_client_device", DeviceType("daq_client_device", "Client", "Client device"));
-    types.set("mock_phys_device", DeviceType("mock_phys_device", "Mock physical device", "Mock"));
+    types.set("mock_phys_device", DeviceType("mock_phys_device", "Mock physical device", "Mock", createMockConfig));
 
     *deviceTypes = types.detach();
     return OPENDAQ_SUCCESS;
@@ -67,7 +74,7 @@ ErrCode MockDeviceModuleImpl::acceptsConnectionParameters(Bool* accepted, IStrin
 ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
                                            IString* connectionString,
                                            IComponent* parent,
-                                           IPropertyObject* /*config*/)
+                                           IPropertyObject* config)
 {
     StringPtr connStr = connectionString;
     if (connStr == "daq_client_device")
@@ -79,7 +86,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
         manager.addModule(deviceModule);
         manager.addModule(fbModule);
 
-        auto clientDevice = Client(ctx, "client");
+        auto clientDevice = Client(ctx, "client", nullptr, parent);
         *device = clientDevice.detach();
     }
     else if (connStr == "mock_phys_device")
@@ -88,7 +95,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
         if (cnt != 0)
             id += std::to_string(cnt);
         cnt++;
-        DevicePtr physicalDevice(MockPhysicalDevice_Create(ctx, parent, StringPtr(id)));
+        DevicePtr physicalDevice(MockPhysicalDevice_Create(ctx, parent, StringPtr(id), config));
         *device = physicalDevice.detach();
     }
     else
@@ -135,7 +142,7 @@ ErrCode MockDeviceModuleImpl::getVersionInfo(IVersionInfo** version)
 
 ErrCode MockDeviceModuleImpl::acceptsStreamingConnectionParameters(Bool* accepted,
                                                                    IString* /*connectionString*/,
-                                                                   daq::IStreamingInfo* /*config*/)
+                                                                   IPropertyObject* /*config*/)
 {
     OPENDAQ_PARAM_NOT_NULL(accepted);
 
@@ -145,7 +152,7 @@ ErrCode MockDeviceModuleImpl::acceptsStreamingConnectionParameters(Bool* accepte
 
 ErrCode MockDeviceModuleImpl::createStreaming(IStreaming** /*streaming*/,
                                               IString* /*connectionString*/,
-                                              daq::IStreamingInfo* /*config*/)
+                                              IPropertyObject* /*config*/)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
 }

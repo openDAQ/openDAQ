@@ -37,7 +37,7 @@ xref:howto_guides:howto_configure_streaming.adoc#streaming_config_per_device[use
 
 A specific Streaming protocol implementation is associated with an openDAQ(TM) xref:background_info:modules.adoc[Module].
 The SDK handles the routing and delegation of Streaming object instantiation to the appropriate Module
-through the use of a connection string. The connection string always starts with the protocol type ID as its
+through the use of a connection string. The connection string always starts with the protocol
 prefix, followed by a set of parameters unique to the protocol type. Some parameters, such as the IP address,
 might be obligatory, while others, like the port number, are optional and adopt default values if not
 explicitly specified.
@@ -46,7 +46,7 @@ For example, the connection string `"daq.ns://127.0.0.1"` will be accepted by
 xref:glossary:glossary.adoc#opendaq_native_streaming_client_module[openDAQ(TM) Native Streaming Client Module]
 initiating a connection with the openDAQ(TM) Native Streaming Server on the local machine, utilizing
 the default values: port number `7420` and path `"/"` . Similarly, the connection string
-`"daq.wss://192.168.1.3:7413/streaming"` will be accepted by the
+`"daq.lt://192.168.1.3:7413/streaming"` will be accepted by the
 xref:glossary:glossary.adoc#opendaq_websocket_streaming_client_module[Websocket Streaming Client Module], and this
 module will initiate a connection with the Websocket Streaming Server hosted on a remote machine with the
 address `"192.168.1.3"`, employing the specified values for the port number (`7413`) and path (`"/streaming"`) .

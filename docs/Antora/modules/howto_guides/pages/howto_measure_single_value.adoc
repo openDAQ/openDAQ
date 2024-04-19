@@ -1,9 +1,13 @@
 = Measure a single value
 
-[#measure_single_value]
-== Measure a single value
+openDAQ offers a variety of solutions for reading Signal values, including Readers. 
 
-OpenDAQ offers a variety of solutions for reading signal values, including readers. For developers requiring access to only the most recent value, the signal interface provides a method named "getLastValue."
+However, for developers requiring access to only the most recent value, the Signal interface provides a method for doing just that.
+
+[#last_value_signal]
+== Getting the last value of a Signal
+
+Reading the last value of a Signal yields an openDAQ Base object-type value. Said value contains the last sample of the most recent Packet sent through the Signal.
 
 [tabs]
 ====
@@ -11,23 +15,160 @@ Cpp::
 +
 [source,cpp]
 ----
-void HowToDoc_MeasureSingleValue(daq::DevicePtr device)
-{
-    // get 1st signal of device...
-    auto signal = device.getSignalsRecursive()[0];
-    // ...and get a measurement value
-    auto measurementValue = signal.getLastValue();
-    std::cout << "Single measurement value: [" << measurementValue << "]" << std::endl;
-}
+// Get last value of a Signal
+auto myLastValue = mySignal.getLastValue();
 ----
 Python::
 +
 [source,python]
 ----
-def HowToDoc_MeasureSingleValue(device):
-    signal = device.signals_recursive[0]
-    measurementValue = signal.last_value
-    print ("Single measurement value: [",measurementValue,"]")
+# Get last value of a Signal
+my_last_value = my_signal.last_value
 ----
 ====
 
+[#last_value_signal_types]
+== Last value and Signal types
+
+The method for getting the last value yields an openDAQ Base object-type value.
+
+The underlying type of the openDAQ Base object-type value we get from the method call corresponds to the Sample Type in the Data Descriptor of the Signal.
+
+* openDAQ Float object-type corresponds to `Float32` or `Float64` Sample Types
+* openDAQ Integer object-type corresponds to `Int8` through `Int64` or `UInt8` through `UInt64` Sample Types
+* openDAQ Complex Float object-type corresponds to `ComplexFloat32` or `ComplexFloat64` Sample Types
+* openDAQ Range object-type corresponds to `RangeInt64` Sample Type
+* openDAQ Struct object-type corresponds to `Struct` Sample Type and the Data Descriptor must have Struct Fields defined
+* openDAQ List object-type corresponds to any of the aforementioned Sample Types and the Data Descriptor must have Dimensions defined
+
+To retrieve the value Sample Type, one can do:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Retrieve the Signal's Sample Type
+auto mySampleType = mySignal.getDescriptor().getSampleType();
+----
+Python::
++
+[source,python]
+----
+# Retrieve the Signal's Sample Type
+my_sample_type = my_signal.descriptor.sample_type
+----
+====
+
+[#last_value_struct]
+== Last value for Struct
+
+If the underlying type of the openDAQ Base object-type value we get from the method call is an openDAQ Struct object-type, the Signal's Data Descriptor has Struct Fields.
+
+[NOTE]
+====
+All Structs and their respective Struct Fields have their names set.
+====
+
+For example:
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Check Signal Data Descriptor's Sample Type and name
+auto myDescriptor = mySignal.getDescriptor();
+assert(myDescriptor.getSampleType() == SampleType::Struct);
+assert(myDescriptor.getName() == "MyStruct");
+// Check Struct Fields
+auto myStructFields = myDescriptor.getStructFields();
+assert(myStructFields.getCount() == 2);
+assert(myStructFields[0].getSampleType() == SampleType::Int32);
+assert(myStructFields[0].getName() == "MyInt32");
+assert(myStructFields[1].getSampleType() == SampleType::Float64);
+assert(myStructFields[1].getName() == "MyFloat64");
+----
+Python::
++
+[source,python]
+----
+# Not supported in Python yet
+----
+====
+
+Knowing this, we can then do: 
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Get last value of a Signal
+StructPtr myStruct = mySignal.getLastValue();
+// Extract values
+int32_t myInt = myStruct.get("MyInt32");
+double myFloat = myStruct.get("MyFloat64");
+----
+Python::
++
+[source,python]
+----
+# Not supported in Python yet
+----
+====
+
+[NOTE]
+====
+Structs can be nested within the Data Descriptor.
+====
+
+[#last_value_list]
+== Last value for List
+
+It's possible for a value of a Signal to be a List.
+
+[NOTE]
+====
+Dimensions of the Data Descriptor for Lists contain exactly one dimension.
+====
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Check Dimensions count in Signal's Data Descriptor
+assert(mySignal.getDescriptor().getDimensions().getCount() == 1);
+// Get last value of a Signal
+ListPtr<IBaseObject> myList = mySignal.getLastValue();
+// Check the number of elements in List
+assert(myList.getCount() == 2);
+// Extract the second item on list
+auto myItem = myList.getItemAt(1);
+----
+Python::
++
+[source,python]
+----
+# Check Dimensions count in Signal's Data Descriptor
+assert len(my_signal.descriptor.dimensions) == 1
+# Get last value of a Signal
+my_list = my_signal.last_value
+# Check the number of elements in List
+assert len(my_list) == 2
+# Extract the second item on list
+my_item = my_list[1]
+----
+====
+
+In the above example, the item's underlying type will depend upon Signal Data Descriptor's Sample Type.
+
+[NOTE]
+====
+Lists may contain (nested) Structs.
+====

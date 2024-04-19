@@ -11,12 +11,14 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_private.h>
-#include <opendaq/create_device.h>
+
+#include <opendaq/module_manager_utils_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 static std::string defineLocalId(const std::string& localId);
 static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder);
+static std::string getErrorMessage();
 
 InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
     : context(std::move(context))
@@ -36,14 +38,16 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
 {
     const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
     loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
-    
+
     auto localId = builderPtr.getDefaultRootDeviceLocalId();
     auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
 
     auto connectionString = builderPtr.getRootDevice();
+    auto rootDeviceConfig = builderPtr.getRootDeviceConfig();
+
     if (connectionString.assigned() && connectionString.getLength())
     {
-        rootDevice = detail::createDevice(connectionString, nullptr, nullptr, moduleManager, loggerComponent);
+        rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, rootDeviceConfig);
         const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
         if (devicePrivate.assigned())
             devicePrivate->setAsRoot();
@@ -79,6 +83,10 @@ static std::string defineLocalId(const std::string& localId)
 static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 {
     const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
+    const auto context = builderPtr.getContext();
+
+    if (context.assigned())
+        return context;
 
     auto logger = builderPtr.getLogger();
     auto scheduler = builderPtr.getScheduler();
@@ -109,7 +117,7 @@ static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 
     // Configure moduleManager
     if (!moduleManager.assigned())
-        moduleManager = ModuleManager(builderPtr.getModulePath());
+        moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
 
     return Context(scheduler, logger, typeManager, moduleManager, options);
 }
@@ -206,6 +214,26 @@ ErrCode InstanceImpl::addServer(IString* serverTypeId, IPropertyObject* serverCo
     return OPENDAQ_ERR_NOTFOUND;
 }
 
+std::string getErrorMessage()
+{
+    std::string errorMessage;
+
+    ErrorInfoPtr errorInfo;
+    daqGetErrorInfo(&errorInfo);
+    if (errorInfo.assigned())
+    {
+        StringPtr message;
+        errorInfo->getMessage(&message);
+
+        if (message.assigned())
+        {
+            errorMessage = message.toStdString();
+        }
+    }
+
+    return errorMessage;
+}
+
 ErrCode InstanceImpl::addStandardServers(IList** standardServers)
 {
     OPENDAQ_PARAM_NOT_NULL(standardServers);
@@ -213,24 +241,40 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     auto serversPtr = List<IServer>();
     ErrCode errCode = OPENDAQ_SUCCESS;
 
+    StringPtr serverName;
+    
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     ServerPtr nativeStreamingServer;
-    errCode = addServer(String("openDAQ Native Streaming"), nullptr, &nativeStreamingServer);
+    serverName = "openDAQ Native Streaming";
+    errCode = addServer(serverName, nullptr, &nativeStreamingServer);
     if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, getErrorMessage(), errCode);
         return errCode;
+    }
     serversPtr.pushBack(nativeStreamingServer);
+
 #elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
+
     ServerPtr websocketServer;
-    errCode = addServer(String("openDAQ WebsocketTcp Streaming"), nullptr, &websocketServer);
+    serverName = "openDAQ LT Streaming";
+    errCode = addServer(serverName, nullptr, &websocketServer);
     if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, getErrorMessage(), errCode);
         return errCode;
+    }
     serversPtr.pushBack(websocketServer);
 #endif
 
     ServerPtr opcUaServer;
-    errCode = addServer(String("openDAQ OpcUa"), nullptr, &opcUaServer);
+    serverName = "openDAQ OpcUa";
+    errCode = addServer(serverName, nullptr, &opcUaServer);
     if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, getErrorMessage(), errCode);
         return errCode;
+    }
     serversPtr.pushBack(opcUaServer);
 
     *standardServers = serversPtr.detach();
@@ -291,7 +335,7 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     if (!servers.empty())
         return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
-    const auto newRootDevice = detail::createDevice(connectionStringPtr, config, nullptr, moduleManager, loggerComponent);
+    const auto newRootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, config);
 
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;
@@ -620,6 +664,14 @@ ErrCode InstanceImpl::getOnEndUpdate(IEvent** event)
     return rootDevice->endUpdate();
 }
 
+ErrCode INTERFACE_FUNC InstanceImpl::getPermissionManager(IPermissionManager** permissionManager)
+{
+    OPENDAQ_PARAM_NOT_NULL(permissionManager);
+
+    *permissionManager = rootDevice.getPermissionManager().addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)
 {
     return rootDevice->hasProperty(propertyName, hasProperty);
@@ -669,7 +721,7 @@ ErrCode INTERFACE_FUNC InstanceImpl::update(ISerializedObject* obj)
 
             const auto rootDevicePtr = rootDeviceWrapperPtr.readSerializedObject(rootDeviceWrapperKeysPtr[0]);
             rootDevicePtr.checkObjectType("Device");
-            
+
             auto rootDeviceUpdatable = this->rootDevice.asPtr<IUpdatable>(true);
             rootDeviceUpdatable.update(rootDevicePtr);
 

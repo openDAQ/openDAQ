@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,7 +54,6 @@ void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBa
 #ifdef _WIN32
     m.def("WinDebugLoggerSink", &daq::WinDebugLoggerSink_Create);
 #endif
-    m.def("LastMessageLoggerSink", &daq::LastMessageLoggerSink_Create);
 
     cls.def_property("level",
         [](daq::ILoggerSink *object)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ public:
                                     const daq::StringPtr& localId);
 
     daq::StringPtr onGetRemoteId() const override;
-    daq::Bool onTriggerEvent(daq::EventPacketPtr eventPacket) override;
+    daq::Bool onTriggerEvent(const daq::EventPacketPtr& eventPacket) override;
 
 private:
     daq::StringPtr streamingId;

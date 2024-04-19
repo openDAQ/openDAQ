@@ -29,11 +29,13 @@ StreamingServer::StreamingServer(const ContextPtr& context)
 StreamingServer::~StreamingServer()
 {
     stop();
-    logger.removeComponent("StreamingServer");
 }
 
 void StreamingServer::start(uint16_t port, uint16_t controlPort)
 {
+    if (serverRunning)
+        return;
+
     this->port = port;
 
     ioContext.restart();
@@ -57,19 +59,47 @@ void StreamingServer::start(uint16_t port, uint16_t controlPort)
                                                                  logCallback);
     this->controlServer->start();
 
-    this->serverThread = std::thread([this]() { this->ioContext.run(); });
+    this->serverThread = std::thread([this]()
+                                     {
+                                         this->ioContext.run();
+                                         LOG_I("Websocket streaming server thread finished");
+                                     });
+
+    serverRunning = true;
 }
 
 void StreamingServer::stop()
 {
-    ioContext.stop();
-
-    if (!serverThread.joinable())
+    if (!serverRunning)
         return;
 
-    this->server->stop();
-    serverThread.join();
+    ioContext.stop();
+
+    if (this->server)
+        this->server->stop();
+    if (this->controlServer)
+        this->controlServer->stop();
+
+    if (serverThread.get_id() != std::this_thread::get_id())
+    {
+        if (!serverThread.joinable())
+        {
+            LOG_W("Websocket streaming server thread is not joinable");
+        }
+        else
+        {
+            serverThread.join();
+            LOG_I("Websocket streaming server thread joined");
+        }
+    }
+    else
+    {
+        LOG_C("Websocket streaming server thread cannot join itself");
+    }
+    serverRunning = false;
+
     this->server.reset();
+    this->controlServer.reset();
 }
 
 void StreamingServer::onAccept(const OnAcceptCallback& callback)
@@ -95,7 +125,7 @@ void StreamingServer::unicastPacket(const std::string& streamId,
     {
         auto signals = clientIt->second.second;
         if (auto signalIt = signals.find(streamId); signalIt != signals.end())
-            signalIt->second->write(packet);
+            signalIt->second->writeDaqPacket(packet);
     }
 }
 
@@ -106,7 +136,7 @@ void StreamingServer::broadcastPacket(const std::string& signalId, const PacketP
         auto signals = client.second;
         if (auto signalIter = signals.find(signalId); signalIter != signals.end())
         {
-            signalIter->second->write(packet);
+            signalIter->second->writeDaqPacket(packet);
         }
     }
 }
@@ -119,7 +149,92 @@ void StreamingServer::sendPacketToSubscribers(const std::string& signalId, const
         if (auto signalIter = signals.find(signalId); signalIter != signals.end())
         {
             if (signalIter->second->isSubscribed())
-                signalIter->second->write(packet);
+                signalIter->second->writeDaqPacket(packet);
+        }
+    }
+}
+
+DataRuleType StreamingServer::getSignalRuleType(const SignalPtr& signal)
+{
+    auto descriptor = signal.getDescriptor();
+    if (!descriptor.assigned() || !descriptor.getRule().assigned())
+    {
+        throw InvalidParameterException("Unknown signal rule");
+    }
+    return descriptor.getRule().getType();
+}
+
+void StreamingServer::addToOutputSignals(const SignalPtr& signal,
+                                         SignalMap& outputSignals,
+                                         const StreamWriterPtr& writer)
+{
+    auto createOutputDomainSignal = [&writer, this](const SignalPtr& domainSignal)
+        -> std::shared_ptr<OutputDomainSignalBase>
+    {
+        auto tableId = domainSignal.getGlobalId();
+        const auto domainSignalRuleType = getSignalRuleType(domainSignal);
+
+        if (domainSignalRuleType == DataRuleType::Linear)
+        {
+            return std::make_shared<OutputLinearDomainSignal>(writer, domainSignal, tableId, logCallback);
+        }
+        else
+        {
+            throw InvalidParameterException("Unsupported domain signal rule type");
+        }
+    };
+
+    auto domainSignal = signal.getDomainSignal();
+    if (domainSignal.assigned())
+    {
+        auto domainSignalId = domainSignal.getGlobalId();
+
+        OutputDomainSignaBaselPtr outputDomainSignal;
+        if (const auto& outputSignalIt = outputSignals.find(domainSignalId); outputSignalIt != outputSignals.end())
+        {
+            outputDomainSignal = std::dynamic_pointer_cast<OutputDomainSignalBase>(outputSignalIt->second);
+            if (!outputDomainSignal)
+                throw NoInterfaceException("Registered output signal {} is not of domain type", domainSignalId);
+        }
+        else
+        {
+            outputDomainSignal = createOutputDomainSignal(domainSignal);
+            outputSignals.insert({domainSignalId, outputDomainSignal});
+        }
+
+        auto tableId = domainSignalId;
+
+        const auto domainSignalRuleType = getSignalRuleType(domainSignal);
+        if (domainSignalRuleType == DataRuleType::Linear)
+        {
+            const auto valueSignalRuleType = getSignalRuleType(signal);
+            if (valueSignalRuleType == DataRuleType::Explicit)
+            {
+                auto outputValueSignal =
+                    std::make_shared<OutputSyncValueSignal>(writer, signal, outputDomainSignal, tableId, logCallback);
+                outputSignals.insert({signal.getGlobalId(), outputValueSignal});
+            }
+            else if (valueSignalRuleType == DataRuleType::Constant)
+            {
+                auto outputValueSignal =
+                    std::make_shared<OutputConstValueSignal>(writer, signal, outputDomainSignal, tableId, logCallback);
+                outputSignals.insert({signal.getGlobalId(), outputValueSignal});
+            }
+            else
+            {
+                throw InvalidParameterException("Unsupported value signal rule type");
+            }
+        }
+        else
+        {
+            throw InvalidParameterException("Unsupported domain signal rule type");
+        }
+    }
+    else
+    {
+        if (const auto& outputSignalIt = outputSignals.find(signal.getGlobalId()); outputSignalIt == outputSignals.end())
+        {
+            outputSignals.insert({signal.getGlobalId(), createOutputDomainSignal(signal)});
         }
     }
 }
@@ -135,26 +250,21 @@ void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
     if (onAcceptCallback)
         signals = onAcceptCallback(writer);
 
-    auto outputSignals = std::unordered_map<std::string, OutputSignalPtr>();
+    auto outputSignals = std::unordered_map<std::string, OutputSignalBasePtr>();
     for (const auto& signal : signals)
-    {   
+    {
         if (!signal.getPublic())
             continue;
 
         filteredSignals.pushBack(signal);
-
-        // TODO: We skip domain signals for now.
-        if (!signal.getDomainSignal().assigned())
-            continue;
         
         try
         {
-            const auto outputSignal = std::make_shared<OutputSignal>(writer, signal, logCallback);
-            outputSignals.insert({signal.getGlobalId(), outputSignal});
+            addToOutputSignals(signal, outputSignals, writer);
         }
-        catch (const DaqException&)
+        catch (const DaqException& e)
         {
-            LOG_W("Failed to create an ouput websocket signal.");
+            LOG_W("Failed to create an output websocket signal: {}", e.what());
         }
     }
 
@@ -274,22 +384,28 @@ bool StreamingServer::isSignalSubscribed(const std::string& signalId) const
     return result;
 }
 
-void StreamingServer::subscribeHandler(const std::string& signalId, OutputSignalPtr signal)
+void StreamingServer::subscribeHandler(const std::string& signalId, OutputSignalBasePtr signal)
 {
     // wasn't subscribed by any client
-    if (!isSignalSubscribed(signalId) && onSubscribeCallback)
-        onSubscribeCallback(signal->getCoreSignal());
+    if (!isSignalSubscribed(signalId))
+    {
+        if (signal->isDataSignal() && onSubscribeCallback)
+            onSubscribeCallback(signal->getDaqSignal());
+    }
 
     signal->setSubscribed(true);
 }
 
-void StreamingServer::unsubscribeHandler(const std::string& signalId, OutputSignalPtr signal)
+void StreamingServer::unsubscribeHandler(const std::string& signalId, OutputSignalBasePtr signal)
 {
     signal->setSubscribed(false);
 
     // became not subscribed by any client
-    if (!isSignalSubscribed(signalId) && onUnsubscribeCallback)
-        onUnsubscribeCallback(signal->getCoreSignal());
+    if (!isSignalSubscribed(signalId))
+    {
+        if (signal->isDataSignal() && onUnsubscribeCallback)
+            onUnsubscribeCallback(signal->getDaqSignal());
+    }
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

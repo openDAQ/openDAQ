@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ class BaseSessionHandler
 public:
     BaseSessionHandler(const ContextPtr& daqContext,
                        SessionPtr session,
-                       boost::asio::io_context& ioContext,
+                       const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                        native_streaming::OnSessionErrorCallback errorHandler,
                        ConstCharPtr loggerComponentName);
     virtual ~BaseSessionHandler();
@@ -70,6 +70,7 @@ protected:
     SessionPtr session;
     ProcessConfigProtocolPacketCb configPacketReceivedHandler;
     native_streaming::OnSessionErrorCallback errorHandler;
+    std::shared_ptr<boost::asio::io_context> ioContextPtr;
     std::shared_ptr<boost::asio::steady_timer> connectionInactivityTimer;
     LoggerComponentPtr loggerComponent;
     bool connectionActivityMonitoringStarted{false};

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,16 +25,16 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
-using SendToClientCallback = std::function<void(std::shared_ptr<ServerSessionHandler>& sessionHandler)>;
+using DoForClientCallback = std::function<void(std::shared_ptr<ServerSessionHandler>& sessionHandler)>;
 
 class SubscribersRegistry
 {
 public:
     explicit SubscribersRegistry(const ContextPtr& context);
 
-    void sendToClients(SendToClientCallback sendCallback);
-    void sendToSubscribers(const SignalPtr& signal, SendToClientCallback sendCallback);
-    void sendToClient(SessionPtr session, SendToClientCallback sendCallback);
+    void doForAllClients(DoForClientCallback sendCallback);
+    void doForSubscribedClients(const SignalPtr& signal, DoForClientCallback sendCallback);
+    void doForSingleClient(SessionPtr session, DoForClientCallback sendCallback);
 
     void registerSignal(const SignalPtr& signal);
     bool removeSignal(const SignalPtr& signal);
@@ -45,13 +45,18 @@ public:
     bool registerSignalSubscriber(const std::string& signalStringId, SessionPtr session);
     bool removeSignalSubscriber(const std::string& signalStringId, SessionPtr session);
 
+    void setLastEventPacket(const std::string& signalStringId, const EventPacketPtr& packet);
+    EventPacketPtr getLastEventPacket(const std::string& signalStringId);
+
 private:
+    using Clients = std::vector<std::shared_ptr<ServerSessionHandler>>;
     ContextPtr context;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
 
-    std::unordered_map<std::string, std::vector<std::shared_ptr<ServerSessionHandler>>> signalsSubscribers;
-    std::vector<std::shared_ptr<ServerSessionHandler>> sessionHandlers;
+    // key: signal global id,  value: tuple <vector of subscribed clients, last event packet>
+    std::unordered_map<std::string, std::tuple<Clients, EventPacketPtr>> registeredSignals;
+    Clients sessionHandlers;
     std::mutex sync;
 };
 

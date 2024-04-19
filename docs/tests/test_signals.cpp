@@ -49,7 +49,7 @@ TEST_F(SignalsTest, DataDescriptor)
 TEST_F(SignalsTest, DataRule)
 {
     auto dataRule1 = LinearDataRule(10, 10);
-    auto dataRule2 = ConstantDataRule(10);
+    auto dataRule2 = ConstantDataRule();
     auto dataRule3 = ExplicitDataRule();
 
     ASSERT_TRUE(dataRule1.assigned());
@@ -99,7 +99,7 @@ TEST_F(SignalsTest, StructData)
     auto struct1 = builder.build();
     auto struct2 = builder.build();
 
-    auto dataDesc = builder.setSampleType(SampleType::Struct).setStructFields(List<IDataDescriptor>(struct1, struct2)).build();
+    auto dataDesc = builder.setSampleType(SampleType::Struct).setName("Struct").setStructFields(List<IDataDescriptor>(struct1, struct2)).build();
 }
 
 

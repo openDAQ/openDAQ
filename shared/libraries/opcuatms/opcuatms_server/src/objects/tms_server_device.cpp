@@ -9,7 +9,6 @@
 #include "opcuatms/converters/struct_converter.h"
 #include <opendaq/component_ptr.h>
 #include <opendaq/device_private.h>
-#include <opendaq/streaming_info_ptr.h>
 #include <opendaq/search_filter_factory.h>
 #include <open62541/types_daqesp_generated.h>
 #include <opcuatms/converters/variant_converter.h>
@@ -221,26 +220,17 @@ void TmsServerDevice::populateDeviceInfo()
     }
 }
 
-void TmsServerDevice::populateStreamingOptions()
+void TmsServerDevice::populateServerCapabilities()
 {
-    auto params = AddObjectNodeParams(UA_NODEID_NULL, nodeId);
-    params.setBrowseName("StreamingOptions");
-    auto streamingOptionsNodeId = server->addObjectNode(params);
-
-    auto devicePrivatePtr = object.asPtrOrNull<IDevicePrivate>();
-    if (devicePrivatePtr == nullptr) // Instance does not implement IDevicePrivate
+    const auto deviceInfo = object.getInfo();
+    if (deviceInfo == nullptr)
         return;
 
-    ListPtr<IStreamingInfo> streamingOptions;
-    devicePrivatePtr->getStreamingOptions(&streamingOptions);
+    const PropertyObjectPtr serverCapabilitiesObj = deviceInfo.getPropertyValue("serverCapabilities"); 
 
-    uint32_t numberInList = 0;
-    for (const auto& streamingOption : streamingOptions)
-    {
-        auto tmsStreamingOption = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
-            streamingOptionsNodeId, streamingOption.asPtr<IPropertyObject>(), numberInList++, streamingOption.getProtocolId());
-        this->streamingOptions.push_back(std::move(tmsStreamingOption));
-    }
+    auto tmsServerCapability = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
+            nodeId, serverCapabilitiesObj.asPtr<IPropertyObject>(), numberInList++, "ServerCapabilities");
+    this->serverCapabilities.push_back(std::move(tmsServerCapability));
 }
 
 void TmsServerDevice::addFunctionBlockFolderNodes()
@@ -432,7 +422,7 @@ void TmsServerDevice::removeFunctionBlock(const StringPtr& localId)
 void TmsServerDevice::addChildNodes()
 {
     populateDeviceInfo();
-    populateStreamingOptions();
+    populateServerCapabilities();
     auto methodSetNodeId = getChildNodeId("MethodSet");
     tmsPropertyObject->setMethodParentNodeId(methodSetNodeId);
 

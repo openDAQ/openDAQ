@@ -9,7 +9,7 @@
 
 using DataPacketTest = testing::Test;
 
-BEGIN_NAMESPACE_OPENDAQ
+using namespace daq;
 
 // Helper methods
 
@@ -53,7 +53,7 @@ static void validateLinearScalingPacket(const DataDescriptorPtr& descriptor, U s
 template <typename T>
 static void validateImplicitConstantDataRulePacket(const DataDescriptorPtr& descriptor, T constant)
 {
-    const DataPacketPtr packet = DataPacket(descriptor, 100);
+    const DataPacketPtr packet = ConstantDataPacketWithDomain(nullptr, descriptor, 100, constant);
     const auto scaledData = static_cast<T*>(packet.getData());
     for (uint64_t i = 0; i < packet.getSampleCount(); ++i)
         ASSERT_EQ(scaledData[i], constant);
@@ -147,6 +147,11 @@ TEST_F(DataPacketTest, TestInt64LinearDataRule)
 {
     const auto descriptor = setupDescriptor(SampleType::Int64, LinearDataRule(10.5, 0), nullptr);
     validateImplicitLinearDataRulePacket<int64_t>(descriptor, 10, 0, 1000);
+}
+
+TEST_F(DataPacketTest, TestSingleConstantDataRule)
+{
+    const auto descriptor = setupDescriptor(SampleType::Float32, ConstantDataRule(), nullptr);
 }
 
 TEST_F(DataPacketTest, TestDoubleLinearScaling)
@@ -280,20 +285,74 @@ TEST_F(DataPacketTest, TestInt64LinearScaling)
     validateLinearScalingPacket<int64_t, double>(descriptor, 1012, 10020);
 }
 
-TEST_F(DataPacketTest, TestConstantRule)
+template <typename DataType>
+class ConstantRuleTest : public DataPacketTest
 {
-    auto descriptor = setupDescriptor(SampleType::Int32, ConstantDataRule(111), nullptr);
-    validateImplicitConstantDataRulePacket<int32_t>(descriptor, 111);
+public:
+    static_assert(std::is_arithmetic_v<DataType>);
 
-    descriptor = setupDescriptor(SampleType::UInt8, ConstantDataRule(123), nullptr);
-    validateImplicitConstantDataRulePacket<uint8_t>(descriptor, 123);
+    void DoTestWithSingleValue()
+    {
+        auto descriptor = setupDescriptor(SampleTypeFromType<DataType>::SampleType, ConstantDataRule(), nullptr);
 
-    descriptor = setupDescriptor(SampleType::Float32, ConstantDataRule(20.5), nullptr);
-    validateImplicitConstantDataRulePacket<float>(descriptor, static_cast<float>(20.5));
+        if constexpr (std::is_integral_v<DataType>)
+            validateImplicitConstantDataRulePacket<DataType>(descriptor, 123);
+        else if constexpr (std::is_floating_point_v<DataType>)
+            validateImplicitConstantDataRulePacket<DataType>(descriptor, static_cast<DataType>(20.5));
+    }
 
-    descriptor = setupDescriptor(SampleType::Float64, ConstantDataRule(678.2), nullptr);
-    validateImplicitConstantDataRulePacket<double>(descriptor, 678.2);
+    void DoTestWithMultipleValues()
+    {
+        constexpr size_t sampleCount = 100;
+        auto sampleType = SampleTypeFromType<DataType>::SampleType;
+        auto descriptor = setupDescriptor(sampleType, ConstantDataRule(), nullptr);
+        const DataPacketPtr packet = ConstantDataPacketWithDomain<DataType>(nullptr, descriptor, sampleCount, 12, {{10, 16}, {70, 18}, {90, 20}});
+        const auto scaledData = static_cast<DataType*>(packet.getData());
+        if constexpr (std::is_unsigned_v<DataType>)
+        {
+            for (uint64_t i = 0; i < 9; ++i)
+                ASSERT_EQ(scaledData[i], 12u);
+            for (uint64_t i = 10; i < 69; ++i)
+                ASSERT_EQ(scaledData[i], 16u);
+            for (uint64_t i = 70; i < 89; ++i)
+                ASSERT_EQ(scaledData[i], 18u);
+            for (uint64_t i = 90; i < packet.getSampleCount(); ++i)
+                ASSERT_EQ(scaledData[i], 20u);
+        }
+        else
+        {
+            for (uint64_t i = 0; i < 9; ++i)
+                ASSERT_EQ(scaledData[i], 12);
+            for (uint64_t i = 10; i < 69; ++i)
+                ASSERT_EQ(scaledData[i], 16);
+            for (uint64_t i = 70; i < 89; ++i)
+                ASSERT_EQ(scaledData[i], 18);
+            for (uint64_t i = 90; i < packet.getSampleCount(); ++i)
+                ASSERT_EQ(scaledData[i], 20);
+        }
+
+        ASSERT_EQ(packet.getSampleCount(), sampleCount);
+        ASSERT_EQ(packet.getRawDataSize(), getSampleSize(sampleType) * 4 + 12);
+        ASSERT_EQ(packet.getDataSize(), getSampleSize(sampleType) * sampleCount);
+    }
+};
+
+TYPED_TEST_SUITE_P(ConstantRuleTest);
+
+TYPED_TEST_P(ConstantRuleTest, TestConstantRule)
+{
+    this->DoTestWithSingleValue();
 }
+
+TYPED_TEST_P(ConstantRuleTest, TestConstantRuleWithMultipleValues)
+{
+    this->DoTestWithMultipleValues();
+}
+
+REGISTER_TYPED_TEST_SUITE_P(ConstantRuleTest, TestConstantRule, TestConstantRuleWithMultipleValues);
+
+using SampleTypes = testing::Types<int8_t, int16_t , int32_t, int64_t, uint8_t, uint16_t , uint32_t, uint64_t, float, double>;
+INSTANTIATE_TYPED_TEST_SUITE_P(ConstantRuleTestTyped, ConstantRuleTest, SampleTypes);
 
 TEST_F(DataPacketTest, TestRangeType)
 {
@@ -393,6 +452,7 @@ TEST_F(DataPacketTest, PacketWithStructSampleType)
         .build();
 
     const auto canMsgDescriptor = DataDescriptorBuilder()
+        .setName("Can")
         .setSampleType(SampleType::Struct)
         .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
         .build();
@@ -400,4 +460,90 @@ TEST_F(DataPacketTest, PacketWithStructSampleType)
     const DataPacketPtr packet = DataPacket(canMsgDescriptor, 100, 0);
 }
 
-END_NAMESPACE_OPENDAQ
+TEST_F(DataPacketTest, GetLastValue)
+{
+    const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Int32).build();
+    const auto packet = DataPacket(descriptor, 5);
+    const auto data = static_cast<int32_t*>(packet.getData());
+    data[4] = 42;
+
+    const auto lv = packet.getLastValue();
+    IntegerPtr ptr;
+    ASSERT_NO_THROW(ptr = lv.asPtr<IInteger>());
+    ASSERT_EQ(ptr, 42);
+}
+
+TEST_F(DataPacketTest, GetLastValueConstantPosAndValue)
+{
+    std::vector<daq::ConstantPosAndValue<uint64_t>> constantPosAndValue;
+    constantPosAndValue.push_back({0, 0});
+    constantPosAndValue.push_back({5, 5});
+    constantPosAndValue.push_back({10, 10});
+    constantPosAndValue.push_back({15, 15});
+
+    DataPacketPtr packet;
+
+    ASSERT_NO_THROW(packet = ConstantDataPacketWithDomain<uint64_t>(
+                        nullptr,
+                        DataDescriptorBuilder().setSampleType(SampleType::UInt64).setRule(ConstantDataRule()).build(),
+                        50,
+                        0,
+                        constantPosAndValue));
+
+    uint64_t lastValue;
+
+    ASSERT_NO_THROW(lastValue = packet.getLastValue());
+
+    ASSERT_EQ(lastValue, 15);
+}
+
+TEST_F(DataPacketTest, GetLastValueNested)
+{
+    const auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build()))
+            .build();
+
+    const auto packet = DataPacket(descriptor, 5);
+    const auto data = static_cast<int32_t*>(packet.getData());
+    data[4] = 42;
+
+    auto fieldNames = List<IString>();
+    auto fieldTypes = List<IType>();
+
+    fieldNames.pushBack("Int32");
+    fieldTypes.pushBack(SimpleType(CoreType::ctInt));
+
+    const auto structType = StructType("MyTestStructType", fieldNames, fieldTypes);
+
+    const auto manager = TypeManager();
+    manager.addType(structType);
+
+    BaseObjectPtr lv;
+
+    ASSERT_NO_THROW(lv = packet.getLastValue(manager));
+
+    StructPtr ptr;
+
+    ASSERT_NO_THROW(ptr = lv.asPtr<IStruct>());
+
+    ASSERT_EQ(ptr.get("Int32"), 42);
+}
+
+TEST_F(DataPacketTest, GetLastValueNoTypeManager)
+{
+    const auto descriptor =
+        DataDescriptorBuilder()
+            .setName("MyTestStructType")
+            .setSampleType(SampleType::Struct)
+            .setStructFields(List<DataDescriptorPtr>(DataDescriptorBuilder().setName("Int32").setSampleType(SampleType::Int32).build()))
+            .build();
+
+    const auto packet = DataPacket(descriptor, 5);
+    const auto data = static_cast<int32_t*>(packet.getData());
+    data[4] = 42;
+
+    ASSERT_THROW(packet.getLastValue(), InvalidParameterException);
+}

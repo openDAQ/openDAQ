@@ -7,7 +7,6 @@ set(TEST_MOCKS mock/mock_mirrored_signal.h
 
 set(TEST_SOURCES test_streaming.cpp
                  test_mirrored_signal.cpp
-                 test_streaming_info.cpp
                  ${TEST_MOCKS}
 )
 
@@ -16,6 +15,10 @@ opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
                            test_app.cpp
                            ${TEST_SOURCES}
 )
+
+if (MSVC)
+    target_compile_options(${TEST_APP} PRIVATE /bigobj)
+endif()
 
 target_link_libraries(${TEST_APP}
     PRIVATE

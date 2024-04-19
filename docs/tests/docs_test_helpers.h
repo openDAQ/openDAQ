@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ namespace docs_test_helpers
         
         instance.setRootDevice("daqref://device1");
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING) && defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-        instance.addServer("openDAQ WebsocketTcp Streaming", nullptr);
+        instance.addServer("openDAQ LT Streaming", nullptr);
 #endif
         instance.addStandardServers();
         return instance;

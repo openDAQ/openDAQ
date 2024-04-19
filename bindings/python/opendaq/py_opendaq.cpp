@@ -39,6 +39,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIDeviceDomain = declareIDeviceDomain(m);
     auto classIDeviceInfo = declareIDeviceInfo(m);
     auto classIDeviceInfoConfig = declareIDeviceInfoConfig(m);
+    auto classIServerCapability = declareIServerCapability(m);
     auto classIDeviceType = declareIDeviceType(m);
     auto classIFunctionBlock = declareIFunctionBlock(m);
     auto classIChannel = declareIChannel(m);
@@ -59,6 +60,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classTimeBlockReader = declareTimeBlockReader(m);
     auto classITailReader = declareITailReader(m);
     auto classIReaderStatus = declareIReaderStatus(m);
+    auto classIBlockReaderStatus = declareIBlockReaderStatus(m);
     auto classIAwaitable = declareIAwaitable(m);
     auto classIGraphVisualization = declareIGraphVisualization(m);
     auto classIScheduler = declareIScheduler(m);
@@ -91,9 +93,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIServer = declareIServer(m);
     auto classIServerType = declareIServerType(m);
     auto classIStreaming = declareIStreaming(m);
-    auto classIStreamingInfo = declareIStreamingInfo(m);
-    auto classIStreamingInfoConfig = declareIStreamingInfoConfig(m);
     auto classIMirroredSignalConfig = declareIMirroredSignalConfig(m);
+    auto classIMirroredSignalPrivate = declareIMirroredSignalPrivate(m);
     auto classISubscriptionEventArgs = declareISubscriptionEventArgs(m);
     auto classMockSignal = declareMockSignal(m);
     auto classISearchFilter = declareISearchFilter(m);
@@ -115,6 +116,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIDeviceDomain(m, classIDeviceDomain);
     defineIDeviceInfo(m, classIDeviceInfo);
     defineIDeviceInfoConfig(m, classIDeviceInfoConfig);
+    defineIServerCapability(m, classIServerCapability);
     defineIDeviceType(m, classIDeviceType);
     defineIFunctionBlock(m, classIFunctionBlock);
     defineIChannel(m, classIChannel);
@@ -135,6 +137,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineTimeBlockReader(m, classTimeBlockReader);
     defineITailReader(m, classITailReader);
     defineIReaderStatus(m, classIReaderStatus);
+    defineIBlockReaderStatus(m, classIBlockReaderStatus);
     defineIAwaitable(m, classIAwaitable);
     defineIGraphVisualization(m, classIGraphVisualization);
     defineIScheduler(m, classIScheduler);
@@ -167,9 +170,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIServer(m, classIServer);
     defineIServerType(m, classIServerType);
     defineIStreaming(m, classIStreaming);
-    defineIStreamingInfo(m, classIStreamingInfo);
-    defineIStreamingInfoConfig(m, classIStreamingInfoConfig);
     defineIMirroredSignalConfig(m, classIMirroredSignalConfig);
+    defineIMirroredSignalPrivate(m, classIMirroredSignalPrivate);
     defineISubscriptionEventArgs(m, classISubscriptionEventArgs);
     defineMockSignal(m, classMockSignal);
     defineISearchFilter(m, classISearchFilter);

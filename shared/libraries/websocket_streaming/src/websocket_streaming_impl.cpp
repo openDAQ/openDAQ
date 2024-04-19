@@ -2,7 +2,7 @@
 #include <opendaq/event_packet.h>
 #include <opendaq/mirrored_signal_config.h>
 #include <opendaq/streaming_ptr.h>
-#include <opendaq/mirrored_signal_private.h>
+#include <opendaq/mirrored_signal_private_ptr.h>
 #include <opendaq/subscription_event_args_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
@@ -18,7 +18,7 @@ WebsocketStreamingImpl::WebsocketStreamingImpl(const StringPtr& connectionString
 WebsocketStreamingImpl::WebsocketStreamingImpl(StreamingClientPtr streamingClient,
                                                const StringPtr& connectionString,
                                                const ContextPtr& context)
-    : Streaming(connectionString, context)
+    : Streaming(connectionString, context, true)
     , streamingClient(streamingClient)
 {
     prepareStreamingClient();
@@ -38,28 +38,14 @@ void WebsocketStreamingImpl::onRemoveSignal(const MirroredSignalConfigPtr& /*sig
 {
 }
 
-void WebsocketStreamingImpl::onSubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& /*domainSignalRemoteId*/)
+void WebsocketStreamingImpl::onSubscribeSignal(const StringPtr& signalStreamingId)
 {
-    auto signalStreamingId = onGetSignalStreamingId(signalRemoteId);
-    if (auto it = streamingSignalsRefs.find(signalStreamingId); it == streamingSignalsRefs.end())
-        throw NotFoundException("Signal with id {} is not added to Websocket streaming", signalRemoteId);
-
-    streamingClient->subscribeSignals({signalStreamingId.toStdString()});
+    streamingClient->subscribeSignal(signalStreamingId.toStdString());
 }
 
-void WebsocketStreamingImpl::onUnsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& /*domainSignalRemoteId*/)
+void WebsocketStreamingImpl::onUnsubscribeSignal(const StringPtr& signalStreamingId)
 {
-    auto signalStreamingId = onGetSignalStreamingId(signalRemoteId);
-    if (auto it = streamingSignalsRefs.find(signalStreamingId); it == streamingSignalsRefs.end())
-        throw NotFoundException("Signal with id {} is not added to Websocket streaming", signalRemoteId);
-
-    streamingClient->unsubscribeSignals({signalStreamingId.toStdString()});
-}
-
-EventPacketPtr WebsocketStreamingImpl::onCreateDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId)
-{
-    StringPtr signalStreamingId = onGetSignalStreamingId(signalRemoteId);
-    return streamingClient->getDataDescriptorChangedEventPacket(signalStreamingId);
+    streamingClient->unsubscribeSignal(signalStreamingId.toStdString());
 }
 
 void WebsocketStreamingImpl::prepareStreamingClient()
@@ -76,75 +62,37 @@ void WebsocketStreamingImpl::prepareStreamingClient()
     };
     streamingClient->onAvailableStreamingSignals(availableSignalsCallback);
 
+    auto hiddenSignalCallback = [this](const StringPtr& signalId, const SubscribedSignalInfo& /*sInfo*/)
+    {
+        this->onHiddenSignal(signalId);
+    };
+    streamingClient->onHiddenStreamingSignal(hiddenSignalCallback);
+
     auto signalSubscriptionAckCallback = [this](const std::string& signalStringId, bool subscribed)
     {
-        auto signalKey = String(signalStringId);
-        if (auto it = streamingSignalsRefs.find(signalKey); it != streamingSignalsRefs.end())
-        {
-            auto signalRef = it->second;
-            MirroredSignalConfigPtr signal = signalRef.assigned() ? signalRef.getRef() : nullptr;
-            if (signal.assigned())
-            {
-                if (subscribed)
-                    signal.template asPtr<daq::IMirroredSignalPrivate>()->subscribeCompleted(connectionString);
-                else
-                    signal.template asPtr<daq::IMirroredSignalPrivate>()->unsubscribeCompleted(connectionString);
-            }
-        }
+        this->triggerSubscribeAck(signalStringId, subscribed);
     };
     streamingClient->onSubscriptionAck(signalSubscriptionAckCallback);
-}
-
-void WebsocketStreamingImpl::handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket)
-{
-    Bool forwardPacket = signal.template asPtr<IMirroredSignalPrivate>()->triggerEvent(eventPacket);
-    if (forwardPacket)
-        signal.sendPacket(eventPacket);
-}
-
-void WebsocketStreamingImpl::onPacket(const StringPtr& signalId, const PacketPtr& packet)
-{
-    if (!packet.assigned() || !this->isActive)
-        return;
-
-    if (auto it = streamingSignalsRefs.find(signalId); it != streamingSignalsRefs.end())
-    {
-        auto signalRef = it->second;
-        MirroredSignalConfigPtr signal = signalRef.assigned() ? signalRef.getRef() : nullptr;
-        if (signal.assigned() &&
-            signal.getStreamed() &&
-            signal.getActiveStreamingSource() == connectionString)
-        {
-            const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
-            if (eventPacket.assigned())
-                handleEventPacket(signal, eventPacket);
-            else
-                signal.sendPacket(packet);
-        }
-    }
 }
 
 void WebsocketStreamingImpl::onAvailableSignals(const std::vector<std::string>& signalIds)
 {
     for (const auto& signalId : signalIds)
-        availableSignalIds.push_back(String(signalId));
+    {
+        auto signalStringId = String(signalId);
+        addToAvailableSignals(signalStringId);
+    }
 }
 
-StringPtr WebsocketStreamingImpl::onGetSignalStreamingId(const StringPtr& signalRemoteId)
+void WebsocketStreamingImpl::onHiddenSignal(const std::string& signalId)
 {
-    const auto it = std::find_if(
-        availableSignalIds.begin(),
-        availableSignalIds.end(),
-        [&signalRemoteId](const StringPtr& signalStreamingId)
-        {
-            return IdsParser::idEndsWith(signalRemoteId.toStdString(), signalStreamingId.toStdString());
-        }
-    );
+    if (const auto it = hiddenSignals.find(signalId); it == hiddenSignals.end())
+    {
+        hiddenSignals.insert(signalId);
 
-    if (it != availableSignalIds.end())
-        return *it;
-    else
-        throw NotFoundException("Signal with id {} is not available in Websocket streaming", signalRemoteId);
+        auto signalStringId = String(signalId);
+        addToAvailableSignals(signalStringId);
+    }
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

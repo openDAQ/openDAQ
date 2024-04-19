@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -131,6 +131,22 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.setModulePath(path);
         },
         "Gets the path for the default ModuleManager of Instance. / Sets the path for the default ModuleManager of the Instance. If Module manager has been set, configuring of Module path has no effect in building Instance.");
+    cls.def("add_module_path",
+        [](daq::IInstanceBuilder *object, const std::string& path)
+        {
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            objectPtr.addModulePath(path);
+        },
+        py::arg("path"),
+        "Add the path for the default ModuleManager of the Instance. If Module manager has been set, configuring of Module path has no effect in building Instance.");
+    cls.def_property_readonly("module_paths_list",
+        [](daq::IInstanceBuilder *object)
+        {
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            return objectPtr.getModulePathsList().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Get the list of paths for the default ModuleManager of the Instance. If Module manager has been set, configuring of Module path has no effect in building Instance.");
     cls.def_property("module_manager",
         [](daq::IInstanceBuilder *object)
         {

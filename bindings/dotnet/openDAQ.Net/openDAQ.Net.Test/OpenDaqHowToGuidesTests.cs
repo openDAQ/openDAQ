@@ -24,7 +24,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     private const string ConnectionProtocolDaqRef  = "daqref://";
     private const string ConnectionProtocolOpcUa   = "daq.opcua://";
-    private const string ConnectionProtocolWinSock = "daq.ws://";
+    private const string ConnectionProtocolWinSock = "daq.lt://";
 
     private const string ConnectionStringDaqRef = "daqref://device0";
 

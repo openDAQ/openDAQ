@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@
 #include <opendaq/signal_ptr.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/reader_status_ptr.h>
+#include <opendaq/block_reader_status_ptr.h>
+#include <opendaq/multi_reader_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -33,6 +35,11 @@ using UndefinedType = void;
 inline ReaderStatusPtr ReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true)
 {
     return ReaderStatus_Create(packet, valid);
+}
+
+inline BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, SizeT readSamples = 0)
+{
+    return BlockReaderStatus_Create(packet, valid, readSamples);
 }
 
 /*!
@@ -348,6 +355,15 @@ BlockReaderPtr BlockReaderFromExisting(BlockReaderPtr invalidatedReader, SizeT b
     );
 }
 
+inline MultiReaderBuilderPtr MultiReaderBuilder()
+{
+    return MultiReaderBuilder_Create();
+}
+
+inline MultiReaderPtr MultiReaderFromBuilder(const MultiReaderBuilderPtr& builder)
+{
+    return MultiReaderFromBuilder_Create(builder);
+}
 
 inline MultiReaderPtr MultiReader(const ListPtr<ISignal>& signals,
                                   SampleType valueReadType,
@@ -372,9 +388,10 @@ inline MultiReaderPtr MultiReaderEx(const ListPtr<ISignal>& signals,
                                     SampleType domainReadType,
                                     ReadMode mode = ReadMode::Scaled,
                                     ReadTimeoutType timeoutType = ReadTimeoutType::All,
+                                    Int requiredCommonSampleRate = -1,
                                     bool startOnFullUnitOfDomain = false)
 {
-    return MultiReaderEx_Create(signals, valueReadType, domainReadType, mode, timeoutType, startOnFullUnitOfDomain);
+    return MultiReaderEx_Create(signals, valueReadType, domainReadType, mode, timeoutType, requiredCommonSampleRate, startOnFullUnitOfDomain);
 }
 
 inline MultiReaderPtr MultiReaderFromExisting(const MultiReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)
@@ -403,10 +420,15 @@ inline MultiReaderPtr MultiReaderFromPort(ListPtr<IInputPortConfig> ports,
 }
 
 template <typename TValueType = double, typename TDomainType = ClockTick>
-MultiReaderPtr MultiReaderEx(ListPtr<ISignal> signals, ReadTimeoutType timeoutType = ReadTimeoutType::All, bool startOnFullUnitOfDomain = false)
+MultiReaderPtr MultiReaderEx(ListPtr<ISignal> signals, ReadTimeoutType timeoutType = ReadTimeoutType::All, Int requiredCommonSampleRate = -1, bool startOnFullUnitOfDomain = false)
 {
-    return MultiReaderEx(
-        signals, SampleTypeFromType<TValueType>::SampleType, SampleTypeFromType<TDomainType>::SampleType, ReadMode::Scaled, timeoutType, startOnFullUnitOfDomain);
+    return MultiReaderEx(signals,
+                         SampleTypeFromType<TValueType>::SampleType,
+                         SampleTypeFromType<TDomainType>::SampleType,
+                         ReadMode::Scaled,
+                         timeoutType,
+                         requiredCommonSampleRate,
+                         startOnFullUnitOfDomain);
 }
 
 template <typename TValueType = double, typename TDomainType = ClockTick>

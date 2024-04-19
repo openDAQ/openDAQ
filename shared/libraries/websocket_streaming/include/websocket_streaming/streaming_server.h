@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,16 +59,19 @@ public:
     void sendPacketToSubscribers(const std::string& signalId, const PacketPtr& packet);
 
 protected:
-    using SignalMap = std::unordered_map<std::string, OutputSignalPtr>;
+    using SignalMap = std::unordered_map<std::string, OutputSignalBasePtr>;
     using ClientMap = std::unordered_map<std::string, std::pair<daq::streaming_protocol::StreamWriterPtr, SignalMap>>;
 
+    void addToOutputSignals(const SignalPtr& signal,
+                            SignalMap& outputSignals,
+                            const streaming_protocol::StreamWriterPtr& writer);
     void onAcceptInternal(const daq::stream::StreamPtr& stream);
     void writeProtocolInfo(const daq::streaming_protocol::StreamWriterPtr& writer);
     void writeSignalsAvailable(const daq::streaming_protocol::StreamWriterPtr& writer, const ListPtr<ISignal>& signals);
     void writeInit(const daq::streaming_protocol::StreamWriterPtr& writer);
     bool isSignalSubscribed(const std::string& signalId) const;
-    void subscribeHandler(const std::string& signalId, OutputSignalPtr signal);
-    void unsubscribeHandler(const std::string& signalId, OutputSignalPtr signal);
+    void subscribeHandler(const std::string& signalId, OutputSignalBasePtr signal);
+    void unsubscribeHandler(const std::string& signalId, OutputSignalBasePtr signal);
     int onControlCommand(const std::string& streamId,
                          const std::string& command,
                          const daq::streaming_protocol::SignalIds& signalIds,
@@ -87,6 +90,10 @@ protected:
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
     daq::streaming_protocol::LogCallback logCallback;
+    bool serverRunning{false};
+
+private:
+    static DataRuleType getSignalRuleType(const SignalPtr& domainSignal);
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

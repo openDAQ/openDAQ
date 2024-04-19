@@ -166,6 +166,13 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::getRawSampleSize(SizeT* rawSampleSize
 
 void DataDescriptorImpl::calculateSampleMemSize()
 {
+    size_t elementCnt = 1;
+    for (const auto& dimension : dimensions)
+        elementCnt *= dimension.getSize();
+
+    if (elementCnt == 0)
+        elementCnt = 1;
+
     if (!structFields.assigned() || structFields.getCount() == 0)
     {
         sampleSize = daq::getSampleSize(sampleType);
@@ -174,17 +181,6 @@ void DataDescriptorImpl::calculateSampleMemSize()
         if (scaling.assigned())
             rawType = scaling.getInputSampleType();
         rawSampleSize = daq::getSampleSize(rawType);
-
-        size_t elementCnt = 1;
-        for (const auto& dimension : dimensions)
-        {
-            elementCnt *= dimension.getSize();
-        }
-
-        if (elementCnt == 0)
-        {
-            elementCnt = 1;
-        }
 
         sampleSize *= elementCnt;
         rawSampleSize *= elementCnt;
@@ -201,6 +197,8 @@ void DataDescriptorImpl::calculateSampleMemSize()
             sampleSize += structField.getSampleSize();
             rawSampleSize += structField.getRawSampleSize();
         }
+        sampleSize *= elementCnt;
+        rawSampleSize *= elementCnt;
     }
 }
 
@@ -218,12 +216,13 @@ ErrCode DataDescriptorImpl::validate()
             valid = origin != "" ? false : valid;
             valid = resolution.assigned() ? false : valid;
             valid = scaling.assigned() ? false : valid;
+            valid = !name.assigned() || name == "" ? false : valid;
 
             if (!valid)
             {
                 return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE,
                                      "A Data descriptor with struct members can only have the name and dimensions configured. Its rule "
-                                     "type must be explicit and Sample type set to Struct");
+                                     "type must be explicit and Sample type set to Struct. It's name must be assigned and musn't be empty.");
             }
 
             structFields.freeze();
@@ -241,7 +240,8 @@ ErrCode DataDescriptorImpl::validate()
                                      "When using post scaling, the data rule type must be explicit, and the resolution and origin must "
                                      "not be configured.");
 
-            if (!(dataRule.getType() == DataRuleType::Explicit || dataRule.getType() == DataRuleType::Other))
+            if (!(dataRule.getType() == DataRuleType::Explicit || dataRule.getType() == DataRuleType::Constant ||
+                  dataRule.getType() == DataRuleType::Other))
             {
                 if (sampleType > SampleType::RangeInt64)
                     return makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Implicit data rule types can only be real numbers.");
@@ -339,18 +339,18 @@ bool DataDescriptorImpl::hasScalingCalc() const
 }
 
 // IDataRuleCalcPrivate
-void* DataDescriptorImpl::calculateRule(const NumberPtr& packetOffset, SizeT sampleCount) const
+void* DataDescriptorImpl::calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize) const
 {
     if (dataRuleCalc)
-        return dataRuleCalc->calculateRule(packetOffset, sampleCount);
+        return dataRuleCalc->calculateRule(packetOffset, sampleCount, input, inputSize);
 
     return nullptr;
 }
 
-void DataDescriptorImpl::calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void** output) const
+void DataDescriptorImpl::calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output) const
 {
     if (dataRuleCalc)
-        dataRuleCalc->calculateRule(packetOffset, sampleCount, output);
+        dataRuleCalc->calculateRule(packetOffset, sampleCount, input, inputSize, output);
 }
 
 bool DataDescriptorImpl::hasDataRuleCalc() const

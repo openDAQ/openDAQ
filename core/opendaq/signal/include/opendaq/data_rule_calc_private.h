@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ DECLARE_OPENDAQ_INTERFACE(IDataRuleCalcPrivate, IBaseObject)
      * @param sampleCount The number of samples in the packet.
      * @returns A pointer to the calculated data.
      */
-    virtual void* INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount) const = 0;
+    virtual void* INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize) const = 0;
 
     /*!
      * @brief Calculates the data according to the rule.
@@ -46,7 +46,8 @@ DECLARE_OPENDAQ_INTERFACE(IDataRuleCalcPrivate, IBaseObject)
      * @param sampleCount The number of samples in the packet.
      * @param[out] output A pointer to the calculated data.
      */
-    virtual void INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void** output) const = 0;
+    virtual void INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output)
+        const = 0;
 
     /*!
      * @brief Checks whether the Data Rule Calculator is available for packet or not.

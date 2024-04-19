@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include <coretypes/dictobject_factory.h>
 #include <coretypes/baseobject_factory.h>
 #include <coretypes/struct_ptr.h>
+#include <coretypes/enumeration_ptr.h>
 #include <coretypes/type_manager_ptr.h>
 #include <coretypes/struct_type_factory.h>
 #include <coretypes/stringobject_factory.h>
@@ -153,6 +154,10 @@ GenericStructImpl<StructInterface, Interfaces...>::GenericStructImpl(const Strin
             const auto ct = val.getCoreType();
             if (ct == ctStruct)
                 types.pushBack(val.asPtr<IStruct>().getStructType());
+            else if (ct == ctEnumeration)
+            {
+                types.pushBack(val.asPtr<IEnumeration>().getEnumerationType());
+            }
             else
                 types.pushBack(SimpleType(ct));
         }

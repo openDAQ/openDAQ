@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,10 @@ enum class ReadStatus : uint32_t
     Unknown = 0xFFFF
 };
 
+/*#
+  * [templated(defaultAliasName: ReaderStatusPtr)]
+  * [interfaceSmartPtr(IReaderStatus, GenericReaderStatusPtr)]
+  */
 /*!
  * @brief Represents the status of the reading process returned by the reader::read function.
  *

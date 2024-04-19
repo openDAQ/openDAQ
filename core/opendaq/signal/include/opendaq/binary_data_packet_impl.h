@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ public:
     ErrCode INTERFACE_FUNC getData(void** address) override;
     ErrCode INTERFACE_FUNC getDataSize(SizeT* dataSize) override;
     ErrCode INTERFACE_FUNC getRawDataSize(SizeT* dataSize) override;
-    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) override;
 
 private:
     DataPacketPtr domainPacket;
@@ -185,7 +185,7 @@ ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawDataSize(SizeT* rawDataSize)
 }
 
 template <bool ExternalMemory>
-inline ErrCode INTERFACE_FUNC BinaryDataPacketImpl<ExternalMemory>::getLastValue(IBaseObject** value)
+inline ErrCode INTERFACE_FUNC BinaryDataPacketImpl<ExternalMemory>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 

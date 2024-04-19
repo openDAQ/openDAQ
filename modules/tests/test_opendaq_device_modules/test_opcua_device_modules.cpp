@@ -28,21 +28,11 @@ static InstancePtr CreateServerInstance()
     return instance;
 }
 
-static InstancePtr CreateClientInstance()
-{
-    auto instance = Instance();
-
-    auto config = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
-    config.setPropertyValue("StreamingConnectionHeuristic", 3); // 3 - not connected
-    auto refDevice = instance.addDevice("daq.opcua://127.0.0.1", config);
-    return instance;
-}
-
-static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder)
+static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = InstanceBuilder())
 {
     auto instance = builder.build();
 
-    auto config = instance.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
+    auto config = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
     config.setPropertyValue("StreamingConnectionHeuristic", 3); // 3 - not connected
     auto refDevice = instance.addDevice("daq.opcua://127.0.0.1", config);
     return instance;
@@ -127,6 +117,8 @@ TEST_F(OpcuaDeviceModulesTest, GetSetDeviceProperties)
     ASSERT_EQ(refDevice.getPropertyValue("NumberOfChannels"), 1);
     ASSERT_EQ(serverRefDevice.getPropertyValue("NumberOfChannels"), 1);
 
+    auto oldProperties = refDevice.getAllProperties();
+
     // reset messages
     debugSink.waitForMessage(0);
     ASSERT_ANY_THROW(refDevice.setPropertyValue("InvalidProp", 100));
@@ -135,7 +127,7 @@ TEST_F(OpcuaDeviceModulesTest, GetSetDeviceProperties)
     ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"InvalidProp\" on OpcUA client property object: Property not found");
 
     auto properties = refDevice.getAllProperties();
-    ASSERT_EQ(properties.getCount(), 6u);
+    ASSERT_EQ(properties.getCount(), oldProperties.getCount());
 }
 
 TEST_F(OpcuaDeviceModulesTest, DeviceInfoAndDomain)
@@ -169,7 +161,7 @@ TEST_F(OpcuaDeviceModulesTest, DeviceDynamicFeatures)
     auto daqDevice = client.getDevices()[0];
 
     ASSERT_EQ(daqDevice.getAvailableDevices().getCount(), 0u);
-    ASSERT_EQ(daqDevice.getAvailableFunctionBlockTypes().getCount(), 7u);
+    ASSERT_EQ(daqDevice.getAvailableFunctionBlockTypes().getCount(), 8u);
     ASSERT_THROW(daqDevice.addDevice("daqref://device0"),
                  opcua::OpcUaClientCallNotAvailableException);  // Are these the correct errors to return?
 

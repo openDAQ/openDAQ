@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,9 +28,8 @@ class DataRuleImpl final : public GenericStructImpl<IDataRule, IStruct, IRulePri
 public:
     explicit DataRuleImpl(DataRuleType ruleType, const DictPtr<IString, IBaseObject>& params);
     explicit DataRuleImpl(DataRuleType ruleType, const NumberPtr& param1, const NumberPtr& param2);
-    explicit DataRuleImpl(const NumberPtr& constant);
-    explicit DataRuleImpl();
-    explicit DataRuleImpl(IDataRuleBuilder * dataRuleBuilder);
+    explicit DataRuleImpl(DataRuleType ruleType);
+    explicit DataRuleImpl(IDataRuleBuilder* dataRuleBuilder);
     
     ErrCode INTERFACE_FUNC getType(DataRuleType* type) override;
     ErrCode INTERFACE_FUNC getParameters(IDict** parameters) override;

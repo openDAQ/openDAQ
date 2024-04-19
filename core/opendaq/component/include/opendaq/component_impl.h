@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,9 @@
 #include <cctype>
 #include <opendaq/ids_parser.h>
 #include <opendaq/component_status_container_impl.h>
+#include <coreobjects/permission_manager_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/permission_mask_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -63,7 +66,8 @@ public:
     ComponentImpl(const ContextPtr& context,
                   const ComponentPtr& parent,
                   const StringPtr& localId,
-                  const StringPtr& className = nullptr);
+                  const StringPtr& className = nullptr,
+                  const StringPtr& name = nullptr);
 
     // IComponent
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
@@ -178,7 +182,8 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     const ContextPtr& context,
     const ComponentPtr& parent,
     const StringPtr& localId,
-    const StringPtr& className)
+    const StringPtr& className,
+    const StringPtr& name)
     : Super(
         context.assigned() ? context.getTypeManager() : nullptr,
         className,
@@ -194,7 +199,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
           }))
       , visible(true)
       , active(true)
-      , name(localId)
+      , name(name.assigned() && name != "" ? name : localId)
       , description("")
       , statusContainer(createWithImplementation<IComponentStatusContainer, ComponentStatusContainerImpl>(
           [&](const CoreEventArgsPtr& args)
@@ -216,6 +221,17 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
 
     context->getOnCoreEvent(&this->coreEvent);
     lockedAttributes.insert("Visible");
+
+    if (parent.assigned())
+    {
+        const auto parentManager = parent.getPermissionManager();
+        this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
+    }
+    else
+    {
+        this->permissionManager.setPermissions(
+            PermissionsBuilder().set("everyone", PermissionMaskBuilder().read().write().execute()).build());
+    }
 }
 
 template <class Intf, class ... Intfs>

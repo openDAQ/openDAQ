@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 class RefDeviceImpl final : public Device
 {
 public:
-    explicit RefDeviceImpl(size_t id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit RefDeviceImpl(size_t id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name = nullptr);
     ~RefDeviceImpl() override;
 
     static DeviceInfoPtr CreateDeviceInfo(size_t id);
@@ -37,9 +37,10 @@ public:
 
     // IDevice
     DeviceInfoPtr onGetInfo() override;
-    DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
-    FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     uint64_t onGetTicksSinceOrigin() override;
+
+    bool allowAddDevicesFromModules() override;
+    bool allowAddFunctionBlocksFromModules() override;
 
 private:
     void initClock();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,82 +23,57 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 static const char* NativeStreamingPrefix = "daq.ns://";
-static const char* NativeStreamingID = "daq.ns";
+static const char* NativeStreamingID = "opendaq_native_streaming";
 
 class NativeStreamingImpl : public Streaming
 {
 public:
-    explicit NativeStreamingImpl(
-        const StringPtr& connectionString,
-        const StringPtr& host,
-        const StringPtr& port,
-        const StringPtr& path,
+    explicit NativeStreamingImpl(const StringPtr& connectionString,
         const ContextPtr& context,
-        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr clientHandler,
+        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
         std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
         Int streamingInitTimeout,
         const ProcedurePtr& onDeviceSignalAvailableCallback,
         const ProcedurePtr& onDeviceSignalUnavailableCallback,
-        opendaq_native_streaming_protocol::OnReconnectionStatusChangedCallback onReconnectionStatusChangedCb);
+        opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb);
 
     ~NativeStreamingImpl();
 
 protected:
     void onSetActive(bool active) override;
-    StringPtr onGetSignalStreamingId(const StringPtr& signalRemoteId) override;
     void onAddSignal(const MirroredSignalConfigPtr& signal) override;
     void onRemoveSignal(const MirroredSignalConfigPtr& signal) override;
-    void onSubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
-    void onUnsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
-    EventPacketPtr onCreateDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId) override;
+    void onSubscribeSignal(const StringPtr& signalStreamingId) override;
+    void onUnsubscribeSignal(const StringPtr& signalStreamingId) override;
 
-    void checkAndSubscribe(const StringPtr& signalRemoteId);
-    void checkAndUnsubscribe(const StringPtr& signalRemoteId);
-
-    void signalAvailableHandler(const StringPtr& signalStringId,
-                                const StringPtr& serializedSignal);
-    void addToAvailableSignals(const StringPtr& signalStringId);
-    void addToAvailableSignalsOnReconnection(const StringPtr& signalStringId);
-
-    void subscribeAckHandler(const StringPtr& signalStringId, bool subscribed);
-
+    void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void signalUnavailableHandler(const StringPtr& signalStringId);
-    void removeFromAvailableSignals(const StringPtr& signalStringId);
 
-    void removeFromAddedSignals(const StringPtr& signalStringId);
-
-    void reconnectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientReconnectionStatus status);
+    void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
 
     void prepareClientHandler();
-
-    void onPacket(const StringPtr& signalStringId, const PacketPtr& packet);
-    void handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket);
 
     void startTransportOperations();
     void stopTransportOperations();
 
-    opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr clientHandler;
+    opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
+
+    // pseudo device callbacks
     ProcedurePtr onDeviceSignalAvailableCallback;
     ProcedurePtr onDeviceSignalUnavailableCallback;
-    opendaq_native_streaming_protocol::OnReconnectionStatusChangedCallback onDeviceReconnectionStatusChangedCb;
-    std::map<StringPtr, SizeT> availableSignals;
-    std::map<StringPtr, SizeT> availableSignalsReconnection;
-    opendaq_native_streaming_protocol::ClientReconnectionStatus reconnectionStatus;
+    opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb;
 
-    std::shared_ptr<boost::asio::io_context> transportIOContextPtr;
-    std::thread transportIOThread;
+    opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     boost::asio::io_context::strand processingStrand;
 
     std::promise<void> protocolInitPromise;
     std::future<void> protocolInitFuture;
-    LoggerComponentPtr loggerComponent;
 
     std::chrono::milliseconds streamingInitTimeout;
+    std::shared_ptr<boost::asio::io_context> timerContextPtr;
     std::shared_ptr<boost::asio::steady_timer> protocolInitTimer;
-
-    std::mutex availableSignalsSync;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

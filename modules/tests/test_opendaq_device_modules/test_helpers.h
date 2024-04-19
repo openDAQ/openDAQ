@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,23 +44,20 @@ namespace test_helpers
     )
     {
         acknowledgementFuture = acknowledgementPromise.get_future();
-        auto signalId = std::make_shared<std::string>(signal.getGlobalId().toStdString());
         signal.getOnSubscribeComplete() +=
-            [&acknowledgementPromise, &acknowledgementFuture, signalId]
-            (MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
-        {
-            if (acknowledgementFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+            [&acknowledgementPromise]
+            (MirroredSignalConfigPtr&, SubscriptionEventArgsPtr& args)
             {
-                acknowledgementPromise.set_value(args.getStreamingConnectionString());
-            }
-            else
-            {
-                ADD_FAILURE()  << " Set already satisfied subscribe ack promise for signal: "
-                               << *signalId.get()
-                               << "\n streaming: "
-                               << args.getStreamingConnectionString();
-            }
-        };
+                try
+                {
+                    acknowledgementPromise.set_value(args.getStreamingConnectionString());
+                }
+                catch (const std::future_errc&)
+                {
+                    ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
+                                   << args.getStreamingConnectionString();
+                }
+            };
     }
 
     [[maybe_unused]]
@@ -71,29 +68,26 @@ namespace test_helpers
     )
     {
         acknowledgementFuture = acknowledgementPromise.get_future();
-        auto signalId = std::make_shared<std::string>(signal.getGlobalId().toStdString());
         signal.getOnUnsubscribeComplete() +=
-            [&acknowledgementPromise, &acknowledgementFuture, signalId]
-            (MirroredSignalConfigPtr& sender, SubscriptionEventArgsPtr& args)
-        {
-            if (acknowledgementFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+            [&acknowledgementPromise]
+            (MirroredSignalConfigPtr&, SubscriptionEventArgsPtr& args)
             {
-                acknowledgementPromise.set_value(args.getStreamingConnectionString());
-            }
-            else
-            {
-                ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for signal: "
-                              << *signalId.get()
-                              << "\n streaming: "
-                              << args.getStreamingConnectionString();
-            }
-        };
+                try
+                {
+                    acknowledgementPromise.set_value(args.getStreamingConnectionString());
+                }
+                catch (const std::future_errc&)
+                {
+                    ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
+                                   << args.getStreamingConnectionString();
+                }
+            };
     }
 
     [[maybe_unused]]
     static bool waitForAcknowledgement(
         std::future<StringPtr>& acknowledgementFuture,
-        std::chrono::seconds timeout = std::chrono::seconds(1))
+        std::chrono::seconds timeout = std::chrono::seconds(5))
     {
         return acknowledgementFuture.wait_for(timeout) == std::future_status::ready;
     }

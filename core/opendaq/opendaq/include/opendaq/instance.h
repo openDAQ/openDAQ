@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -144,6 +144,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
  * @brief Creates an openDAQ client.
  * @param ctx The context object.
  * @param localId The localID of the client.
+ * @param defaultDeviceInfo The DeviceInfo to be used by the client device.
+ * @param parent The parent component of the client.
  */
 /*#
  * [factory(NoConstructor)]
@@ -152,7 +154,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, Client, IDevice, createClient,
     IContext*, ctx,
     IString*, localId,
-    IDeviceInfo*, defaultDeviceInfo
+    IDeviceInfo*, defaultDeviceInfo,
+    IComponent*, parent
 )
 
 END_NAMESPACE_OPENDAQ

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,6 +93,10 @@ namespace daq::config_protocol::test_utils
         bool clearFunctionBlocksOnUpdate() override
         {
             return false;
+        }
+        bool allowAddDevicesFromModules() override
+        {
+            return true;
         }
     };
 

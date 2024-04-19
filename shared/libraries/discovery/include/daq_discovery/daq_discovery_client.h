@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,27 +21,23 @@
 
 BEGIN_NAMESPACE_DISCOVERY
 
-using ConnectionStringFormatCb = std::function<std::string(MdnsDiscoveredDevice)>;
+using ServerCapabilityCb = std::function<ServerCapabilityPtr(MdnsDiscoveredDevice)>;
 
-class DiscoveryClient
+class DiscoveryClient final
 {
 public:
-    explicit DiscoveryClient(std::vector<ConnectionStringFormatCb> connectionStringFormatCbs, std::unordered_set<std::string> requiredCaps = {});
+    explicit DiscoveryClient(std::vector<ServerCapabilityCb> serverCapabilityCbs, std::unordered_set<std::string> requiredCaps = {});
     
-    void initMdnsClient(const std::string& serviceName, std::chrono::milliseconds discoveryDuration = 500ms);
-    virtual ListPtr<IDeviceInfo> discoverDevices();
+    void initMdnsClient(const ListPtr<IString>& serviceNames, std::chrono::milliseconds discoveryDuration = 500ms);
+    ListPtr<IDeviceInfo> discoverDevices() const;
 
 protected:
-    ListPtr<IDeviceInfo> discoveredDevices;
-    std::shared_ptr<MDNSDiscoveryClient> mdnsClient;
-    std::vector<std::thread> threadPool;
-    std::unordered_set<std::string> requiredCaps;
+    ListPtr<IDeviceInfo> discoverMdnsDevices() const;
+    DeviceInfoPtr createDeviceInfo(MdnsDiscoveredDevice discoveredDevice) const;
 
-    void runInThread(std::function<void()> func);
-    void joinThreads();
-    void discoverMdnsDevices();
-    DeviceInfoPtr createDeviceInfo(MdnsDiscoveredDevice discoveredDevice, ConnectionStringFormatCb connectionStringFormatCb) const;
-    std::vector<ConnectionStringFormatCb> connectionStringFormatCbs;
+    std::shared_ptr<MDNSDiscoveryClient> mdnsClient;
+    std::unordered_set<std::string> requiredCaps;
+    std::vector<ServerCapabilityCb> serverCapabilityCbs;
 };
 
 END_NAMESPACE_DISCOVERY

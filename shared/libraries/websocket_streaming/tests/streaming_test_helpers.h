@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,8 +50,7 @@ namespace streaming_test_helpers
         return instance;
     }
 
-    inline daq::SignalPtr createTimeSignal(const daq::ContextPtr& ctx,
-                                           const daq::StringPtr& tableId = "TestTable")
+    inline daq::SignalPtr createLinearTimeSignal(const daq::ContextPtr& ctx)
     {
         const size_t nanosecondsInSecond = 1000000000;
         auto delta = nanosecondsInSecond / 1000;
@@ -61,65 +60,22 @@ namespace streaming_test_helpers
                               .setRule(daq::LinearDataRule(delta, 100))
                               .setTickResolution(daq::Ratio(1, nanosecondsInSecond))
                               .setOrigin(daq::streaming_protocol::UNIX_EPOCH_DATE_UTC_TIME)
-                              .setUnit(daq::Unit("s", daq::streaming_protocol::Unit::UNIT_ID_SECONDS))
+                              .setUnit(daq::Unit("s",
+                                                 daq::streaming_protocol::Unit::UNIT_ID_SECONDS,
+                                                 "seconds",
+                                                 "time"))
                               .setName("Time")
                               .build();
 
         auto signal = SignalWithDescriptor(ctx, descriptor, nullptr, descriptor.getName());
-        signal.addProperty(daq::StringProperty("tableId", tableId));
-        return signal;
-    }
-
-    inline daq::SignalPtr createTestSignal(const daq::ContextPtr& ctx)
-    {
-        auto meta = daq::Dict<daq::IString, daq::IString>();
-        meta["color"] = "green";
-        meta["used"] = "0";
-
-        auto descriptor = daq::DataDescriptorBuilder()
-                              .setSampleType(daq::SampleType::Float64)
-                              .setUnit(daq::Unit("V", 1, "voltage", "quantity"))
-                              .setValueRange(daq::Range(0, 10))
-                              .setRule(daq::ExplicitDataRule())
-                              .setPostScaling(daq::LinearScaling(1.0, 0.0, daq::SampleType::Int16, daq::ScaledSampleType::Float64))
-                              .setName("TestSignal")
-                              .setMetadata(meta)
-                              .build();
-
-        auto timeSignal = createTimeSignal(ctx);
-        auto signal = SignalWithDescriptor(ctx, descriptor, nullptr, descriptor.getName());
-        signal.setDomainSignal(timeSignal);
-        signal.setName("TestName");
-        signal.setDescription("TestDescription");
 
         signal.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
         return signal;
     }
 
-    inline daq::SignalPtr createTestSignalWithoutDomain(const daq::ContextPtr& ctx)
-    {
-        auto meta = daq::Dict<daq::IString, daq::IString>();
-        meta["color"] = "green";
-        meta["used"] = "0";
-
-        auto descriptor = daq::DataDescriptorBuilder()
-                              .setSampleType(daq::SampleType::Float64)
-                              .setUnit(daq::Unit("V", 1, "voltage", "quantity"))
-                              .setValueRange(daq::Range(0, 10))
-                              .setRule(daq::ExplicitDataRule())
-                              .setPostScaling(daq::LinearScaling(1.0, 0.0, daq::SampleType::Int16, daq::ScaledSampleType::Float64))
-                              .setName("TestSignal")
-                              .setMetadata(meta)
-                              .build();
-
-        auto signal = SignalWithDescriptor(ctx, descriptor, nullptr, descriptor.getName());
-        return signal;
-    }
-
-    inline daq::SignalPtr createTestSignalWithDomain(const daq::ContextPtr& ctx,
-                                                     const daq::StringPtr& name,
-                                                     const daq::SignalPtr& domainSignal,
-                                                     const daq::StringPtr& tableId = "TestTable")
+    inline daq::SignalPtr createExplicitValueSignal(const daq::ContextPtr& ctx,
+                                                    const daq::StringPtr& name,
+                                                    const daq::SignalPtr& domainSignal)
     {
         auto meta = daq::Dict<daq::IString, daq::IString>();
         meta["color"] = "green";
@@ -135,13 +91,34 @@ namespace streaming_test_helpers
                               .setMetadata(meta)
                               .build();
 
-        auto timeSignal = createTimeSignal(ctx);
+        auto timeSignal = createLinearTimeSignal(ctx);
         auto signal = SignalWithDescriptor(ctx, descriptor, nullptr, descriptor.getName());
         signal.setDomainSignal(domainSignal);
         signal.setName(name);
         signal.setDescription("TestDescription");
-        signal.addProperty(daq::StringProperty("tableId", tableId));
 
+        signal.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
+        return signal;
+    }
+
+    inline daq::SignalPtr createConstantValueSignal(const daq::ContextPtr& ctx,
+                                                    const daq::StringPtr& name,
+                                                    const daq::SignalPtr& domainSignal)
+    {
+        auto descriptor = daq::DataDescriptorBuilder()
+                              .setSampleType(daq::SampleType::UInt64)
+                              .setValueRange(daq::Range(0, 10))
+                              .setRule(daq::ConstantDataRule())
+                              .setName(name)
+                              .build();
+
+        auto timeSignal = createLinearTimeSignal(ctx);
+        auto signal = SignalWithDescriptor(ctx, descriptor, nullptr, descriptor.getName());
+        signal.setDomainSignal(timeSignal);
+        signal.setName(name);
+        signal.setDescription("TestDescription");
+
+        signal.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
         return signal;
     }
 }

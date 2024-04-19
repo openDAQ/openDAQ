@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ void defineIProperty(pybind11::module_ m, PyDaqIntf<daq::IProperty, daq::IBaseOb
     m.def("SelectionProperty", &daq::SelectionProperty_Create);
     m.def("SparseSelectionProperty", &daq::SparseSelectionProperty_Create);
     m.def("StructProperty", &daq::StructProperty_Create);
+    m.def("EnumerationProperty", &daq::EnumerationProperty_Create);
 
     cls.def_property_readonly("value_type",
         [](daq::IProperty *object)

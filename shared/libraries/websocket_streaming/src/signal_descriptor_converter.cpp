@@ -9,15 +9,16 @@
 #include <coretypes/exceptions.h>
 #include <coretypes/ratio_factory.h>
 
-#include "streaming_protocol/BaseSignal.hpp"
-#include "streaming_protocol/BaseSynchronousSignal.hpp"
-#include "streaming_protocol/SubscribedSignal.hpp"
 #include "streaming_protocol/Types.h"
 
 #include "websocket_streaming/signal_descriptor_converter.h"
 
 #include <memory>
 #include <opendaq/tags_factory.h>
+
+#include "streaming_protocol/BaseDomainSignal.hpp"
+#include "streaming_protocol/BaseValueSignal.hpp"
+#include "streaming_protocol/LinearTimeSignal.hpp"
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
@@ -68,6 +69,9 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(const daq::stre
         dataDescriptor.setValueRange(daq::Range(-15.0, 15.0));
     }
 
+    auto bitsInterpretation = subscribedSignal.bitsInterpretationObject();
+    DecodeBitsInterpretationObject(bitsInterpretation, dataDescriptor);
+
     // --- meta "interpretation" start ---
     // overwrite/add descriptor fields with ones from optional "interpretation" object
     auto extra = subscribedSignal.interpretationObject();
@@ -83,19 +87,17 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(const daq::stre
     return sInfo;
 }
 
-void SignalDescriptorConverter::ToStreamedSignal(const daq::SignalPtr& signal,
-                                                 daq::streaming_protocol::BaseSignalPtr stream,
-                                                 const SignalProps& sigProps)
+void SignalDescriptorConverter::ToStreamedValueSignal(const daq::SignalPtr& valueSignal,
+                                                      daq::streaming_protocol::BaseValueSignalPtr valueStream,
+                                                      const SignalProps& sigProps)
 {
-    auto dataDescriptor = signal.getDescriptor();
+    auto dataDescriptor = valueSignal.getDescriptor();
     if (!dataDescriptor.assigned())
         return;
 
-    auto domainDescriptor = signal.getDomainSignal().getDescriptor();
-
     // *** meta "definition" start ***
     // set/verify fields which will be lately encoded into signal "definition" object
-    stream->setMemberName(signal.getName());
+    valueStream->setMemberName(valueSignal.getName());
 
     // Data type of stream can not be changed. Complain upon change!
     daq::SampleType daqSampleType = dataDescriptor.getSampleType();
@@ -103,22 +105,12 @@ void SignalDescriptorConverter::ToStreamedSignal(const daq::SignalPtr& signal,
         daqSampleType = dataDescriptor.getPostScaling().getInputSampleType();
 
     daq::streaming_protocol::SampleType requestedSampleType = Convert(daqSampleType);
-    if (requestedSampleType != stream->getSampleType())
+    if (requestedSampleType != valueStream->getSampleType())
         throw ConversionFailedException();
 
     UnitPtr unit = dataDescriptor.getUnit();
     if (unit.assigned())
-        stream->setUnit(unit.getId(), unit.getSymbol());
-
-    // causes an error, so openDAQ utilizes fields of "interpretation" object to encode time rule
-    // DataRulePtr rule = domainDescriptor.getRule();
-    // SetTimeRule(rule, stream);
-
-    if (domainDescriptor.assigned())
-    {
-        auto resolution = domainDescriptor.getTickResolution();
-        stream->setTimeTicksPerSecond(resolution.getDenominator() / resolution.getNumerator());
-    }
+        valueStream->setUnit(unit.getId(), unit.getSymbol());
     // *** meta "definition" end ***
 
     // --- meta "interpretation" start ---
@@ -130,16 +122,50 @@ void SignalDescriptorConverter::ToStreamedSignal(const daq::SignalPtr& signal,
     if (sigProps.description.has_value())
         extra["sig_desc"] = sigProps.description.value();
 
-    stream->setDataInterpretationObject(extra);
+    valueStream->setInterpretationObject(extra);
     // --- meta "interpretation" end ---
+}
+
+void SignalDescriptorConverter::ToStreamedLinearSignal(const daq::SignalPtr& domainSignal,
+                                                       streaming_protocol::LinearTimeSignalPtr linearStream,
+                                                       const SignalProps& sigProps)
+{
+    auto domainDescriptor = domainSignal.getDescriptor();
+    if (!domainDescriptor.assigned())
+        return;
+
+    // *** meta "definition" start ***
+
+    // streaming-lt supports only 64bit domain values
+    daq::SampleType daqSampleType = domainDescriptor.getSampleType();
+    daq::streaming_protocol::SampleType requestedSampleType = Convert(daqSampleType);
+    if (requestedSampleType != daq::streaming_protocol::SampleType::SAMPLETYPE_S64 &&
+        requestedSampleType != daq::streaming_protocol::SampleType::SAMPLETYPE_U64)
+        throw ConversionFailedException();
+
+    DataRulePtr rule = domainDescriptor.getRule();
+    SetLinearTimeRule(rule, linearStream);
+
+    auto resolution = domainDescriptor.getTickResolution();
+    linearStream->setTimeTicksPerSecond(resolution.getDenominator() / resolution.getNumerator());
+    // *** meta "definition" end ***
+
+    // --- meta "interpretation" start ---
 
     // openDAQ does not encode meta "definition" object directly for domain signal
     // domain signal "definition" is hardcoded on library level
     // so openDAQ uses "interpretation" object to transmit metadata which describes domain signal
-    nlohmann::json domainExtra;
+    nlohmann::json extra;
     if (domainDescriptor.assigned())
-        EncodeInterpretationObject(domainDescriptor, domainExtra);
-    stream->setTimeInterpretationObject(domainExtra);
+        EncodeInterpretationObject(domainDescriptor, extra);
+
+    if (sigProps.name.has_value())
+        extra["sig_name"] = sigProps.name.value();
+    if (sigProps.description.has_value())
+        extra["sig_desc"] = sigProps.description.value();
+
+    linearStream->setInterpretationObject(extra);
+    // --- meta "interpretation" end ---
 }
 
 /**
@@ -151,8 +177,7 @@ daq::DataRulePtr SignalDescriptorConverter::GetRule(const daq::streaming_protoco
     {
         case daq::streaming_protocol::RULETYPE_CONSTANT:
         {
-            uint64_t start = subscribedSignal.time();
-            return ConstantDataRule(start);
+            return ConstantDataRule();
         }
         break;
         case daq::streaming_protocol::RULETYPE_EXPLICIT:
@@ -167,52 +192,21 @@ daq::DataRulePtr SignalDescriptorConverter::GetRule(const daq::streaming_protoco
         }
         break;
         default:
-            throw ConversionFailedException();
+            throw ConversionFailedException("Unsupported data rule type");
     }
 }
 
 /**
  *  @throws ConversionFailedException
  */
-void SignalDescriptorConverter::SetTimeRule(const daq::DataRulePtr& rule, daq::streaming_protocol::BaseSignalPtr signal)
+void SignalDescriptorConverter::SetLinearTimeRule(const daq::DataRulePtr& rule, daq::streaming_protocol::LinearTimeSignalPtr linearStream)
 {
-    daq::streaming_protocol::RuleType signalTimeRule = signal->getTimeRule();
-    if ((rule == nullptr) && (signalTimeRule != daq::streaming_protocol::RULETYPE_EXPLICIT))
+    if (!rule.assigned() || rule.getType() != DataRuleType::Linear)
     {
-        // no rule is interpreted as explicit rule
-
-        // changing signal time rule is not allowed
         throw ConversionFailedException();
     }
-    switch (rule.getType())
-    {
-        case DataRuleType::Linear:
-        {
-            daq::streaming_protocol::BaseSynchronousSignalPtr baseSyncSignal =
-                std::dynamic_pointer_cast<daq::streaming_protocol::BaseSynchronousSignal>(signal);
-            if (!baseSyncSignal)
-            {
-                // this is not a synchronous signal.
-                // changing signal time rule type is not allowed
-                throw ConversionFailedException();
-            }
-            NumberPtr delta = rule.getParameters().get("delta");
-            NumberPtr start = rule.getParameters().get("start");
-            baseSyncSignal->setOutputRate(delta);
-            baseSyncSignal->setTimeStart(start); // this call performs write which causes protocol error
-        }
-        break;
-        case daq::DataRuleType::Explicit:
-            // changing signal time rule is not allowed
-            if (signalTimeRule != daq::streaming_protocol::RULETYPE_EXPLICIT)
-            {
-                throw ConversionFailedException();
-            }
-            break;
-        case daq::DataRuleType::Constant:
-        default:
-            throw ConversionFailedException();
-    }
+    uint64_t delta = rule.getParameters().get("delta");
+    linearStream->setOutputRate(delta);
 }
 
 /**
@@ -247,9 +241,11 @@ daq::SampleType SignalDescriptorConverter::Convert(daq::streaming_protocol::Samp
         case daq::streaming_protocol::SampleType::SAMPLETYPE_REAL64:
             return daq::SampleType::Float64;
         case daq::streaming_protocol::SampleType::SAMPLETYPE_BITFIELD32:
+            return daq::SampleType::UInt32;
         case daq::streaming_protocol::SampleType::SAMPLETYPE_BITFIELD64:
+            return daq::SampleType::UInt64;
         default:
-            throw ConversionFailedException();
+            throw ConversionFailedException("Unsupported input sample type");
     }
 }
 
@@ -302,7 +298,7 @@ daq::streaming_protocol::SampleType SignalDescriptorConverter::Convert(daq::Samp
         case daq::SampleType::String:
         case daq::SampleType::RangeInt64:
         default:
-            throw ConversionFailedException();
+            throw ConversionFailedException("Unsupported output sample type");
     }
 }
 
@@ -353,6 +349,15 @@ void SignalDescriptorConverter::EncodeInterpretationObject(const DataDescriptorP
         extra["scaling"]["outputType"] = scaling.getOutputSampleType();
         extra["scaling"]["scalingType"] = scaling.getType();
         extra["scaling"]["parameters"] = DictToJson(scaling.getParameters());
+    }
+}
+
+void SignalDescriptorConverter::DecodeBitsInterpretationObject(const nlohmann::json& bits, DataDescriptorBuilderPtr& dataDescriptor)
+{
+    if (!bits.empty() && bits.is_array())
+    {
+        auto metadata = dataDescriptor.getMetadata();
+        metadata.set("bits", bits.dump());
     }
 }
 

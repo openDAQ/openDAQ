@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include <opendaq/reader_config_ptr.h>
 #include <opendaq/signal_reader.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/multi_reader_builder_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -30,6 +31,7 @@ public:
                     SampleType domainReadType,
                     ReadMode mode,
                     ReadTimeoutType timeoutType,
+                    Int requiredCommonSampleRate = -1,
                     Bool startOnFullUnitOfDomain = false);
 
     MultiReaderImpl(MultiReaderImpl* old,
@@ -40,6 +42,8 @@ public:
                     SampleType valueReadType,
                     SampleType domainReadType,
                     ReadMode mode);
+
+    MultiReaderImpl(const MultiReaderBuilderPtr& builder);
 
     ~MultiReaderImpl() override;
 
@@ -73,6 +77,7 @@ public:
     ErrCode INTERFACE_FUNC getTickResolution(IRatio** resolution) override;
     ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
     ErrCode INTERFACE_FUNC getOffset(void* domainStart) override;
+    ErrCode INTERFACE_FUNC getCommonSampleRate(Int* commonSampleRate) override;
 
     ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) override;
 
@@ -82,11 +87,11 @@ private:
 
     template <typename T>
     static bool ListElementsHaveSameType(const ListPtr<IBaseObject>& list);
-    static bool CheckPreconditions(const ListPtr<IBaseObject>& list);
+    static ListPtr<IInputPortConfig> CheckPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts);
+    void updateCommonSampleRateAndDividers();
     ListPtr<ISignal> getSignals() const;
 
     void setStartInfo();
-    void connectSignals(const ListPtr<ISignal>& inputSignals, SampleType valueRead, SampleType domainRead, ReadMode mode);
     void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
     ErrCode readUntilFirstDataPacket();
@@ -121,6 +126,9 @@ private:
     StringPtr readOrigin;
     RatioPtr readResolution;
     std::unique_ptr<Comparable> commonStart;
+    std::int64_t requiredCommonSampleRate = -1;
+    std::int64_t commonSampleRate = -1;
+    std::int32_t sampleRateDividerLcm = 1;
 
     std::vector<SignalReader> signals;
     PropertyObjectPtr portBinder;

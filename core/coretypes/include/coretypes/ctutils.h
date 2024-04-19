@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -441,6 +441,21 @@ inline bool validateTypeName(ConstCharPtr typeName)
 {
     const std::regex validatorRegex("^[a-zA-Z_]+[a-zA-Z0-9_]*$");
     return std::regex_match(typeName, validatorRegex);
+}
+
+template <typename T>
+using IsEnumTypeEnum = std::enable_if<std::is_enum_v<T> && std::is_same_v<std::underlying_type_t<T>, EnumType>, int>;
+
+template <typename T, typename IsEnumTypeEnum<T>::type = 0>
+T operator|(T lhs, T rhs)
+{
+    return T(EnumType(lhs) | EnumType(rhs));
+}
+
+template <typename T, typename IsEnumTypeEnum<T>::type = 0>
+bool operator&(T lhs, T rhs)
+{
+    return EnumType(lhs) & EnumType(rhs);
 }
 
 END_NAMESPACE_OPENDAQ

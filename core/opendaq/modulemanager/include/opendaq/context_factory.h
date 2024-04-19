@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ inline ContextPtr Context(const SchedulerPtr& scheduler,
 }
 
 /*!
- * @brief Creates a Context with the given logger and all other parameters set to nullptr.
+ * @brief Creates a Context with the given logger, type manager and options and all other parameters set to nullptr.
  * @param logger The logger the context has access to.
  * @param typeManager The type manager.
  */

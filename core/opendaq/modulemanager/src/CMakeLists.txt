@@ -9,6 +9,7 @@ set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 rtgen(SRC_Module module.h)
 rtgen(SRC_ModuleManager module_manager.h)
+rtgen(SRC_ModuleManagerUtils module_manager_utils.h)
 rtgen(SRC_ContextInternal context_internal.h)
 
 source_group("module" FILES ${SDK_HEADERS_DIR}/module.h
@@ -22,6 +23,7 @@ source_group("module" FILES ${SDK_HEADERS_DIR}/module.h
 source_group("manager" FILES ${SDK_HEADERS_DIR}/module_manager.h
                              ${SDK_HEADERS_DIR}/module_manager_impl.h
                              ${SDK_HEADERS_DIR}/module_manager_init.h
+                             ${SDK_HEADERS_DIR}/module_manager_utils.h
                              ${SDK_HEADERS_DIR}/module_manager_factory.h
                              module_manager_impl.cpp
 )
@@ -72,6 +74,7 @@ list(APPEND SRC_Cpp ${SRC_Module_Cpp}
 
 list(APPEND SRC_PublicHeaders ${SRC_Module_PublicHeaders}
                               ${SRC_ModuleManager_PublicHeaders}
+                              ${SRC_ModuleManagerUtils_PublicHeaders}
                               ${SRC_ContextInternal_PublicHeaders}
                               module_manager.natvis
 )
@@ -105,6 +108,7 @@ opendaq_target_link_libraries(${BASE_NAME}
         daq::context
         daq::logger
         daq::utility
+        daq::component
     PUBLIC
         daq::coretypes
 )

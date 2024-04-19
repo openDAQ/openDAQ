@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,41 +30,76 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Creates a Data packet with a given descriptor, sample count, an optional
- * packet offset and an optional allocator.
+ * @brief Creates a Data packet with a given descriptor, sample count, and an optional
+ * packet offset.
  * @param descriptor The descriptor of the signal sending the data.
  * @param sampleCount The number of samples in the packet.
  * @param offset Optional packet offset parameter, used to calculate the data of the packet
  * if the Data rule of the Signal descriptor is not explicit.
- * @param allocator A memory allocator to use for buffers.
  */
 inline DataPacketPtr DataPacket(const DataDescriptorPtr& descriptor,
                                 uint64_t sampleCount,
-                                const NumberPtr& offset = nullptr,
-                                AllocatorPtr allocator = nullptr)
+                                const NumberPtr& offset = nullptr)
 {
-    DataPacketPtr obj(DataPacket_Create(descriptor, sampleCount, offset, std::move(allocator)));
+    DataPacketPtr obj(DataPacket_Create(descriptor, sampleCount, offset));
     return obj;
 }
 
 /*!
  * @brief Creates a Data packet with a given descriptor, sample count,
- * a reference to a packet that describes the domain (time) data, an optional packet offset
- * and an optional allocator.
+ * a reference to a packet that describes the domain (time) data, and an optional packet offset.
  * @param domainPacket The Data packet carrying domain data.
  * @param descriptor The descriptor of the signal sending the data.
  * @param sampleCount The number of samples in the packet.
  * @param offset Optional packet offset parameter, used to calculate the data of the packet
  * if the Data rule of the Signal descriptor is not explicit.
- * @param allocator A memory allocator to use for buffers.
  */
 inline DataPacketPtr DataPacketWithDomain(const DataPacketPtr& domainPacket,
                                           const DataDescriptorPtr& descriptor,
                                           uint64_t sampleCount,
-                                          NumberPtr offset = nullptr,
-                                          AllocatorPtr allocator = nullptr)
+                                          NumberPtr offset = nullptr)
 {
-    DataPacketPtr obj(DataPacketWithDomain_Create(domainPacket, descriptor, sampleCount, offset, std::move(allocator)));
+    DataPacketPtr obj(DataPacketWithDomain_Create(domainPacket, descriptor, sampleCount, offset));
+    return obj;
+}
+
+#pragma pack(push, 1)
+template <class T>
+struct ConstantPosAndValue
+{
+    uint32_t pos;
+    T value;
+};
+#pragma pack(pop)
+
+/*!
+ * @brief Creates a Data packet with a given constat rule descriptor, initial constant value,
+ * and other constant values.
+ * @param domainPacket The Data packet carrying domain data.
+ * @param descriptor The descriptor of the signal sending the data.
+ * @param initialValue The initial constant value.
+ * @param otherValues The other constant values.
+ *
+ * The values in the packet are calculated by constant rule. The initial value is taken as a constant.
+ * Other values are used to change the constant value within the packet. Any number of other constant values
+ * can be used. Other values are passed as an array of struct with uint32_t sample position field and value field.
+ * Value field (as well as initial value) are of type defined as sample type in the descriptor.
+ */
+template <class T>
+DataPacketPtr ConstantDataPacketWithDomain(const DataPacketPtr& domainPacket,
+                                           const DataDescriptorPtr& descriptor,
+                                           uint64_t sampleCount,
+                                           T initialValue,
+                                           const std::vector<ConstantPosAndValue<T>>& otherValues = {})
+{
+    DataPacketPtr obj(ConstantDataPacketWithDomain_Create(
+        domainPacket,
+        descriptor,
+        sampleCount,
+        reinterpret_cast<void*>(&initialValue),
+        reinterpret_cast<void*>(const_cast<ConstantPosAndValue<T>*>(otherValues.data())),
+        otherValues.size()));
+
     return obj;
 }
 
@@ -72,6 +107,7 @@ inline DataPacketPtr DataPacketWithDomain(const DataPacketPtr& domainPacket,
  * @brief Creates a Data packet with a given descriptor, sample count,
  * a reference to a packet that describes the domain (time) data,
  * pointer to an existing memory location and a deleter, and an optional packet offset.
+ * 
  * @param domainPacket The Data packet carrying domain data.
  * @param descriptor The descriptor of the signal sending the data.
  * @param sampleCount The number of samples in the packet.
@@ -85,13 +121,16 @@ inline DataPacketPtr DataPacketWithExternalMemory(const DataPacketPtr& domainPac
                                           uint64_t sampleCount,
                                           void* data,
                                           const DeleterPtr& deleter,
-                                          NumberPtr offset = nullptr)
+                                          NumberPtr offset = nullptr,
+                                          SizeT bufferSize = std::numeric_limits<SizeT>::max())
 {
-    DataPacketPtr obj(DataPacketWithDomain_Create(domainPacket,
-                                                  descriptor,
-                                                  sampleCount,
-                                                  offset,
-                                                  std::move(ExternalAllocator(data, deleter))));
+    DataPacketPtr obj(DataPacketWithExternalMemory_Create(domainPacket,
+                                                          descriptor,
+                                                          sampleCount,
+                                                          offset,
+                                                          data,
+                                                          deleter,
+                                                          bufferSize));
     return obj;
 }
 

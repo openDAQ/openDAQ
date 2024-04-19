@@ -11,13 +11,15 @@
 #include <opendaq/input_port_factory.h>
 #include <opendaq/dimension_factory.h>
 #include <future>
+#include <gmock/gmock.h>
 
 using namespace daq;
+using namespace testing;
 
 template <typename T>
 using StreamReaderTest = ReaderTest<T>;
 
-using SampleTypes = ::testing::Types<OPENDAQ_VALUE_SAMPLE_TYPES>;
+using SampleTypes = Types<OPENDAQ_VALUE_SAMPLE_TYPES>;
 
 TYPED_TEST_SUITE(StreamReaderTest, SampleTypes);
 
@@ -522,6 +524,37 @@ TYPED_TEST(StreamReaderTest, ReadValuesMoreThanAvailable)
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 }
 
+TYPED_TEST(StreamReaderTest, ReadConstantRule)
+{
+    if constexpr (!std::is_same_v<TypeParam, Complex_Number<float>> && !std::is_same_v<TypeParam, Complex_Number<double>>)
+    {
+        constexpr size_t samplesInPacket = 2;
+
+        const auto domainDesc = setupDescriptor(SampleType::Int64, LinearDataRule(1, 0), nullptr);
+
+        this->signal.setDescriptor(setupDescriptor(SampleTypeFromType<TypeParam>::SampleType, ConstantDataRule()));
+        auto reader = daq::StreamReader<TypeParam, ClockTick>(this->signal);
+
+        auto domainPacket = DataPacket(domainDesc, samplesInPacket, 0);
+        auto dataPacket = ConstantDataPacketWithDomain<TypeParam>(domainPacket, this->signal.getDescriptor(), samplesInPacket, 12);
+        this->sendPacket(dataPacket);
+
+        domainPacket = DataPacket(domainDesc, samplesInPacket, 2);
+        dataPacket = ConstantDataPacketWithDomain<TypeParam>(domainPacket, this->signal.getDescriptor(), samplesInPacket, 24);
+        this->sendPacket(dataPacket);
+
+        SizeT count{samplesInPacket * 2};
+        TypeParam samples[samplesInPacket * 2]{};
+        ClockTick ticks[samplesInPacket * 2]{};
+        reader.readWithDomain((TypeParam*) &samples, (ClockTick*) &ticks, &count);
+        ASSERT_EQ(count, samplesInPacket * 2);
+
+        ASSERT_THAT(ticks, ElementsAre(0, 1, 2, 3));
+        ASSERT_THAT(samples, ElementsAre(12, 12, 24, 24));
+    }
+}
+
+
 TYPED_TEST(StreamReaderTest, DescriptorChangedConvertible)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
@@ -864,6 +897,7 @@ protected:
                                         .build();
 
         canMsgDescriptor = DataDescriptorBuilder()
+                                          .setName("Can")
                                           .setSampleType(SampleType::Struct)
                                           .setStructFields(List<IDataDescriptor>(arbIdDescriptor, lengthDescriptor, dataDescriptor))
                                           .build();
@@ -1047,9 +1081,6 @@ TYPED_TEST(StreamReaderTest, StreamReaderWithInputPort)
 
     auto reader = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
 
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
-
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
     auto dataPtr = static_cast<double*>(dataPacket.getData());
@@ -1060,7 +1091,10 @@ TYPED_TEST(StreamReaderTest, StreamReaderWithInputPort)
     SizeT count{1};
     double samples[1]{};
     RangeType64 domain[1]{};
-    reader.readWithDomain(&samples, &domain, &count);
+    while (reader.readWithDomain(&samples, &domain, &count).getReadStatus() == ReadStatus::Event)
+    {
+        count = 1;
+    }
 
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);
@@ -1178,12 +1212,13 @@ TYPED_TEST(StreamReaderTest, StreamReaderFromPortOnReadCallback)
 
     auto reader = daq::StreamReaderFromPort(port, SampleType::Undefined, SampleType::Undefined);
     reader.setOnDataAvailable([&, promise = std::move(promise)] () mutable {
-        reader.readWithDomain(&samples, &domain, &count);
+        auto tmpCount = count;
+        while (reader.readWithDomain(&samples, &domain, &count).getReadStatus() == ReadStatus::Event)
+        {
+            count = tmpCount;
+        }
         promise.set_value();
     });
-
-    ASSERT_EQ(reader.getValueReadType(), SampleType::Float64);  // read from signal descriptor
-    ASSERT_EQ(reader.getDomainReadType(), SampleType::Invalid);
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);

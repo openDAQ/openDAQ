@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +51,7 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
     m.def("SelectionPropertyBuilder", &daq::SelectionPropertyBuilder_Create);
     m.def("SparseSelectionPropertyBuilder", &daq::SparseSelectionPropertyBuilder_Create);
     m.def("StructPropertyBuilder", &daq::StructPropertyBuilder_Create);
+    m.def("EnumerationPropertyBuilder", &daq::EnumerationPropertyBuilder_Create);
 
     cls.def("build",
         [](daq::IPropertyBuilder *object)

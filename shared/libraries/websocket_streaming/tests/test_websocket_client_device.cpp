@@ -6,7 +6,6 @@
 #include <websocket_streaming/websocket_streaming_server.h>
 #include <opendaq/search_filter_factory.h>
 #include "streaming_test_helpers.h"
-#include "mock_streaming_server.h"
 
 using namespace daq;
 using namespace std::chrono_literals;
@@ -71,10 +70,69 @@ TEST_F(WebsocketClientDeviceTest, DeviceInfo)
     ASSERT_EQ(clientDeviceInfo.getConnectionString(), HOST);
 }
 
-TEST_F(WebsocketClientDeviceTest, SingleSignalWithDomain)
+TEST_F(WebsocketClientDeviceTest, SignalWithDomain)
+{
+    // Create server signals
+    auto testDomainSignal = streaming_test_helpers::createLinearTimeSignal(context);
+    auto testValueSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestName", testDomainSignal);
+
+    // Setup and start server which will publish created signal
+    auto server = std::make_shared<StreamingServer>(context);
+    server->onAccept([&](const daq::streaming_protocol::StreamWriterPtr& writer) {
+        auto signals = List<ISignal>();
+        signals.pushBack(testValueSignal);
+        signals.pushBack(testDomainSignal);
+        return signals;
+    });
+    server->start(STREAMING_PORT, CONTROL_PORT);
+
+    // Create the client device
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+
+    // Check the mirrored signal
+    ASSERT_EQ(clientDevice.getSignals().getCount(), 2u);
+    ASSERT_TRUE(clientDevice.getSignals()[0].getDescriptor().assigned());
+    ASSERT_TRUE(clientDevice.getSignals()[0].getDomainSignal().assigned());
+
+    ASSERT_FALSE(clientDevice.getSignals()[1].getDomainSignal().assigned());
+    ASSERT_EQ(clientDevice.getSignals()[0].getDomainSignal(), clientDevice.getSignals()[1]);
+
+    ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDescriptor(),
+                                      testValueSignal.getDescriptor()));
+    ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDomainSignal().getDescriptor(),
+                                      testValueSignal.getDomainSignal().getDescriptor()));
+
+    ASSERT_EQ(clientDevice.getSignals()[0].getName(), "TestName");
+    ASSERT_EQ(clientDevice.getSignals()[0].getDescription(), "TestDescription");
+
+    // Publish signal changes
+    auto descriptor = DataDescriptorBuilderCopy(testValueSignal.getDescriptor()).build();
+    std::string signalId = testValueSignal.getGlobalId();
+    server->broadcastPacket(signalId, DataDescriptorChangedEventPacket(descriptor, testValueSignal.getDomainSignal().getDescriptor()));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+    testValueSignal.asPtr<IComponentPrivate>().unlockAllAttributes();
+    testValueSignal.setName("NewName");
+    testValueSignal.setDescription("NewDescription");
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+    ASSERT_EQ(clientDevice.getSignals()[0].getName(), "NewName");
+    ASSERT_EQ(clientDevice.getSignals()[0].getDescription(), "NewDescription");
+
+    ASSERT_NO_THROW(clientDevice.getSignals()[0].setName("ClientName"));
+
+    // Check if the mirrored signal changed
+    ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDescriptor(),
+                                      descriptor));
+    ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDomainSignal().getDescriptor(),
+                                      testValueSignal.getDomainSignal().getDescriptor()));
+}
+
+TEST_F(WebsocketClientDeviceTest, SingleDomainSignal)
 {
     // Create server signal
-    auto testSignal = streaming_test_helpers::createTestSignal(context);
+    auto testSignal = streaming_test_helpers::createLinearTimeSignal(context);
 
     // Setup and start server which will publish created signal
     auto server = std::make_shared<StreamingServer>(context);
@@ -88,47 +146,16 @@ TEST_F(WebsocketClientDeviceTest, SingleSignalWithDomain)
     // Create the client device
     auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
 
-    // Check the mirrored signal
+    // The mirrored signal exists and has descriptor
     ASSERT_EQ(clientDevice.getSignals().getCount(), 1u);
     ASSERT_TRUE(clientDevice.getSignals()[0].getDescriptor().assigned());
-    ASSERT_TRUE(clientDevice.getSignals()[0].getDomainSignal().assigned());
-
-    ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDescriptor(),
-                                      testSignal.getDescriptor()));
-    ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDomainSignal().getDescriptor(),
-                                      testSignal.getDomainSignal().getDescriptor()));
-
-    ASSERT_EQ(clientDevice.getSignals()[0].getName(), "TestName");
-    ASSERT_EQ(clientDevice.getSignals()[0].getDescription(), "TestDescription");
-
-    // Publish signal changes
-    auto descriptor = DataDescriptorBuilderCopy(testSignal.getDescriptor()).build();
-    std::string signalId = testSignal.getGlobalId();
-    server->broadcastPacket(signalId, DataDescriptorChangedEventPacket(descriptor, testSignal.getDomainSignal().getDescriptor()));
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(250));
-
-    testSignal.asPtr<IComponentPrivate>().unlockAllAttributes();
-    testSignal.setName("NewName");
-    testSignal.setDescription("NewDescription");
-    std::this_thread::sleep_for(std::chrono::milliseconds(250));
-
-    ASSERT_EQ(clientDevice.getSignals()[0].getName(), "NewName");
-    ASSERT_EQ(clientDevice.getSignals()[0].getDescription(), "NewDescription");
-
-    ASSERT_NO_THROW(clientDevice.getSignals()[0].setName("ClientName"));
-
-    // Check if the mirrored signal changed
-    ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDescriptor(),
-                                      descriptor));
-    ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDomainSignal().getDescriptor(),
-                                      testSignal.getDomainSignal().getDescriptor()));
+    ASSERT_FALSE(clientDevice.getSignals()[0].getDomainSignal().assigned());
 }
 
-TEST_F(WebsocketClientDeviceTest, SingleSignalWithoutDomain)
+TEST_F(WebsocketClientDeviceTest, SingleUnsupportedSignal)
 {
     // Create server signal
-    auto testSignal = streaming_test_helpers::createTestSignalWithoutDomain(context);
+    auto testSignal = streaming_test_helpers::createExplicitValueSignal(context, "TestSignal", nullptr);
 
     // Setup and start server which will publish created signal
     auto server = std::make_shared<StreamingServer>(context);
@@ -178,13 +205,12 @@ TEST_F(WebsocketClientDeviceTest, DeviceWithMultipleSignals)
 TEST_F(WebsocketClientDeviceTest, SignalsWithSharedDomain)
 {
     // Create server signals
-    auto timeSignal = streaming_test_helpers::createTimeSignal(context);
-    auto dataSignal1 = streaming_test_helpers::createTestSignalWithDomain(context, "Data1", timeSignal);
-    auto dataSignal2 = streaming_test_helpers::createTestSignalWithDomain(context, "Data2", timeSignal);
+    auto timeSignal = streaming_test_helpers::createLinearTimeSignal(context);
+    auto dataSignal1 = streaming_test_helpers::createExplicitValueSignal(context, "Data1", timeSignal);
+    auto dataSignal2 = streaming_test_helpers::createExplicitValueSignal(context, "Data2", timeSignal);
 
-    // Setup and start mock test server which will publish created signals
-    auto server = std::make_shared<streaming_test_helpers::MockStreamingServer>(context);
-    server->onAccept([&]() {
+    auto server = std::make_shared<StreamingServer>(context);
+    server->onAccept([&](const daq::streaming_protocol::StreamWriterPtr& writer) {
         auto signals = List<ISignal>();
         signals.pushBack(dataSignal1);
         signals.pushBack(timeSignal);
@@ -220,4 +246,7 @@ TEST_F(WebsocketClientDeviceTest, SignalsWithSharedDomain)
     ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[2].getDomainSignal().getDescriptor(),
                                       dataSignal2.getDomainSignal().getDescriptor()));
     ASSERT_EQ(clientDevice.getSignals()[2].getName(), "Data2");
+
+    ASSERT_EQ(clientDevice.getSignals()[2].getDomainSignal(), clientDevice.getSignals()[1]);
+    ASSERT_EQ(clientDevice.getSignals()[0].getDomainSignal(), clientDevice.getSignals()[1]);
 }

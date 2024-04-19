@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -569,6 +569,23 @@ protected:
         std::atomic_fetch_add_explicit(&refCount->strong, 1, std::memory_order_relaxed);
         this->refAdded = true;
         return refCount->strong;
+    }
+
+    int releaseWeakRefOnException()
+    {
+        const auto newRefCount = std::atomic_fetch_sub_explicit(&refCount->strong, 1, std::memory_order_acq_rel) - 1;
+        assert(newRefCount >= 0);
+
+        if (newRefCount == 0)
+        {
+            const auto newWeakRefCount = std::atomic_fetch_sub_explicit(&refCount->weak, 1, std::memory_order_acq_rel) - 1;
+            if (newWeakRefCount != 0)
+            {
+                refCount.release();
+            }
+        }
+
+        return newRefCount;
     }
 
     int internalAddRefNoCheck()

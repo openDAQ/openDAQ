@@ -14,7 +14,7 @@ TailReaderImpl::TailReaderImpl(ISignal* signal,
     , cachedSamples(0)
 {
     port.setNotificationMethod(PacketReadyNotification::SameThread);
-    TailReaderImpl::handleDescriptorChanged(connection.dequeue());
+    readDescriptorFromPort();
 }
 
 TailReaderImpl::TailReaderImpl(IInputPortConfig* port,
@@ -27,9 +27,6 @@ TailReaderImpl::TailReaderImpl(IInputPortConfig* port,
     , cachedSamples(0)
 {
     this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
-
-    if (connection.assigned())
-        TailReaderImpl::handleDescriptorChanged(connection.dequeue());
 }
 
 TailReaderImpl::TailReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -54,8 +51,10 @@ TailReaderImpl::TailReaderImpl(TailReaderImpl* old,
     , packets(old->packets)
     
 {
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr));
-    readDescriptorFromPort();
+    if (portBinder.assigned())
+        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+    else
+        readDescriptorFromPort();
 }
 
 ErrCode TailReaderImpl::getAvailableCount(SizeT* count)

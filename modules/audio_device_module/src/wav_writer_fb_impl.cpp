@@ -5,15 +5,18 @@
 #include <opendaq/event_packet_params.h>
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/reader_factory.h>
+#include <opendaq/function_block_type_factory.h>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
 WAVWriterFbImpl::WAVWriterFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
-    , storing(false)
+    , storing(false)   
+    , selfChange(false)   
 {
-    initProperties();
     createInputPort();
+    initProperties();
 }
 
 FunctionBlockTypePtr WAVWriterFbImpl::CreateType()
@@ -21,7 +24,7 @@ FunctionBlockTypePtr WAVWriterFbImpl::CreateType()
     return FunctionBlockType(
         "audio_device_module_wav_writer",
         "WAVWriter",
-        "Writes WAV files"
+        "Writes input signals to WAV files"
     );
 }
 
@@ -30,35 +33,106 @@ WAVWriterFbImpl::~WAVWriterFbImpl()
     stopStore();
 }
 
+bool WAVWriterFbImpl::validateDataDescriptor() const
+{
+    const auto inputSampleType = inputValueDataDescriptor.getSampleType();
+    if (inputSampleType != SampleType::Float64 && inputSampleType != SampleType::Float32)
+    {
+        LOG_W("Value data descriptor sample type must be Float64 or Float32, but is {}", convertSampleTypeToString(inputSampleType))
+        return false;
+    }
+
+    return true;
+}
+
+bool WAVWriterFbImpl::validateDomainDescriptor() const
+{
+    const auto inputSampleType = inputTimeDataDescriptor.getSampleType();
+    if (inputSampleType != SampleType::Int64 && inputSampleType != SampleType::UInt64)
+    {
+        LOG_W("Time data descriptor sample type must be Int64 or UInt64, but is {}", convertSampleTypeToString(inputSampleType))
+        return false;
+    }
+
+    if (inputTimeDataDescriptor.getUnit().getSymbol() != "s")
+    {
+        LOG_W("Time data descriptor unit symbol must be \"s\", but is {}", inputTimeDataDescriptor.getUnit().getSymbol())
+        return false;
+    }
+
+    if (inputTimeDataDescriptor.getRule().getType() != DataRuleType::Linear)
+    {
+        LOG_W("Time data rule type is not Linear")
+        return false;
+    }
+
+    return true;
+}
+
+bool WAVWriterFbImpl::initializeEncoder()
+{
+    const auto domainRuleParams = inputTimeDataDescriptor.getRule().getParameters();
+    const auto inputDeltaTicks = domainRuleParams.get("delta");
+    const auto tickResolution = inputTimeDataDescriptor.getTickResolution();
+
+    const uint32_t sampleRate = static_cast<uint32_t>(static_cast<double>(inputDeltaTicks) / static_cast<double>(tickResolution));
+
+    const ma_encoder_config config = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 1, sampleRate);
+    const ma_result result = ma_encoder_init_file(fileName.c_str(), &config, &encoder);
+
+    if (result != MA_SUCCESS)
+    {
+        LOG_W("Miniaudio encoder init file {} failed: {}", fileName, ma_result_description(result))
+        return false;
+    }
+
+    return true;
+}
+
 void WAVWriterFbImpl::initProperties()
 {
-    const auto fileNamePropInfo = StringProperty("FileName", "test.wav");
-    
-    objPtr.addProperty(fileNamePropInfo);
-    objPtr.getOnPropertyValueWrite("FileName") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); }; 
+    objPtr.addProperty(StringProperty("FileName", "test.wav"));
+    objPtr.getOnPropertyValueWrite("FileName") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& /*args*/) { fileNameChanged(); }; 
 
-    readProperties();
+    objPtr.addProperty(BoolProperty("Storing", false));
+    objPtr.getOnPropertyValueWrite("Storing") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& args)
+    {
+        if (selfChange)
+            storingChangedNoLock(args.getValue());
+        else
+            storingChanged(args.getValue());
+    };
+
+    fileNameChanged();
 }
 
-void WAVWriterFbImpl::propertyChanged()
+void WAVWriterFbImpl::fileNameChanged()
 {
     std::scoped_lock lock(sync);
-
-    stopStore();
-    readProperties();
-    startStore();
+    fileName = static_cast<std::string>(objPtr.getPropertyValue("FileName"));
+    LOG_I("File name: {}", fileName)
+    stopStoreInternal();
 }
 
-
-void WAVWriterFbImpl::readProperties()
+void WAVWriterFbImpl::storingChanged(bool store)
 {
-    fileName = static_cast<std::string>(objPtr.getPropertyValue("FileName"));
-    LOG_I("Properties: FileName {}", fileName);
+    std::scoped_lock lock(sync);
+    storingChangedNoLock(store);
+}
+
+void WAVWriterFbImpl::storingChangedNoLock(bool store)
+{
+    if (store)
+        startStore();
+    else
+        stopStore();
 }
 
 void WAVWriterFbImpl::createInputPort()
 {
-    inputPort = createAndAddInputPort("Input", PacketReadyNotification::Scheduler);
+    inputPort = createAndAddInputPort("input", PacketReadyNotification::Scheduler);
+    reader = StreamReaderFromPort(inputPort, SampleType::Float32, SampleType::UInt64);
+    reader.setOnDataAvailable([this] { calculate();});
 }
 
 void WAVWriterFbImpl::startStore()
@@ -71,57 +145,14 @@ void WAVWriterFbImpl::startStore()
         return;
     }
 
-    if (inputValueDataDescriptor.getSampleType() == SampleType::Struct)
-    {
-        LOG_W("Incompatible input value data descriptor")
+    if (!validateDataDescriptor() || !validateDomainDescriptor())
         return;
-    }
 
-    if (inputValueDataDescriptor.getSampleType() != SampleType::Float32)
+    storing = initializeEncoder();
+    if (storing)
     {
-        LOG_W("Incompatible value sample type {}", convertSampleTypeToString(inputValueDataDescriptor.getSampleType()));
-        return;
+        LOG_I("Stroring started")
     }
-
-    if (inputTimeDataDescriptor.getSampleType() == SampleType::Struct)
-    {
-        LOG_W("Incompatible input domain data descriptor")
-        return;
-    }
-
-    if (inputTimeDataDescriptor.getSampleType() != SampleType::Int64)
-    {
-        LOG_W("Incompatible domain data sample type {}", convertSampleTypeToString(inputTimeDataDescriptor.getSampleType()));
-        return;
-    }
-    if (inputTimeDataDescriptor.getUnit().getSymbol() != "s")
-    {
-        LOG_W("Incompatible domain data unit {}", inputTimeDataDescriptor.getUnit().getSymbol());
-        return;
-    }
-
-    const auto domainRule = inputTimeDataDescriptor.getRule();
-    if (domainRule.getType() != DataRuleType::Linear)
-    {
-        LOG_W("Domain data rule type is not Linear");
-        return;
-    }
-    const auto domainRuleParams = domainRule.getParameters();
-    const auto inputDeltaTicks = domainRuleParams.get("delta");
-
-    auto domainRes = inputTimeDataDescriptor.getTickResolution();
-
-    uint32_t sampleRate = static_cast<uint32_t>(static_cast<double>(inputDeltaTicks) / static_cast<double>(domainRes));
-
-    ma_encoder_config config = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 1, sampleRate);
-    ma_result result = ma_encoder_init_file(fileName.c_str(), &config, &encoder);
-    if (result != MA_SUCCESS)
-    {
-        LOG_W("Miniaudio encoder init file {} failed: {}", fileName, ma_result_description(result));
-        return;
-    }
-
-    storing = true;
 }
 
 void WAVWriterFbImpl::stopStore()
@@ -130,72 +161,57 @@ void WAVWriterFbImpl::stopStore()
         return;
 
     ma_encoder_uninit(&encoder);
-
     storing = false;
+    LOG_I("Storing stopped")
 }
 
-void WAVWriterFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& valueDataDescriptor, const DataDescriptorPtr& timeDataDescriptor)
+void WAVWriterFbImpl::stopStoreInternal()
 {
-    stopStore();
-
-    if (valueDataDescriptor.assigned())
-        inputValueDataDescriptor = valueDataDescriptor;
-    if (timeDataDescriptor.assigned())
-        inputTimeDataDescriptor = timeDataDescriptor;
-
-    startStore();
+    selfChange = true;
+    objPtr.setPropertyValue("Storing", false);
+    selfChange = false;
 }
 
-void WAVWriterFbImpl::processDataPacket(const DataPacketPtr& packet)
+void WAVWriterFbImpl::processEventPacket(const EventPacketPtr& packet)
 {
-    if (!storing)
-        return;
-
-    const auto data = packet.getData();
-    const auto sampleCount = packet.getSampleCount();
-    ma_uint64 samplesWritten;
-    ma_result result;
-    if ((result = ma_encoder_write_pcm_frames(&encoder, data, sampleCount, &samplesWritten)) != MA_SUCCESS)
+    if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        LOG_W("Miniaudio failure: {}", ma_result_description(result));
+        stopStoreInternal();
+        const auto params = packet.getParameters();
+
+        const DataDescriptorPtr valueSignalDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+        const DataDescriptorPtr domainSignalDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+
+        if (valueSignalDescriptor.assigned())
+            inputValueDataDescriptor = valueSignalDescriptor;
+        if (domainSignalDescriptor.assigned())
+            inputTimeDataDescriptor = domainSignalDescriptor;
     }
 }
 
-void WAVWriterFbImpl::onPacketReceived(const InputPortPtr& port)
-{
-    processPackets();
-}
-
-void WAVWriterFbImpl::processPackets()
+void WAVWriterFbImpl::calculate()
 {
     std::scoped_lock lock(sync);
+    SizeT availableData = reader.getAvailableCount();
 
-    const auto conn = inputPort.getConnection();
-    if (!conn.assigned())
-        return;
+    std::vector<float> inputData;
+    inputData.reserve(std::max(availableData, static_cast<SizeT>(1)));
 
-    auto packet = conn.dequeue();
-    while (packet.assigned())
+    const auto status = reader.read(inputData.data(), &availableData);
+
+    if (storing)
     {
-        const auto packetType = packet.getType();
-        if (packetType == PacketType::Event)
+        ma_uint64 samplesWritten;
+        ma_result result;
+        if ((result = ma_encoder_write_pcm_frames(&encoder, inputData.data(), availableData, &samplesWritten)) != MA_SUCCESS)
         {
-            auto eventPacket = packet.asPtr<IEventPacket>(true);
-            LOG_T("Processing {} event", eventPacket.getEventId())
-            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-            {
-                DataDescriptorPtr valueSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                DataDescriptorPtr domainSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-                processSignalDescriptorChanged(valueSignalDescriptor, domainSignalDescriptor);
-            }
+            LOG_W("Miniaudio failure: {}", ma_result_description(result));
         }
-        else if (packetType == PacketType::Data)
-        {
-            auto dataPacket = packet.asPtr<IDataPacket>();
-            processDataPacket(dataPacket);
-        }
+    }
 
-        packet = conn.dequeue();
+    if (status.getReadStatus() == ReadStatus::Event)
+    {
+        processEventPacket(status.getEventPacket());
     }
 }
 

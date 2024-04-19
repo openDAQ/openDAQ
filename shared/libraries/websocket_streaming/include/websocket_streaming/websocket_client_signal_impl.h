@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,40 +21,24 @@
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
-DECLARE_OPENDAQ_INTERFACE(IWebsocketStreamingSignalPrivate, IBaseObject)
-{
-    virtual void INTERFACE_FUNC createAndAssignDomainSignal(const DataDescriptorPtr& domainDescriptor) = 0;
-    virtual void INTERFACE_FUNC assignDescriptor(const DataDescriptorPtr& descriptor) = 0;
-};
-
-class WebsocketClientSignalImpl final : public MirroredSignalBase<IWebsocketStreamingSignalPrivate>
+class WebsocketClientSignalImpl final : public MirroredSignal
 {
 public:
     explicit WebsocketClientSignalImpl(const ContextPtr& ctx,
                                        const ComponentPtr& parent,
                                        const StringPtr& streamingId);
 
-    // ISignal
-    ErrCode INTERFACE_FUNC getDescriptor(IDataDescriptor** descriptor) override;
-
     StringPtr onGetRemoteId() const override;
-    Bool onTriggerEvent(EventPacketPtr eventPacket) override;
-
-    // IWebsocketStreamingSignalPrivate
-    void INTERFACE_FUNC createAndAssignDomainSignal(const DataDescriptorPtr& domainDescriptor) override;
-    void INTERFACE_FUNC assignDescriptor(const DataDescriptorPtr& descriptor) override;
+    Bool onTriggerEvent(const EventPacketPtr& eventPacket) override;
 
 protected:
     SignalPtr onGetDomainSignal() override;
+    DataDescriptorPtr onGetDescriptor() override;
 
 private:
     static StringPtr CreateLocalId(const StringPtr& streamingId);
 
     StringPtr streamingId;
-    DataDescriptorPtr mirroredDataDescriptor;
-    MirroredSignalConfigPtr domainSignalArtificial;
-
-    std::mutex signalMutex;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

@@ -58,10 +58,7 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
     inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
 
     if (inputPort.getConnection().assigned())
-    {
         connection = inputPort.getConnection();
-        handleDescriptorChanged(connection.dequeue());
-    }
 }
 
 StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -95,6 +92,7 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
 {
     std::scoped_lock lock(old->mutex);
     dataDescriptor = old->dataDescriptor;
+    domainDescriptor = old->domainDescriptor;
     old->invalid = true;
 
     info = old->info;
@@ -111,7 +109,10 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     readCallback = old->readCallback;
 
     this->internalAddRef();
-    readDescriptorFromPort();
+    if (portBinder.assigned())
+        handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+    else
+        readDescriptorFromPort();
 }
 
 StreamReaderImpl::~StreamReaderImpl()
@@ -139,22 +140,7 @@ void StreamReaderImpl::readDescriptorFromPort()
         }
     }
 
-    if (!dataDescriptor.assigned())
-    {
-        const auto signal = inputPort.getSignal();
-        if (!signal.assigned())
-        {
-            throw InvalidStateException("Input port must already have a signal assigned");
-        }
-
-        dataDescriptor = signal.getDescriptor();
-        if (!dataDescriptor.assigned())
-        {
-            throw InvalidStateException("Input port connected signal must have a descriptor assigned.");
-        }
-    }
-
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, nullptr));
+    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
 }
 
 void StreamReaderImpl::connectSignal(const SignalPtr& signal)
@@ -166,7 +152,7 @@ void StreamReaderImpl::connectSignal(const SignalPtr& signal)
     inputPort.connect(signal);
     connection = inputPort.getConnection();
 
-    handleDescriptorChanged(connection.dequeue());
+    readDescriptorFromPort();
 }
 
 ErrCode StreamReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept)
@@ -185,9 +171,6 @@ ErrCode StreamReaderImpl::connected(IInputPort* port)
 
     std::scoped_lock lock(this->mutex);
     connection = InputPortConfigPtr::Borrow(port).getConnection();
-    if (connection.assigned())
-        handleDescriptorChanged(connection.dequeue());
-
     return OPENDAQ_SUCCESS;
 }
 
@@ -452,6 +435,9 @@ ErrCode StreamReaderImpl::readPackets(IReaderStatus** status)
                     {
                         invalid = true;
 
+                        if (status)
+                            *status = ReaderStatus(eventPacket, !invalid).detach();
+
                         return this->makeErrorInfo(
                             OPENDAQ_ERR_INVALID_DATA,
                             "Exception occurred while processing a signal descriptor change"
@@ -507,7 +493,7 @@ ErrCode StreamReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IRe
         errCode = readPackets(status);
 
     if (status && *status == nullptr)
-        *status = ReaderStatus().detach();
+        *status = ReaderStatus(nullptr, !invalid).detach();
 
     *count = *count - info.remainingToRead;
     return errCode;
@@ -526,7 +512,14 @@ ErrCode StreamReaderImpl::readWithDomain(void* samples,
     std::scoped_lock lock(mutex);
 
     if (invalid)
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_DATA, "Packet samples are no longer convertible to the read type.", nullptr);
+    {
+        if (status)
+            *status = ReaderStatus(nullptr, !invalid).detach();
+        return OPENDAQ_IGNORED;
+    }
+
+    if (status)
+        *status = nullptr;
 
     ErrCode errCode = OPENDAQ_SUCCESS;
 
@@ -543,6 +536,9 @@ ErrCode StreamReaderImpl::readWithDomain(void* samples,
         errCode = readPackets(status);
 
     *count = *count - info.remainingToRead;
+
+    if (status && *status == nullptr)
+        *status = ReaderStatus(nullptr, !invalid).detach();
     return errCode;
 }
 

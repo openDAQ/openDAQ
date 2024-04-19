@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,14 +46,6 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingPrivate, IBaseObject)
      * @param domainSignalRemoteId The remote global ID of the domain signal of the signal to be unsubscribed.
      */
     virtual ErrCode INTERFACE_FUNC unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) = 0;
-
-    /*!
-     * @brief Creates an initial DataDescriptor Changed Event Packet for a signal using data received
-     * via the streaming.
-     * @param signalRemoteId The global remote ID of the signal for which the event packet should be created.
-     * @return The created DataDescriptor Changed Event Packet
-     */
-    virtual EventPacketPtr INTERFACE_FUNC createDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId) = 0;
 
     /*!
      * @brief Removes added signal without removing the streaming source from it.

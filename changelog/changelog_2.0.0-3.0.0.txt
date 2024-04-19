@@ -1,4 +1,130 @@
-11.03.2023
+12.04.2024
+Description:
+  - Implement BlockReaderStatus
++ [interface] IBlockReaderStatus
++ [function] IBlockReaderStatus::getReadSamples(SizeT* readSamples)
++ [factory] BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, SizeT readSamples = 0)
+
+29.03.2024
+Description:
+	- Grouping discovered deivces with IServerCapability
+	- Replacing IStreamingInfo with IServerCapability
+
+- [interface] IStreamingInfo
+- [function] IStreamingInfo::getPrimaryAddress(IString** address)
+- [function] IStreamingInfo::getProtocolId(IString** protocolId)
+
+- [interface] IStreamingInfoConfig
+- [function] IStreamingInfoConfig::setPrimaryAddress(IString* address)
+- [factory] StreamingInfoConfigPtr StreamingInfo(const StringPtr& protocolId)
+
++ [interface] IServerCapability
++ [function] IServerCapabilityConfig::getConnectionString(IString** connectionString)
++ [function] IServerCapabilityConfig::getConnectionStrings(IList** connectionStrings)
++ [function] IServerCapability::getProtocolName(IString** protocolName)
++ [function] IServerCapability::getProtocolType(IEnumeration** type)
++ [function] IServerCapability::getConnectionType(IString** type)
++ [function] IServerCapability::getCoreEventsEnabled(Bool* enabled)
+
++ [interface] IServerCapabilityConfig
++ [function] IServerCapabilityConfig::setConnectionString(IString* connectionString)
++ [function] IServerCapabilityConfig::addConnectionString(IString* connectionString)
++ [function] IServerCapabilityConfig::setProtocolName(IString* protocolName)
++ [function] IServerCapabilityConfig::setProtocolType(IString* type)
++ [function] IServerCapabilityConfig::setConnectionType(IString* type)
++ [function] IServerCapabilityConfig::setCoreEventsEnabled(Bool enabled) 
++ [function] IServerCapabilityConfig::addProperty(IProperty* property)
++ [factory] ServerCapabilityConfigPtr ServerCapability(const StringPtr& protocolName, ProtocolType protocolType)
+
+-m [function] IModule::acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr)
++m [function] IModule::acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr)
+-m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config)
++m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config)
+
++ [function] IDeviceInfo::getServerCapabilities(IList** serverCapabilities)
++ [interface] IDeviceInfoInternal
++ [function] IDeviceInfoInternal::addServerCapability(IServerCapability* serverCapability)
++ [function] IDeviceInfoInternal::removeServerCapability(IString* protocolId)
++ [function] IDeviceInfoInternal::clearServerStreamingCapabilities()
+
+- [function] IDevicePrivate::addStreamingOption(IStreamingInfo* info)
+- [function] IDevicePrivate::removeStreamingOption(IString* protocolId)
+- [function] IDevicePrivate::getStreamingOptions(IList** streamingOptions)
+
+-m [function] IModule::acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IStreamingInfo* config = nullptr)
++m [function] IModule::acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IServerCapability* capability = nullptr)
+-m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IStreamingInfo* config)
++m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IServerCapability* capability)
+
+26.03.2024
+Description:
+  - Implement multi reader builder
+
++ [interface] IMultiReaderBuilder
++ [interface] IMultiReaderBuilder::build(IMultiReader** multiReader)
++ [interface] IMultiReaderBuilder::addSignal(ISignal* signal)
++ [interface] IMultiReaderBuilder::addInputPort(IInputPort* port)
++ [interface] IMultiReaderBuilder::getSourceComponents(IList** ports)
++ [interface] IMultiReaderBuilder::setValueReadType(SampleType type)
++ [interface] IMultiReaderBuilder::getValueReadType(SampleType* type)
++ [interface] IMultiReaderBuilder::setDomainReadType(SampleType type)
++ [interface] IMultiReaderBuilder::getDomainReadType(SampleType* type)
++ [interface] IMultiReaderBuilder::setReadMode(ReadMode mode)
++ [interface] IMultiReaderBuilder::getReadMode(ReadMode* mode)
++ [interface] IMultiReaderBuilder::setReadTimeoutType(ReadTimeoutType type)
++ [interface] IMultiReaderBuilder::getReadTimeoutType(ReadTimeoutType* type)
++ [interface] IMultiReaderBuilder::setRequiredCommonSampleRate(Int sampleRate)
++ [interface] IMultiReaderBuilder::getRequiredCommonSampleRate(Int* sampleRate)
++ [interface] IMultiReaderBuilder::setStartOnFullUnitOfDomain(Bool enabled)
++ [interface] IMultiReaderBuilder::getStartOnFullUnitOfDomain(Bool* enabled)
++ [factory] MultiReaderBuilderPtr MultiReaderBuilder()
+
++ [factory] MultiReaderPtr MultiReaderFromBuilder(const MultiReaderBuilderPtr& builder)
+
+26.03.2024:
+Description:
+	- Fix outdated data descriptor before subscription
+
+-m [function] Bool IMirroredSignalPrivate::triggerEvent(const EventPacketPtr& eventPacket)
++m [function] ErrCode IMirroredSignalPrivate::triggerEvent(IEventPacket* eventPacket, Bool* forward)
+-m [function] ErrCode IMirroredSignalPrivate::INTERFACE_FUNC addStreamingSource(const StreamingPtr& streaming)
++m [function] ErrCode IMirroredSignalPrivate::addStreamingSource(IStreaming* streaming)
+-m [function] ErrCode IMirroredSignalPrivate::removeStreamingSource(const StringPtr& streamingConnectionString)
++m [function] ErrCode IMirroredSignalPrivate::removeStreamingSource(IString* streamingConnectionString)
+-m [function] void IMirroredSignalPrivate::subscribeCompleted(const StringPtr& streamingConnectionString)
++m [function] ErrCode IMirroredSignalPrivate::subscribeCompleted(IString* streamingConnectionString)
+-m [function] void IMirroredSignalPrivate::unsubscribeCompleted(const StringPtr& streamingConnectionString) 
++m [function] ErrCode IMirroredSignalPrivate::unsubscribeCompleted(IString* streamingConnectionString)
++ [function] ErrCode IMirroredSignalPrivate::getMirroredDataDescriptor(IDataDescriptor** descriptor)
++ [function] ErrCode IMirroredSignalPrivate::setMirroredDataDescriptor(IDataDescriptor* descriptor)
++ [function] ErrCode IMirroredSignalPrivate::getMirroredDomainSignal(IMirroredSignalConfig** domainSignals)
++ [function] ErrCode IMirroredSignalPrivate::setMirroredDomainSignal(IMirroredSignalConfig* domainSignal)
+
+25.04.2024
+Description:
+    Constant rule rework in openDAQ core and support for native streaming
+    
+-m [factory] DataRulePtr ConstantDataRule(const NumberPtr& value)
++m [factory] DataRulePtr ConstantDataRule()
++  [factory] template <class T> DataPacketPtr ConstantDataPacketWithDomain(const DataPacketPtr& domainPacket, const DataDescriptorPtr& descriptor, uint64_t sampleCount, T initialValue, const std::vector<ConstantPosAndValue<T>>& otherValues = {})
+-m [factory] DataPacketPtr DataPacketWithExternalMemory(const DataPacketPtr& domainPacket, const DataDescriptorPtr& descriptor, uint64_t sampleCount, void* data, const DeleterPtr& deleter, NumberPtr offset = nullptr)
++m [factory] DataPacketPtr DataPacketWithExternalMemory(const DataPacketPtr& domainPacket, const DataDescriptorPtr& descriptor, uint64_t sampleCount, void* data, const DeleterPtr& deleter, NumberPtr offset = nullptr, SizeT bufferSize = std::numeric_limits<SizeT>::max())
+
+21.03.2024
+Description:
+	- Move create fb/device logic to module manager
+	- Move client device logic for adding fbs/devices to device_impl
+
++ [interface] IModuleManagerUtils
++ [function] IModuleManagerUtils::getAvailableDevices(IList** availableDevices)
++ [function] IModuleManagerUtils::getAvailableDeviceTypes(IDict** deviceTypes)
++ [function] IModuleManagerUtils::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config = nullptr)
++ [function] IModuleManagerUtils::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
++ [function] IModuleManagerUtils::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr)
+-m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr)
++m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr, const ComponentPtr& parent = nullptr)
+
+11.03.2024
 Description:
 	- Make DeviceDomain a standalone object in DeviceImpl
 		- Devices no longer override the DeviceDomain getters, but instead set it via the protected `setDeviceDomain` method
@@ -10,12 +136,12 @@ Description:
 + [function] IDevice::getTicksSinceOrigin(UInt* ticks)
 + [factory] CoreEventArgsPtr CoreEventArgsDeviceDomainChanged(const DeviceDomainPtr& deviceDomain)
 
-11.03.2023
+11.03.2024
 Description:
     Update native transport protocol - initiate streaming only upon client request;
     New protocol message type added: PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST = 11
 
-08.03.2023
+08.03.2024
 Description:
   - Propagate server IUpdatable::Update to native protocol clients
   - Properly handle nested property objects in native protocol
@@ -24,7 +150,31 @@ Description:
 + [function] ISerializedObject::isRoot(Bool* isRoot)
 + [function] IUpdatable::updateEnded()
 
-25.02.2023
+26.02.2024
+Description:
+  - Integrating config provider options in modules
+
++ [function] IModule::getId(IString** id)
+
+26.02.2024
+Description:
+  - Streaming framework refactoring
+
+- [function] IMirroredSignalPrivate::assignDomainSignal(const SignalPtr& domainSignal);
+- [function] IMirroredSignalPrivate::hasMatchingId(const StringPtr& signalId);
+
+-m [function] IStreamingPrivate::subscribeSignal(const MirroredSignalConfigPtr& signal);
++m [function] IStreamingPrivate::subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId);
+
+-m [function] IStreamingPrivate::unsubscribeSignal(const MirroredSignalConfigPtr& signal);
++m [function] IStreamingPrivate::unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId);
+
+-m [function] IStreamingPrivate::createDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal);
++m [function] IStreamingPrivate::createDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId);
+
++ [function] IStreamingPrivate::detachRemovedSignal(const StringPtr& signalRemoteId);
+
+25.02.2024
 Description:
   - readers returns IReaderStatus
   - Support creating readers with IInputPort
@@ -71,31 +221,6 @@ Description:
 
 - [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)
 + [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SizeT blockSize, SampleType valueReadType, SampleType domainReadType)
-
-26.02.2024
-Description:
-  - Integrating config provider options in modules
-
-+ [function] IModule::getId(IString** id)
-
-26.02.2024
-Description:
-  - Streaming framework refactoring
-
-- [function] IMirroredSignalPrivate::assignDomainSignal(const SignalPtr& domainSignal);
-- [function] IMirroredSignalPrivate::hasMatchingId(const StringPtr& signalId);
-
--m [function] IStreamingPrivate::subscribeSignal(const MirroredSignalConfigPtr& signal);
-+m [function] IStreamingPrivate::subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId);
-
--m [function] IStreamingPrivate::unsubscribeSignal(const MirroredSignalConfigPtr& signal);
-+m [function] IStreamingPrivate::unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId);
-
--m [function] IStreamingPrivate::createDataDescriptorChangedEventPacket(const MirroredSignalConfigPtr& signal);
-+m [function] IStreamingPrivate::createDataDescriptorChangedEventPacket(const StringPtr& signalRemoteId);
-
-+ [function] IStreamingPrivate::detachRemovedSignal(const StringPtr& signalRemoteId);
-
 
 25.02.2024
 Description:
@@ -549,3 +674,14 @@ Streaming framework changes:
 
 + [function] ISignal::getStreamed(Bool* streamed)
 + [function] ISignal::setStreamed(Bool streamed)
+
+22.03.2024
+
+Description:
+  - Add support for multiple module search paths in ModuleManager
+
++ [factory] ModuleManagerPtr ModuleManagerMultiplePaths(const ListPtr<IString>& paths)
+
++ [function] IInstanceBuilder::addModulePath(IString* path)
++ [function] IInstanceBuilder::getModulePathsList(IList** paths)
+

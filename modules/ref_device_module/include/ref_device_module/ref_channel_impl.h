@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-enum class WaveformType { Sine, Rect, None, Counter };
+enum class WaveformType { Sine, Rect, None, Counter, ConstantValue };
 
 DECLARE_OPENDAQ_INTERFACE(IRefChannel, IBaseObject)
 {
@@ -58,6 +58,7 @@ private:
     double ampl;
     double dc;
     double noiseAmpl;
+    double constantValue;
     double sampleRate;
     StructPtr customRange;
     bool clientSideScaling;

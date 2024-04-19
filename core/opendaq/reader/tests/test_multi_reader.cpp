@@ -181,7 +181,7 @@ public:
     }
 
     [[nodiscard]]
-    ListPtr<ISignal> signalsToPortsList() const
+    ListPtr<IInputPortConfig> signalsToPortsList() const
     {
         ListPtr<IInputPortConfig> ports = List<IInputPortConfig>();
         for (const auto& read : readSignals)
@@ -1614,19 +1614,19 @@ TEST_F(MultiReaderTest, MultiReaderWithNotConnectedInputPort)
     ASSERT_THAT(time[2], ElementsAreArray(time[0]));
 }
 
-TEST_F(MultiReaderTest, MultiReaderWithDifferentInports)
+TEST_F(MultiReaderTest, MultiReaderWithDifferentInputs)
 {
     // prevent vector from re-allocating, so we have "stable" pointers
     readSignals.reserve(3);
 
     addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
     addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", Ratio(1, 1000 * 10ll), LinearDataRule(10, 0)));
-    addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
+    auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
     auto portList = signalsToPortsList();
-    portList.pushBack(readSignals[0].signal);
+    auto componentList = List<IComponent>(portList[0], portList[1], sig2.signal);
 
-    ASSERT_THROW(MultiReaderFromPort(portList), InvalidParameterException);
+    ASSERT_THROW(MultiReaderFromPort(componentList), InvalidParameterException);
 }
 
 TEST_F(MultiReaderTest, MultipleMultiReaderToInputPort)
@@ -1780,7 +1780,7 @@ TEST_F(MultiReaderTest, StartOnFullUnitOfDomain)
     auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00"));
     auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
 
-    auto multi = MultiReaderEx(signalsToList(), ReadTimeoutType::All, true);
+    auto multi = MultiReaderEx(signalsToList(), ReadTimeoutType::All, -1, true);
 
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
@@ -1813,4 +1813,206 @@ TEST_F(MultiReaderTest, StartOnFullUnitOfDomain)
 
     ASSERT_THAT(time[1], ElementsAreArray(time[0]));
     ASSERT_THAT(time[2], ElementsAreArray(time[0]));
+}
+
+TEST_F(MultiReaderTest, SampleRateDivider)
+{ 
+    constexpr const auto NUM_SIGNALS = 3;
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(3);
+
+    std::array<std::int32_t, NUM_SIGNALS> dividers = { 1, 2, 5 };
+
+    auto& sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00", nullptr, LinearDataRule(dividers[0], 0)));     // 1000 Hz
+    auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", nullptr, LinearDataRule(dividers[1], 0)));     // 500 Hz
+    auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.125+00:00", nullptr, LinearDataRule(dividers[2], 0))); // 200 Hz
+
+    auto multi = MultiReader(signalsToList());
+    ASSERT_EQ(multi.getCommonSampleRate(), 1000);
+
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    for (Int i = 0; i < 5; i++)
+    {
+        sig0.createAndSendPacket(i);
+        sig1.createAndSendPacket(i);
+        sig2.createAndSendPacket(i);
+    }
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 1480u);
+
+    constexpr const SizeT SAMPLES = 52u;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+
+    SizeT count{SAMPLES};
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    ASSERT_EQ(count, SAMPLES - 2);
+
+    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};
+    printData<std::chrono::microseconds>(SAMPLES, time, values, domain);
+
+    std::array<ClockTick, NUM_SIGNALS> lastTimeStamp;
+
+    for (SizeT i = 0; i < dividers.size(); i++)
+    {
+        const SizeT numberOfSamples = count / dividers[i];
+
+        ASSERT_EQ(time[i][0], time[0][0]);
+        lastTimeStamp[i] = domain[i][numberOfSamples - 1];
+
+        for (SizeT j = 1; j < numberOfSamples; j++)
+            ASSERT_EQ(domain[i][j] - domain[i][j - 1], dividers[i]);
+    }
+
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+    
+    for (SizeT i = 0; i < dividers.size(); i++)
+    {
+        ASSERT_EQ(domain[i][0] - lastTimeStamp[i], dividers[i]);
+    }
+}
+
+TEST_F(MultiReaderTest, SampleRateDividerRequiredRate)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(3);
+
+    std::array<std::int32_t, NUM_SIGNALS> dividers = {1, 2, 5};
+    const std::int64_t reqiredRate = 2000;
+
+    auto& sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00", nullptr, LinearDataRule(dividers[0], 0)));  // 1000 Hz
+    auto& sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", nullptr, LinearDataRule(dividers[1], 0)));  // 500 Hz
+    auto& sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.125+00:00", nullptr, LinearDataRule(dividers[2], 0)));  // 200 Hz
+
+    auto multi = MultiReaderEx(signalsToList(), SampleType::Float64, SampleType::Int64, ReadMode::Scaled, ReadTimeoutType::All, reqiredRate, false);
+    ASSERT_EQ(multi.getCommonSampleRate(), reqiredRate);
+
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    for (Int i = 0; i < 5; i++)
+    {
+        sig0.createAndSendPacket(i);
+        sig1.createAndSendPacket(i);
+        sig2.createAndSendPacket(i);
+    }
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 2960u);
+
+    constexpr const SizeT SAMPLES = 102u;
+
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1], values[2]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1], domain[2]};
+
+    SizeT count{SAMPLES};
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    ASSERT_EQ(count, SAMPLES - 2);
+
+    std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};
+    printData<std::chrono::microseconds>(SAMPLES, time, values, domain);
+
+    std::array<ClockTick, NUM_SIGNALS> lastTimeStamp;
+
+    for (SizeT i = 0; i < dividers.size(); i++)
+    {
+        const SizeT numberOfSamples = count / dividers[i] / 2;
+
+        ASSERT_EQ(time[i][0], time[0][0]);
+        lastTimeStamp[i] = domain[i][numberOfSamples - 1];
+
+        for (SizeT j = 1; j < numberOfSamples; j++)
+            ASSERT_EQ(domain[i][j] - domain[i][j - 1], dividers[i]);
+    }
+
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    for (SizeT i = 0; i < dividers.size(); i++)
+    {
+        ASSERT_EQ(domain[i][0] - lastTimeStamp[i], dividers[i]);
+    }
+}
+
+TEST_F(MultiReaderTest, MultiReaderBuilderGetSet)
+{
+    SignalPtr sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00")).signal;
+    SignalPtr sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", Ratio(1, 1000 * 10ll), LinearDataRule(10, 0))).signal;
+    SignalPtr sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00")).signal;
+
+    auto portList = signalsToPortsList();
+
+    auto builder = MultiReaderBuilder();
+    builder.addInputPort(portList[0]);
+    builder.addSignal(sig1);
+    builder.addSignal(sig2);
+    builder.setValueReadType(SampleType::Int16);
+    builder.setDomainReadType(SampleType::Int16);
+    builder.setReadMode(ReadMode::RawValue);
+    builder.setReadTimeoutType(ReadTimeoutType::Any);
+    builder.setRequiredCommonSampleRate(0);
+    builder.setStartOnFullUnitOfDomain(true);
+
+    ASSERT_EQ(builder.getSourceComponents().getCount(), 3u);
+    ASSERT_EQ(builder.getSourceComponents()[0].asPtr<IInputPort>().getSignal(), sig0);
+    ASSERT_EQ(builder.getSourceComponents()[1], sig1);
+    ASSERT_EQ(builder.getSourceComponents()[2], sig2);
+
+    ASSERT_EQ(builder.getValueReadType(), SampleType::Int16);
+    ASSERT_EQ(builder.getDomainReadType(), SampleType::Int16);
+    ASSERT_EQ(builder.getReadMode(), ReadMode::RawValue);
+    ASSERT_EQ(builder.getReadTimeoutType(), ReadTimeoutType::Any);
+    ASSERT_EQ(builder.getRequiredCommonSampleRate(), 0);
+    ASSERT_EQ(builder.getStartOnFullUnitOfDomain(), true);
+}
+
+TEST_F(MultiReaderTest, MultiReaderBuilderWithDifferentInputs)
+{
+    readSignals.reserve(3);
+
+    auto sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    auto sig1 = addSignal(0, 732, createDomainSignal("2022-09-27T00:02:04+00:00", Ratio(1, 1000 * 10ll), LinearDataRule(10, 0)));
+    auto sig2 = addSignal(0, 843, createDomainSignal("2022-09-27T00:02:04.123+00:00"));
+
+    auto portList = signalsToPortsList();
+
+    SignalPtr signal1 = sig1.signal;
+    SignalPtr signal2 = sig2.signal;
+
+    MultiReaderBuilderPtr builder = MultiReaderBuilder().addInputPort(portList[0]).addSignal(signal1).addSignal(signal2);
+    ASSERT_THROW(MultiReaderFromBuilder(builder), InvalidParameterException);
+}
+
+TEST_F(MultiReaderTest, MultiReaderExcetionOnConstructor)
+{
+    readSignals.reserve(1);
+
+    auto& sig0 = addSignal(0, 523, createDomainSignal("2022-09-27T00:02:03+00:00", nullptr, LinearDataRule(1, 0)));  // 1000 Hz
+
+    MultiReaderPtr mr;
+    try
+    {
+        mr = MultiReaderEx(signalsToList(), SampleType::Float64, SampleType::Int64, ReadMode::Scaled, ReadTimeoutType::All, 500, false);
+    }
+    catch (...)
+    {
+        
+    }
+
+    for (Int i = 0; i < 5; i++)
+    {
+        sig0.createAndSendPacket(i);
+    }
 }

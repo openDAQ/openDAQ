@@ -25,6 +25,7 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
     , ampl(0)
     , dc(0)
     , noiseAmpl(0)
+    , constantValue(0)
     , sampleRate(0)
     , index(init.index)
     , globalSampleRate(init.globalSampleRate)
@@ -55,11 +56,11 @@ void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgs
 
 void RefChannelImpl::initProperties()
 {
-    const auto waveformProp = SelectionProperty("Waveform", List<IString>("Sine", "Rect", "None", "Counter"), 0);
+    const auto waveformProp = SelectionProperty("Waveform", List<IString>("Sine", "Rect", "None", "Counter", "Constant"), 0);
     
     objPtr.addProperty(waveformProp);
     objPtr.getOnPropertyValueWrite("Waveform") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { waveformChanged(); };
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChangedIfNotUpdating(args); };
 
     const auto freqProp = FloatPropertyBuilder("Frequency", 10.0)
                               .setVisible(EvalValue("$Waveform < 2"))
@@ -159,6 +160,17 @@ void RefChannelImpl::initProperties()
     objPtr.addProperty(IntPropertyBuilder("PacketSize", 1000).setVisible(EvalValue("$FixedPacketSize")).build());
     objPtr.getOnPropertyValueWrite("PacketSize") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { packetSizeChanged(); };
+
+    const auto constantValueProp =
+        FloatPropertyBuilder("ConstantValue", 2.0)
+            .setVisible(EvalValue("$Waveform == 4"))
+            .setMinValue(-10.0)
+            .setMaxValue(10.0)
+            .build();
+
+    objPtr.addProperty(constantValueProp);
+    objPtr.getOnPropertyValueWrite("ConstantValue") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { waveformChanged(); };
 }
 
 void RefChannelImpl::packetSizeChangedInternal()
@@ -181,8 +193,9 @@ void RefChannelImpl::waveformChangedInternal()
     dc = objPtr.getPropertyValue("DC");
     ampl = objPtr.getPropertyValue("Amplitude");
     noiseAmpl = objPtr.getPropertyValue("NoiseAmplitude");
-    LOG_I("Properties: Waveform {}, Frequency {}, DC {}, Amplitude {}, NoiseAmplitude {}",
-          objPtr.getPropertySelectionValue("Waveform").toString(), freq, dc, ampl, noiseAmpl);
+    constantValue = objPtr.getPropertyValue("ConstantValue");
+    LOG_I("Properties: Waveform {}, Frequency {}, DC {}, Amplitude {}, NoiseAmplitude {}, ConstantValue {}",
+          objPtr.getPropertySelectionValue("Waveform").toString(), freq, dc, ampl, noiseAmpl, constantValue);
 }
 
 void RefChannelImpl::updateSamplesGenerated()
@@ -215,6 +228,8 @@ void RefChannelImpl::signalTypeChangedInternal()
     clientSideScaling = objPtr.getPropertyValue("ClientSideScaling");
 
     customRange = objPtr.getPropertyValue("CustomRange");
+
+    waveformType = objPtr.getPropertyValue("Waveform");
 
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
@@ -265,57 +280,68 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 void RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
 {
     const auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
-    const auto dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
-
-    double* buffer;
-
-    if (clientSideScaling)
+    DataPacketPtr dataPacket;
+    if (waveformType == WaveformType::ConstantValue)
     {
-        buffer = static_cast<double*>(std::malloc(newSamples * sizeof(double)));
+        dataPacket = ConstantDataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples, constantValue);
     }
     else
-        buffer = static_cast<double*>(dataPacket.getRawData());
-
-    switch(waveformType)
     {
-        case WaveformType::Counter:
+        dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+
+        double* buffer;
+
+        if (clientSideScaling)
         {
-            for (uint64_t i = 0; i < newSamples; i++)
-                buffer[i] = static_cast<double>(counter++) / sampleRate;
-            break;
+            buffer = static_cast<double*>(std::malloc(newSamples * sizeof(double)));
         }
-        case WaveformType::Sine:
+        else
+            buffer = static_cast<double*>(dataPacket.getRawData());
+
+        switch(waveformType)
         {
-            for (uint64_t i = 0; i < newSamples; i++)
-                buffer[i] = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i))) * ampl + dc + noiseAmpl * dist(re);
-            break;
-        }
-        case WaveformType::Rect:
-        {
-            for (uint64_t i = 0; i < newSamples; i++)
+            case WaveformType::Counter:
             {
-                double val = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i)));
-                val = val > 0 ? 1.0 : -1.0;
-                buffer[i] = val * ampl + dc + noiseAmpl * dist(re);
+                for (uint64_t i = 0; i < newSamples; i++)
+                    buffer[i] = static_cast<double>(counter++) / sampleRate;
+                break;
             }
-            break;
+            case WaveformType::Sine:
+            {
+                for (uint64_t i = 0; i < newSamples; i++)
+                    buffer[i] = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i))) * ampl + dc + noiseAmpl * dist(re);
+                break;
+            }
+            case WaveformType::Rect:
+            {
+                for (uint64_t i = 0; i < newSamples; i++)
+                {
+                    double val = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i)));
+                    val = val > 0 ? 1.0 : -1.0;
+                    buffer[i] = val * ampl + dc + noiseAmpl * dist(re);
+                }
+                break;
+            }
+            case WaveformType::None:
+            {
+                for (uint64_t i = 0; i < newSamples; i++)
+                    buffer[i] = dc + noiseAmpl * dist(re);
+                break;
+            }
+            case WaveformType::ConstantValue:
+                break;
         }
-        case WaveformType::None:
+
+        if (clientSideScaling)
         {
-            for (uint64_t i = 0; i < newSamples; i++)
-                buffer[i] = dc + noiseAmpl * dist(re);
-            break;
+            double f = std::pow(2, 24);
+            auto packetBuffer = static_cast<uint32_t*>(dataPacket.getRawData());
+            for (size_t i = 0; i < newSamples; i++)
+                *packetBuffer++ = static_cast<uint32_t>((buffer[i] + 10.0) / 20.0 * f);
+
+            std::free(static_cast<void*>(buffer));
         }
-    }
 
-    if (clientSideScaling)
-    {
-        double f = std::pow(2, 24);
-        auto packetBuffer = static_cast<uint32_t*>(dataPacket.getRawData());
-        for (size_t i = 0; i < newSamples; i++)
-            *packetBuffer++ = static_cast<uint32_t>((buffer[i] + 10.0) / 20.0 * f);
-
-        std::free(static_cast<void*>(buffer));
     }
 
     valueSignal.sendPacket(dataPacket);
@@ -345,6 +371,11 @@ void RefChannelImpl::buildSignalDescriptors()
         valueDescriptor.setPostScaling(LinearScaling(scale, offset, SampleType::Int32, ScaledSampleType::Float64));
     }
 
+    if (waveformType == WaveformType::ConstantValue)
+    {
+        valueDescriptor.setRule(ConstantDataRule());
+    }
+
 
     valueSignal.setDescriptor(valueDescriptor.build());
 
@@ -359,8 +390,6 @@ void RefChannelImpl::buildSignalDescriptors()
                                 .setName("Time AI " + std::to_string(index + 1));
 
     timeSignal.setDescriptor(timeDescriptor.build());
-
-    valueSignal.setDomainSignal(timeSignal);
 }
 
 double RefChannelImpl::coerceSampleRate(const double wantedSampleRate) const
@@ -389,6 +418,7 @@ void RefChannelImpl::createSignals()
 {
     valueSignal = createAndAddSignal(fmt::format("ai{}", index));
     timeSignal = createAndAddSignal(fmt::format("ai{}_time", index), nullptr, false);
+    valueSignal.setDomainSignal(timeSignal);
 }
 
 void RefChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,14 +80,16 @@ inline InstancePtr Instance(const std::string& modulePath = "", const std::strin
  * @brief Creates a Client implementation of a device.
  * @param context The Context to be used by the client.
  * @param localId The local id of the instance.
+ * @param defaultDeviceInfo The DeviceInfo to be used by the client device.
+ * @param parent The parent component of the client.
  *
  * When creating an Instance, it by default creates a Client and sets it as the root device.
  * The Client supports adding function blocks and connecting to devices. The array of function blocks
  * and supported devices depends on the modules loaded by the Module manager.
  */
-inline DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr)
+inline DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr, const ComponentPtr& parent = nullptr)
 {
-    DevicePtr obj(Client_Create(context, localId, defaultDeviceInfo));
+    DevicePtr obj(Client_Create(context, localId, defaultDeviceInfo, parent));
     return obj;
 }
 

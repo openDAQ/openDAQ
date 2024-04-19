@@ -17,7 +17,7 @@ static InstancePtr CreateServerInstance()
     const auto refDevice = instance.addDevice("daqref://device1");
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
 
-    instance.addServer("openDAQ WebsocketTcp Streaming", nullptr);
+    instance.addServer("openDAQ LT Streaming", nullptr);
 
     return instance;
 }
@@ -25,7 +25,7 @@ static InstancePtr CreateServerInstance()
 static InstancePtr CreateClientInstance()
 {
     auto instance = Instance();
-    auto refDevice = instance.addDevice("daq.ws://127.0.0.1/");
+    auto refDevice = instance.addDevice("daq.lt://127.0.0.1/");
     return instance;
 }
 
@@ -79,18 +79,10 @@ TEST_F(WebsocketModulesTest, DataDescriptor)
     DataDescriptorPtr dataDescriptor = client.getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
     DataDescriptorPtr serverDataDescriptor = server.getSignals(search::Recursive(search::Visible()))[0].getDescriptor();
 
-    DataDescriptorPtr domainDataDescriptor = client.getSignals(search::Recursive(search::Visible()))[1].getDescriptor();
-    DataDescriptorPtr serverDomainDataDescriptor = server.getSignals(search::Recursive(search::Visible()))[1].getDescriptor();
+    DataDescriptorPtr domainDataDescriptor = client.getSignals(search::Recursive(search::Visible()))[0].getDomainSignal().getDescriptor();
+    DataDescriptorPtr serverDomainDataDescriptor = server.getSignals(search::Recursive(search::Visible()))[0].getDomainSignal().getDescriptor();
 
-    ASSERT_EQ(dataDescriptor.getName(), serverDataDescriptor.getName());
-    ASSERT_EQ(dataDescriptor.getDimensions().getCount(), serverDataDescriptor.getDimensions().getCount());
-
-    ASSERT_EQ(dataDescriptor.getSampleType(), serverDataDescriptor.getSampleType());
-    ASSERT_EQ(dataDescriptor.getUnit().getSymbol(), serverDataDescriptor.getUnit().getSymbol());
-    ASSERT_EQ(dataDescriptor.getValueRange(), serverDataDescriptor.getValueRange());
-    ASSERT_EQ(dataDescriptor.getRule().getType(), serverDataDescriptor.getRule().getType());
-    ASSERT_EQ(dataDescriptor.getName(), serverDataDescriptor.getName());
-    ASSERT_EQ(dataDescriptor.getMetadata(), serverDataDescriptor.getMetadata());
+    ASSERT_EQ(dataDescriptor, serverDataDescriptor);
 
     ASSERT_EQ(domainDataDescriptor.getRule().getParameters(), serverDomainDataDescriptor.getRule().getParameters());
     ASSERT_EQ(domainDataDescriptor.getOrigin(), serverDomainDataDescriptor.getOrigin());

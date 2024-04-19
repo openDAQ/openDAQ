@@ -121,7 +121,7 @@ calculated depending on the Rule type. Currently, two rules are available in ope
 
 * **Linear Rule**: The Rule parameters include a `delta` and `start` numbers. The values are calculated according to the following equation: `PacketOffset + SampleIndex * delta + start`, where the `PacketOffset` is available on the Packet carrying the data and the `SampleIndex` represents the index of the data entry being calculated within a given packet.
 
-* **Constant Rule**: All values of the signal are equal to the `constant` Rule Number-type parameter.
+* **Constant Rule**: All values of the signal are equal to the `constant` defined in the packet.
 
 === Dimensions
 
@@ -219,8 +219,8 @@ Data Descriptors. When the Struct Fields list is filled, Packet buffers are cons
 the following manner: the data described by the first Data Descriptor is at the start, 
 followed by the data described by the second, and so on. 
 
-IMPORTANT: When configuring a Data Descriptor with Struct Fields, only the Dimensions and 
-Name can be configured in addition. Dimensions function the same way as with normal 
+IMPORTANT: When configuring a Data Descriptor with Struct Fields, the Name must be configured, 
+and additionally, only the Dimensions can be configured. Dimensions function the same way as with normal 
 Signal data, where each Sample will contain `n` structs, depending on the Dimension sizes.
 
 == Configuring Signals

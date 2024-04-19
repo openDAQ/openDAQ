@@ -2,7 +2,6 @@
 #include <opendaq/instance_builder_impl.h>
 #include <opendaq/instance_builder_ptr.h>
 #include <opendaq/instance_ptr.h>
-#include <utility>
 #include <opendaq/custom_log.h>
 #include <opendaq/config_provider_factory.h>
 
@@ -12,7 +11,8 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 {
     return Dict<IString, IBaseObject>({
         {"ModuleManager", Dict<IString, IBaseObject>({
-                {"ModulesPath", ""}
+                {"ModulesPaths", List<IString>(""),
+                }
             })},
         {"Scheduler", Dict<IString, IBaseObject>({
                 {"WorkersNum", 0}
@@ -88,9 +88,24 @@ ErrCode InstanceBuilderImpl::addConfigProvider(IConfigProvider* configProvider)
     return OPENDAQ_IGNORED;
 }
 
+ErrCode INTERFACE_FUNC InstanceBuilderImpl::setContext(IContext* context)
+{
+    this->context = context;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC InstanceBuilderImpl::getContext(IContext** context)
+{
+    if (context == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *context = this->context.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode InstanceBuilderImpl::setLogger(ILogger* logger)
 {
-    this->logger = logger;    
+    this->logger = logger;
     return OPENDAQ_SUCCESS;
 }
 
@@ -172,8 +187,8 @@ ErrCode InstanceBuilderImpl::setModulePath(IString* path)
 {
     if (path == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-    
-    getModuleManagerOptions().set("ModulesPath", path);
+
+    getModuleManagerOptions().set("ModulesPaths", List<IString>(path));
     return OPENDAQ_SUCCESS;
 }
 
@@ -182,7 +197,31 @@ ErrCode InstanceBuilderImpl::getModulePath(IString** path)
     if (path == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *path = getModuleManagerOptions().get("ModulesPath").asPtr<IString>().addRefAndReturn();
+    auto paths = getModuleManagerOptions().get("ModulesPaths").asPtr<IList>();
+    if (paths.empty()) {
+        *path = String("").detach();
+    } else {
+        *path = paths[0].asPtr<IString>().addRefAndReturn();
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::addModulePath(IString* path)
+{
+    if (path == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    getModuleManagerOptions().get("ModulesPaths").asPtr<IList>().pushBack(path);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getModulePathsList(IList** paths)
+{
+    if (paths == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *paths = getModuleManagerOptions().get("ModulesPaths").asPtr<IList>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -256,12 +295,13 @@ ErrCode InstanceBuilderImpl::getDefaultRootDeviceLocalId(IString** localId)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode InstanceBuilderImpl::setRootDevice(IString* connectionString)
+ErrCode InstanceBuilderImpl::setRootDevice(IString* connectionString, IPropertyObject* config)
 {
     if (connectionString == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
     getRootDevice().set("ConnectionString", connectionString);
+    this->rootDeviceConfig = config;
     return OPENDAQ_SUCCESS;
 }
 
@@ -271,6 +311,15 @@ ErrCode InstanceBuilderImpl::getRootDevice(IString** connectionString)
         return OPENDAQ_ERR_ARGUMENT_NULL;
     
     *connectionString = getRootDevice().get("ConnectionString").asPtr<IString>().addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC InstanceBuilderImpl::getRootDeviceConfig(IPropertyObject** config)
+{
+    if (config == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *config = this->rootDeviceConfig.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

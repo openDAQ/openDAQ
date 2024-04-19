@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -218,7 +218,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
             const StringPtr type = obj.readString("__type");
             const auto thisPtr = this->template borrowPtr<ComponentPtr>();
             const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-                this->clientComm, this->remoteGlobalId, this->context, nullptr, thisPtr, key, nullptr);
+                this->clientComm, this->remoteGlobalId + "/" + key, this->context, nullptr, thisPtr, key, nullptr);
 
             const ComponentPtr deserializedObj = this->clientComm->deserializeConfigComponent(
                 type,

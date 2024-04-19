@@ -10,14 +10,14 @@ using namespace daq::native_streaming;
 using namespace packet_streaming;
 
 ClientSessionHandler::ClientSessionHandler(const ContextPtr& daqContext,
-                                           boost::asio::io_context& ioContext,
+                                           const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                                            SessionPtr session,
                                            OnSignalCallback signalReceivedHandler,
                                            OnPacketReceivedCallback packetReceivedHandler,
                                            OnStreamingInitDoneCallback protocolInitDoneHandler,
                                            OnSubscriptionAckCallback subscriptionAckHandler,
                                            OnSessionErrorCallback errorHandler)
-    : BaseSessionHandler(daqContext, session, ioContext, errorHandler, "NativeProtocolClientSessionHandler")
+    : BaseSessionHandler(daqContext, session, ioContextPtr, errorHandler, "NativeProtocolClientSessionHandler")
     , signalReceivedHandler(signalReceivedHandler)
     , packetReceivedHandler(packetReceivedHandler)
     , streamingInitDoneHandler(protocolInitDoneHandler)
@@ -86,11 +86,6 @@ void ClientSessionHandler::sendStreamingRequest()
     tasks.push_back(createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST, 0));
 
     session->scheduleWrite(tasks);
-}
-
-EventPacketPtr ClientSessionHandler::getDataDescriptorChangedEventPacket(const SignalNumericIdType& signalNumericId)
-{
-    return packetStreamingClient.getDataDescriptorChangedEventPacket(signalNumericId);
 }
 
 ReadTask ClientSessionHandler::readPacket(const void* data, size_t size)

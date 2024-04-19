@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,6 +107,7 @@ protected:
     virtual EventPacketPtr createDataDescriptorChangedEventPacket();
     virtual void onListenedStatusChanged(bool listened);
     virtual SignalPtr onGetDomainSignal();
+    virtual DataDescriptorPtr onGetDescriptor();
 
     void removed() override;
     BaseObjectPtr getDeserializedParameter(const StringPtr& parameter) override;
@@ -124,6 +125,7 @@ protected:
 
     DataDescriptorPtr dataDescriptor;
     StringPtr deserializedDomainSignalId;
+    DataPacketPtr lastDataPacket;
 
 private:
     bool isPublic{};
@@ -133,12 +135,13 @@ private:
     std::vector<ConnectionPtr> remoteConnections;
     std::vector<WeakRefPtr<ISignalConfig>> domainSignalReferences;
     bool keepLastPacket = true;
-    DataPacketPtr lastDataPacket;
 
     bool sendPacketInternal(const PacketPtr& packet, bool ignoreActive = false) const;
     void triggerRelatedSignalsChanged();
     void disconnectInputPort(const ConnectionPtr& connection);
     void clearConnections(std::vector<ConnectionPtr>& connections);
+    TypePtr addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
+                                        const DataDescriptorPtr& descriptor) const;
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
@@ -217,25 +220,119 @@ ErrCode SignalBase<TInterface, Interfaces...>::getDescriptor(IDataDescriptor** d
     OPENDAQ_PARAM_NOT_NULL(descriptor);
 
     std::scoped_lock lock(this->sync);
+    
+    DataDescriptorPtr dataDescriptorPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetDescriptor, dataDescriptorPtr);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
 
-    *descriptor = dataDescriptor.addRefAndReturn();
+    *descriptor = dataDescriptorPtr.detach();
     return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
 EventPacketPtr SignalBase<TInterface, Interfaces...>::createDataDescriptorChangedEventPacket()
 {
-    DataDescriptorPtr domainDataDescriptor;
-    if (domainSignal.assigned())
-        domainDataDescriptor = domainSignal.getDescriptor();
+    const SignalPtr domainSignalObj = onGetDomainSignal();
 
-    EventPacketPtr packet = DataDescriptorChangedEventPacket(dataDescriptor, domainDataDescriptor);
+    DataDescriptorPtr domainDataDescriptor;
+    if (domainSignalObj.assigned())
+        domainDataDescriptor = domainSignalObj.getDescriptor();
+
+    const DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
+
+    EventPacketPtr packet = DataDescriptorChangedEventPacket(dataDescriptorObj, domainDataDescriptor);
     return packet;
 }
 
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::onListenedStatusChanged(bool /*listened*/)
 {
+}
+
+template <typename TInterface, typename... Interfaces>
+inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
+                                                                                  const DataDescriptorPtr& descriptor) const
+{
+    const auto name = descriptor.getName();
+    if (!name.assigned())
+        throw NotAssignedException{"Name of data descriptor not assigned."};
+
+    const auto fields = descriptor.getStructFields();
+    auto fieldNames = List<IString>();
+    auto fieldTypes = List<IType>();
+
+    if (fields.assigned())
+    {
+        for (auto const& field : fields)
+        {
+            const auto dimensions = field.getDimensions();
+
+            if (!dimensions.assigned())
+                throw NotAssignedException{"Dimensions of data descriptor not assigned."};
+
+            const auto dimensionCount = dimensions.getCount();
+
+            if (dimensionCount > 1)
+                throw NotSupportedException{"getLastValue on signals with dimensions supports only up to one dimension."};
+
+            TypePtr type;
+
+            switch (field.getSampleType())
+            {
+                case SampleType::Float32:
+                case SampleType::Float64:
+                    type = SimpleType(CoreType::ctFloat);
+                    break;
+                case SampleType::Int8:
+                case SampleType::UInt8:
+                case SampleType::Int16:
+                case SampleType::UInt16:
+                case SampleType::Int32:
+                case SampleType::UInt32:
+                case SampleType::Int64:
+                case SampleType::UInt64:
+                    type = SimpleType(CoreType::ctInt);
+                    break;
+                case SampleType::ComplexFloat32:
+                case SampleType::ComplexFloat64:
+                    type = SimpleType(CoreType::ctComplexNumber);
+                    break;
+                case SampleType::Struct:
+                    // Recursion
+                    type = addToTypeManagerRecursively(typeManager, field);
+                    break;
+                default:
+                    type = SimpleType(CoreType::ctUndefined);
+            }
+
+            // Handle list
+            if (dimensionCount == 1)
+                type = SimpleType(CoreType::ctList);
+
+            fieldNames.pushBack(field.getName());
+            fieldTypes.pushBack(type);
+        }
+    }
+
+    const auto structType = StructType(name, fieldNames, fieldTypes);
+
+    try
+    {
+        typeManager.addType(structType);
+    }
+    catch (const std::exception& e)
+    {
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+        LOG_W("Couldn't add type {} to type manager: {}", structType.getName(), e.what());
+    }
+    catch (...)
+    {
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+        LOG_W("Couldn't add type {} to type manager!", structType.getName());
+    }
+
+    return structType;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -262,6 +359,23 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
                 if (signalPtr.assigned())
                     valueSignalsOfDomainSignal.push_back(std::move(signalPtr));
             }
+            try {
+                if (dataDescriptor.getSampleType() == SampleType::Struct)
+                {
+                    auto typeManager = this->context.getTypeManager();
+                    addToTypeManagerRecursively(typeManager, dataDescriptor);
+                }
+            }
+            catch (const std::exception& e)
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+                LOG_W("There was an exception in setDescriptor method: {}", e.what());
+            }
+            catch (...)
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+                LOG_W("There was an exception in setDescriptor method!");
+            }
         }
     }
 
@@ -278,15 +392,12 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                CoreEventId::DataDescriptorChanged,
-                Dict<IString, IBaseObject>({{"DataDescriptor", dataDescriptor}}));
-        
+            CoreEventId::DataDescriptorChanged, Dict<IString, IBaseObject>({{"DataDescriptor", dataDescriptor}}));
+
         this->triggerCoreEvent(args);
     }
 
-    return success
-        ? OPENDAQ_SUCCESS
-        : OPENDAQ_IGNORED;
+    return success ? OPENDAQ_SUCCESS : OPENDAQ_IGNORED;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -497,17 +608,31 @@ ErrCode SignalBase<TInterface, Interfaces...>::sendPacket(IPacket* packet)
 
     const auto packetPtr = PacketPtr::Borrow(packet);
 
-    std::scoped_lock lock(this->sync);
+    return daqTry(
+        [this, &packetPtr]
+        {
+            std::vector<ConnectionPtr> tempConnections;
 
-    if (sendPacketInternal(packetPtr))
-    {
-        const auto dataPacket = packetPtr.asPtrOrNull<IDataPacket>();
-        if (keepLastPacket && dataPacket.assigned() && dataPacket.getSampleCount())
-            lastDataPacket = dataPacket;
-        return OPENDAQ_SUCCESS;
-    }
+            {
+                std::scoped_lock lock(this->sync);
 
-    return  OPENDAQ_IGNORED;
+                if (!this->active)
+                    return OPENDAQ_IGNORED;
+
+                const auto dataPacket = packetPtr.asPtrOrNull<IDataPacket>();
+                if (keepLastPacket && dataPacket.assigned() && dataPacket.getSampleCount())
+                    lastDataPacket = dataPacket;
+
+                tempConnections.reserve(connections.size());
+                for (const auto& connection : connections)
+                    tempConnections.push_back(connection);
+            }
+
+            for (const auto& connection : tempConnections)
+                connection.enqueue(packetPtr);
+
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -545,6 +670,12 @@ SignalPtr SignalBase<TInterface, Interfaces...>::onGetDomainSignal()
     return domainSignal;
 }
 
+template <typename TInterface, typename ... Interfaces>
+DataDescriptorPtr SignalBase<TInterface, Interfaces...>::onGetDescriptor()
+{
+    return dataDescriptor;
+}
+
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* connection)
 {
@@ -567,6 +698,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* co
     const auto it = std::find(connections.begin(), connections.end(), connectionPtr);
     if (it != connections.end())
         return OPENDAQ_ERR_DUPLICATEITEM;
+    
+    const auto packet = createDataDescriptorChangedEventPacket();
 
     if (connections.empty())
     {
@@ -577,7 +710,6 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* co
 
     connections.push_back(connectionPtr);
 
-    const auto packet = createDataDescriptorChangedEventPacket();
     connectionPtr.enqueueOnThisThread(packet);
 
     return OPENDAQ_SUCCESS;
@@ -854,7 +986,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject ** value
     if (!lastDataPacket.assigned() || lastDataPacket.getSampleCount() == 0)
         return OPENDAQ_IGNORED;
 
-    return lastDataPacket->getLastValue(value);
+    auto typeManager = this->context.getTypeManager();
+    return lastDataPacket->getLastValue(value, typeManager);
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SignalImpl)

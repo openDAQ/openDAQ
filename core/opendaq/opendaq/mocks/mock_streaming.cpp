@@ -3,19 +3,14 @@
 
 using namespace daq;
 
-MockStreamingImpl::MockStreamingImpl(const StringPtr& connectionString)
-    : Streaming(connectionString, nullptr)
+MockStreamingImpl::MockStreamingImpl(const StringPtr& connectionString, const ContextPtr& context)
+    : Streaming(connectionString, context, false)
 {
 }
 
 void MockStreamingImpl::onSetActive(bool /*active*/)
 {
 
-}
-
-StringPtr MockStreamingImpl::onGetSignalStreamingId(const StringPtr& signalRemoteId)
-{
-    return signalRemoteId;
 }
 
 void MockStreamingImpl::onAddSignal(const MirroredSignalConfigPtr& /*signal*/)
@@ -28,23 +23,19 @@ void MockStreamingImpl::onRemoveSignal(const MirroredSignalConfigPtr& /*signal*/
 
 }
 
-void MockStreamingImpl::onSubscribeSignal(const StringPtr& /*signalRemoteId*/, const StringPtr& /*domainSignalRemoteId*/)
+void MockStreamingImpl::onSubscribeSignal(const StringPtr& /*signalStreamingId*/)
 {
 
 }
 
-void MockStreamingImpl::onUnsubscribeSignal(const StringPtr& /*signalRemoteId*/, const StringPtr& /*domainSignalRemoteId*/)
+void MockStreamingImpl::onUnsubscribeSignal(const StringPtr& /*signalStreamingId*/)
 {
 
-}
-
-EventPacketPtr MockStreamingImpl::onCreateDataDescriptorChangedEventPacket(const StringPtr& /*signalRemoteId*/)
-{
-    return DataDescriptorChangedEventPacket(nullptr, nullptr);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     INTERNAL_FACTORY,
     MockStreaming, IStreaming,
-    IString*, connectionString
+    IString*, connectionString,
+    IContext*, context
 )

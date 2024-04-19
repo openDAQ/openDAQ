@@ -28,8 +28,9 @@ public:
 
     daq::DeviceInfoPtr onGetInfo() override
     {
-        auto devInfo = daq::DeviceInfo("conn");
-        return devInfo;
+        auto deviceInfo = daq::DeviceInfo("conn");
+        deviceInfo.freeze();
+        return deviceInfo;
     }
 };
 
@@ -83,37 +84,6 @@ TEST_F(DeviceTest, CustomComponentSubItems)
     ASSERT_FALSE(customComponents[1].asPtrOrNull<daq::IFolder>().assigned());
 }
 
-TEST_F(DeviceTest, StreamingOptions)
-{
-    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
-    auto devicePrivatePtr = device.asPtr<daq::IDevicePrivate>();
-    daq::ListPtr<daq::IStreamingInfo> streamingOptions;
-
-    ASSERT_EQ(devicePrivatePtr->removeStreamingOption(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
-    ASSERT_EQ(devicePrivatePtr->addStreamingOption(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
-    ASSERT_EQ(devicePrivatePtr->removeStreamingOption(daq::String("protocol")), OPENDAQ_ERR_NOTFOUND);
-    ASSERT_EQ(devicePrivatePtr->getStreamingOptions(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
-
-    ASSERT_EQ(devicePrivatePtr->getStreamingOptions(&streamingOptions), OPENDAQ_SUCCESS);
-    ASSERT_EQ(streamingOptions.getCount(), 0u);
-
-
-    auto streamingInfo = daq::StreamingInfo("protocol");
-    ASSERT_EQ(devicePrivatePtr->addStreamingOption(streamingInfo), OPENDAQ_SUCCESS);
-    ASSERT_EQ(devicePrivatePtr->addStreamingOption(streamingInfo), OPENDAQ_ERR_DUPLICATEITEM);
-
-    ASSERT_EQ(devicePrivatePtr->getStreamingOptions(&streamingOptions), OPENDAQ_SUCCESS);
-    ASSERT_EQ(streamingOptions.getCount(), 1u);
-
-    auto streamingInfo2 = daq::StreamingInfo("protocol2");
-    ASSERT_EQ(devicePrivatePtr->addStreamingOption(streamingInfo2), OPENDAQ_SUCCESS);
-    ASSERT_EQ(devicePrivatePtr->getStreamingOptions(&streamingOptions), OPENDAQ_SUCCESS);
-    ASSERT_EQ(streamingOptions.getCount(), 2u);
-
-    ASSERT_EQ(devicePrivatePtr->removeStreamingOption(daq::String("protocol")), OPENDAQ_SUCCESS);
-    ASSERT_EQ(devicePrivatePtr->getStreamingOptions(&streamingOptions), OPENDAQ_SUCCESS);
-    ASSERT_EQ(streamingOptions.getCount(), 1u);
-}
 
 TEST_F(DeviceTest, DefaultProperties)
 {

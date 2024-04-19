@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/streaming_ptr.h>
-#include <opendaq/streaming_info_ptr.h>
 
 #include <opendaq/custom_log.h>
 
@@ -126,7 +125,8 @@ public:
     /*!
      * @brief Creates a device object that can communicate with the device described in the specified connection string.
      * The device object is not automatically added as a sub-device of the caller, but only returned by reference.
-     * @param connectionString Describes the connection info of the device to connect to.
+     * @param connectionString Describes the connection info of the device to connect to. 
+     * If connection string starts with `daq://`, module chooses the optimal server capability based on protocol type
      * @param parent The parent component/device to which the device attaches.
      * @param[out] device The device object created to communicate with and control the device.
      */
@@ -219,11 +219,11 @@ public:
      * supported by this module. If the connection string is not assigned, it checks if the config object
      * is valid and complete enough to generate a connection string.
      * @param[out] accepted Whether this module supports the @p connectionString or @p config.
-     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.wss//`.
+     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
      * @param config A configuration info object that contains streaming type ID and additional parameters.
      * The configuration info is used to generate a connection string if it is not present.
      */
-    ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IStreamingInfo* config = nullptr) override
+    ErrCode INTERFACE_FUNC acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr) override
     {
         OPENDAQ_PARAM_NOT_NULL(accepted);
         if (connectionString == nullptr && config == nullptr)
@@ -241,11 +241,11 @@ public:
 
     /*!
      * @brief Creates and returns a streaming object using the specified connection string or config info object.
-     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.wss//`.
+     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
      * @param config Streaming configuration info.
      * @param[out] streaming The created streaming object.
      */
-    ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IStreamingInfo* config) override
+    ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config) override
     {
         OPENDAQ_PARAM_NOT_NULL(streaming);
         if (connectionString == nullptr && config == nullptr)
@@ -343,17 +343,17 @@ public:
         return nullptr;
     }
 
-    virtual bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const StreamingInfoPtr& config)
+    virtual bool onAcceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config)
     {
         return false;
     }
 
-    virtual StreamingPtr onCreateStreaming(const StringPtr& connectionString, const StreamingInfoPtr& config)
+    virtual StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
     {
         return nullptr;
     }
 
-    StreamingPtr createStreamingFromAnotherModule(const StringPtr& connectionString, const StreamingInfoPtr& config)
+    StreamingPtr createStreamingFromAnotherModule(const StringPtr& connectionString, const ServerCapabilityPtr& capability)
     {
         StreamingPtr streaming = nullptr;
         ModuleManagerPtr moduleManager = context.getModuleManager();
@@ -362,7 +362,7 @@ public:
             bool accepted{};
             try
             {
-                accepted = module.acceptsStreamingConnectionParameters(connectionString, config);
+                accepted = module.acceptsStreamingConnectionParameters(connectionString, capability);
             }
             catch(NotImplementedException&)
             {
@@ -377,7 +377,7 @@ public:
 
             if (accepted)
             {
-                streaming = module.createStreaming(connectionString, config);
+                streaming = module.createStreaming(connectionString, capability);
             }
         }
         return streaming;

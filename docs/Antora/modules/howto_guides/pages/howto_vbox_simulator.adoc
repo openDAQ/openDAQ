@@ -14,8 +14,9 @@ To start, head over to {sdk-docs-website}[The openDAQ(TM) downloads page] and do
 
 . Open VirtualBox and import the .ova simulator image by navigating to "File > Import Appliance".
 Select the image file and click "Next > Finish".
-. Start the `{vm-name}` image, and wait for it to prompt for the username and password
-. Login with the credentials `User: opendaq`, `Password:` opendaq
+. Start the `{vm-name}` image.
+. When you see the login screen, the simulator is already running in the background as a service (no login is required).
+. However, if you do want to login, the credentials are `User: opendaq`, `Password: opendaq`.
 
 Your virtual machine should look similar to this:
 

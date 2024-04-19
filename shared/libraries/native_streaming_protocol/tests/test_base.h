@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,27 +33,13 @@ public:
     std::shared_ptr<daq::opendaq_native_streaming_protocol::NativeStreamingClientHandler> clientHandler;
     daq::ContextPtr clientContext;
 
-    /// async operations handler
-    std::shared_ptr<boost::asio::io_context> ioContextPtrClient;
-
     void setUp()
     {
         clientContext = NullContext(Logger(nullptr, daq::LogLevel::Trace));
-
-        ioContextPtrClient = std::make_shared<boost::asio::io_context>();
-        workGuardClient = std::make_unique<WorkGuardType>(ioContextPtrClient->get_executor());
-        execThreadClient = std::thread([this]() { ioContextPtrClient->run(); });
     }
 
     void tearDown()
     {
-        ioContextPtrClient->stop();
-        if (execThreadClient.joinable())
-        {
-            execThreadClient.join();
-        }
-        workGuardClient.reset();
-        ioContextPtrClient.reset();
         clientHandler.reset();
     }
 
@@ -70,12 +56,6 @@ public:
 
         return config;
     }
-
-private:
-    /// prevents boost::asio::io_context::run() from returning when there is no more async operations pending
-    std::unique_ptr<WorkGuardType> workGuardClient;
-    /// async operations runner thread
-    std::thread execThreadClient;
 };
 
 class ProtocolTestBase : public testing::TestWithParam<std::tuple<ClientCountType, bool>>

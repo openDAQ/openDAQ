@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@
 #include <coretypes/dictobject_factory.h>
 #include <coreobjects/property_object_impl.h>
 #include <opendaq/device_type_ptr.h>
+#include <opendaq/device_info_internal.h>
+#include <opendaq/server_capability_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,13 +33,13 @@ class DeviceInfoConfigImpl;
 using DeviceInfoConfigBase = DeviceInfoConfigImpl<>;
 
 template <typename TInterface, typename... Interfaces>
-class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, Interfaces...>
+class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, IDeviceInfoInternal, Interfaces...>
 {
 public:
-    using Super = GenericPropertyObjectImpl<TInterface, Interfaces...>;
+    using Super = GenericPropertyObjectImpl<TInterface, IDeviceInfoInternal, Interfaces...>;
 
     explicit DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion = nullptr);
-    DeviceInfoConfigImpl() = default;
+    DeviceInfoConfigImpl();
 
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
@@ -79,7 +81,7 @@ public:
     ErrCode INTERFACE_FUNC setSerialNumber(IString* serialNumber) override;
     ErrCode INTERFACE_FUNC setProductInstanceUri(IString* productInstanceUri) override;
     ErrCode INTERFACE_FUNC setRevisionCounter(Int revisionCounter) override;
-    ErrCode INTERFACE_FUNC setAssetId(IString* id) override;;
+    ErrCode INTERFACE_FUNC setAssetId(IString* id) override;
     ErrCode INTERFACE_FUNC setMacAddress(IString* macAddress) override;
     ErrCode INTERFACE_FUNC setParentMacAddress(IString* macAddress) override;
     ErrCode INTERFACE_FUNC setPlatform(IString* platform) override;
@@ -93,6 +95,12 @@ public:
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+    ErrCode INTERFACE_FUNC addServerCapability(IServerCapability* serverCapability) override;
+    ErrCode INTERFACE_FUNC removeServerCapability(IString* protocolId) override;
+    ErrCode INTERFACE_FUNC getServerCapabilities(IList** serverCapabilities) override;
+    ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() override;
+    ErrCode INTERFACE_FUNC hasServerCapability(IString* protocolId, Bool* hasCapability) override;
 
 private:
     ErrCode createAndSetDefaultStringProperty(const StringPtr& name, const BaseObjectPtr& value);

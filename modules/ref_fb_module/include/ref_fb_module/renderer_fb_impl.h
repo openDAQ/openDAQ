@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -149,6 +149,9 @@ private:
     double customMaxValue;
     double yMaxValue;
     double yMinValue;
+    bool useCustom2dRangeValue;
+    size_t custom2dMinRange;
+    size_t custom2dMaxRange;
     sf::Vector2f topLeft;
     sf::Vector2f bottomRight;
     size_t signalContextIndex;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ public:
     ErrCode INTERFACE_FUNC getPublic(Bool* active) override;
     ErrCode INTERFACE_FUNC setPublic(Bool active) override;
 
-    ErrCode INTERFACE_FUNC getDescriptor(IDataDescriptor** descriptor) override;
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
 
     ErrCode INTERFACE_FUNC setDomainSignal(ISignal* signal) override;
@@ -49,10 +48,12 @@ public:
     ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
 
     StringPtr onGetRemoteId() const override;
-    Bool onTriggerEvent(EventPacketPtr eventPacket) override;
+    Bool onTriggerEvent(const EventPacketPtr& eventPacket) override;
 
 protected:
     SignalPtr onGetDomainSignal() override;
+    DataDescriptorPtr onGetDescriptor() override;
+    bool clearDescriptorOnUnsubscribe() override;
 
     std::atomic<Bool> isPublic = true;
     std::string deviceSignalId;

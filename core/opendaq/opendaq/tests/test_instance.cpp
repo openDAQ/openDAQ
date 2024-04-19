@@ -48,14 +48,29 @@ TEST_F(InstanceTest, InstanceGetters)
 TEST_F(InstanceTest, GetSetRootDevice)
 {
     auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("daq_client"));
+    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("openDAQ Client"));
     instance.setRootDevice("daq_client_device");
+}
+
+TEST_F(InstanceTest, SetRootDeviceWithConfig)
+{
+    auto instance = test_helpers::setupInstance();
+
+    auto deviceTypes = instance.getAvailableDeviceTypes();
+    auto config = deviceTypes.get("mock_phys_device").createDefaultConfig();
+    config.setPropertyValue("message", "Hello from config.");
+
+    ASSERT_NO_THROW(instance.setRootDevice("mock_phys_device", config));
+
+    auto rootDevice = instance.getRootDevice();
+    ASSERT_TRUE(rootDevice.hasProperty("message"));
+    ASSERT_EQ(rootDevice.getPropertyValue("message"), config.getPropertyValue("message"));
 }
 
 TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
 {
     auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("daq_client"));
+    ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("openDAQ Client"));
     instance.setRootDevice("mock_phys_device");
 
     auto fbs = instance.getFunctionBlocks();
@@ -74,7 +89,7 @@ TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
     ASSERT_EQ(fb, fbs[0]);
 
     auto sig = fb.getSignals()[0];
-    ASSERT_EQ(sig.getGlobalId(), "/mockdev/FB/mock_fb_uid_0/Sig/UniqueId_1");
+    ASSERT_EQ(sig.getGlobalId(), "/mockdev/FB/mock_fb_uid_1/Sig/UniqueId_1");
 
     instance.removeFunctionBlock(fb);
     fbs = instance.getFunctionBlocks();
@@ -89,7 +104,7 @@ TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
 TEST_F(InstanceTest, DeviceInformation)
 {
     auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getInfo().getName(), String("daq_client"));
+    ASSERT_EQ(instance.getInfo().getName(), String("openDAQ Client"));
 }
 
 TEST_F(InstanceTest, DeviceSignals)
@@ -129,9 +144,10 @@ TEST_F(InstanceTest, AddDevice)
     ASSERT_EQ(availableDevices.getCount(), 2u);
 
     for (const auto& deviceInfo : availableDevices)
-        instance.addDevice(deviceInfo.getConnectionString());
+        if (deviceInfo.getConnectionString() != "daq_client_device")
+            instance.addDevice(deviceInfo.getConnectionString());
 
-    ASSERT_EQ(instance.getDevices().getCount(), 2u);
+    ASSERT_EQ(instance.getDevices().getCount(), 1u);
 }
 
 TEST_F(InstanceTest, RemoveDevice)
@@ -141,10 +157,11 @@ TEST_F(InstanceTest, RemoveDevice)
     ASSERT_EQ(availableDevices.getCount(), 2u);
 
     for (const auto& deviceInfo : availableDevices)
-        instance.addDevice(deviceInfo.getConnectionString());
+        if (deviceInfo.getConnectionString() != "daq_client_device")
+            instance.addDevice(deviceInfo.getConnectionString());
 
     const auto devices = instance.getDevices();
-    ASSERT_EQ(devices.getCount(), 2u);
+    ASSERT_EQ(devices.getCount(), 1u);
 
     for (const auto& device : devices)
         instance.removeDevice(device);
@@ -159,9 +176,9 @@ TEST_F(InstanceTest, AddNested)
     ASSERT_EQ(availableDevices[0].getConnectionString(), "daq_client_device");
 
     DevicePtr device1, device2, device3;
-    ASSERT_NO_THROW(device1 = instance.addDevice("daq_client_device"));
-    ASSERT_NO_THROW(device2 = device1.addDevice("daq_client_device"));
-    ASSERT_NO_THROW(device3 = device2.addDevice("daq_client_device"));
+    ASSERT_NO_THROW(device1 = instance.addDevice("mock_phys_device"));
+    ASSERT_NO_THROW(device2 = device1.addDevice("mock_phys_device"));
+    ASSERT_NO_THROW(device3 = device2.addDevice("mock_phys_device"));
 }
 
 TEST_F(InstanceTest, AddFunctionBlock)
@@ -194,6 +211,32 @@ TEST_F(InstanceTest, RemoveFunctionBlock)
     ASSERT_EQ(instance.getFunctionBlocks().getCount(), static_cast<SizeT>(0));
 }
 
+TEST_F(InstanceTest, AddFunctionBlockLocalIds)
+{
+    auto instance = test_helpers::setupInstance();
+    auto availableFbs = instance.getAvailableFunctionBlockTypes();
+
+    ASSERT_TRUE(availableFbs.hasKey("mock_fb_uid"));
+
+    auto fb1 = instance.addFunctionBlock("mock_fb_uid");
+    ASSERT_EQ(fb1.getLocalId(), "mock_fb_uid_1");
+    auto fb2 = instance.addFunctionBlock("mock_fb_uid");
+    ASSERT_EQ(fb2.getLocalId(), "mock_fb_uid_2");
+    auto fb3 = instance.addFunctionBlock("mock_fb_uid");
+    ASSERT_EQ(fb3.getLocalId(), "mock_fb_uid_3");
+    auto fb4 = instance.addFunctionBlock("mock_fb_uid");
+    ASSERT_EQ(fb4.getLocalId(), "mock_fb_uid_4");
+
+    instance.removeFunctionBlock(fb1);
+    instance.removeFunctionBlock(fb2);
+    instance.removeFunctionBlock(fb4);
+
+    auto fb5 = instance.addFunctionBlock("mock_fb_uid");
+    ASSERT_EQ(fb5.getLocalId(), "mock_fb_uid_4");
+
+    ASSERT_EQ(instance.getFunctionBlocks().getCount(), 2u);
+}
+
 TEST_F(InstanceTest, GetChannels)
 {
     auto instance = test_helpers::setupInstance();
@@ -214,9 +257,9 @@ TEST_F(InstanceTest, EnumerateServerTypes)
     auto mockServer = serverTypes.get("MockServer");
     ASSERT_EQ(mockServer.getId(), "MockServer");
 
-    ASSERT_TRUE(serverTypes.hasKey("openDAQ WebsocketTcp Streaming"));
-    mockServer = serverTypes.get("openDAQ WebsocketTcp Streaming");
-    ASSERT_EQ(mockServer.getId(), "openDAQ WebsocketTcp Streaming");
+    ASSERT_TRUE(serverTypes.hasKey("openDAQ LT Streaming"));
+    mockServer = serverTypes.get("openDAQ LT Streaming");
+    ASSERT_EQ(mockServer.getId(), "openDAQ LT Streaming");
 
     ASSERT_TRUE(serverTypes.hasKey("openDAQ Native Streaming"));
     mockServer = serverTypes.get("openDAQ Native Streaming");
@@ -297,7 +340,8 @@ TEST_F(InstanceTest, Serialize)
     ASSERT_EQ(availableDevices.getCount(), 2u);
 
     for (const auto& deviceInfo : availableDevices)
-        instance.addDevice(deviceInfo.getConnectionString());
+        if (deviceInfo.getConnectionString() != "daq_client_device")
+            instance.addDevice(deviceInfo.getConnectionString());
 
     auto serializer = JsonSerializer(True);
 
@@ -312,7 +356,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     const auto logger = Logger();
     const auto scheduler = Scheduler(logger);
     const auto moduleManager = ModuleManager("./modulePath1");
-    const auto defaultRootDeviceInfo = DeviceInfo("connectionString");
+    const auto defaultRootDeviceInfo = DeviceInfo("daqref://device0");
 
     const auto instanceBuilder = InstanceBuilder()
                                 .setLogger(logger)
@@ -323,17 +367,17 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
                                 .setModuleManager(moduleManager)
                                 .setSchedulerWorkerNum(1)
                                 .setScheduler(scheduler)
-                                .setDefaultRootDeviceLocalId("DefaultRootDeviceLocalId")
+                                .setDefaultRootDeviceLocalId("openDAQ Client")
                                 .setRootDevice("test")
                                 .setDefaultRootDeviceInfo(defaultRootDeviceInfo);
-    
+
     ASSERT_EQ(instanceBuilder.getLogger(), logger);
     ASSERT_EQ(instanceBuilder.getGlobalLogLevel(), LogLevel::Debug);
-    
+
     auto components = instanceBuilder.getComponentsLogLevel();
     ASSERT_EQ(components.getCount(), 1u);
     ASSERT_EQ(components["component1"], LogLevel::Critical);
-    
+
     auto sinks = instanceBuilder.getLoggerSinks();
     ASSERT_EQ(sinks.getCount(), 1u);
     ASSERT_EQ(sinks[0].getLevel(), LogLevel::Warn);
@@ -342,9 +386,48 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     ASSERT_EQ(instanceBuilder.getModuleManager(), moduleManager);
     ASSERT_EQ(instanceBuilder.getSchedulerWorkerNum(), 1u);
     ASSERT_EQ(instanceBuilder.getScheduler(), scheduler);
-    ASSERT_EQ(instanceBuilder.getDefaultRootDeviceLocalId(), "DefaultRootDeviceLocalId");
+    ASSERT_EQ(instanceBuilder.getDefaultRootDeviceLocalId(), "openDAQ Client");
     ASSERT_EQ(instanceBuilder.getRootDevice(), "test");
     ASSERT_EQ(instanceBuilder.getDefaultRootDeviceInfo(), defaultRootDeviceInfo);
+}
+
+TEST_F(InstanceTest, InstanceBuilderSetContext)
+{
+    const auto logger = Logger();
+    const auto moduleManager = ModuleManager("[[none]]");
+    const auto typeManager = TypeManager();
+    const auto context = Context(nullptr, logger, typeManager, moduleManager);
+
+    const ModulePtr deviceModule(MockDeviceModule_Create(context));
+    moduleManager.addModule(deviceModule);
+
+    auto instanceNoContext = InstanceBuilder().build();
+    ASSERT_NE(instanceNoContext.getContext(), context);
+
+    auto instance = InstanceBuilder().setContext(context).build();
+    ASSERT_EQ(instance.getContext(), context);
+    ASSERT_EQ(instance.getContext().getTypeManager(), typeManager);
+    ASSERT_EQ(instance.getContext().getLogger(), logger);
+    ASSERT_EQ(instance.getContext().getScheduler(), context.getScheduler());
+    ASSERT_NO_THROW(instance.addDevice("mock_phys_device"));
+}
+
+TEST_F(InstanceTest, InstanceBuilderRootDeviceConfig)
+{
+    auto config = PropertyObject();
+    config.addProperty(StringProperty("message", "Hello from config."));
+
+    const auto moduleManager = ModuleManager("[[none]]");
+    const auto context = Context(nullptr, Logger(), TypeManager(), moduleManager);
+
+    const ModulePtr deviceModule(MockDeviceModule_Create(context));
+    moduleManager.addModule(deviceModule);
+
+    auto instance = InstanceBuilder().setContext(context).setRootDevice("mock_phys_device", config).build();
+
+    auto rootDevice = instance.getRootDevice();
+    ASSERT_TRUE(rootDevice.hasProperty("message"));
+    ASSERT_EQ(rootDevice.getPropertyValue("message"), config.getPropertyValue("message"));
 }
 
 TEST_F(InstanceTest, InstanceCreateFactory)
@@ -352,14 +435,14 @@ TEST_F(InstanceTest, InstanceCreateFactory)
     const auto logger = Logger();
     const auto scheduler = Scheduler(logger, 2);
     const auto moduleManager = ModuleManager("");
-    const auto defaultRootDeviceInfo = DeviceInfo("connectionString");
+    const auto defaultRootDeviceInfo = DeviceInfo("daqref://device0");
 
     auto instance = InstanceBuilder()
                                 .setLogger(logger)
                                 .setGlobalLogLevel(LogLevel::Debug)
                                 .setModuleManager(moduleManager)
                                 .setScheduler(scheduler)
-                                .setDefaultRootDeviceLocalId("DefaultRootDeviceLocalId")
+                                .setDefaultRootDeviceLocalId("openDAQ Client")
                                 .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
                                 .setSchedulerWorkerNum(1)
                                 .build();
@@ -369,7 +452,7 @@ TEST_F(InstanceTest, InstanceCreateFactory)
     ASSERT_EQ(instance.getContext().getScheduler(), scheduler);
     ASSERT_EQ(instance.getContext().getScheduler().isMultiThreaded(), true);
     ASSERT_EQ(instance.getContext().getModuleManager(), moduleManager);
-    ASSERT_EQ(instance.getRootDevice().getName(), "DefaultRootDeviceLocalId"); 
+    ASSERT_EQ(instance.getRootDevice().getName(), String("openDAQ Client"));
 
     ASSERT_EQ(instance.getInfo(), defaultRootDeviceInfo);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -288,7 +288,10 @@ ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::beginUpdate()
 {
     return daqTry([this]()
         {
-            clientComm->sendComponentCommand(remoteGlobalId, "BeginUpdate");
+            std::string path{};
+            if (this->path.assigned())
+                path = this->path.toStdString();
+            clientComm->beginUpdate(remoteGlobalId, path);
         });
 }
 
@@ -297,7 +300,10 @@ inline ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdat
 {
     return daqTry([this]()
         {
-            clientComm->sendComponentCommand(remoteGlobalId, "EndUpdate");
+            std::string path{};
+            if (this->path.assigned())
+                path = this->path.toStdString();
+            clientComm->endUpdate(remoteGlobalId, path);
         });
 }
 

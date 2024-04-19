@@ -32,7 +32,17 @@ function run_rtgen {
 #
 # core types
 #
-core_type_files=("event_args" "simple_type" "struct" "struct_type" "type" "type_manager" "struct_builder" "enumeration" "enumeration_type" )
+core_type_files="
+event_args
+simple_type
+#struct
+struct_type
+type
+#type_manager
+struct_builder
+#enumeration
+#enumeration_type
+"
 for file in "${core_type_files[@]}" 
 do
     run_rtgen CoreTypes coretypes coretypes core_types/generated ${file}
@@ -77,6 +87,7 @@ run_rtgen opendaq opendaq/device        opendaq opendaq/generated/device        
 run_rtgen opendaq opendaq/device        opendaq opendaq/generated/device        device_domain
 run_rtgen opendaq opendaq/device        opendaq opendaq/generated/device        device_info
 run_rtgen opendaq opendaq/device        opendaq opendaq/generated/device        device_info_config
+run_rtgen opendaq opendaq/device        opendaq opendaq/generated/device        server_capability
 run_rtgen opendaq opendaq/device        opendaq opendaq/generated/device        device_type
 run_rtgen opendaq opendaq/functionblock opendaq opendaq/generated/functionblock channel
 run_rtgen opendaq opendaq/functionblock opendaq opendaq/generated/functionblock function_block
@@ -94,6 +105,7 @@ run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        
 #run_rtgen opendaq opendaq/reader       opendaq opendaq/generated/reader        stream_reader
 #run_rtgen opendaq opendaq/reader       opendaq opendaq/generated/reader        tail_reader
 run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        reader_status
+run_rtgen opendaq opendaq/reader        opendaq opendaq/generated/reader        block_reader_status
 run_rtgen opendaq opendaq/scheduler     opendaq opendaq/generated/scheduler     awaitable
 run_rtgen opendaq opendaq/scheduler     opendaq opendaq/generated/scheduler     graph_visualization
 run_rtgen opendaq opendaq/scheduler     opendaq opendaq/generated/scheduler     scheduler
@@ -125,9 +137,8 @@ run_rtgen opendaq opendaq/signal        opendaq opendaq/generated/signal        
 run_rtgen opendaq opendaq/signal        opendaq opendaq/generated/signal        signal_config
 run_rtgen opendaq opendaq/signal        opendaq opendaq/generated/signal        signal_events
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     streaming
-run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     streaming_info
-run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     streaming_info_config
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     mirrored_signal_config
+run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     mirrored_signal_private
 run_rtgen opendaq opendaq/streaming     opendaq opendaq/generated/streaming     subscription_event_args
 run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     tags
 run_rtgen opendaq opendaq/component     opendaq opendaq/generated/component     tags_private

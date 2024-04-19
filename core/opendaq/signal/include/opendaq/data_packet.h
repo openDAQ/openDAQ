@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #include <opendaq/packet.h>
 #include <opendaq/data_descriptor.h>
 #include <coretypes/number.h>
+#include <coretypes/type_manager.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -26,6 +27,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IDataPacket, GenericDataPacketPtr)]
  * [interfaceSmartPtr(IPacket, GenericPacketPtr)]
  * [interfaceLibrary(INumber, CoreTypes)]
+ * [interfaceLibrary(ITypeManager, CoreTypes)]
  */
 
 /*!
@@ -123,11 +125,14 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
     /*!
      * @brief Gets the data packet last value
      * @param[out] value The IBaseObject value can be a nullptr if there is no value, or if the data type is not supported by the function.
+     * @param typeManager Optional ITypeManager value can be provided to enable getLastValue for IStruct.
+     *
      * If a value is assigned, it can be cast based on the signal description to IFloat if the type is Float32 or Float64,
-     * to IInteger if the type is Int8 through Int64 or UInt8 through UInt64, to IComplexNumber if type is ComplexFloat32 or ComplexFloat64,
-     * or to IRange if the type is RangeInt64.
+     * to IInteger if the type is Int8 through Int64 or UInt8 through UInt64, to IComplexNumber if the type is ComplexFloat32 or ComplexFloat64,
+     * to IRange if the type is RangeInt64, to IStruct if the type is Struct, and to IList of the forementioned types if there is exactly
+     * one dimension.
      */
-    virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) = 0;
+    virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) = 0;
 };
 
 /*!@}*/
@@ -139,16 +144,40 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
  * @param sampleCount The number of samples in the packet.
  * @param offset Optional packet offset parameter, used to calculate the data of the packet
  * if the Data rule of the Signal descriptor is not explicit.
- * @param allocator Optional allocator that allocates memory for packets.
- *
- * If the caller does not pass allocator object, the SDK will use internal allocator.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, DataPacket, IDataPacket,
     IDataDescriptor*, descriptor,
     SizeT, sampleCount,
+    INumber*, offset
+)
+
+/*!
+ * @brief Creates a Data packet with a given descriptor, sample count, an optional packet offset,
+ * external memory location for data, custom deleter function and buffer size of external memory.
+ * 
+ * @param descriptor The descriptor of the signal sending the data.
+ * @param sampleCount The number of samples in the packet.
+ * @param offset Optional packet offset parameter, used to calculate the data of the packet
+ * if the Data rule of the Signal descriptor is not explicit.
+ * @param externalMemory The pointer to the location of buffer data.
+ * @param deleter Custom deleter callback that is called when the packet is destroyed
+ * @param bufferSize The size of the external memory.
+ *
+ * Use this factory when pointer to create a packet which uses an existing memory. The memory should not be
+ * freed or written until the packet is destroyed. A deleter callback should be passed as a parameter that
+ * is called when the packet is destroyed. The callback should free the memory provided. If bufferSize parameter
+ * is equal to SizeT max, the buffer size will be calculated from the descriptor.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, DataPacketWithExternalMemory, IDataPacket,
+    IDataPacket*, domainPacket,
+    IDataDescriptor*, descriptor,
+    SizeT, sampleCount,
     INumber*, offset,
-    IAllocator*, allocator
+    void*, externalMemory,
+    IDeleter*, deleter,
+    SizeT, bufferSize
 )
 
 /*!
@@ -159,17 +188,45 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
  * @param sampleCount The number of samples in the packet.
  * @param offset Optional packet offset parameter, used to calculate the data of the packet
  * if the Data rule of the Signal descriptor is not explicit.
- * @param allocator Optional allocator that allocates memory for packets.
  *
- * If the caller does not pass allocator object, the SDK will use internal allocator.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, DataPacketWithDomain, IDataPacket,
     IDataPacket*, domainPacket,
     IDataDescriptor*, descriptor,
     SizeT, sampleCount,
-    INumber*, offset,
-    IAllocator*, allocator
+    INumber*, offset
 )
 
-END_NAMESPACE_OPENDAQ
+/*!
+ * @brief Creates a Data packet with a given constat rule descriptor, initial constant value,
+ * and other constant values.
+ * @param domainPacket The Data packet carrying domain data.
+ * @param descriptor The descriptor of the signal sending the data.
+ * @param sampleCount The number of samples in the packet.
+ * @param initialValue The initial constant value.
+ * @param otherValues The other constant values. 
+ * @param otherValueCount The number of other constant values.
+ *
+ * The values in the packet are calculated by constant rule. The initial value is taken as a constant.
+ * Other values are used to change the constant value within the packet. Any number of other constant values
+ * can be used. Other values are passed as an array of struct with uint32_t sample position field and value field.
+ * Value field (as well as initial value) are of type defined as sample type in the descriptor.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
+                                             ConstantDataPacketWithDomain,
+                                             IDataPacket,
+                                             IDataPacket*,
+                                             domainPacket,
+                                             IDataDescriptor*,
+                                             descriptor,
+                                             SizeT,
+                                             sampleCount,
+                                             void*,
+                                             initialValue,
+                                             void*,
+                                             otherValues,
+                                             SizeT,
+                                             otherValueCount)
+
+    END_NAMESPACE_OPENDAQ

@@ -4,12 +4,12 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/server_type_factory.h>
 #include <opendaq/device_private.h>
-#include <opendaq/streaming_info_factory.h>
 #include <opendaq/reader_factory.h>
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_ids.h>
-
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 #include <config_protocol/config_protocol_server.h>
 
@@ -37,10 +37,15 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
     const uint16_t port = config.getPropertyValue("NativeStreamingPort");
     serverHandler->startServer(port);
 
-    StreamingInfoConfigPtr streamingInfo = StreamingInfo("daq.ns");
-    streamingInfo.addProperty(IntProperty("Port", port));
-    ErrCode errCode = this->rootDevice.asPtr<IDevicePrivate>()->addStreamingOption(streamingInfo);
-    checkErrorInfo(errCode);
+    ServerCapabilityConfigPtr serverCapabilityStreaming = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
+    serverCapabilityStreaming.setPrefix("daq.ns");
+    serverCapabilityStreaming.addProperty(IntProperty("Port", port));
+    this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityStreaming);
+
+    ServerCapabilityConfigPtr serverCapabilityConfig = ServerCapability("opendaq_native_config", "openDAQ Native Streaming", ProtocolType::ConfigurationAndStreaming);
+    serverCapabilityConfig.setPrefix("daq.nd");
+    serverCapabilityConfig.addProperty(IntProperty("Port", port));
+    this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityConfig);
 
     this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
 
@@ -50,9 +55,38 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
 NativeStreamingServerImpl::~NativeStreamingServerImpl()
 {
     this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
+    if (this->rootDevice.assigned())
+    {
+        const auto info = this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>();
+        if (info.hasServerCapability("opendaq_native_streaming"))
+            info.removeServerCapability("opendaq_native_streaming");
+        if (info.hasServerCapability("opendaq_native_config"))
+            info.removeServerCapability("opendaq_native_config");
+    }
+
     stopReading();
     stopTransportOperations();
     stopProcessingOperations();
+}
+
+void NativeStreamingServerImpl::addSignalsOfComponent(ComponentPtr& component)
+{
+    if (component.supportsInterface<ISignal>())
+    {
+        serverHandler->addSignal(component.asPtr<ISignal>(true));
+    }
+    else if (component.supportsInterface<IFolder>())
+    {
+        auto nestedComponents = component.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
+        for (const auto& nestedComponent : nestedComponents)
+        {
+            if (nestedComponent.supportsInterface<ISignal>())
+            {
+                LOG_I("Added Signal: {};", nestedComponent.getGlobalId());
+                serverHandler->addSignal(nestedComponent.asPtr<ISignal>(true));
+            }
+        }
+    }
 }
 
 void NativeStreamingServerImpl::componentAdded(ComponentPtr& /*sender*/, CoreEventArgsPtr& eventArgs)
@@ -65,21 +99,7 @@ void NativeStreamingServerImpl::componentAdded(ComponentPtr& /*sender*/, CoreEve
         return;
 
     LOG_I("Added Component: {};", addedComponentGlobalId);
-
-    if (addedComponent.supportsInterface<ISignal>())
-    {
-        serverHandler->addSignal(addedComponent.asPtr<ISignal>(true));
-    }
-    else if (addedComponent.supportsInterface<IFolder>())
-    {
-        auto nestedComponents = addedComponent.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
-        for (const auto& nestedComponent : nestedComponents)
-            if (nestedComponent.supportsInterface<ISignal>())
-            {
-                LOG_I("Added Signal: {};", nestedComponent.getGlobalId());
-                serverHandler->addSignal(nestedComponent.asPtr<ISignal>(true));
-            }
-    }
+    addSignalsOfComponent(addedComponent);
 }
 
 void NativeStreamingServerImpl::componentRemoved(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
@@ -96,6 +116,22 @@ void NativeStreamingServerImpl::componentRemoved(ComponentPtr& sender, CoreEvent
     serverHandler->removeComponentSignals(removedComponentGlobalId);
 }
 
+void NativeStreamingServerImpl::componentUpdated(ComponentPtr& updatedComponent)
+{
+    auto deviceGlobalId = rootDevice.getGlobalId().toStdString();
+    auto updatedComponentGlobalId = updatedComponent.getGlobalId().toStdString();
+    if (updatedComponentGlobalId.find(deviceGlobalId) != 0)
+        return;
+
+    LOG_I("Component: {}; is updated", updatedComponentGlobalId);
+
+    // remove all registered signal of updated component since those might be modified or removed
+    serverHandler->removeComponentSignals(updatedComponentGlobalId);
+
+    // add updated versions of signals
+    addSignalsOfComponent(updatedComponent);
+}
+
 void NativeStreamingServerImpl::coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
 {
     switch (static_cast<CoreEventId>(eventArgs.getEventId()))
@@ -105,6 +141,9 @@ void NativeStreamingServerImpl::coreEventCallback(ComponentPtr& sender, CoreEven
             break;
         case CoreEventId::ComponentRemoved:
             componentRemoved(sender, eventArgs);
+            break;
+        case CoreEventId::ComponentUpdateEnd:
+            componentUpdated(sender);
             break;
         default:
             break;
@@ -259,9 +298,17 @@ ServerTypePtr NativeStreamingServerImpl::createType()
 void NativeStreamingServerImpl::onStopServer()
 {
     stopReading();
-    ErrCode errCode = rootDevice.asPtr<IDevicePrivate>()->removeStreamingOption(String("daq.ns"));
-    checkErrorInfo(errCode);
     serverHandler->stopServer();
+
+    if (this->rootDevice.assigned())
+    {
+        const auto info = this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>();
+        if (info.hasServerCapability("opendaq_native_streaming"))
+            info.removeServerCapability("opendaq_native_streaming");
+        if (info.hasServerCapability("opendaq_native_config"))
+            info.removeServerCapability("opendaq_native_config");
+    }
+
 }
 
 void NativeStreamingServerImpl::startReading()

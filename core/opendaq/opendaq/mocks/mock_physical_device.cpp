@@ -12,20 +12,25 @@
 
 using namespace daq;
 
-inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx,
+                                                      const ComponentPtr& parent,
+                                                      const StringPtr& localId,
+                                                      const PropertyObjectPtr& config)
     : GenericDevice<>(ctx, parent, localId)
+    , config(config)
     , mockFolderA(IoFolder(ctx, ioFolder, "mockfolderA"))
     , mockFolderB(IoFolder(ctx, ioFolder, "mockfolderB"))
     , mockChannel1(MockChannel(ctx, ioFolder, "mockch1"))
-    , mockChannelA1(MockChannel(ctx, ioFolder, "mockchA1"))
-    , mockChannelB1(MockChannel(ctx, ioFolder, "mockchB1"))
-    , mockChannelB2(MockChannel(ctx, ioFolder, "mockchB2"))
+    , mockChannelA1(MockChannel(ctx, mockFolderA, "mockchA1"))
+    , mockChannelB1(MockChannel(ctx, mockFolderB, "mockchB1"))
+    , mockChannelB2(MockChannel(ctx, mockFolderB, "mockchB2"))
 {
     auto mockSignal = Signal(this->context, signals, "devicetimesig");
     auto mockPrivateSignal = Signal(this->context, signals, "devicetimesigprivate");
 
     const size_t nanosecondsInSecond = 1000000000;
     auto delta = nanosecondsInSecond / 10000;
+    time = 0;
 
     auto valueDescriptor = DataDescriptorBuilder()
                                .setSampleType(SampleType::UInt64)
@@ -72,10 +77,7 @@ MockPhysicalDeviceImpl::~MockPhysicalDeviceImpl()
 
 DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
 {
-    if (deviceInfo != nullptr)
-        return deviceInfo;
-
-    deviceInfo = DeviceInfo("");
+    auto deviceInfo = DeviceInfo("");
     deviceInfo.setName("MockPhysicalDevice");
     deviceInfo.setConnectionString("connection_string");
     deviceInfo.setManufacturer("manufacturer");
@@ -99,6 +101,11 @@ DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
 uint64_t MockPhysicalDeviceImpl::onGetTicksSinceOrigin()
 {
     return 789;
+}
+
+bool MockPhysicalDeviceImpl::allowAddDevicesFromModules()
+{
+    return true;
 }
 
 void MockPhysicalDeviceImpl::setDeviceDomainHelper(const DeviceDomainPtr& deviceDomain)
@@ -126,14 +133,13 @@ void MockPhysicalDeviceImpl::stopAcq()
 
 void MockPhysicalDeviceImpl::generatePackets(size_t packetCount)
 {
-    uint64_t time = 0;
     uint64_t tickDelta = 100;
 
     for (size_t i = 1; i <= packetCount; i++)
     {
         // we want tick values to be 100 % reproducable even if they do not reperesnt the exact real time
         std::this_thread::sleep_for(std::chrono::milliseconds(tickDelta));
-        time = i * tickDelta;
+        time = time + i * tickDelta;
 
         for (const auto& channel : ioFolder.getItems())
         {
@@ -155,6 +161,7 @@ void MockPhysicalDeviceImpl::registerProperties()
         startAcq();
     };
 
+
     obj.addProperty(FunctionProperty("stop", ProcedureInfo()));
     obj.setPropertyValue("stop", Procedure(
         [this]()
@@ -162,6 +169,44 @@ void MockPhysicalDeviceImpl::registerProperties()
             stopAcq();
         }
     ));
+
+    obj.addProperty(BoolProperty("ChangeDescriptors", 0));
+    obj.getOnPropertyValueWrite("ChangeDescriptors") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& args)
+    {
+        for (const SignalConfigPtr& sig : ioFolder.getItems(search::Recursive(search::InterfaceId(ISignal::Id))))
+        {
+            if (args.getValue() == True)
+            {
+                const auto builder =
+                    DataDescriptorBuilderCopy(sig.getDescriptor()).setMetadata(Dict<IString, IString>({{"new_metadata", "new_value"}}));
+                sig.setDescriptor(builder.build());
+            }
+            else
+            {
+                const auto builder =
+                    DataDescriptorBuilderCopy(sig.getDescriptor()).setMetadata(Dict<IString, IString>());
+                sig.setDescriptor(builder.build());
+            }
+
+        }
+    };
+
+    registerTestConfigProperties();
+}
+
+void MockPhysicalDeviceImpl::registerTestConfigProperties()
+{
+    if (!config.assigned())
+        return;
+
+    auto obj = this->borrowPtr<PropertyObjectPtr>();
+
+    if (config.hasProperty("message"))
+    {
+        const auto prop = config.getProperty("message");
+        obj.addProperty(PropertyBuilder(prop.getName()).setValueType(prop.getValueType()).setDefaultValue(prop.getDefaultValue()).build());
+        obj.setPropertyValue(prop.getName(), config.getPropertyValue(prop.getName()));
+    }
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
@@ -169,5 +214,6 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     MockPhysicalDevice, daq::IDevice,
     daq::IContext*, ctx,
     daq::IComponent*, parent,
-    daq::IString*, localId)
+    daq::IString*, localId,
+    daq::IPropertyObject*, config)
 

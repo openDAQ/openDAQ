@@ -8,6 +8,7 @@ set(RTGEN_OUTPUT_DIR ${GENERATED_HEADERS_DIR})
 set(RTGEN_OUTPUT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 rtgen(SRC_ReaderStatus reader_status.h)
+rtgen(SRC_BlockReaderStatus block_reader_status.h)
 rtgen(SRC_Reader reader.h)
 rtgen(SRC_SampleReader sample_reader.h)
 rtgen(SRC_ReaderConfig reader_config.h)
@@ -15,9 +16,11 @@ rtgen(SRC_StreamReader stream_reader.h)
 rtgen(SRC_BlockReader block_reader.h)
 rtgen(SRC_TailReader tail_reader.h)
 rtgen(SRC_PacketReader packet_reader.h)
+rtgen(SRC_MultiReaderBuilder multi_reader_builder.h INTERNAL)
 rtgen(SRC_MultiReader multi_reader.h)
 
 source_group("reader" FILES ${SDK_HEADERS_DIR}/reader_status.h
+                            ${SDK_HEADERS_DIR}/block_reader_status.h
                             ${SDK_HEADERS_DIR}/reader.h
                             ${SDK_HEADERS_DIR}/sample_reader.h
                             ${SDK_HEADERS_DIR}/reader_config.h
@@ -54,12 +57,15 @@ source_group("packet" FILES ${SDK_HEADERS_DIR}/packet_reader.h
                             packet_reader_impl.cpp
 )
 
-source_group("multi" FILES ${SDK_HEADERS_DIR}/multi_reader.h
+source_group("multi" FILES ${SDK_HEADERS_DIR}/multi_reader_builder.h
+                           ${SDK_HEADERS_DIR}/multi_reader_builder_impl.h
+                           ${SDK_HEADERS_DIR}/multi_reader.h
                            ${SDK_HEADERS_DIR}/signal_reader.h
                            ${SDK_HEADERS_DIR}/multi_reader_impl.h
                            ${SDK_HEADERS_DIR}/multi_typed_reader.h
                            ${SDK_HEADERS_DIR}/reader_domain_info.h
                            multi_reader_impl.cpp
+                           multi_reader_builder_impl.cpp
                            signal_reader.cpp
 )
 
@@ -71,6 +77,7 @@ set(SRC_Cpp stream_reader_impl.cpp
             reader_impl.cpp
             typed_reader.cpp
             multi_reader_impl.cpp
+            multi_reader_builder_impl.cpp
             signal_reader.cpp
 )
 
@@ -89,6 +96,7 @@ set(SRC_PrivateHeaders stream_reader_impl.h
                        tail_reader_impl.h
                        packet_reader_impl.h
                        multi_reader_impl.h
+                       multi_reader_builder_impl.h
                        multi_typed_reader.h
                        signal_reader.h
                        reader_status_impl.h
@@ -109,6 +117,7 @@ list(APPEND SRC_Cpp ${SRC_Reader_Cpp}
 )
 
 list(APPEND SRC_PublicHeaders ${SRC_ReaderStatus_PublicHeaders}
+                              ${SRC_BlockReaderStatus_PublicHeaders}
                               ${SRC_Reader_PublicHeaders}
                               ${SRC_SampleReader_PublicHeaders}
                               ${SRC_ReaderConfig_PublicHeaders}
@@ -117,10 +126,12 @@ list(APPEND SRC_PublicHeaders ${SRC_ReaderStatus_PublicHeaders}
                               ${SRC_TailReader_PublicHeaders}
                               ${SRC_PacketReader_PublicHeaders}
                               ${SRC_MultiReader_PublicHeaders}
+                              ${SRC_MultiReaderBuilder_PublicHeaders}
                               reader.natvis
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_ReaderStatus_PrivateHeaders}
+                               ${SRC_BlockReaderStatus_PrivateHeaders}
                                ${SRC_Reader_PrivateHeaders}
                                ${SRC_SampleReader_PrivateHeaders}
                                ${SRC_ReaderConfig_PrivateHeaders}
@@ -129,6 +140,7 @@ list(APPEND SRC_PrivateHeaders ${SRC_ReaderStatus_PrivateHeaders}
                                ${SRC_TailReader_PrivateHeaders}
                                ${SRC_PacketReader_PrivateHeaders}
                                ${SRC_MultiReader_PrivateHeaders}
+                               ${SRC_MultiReaderBuilder_PrivateHeaders}
 )
 
 if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANGXX)

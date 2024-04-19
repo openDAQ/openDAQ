@@ -8,7 +8,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-SignalGenerator::SignalGenerator(const SignalConfigPtr& signal)
+SignalGenerator::SignalGenerator(const SignalConfigPtr& signal,
+                                 std::chrono::time_point<std::chrono::system_clock> absTime)
     : signal(signal)
     , tick(0)
 {
@@ -16,6 +17,7 @@ SignalGenerator::SignalGenerator(const SignalConfigPtr& signal)
     updateFunc = [](SignalGenerator& generator, uint64_t tick) {};
     calculateSampleSize();
     calculateResolutionAndOutputRate();
+    calculateAbsStartTick(absTime);
 }
 
 void SignalGenerator::setFunction(GenerateSampleFunc function)
@@ -30,11 +32,9 @@ void SignalGenerator::setUpdateFunction(UpdateGeneratorFunc function)
 
 void SignalGenerator::generateSamplesTo(std::chrono::milliseconds currentTime)
 {
-    if (tick == 0)
-        calculateAbsStartTick();
-
     const double msToResolution = (double) resolution.getDenominator() / resolution.getNumerator() / 1000;
     uint64_t currentTick = (double) currentTime.count() * msToResolution / 1000 * outputRate;
+
     generatePacket(tick, (currentTick - tick) / msToResolution);
     tick = currentTick;
 }
@@ -87,9 +87,8 @@ void SignalGenerator::calculateResolutionAndOutputRate()
     }
 }
 
-void SignalGenerator::calculateAbsStartTick()
+void SignalGenerator::calculateAbsStartTick(std::chrono::time_point<std::chrono::system_clock> absTime)
 {
-    const auto absTime = std::chrono::system_clock::now();
     const uint64_t absTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(absTime.time_since_epoch()).count();
     const double msToResolution = (double) resolution.getDenominator() / resolution.getNumerator() / 1000;
     this->absStartTick = absTimeMs * msToResolution;

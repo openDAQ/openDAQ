@@ -1,6 +1,6 @@
 
 /*
- * Copyright 2022-2023 Blueberry d.o.o.
+ * Copyright 2022-2024 Blueberry d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,8 +55,8 @@ public:
     bool INTERFACE_FUNC hasScalingCalc() const override;
 
     // IDataRuleCalcPrivate
-    void* INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount) const override;
-    void INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void** output) const override;
+    void* INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize) const override;
+    void INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output) const override;
     bool INTERFACE_FUNC hasDataRuleCalc() const override;
 
     // ISerializable

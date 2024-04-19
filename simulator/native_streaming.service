@@ -5,7 +5,8 @@
   <service>
     <type>_opendaq-streaming-native._tcp</type>
     <port>7420</port>
-    <txt-record>name=Device 1</txt-record>
+    <txt-record>name=Reference device simulator</txt-record>
+    <txt-record>manufacturer=openDAQ</txt-record>
     <txt-record>model=Reference device</txt-record>
     <txt-record>serialNumber=dev_ser_1</txt-record>
     <txt-record>caps=OPENDAQ_NS</txt-record>

@@ -14,28 +14,14 @@ int main(int /*argc*/, const char* /*argv*/[])
     const InstancePtr instance = Instance(MODULE_PATH);
 
     // Discover all available devices, filter out all of which connection strings
-    // do not start with "daq.opcua://" or "daq.ws://" or "daq.nsd://"
+    // do not start with "daq.opcua://" or "daq.lt://" or "daq.ns://"
     const auto deviceInfo = instance.getAvailableDevices();
     auto devices = List<IDevice>();
     for (auto info : deviceInfo)
     {
-        auto connectionString = info.getConnectionString();
-        if (connectionString.toStdString().find("daq.opcua://") != std::string::npos)
+        for (const auto & capability : info.getServerCapabilities())
         {
-            // Connect to device and store it in a list
-            auto device = instance.addDevice(connectionString);
-            devices.pushBack(device);
-        }
-        if (connectionString.toStdString().find("daq.ws://") != std::string::npos)
-        {
-            // Connect to device and store it in a list
-            auto device = instance.addDevice(connectionString);
-            devices.pushBack(device);
-        }
-        if (connectionString.toStdString().find("daq.nsd://") != std::string::npos)
-        {
-            // Connect to device and store it in a list
-            auto device = instance.addDevice(connectionString);
+            auto device = instance.addDevice(capability.getConnectionString());
             devices.pushBack(device);
         }
     }

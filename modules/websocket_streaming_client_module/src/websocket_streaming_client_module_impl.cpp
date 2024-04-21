@@ -39,8 +39,8 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
                 auto cap = ServerCapability("opendaq_lt_streaming", "openDAQ LT Streaming", ProtocolType::Streaming);
                 cap.addConnectionString(connectionStringIpv4);
                 cap.addAddress(discoveredDevice.ipv4Address);
-                cap.addConnectionString("[" + connectionStringIpv6 + "]");
-                cap.addAddress(discoveredDevice.ipv6Address);
+                cap.addConnectionString(connectionStringIpv6);
+                cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.lt");
                 return cap;

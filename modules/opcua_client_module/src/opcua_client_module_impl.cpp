@@ -35,8 +35,8 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
                 auto cap = ServerCapability("opendaq_opcua_config", "openDAQ OpcUa", ProtocolType::Configuration);
                 cap.addConnectionString(connectionStringIpv4);
                 cap.addAddress(discoveredDevice.ipv4Address);
-                cap.addConnectionString("[" + connectionStringIpv6 + "]");
-                cap.addAddress(discoveredDevice.ipv6Address);
+                cap.addConnectionString(connectionStringIpv6);
+                cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.opcua");
                 return cap;

@@ -42,8 +42,8 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                 auto cap = ServerCapability("opendaq_native_streaming", "openDAQ Native Streaming", ProtocolType::Streaming);
                 cap.addConnectionString(connectionStringIpv4);
                 cap.addAddress(discoveredDevice.ipv4Address);
-                cap.addConnectionString("[" + connectionStringIpv6 + "]");
-                cap.addAddress(discoveredDevice.ipv6Address);
+                cap.addConnectionString(connectionStringIpv6);
+                cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
                 cap.setConnectionType("TCP/IP");
                 cap.setPrefix("daq.ns");
                 return cap;
@@ -61,8 +61,8 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
                 auto cap = ServerCapability("opendaq_native_config", "openDAQ Native Configuration", ProtocolType::ConfigurationAndStreaming);
                 cap.addConnectionString(connectionStringIpv4);
                 cap.addAddress(discoveredDevice.ipv4Address);
-                cap.addConnectionString("[" + connectionStringIpv6 + "]");
-                cap.addAddress(discoveredDevice.ipv6Address);
+                cap.addConnectionString(connectionStringIpv6);
+                cap.addAddress("[" + discoveredDevice.ipv6Address + "]");
                 cap.setConnectionType("TCP/IP");
                 cap.setCoreEventsEnabled(true);
                 cap.setPrefix("daq.nd");

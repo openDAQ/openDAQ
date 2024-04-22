@@ -55,7 +55,7 @@ TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
 {
     auto server = CreateServerInstance();
     auto client = Instance();
-    auto config = client.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
+    auto config = client.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
     config.setPropertyValue("StreamingConnectionHeuristic", 3); // 3 - not connected
     ASSERT_NO_THROW(client.addDevice("daq.opcua://[::1]", config));
 }

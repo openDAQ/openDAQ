@@ -1,74 +1,65 @@
-= Instance configuration
+= Instance Configuration
 
-The Instance is the top-level openDAQ(TM) object, serving as a container for the openDAQ context and the base module manager.
+:tip-caption: Assumptions
+[TIP]
+====
+For brevity, in `C++`, we assume that all the code is in namespace `daq` or it has been imported via `using namespace daq;`. Similarly, in `Python`, `import opendaq` is assumed.
+====
+
+The Instance is the top-level openDAQ(TM) object, serving as a container for the openDAQ context and the base Module Manager.
 
 **Related articles:**
 
   * xref:background_info:opendaq_architecture.adoc#instance[Architecture - Instance]
 
 == Creating the default openDAQ(TM) Instance
-Upon creation, it generates a Client device as the default root device. The client device is capable of using the module manager to add function blocks and connect to any device supported by the loaded modules. The client is set as the root device when the instance is created if the developer has not set their own device. 
+
+Upon creation, it generates a Client Device as the default Root Device. The Client Device is capable of using the Module manager to add Function Blocks and connect to any Device supported by the loaded Modules. The Client is set as the Root Device when the Instance is created if the developer has not set their own Device. 
 
 == Creating openDAQ(TM) Instance with Instance Builder
 
 openDAQ(TM) offers an advanced method for configuring an Instance through the Instance Builder. With this, developers can customize the Logger, Scheduler, Module Manager, and Root Device by either defining custom modules or modifying default objects.
+
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-#include <opendaq/opendaq.h>
-#include <iostream>
-
-int main(int argc, const char* argv[])
-{
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder();
-    daq::InstancePtr instance = instanceBuilder.build();
-
-    return 0;
-}
+InstanceBuilderPtr instanceBuilder = InstanceBuilder();
+InstancePtr instance = instanceBuilder.build();
 ----
 Python::
 +
 [source,python]
 ----
-import opendaq
-
 instance_builder = opendaq.InstanceBuilder()
 instance = instance_builder.build()
 ----
 ====
 
-== Configuring openDAQ(TM) Instance from external providers
-Instance builder supports configuring from external providers like JSON file, environment variables, or command line arguments. More information about how to use providers see xref:howto_configure_instance_providers.adoc[Configuration provider] guide.
+== Configuring openDAQ(TM) Instance from external Providers
+
+Instance Builder supports configuring from external Providers like JSON file, environment variables, or command line arguments. More information about how to use Providers see xref:howto_configure_instance_providers.adoc[Configuration Provider] guide.
 
 == Configure openDAQ(TM) Instance Logger
+
 By default, the Instance Logger level is set to the info log level if the project was built in release mode or debug log level if built in debug mode. There are two ways to override this default level. The first method is to set the global default logger level.
+
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-#include <opendaq/opendaq.h>
-#include <iostream>
-
-int main(int argc, const char* argv[])
-{
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder();
-    instanceBuilder.setGlobalLogLevel(daq::LogLevel::Warn);
-    daq::InstancePtr instance = instanceBuilder.build();
-
-    return 0;
-}
+InstanceBuilderPtr instanceBuilder = InstanceBuilder();
+instanceBuilder.setGlobalLogLevel(LogLevel::Warn);
+InstancePtr instance = instanceBuilder.build();
 ----
 Python::
 +
 [source,python]
 ----
-import opendaq
-
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.global_log_level = opendaq.LogLevel.Warn
 instance = instance_builder.build()
@@ -76,184 +67,139 @@ instance = instance_builder.build()
 ====
 
 In addition to adjusting the logging level globally, developers can customize the logging level for individual components and sinks. In the example below, the developer configures two logger sinks: `StdOutLoggerSink` with the default log level and `BasicFileLoggerSink` with the error log level. Furthermore, custom log levels are specified for the `Instance` and `Some Module` components.
+
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder()
-                    .addLoggerSink(StdOutLoggerSink())
-                    .setSinkLogLevel(BasicFileLoggerSink("logfile.log"),  daq::LogLevel::Error)
-                    .setComponentLogLevel("Instance", daq::LogLevel::Warn)
-                    .setComponentLogLevel("Some Module", daq::LogLevel::Off);
-
-daq::InstancePtr instance = instanceBuilder.build();
+InstanceBuilderPtr instanceBuilder = InstanceBuilder()
+.addLoggerSink(StdOutLoggerSink())
+.setSinkLogLevel(BasicFileLoggerSink("logfile.log"),  LogLevel::Error)
+.setComponentLogLevel("Instance", LogLevel::Warn)
+.setComponentLogLevel("Some Module", LogLevel::Off);
+InstancePtr instance = instanceBuilder.build();
 ----
 Python::
 +
 [source,python]
 ----
-import opendaq
-
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.add_logger_sink(opendaq.StdOutLoggerSink())
 instance_builder.set_sink_log_level(opendaq.BasicFileLoggerSink(opendaq.String("logfile.log")), opendaq.LogLevel.Error)
 instance_builder.set_component_log_level("Instance", opendaq.LogLevel.Warn)
 instance_builder.set_component_log_level("Some Module", opendaq.LogLevel.Off)
-
 instance = instance_builder.build()
 ----
 ====
 
-An advanced method for configuring the Instance logger involves setting up the logger object and applying the desired configurations using the logger configuration method.
+An advanced method for configuring the Instance Logger involves setting up the Logger object and applying the desired configurations using the Logger configuration method.
+
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-#include <opendaq/opendaq.h>
-#include <iostream>
-
-int main(int argc, const char* argv[])
-{
-    daq::ListPtr<ILoggerSink> sinks = daq::List<ILoggerSink>(StdOutLoggerSink());
-    daq::LoggerPtr logger = daq::LoggerWithSinks(sinks, daq::LogLevel::Warn);
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setLogger(logger);
-
-    daq::InstancePtr instance = instanceBuilder.build();
-
-    return 0;
-}
+ListPtr<ILoggerSink> sinks = List<ILoggerSink>(StdOutLoggerSink());
+LoggerPtr logger = LoggerWithSinks(sinks, LogLevel::Warn);
+InstanceBuilderPtr instanceBuilder = InstanceBuilder().setLogger(logger);
+InstancePtr instance = instanceBuilder.build();
 ----
 ====
 
 [NOTE]
 ====
-Alternatively, a developer can create their own implementation of the logger, which implements the `ILogger` interface.
+Alternatively, a developer can create their own implementation of the Logger, which implements the `ILogger` interface.
 ====
 
 == Configure openDAQ(TM) Instance Module Manager
+
 By default, the Instance Module Manager uses the current path for loading modules. Developers using the Instance Builder have the flexibility to either set a custom module path or replace the default Module Manager with a custom implementation that implements the `IModuleManager` interface.
+
+.Overriding module path
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-#include <opendaq/opendaq.h>
-#include <iostream>
-
-int main(int argc, const char* argv[])
-{
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setModulePath("/path/to/modules");
-    daq::InstancePtr instance = instanceBuilder.build();
-
-    return 0;
-}
+InstanceBuilderPtr instanceBuilder = InstanceBuilder().setModulePath("/path/to/modules");
+InstancePtr instance = instanceBuilder.build();
 ----
 Python::
 +
 [source,python]
 ----
-import opendaq
-
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.module_path = "/path/to/modules"
 instance = instance_builder.build()
 ----
-Overriding module path
 ====
 
+.Setting module manager
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-#include <opendaq/opendaq.h>
-#include <iostream>
-
-int main(int argc, const char* argv[])
-{
-    daq::ModuleManagerPtr moduleManager = daq::ModuleManager("/path/to/modules");
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setModuleManager(moduleManager);
-    daq::InstancePtr instance = instanceBuilder.build();
-
-    return 0;
-}
+ModuleManagerPtr moduleManager = ModuleManager("/path/to/modules");
+InstanceBuilderPtr instanceBuilder = InstanceBuilder().setModuleManager(moduleManager);
+InstancePtr instance = instanceBuilder.build();
 ----
 Python::
 +
 [source,python]
 ----
-import opendaq
-
 module_manager = opendaq.ModuleManager(opendaq.String("/path/to/modules"))
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.module_manager = module_manager
 instance = instance_builder.build()
 ----
-Setting module manager
 ====
 
 == Configure openDAQ(TM) Instance Scheduler
-By default, the Instance creates a Scheduler with a number of workers equal to the maximum physical threads available. For developers who want to manually adjust this number, the Instance Builder provides the method `setSchedulerWorkerNum`.
+
+By default, the Instance creates a Scheduler with a number of workers equal to the maximum physical threads available. For developers who want to manually adjust this number, the Instance Builder provides a method.
+
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-#include <opendaq/opendaq.h>
-#include <iostream>
-
-int main(int argc, const char* argv[])
-{
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setSchedulerWorkerNum(2);
-    daq::InstancePtr instance = instanceBuilder.build();
-
-    return 0;
-}
+InstanceBuilderPtr instanceBuilder = InstanceBuilder().setSchedulerWorkerNum(2);
+InstancePtr instance = instanceBuilder.build();
 ----
 Python::
 +
 [source,python]
 ----
-import opendaq
-
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.scheduler_worker_num = 2
 instance = instance_builder.build()
 ----
 ====
+
 Similarly, developers can implement their own version of the `IScheduler` interface and integrate it into the Instance Builder.
+
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-#include <opendaq/opendaq.h>
-#include <iostream>
-
-int main(int argc, const char* argv[])
-{
-    daq::LoggerPtr logger = Logger();
-    daq::SchedulerPtr scheduler = daq::Scheduler(logger, 4);
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setScheduler(scheduler);
-    daq::InstancePtr instance = instanceBuilder.build();
-
-    return 0;
-}
+LoggerPtr logger = Logger();
+SchedulerPtr scheduler = Scheduler(logger, 4);
+InstanceBuilderPtr instanceBuilder = InstanceBuilder().setScheduler(scheduler);
+InstancePtr instance = instanceBuilder.build();
 ----
 Python::
 +
 [source,python]
 ----
-import opendaq
-
 logger = opendaq.Logger(opendaq.List(), opendaq.LogLevel.Warn)
 scheduler = opendaq.Scheduler(logger, 4)
 instance_builder = opendaq.InstanceBuilder()
@@ -263,39 +209,28 @@ instance = instance_builder.build()
 ====
 
 == Configure openDAQ(TM) Default Root Device
-The Instance has the client device as the default root device. A developer can modify the default device by setting the default root device info and local id in the instance builder.
+
+The Instance has the Client Device as the default Root Device. A developer can modify the default Device by setting the default Root Device info and local id in the Instance Builder.
+
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-#include <opendaq/opendaq.h>
-#include <iostream>
-
-int main(int argc, const char* argv[])
-{
-    daq::DeviceInfoPtr defaultRootDeviceInfo = daq::DeviceInfo("daqref://defaultRootDevice");
-    defaultRootDeviceInfo.setSerialNumber("ABCD-0000-0000-0000");
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder()
-                                                    .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
-                                                    .setDefaultRootDeviceLocalId("defaultRootDeviceLocalId");
-    daq::InstancePtr instance = instanceBuilder.build();
-
-    assert(instance.getInfo() == defaultRootDeviceInfo);
-
-    return 0;
-}
+DeviceInfoConfigPtr defaultRootDeviceInfo = DeviceInfo("daqref://defaultRootDevice");
+defaultRootDeviceInfo.setSerialNumber("ABCD-0000-0000-0000");
+InstanceBuilderPtr instanceBuilder = InstanceBuilder()
+.setDefaultRootDeviceInfo(defaultRootDeviceInfo)
+.setDefaultRootDeviceLocalId("defaultRootDeviceLocalId");
+InstancePtr instance = instanceBuilder.build();
 ----
 Python::
 +
 [source,python]
 ----
-import opendaq
-
 default_root_device_info = opendaq.DeviceInfoConfig(opendaq.String("daqref://defaultRootDevice"), opendaq.String(""))
 default_root_device_info.serial_number = "ABCD-0000-0000-0000"
-
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.default_root_device_info = default_root_device_info
 instance_builder.default_root_device_local_id = "defaultRootDeviceLocalId"
@@ -304,30 +239,22 @@ instance = instance_builder.build()
 ====
 
 == Configure openDAQ(TM) Root Device
-Developers can replace the default root device with a device using the given connection string. When the instance is created, a connection to the device with the provided connection string will be established, and the device will be placed at the root of the component tree structure.
+
+Developers can replace the default Root Device with a Device using the given connection string. When the Instance is created, a connection to the Device with the provided connection string will be established, and the Device will be placed at the root of the component tree structure.
+
 [tabs]
 ====
 Cpp::
 +
 [source,cpp]
 ----
-#include <opendaq/opendaq.h>
-#include <iostream>
-
-int main(int argc, const char* argv[])
-{
-    daq::InstanceBuilderPtr instanceBuilder = daq::InstanceBuilder().setRootDevice("daqref://device0");
-    daq::InstancePtr instance = instanceBuilder.build();
-    return 0;
-}
+InstanceBuilderPtr instanceBuilder = InstanceBuilder().setRootDevice("daqref://device0");
+InstancePtr instance = instanceBuilder.build();
 ----
 Python::
 +
 [source,python]
 ----
-import opendaq
-
-# Create an openDAQ(TM) instance with a custom root device
 instance_builder = opendaq.InstanceBuilder()
 instance_builder.root_device = "daqref://device0"
 instance = instance_builder.build()

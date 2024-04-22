@@ -105,8 +105,8 @@ public:
 
     void connect()
     {
-        OpcUaEndpoint endpoint("test", "opc.tcp://localhost:4840/");
-        endpoint.setSecurityConfig(securityConfig);
+        OpcUaEndpoint endpoint("opc.tcp://localhost:4840/");
+        //endpoint.setSecurityConfig(securityConfig);
 
         client = std::make_shared<OpcUaClient>(endpoint);
         

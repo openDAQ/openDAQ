@@ -391,6 +391,11 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     const StringPtr& path,
     const PropertyObjectPtr& transportLayerConfig)
 {
+    StringPtr modifiedHost = host;
+    if (modifiedHost.assigned() && modifiedHost.getLength() > 2 && modifiedHost[0] == '[' && modifiedHost[modifiedHost.getLength() - 1] == ']')
+    {
+        modifiedHost = modifiedHost.toStdString().substr(1, modifiedHost.getLength() - 2);
+    }
     auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig);
     if (!transportClientHandler->connect(host.toStdString(), port.toStdString(), path.toStdString()))
     {

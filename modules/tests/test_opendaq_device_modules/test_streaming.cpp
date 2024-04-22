@@ -404,13 +404,23 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
         {
             auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 1);
             ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
-            const auto packet = clientReceivedPackets[0];
-            const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
-            ASSERT_TRUE(eventPacket.assigned());
-            ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+            
+            DataDescriptorPtr valueDataDescClient;
+            DataDescriptorPtr domainDataDescClient;
+            for (const auto & packet : clientReceivedPackets)
+            {
+                auto eventPacket = packet.asPtrOrNull<IEventPacket>();
+                if (eventPacket.assigned() && eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+                {
+                    auto tmpValueDesc = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                    if (tmpValueDesc.assigned())
+                        valueDataDescClient = tmpValueDesc;
 
-            const auto valueDataDescClient = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-            const auto domainDataDescClient = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+                    auto tmpDomainDesc = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+                    if(tmpDomainDesc.assigned())
+                        domainDataDescClient = tmpDomainDesc;
+                }
+            }
 
             EXPECT_EQ(valueDataDesc, valueDataDescClient);
             EXPECT_EQ(domainDataDesc, domainDataDescClient);

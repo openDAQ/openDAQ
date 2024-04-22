@@ -18,7 +18,7 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::inherit(Bool inherit)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC PermissionsBuilderImpl::set(IString* groupId, IPermissionMaskBuilder* permissions)
+ErrCode INTERFACE_FUNC PermissionsBuilderImpl::assign(IString* groupId, IPermissionMaskBuilder* permissions)
 {
     PermissionMaskBuilderPtr permissionsPtr = permissions;
     const Int permissionFlags = permissionsPtr.build();

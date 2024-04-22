@@ -32,7 +32,7 @@ TEST_F(PermissionManagerTest, IsAuthorizedSimple)
 
     auto manager = PermissionManager();
     manager.setPermissions(
-        PermissionsBuilder().set("admin", PermissionMaskBuilder().read().write()).set("user", PermissionMaskBuilder().read()).build());
+        PermissionsBuilder().assign("admin", PermissionMaskBuilder().read().write()).assign("user", PermissionMaskBuilder().read()).build());
 
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Read));
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Write));
@@ -53,10 +53,10 @@ TEST_F(PermissionManagerTest, IsAuthorizedInherited)
     auto user = User("user", "password", List<IString>("user"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", PermissionMaskBuilder().read().write()).build());
+    managerRoot.setPermissions(PermissionsBuilder().assign("admin", PermissionMaskBuilder().read().write()).build());
 
     auto manager = PermissionManager(managerRoot);
-    manager.setPermissions(PermissionsBuilder().inherit(true).set("user", PermissionMaskBuilder().read()).build());
+    manager.setPermissions(PermissionsBuilder().inherit(true).assign("user", PermissionMaskBuilder().read()).build());
 
     ASSERT_TRUE(managerRoot.isAuthorized(admin, Permission::Read));
     ASSERT_TRUE(managerRoot.isAuthorized(admin, Permission::Write));
@@ -77,10 +77,10 @@ TEST_F(PermissionManagerTest, IsAuthorizedNotInherited)
     auto user = User("user", "password", List<IString>("user"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", PermissionMaskBuilder().read().write()).build());
+    managerRoot.setPermissions(PermissionsBuilder().assign("admin", PermissionMaskBuilder().read().write()).build());
 
     auto manager = PermissionManager(managerRoot);
-    manager.setPermissions(PermissionsBuilder().inherit(false).set("user", PermissionMaskBuilder().read().execute()).build());
+    manager.setPermissions(PermissionsBuilder().inherit(false).assign("user", PermissionMaskBuilder().read().execute()).build());
 
     ASSERT_TRUE(managerRoot.isAuthorized(admin, Permission::Read));
     ASSERT_TRUE(managerRoot.isAuthorized(admin, Permission::Write));
@@ -100,7 +100,7 @@ TEST_F(PermissionManagerTest, UpdateInherited)
     auto admin = User("admin", "password", List<IString>("admin", "guest"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", PermissionMaskBuilder().read().write()).build());
+    managerRoot.setPermissions(PermissionsBuilder().assign("admin", PermissionMaskBuilder().read().write()).build());
 
     auto manager = PermissionManager(managerRoot);
     manager.setPermissions(PermissionsBuilder().inherit(true).build());
@@ -109,7 +109,7 @@ TEST_F(PermissionManagerTest, UpdateInherited)
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Write));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Execute));
 
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", PermissionMaskBuilder().read()).build());
+    managerRoot.setPermissions(PermissionsBuilder().assign("admin", PermissionMaskBuilder().read()).build());
 
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Read));
     ASSERT_FALSE(manager.isAuthorized(admin, Permission::Write));
@@ -121,7 +121,7 @@ TEST_F(PermissionManagerTest, Allow)
     auto admin = User("admin", "password", List<IString>("admin", "guest"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", PermissionMaskBuilder().read().write()).build());
+    managerRoot.setPermissions(PermissionsBuilder().assign("admin", PermissionMaskBuilder().read().write()).build());
 
     auto manager = PermissionManager(managerRoot);
     manager.setPermissions(PermissionsBuilder().inherit(true).allow("admin", PermissionMaskBuilder().execute()).build());
@@ -136,7 +136,7 @@ TEST_F(PermissionManagerTest, Deny)
     auto admin = User("admin", "password", List<IString>("admin", "guest"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", PermissionMaskBuilder().read().write()).build());
+    managerRoot.setPermissions(PermissionsBuilder().assign("admin", PermissionMaskBuilder().read().write()).build());
 
     auto manager = PermissionManager(managerRoot);
     manager.setPermissions(PermissionsBuilder().inherit(true).deny("admin", PermissionMaskBuilder().write()).build());
@@ -151,7 +151,7 @@ TEST_F(PermissionManagerTest, UpdateAllowRoot)
     auto admin = User("admin", "password", List<IString>("admin", "guest"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", PermissionMaskBuilder().read().write()).build());
+    managerRoot.setPermissions(PermissionsBuilder().assign("admin", PermissionMaskBuilder().read().write()).build());
 
     auto manager = PermissionManager(managerRoot);
     manager.setPermissions(PermissionsBuilder().inherit(true).build());
@@ -192,10 +192,10 @@ TEST_F(PermissionManagerTest, ChangeParent)
     auto admin = User("admin", "password", List<IString>("admin", "guest"));
 
     auto managerRoot1 = PermissionManager();
-    managerRoot1.setPermissions(PermissionsBuilder().set("admin", PermissionMaskBuilder().read().write()).build());
+    managerRoot1.setPermissions(PermissionsBuilder().assign("admin", PermissionMaskBuilder().read().write()).build());
 
     auto managerRoot2 = PermissionManager();
-    managerRoot2.setPermissions(PermissionsBuilder().set("admin", PermissionMaskBuilder().read()).build());
+    managerRoot2.setPermissions(PermissionsBuilder().assign("admin", PermissionMaskBuilder().read()).build());
 
     auto manager = PermissionManager(managerRoot1);
     manager.setPermissions(PermissionsBuilder().inherit(true).build());
@@ -216,7 +216,7 @@ TEST_F(PermissionManagerTest, SetNullParent)
     auto admin = User("admin", "password", List<IString>("admin", "guest"));
 
     auto managerRoot = PermissionManager();
-    managerRoot.setPermissions(PermissionsBuilder().set("admin", PermissionMaskBuilder().read().write()).build());
+    managerRoot.setPermissions(PermissionsBuilder().assign("admin", PermissionMaskBuilder().read().write()).build());
 
     auto manager = PermissionManager(managerRoot);
     manager.setPermissions(PermissionsBuilder().inherit(true).build());

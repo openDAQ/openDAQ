@@ -39,10 +39,10 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IPermissions, IBaseObject)
 {
     /*!
-     * @brief Returns true if an object should inherit permissions from it's parent object.
-     * @param inherited[out] True if permissions should be inherited from parent object.
+     * @brief Returns true if an object should inherit permissions from its parent object.
+     * @param isInherited[out] True if permissions should be inherited from parent object.
      */
-    virtual ErrCode INTERFACE_FUNC getInherited(Bool* inherited) = 0;
+    virtual ErrCode INTERFACE_FUNC getInherited(Bool* isInherited) = 0;
 
     // [templateType(permissions, IString, IInteger)]
     /*!

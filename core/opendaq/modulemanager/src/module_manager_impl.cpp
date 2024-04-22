@@ -146,69 +146,6 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     });
 }
 
-//void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
-//{
-//    using namespace boost::asio;
-//    using namespace std::chrono_literals;
-//
-//    ip::icmp::resolver resolver(ioContext);
-//    
-//    for (auto device : list)
-//    {
-//        if (device.hasProperty("ipv4Address"))
-//        {
-//            std::string ipv4 = device.getPropertyValue("ipv4Address");
-//            LOG_I("Trying to ping device {} on: {} ...", device.getName(), ipv4);
-//
-//            auto flags = ip::resolver_base::flags::address_configured |
-//                         ip::resolver_base::flags::numeric_host |
-//                         ip::resolver_base::flags::passive   
-//            ;
-//
-//            resolver.async_resolve(
-//                ipv4,
-//                "",
-//                flags,
-//                [ipv4, device, this](boost::system::error_code asyncErr, const ip::basic_resolver_results<ip::icmp>& responses)
-//                {
-//                    if (asyncErr)
-//                    {
-//                        LOG_I(R"(Ping to "{}" failed: {})", ipv4, asyncErr.message());
-//
-//                        device.addProperty(BoolProperty("canPing", false));
-//                    }
-//                    else
-//                    {
-//                        LOG_I(R"(Ping to "{}" SUCCEEDED!)", ipv4, asyncErr.message());
-//
-//                        if (!responses.empty())
-//                        {
-//                            int i = 0;
-//                            for (const auto& response : responses)
-//                            {
-//                                LOG_I("Response {}: {} | {} | {}",
-//                                    ++i,
-//                                    response.host_name(),
-//                                    response.endpoint().address().to_string(),
-//                                    response.service_name()
-//                                );
-//                            }
-//                        }
-//
-//                        device.addProperty(BoolProperty("canPing", !responses.empty()));
-//                    }
-//                });
-//        }
-//        else
-//        {
-//            LOG_I("Device {} has no IPv4!", device.getName());
-//        }
-//    }
-//
-//    ioContext.run_for(1s);
-//    resolver.cancel();
-//}
-
 struct DevicePing
 {
     DeviceInfoPtr info;
@@ -228,7 +165,7 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
             continue;
         }
 
-        auto icmp = IcmpPing::Create(ioContext);
+        auto icmp = IcmpPing::Create(ioContext, logger);
         IcmpPing& ping = *icmp;
 
         std::string deviceIp = deviceInfo.getPropertyValue("ipv4Address");
@@ -243,7 +180,7 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 
         statuses.push_back({deviceInfo, icmp});
 
-        LOG_I("No replies received yet: waiting 1s\n");
+        LOG_T("No replies received yet: waiting 1s\n");
     }
 
     if (!statuses.empty())

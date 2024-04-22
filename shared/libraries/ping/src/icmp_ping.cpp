@@ -1,16 +1,18 @@
 #include <ping/icmp_header.h>
 #include <ping/icmp_ping.h>
 #include <ping/ipv4_header.h>
-#include <ping/log.h>
 #include <ping/format.h>
+#include <opendaq/custom_log.h>
 #include <thread>
 
+using namespace daq;
 using namespace boost;
 using namespace boost::asio;
 using namespace std::chrono_literals;
 
-IcmpPing::IcmpPing(boost::asio::io_context& ioContext, int maxHops)
-    : stopReceive(false)
+IcmpPing::IcmpPing(boost::asio::io_context& ioContext, const daq::LoggerPtr& logger, int maxHops)
+    : loggerComponent(logger.getOrAddComponent("IcmpPing"))
+    , stopReceive(false)
     , found(false)
     , maxHops(maxHops)
     , numRemotes(0)
@@ -23,9 +25,9 @@ IcmpPing::IcmpPing(boost::asio::io_context& ioContext, int maxHops)
 {
 }
 
-std::shared_ptr<IcmpPing> IcmpPing::Create(io_context& ioContext, int maxHops)
+std::shared_ptr<IcmpPing> IcmpPing::Create(io_context& ioContext, const daq::LoggerPtr& logger, int maxHops)
 {
-    return std::shared_ptr<IcmpPing>(new IcmpPing(ioContext, maxHops));
+    return std::shared_ptr<IcmpPing>(new IcmpPing(ioContext, logger, maxHops));
 }
 
 void IcmpPing::setMaxHops(uint32_t hops)
@@ -90,7 +92,7 @@ void IcmpPing::stop()
     socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
     if (ec && ec != boost::asio::error::bad_descriptor)
     {
-        LOG_ERROR("Error shutting ICMP socket [{}] \n", ec.message());
+        LOG_E("Error shutting ICMP socket [{}] \n", ec.message());
     }
 
     // LOG("Closing down ICMP socket\n");
@@ -98,7 +100,7 @@ void IcmpPing::stop()
     socket.close(ec);
     if (ec && ec != boost::asio::error::bad_descriptor)
     {
-        LOG_ERROR("Error closing down ICMP socket for [{}] \n", ec.message());
+        LOG_E("Error closing down ICMP socket for [{}] \n", ec.message());
     }
 
     cv.notify_one();
@@ -161,13 +163,13 @@ void IcmpPing::startSend(const std::vector<boost::asio::ip::address_v4>& remotes
             {
                 cv.notify_one();
                 // LOG("[{}] Error sending ping to: {} [{}] <{} ms> [{}]\n", i, ip, ec.message(), ms, numSent);
-                LOG("[{}] Error sending ping to: {} [{}] [{}]\n", i, ip, ec.message(), numSent.load());
+                LOG_T("[{}] Error sending ping to: {} [{}] [{}]\n", i, ip, ec.message(), numSent.load());
                 return;
             }
 
             // auto str2 = ip.to_string();
             // LOG("[{}] Sent ping to {} on thread id: {} <{}ms>\n", i, ip, std::this_thread::get_id(), ms);
-            LOG("[{}] Sent ping to {} on thread id: {}\n", i, ip, fmt::streamed(std::this_thread::get_id()));
+            LOG_T("[{}] Sent ping to {} on thread id: {}\n", i, ip, fmt::streamed(std::this_thread::get_id()));
         });
     }
 
@@ -211,7 +213,7 @@ void IcmpPing::startReceive()
                              {
                                  if (ec != error::operation_aborted)
                                  {
-                                     LOG_ERROR("Error receiving ping: {} [{}]\n", ec.message(), ec.value());
+                                     DAQLOGF_E(ptr->loggerComponent, "Error receiving ping: {} [{}]\n", ec.message(), ec.value());
                                  }
 
                                  ptr->cv.notify_one();
@@ -262,7 +264,7 @@ void IcmpPing::handleReceive(std::size_t length)
         auto destinationAddr = ipv4Header.getDestinationAddress();
         auto destinationStr = destinationAddr.to_string();
 
-        LOG("[{}] {} bytes from {}: icmp_seq={}, ttl={}, time={} ms\n",
+        LOG_T("[{}] {} bytes from {}: icmp_seq={}, ttl={}, time={} ms\n",
             fmt::streamed(std::this_thread::get_id()),
             length - ipv4Header.getHeaderLength(),
             sourceAddr,
@@ -271,7 +273,7 @@ void IcmpPing::handleReceive(std::size_t length)
             chrono::duration_cast<chrono::milliseconds>(elapsed).count()
         );
 
-        LOG("\nReceived reply: canceling all async operations\n\n");
+        LOG_T("\nReceived reply: canceling all async operations\n\n");
         found = true;
         stop();
     }

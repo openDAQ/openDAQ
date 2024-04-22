@@ -1,7 +1,6 @@
-set(MODULE_NAME discovery_ping)
+set(MODULE_NAME icmp_ping)
 
 set(SRC_Headers
-    log.h
     format.h
 
     ipv4_header.h
@@ -32,12 +31,12 @@ target_link_libraries(${MODULE_NAME}
         Threads::Threads
         Boost::headers
         fmt::fmt
+        daq::logger_dev
 )
 
 target_compile_definitions(${MODULE_NAME}
     PRIVATE
         BOOST_ALL_NO_LIB
-        DISCOVERY_VERBOSE
 )
 
 if (WIN32)
@@ -54,10 +53,12 @@ if (WIN32)
     )
 endif()
 
-target_include_directories(${MODULE_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
-                                                 $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../include>
+target_include_directories(${MODULE_NAME}
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../include>
 
-                                                 $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:include>
 )
 
 install(TARGETS ${MODULE_NAME}

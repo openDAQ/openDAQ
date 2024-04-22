@@ -9,11 +9,11 @@ The procedure of querying Modules for available Devices, as well as selecting th
 
   * xref:background_info:opendaq_architecture.adoc#instance[Architecture - Instance]
 
-== Connecting to openDAQ(TM) OPC UA devices
+== Connecting to openDAQ(TM) OPC UA Devices
 
-openDAQ(TM) provides three client and three server modules. They enable us to connect to openDAQ(TM) devices,
+openDAQ(TM) provides three client and three server Modules. They enable us to connect to openDAQ(TM) Devices,
 as well as transfer their signal data. The openDAQ(TM) `opcua_client_module` uses an OPC UA client to connect to
-openDAQ(TM) OPC UA-compatible devices that are running a compatible OPC UA server. openDAQ(TM) OPC UA devices are discovered at
+openDAQ(TM) OPC UA-compatible Devices that are running a compatible OPC UA server. openDAQ(TM) OPC UA Devices are discovered at
 an address prefixed with "daq.opcua://".
 
 [tabs]
@@ -25,16 +25,18 @@ Cpp::
 #include <opendaq/opendaq.h>
 #include <iostream>
 
+using namespace daq;
+
 int main(int argc, const char* argv[])
 {
-    // Create an openDAQ(TM) instance, loading modules from the current directory
-    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+    // Create an openDAQ(TM) Instance, loading Modules from the current directory
+    InstancePtr instance = Instance(MODULE_PATH);
 
-    // Discover and print the names and connection strings of openDAQ(TM) devices
-    daq::ListPtr<daq::IDeviceInfo> availableDevicesInfo = instance.getAvailableDevices();
+    // Discover and print the names and connection strings of openDAQ(TM) Devices
+    ListPtr<IDeviceInfo> availableDevicesInfo = instance.getAvailableDevices();
     for (const auto& deviceInfo : availableDevicesInfo)
     {
-        for (const auto & capability : deviceInfo.getServerCapabilities())
+        for (const auto& capability : deviceInfo.getServerCapabilities())
         {
             if (capability.getProtocolName() == "openDAQ OpcUa")
             {
@@ -52,10 +54,10 @@ Python::
 ----
 import opendaq
 
-# Create an openDAQ(TM) instance
+# Create an openDAQ(TM) Instance
 instance = opendaq.Instance()
 
-# Discover and print the names and connection strings of openDAQ(TM) devices
+# Discover and print the names and connection strings of openDAQ(TM) Devices
 for device_info in instance.available_devices:
     for capability in device_info.server_capabilities:
         if capability.protocol_name == 'openDAQ OpcUa':
@@ -70,10 +72,10 @@ using Daq.Core.Types;
 using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 
-// Create an openDAQ(TM) instance, loading modules from the current directory
+// Create an openDAQ(TM) Instance, loading Modules from the current directory
 Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
-// Discover and print the names and connection strings of openDAQ(TM) devices
+// Discover and print the names and connection strings of openDAQ(TM) Devices
 IListObject<DeviceInfo> availableDevicesInfo = instance.GetAvailableDevices();
 foreach (var deviceInfo in availableDevicesInfo)
     if (deviceInfo.GetConnectionString().StartsWith("daq.opcua://"))
@@ -81,9 +83,9 @@ foreach (var deviceInfo in availableDevicesInfo)
 ----
 ====
 
-The connection string of discovered devices can be used to connect to them. Doing so adds the remote device as a
-child of the Root device. The Device can now be viewed, configured, and its data can be streamed. For configuration
-and inspection of its properties, OPC UA is used. Native streaming protocol is used to stream the device's data.
+The connection string of discovered Devices can be used to connect to them. Doing so adds the remote Device as a
+child of the Root Device. The Device can now be viewed, configured, and its data can be streamed. For configuration
+and inspection of its properties, OPC UA is used. Native Streaming protocol is used to stream the Device's data.
 
 [tabs]
 ====
@@ -94,13 +96,15 @@ Cpp::
 #include <opendaq/opendaq.h>
 #include <iostream>
 
+using namespace daq;
+
 int main(int argc, const char* argv[])
 {
-    // Create an openDAQ(TM) instance, loading modules from the current directory
-    daq::InstancePtr instance = daq::Instance(".");
+    // Create an openDAQ(TM) Instance, loading Modules from the current directory
+    InstancePtr instance = Instance(MODULE_PATH);
 
     ListPtr<IDevice> devices = List<IDevice>();
-    // Discover and connect to all openDAQ(TM) devices
+    // Discover and connect to all openDAQ(TM) Devices
     for (const auto& deviceInfo : instance.getAvailableDevices())
         if (deviceInfo.getConnectionString().toStdString().find("daq.opcua://") != std::string::npos)
             devices.pushBack(instance.addDevice(deviceInfo.getConnectionString()));
@@ -114,10 +118,10 @@ Python::
 ----
 import opendaq
 
-# Create an openDAQ(TM) instance
+# Create an openDAQ(TM) Instance
 instance = opendaq.Instance()
 
-# Discover and connect to all openDAQ(TM) devices
+# Discover and connect to all openDAQ(TM) Devices
 devices = [instance.add_device(d.connection_string)
            for d in instance.available_devices
            if d.connection_string.startswith('daq.opcua://')]
@@ -130,28 +134,28 @@ using Daq.Core.Types;
 using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 
-// Create an openDAQ(TM) instance, loading modules from the current directory
+// Create an openDAQ(TM) Instance, loading Modules from the current directory
 Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
 IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
-// Discover and connect to all openDAQ(TM) devices
+// Discover and connect to all openDAQ(TM) Devices
 foreach (var deviceInfo in instance.GetAvailableDevices())
-if (deviceInfo.GetConnectionString().StartsWith("daq.opcua://"))
-    devices.Add(instance.AddDevice(deviceInfo.GetConnectionString()));
+    if (deviceInfo.GetConnectionString().StartsWith("daq.opcua://"))
+        devices.Add(instance.AddDevice(deviceInfo.GetConnectionString()));
 ----
 ====
 
-== Connecting to other devices
+== Connecting to other Devices
 
-The openDAQ(TM) `opcua_client_module` allows for connecting to specifically openDAQ(TM) OPC UA-enabled devices. However,
-openDAQ(TM) modules can be written to connect to different kinds of devices (local or remote). For example,
-the openDAQ(TM) `ws_stream_cl_module` (Web-socket streaming client module) and the openDAQ(TM) `native_stream_cl_module`
-(Native streaming client module) allow for connecting to remote devices without using of OPC UA protocol. Another example
-is the openDAQ(TM) reference device module, which allows for the creation of reference devices that simulate sine wave signals.
+The openDAQ(TM) `opcua_client_module` allows for connecting to specifically openDAQ(TM) OPC UA-enabled Devices. However,
+openDAQ(TM) Modules can be written to connect to different kinds of Devices (local or remote). For example,
+the openDAQ(TM) `ws_stream_cl_module` (Web-socket Streaming client Module) and the openDAQ(TM) `native_stream_cl_module`
+(Native Streaming client Module) allow for connecting to remote Devices without using of OPC UA protocol. Another example
+is the openDAQ(TM) reference Device Module, which allows for the creation of reference Devices that simulate sine wave signals.
 
-Depending on the modules loaded we can connect to different types of devices. When a device is
-integrated into openDAQ(TM), it is added/connected to in the same manner as a openDAQ(TM) OPC UA device, but using its
-own discovery mechanism and connection string format. For example, the openDAQ(TM) reference device module
+Depending on the Modules loaded we can connect to different types of Devices. When a Device is
+integrated into openDAQ(TM), it is added/connected to in the same manner as a openDAQ(TM) OPC UA Device, but using its
+own discovery mechanism and connection string format. For example, the openDAQ(TM) reference Device Module
 uses addresses prefixed with "daqref://", the openDAQ(TM) `native_stream_cl_module` uses addresses prefixed with "daq.ns://" and
 the openDAQ(TM) `ws_stream_cl_module` uses addresses prefixed with "daq.lt://".
 
@@ -164,13 +168,15 @@ Cpp::
 #include <opendaq/opendaq.h>
 #include <iostream>
 
+using namespace daq;
+
 int main(int argc, const char* argv[])
 {
-    // Create an openDAQ(TM) instance, loading modules from the current directory
-    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+    // Create an openDAQ(TM) Instance, loading Modules from the current directory
+    InstancePtr instance = Instance(MODULE_PATH);
 
     ListPtr<IDevice> devices = List<IDevice>();
-    // Discover and add all openDAQ(TM) reference devices
+    // Discover and add all openDAQ(TM) reference Devices
     for (const auto& deviceInfo : instance.getAvailableDevices())
         if (deviceInfo.getConnectionString().toStdString().find("daqref://") != std::string::npos)
             devices.pushBack(instance.addDevice(deviceInfo.getConnectionString()));
@@ -184,10 +190,10 @@ Python::
 ----
 import opendaq
 
-# Create an openDAQ(TM) instance
+# Create an openDAQ(TM) Instance
 instance = opendaq.Instance()
 
-# Discover and add all openDAQ(TM) reference devices
+# Discover and add all openDAQ(TM) reference Devices
 devices = [instance.add_device(d.connection_string)
            for d in instance.enumerate_available_devices()
            if d.connection_string.startswith('daqref://')]
@@ -200,11 +206,11 @@ using Daq.Core.Types;
 using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 
-// Create an openDAQ(TM) instance, loading modules from the current directory
+// Create an openDAQ(TM) Instance, loading Modules from the current directory
 Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
 IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
-// Discover and connect to all openDAQ(TM) reference devices
+// Discover and connect to all openDAQ(TM) reference Devices
 foreach (var deviceInfo in instance.GetAvailableDevices())
     if (deviceInfo.GetConnectionString().StartsWith("daqref://"))
         devices.Add(instance.AddDevice(deviceInfo.GetConnectionString()));

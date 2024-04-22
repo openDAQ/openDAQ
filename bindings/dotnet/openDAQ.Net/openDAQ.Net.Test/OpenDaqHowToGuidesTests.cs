@@ -203,10 +203,10 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Category(SKIP_SETUP)]
     public void ConnectingGetAvailableDevicesTest()
     {
-        // Create an openDAQ(TM) Instance, loading modules from the current directory
+        // Create an openDAQ(TM) Instance, loading Modules from the current directory
         Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
-        // Discover and print the names and connection strings of openDAQ(TM) devices
+        // Discover and print the names and connection strings of openDAQ(TM) Devices
         IListObject<DeviceInfo> availableDevicesInfo = instance.GetAvailableDevices();
         foreach (var deviceInfo in availableDevicesInfo)
             if (deviceInfo.GetConnectionString().StartsWith("daq.opcua://"))
@@ -217,11 +217,11 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Category(SKIP_SETUP)]
     public void ConnectingOpcUaDevicesTest()
     {
-        // Create an openDAQ(TM) Instance, loading modules from the current directory
+        // Create an openDAQ(TM) Instance, loading Modules from the current directory
         Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
         IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
-        // Discover and connect to all openDAQ(TM) devices
+        // Discover and connect to all openDAQ(TM) Devices
         foreach (var deviceInfo in instance.GetAvailableDevices())
             if (deviceInfo.GetConnectionString().StartsWith("daq.opcua://"))
                 devices.Add(instance.AddDevice(deviceInfo.GetConnectionString()));
@@ -236,11 +236,11 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Category(SKIP_SETUP)]
     public void ConnectingOtherDevicesTest()
     {
-        // Create an openDAQ(TM) Instance, loading modules from the current directory
+        // Create an openDAQ(TM) Instance, loading Modules from the current directory
         Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
         IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
-        // Discover and connect to all openDAQ(TM) reference devices
+        // Discover and connect to all openDAQ(TM) reference Devices
         foreach (var deviceInfo in instance.GetAvailableDevices())
             if (deviceInfo.GetConnectionString().StartsWith("daqref://"))
                 devices.Add(instance.AddDevice(deviceInfo.GetConnectionString()));

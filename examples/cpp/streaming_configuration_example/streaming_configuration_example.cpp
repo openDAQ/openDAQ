@@ -41,15 +41,15 @@ void readSamples(const MirroredSignalConfigPtr signal)
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create a new Instance that we will use for all the interactions with the SDK
-    InstancePtr instance = Instance(MODULE_PATH);
+    InstancePtr instance = Instance();
 
-    // Get the default configuration Property object for OPC UA enabled Device type
+    // Get the default Configuration Property object for OPC UA enabled Device type
     PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
 
-    // Allow multiple Streaming protocol by Device configuration
+    // Allow multiple Streaming protocol by Device Configuration
     deviceConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
 
-    // Set websocket Streaming protocol as primary by Device configuration
+    // Set websocket Streaming protocol as primary by Device Configuration
     deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
 
     // Find and connect to a Device hosting an OPC UA TMS server

@@ -51,6 +51,15 @@ TEST_F(OpcuaDeviceModulesTest, ConnectAndDisconnect)
     server.detach();
 }
 
+TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    auto config = client.getAvailableDeviceTypes().get("daq.opcua").createDefaultConfig();
+    config.setPropertyValue("StreamingConnectionHeuristic", 3); // 3 - not connected
+    ASSERT_NO_THROW(client.addDevice("daq.opcua://[::1]", config));
+}
+
 TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
 {
     SKIP_TEST_MAC_CI;

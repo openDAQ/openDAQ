@@ -40,7 +40,7 @@ endif()
 
 target_link_libraries(${TEST_DLL_TARGET}
     PRIVATE $<TARGET_OBJECTS:daq::module_manager>
-            daq::discovery_ping
+            daq::icmp_ping
             ${CMAKE_DL_LIBS}
             ${STDCFS_LIBS}
 )

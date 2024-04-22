@@ -2,13 +2,15 @@
 #include <boost/asio.hpp>
 #include <chrono>
 #include <mutex>
+#include <opendaq/logger_ptr.h>
+#include <opendaq/logger_component_ptr.h>
 
 class IcmpPing final : public std::enable_shared_from_this<IcmpPing>
 {
 public:
     using TimeoutDuration = std::chrono::steady_clock::duration;
 
-    static std::shared_ptr<IcmpPing> Create(boost::asio::io_context& ioContext, int maxHops = -1);
+    static std::shared_ptr<IcmpPing> Create(boost::asio::io_context& ioContext, const daq::LoggerPtr& logger, int maxHops = -1);
 
     IcmpPing(const IcmpPing&) = delete;
     IcmpPing(IcmpPing&& ping) noexcept = delete;
@@ -32,7 +34,7 @@ public:
     IcmpPing& operator=(const IcmpPing& other) = delete;
 
 private:
-    explicit IcmpPing(boost::asio::io_context& ioContext, int maxHops = -1);
+    explicit IcmpPing(boost::asio::io_context& ioContext, const daq::LoggerPtr& logger, int maxHops = -1);
 
     void startSend(const std::vector<boost::asio::ip::address_v4>& remotes);
 
@@ -40,6 +42,8 @@ private:
     void handleReceive(std::size_t length);
 
     static uint16_t GetIdentifier();
+
+    daq::LoggerComponentPtr loggerComponent;
 
     std::atomic<bool> stopReceive;
     std::atomic<bool> found;

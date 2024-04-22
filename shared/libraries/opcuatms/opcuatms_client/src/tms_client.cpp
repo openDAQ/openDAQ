@@ -35,7 +35,7 @@ daq::DevicePtr TmsClient::connect()
 {
     const auto startTime = std::chrono::steady_clock::now();
 
-    OpcUaEndpoint endpoint("TmsClient", opcUaUrl);
+    OpcUaEndpoint endpoint(opcUaUrl);
     client = std::make_shared<OpcUaClient>(endpoint);
     if (!client->connect())
         throw NotFoundException();

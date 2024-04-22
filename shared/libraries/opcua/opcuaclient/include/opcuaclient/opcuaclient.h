@@ -108,7 +108,6 @@ public:
     UA_Client* getUaClient();
     ClientLockGuard getLockedUaClient();
     const OpcUaEndpoint& getEndpoint() const;
-    void setUrl(const std::string& url);
     void setTimeout(uint32_t timoutMs);
     uint32_t getTimeout() const;
     void setConnectivityCheckInterval(uint32_t connectivityCheckInterval);

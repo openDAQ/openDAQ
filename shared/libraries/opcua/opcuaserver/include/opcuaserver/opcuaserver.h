@@ -28,8 +28,8 @@
 #include <opcuaserver/opcuasession.h>
 #include <opcuaserver/server_event_manager.h>
 #include <opcuaserver/common.h>
-
 #include <open62541/server.h>
+#include <coreobjects/authentication_provider_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
@@ -43,6 +43,8 @@ public:
 
     uint16_t& getPort();
     void setPort(uint16_t port);
+    void setAllowAnonymous(bool allowAnonymous);
+    void setAuthenticationProvider(const AuthenticationProviderPtr& authenticationProvider);
 
     void setSecurityConfig(OpcUaServerSecurityConfig* config);
     const OpcUaServerSecurityConfig* getSecurityConfig() const;
@@ -123,11 +125,12 @@ private:
     UA_Server* createServer();
     void prepareServer();
     void prepareServerMinimal(UA_ServerConfig* config);
-    void prepareServerSecured(UA_ServerConfig* config);
-    void prepareEncryption(UA_ServerConfig* config);
     void prepareAccessControl(UA_ServerConfig* config);
-    void configureAppUri(UA_ServerConfig* config);
     void shutdownServer();
+    UA_StatusCode validateIdentityToken(const UA_ExtensionObject* token);
+    bool isUsernameIdentityTokenValid(const UA_UserNameIdentityToken* token);
+    bool isAnonymousIdentityTokenValid(const UA_AnonymousIdentityToken* token);
+    void createSession(const OpcUaNodeId& sessionId, void** sessionContext);
 
     static UA_StatusCode activateSession(UA_Server* server,
                                          UA_AccessControl* ac,
@@ -138,7 +141,6 @@ private:
                                          void** sessionContext);
     static void closeSession(UA_Server* server, UA_AccessControl* ac, const UA_NodeId* sessionId, void* sessionContext);
     static UA_StatusCode generateChildId(UA_Server *server, const UA_NodeId *sessionId, void *sessionContext, const UA_NodeId *sourceNodeId, const UA_NodeId *targetParentNodeId, const UA_NodeId *referenceTypeId, UA_NodeId *targetNodeId);
-    static UA_StatusCode authenticateUser(OpcUaServer* serverInstance, const UA_ExtensionObject* userIdentityToken);
 
     // missing UA_Server void* member workaround...
     static OpcUaServer* getServer(UA_Server* server);
@@ -154,11 +156,10 @@ private:
     OpcUaServerLock serverLock;
     uint16_t port{OPCUA_DEFAULT_PORT};
     UA_Server* server{};
-    std::optional<OpcUaServerSecurityConfig> securityConfig;
     std::unordered_set<void*> sessionContext;
     ServerEventManagerPtr eventManager;
-    static std::mutex serverMappingMutex;
-    static std::map<UA_Server*, OpcUaServer*> serverMapping;
+    bool allowAnonymous;
+    AuthenticationProviderPtr authenticationProvider;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA

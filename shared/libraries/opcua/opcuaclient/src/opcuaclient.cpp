@@ -55,7 +55,7 @@ OpcUaClient::OpcUaClient(const OpcUaEndpoint& endpoint)
 }
 
 OpcUaClient::OpcUaClient(const std::string& url)
-    : OpcUaClient(OpcUaEndpoint("", url))
+    : OpcUaClient(OpcUaEndpoint(url))
 {
 }
 
@@ -70,7 +70,7 @@ void OpcUaClient::initialize()
 {
     std::lock_guard guard(getLock());
 
-    uaclient = UaClientFactory::Create(endpoint.getSecurityConfig(), endpoint.getLogLevel(), endpoint.getCustomDataTypes());
+    uaclient = UaClientFactory::Create(nullptr, UA_LOGLEVEL_WARNING, endpoint.getCustomDataTypes());
 
     UA_Client_getConfig(uaclient)->clientContext = this;
 
@@ -199,22 +199,17 @@ UA_Client* UaClientFactory::build()
 bool OpcUaClient::connect()
 {
     std::lock_guard guard(getLock());
+
     if (!uaclient)
         initialize();
 
-    const OpcUaClientSecurityConfig* securityConfig = endpoint.getSecurityConfig();
+    UA_StatusCode status = UA_STATUSCODE_GOOD;
 
-    UA_StatusCode status;
-
-    if (securityConfig == NULL || securityConfig->isAnonymous())
+    if (endpoint.isAnonymous())
         status = UA_Client_connect(uaclient, endpoint.getUrl().c_str());
     else
-    {
-        status = UA_Client_connectUsername(uaclient,
-                                           endpoint.getUrl().c_str(),
-                                           securityConfig->username.value_or("").c_str(),
-                                           securityConfig->password.value_or("").c_str());
-    }
+        status =
+            UA_Client_connectUsername(uaclient, endpoint.getUrl().c_str(), endpoint.getUsername().c_str(), endpoint.getPassword().c_str());
 
     return OPCUA_STATUSCODE_SUCCEEDED(status);
 }
@@ -268,13 +263,6 @@ bool OpcUaClient::isConnected()
 const OpcUaEndpoint& OpcUaClient::getEndpoint() const
 {
     return endpoint;
-}
-
-void OpcUaClient::setUrl(const std::string& url)
-{
-    if (isConnected())
-        throw std::runtime_error("Cannot setUrl. Disconnect connection broker first.");
-    endpoint.setUrl(url);
 }
 
 void OpcUaClient::setTimeout(uint32_t timeoutMs)

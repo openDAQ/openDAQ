@@ -67,20 +67,20 @@ class TestDocumentationHowTo(opendaq_test.TestCase):
     def test_save_load_configuration(self):
         instance = opendaq.Instance()
 
-        # Save configuration to string
+        # Save Configuration to string
         json_str = instance.save_configuration();
-        # Write configuration string to file
+        # Write Configuration string to file
         config_file = open("config.json", "w")
         config_file.write(json_str)
         config_file.close()
 
         instance = opendaq.Instance()
 
-        # Read configuration from file
+        # Read Configuration from file
         config_file = open("config.json", "r")
         json_str = config_file.read();
         config_file.close()
-        # Load configuration from string
+        # Load Configuration from string
         instance.load_configuration(json_str);
 
 if __name__ == '__main__':

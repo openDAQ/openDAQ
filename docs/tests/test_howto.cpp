@@ -107,9 +107,9 @@ TEST_F(HowToTest, SaveLoadConfiguration)
     {
         InstancePtr instance = Instance();
 
-        // Save configuration to string
+        // Save Configuration to string
         std::string jsonStr = instance.saveConfiguration();
-        // Write configuration string to file
+        // Write Configuration string to file
         std::ofstream configFile("config.json");
         configFile << jsonStr;
         configFile.close();
@@ -118,11 +118,11 @@ TEST_F(HowToTest, SaveLoadConfiguration)
     {
         InstancePtr instance = Instance();
 
-        // Read configuration from file
+        // Read Configuration from file
         std::ifstream configFile("config.json");
         std::stringstream jsonStr;
         jsonStr << configFile.rdbuf();
-        // Load configuration from string
+        // Load Configuration from string
         instance.loadConfiguration(jsonStr.str());
     }
 }

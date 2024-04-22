@@ -474,9 +474,9 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Test]
     public void ConfigurationSaveTest()
     {
-        // Save configuration to string
+        // Save Configuration to string
         string jsonStr = instance.SaveConfiguration();
-        // Write configuration string to file
+        // Write Configuration string to file
         File.WriteAllText("openDAQconfig.json", jsonStr, System.Text.Encoding.UTF8);
     }
 
@@ -484,9 +484,9 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Test]
     public void ConfigurationLoadTest()
     {
-        // Read configuration from file
+        // Read Configuration from file
         string jsonStr = File.ReadAllText("openDAQconfig.json", System.Text.Encoding.UTF8);
-        // Load configuration from string
+        // Load Configuration from string
         instance.LoadConfiguration(jsonStr);
     }
 

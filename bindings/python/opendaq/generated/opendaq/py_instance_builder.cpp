@@ -54,6 +54,19 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
         },
         py::arg("config_provider"),
         "Populates internal options dictionary with values from set config provider");
+    cls.def_property("context",
+        [](daq::IInstanceBuilder *object)
+        {
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            return objectPtr.getContext().detach();
+        },
+        [](daq::IInstanceBuilder *object, daq::IContext* context)
+        {
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            objectPtr.setContext(context);
+        },
+        py::return_value_policy::take_ownership,
+        "Returns a context object of the instance. / Sets the Context object of the instance. This overwrites other context related settings such as logger, scheduler and module manager settings.");
     cls.def_property("logger",
         [](daq::IInstanceBuilder *object)
         {
@@ -197,18 +210,29 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.setDefaultRootDeviceLocalId(localId);
         },
         "Gets the default root device local id / Sets the local id for default device. Has no effect if `Root device` has been congigured.");
-    cls.def_property("root_device",
+    cls.def("set_root_device",
+        [](daq::IInstanceBuilder *object, const std::string& connectionString, daq::IPropertyObject* config)
+        {
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            objectPtr.setRootDevice(connectionString, config);
+        },
+        py::arg("connection_string"), py::arg("config") = nullptr,
+        "Sets the connection string for a device that replaces the default openDAQ root device. When the instance is created, a connection to the device with the given connection string will be established, and the device will be placed at the root of the component tree structure.");
+    cls.def_property_readonly("root_device",
         [](daq::IInstanceBuilder *object)
         {
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getRootDevice().toStdString();
         },
-        [](daq::IInstanceBuilder *object, const std::string& connectionString)
+        "Gets the connection string for the default root device of Instance.");
+    cls.def_property_readonly("root_device_config",
+        [](daq::IInstanceBuilder *object)
         {
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
-            objectPtr.setRootDevice(connectionString);
+            return objectPtr.getRootDeviceConfig().detach();
         },
-        "Gets the connection string for the default root device of Instance. / Sets the connection string for a device that replaces the default openDAQ root device. When the instance is created, a connection to the device with the given connection string will be established, and the device will be placed at the root of the component tree structure.");
+        py::return_value_policy::take_ownership,
+        "Gets the configuration property object for the default root device of Instance.");
     cls.def_property("default_root_device_info",
         [](daq::IInstanceBuilder *object)
         {

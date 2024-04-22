@@ -31,10 +31,10 @@
 PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> declareIServerCapability(pybind11::module_ m)
 {
     py::enum_<daq::ProtocolType>(m, "ProtocolType")
+        .value("Unknown", daq::ProtocolType::Unknown)
         .value("Configuration", daq::ProtocolType::Configuration)
         .value("Streaming", daq::ProtocolType::Streaming)
-        .value("ConfigurationAndStreaming", daq::ProtocolType::ConfigurationAndStreaming)
-        .value("Unknown", daq::ProtocolType::Unknown);
+        .value("ConfigurationAndStreaming", daq::ProtocolType::ConfigurationAndStreaming);
 
     return wrapInterface<daq::IServerCapability, daq::IPropertyObject>(m, "IServerCapability");
 }
@@ -100,4 +100,12 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
             return objectPtr.getCoreEventsEnabled();
         },
         "Gets the client update method supported by the device.");
+    cls.def_property_readonly("addresses",
+        [](daq::IServerCapability *object)
+        {
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            return objectPtr.getAddresses().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the device's list of addresses with the current protocol.");
 }

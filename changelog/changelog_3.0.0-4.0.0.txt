@@ -1,0 +1,5 @@
+22.04.2024
+Description:
+  - Fix reserved keyword clashes with Delphi bindings
+- [function] IPermissionsBuilder::set(StringPtr groupId, PermissionMaskBuilderPtr permissions)
++ [function] IPermissionsBuilder::assign(StringPtr groupId, PermissionMaskBuilderPtr permissions)

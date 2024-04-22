@@ -230,7 +230,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     else
     {
         this->permissionManager.setPermissions(
-            PermissionsBuilder().set("everyone", PermissionMaskBuilder().read().write().execute()).build());
+            PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
     }
 }
 

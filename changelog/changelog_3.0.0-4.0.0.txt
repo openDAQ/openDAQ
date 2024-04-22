@@ -1,0 +1,5 @@
+22.04.2024
+Description:
+  - Adding addresses in ServerCapability
++ [function] IServerCapabilityConfig::addAddress(IString* address)
++ [function] IServerCapability::getAddresses(IList** addresses)

@@ -1219,7 +1219,7 @@ void RendererFbImpl::processSignalDescriptorChanged(SignalContext& signalContext
 
 void RendererFbImpl::processAttributeChanged(SignalContext& signalContext,
                                              const StringPtr& attrName,
-                                             const StringPtr& attrValue)
+                                             const BaseObjectPtr& attrValue)
 {
     if (attrName == "Name")
         setSignalContextCaption(signalContext, attrValue);

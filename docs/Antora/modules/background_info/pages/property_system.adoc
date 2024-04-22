@@ -603,7 +603,7 @@ std::cout << sumFunc(12, 30) << std::endl;
 
 ==== Struct Properties
 
-TODO
+// TODO
 
 NOTE: Struct Properties can currently not be transmitted over OPC UA unless their Struct type name matches 
 a Structure type and key names/value types in the imported OPC UA nodesets.  

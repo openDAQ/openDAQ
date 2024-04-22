@@ -252,24 +252,29 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
     const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
     auto newSamples = samplesSinceStart - samplesGenerated;
 
-    if (newSamples > 0 && valueSignal.getActive())
+    if (newSamples > 0)
     {
         if (!fixedPacketSize)
         {
-            const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
-            generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
+            if (valueSignal.getActive())
+            {
+                const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
+                generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
+            }
             samplesGenerated = samplesSinceStart;
         }
         else
         {
             while (newSamples >= packetSize)
             {
-                const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
-                generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, packetSize);
+                if (valueSignal.getActive())
+                {
+                    const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
+                    generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, packetSize);
+                }
 
                 samplesGenerated += packetSize;
                 newSamples -= packetSize;
-                
             }
         }
     }

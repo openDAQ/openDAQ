@@ -1,7 +1,7 @@
 = Configure Streaming
 
 [#server_config]
-== Server side configuration
+== Server side Configuration
 
 Typically, in addition to publishing its own structure (xref:background_info:signals.adoc[Signals],
 xref:background_info:function_blocks.adoc#channel[Channel]s,
@@ -11,10 +11,10 @@ This information includes the Streaming protocol ID (e.g. `"opendaq_lt_streaming
 and a range of optional parameters (e.g. port number). Upon initiating a Streaming server on the Device,
 it automatically generates and prepares the mentioned piece of information, also known as a Server capability,
 for publication alongside the Device's structural details. To enable the publication of this information,
-the server responsible for the transfer of structural information should be added last to the openDAQ(TM) instance,
+the server responsible for the transfer of structural information should be added last to the openDAQ(TM) Instance,
 following the addition of all Streaming servers.
 
-The example below demonstrates the correct sequence for adding various servers to the openDAQ(TM) instance.
+The example below demonstrates the correct sequence for adding various servers to the openDAQ(TM) Instance.
 
 [tabs]
 ====
@@ -32,7 +32,7 @@ int main()
 {
     using namespace std::chrono_literals;
 
-    const InstancePtr instance = Instance(MODULE_PATH);
+    const InstancePtr instance = Instance();
 
     instance.setRootDevice("daqref://device1");
 
@@ -70,7 +70,7 @@ xref:background_info:streaming.adoc#streaming_and_structure_modules[data Streami
 when connecting an openDAQ(TM) Device, a streaming connection can be established automatically using the
 published streaming connection details.
 
-The xref:background_info:device.adoc[Device] configuration xref:background_info:property_system.adoc[Property]
+The xref:background_info:device.adoc[Device] Configuration xref:background_info:property_system.adoc[Property]
 object provides a mechanism for customizing the filtering of available Streaming protocols by enabling or
 disabling specific ones. Additionally, it allows to set the "primary" protocol type of the Streaming
 connection to be initially used as an active Streaming source for all of the
@@ -89,7 +89,7 @@ the amount of hops between Devices the data must make.
 by the Device is not used to automatically establish Streaming connections.
 
 
-IMPORTANT: Currently, the openDAQ(TM) structure-enabled Devices, operating through the Native configuration
+IMPORTANT: Currently, the openDAQ(TM) structure-enabled Devices, operating through the Native Configuration
 protocol, exclusively support the Native streaming protocol for transmitting acquired data.
 
 [tabs]
@@ -106,15 +106,15 @@ using namespace daq;
 int main()
 {
     // Create a new Instance that we will use for all the interactions with the SDK
-    InstancePtr instance = Instance(MODULE_PATH);
+    InstancePtr instance = Instance();
 
-    // Get the default configuration Property object for OPC UA enabled Device type
+    // Get the default Configuration Property object for OPC UA enabled Device type
     PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
 
-    // Allow multiple Streaming protocols by Device configuration
+    // Allow multiple Streaming protocols by Device Configuration
     deviceConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
 
-    // Set websocket Streaming protocol as primary by Device configuration
+    // Set websocket Streaming protocol as primary by Device Configuration
     deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
 
     // Disregard direct Streaming connections for nested Devices,
@@ -180,7 +180,7 @@ using namespace daq;
 int main()
 {
     // Create a new Instance that we will use for all the interactions with the SDK
-    InstancePtr instance = Instance(MODULE_PATH);
+    InstancePtr instance = Instance();
 
     // Find and connect to a Device hosting an Native Streaming server
     const auto availableDevices = instance.getAvailableDevices();
@@ -330,15 +330,15 @@ void readSamples(const MirroredSignalConfigPtr signal)
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create a new Instance that we will use for all the interactions with the SDK
-    InstancePtr instance = Instance(MODULE_PATH);
+    InstancePtr instance = Instance();
 
-    // Get the default configuration Property object for OPC UA enabled Device type
+    // Get the default Configuration Property object for OPC UA enabled Device type
     PropertyObjectPtr deviceConfig = instance.getAvailableDeviceTypes().get("opendaq_opcua_config").createDefaultConfig();
 
-    // Allow multiple Streaming protocol by Device configuration
+    // Allow multiple Streaming protocol by Device Configuration
     deviceConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
 
-    // Set websocket Streaming protocol as primary by Device configuration
+    // Set websocket Streaming protocol as primary by Device Configuration
     deviceConfig.setPropertyValue("PrimaryStreamingProtocol", "opendaq_lt_streaming");
 
     // Find and connect to a Device hosting an OPC UA TMS server

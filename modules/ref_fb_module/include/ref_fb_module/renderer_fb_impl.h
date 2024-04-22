@@ -229,7 +229,7 @@ private:
     void processSignalDescriptorChanged(SignalContext& signalContext,
                                         const DataDescriptorPtr& valueSignalDescriptor,
                                         const DataDescriptorPtr& domainSignalDescriptor);
-    void processAttributeChanged(SignalContext& signalContext, const StringPtr& attrName, const StringPtr& attrValue);
+    void processAttributeChanged(SignalContext& signalContext, const StringPtr& attrName, const BaseObjectPtr& attrValue);
     void subscribeToSignalCoreEvent(const SignalPtr& signal);
     void processCoreEvent(ComponentPtr& component, CoreEventArgsPtr& args);
     void configureSignalContext(SignalContext& signalContext);

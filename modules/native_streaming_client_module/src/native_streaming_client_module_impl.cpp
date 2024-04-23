@@ -392,14 +392,14 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     const PropertyObjectPtr& transportLayerConfig)
 {
     StringPtr modifiedHost = host;
-    if (modifiedHost.assigned() && modifiedHost.getLength() > 2 && modifiedHost[0] == '[' && modifiedHost[modifiedHost.getLength() - 1] == ']')
+    if (modifiedHost.assigned() && modifiedHost.getLength() > 1 && modifiedHost[0] == '[' && modifiedHost[modifiedHost.getLength() - 1] == ']')
     {
         modifiedHost = modifiedHost.toStdString().substr(1, modifiedHost.getLength() - 2);
     }
     auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig);
-    if (!transportClientHandler->connect(host.toStdString(), port.toStdString(), path.toStdString()))
+    if (!transportClientHandler->connect(modifiedHost.toStdString(), port.toStdString(), path.toStdString()))
     {
-        auto message = fmt::format("Failed to connect to native streaming server - host {} port {} path {}", host, port, path);
+        auto message = fmt::format("Failed to connect to native streaming server - host {} port {} path {}", modifiedHost, port, path);
         LOG_E("{}", message);
         throw NotFoundException(message);
     }

@@ -147,7 +147,6 @@ Cpp::
 
 using namespace daq;
 
-// Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
 int main()
 {
     // Create an openDAQ(TM) Instance, loading modules from the current directory

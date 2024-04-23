@@ -2,6 +2,7 @@
 #include "test_helpers/mock_helper_module.h"
 #include <iostream>
 #include <opendaq/device_info_internal_ptr.h>
+#include <coreobjects/authentication_provider_factory.h>
 
 using namespace daq;
 
@@ -39,7 +40,8 @@ public:
         auto scheduler = Scheduler(logger);
         auto moduleManager = ModuleManager("");
         auto typeManager = TypeManager();
-        auto context = Context(scheduler, logger, typeManager, moduleManager);
+        auto authenticationProvider = AuthenticationProvider();
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
         auto instance = InstanceCustom(context, fmt::format("subdevice{}", index));
         const auto refDevice = instance.addDevice("daqref://device0");
 
@@ -72,7 +74,8 @@ public:
         auto scheduler = Scheduler(logger);
         auto moduleManager = ModuleManager("");
         auto typeManager = TypeManager();
-        auto context = Context(scheduler, logger, typeManager, moduleManager);
+        auto authenticationProvider = AuthenticationProvider();
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
         auto instance = InstanceCustom(context, "gateway");
 
@@ -130,7 +133,8 @@ public:
         auto scheduler = Scheduler(logger);
         auto moduleManager = ModuleManager("");
         auto typeManager = TypeManager();
-        auto context = Context(scheduler, logger, typeManager, moduleManager);
+        auto authenticationProvider = AuthenticationProvider();
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
         auto instance = InstanceCustom(context, "client");
 
         auto deviceType = instance.getAvailableDeviceTypes().get("opendaq_opcua_config");

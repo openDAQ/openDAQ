@@ -50,7 +50,7 @@ namespace test_helpers
                                        List<IString>("Key", "Value"),
                                        List<IType>(SimpleType(ctString), SimpleType(ctUndefined))));
 
-        return Context(nullptr, Logger(), typeManager, nullptr);
+        return Context(nullptr, Logger(), typeManager, nullptr, nullptr);
     }
 }
 

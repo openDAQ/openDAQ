@@ -86,7 +86,7 @@ protected:
     RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)
     {
         const auto logger = Logger();
-        const auto context = Context(nullptr, logger, objManager, nullptr);
+        const auto context = Context(nullptr, logger, objManager, nullptr, nullptr);
         const auto serverProp =
             std::make_shared<TmsServerPropertyObject>(prop, server, context, std::make_shared<TmsServerContext>(context, nullptr));
         const auto nodeId = serverProp->registerOpcUaNode();

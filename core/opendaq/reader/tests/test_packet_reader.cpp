@@ -27,7 +27,7 @@ class PacketReaderTest : public testing::Test
 public:
     explicit PacketReaderTest()
         : logger(Logger())
-        , context(Context(Scheduler(logger, 1), logger, nullptr, nullptr))
+        , context(Context(Scheduler(logger, 1), logger, nullptr, nullptr, nullptr))
         , scheduler(context.getScheduler())
         , signal(Signal(context, nullptr, "sig"))
     {

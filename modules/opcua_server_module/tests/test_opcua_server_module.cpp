@@ -11,6 +11,7 @@
 #include <opendaq/mock/mock_device_module.h>
 #include <opendaq/mock/mock_fb_module.h>
 #include <opcuaclient/opcuaclient.h>
+#include <coreobjects/authentication_provider_factory.h>
 
 
 class OpcUaServerModuleTest : public testing::Test
@@ -35,7 +36,8 @@ static InstancePtr CreateTestInstance()
 {
     const auto logger = Logger();
     const auto moduleManager = ModuleManager("[[none]]");
-    const auto context = Context(Scheduler(logger), logger, TypeManager(), moduleManager);
+    const auto authenticationProvider = AuthenticationProvider();
+    const auto context = Context(Scheduler(logger), logger, TypeManager(), moduleManager, authenticationProvider);
 
     const ModulePtr deviceModule(MockDeviceModule_Create(context));
     moduleManager.addModule(deviceModule);

@@ -39,9 +39,10 @@ inline ContextPtr Context(const SchedulerPtr& scheduler,
                           const LoggerPtr& logger,
                           const TypeManagerPtr& typeManager,
                           const ModuleManagerPtr& moduleManager,
+                          const AuthenticationProviderPtr& authenticationProvider,
                           const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>())
 {
-    ContextPtr obj(Context_Create(scheduler, logger, typeManager, moduleManager, options));
+    ContextPtr obj(Context_Create(scheduler, logger, typeManager, moduleManager, authenticationProvider, options));
     return obj;
 }
 
@@ -54,7 +55,7 @@ inline ContextPtr NullContext(const LoggerPtr& logger = Logger(),
                               const TypeManagerPtr& typeManager = TypeManager(),
                               const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>())
 {
-    ContextPtr obj(Context_Create(nullptr, logger, typeManager, nullptr, options));
+    ContextPtr obj(Context_Create(nullptr, logger, typeManager, nullptr, nullptr, options));
     return obj;
 }
 

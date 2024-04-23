@@ -17,6 +17,7 @@
 #include <opendaq/component_status_container_private_ptr.h>
 #include <opendaq/mock/mock_physical_device.h>
 #include <opendaq/device_domain_factory.h>
+#include <coreobjects/authentication_provider_factory.h>
 
 using namespace daq;
 
@@ -28,7 +29,8 @@ public:
         const auto logger = Logger();
         const auto moduleManager = ModuleManager("[[none]]");
         const auto typeManager = TypeManager();
-        const auto context = Context(nullptr, logger, typeManager, moduleManager);
+        const auto authenticationProvider = AuthenticationProvider();
+        const auto context = Context(nullptr, logger, typeManager, moduleManager, authenticationProvider);
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);

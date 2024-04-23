@@ -18,6 +18,7 @@
 #include <coretypes/stringobject.h>
 #include <opendaq/instance.h>
 #include <opendaq/config_provider.h>
+#include <coreobjects/authentication_provider.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -29,6 +30,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ * [interfaceLibrary(IAuthenticationProvider, "coreobjects")]
  */
 
 /*!
@@ -218,6 +220,19 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * @param[out] moduleManager The ModuleManager of Instance. Returns nullptr, if custom ModuleManager has not been set
      */
     virtual ErrCode INTERFACE_FUNC getModuleManager(IModuleManager** moduleManager) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the AuthenticationProvider for the Instance.
+     * @param authenticationProvider The AuthenticationProvider for the Instance
+     */
+    virtual ErrCode INTERFACE_FUNC setAuthenticationProvider(IAuthenticationProvider* authenticationProvider) = 0;
+
+    /*!
+     * @brief Gets the AuthenticationProvider of Instance
+     * @param[out] authenticationProvider The AuthenticationProvider of Instance.
+     */
+    virtual ErrCode INTERFACE_FUNC getAuthenticationProvider(IAuthenticationProvider** authenticationProvider) = 0;
 
     // [returnSelf]
     /*!

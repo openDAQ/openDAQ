@@ -1,7 +1,7 @@
 #include <opcuatms/exceptions.h>
 #include "test_helpers/test_helpers.h"
 #include <fstream>
-
+#include <coreobjects/authentication_provider_factory.h>
 #include "opendaq/mock/mock_device_module.h"
 
 using NativeDeviceModulesTest = testing::Test;
@@ -14,7 +14,8 @@ static InstancePtr CreateDefaultServerInstance()
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
     auto typeManager = TypeManager();
-    auto context = Context(scheduler, logger, typeManager, moduleManager);
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
 
@@ -32,7 +33,8 @@ static InstancePtr CreateUpdatedServerInstance()
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
     auto typeManager = TypeManager();
-    auto context = Context(scheduler, logger, typeManager, moduleManager);
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
 

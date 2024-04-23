@@ -3,13 +3,14 @@ from .component import Component
 from tkinter import ttk, simpledialog
 import opendaq as daq
 from functools import cmp_to_key
-from gui_demo.utils import *
+from ..utils import *
 
 class PropertiesView(tk.Frame, Component):
-    def __init__(self, parent: tk.Frame, context=None, **kwargs):
+    def __init__(self, parent: tk.Frame, node=None, context=None, **kwargs):
         tk.Frame.__init__(self, parent, **kwargs)
         Component.__init__(self)
         self.parent = parent
+        self.node = node
         self.context = context
 
         self.configure(padx=10, pady=5, border=1, relief=tk.GROOVE)
@@ -40,10 +41,10 @@ class PropertiesView(tk.Frame, Component):
 
     def refresh(self):
         self.tree.delete(*self.tree.get_children())
-        if self.context is not None:
-            if daq.IPropertyObject.can_cast_from(self.context):
+        if self.node is not None:
+            if daq.IPropertyObject.can_cast_from(self.node):
                 self.fillProperties(
-                    '', daq.IPropertyObject.cast_from(self.context))
+                    '', daq.IPropertyObject.cast_from(self.node))
 
     def fillProperties(self, parent_iid, node):
         def printed_value(value_type, value):

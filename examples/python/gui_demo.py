@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 import argparse
+import os
+
 import tkinter as tk
 from tkinter import ttk, simpledialog
 from tkinter.filedialog import asksaveasfile, askopenfile
 import tkinter.font as tkfont
 from functools import cmp_to_key
-import os
-from gui_demo.components.block_view import BlockView
 
 import opendaq as daq
 
@@ -16,6 +16,12 @@ try:
     windll.shcore.SetProcessDpiAwareness(1)
 except:
     pass
+
+try:
+    from gui_demo.components.block_view import BlockView
+except:
+    from opendaq.gui_demo.components.block_view import BlockView
+
 
 yes_no = {
     False: 'No',
@@ -26,6 +32,7 @@ yes_no_inv = {
     'No':  False,
     'Yes': True,
 }
+
 
 class DeviceInfoLocal:
     def __init__(self, conn_string):
@@ -85,32 +92,40 @@ def show_selection(title, current_value, values: daq.IList):
     return result
 
 
+class AppContext(object):
+    pass
+
+
 class App(tk.Tk):
 
     # MARK: -- INIT
     def __init__(self, args):
         super().__init__()
 
-        self.nodes = {}
-        self.selected_node = None
+        self.context = AppContext()
 
-        self.ui_scaling_factor = int(args.scale)
-        self.include_reference_devices = bool(args.demo)
+        self.context.nodes = {}
+        self.context.selected_node = None
+
+        self.context.ui_scaling_factor = int(args.scale)
+        self.context.include_reference_devices = bool(args.demo)
         try:
             if args.connection_string != '':
-                self.connection_string = args.connection_string
+                self.context.connection_string = args.connection_string
             else:
-                self.connection_string = None
+                self.context.connection_string = None
         except ValueError:
-            self.connection_string = None
+            self.context.connection_string = None
 
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
-            1400*self.ui_scaling_factor, 1000*self.ui_scaling_factor))
+            1400*self.context.ui_scaling_factor, 1000*self.context.ui_scaling_factor))
 
         main_frame_top = tk.Frame(self)
         main_frame_top.pack(fill=tk.constants.X)
         main_frame_top.configure(background='white')
+
+        self.menu_bar_create()
 
         add_device_button = tk.Button(
             main_frame_top, text='Add device', command=self.handle_add_device_button_clicked)
@@ -122,30 +137,10 @@ class App(tk.Tk):
         add_function_block_button.pack(
             side=tk.constants.LEFT, padx=5, pady=5, fill=tk.constants.X)
 
-        save_config_button = tk.Button(
-            main_frame_top, text='Save configuration', command=self.handle_save_config_button_clicked)
-        save_config_button.pack(side=tk.constants.LEFT,
-                                padx=5, pady=5, fill=tk.constants.X)
-
-        load_config_button = tk.Button(
-            main_frame_top, text='Load configuration', command=self.handle_load_config_button_clicked)
-        load_config_button.pack(side=tk.constants.LEFT,
-                                padx=5, pady=5, fill=tk.constants.X)
-
         refresh_button = tk.Button(
             main_frame_top, text='Refresh', command=self.handle_refresh_button_clicked)
         refresh_button.pack(side=tk.constants.LEFT,
                             padx=5, pady=5, fill=tk.constants.X)
-
-        self.remove_button = tk.Button(
-            main_frame_top, text='Remove', command=self.handle_remove_button_clicked, state='disabled')
-        self.remove_button.pack(side=tk.constants.RIGHT,
-                                padx=5, pady=5, fill=tk.constants.X)
-
-        self.connect_button = tk.Button(
-            main_frame_top, text='Connect', command=self.handle_connect_button_clicked, state='disabled')
-        self.connect_button.pack(side=tk.constants.RIGHT,
-                                 padx=5, pady=5, fill=tk.constants.X)
 
         main_frame_bottom = tk.Frame(self)
         main_frame_bottom.pack(fill=tk.constants.BOTH, expand=True)
@@ -166,7 +161,6 @@ class App(tk.Tk):
 
         main_frame_navigator.add(frame_navigator_for_properties)
 
-
         # self.properties_widget_create(frame_navigator_for_properties)
         # self.attributes_widget_create(frame_navigator_for_properties)
 
@@ -177,65 +171,72 @@ class App(tk.Tk):
         self.right_side_panel_create(frame_navigator_for_properties)
 
         # High DPI workaround for now
-        ttk.Style().configure('Treeview', rowheight=30*self.ui_scaling_factor)
+        ttk.Style().configure('Treeview', rowheight=30*self.context.ui_scaling_factor)
 
         default_font = tkfont.nametofont("TkDefaultFont")
-        default_font.configure(size=9*self.ui_scaling_factor)
+        default_font.configure(size=9*self.context.ui_scaling_factor)
 
-        self.icons = self.load_icons(os.path.join(os.path.dirname(__file__), 'gui_demo', 'icons'))
+        self.context.icons = self.load_icons(os.path.join(
+            os.path.dirname(__file__), 'gui_demo', 'icons'))
 
         self.init_opendaq()
 
     def init_opendaq(self):
         # init device
-        self.instance = daq.Instance()
-        
-        self.all_devices = {}
-        self.connected_devices = {}
+        self.context.instance = daq.Instance()
 
-        self.all_devices[self.instance.global_id] = dict()
-        self.connected_devices[self.instance.global_id] = dict()
+        self.context.all_devices = {}
+        self.context.connected_devices = {}
+
+        self.context.all_devices[self.context.instance.global_id] = dict()
+        self.context.connected_devices[self.context.instance.global_id] = dict(
+        )
 
         # add the first device if connection string is provided once on start
-        if self.connection_string != None:
+        if self.context.connection_string != None:
             self.add_first_available_device()  # also calls self.update_tree_widget()
 
         obj = daq.PropertyObject()
-        obj.add_property(daq.StringProperty(daq.String('name'), daq.String('Name'), daq.Boolean(True)))
-        self.instance.add_property(daq.ObjectProperty(daq.String('obj'), obj))
+        obj.add_property(daq.StringProperty(daq.String(
+            'name'), daq.String('Name'), daq.Boolean(True)))
+        self.context.instance.add_property(
+            daq.ObjectProperty(daq.String('obj'), obj))
 
         self.tree_update()
 
     def scan_devices(self, parent_device=None):
-        parent_device = parent_device if parent_device else self.instance
+        print(f'Scanning devices for {parent_device.info.name}')
+        parent_device = parent_device if parent_device else self.context.instance
 
         def add_device(device_info):
             conn = device_info.connection_string
             # ignore reference devices unless explicitly requested
-            if not self.include_reference_devices and 'daqref' in device_info.connection_string:
+            if not self.context.include_reference_devices and 'daqref' in device_info.connection_string:
                 return
             # only add device to the list if it isn't there already
-            if not conn in self.all_devices[parent_device.global_id]:
-                self.all_devices[parent_device.global_id][conn] = {
+            if not conn in self.context.all_devices[parent_device.global_id]:
+                self.context.all_devices[parent_device.global_id][conn] = {
                     'device_info': device_info, 'enabled': False, 'device': None}
 
         if daq.IDevice.can_cast_from(parent_device):
-            if parent_device.global_id not in self.all_devices:
-                self.all_devices[parent_device.global_id] = dict()
+            parent_device = daq.IDevice.cast_from(parent_device)
+            if parent_device.global_id not in self.context.all_devices:
+                self.context.all_devices[parent_device.global_id] = dict()
 
         for device_info in parent_device.available_devices:
             add_device(device_info)
 
     def add_first_available_device(self):
-        device_info = DeviceInfoLocal(self.connection_string)
+        device_info = DeviceInfoLocal(self.context.connection_string)
 
         device_state = {'device_info': device_info,
                         'enabled': False, 'device': None}
 
-        self.all_devices[self.instance.global_id][device_info.connection_string] = device_state
+        self.context.all_devices[self.context.instance.global_id][device_info.connection_string] = device_state
 
         try:
-            device = self.instance.add_device(device_info.connection_string)
+            device = self.context.instance.add_device(
+                device_info.connection_string)
             if device:
                 device_info.name = device.local_id
                 device_info.serial_number = device.info.serial_number
@@ -243,12 +244,39 @@ class App(tk.Tk):
                 device_state['enabled'] = True
 
                 # multiple keys for the same device's state
-                self.all_devices[self.instance.global_id][device_info.connection_string] = device_state
-                self.all_devices[self.instance.global_id][device.global_id] = device_state
-                self.connected_devices[self.instance.global_id][device_info.connection_string] = device_state
+                self.context.all_devices[self.context.instance.global_id][device_info.connection_string] = device_state
+                self.context.all_devices[self.context.instance.global_id][device.global_id] = device_state
+                self.context.connected_devices[self.context.instance.global_id][device_info.connection_string] = device_state
         except RuntimeError as e:
             print(f'Error adding device {device_info.connection_string}: {e}')
         self.tree_update()
+
+    # MARK: - Menu bar
+
+    # function to create menu bar with two submenus:
+    # file and view
+    # file includes items: load configuration, save configuration, exit
+    # view includes a togglable item show hidden components
+    def menu_bar_create(self):
+        menu_bar = tk.Menu(self)
+        self.config(menu=menu_bar)
+
+        file_menu = tk.Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label='File', menu=file_menu)
+        file_menu.add_command(label='Load configuration',
+                              command=self.handle_load_config_button_clicked)
+        file_menu.add_command(label='Save configuration',
+                              command=self.handle_save_config_button_clicked)
+        file_menu.add_separator()
+        file_menu.add_command(label='Exit', command=self.quit)
+
+        view_menu = tk.Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label='View', menu=view_menu)
+        view_menu.add_checkbutton(
+            label='Show hidden components', command=self.handle_view_show_hidden_components)
+
+    def handle_view_show_hidden_components(self):
+        pass
 
     # MARK: - Tree view
     def tree_widget_create(self, parent_frame):
@@ -260,7 +288,7 @@ class App(tk.Tk):
         tree.pack(fill="both", expand=True, side="left")
 
         # layout
-        tree.column('#0', width=350*self.ui_scaling_factor)
+        tree.column('#0', width=350*self.context.ui_scaling_factor)
         # hide the column with unique id
         tree.column('#1', width=0, minwidth=0, stretch=False)
         # tree.grid(row=0, column=0, rowspan=2, sticky=tk.NSEW)
@@ -288,14 +316,13 @@ class App(tk.Tk):
         # make sure the tree is empty
         self.tree.delete(*self.tree.get_children())
 
-        self.selected_node = new_selected_node
+        self.context.selected_node = new_selected_node
 
-        self.tree_traverse_components_recursive(self.instance)
-        self.selected_node = self.tree_restore_selection(
-            self.selected_node)  # reset in case the selected node outdates
+        self.tree_traverse_components_recursive(self.context.instance)
+        self.context.selected_node = self.tree_restore_selection(
+            self.context.selected_node)  # reset in case the selected node outdates
         # self.properties_update()
         # self.attributes_update()
-        self.tree_update_conext_buttons_state()
 
     def tree_traverse_components_recursive(self, component):
         if component is None:
@@ -318,29 +345,28 @@ class App(tk.Tk):
         component_name = component.name
         icon = None
 
-
         if daq.IChannel.can_cast_from(component):
             channel = daq.IChannel.cast_from(component)
             component_name = channel.name
-            icon = self.icons['channel']
+            icon = self.context.icons['channel']
         elif daq.ISignal.can_cast_from(component):
             signal = daq.ISignal.cast_from(component)
             component_name = signal.name
-            icon = self.icons['signal']
+            icon = self.context.icons['signal']
         elif daq.IFunctionBlock.can_cast_from(component):
             function_block = daq.IFunctionBlock.cast_from(component)
             component_name = function_block.function_block_type.name
-            icon = self.icons['function_block']
+            icon = self.context.icons['function_block']
         elif daq.IInputPort.can_cast_from(component):
             input_port = daq.IInputPort.cast_from(component)
             component_name = input_port.name
-            icon = self.icons['input_port']
+            icon = self.context.icons['input_port']
         elif daq.IDevice.can_cast_from(component):
             device = daq.IDevice.cast_from(component)
             component_name = device.info.name
-            icon = self.icons['device']
+            icon = self.context.icons['device']
         elif daq.IFolder.can_cast_from(component):
-            icon = self.icons['folder']
+            icon = self.context.icons['folder']
             if component_name == 'Sig':
                 component_name = 'Signals'
             elif component_name == 'FB':
@@ -354,7 +380,7 @@ class App(tk.Tk):
 
         self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
                          text=component_name, open=True, values=(component_node_id,))
-        self.nodes[component_node_id] = component
+        self.context.nodes[component_node_id] = component
 
     def tree_restore_selection(self, old_node=None):
         iid = '' if old_node is None else old_node.global_id
@@ -370,19 +396,6 @@ class App(tk.Tk):
         else:
             node = None
         return node
-
-    def tree_update_conext_buttons_state(self):
-        node = self.selected_node
-        node_is_function_block = node is not None and daq.IFunctionBlock.can_cast_from(
-            node)
-        node_is_device = node is not None and daq.IDevice.can_cast_from(node)
-        node_is_input_port = node is not None and daq.IInputPort.can_cast_from(
-            node)
-
-        self.connect_button.config(
-            state='normal' if node_is_input_port else 'disabled')
-        self.remove_button.config(
-            state='normal' if node_is_function_block or node_is_device and node != self.instance else 'disabled')
 
     def tree_get_nearest_parent_in_tree(self, parent):
         while parent is not None:
@@ -447,7 +460,7 @@ class App(tk.Tk):
         sorted_properties_info = self.properties_sort(properties_info)
         for property_info in sorted_properties_info:
             iid = property_info.name if parent == None else parent + "." + property_info.name
-            self.nodes_by_iids[iid] = node
+            self.context.nodes_by_iids[iid] = node
 
             show_read_write = 'R/W'
             if property_info.read_only:
@@ -478,12 +491,12 @@ class App(tk.Tk):
 
     def properties_update(self):
         self.properties_clear()
-        if (self.selected_node is not None):
-            self.properties_list(self.selected_node)
+        if (self.context.selected_node is not None):
+            self.properties_list(self.context.selected_node)
 
     def properties_clear(self):
         self.properties_tree.delete(*self.properties_tree.get_children())
-        self.nodes_by_iids = {}
+        self.context.nodes_by_iids = {}
 
     # MARK: - Attributes view
     def attributes_widget_create(self, parent_frame):
@@ -515,64 +528,64 @@ class App(tk.Tk):
         parent_frame.add(ttk.Label(parent_frame, text='Attributes'))
         parent_frame.add(frame, height=180)
         self.attributes_tree = tree
-        self.attributes = {}
+        self.context.attributes = {}
 
     def attributes_update(self):
         self.attributes_tree.delete(*self.attributes_tree.get_children())
 
-        self.attributes = {}
-        component = self.selected_node
+        self.context.attributes = {}
+        component = self.context.selected_node
 
         if component is None:
             return
 
-        self.attributes['Name'] = {
+        self.context.attributes['Name'] = {
             'Value': component.name, 'Locked': False, 'Attribute': 'name'}
-        self.attributes['Description'] = {
+        self.context.attributes['Description'] = {
             'Value': component.description, 'Locked': False, 'Attribute': 'description'}
-        self.attributes['Active'] = {'Value': bool(
+        self.context.attributes['Active'] = {'Value': bool(
             component.active), 'Locked': False, 'Attribute': 'active'}
-        self.attributes['Global ID'] = {
+        self.context.attributes['Global ID'] = {
             'Value': component.global_id, 'Locked': True, 'Attribute': 'global_id'}
-        self.attributes['Local ID'] = {
+        self.context.attributes['Local ID'] = {
             'Value': component.local_id, 'Locked': True, 'Attribute': 'local_id'}
-        self.attributes['Tags'] = {
+        self.context.attributes['Tags'] = {
             'Value': component.tags.list, 'Locked': False, 'Attribute': 'tags'}
-        self.attributes['Visible'] = {'Value': bool(
+        self.context.attributes['Visible'] = {'Value': bool(
             component.visible), 'Locked': False, 'Attribute': 'visible'}
 
         if daq.ISignal.can_cast_from(component):
             signal = daq.ISignal.cast_from(component)
 
-            self.attributes['Public'] = {'Value': bool(
+            self.context.attributes['Public'] = {'Value': bool(
                 signal.public), 'Locked': False, 'Attribute': 'public'}
-            self.attributes['Domain Signal ID'] = {
+            self.context.attributes['Domain Signal ID'] = {
                 'Value': signal.domain_signal.global_id if signal.domain_signal else '', 'Locked': True, 'Attribute': '.domain_signal'}
-            self.attributes['Related Signals IDs'] = {'Value': os.linesep.join(
+            self.context.attributes['Related Signals IDs'] = {'Value': os.linesep.join(
                 [s.global_id for s in signal.related_signals]), 'Locked': True, 'Attribute': 'related_signals'}
-            self.attributes['Streamed'] = {'Value': bool(
+            self.context.attributes['Streamed'] = {'Value': bool(
                 signal.streamed), 'Locked': True, 'Attribute': 'streamed'}
-            self.attributes['Last Value'] = {
+            self.context.attributes['Last Value'] = {
                 'Value': signal.last_value, 'Locked': True, 'Attribute': 'last_value'}
 
         if daq.IInputPort.can_cast_from(component):
             input_port = daq.IInputPort.cast_from(component)
 
-            self.attributes['Signal ID'] = {
+            self.context.attributes['Signal ID'] = {
                 'Value': input_port.signal.global_id if input_port.signal else '', 'Locked': True, 'Attribute': 'signal'}
-            self.attributes['Requires Signal'] = {'Value': bool(
+            self.context.attributes['Requires Signal'] = {'Value': bool(
                 input_port.requires_signal), 'Locked': True, 'Attribute': 'requires_signal'}
 
         locked_attributes = component.locked_attributes
 
         for locked_attribute in locked_attributes:
-            if locked_attribute not in self.attributes:
+            if locked_attribute not in self.context.attributes:
                 continue
-            self.attributes[locked_attribute]['Locked'] = True
+            self.context.attributes[locked_attribute]['Locked'] = True
 
-        for attr in self.attributes:
-            value = self.attributes[attr]['Value']
-            locked = yes_no[self.attributes[attr]['Locked']]
+        for attr in self.context.attributes:
+            value = self.context.attributes[attr]['Value']
+            locked = yes_no[self.context.attributes[attr]['Locked']]
 
             if type(value) is bool:
                 value = yes_no[value]
@@ -582,7 +595,7 @@ class App(tk.Tk):
     def right_side_panel_create(self, parent_frame):
 
         def canvas_on_configure(event):
-            canvas.itemconfig(sframe_id, width = event.width)
+            canvas.itemconfig(sframe_id, width=event.width)
 
         def inner_frame_on_configure(event):
             reqwidth, reqheight = sframe.winfo_reqwidth(), sframe.winfo_reqheight()
@@ -600,12 +613,13 @@ class App(tk.Tk):
         canvas.xview_moveto(0)
         canvas.yview_moveto(0)
 
-        scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=yview_wrapper)
+        scrollbar = ttk.Scrollbar(
+            frame, orient=tk.VERTICAL, command=yview_wrapper)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         sframe = tk.Frame(canvas)
         sframe_id = canvas.create_window(0, 0, window=sframe, anchor=tk.NW)
-        
+
         self.right_side_panel = sframe
 
         canvas.configure(yscrollcommand=scrollbar.set)
@@ -619,7 +633,7 @@ class App(tk.Tk):
         window = tk.Toplevel(self)
         window.title('Add device')
         window.geometry('{}x{}'.format(
-            900*self.ui_scaling_factor, 400*self.ui_scaling_factor))
+            900*self.context.ui_scaling_factor, 400*self.context.ui_scaling_factor))
         window.grid_rowconfigure(0, weight=1)
 
         # parent
@@ -682,7 +696,7 @@ class App(tk.Tk):
         # data
 
         self.dialog_treeview_update_parent_devices(
-            parent_device_tree, '', self.instance)
+            parent_device_tree, '', self.context.instance)
         show_modal(window)
 
     def dialog_treeview_update_parent_devices(self, tree, parent_id, component):
@@ -708,14 +722,14 @@ class App(tk.Tk):
     def dialog_treeview_update_child_devices(self, tree, parent_device: daq.IDevice):
         tree.delete(*tree.get_children())
 
-        for conn in self.all_devices[parent_device.global_id]:
+        for conn in self.context.all_devices[parent_device.global_id]:
             # not displaying dups of already connected devices
-            if conn in self.connected_devices[parent_device.global_id]:
+            if conn in self.context.connected_devices[parent_device.global_id]:
                 continue
 
-            device_info = self.all_devices[parent_device.global_id][conn]['device_info']
+            device_info = self.context.all_devices[parent_device.global_id][conn]['device_info']
             name = device_info.name
-            used = self.all_devices[parent_device.global_id][conn]['enabled']
+            used = self.context.all_devices[parent_device.global_id][conn]['enabled']
             tree.insert('', tk.END, iid=conn, values=(
                 yes_no[used], name, conn))
 
@@ -725,7 +739,7 @@ class App(tk.Tk):
         window = tk.Toplevel(self)
         window.title("Add function block")
         window.geometry('{}x{}'.format(
-            800*self.ui_scaling_factor, 400*self.ui_scaling_factor))
+            800*self.context.ui_scaling_factor, 400*self.context.ui_scaling_factor))
         window.grid_rowconfigure(0, weight=1)
 
         # parent
@@ -768,9 +782,9 @@ class App(tk.Tk):
         # layout
         tree.column('#0', anchor=tk.CENTER, width=0,    stretch=False)
         tree.column('#1', anchor=tk.CENTER, width=300 *
-                    self.ui_scaling_factor,  stretch=False)
+                    self.context.ui_scaling_factor,  stretch=False)
         tree.column('#2', anchor=tk.CENTER, width=300 *
-                    self.ui_scaling_factor,  stretch=True)
+                    self.context.ui_scaling_factor,  stretch=True)
 
         # bind double-click to editing
         tree.bind('<Double-1>',
@@ -788,7 +802,7 @@ class App(tk.Tk):
         window.columnconfigure(1, weight=2)
 
         self.dialog_treeview_update_parent_devices(
-            parent_device_tree, '', self.instance)
+            parent_device_tree, '', self.context.instance)
 
         show_modal(window)
 
@@ -812,7 +826,7 @@ class App(tk.Tk):
                              defaultextension=".json", filetypes=[("All Files", "*.*"), ("Json", "*.json")])
         if file is None:
             return
-        config_string = self.instance.save_configuration()
+        config_string = self.context.instance.save_configuration()
         a = file.write(config_string)
         file.close()
 
@@ -823,21 +837,21 @@ class App(tk.Tk):
             return
         config_string = file.read()
         file.close()
-        self.instance.load_configuration(config_string)
+        self.context.instance.load_configuration(config_string)
         self.tree_update()
 
     def handle_refresh_button_clicked(self):
-        self.tree_update(self.selected_node)
+        self.tree_update(self.context.selected_node)
 
     def handle_connect_button_clicked(self):
-        node = self.selected_node
+        node = self.context.selected_node
         node_is_input_port = node is not None and daq.IInputPort.can_cast_from(
             node)
         if node_is_input_port:
             self.handle_tree_menu_connect_input_port(None)
 
     def handle_remove_button_clicked(self):
-        node = self.selected_node
+        node = self.context.selected_node
         node_is_function_block = node is not None and daq.IFunctionBlock.can_cast_from(
             node)
         node_is_device = node is not None and daq.IDevice.can_cast_from(node)
@@ -891,7 +905,7 @@ class App(tk.Tk):
             folder = daq.IFolder.cast_from(node)
             if folder.parent is not None and daq.IDevice.can_cast_from(folder.parent) and folder.local_id == 'IO':
                 return folder
-            else: # iterate over folders only
+            else:  # iterate over folders only
                 return self.find_io_folder_of_device(node.parent)
         else:
             return None
@@ -908,9 +922,9 @@ class App(tk.Tk):
         else:
             if daq.IFolderConfig.can_cast_from(node):
                 folder = daq.IFolderConfig.cast_from(node)
-                print(f'io folder {node} named: {folder.name} items: {folder.items}')
+                print(
+                    f'io folder {node} named: {folder.name} items: {folder.items}')
             return self.find_fb_or_device(node.parent)
-        
 
     def right_side_panel_draw_node(self, node):
         if node is None:
@@ -919,40 +933,45 @@ class App(tk.Tk):
         if found is None:
             return
         elif type(found) in (daq.IChannel, daq.IFunctionBlock):
-            
+
             upper_nodes = list()
 
-            if daq.IChannel.can_cast_from(found): #traversing up IO folders
+            if daq.IChannel.can_cast_from(found):  # traversing up IO folders
                 current = found.parent
                 while current is not None:
                     next_parent = current.parent
                     if daq.IFolder.can_cast_from(current):
                         if next_parent is not None and daq.IFolder.can_cast_from(next_parent):
                             if not daq.IDevice.can_cast_from(next_parent) and current.local_id != 'IO':
-                                upper_nodes.append(daq.IFolder.cast_from(current))
-                            else :
+                                upper_nodes.append(
+                                    daq.IFolder.cast_from(current))
+                            else:
                                 break
                     current = current.parent
-            elif daq.IFunctionBlock.can_cast_from(found): #traversing function blocks
+            # traversing function blocks
+            elif daq.IFunctionBlock.can_cast_from(found):
                 current = found.parent
                 while current is not None:
                     if daq.IFunctionBlock.can_cast_from(current):
-                        upper_nodes.append(daq.IFunctionBlock.cast_from(current))
+                        upper_nodes.append(
+                            daq.IFunctionBlock.cast_from(current))
                     current = current.parent
 
             for upper_node in reversed(upper_nodes):
-                block_view = BlockView(self.right_side_panel, upper_node)
+                block_view = BlockView(
+                    self.right_side_panel, upper_node, self.context)
                 block_view.pack(fill=tk.X)
 
             def draw_sub_fbs(fb, level=0):
                 if fb is None:
                     return
-                
+
                 if daq.IFunctionBlock.can_cast_from(fb):
                     fb = daq.IFunctionBlock.cast_from(fb)
-                    b = BlockView(self.right_side_panel, fb, level == 0)
+                    b = BlockView(self.right_side_panel, fb,
+                                  self.context, level == 0)
                     b.pack(fill=tk.X, padx=(5*level, 0))
-                
+
                 if fb.has_item('FB'):
                     fb_folder = fb.get_item('FB')
                     fb_folder = daq.IFolder.cast_from(fb_folder)
@@ -962,26 +981,25 @@ class App(tk.Tk):
             draw_sub_fbs(found)
 
         elif type(found) is daq.IDevice:
-            block_view = BlockView(self.right_side_panel, found)
+            block_view = BlockView(self.right_side_panel, found, self.context)
             block_view.handle_expand_toggle()
             block_view.pack(fill=tk.X)
 
-
     # MARK: - Tree view handlers
 
+    # function getting all the file path in the directory passed as argument
 
-    #function getting all the file path in the directory passed as argument
     def get_files_in_directory(self, directory):
         files = []
         for file in os.listdir(directory):
             if os.path.isfile(os.path.join(directory, file)) and file.endswith('.png'):
                 files.append(file)
         return files
-    
-    def load_and_resize_image(self, filename, x_subsample = 10, y_subsample = 10):
+
+    def load_and_resize_image(self, filename, x_subsample=10, y_subsample=10):
         image = tk.PhotoImage(file=filename)
         return image.subsample(x_subsample, y_subsample)
-    
+
     def load_icons(self, directory):
         images = {}
         for file in self.get_files_in_directory(directory):
@@ -995,17 +1013,16 @@ class App(tk.Tk):
 
         selected_item = self.treeview_get_first_selection(self.tree)
         if selected_item is None:
-            self.selected_node = None
-            self.tree_update_conext_buttons_state()
+            self.context.selected_node = None
             return
         item = self.tree.item(selected_item)
 
         node_unique_id = item['values'][0]
-        if not node_unique_id in self.nodes:
+        if not node_unique_id in self.context.nodes:
             self.properties_clear()
             return
-        node = self.nodes[node_unique_id]
-        self.selected_node = node
+        node = self.context.nodes[node_unique_id]
+        self.context.selected_node = node
 
         for widget in self.right_side_panel.children.values():
             widget.pack_forget()
@@ -1026,7 +1043,7 @@ class App(tk.Tk):
         #     if expandable.context.global_id == self.selected_node.global_id:
         #         expandable.handle_expand()
         #     expandable.pack(fill=tk.X, expand=True)
-            # self.frame_navigator_for_properties.add(Expandable(self, 'fb', node))
+        # self.frame_navigator_for_properties.add(Expandable(self, 'fb', node))
 
         # self.frame_navigator_for_properties.add(Expandable(self, 'fb', node))
 
@@ -1035,7 +1052,7 @@ class App(tk.Tk):
             return
         if not daq.IFunctionBlock.can_cast_from(node):
             return
-        
+
         node = daq.IFunctionBlock.cast_from(node)
 
         device = self.get_nearest_device(node.parent)
@@ -1043,8 +1060,8 @@ class App(tk.Tk):
             return
 
         device.remove_function_block(node)
-        self.selected_node = device
-        self.tree_update(self.selected_node)
+        self.context.selected_node = device
+        self.tree_update(self.context.selected_node)
 
     def handle_tree_menu_remove_device(self, node):
         if type(node) is not daq.IDevice:
@@ -1060,32 +1077,34 @@ class App(tk.Tk):
             parent_device.remove_device(node)
 
             # return initial state to connection mapped info
-            device_info_id_mapped = self.all_devices[parent_device.global_id][node.global_id]['device_info']
-            device_state_conn_mapped = self.all_devices[
+            device_info_id_mapped = self.context.all_devices[
+                parent_device.global_id][node.global_id]['device_info']
+            device_state_conn_mapped = self.context.all_devices[
                 parent_device.global_id][device_info_id_mapped.connection_string]
             device_state_conn_mapped['enabled'] = False
             device_state_conn_mapped['device'] = None
 
             # removing id mapped info
-            self.all_devices[parent_device.global_id].pop(node.global_id, None)
-            self.connected_devices[parent_device.global_id].pop(
+            self.context.all_devices[parent_device.global_id].pop(
+                node.global_id, None)
+            self.context.connected_devices[parent_device.global_id].pop(
                 node.global_id, None)
 
-            self.selected_node = parent_device
-        self.tree_update(self.selected_node)
+            self.context.selected_node = parent_device
+        self.tree_update(self.context.selected_node)
 
     def handle_tree_menu_connect_input_port(self, event):
-        if self.selected_node is None:
+        if self.context.selected_node is None:
             return
-        if not daq.IInputPort.can_cast_from(self.selected_node):
+        if not daq.IInputPort.can_cast_from(self.context.selected_node):
             return
 
-        port = daq.IInputPort.cast_from(self.selected_node)
+        port = daq.IInputPort.cast_from(self.context.selected_node)
 
         window = tk.Toplevel(self)
         window.title("Connect signal to input port")
         window.geometry('{}x{}'.format(
-            800*self.ui_scaling_factor, 400*self.ui_scaling_factor))
+            800*self.context.ui_scaling_factor, 400*self.context.ui_scaling_factor))
 
         tree = ttk.Treeview(window, columns=('name', 'id'), displaycolumns=(
             'name', 'id'), show='tree headings', selectmode='browse')
@@ -1101,9 +1120,9 @@ class App(tk.Tk):
         # layout
         tree.column('#0', anchor=tk.CENTER, width=0,    stretch=False)
         tree.column('#1', anchor=tk.CENTER, width=250 *
-                    self.ui_scaling_factor,  stretch=False)
+                    self.context.ui_scaling_factor,  stretch=False)
         tree.column('#2', anchor=tk.CENTER, width=550 *
-                    self.ui_scaling_factor,  stretch=True)
+                    self.context.ui_scaling_factor,  stretch=True)
 
         # bind double-click to editing
         tree.bind(
@@ -1113,7 +1132,7 @@ class App(tk.Tk):
 
         tree.insert('', tk.END, iid="__none__", values=("[Unassigned]", "N/A"))
 
-        signals = self.instance.signals_recursive
+        signals = self.context.instance.signals_recursive
         for signal in signals:
             if signal.domain_signal is not None:
                 tree.insert('', tk.END, iid=signal.global_id,
@@ -1129,14 +1148,14 @@ class App(tk.Tk):
         if global_id == "__none__":
             port.disconnect()
         else:
-            signals = self.instance.signals_recursive
+            signals = self.context.instance.signals_recursive
             for signal in signals:
                 if signal.global_id == global_id:
                     port.connect(signal)
 
         window.destroy()
 
-        self.tree_update(self.selected_node)
+        self.tree_update(self.context.selected_node)
 
     # MARK: - Property view handlers
     def handle_property_double_click(self, event):
@@ -1147,7 +1166,7 @@ class App(tk.Tk):
             return
         item = self.properties_tree.item(selected_item)
         property_name = item['text']
-        node = self.nodes_by_iids.get(selected_item)
+        node = self.context.nodes_by_iids.get(selected_item)
         if not node:
             return
 
@@ -1205,15 +1224,15 @@ class App(tk.Tk):
 
     # MARK: - Attributes view handlers
     def handle_attributes_double_click(self, event):
-        node = self.selected_node
+        node = self.context.selected_node
         if not node:
             return
 
-        sel = self.treeview_get_first_selection(self.attributes_tree)
-        if sel not in self.attributes:
+        sel = self.treeview_get_first_selection(self.context.attributes_tree)
+        if sel not in self.context.attributes:
             return
 
-        attr_dict = self.attributes[sel]
+        attr_dict = self.context.attributes[sel]
 
         if attr_dict['Locked']:
             return
@@ -1248,7 +1267,7 @@ class App(tk.Tk):
 
         print(f'Value changed for {sel}: {value} -> {new_value}')
 
-        self.tree_update(self.selected_node)
+        self.tree_update(self.context.selected_node)
 
     # MARK: - Add function block dialog
     def handle_dialog_add_fb_parent_device_selected(self, event):
@@ -1303,11 +1322,11 @@ class App(tk.Tk):
         item = self.dialog_device_tree.item(selected_item)
 
         conn = item['values'][2]
-        if not conn in self.all_devices[nearest_device.global_id]:
+        if not conn in self.context.all_devices[nearest_device.global_id]:
             print("Something is wrong, device not found")
             return
 
-        device_state_conn_mapped = self.all_devices[nearest_device.global_id][conn]
+        device_state_conn_mapped = self.context.all_devices[nearest_device.global_id][conn]
         will_be_enabled = not device_state_conn_mapped['enabled']
         # will_be_enabled
         if will_be_enabled:
@@ -1322,21 +1341,21 @@ class App(tk.Tk):
                     device_info.name = device.local_id
                     device_info.serial_number = device.info.serial_number
 
-                self.all_devices[nearest_device.global_id][device.global_id] = device_state_conn_mapped
-                self.connected_devices[nearest_device.global_id][device.global_id] = device_state_conn_mapped
+                self.context.all_devices[nearest_device.global_id][device.global_id] = device_state_conn_mapped
+                self.context.connected_devices[nearest_device.global_id][device.global_id] = device_state_conn_mapped
 
             except RuntimeError as e:
                 print(f'Error adding device: {e}')
                 device_state_conn_mapped['device'] = None
                 device_state_conn_mapped['enabled'] = False
-        self.tree_update(self.selected_node)
+        self.tree_update(self.context.selected_node)
         self.dialog_treeview_update_parent_devices(
-            self.parent_device_tree, '', self.instance)
+            self.parent_device_tree, '', self.context.instance)
         self.parent_device_tree.selection_set(nearest_device.global_id)
 
     # MARK: - Other
     def find_component(self, id, parent=None, convert_id=True):
-        parent = parent if parent else self.instance
+        parent = parent if parent else self.context.instance
         if convert_id:
             split_id = id.split('/')
             id = '/'.join(split_id[2:])
@@ -1354,7 +1373,7 @@ class App(tk.Tk):
                 return daq.IDevice.cast_from(component)
             component = component.parent
 
-        return self.instance
+        return self.context.instance
 
     def get_nearest_named_parent_folder(self, component, name):
         while component:
@@ -1365,10 +1384,6 @@ class App(tk.Tk):
             component = component.parent
         return None
 
-# MARK: - CTX
-class Context:
-    def __init__(self):
-        self.instance = daq.IInstance()
 
 # MARK: - Entry point
 if __name__ == '__main__':

@@ -2,7 +2,7 @@ import opendaq as daq
 import tkinter as tk
 from tkinter import ttk
 
-yes_no = ['No','Yes']
+yes_no = ['No', 'Yes']
 
 yes_no_inv = {
     'No':  False,
@@ -92,6 +92,7 @@ def show_selection(title, current_value, values: daq.IList):
 
     show_modal(top)
     return result
+
 
 def root_device(node):
     while node.parent:

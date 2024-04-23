@@ -1,10 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, simpledialog
-from gui_demo.utils import *
+from ..utils import *
 import opendaq as daq
 import os
 
-yes_no = ['No', 'Yes']
 
 class AttributesDialog(tk.Toplevel):
     def __init__(self, parent, title, node, **kwargs):
@@ -150,7 +149,7 @@ class AttributesDialog(tk.Toplevel):
                 value = yes_no[value]
             self.tree.insert(
                 '', tk.END, iid=attr, text=attr, values=(value, locked))
-    
+
     def show(self):
         self.wait_visibility()
         self.tree_update()

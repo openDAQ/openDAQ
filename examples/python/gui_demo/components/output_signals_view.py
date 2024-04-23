@@ -1,19 +1,21 @@
 import tkinter as tk
 from .component import Component
-from gui_demo.components.output_signal_row import OutputSignalRow
+from .output_signal_row import OutputSignalRow
 from tkinter import ttk, simpledialog
 import opendaq as daq
 
+
 class OutputSignalsView(tk.Frame, Component):
-    def __init__(self, parent, node = None, **kwargs):
+    def __init__(self, parent, node=None, context=None, **kwargs):
         tk.Frame.__init__(self, parent, **kwargs)
         Component.__init__(self)
         self.parent = parent
         self.node = node
+        self.context = context
 
         self.configure(padx=10, pady=5, border=1, relief=tk.GROOVE)
         self.refresh()
-        
+
     def refresh(self):
         for widget in self.winfo_children():
             widget.pack_forget()
@@ -31,7 +33,9 @@ class OutputSignalsView(tk.Frame, Component):
                 # Code to execute if there are signals with domain_signal is not None
                 for output_signal in node.signals:
                     if output_signal.domain_signal == None:
-                        OutputSignalRow(self, output_signal).pack(anchor=tk.NW, fill=tk.X)
+                        OutputSignalRow(self, output_signal, self.context).pack(
+                            anchor=tk.NW, fill=tk.X)
                 return
-        
-        ttk.Label(self, text='No output signals').pack(anchor=tk.CENTER, expand=True)
+
+        ttk.Label(self, text='No output signals').pack(
+            anchor=tk.CENTER, expand=True)

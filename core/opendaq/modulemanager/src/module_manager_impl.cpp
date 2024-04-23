@@ -19,11 +19,8 @@
 #include <opendaq/server_capability_config_ptr.h>
 #include <ping/icmp_ping.h>
 
-// #include <boost/asio/steady_timer.hpp>
-// #include <boost/asio/ip/icmp.hpp>
-
-
 BEGIN_NAMESPACE_OPENDAQ
+
 static OrphanedModules orphanedModules;
 
 static constexpr char createModuleFactory[] = "createModule";
@@ -44,19 +41,14 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
         paths.insert(paths.end(), pathList.begin(), pathList.end());
     }
 
-
     std::size_t numThreads = 2;
     pool.reserve(numThreads);
     
     for (std::size_t i = 0; i < numThreads; ++i)
     {
-        pool.emplace_back([this, id = i + 1]
+        pool.emplace_back([this]
         {
-            // LOG_D("Starting ping thread {}\n", id);
-            fmt::println("Starting ping thread {}", id);
             ioContext.run();
-            // LOG_D("Stopped ping thread {}\n", id);
-            fmt::println("Stopped ping thread {}", id);
         });
     }
 

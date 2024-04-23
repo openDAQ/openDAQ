@@ -1,10 +1,6 @@
 set(BASE_NAME websocket_streaming)
 set(LIB_NAME ${SDK_TARGET_NAME}_${BASE_NAME})
 
-set(LIB_MAJOR_VERSION 0)
-set(LIB_MINOR_VERSION 4)
-set(LIB_PATCH_VERSION 0)
-
 set(SRC_Cpp signal_descriptor_converter.cpp
             streaming_client.cpp
             streaming_server.cpp
@@ -87,4 +83,4 @@ endif()
 
 set_target_properties(${LIB_NAME} PROPERTIES PUBLIC_HEADER "${SRC_PublicHeaders}")
 
-opendaq_set_output_lib_name(${LIB_NAME} ${LIB_MAJOR_VERSION})
+opendaq_set_output_lib_name(${LIB_NAME} ${PROJECT_VERSION_MAJOR})

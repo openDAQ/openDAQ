@@ -109,7 +109,7 @@ opendaq_target_link_libraries(${BASE_NAME}
         daq::logger
         daq::utility
         daq::component
-        daq::icmp_ping
+        $<BUILD_INTERFACE:daq::icmp_ping>
     PUBLIC
         daq::coretypes
 )

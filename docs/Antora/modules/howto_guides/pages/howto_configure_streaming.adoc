@@ -245,10 +245,9 @@ int main()
     // Get the first Signal of connected Device
     MirroredSignalConfigPtr signal = device.getSignalsRecursive()[0];
 
+    // Find and output the Streaming sources available for Signal
     StringPtr nativeStreamingSource;
     StringPtr websocketStreamingSource;
-
-    // Find and output the Streaming sources available for Signal
     std::cout << "Signal supports " << signal.getStreamingSources().getCount() << " streaming sources:" << std::endl;
     for (const auto& source : signal.getStreamingSources())
     {

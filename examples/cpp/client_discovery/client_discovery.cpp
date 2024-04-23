@@ -25,12 +25,11 @@ void printObject(const PropertyObjectPtr& obj, int ident)
         }
         else
         {
-            fmt::println("{:\t<{}}{:<25}: {}", "\t", ident, propName, propValue);        
+            fmt::println("{:\t<{}}{:<25}: {}", "\t", ident, propName, propValue);
         }
         
     }
-}    
-
+}
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
@@ -40,25 +39,22 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Discover all available devices, filter out all of which connection strings
     // do not start with "daq.opcua://" or "daq.lt://" or "daq.ns://"
     const auto deviceInfo = instance.getAvailableDevices();
-    // auto devices = List<IDevice>();
-    // for (auto info : deviceInfo)
-    // {
-    //     for (const auto & capability : info.getServerCapabilities())
-    //     {
-    //         auto device = instance.addDevice(capability.getConnectionString());
-    //         devices.pushBack(device);
-    //     }
-    // }
-
-    // system("pause");
-    // std::cin.get();
+    auto devices = List<IDevice>();
+    for (auto info : deviceInfo)
+    {
+        for (const auto & capability : info.getServerCapabilities())
+        {
+            auto device = instance.addDevice(capability.getConnectionString());
+            devices.pushBack(device);
+        }
+    }
 
     // Output the names and connection strings of all connected-to devices
     fmt::println("Connected devices:");
 
-    for (auto info : deviceInfo)
+    for (auto device : devices)
     {
-        // DeviceInfoPtr info = device.getInfo();
+        DeviceInfoPtr info = device.getInfo();
 
         fmt::println("---------------");
         

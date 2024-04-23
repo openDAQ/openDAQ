@@ -61,14 +61,4 @@ target_include_directories(${MODULE_NAME}
         $<INSTALL_INTERFACE:include>
 )
 
-install(TARGETS ${MODULE_NAME}
-        EXPORT ${SDK_NAME}
-        RUNTIME
-            DESTINATION ${CMAKE_INSTALL_BINDIR}
-        LIBRARY
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        ARCHIVE
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        PUBLIC_HEADER
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ping
-)
+#opendaq_set_output_lib_name(${MODULE_NAME} ${PROJECT_VERSION_MAJOR})

@@ -119,7 +119,7 @@ TEST_F(TmsInputPortTest, ConnectedToReference)
 {
     const auto logger = Logger();
     const auto scheduler = Scheduler(logger);
-    const auto context = Context(scheduler, logger, nullptr, nullptr);
+    const auto context = Context(scheduler, logger, nullptr, nullptr, nullptr);
 
     SignalPtr signal = Signal(context, nullptr, "sig");
 

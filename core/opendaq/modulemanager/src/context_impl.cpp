@@ -6,6 +6,7 @@
 #include <opendaq/custom_log.h>
 #include <coretypes/type_manager_private.h>
 #include <coreobjects/core_event_args_factory.h>
+#include <coreobjects/authentication_provider_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -13,15 +14,20 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
                          LoggerPtr logger,
                          TypeManagerPtr typeManager,
                          ModuleManagerPtr moduleManager,
+                         AuthenticationProviderPtr authenticationProvider,
                          DictPtr<IString, IBaseObject> options)
     : logger(std::move(logger))
     , scheduler(std::move(scheduler))
     , moduleManager(std::move(moduleManager))
     , typeManager(std::move(typeManager))
+    , authenticationProvider(std::move(authenticationProvider))
     , options(std::move(options))
 {
     if (!this->logger.assigned())
         throw ArgumentNullException("Logger must not be null");
+
+    if (!this->authenticationProvider.assigned())
+        this->authenticationProvider = AuthenticationProvider();
 
     if (this->moduleManager.assigned())
     {
@@ -102,6 +108,14 @@ ErrCode ContextImpl::getTypeManager(ITypeManager** manager)
 
     *manager = this->typeManager.addRefAndReturn();
 
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC ContextImpl::getAuthenticationProvider(IAuthenticationProvider** authenticationProvider)
+{
+    OPENDAQ_PARAM_NOT_NULL(authenticationProvider);
+
+    *authenticationProvider = this->authenticationProvider.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -190,6 +204,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     ILogger*, Logger,
     ITypeManager*, typeManager,
     IModuleManager*, moduleManager,
+    IAuthenticationProvider*, authenticationProvider,
     IDict*, options)
 
 END_NAMESPACE_OPENDAQ

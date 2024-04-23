@@ -44,7 +44,7 @@ public:
         // Create logger, module manager, context and module
         const auto logger = Logger();
         moduleManager = ModuleManager("[[none]]");
-        context = Context(Scheduler(logger), logger, nullptr, moduleManager);
+        context = Context(Scheduler(logger), logger, nullptr, moduleManager, nullptr);
         createModule(&module, context);
         moduleManager.addModule(module);
         moduleManager = context.asPtr<IContextInternal>().moveModuleManager();

@@ -3,6 +3,7 @@
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <opcuashared/opcuaexception.h>
 #include "test_helpers/test_helpers.h"
+#include <coreobjects/authentication_provider_factory.h>
 
 using OpcuaDeviceModulesTest = testing::Test;
 
@@ -14,7 +15,8 @@ static InstancePtr CreateServerInstance()
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
     auto typeManager = TypeManager();
-    auto context = Context(scheduler, logger, typeManager, moduleManager);
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
 
@@ -462,7 +464,8 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlocksOnClient)
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
     auto typeManager = TypeManager();
-    auto context = Context(scheduler, logger, typeManager, moduleManager);
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
 

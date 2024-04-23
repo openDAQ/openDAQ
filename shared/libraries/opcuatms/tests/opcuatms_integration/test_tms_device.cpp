@@ -25,7 +25,7 @@ public:
     InstancePtr createDevice()
     {
         const auto moduleManager = ModuleManager("[[none]]");
-        auto context = Context(nullptr, Logger(), nullptr, moduleManager);
+        auto context = Context(nullptr, Logger(), nullptr, moduleManager, nullptr);
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
 

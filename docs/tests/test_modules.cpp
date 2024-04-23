@@ -4,6 +4,7 @@
 #include <opendaq/opendaq.h>
 #include "docs_test_helpers.h"
 #include <opendaq/context_internal_ptr.h>
+#include <coreobjects/authentication_provider_factory.h>
 
 using ModulesTest = testing::Test;
 
@@ -62,7 +63,7 @@ TEST_F(ModulesTest, CreateComponents)
 {
     SKIP_TEST_MAC_CI;
     
-    const auto context = Context(nullptr, Logger(), TypeManager(), ModuleManager(""), Dict<IString, IBaseObject>());
+    const auto context = Context(nullptr, Logger(), TypeManager(), ModuleManager(""), AuthenticationProvider(), Dict<IString, IBaseObject>());
 
     ModuleManagerPtr manager = context.asPtr<IContextInternal>().moveModuleManager();
     manager.loadModules(context);
@@ -146,7 +147,8 @@ TEST_F(ModulesTest, CreateComponents)
 // Corresponding document: Antora/modules/explanation/pages/modules.adoc
 TEST_F(ModulesTest, CreateServer)
 {
-    const auto context = Context(nullptr, Logger(), TypeManager(), ModuleManager(""), Dict<IString, IBaseObject>());
+    const auto context =
+        Context(nullptr, Logger(), TypeManager(), ModuleManager(""), AuthenticationProvider(), Dict<IString, IBaseObject>());
 
     ModuleManagerPtr manager = context.asPtr<IContextInternal>().moveModuleManager();
     manager.loadModules(NullContext());

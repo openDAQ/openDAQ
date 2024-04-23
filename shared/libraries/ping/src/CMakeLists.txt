@@ -29,7 +29,7 @@ find_package(Threads REQUIRED)
 target_link_libraries(${MODULE_NAME}
     PUBLIC
         Threads::Threads
-        Boost::headers
+        Boost::asio
         fmt::fmt
         daq::logger_dev
 )

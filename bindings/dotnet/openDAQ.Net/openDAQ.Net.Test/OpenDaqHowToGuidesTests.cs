@@ -203,28 +203,31 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Category(SKIP_SETUP)]
     public void ConnectingGetAvailableDevicesTest()
     {
-        // Create an openDAQ(TM) Instance, loading Modules from the current directory
-        Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+        // Create an openDAQ(TM) Instance
+        Instance instance = OpenDAQFactory.Instance();
 
-        // Discover and print the names and connection strings of openDAQ(TM) Devices
+        // Discover and print the names and connection strings of openDAQ(TM) OPC UA Devices
         IListObject<DeviceInfo> availableDevicesInfo = instance.GetAvailableDevices();
         foreach (var deviceInfo in availableDevicesInfo)
-            if (deviceInfo.GetConnectionString().StartsWith("daq.opcua://"))
-                Console.WriteLine($"Name: {deviceInfo.GetName()}, Address: {deviceInfo.GetConnectionString()}");
+            foreach (var capability in deviceInfo.GetServerCapabilities())
+                if (capability.GetProtocolName() == "openDAQ OpcUa")
+                    Console.WriteLine($"Name: {deviceInfo.GetName()}, Address: {capability.GetConnectionString()}");
     }
 
     [Test]
     [Category(SKIP_SETUP)]
     public void ConnectingOpcUaDevicesTest()
     {
-        // Create an openDAQ(TM) Instance, loading Modules from the current directory
-        Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+        // Create an openDAQ(TM) Instance
+        Instance instance = OpenDAQFactory.Instance();
 
+        // Discover and connect to all openDAQ(TM) OPC UA Devices
         IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
-        // Discover and connect to all openDAQ(TM) Devices
-        foreach (var deviceInfo in instance.GetAvailableDevices())
-            if (deviceInfo.GetConnectionString().StartsWith("daq.opcua://"))
-                devices.Add(instance.AddDevice(deviceInfo.GetConnectionString()));
+        IListObject<DeviceInfo> availableDevicesInfo = instance.GetAvailableDevices();
+        foreach (var deviceInfo in availableDevicesInfo)
+            foreach (var capability in deviceInfo.GetServerCapabilities())
+                if (capability.GetProtocolName() == "openDAQ OpcUa")
+                    devices.Add(instance.AddDevice(capability.GetConnectionString()));
 
         //Hack: dispose device because otherwise we get exception in native code when GC tries to clean up
         foreach (var device in devices)
@@ -236,11 +239,11 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Category(SKIP_SETUP)]
     public void ConnectingOtherDevicesTest()
     {
-        // Create an openDAQ(TM) Instance, loading Modules from the current directory
-        Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+        // Create an openDAQ(TM) Instance
+        Instance instance = OpenDAQFactory.Instance();
 
-        IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
         // Discover and connect to all openDAQ(TM) reference Devices
+        IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
         foreach (var deviceInfo in instance.GetAvailableDevices())
             if (deviceInfo.GetConnectionString().StartsWith("daqref://"))
                 devices.Add(instance.AddDevice(deviceInfo.GetConnectionString()));

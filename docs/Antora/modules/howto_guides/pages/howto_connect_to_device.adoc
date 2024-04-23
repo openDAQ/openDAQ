@@ -27,12 +27,12 @@ Cpp::
 
 using namespace daq;
 
-int main(int argc, const char* argv[])
+int main(int /*argc*/, const char* /*argv*/[])
 {
-    // Create an openDAQ(TM) Instance, loading Modules from the current directory
-    InstancePtr instance = Instance(MODULE_PATH);
+    // Create an openDAQ(TM) Instance
+    InstancePtr instance = Instance();
 
-    // Discover and print the names and connection strings of openDAQ(TM) Devices
+    // Discover and print the names and connection strings of openDAQ(TM) OPC UA Devices
     ListPtr<IDeviceInfo> availableDevicesInfo = instance.getAvailableDevices();
     for (const auto& deviceInfo : availableDevicesInfo)
     {
@@ -57,29 +57,28 @@ import opendaq
 # Create an openDAQ(TM) Instance
 instance = opendaq.Instance()
 
-# Discover and print the names and connection strings of openDAQ(TM) Devices
+# Discover and print the names and connection strings of openDAQ(TM) OPC UA Devices
 for device_info in instance.available_devices:
     for capability in device_info.server_capabilities:
         if capability.protocol_name == 'openDAQ OpcUa':
-            device = instance.add_device(capability.connection_string)
-            break
+            print("Name: ", device_info.name,  ", Address: ",  capability.connection_string)
 ----
 C#::
 +
 [source,csharp]
 ----
 using Daq.Core.Types;
-using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 
-// Create an openDAQ(TM) Instance, loading Modules from the current directory
-Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+// Create an openDAQ(TM) Instance
+Instance instance = OpenDAQFactory.Instance();
 
-// Discover and print the names and connection strings of openDAQ(TM) Devices
+// Discover and print the names and connection strings of openDAQ(TM) OPC UA Devices
 IListObject<DeviceInfo> availableDevicesInfo = instance.GetAvailableDevices();
 foreach (var deviceInfo in availableDevicesInfo)
-    if (deviceInfo.GetConnectionString().StartsWith("daq.opcua://"))
-        Console.WriteLine($"Name: {deviceInfo.GetName()}, Address: {deviceInfo.GetConnectionString()}");
+    foreach (var capability in deviceInfo.GetServerCapabilities())
+        if (capability.GetProtocolName() == "openDAQ OpcUa")
+            Console.WriteLine($"Name: {deviceInfo.GetName()}, Address: {capability.GetConnectionString()}");
 ----
 ====
 
@@ -98,16 +97,24 @@ Cpp::
 
 using namespace daq;
 
-int main(int argc, const char* argv[])
+int main(int /*argc*/, const char* /*argv*/[])
 {
-    // Create an openDAQ(TM) Instance, loading Modules from the current directory
-    InstancePtr instance = Instance(MODULE_PATH);
+    // Create an openDAQ(TM) Instance
+    InstancePtr instance = Instance();
 
+    // Discover and connect to all openDAQ(TM) OPC UA Devices
     ListPtr<IDevice> devices = List<IDevice>();
-    // Discover and connect to all openDAQ(TM) Devices
-    for (const auto& deviceInfo : instance.getAvailableDevices())
-        if (deviceInfo.getConnectionString().toStdString().find("daq.opcua://") != std::string::npos)
-            devices.pushBack(instance.addDevice(deviceInfo.getConnectionString()));
+    ListPtr<IDeviceInfo> availableDevicesInfo = instance.getAvailableDevices();
+    for (const auto& deviceInfo : availableDevicesInfo)
+    {
+        for (const auto& capability : deviceInfo.getServerCapabilities())
+        {
+            if (capability.getProtocolName() == "openDAQ OpcUa")
+            {
+                devices.pushBack(instance.addDevice(capability.getConnectionString()));
+            }
+        }
+    }
 
     return 0;
 }
@@ -121,27 +128,30 @@ import opendaq
 # Create an openDAQ(TM) Instance
 instance = opendaq.Instance()
 
-# Discover and connect to all openDAQ(TM) Devices
-devices = [instance.add_device(d.connection_string)
-           for d in instance.available_devices
-           if d.connection_string.startswith('daq.opcua://')]
+# Discover and connect to all openDAQ(TM) OPC UA Devices
+devices = []
+for device_info in instance.available_devices:
+    for capability in device_info.server_capabilities:
+        if capability.protocol_name == 'openDAQ OpcUa':
+            devices.append(instance.add_device(capability.connection_string))
 ----
 C#::
 +
 [source,csharp]
 ----
 using Daq.Core.Types;
-using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 
-// Create an openDAQ(TM) Instance, loading Modules from the current directory
-Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+// Create an openDAQ(TM) Instance
+Instance instance = OpenDAQFactory.Instance();
 
+// Discover and connect to all openDAQ(TM) OPC UA Devices
 IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
-// Discover and connect to all openDAQ(TM) Devices
-foreach (var deviceInfo in instance.GetAvailableDevices())
-    if (deviceInfo.GetConnectionString().StartsWith("daq.opcua://"))
-        devices.Add(instance.AddDevice(deviceInfo.GetConnectionString()));
+IListObject<DeviceInfo> availableDevicesInfo = instance.GetAvailableDevices();
+foreach (var deviceInfo in availableDevicesInfo)
+    foreach (var capability in deviceInfo.GetServerCapabilities())
+        if (capability.GetProtocolName() == "openDAQ OpcUa")
+            devices.Add(instance.AddDevice(capability.GetConnectionString()));
 ----
 ====
 
@@ -170,16 +180,20 @@ Cpp::
 
 using namespace daq;
 
-int main(int argc, const char* argv[])
+int main(int /*argc*/, const char* /*argv*/[])
 {
-    // Create an openDAQ(TM) Instance, loading Modules from the current directory
-    InstancePtr instance = Instance(MODULE_PATH);
+    // Create an openDAQ(TM) Instance
+    InstancePtr instance = Instance();
 
-    ListPtr<IDevice> devices = List<IDevice>();
     // Discover and add all openDAQ(TM) reference Devices
+    ListPtr<IDevice> devices = List<IDevice>();
     for (const auto& deviceInfo : instance.getAvailableDevices())
+    {
         if (deviceInfo.getConnectionString().toStdString().find("daqref://") != std::string::npos)
+        {
             devices.pushBack(instance.addDevice(deviceInfo.getConnectionString()));
+        }
+    }
 
     return 0;
 }
@@ -195,7 +209,7 @@ instance = opendaq.Instance()
 
 # Discover and add all openDAQ(TM) reference Devices
 devices = [instance.add_device(d.connection_string)
-           for d in instance.enumerate_available_devices()
+           for d in instance.available_devices
            if d.connection_string.startswith('daqref://')]
 ----
 C#::
@@ -203,14 +217,13 @@ C#::
 [source,csharp]
 ----
 using Daq.Core.Types;
-using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 
-// Create an openDAQ(TM) Instance, loading Modules from the current directory
-Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+// Create an openDAQ(TM) Instance
+Instance instance = OpenDAQFactory.Instance();
 
-IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
 // Discover and connect to all openDAQ(TM) reference Devices
+IListObject<Device> devices = CoreTypesFactory.CreateList<Device>();
 foreach (var deviceInfo in instance.GetAvailableDevices())
     if (deviceInfo.GetConnectionString().StartsWith("daqref://"))
         devices.Add(instance.AddDevice(deviceInfo.GetConnectionString()));

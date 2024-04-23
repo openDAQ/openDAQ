@@ -392,7 +392,7 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     const PropertyObjectPtr& transportLayerConfig)
 {
     StringPtr modifiedHost = host;
-    if (modifiedHost.assigned() && modifiedHost.getLength() > 1 && modifiedHost[0] == '[' && modifiedHost[modifiedHost.getLength() - 1] == ']')
+    if (modifiedHost.assigned() && modifiedHost.getLength() > 1 && modifiedHost.getCharPtr()[0] == '[' && modifiedHost.getCharPtr()[modifiedHost.getLength() - 1] == ']')
     {
         modifiedHost = modifiedHost.toStdString().substr(1, modifiedHost.getLength() - 2);
     }

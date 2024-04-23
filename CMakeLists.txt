@@ -679,6 +679,7 @@ add_subdirectory(app)
 add_subdirectory(examples)
 add_subdirectory(docs)
 add_subdirectory(simulator)
+add_subdirectory(regression)
 
 if (NOT BUILDING_AS_SUBMODULE)
     set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ".CMakePredefinedTargets")

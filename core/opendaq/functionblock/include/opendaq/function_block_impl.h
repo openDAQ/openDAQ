@@ -84,7 +84,9 @@ protected:
 
     InputPortConfigPtr createAndAddInputPort(const std::string& localId,
                                              PacketReadyNotification notificationMethod,
-                                             BaseObjectPtr customData = nullptr);
+                                             BaseObjectPtr customData = nullptr,
+                                             bool requestGapPackets = false);
+
     void addInputPort(const InputPortPtr& inputPort);
     void removeInputPort(const InputPortConfigPtr& inputPort);
 
@@ -448,9 +450,10 @@ void FunctionBlockImpl<TInterface, Interfaces...>::onDisconnected(const InputPor
 template <typename TInterface, typename... Interfaces>
 InputPortConfigPtr FunctionBlockImpl<TInterface, Interfaces...>::createAndAddInputPort(const std::string& localId,
                                                                                        PacketReadyNotification notificationMethod,
-                                                                                       BaseObjectPtr customData)
+                                                                                       BaseObjectPtr customData,
+                                                                                       bool requestGapPackets)
 {
-    auto inputPort = InputPort(this->context, inputPorts, localId);
+    auto inputPort = InputPort(this->context, inputPorts, localId, requestGapPackets);
     inputPort.setListener(this->template borrowPtr<InputPortNotificationsPtr>());
     inputPort.setNotificationMethod(notificationMethod);
     inputPort.setCustomData(customData);

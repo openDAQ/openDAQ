@@ -9,11 +9,11 @@ on:
         default: ''
         type: string
       windows_x64_artifact_name:
-        description: the name of the Windows x64 source artifact
+        description: the name of the Windows x64 source artifact (package will be deleted after its use)
         required: true
         type: string
       linux_x64_artifact_name:
-        description: the name of the Linux x64 source artifact
+        description: the name of the Linux x64 source artifact (package will be deleted after its use)
         required: true
         type: string
       short_sha:
@@ -29,11 +29,11 @@ on:
         description: result of the creation job
         value: ${{ fromJSON(toJSON(jobs.dotnet-bindings-nuget-creation)).result }}
         # JSON trick from https://github.com/actions/runner/issues/2495
-    
+
 jobs:
   dotnet-bindings-nuget-creation:
     runs-on: windows-2022
-    name: .NET Bindings NuGet creation
+    name: NuGet creation
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-nuget
@@ -45,7 +45,6 @@ jobs:
       nuget_work_path_win_x64: ${{ github.workspace }}/build/nuget_work/win-x64
       nuget_work_path_linux_x64: ${{ github.workspace }}/build/nuget_work/linux-x64
       dotnet_source_path: ${{ github.workspace }}/bindings/dotnet/openDAQ.Net
-      version_suffix: ${{ inputs.short_sha == '' && '' || format('--version-suffix beta-{0}', inputs.short_sha) }}
       nuget_artifact: Package (openDAQ.Net NuGet)
       # map inputs to env
       test_path: ${{ inputs.test_path }}
@@ -104,12 +103,14 @@ jobs:
       - name: Build NuGet package
         working-directory: ${{ env.dotnet_source_path }}/openDAQ.NET
         run: |
-          $SDK_WIN64_PATH = "-p:SDK_WIN64_PATH=""${{ env.nuget_work_path_win_x64 }}"""
-          $SDK_LINUX64_PATH = "-p:SDK_LINUX64_PATH=""${{ env.nuget_work_path_linux_x64 }}"""
-          $DAQ_VERSION = "-p:OPENDAQ_PACKAGE_VERSION=${{ steps.daq_version.outputs.DAQ_VERSION }}"
-          if (Test-Path "${{ env.nuget_work_path }}/win-x64/*.nupkg") { del "${{ env.nuget_work_path }}/win-x64/*.nupkg" -Force }
+          # for .NET Bindings build
+          $ENV:SHORT_SHA = '${{ inputs.short_sha }}'
+          $SDK_WIN64_PATH = '-p:SDK_WIN64_PATH="${{ env.nuget_work_path_win_x64 }}"'
+          $SDK_LINUX64_PATH = '-p:SDK_LINUX64_PATH="${{ env.nuget_work_path_linux_x64 }}"'
+          $DAQ_VERSION = '-p:OPENDAQ_PACKAGE_VERSION=${{ steps.daq_version.outputs.DAQ_VERSION }}'
+          if (Test-Path '${{ env.nuget_work_path }}/win-x64/*.nupkg') { del '${{ env.nuget_work_path }}/win-x64/*.nupkg' -Force }
           & dotnet restore .
-          & dotnet pack . --no-build --configuration Release_Build $SDK_WIN64_PATH $SDK_LINUX64_PATH $DAQ_VERSION ${{ env.version_suffix }}
+          & dotnet pack . --no-build --configuration Release_Build $SDK_WIN64_PATH $SDK_LINUX64_PATH $DAQ_VERSION $VERSION_SUFFIX
         # restoring before packing to create obj\project.assets.json needed for packing
         # packing without building as the binaries (artifacts) have been downloaded before (handled in *.csproj)
 
@@ -129,7 +130,7 @@ jobs:
 
   dotnet-bindings-nuget-test-win:
     runs-on: windows-2022
-    name: .NET Bindings NuGet test (Windows)
+    name: NuGet test (Windows)
 
     needs: [dotnet-bindings-nuget-creation]
 

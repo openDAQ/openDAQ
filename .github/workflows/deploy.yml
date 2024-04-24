@@ -58,9 +58,10 @@ jobs:
             cpack: NSIS
 
     outputs:
-      # trick for reusable workflow in build_nuget because cannot use env context
+      # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
       windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
       short_sha: ${{ steps.short-sha.outputs.sha }}
+      # step short-sha might be skipped which leaves output "sha" empty/null
 
     steps:
       - name: Checkout
@@ -77,7 +78,7 @@ jobs:
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
-          # for .NET Bindings configuration
+          # for .NET Bindings build
           $env:SHORT_SHA = "${{ steps.short-sha.outputs.sha }}"
           mkdir build
           cd build
@@ -105,6 +106,8 @@ jobs:
         if: matrix.cmake_generator_platform == 'Win32'
         shell: pwsh
         run: |
+          # for .NET Bindings build
+          $env:SHORT_SHA = "${{ steps.short-sha.outputs.sha }}"
           mkdir build
           cd build
           Write-Output "Building for Win32"
@@ -132,7 +135,7 @@ jobs:
         shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
-          Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.BaseName + "_${{ steps.short-sha.outputs.sha }}" + $_.Extension}
+          Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
 
       - name: Rename wheels (main)
         if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'
@@ -163,18 +166,6 @@ jobs:
         run: |
           aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_win_amd64_path }}" --recursive --exclude '*' --include '*.whl'
           aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_win_amd64_path }}" --recursive
-
-      - name: Upload NuGet to S3
-        if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'
-        shell: pwsh
-        working-directory: ${{ env.package_path }}
-        run: |
-          Write-Output "# S3 listing"
-          aws s3 ls "s3://${{ env.s3bucket }}/${{ env.s3dotnet_path }}/" --recursive --human-readable
-          Write-Output "# S3 remove '*.nupkg'"
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3dotnet_path }}" --recursive --exclude '*' --include '*.nupkg'
-          Write-Output "# S3 copy '*.nupkg' from '${{ env.package_path }}'"
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3dotnet_path }}" --recursive --exclude '*' --include '*.nupkg'
 
       - name: Upload package
         uses: actions/upload-artifact@v3
@@ -237,7 +228,7 @@ jobs:
         CXX: ${{ matrix.cxx }}
 
     outputs:
-      # trick for reusable workflow in build_nuget because cannot use env context
+      # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
       linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
 
     steps:
@@ -642,8 +633,8 @@ jobs:
           retention-days: 7
 
   # using reusable workflow
-  build_nuget:
-      name: .NET Bindings NuGet package
+  dotnet_bindings:
+      name: .NET Bindings
 
       needs: [deploy_windows,deploy_linux]
 
@@ -654,16 +645,15 @@ jobs:
         windows_x64_artifact_name:  ${{ needs.deploy_windows.outputs.windows_x64_artifact_name }}
         linux_x64_artifact_name:  ${{ needs.deploy_linux.outputs.linux_x64_artifact_name }}
         short_sha: ${{ needs.deploy_windows.outputs.short_sha }}
-      #secrets: inherit
       # -> output.nuget_artifact_name
 
   deploy_nuget:
     runs-on: windows-2022
     name: Deploy NuGet package
 
-    needs: [build_nuget]
+    needs: [dotnet_bindings]
 
-    if: always() && needs.build_nuget.outputs.nuget_creation_result == 'success'
+    if: always() && needs.dotnet_bindings.outputs.nuget_creation_result == 'success'
 
     defaults:
       run:
@@ -674,7 +664,7 @@ jobs:
       - name: Download NuGet artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ needs.build_nuget.outputs.nuget_artifact_name }}
+          name: ${{ needs.dotnet_bindings.outputs.nuget_artifact_name }}
           path: ${{ env.package_path }}
 
       - name: Rename package

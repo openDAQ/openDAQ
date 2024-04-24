@@ -120,7 +120,7 @@ Cpp::
 ----
 // Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
 functionBlock.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
-// Read data from the signal
+// Read data from the first Signal of the Function Block
 // ...
 ----
 Python::
@@ -129,7 +129,7 @@ Python::
 ----
 # Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
 function_block.input_ports[0].connect(device.channels[0].signals[0])
-# Read data from the Signal
+# Read data from the first Signal of the Function Block
 # ...
 ----
 C#::
@@ -138,7 +138,7 @@ C#::
 ----
 // Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
 functionBlock.GetInputPorts()[0].Connect(device.GetChannels()[0].GetSignals()[0]);
-// Read data from the Signal
+// Read data from the first Signal of the Function Block
 // ...
 ----
 ====
@@ -190,7 +190,7 @@ int main()
 
     // Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
     functionBlock.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
-    // Read data from the Signal
+    // Read data from the first Signal of the Function Block
     // ...
 
     // Get the output Signal of the Function Block
@@ -229,7 +229,7 @@ function_block.set_property_value("BlockSize", 100)
 
 # Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
 function_block.input_ports[0].connect(device.channels[0].signals[0])
-# Read data from the Signal
+# Read data from the first Signal of the Function Block
 # ...
 
 # Get the output Signal of the Function Block
@@ -267,7 +267,7 @@ functionBlock.SetPropertyValue("BlockSize", 100);
 
 // Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
 functionBlock.GetInputPorts()[0].Connect(device.GetChannels()[0].GetSignals()[0]);
-// Read data from the Signal
+// Read data from the first Signal of the Function Block
 // ...
 
 // Get the output Signal of the Function Block

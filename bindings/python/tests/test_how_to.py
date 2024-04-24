@@ -55,7 +55,7 @@ class TestDocumentationHowTo(opendaq_test.TestCase):
 
         # Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
         function_block.input_ports[0].connect(device.channels[0].signals[0])
-        # Read data from the Signal
+        # Read data from the first Signal of the Function Block
         # ...
     
         # Get the output Signal of the Function Block

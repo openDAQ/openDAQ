@@ -352,7 +352,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
         functionBlock.GetInputPorts()[0].Connect(device.GetChannels()[0].GetSignals()[0]);
         Signal outputSignal = functionBlock.GetSignals()[0];
-        // read data from the signal
+        // Read data from the first Signal of the Function Block
         // ...
     }
 

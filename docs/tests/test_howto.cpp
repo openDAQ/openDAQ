@@ -92,7 +92,7 @@ TEST_F(HowToTest, ConfigureFunctionBlock)
 
     // Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
     functionBlock.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
-    // Read data from the Signal
+    // Read data from the first Signal of the Function Block
     // ...
 
     // Get the output Signal of the Function Block

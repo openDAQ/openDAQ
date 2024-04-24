@@ -182,7 +182,7 @@ simulates two such Channels, both outputting sine wave Signals.
 
 We can obtain a list of Devices that we can add / connect to via by getting a list of available Devices.
 openDAQ(TM) can ask all loaded Modules to return information about any Device it discovers. 
-If multiple modules return information about the same device, this means that devices supports multiple protocol, and information will be grouped. 
+If multiple modules return information about the same device, it means that this device supports multiple protocols, and information will be grouped. 
 In this guide, we use three Modules that can connect to / add Devices - the openDAQ(TM) `opcua_client_module`, `native_stream_cl_module`
 (Native streaming client module), and a reference device module.
 
@@ -252,18 +252,30 @@ for device_info in instance.available_devices:
 Now run the simulator and the above client code. We should see the console output several Device names and connection
 strings. 
 
-* `Device 0 : daqref://device0`
-* `Device 1 : daq://openDAQ_xxx`
-** `openDAQ Native Streaming : daq.ns://xxx.xxx.xxx.xxx/`
-** `openDAQ Native Configuration : daq.nd://xxx.xxx.xxx.xxx/`
-** `openDAQ OpcUa : daq.opcua://xxx.xxx.xxx.xxx/`
+* Reference device : daqref://device0
+* Simulator device : daq://openDAQ_xxx
+** openDAQ Native Streaming : daq.ns://xxx.xxx.xxx.xxx/
+** openDAQ Native Configuration : daq.nd://xxx.xxx.xxx.xxx/
+** openDAQ OpcUa : daq.opcua://xxx.xxx.xxx.xxx/
 
-In the above example, we see that the simulator device is shown as `daq://openDAQ_xxx` where `openDAQ` is manufacturer name and `xxx` is a serial number.
-Because simulator was discovered by multiple modules, information about simulator was grouped. To connect to the simulator, we can use any of the provided connection strings.
+In the above example, we can see that different devices has own format of connection string. 
+
+* Device 0 has a connection string that starts with `daqref://` which means that this is a reference device. 
+* Device 1 has a connection string that starts with `daq://`. It means that device supports multiple protocols and connection string represent manufacture (`openDAQ`) and serial number of device (`xxx`)
+
+If device supports supports only one protocol or does not have information about manufacturer or serial number, getAvailableDevices will return device with connection string which is the same as connection string from server capability. Example below represent scenario when the same device supports multiple protocols, but missing information about manufacturer or serial number.
+
+* Device 0 : daq.ns://192.168.0.32/
+** openDAQ Native Streaming : daq.ns://192.168.0.32/
+* Device 1 : daq.nd://192.168.0.32/
+** openDAQ Native Configuration : daq.nd://192.168.0.32/
 
 === Connecting to a remote device
+Previous example shows how to get available devices. As you could see, the simulator is available by different protocols. And you can access to device by any of them. If you want to connect to the simulator with the optimal protocol, you can connect with the connection string from the device info which has prefix `daq://`. At that case module manager will choose the best solution for you.
 
-Once we have the list of available Devices, we can connect to one of them. In the following example, we connect to our simulator, Simulator connection string starts with `daq://openDAQ_`, so to connect to it we use the connection string that starts with `daq://openDAQ_`.
+NOTE: Not all devices support connecting with prefix `daq://`. To make sure that device support auto choosing of protocol, you can check existing of prefix in the device info from available devices.
+
+In the following example, we connect to our simulator, Simulator connection string starts with `daq://openDAQ_`, so to connect to it we use the connection string that starts with `daq://openDAQ_`.
 
 [tabs]
 ====
@@ -538,8 +550,7 @@ for overridden_type_value in reader.read(10):
 ----
 ====
 
-Reding signal last value can be simplified by using signal.last_value method. The following example shows how to read the last value of the signal.
-
+Reading last value of a signal can be simplified by using the signal's last-value method. The following example shows how to read the last value of the signal.
 
 [tabs]
 ====

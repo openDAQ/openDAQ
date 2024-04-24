@@ -140,13 +140,13 @@ The current implementation of openDAQ supports only device-to-host Packet transm
 
 image::datapath3.svg[image,align="center"]
 
-== Packet congestion
+// == Packet congestion
 
-:note-caption: TODO
-[NOTE]
-====
-Packet congestion
-====
+// :note-caption: TODO
+// [NOTE]
+// ====
+// Packet congestion
+// ====
 
 == Extracting Packets
 
@@ -158,8 +158,8 @@ reader returns the Packets when the read function is called. It can also block t
 Packet arrives or a timeout 
 elapses.
 
-:note-caption: TODO
-[NOTE]
-====
-Link to Packet reader how-to
-====
+// :note-caption: TODO
+// [NOTE]
+// ====
+// Link to Packet reader how-to
+// ====

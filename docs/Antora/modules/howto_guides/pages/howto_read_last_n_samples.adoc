@@ -1,15 +1,15 @@
-= Read Last N Samples
+= Read last N samples
 
 :tip-caption: Assumptions
 [TIP]
 ====
-This guide assumes that you've read the _background section_ about the  xref:background_info:readers.adoc[common behavior of Readers] or gone through the xref:howto_read_with_domain.adoc[] how-to guide. +
+This guide assumes that you've read the _background section_ about the  xref:background_info:readers.adoc[common behavior of Readers] or gone through the xref:howto_read_with_domain.adoc[] how-to guide.
 
 For brevity, in `C++` we also assume that all the code is in namespace `daq` or it has been imported via `using namespace daq;` and omit any otherwise necessary header includes until the final complete listing.
 ====
 
-When you are only interested in the last few samples of a signal at any given time, this is the job for a xref:background_info:readers.adoc#tail_reader[Tail Reader].
-The Reader will connect to a signal and always keep at least the last *N* samples in the cache ready to read.
+When you are only interested in the last few samples of a Signal at any given time, this is the job for a xref:background_info:readers.adoc#tail_reader[Tail Reader].
+The Reader will connect to a Signal and always keep at least the last *N* samples in the cache ready to read.
 This number is referred to as *history size*.
 
 To create the Reader, you must first decide on the number of last samples you're interested in then pass it to the Reader as a parameter.
@@ -23,7 +23,7 @@ Cpp::
 +
 [source,cpp]
 ----
-// These calls all create the same reader
+// These calls all create the same Reader
 auto reader = TailReader(signal, 5);
 auto reader = TailReader<double, Int>(signal, 5);
 auto reader = TailReader(signal, 5, SampleType::Float64, SampleType::Int64);
@@ -32,7 +32,7 @@ Python::
 +
 [source,python]
 ----
-# These calls all create the same reader
+# These calls all create the same Reader
 reader = opendaq.TailReader(signal, 5)
 reader = opendaq.TailReader(signal, 5, value_type=opendaq.SampleType.Float64, domain_type=opendaq.SampleType.Int64)
 reader = opendaq.TailReader(signal, 5, value_type=opendaq.SampleType.Float64)
@@ -41,7 +41,7 @@ reader = opendaq.TailReader(signal, 5, value_type=opendaq.SampleType.Float64)
 
 [NOTE]
 ====
-By default, if no explicit read sample-types are provided, they're assumed to be:
+By default, if no explicit read Sample Types are provided, they're assumed to be:
 
 * `SampleType::Float64` / `daq::Float` / `double` for _value_.
 * `SampleType::Int64` / `daq::Int` / `std::int64_t` for _domain_.
@@ -72,7 +72,7 @@ Python::
 ----
 reader = opendaq.TailReader(signal, 5)
 
-# Signal produces 3 samples
+# Signal produces 3 samples: 1, 2, 3
 
 reader.read(5) # [1, 2, 3]
 ----
@@ -81,19 +81,24 @@ reader.read(5) # [1, 2, 3]
 [CAUTION]
 ====
 On _read_ the reading position is not advanced, and subsequent calls may return overlapping samples if not enough new samples have been produced between calls.
+====
 
+[tabs]
+====
+Cpp::
++
 [source,cpp]
 ----
 auto reader = TailReader(signal, 5);
 
-// The signal produces 3 samples: 1, 2, 3
+// The Signal produces 3 samples: 1, 2, 3
 
 SizeT count{5};
 double values[5]{};
 
 reader.read(values, &count); // count = 3, values = { 1, 2, 3, 0, 0 }
 
-// The signal produces 3 samples: 4, 5, 6
+// The Signal produces 3 samples: 4, 5, 6
 
 count = 5;
 reader.read(values, &count); // count = 5, values = { 2, 3, 4, 5, 6 }
@@ -112,12 +117,12 @@ Cpp::
 auto reader = TailReader(signal, 5);
 
 /*
- * The signal produces 3 packets
- * [Packet 1]: 4 Samples
- * [Packet 2]: 3 Samples
- * [Packet 3]: 1 Sample
+ * The Signal produces 3 Packets
+ * [Packet 1]: 4 samples
+ * [Packet 2]: 3 samples
+ * [Packet 3]: 1 sample
  * -------------------------------
- *      Total: 8 Samples
+ *      Total: 8 samples
  */
 
 SizeT count{10};
@@ -137,12 +142,12 @@ Python::
 ----
 reader = opendaq.TailReader(signal, 5)
 
-#  The signal produces 3 packets
-#  [Packet 1]: 4 Samples
-#  [Packet 2]: 3 Samples
-#  [Packet 3]: 1 Sample
+#  The Signal produces 3 Packets
+#  [Packet 1]: 4 samples
+#  [Packet 2]: 3 samples
+#  [Packet 3]: 1 sample
 #  -------------------------------
-#       Total: 8 Samples
+#       Total: 8 samples
 
 # Will throw
 values = reader.read(10)
@@ -165,23 +170,23 @@ Cpp::
 [source,cpp]
 ----
 #include <opendaq/context_factory.h>
-#include <opendaq/reader_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/reader_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/signal_factory.h>
 
-#include <iostream>
 #include <cassert>
+#include <iostream>
 
 using namespace daq;
 
 SignalConfigPtr setupExampleSignal();
 DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples, Int offset = 0);
-daq::DataDescriptorPtr setupDescriptor(daq::SampleType type, daq::DataRulePtr rule = nullptr);
+DataDescriptorPtr setupDescriptor(SampleType type, DataRulePtr rule = nullptr);
 
 /*
- * Example 1: Behaviour of the Tail Reader before getting the full history-size samples
+ * Example 1: Behavior of the Tail Reader before getting the full history-size samples
  */
 void example1(const SignalConfigPtr& signal)
 {
@@ -209,7 +214,7 @@ void example1(const SignalConfigPtr& signal)
         std::cerr << "Exception: " << e.what() << std::endl;
     }
 
-    // The signal produces 3 samples: 1, 2, 3
+    // The Signal produces 3 samples: 1, 2, 3
     auto packet = createPacketForSignal(signal, 3);
     auto data = static_cast<double*>(packet.getData());
     data[0] = 1;
@@ -236,7 +241,7 @@ void example2(const SignalConfigPtr& signal)
 {
     auto reader = TailReader(signal, 5);
 
-    // The signal produces 3 samples: 1, 2, 3
+    // The Signal produces 3 samples: 1, 2, 3
     const SizeT FIRST_PACKET_SAMPLES = 3u;
     auto packet = createPacketForSignal(signal, FIRST_PACKET_SAMPLES);
     auto data = static_cast<double*>(packet.getData());
@@ -258,7 +263,7 @@ void example2(const SignalConfigPtr& signal)
     assert(values[3] == 0);
     assert(values[4] == 0);
 
-    // The signal produces 3 samples: 4, 5, 6
+    // The Signal produces 3 samples: 4, 5, 6
     auto packet2 = createPacketForSignal(signal, 3, FIRST_PACKET_SAMPLES);
     auto data2 = static_cast<double*>(packet2.getData());
     data2[0] = 4;
@@ -283,12 +288,12 @@ void example3(const SignalConfigPtr& signal)
     auto reader = TailReader(signal, 5);
 
     /*
-     * The signal produces 3 packets
-     * [Packet 1]: 4 Samples
-     * [Packet 2]: 3 Samples
-     * [Packet 3]: 1 Sample
+     * The Signal produces 3 Packets
+     * [Packet 1]: 4 samples
+     * [Packet 2]: 3 samples
+     * [Packet 3]: 1 sample
      * -------------------------------
-     *      Total: 8 Samples
+     *      Total: 8 samples
      */
 
     auto packet1 = createPacketForSignal(signal, 4);
@@ -327,7 +332,7 @@ void example3(const SignalConfigPtr& signal)
 /*
  * ENTRY POINT
  */
-int main(int /*argc*/, const char* /*argv*/ [])
+int main(int /*argc*/, const char* /*argv*/[])
 {
     SignalConfigPtr signal = setupExampleSignal();
 
@@ -339,12 +344,12 @@ int main(int /*argc*/, const char* /*argv*/ [])
 }
 
 /*
- * Set-up the Signal with Float64 data
+ * Set up the Signal with Float64 data
  */
 SignalConfigPtr setupExampleSignal()
 {
     auto logger = Logger();
-    auto context = Context(Scheduler(logger, 1), logger, nullptr);
+    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr);
 
     auto signal = Signal(context, nullptr, "example signal");
     signal.setDescriptor(setupDescriptor(SampleType::Float64));
@@ -352,12 +357,12 @@ SignalConfigPtr setupExampleSignal()
     return signal;
 }
 
-daq::DataDescriptorPtr setupDescriptor(daq::SampleType type, daq::DataRulePtr rule)
+DataDescriptorPtr setupDescriptor(SampleType type, DataRulePtr rule)
 {
-    // Set-up the data descriptor with the provided Sample-Type
-    const auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type);
+    // Set up the data descriptor with the provided Sample-Type
+    const auto dataDescriptor = DataDescriptorBuilder().setSampleType(type);
 
-    // For the Domain we provide a Linear Rule to generate time-stamps
+    // For the Domain, we provide a Linear Rule to generate time-stamps
     if (rule.assigned())
         dataDescriptor.setRule(rule);
 
@@ -366,19 +371,13 @@ daq::DataDescriptorPtr setupDescriptor(daq::SampleType type, daq::DataRulePtr ru
 
 DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples, Int offset)
 {
-    // Create a data packet where the values are generated via the +1 rule starting at 0
-    auto domainPacket = daq::DataPacket(
-        setupDescriptor(daq::SampleType::Int64, daq::LinearDataRule(1, 0)),
-        numSamples,
-        offset // offset from 0 to start the sample generation at
+    // Create a Data Packet where the values are generated via the +1 rule starting at 0
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::Int64, LinearDataRule(1, 0)),
+                                   numSamples,
+                                   offset  // offset from 0 to start the sample generation at
     );
 
-    return daq::DataPacketWithDomain(
-        domainPacket,
-        signal.getDescriptor(),
-        numSamples
-    );
+    return DataPacketWithDomain(domainPacket, signal.getDescriptor(), numSamples);
 }
-
 ----
 ====

@@ -7,7 +7,7 @@ on your needs.
 
 * Setting up (xref:quick_start_setting_up_cpp.adoc[{cpp}]/xref:quick_start_setting_up_python.adoc[Python])
   guides you through the initial steps of obtaining the openDAQ(TM) binaries, and configuring your first
-  project that makes use of openDAQ(TM).
+  project that makes use of openDAQ(TM). A guide on xref:quick_start_building_opendaq.adoc[building openDAQ(TM)] from source is also available.
 * xref:quick_start_application.adoc[openDAQ(TM) application] guides you through
   creating an openDAQ(TM) application for retrieving data from an openDAQ(TM)
   device and can be used as an example for embedding openDAQ(TM) into your

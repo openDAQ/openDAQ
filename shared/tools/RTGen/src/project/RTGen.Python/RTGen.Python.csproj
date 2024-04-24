@@ -9,11 +9,12 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>RTGen.Python</RootNamespace>
     <AssemblyName>RTGen.Python</AssemblyName>
-    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -33,8 +34,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="LightInject, Version=5.5.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\LightInject.5.5.0\lib\net46\LightInject.dll</HintPath>
+    <Reference Include="LightInject, Version=6.6.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\LightInject.6.6.4\lib\net462\LightInject.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

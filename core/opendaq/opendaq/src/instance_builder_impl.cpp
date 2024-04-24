@@ -31,8 +31,8 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 
 InstanceBuilderImpl::InstanceBuilderImpl()
     : componentsLogLevel(Dict<IString, LogLevel>())
-    , providers(List<IConfigProvider>())
     , authenticationProvider(AuthenticationProvider())
+    , providers(List<IConfigProvider>())
     , options(GetDefaultOptions())
 {
 }

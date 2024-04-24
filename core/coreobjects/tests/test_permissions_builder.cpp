@@ -30,13 +30,13 @@ TEST_F(PermissionsBuilderTest, Set)
     auto config = builder.assign("admin", PermissionMaskBuilder().read().write()).assign("user", PermissionMaskBuilder().read()).build();
     Int mask;
 
-    ASSERT_EQ(config.getAllowed().getCount(), 2);
+    ASSERT_EQ(config.getAllowed().getCount(), 2u);
     mask = config.getAllowed().get("admin");
     ASSERT_EQ(mask, (Int) (Permission::Read | Permission::Write));
     mask = config.getAllowed().get("user");
     ASSERT_EQ(mask, (Int) Permission::Read);
 
-    ASSERT_EQ(config.getDenied().getCount(), 2);
+    ASSERT_EQ(config.getDenied().getCount(), 2u);
     mask = config.getDenied().get("admin");
     ASSERT_EQ(mask, 0);
     mask = config.getDenied().get("user");

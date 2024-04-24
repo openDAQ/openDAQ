@@ -16,8 +16,12 @@ using namespace date;
 SignalConfigPtr setupExampleSignal();
 SignalPtr setupExampleDomain(const SignalPtr& value);
 DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples, Int offset = 0);
-DataDescriptorPtr setupDescriptor(SampleType type, const daq::DataRulePtr& rule = nullptr);
-DataDescriptorBuilderPtr setupDescriptorBuilder(SampleType type, const daq::DataRulePtr& rule = nullptr);
+DataDescriptorPtr setupDescriptor(SampleType type, const DataRulePtr& rule = nullptr);
+DataDescriptorBuilderPtr setupDescriptorBuilder(SampleType type, const DataRulePtr& rule = nullptr);
+
+/*
+ * Corresponding document: Antora/modules/howto_guides/pages/howto_read_with_timestamps.adoc
+ */
 
 /*
  * Example 1: Reading time with Time Reader
@@ -43,7 +47,7 @@ void example1(const SignalConfigPtr& signal)
     double values[5]{};
     std::chrono::system_clock::time_point timeStamps[5]{};
 
-    // read with Time Reader
+    // Read with Time Reader
     timeReader.readWithDomain(values, timeStamps, &count);
     assert(count == 5);
 
@@ -57,7 +61,7 @@ void example1(const SignalConfigPtr& signal)
 }
 
 /*
- * Example 2: Reading time with the wrapped reader
+ * Example 2: Reading time with the wrapped Reader
  */
 void example2(const SignalConfigPtr& signal)
 {
@@ -79,7 +83,7 @@ void example2(const SignalConfigPtr& signal)
     double values[5]{};
     std::chrono::system_clock::time_point timeStamps[5]{};
 
-    // read with the wrapped Reader
+    // Read with the wrapped Reader
     reader.readWithDomain(values, timeStamps, &count);
     assert(count == 5);
 
@@ -93,14 +97,14 @@ void example2(const SignalConfigPtr& signal)
 /*
  * ENTRY POINT
  */
-int main(int /*argc*/, const char* /*argv*/ [])
+int main(int /*argc*/, const char* /*argv*/[])
 {
     SignalConfigPtr signal = setupExampleSignal();
     signal.setDomainSignal(setupExampleDomain(signal));
 
     /*
       The output in both examples should be:
-      
+
         2022-09-27 00:02:03.0000000: 1
         2022-09-27 00:02:03.0010000: 2
         2022-09-27 00:02:03.0020000: 3
@@ -130,11 +134,11 @@ SignalConfigPtr setupExampleSignal()
 
 SignalPtr setupExampleDomain(const SignalPtr& value)
 {
-    auto domainDataDescriptor = setupDescriptorBuilder(SampleTypeFromType<ClockTick>::SampleType, daq::LinearDataRule(1, 0))
-                                .setOrigin("2022-09-27T00:02:03+00:00")
-                                .setTickResolution(Ratio(1, 1000))
-                                .setUnit(Unit("s", -1, "seconds", "time"))
-                                .build();
+    auto domainDataDescriptor = setupDescriptorBuilder(SampleTypeFromType<ClockTick>::SampleType, LinearDataRule(1, 0))
+                                    .setOrigin("2022-09-27T00:02:03+00:00")
+                                    .setTickResolution(Ratio(1, 1000))
+                                    .setUnit(Unit("s", -1, "seconds", "time"))
+                                    .build();
 
     auto domain = Signal(value.getContext(), nullptr, "domain signal");
     domain.setDescriptor(domainDataDescriptor);
@@ -142,15 +146,15 @@ SignalPtr setupExampleDomain(const SignalPtr& value)
     return domain;
 }
 
-DataDescriptorPtr setupDescriptor(daq::SampleType type, const daq::DataRulePtr& rule)
+DataDescriptorPtr setupDescriptor(SampleType type, const DataRulePtr& rule)
 {
     return setupDescriptorBuilder(type, rule).build();
 }
 
-DataDescriptorBuilderPtr setupDescriptorBuilder(daq::SampleType type, const daq::DataRulePtr& rule)
+DataDescriptorBuilderPtr setupDescriptorBuilder(SampleType type, const DataRulePtr& rule)
 {
-    // Set up the data descriptor with the provided Sample-Type
-    const auto dataDescriptor = daq::DataDescriptorBuilder().setSampleType(type);
+    // Set up the Data Descriptor with the provided Sample Type
+    const auto dataDescriptor = DataDescriptorBuilder().setSampleType(type);
 
     // For the Domain, we provide a Linear Rule to generate time-stamps
     if (rule.assigned())
@@ -161,16 +165,11 @@ DataDescriptorBuilderPtr setupDescriptorBuilder(daq::SampleType type, const daq:
 
 DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples, Int offset)
 {
-    // Create a data packet where the values are generated via the +1 rule starting at 0
-    auto domainPacket = daq::DataPacket(
-        signal.getDomainSignal().getDescriptor(),
-        numSamples,
-        offset  // offset from 0 to start the sample generation at
+    // Create a Data Packet where the values are generated via the +1 rule starting at 0
+    auto domainPacket = DataPacket(signal.getDomainSignal().getDescriptor(),
+                                        numSamples,
+                                        offset  // offset from 0 to start the sample generation at
     );
 
-    return daq::DataPacketWithDomain(
-        domainPacket,
-        signal.getDescriptor(),
-        numSamples
-    );
+    return DataPacketWithDomain(domainPacket, signal.getDescriptor(), numSamples);
 }

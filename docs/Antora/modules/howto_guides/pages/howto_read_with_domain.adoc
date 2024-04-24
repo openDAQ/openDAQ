@@ -12,7 +12,7 @@ In the end, you'll also get the option to continue on a more specific guide depe
 
 == Creating the Reader
 
-For starters, let's explore how you'd create a Stream Reader where you read the value data as `double` and Domain as `Int`.
+For starters, let's explore how you'd create a Stream Reader where you read the value data as `double` and Domain as `Int` (signed 64-bit integer).
 
 [#create]
 .Creating a default Stream Reader

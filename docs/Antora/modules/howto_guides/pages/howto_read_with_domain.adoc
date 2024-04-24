@@ -202,7 +202,7 @@ Each time any of the Signal information changes, it creates an xref:glossary:glo
 The user can react to these changes by installing a callback as shown below.
 
 The event contains two Data Descriptors, one for value and one for Domain, each of which can be `null` if unchanged, but not both.
-The Reader first forwards the descriptors to their respective internal data-readers to update their information and check if the data can still be converted to the requested Sample Types. Then in returns the Reader Status with event packet and status of data conversation.
+The Reader first forwards the descriptors to their respective internal data-readers to update their information and check if the data can still be converted to the requested Sample Types. Then it returns the Reader Status with event Packet and status of data conversion.
 
 .Reacting to a Data Descriptor changed event
 [tabs]

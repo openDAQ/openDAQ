@@ -75,10 +75,10 @@ Cpp::
 [source,cpp]
 ----
 InstanceBuilderPtr instanceBuilder = InstanceBuilder()
-.addLoggerSink(StdOutLoggerSink())
-.setSinkLogLevel(BasicFileLoggerSink("logfile.log"),  LogLevel::Error)
-.setComponentLogLevel("Instance", LogLevel::Warn)
-.setComponentLogLevel("Some Module", LogLevel::Off);
+    .addLoggerSink(StdOutLoggerSink())
+    .setSinkLogLevel(BasicFileLoggerSink("logfile.log"),  LogLevel::Error)
+    .setComponentLogLevel("Instance", LogLevel::Warn)
+    .setComponentLogLevel("Some Module", LogLevel::Off);
 InstancePtr instance = instanceBuilder.build();
 ----
 Python::
@@ -221,8 +221,8 @@ Cpp::
 DeviceInfoConfigPtr defaultRootDeviceInfo = DeviceInfo("daqref://defaultRootDevice");
 defaultRootDeviceInfo.setSerialNumber("ABCD-0000-0000-0000");
 InstanceBuilderPtr instanceBuilder = InstanceBuilder()
-.setDefaultRootDeviceInfo(defaultRootDeviceInfo)
-.setDefaultRootDeviceLocalId("defaultRootDeviceLocalId");
+    .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
+    .setDefaultRootDeviceLocalId("defaultRootDeviceLocalId");
 InstancePtr instance = instanceBuilder.build();
 ----
 Python::

@@ -72,13 +72,13 @@ jobs:
             cpack: NSIS
 
     outputs:
-      # trick for reusable workflow in build_nuget_and_test because cannot use env context
+      # trick for reusable workflow in build_nuget because cannot use env context in "with:"
       test_path: ${{ env.test_path }}
       windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
       short_sha: ${{ env.short_sha }}
 
     env:
-      short_sha: 'ci'  # for .NET Bindings configuration
+      short_sha: 'ci'  # for .NET Bindings build
 
     steps:
       - name: Checkout
@@ -101,8 +101,6 @@ jobs:
       - name: Configure
         shell: pwsh
         run: |
-          # for .NET Bindings configuration
-          $env:SHORT_SHA = "${{ env.short_sha }}"
           mkdir build
           cd build
           if ( "${{ matrix.cmake_generator_platform }}" -eq "" )
@@ -120,6 +118,8 @@ jobs:
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
+          # for .NET Bindings build
+          $env:SHORT_SHA = "${{ env.short_sha }}"
           cmake --build . --config ${{ matrix.cmake_build_type }}
 
       - name: Test
@@ -242,7 +242,7 @@ jobs:
         CXX: ${{ matrix.cxx }}
 
     outputs:
-      # trick for reusable workflow in build_nuget_and_test because cannot use env context
+      # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
       linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
 
     steps:
@@ -633,8 +633,8 @@ jobs:
   #       run: cmake --build .
 
   # using reusable workflow
-  build_nuget_and_test:
-      name: .NET Bindings NuGet package
+  dotnet_bindings:
+      name: .NET Bindings
 
       # needs: [build_windows,build_linux,build_macos]
       needs: [build_windows,build_linux]

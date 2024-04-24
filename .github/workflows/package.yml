@@ -51,13 +51,13 @@ jobs:
             cpack: NSIS
 
     outputs:
-      # trick for reusable workflow in build_nuget because cannot use env context
+      # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
       # test_path: ''
       windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
       short_sha: ${{ env.short_sha }}
 
     env:
-      short_sha: 'package'  # for .NET Bindings configuration
+      short_sha: 'package'  # for .NET Bindings build
 
     steps:
       - name: Checkout
@@ -69,7 +69,7 @@ jobs:
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
-          # for .NET Bindings configuration
+          # for .NET Bindings build
           $env:SHORT_SHA = "${{ env.short_sha }}"
           mkdir build
           cd build
@@ -97,6 +97,8 @@ jobs:
         if: matrix.cmake_generator_platform == 'Win32'
         shell: pwsh
         run: |
+          # for .NET Bindings build
+          $env:SHORT_SHA = "${{ env.short_sha }}"
           mkdir build
           cd build
           Write-Output "Building for Win32"
@@ -175,7 +177,7 @@ jobs:
         CXX: ${{ matrix.cxx }}
 
     outputs:
-      # trick for reusable workflow in build_nuget because cannot use env context
+      # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
       linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
 
     steps:
@@ -437,8 +439,8 @@ jobs:
             ${{ env.simulator_package_artifact }}
 
   # using reusable workflow
-  build_nuget:
-      name: .NET Bindings NuGet package
+  dotnet_bindings:
+      name: .NET Bindings
 
       needs: [package_windows,package_linux]
 
@@ -449,5 +451,4 @@ jobs:
         windows_x64_artifact_name:  ${{ needs.package_windows.outputs.windows_x64_artifact_name }}
         linux_x64_artifact_name:  ${{ needs.package_linux.outputs.linux_x64_artifact_name }}
         short_sha: ${{ needs.package_windows.outputs.short_sha }}
-      #secrets: inherit
       # -> output.nuget_artifact_name

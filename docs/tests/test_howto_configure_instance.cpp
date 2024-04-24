@@ -40,24 +40,24 @@ TEST_F(HowToConfigureInstance, InstanceBuilderLogger3)
     InstancePtr instance = instanceBuilder.build();
 }
 
-/*
+
 // Throws "The specified path does not exist."
-TEST_F(HowToConfigureInstance, InstanceBuilderModuleManager1)
+TEST_F(HowToConfigureInstance, DISABLED_InstanceBuilderModuleManager1)
 {
     InstanceBuilderPtr instanceBuilder = InstanceBuilder().setModulePath("/path/to/modules");
     InstancePtr instance = instanceBuilder.build();
 }
-*/
 
-/*
+
+
 // Throws "The specified path does not exist."
-TEST_F(HowToConfigureInstance, InstanceBuilderModuleManager2)
+TEST_F(HowToConfigureInstance, DISABLED_InstanceBuilderModuleManager2)
 {
     ModuleManagerPtr moduleManager = ModuleManager("/path/to/modules");
     InstanceBuilderPtr instanceBuilder = InstanceBuilder().setModuleManager(moduleManager);
     InstancePtr instance = instanceBuilder.build();
 }
-*/
+
 TEST_F(HowToConfigureInstance, InstanceBuilderScheduler1)
 {
     InstanceBuilderPtr instanceBuilder = InstanceBuilder().setSchedulerWorkerNum(2);

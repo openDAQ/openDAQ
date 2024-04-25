@@ -14,6 +14,13 @@ class StreamingTest : public testing::TestWithParam<std::tuple<std::string, std:
 public:
     void SetUp() override
     {
+        auto connectionString = std::get<2>(GetParam());
+        bool connectStringIpv6 = connectionString.find('[') != std::string::npos && connectionString.find(']') != std::string::npos;
+        if (connectStringIpv6 && test_helpers::Ipv6IsDisabled())
+        {
+            GTEST_SKIP() << "Ipv6 is disabled";
+        }
+
         serverInstance = CreateServerInstance();
         clientInstance = CreateClientInstance();
 
@@ -297,8 +304,8 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
     MirroredSignalConfigPtr clientSignalPtr = getSignal(clientInstance, "ByteStep");
     MirroredSignalConfigPtr clientDomainSignalPtr = clientSignalPtr.getDomainSignal();
 
-    bool usingNativePseudoDevice = std::get<1>(GetParam()) == "opendaq_native_streaming" && std::get<2>(GetParam()) == "daq.ns://127.0.0.1/";
-    bool usingWSPseudoDevice = std::get<1>(GetParam()) == "opendaq_lt_streaming" && std::get<2>(GetParam()) == "daq.lt://127.0.0.1/";
+    bool usingNativePseudoDevice = std::get<1>(GetParam()) == "opendaq_native_streaming" && (std::get<2>(GetParam()).find("daq.ns://") == 0);
+    bool usingWSPseudoDevice = std::get<1>(GetParam()) == "opendaq_lt_streaming" && (std::get<2>(GetParam()).find("daq.lt://") == 0);
     bool usingNativeStreaming = std::get<1>(GetParam()) == "opendaq_native_streaming";
 
     for (int i = 0; i < 5; ++i)
@@ -443,7 +450,11 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/"),
         std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.lt://127.0.0.1/"),
-        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://[::1]/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://[::1]/"),
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.lt://[::1]/"),
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://[::1]/")
     )
 );
 #elif defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && !defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -452,7 +463,9 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingTest,
     testing::Values(
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
-        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://[::1]/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://[::1]/")
     )
 );
 #elif !defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -461,7 +474,9 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingTest,
     testing::Values(
         std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.lt://127.0.0.1/"),
-        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.lt://[::1]/"),
+        std::make_tuple("openDAQ LT Streaming", "opendaq_lt_streaming", "daq.opcua://[::1]/")
     )
 );
 #endif
@@ -527,7 +542,9 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingAsyncSignalTest,
     testing::Values(
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
-        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://[::1]/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://[::1]/")
     )
 );
 
@@ -620,7 +637,9 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingReconnectionTest,
     testing::Values(
         std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://127.0.0.1/"),
-        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/")
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.ns://[::1]/"),
+        std::make_tuple("openDAQ Native Streaming", "opendaq_native_streaming", "daq.opcua://[::1]/")
     )
 );
 

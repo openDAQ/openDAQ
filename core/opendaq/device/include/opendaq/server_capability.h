@@ -112,6 +112,13 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @param[out] enabled The client update method (Boolean value indicating if core events are enabled for communication between server and client device).
      */
     virtual ErrCode INTERFACE_FUNC getCoreEventsEnabled(Bool* enabled) = 0;
+
+    // [templateType(addresses, IString)]
+    /*!
+     * @brief Gets the device's list of addresses with the current protocol.
+     * @param[out] connectionStrings The device's list of addresses (hosts)
+     */
+    virtual ErrCode INTERFACE_FUNC getAddresses(IList** addresses) = 0;
 };
 /*!@}*/
 

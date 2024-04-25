@@ -14,9 +14,9 @@ const char* ProtocolName = "ProtocolName";
 const char* ProtocolTypeName = "ProtocolType";
 const char* ConnectionType = "ConnectionType";
 const char* CoreEventsEnabled = "CoreEventsEnabled"; 
-const char* ProtocolId = "protocolId"; 
-const char* PrimaryAddress = "address";
+const char* ProtocolId = "protocolId";
 const char* Prefix = "prefix";
+const char* Addresses = "Addresses";
 
 StringPtr ServerCapabilityConfigImpl::ProtocolTypeToString(ProtocolType type)
 {
@@ -55,8 +55,8 @@ ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocol
     Super::addProperty(StringProperty(ProtocolTypeName, ProtocolTypeToString(ProtocolType::Unknown)));
     Super::addProperty(StringProperty(ConnectionType, "Unknown"));
     Super::addProperty(BoolProperty(CoreEventsEnabled, false));
-    Super::addProperty(StringProperty(PrimaryAddress, ""));
     Super::addProperty(StringProperty(Prefix, ""));
+    Super::addProperty(ListProperty(Addresses, List<IString>()));
 
     Super::setPropertyValue(String(ProtocolId), protocolId);
     Super::setPropertyValue(String(ProtocolName), protocolName);
@@ -195,6 +195,25 @@ ErrCode ServerCapabilityConfigImpl::getSerializeId(ConstCharPtr* id) const
     *id = SerializeId();
 
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode ServerCapabilityConfigImpl::getAddresses(IList** addresses)
+{
+    return daqTry([&]() {
+        *addresses = getTypedProperty<IList>(Addresses).detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ServerCapabilityConfigImpl::addAddress(IString* address)
+{
+    OPENDAQ_PARAM_NOT_NULL(address);
+    return daqTry([&]() {
+        ListPtr<IString> addresses = getTypedProperty<IList>(Addresses);
+        addresses.pushBack(address);
+        checkErrorInfo(Super::setPropertyValue(String(Addresses), addresses));
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode ServerCapabilityConfigImpl::getInterfaceIds(SizeT* idCount, IntfID** ids)

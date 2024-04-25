@@ -88,6 +88,8 @@ TEST_F(OpcUaClientModuleTest, AcceptsConnectionStringCorrect)
     auto module = CreateModule();
 
     ASSERT_TRUE(module.acceptsConnectionParameters("daq.opcua://device8"));
+    ASSERT_TRUE(module.acceptsConnectionParameters("daq.opcua://[::1]"));
+    ASSERT_TRUE(module.acceptsConnectionParameters("daq.opcua://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]"));
 }
 
 TEST_F(OpcUaClientModuleTest, CreateDeviceConnectionStringNull)

@@ -38,6 +38,17 @@ TEST_F(NativeStreamingModulesTest, ConnectAndDisconnect)
     auto client = CreateClientInstance();
 }
 
+TEST_F(NativeStreamingModulesTest, ConnectViaIpv6)
+{
+    if (test_helpers::Ipv6IsDisabled())
+        return;
+
+    auto server = CreateServerInstance();
+
+    auto client = Instance();
+    ASSERT_NO_THROW(client.addDevice("daq.ns://[::1]", nullptr));
+}
+
 TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
 {
     auto server = CreateServerInstance();

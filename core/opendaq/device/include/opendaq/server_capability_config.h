@@ -82,6 +82,13 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @param enabled True if core events are enabled; false otherwise
      */
     virtual ErrCode INTERFACE_FUNC setCoreEventsEnabled(Bool enabled) = 0;
+
+    // [templateType(addresses, IString)]
+    /*!
+     * @brief Sets the device's address
+     * @param[out] address The device's address
+     */
+    virtual ErrCode INTERFACE_FUNC addAddress(IString* address) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

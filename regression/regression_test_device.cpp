@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include <opendaq/mock/mock_device_module.h>
-#include <opendaq/mock/mock_fb_module.h>
 #include <opendaq/opendaq.h>
 
 using namespace daq;
@@ -24,9 +23,6 @@ protected:
 
         deviceModule = MockDeviceModule_Create(context);
         moduleManager.addModule(deviceModule);
-
-        fbModule = MockFunctionBlockModule_Create(context);
-        moduleManager.addModule(fbModule);
 
         instance = InstanceCustom(context, "mock_instance");
 
@@ -114,7 +110,7 @@ TEST_P(RegressionTestDevice, getAvailableFunctionBlockTypes)
 TEST_P(RegressionTestDevice, addFunctionBlockRemoveFunctionBlock)
 {
     FunctionBlockPtr fb;
-    ASSERT_NO_THROW(fb = device.addFunctionBlock("mock_fb_uid"));
+    ASSERT_NO_THROW(fb = device.addFunctionBlock("ref_fb_module_trigger"));
     ASSERT_NO_THROW(device.removeFunctionBlock(fb));
 }
 

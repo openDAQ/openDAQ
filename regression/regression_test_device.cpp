@@ -13,10 +13,8 @@ protected:
 
     void SetUp() override
     {
-        auto logger = Logger();
         auto moduleManager = ModuleManager("");
-        auto typeManager = TypeManager();
-        auto context = Context(nullptr, logger, typeManager, moduleManager);
+        auto context = Context(nullptr, Logger(), TypeManager(), moduleManager);
 
         ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -28,7 +26,7 @@ protected:
 
         // device = instance.addDevice(GetParam());
 
-        // To be able to add and remove function blocks from Device?
+        // TODO: to be able to add and remove function blocks from Device?
         instance.setRootDevice(GetParam());
         device = instance.getRootDevice();
     }

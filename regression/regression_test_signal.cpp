@@ -9,6 +9,7 @@ private:
     ModuleManagerPtr moduleManager;
     ContextPtr context;
     InstancePtr instance;
+    DevicePtr device;
 
 protected:
     SignalPtr signal;
@@ -20,7 +21,7 @@ protected:
 
         instance = InstanceCustom(context, "mock_instance");
 
-        auto device = instance.addDevice(GetParam());
+        device = instance.addDevice(GetParam());
 
         signal = device.getSignals()[0];
     }

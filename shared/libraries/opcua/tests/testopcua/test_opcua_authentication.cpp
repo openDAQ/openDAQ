@@ -23,7 +23,7 @@ TEST_F(OpcUaAuthenticationTest, NoAnonymous)
 {
     auto server = OpcUaServer();
     server.setPort(4840);
-    server.setAllowAnonymous(false);
+    server.setAuthenticationProvider(AuthenticationProvider(false));
     server.start();
 
     auto client = OpcUaClient("opc.tcp://127.0.0.1");
@@ -36,11 +36,10 @@ TEST_F(OpcUaAuthenticationTest, AuthenticationProvider)
     auto users = List<IUser>();
     users.pushBack(User("jure", "jure123"));
     users.pushBack(User("tomaz", "tomaz123"));
-    auto authenticationProvider = StaticAuthenticationProvider(users);
+    auto authenticationProvider = StaticAuthenticationProvider(true, users);
 
     auto server = OpcUaServer();
     server.setPort(4840);
-    server.setAllowAnonymous(true);
     server.setAuthenticationProvider(authenticationProvider);
     server.start();
 

@@ -43,7 +43,6 @@ public:
 
     uint16_t& getPort();
     void setPort(uint16_t port);
-    void setAllowAnonymous(bool allowAnonymous);
     void setAuthenticationProvider(const AuthenticationProviderPtr& authenticationProvider);
 
     void setSecurityConfig(OpcUaServerSecurityConfig* config);
@@ -158,7 +157,6 @@ private:
     UA_Server* server{};
     std::unordered_set<void*> sessionContext;
     ServerEventManagerPtr eventManager;
-    bool allowAnonymous;
     AuthenticationProviderPtr authenticationProvider;
 };
 

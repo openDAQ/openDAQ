@@ -227,14 +227,14 @@ Signal data, where each Sample will contain `n` structs, depending on the Dimens
 
 // TODO: Fill in once Signal construction helpers are available.
 
-:note-caption: TODO
-[NOTE]
-====
-* Create a Signal
-* Create and configure Descriptors
-* Change Descriptor
-** Event triggers
-====
+// :note-caption: TODO
+// [NOTE]
+// ====
+// * Create a Signal
+// * Create and configure Descriptors
+// * Change Descriptor
+// ** Event triggers
+// ====
 
 == Status Signals and Related Signals
 

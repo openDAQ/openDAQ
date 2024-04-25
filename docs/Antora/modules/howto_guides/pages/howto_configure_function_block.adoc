@@ -9,16 +9,16 @@ is running.
 ====
 The SDK is bundled with a few Function Blocks:
 
- * Renderer (displays Signal on a desktop window)
- * Statistics (calculates average and RMS from an input Signal)
- * Power (calculates DC power from the input voltage and current Signal)
+* Renderer (displays Signal on a desktop window)
+* Statistics (calculates average and RMS from an input Signal)
+* Power (calculates DC power from the input voltage and current Signal)
  
 These Function Blocks serve as an example of what is possible to achieve with openDAQ(TM) SDK. They are not
 meant to be used in production code.
 
 The following examples use the Statistics Function Block to show how to configure a Function Block.
 It is possible to use any other bundled or custom function block. However, Input Ports, output Signals, and
-properties in code snippets are specific to the Statistics function block. Other function blocks may have
+properties in code snippets are specific to the Statistics Function Block. Other Function Blocks may have
 different Input Ports, output Signals, and properties.
 ====
 
@@ -34,6 +34,7 @@ Cpp::
 +
 [source,cpp]
 ----
+// List properties of the Function Block
 ListPtr<IProperty> functionBlockProperties = functionBlock.getVisibleProperties();
 for (const auto& prop : functionBlockProperties)
     std::cout << prop.getName() << std::endl;
@@ -42,13 +43,16 @@ Python::
 +
 [source,python]
 ----
-for prop in function_block.visible_properties:
+# List properties of the Function Block
+function_block_properties = function_block.visible_properties
+for prop in function_block_properties:
     print(prop.name)
 ----
 C#::
 +
 [source,csharp]
 ----
+// List properties of the Function Block
 IListObject<Property> functionBlockProperties = functionBlock.GetVisibleProperties();
 foreach (var prop in functionBlockProperties)
     Console.WriteLine(prop.GetName());
@@ -66,24 +70,30 @@ Cpp::
 +
 [source,cpp]
 ----
+// Print current block size
 Int currentBlockSize = functionBlock.getPropertyValue("BlockSize");
 std::cout << "Current block size is " << currentBlockSize << std::endl;
+// Configure the properties of the Function Block
 functionBlock.setPropertyValue("BlockSize", 100);
 ----
 Python::
 +
 [source,python]
 ----
-current_block_size = function_block.get_property_value('BlockSize')
-print(f'Current block size is {current_block_size}')
-function_block.set_property_value('BlockSize', 100)
+# Print current block size
+currentBlockSize = function_block.get_property_value("BlockSize")
+print("Current block size is %d" % (currentBlockSize))
+# Configure the properties of the Function Block
+function_block.set_property_value("BlockSize", 100)
 ----
 C#::
 +
 [source,csharp]
 ----
+// Print current block size
 long currentBlockSize = functionBlock.GetPropertyValue("BlockSize");
 Console.WriteLine($"Current block size is {currentBlockSize}");
+// Configure the properties of the Function Block
 functionBlock.SetPropertyValue("BlockSize", 100);
 ----
 ====
@@ -93,13 +103,13 @@ functionBlock.SetPropertyValue("BlockSize", 100);
 ====
 What happens when a property is changed on a function while processing data depends on the implementation of the
 Function Block. In the case of the Statistics Function Block when the BlockSize property is changed it will reconfigure the
-domain Signal (new sample rate) of the output Signal and it will continue to produce the packets.
+domain Signal (new sample rate) of the output Signal and it will continue to produce the Packets.
 ====
 
 == Connecting Function Block Input Ports
 
-Function blocks that process data require that their xref:background_info:data_path.adoc#input_port[Input Ports] connect to 
-Signals. Function blocks can have a variable number of Input Ports. The Statistics Function Block provides one Input Port that 
+Function Blocks that process data require that their xref:background_info:data_path.adoc#input_port[Input Ports] connect to 
+Signals. Function Blocks can have a variable number of Input Ports. The Statistics Function Block provides one Input Port that 
 is required to calculate the average value. Once the Input Port is connected, the output Signal will start to produce the data.
  
 [tabs]
@@ -108,27 +118,27 @@ Cpp::
 +
 [source,cpp]
 ----
+// Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
 functionBlock.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
-SignalPtr outputSignal = functionBlock.getSignals()[0];
-// read data from the signal
+// Read data from the first Signal of the Function Block
 // ...
 ----
 Python::
 +
 [source,python]
 ----
+# Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
 function_block.input_ports[0].connect(device.channels[0].signals[0])
-output_signal = function_block.signals[0]
-# read data from the signal
+# Read data from the first Signal of the Function Block
 # ...
 ----
 C#::
 +
 [source,csharp]
 ----
+// Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
 functionBlock.GetInputPorts()[0].Connect(device.GetChannels()[0].GetSignals()[0]);
-Signal outputSignal = functionBlock.GetSignals()[0];
-// read data from the signal
+// Read data from the first Signal of the Function Block
 // ...
 ----
 ====
@@ -136,8 +146,8 @@ Signal outputSignal = functionBlock.GetSignals()[0];
 :note-caption: Dynamic input ports
 [NOTE]
 ====
-Some function blocks may have a variable number of input ports. Input ports can be created or destroyed on a function block when
-its property is changed or its input port is connected or disconnected. The behavior depends on the implementation of the function block.
+Some function blocks may have a variable number of Input Ports. Input Ports can be created or destroyed on a function block when
+its property is changed or its Input Port is connected or disconnected. The behavior depends on the implementation of the Function Block.
 ====
 
 == Full listing
@@ -156,34 +166,34 @@ Cpp::
 
 using namespace daq;
 
-// Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
 int main()
 {
-    // Create an openDAQ(TM) instance, loading modules from the current directory
-    InstancePtr instance = Instance(MODULE_PATH);
+    // Create an openDAQ(TM) Instance, loading modules from the current directory
+    InstancePtr instance = Instance();
 
-    // add simulated device
+    // Add simulated device
     DevicePtr device = instance.addDevice("daqref://device0");
 
-    // add function block on the host computer
+    // Add function block on the host computer
     FunctionBlockPtr functionBlock = instance.addFunctionBlock("ref_fb_module_statistics");
 
-    // list properties of the function block
+    // List properties of the Function Block
     ListPtr<IProperty> functionBlockProperties = functionBlock.getVisibleProperties();
     for (const auto& prop : functionBlockProperties)
         std::cout << prop.getName() << std::endl;
 
-    // print current block size
+    // Print current block size
     Int currentBlockSize = functionBlock.getPropertyValue("BlockSize");
     std::cout << "Current block size is " << currentBlockSize << std::endl;
-
-    // configure the properties of the function block
+    // Configure the properties of the Function Block
     functionBlock.setPropertyValue("BlockSize", 100);
 
-    // connect the first signal of the first channel from the device to the first input port on the function block
+    // Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
     functionBlock.getInputPorts()[0].connect(device.getChannels()[0].getSignals()[0]);
+    // Read data from the first Signal of the Function Block
+    // ...
 
-    // get the output signal of the function block
+    // Get the output Signal of the Function Block
     SignalPtr outputSignal = functionBlock.getSignals()[0];
 
     std::cout << outputSignal.getDescriptor().getName() << std::endl;
@@ -197,33 +207,34 @@ Python::
 ----
 import opendaq
 
-# Create an openDAQ(TM) instance, loading modules from the current directory
+# Create an openDAQ(TM) Instance, loading modules from the current directory
 instance = opendaq.Instance()
 
-# add simulated device
+# Add simulated device
 device = instance.add_device('daqref://device0')
 
-# add function block on the host computer
-function_block = instance.add_function_block('ref_fb_module_statistics')
+# Add Function Block on the host computer
+function_block = instance.add_function_block("ref_fb_module_statistics")
 
-#list properties of the function block
-for prop in function_block.visible_properties:
+# List properties of the Function Block
+function_block_properties = function_block.visible_properties
+for prop in function_block_properties:
     print(prop.name)
 
-# print current block size
-current_block_size = function_block.get_property_value('BlockSize')
-print(f'Current block size is {current_block_size}')
+# Print current block size
+currentBlockSize = function_block.get_property_value("BlockSize")
+print("Current block size is %d" % (currentBlockSize))
+# Configure the properties of the Function Block
+function_block.set_property_value("BlockSize", 100)
 
-# configure the properties of the function block
-function_block.set_property_value('BlockSize', 100)
-
-# connect the first signal of the first channel from the device to the first input port on the function block
+# Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
 function_block.input_ports[0].connect(device.channels[0].signals[0])
+# Read data from the first Signal of the Function Block
+# ...
 
-# get the output signal of the function block
+# Get the output Signal of the Function Block
 output_signal = function_block.signals[0]
 
-# wait while the output signal is configured
 print(output_signal.descriptor.name)
 ----
 C#::
@@ -234,31 +245,32 @@ using Daq.Core.Types;
 using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 
-// Create an openDAQ(TM) instance, loading modules from the current directory
+// Create an openDAQ(TM) Instance, loading modules from the current directory
 Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
-// add simulated device
+// Add simulated device
 Device device = instance.AddDevice("daqref://device0");
 
-// add function block on the host computer
+// Add Function Block on the host computer
 FunctionBlock functionBlock = instance.AddFunctionBlock("ref_fb_module_statistics");
 
-// list properties of the function block
+// List properties of the Function Block
 IListObject<Property> functionBlockProperties = functionBlock.GetVisibleProperties();
 foreach (var prop in functionBlockProperties)
     Console.WriteLine(prop.GetName());
 
-// print current block size
+// Print current block size
 long currentBlockSize = functionBlock.GetPropertyValue("BlockSize");
 Console.WriteLine($"Current block size is {currentBlockSize}");
-
-// configure the properties of the function block
+// Configure the properties of the Function Block
 functionBlock.SetPropertyValue("BlockSize", 100);
 
-// connect the first signal of the first channel from the device to the first input port on the function block
+// Connect the first Signal of the first Channel from the Device to the first Input Port on the Function Block
 functionBlock.GetInputPorts()[0].Connect(device.GetChannels()[0].GetSignals()[0]);
+// Read data from the first Signal of the Function Block
+// ...
 
-// get the output signal of the function block
+// Get the output Signal of the Function Block
 Signal outputSignal = functionBlock.GetSignals()[0];
 
 Console.WriteLine(outputSignal.GetDescriptor().GetName());

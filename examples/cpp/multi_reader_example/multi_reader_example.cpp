@@ -2,6 +2,10 @@
 
 using namespace daq;
 
+/*
+ * Corresponding document: Antora/modules/howto_guides/pages/howto_read_aligned_signals.adoc
+ */
+
 struct ReadSignal
 {
     explicit ReadSignal(const SignalConfigPtr& signal, std::int64_t packetSize);
@@ -21,7 +25,7 @@ SignalConfigPtr createDomainSignal(const ContextPtr& context, std::string epoch)
 ReadSignal demoSignal(const ContextPtr& context, std::int64_t packetSize, const std::string& domainOrigin);
 
 /*
- * Aligns 3 signals to the same domain position and starts reading from there
+ * Aligns 3 Signals to the same Domain position and starts reading from there
  */
 void exampleSimple()
 {
@@ -41,8 +45,7 @@ void exampleSimple()
     sig1.sendPacket();
     sig2.sendPacket();
 
-    [[maybe_unused]]
-    auto available = reader.getAvailableCount(); // 0
+    [[maybe_unused]] auto available = reader.getAvailableCount();  // 0
     assert(available == 0);
 
     sig0.sendPacket();
@@ -53,7 +56,7 @@ void exampleSimple()
     sig1.sendPacket();
     sig2.sendPacket();
 
-    // Samples per signal
+    // Samples per Signal
     // 523 * 3 = 1569 (1.569s) need 1123 to sync
     // 732 * 3 = 2196 (2.196s) need  123 to sync
     // 843 * 3 = 2529 (2.529s) need    0 to sync
@@ -74,7 +77,7 @@ void exampleSimple()
     // count = 446
     assert(count == 446);
 
-    available = reader.getAvailableCount(); // 0
+    available = reader.getAvailableCount();  // 0
     assert(available == 0);
 
     /* Should print:
@@ -105,7 +108,7 @@ void exampleSimple()
 }
 
 /*
- * The same as example 1 but read domain in `std::chrono::system_clock::time_point` values
+ * The same as example 1 but read Domain in `std::chrono::system_clock::time_point` values
  */
 void exampleWithTimeStamps()
 {
@@ -127,8 +130,7 @@ void exampleWithTimeStamps()
     sig1.sendPacket();
     sig2.sendPacket();
 
-    [[maybe_unused]]
-    auto available = reader.getAvailableCount();  // 0
+    [[maybe_unused]] auto available = reader.getAvailableCount();  // 0
     assert(available == 0);
 
     sig0.sendPacket();
@@ -139,7 +141,7 @@ void exampleWithTimeStamps()
     sig1.sendPacket();
     sig2.sendPacket();
 
-    // Samples per signal
+    // Samples per Signal
     // 523 * 3 = 1569 (1.569s) need 1123 to sync
     // 732 * 3 = 2196 (2.196s) need  123 to sync
     // 843 * 3 = 2529 (2.529s) need    0 to sync
@@ -202,19 +204,19 @@ int main(int /*argc*/, const char* /*argv*/[])
     return 0;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////// Utility functions ///////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+ * Utility functions
+ */
 
 SignalConfigPtr createDomainSignal(const ContextPtr& context, std::string epoch)
 {
-    daq::DataDescriptorPtr dataDescriptor = daq::DataDescriptorBuilder()
-                                                .setSampleType(SampleTypeFromType<ClockTick>::SampleType)
-                                                .setOrigin(epoch)
-                                                .setTickResolution(Ratio(1, 1000))
-                                                .setRule(LinearDataRule(1, 0))
-                                                .setUnit(daq::Unit("s", -1, "seconds", "time"))
-                                                .build();
+    DataDescriptorPtr dataDescriptor = DataDescriptorBuilder()
+                                           .setSampleType(SampleTypeFromType<ClockTick>::SampleType)
+                                           .setOrigin(epoch)
+                                           .setTickResolution(Ratio(1, 1000))
+                                           .setRule(LinearDataRule(1, 0))
+                                           .setUnit(Unit("s", -1, "seconds", "time"))
+                                           .build();
 
     auto domain = Signal(context, nullptr, "time");
     domain.setDescriptor(dataDescriptor);
@@ -248,8 +250,8 @@ void ReadSignal::sendPacket()
     Int delta = domainDescriptor.getRule().getParameters()["delta"];
 
     auto offset = (packetSize * delta) * packetIndex;
-    auto domainPacket = daq::DataPacket(domainDescriptor, packetSize, offset);
-    auto packet = daq::DataPacketWithDomain(domainPacket, valueDescriptor, packetSize);
+    auto domainPacket = DataPacket(domainDescriptor, packetSize, offset);
+    auto packet = DataPacketWithDomain(domainPacket, valueDescriptor, packetSize);
 
     // Zero-out data
     memset(packet.getRawData(), 0, packet.getRawDataSize());

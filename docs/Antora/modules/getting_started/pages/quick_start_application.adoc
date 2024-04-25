@@ -37,13 +37,7 @@ The simulator can be used in the form of a VirtualBox `.ova` image. The image (o
 {docs-website}[the openDAQ(TM) documentation and releases webpage],
 and should be run with https://www.virtualbox.org/wiki/Downloads/[VirtualBox 7.0.6 or newer].
 
-Once the simulator is started, you can connect to simulator with opendaq.
-
-[listing]
---
-User: opendaq
-Password: opendaq
---
+Once your see the log in prompt, the simulator is already started as a service in the background and there is no need to log in.
 
 Detailed instructions on setting up the simulator can be found xref:howto_guides:howto_vbox_simulator.adoc[here].
 

@@ -91,7 +91,18 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
         throw InvalidParameterException("OpcUa does not support connection string with prefix");
 
     std::scoped_lock lock(sync);
-    TmsClient client(context, parent, OpcUaScheme + host + path);
+
+    auto endpoint = OpcUaEndpoint(OpcUaScheme + host + path);
+
+    if (config.assigned())
+    {
+        if (config.hasProperty("Username"))
+            endpoint.setUsername(config.getPropertyValue("Username"));
+        if (config.hasProperty("Password"))
+            endpoint.setPassword(config.getPropertyValue("Password"));
+    }
+
+    TmsClient client(context, parent, endpoint, createStreamingCallback);
     auto device = client.connect();
     completeDeviceServerCapabilities(device, host);
     return device;

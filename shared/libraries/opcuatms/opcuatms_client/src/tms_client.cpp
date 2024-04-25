@@ -10,7 +10,6 @@
 #include <open62541/types_daqesp_generated.h>
 #include <open62541/types_daqhbk_generated.h>
 
-
 #include <iostream>
 #include <opcuatms_client/tms_attribute_collector.h>
 #include <opcuatms_client/objects/tms_client_device_factory.h>
@@ -22,9 +21,19 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA
 
 TmsClient::TmsClient(const ContextPtr& context,
                      const ComponentPtr& parent,
-                     const std::string& opcUaUrl)
+                     const std::string& opcUaUrl,
+                     const FunctionPtr& createStreamingCallback)
+    : TmsClient(context, parent, OpcUaEndpoint(opcUaUrl), createStreamingCallback)
+{
+}
+
+TmsClient::TmsClient(const ContextPtr& context,
+                     const ComponentPtr& parent,
+                     const OpcUaEndpoint& endpoint,
+                     const FunctionPtr& createStreamingCallback)
     : context(context)
-    , opcUaUrl(opcUaUrl)
+    , endpoint(endpoint)
+    , createStreamingCallback(createStreamingCallback)
     , parent(parent)
     , loggerComponent(context.getLogger().assigned() ? context.getLogger().getOrAddComponent("OpcUaClient")
                                                      : throw ArgumentNullException("Logger must not be null"))
@@ -35,7 +44,6 @@ daq::DevicePtr TmsClient::connect()
 {
     const auto startTime = std::chrono::steady_clock::now();
 
-    OpcUaEndpoint endpoint(opcUaUrl);
     client = std::make_shared<OpcUaClient>(endpoint);
     if (!client->connect())
         throw NotFoundException();
@@ -78,7 +86,7 @@ daq::DevicePtr TmsClient::connect()
 
     const auto endTime = std::chrono::steady_clock::now();
     const auto connectTime = std::chrono::duration<double>(endTime - startTime);
-    LOG_D("Connected to openDAQ OPC UA server {}. Connect took {:.2f} s.", opcUaUrl, connectTime.count());
+    LOG_D("Connected to openDAQ OPC UA server {}. Connect took {:.2f} s.", endpoint.getUrl(), connectTime.count());
     return device;
 }
 

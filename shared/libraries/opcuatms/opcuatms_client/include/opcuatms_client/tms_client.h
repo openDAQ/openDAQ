@@ -30,6 +30,11 @@ public:
               const ComponentPtr& parent,
               const std::string& opcUaUrl);
 
+    TmsClient(const ContextPtr& context,
+              const ComponentPtr& parent,
+              const OpcUaEndpoint& endpoint,
+              const FunctionPtr& createStreamingCallback);
+
     daq::DevicePtr connect();
 
 
@@ -39,7 +44,7 @@ protected:
     tms::TmsClientContextPtr tmsClientContext;
     ContextPtr context;
     daq::opcua::OpcUaClientPtr client;
-    std::string opcUaUrl;
+    OpcUaEndpoint endpoint;
     ComponentPtr parent;
     LoggerComponentPtr loggerComponent;
 };

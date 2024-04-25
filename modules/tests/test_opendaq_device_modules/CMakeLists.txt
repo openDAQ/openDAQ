@@ -25,6 +25,7 @@ target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           daq::opendaq
                                           daq::opcuatms_client
                                           daq::opendaq_mocks
+                                          $<BUILD_INTERFACE:Boost::asio>
 )
 
 add_dependencies(${TEST_APP} daq::opcua_client_module

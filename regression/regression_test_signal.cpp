@@ -26,9 +26,49 @@ protected:
     }
 };
 
-TEST_P(RegressionTestSignal, getInfo)
+TEST_P(RegressionTestSignal, getPublic)
 {
     ASSERT_NO_THROW(signal.getPublic());
+}
+
+TEST_P(RegressionTestSignal, setPublic)
+{
+    ASSERT_NO_THROW(signal.setPublic(True));
+}
+
+TEST_P(RegressionTestSignal, getDescriptor)
+{
+    ASSERT_NO_THROW(signal.getDescriptor());
+}
+
+TEST_P(RegressionTestSignal, getDomainSignal)
+{
+    ASSERT_NO_THROW(signal.getDomainSignal());
+}
+
+TEST_P(RegressionTestSignal, getRelatedSignals)
+{
+    ASSERT_NO_THROW(signal.getRelatedSignals());
+}
+
+TEST_P(RegressionTestSignal, getConnections)
+{
+    ASSERT_NO_THROW(signal.getConnections());
+}
+
+TEST_P(RegressionTestSignal, getStreamed)
+{
+    ASSERT_NO_THROW(signal.getStreamed());
+}
+
+TEST_P(RegressionTestSignal, setStreamed)
+{
+    ASSERT_NO_THROW(signal.setStreamed(True));
+}
+
+TEST_P(RegressionTestSignal, getLastValue)
+{
+    ASSERT_NO_THROW(signal.getLastValue());
 }
 
 INSTANTIATE_TEST_SUITE_P(Signal,

@@ -6,7 +6,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const DeviceInfoPtr& deviceInfo, const ComponentPtr& parent)
-    : DeviceBase<>(ctx, parent, localId)
+    : Device(ctx, parent, localId)
     , manager(this->context.assigned() ? this->context.getModuleManager() : nullptr)
     , logger(ctx.getLogger())
     , loggerComponent( this->logger.assigned()

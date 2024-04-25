@@ -12,7 +12,7 @@
 #include "opendaq/mirrored_signal_impl.h"
 #include "opendaq/input_port_impl.h"
 #include "opendaq/channel_impl.h"
-#include "opendaq/device_impl.h"
+#include "opendaq/mirrored_device_impl.h"
 #include "opendaq/io_folder_impl.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -495,7 +495,7 @@ template class TmsClientPropertyObjectBaseImpl<PropertyObjectImpl>;
 template class TmsClientPropertyObjectBaseImpl<ComponentImpl<IComponent,ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<FolderImpl<IFolderConfig, ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<IoFolderImpl<ITmsClientComponent>>;
-template class TmsClientPropertyObjectBaseImpl<DeviceBase<ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<MirroredDeviceBase<ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<ChannelImpl<ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<MirroredSignalBase<ITmsClientComponent>>;

@@ -1,5 +1,5 @@
 #include "opcuatms_client/objects/tms_client_component_impl.h"
-#include "opendaq/device_impl.h"
+#include "opendaq/mirrored_device_impl.h"
 #include "opendaq/folder_impl.h"
 #include "opendaq/io_folder_impl.h"
 #include "opendaq/mirrored_signal_impl.h"
@@ -210,7 +210,7 @@ bool TmsClientComponentBaseImpl<Impl>::isChildComponent(const ComponentPtr& comp
 template class TmsClientComponentBaseImpl<ComponentImpl<IComponent, ITmsClientComponent>>;
 template class TmsClientComponentBaseImpl<FolderImpl<IFolderConfig, ITmsClientComponent>>;
 template class TmsClientComponentBaseImpl<IoFolderImpl<ITmsClientComponent>>;
-template class TmsClientComponentBaseImpl<DeviceBase<ITmsClientComponent>>;
+template class TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>;
 template class TmsClientComponentBaseImpl<FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>>;
 template class TmsClientComponentBaseImpl<ChannelImpl<ITmsClientComponent>>;
 template class TmsClientComponentBaseImpl<MirroredSignalBase<ITmsClientComponent>>;

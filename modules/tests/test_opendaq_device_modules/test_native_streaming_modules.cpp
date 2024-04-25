@@ -1,4 +1,4 @@
-#include "test_helpers.h"
+#include "test_helpers/test_helpers.h"
 
 using NativeStreamingModulesTest = testing::Test;
 

@@ -1,4 +1,4 @@
-#include "test_helpers.h"
+#include "test_helpers/test_helpers.h"
 
 using WebsocketModulesTest = testing::Test;
 using namespace daq;

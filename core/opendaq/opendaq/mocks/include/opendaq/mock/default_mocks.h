@@ -26,12 +26,12 @@ DECLARE_OPENDAQ_INTERFACE(IMockDefaultDevice, IBaseObject)
     virtual void addCustomComponent(const ComponentPtr& component) = 0;
 };
 
-class DefaultDevice : public DeviceBase<IMockDefaultDevice>
+class DefaultDevice : public DeviceBase<IDevice, IMockDefaultDevice>
 {
 public:
 
     DefaultDevice(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-        : DeviceBase<IMockDefaultDevice>(ctx, parent, localId)
+        : DeviceBase<IDevice, IMockDefaultDevice>(ctx, parent, localId)
     {
     }
 

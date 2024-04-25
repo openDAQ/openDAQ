@@ -55,7 +55,7 @@ TEST_F(TmsIntegrationTest, Connect)
     TmsServer tmsServer(device);
     tmsServer.start();
 
-    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     DevicePtr clientDevice;
     ASSERT_NO_THROW(clientDevice = tmsClient.connect());
     ASSERT_TRUE(clientDevice.assigned());
@@ -68,7 +68,7 @@ TEST_F(TmsIntegrationTest, Devices)
     TmsServer tmsServer(device);
     tmsServer.start();
 
-    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     DevicePtr clientDevice = tmsClient.connect();
     auto devices = clientDevice.getDevices();
     ASSERT_EQ(devices.getCount(), 2u);
@@ -81,7 +81,7 @@ TEST_F(TmsIntegrationTest, DeviceInfo)
     TmsServer tmsServer(device);
     tmsServer.start();
 
-    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     DevicePtr clientDevice = tmsClient.connect();
 
     auto devices = clientDevice.getDevices();
@@ -96,7 +96,7 @@ TEST_F(TmsIntegrationTest, FunctionBlocks)
     TmsServer tmsServer(device);
     tmsServer.start();
 
-    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     DevicePtr clientDevice = tmsClient.connect();
 
     auto functionBlocks = clientDevice.getFunctionBlocks();
@@ -110,7 +110,7 @@ TEST_F(TmsIntegrationTest, FunctionBlockType)
     TmsServer tmsServer(device);
     tmsServer.start();
 
-    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     DevicePtr clientDevice = tmsClient.connect();
 
     auto functionBlocks = clientDevice.getFunctionBlocks();
@@ -125,7 +125,7 @@ TEST_F(TmsIntegrationTest, GetSignals)
     TmsServer tmsServer(device);
     tmsServer.start();
 
-    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     DevicePtr clientDevice = tmsClient.connect();
 
     ListPtr<ISignal> signals;
@@ -226,7 +226,7 @@ TEST_F(TmsIntegrationTest, GetDomainSignal)
 
     DevicePtr clientDevice;
     {
-        TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr); // The device should work after we delete the builder
+        TmsClient tmsClient(device.getContext(), nullptr, OPC_URL); // The device should work after we delete the builder
         clientDevice = tmsClient.connect();
     }
 
@@ -248,7 +248,7 @@ TEST_F(TmsIntegrationTest, GetAvailableFunctionBlockTypes)
 
     auto serverFbTypes = device.getAvailableFunctionBlockTypes();
 
-    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     auto clientDevice = tmsClient.connect();
 
     const auto clientFbTypes = clientDevice.getAvailableFunctionBlockTypes();
@@ -264,7 +264,7 @@ TEST_F(TmsIntegrationTest, AddFunctionBlock)
     TmsServer tmsServer(device);
     tmsServer.start();
 
-    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     auto clientDevice = tmsClient.connect();
     ASSERT_EQ("mock_fb_uid_1", clientDevice.getFunctionBlocks()[0].getLocalId());
 
@@ -285,7 +285,7 @@ TEST_F(TmsIntegrationTest, AddFunctionBlockWitchConfig)
     TmsServer tmsServer(device);
     tmsServer.start();
 
-    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     auto clientDevice = tmsClient.connect();
 
     const auto clientFbTypes = clientDevice.getAvailableFunctionBlockTypes();
@@ -308,7 +308,7 @@ TEST_F(TmsIntegrationTest, RemoveFunctionBlock)
     TmsServer tmsServer(device);
     tmsServer.start();
 
-    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     auto clientDevice = tmsClient.connect();
 
     auto fb1 = clientDevice.addFunctionBlock("mock_fb_uid");
@@ -328,7 +328,7 @@ TEST_F(TmsIntegrationTest, InputPortConnect)
     TmsServer tmsServer(device);
     tmsServer.start();
 
-    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     auto clientDevice = tmsClient.connect();
 
     auto inputPort = clientDevice.getChannelsRecursive().getItemAt(0).getInputPorts().getItemAt(0);
@@ -398,7 +398,7 @@ TEST_F(TmsIntegrationTest, BeginEndUpdateDevice)
     TmsServer tmsServer(device);
     tmsServer.start();
 
-    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL, nullptr);
+    TmsClient tmsClient(device.getContext(), nullptr, OPC_URL);
     auto clientDevice = tmsClient.connect();
 
     ASSERT_NO_THROW(clientDevice.beginUpdate());

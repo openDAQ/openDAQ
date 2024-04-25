@@ -121,14 +121,6 @@ TEST_F(OpcUaClientModuleTest, CreateDeviceConnectionStringInvalidId)
     ASSERT_THROW(module.createDevice("daqref://devicett3axxr1", nullptr), InvalidParameterException);
 }
 
-TEST_F(OpcUaClientModuleTest, CreateDeviceConfigInvalid)
-{
-    auto module = CreateModule();
-    auto config = PropertyObject();
-
-    ASSERT_THROW(module.createDevice("daq.opcua://device8", nullptr, config), InvalidParameterException);
-}
-
 TEST_F(OpcUaClientModuleTest, GetAvailableComponentTypes)
 {
     const auto module = CreateModule();
@@ -158,31 +150,7 @@ TEST_F(OpcUaClientModuleTest, DefaultDeviceConfig)
     ASSERT_TRUE(deviceTypes.hasKey("opendaq_opcua_config"));
     auto config = deviceTypes.get("opendaq_opcua_config").createDefaultConfig();
     ASSERT_TRUE(config.assigned());
-
-    ASSERT_TRUE(config.hasProperty("StreamingConnectionHeuristic"));
-    ASSERT_EQ(config.getPropertySelectionValue("StreamingConnectionHeuristic"), "MinConnections");
-
-#if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-    ASSERT_TRUE(config.hasProperty("AllowedStreamingProtocols"));
-    ASSERT_EQ(config.getPropertyValue("AllowedStreamingProtocols"), List<IString>("opendaq_native_streaming", "opendaq_lt_streaming"));
-
-    ASSERT_TRUE(config.hasProperty("PrimaryStreamingProtocol"));
-    ASSERT_EQ(config.getPropertyValue("PrimaryStreamingProtocol"), "opendaq_native_streaming");
-#elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING) && !defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-    ASSERT_TRUE(config.hasProperty("AllowedStreamingProtocols"));
-    ASSERT_EQ(config.getPropertyValue("AllowedStreamingProtocols"), List<IString>("opendaq_lt_streaming"));
-
-    ASSERT_TRUE(config.hasProperty("PrimaryStreamingProtocol"));
-    ASSERT_EQ(config.getPropertyValue("PrimaryStreamingProtocol"), "opendaq_lt_streaming");
-#endif
-}
-
-TEST_F(OpcUaClientModuleTest, InvalidDeviceConfig)
-{
-    auto module = CreateModule();
-    auto config = PropertyObject();
-
-    ASSERT_FALSE(module.acceptsConnectionParameters("daq.opcua://device8", config));
+    ASSERT_EQ(config.getAllProperties().getCount(), 0u);
 }
 
 TEST_F(OpcUaClientModuleTest, CreateFunctionBlockIdNull)

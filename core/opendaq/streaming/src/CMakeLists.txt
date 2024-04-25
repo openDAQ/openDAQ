@@ -11,6 +11,8 @@ rtgen(SRC_Streaming streaming.h)
 rtgen(SRC_MirroredSignal mirrored_signal_config.h)
 rtgen(SRC_SubscriptionEventArgs subscription_event_args.h)
 rtgen(SRC_MirroredSignalPrivate mirrored_signal_private.h)
+rtgen(SRC_MirroredDevice mirrored_device.h)
+rtgen(SRC_MirroredDeviceConfig mirrored_device_config.h)
 
 source_group("mirrored_signal" FILES ${SDK_HEADERS_DIR}/mirrored_signal_config.h
                                      ${SDK_HEADERS_DIR}/mirrored_signal_impl.h
@@ -28,6 +30,11 @@ source_group("subscription_event_args" FILES ${SDK_HEADERS_DIR}/subscription_eve
                                              subscription_event_args_impl.cpp
 )
 
+source_group("mirrored_device" FILES ${SDK_HEADERS_DIR}/mirrored_device.h
+                                     ${SDK_HEADERS_DIR}/mirrored_device_config.h
+                                     ${SDK_HEADERS_DIR}/mirrored_device_impl.h
+)
+
 set(SRC_Cpp subscription_event_args_impl.cpp
 )
 
@@ -36,6 +43,9 @@ set(SRC_PublicHeaders streaming_impl.h
                       streaming_private.h
                       mirrored_signal_private.h
                       subscription_event_args_factory.h
+                      mirrored_device.h
+                      mirrored_device_config.h
+                      mirrored_device_impl.h
 )
 
 set(SRC_PrivateHeaders subscription_event_args_impl.h
@@ -47,18 +57,24 @@ prepend_include(${MAIN_TARGET} SRC_PublicHeaders)
 list(APPEND SRC_Cpp ${SRC_Streaming_Cpp}
                     ${SRC_MirroredSignal_Cpp}
                     ${SRC_SubscriptionEventArgs_Cpp}
+                    ${SRC_MirroredDevice_Cpp}
+                    ${SRC_MirroredDeviceConfig_Cpp}
 )
 
 list(APPEND SRC_PublicHeaders ${SRC_Streaming_PublicHeaders}
                               ${SRC_MirroredSignal_PublicHeaders}
                               ${SRC_SubscriptionEventArgs_PublicHeaders}
                               ${SRC_MirroredSignalPrivate_PublicHeaders}
+                              ${SRC_MirroredDevice_PublicHeaders}
+                              ${SRC_MirroredDeviceConfig_PublicHeaders}
 )
 
 list(APPEND SRC_PrivateHeaders ${SRC_Streaming_PrivateHeaders}
                                ${SRC_MirroredSignal_PrivateHeaders}
                                ${SRC_SubscriptionEventArgs_PrivateHeaders}
                                ${SRC_MirroredSignalPrivate_PrivateHeaders}
+                               ${SRC_MirroredDevice_PrivateHeaders}
+                               ${SRC_MirroredDeviceConfig_PrivateHeaders}
 )
 
 opendaq_add_library(${BASE_NAME} STATIC
@@ -75,6 +91,7 @@ opendaq_target_link_libraries(${BASE_NAME}
         daq::logger
         daq::utility
         daq::signal
+        daq::device
 )
 
 opendaq_target_include_directories(${BASE_NAME}
@@ -85,4 +102,5 @@ opendaq_target_include_directories(${BASE_NAME}
         $<INSTALL_INTERFACE:include>
 
         $<TARGET_PROPERTY:daq::signal,INTERFACE_INCLUDE_DIRECTORIES>
+        $<TARGET_PROPERTY:daq::device,INTERFACE_INCLUDE_DIRECTORIES>
 )

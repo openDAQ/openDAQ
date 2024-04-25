@@ -304,8 +304,8 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
     MirroredSignalConfigPtr clientSignalPtr = getSignal(clientInstance, "ByteStep");
     MirroredSignalConfigPtr clientDomainSignalPtr = clientSignalPtr.getDomainSignal();
 
-    bool usingNativePseudoDevice = std::get<1>(GetParam()) == "opendaq_native_streaming" && std::get<2>(GetParam()) == "daq.ns://127.0.0.1/";
-    bool usingWSPseudoDevice = std::get<1>(GetParam()) == "opendaq_lt_streaming" && std::get<2>(GetParam()) == "daq.lt://127.0.0.1/";
+    bool usingNativePseudoDevice = std::get<1>(GetParam()) == "opendaq_native_streaming" && (std::get<2>(GetParam()).find("daq.ns://") == 0);
+    bool usingWSPseudoDevice = std::get<1>(GetParam()) == "opendaq_lt_streaming" && (std::get<2>(GetParam()).find("daq.lt://") == 0);
     bool usingNativeStreaming = std::get<1>(GetParam()) == "opendaq_native_streaming";
 
     for (int i = 0; i < 5; ++i)
@@ -411,23 +411,13 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
         {
             auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 1);
             ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
-            
-            DataDescriptorPtr valueDataDescClient;
-            DataDescriptorPtr domainDataDescClient;
-            for (const auto & packet : clientReceivedPackets)
-            {
-                auto eventPacket = packet.asPtrOrNull<IEventPacket>();
-                if (eventPacket.assigned() && eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-                {
-                    auto tmpValueDesc = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                    if (tmpValueDesc.assigned())
-                        valueDataDescClient = tmpValueDesc;
+            const auto packet = clientReceivedPackets[0];
+            const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
+            ASSERT_TRUE(eventPacket.assigned());
+            ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
 
-                    auto tmpDomainDesc = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-                    if(tmpDomainDesc.assigned())
-                        domainDataDescClient = tmpDomainDesc;
-                }
-            }
+            const auto valueDataDescClient = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+            const auto domainDataDescClient = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
 
             EXPECT_EQ(valueDataDesc, valueDataDescClient);
             EXPECT_EQ(domainDataDesc, domainDataDescClient);

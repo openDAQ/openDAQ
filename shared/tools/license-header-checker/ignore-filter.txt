@@ -7,3 +7,5 @@ BasicHowTo
 openDAQ.Net.CI.Test
 openDAQ.Net.Test
 openDAQDemo.Net
+icmp_header.h
+ipv4_header.h

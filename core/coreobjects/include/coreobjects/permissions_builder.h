@@ -70,7 +70,7 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionsBuilder, IBaseObject)
     // [returnSelf]
     /*!
      * @brief Add permissions of another permission config object, overwrite existing ones.
-     * @param config Permisison config object.
+     * @param config Permission config object.
      */
     virtual ErrCode INTERFACE_FUNC extend(IPermissions* config) = 0;
 

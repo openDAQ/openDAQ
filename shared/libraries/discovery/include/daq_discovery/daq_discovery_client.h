@@ -21,12 +21,12 @@
 
 BEGIN_NAMESPACE_DISCOVERY
 
-using ServerCapabilityCb = std::function<ServerCapabilityPtr(MdnsDiscoveredDevice)>;
+using ServerCapabilityCallback = std::function<ServerCapabilityPtr(MdnsDiscoveredDevice)>;
 
 class DiscoveryClient final
 {
 public:
-    explicit DiscoveryClient(std::vector<ServerCapabilityCb> serverCapabilityCbs, std::unordered_set<std::string> requiredCaps = {});
+    explicit DiscoveryClient(std::vector<ServerCapabilityCallback> serverCapabilityCbs, std::unordered_set<std::string> requiredCaps = {});
     
     void initMdnsClient(const ListPtr<IString>& serviceNames, std::chrono::milliseconds discoveryDuration = 500ms);
     ListPtr<IDeviceInfo> discoverDevices() const;
@@ -37,7 +37,7 @@ protected:
 
     std::shared_ptr<MDNSDiscoveryClient> mdnsClient;
     std::unordered_set<std::string> requiredCaps;
-    std::vector<ServerCapabilityCb> serverCapabilityCbs;
+    std::vector<ServerCapabilityCallback> serverCapabilityCallbacks;
 };
 
 END_NAMESPACE_DISCOVERY

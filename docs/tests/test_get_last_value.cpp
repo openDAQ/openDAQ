@@ -125,7 +125,7 @@ TEST_F(HowToGetLastValue, GetLastValueSignalListOfInt)
     ListPtr<IBaseObject> myList = mySignal.getLastValue();
     // Check the number of elements in List
     assert(myList.getCount() == 2);
-    // Extract the second item on list
+    // Extract the second item in List
     auto myItem = myList.getItemAt(1);
 
     // END DOCS CODE

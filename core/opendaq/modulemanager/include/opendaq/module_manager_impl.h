@@ -24,6 +24,10 @@
 #include <coretypes/string_ptr.h>
 #include <vector>
 
+#include <thread>
+#include <boost/asio/executor_work_guard.hpp>
+#include <boost/asio/io_context.hpp>
+
 BEGIN_NAMESPACE_OPENDAQ
 
 struct ModuleLibrary;
@@ -46,11 +50,19 @@ public:
 
 private:
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
+
+    void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
+
     bool modulesLoaded;
     std::vector<std::string> paths;
     std::vector<ModuleLibrary> libraries;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+
+    std::vector<std::thread> pool;
+    boost::asio::io_context ioContext;
+    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work;
+
     DictPtr<IString, IDeviceInfo> availableDevicesGroup;
     std::unordered_map<std::string, size_t> functionBlockCountMap;
 };

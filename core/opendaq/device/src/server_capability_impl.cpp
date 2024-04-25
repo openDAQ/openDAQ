@@ -28,9 +28,10 @@ StringPtr ServerCapabilityConfigImpl::ProtocolTypeToString(ProtocolType type)
             return "Streaming";
         case(ProtocolType::ConfigurationAndStreaming):
             return "ConfigurationAndStreaming";
-        default:
+        case ProtocolType::Unknown:
             return "Unknown";
     }
+    return "Unknown";
 }
 
 ProtocolType ServerCapabilityConfigImpl::StringToProtocolType(const StringPtr& type)

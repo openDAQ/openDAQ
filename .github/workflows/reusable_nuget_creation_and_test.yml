@@ -1,0 +1,185 @@
+name: .NET Bindings NuGet creation and test
+
+on:
+  workflow_call:
+    inputs:
+      test_path:
+        description: the path for the test reports (optional, omit to disable tests)
+        required: false
+        default: ''
+        type: string
+      windows_x64_artifact_name:
+        description: the name of the Windows x64 source artifact (package will be deleted after its use)
+        required: true
+        type: string
+      linux_x64_artifact_name:
+        description: the name of the Linux x64 source artifact (package will be deleted after its use)
+        required: true
+        type: string
+      short_sha:
+        description: the short SHA of the GitHub ref (optional, omit to generate release package)
+        required: false
+        default: ''
+        type: string
+    outputs:
+      nuget_artifact_name:
+        description: the name of the uploaded NuGet artifact  
+        value: ${{ jobs.dotnet-bindings-nuget-creation.outputs.nuget_artifact_name }}
+      nuget_creation_result: 
+        description: result of the creation job
+        value: ${{ fromJSON(toJSON(jobs.dotnet-bindings-nuget-creation)).result }}
+        # JSON trick from https://github.com/actions/runner/issues/2495
+
+jobs:
+  dotnet-bindings-nuget-creation:
+    runs-on: windows-2022
+    name: NuGet creation
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-nuget
+      cancel-in-progress: true
+    timeout-minutes: 120
+
+    env:
+      nuget_work_path: ${{ github.workspace }}/build/nuget_work
+      nuget_work_path_win_x64: ${{ github.workspace }}/build/nuget_work/win-x64
+      nuget_work_path_linux_x64: ${{ github.workspace }}/build/nuget_work/linux-x64
+      dotnet_source_path: ${{ github.workspace }}/bindings/dotnet/openDAQ.Net
+      nuget_artifact: Package (openDAQ.Net NuGet)
+      # map inputs to env
+      test_path: ${{ inputs.test_path }}
+      windows_x64_artifact: ${{ inputs.windows_x64_artifact_name }}
+      linux_x64_artifact: ${{ inputs.linux_x64_artifact_name }}
+
+    # for the test job (dotnet-bindings-nuget-test-win)
+    outputs:
+      nuget_work_path: ${{ env.nuget_work_path }}
+      nuget_work_path_win_x64: ${{ env.nuget_work_path_win_x64 }}
+      nuget_work_path_linux_x64: ${{ env.nuget_work_path_linux_x64 }}
+      dotnet_source_path: ${{ env.dotnet_source_path }}
+      nuget_artifact_name: ${{ env.nuget_artifact }}
+      test_path: ${{ env.test_path }}
+    
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: ${{ env.nuget_work_path }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download artifacts for Windows x64
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.windows_x64_artifact }}
+          path: ${{ env.nuget_work_path_win_x64 }}
+
+      - name: Download artifacts for Linux
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.linux_x64_artifact }}
+          path: ${{ env.nuget_work_path_linux_x64 }}
+
+      - name: Cleanup test-files from Linux artifacts
+        # since the exclusion filter !path/**/*_test_dll.so in upload-artifact does not work
+        working-directory: ${{ env.nuget_work_path_linux_x64 }}
+        run: |
+          del *_test_dll.so -Force
+          del opendaq.cpython* -Force
+
+      - name: Display files in working directory
+        run: ls -R
+
+      - name: Read openDAQ version
+        id: daq_version
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          DAQ_VER=$(cat opendaq_version)
+          echo Head openDAQ version: $DAQ_VER
+          echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
+
+      - name: Build NuGet package
+        working-directory: ${{ env.dotnet_source_path }}/openDAQ.NET
+        run: |
+          # for .NET Bindings build
+          $ENV:SHORT_SHA = '${{ inputs.short_sha }}'
+          $SDK_WIN64_PATH = '-p:SDK_WIN64_PATH="${{ env.nuget_work_path_win_x64 }}"'
+          $SDK_LINUX64_PATH = '-p:SDK_LINUX64_PATH="${{ env.nuget_work_path_linux_x64 }}"'
+          $DAQ_VERSION = '-p:OPENDAQ_PACKAGE_VERSION=${{ steps.daq_version.outputs.DAQ_VERSION }}'
+          if (Test-Path '${{ env.nuget_work_path }}/win-x64/*.nupkg') { del '${{ env.nuget_work_path }}/win-x64/*.nupkg' -Force }
+          & dotnet restore .
+          & dotnet pack . --no-build --configuration Release_Build $SDK_WIN64_PATH $SDK_LINUX64_PATH $DAQ_VERSION $VERSION_SUFFIX
+        # restoring before packing to create obj\project.assets.json needed for packing
+        # packing without building as the binaries (artifacts) have been downloaded before (handled in *.csproj)
+
+      - name: Upload package (openDAQ.Net NuGet)
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.nuget_artifact }}
+          path: ${{ env.nuget_work_path }}/win-x64/openDAQ.Net.*.nupkg
+          retention-days: 7
+
+      - name: Delete no longer needed artifacts
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: |
+            ${{ env.windows_x64_artifact }}
+            ${{ env.linux_x64_artifact }}
+
+  dotnet-bindings-nuget-test-win:
+    runs-on: windows-2022
+    name: NuGet test (Windows)
+
+    needs: [dotnet-bindings-nuget-creation]
+
+    if: inputs.test_path != ''
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-nuget
+      cancel-in-progress: true
+    timeout-minutes: 120
+
+    env:
+      nuget_work_path: ${{ needs.dotnet-bindings-nuget-creation.outputs.nuget_work_path }}
+      nuget_work_path_win_x64: ${{ needs.dotnet-bindings-nuget-creation.outputs.nuget_work_path_win_x64 }}
+      nuget_work_path_linux_x64: ${{ needs.dotnet-bindings-nuget-creation.outputs.nuget_work_path_linux_x64 }}
+      dotnet_source_path: ${{ needs.dotnet-bindings-nuget-creation.outputs.dotnet_source_path }}
+      nuget_artifact: ${{ needs.dotnet-bindings-nuget-creation.outputs.nuget_artifact_name }}
+      test_path: ${{ needs.dotnet-bindings-nuget-creation.outputs.test_path }}
+
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: ${{ env.nuget_work_path }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download NuGet package
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.nuget_artifact }}
+          path: ${{ env.nuget_work_path_win_x64 }}
+
+      - name: Display files in working directory
+        run: |
+          ls -R
+
+      - name: Test NuGet package
+        working-directory: ${{ env.dotnet_source_path }}/openDAQ.Net.NuGet.Test
+        run: |
+          if (Test-Path ./packages/opendaq.net) { del ./packages/opendaq.net -Recurse -Force }
+          & dotnet restore . --configfile .nuget/NuGet.Config --packages ./packages
+          & dotnet test . --no-restore --configuration Release --logger "junit;LogFilePath=${{ env.test_path }}/test_DotNetBindings_nuget.xml"
+        # restoring using private config and packages dir to have the NuGet package store local and temporary
+        # testing with building but not restoring (done before)
+
+      - name: Upload NuGet package test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Unit Test Results (openDAQ.Net NuGet)
+          path: ${{ env.test_path }}

@@ -22,7 +22,7 @@
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/struct_impl.h>
 #include <coretypes/struct_type_factory.h>
-#include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_object_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -34,7 +34,7 @@ public:
                                       const StringPtr& id,
                                       const StringPtr& name,
                                       const StringPtr& description,
-                                      const FunctionPtr& createDefaultConfigCallback);
+                                      const PropertyObjectPtr& defaultConfig);
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -45,9 +45,7 @@ protected:
     StringPtr id;
     StringPtr name;
     StringPtr description;
-    FunctionPtr createDefaultConfigCallback;
-
-    void initCreateDefaultConfig(const FunctionPtr& createDefaultConfigCallback);
+    PropertyObjectPtr defaultConfig;
 };
 
 template <class Intf, class... Interfaces>
@@ -55,31 +53,14 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& id,
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
-                                                                        const FunctionPtr& createDefaultConfigCallback)
+                                                                        const PropertyObjectPtr& defaultConfig)
     : GenericStructImpl<Intf, IStruct, Interfaces...>(
           type, Dict<IString, IBaseObject>({{"id", id}, {"name", name}, {"description", description}}))
     , id(id)
     , name(name)
     , description(description)
+    , defaultConfig(defaultConfig)
 {
-    initCreateDefaultConfig(createDefaultConfigCallback);
-}
-
-template <class Intf, class... Interfaces>
-void GenericComponentTypeImpl<Intf, Interfaces...>::initCreateDefaultConfig(const FunctionPtr& createDefaultConfigCallback)
-{
-    if (createDefaultConfigCallback.assigned())
-    {
-        this->createDefaultConfigCallback = createDefaultConfigCallback;
-        return;
-    }
-
-    this->createDefaultConfigCallback = [](IBaseObject* /*params*/, IBaseObject** result)
-    {
-        auto obj = PropertyObject();
-        *result = obj.detach();
-        return OPENDAQ_SUCCESS;
-    };
 }
 
 template <class Intf, class... Interfaces>
@@ -114,24 +95,10 @@ ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::createDefaultConfig(IProp
 {
     OPENDAQ_PARAM_NOT_NULL(defaultConfig);
 
+    if (this->defaultConfig.assigned())
+        return this->defaultConfig.template asPtr<IPropertyObjectInternal>()->clone(defaultConfig);
+
     *defaultConfig = nullptr;
-
-    if (createDefaultConfigCallback.assigned())
-    {
-        daq::BaseObjectPtr callResult;
-        auto errCode = createDefaultConfigCallback->call(nullptr, &callResult);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
-
-        if (callResult.assigned())
-        {
-            PropertyObjectPtr callResultPropObj = callResult.asPtrOrNull<IPropertyObject>();
-            if (!callResultPropObj.assigned())
-                return OPENDAQ_ERR_CONVERSIONFAILED;
-
-            *defaultConfig = callResultPropObj.detach();
-        }
-    }
     return OPENDAQ_SUCCESS;
 }
 

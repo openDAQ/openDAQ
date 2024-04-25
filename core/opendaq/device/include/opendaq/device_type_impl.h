@@ -28,7 +28,7 @@ public:
     explicit DeviceTypeImpl(const StringPtr& id,
                             const StringPtr& name,
                             const StringPtr& description,
-                            const FunctionPtr& createDefaultConfigCallback);
+                            const PropertyObjectPtr& defaultConfig);
 };
 
 END_NAMESPACE_OPENDAQ

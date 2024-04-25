@@ -238,9 +238,7 @@ TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
     defaultConfig.addProperty(StringPropertyBuilder("prop", "value").build());
 
     auto fbTypes = Dict<IString, IFunctionBlockType>();
-    fbTypes.set("id", FunctionBlockType("id", "name", "desc", Function([&defaultConfig] {
-            return defaultConfig;
-        })));
+    fbTypes.set("id", FunctionBlockType("id", "name", "desc", defaultConfig));
 
     EXPECT_CALL(device.mock(), getAvailableFunctionBlockTypes(_)).WillOnce(daq::Get<DictPtr<IString, IFunctionBlockType>>(fbTypes));
 

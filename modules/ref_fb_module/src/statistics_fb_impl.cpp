@@ -36,15 +36,13 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
 
 FunctionBlockTypePtr StatisticsFbImpl::CreateType()
 {
+    auto defaultConfig = PropertyObject();
+    defaultConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
+
     return FunctionBlockType("ref_fb_module_statistics",
                              "Statistics",
                              "Calculates statistics",
-                             []()
-                             {
-                                 const auto obj = PropertyObject();
-                                 obj.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
-                                 return obj;
-                             });
+                             defaultConfig);
 }
 
 void StatisticsFbImpl::initProperties()

@@ -50,19 +50,19 @@ void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, da
             const auto objectPtr = daq::ComponentTypePtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
-        "Gets the user-friendly name of a component.");
+        "Gets the user-friendly name of a component type.");
     cls.def_property_readonly("description",
         [](daq::IComponentType *object)
         {
             const auto objectPtr = daq::ComponentTypePtr::Borrow(object);
             return objectPtr.getDescription().toStdString();
         },
-        "Gets the description of a component.");
+        "Gets the description of a component type.");
     cls.def("create_default_config",
         [](daq::IComponentType *object)
         {
             const auto objectPtr = daq::ComponentTypePtr::Borrow(object);
             return objectPtr.createDefaultConfig().detach();
         },
-        "The function creates and returns default configuration. On each call, we need to create new object, because we want that each instance of the component has its own configuration object.");
+        "The function clones and returns default configuration. On each call, we need to create new object, because we want that each instance of the component has its own configuration object.");
 }

@@ -41,18 +41,10 @@ PropertyObjectPtr OpcUaServerImpl::createDefaultConfig()
 
 ServerTypePtr OpcUaServerImpl::createType()
 {
-    auto configurationCallback = [](IBaseObject* input, IBaseObject** output) -> ErrCode
-    {
-        PropertyObjectPtr propObjPtr;
-        ErrCode errCode = wrapHandlerReturn(&OpcUaServerImpl::createDefaultConfig, propObjPtr);
-        *output = propObjPtr.detach();
-        return errCode;
-    };
-
     return ServerType("openDAQ OpcUa",
                       "openDAQ OpcUa server",
                       "Publishes device structure over OpcUa protocol",
-                      configurationCallback);
+                      OpcUaServerImpl::createDefaultConfig());
 }
 
 void OpcUaServerImpl::onStopServer()

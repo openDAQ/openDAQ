@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 29.04.2024 15:45:55.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -60,7 +60,7 @@ internal unsafe class RawErrorInfo : RawBaseObject
 /// ErrCode ISomeInterface::checkValue(Int value)
 /// {
 ///     if (value &lt; 0)
-///         return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Parameter should be &gt;= 0", null);
+///         return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, &quot;Parameter should be &gt;= 0&quot;, nullptr);
 ///     return OPENDAQ_SUCCESS;
 /// };
 ///
@@ -83,97 +83,95 @@ public class ErrorInfo : BaseObject
     }
 
     /// <summary>Sets the message of the error.</summary>
-    /// <param name="message">Error description.</param>
-    public void SetMessage(string message)
+    public string Message
     {
-        //cast .NET argument to SDK object
-        using var messagePtr = (StringObject)message;
-
-        unsafe //use native method pointer
+        get
         {
-            //call native method
-            ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetMessage(base.NativePointer, messagePtr.NativePointer);
+            //native output argument
+            IntPtr messagePtr;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.GetMessage(base.NativePointer, out messagePtr);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            // validate pointer
+            if (messagePtr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            using var message = new StringObject(messagePtr, incrementReference: false);
+            return message;
+        }
+        set
+        {
+            //cast .NET argument to SDK object
+            using var messagePtr = (StringObject)value;
+
+            unsafe //use native method pointer
+            {
+                //call native method
+                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetMessage(base.NativePointer, messagePtr.NativePointer);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
             }
         }
-    }
-
-    /// <summary>Gets the message of the error.</summary>
-    /// <param name="message">Error description.</param>
-    public string GetMessage()
-    {
-        //native output argument
-        IntPtr messagePtr;
-
-        unsafe //use native function pointer
-        {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawErrorInfo.GetMessage(base.NativePointer, out messagePtr);
-
-            if (Result.Failed(errorCode))
-            {
-                throw new OpenDaqException(errorCode);
-            }
-        }
-
-        // validate pointer
-        if (messagePtr == IntPtr.Zero)
-        {
-            return null;
-        }
-
-        using var message = new StringObject(messagePtr, incrementReference: false);
-        return message;
     }
 
     /// <summary>Sets the source of the error.</summary>
-    /// <param name="source">Error source.</param>
-    public void SetSource(string source)
+    public string Source
     {
-        //cast .NET argument to SDK object
-        using var sourcePtr = (StringObject)source;
-
-        unsafe //use native method pointer
+        get
         {
-            //call native method
-            ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetSource(base.NativePointer, sourcePtr.NativePointer);
+            //native output argument
+            IntPtr sourcePtr;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.GetSource(base.NativePointer, out sourcePtr);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            // validate pointer
+            if (sourcePtr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            using var source = new StringObject(sourcePtr, incrementReference: false);
+            return source;
+        }
+        set
+        {
+            //cast .NET argument to SDK object
+            using var sourcePtr = (StringObject)value;
+
+            unsafe //use native method pointer
+            {
+                //call native method
+                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetSource(base.NativePointer, sourcePtr.NativePointer);
+
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
             }
         }
-    }
-
-    /// <summary>Gets the source of the error.</summary>
-    /// <param name="source">Error source.</param>
-    public string GetSource()
-    {
-        //native output argument
-        IntPtr sourcePtr;
-
-        unsafe //use native function pointer
-        {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawErrorInfo.GetSource(base.NativePointer, out sourcePtr);
-
-            if (Result.Failed(errorCode))
-            {
-                throw new OpenDaqException(errorCode);
-            }
-        }
-
-        // validate pointer
-        if (sourcePtr == IntPtr.Zero)
-        {
-            return null;
-        }
-
-        using var source = new StringObject(sourcePtr, incrementReference: false);
-        return source;
     }
 }
 
@@ -198,7 +196,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createErrorInfo(out objPtr);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new ErrorInfo(objPtr, incrementReference: false);
@@ -215,7 +213,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createErrorInfo(out objPtr);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

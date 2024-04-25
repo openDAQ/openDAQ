@@ -66,8 +66,8 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
         Console.WriteLine($"Trying to connect to {desiredConnection} device");
 
-        if (doLog) Console.WriteLine("daqInstance.GetAvailableDevices()");
-        var availableDevicesInfos = daqInstance.GetAvailableDevices();
+        if (doLog) Console.WriteLine("daqInstance.AvailableDevices");
+        var availableDevicesInfos = daqInstance.AvailableDevices;
         var deviceInfoCount = availableDevicesInfos.Count;
         if (doLog) Console.WriteLine($"  {deviceInfoCount} devices available");
 
@@ -86,8 +86,8 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             while (deviceInfoIterator.MoveNext())
             {
                 using var deviceInfo             = deviceInfoIterator.Current;
-                var       deviceConnectionString = deviceInfo.GetConnectionString();
-                var       deviceName             = deviceInfo.GetName();
+                var       deviceConnectionString = deviceInfo.ConnectionString;
+                var       deviceName             = deviceInfo.Name;
 
                 if (deviceName.StartsWith("HBK-CAL"))
                     continue;
@@ -142,7 +142,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
         Assert.That(addedDevice, Is.Not.Null, "*** Test aborted - Device connection failed.");
 
-        var deviceNameStr = addedDevice.GetName();
+        var deviceNameStr = addedDevice.Name;
         Console.WriteLine($"- Device to test: '{deviceNameStr}'");
 
         return addedDevice;
@@ -150,17 +150,17 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
     private static void ShowAllProperties(PropertyObject propertyObject, string varName)
     {
-        Console.WriteLine(varName + ".GetAllProperties()");
-        var properties = propertyObject.GetAllProperties();
+        Console.WriteLine(varName + ".AllProperties");
+        var properties = propertyObject.AllProperties;
 
         Console.WriteLine($"  {properties.Count} properties found");
         using var propIterator = properties.GetEnumerator();
         while (propIterator.MoveNext())
         {
             using var property = propIterator.Current;
-            var propertyName = property.GetName();
+            var propertyName = property.Name;
 
-            Console.WriteLine($"  - {propertyName} ({property.GetValueType()})");
+            Console.WriteLine($"  - {propertyName} ({property.ValueType})");
         }
     }
 
@@ -220,9 +220,9 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         Assert.That(daqInstance.IsDisposed, Is.False);
 
         //can do something with 'daqInstance' here
-        using var info = daqInstance.GetInfo();
+        using var info = daqInstance.Info;
 
-        var name = info.GetName();
+        var name = info.Name;
         Console.WriteLine($"daqInstance name = '{name}'");
 
         //finally free managed resources (release reference)
@@ -243,9 +243,9 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             Assert.That(daqInstance.IsDisposed, Is.False);
 
             //can do something with 'daqInstance' here
-            using var info = daqInstance.GetInfo();
+            using var info = daqInstance.Info;
 
-            var name = info.GetName();
+            var name = info.Name;
             Console.WriteLine($"daqInstance name = '{name}'");
         } //losing scope here, automatically calling Dispose() and thus freeing managed resources (release reference)
 
@@ -263,9 +263,9 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         Assert.That(daqInstance.IsDisposed, Is.False);
 
         //can do something with 'daqInstance' here
-        using var info = daqInstance.GetInfo();
+        using var info = daqInstance.Info;
 
-        var name = info.GetName();
+        var name = info.Name;
         Console.WriteLine($"daqInstance name = '{name}'");
 
         //losing scope at the end of this method, automatically calling Dispose() and thus freeing managed resources (release reference)
@@ -342,16 +342,16 @@ public class OpenDaq_Tests : OpenDAQTestsBase
                 std::cout << "Name: " << deviceInfo.getName() << ", Connection string: " << deviceInfo.getConnectionString() << std::endl;
          */
 
-        Console.WriteLine("> daqInstance.GetAvailableDevices()");
-        var availableDevicesInfos = daqInstance.GetAvailableDevices();
+        Console.WriteLine("> daqInstance.AvailableDevices");
+        var availableDevicesInfos = daqInstance.AvailableDevices;
 
         Console.WriteLine($"  {availableDevicesInfos.Count} devices available");
 
         //list all devices
         foreach (var deviceInfo in availableDevicesInfos)
         {
-            var    deviceName       = deviceInfo.GetName();
-            var    connectionString = deviceInfo.GetConnectionString();
+            var    deviceName       = deviceInfo.Name;
+            var    connectionString = deviceInfo.ConnectionString;
             string model            = deviceInfo.GetPropertyValue("model");
             string deviceClass      = deviceInfo.GetPropertyValue("deviceClass");
             string softwareRevision = deviceInfo.HasProperty("softwareRevision") ? deviceInfo.GetPropertyValue("softwareRevision") : "n/a";
@@ -383,7 +383,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
         var device = ConnectFirstAvailableDevice(daqInstance, desiredConnection, doLog: true);
 
-        //var deviceInfo = device.GetInfo();
+        //var deviceInfo = device.Info;
         //ShowAllProperties(deviceInfo, nameof(deviceInfo));
 
         if (!disposeDeviceLast) device.Dispose();
@@ -403,9 +403,9 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         // Create an Instance, loading modules from default location
         var instance = OpenDAQFactory.Instance();
 
-        Console.WriteLine("instance.GetAvailableDevices()");
+        Console.WriteLine("instance.AvailableDevices");
         Stopwatch sw = Stopwatch.StartNew();
-        var deviceInfos = instance.GetAvailableDevices();
+        var deviceInfos = instance.AvailableDevices;
         sw.Stop();
         Console.WriteLine($"  {deviceInfos.Count} devices available - elapsed in {sw.Elapsed.TotalMilliseconds} ms");
         sw.Reset();
@@ -429,7 +429,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         foreach (var deviceInfo in deviceInfos)
         {
 #endif
-            var deviceConnectionString = deviceInfo.GetConnectionString();
+            var deviceConnectionString = deviceInfo.ConnectionString;
 
             //connectible device?
             if ((doOpcUa && deviceConnectionString.StartsWith(ConnectionProtocolOpcUa, StringComparison.InvariantCultureIgnoreCase))
@@ -484,8 +484,8 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         foreach (var device in devices)
         {
 #endif
-            var info = device.GetInfo();
-            Console.WriteLine($"  Name: '{info.GetName()}', Connection string: '{info.GetConnectionString()}'");
+            var info = device.Info;
+            Console.WriteLine($"  Name: '{info.Name}', Connection string: '{info.ConnectionString}'");
 
             device.PrintReferenceCount();
             device.Dispose(); //because right now there is an issue with GC collecting all devices when collecting 'Instance'
@@ -534,9 +534,9 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             while (channelIterator.MoveNext() && (i++ < 50))
             {
                 using var channel = channelIterator.Current;
-                var channelName   = channel.GetName();
-                var localId       = channel.GetLocalId();
-                var globalId      = channel.GetGlobalId();
+                var channelName   = channel.Name;
+                var localId       = channel.LocalId;
+                var globalId      = channel.GlobalId;
 
                 Console.WriteLine($"  - {i,2}: {channelName} ({localId}) ({globalId})");
             }
@@ -585,9 +585,9 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             while (signalIterator.MoveNext() && (i++ < 10))
             {
                 using var signal = signalIterator.Current;
-                var signalName   = signal.GetName();
-                var localId      = signal.GetLocalId();
-                var globalId     = signal.GetGlobalId();
+                var signalName   = signal.Name;
+                var localId      = signal.LocalId;
+                var globalId     = signal.GlobalId;
 
                 Console.WriteLine($"  - {i,2}: {signalName} ({localId}) ({globalId})");
             }
@@ -648,7 +648,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             while (signalIterator.MoveNext() && (i++ < 10))
             {
                 using var sig = signalIterator.Current;
-                var sigName = sig.GetName();
+                var sigName = sig.Name;
 
                 Console.WriteLine($"  - {i,2}: {sigName}");
 
@@ -665,7 +665,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         //Console.WriteLine($"  {channels.Count} channels available");
 
         //using var firstChannel = channels[0];
-        //using var channelName = firstChannel.GetName();
+        //using var channelName = firstChannel.Name;
         //Console.WriteLine($"  - using channel 0 '{channelName}'");
 
         //Console.WriteLine("firstChannel.GetSignals()");
@@ -674,7 +674,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
         //take the first available signal
         using var signal = signals[analogSignalNo - 1];
-        var signalName = signal.GetName();
+        var signalName = signal.Name;
         Console.WriteLine($"  using signal {analogSignalNo} '{signalName}'");
 
         Console.WriteLine("OpenDAQFactory.CreateStreamReader()");
@@ -686,7 +686,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         nuint samplesCount = 0;
         using (var reader = OpenDAQFactory.CreateStreamReader<TValueType>(signal))
         {
-            Console.WriteLine($"  ValueReadType = {reader.GetValueReadType()}, DomainReadType = {reader.GetDomainReadType()}");
+            Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
 
             for (int readBlockNo = 0; readBlockNo < 10; ++readBlockNo)
             {
@@ -743,7 +743,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             while (channelIterator.MoveNext() /*&& (i++ < 5)*/)
             {
                 using var chan = channelIterator.Current;
-                var chanName = chan.GetName();
+                var chanName = chan.Name;
 
                 Console.WriteLine($"  - {channelNo,2}: {chanName}");
 
@@ -763,7 +763,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         }
 
         using var channel = channels[foundChannelNo - 1];
-        var channelName = channel.GetName();
+        var channelName = channel.Name;
         Console.WriteLine($"  > using channel {foundChannelNo} '{channelName}'");
 
         ShowAllProperties(channel!, "channel");
@@ -783,7 +783,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             while (signalIterator.MoveNext() /*&& (i++ < 5)*/)
             {
                 using var sig = signalIterator.Current;
-                var sigName = sig.GetName();
+                var sigName = sig.Name;
 
                 Console.WriteLine($"  - {signalNo,2}: {sigName}");
 
@@ -803,7 +803,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         }
 
         using var signal = signals[foundSignalNo - 1];
-        var signalName = signal.GetName();
+        var signalName = signal.Name;
         Console.WriteLine($"  > using signal {foundSignalNo} '{signalName}'");
 
         ShowAllProperties(signal!, "signal");
@@ -816,20 +816,20 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
             using StringObject frequencyPropertyName = "Frequency";
             using FloatObject frequencyValue = 5d;
-            Console.WriteLine($"  SetPropertyValue({frequencyPropertyName}, {frequencyValue.GetValue()})");
+            Console.WriteLine($"  SetPropertyValue({frequencyPropertyName}, {frequencyValue.Value})");
             channel.SetPropertyValue(frequencyPropertyName, frequencyValue);
             //channel.SetPropertyValue("Frequency", 5d);
 
             using StringObject amplitudePropertyName = "Amplitude";
             using FloatObject amplitudeValue = 10d;
-            Console.WriteLine($"  SetPropertyValue({amplitudePropertyName}, {amplitudeValue.GetValue()})");
+            Console.WriteLine($"  SetPropertyValue({amplitudePropertyName}, {amplitudeValue.Value})");
             channel.SetPropertyValue(amplitudePropertyName, amplitudeValue);
 
 //            if (desiredConnection == eDesiredConnection.OpcUa)
 //            {
 //                using StringObject inputMuxPropertyName = "InputMux";
 //                using IntegerObject inputMuxValue = 7;
-//                Console.WriteLine($"  SetPropertyValue({inputMuxPropertyName}, {inputMuxValue.GetValue()})");
+//                Console.WriteLine($"  SetPropertyValue({inputMuxPropertyName}, {inputMuxValue.Value})");
 //                channel.SetPropertyValue(inputMuxPropertyName, inputMuxValue);
 //            }
         }
@@ -838,13 +838,13 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         //    using StringObject rangePropertyName = "Range";
         //    using var rangeProperty = channel.GetPropertyValue(rangePropertyName);
         //    using var rangeValueOld = rangeProperty.QueryInterface<IntegerObject>();
-        //    long range = rangeValueOld.GetValue();
+        //    long range = rangeValueOld.Value;
         //    Console.WriteLine($"Range = {range}"); //-> 0
 
         //    using StringObject dioPropertyName = "DigitalOutputValue";
         //    using var dioProperty = channel.GetPropertyValue(dioPropertyName);
         //    using var dioValueOld = dioProperty.QueryInterface<IntegerObject>();
-        //    long dio = dioValueOld.GetValue();
+        //    long dio = dioValueOld.Value;
         //    Console.WriteLine($"DigitalOutputValue = {dio}"); //-> 0
         //}
 
@@ -869,14 +869,14 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
         using StringObject durationPropertyName = "Duration";
         using FloatObject durationValue = 5d;
-        Console.WriteLine($"  SetPropertyValue({durationPropertyName}, {durationValue.GetValue()})");
+        Console.WriteLine($"  SetPropertyValue({durationPropertyName}, {durationValue.Value})");
         renderer!.SetPropertyValue(durationPropertyName, durationValue);
 
         Console.WriteLine("statistics!.SetPropertyValue");
 
         using StringObject blockSizePropertyName = "BlockSize";
         using IntegerObject blockSizeValue = 20;
-        Console.WriteLine($"  SetPropertyValue({blockSizePropertyName}, {blockSizeValue.GetValue()})");
+        Console.WriteLine($"  SetPropertyValue({blockSizePropertyName}, {blockSizeValue.Value})");
         statistics!.SetPropertyValue(blockSizePropertyName, blockSizeValue);
 
         sw.Stop(); Console.WriteLine("----- elapsed in {0} ms", sw.Elapsed.TotalMilliseconds); sw.Restart();
@@ -886,7 +886,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         Console.WriteLine($"  {inputPorts.Count} input ports available");
 
         using var inputPort = inputPorts[0];
-        var inputPortName = inputPort.GetName();
+        var inputPortName = inputPort.Name;
         Console.WriteLine($"  > using input port 0 '{inputPortName}'");
 
         Console.WriteLine("-> inputPort.Connect(signal)");
@@ -897,7 +897,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         Console.WriteLine($"  {statisticsSignals.Count} statistics signals available");
 
         using var statisticsSignal = statisticsSignals[0];
-        var statisticsSignalName = statisticsSignal.GetName();
+        var statisticsSignalName = statisticsSignal.Name;
         Console.WriteLine($"  > using statistics signal 0 '{statisticsSignalName}'");
 
         Console.WriteLine("statistics!.GetInputPorts()");
@@ -905,7 +905,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         Console.WriteLine($"  {statisticsInputPorts.Count} statistics input ports available");
 
         using var statisticsInputPort = statisticsInputPorts[0];
-        var statisticsInputPortName = statisticsInputPort.GetName();
+        var statisticsInputPortName = statisticsInputPort.Name;
         Console.WriteLine($"  > using statistics input port 0 '{statisticsInputPortName}'");
 
         Console.WriteLine("-> statisticsInputPort.Connect(statisticsSignal)");
@@ -959,7 +959,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             statistics = null;
 
             Console.WriteLine("daqInstance.GetAvailableFunctionBlocks()");
-            var availableFunctionBlockInfos = daqInstance.GetAvailableFunctionBlockTypes();
+            var availableFunctionBlockInfos = daqInstance.AvailableFunctionBlockTypes;
 
             Console.WriteLine($"  {availableFunctionBlockInfos.Count} function blocks available");
 
@@ -973,7 +973,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
                     string key = keyObject;
 
                     using var functionBlockInfo = availableFunctionBlockInfos[keyObject];
-                    var functionBlockId = functionBlockInfo.GetId();
+                    var functionBlockId = functionBlockInfo.Id;
                     Console.WriteLine($"  - '{key}' ({functionBlockId})");
 
                     using var propertyObject = CoreObjectsFactory.CreatePropertyObject();

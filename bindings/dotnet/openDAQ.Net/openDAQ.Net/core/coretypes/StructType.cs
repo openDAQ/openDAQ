@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on D-E-B-U-G.
+//     RTGen (CSharpGenerator v1.0.0) on 29.04.2024 15:46:03.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -75,66 +75,72 @@ public class StructType : DaqType
     }
 
     /// <summary>Gets the list of field names.</summary>
-    /// <returns>The list of field names (String objects)</returns>
-    public IListObject<StringObject> GetFieldNames()
+    public IListObject<StringObject> FieldNames
     {
-        //native output argument
-        IntPtr namesPtr;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawStructType.GetFieldNames(base.NativePointer, out namesPtr);
+            //native output argument
+            IntPtr namesPtr;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawStructType.GetFieldNames(base.NativePointer, out namesPtr);
 
-        return new ListObject<StringObject>(namesPtr, incrementReference: false);
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return new ListObject<StringObject>(namesPtr, incrementReference: false);
+        }
     }
 
     /// <summary>Gets the list of field default values.</summary>
-    /// <returns>The list of field default values (Base objects)</returns>
-    public IListObject<BaseObject> GetFieldDefaultValues()
+    public IListObject<BaseObject> FieldDefaultValues
     {
-        //native output argument
-        IntPtr defaultValuesPtr;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawStructType.GetFieldDefaultValues(base.NativePointer, out defaultValuesPtr);
+            //native output argument
+            IntPtr defaultValuesPtr;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawStructType.GetFieldDefaultValues(base.NativePointer, out defaultValuesPtr);
 
-        return new ListObject<BaseObject>(defaultValuesPtr, incrementReference: false);
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return new ListObject<BaseObject>(defaultValuesPtr, incrementReference: false);
+        }
     }
 
     /// <summary>Gets the list of field types.</summary>
-    /// <returns>The list of field types (Type objects)</returns>
-    public IListObject<DaqType> GetFieldTypes()
+    public IListObject<DaqType> FieldTypes
     {
-        //native output argument
-        IntPtr typesPtr;
-
-        unsafe //use native function pointer
+        get
         {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_rawStructType.GetFieldTypes(base.NativePointer, out typesPtr);
+            //native output argument
+            IntPtr typesPtr;
 
-            if (Result.Failed(errorCode))
+            unsafe //use native function pointer
             {
-                throw new OpenDaqException(errorCode);
-            }
-        }
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawStructType.GetFieldTypes(base.NativePointer, out typesPtr);
 
-        return new ListObject<DaqType>(typesPtr, incrementReference: false);
+                if (Daq.Core.Types.Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return new ListObject<DaqType>(typesPtr, incrementReference: false);
+        }
     }
 }
 
@@ -165,7 +171,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStructType(out objPtr, namePtr.NativePointer, namesPtr.NativePointer, defaultValuesPtr.NativePointer, typesPtr.NativePointer);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new StructType(objPtr, incrementReference: false);
@@ -188,7 +194,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStructType(out objPtr, namePtr.NativePointer, namesPtr.NativePointer, defaultValuesPtr.NativePointer, typesPtr.NativePointer);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }
@@ -218,7 +224,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStructTypeNoDefaults(out objPtr, namePtr.NativePointer, namesPtr.NativePointer, typesPtr.NativePointer);
 
-        if (Result.Succeeded(errorCode))
+        if (Daq.Core.Types.Result.Succeeded(errorCode))
         {
             //create object
             obj = new StructType(objPtr, incrementReference: false);
@@ -240,7 +246,7 @@ public static partial class CoreTypesFactory
         //call native function
         ErrorCode errorCode = createStructTypeNoDefaults(out objPtr, namePtr.NativePointer, namesPtr.NativePointer, typesPtr.NativePointer);
 
-        if (Result.Failed(errorCode))
+        if (Daq.Core.Types.Result.Failed(errorCode))
         {
             throw new OpenDaqException(errorCode);
         }

@@ -29,7 +29,7 @@ public class CoreTypesIntegerTests : OpenDAQTestsBase
         bool? isEqual = default;
 
         Assert.DoesNotThrow(() => errorCode = CoreTypesFactory.CreateInteger(out testObject, expectedValue));
-        Assert.DoesNotThrow(() => actualValue = testObject?.GetValue());
+        Assert.DoesNotThrow(() => actualValue = testObject?.Value);
         Assert.DoesNotThrow(() => isEqual = testObject?.EqualsValue(expectedValue));
 
         Assert.Multiple(() =>
@@ -55,7 +55,7 @@ public class CoreTypesIntegerTests : OpenDAQTestsBase
         bool? isEqual = default;
 
         Assert.DoesNotThrow(() => testObject = CoreTypesFactory.CreateInteger(expectedValue));
-        Assert.DoesNotThrow(() => actualValue = testObject?.GetValue());
+        Assert.DoesNotThrow(() => actualValue = testObject?.Value);
         Assert.DoesNotThrow(() => isEqual = testObject?.EqualsValue(expectedValue));
 
         Assert.Multiple(() =>
@@ -128,7 +128,7 @@ public class CoreTypesIntegerTests : OpenDAQTestsBase
     {
         IntegerObject testObject = expectedValue;
 
-        long returnedValue = testObject.GetValue();
+        long returnedValue = testObject.Value;
         bool isEqual = testObject.EqualsValue(expectedValue);
 
         Assert.Multiple(() =>

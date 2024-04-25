@@ -21,12 +21,21 @@ endif()
 add_executable(${TEST_APP} ${TEST_SOURCES}
 )
 
+if("${Boost_LIBRARIES}")
+    set(BOOST_LIBS ${Boost_LIBRARIES})
+endif()
+
+
 target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           daq::opendaq
                                           daq::opcuatms_client
                                           daq::opendaq_mocks
-                                          $<BUILD_INTERFACE:Boost::asio>
+                                          ${BOOST_LIBS}
 )
+
+# Should link only what you need $<BUILD_INTERFACE:Boost::asio>
+target_link_libraries(${TEST_APP} PRIVATE $<BUILD_INTERFACE:Boost::asio>)
+
 
 add_dependencies(${TEST_APP} daq::opcua_client_module
                              daq::opcua_server_module

@@ -79,7 +79,15 @@ jobs:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
           # for .NET Bindings build
-          $env:SHORT_SHA = "${{ steps.short-sha.outputs.sha }}"
+          if ("${{ steps.short-sha.outputs.sha }}" != "") {
+            $env:SHORT_SHA = "${{ steps.short-sha.outputs.sha }}"
+          } else {
+            if (-not "${{ github.ref }}".Contains("/release/")) {
+              $env:SHORT_SHA = "$("${{ github.ref }}".Split("/")[-1]).$(Get-Date -format "yyyyMMdd.Hmm")" # e.g. "branch-name.20240425.833"
+            } else {
+              $env:SHORT_SHA = ""
+            }
+          }
           mkdir build
           cd build
           mkdir wheels

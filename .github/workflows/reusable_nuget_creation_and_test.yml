@@ -110,7 +110,7 @@ jobs:
           $DAQ_VERSION = '-p:OPENDAQ_PACKAGE_VERSION=${{ steps.daq_version.outputs.DAQ_VERSION }}'
           if (Test-Path '${{ env.nuget_work_path }}/win-x64/*.nupkg') { del '${{ env.nuget_work_path }}/win-x64/*.nupkg' -Force }
           & dotnet restore .
-          & dotnet pack . --no-build --configuration Release_Build $SDK_WIN64_PATH $SDK_LINUX64_PATH $DAQ_VERSION $VERSION_SUFFIX
+          & dotnet pack . --no-build --configuration Release_Build $SDK_WIN64_PATH $SDK_LINUX64_PATH $DAQ_VERSION
         # restoring before packing to create obj\project.assets.json needed for packing
         # packing without building as the binaries (artifacts) have been downloaded before (handled in *.csproj)
 
@@ -173,7 +173,7 @@ jobs:
         run: |
           if (Test-Path ./packages/opendaq.net) { del ./packages/opendaq.net -Recurse -Force }
           & dotnet restore . --configfile .nuget/NuGet.Config --packages ./packages
-          & dotnet test . --no-restore --configuration Release --logger "junit;LogFilePath=${{ env.test_path }}/test_DotNetBindings_nuget.xml"
+          & dotnet test . --no-restore --configuration Release_Build --logger "junit;LogFilePath=${{ env.test_path }}/test_DotNetBindings_nuget.xml"
         # restoring using private config and packages dir to have the NuGet package store local and temporary
         # testing with building but not restoring (done before)
 

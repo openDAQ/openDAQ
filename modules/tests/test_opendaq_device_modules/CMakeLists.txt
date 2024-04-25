@@ -21,16 +21,10 @@ endif()
 add_executable(${TEST_APP} ${TEST_SOURCES}
 )
 
-if("${Boost_LIBRARIES}")
-    set(BOOST_LIBS ${Boost_LIBRARIES})
-endif()
-
-
 target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           daq::opendaq
                                           daq::opcuatms_client
                                           daq::opendaq_mocks
-                                          ${BOOST_LIBS}
 )
 
 # Should link only what you need $<BUILD_INTERFACE:Boost::asio>
